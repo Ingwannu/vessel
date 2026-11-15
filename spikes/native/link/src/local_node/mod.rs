@@ -29,6 +29,7 @@ const COMMAND_CAPACITY: usize = 8;
 #[derive(Debug)]
 pub struct Configuration {
     launch: Option<Launch>,
+    home: NodeHome,
     preferences: Preferences,
 }
 
@@ -56,9 +57,6 @@ pub enum ManagerError {
     /// The displayed process state changed after a confirmation was shown.
     #[error("local node confirmation is stale")]
     StaleConfirmation,
-    /// An owned launch has no retained stderr collector.
-    #[error("local node logs are unavailable")]
-    NoLogs,
     /// The bounded log actor retained the original read cause.
     #[error("local node logs could not be read")]
     Logs(#[source] vessel_local_node::LogError),
@@ -76,6 +74,7 @@ impl Configuration {
         label: &str,
         preferences: Preferences,
     ) -> Result<Self, ManagerError> {
+        let home = NodeHome::new(home)?;
         let launch = if binary.is_file() {
             Some(
                 Launch::new(
@@ -90,6 +89,7 @@ impl Configuration {
         };
         Ok(Self {
             launch,
+            home,
             preferences,
         })
     }
@@ -153,6 +153,7 @@ pub struct Controller {
     commands: mpsc::Sender<actor::Command>,
     state: watch::Receiver<Snapshot>,
     runtime: Option<tokio::runtime::Runtime>,
+    home: NodeHome,
 }
 
 impl Drop for Controller {
@@ -185,6 +186,12 @@ impl Controller {
             drop(runtime.spawn(signals::observe(sender)));
         }
         receiver
+    }
+
+    /// The explicit managed home's existing private log, never a remote path.
+    #[must_use]
+    pub fn log_path(&self) -> PathBuf {
+        self.home.log_path()
     }
 
     /// Explicit read of the bounded tail, executed on the controller reactor.
@@ -230,11 +237,13 @@ impl Controller {
             permit: Arc::new(()),
         });
         let (commands, inbox) = mpsc::channel(COMMAND_CAPACITY);
+        let home = configuration.home.clone();
         drop(runtime.spawn(actor::run(configuration, inbox, published)));
         Ok(Self {
             commands,
             state,
             runtime: Some(runtime),
+            home,
         })
     }
 

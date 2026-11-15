@@ -103,6 +103,18 @@ fn apply(shell: &mut Shell, snapshot: Snapshot, cx: &mut Context<'_, Shell>) {
 }
 
 impl Shell {
+    fn copy_local_log_path(&mut self, cx: &mut Context<'_, Self>) {
+        let Some(controller) = cx
+            .try_global::<crate::local_node::Managed>()
+            .and_then(|managed| managed.controller.as_ref())
+        else {
+            return;
+        };
+        cx.write_to_clipboard(gpui::ClipboardItem::new_string(
+            controller.log_path().display().to_string(),
+        ));
+    }
+
     fn read_local_logs(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let Some(controller) = cx
             .try_global::<crate::local_node::Managed>()

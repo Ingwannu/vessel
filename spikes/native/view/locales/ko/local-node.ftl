@@ -55,3 +55,6 @@ local-node-logs-unavailable = 이 실행에 보관된 로컬 노드 로그가 �
 
 # Settings host picker: start or resume the bundled managed-local node.
 local-node-enable = 로컬 노드 켜기
+
+# Copy only the app-managed local log path, never a remote address.
+local-node-copy-log-path = 로그 경로 복사

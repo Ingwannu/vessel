@@ -55,3 +55,6 @@ local-node-logs-unavailable = No retained local-node logs are available for this
 
 # Settings host picker: start or resume the bundled managed-local node.
 local-node-enable = Enable local node
+
+# Copy only the app-managed local log path, never a remote address.
+local-node-copy-log-path = Copy log path

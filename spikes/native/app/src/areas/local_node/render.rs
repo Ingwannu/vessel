@@ -2,8 +2,8 @@
 
 use super::*;
 use vessel_app_kit::ui::{
-    AnyElement, FluentBuilder as _, InteractiveElement as _, IntoElement as _, ParentElement as _,
-    Styled as _, div,
+    AnyElement, FluentBuilder as _, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, div,
 };
 use vessel_app_kit::{Tokens, outline_button, settings};
 
@@ -21,13 +21,12 @@ pub(crate) fn section(
         .as_ref()
         .map_or(Status::Failed, |snapshot| snapshot.status);
     let working = status == Status::Working;
-    let installed = status != Status::NotInstalled;
     let enabled = shell.prefs.local_node.management == Management::Enabled;
     let keep = shell.prefs.local_node.after_quit == AfterQuit::KeepRunning;
     let manage = settings::switch(
         "manage-local-node",
         enabled,
-        installed && !working,
+        status != Status::NotInstalled && !working,
         working,
         0,
         tokens,
@@ -37,14 +36,78 @@ pub(crate) fn section(
     let after = settings::switch("keep-local-node", keep, true, false, 0, tokens)
         .on_click(cx.listener(move |shell, _event, _window, cx| shell.keep_local_node(!keep, cx)))
         .into_any_element();
+    let failed = shell
+        .areas
+        .local_node
+        .snapshot
+        .as_ref()
+        .is_some_and(|snapshot| snapshot.failure.is_some());
+    let protected = shell
+        .areas
+        .local_node
+        .snapshot
+        .as_ref()
+        .is_some_and(|snapshot| snapshot.active_sessions().is_some());
+    let controls = controls(shell, status, tokens, cx);
+    let card = settings::card(tokens)
+        .child(settings::row_at(
+            words.manage(),
+            Some(words.manage_note().into()),
+            None,
+            Some(manage),
+            true,
+            compact,
+            tokens,
+        ))
+        .child(settings::row_at(
+            words.status(),
+            Some(status_text(shell, status).into()),
+            None,
+            Some(controls),
+            false,
+            compact,
+            tokens,
+        ))
+        .child(settings::row_at(
+            words.keep(),
+            Some(words.keep_note().into()),
+            None,
+            Some(after),
+            false,
+            compact,
+            tokens,
+        ))
+        .when(failed, |card| {
+            card.child(settings::row(
+                words.failed(),
+                protected.then(|| words.protected_note().into()),
+                None,
+                false,
+                tokens,
+            ))
+        })
+        .children(quit_prompt(shell, tokens, cx));
+    settings::section(words.title(), card, tokens).into_any_element()
+}
+
+fn controls(
+    shell: &Shell,
+    status: Status,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let words = shell.words.local_node();
+    let idle = status != Status::Working;
+    let readable = cx
+        .try_global::<crate::local_node::Managed>()
+        .is_some_and(|managed| managed.controller.is_some());
     let mut controls = div().flex().flex_row().flex_wrap();
     if matches!(
         status,
         Status::Paused | Status::Stopped | Status::Disconnected | Status::Failed
-    ) && installed
-    {
+    ) {
         controls = controls.child(
-            outline_button("local-node-start", words.start(), !working, tokens).on_click(
+            outline_button("local-node-start", words.start(), readable && idle, tokens).on_click(
                 cx.listener(|shell, _event, _window, cx| {
                     shell.local_node_action(Action::Start, cx)
                 }),
@@ -54,43 +117,41 @@ pub(crate) fn section(
     if matches!(status, Status::Owned(_)) {
         controls = controls
             .child(
-                outline_button("local-node-restart", words.restart(), !working, tokens).on_click(
+                outline_button("local-node-restart", words.restart(), idle, tokens).on_click(
                     cx.listener(|shell, _event, _window, cx| {
                         shell.local_node_action(Action::Restart, cx)
                     }),
                 ),
             )
             .child(
-                outline_button("local-node-stop", words.stop(), !working, tokens).on_click(
+                outline_button("local-node-stop", words.stop(), idle, tokens).on_click(
                     cx.listener(|shell, _event, _window, cx| {
                         shell.local_node_action(Action::Stop, cx)
                     }),
                 ),
             );
     }
-    let note = status_text(shell, status);
-    controls = controls.child(
-        outline_button("local-node-logs", words.logs(), !working, tokens)
-            .on_click(cx.listener(|shell, _event, window, cx| shell.read_local_logs(window, cx))),
-    );
-    let failed = shell
-        .areas
-        .local_node
-        .snapshot
-        .as_ref()
-        .is_some_and(|snapshot| snapshot.failure.is_some());
-    let confirmation = shell
-        .areas
-        .local_node
-        .snapshot
-        .as_ref()
-        .and_then(Snapshot::confirmation);
-    let active = shell
-        .areas
-        .local_node
-        .snapshot
-        .as_ref()
-        .and_then(Snapshot::active_sessions);
+    controls
+        .child(
+            outline_button("local-node-logs", words.logs(), readable && idle, tokens).on_click(
+                cx.listener(|shell, _event, window, cx| shell.read_local_logs(window, cx)),
+            ),
+        )
+        .child(
+            outline_button("local-log-path", words.copy_log_path(), readable, tokens)
+                .on_click(cx.listener(|shell, _event, _window, cx| shell.copy_local_log_path(cx))),
+        )
+        .into_any_element()
+}
+
+fn quit_prompt(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Option<AnyElement> {
+    if !shell.areas.local_node.quit_refused {
+        return None;
+    }
+    let words = shell.words.local_node();
+    let snapshot = shell.areas.local_node.snapshot.as_ref();
+    let confirmation = snapshot.and_then(Snapshot::confirmation);
+    let active = snapshot.and_then(Snapshot::active_sessions);
     let live_rows = div()
         .flex()
         .flex_col()
@@ -108,87 +169,48 @@ pub(crate) fn section(
                     .unwrap_or_else(|| id.to_string()),
             )
         }));
-    let card = settings::card(tokens)
-        .child(settings::row_at(
-            words.manage(),
-            Some(words.manage_note().into()),
-            None,
-            Some(manage),
-            true,
-            compact,
-            tokens,
-        ))
-        .child(settings::row_at(
-            words.status(),
-            Some(note.into()),
-            None,
-            Some(controls.into_any_element()),
-            false,
-            compact,
-            tokens,
-        ))
-        .child(settings::row_at(
-            words.keep(),
-            Some(words.keep_note().into()),
-            None,
-            Some(after),
-            false,
-            compact,
-            tokens,
-        ))
-        .when(failed, |card| {
-            card.child(settings::row(
-                words.failed(),
-                Some(words.protected_note().into()),
-                None,
-                false,
-                tokens,
-            ))
+    let actions = div()
+        .flex()
+        .flex_row()
+        .flex_wrap()
+        .child(
+            outline_button("local-quit-keep", words.keep_quit(), true, tokens).on_click(
+                cx.listener(|shell, _event, _window, cx| {
+                    shell.keep_local_node(true, cx);
+                    crate::local_node::request_keep_quit(cx);
+                }),
+            ),
+        )
+        .when_some(confirmation, |actions, confirmation| {
+            actions.child(
+                outline_button("local-quit-interrupt", words.interrupt_quit(), true, tokens)
+                    .on_click(cx.listener(move |_shell, _event, _window, cx| {
+                        crate::local_node::request_confirmed_quit(confirmation.clone(), cx)
+                    })),
+            )
         })
-        .when(shell.areas.local_node.quit_refused, |card| {
-            let actions = div()
-                .flex()
-                .flex_row()
-                .flex_wrap()
-                .child(
-                    outline_button("local-quit-keep", words.keep_quit(), true, tokens).on_click(
-                        cx.listener(|shell, _event, _window, cx| {
-                            shell.keep_local_node(true, cx);
-                            crate::local_node::request_keep_quit(cx);
-                        }),
-                    ),
-                )
-                .when_some(confirmation, |actions, confirmation| {
-                    actions.child(
-                        outline_button(
-                            "local-quit-interrupt",
-                            words.interrupt_quit(),
-                            true,
-                            tokens,
-                        )
-                        .on_click(cx.listener(
-                            move |_shell, _event, _window, cx| {
-                                crate::local_node::request_confirmed_quit(confirmation.clone(), cx);
-                            },
-                        )),
-                    )
-                })
-                .child(
-                    outline_button("local-quit-cancel", words.cancel_quit(), true, tokens)
-                        .on_click(cx.listener(|shell, _event, _window, cx| {
-                            shell.areas.local_node.quit_refused = false;
-                            cx.notify();
-                        })),
-                );
-            card.child(live_rows).child(settings::row(
+        .child(
+            outline_button("local-quit-cancel", words.cancel_quit(), true, tokens).on_click(
+                cx.listener(|shell, _event, _window, cx| {
+                    shell.areas.local_node.quit_refused = false;
+                    cx.notify();
+                }),
+            ),
+        );
+    Some(
+        div()
+            .flex()
+            .flex_col()
+            .child(live_rows)
+            .child(settings::row(
                 words.quit_refused(),
                 Some(words.protected_note().into()),
                 Some(actions.into_any_element()),
                 false,
                 tokens,
             ))
-        });
-    settings::section(words.title(), card, tokens).into_any_element()
+            .into_any_element(),
+    )
 }
 
 fn status_text(shell: &Shell, status: Status) -> &str {

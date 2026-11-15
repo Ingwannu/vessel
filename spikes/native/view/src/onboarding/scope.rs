@@ -72,7 +72,7 @@ impl Scope {
         }
     }
     /// Reused setup controls may act only on the pinned target. Ordinary
-    /// session traffic uses check(), so unrelated conversations keep running.
+    /// session traffic uses `check()`, so unrelated conversations keep running.
     ///
     /// # Errors
     /// A settings control tried another alias or another authenticated identity.

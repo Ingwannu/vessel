@@ -3,8 +3,8 @@
 use super::*;
 use std::collections::BTreeMap;
 use vessel_app_kit::ui::{
-    AnyElement, FluentBuilder as _, InteractiveElement as _, IntoElement as _, ParentElement as _,
-    Styled as _, div,
+    AnyElement, FluentBuilder as _, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, div,
 };
 use vessel_app_kit::{Tokens, outline_button, settings};
 use vessel_app_view::desktop::cli::{Availability, Snapshot, Status as CliStatus};

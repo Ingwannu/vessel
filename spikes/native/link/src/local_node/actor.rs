@@ -61,7 +61,7 @@ pub(super) async fn run(
                     .or_else(|| log_source.clone())
                 {
                     Some(logs) => logs.read().await.map_err(ManagerError::Logs),
-                    None => Err(ManagerError::NoLogs),
+                    None => config.home.log_tail().await.map_err(ManagerError::Files),
                 };
                 let _closed = reply.send(result);
             }
