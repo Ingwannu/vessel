@@ -210,8 +210,21 @@ impl LocalNode {
     /// # Errors
     /// Any stop, start, authentication or readiness failure.
     pub async fn restart(&mut self, policy: StopPolicy) -> Result<LocalStatus, LocalNodeError> {
+        self.restart_observed(policy, |_logs| {}).await
+    }
+
+    /// Retain replacement startup diagnostics even if its readiness later fails.
+    /// The old owned process must exit before this observer can receive a reader.
+    ///
+    /// # Errors
+    /// The same protected stop, actual exit, startup or readiness failures as restart.
+    pub async fn restart_observed(
+        &mut self,
+        policy: StopPolicy,
+        on_logs: impl FnOnce(LogReader),
+    ) -> Result<LocalStatus, LocalNodeError> {
         let _exit = self.stop(policy).await?;
-        let replacement = Self::start(self.launch.clone()).await?;
+        let replacement = Self::start_observed(self.launch.clone(), on_logs).await?;
         *self = replacement;
         Ok(self.status())
     }

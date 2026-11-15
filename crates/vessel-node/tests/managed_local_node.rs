@@ -108,7 +108,9 @@ async fn owned_restart_waits_for_old_exit_and_keep_on_quit_releases_control() {
         let mut local = LocalNode::start(launch(root.path(), Path::new(env!("CARGO_BIN_EXE_vesseld")))).await.unwrap();
         let old = local.client().unwrap().clone();
         let node = old.node().id;
-        assert_eq!(local.restart(StopPolicy::Protect).await.unwrap(), LocalStatus::Owned(node));
+        let mut replacement_logs = None;
+        assert_eq!(local.restart_observed(StopPolicy::Protect, |logs| replacement_logs = Some(logs)).await.unwrap(), LocalStatus::Owned(node));
+        assert!(replacement_logs.is_some(), "replacement startup diagnostics were not retained");
         old.closed().await;
         let cleanup = local.client().unwrap().clone();
         assert_eq!(local.quit(QuitPolicy::KeepRunning).await.unwrap(), LocalStatus::Kept(node));

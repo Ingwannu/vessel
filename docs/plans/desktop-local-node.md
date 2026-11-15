@@ -130,3 +130,13 @@ DetachRefused has one cause, missing release capability, and its only extra valu
 is the recovered owner. A private self-executable echo fixture exercises Bound
 refusal, retained live authority, continued child I/O, and explicit-drop cleanup.
 The fixture is added, not yet executed; production launches remain Releasable.
+
+### Replacement startup diagnostics
+
+`restart_observed` reuses the startup observer after protected stop and actual
+old-child exit. A failed replacement must not leave the UI reading only the old
+process's stderr. The actor retains the newest observer independently of the
+successful lease, and log requests prefer it. The existing real managed-node
+restart fixture now also requires the replacement observer; the failed-restart
+log path itself still needs runtime/capture verification. No PID or extra spawn
+contract is introduced, and ordinary restart delegates to the same method.
