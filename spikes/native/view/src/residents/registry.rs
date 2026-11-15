@@ -60,6 +60,19 @@ impl Residents {
         claim: PanelClaim,
         pane: PaneId,
     ) -> Result<ResidentToken, ResidentProblem> {
+        // A placement key cannot move a resident to another node, nor can an
+        // older-session bridge claim a different session. Registry membership
+        // and the actual connection lease are additional admission checks.
+        match &claim.workspace {
+            crate::layout::LayoutKey::Workspace { node, .. } if *node != address.node => {
+                return Err(ResidentProblem::OwnerConflict);
+            }
+            crate::layout::LayoutKey::Session { session, .. } if *session != address.session => {
+                return Err(ResidentProblem::OwnerConflict);
+            }
+            crate::layout::LayoutKey::Workspace { .. }
+            | crate::layout::LayoutKey::Session { .. } => {}
+        }
         if self.entries.iter().any(|(session, entry)| {
             *session != address.session && entry.claims.contains_key(&claim)
         }) {
