@@ -292,13 +292,11 @@ async fn open(launch: &Launch) -> Result<(Lease, Option<LogReader>), LocalNodeEr
                 serving(&client).await?;
                 return Ok((Lease::Attached(client), None));
             }
-            Err(LocalNodeError::Connect(LocalConnectLocalNodeError::Unreachable {
-                source,
-                ..
-            })) if matches!(
-                source.kind(),
-                ErrorKind::NotFound | ErrorKind::ConnectionRefused
-            ) => {}
+            Err(LocalNodeError::Connect(LocalConnectError::Unreachable { source, .. }))
+                if matches!(
+                    source.kind(),
+                    ErrorKind::NotFound | ErrorKind::ConnectionRefused
+                ) => {}
             Err(error) => return Err(error),
         }
     }
@@ -356,7 +354,7 @@ async fn stop(lease: &mut Lease, policy: StopPolicy) -> Result<ProcessExit, Loca
         StopPolicy::InterruptConfirmed => StopWhen::Now,
     };
     match client.stop_node(when).await {
-        Ok(()) | Err(CallLocalNodeError::Disconnected) => {}
+        Ok(()) | Err(CallError::Disconnected) => {}
         Err(error) => return Err(LocalNodeError::Call(error)),
     }
     Ok(child.wait().await?)
