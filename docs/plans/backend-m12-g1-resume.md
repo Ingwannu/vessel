@@ -1,4 +1,31 @@
-# G1 resume record — 2026-11-13
+# Git and pull-request resume record — 2026-11-15
+
+Current source is the committed `54b8aaa1` base plus `175491aa` and
+`d230934a`. The current result is in
+[the plan's PR closeout section](backend-m12-g1.md#pr-closeout-result-and-resume-point-2026-11-15).
+The older stop record below is historical, not a statement that the current
+registered Git/PR screen remains an uncommitted prototype.
+
+- Latest whole native gate: all six steps passed; 1140 tests passed,
+  none failed, one ignored on `d230934a`. The earlier wording commit also
+  passed its whole gate (1139 passed, none failed, one ignored).
+- Remaining assigned verification completed: 800×600 info-window retakes,
+  fixture PR creation and squash merge, board outcomes, duplicate review
+  verdict and Korean title wording. Forty-one final captures were inspected;
+  their source/executable/image hashes are in the private review artifacts.
+- A discovered post-merge contradiction was fixed: a merged request no
+  longer says it is ready to merge. Existing review facts remain visible.
+- Review is the next step, followed by native-lead integration for
+  0.0.0.0.19. No release/push was made. The original checkout is unchanged;
+  the finishing checkout has its own build target. All owned fleet/display
+  processes were stopped. No other track is waiting on a new shared control
+  from this closeout.
+- Unverified: real forge accounts/browser opening/Windows, Exists race,
+  write-pending visuals and closed/unknown-state UI. The project-wide PR page
+  is outside this closeout. Do not rerun the mutating final script against
+  the same fixture; create a new disposable run for reproduction.
+
+## Historical stop record — 2026-11-13
 
 The credit stop ends this run after its already-started F integration slice.
 Git screen (b) and pull requests are **not delivered**. Do not confuse the

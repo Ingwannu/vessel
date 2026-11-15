@@ -1055,3 +1055,46 @@ This follows Paseo's state header and Activity summary (the pane has no extra
 readiness line); Vessel's additional readiness fact remains for open requests.
 The previous closeout gate passed 1139 tests with none failed and one ignored;
 this changed tree needs its own gate and merged-facts retake.
+
+### PR closeout result and resume point (2026-11-15)
+
+- Code: `175491aa` removes matching review-verdict repetition and unifies the
+  Korean form title; `d230934a` removes historical readiness from non-open
+  facts. Both extend existing view rules and the existing facts drawing.
+  There is no node, wire, dependency or shared-control change. The only
+  translation edit is the agreed Korean title key.
+- Native gates: all six steps (fonts, fmt, quality, clippy with warnings
+  denied, app build, tests) passed on each code commit. `175491aa`: 1139
+  passed, none failed, one ignored. `d230934a`: 1140 passed, none failed,
+  one ignored. Each changed crate actually recompiled. The narrow clippy
+  checks passed too. Root source is unchanged; no root compile gate was run.
+- The final capture set has 41 individually inspected images. It includes
+  ready/failing facts at 800×600 in all four theme/language combinations,
+  forms and facts at 390×844, 800×600 at scale 1.5, successful creation and
+  squash merge at 1280×800, their board card lines, and merged facts at
+  1280, 800 and 390 in dark English and light Korean. Scrolled failing
+  facts demonstrate footer and feedback access. The manifest pins actual
+  pixel dimensions, image hashes, source commits and fresh executable hashes.
+  Thirty-three captures use `175491aa`; eight terminal/scrolled retakes use
+  `d230934a`. One obsolete contradictory merged-facts capture is separate
+  failure evidence, excluded from the final set.
+- The adapted final-forge script ran once on a fresh disposable fleet. UI
+  creation made request #311; UI squash merged #301. An independent
+  `pr.show --refresh` confirmed both outcomes and local-only push targets.
+  The header, menu and board updated. Fixture initialization checked the
+  other seeded states and read-only refusals before these writes.
+- The fixture completed writes before the first shot: those captures are
+  named for their success toast, not claimed as pending-state evidence.
+  Not verified: real forge accounts, browser opening, Windows, the
+  `OpenOutcome::Exists` race, write-pending visuals, or closed/unknown
+  pull-state UI (the latter states have pure rule coverage). This closeout
+  does not implement the project-wide pull request page.
+- The old WIP/resume entries above are historical. Current committed code
+  and its gates supersede them; the inherited `54b8aaa1` gate passed 1137
+  tests with none failed and one ignored. The original checkout was left
+  untouched; finishing used a separate checkout and build target.
+- All disposable nodes, the app and its authenticated virtual display were
+  stopped by verified process identity. No production permissions changed.
+  Artifact locations and run identifiers are in the private review report.
+- Next: source and visual review, then native-lead integration for build
+  0.0.0.0.19. No push or release was performed by this slice.
