@@ -1286,3 +1286,17 @@ scratch even after the VM's regenerable label cache is removed.
 - Impact: literal defaults plus actual wrapper/child bounds tests in both themes
   are authored; final F1 checks/first-use remain owed. The isolated approved99
   source and its186 result are untouched and do not prove this new profile.
+
+
+### Control-check preflight correction, cancelled before compilation
+
+The queued Kit-only def6 control suite was superseded with coordinator cc0972d4
+approval: state cancelled143, no compiler/test result. Static follow-up found a
+new style() test missing mut (GPUI's accessor is mutable), and a wrong assumption
+that the global Body step is20 high (it remains14/21). Only the opted-in Form /
+ReadOnlyForm frame now explicitly uses the source20-point line; Settings and
+HostFilter keep their old type/default values. The readonly regression now
+checks actual rendered style font14/line20 rather than asserting an incorrect
+global Body metric. No expectation is relaxed to21 or suppression added.
+Corrected source receives one ordinary short Kit suite under schedules, no
+priority or extra label. Prior99 shared-picker186 proof remains distinct.

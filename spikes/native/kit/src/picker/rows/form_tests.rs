@@ -18,7 +18,7 @@ fn form_slot_is_opt_in_and_does_not_resize_legacy_leading() {
         Some(14.0)
     );
     for scheme in [Scheme::Dark, Scheme::Light] {
-        let frame = form_glyph(Glyph::Brain, &Tokens::of(scheme));
+        let mut frame = form_glyph(Glyph::Brain, &Tokens::of(scheme));
         assert_eq!(frame.style().size.width, Some(gpui::px(18.0).into()));
         assert_eq!(frame.style().size.height, Some(gpui::px(18.0).into()));
     }

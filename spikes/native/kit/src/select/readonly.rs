@@ -49,14 +49,14 @@ mod tests {
                 assert_eq!(g.vertical, Some(vertical));
                 assert_eq!(g.radius, Radius::Points(8.0));
                 assert_eq!(g.type_, Type::Body);
-                let (font, line, _) = Type::Body.metrics();
-                assert_eq!(font.to_bits(), 14.0_f32.to_bits());
-                assert_eq!(line.to_bits(), 20.0_f32.to_bits());
+                assert_eq!(g.line_height, Some(20.0));
                 let mut value = readonly_value("An immutable chat", sizing, &tokens);
                 assert_eq!(value.style().min_size.height, Some(px(height).into()));
                 assert_eq!(value.style().padding.left, Some(px(12.0).into()));
                 assert_eq!(value.style().border_widths.left, Some(px(1.0).into()));
                 assert_eq!(value.style().opacity, None);
+                assert_eq!(value.style().text.font_size, Some(px(14.0).into()));
+                assert_eq!(value.style().text.line_height, Some(px(20.0).into()));
             }
         }
     }

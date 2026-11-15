@@ -46,6 +46,7 @@ pub(super) fn opacity(
     }
 }
 const POINTER_HEIGHT: f32 = 32.0;
+const FORM_LINE_HEIGHT: f32 = 20.0;
 pub(super) const PRESSED_OPACITY: f32 = 0.85;
 const DISABLED_OPACITY: f32 = 0.5;
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -61,6 +62,7 @@ pub(super) struct Geometry {
     pub(super) gap: f32,
     pub(super) radius: Radius,
     pub(super) type_: Type,
+    pub(super) line_height: Option<f32>,
 }
 pub(super) fn geometry(
     presentation: impl Into<FramePresentation>,
@@ -84,6 +86,7 @@ pub(super) fn geometry(
             gap: spacing::S2,
             radius: Radius::Full,
             type_: Type::Body,
+            line_height: None,
         },
         FramePresentation::Select(Presentation::Form) | FramePresentation::ReadOnlyForm => {
             Geometry {
@@ -99,6 +102,7 @@ pub(super) fn geometry(
                 gap: spacing::S2,
                 radius: Radius::Points(radius::R2),
                 type_: Type::Body,
+                line_height: Some(FORM_LINE_HEIGHT),
             }
         }
         FramePresentation::Select(Presentation::HostFilter) => Geometry {
@@ -108,6 +112,7 @@ pub(super) fn geometry(
             gap: spacing::S1_5,
             radius: Radius::Points(radius::MD),
             type_: Type::Label,
+            line_height: None,
         },
     }
 }

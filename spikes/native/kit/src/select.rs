@@ -263,6 +263,9 @@ fn frame(g: Geometry, paint: Paint) -> Div {
         .bg(paint.background)
         .type_(g.type_)
         .text_color(paint.foreground);
+    if let Some(line) = g.line_height {
+        trigger = trigger.line_height(px(crate::fonts::ui(line)));
+    }
     if let Some(height) = g.minimum {
         trigger = trigger.min_h(px(height));
     }
