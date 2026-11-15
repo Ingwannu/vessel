@@ -99,3 +99,11 @@ UI capture, release-size measurement, browser/wasm/Windows execution or plugin
 validator approval is claimed. Source work and static checks ran as the
 repository owner; compilers and test subprocesses ran only in the build VM.
 No service permissions or live data were changed.
+
+V4 returned the adapted packet on T9: its generated lexical namespace was
+selected by opaque boolean arguments. `Namespace::{Current, Parent}` now
+names that choice at every storage/initializer call. The fixture's compiler
+and catalog-layout selectors use named private enums for the same reason.
+These substitutions preserve the emitted text, case counts, compiler modes
+and all assertions. Exact changed-source strict and compiler-regression
+validation is owed; the earlier 1465/0/2 run is retained as prior evidence.

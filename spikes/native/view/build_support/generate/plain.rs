@@ -11,6 +11,23 @@ use super::{BuildError, Contracts, Language, pascal, snake, source};
 
 pub(super) const FIELDS_PER_RESOLVER: usize = 64;
 
+// Cache nodes live in a child module; explicit namespaces keep generated
+// references readable without making callers encode that distinction as flags.
+#[derive(Debug, Clone, Copy)]
+enum Namespace {
+    Current,
+    Parent,
+}
+
+impl Namespace {
+    fn prefix(self) -> &'static str {
+        match self {
+            Self::Current => "",
+            Self::Parent => "super::",
+        }
+    }
+}
+
 #[derive(Debug)]
 enum Value {
     Message(String),
@@ -30,24 +47,24 @@ impl Field {
         }
     }
 
-    fn storage(&self, nested: bool) -> String {
+    fn storage(&self, namespace: Namespace) -> String {
         match &self.value {
             Value::Message(_) => "Box<str>".to_owned(),
-            Value::Area(area) => format!("{}Plain{}", qualifier(nested), pascal(area)),
+            Value::Area(area) => format!("{}Plain{}", namespace.prefix(), pascal(area)),
         }
     }
 
-    fn initializer(&self, nested: bool) -> String {
+    fn initializer(&self, namespace: Namespace) -> String {
         match &self.value {
             Value::Message(key) => {
                 format!(
                     "{}resolve(bundle, english, {key:?}, None)?.into_boxed_str()",
-                    qualifier(nested)
+                    namespace.prefix()
                 )
             }
             Value::Area(area) => format!(
                 "{}Plain{}::resolve(bundle, english)?",
-                qualifier(nested),
+                namespace.prefix(),
                 pascal(area)
             ),
         }
@@ -122,7 +139,12 @@ impl Layout {
             writeln!(output, "inner: {}::Root,", self.module)?;
         } else {
             for field in &self.fields {
-                writeln!(output, "r#{}: {},", field.name, field.storage(false))?;
+                writeln!(
+                    output,
+                    "r#{}: {},",
+                    field.name,
+                    field.storage(Namespace::Current)
+                )?;
                 let _previous = paths.insert(field.key().to_owned(), Projection::Direct);
             }
         }
@@ -153,7 +175,12 @@ impl Layout {
             )?;
         } else {
             for field in &self.fields {
-                writeln!(output, "r#{}: {},", field.name, field.initializer(false))?;
+                writeln!(
+                    output,
+                    "r#{}: {},",
+                    field.name,
+                    field.initializer(Namespace::Current)
+                )?;
             }
         }
         writeln!(output, "}})\n}}\n}}")?;
@@ -216,10 +243,6 @@ pub(super) fn generate(
     Ok(paths)
 }
 
-fn qualifier(nested: bool) -> &'static str {
-    if nested { "super::" } else { "" }
-}
-
 fn span(length: usize) -> Result<usize, BuildError> {
     let mut span = FIELDS_PER_RESOLVER;
     while length.div_ceil(span) > FIELDS_PER_RESOLVER {
@@ -269,7 +292,7 @@ fn node(
                 output,
                 "pub(super) r#{}: {},",
                 field.name,
-                field.storage(true)
+                field.storage(Namespace::Parent)
             )?;
             let _previous = paths.insert(field.key().to_owned(), Projection::Nested(path.to_vec()));
         }
@@ -284,7 +307,12 @@ fn node(
     )?;
     if leaf {
         for field in fields {
-            writeln!(output, "r#{}: {},", field.name, field.initializer(true))?;
+            writeln!(
+                output,
+                "r#{}: {},",
+                field.name,
+                field.initializer(Namespace::Parent)
+            )?;
         }
     } else {
         for (index, (child, _)) in children.iter().enumerate() {
