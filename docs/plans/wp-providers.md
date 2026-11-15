@@ -72,3 +72,25 @@ has local resource bounds. The command prefix is represented as program plus
 arguments rather than an untyped argv array. Model metadata in this first
 contract includes identity, label, default, visibility and thinking choices;
 descriptions, aliases and token-window metadata remain a later extension.
+
+## Catalogue owner checkpoint
+
+The registry resolves built-in, configured and inert plugin definitions before
+clients are built. Model merge and native-option catalogue conversion are pure
+harness policies. The agent's provider probe reuses the existing prompt-free
+probe, clearing model/resume/options/MCP inputs; fake ACP is the only process
+used by its test. The node cache and bounded async owner are staged under
+cfg(test), pending request wiring. Source tests cover passive cache misses,
+host-versus-workspace coalescing, forced refresh generations, plugin replacement,
+finite deadlines, shutdown and pending-call settlement; their execution is still
+pending. The first local narrow compile reached harness policy and found a
+similar-name lint, now corrected.
+
+Differences at this stage: passive diagnostics report NotChecked rather than
+starting background discovery; all discovery work, including admission wait,
+shares one finite catalogue deadline. Typed failure classes replace raw provider
+error prose so credentials cannot cross a diagnostic boundary. Configuration
+override iteration is deterministic by provider ID. Native ACP/direct mode IDs
+remain the ones observed by the transport, and are not silently translated to
+the reference manifest's mode dialect. This is a policy/discovery stage, not
+complete Claude/OpenCode/Pi/OMP native execution parity.

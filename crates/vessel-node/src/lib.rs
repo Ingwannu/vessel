@@ -89,6 +89,9 @@ mod persist;
 mod principal;
 mod probes;
 mod profiles;
+// Staged until provider calls can use the shared pending method-table rows.
+#[cfg(test)]
+mod providers;
 mod push;
 mod readiness;
 mod relays;

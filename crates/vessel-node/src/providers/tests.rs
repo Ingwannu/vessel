@@ -1,0 +1,254 @@
+//! Staged reducer proofs: cached reads start no executable, and fake observations
+//! cannot overwrite a newer definition or forced refresh.
+
+use super::cache::*;
+use chrono::{DateTime, Utc};
+use std::collections::BTreeMap;
+use vessel_harness::providers::{
+    ConfigurationRequirement, PluginDefinition, PluginRevision, ProviderRegistry,
+};
+use vessel_proto::{
+    agents::AgentVersion,
+    providers::{
+        Catalogue, CatalogueDirectory, CatalogueScope, DiscoveryFailure, Enabled, LaunchSettings,
+        ModeCatalogue, Models, ProviderId, ProviderOverride, ProviderOverrides, ProviderState,
+        UnavailableReason,
+    },
+};
+
+fn registry() -> ProviderRegistry {
+    ProviderRegistry::build(&ProviderOverrides::default(), &[]).unwrap()
+}
+fn id(id: &str) -> ProviderId {
+    id.parse().unwrap()
+}
+fn time() -> DateTime<Utc> {
+    "2026-01-01T00:00:00Z".parse().unwrap()
+}
+fn catalogue() -> Catalogue {
+    Catalogue {
+        models: Models::default(),
+        modes: ModeCatalogue::new(vec![], None).unwrap(),
+    }
+}
+fn ready() -> Observation {
+    Observation::Ready {
+        catalogue: catalogue(),
+        version: Some("1.2.3".parse::<AgentVersion>().unwrap()),
+    }
+}
+fn start(cache: &mut Cache, provider: &str, scope: &CatalogueScope, refresh: Refresh) -> Work {
+    let Admission::Start(work) = cache.begin(&id(provider), scope, refresh).unwrap() else {
+        panic!("expected admitted fake work")
+    };
+    work
+}
+fn workspace(name: &str) -> CatalogueScope {
+    CatalogueScope::Workspace(CatalogueDirectory::new(std::env::temp_dir().join(name)).unwrap())
+}
+
+#[test]
+fn cached_diagnostics_do_not_launch_or_consume_target_capacity() {
+    let mut cache = Cache::new(registry());
+    for n in 0..=MAX_CATALOGUES {
+        let read = cache
+            .cached(&id("claude"), &workspace(&format!("fake-{n}")))
+            .unwrap();
+        assert_eq!(
+            read.entry.state,
+            ProviderState::Unavailable {
+                reason: UnavailableReason::NotChecked
+            }
+        );
+        assert_eq!(read.version, None);
+    }
+    assert_eq!(
+        cache.snapshot(&CatalogueScope::Global).unwrap().len(),
+        registry().definitions().len()
+    );
+    assert!(matches!(
+        cache
+            .begin(&id("claude"), &CatalogueScope::Global, Refresh::Cached)
+            .unwrap(),
+        Admission::Start(_)
+    ));
+    assert!(matches!(
+        cache.cached(&id("unknown"), &CatalogueScope::Global),
+        Err(CacheError::UnknownProvider)
+    ));
+}
+
+#[test]
+fn host_catalogues_coalesce_and_target_catalogues_stay_distinct() {
+    let mut cache = Cache::new(registry());
+    let first = start(&mut cache, "claude", &workspace("first"), Refresh::Cached);
+    let Admission::Joined(joined) = cache
+        .begin(&id("claude"), &workspace("second"), Refresh::Cached)
+        .unwrap()
+    else {
+        panic!("one host-scoped observation")
+    };
+    assert_eq!(joined, first.ticket);
+    let observed = cache.complete(&first, ready(), time()).unwrap();
+    let Admission::Ready(cached) = cache
+        .begin(&id("claude"), &workspace("third"), Refresh::Cached)
+        .unwrap()
+    else {
+        panic!("cached host result")
+    };
+    assert_eq!(cached, observed);
+    assert_eq!(cached.version, Some("1.2.3".parse().unwrap()));
+    let a = start(&mut cache, "opencode", &workspace("first"), Refresh::Cached);
+    let b = start(
+        &mut cache,
+        "opencode",
+        &workspace("second"),
+        Refresh::Cached,
+    );
+    assert_ne!(a.ticket, b.ticket);
+    assert_ne!(a.scope, b.scope);
+}
+
+#[test]
+fn a_late_result_from_before_a_forced_refresh_cannot_publish() {
+    let mut cache = Cache::new(registry());
+    let old = start(
+        &mut cache,
+        "codex",
+        &CatalogueScope::Global,
+        Refresh::Cached,
+    );
+    let new = start(&mut cache, "codex", &CatalogueScope::Global, Refresh::Force);
+    assert!(cache.complete(&old, ready(), time()).is_none());
+    let current = cache
+        .complete(
+            &new,
+            Observation::Failed(DiscoveryFailure::ProbeFailed),
+            time(),
+        )
+        .unwrap();
+    assert_eq!(
+        current.entry.state,
+        ProviderState::Error {
+            failure: DiscoveryFailure::ProbeFailed
+        }
+    );
+    assert!(cache.complete(&old, ready(), time()).is_none());
+    assert_eq!(
+        cache.cached(&id("codex"), &CatalogueScope::Global).unwrap(),
+        current
+    );
+}
+
+#[test]
+fn disabled_providers_are_not_admitted_and_unavailability_is_not_an_empty_catalogue() {
+    let mut cache = Cache::new(registry());
+    let Admission::Ready(disabled) = cache
+        .begin(&id("omp"), &CatalogueScope::Global, Refresh::Force)
+        .unwrap()
+    else {
+        panic!("disabled must not start")
+    };
+    assert_eq!(
+        disabled.entry.state,
+        ProviderState::Unavailable {
+            reason: UnavailableReason::Disabled
+        }
+    );
+    let work = start(&mut cache, "pi", &CatalogueScope::Global, Refresh::Cached);
+    let result = cache
+        .complete(
+            &work,
+            Observation::Unavailable(UnavailableReason::DriverMissing),
+            time(),
+        )
+        .unwrap();
+    assert_eq!(
+        result.entry.state,
+        ProviderState::Unavailable {
+            reason: UnavailableReason::DriverMissing
+        }
+    );
+}
+
+#[test]
+fn generation_replacement_retains_unchanged_work_and_refuses_changed_results() {
+    let mut cache = Cache::new(registry());
+    let unchanged = start(
+        &mut cache,
+        "codex",
+        &CatalogueScope::Global,
+        Refresh::Cached,
+    );
+    let changed = start(
+        &mut cache,
+        "claude",
+        &CatalogueScope::Global,
+        Refresh::Cached,
+    );
+    let overrides = ProviderOverrides::new(BTreeMap::from([(
+        id("claude"),
+        ProviderOverride {
+            enabled: Some(Enabled::Off),
+            ..ProviderOverride::default()
+        },
+    )]))
+    .unwrap();
+    let cancelled = cache.replace(ProviderRegistry::build(&overrides, &[]).unwrap());
+    assert_eq!(cancelled, [changed.ticket]);
+    assert!(cache.complete(&changed, ready(), time()).is_none());
+    assert!(cache.complete(&unchanged, ready(), time()).is_some());
+    assert_eq!(
+        cache
+            .cached(&id("claude"), &CatalogueScope::Global)
+            .unwrap()
+            .entry
+            .state,
+        ProviderState::Unavailable {
+            reason: UnavailableReason::Disabled
+        }
+    );
+}
+
+#[test]
+fn plugin_replacement_invalidates_only_its_registration_generation() {
+    let mut plugin = PluginDefinition {
+        id: id("custom-plugin"),
+        label: "Plugin".parse().unwrap(),
+        configuration: ConfigurationRequirement::Optional,
+        revision: PluginRevision::new(1),
+        launch: LaunchSettings::default(),
+    };
+    let mut cache = Cache::new(
+        ProviderRegistry::build(&ProviderOverrides::default(), &[plugin.clone()]).unwrap(),
+    );
+    let work = start(
+        &mut cache,
+        "custom-plugin",
+        &CatalogueScope::Global,
+        Refresh::Cached,
+    );
+    plugin.revision = PluginRevision::new(2);
+    assert_eq!(
+        cache.replace(ProviderRegistry::build(&ProviderOverrides::default(), &[plugin]).unwrap()),
+        [work.ticket]
+    );
+    assert!(cache.complete(&work, ready(), time()).is_none());
+}
+
+#[test]
+fn scope_growth_is_bounded_without_evicting_an_inflight_observation() {
+    let mut cache = Cache::new(registry());
+    for n in 0..MAX_CATALOGUES {
+        let _work = start(
+            &mut cache,
+            "opencode",
+            &workspace(&format!("bound-{n}")),
+            Refresh::Cached,
+        );
+    }
+    assert!(matches!(
+        cache.begin(&id("opencode"), &workspace("one-more"), Refresh::Cached),
+        Err(CacheError::Capacity)
+    ));
+}

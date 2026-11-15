@@ -1534,3 +1534,20 @@ name `vessel_proc` in store to `src/lock/`, which delegates the lock query
 only. The real CLI caller restricts proc's signal entry point to the force
 module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
+
+## Provider registry and catalogue policy (ADR 0081, staged service)
+
+`vessel-proto::providers` owns validated identities, bounded launch settings,
+model/mode catalogues, create inputs and reader-safe diagnostic request values.
+Its feature version is unassigned and no method is registered.
+`vessel-harness::providers` owns the pure manifest, inheritance, command/env
+overlays, model merge and registry generation; plugin definitions enter as inert
+values. `vessel-agent::probe_provider_with` reuses one prompt-free agent probe
+for both models and modes. Only a compatible existing driver can be used.
+
+The test-only node provider module owns cache admission and bounded asynchronous
+refresh. A passive diagnostic never starts a process; a late old generation
+cannot publish after replacement. Product wiring, configuration persistence and
+missing native drivers remain separate work. Existing ACP sessions and node
+settings retain their current behaviour. No crate edge or external dependency
+is added by this stage.

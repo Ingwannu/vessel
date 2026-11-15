@@ -61,7 +61,7 @@ pub struct ThinkingChoice {
     pub default: Option<DefaultChoice>,
 }
 
-/// Untrusted fields are validated together by Model::new or deserialization.
+/// Untrusted fields are validated together by `Model::new` or deserialization.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ModelSpec {
     /// Native identifier; never interpreted as a provider id.

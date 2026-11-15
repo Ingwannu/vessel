@@ -70,6 +70,7 @@ mod output;
 mod permissions;
 mod probe;
 mod process;
+mod provider_catalogue;
 mod questions;
 mod recent;
 mod stderr;
@@ -90,6 +91,7 @@ pub use options::{KindName, OptionError};
 pub use output::{AgentOutput, AgentOutputs};
 pub use probe::{ProbeError, Probed, probe, probe_with};
 pub use process::AgentProcess;
+pub use provider_catalogue::{ProviderObservation, ProviderProbeError, probe_provider_with};
 /// The command [`AgentProcess::spawn`] runs, and the signals it takes;
 /// re-exported so callers need no edge to `vessel-proc`.
 pub use vessel_proc::{CommandSpec, Signal};
