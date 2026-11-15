@@ -146,11 +146,15 @@ impl Page {
 
     /// The owner invalidates its element references at this same boundary.
     pub(crate) fn invalidate(&mut self) -> Result<BrowserRevision, PageError> {
-        let _cleared_generation = self
-            .references
-            .invalidate()
-            .map_err(crate::snapshot::SnapshotError::from)?;
-        self.revision = self.revision.next().ok_or(PageError::Exhausted)?;
+        if let Err(error) = self.references.invalidate() {
+            self.delivery = DeliveryState::Uncertain;
+            return Err(crate::snapshot::SnapshotError::from(error).into());
+        }
+        let Some(next) = self.revision.next() else {
+            self.delivery = DeliveryState::Uncertain;
+            return Err(PageError::Exhausted);
+        };
+        self.revision = next;
         Ok(self.revision)
     }
 

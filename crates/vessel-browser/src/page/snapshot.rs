@@ -1,14 +1,17 @@
 //! A fresh private realm and loader fence precede publication of host refs.
-use super::{Page, PageError, requests};
+use super::{DeliveryState, Page, PageError, requests};
 use crate::snapshot::{self, Config, Snapshot, SnapshotError};
 
 impl Page {
     /// This is not runtime qualification. Actual profile/workspace/tool admission is above it.
     pub(crate) async fn snapshot(&mut self) -> Result<Snapshot, PageError> {
-        let namespace = self
-            .references
-            .begin_snapshot()
-            .map_err(SnapshotError::from)?;
+        let namespace = match self.references.begin_snapshot() {
+            Ok(namespace) => namespace,
+            Err(error) => {
+                self.delivery = DeliveryState::Uncertain;
+                return Err(SnapshotError::from(error).into());
+            }
+        };
         let frame = self.execute(requests::FrameTree {}).await?.frame_tree.frame;
         let world = self
             .execute(requests::IsolatedWorld::new(frame.id.clone()))

@@ -798,3 +798,11 @@ for that excess. Root ownership/write masks reuse the existing candidate policy.
 The staged explicit ignored fixture observes the approved CFT bundle as non-root
 through finite Preparation. It starts no browser and can prove only that component's
 real host read/identity checks; it cannot grant runtime/engine/network qualification.
+
+Target context/ref exhaustion now quarantines the actual page controller for
+close, rather than merely returning an error while leaving other commands active.
+This follows the existing no-wrap contract and prevents further target operations
+after its revision/namespace can no longer identify new work. A protocol-peer
+fixture forces the final revision, confirms the next command refuses before CDP,
+and verifies only close remains available. The peer is not a browser engine;
+current changed-source execution evidence remains owed.

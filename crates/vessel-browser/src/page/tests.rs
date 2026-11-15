@@ -226,3 +226,34 @@ fn snapshot_result(call: &serde_json::Value) -> serde_json::Value {
         "state":{"checked":null,"expanded":null,"selected":null,"disabled":false,"readonly":false,"level":null}
     }],"visited":1,"frames":0,"truncated":false}}})
 }
+
+#[tokio::test]
+async fn revision_exhaustion_requires_target_close_instead_of_more_commands() {
+    tokio::time::timeout(FIXTURE_DEADLINE, async {
+        let listener = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))
+            .await
+            .unwrap();
+        let endpoint = Endpoint::from_launcher(&format!(
+            "ws://{}/devtools/browser/exhaustion-fixture",
+            listener.local_addr().unwrap()
+        ))
+        .unwrap();
+        let peer = tokio::spawn(peer(listener));
+        let (client, _events) = Client::connect(&endpoint).await.unwrap();
+        let mut page = Page::open(
+            client.clone(),
+            "https://example.test/".parse().unwrap(),
+            viewport(390, 844),
+        )
+        .await
+        .unwrap();
+        page.revision = serde_json::from_str(&u64::MAX.to_string()).unwrap();
+        assert!(matches!(page.reload().await, Err(PageError::Exhausted)));
+        assert!(matches!(page.stop().await, Err(PageError::Uncertain)));
+        page.close().await.unwrap();
+        client.shutdown().await.unwrap();
+        peer.await.unwrap();
+    })
+    .await
+    .unwrap();
+}
