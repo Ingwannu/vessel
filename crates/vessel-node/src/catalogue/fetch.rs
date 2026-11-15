@@ -16,7 +16,6 @@
 //! - Not reused: `vessel_llm::Client`, whose retries, error classes and
 //!   streaming are a model provider's (the contract's review).
 
-use std::sync::Arc;
 use std::time::Duration;
 
 use reqwest::Url;
@@ -74,16 +73,7 @@ impl Fetcher {
         {
             return Err(FetchError::Address);
         }
-        let mut roots = rustls::RootCertStore::empty();
-        let native = rustls_native_certs::load_native_certs();
-        let (_added, _ignored) = roots.add_parsable_certificates(native.certs);
-        let provider = Arc::new(rustls::crypto::ring::default_provider());
-        let mut tls = rustls::ClientConfig::builder_with_provider(provider)
-            .with_safe_default_protocol_versions()
-            .map_err(FetchError::Tls)?
-            .with_root_certificates(roots)
-            .with_no_client_auth();
-        tls.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
+        let tls = crate::http_tls::config().map_err(FetchError::Tls)?;
         let http = reqwest::Client::builder()
             .use_preconfigured_tls(tls)
             .redirect(reqwest::redirect::Policy::none())

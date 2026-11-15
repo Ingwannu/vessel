@@ -1397,3 +1397,37 @@ provider-format knowledge in the harness. The node asks the existing cached
 options channel before a session probe and rechecks after it. An unknown or
 changed provider cannot attribute the saved OpenAI account to that session;
 the explicitly selected account scope remains available independently.
+
+## Dictation contract (ADR 0067, staged)
+
+`vessel-proto::dictation` owns bounded audio values and their decoders, and
+provider metadata (`settings_values`, `local_model`). It does not perform
+I/O. The metadata retains a parsed endpoint URL, using the existing
+workspace `url` dependency, and a typed catalogue with future IDs retained
+on read. It loads or downloads no model. PCM and transcript diagnostics redact their contents.
+The stream actor and endpoint are subsequent implementation slices; no
+method, settings field or provider is available from these values alone.
+No crate edge changes: the node will reuse its existing HTTP and secret
+storage dependencies when the service lands.
+
+The unregistered settings values (`settings`, `patch`, `secret_ref`) distinguish
+keep, set and reset, validate provider options against the merged choice, and
+redact reference diagnostics. Their read view reports only key presence. They
+resolve no credential and provide no file codec or callable settings field.
+
+The next staged node helpers own provider PCM conversion, bounded segments,
+in-memory WAV encoding and opaque connection ownership. Their tests are compiled
+under a test-only module until the RPC wiring removes staging; helper tests do
+not establish a live service or the transport-close path.
+
+The node's `http_tls` module builds the operating-system root, explicit
+ring and ALPN configuration once per client constructor. `catalogue::fetch`
+uses that shared configuration; it retains its own address validation,
+HTTP policy and deadlines. This extraction introduces no destination,
+credential, request or new dependency. Later asynchronous callers must run
+the synchronous root loading on a blocking worker.
+
+`FleetFiles::resolved_secret` reuses the node's secret parser and lookup,
+returning the existing non-serializable `ResolvedValue` for internal header
+consumers. The `secret_value` wire-copy wrapper delegates to it; no new RPC
+can read a secret and storage/refusal behaviour is unchanged.

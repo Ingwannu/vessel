@@ -1,10 +1,10 @@
 # ADR 0067: Dictation, spoken into the node
 
-Status: proposed, 2026-11-14. The protocol number is the one given at
-merge. This commit does not change `PROTOCOL_VERSION` (20 in
-`crates/vessel-proto/src/node.rs`). New calls are gated on one constant,
-`dictation::SINCE`, so the integrator changes that one line. Nothing in
-this decision is on the wire until the slice that adds the methods.
+Status: proposed, 2026-11-14. The protocol number is given at merge;
+this decision changes no global protocol version. Value types may exist before
+registration. The first wiring commit changes the inactive `dictation::SINCE`
+to `Option<ProtocolVersion> = None` and uses the shared `required_protocol()`
+accessor. No new call is sent or dispatched while the number is unassigned.
 
 The behaviour this follows is Paseo's composer dictation (read for this
 decision; file and line in `docs/plans/dictation.md`). Voice mode, local
@@ -111,9 +111,9 @@ Constraints that bind the shape:
 
 ## The choice
 
-The number given at merge adds five methods, each `operate`, each not
-forwardable, each refused to an agent, each gated on `dictation::SINCE`.
-`PROTOCOL_VERSION` stays 20 until the integrator sets that constant.
+Wiring adds five methods, each `operate`, each not forwardable, each
+refused to an agent, each gated on `dictation::SINCE`. A number is assigned
+only after the service and clients that expose this feature are ready.
 Settings ride on the existing settings calls. The secret rides on the
 existing secret calls.
 
@@ -212,9 +212,10 @@ Text is at most 64 KiB of UTF-8. More than that from a provider is
 
 These numbers are Paseo's, with the environment overrides removed:
 
-- Audio is committed to the provider every 15 seconds of samples at
-  the provider's rate (16-bit mono, so two bytes a sample). Paseo's
-  default `DEFAULT_DICTATION_AUTO_COMMIT_SECONDS`.
+- Audio is committed after a whole chunk makes the open segment reach
+  15 seconds of samples at the provider's rate (16-bit mono, so two
+  bytes a sample). The threshold is Paseo's default
+  `DEFAULT_DICTATION_AUTO_COMMIT_SECONDS`; a chunk is not split at it.
 - A block whose peak absolute sample is below 300 is treated as
   silence: it is discarded, not committed. Paseo's default
   `PASEO_DICTATION_SILENCE_PEAK_THRESHOLD`.
@@ -251,6 +252,53 @@ Voice mode reads that flag
 reads it. Voice mode is out of scope, so this contract does not store the
 threshold and does not request log-probabilities.
 
+### Audio and connection ownership implementation amendment (proposed)
+
+Purpose and intent: carry only typed PCM through the stream and preserve
+Paseo's provider-rate resampling, silence test and whole-chunk commit order
+without floating arithmetic, temporary audio files or transport API changes.
+
+Existing implementation and constraints: the manager appends a complete chunk
+before checking its commit threshold (dictation-stream-manager.ts343–406,
+619–645); the OpenAI provider requires 24 kHz (openai/stt.ts72). The reference
+resampler interpolates with a floating cursor. Vessel requires checked integer
+arithmetic. RPC already has Outbound::closed; its running calls may retain the
+connection context during close grace, so context destruction alone is late.
+
+Alternatives considered: splitting a chunk exactly at the commit boundary would
+change the reference's order. Floating phase would violate the arithmetic rule.
+Retaining a connection lifetime guard in a stream would keep its own connection
+alive. A second closure API or one watcher task per connection is unnecessary.
+
+Choice: integer-phase linear interpolation with one prior sample across chunks;
+a provider-rate input remains unchanged. Audio and WAV payload Debug are redacted.
+WAV is appended directly into the request body. Commit after a whole chunk reaches
+the threshold; an open segment can be just short of 16 seconds, rather than the
+original wording's exact 15 second ceiling. The defensive segment buffer has its
+own bound derived from the threshold and a one-second maximum input chunk.
+
+Why this and not the alternatives: the integer phase has exact count arithmetic
+while preserving chunk-boundary continuity. The limited synthetic source probe
+(six rates, four one-second chunks and a short tail) compared Paseo against a
+separately evaluated integer-phase algorithm: at most one LSB of overlap
+difference and at most one fewer sample in that fixture. The Rust tests must pin
+those counts and a smaller signed-extremes/zero-crossing fixture. This is not
+general bit parity or ASR-quality evidence; threshold-boundary silence
+classification may differ. These tests are owed until the staged implementation
+runs; a reference probe alone does not verify Rust code.
+
+An opaque owner uses Arc identity for equality/hash and a context-drop token.
+Actual connection contexts share the lifetime guard; streams never retain it.
+Preparation and actors also watch existing Outbound::closed and the node stop
+token, so transport closure can stop work before a retained context drops.
+
+Advantages, costs and effects: audio stays bounded and in memory, rate conversion
+has no unchecked cast or floating work, and stream ownership cannot be forged
+from an id string. A staged module is compiled only for tests until the wiring
+commit removes its attribute after the shared accessor/call table refactor.
+These tests establish source behaviour, not an active product path. The wiring
+gate must compile the product configuration and test its connection lifecycle.
+
 ### Provider seam
 
 ```text
@@ -281,12 +329,62 @@ implementation. Tests use a fake provider behind the same enum's test
 constructor, not the network. The endpoint's tests speak HTTP to a
 listener on loopback started by the test.
 
+### URI parsing dependency (implementation amendment)
+
+Purpose and intent: parse the endpoint URI once at the protocol boundary,
+including standard IPv4, IPv6, IDNA and scheme normalization, before a node
+can retain settings or send credentials.
+
+Existing implementation and constraints: HttpUrl checks a prefix, authority
+presence and userinfo. It does not parse complete URI syntax. Extending it
+would also alter existing MCP URLs, outside dictation's contract.
+
+Alternatives considered: std has no URI parser; a local authority parser
+would duplicate URI rules and reject valid normalized forms. Reuse the
+workspace's url crate, already used by node, lsp and testkit.
+
+Choice: add url.workspace = true to vessel-proto. Cargo.lock resolves
+url 2.5.8, licensed MIT OR Apache-2.0. Its uncompressed package files are
+591779 bytes; this is source-package size, not a measured linked-binary or
+WebAssembly footprint. No new package or feature is introduced into the
+root workspace resolution.
+
+Why this and not the alternatives: the parser canonicalizes schemes and
+hosts and validates IP literals without handwritten URI interpretation.
+It performs no I/O. The settings type keeps the parsed URL privately; the
+fixed default uses a typed marker and its constant URL. Request path construction appends
+segments to that parsed value, preserving escaped path bytes.
+The encoded canonical URI is capped at 256 ASCII bytes so saving and
+reading it use the same bound. Userinfo, fragments and query strings are
+refused. Query rejection is an explicit difference from a Paseo's free-text base setting (OpenAI
+config.ts 37-44): dictation appends one fixed path and never carries credentials
+in URI parameters. HTTP is accepted only for parsed loopback IPs or the
+localhost host; HTTPS may reach the admin-selected host with the selected
+node secret. Redirects and environment proxies remain disabled.
+
+Advantages, costs and effects: no new vessel-* edge or owned-external edge;
+URL and IDNA parsing become part of proto's client dependency surface.
+Standalone binary/WebAssembly size and platform execution are not yet
+measured. The manifest change must follow this amendment's docs commit.
+
+The stored URI is canonicalised, including scheme/host case, default ports
+and a trailing path separator. Whitespace, control characters, backslashes
+and port zero are refused rather than silently normalised. These and the
+short language/model names are explicit input restrictions beyond Paseo's
+trimmed free-text configuration: a refused patch must not change the file.
+The loopback HTTP exception permits a local compatible endpoint and the
+HTTP fake; non-loopback hosts always require TLS. No signals or service-
+manager APIs are introduced: the intended path on
+Windows, macOS, Linux and WebAssembly is this same parser. Cross-platform
+execution and standalone linking remain unverified until those gates run.
+
+
 ### Settings, defaults, secret
 
-On `NodeSettings`, one optional `dictation`. Omitted when every field
-is the default, so a peer at today's `PROTOCOL_VERSION` (20) sees the
-same settings bytes as today. The object is meaningful at
-`dictation::SINCE` and above.
+On `NodeSettings`, one optional `dictation`. It is omitted when every field
+is the default, while its protocol number is unassigned, and for peers older
+than its assigned number. Both settings replies, including nested or forwarded
+reply filtering, must preserve the earlier peer's settings bytes.
 
 | Field | Default | Paseo, when its environment is unset |
 | --- | --- | --- |
@@ -301,15 +399,22 @@ same settings bytes as today. The object is meaningful at
 The switch is `on` or `off`, not a bool. `off` makes `start` fail
 `unsupported` with `Disabled`. The value is still kept.
 
-A change (`node.set_settings`, `admin`) names only the fields it
-sets. `unknown` provider or an unknown local model id is refused and
+A change (`node.set_settings`, `admin`) distinguishes an omitted field
+(keep), a value (select), and null (remove its saved override). An unknown
+provider, switch or local model is readable but refused when applied, and
 writes nothing. Language is a short code: 1 to 16 characters, ASCII
-letters and `-`. The base is `https`, a host, no userinfo, no
-fragment, at most 256 characters. The endpoint model is 1 to 64
-characters, no spaces.
+letters and `-`. The base is HTTPS or parsed loopback HTTP, without userinfo, query or
+fragment, within the canonical byte bound in the URI amendment. The endpoint
+model uses its validated Unicode character bound and refuses whitespace and
+controls.
 
-The key is not a field of the settings file. The setting holds a
-`SecretName` the admin already stored with `secret.set`. `node.settings`
+The credential value is never stored in settings.json. The setting selects a
+`SecretName` the admin already stored with `secret.set`. A new selection must
+resolve to a nonempty value before it is saved. This check and the save are
+not a transaction with the secret store: deleting the secret between them
+leaves a reference that reads `key: absent` and refuses `start` with `KeyAbsent`,
+just as a later deletion does. No credential value is cached at selection time.
+Null clears the reference without deleting the independent secret. `node.settings`
 (`read`) reports `key: present` or `key: absent`, never the name and
 never the value: a read-only device learns whether dictation can
 authenticate, not which secret it uses. The name is visible to
@@ -317,13 +422,74 @@ authenticate, not which secret it uses. The name is visible to
 `start` with `endpoint` and `key: absent` fails `unavailable` with
 `KeyAbsent`.
 
-A client that negotiated a protocol below `dictation::SINCE` does not
-send these methods (`Call::since`). It ignores a `dictation` object if
-a newer node included one (serde's default: unknown fields do not
-fail). A node below `dictation::SINCE` has no object and no methods. A
-newer client, seeing a negotiated protocol below `dictation::SINCE`,
-treats dictation as absent. It does not apply the defaults to an older
-node and then call methods that node does not have.
+Before assignment, the shared accessor refuses sending and dispatching
+these calls with `UnassignedProtocol`. A settings patch containing dictation,
+even an empty patch, also requires that assignment. After assignment a peer
+older than the feature receives neither these calls nor the dictation settings
+object. A newer client treats an absent feature as unsupported; it does not
+apply dictation defaults to an older node and call methods it cannot serve.
+
+### Settings patch implementation amendment
+
+Purpose and intent: preserve Paseo's provider switching and explicit resets,
+without storing a raw credential or confusing null with an omitted field.
+
+Existing implementation and constraints: speech-settings.ts 149–175 removes
+null or blank fields and clears site options when the provider changes.
+persisted-config.ts 99–115 rejects options belonging to another provider.
+Vessel already has validated metadata, fixed defaults without environment
+overrides, and a separate node secret store. The incoming wire patch is strict;
+the settings file needs a separate, lenient decoding view of the known values.
+
+Alternatives considered: plain `Option<T>` would swallow a present null as
+an unchanged field; an untagged trial decoder would discard the value
+validator's error. Retaining inactive provider options would change Paseo's
+switch behaviour. A raw API key would duplicate the existing secret owner.
+
+Choice: optional `DictationChange<T>` fields represent keep/set/reset. A
+manual option visitor preserves value diagnostics and a present null reset.
+Applying a patch normalizes resets out of saved overrides. A provider change
+retains the switch, clears language/model/base/key overrides, then applies
+the new fields in an in-memory candidate. The whole patch, including a provider
+change, is validated against that merged candidate before anything is written.
+Any refusal (unknown choice, inactive option, missing or empty newly selected
+secret, or failed write) leaves both the file and the settings in force unchanged.
+The node writes first and applies after, under the existing single settings lock.
+SecretReference
+wraps the existing name rule, redacts Debug and submitted text in failures,
+and exposes the name only for the existing secret lookup. Readers get only
+key presence; no credential value is part of these types.
+
+Why this and not the alternatives: the explicit change type reproduces null
+resets and prevents silent no-op patches. Existing metadata still refuses
+blank strings instead of interpreting them as resets; null is the supported
+reset representation. These validated options retain the URI and short-name
+restrictions already stated above. No dependency is introduced.
+
+Advantages, costs and effects: provider changes cannot carry old authentication
+or model options into a new site. Clearing a reference leaves secret deletion
+with its existing owner. Incoming patch fields reject unknown nested fields;
+future choices remain readable but cannot be newly applied. The file codec uses
+a lenient file view beside that strict wire patch: unknown nested dictation
+fields are ignored on read and may disappear on the next write, while all known
+parking, driver and dictation values, including the key reference, are preserved.
+One unrecognized field must not refuse the entire file, fall back to defaults,
+and subsequently erase unrelated settings. Existing validation of known values
+remains in force. No second closed list of settings fields is introduced.
+
+A downgrade to a pre-dictation build has a different limitation: that build
+ignores the whole dictation key and forgets its settings on any later settings
+write. The named secret itself stays in the independent secret store. This
+limitation is documented rather than claimed to preserve the new feature.
+
+This slice adds contract values only: no node.settings field, persistence path
+or call is registered yet. Wiring owes tests for a later-version file with an
+unknown nested field retaining the known parking/drivers/dictation values after
+a write; a pre-dictation writer forgetting dictation while leaving the secret;
+a secret deleted between selection check and save reading absent and refusing
+start without a cached value; and a provider change with one bad field (plus
+missing/empty secret and failed-write cases) leaving the whole file and settings
+in force unchanged.
 
 ### Privacy: where the audio goes
 
@@ -334,8 +500,8 @@ ends:
    problem, and not written by this node.
 2. The connection, as a request frame. The frame is not copied into
    the session log, a tracing field, or a file.
-3. The stream's task: the reorder hold, the open segment (at most 15
-   seconds, or less if a commit happened), and at most two segment
+3. The stream's task: the reorder hold, the open segment (under 16
+   seconds with whole-chunk threshold checks), and at most two segment
    bodies handed to the provider. The endpoint provider puts one body
    into the HTTPS request and drops it when the response is read or
    the call fails. No temporary file.
@@ -490,9 +656,9 @@ refusal is the cost of not lying about a model that is not there.
 
 Effects, when the implementation slice lands:
 
-- `vessel-proto` gains the types and the five rows. `PROTOCOL_VERSION`
-  stays 20. `dictation::SINCE` becomes the assigned number, and it is
-  the only version this track names. `docs/PROTOCOL.md` records both
+- `vessel-proto` gains the types before the five rows. `dictation::SINCE`
+  is an unassigned optional version at registration and becomes the assigned
+  number only when the service and its clients are ready. `docs/PROTOCOL.md` records both
   directions in the commit that publishes that number.
 - `vessel-node` gains the stream task and the endpoint provider. No
   `vessel-*` edge is added. `reqwest` is used from the node as an

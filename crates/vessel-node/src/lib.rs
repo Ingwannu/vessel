@@ -74,6 +74,7 @@ mod error;
 pub mod fleet;
 mod forge;
 mod guard;
+mod http_tls;
 mod identity;
 mod install;
 mod ipc;
