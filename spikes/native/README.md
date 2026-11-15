@@ -1175,3 +1175,14 @@ input audit of the shared rename action: ordinary, disabled, adjacent
 button and clipped-parent cases. Counters distinguish the action, its
 parent's mouse-down/release and the neighbour. It starts no node and adds no app
 route. The fixed grid is an audit fixture; the action itself is unchanged.
+
+### Allocation block approval boundary (base 5 adapter)
+
+`command_changes::Listed` projects every `ServicePortsView` field explicitly.
+Until the approval card displays and compares the full allocation block, it
+refuses any current or last-approved block, even with zero named services or
+when the current set removes the old block. The approved-folder comparison
+fallback also retains that refusal. A typed refusal has separate EN/KO
+Fluent copy; it does not enable allocation, helpers or `PROJECT_FILE_KEYS`.
+This keeps an unseen setting out of an approval digest while the native display
+is implemented. Existing terminal refusal and head test cases remain intact.

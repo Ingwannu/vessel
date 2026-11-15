@@ -342,6 +342,7 @@ fn listed(
         approved,
         scripts,
         terminals: Vec::new(),
+        service_ports: None,
         last_approved: last.map(Box::new),
     }
 }
@@ -353,6 +354,7 @@ fn approved_set(setup: &[&str], scripts: Vec<ScriptEntry>) -> ApprovedCommands {
             teardown: Vec::new(),
             scripts,
             terminals: Vec::new(),
+            ..CommandSet::default()
         },
         digest: "a".repeat(64).parse().unwrap(),
         approved_at: Utc.with_ymd_and_hms(2026, 11, 12, 9, 30, 0).unwrap(),
@@ -606,5 +608,75 @@ fn an_approved_declared_port_removal_is_still_a_change() {
             script: dev(),
             was: previous
         }]
+    );
+}
+
+#[test]
+fn allocation_choices_are_fully_projected_and_refused_without_any_service() {
+    use crate::workspace::command_changes::ApprovalRefusal;
+    use vessel_proto::workspace::{PortRange, PortScript, ServicePorts, ServicePortsView};
+    let range: PortRange = "7000-7010".parse().unwrap();
+    let helper: PortScript = "tools/port".parse().unwrap();
+    for ports in [
+        ServicePorts::new(Some(range), None).unwrap(),
+        ServicePorts::new(None, Some(helper.clone())).unwrap(),
+        ServicePorts::new(Some(range), Some(helper)).unwrap(),
+    ] {
+        let mut asked = listed(&[], false, 'c', vec![], None);
+        if let ProjectCommands::Listed { service_ports, .. } = &mut asked {
+            *service_ports = Some(ports.clone());
+        }
+        let listed = Listed::of(&asked).unwrap();
+        assert!(listed.scripts.is_empty());
+        let ServicePortsView { range, port_script } = listed.service_ports.unwrap();
+        assert_eq!(range, ports.range());
+        assert_eq!(port_script, ports.port_script());
+        assert_eq!(listed.approval(), Err(ApprovalRefusal::ServicePorts));
+    }
+}
+
+#[test]
+fn removing_a_previously_approved_allocation_block_is_also_refused() {
+    use crate::workspace::command_changes::ApprovalRefusal;
+    use vessel_proto::workspace::ServicePorts;
+    let mut prior = approved_set(&[], vec![]);
+    prior.commands.service_ports =
+        Some(ServicePorts::new(Some("7000-7010".parse().unwrap()), None).unwrap());
+    let asked = listed(&[], false, 'c', vec![], Some(prior));
+    let listed = Listed::of(&asked).unwrap();
+    assert!(listed.service_ports.is_none());
+    assert_eq!(listed.approval(), Err(ApprovalRefusal::ServicePorts));
+}
+
+#[test]
+fn allocation_refusal_has_complete_english_and_korean_copy() {
+    use crate::localization::{ENGLISH, Locale, Translator};
+    let english = Translator::get(ENGLISH)
+        .unwrap()
+        .approval()
+        .unseen_service_ports();
+    let korean = Translator::get(Locale::from_tag("ko").unwrap())
+        .unwrap()
+        .approval()
+        .unseen_service_ports();
+    assert!(english.contains("service port"));
+    assert!(korean.contains("서비스 포트"));
+}
+
+#[test]
+fn an_approved_folder_fallback_cannot_hide_removed_allocation_choices() {
+    use crate::workspace::command_changes::ApprovalRefusal;
+    use vessel_proto::workspace::ServicePorts;
+    let asked = listed(&[], false, 'c', vec![], None);
+    let mut folder = listed(&[], true, 'b', vec![], None);
+    if let ProjectCommands::Listed { service_ports, .. } = &mut folder {
+        *service_ports =
+            Some(ServicePorts::new(None, Some("tools/port".parse().unwrap())).unwrap());
+    }
+    let asked = Listed::of(&asked).unwrap();
+    assert_eq!(asked.approval(), Ok(()));
+    assert_eq!(
+        compare_approved(&asked, Some(&folder)).approval(&asked),
+        Err(ApprovalRefusal::ServicePorts)
     );
 }
