@@ -425,6 +425,12 @@ No row of the crate table changes.
 
 ## Resume point
 
+The title-origin node head is merged before background fields. Its origin
+projection remains authoritative; readable events use the existing origin mask,
+and event pages detect actual projection changes. This also incorporates the
+head's fix for the previously reported Replayed observation page inconsistency.
+The legacy labels migration test already follows the table's latest version.
+
 Current package boundary: the legacy interrupt repair and existing label
 admission passed review and their whole gates. Event availability plus stop
 refusal passed the complete gate and review too. Earlier per-commit "owed"

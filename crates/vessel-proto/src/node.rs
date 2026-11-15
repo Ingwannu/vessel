@@ -38,6 +38,20 @@ impl fmt::Display for ProtocolVersion {
 /// and record the change in `docs/PROTOCOL.md`.
 pub const PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion(23);
 
+/// The protocol version that speaks generated names (ADR 0062). The
+/// integrator assigns this after the CLI, web and native clients can read
+/// origins and configure generated names; `None` means no peer speaks it.
+/// Callers compare against it; this track does not copy it into
+/// [`PROTOCOL_VERSION`].
+pub const GENERATED_NAMES: Option<ProtocolVersion> = None;
+
+/// Whether this build puts generated-name fields on the wire. False until
+/// [`GENERATED_NAMES`] is at most [`PROTOCOL_VERSION`].
+#[must_use]
+pub const fn speaks_generated_names() -> bool {
+    matches!(GENERATED_NAMES, Some(version) if version.get() <= PROTOCOL_VERSION.get())
+}
+
 /// The oldest protocol this build still accepts. Versions 3 to 23 only add
 /// methods, events (with stand-ins for older peers) and defaulted fields,
 /// so version 2 peers keep working.

@@ -50,6 +50,8 @@ impl Reply {
             Self::OpenSideQuestion(session) => info(session).map(Self::OpenSideQuestion),
             Self::ResetSideQuestion(session) => info(session).map(Self::ResetSideQuestion),
             Self::NodeInfo(node) => node.for_protocol(protocol).map(Self::NodeInfo),
+            Self::GetNodeSettings(settings) => settings.for_protocol(protocol).map(Self::GetNodeSettings),
+            Self::SetNodeSettings(settings) => settings.for_protocol(protocol).map(Self::SetNodeSettings),
             Self::JoinFleet(joined) => joined.home.for_protocol(protocol).map(|home| {
                 Self::JoinFleet(crate::JoinedFleet { home })
             }),
@@ -291,8 +293,6 @@ impl Reply {
             | Self::ReportPushPresence(_)
             | Self::SearchMessages(_)
             // Protocol 12's, 14's and 17's: asked only by peers that read them.
-            | Self::GetNodeSettings(_)
-            | Self::SetNodeSettings(_)
             | Self::GetAgentHistory(_) => None,
         }
     }
@@ -314,7 +314,7 @@ impl SessionInfo {
     /// 8-9 peers also keep an ended session in their archive placement.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
-        self.for_protocol_with_labels(protocol, crate::lifecycle_version::SINCE)
+        self.for_protocol_with_names(protocol, crate::GENERATED_NAMES)
     }
 
     /// One projection rule also exercised with a synthetic assigned threshold.
@@ -348,6 +348,24 @@ impl SessionInfo {
         ));
         Some(info)
     }
+
+    /// Apply provenance after the head's label and archive projection, so
+    /// hiding one feature never bypasses another field's compatibility.
+    pub(crate) fn for_protocol_with_names(
+        &self,
+        protocol: ProtocolVersion,
+        assigned: Option<ProtocolVersion>,
+    ) -> Option<Self> {
+        let projected = self.for_protocol_with_labels(protocol, crate::lifecycle_version::SINCE);
+        let source = projected.as_ref().unwrap_or(self);
+        let origin = source.title_origin.for_protocol(protocol, assigned);
+        if origin == source.title_origin {
+            return projected;
+        }
+        let mut info = projected.unwrap_or_else(|| self.clone());
+        info.title_origin = origin;
+        Some(info)
+    }
 }
 
 #[cfg(test)]
@@ -366,7 +384,7 @@ mod tests {
     const V9: ProtocolVersion = ProtocolVersion::new(9);
     const V10: ProtocolVersion = ProtocolVersion::new(10);
 
-    fn exited() -> SessionInfo {
+    pub(super) fn exited() -> SessionInfo {
         let spec = SessionSpec::new(
             HarnessKind::ClaudeCode,
             SessionMode::Structured {
@@ -404,6 +422,20 @@ mod tests {
         let mut live = info;
         live.status = SessionStatus::Running;
         assert_eq!(live.for_protocol(V9), None);
+    }
+
+    #[test]
+    fn hiding_origin_still_adapts_archive_placement() {
+        let mut info = exited();
+        info.title_origin = crate::TitleOrigin::Given;
+        let old = info.for_protocol_with_names(V9, Some(V10)).unwrap();
+        assert_eq!(old.title_origin, crate::TitleOrigin::Unknown);
+        assert_eq!(
+            old.board,
+            Some(SessionBoard::archived(DateTime::UNIX_EPOCH))
+        );
+        let current = info.for_protocol_with_names(V10, Some(V10));
+        assert_eq!(current, None);
     }
 
     #[test]
@@ -458,3 +490,9 @@ mod tests {
         assert!(!info.labels.is_empty() && !info.spec.labels.is_empty());
     }
 }
+
+#[cfg(test)]
+mod origins;
+
+#[cfg(test)]
+mod restart_tests;

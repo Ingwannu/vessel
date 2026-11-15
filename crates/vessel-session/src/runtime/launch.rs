@@ -74,6 +74,10 @@ pub struct LaunchOptions {
     /// node's proxy (protocol 7), recorded in `SessionInfo::model`; `None`
     /// for a session on its harness's own provider.
     pub model: Option<SessionModel>,
+    /// Who produced `spec.title` when it is set. Absent means a person typed
+    /// it. A fork's derived title is given, so generation does not treat it
+    /// as a name a person chose.
+    pub title_origin: Option<vessel_proto::TitleOrigin>,
     /// Where the harness of a profile with a model route sends its calls,
     /// with the session's token (ADR 0015); given exactly when `profile`
     /// has a route, or the launch is refused. Its `Debug` hides the token.
@@ -111,6 +115,7 @@ struct Record {
     model: Option<SessionModel>,
     notices: Vec<String>,
     limits: crate::LimitAssociation,
+    title_origin: Option<vessel_proto::TitleOrigin>,
 }
 
 impl Record {
@@ -124,8 +129,12 @@ impl Record {
             model,
             notices,
             limits,
+            title_origin,
         } = self;
         let mut info = SessionInfo::new(id, spec, Utc::now()).with_creator(created_by);
+        if let Some(origin) = title_origin {
+            info.title_origin = origin;
+        }
         info.origin = origin;
         info.via = via;
         info.model = model;
@@ -217,6 +226,7 @@ impl SessionRuntime {
             model_proxy,
             questions,
             fork,
+            title_origin,
         } = options;
         let id = id.unwrap_or_else(SessionId::random);
         if self.get(id).is_some() {
@@ -230,6 +240,7 @@ impl SessionRuntime {
             model,
             notices,
             limits,
+            title_origin,
         };
         let profile = profile.map_or_else(|| Profile::default_of(&spec.harness), Ok)?;
         match spec.mode.clone() {
