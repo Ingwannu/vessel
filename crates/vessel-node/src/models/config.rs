@@ -207,7 +207,6 @@ impl Routes {
 
     /// Borrow for staged metadata selection without cloning client views.
     /// Wiring removes this test-only attribute with the staged selector.
-    #[cfg(test)]
     pub(super) fn entries(&self) -> impl Iterator<Item = &Route> {
         self.routes.values()
     }

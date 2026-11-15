@@ -23,6 +23,11 @@ impl NodeService {
         _: &Connection,
         request: SetNodeSettings,
     ) -> Result<NodeSettings, WireError> {
+        if let Some(metadata) = &request.metadata {
+            self.models
+                .validate_metadata(metadata)
+                .map_err(|error| WireError::new(ErrorCode::InvalidRequest, error.to_string()))?;
+        }
         self.settings.change(request).await.map_err(|error| {
             let code = match error {
                 SettingsError::Unknown | SettingsError::UnknownDriver(_) => {

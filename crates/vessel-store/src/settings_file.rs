@@ -40,6 +40,8 @@ use crate::data_dir::DataDir;
 use crate::error::StoreError;
 use crate::files;
 
+mod metadata;
+
 const SETTINGS_FILE: &str = "settings.json";
 
 /// How many names [`DataDir::set_aside_settings`] tries for one moment
@@ -92,7 +94,7 @@ impl DataDir {
             Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
             Err(error) => return Err(StoreError::io(&path)(error).into()),
         };
-        serde_json::from_slice(&text)
+        metadata::decode(&text)
             .map(Some)
             .map_err(|source| SettingsFileError::Parse { path, source })
     }
@@ -208,6 +210,7 @@ mod tests {
                 minutes: IdleMinutes::new(15).unwrap(),
             }),
             drivers: None,
+            ..SetNodeSettings::default()
         };
         data.write_settings(&saved).unwrap();
         assert_eq!(data.read_settings().unwrap(), Some(saved));

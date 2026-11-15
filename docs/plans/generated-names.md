@@ -779,3 +779,18 @@ The permit-map lock also checks the original handle's live status, preventing
 late ended tasks from recreating a retired entry. Two isolated synthetic-key
 tests and all-targets Clippy pass; the added real-runtime retirement case and
 proxy regression run on this commit before separate security review.
+
+
+Product wiring checkpoint: metadata is registered on the existing settings
+read/patch types, hidden per peer and admitted through required_protocol.
+The store uses the lenient nested view and retains its shared set-aside
+mechanism. In-force settings now borrow/clone their bounded metadata value.
+External fresh creation arms one original-handle task; source, shared live
+permits, existing Git style resolution, typed credentials, the dedicated
+same-trust pool, accounting and actor application are connected. The actor's
+existing ownership predicate also drives early cancellation. Staging attributes
+are removed only with these production callers. The feature constant remains
+unassigned, so this build cannot send a metadata patch or automatically spend.
+Runtime/file/protocol tests are authored; narrow compile and execution are
+pending. Generated TypeScript freshness and the final package gate are owed.
+No real provider or credential has been used.

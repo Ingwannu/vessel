@@ -135,6 +135,7 @@ async fn node(target: &Target, command: NodeCommand) -> Result<(), CliError> {
                     .call(SetNodeSettings {
                         park_after,
                         drivers,
+                        ..SetNodeSettings::default()
                     })
                     .await?
             } else {

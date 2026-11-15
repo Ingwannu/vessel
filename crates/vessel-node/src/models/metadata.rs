@@ -1,7 +1,5 @@
-//! Staged metadata route selection (ADR 0062). The shared-accessor wiring
-//! removes cfg(test) here and on the borrowed catalog iterator. This module
-//! selects from parsed snapshots; it reads no file/key, sends no request,
-//! and must not be used as the all-candidate settings validator.
+//! Metadata route selection (ADR 0062) from one immutable parsed snapshot.
+//! It reads no file/key or socket; all-candidate settings validation belongs to preparation.
 
 use super::config::{Provider, Route, Routes};
 use std::fmt;

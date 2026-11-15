@@ -33,6 +33,11 @@ impl Call {
                 .required_protocol()
                 .map(|inner| inner.max(self.method().since()));
         }
+        if let Self::SetNodeSettings(request) = self
+            && request.metadata.is_some()
+        {
+            return crate::GENERATED_NAMES.map(|version| version.max(self.since()));
+        }
         Some(self.since())
     }
 

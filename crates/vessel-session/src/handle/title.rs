@@ -68,6 +68,13 @@ fn eligible(current: &SessionInfo, expected: &SessionTitle) -> bool {
 }
 
 impl SessionHandle {
+    /// Share the actor's ownership rule with early cancellation of background work.
+    /// This snapshot is advisory; applying a proposal checks again in the actor.
+    #[must_use]
+    pub fn accepts_generated_title(&self, expected: &SessionTitle) -> bool {
+        eligible(&self.0.info.borrow(), expected)
+    }
+
     /// Propose a generated replacement. The actor compares both the
     /// expected title and its given origin before publishing, so even a
     /// person's rename to identical words takes precedence. Explicitly

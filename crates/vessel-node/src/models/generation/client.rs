@@ -85,6 +85,18 @@ enum Transport {
 }
 
 impl Client {
+    /// Test cancellation at an observed in-flight exchange, without wall-clock sleeps.
+    #[cfg(test)]
+    pub(super) fn stalled() -> (Self, std::sync::Arc<tokio::sync::Notify>) {
+        let entered = std::sync::Arc::new(tokio::sync::Notify::new());
+        (
+            Self {
+                transport: Transport::Stalled(std::sync::Arc::clone(&entered)),
+            },
+            entered,
+        )
+    }
+
     /// Reject an accidentally reused proxy policy before any work can leave.
     pub(super) fn new(client: HttpClient) -> Result<Self, ClientError> {
         if client.limits() != policy() {

@@ -18,7 +18,7 @@ use vessel_proto::settings::MetadataSettings;
 use vessel_workspace::project_file::metadata::StyleText;
 
 /// The title exchange has one output budget, shared by validation and use.
-const TITLE_OUTPUT_TOKENS: u32 = 512;
+pub(super) const TITLE_OUTPUT_TOKENS: u32 = 512;
 
 /// Only the bounded encoder constructs this outside tests.
 pub(super) struct Prepared {
@@ -44,12 +44,12 @@ impl fmt::Debug for Prepared {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub(super) enum PrepareError {
-    #[error("metadata candidate is invalid")]
+pub(crate) enum PrepareError {
+    #[error("{0}")]
     Candidate(#[from] SelectError),
-    #[error("metadata text request is invalid")]
+    #[error("{0}")]
     Text(#[from] TextError),
-    #[error("metadata provider request is invalid")]
+    #[error("{0}")]
     Request(#[from] RequestError),
     #[error("title output budget {TITLE_OUTPUT_TOKENS} must be positive")]
     Budget,

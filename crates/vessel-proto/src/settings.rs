@@ -26,7 +26,7 @@ use crate::harness::HarnessKind;
 use crate::parking::ParkAfter;
 
 /// The node's settings in force.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct NodeSettings {
     /// How long a structured session may stay idle before its agent is
@@ -36,6 +36,35 @@ pub struct NodeSettings {
     /// absent when every agent runs over ACP.
     #[serde(default, skip_serializing_if = "AgentDrivers::all_acp")]
     pub drivers: AgentDrivers,
+    /// Generated-name routes (ADR 0062); omitted for automatic selection and older peers.
+    #[serde(
+        default,
+        deserialize_with = "MetadataSettings::deserialize_view",
+        skip_serializing_if = "MetadataSettings::is_automatic"
+    )]
+    #[cfg_attr(feature = "ts", ts(as = "Option<MetadataSettings>", optional))]
+    pub metadata: MetadataSettings,
+}
+
+impl NodeSettings {
+    /// Hide unassigned/older generated-name fields on every direct or nested reply.
+    #[must_use]
+    pub fn for_protocol(&self, protocol: crate::ProtocolVersion) -> Option<Self> {
+        self.for_protocol_with_names(protocol, crate::GENERATED_NAMES)
+    }
+
+    fn for_protocol_with_names(
+        &self,
+        protocol: crate::ProtocolVersion,
+        names: Option<crate::ProtocolVersion>,
+    ) -> Option<Self> {
+        let readable = names.is_some_and(|version| protocol >= version);
+        (!readable && !self.metadata.is_automatic()).then(|| {
+            let mut older = self.clone();
+            older.metadata = MetadataSettings::default();
+            older
+        })
+    }
 }
 
 /// Which protocol drives an agent's structured sessions (protocol 18, ADR
@@ -146,7 +175,7 @@ pub struct GetNodeSettings {}
 /// build wrote must still parse after a downgrade, keeping what this build
 /// knows. vessel-store's `a_file_from_a_later_build_keeps_what_this_build_knows`
 /// holds the rule.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct SetNodeSettings {
     /// How long a structured session may stay idle before its agent is
@@ -158,6 +187,10 @@ pub struct SetNodeSettings {
     /// does not offer yet.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub drivers: Option<SetAgentDrivers>,
+    /// Strict generated-name patch; an empty list resets automatic selection.
+    /// This build refuses it until `GENERATED_NAMES` is assigned at integration.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<MetadataSettings>,
 }
 
 #[cfg(test)]
@@ -210,3 +243,6 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod names_tests;

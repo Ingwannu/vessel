@@ -30,10 +30,8 @@ mod accounting;
 mod key;
 pub(crate) use key::KeyError;
 pub(crate) mod config;
-#[cfg(test)]
 mod generation;
 mod listen;
-#[cfg(test)]
 mod metadata;
 pub(crate) mod proxy;
 #[cfg(test)]
@@ -75,6 +73,7 @@ pub(crate) struct Models {
     current: RwLock<Arc<Routes>>,
     tokens: Tokens,
     client: Client,
+    title_generator: generation::Generator,
     node_slots: Arc<Semaphore>,
     session_slots: Mutex<HashMap<SessionId, Arc<Semaphore>>>,
     /// Where the proxy listens, once it does.
@@ -95,12 +94,14 @@ impl Models {
     ) -> Result<Self, ModelsError> {
         let routes = read(&dir)?;
         log_loaded(&routes);
+        let title_generator = generation::Generator::new(&client);
         Ok(Self {
             dir,
             files,
             current: RwLock::new(Arc::new(routes)),
             tokens: Tokens::default(),
             client,
+            title_generator,
             node_slots: Arc::new(Semaphore::new(PER_NODE)),
             session_slots: Mutex::new(HashMap::new()),
             addr: OnceLock::new(),
