@@ -622,3 +622,14 @@ source; any resulting patch must NOT be blindly applied over this newer wire.
 Current-union generation remains owed. Only pure size, standalone pinned
 rustfmt and text/diff checks ran locally; no Cargo/metadata or current union
 compile/runtime/whole gate/V3 acceptance is claimed.
+
+## Actual old 4be TS return and versioned test API correction
+
+The exact4be TS run finally acquired its ordinary slot and returned101 before
+executing generators: ts-rs12 requires TS::decl(&Config), while the new isolated
+CommitAbbreviation regression mistakenly called decl() without its argument.
+Correct the test to the same Config API used by the existing declaration
+collector. Keep the full expected declaration and Content classification.
+The old run's wire.patch and status are empty; no fresh wire or generator pass
+is inferred, and that artifact is not applied over the new275 base. Source
+changed Node compilation and current-union generation remain owed.
