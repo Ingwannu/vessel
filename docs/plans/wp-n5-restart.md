@@ -5,9 +5,9 @@
 The node facet of tracker row 28 belongs to N5; W3 retains its app facet.
 The package includes the accepted R1 policy values and hidden reply projection,
 R2's typed journal, passive projection, node-owned settings and startup runtime.
-The implementation is built; the final changed-base package gate and source
-review remain pending. No whole-package pass is claimed. Existing R1 and narrow source verdicts do not
-stand in for the final product gate. No native or page implementation belongs
+The implementation is built and its final Linux root/web package gate passed
+on `23cf77eb`. Independent source review and integration remain pending.
+Existing R1 and narrow source verdicts stay separate from that final execution. No native or page implementation belongs
 to this node package.
 
 ## Specification and existing owners
@@ -203,3 +203,43 @@ recovery's earlier value-only summary to this package's current scope and
 ADR 0098. No other head document or test assertion was changed by that merge.
 The combined source still awaits its required clean full package gate and
 independent source review.
+
+
+## Final package verification, 2026-11-15
+
+The immutable combined source `23cf77eb`, based on announced node
+`82ae7c91`, passed all 18 required root/web steps with exit code zero. The
+workspace test log has 117 summaries: 2450 passed, zero failed and 12 existing
+ignored tests. TypeScript generation ran four tests and left no declaration
+difference; web unit tests passed 464, browser tests 68 and forge tests four.
+Formatting, file budgets, dependency boundaries, all three Clippy modes,
+required binary builds, web lint/typecheck and font validation passed. The
+changed crates were actually rebuilt; no compiler warning was emitted.
+
+The whole run used one managed build slot, with test fakes and the node
+prebuilt in the same environment, eight build jobs and eight test threads.
+Its first step began at 14:39:02 UTC and its last ended at 15:15:57 UTC.
+The recorded one-minute load was 40.30 at the start and 37.48 at the end;
+the workspace test step recorded 44.25 to 42.59. These are sampled loads,
+not claims about unsampled minima or the cause of earlier failures.
+
+Before and after the frozen run, all 2031 selected source files matched both
+each other and their Git blobs. The selection covers root manifests,
+crates, scripts, web, AGENTS, README, ARCHITECTURE and QUALITY. It excludes
+native, other documents, ignored configuration, dependencies and build output;
+it is not an attestation of the entire environment. The TypeScript artifact
+hashes and its three declaration files matched the committed source.
+
+The earlier whole run remains recorded as failed (2405 passed, four failed),
+and the intermediate qualification lint remains a failed check. All four
+repaired cases passed in the final whole run. No deadline or assertion was
+weakened and no additional test was ignored. The final run needed no failure
+exception or isolated replay.
+
+This result certifies the executed Linux checks, not independent approval,
+a real provider, other operating systems or a native/page flow. The feature
+protocol stays unassigned; explicit recovery settings requests still return
+UnassignedProtocol. Integration owns assignment and the combined-line gate.
+The node implementation remains built and awaiting source review; the app
+facet remains with its owner. No live service, permission or deployment was
+changed, and no repository push was made.

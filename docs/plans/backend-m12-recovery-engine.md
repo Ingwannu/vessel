@@ -5,10 +5,11 @@ retained on the announced Quality B head. The passive ordered journal is now
 connected to node boot, ordinary person-stop/resume and the same owned settings
 engine. Client helpers and the explicit CLI inputs use canonical admission;
 recovery's protocol remains Option None and no positive new-field request is
-claimed. The full runtime package is not yet gated or reviewed. Sections below
+claimed. The final Linux root/web package gate passed on `23cf77eb`;
+independent source review and integration remain pending. Sections below
 record earlier baseline/staging decisions in their original sequence; their
 old staging status is historical, superseded by this paragraph and the final
-Quality B section. The accepted ADR0098 contract still defines behavior.
+verification in wp-n5-restart.md. The accepted ADR 0098 contract defines behavior.
 
 [Decision Log]
 - Purpose: implement the recovery settings and startup coordinator while its
@@ -328,3 +329,27 @@ new-field RPC while assignment is pending. The real raw legacy setter regression
 continues to exercise server encoding. Clean-stop, killed-process, real paired
 creator grant changes and held provider load tests belong to the final package
 run. No native/page code or real provider is used.
+
+
+## Final runtime verification
+
+The complete combined source `23cf77eb` passed all 18 Linux root/web steps:
+2450 workspace tests, four TypeScript tests with no declaration difference,
+464 web unit tests, 68 browser tests and four forge tests; zero failures and
+12 existing workspace ignored tests. All three Clippy modes, formatting,
+size/boundary checks and required builds passed with actual changed-crate
+compilation. The exact scope, earlier failed runs and sampled load are
+recorded in wp-n5-restart.md. Pre/post selected sources matched their Git
+blobs; the selection is not a full-environment attestation.
+
+The actual legacy Get/Set byte projection, clean stop and real node SIGKILL,
+settings write/cleanup caller loss, partial failures, fresh grants after held
+load, Off/person-stop admission and same-run-only cleanup regressions all
+passed in that whole run. The repaired committed-turn observers and rollback
+fixtures are exercised there. No deadline/assertion was weakened, no test
+was newly ignored and no failure exception was needed.
+
+Independent source review, protocol/schema assignment and combined integration
+remain distinct obligations. Option None still refuses explicit new-field
+RPC/client/CLI requests. There is no native/page, real-provider, other-OS or
+live-service certification, permission change or deployment in this package.
