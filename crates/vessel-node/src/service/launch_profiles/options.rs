@@ -49,17 +49,19 @@ impl NodeService {
                     )
                     .await;
                 models.retire(id);
-                // A failure from the retired definitions is stale too: it must
-                // not replace a newer editor state with an old account error.
+                let result = result.map_err(structured).and_then(|probed| {
+                    let options = LaunchCatalogueOptions::try_from(probed.options)
+                        .map_err(ServiceError::LaunchValues)?;
+                    LaunchCatalogue::new(selection, account, options, Utc::now())
+                        .map_err(ServiceError::LaunchValues)
+                });
+                // Check after complete result preparation, including failures:
+                // retired definitions cannot publish a stale account error or
+                // escape the final generation check through an early `?`.
                 if !Arc::ptr_eq(&snapshot, &profiles.current()) {
                     return Err(ServiceError::LaunchChanged);
                 }
-                let probed = result.map_err(structured)?;
-                let options = LaunchCatalogueOptions::try_from(probed.options)
-                    .map_err(ServiceError::LaunchValues)?;
-                let result = LaunchCatalogue::new(selection, account, options, Utc::now())
-                    .map_err(ServiceError::LaunchValues)?;
-                Ok(result)
+                result
             })
             .await
             .map_err(|error| wire(&error))
