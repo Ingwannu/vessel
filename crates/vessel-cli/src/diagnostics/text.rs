@@ -2,7 +2,7 @@
 use super::{Text, count, section};
 use std::fmt::{self, Write as _};
 use vessel_proto::diagnostics::{
-    DiagnosticAgentId, DiagnosticReport, DiagnosticReportFields, DiagnosticVersion,
+    DiagnosticAgentId, DiagnosticProcessId, DiagnosticReport, DiagnosticReportFields, DiagnosticVersion,
 };
 
 pub(super) fn report(report: &DiagnosticReport) -> Result<String, fmt::Error> {
@@ -43,7 +43,7 @@ fn process(out: &mut Text, fields: &DiagnosticReportFields) -> fmt::Result {
             out,
             "  PID: {}\n  Parent: {:?}",
             value.pid.get(),
-            value.parent.map(|id| id.get())
+            value.parent.map(DiagnosticProcessId::get)
         )?;
         section(out, "  Memory", &value.memory, |out, memory| {
             writeln!(

@@ -732,3 +732,9 @@ Shared package base 3, exact 6c782cb6, is consumed as instructed. Its sole
 conflict was docs/PROTOCOL.md: the incoming project-port paragraph stays intact
 first, followed by the pending diagnostics paragraph. Native sources are only
 incoming base material; this node track authors no native screen changes.
+
+Narrow `diagnostics-20261115T082635Z-bef3f5a9` reached the CLI and remained
+red (Cargo 101, 58 seconds): redundant args qualification and a redundant
+process-id getter closure. No other owned-library diagnostic is reported in
+that run. Both CLI warnings are corrected next; this is not yet an aggregate
+strict-Clippy pass or any execution/whole-package evidence.

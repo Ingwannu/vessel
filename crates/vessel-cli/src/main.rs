@@ -104,7 +104,7 @@ async fn cli() -> ExitCode {
     let diagnostic_output = matches!(
         &cli.command,
         Command::Node {
-            command: crate::args::NodeCommand::Diagnostics { .. }
+            command: args::NodeCommand::Diagnostics { .. }
         }
     );
     // A node shows its lifecycle; client commands only warnings.
