@@ -1441,3 +1441,12 @@ scoped host/root/image authority and final UI acceptance remain separate.
   for each of three versions, and retains true across warm truncated renders
   before returning to false after shrink. This is a work-count test, not a
   wall-clock/latency claim; its execution is still owed.
+
+Portable body closure correction: its kernel needs only reported failure prose,
+not the rich ToolFailure container that the body-only proto does not export.
+BorrowedDetail.failure now borrows Option<&str>; the canonical wrapper keeps the
+typed failure and passes its message. No error is decoded/reclassified and no
+rich DTO is copied into the minimal packet. The separate missing existing size
+facade export and external page-test adapter are included there too. Prior
+portable f839/ae256 strict attempts stopped before tests; their red evidence is
+retained and does not prove current native readiness.

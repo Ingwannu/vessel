@@ -12,7 +12,7 @@ use vessel_app_view::timeline::{
     DiffLine, MAX_LINES, Side, ToolSection, ToolSectionLabel, diff_lines, json_text, tool_sections,
     unified_lines, word_highlights,
 };
-use vessel_proto::timeline::{DetailOffset, ToolCallDetail, ToolFailure};
+use vessel_proto::timeline::{DetailOffset, ToolCallDetail};
 
 /// Borrowed drawing inputs only; no Entry, Seat, session or I/O capability.
 pub(super) struct BodyPaint<'a> {
@@ -36,7 +36,7 @@ pub(super) enum DetailContentState {
 pub(super) struct BorrowedDetail<'a> {
     pub(super) detail: &'a ToolCallDetail,
     pub(super) state: DetailContentState,
-    pub(super) failure: Option<&'a ToolFailure>,
+    pub(super) failure: Option<&'a str>,
 }
 
 pub(super) fn render(
@@ -84,7 +84,7 @@ fn child_id(parent: &ElementId, part: &str) -> ElementId {
 pub(super) fn failure(
     paint: &BodyPaint<'_>,
     id: ElementId,
-    failure: &ToolFailure,
+    message: &str,
     window: &mut Window,
     cx: &mut App,
 ) -> Div {
@@ -93,8 +93,8 @@ pub(super) fn failure(
             title: None,
             description: Some(vessel_app_kit::plain_text(
                 id,
-                &failure.message,
-                version_of(&failure.message),
+                message,
+                version_of(message),
                 window,
                 cx,
             )),

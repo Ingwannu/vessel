@@ -155,7 +155,7 @@ pub(super) fn body(
             } else {
                 DetailContentState::Ready
             },
-            failure: source.failure(),
+            failure: source.failure().map(|failure| failure.message.as_str()),
         },
         window,
         cx,
@@ -203,7 +203,7 @@ pub(super) fn failure(
     tool_body::failure(
         &BodyPaint::from(paint),
         ElementId::NamedInteger("canonical-tool-error".into(), super::entries::id(index)),
-        failure,
+        &failure.message,
         window,
         cx,
     )
