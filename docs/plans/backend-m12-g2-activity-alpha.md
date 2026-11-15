@@ -97,3 +97,14 @@ independent UI approval, an optical750ms measurement, four-scale proof, other
 backend/OS preference integration, keyboard focus restoration or a product
 list/Git/provider first-use claim. The after-close key-routing issue remains
 open separately. Unchanged Rust does not need another gate for these notes.
+
+## Independent limited disposition
+
+V1 subsequently passed exact e2827533 source, A13 gate and the specified Linux
+probe's large36 opaque interior alpha, visible10/16/20/36 phase and App-flag
+static state. The reviewer independently opened all20 corrected originals and
+recomputed their pinned source/evidence. This supersedes only the pending
+disposition above for that explicit scope. AA edges, optical rotation period,
+OS preference integration, four scales, other backends, menu focus restoration
+and every product first use remain unverified or held as already recorded.
+The later0.19 integration and standalone loader producer require their own gates.
