@@ -182,9 +182,9 @@ async fn attention(
     client: &Client,
 ) -> Result<Option<Vec<vessel_proto::inbox_attention::SessionAttention>>, Problem> {
     use vessel_proto::inbox_attention::ATTENTION_BATCH;
-    if !vessel_proto::Method::GetInboxAttention
+    if vessel_proto::Method::GetInboxAttention
         .since()
-        .is_some_and(|since| since <= client.protocol())
+        .is_none_or(|since| since > client.protocol())
     {
         return Ok(None);
     }

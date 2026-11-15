@@ -10,6 +10,8 @@
 //! - Alternatives: raise the root's recorded size (the list only shrinks).
 //! - Choice: a child module of the crate root, as `options.rs` is.
 //! - Cost: one more file; no API, behaviour or dependency change.
+//! - A5 registration crossed the function budget; preference persistence is
+//!   extracted unchanged below so this exhaustive match stays within it.
 
 use super::{Command, Event, LinkError, State, drafts, nodes, pairing};
 use vessel_proto::{PermissionOutcome, SessionInput};
@@ -107,14 +109,16 @@ impl State {
             } => self.act(&machine, session, act),
             Command::Workspace { machine, ask } => self.workspace(machine, ask),
             Command::Search(ask) => self.search(ask),
-            Command::SavePrefs(prefs) => {
-                let saved = tokio::task::spawn_blocking(move || prefs.save()).await;
-                match saved {
-                    Ok(Ok(())) => {}
-                    Ok(Err(error)) => tracing::warn!(%error, "could not save the app's choices"),
-                    Err(error) => tracing::warn!(%error, "could not save the app's choices"),
-                }
-            }
+            Command::SavePrefs(prefs) => save_preferences(prefs).await,
         }
+    }
+}
+
+async fn save_preferences(prefs: super::Prefs) {
+    let saved = tokio::task::spawn_blocking(move || prefs.save()).await;
+    match saved {
+        Ok(Ok(())) => {}
+        Ok(Err(error)) => tracing::warn!(%error, "could not save the app's choices"),
+        Err(error) => tracing::warn!(%error, "could not save the app's choices"),
     }
 }

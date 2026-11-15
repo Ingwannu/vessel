@@ -18,9 +18,9 @@ const TERMINAL_ROWS: usize = 96;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub(super) async fn list(client: &Client) -> Result<Option<Vec<Row>>, Problem> {
-    if !vessel_proto::Method::ClaimNotification
+    if vessel_proto::Method::ClaimNotification
         .since()
-        .is_some_and(|since| since <= client.protocol())
+        .is_none_or(|since| since > client.protocol())
     {
         return Ok(None);
     }

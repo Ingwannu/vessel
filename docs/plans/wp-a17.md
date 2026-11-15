@@ -374,3 +374,9 @@ in manifest order using the local crate manifest's MIT OR Apache-2.0 licence;
 the assertion stays unchanged. This is an own omission, not a base defect.
 The newer aggregate/icon correction was absent from that immutable source;
 changed-source union checks remain required.
+
+The same4ed strict run reached Link and returned two equivalent boolean-gate
+lints and the dispatch function's 101/100-line budget. The pending/older-peer
+tests use is_none_or with the same refusal semantics. SavePrefs persistence is
+extracted unchanged into a private dispatch helper; no raised size record,
+call list, retry, error behavior or scope change. A new union narrow is owed.
