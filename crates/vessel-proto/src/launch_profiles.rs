@@ -5,8 +5,8 @@
 //!   provider-specific JSON part of a preset.
 //! - Choice: bounded immutable wrappers around the existing agent choices
 //!   and identifiers; constructors and decoding share the same invariants.
-//! - Constraint: these values register no call or existing reply field.
-//!   Storage, catalogue probes and transport wiring remain separate work.
+//! - Constraint: five pending calls share the one method table and no existing
+//!   reply field changes. None refuses every hop until integration assigns it.
 
 mod calls;
 mod catalogue;

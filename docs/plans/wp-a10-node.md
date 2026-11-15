@@ -198,3 +198,34 @@ the existing ModelId type; those and the agent Future qualification warning
 are corrected. The new node head is consumed next at this clean boundary;
 its canonical method table and startup extraction take precedence over the
 working branch's earlier mechanical file divisions.
+
+## CLI and real-node fixture source checkpoint
+
+The announced gate-40 node baseline is merged. Incoming rpc/contract.rs and
+rpc/table.rs remain canonical; the five pending rows are at the table end.
+Client materialization and legacy planning/reconciliation source, plus all
+five CLI operations, are present but selected compilation/runtime checks
+remain in progress. CLI input uses the protocol whole-body byte limit and
+typed request decoding; CAS/lost-ack retry is never hidden.
+
+Private generated-guard fixtures use real nodes, actual handshake contexts
+and fake ACP processes to cover Read/Admin/origin/ownership, public notes,
+missing-account preservation, selected probe choices, failed live prefixes,
+reload before publication and caller cancellation through actual node stop.
+A loopback-only finite fake startup barrier fixes those orderings. Raw real
+server fixtures exercise all five calls directly and under Forward/Relay/
+Deliver at pending/older admission. They are not assigned happy-wire proof.
+MCP facade and app marker persistence remain consumer-owner obligations.
+No new runtime result is claimed by this source checkpoint.
+
+Shared testkit authority fixtures now include public typed whole-list and
+selected-probe JSON files for the fake ACP ids. Real-node tests decode and
+use the same files, including applicability against the running account.
+TS primitive aliases are explicitly classified before regeneration; this
+source edit is not generated-TypeScript evidence.
+
+An actual CLI binary fixture covers each typed command against a disposable
+fake node while the feature is pending. It owns each child, limits captured
+output, and bounds completion, kill/reap and reader drain separately. The
+pending-only assertion deliberately does not substitute for numbered
+happy-path integration evidence.

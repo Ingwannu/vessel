@@ -13,6 +13,8 @@ use vessel_remote::{
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum CliError {
+    #[error(transparent)]
+    LaunchProfile(#[from] crate::launch_profiles::LaunchCliError),
     /// Service input and reads must never expose unit environment contents.
     #[error(transparent)]
     Service(#[from] crate::init::ServiceError),

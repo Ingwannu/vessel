@@ -1669,12 +1669,13 @@ The feature's protocol remains unassigned. Five pending rows in the one
 method table cover list, CAS replacement, editor options, applicable presets
 and a session bundle. Every transport must refuse them while the feature
 constant is None; their presence is not an available feature. Existing
-reply/event fields remain unchanged. Client/CLI/MCP consumers are not built
-yet. The service now routes to retained metadata/probe and apply jobs,
+reply/event fields remain unchanged. Typed client calls and the separate
+`launch-profiles` CLI use the same requests; the MCP facade remains its
+consumer owner's work. The service now routes to retained metadata/probe and apply jobs,
 with separate finite admissions drained by the existing node task tracker.
 Editor probes use one retained account snapshot, actual selected handshake
 choices and real process cleanup, then check configuration identity before
-publishing. These additions still await compilation and runtime checks.
+publishing. Their new selected compile/runtime checks remain in progress.
 The working package adds one SQLite singleton and CAS through the existing
 writer; its acknowledgement follows the outer commit. The bounded reader
 selects revision and body together and never substitutes empty data for a
@@ -1690,3 +1691,13 @@ existing drivers report none. `SessionHandle::apply_options` wakes once and
 captures one process handle, so a concurrent move cannot redirect later
 steps. These additions are under implementation and require the package's
 runtime checks and whole gate before a callable feature is reported.
+
+The client copies presets into ordinary session specs or prepared live
+choices, without a persistent preset-id binding. Its compatibility helper
+accepts only validated caller-supplied legacy favorites and reported
+provider catalogues tagged by NodeId. It builds append-only CAS updates,
+reconciles uncertain writes by reading, and returns a receipt only after
+confirmation. The app owns preference files, per-node markers and in-flight
+state; remembered account choices are not favorites. Testkit
+`FAKE_ACP_START_GATE` is a bounded loopback barrier in the fake binary only,
+used to prove real probe reload/cancellation ordering without timing sleeps.

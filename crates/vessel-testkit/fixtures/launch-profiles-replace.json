@@ -1,0 +1,1 @@
+{"expected":0,"profiles":[{"id":"16be43d0-7bca-4e6a-9f35-7c4e89720d0b","name":"Planning / 계획","launch":{"harness":"claude","options":[{"id":"model","kind":"select","value":"fake-large","category":"model"},{"id":"mode","kind":"select","value":"plan","category":"mode"}]},"icon":"compass","color":"violet","notes":"Plan before editing. Public fixture guidance."}]}

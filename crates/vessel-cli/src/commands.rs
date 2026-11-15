@@ -28,6 +28,9 @@ use crate::{
 pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
     let target = &cli.target;
     match cli.command {
+        Command::LaunchProfiles { command } => {
+            Box::pin(crate::launch_profiles::command(target, command)).await
+        }
         Command::Inbox { command } => crate::inbox::command(target, command).await,
         Command::Node { command } => node(target, command).await,
         Command::Nodes { command } => nodes::command(target, command).await,

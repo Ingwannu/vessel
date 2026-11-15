@@ -60,9 +60,9 @@ fn draft_copies_selection_without_live_binding_and_keeps_creation_strict() {
         },
     )
     .with_profile("old-account".parse::<ProfileName>().unwrap())
-    .with_cwd("/fixture".into());
+    .with_cwd("/fixture");
     let prepared = materialize_draft(&preset, draft);
-    assert_eq!(prepared.harness, HarnessKind::Codex.into());
+    assert_eq!(prepared.harness, HarnessKind::Codex);
     assert_eq!(prepared.profile, None);
     assert_eq!(
         prepared.cwd.as_deref(),

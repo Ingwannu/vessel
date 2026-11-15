@@ -91,3 +91,6 @@ fn human(principal: &Principal) -> Result<(), ServiceError> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests;

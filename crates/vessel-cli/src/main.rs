@@ -23,6 +23,7 @@ mod history;
 mod inbox;
 mod init;
 mod io;
+mod launch_profiles;
 mod log;
 mod node_ctl;
 mod nodes;
@@ -107,6 +108,7 @@ async fn cli() -> ExitCode {
         | Command::Status
         | Command::Harnesses
         | Command::Profiles { .. }
+        | Command::LaunchProfiles { .. }
         | Command::Agents { .. }
         | Command::Fleet { .. }
         | Command::Models
