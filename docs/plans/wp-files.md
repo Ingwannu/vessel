@@ -355,7 +355,7 @@ this separation keeps construction and input event delivery in their own modules
 [Decision Log]
 - Purpose: root metadata must belong to the original authenticated node and admission, including when the same book name is reused.
 - Existing assets: G4 `ConnectionContext` and `State::selected_connection`, the one workspace file/LSP runner, W12 file targets. These are extended rather than adding a connection registry or filesystem client.
-- Choice: a closed `workspace::scoped::Request` carries an exact metadata ticket or validated `FileScope` plus existing `FileAsk`. Admission happens on the shared actor; every selected unary call has a finite 30-second deadline and the G4 before/after fence. Sixteen operation slots bound detached tasks. File requests reject a root mismatch before dispatch. Safe error projection retains only the closed node code.
+- Choice: a closed `workspace::scoped::Request` carries an exact metadata ticket or validated `FileScope` plus existing `FileAsk`. Admission happens on the shared actor; ordinary reads have a finite30-second deadline and every call uses the G4 before/after fence; the original direct write now deliberately has no local deadline (terminal-evidence section below). Sixteen operation slots bound detached tasks. File requests reject a root mismatch before dispatch. Safe error projection retains only the closed node code.
 - Why: cloning a client by a mutable alias cannot preserve old intent. The shared file runner still performs exactly one write and at most one conflict readback. Old workspace consumers retain a private legacy adapter while C5 migrates.
 - Cost/remaining: the root metadata path is migrated first. Canonical NodeId/root/path buffer keys, original-ticket settlement after retirement, all file request callsites, Finder cache, and the pane renderer remain unfinished; this checkpoint is not an approved consumer opener or complete live resource cutover. No dirty/uncertain preservation claim is added.
 - Integration: merged the official shared app line `2e95b7d3`, preserving C5 Intelligence registrations. It supplies the existing `service_ports` approval adapter that the earlier app/root union lacked. The prior exact `267d036c` Clippy run stopped on that missing field before C5 compile validation; no tests or full gate are claimed.
@@ -649,3 +649,22 @@ existing Workspaces file writers, including partial failures. C5 adds no second
 comparison cache or git watcher. Its finite single-file observation concerns
 saved-file invalidation only. C3's RAII cache writer is not yet an admitted
 producer and is a pending integration connection, not implemented parity here.
+
+### Per-node document readiness for owned stop/restart
+
+The existing lifecycle reducer now accepts an optional actual NodeId facts
+filter: all-document quit and node-scoped readiness share that one traversal
+and the same Viewer predicate. It includes parked buffers and original write
+obligations independent of text dirtiness; pending path mutations participate
+by their original scope. No node/connection ownership registry or alias lookup
+is introduced. Shell::file_documents_for_node returns the existing canonical
+DocumentReadiness, not authority to stop or claim a controller.
+
+Both entry points remain explicitly test-staged until their actual desktop
+callers are wired. Stop/restart must conservatively respect Pending/Failed;
+a Dirty/Keep choice preserves local text and cannot release an unknown effect.
+Readiness for one node must not be blocked by unrelated remote drafts, while
+ordinary quit still aggregates every node. A synthetic GPUI owner regression
+reuses one alias/path/root for two actual nodes and pins parked Dirty/Pending/
+Uncertain isolation. It is source-only and does not prove service lifecycle,
+controller admission or forced-exit recovery.
