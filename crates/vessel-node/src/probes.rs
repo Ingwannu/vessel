@@ -281,7 +281,7 @@ mod tests {
                 project: "00000000-0000-4000-8000-000000000001".parse().unwrap(),
             },
             directory: None,
-            model: Some(model.parse().unwrap()),
+            model: Some(vessel_proto::ModelId::new(model)),
             options: Vec::new(),
         };
         ProbeKey {

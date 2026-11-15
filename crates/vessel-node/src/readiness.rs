@@ -344,10 +344,8 @@ pub(crate) fn failure_of(error: &crate::error::ServiceError) -> HandshakeFailure
     match probe {
         vessel_agent::ProbeError::Spawn(_)
         | vessel_agent::ProbeError::CatalogUnsupported { .. } => HandshakeFailure::Spawn,
-        vessel_agent::ProbeError::CatalogTimedOut { limit } => HandshakeFailure::TimedOut {
-            after: DurationMs::from_duration(*limit),
-        },
-        vessel_agent::ProbeError::TimedOut { limit, .. } => HandshakeFailure::TimedOut {
+        vessel_agent::ProbeError::CatalogTimedOut { limit }
+        | vessel_agent::ProbeError::TimedOut { limit, .. } => HandshakeFailure::TimedOut {
             after: DurationMs::from_duration(*limit),
         },
         vessel_agent::ProbeError::Disconnected { disconnect, .. } => match disconnect {

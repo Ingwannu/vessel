@@ -34,7 +34,7 @@ fn cache_identity_uses_root_directory_profile_model_and_ordered_choices() {
     changed.profile = Some("other".parse().unwrap());
     assert_ne!(first, DraftConfigHash::of(&changed).unwrap());
     let mut changed = original.clone();
-    changed.model = Some("other".parse().unwrap());
+    changed.model = Some(vessel_proto::ModelId::new("other"));
     assert_ne!(first, DraftConfigHash::of(&changed).unwrap());
     let mut changed = original;
     changed.options = vec![choice("mode"), choice("effort")];
