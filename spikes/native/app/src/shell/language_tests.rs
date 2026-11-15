@@ -29,10 +29,19 @@ impl Render for Probe {
 }
 
 impl Shell {
+    pub(crate) fn with_test_link(
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+        link: Link,
+    ) -> Self {
+        let mut shell = Self::without_io(window, cx);
+        shell.link = Some(link);
+        shell
+    }
+
     pub(crate) fn without_io(window: &mut Window, cx: &mut Context<'_, Self>) -> Self {
         Self {
             link: None,
-            // No receiver: a command given back goes nowhere in these tests.
             unsent: mpsc::unbounded_channel().0,
             t: vessel_app_view::Lang::En.text(),
             words: Translator::get(ENGLISH).unwrap(),
@@ -40,7 +49,14 @@ impl Shell {
             fleet: Fleet::default(),
             route: Route::Draft,
             brand: crate::brand::Brand::default(),
-            areas: Areas::new(window, cx),
+            areas: Areas::new(
+                areas::settings::PreparedGeneral::new(
+                    Translator::get(ENGLISH).unwrap(),
+                    &Prefs::default().kept,
+                ),
+                window,
+                cx,
+            ),
             prefs: Prefs::default(),
             notice: None,
             notice_detail: None,
@@ -59,6 +75,18 @@ impl Shell {
 /// A detached command receiver lets area tests hold a read without any I/O.
 pub(crate) fn attach_link(shell: &mut Shell, link: Link) {
     shell.link = Some(link);
+}
+
+/// A command queue without a node/runtime task lets area tests supply typed replies.
+pub(crate) fn with_commands(
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> (Shell, mpsc::Receiver<Command>) {
+    const ROOM: usize = 64;
+    let (link, commands) = Link::detached(ROOM).unwrap();
+    let mut shell = Shell::without_io(window, cx);
+    shell.link = Some(link);
+    (shell, commands)
 }
 
 pub(crate) fn init(cx: &mut TestAppContext) {

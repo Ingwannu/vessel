@@ -34,6 +34,7 @@ import type {
   ProjectCommand,
   ProjectCommands,
 } from "../../wire/proto";
+import { allocationForDisplay } from "./allocation-fields";
 import {
   compareScripts,
   hasDeclaredPorts,
@@ -180,7 +181,16 @@ function setOf(commands: CommandSet): Required<CommandSet> {
     teardown: commands.teardown,
     scripts: commands.scripts ?? [],
     terminals: commands.terminals ?? [],
+    service_ports: commands.service_ports ?? null,
   };
+}
+
+/** Presence alone refuses a block, including a malformed empty peer value. */
+function hasPortConfiguration(set: Required<CommandSet>): boolean {
+  return (
+    hasDeclaredPorts(set.scripts) ||
+    allocationForDisplay(set.service_ports) !== null
+  );
 }
 
 /** Refuse approval while a current or previous set contains commands this page cannot show. */
@@ -195,8 +205,8 @@ export function approvalCoverage(asked: ListedCommands): ApprovalCoverage {
     return "unsupported_terminals";
   }
   if (
-    hasDeclaredPorts(now.scripts) ||
-    (before !== null && hasDeclaredPorts(before.scripts))
+    hasPortConfiguration(now) ||
+    (before !== null && hasPortConfiguration(before))
   ) {
     return "unsupported_ports";
   }
@@ -214,7 +224,7 @@ function against(
   if (before.terminals.length > 0 || after.terminals.length > 0) {
     return { kind: "unsupported_terminals" };
   }
-  if (hasDeclaredPorts(before.scripts) || hasDeclaredPorts(after.scripts)) {
+  if (hasPortConfiguration(before) || hasPortConfiguration(after)) {
     return { kind: "unsupported_ports" };
   }
   return {

@@ -5,6 +5,9 @@ use vessel_proto::{CreateSession, GetManifest, Hello, Method, Reply};
 
 use super::*;
 
+#[path = "diagnostics.rs"]
+mod diagnostics;
+
 /// A raw client speaking only `version`, past the welcome.
 async fn raw_client(version: u32) -> (MemoryTransport, Served) {
     let (client, served, _) = raw_client_with_node(version).await;
@@ -371,4 +374,7 @@ async fn malformed_creation_labels_are_refused_before_dispatch() {
     );
 }
 
+mod decode_privacy;
 mod inbox;
+
+mod labels;

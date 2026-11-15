@@ -39,10 +39,13 @@ pub enum Command {
     Machines(machines::Ask),
     /// Read the book again and connect to every node in it.
     Reload,
+    /// Reconcile a known closed admission on the same actor as Fleet snapshots.
+    /// An obsolete tag cannot retire a replacement, and carries no `NodeId` map.
+    RetireConnection(vessel_app_view::connection::ConnectionTag),
     /// Ask about a machine's paired devices.
     Devices {
-        /// Its name in the book.
-        machine: vessel_app_view::devices::MachineKey,
+        /// The authenticated admission that supplied the page’s facts.
+        context: vessel_app_view::devices::ConnectionContext,
         /// The page request identity.
         ticket: vessel_app_view::devices::Ticket,
         /// The device operation.
@@ -148,7 +151,8 @@ pub enum Command {
         option: PermissionOptionId,
     },
     /// Remember the person's choices (machine, agent, folders).
-    SavePrefs(Prefs),
+    // Prefs grew past large_enum_variant; a save is infrequent.
+    SavePrefs(Box<Prefs>),
     /// Act on a session: rename, mark, start again, delete, kill, move,
     /// terminal input (answered by `Event::Acted`).
     Act {

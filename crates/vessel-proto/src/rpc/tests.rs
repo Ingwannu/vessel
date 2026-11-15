@@ -159,15 +159,30 @@ fn every_method_knows_its_first_version() {
             ("session.rename", Scope::Operate),
         ]
     );
-    // Protocol 10, track B: projects, worktrees, git and files. Reads are
-    // `read`; everything that changes a folder or a repository is
-    // `operate`; nothing needs `admin`.
+    protocol_ten_workspace_methods_keep_their_version_and_scope();
+}
+
+/// Protocol 10, track B: projects, worktrees, git and files. Reads are
+/// `read`; everything that changes a folder or a repository is `operate`;
+/// nothing needs `admin`. Those methods are listed (`PROTOCOL_TEN_WORKSPACE`);
+/// a later method in the same families is pending until the integrator
+/// assigns its number, and its package's own test then names it in
+/// `WORKSPACE_FAMILIES_LATER`.
+fn protocol_ten_workspace_methods_keep_their_version_and_scope() {
     for method in Method::ALL {
         let name = method.as_str();
         let workspace = ["project.", "worktree.", "git.", "file."]
             .iter()
             .any(|prefix| name.starts_with(prefix));
-        if !workspace {
+        if !workspace || WORKSPACE_FAMILIES_LATER.contains(&name) {
+            continue;
+        }
+        if !PROTOCOL_TEN_WORKSPACE.contains(&name) {
+            assert_eq!(
+                method.since(),
+                None,
+                "{method:?} is new: pending until assigned"
+            );
             continue;
         }
         assert_eq!(method.since(), Some(V10), "{method:?}");
@@ -202,6 +217,55 @@ fn every_method_knows_its_first_version() {
         );
     }
 }
+
+/// The project, worktree, git and file methods protocol 10 brought (track
+/// B), exactly; their version and scope are checked above.
+const PROTOCOL_TEN_WORKSPACE: &[&str] = &[
+    "project.list",
+    "project.get",
+    "project.add",
+    "project.clone",
+    "project.init",
+    "project.remove",
+    "project.commands",
+    "project.approve",
+    "worktree.list",
+    "worktree.create",
+    "worktree.output",
+    "worktree.setup",
+    "worktree.remove",
+    "worktree.snapshots",
+    "worktree.drop_snapshot",
+    "git.status",
+    "git.changes",
+    "git.diff",
+    "git.show",
+    "git.branches",
+    "git.log",
+    "git.stashes",
+    "git.stage",
+    "git.unstage",
+    "git.discard",
+    "git.commit",
+    "git.fetch",
+    "git.push",
+    "git.pull",
+    "git.switch",
+    "git.rename_branch",
+    "git.stash",
+    "file.list",
+    "file.read",
+    "file.write",
+    "file.create_dir",
+    "file.rename",
+    "file.delete",
+    "file.find",
+    "file.grep",
+];
+
+/// Methods in the same families added after protocol 10 and assigned a
+/// number: each is checked by its package's own test, which adds it here.
+const WORKSPACE_FAMILIES_LATER: &[&str] = &[];
 
 /// Every protocol 11 method and its scope, by track: B2's pull requests
 /// (ADR 0029) and C's terminals, scripts and ports (ADR 0031) read with
@@ -570,6 +634,15 @@ const FORWARDABLE: &[&str] = &[
     "session.fork",
     "session.rewind",
     "agent.history",
+    "session.detach",
+    "workspace.registry",
+    "workspace.list",
+    "workspace.get",
+    "workspace.rename",
+    "workspace.pin",
+    "workspace.release_automation",
+    "git.compare",
+    "git.compare_file",
 ];
 
 #[test]
@@ -852,7 +925,7 @@ fn options_and_renames_reach_older_clients_as_lines() {
         })
     };
     let changed = SessionEvent::OptionsChanged { options };
-    assert_eq!(changed.since(), V9);
+    assert_eq!(changed.required_protocol(), Some(V9));
     assert_eq!(changed.for_protocol(V9), None);
     assert_eq!(
         changed.for_protocol(V8),
@@ -869,7 +942,7 @@ fn options_and_renames_reach_older_clients_as_lines() {
         title: "Fix the build".parse().unwrap(),
         origin: crate::title::TitleOrigin::Unknown,
     };
-    assert_eq!(renamed.since(), V9);
+    assert_eq!(renamed.required_protocol(), Some(V9));
     assert_eq!(
         renamed.for_protocol(V4),
         line("vessel: renamed to Fix the build")

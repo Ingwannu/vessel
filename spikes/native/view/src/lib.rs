@@ -14,10 +14,12 @@ pub mod agent_mark;
 pub mod agent_status;
 pub mod ago;
 pub mod alert;
+pub mod attention;
 pub mod badge;
 pub mod board;
 pub mod brand;
 pub mod composer;
+pub mod connection;
 pub mod connections;
 mod conversation;
 pub mod devices;
@@ -76,3 +78,6 @@ pub use text::{
     OptionsText, OverviewText, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text,
     grouped, meter_tokens, short_tokens,
 };
+
+pub mod layout;
+pub mod residents;

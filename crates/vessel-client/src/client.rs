@@ -1,5 +1,7 @@
 //! [`NodeClient`]: one typed method per protocol call.
 
+mod protocol;
+
 use std::path::PathBuf;
 use vessel_proto::TerminalId;
 use vessel_proto::terminals::SubscribeTerminal;
@@ -11,11 +13,11 @@ use vessel_proto::{
     ImportSession, Invitation, InviteDevice, KillSession, ListDevices, ListHarnesses, ListMembers,
     ListModels, ListProfiles, ListSecrets, ListSessions, MAX_TRANSFER_FILE, Manifest,
     MemoryImported, ModelRoute, MoveProfile, NodeId, NodeInfo, OptionChoice, ProfileInfo,
-    ProfileName, ProtocolVersion, ReadBlob, ReadEvents, ReadTransfer, ReloadProfiles,
-    RenameSession, Reply, ReportApplied, RevokeDevice, Scope, SecretName, SecretValue, SendInput,
-    SessionId, SessionImported, SessionInfo, SessionInput, SessionOption, SessionSpec,
-    SessionTitle, SetSecret, SetSessionOption, StopNode, StopWhen, Subscribe, TransferId,
-    TransferManifest, WatchFleet,
+    ProfileName, ReadBlob, ReadEvents, ReadTransfer, ReloadProfiles, RenameSession, Reply,
+    ReportApplied, RevokeDevice, Scope, SecretName, SecretValue, SendInput, SessionId,
+    SessionImported, SessionInfo, SessionInput, SessionOption, SessionSpec, SessionTitle,
+    SetSecret, SetSessionOption, StopNode, StopWhen, Subscribe, TransferId, TransferManifest,
+    WatchFleet,
 };
 use vessel_rpc::{
     CallError, ClientConfig, Connection, FrameTransport, Subscription, TerminalSubscription, Unary,
@@ -91,12 +93,6 @@ impl NodeClient {
     #[must_use]
     pub fn node(&self) -> &NodeInfo {
         &self.connection.welcome().node
-    }
-
-    /// The protocol version in use.
-    #[must_use]
-    pub fn protocol(&self) -> ProtocolVersion {
-        self.connection.welcome().protocol
     }
 
     /// Resolves once the connection has closed.

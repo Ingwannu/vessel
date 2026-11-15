@@ -27,8 +27,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use super::FileTerminal;
 use super::text::{CommandsDigest, ProjectCommand};
+use super::{FileTerminal, ServicePorts};
 use crate::scripts::ScriptEntry;
 
 /// What a project's file names to run: setup and teardown, and its
@@ -47,6 +47,9 @@ pub struct CommandSet {
     /// Terminal commands covered by this approval (ADR 0066).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub terminals: Vec<FileTerminal>,
+    /// Retain every allocation choice covered by the approval's digest.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub service_ports: Option<ServicePorts>,
 }
 
 /// A set a person approved for a project, and when.

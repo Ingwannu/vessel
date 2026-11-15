@@ -98,12 +98,42 @@ Unassigned fields are omitted for every peer, including the current version;
 after assignment, only peers at or above the assigned version receive them.
 Both current and creation maps remain in durable storage independently.
 
-The shared `required_protocol()` gate will refuse unassigned calls and fields
-before sending and at dispatch. Until that accessor is integrated, existing
-session/prompt/schedule inputs carrying labels receive a typed `unsupported`
-refusal at the node before work. A starting import has the same guard on its
-source metadata before export/placement. No new method is registered meanwhile.
-This explicit refusal avoids silently accepting data that no client can see.
+The shared `required_protocol()` gate refuses unassigned calls and fields
+before sending and at dispatch. Existing session creation, saved-prompt
+creation/update and schedule creation/update ask that accessor about their
+embedded spec's labels; forwarding envelopes propagate the same requirement.
+Empty labels retain the existing requirement. Once assigned, nonempty labels
+require the greater of the existing requirement and the assigned threshold.
+This extends the shared admission rule rather than inventing a second gate.
+
+Session events use that same optional availability model through one public
+`required_protocol()` accessor. The old numeric `SessionEvent::since()` is
+removed: it cannot honestly represent an unassigned variant. Existing variants
+retain their assigned thresholds; agent events retain their content-dependent
+requirement. Event and page projections treat `None` as unreadable by every
+peer and preserve the existing stand-in at the same sequence and time. This
+foundation introduces no new event; each later variant must supply its optional
+assignment and an older-peer projection together.
+The node's earlier ingress checks remain as defense before work. A starting
+import must still check its source metadata before export/placement, because
+the caller does not carry those labels. No new method is registered by this
+admission change. Refusal avoids accepting data that no client can see.
+
+### Stop failure before a restart
+
+The existing profile-move stop helper is the candidate for reload reuse. Its
+signal failure must be returned with the OS error as a typed source, before
+starting any replacement. Logging and waiting for a later kill can turn a
+refused first stop into an apparent success, so it does not satisfy that
+boundary. Existing successful stop/drain behavior and grace budgets remain.
+
+A per-actor, test-only next-stop fault injects `PermissionDenied` into that
+signal boundary. It follows the existing private test control, has no global
+state, and is absent from product builds. The real runtime and fake agent
+then prove that a refusal cannot reach replacement startup. No test changes
+process ownership or signals another account to manufacture an OS refusal.
+Product configuration is checked separately: the constructor and exhaustive
+control dispatch compile without the test-only field, control or branch.
 
 ### Labels
 

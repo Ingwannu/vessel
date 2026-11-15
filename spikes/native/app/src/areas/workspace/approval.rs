@@ -124,9 +124,13 @@ pub(super) fn render(
     if !scripts.is_empty() {
         card = card.child(script_list(words, &scripts, tokens));
     }
-    let approval = asked.approval();
-    if let Err(ApprovalRefusal::Terminals) = approval {
-        card = card.child(banner(labels.approval_unseen, true, None, tokens));
+    let approval = compared.approval(asked);
+    if let Err(reason) = approval {
+        let message = match reason {
+            ApprovalRefusal::Terminals => labels.approval_unseen,
+            ApprovalRefusal::ServicePorts => shell.words.approval().unseen_service_ports(),
+        };
+        card = card.child(banner(message, true, None, tokens));
     }
     let buttons = buttons(id, busy, approval, actions, labels, tokens, cx);
     card.child(banner(labels.script_warning, false, None, tokens))

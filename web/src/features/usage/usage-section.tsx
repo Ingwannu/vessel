@@ -3,20 +3,24 @@
 // account windows are guessed or drawn before their wire is merged.
 import "./usage.css";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 
-import { useFleet, useFleetState } from "../../context";
+import { useFleetState } from "../../context";
 import { machineFor, machineState } from "../../data/machines";
 import { nodeLabel } from "../../data/nodes";
 import { nextStep } from "../../data/outcome";
-import { useStore } from "../../data/store";
-import { readUsage, type UsageRange } from "../../data/usage/calls";
+import type { UsageRange } from "../../data/usage/calls";
 import {
   usageCoverage,
   usageFacts,
   type UsageFact,
 } from "../../data/usage/facts";
-import { UsageReader, usageFor, type UsageRead } from "../../data/usage/reader";
+import type { UsageRead } from "../../data/usage/reader";
+import {
+  MACHINE_USAGE,
+  usageTargetFor,
+  type UsageTarget,
+} from "../../data/usage/scope";
 import { Button, Row, RowList, Select, Skeleton } from "../../ui/kit";
 import type { NodeKey, NodeStatus } from "../../wire/bridge";
 import { MachinePicker } from "../machines/machine-picker";
@@ -25,6 +29,8 @@ import {
   SettingsPage,
   SettingsSection,
 } from "../settings/settings-page";
+import { UsageScopePicker } from "./scope-picker";
+import { useUsage } from "./use-usage";
 
 const LEAD =
   "Tokens and cost the agents reported on this machine. Context size and model-proxy counts are separate; unreported usage is never estimated.";
@@ -56,36 +62,18 @@ export function UsageSection({ machine }: { machine: NodeKey | undefined }) {
   );
 }
 
-function useUsage(node: NodeKey, period: UsageRange) {
-  const fleet = useFleet();
-  const status = useFleetState((state) => state.statuses[node]);
-  const connected = status?.state === "connected";
-  const reader = useMemo(
-    () =>
-      new UsageReader(({ node: machine, period: range }) =>
-        readUsage(fleet, machine, range),
-      ),
-    [fleet],
-  );
-  const read = useStore(reader.store, (value) => value);
-  useEffect(() => {
-    if (connected) reader.request({ node, period });
-    return () => {
-      reader.stop();
-    };
-  }, [reader, node, period, connected]);
-  return {
-    status,
-    read: usageFor(read, { node, period }),
-    refresh: () => {
-      reader.request({ node, period });
-    },
-  };
-}
-
 function MachineUsage({ node, label }: { node: NodeKey; label: string }) {
   const [period, setPeriod] = useState<UsageRange>("day");
-  const { status, read, refresh } = useUsage(node, period);
+  const [target, setTarget] = useState<UsageTarget>({
+    node,
+    scope: MACHINE_USAGE,
+  });
+  const next = usageTargetFor(target, node);
+  // Persist the reset before effects: an effect-only reset could issue
+  // the old profile query when returning to the previous machine.
+  if (target.node !== node) setTarget(next);
+  const scope = next.scope;
+  const { status, read, refresh, names } = useUsage(node, period, scope);
   const pending =
     status?.state !== "connected" ||
     read.kind === "idle" ||
@@ -116,6 +104,14 @@ function MachineUsage({ node, label }: { node: NodeKey; label: string }) {
             }
           />
         </RowList>
+        <UsageScopePicker
+          node={node}
+          scope={scope}
+          names={names}
+          onChange={(chosen) => {
+            setTarget({ node, scope: chosen });
+          }}
+        />
       </SettingsSection>
       <UsageBody read={read} status={status} label={label} />
     </div>

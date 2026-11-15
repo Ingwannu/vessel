@@ -42,6 +42,7 @@ function listedForDisplay(commands: ListedCommands): Required<ListedCommands> {
     approved: commands.approved,
     scripts: commands.scripts ?? [],
     terminals: commands.terminals ?? [],
+    service_ports: commands.service_ports ?? null,
     last_approved: commands.last_approved ?? null,
   };
 }

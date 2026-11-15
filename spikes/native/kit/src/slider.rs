@@ -34,13 +34,12 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::sync::Arc;
-use std::time::Duration;
 
 use gpui::prelude::*;
 use gpui::{
-    Animation, AnimationExt as _, AnyElement, App, Bounds, BoxShadow, Corners, ElementId,
-    FocusHandle, Hsla, MouseButton, MouseMoveEvent, MouseUpEvent, Pixels, RenderImage, ScrollDelta,
-    ScrollEvent, Window, canvas, div, hsla, point, px, white,
+    AnyElement, App, Bounds, BoxShadow, Corners, ElementId, FocusHandle, Hsla, MouseButton,
+    MouseMoveEvent, MouseUpEvent, Pixels, RenderImage, ScrollDelta, ScrollEvent, Window, canvas,
+    div, hsla, point, px, white,
 };
 
 use crate::theme::Tokens;
@@ -702,19 +701,12 @@ fn wheel(events: &Events) -> impl Fn(&ScrollEvent, &mut Window, &mut App) + 'sta
 /// the slider's motion.
 #[must_use]
 pub fn spinner(id: impl Into<ElementId>, size: f32, colour: Hsla) -> AnyElement {
-    gpui::svg()
+    let vector = gpui::svg()
         .path(crate::assets::Glyph::Spinner.path())
         .size(px(size))
         .flex_shrink_0()
-        .text_color(colour)
-        .with_animation(
-            id,
-            Animation::new(Duration::from_millis(800)).repeat(),
-            |svg, delta| {
-                svg.with_transformation(gpui::Transformation::rotate(gpui::percentage(delta)))
-            },
-        )
-        .into_any_element()
+        .text_color(colour);
+    crate::loading::rotate(id, vector, crate::loading::LEGACY_PERIOD)
 }
 
 #[cfg(test)]

@@ -8,6 +8,7 @@ license-file.workspace = true
 repository.workspace = true
 
 [dependencies]
+vessel-proc.workspace = true
 vessel-proto.workspace = true
 
 base64.workspace = true
@@ -20,6 +21,8 @@ num-traits.workspace = true
 rust_decimal.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+# Safe field-path metadata for saved-settings refusals (ADR 0038).
+serde_path_to_error.workspace = true
 # SHA-256 of device credentials (ADR 0010), and of attachments (ADR
 # 0025); already used by vessel-remote.
 sha2.workspace = true
@@ -39,6 +42,7 @@ zeroize.workspace = true
 rustix = { workspace = true, features = ["fs"] }
 
 [dev-dependencies]
+vessel-testkit.workspace = true
 bytes.workspace = true
 criterion.workspace = true
 futures-util.workspace = true

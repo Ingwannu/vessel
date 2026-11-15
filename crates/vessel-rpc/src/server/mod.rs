@@ -243,7 +243,7 @@ where
         return Ok(None);
     };
     let text = frame.map_err(ServeError::Transport)?;
-    match serde_json::from_str::<ClientFrame>(&text) {
+    match crate::decode::whole::<ClientFrame>(&text) {
         Ok(ClientFrame::Hello(hello)) => Ok(Some(hello)),
         Ok(ClientFrame::Request { .. } | ClientFrame::Cancel { .. }) => {
             let violation = ProtocolViolation::ExpectedHello;
@@ -254,13 +254,18 @@ where
             .await?;
             Err(ServeError::Violation(violation))
         }
-        Err(error) => {
+        Err(undecoded) => {
+            // Where and what kind, never a value (`DecodeFailure`).
+            let failure = undecoded.failure(None);
             reject(
                 sink,
-                WireError::new(ErrorCode::InvalidRequest, format!("invalid hello: {error}")),
+                WireError::new(
+                    ErrorCode::InvalidRequest,
+                    format!("invalid hello: {failure}"),
+                ),
             )
             .await?;
-            Err(ServeError::Decode(error))
+            Err(ServeError::Decode(failure))
         }
     }
 }

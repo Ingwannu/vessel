@@ -10,7 +10,9 @@ use vessel_proto::{
     Call, CreateSession, ErrorCode, ImportSession, Request, SavedPromptId, ScheduleId, SessionId,
     SessionInfo, SessionLabels, SessionRef, SessionSpec,
 };
-use vessel_rpc::UnaryCall;
+use vessel_rpc::CallError;
+
+mod raw;
 use vessel_store::{Store, StoreConfig};
 
 fn labels(text: &str) -> SessionLabels {
@@ -74,17 +76,16 @@ async fn every_labelled_request_kind_is_refused_before_work_at_current_protocol(
         let node = fixture.start().await;
         let client = fixture.connect(&node).await;
         assert_eq!(client.protocol(), vessel_proto::PROTOCOL_VERSION);
+        let mut raw = raw::Raw::connect(&fixture, &node).await;
         let spec = structured_spec(&fixture, None).with_labels(labels(r#"{"env":"prod"}"#));
         for call in labelled_requests(spec) {
             let method = call.method();
-            let error = client
-                .call_any(UnaryCall::try_from(call).unwrap())
-                .await
-                .unwrap_err();
-            assert_eq!(error.code(), Some(ErrorCode::Unsupported), "{method:?}");
-            assert!(
-                error.to_string().contains("no assigned protocol"),
-                "{method:?}: {error}"
+            let error = raw.refusal(call).await;
+            assert_eq!(error.code, ErrorCode::Unsupported, "{method:?}");
+            assert_eq!(
+                error.message,
+                CallError::UnassignedProtocol { method }.to_string(),
+                "{method:?}"
             );
         }
         assert!(client.sessions().await.unwrap().is_empty());
@@ -104,6 +105,7 @@ async fn every_labelled_request_kind_is_refused_before_work_at_current_protocol(
                 .schedules
                 .is_empty()
         );
+        raw.close().await;
         node.stop().await.unwrap();
     })
     .await;

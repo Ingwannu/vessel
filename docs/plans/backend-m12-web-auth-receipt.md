@@ -24,3 +24,20 @@ Typechecks and changed-file lint pass. A complete byte comparison confirms
 that removing the authorized import/comment/wait restores the original
 security test file exactly. The bounded real-browser checks are pending
 at this source checkpoint; no product authentication behavior was changed.
+
+## Focused execution
+
+The immutable source is `c5da5305`. Source review found no defect; the
+production auth path and all original history assertions remain unchanged.
+Two focused executions completed successfully, including the bundle and
+both nested binary prebuilds. The delayed-welcome regression passes in
+`webparity-20261115T071525Z-c5da5305`. Its line selector did not include the
+original history case after the new import moved that case by one line;
+this run is evidence for one new case only. The previously unselected
+history case then passes by name in
+`webparity-20261115T072843Z-c5da5305`, including storage, reload and replay.
+Each execution runs one case and every selected step exits zero.
+
+These are focused results, not a whole-package or combined-line approval.
+The earlier page package's security failure remains in its historical log;
+a new changed-tree whole gate is required after applying this correction.

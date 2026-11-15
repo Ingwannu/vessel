@@ -110,3 +110,32 @@ describe("declared port approval refusal", () => {
     expect(html).not.toContain("Approve and run");
   });
 });
+
+describe("allocation approval refusal", () => {
+  const service_ports = {
+    range: "7000-7009",
+    port_script: "tools/port-approval",
+  };
+  it("renders a plain refusal and no approve button for a current block", () => {
+    const html = render({ ...listed(), service_ports });
+    expect(html).toContain("allocation settings");
+    expect(html).not.toContain("Approve and run");
+  });
+  it("refuses removal from the previous approval", () => {
+    const html = render({
+      ...listed(),
+      last_approved: {
+        commands: { setup: [], teardown: [], service_ports },
+        digest: listed().digest,
+        approved_at: "2026-11-12T09:30:00Z",
+      },
+    });
+    expect(html).toContain("allocation settings");
+    expect(html).not.toContain("Approve and run");
+  });
+  it("honors a folder comparison refusal", () => {
+    const html = render(listed(), "unsupported_ports");
+    expect(html).toContain("allocation settings");
+    expect(html).not.toContain("Approve and run");
+  });
+});

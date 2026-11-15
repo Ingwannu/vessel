@@ -19,6 +19,7 @@ impl State {
         match command {
             Command::Diagnostics(ask) => self.diagnostic(ask).await,
             Command::Reload => self.reload().await,
+            Command::RetireConnection(tag) => self.closed_connection(&tag).await,
             Command::Agents {
                 machine,
                 request,
@@ -37,10 +38,10 @@ impl State {
             Command::Sync { machine, ticket } => self.sync(&machine, ticket).await,
             Command::NodeSettings(ask) => self.node_settings(ask).await,
             Command::Devices {
-                machine,
+                context,
                 ticket,
                 ask,
-            } => self.devices(&machine, ticket, ask).await,
+            } => self.devices(&context, ticket, ask).await,
             Command::Open { machine, session } => self.open(&machine, session),
             Command::Prompt {
                 machine,
@@ -106,14 +107,20 @@ impl State {
             } => self.act(&machine, session, act),
             Command::Workspace { machine, ask } => self.workspace(machine, ask),
             Command::Search(ask) => self.search(ask),
-            Command::SavePrefs(prefs) => {
-                let saved = tokio::task::spawn_blocking(move || prefs.save()).await;
-                match saved {
-                    Ok(Ok(())) => {}
-                    Ok(Err(error)) => tracing::warn!(%error, "could not save the app's choices"),
-                    Err(error) => tracing::warn!(%error, "could not save the app's choices"),
-                }
-            }
+            Command::SavePrefs(prefs) => save_prefs(prefs).await,
         }
+    }
+}
+
+// [Decision Log]
+// Keep the command match within its function budget so feature registrations
+// remain one-line arms. The same blocking save remains awaited before the
+// actor handles its next command; errors and logging remain unchanged.
+async fn save_prefs(prefs: Box<super::Prefs>) {
+    let saved = tokio::task::spawn_blocking(move || prefs.save()).await;
+    match saved {
+        Ok(Ok(())) => {}
+        Ok(Err(error)) => tracing::warn!(%error, "could not save the app's choices"),
+        Err(error) => tracing::warn!(%error, "could not save the app's choices"),
     }
 }

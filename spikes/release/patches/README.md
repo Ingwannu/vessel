@@ -16,7 +16,9 @@ had SHA-256
 Removed from the copy: its `Cargo.lock` (unused for a dependency).
 
 Changed: `build.rs`, and three call sites of Direct Manipulation in
-`src/window.rs` and `src/events.rs` (the second change, below).
+`src/window.rs` and `src/events.rs` (the second change, below); added
+`src/environment.rs` and its module and export lines in
+`src/gpui_windows.rs` (the sixth).
 
 ### 1. `build.rs`: shaders compiled for the target, not the host
 
@@ -93,7 +95,41 @@ Changed: `build.rs`, and three call sites of Direct Manipulation in
   fails now loses touchpad gestures quietly (an error in the log)
   instead of not starting.
 
-To see both changes: unpack the published `.crate` and `diff -ru` it
+### 6. Telling running programs the environment changed
+
+- Purpose: after the app adds its command-line tool's directory to the
+  user's `PATH` (`HKEY_CURRENT_USER\Environment`, ADR 0094's packaging,
+  track W19b), a terminal the person opens next must find `vessel`.
+  Windows starts programs with Explorer's copy of the environment, and
+  Explorer rereads it only when told: Windows' own settings broadcast
+  `WM_SETTINGCHANGE` with `"Environment"` after an edit.
+- Constraint: the broadcast is a Win32 call
+  (`SendMessageTimeoutW(HWND_BROADCAST, …)`), so `unsafe`; the app's
+  workspace forbids `unsafe_code`, and this crate already holds the
+  app's Win32 calls behind safe functions.
+- Alternatives:
+  1. A small crate of the app's own that allows `unsafe`: a new
+     workspace member with its own lint exception, for one call.
+  2. Running `setx` or PowerShell to do the write and the broadcast: a
+     console process, a quoting surface, and `setx` cuts values at 1024
+     characters.
+  3. **This change**: `broadcast_environment_changed()` in a file of its
+     own, exported from the crate root with
+     `ENVIRONMENT_BROADCAST_TIMEOUT` (5 s) and a typed
+     `EnvironmentBroadcastError` (`TimedOut`, `Failed(windows::core::Error)`).
+     `SMTO_ABORTIFHUNG` skips a hung window, so the call cannot wait on
+     it forever; nothing in it panics.
+- Why 3: one safe function beside the crate's other Win32 calls, no new
+  crate or lint exception, and no change to upstream's own files beyond
+  two lines in the crate root.
+- Cost: a third change to carry at every GPUI pin (the new file copies
+  over; re-add the two lines). The call waits for the windows' answers,
+  so the caller runs it off the UI thread.
+- Checked: compiled for `x86_64-pc-windows-msvc` with `cargo xwin check`;
+  its behaviour on Windows (a new terminal finding the new `PATH`) is
+  still to be shown on a Windows machine.
+
+To see the changes: unpack the published `.crate` and `diff -ru` it
 against `gpui-pre-windows/` (only `Cargo.lock` is missing on this side).
 
 ## `gpui-pre-linux` 0.3.10
@@ -217,3 +253,100 @@ at the top and `Vessel patch` at the change.
   times in 3 s with motion, never with motion held). The CPU measures
   before and after are in `docs/plans/backend-m12-effort-slider.md`,
   "Known costs".
+
+## `gpui-pre` 0.3.10
+
+Upstream: the `gpui-pre` snapshot of Zed's `gpui` (zed@08cbb88),
+Apache-2.0 (`LICENSE-APACHE` beside it). The `.crate` it was taken from
+had SHA-256
+`df4b5f8d0c278308df2f11e0bfe0212dd77d7848ce1bdc4b9d513334414396f6`
+(the checksum `spikes/native/Cargo.lock` held before the patch).
+Removed from the copy: its `Cargo.lock` (unused for a dependency). Only
+the app's workspace (`spikes/native`) uses it; the release workspace's
+small programs keep the published crate.
+
+Changed: `src/elements/div.rs` (change 5), `src/window.rs` and
+`src/platform.rs` (change 8), each marked `MODIFIED by Vessel` at the top
+and `Vessel patch` at each change.
+
+### 5. A drag starts at the distance an element names
+
+- Purpose: a press on a row that can be dragged stays a press until the
+  pointer has clearly moved. Paseo's web draggable list waits 6 points
+  before it picks a row up; GPUI starts every drag after 2, so a
+  slightly shaky click on a sidebar row (S2's reordering) dragged it.
+- Upstream's constraint: the distance is one private constant,
+  `DRAG_THRESHOLD`, read by every element's mouse-move listener in
+  `Interactivity::paint_mouse_listeners`; no element can change it.
+- Alternatives:
+  1. The row tracks its own press and move instead of `on_drag`. A
+     second drag model beside GPUI's, with its own drag view and drop
+     targets, in each list that wants Paseo's distance.
+  2. Changing the constant to 6. Every existing drag (the queue's rows,
+     the components library's) would change at once.
+  3. **This change**: `Interactivity::drag_threshold` and the fluent
+     `StatefulInteractiveElement::drag_threshold` store a distance on
+     the element; the mouse-move listener compares with it, or with
+     `DRAG_THRESHOLD` when the element names none.
+- Why 3: one field, two builders and one comparison; every caller that
+  names nothing behaves exactly as upstream. The kit names Paseo's
+  distance once (`spikes/native/kit/src/drag.rs`, `LIST_DRAG_DISTANCE`).
+- Cost: the GPUI core is now a copy to carry at every GPUI pin (re-copy
+  the new version, re-apply the diff of `div.rs`), 8 MB of source in the
+  repository, and every build target compiles GPUI from this path once.
+- Checked: the kit's tests `drag::tests::a_list_row_waits_for_paseos_six_points`
+  (5 points: no drag; 7: a drag) and
+  `drag::tests::an_element_naming_no_distance_keeps_gpuis_two` (1.5: no
+  drag; 3: a drag), through real mouse events in a test window.
+
+### 8. A user zoom per window
+
+- Purpose: the app zooms its whole content as Paseo's desktop app does
+  (Ctrl+= / Ctrl+- / Ctrl+0): everything larger and still sharp, less of
+  it in the window, and a click landing on what is drawn under it.
+- Upstream's constraint: a window's scale is the platform's (the
+  display's DPI), read in `Window::bounds_changed`; the one call that
+  changes it, `Window::set_scale_factor`, exists for tests only. `rem_size`
+  scales only what is sized in rems, and the kit sizes in points.
+- Alternatives:
+  1. Multiply every size in the kit and the app by a factor. Every token,
+     literal size and size test would carry it, and GPUI's own elements
+     (scroll bars, the input base) would not follow.
+  2. Size everything in rems. A rewrite, with the same gap in GPUI's own
+     elements.
+  3. **This change**: `Window::set_zoom` and `Window::zoom` keep a
+     multiplier on top of the platform's scale. `scale_factor` is the
+     platform's times it and `viewport_size` the content size divided by
+     it, so layout, paint and hit-testing run in the zoomed space. Events
+     from the platform (the window's input callback) arrive with their
+     positions and pixel scroll distances divided by it; GPUI's own
+     synthesized events are in that space already and are left alone.
+     Positions the platform needs leave multiplied by it: the IME's caret
+     and selection rectangles and its point lookups
+     (`PlatformInputHandler`), the window menu's position, the client
+     decorations' inset and the macOS traffic lights. The visual viewport
+     and the platform's insets come in divided by it.
+- Why 3: one field and one conversion at each crossing between GPUI and
+  the platform; text and images rasterize at the zoomed scale, so they
+  stay sharp, and nothing in the kit or the app changes its sizes. At zoom
+  1 every conversion is skipped or exact, so a window nobody zooms
+  behaves as upstream.
+- Kept in the platform's space: what is about the window on the screen
+  (`bounds`, `window_bounds`, `resize`), so saved window sizes do not
+  change with the zoom. `set_zoom` keeps the zoom between
+  `Window::MIN_ZOOM` (0.25) and `Window::MAX_ZOOM` (5) and ignores a value
+  that is not a finite number; it runs the bounds observers, as a resize
+  does.
+- Cost: `window.rs` and `platform.rs` join `div.rs` in the diff to
+  re-apply at each GPUI pin; a new crossing between GPUI and the platform
+  in a later version needs the same conversion.
+- Checked: the kit's tests in `spikes/native/kit/src/zoom/tests.rs`,
+  through the test window's platform callbacks: at zoom 1.25 a window of
+  1000 by 800 points lays out in 800 by 640 and paints at scale 2.5 on a
+  display of scale 2, its size on the screen unchanged; a platform resize
+  keeps the zoom; a press at 150 platform points lands on a 100-point
+  target at zoom 2 and misses it unzoomed; the zoom stays within its
+  bounds and ignores a non-number. The IME's rectangles and the window
+  menu reach the platform only in a real session and are not checked yet:
+  an IME's candidate window and the window menu at a zoom other than 1 are
+  still to be looked at in the app on Linux.

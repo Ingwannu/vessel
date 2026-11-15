@@ -54,11 +54,11 @@ impl SessionRuntime {
         let (route, routed) = watch::channel(Route::Live(input.clone()));
         // One move at a time; a second waits for the first's answer.
         let (control, orders) = mpsc::channel(1);
-        let pid = agent.pid();
+        let process = agent.lifetime();
         let parts = self.parts(
             begin,
             notices,
-            (Input::Structured(routed), pid),
+            (Input::Structured(routed), process),
             (Some(control), launch.driver),
         );
         let ActorStart {
@@ -75,6 +75,8 @@ impl SessionRuntime {
         );
         let actor = StructuredActor {
             agent,
+            #[cfg(test)]
+            stop_signal_error: None,
             outputs,
             outputs_open: true,
             input,
@@ -295,6 +297,7 @@ impl SessionRuntime {
             // never changes whether the agent may ask.
             questions: false,
             fork: None,
+            system_prompt: None,
             private_dir: self.private_dir(),
         };
         let (reply, answer) = oneshot::channel();
@@ -344,6 +347,7 @@ pub(super) fn probe_setup(cwd: PathBuf, handshake_timeout: Duration) -> AgentSet
         handshake_timeout,
         questions: false,
         fork: None,
+        system_prompt: None,
         private_dir: None,
     }
 }

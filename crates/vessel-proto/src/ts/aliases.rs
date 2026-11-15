@@ -70,6 +70,7 @@
 //!   way).
 //! - Project service declarations: `ServicePort` is a number a person chooses,
 //!   like a pull-request number, not a node-minted handle or a count.
+//!   `PortRange` and `PortScript` are also named choices a person writes.
 //! - Kept current: every primitive alias the generator meets must be in
 //!   `ALIASES` (`Declarations::unclassified` lists the others, and the
 //!   generating crates' tests fail on one), and every entry must still be
@@ -134,6 +135,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("CronExpr", Alias::Named),
     ("CustomAgentSlot", Alias::Quantity),
     ("DeviceId", Alias::Handle),
+    ("DiagnosticProcessId", Alias::Handle),
     ("DiagnosticSchemaVersion", Alias::Quantity),
     ("DraftText", Alias::Content),
     ("DurationMs", Alias::Quantity),
@@ -149,6 +151,8 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ForgeLogin", Alias::Named),
     ("ForgeUrl", Alias::Named),
     ("Generation", Alias::Quantity),
+    // A hunk continuation is a count/offset, never a byte offset or id.
+    ("GitHunkOffset", Alias::Quantity),
     ("GrepQuery", Alias::Named),
     ("HarnessSessionId", Alias::Handle),
     ("HeaderName", Alias::Named),
@@ -163,7 +167,6 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("LaunchId", Alias::Handle),
     ("LimitKey", Alias::Named),
     ("LimitName", Alias::Named),
-    ("LimitPercent", Alias::Quantity),
     ("MaxRuns", Alias::Quantity),
     ("McpServerName", Alias::Named),
     ("MimeType", Alias::Named),
@@ -179,6 +182,8 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("PairingLink", Alias::Secret),
     ("PermissionId", Alias::Handle),
     ("PermissionOptionId", Alias::Handle),
+    ("PortRange", Alias::Named),
+    ("PortScript", Alias::Named),
     ("PresentedToken", Alias::Secret),
     ("PreviewCount", Alias::Quantity),
     ("ProcessName", Alias::Content),
@@ -200,6 +205,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("QueueEntryId", Alias::Handle),
     ("RefName", Alias::Named),
     ("RegistryId", Alias::Named),
+    ("RegistryRevision", Alias::Quantity),
     ("RegistryVersion", Alias::Named),
     ("RelPath", Alias::Named),
     ("RemoteName", Alias::Named),
@@ -233,6 +239,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ToolCallId", Alias::Handle),
     ("TransferId", Alias::Handle),
     ("UploadId", Alias::Handle),
+    ("WorkspaceId", Alias::Handle),
     ("WorktreeId", Alias::Handle),
 ];
 

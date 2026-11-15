@@ -95,6 +95,12 @@ identity matches the connected node, success
 also observes its lock being released. Another directory's loopback
 endpoint only proves connection closure; remote success confirms only the
 request.
+Before a local shutdown or drain, the CLI compares the user service file
+with the current installer template for the authenticated directory. A
+personal or older file is left alone and produces a warning that the node
+may start again. Unreadable, malformed or oversized service files are
+refused before shutdown. No service manager is invoked and a matching disk
+file does not prove which configuration it loaded.
 Forced cleanup, service-manager finalization and restart are pending.
 
 Sessions survive client disconnects; stopping the node marks live ones
@@ -1367,7 +1373,10 @@ read scope; cost in these queries additionally needs operate scope.
 
 The web client also shows machine accounting in **Settings → Usage**.
 Choose a machine and the past 24 hours or seven days, then Refresh for a
-new observation. Reasoning and cache counts keep their reported-turn
+new observation. Agent/profile choices use names from the last All agents
+report; each choice reads its totals from the node. All profiles includes
+reports without a recorded profile name, rather than guessing the current
+default login. Reasoning and cache counts keep their reported-turn
 coverage, and cost stays separated by unit or explicitly hidden by access.
 Offline machines and failed reads show guidance instead of zero totals.
 This page does not yet show account limits or individual session reports.
@@ -1438,3 +1447,13 @@ offline synthetic fixtures.
 Startup continuation is being prepared in separate slices (ADR 0059). Its
 policy values and settings reply projection exist, with an unassigned protocol;
 there is no new startup setting or automatic resume behavior in this slice.
+
+The shared CLI presentation boundary is described in
+[W17 output seam](docs/plans/wp-w17-output.md). Configured `models` preserves its
+default listing and accepts explicit JSON/YAML, quiet and headerless output.
+
+`vessel [--node NAME] node diagnostics [--json]` collects a bounded metadata
+report over that node's existing authenticated connection. It is served from
+protocol 24 on. Against an older peer the command refuses before sending, so no
+local report stands in for the selected node.
+The command's safe error output omits private connection/source details.

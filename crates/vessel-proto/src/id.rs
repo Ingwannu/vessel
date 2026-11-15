@@ -131,6 +131,16 @@ macro_rules! counter_id {
 }
 
 uuid_id! {
+    /// Independent workspace identity; shared cwd never implies shared ownership.
+    WorkspaceId
+}
+
+uuid_id! {
+    /// Caller-minted receipt identity for retry-safe workspace creation.
+    WorkspaceOperationId
+}
+
+uuid_id! {
     /// Identity of a Vessel node; one per machine, stable across restarts.
     NodeId
 }
@@ -309,4 +319,52 @@ mod tests {
         let id = ToolCallId::new("toolu_01");
         assert_eq!(serde_json::to_string(&id).unwrap(), r#""toolu_01""#);
     }
+}
+
+#[cfg(test)]
+mod workspace_identity_tests {
+    use super::{SessionId, WorkspaceId, WorkspaceOperationId, WorktreeId};
+    #[test]
+    fn workspace_identity_round_trips_through_serde_and_text() {
+        let id = WorkspaceId::random();
+        assert_eq!(id.to_string().parse::<WorkspaceId>().unwrap(), id);
+        assert_eq!(
+            serde_json::from_str::<WorkspaceId>(&serde_json::to_string(&id).unwrap()).unwrap(),
+            id
+        );
+        assert!(serde_json::from_str::<WorkspaceId>("\"invalid\"").is_err());
+        assert_ne!(
+            std::any::TypeId::of::<WorkspaceId>(),
+            std::any::TypeId::of::<WorktreeId>()
+        );
+        assert_ne!(
+            std::any::TypeId::of::<WorkspaceId>(),
+            std::any::TypeId::of::<SessionId>()
+        );
+    }
+    #[test]
+    fn workspace_operation_identity_is_distinct_and_validated_at_decode() {
+        let id = WorkspaceOperationId::random();
+        assert_eq!(id.to_string().parse::<WorkspaceOperationId>().unwrap(), id);
+        assert_eq!(
+            serde_json::from_str::<WorkspaceOperationId>(&serde_json::to_string(&id).unwrap())
+                .unwrap(),
+            id
+        );
+        assert!(serde_json::from_str::<WorkspaceOperationId>("\"invalid\"").is_err());
+        assert_ne!(
+            std::any::TypeId::of::<WorkspaceOperationId>(),
+            std::any::TypeId::of::<WorkspaceId>()
+        );
+    }
+}
+
+uuid_id! {
+    /// One setup invocation, independent of worktree path and node restart.
+    SetupRunId
+}
+
+counter_id! {
+    /// Snapshot revision within a single setup invocation.
+    SetupRevision
 }

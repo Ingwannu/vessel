@@ -35,7 +35,9 @@ mod terminals;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use vessel_proto::scripts::{ScriptEntry, ScriptName};
-use vessel_proto::workspace::{CommandsDigest, FileTerminal, InvalidText, ProjectCommand, RelPath};
+use vessel_proto::workspace::{
+    CommandsDigest, FileTerminal, InvalidText, ProjectCommand, RelPath, ServicePorts,
+};
 
 pub use scripts::{MAX_SCRIPTS, ScriptsError};
 
@@ -44,11 +46,12 @@ use crate::paths::{PathError, Root};
 /// The file's name, at the project's root.
 pub const FILE_NAME: &str = "vessel.toml";
 
-/// The largest file read.
-pub const MAX_BYTES: usize = 64 * 1024;
+/// The parser and typed editor share one lower-layer byte budget.
+/// Preserve the public parser name while preventing independent limits drifting.
+pub use vessel_proto::registry::MAX_CONFIG_BYTES as MAX_BYTES;
 
-/// The most commands in one list.
-pub const MAX_COMMANDS: usize = 32;
+/// The shared command-list admission limit, retained under the parser API name.
+pub use vessel_proto::workspace::MAX_PROJECT_COMMANDS as MAX_COMMANDS;
 
 /// What the file says about worktrees, and its scripts.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -61,6 +64,8 @@ pub struct ProjectFile {
     pub scripts: Vec<ScriptEntry>,
     /// Approved shell input for terminals opened after setup (ADR 0066).
     pub terminals: Vec<FileTerminal>,
+    /// Preserve the approved allocation block even without configured services.
+    pub service_ports: Option<ServicePorts>,
 }
 
 /// Why the file cannot be used. Nothing in it runs then.
@@ -130,6 +135,8 @@ struct RawWorktree {
     teardown: Commands,
     #[serde(default)]
     terminals: Vec<terminals::RawTerminal>,
+    #[serde(default)]
+    service_ports: Option<ServicePorts>,
 }
 
 #[derive(Deserialize)]
@@ -162,6 +169,7 @@ impl ProjectFile {
             teardown: commands("teardown", raw.worktree.teardown)?,
             scripts: scripts::entries(raw.scripts, raw.services)?,
             terminals: terminals::parse(raw.worktree.terminals)?,
+            service_ports: raw.worktree.service_ports,
         })
     }
 
@@ -185,13 +193,14 @@ impl ProjectFile {
             .transpose()
     }
 
-    /// Whether it names no command.
+    /// Whether nothing in the file requires approval.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.setup.is_empty()
             && self.teardown.is_empty()
             && self.scripts.is_empty()
             && self.terminals.is_empty()
+            && self.service_ports.is_none()
     }
 
     /// Its script or service called `name`.
@@ -201,14 +210,16 @@ impl ProjectFile {
     }
 
     /// What a person approves: SHA-256 over both lists, and over the
-    /// scripts when there are any (version 2), or terminals or declared ports (version 3,
+    /// scripts when there are any (version 2), or terminals, declared ports or
+    /// allocation choices (version 3,
     /// ADR 0066). The module's Decision Log
     /// says why earlier digests stay for a file without new keys.
     #[must_use]
     pub fn digest(&self) -> CommandsDigest {
         let mut hash = Sha256::new();
-        let version_three =
-            !self.terminals.is_empty() || self.scripts.iter().any(|script| script.port().is_some());
+        let version_three = self.service_ports.is_some()
+            || !self.terminals.is_empty()
+            || self.scripts.iter().any(|script| script.port().is_some());
         if version_three {
             hash.update(b"vessel.toml commands 3\n");
         } else if self.scripts.is_empty() {
@@ -226,10 +237,21 @@ impl ProjectFile {
         if version_three {
             scripts::digest(&mut hash, &self.scripts, scripts::DigestFields::WithPorts);
             terminals::digest(&mut hash, &self.terminals);
-            // ADR 0066 fixes these slots now so later port keys cannot change
-            // a terminal-only file's approved version 3 encoding.
-            scripts::field(&mut hash, b"");
-            scripts::field(&mut hash, b"");
+            // Use the reserved slots without changing terminal-only approvals.
+            let range = self
+                .service_ports
+                .as_ref()
+                .and_then(ServicePorts::range)
+                .map(|range| range.to_string());
+            let program = self
+                .service_ports
+                .as_ref()
+                .and_then(ServicePorts::port_script);
+            scripts::field(&mut hash, range.as_deref().unwrap_or("").as_bytes());
+            scripts::field(
+                &mut hash,
+                program.map_or("", |program| program.as_str()).as_bytes(),
+            );
         } else if !self.scripts.is_empty() {
             scripts::digest(&mut hash, &self.scripts, scripts::DigestFields::Original);
         }
@@ -519,3 +541,6 @@ mod tests {
 
 #[cfg(test)]
 mod declared_ports_tests;
+
+#[cfg(test)]
+mod allocation_tests;

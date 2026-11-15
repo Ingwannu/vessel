@@ -33,7 +33,7 @@ impl Shell {
         match self.prefs.prefer(change) {
             Ok(()) => {
                 self.areas.settings.refused = None;
-                self.command(Command::SavePrefs(self.prefs.clone()));
+                self.command(Command::SavePrefs(Box::new(self.prefs.clone())));
                 match change {
                     PreferenceChange::Language(_) => {
                         if let Some(words) = language {
@@ -74,8 +74,8 @@ impl Shell {
                 }
             }
             Err(refused) => {
-                let words = self.t.lang.settings();
-                self.areas.settings.refused = Some(format!("{}: {refused}", words.refused));
+                self.areas.settings.refused =
+                    Some(super::PreparedRefusal::new(self.words, refused));
             }
         }
         cx.notify();

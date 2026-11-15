@@ -2,4 +2,5 @@
 mod edits;
 mod errors;
 mod fixtures;
-mod peer;
+mod layout_rename;
+use crate::testing::peer;

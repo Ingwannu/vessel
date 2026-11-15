@@ -3,7 +3,8 @@
 //! a line, a square, two offset squares, a cross).
 //!
 //! Embedded as text, not files: the kit needs no separate asset bundle.
-//! The inventory (the enum, its list and its paths) is here and the
+//! The inventory (the enum, its list and its paths) is declared once in
+//! assets/inventory.rs and generated here by one macro. The
 //! drawings are in `drawing.rs`, one arm per glyph: the two stayed in one
 //! file until the git row's glyphs took it past its listed size
 //! (docs/QUALITY.md M3). A registration still cannot miss its vector: the
@@ -31,373 +32,30 @@ const MARK: &str = include_str!("../../../../docs/design/brand/vessel-mark-mono.
 /// light surfaces and its icon's tile; never the interface's.
 pub const BRAND: u32 = 0x001a_5868;
 
-/// A glyph the kit draws.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Glyph {
-    /// Vessel's mark.
-    Mark,
-    /// The window's minimise button.
-    Minimize,
-    /// Maximise.
-    Maximize,
-    /// Restore, when maximised.
-    Restore,
-    /// Close.
-    Close,
-    /// An update: an arrow down into a tray (the title bar's update
-    /// status at a phone's width).
-    Update,
-    /// Three lines: opens the sidebar's sheet at a phone's width.
-    Menu,
-    /// A picker's caret.
-    ChevronDown,
-    /// Up: the find bar's previous match.
-    ChevronUp,
-    /// A row that opens a list of its own (a provider's models).
-    ChevronRight,
-    /// Back, from such a list.
-    ChevronLeft,
-    /// The chosen row's mark.
-    Check,
-    /// A search row.
-    Search,
-    /// Send.
-    ArrowUp,
-    /// Stop.
-    Stop,
-    /// The permissions mode.
-    Shield,
-    /// A permissions mode that accepts edits (Paseo's `ShieldPlus`).
-    ShieldPlus,
-    /// A permissions mode that decides for itself (Paseo's `ShieldCheck`).
-    ShieldCheck,
-    /// A permissions mode that asks nothing (Paseo's `ShieldOff`).
-    ShieldOff,
-    /// A planning mode (Paseo's `ShieldEllipsis`).
-    ShieldEllipsis,
-    /// A permissions mode that asks before writing (Paseo's `ShieldAlert`).
-    ShieldAlert,
-    /// The effort (thinking).
-    Brain,
-    /// An agent.
-    Bot,
-    /// A failure.
-    Alert,
-    /// A success alert: a check inside a circle, drawn on the kit's own grid.
-    CircleCheck,
-    /// An error alert: a cross inside a circle, drawn on the kit's own grid.
-    CircleX,
-    /// A task not started (Paseo's `Circle`): a ring on the same grid as
-    /// [`Self::CircleCheck`].
-    Circle,
-    /// A task under way (Paseo's `CircleDot`): the ring with a dot.
-    CircleDot,
-    /// A task list (Paseo's `CheckSquare`): a check in a rounded square.
-    SquareCheck,
-    /// Scheduling: a calendar with a clock, on the shared 24-unit line grid.
-    /// One asset serves navigation and empty states; no screen draws a second.
-    CalendarClock,
-    /// A folder.
-    Folder,
-    /// A project: a folder holding a branch (Paseo's `FolderGit2`, an
-    /// original drawing on the shared 24-unit line grid).
-    FolderGit,
-    /// The agents a machine can run: three stacked boxes (Paseo's
-    /// `Boxes`, an original drawing on the shared 24-unit line grid).
-    Boxes,
-    /// A machine.
-    Machine,
-    /// Three dots: a menu of more actions (the Session actions).
-    More,
-    /// An agent's feature, and the features (Paseo's `Settings2`: two
-    /// sliders).
-    Sliders,
-    /// Settings (Paseo's `Settings`: a gear).
-    Gear,
-    /// Copy: two sheets, one over the other (a code block's copy).
-    Copy,
-    /// Appearance (a painter's palette, Paseo's `Palette`).
-    Palette,
-    /// Diagnostics: an original stethoscope on the shared 24-unit line grid.
-    Stethoscope,
-    /// Shortcuts (a keyboard, Paseo's `Keyboard`).
-    Keyboard,
-    /// Notifications (a bell, Paseo's `Bell`).
-    Bell,
-    /// Models (a spark, Paseo's `Sparkles`).
-    Sparkles,
-    /// A machine as Settings lists it (Paseo's `Server`).
-    Server,
-    /// Devices (a phone, Paseo's `Smartphone`).
-    Smartphone,
-    /// Sync (two arrows round).
-    Refresh,
-    /// About (an i in a circle, Paseo's `Info`).
-    Info,
-    /// Back (Settings' way back to the workspace, Paseo's `ArrowLeft`).
-    ArrowLeft,
-    /// Adding (a machine, Paseo's `Plus`).
-    Plus,
-    /// A branch (a new worktree, a starting ref: Paseo's `GitBranch`).
-    Branch,
-    /// A pull request (Paseo's `GitPullRequest`).
-    PullRequest,
-    /// A draft pull request (Paseo's `GitPullRequestDraft`).
-    PullRequestDraft,
-    /// A closed pull request (Paseo's `GitPullRequestClosed`).
-    PullRequestClosed,
-    /// A merged pull request (Paseo's `GitMerge`).
-    GitMerge,
-    /// Fast mode, off: a lightning bolt's outline.
-    Lightning,
-    /// Fast mode, on: the bolt filled.
-    LightningFilled,
-    /// Back to the default: an arrow turning back.
-    Reset,
-    /// A terminal session (a prompt's chevron and a line).
-    Terminal,
-    /// A conversation (a speech bubble).
-    Message,
-    /// The archive (a box with its lid).
-    Archive,
-    /// Delete for good.
-    Trash,
-    /// A delete action with the two interior bin strokes (legacy Trash stays).
-    Trash2,
-    /// Restore an archived item: the archive with its upward arrow.
-    ArchiveRestore,
-    /// A horizontal minus on the shared line grid.
-    Minus,
-    /// Create another branch, with the plus beside the branch's nodes.
-    GitBranchPlus,
-    /// A commit node on its history line.
-    Commit,
-    /// Push: an upward transfer arrow and an open tray.
-    Upload,
-    /// Pull: a downward transfer arrow and an open tray.
-    Download,
-    /// Undo a file change: a returning arrow, separate from Reset.
-    Undo2,
-    /// Fork a conversation: one way parting in two (Paseo's `Split`, its
-    /// fork menu).
-    Split,
-    /// Pinned.
-    Pin,
-    /// Work going on: three quarters of a ring, turned by `spinner`.
-    Spinner,
-    /// The board (three lanes of cards).
-    Board,
-    /// The light theme (a sun).
-    Sun,
-    /// The dark theme (a moon).
-    Moon,
-    /// The system's theme (a screen).
-    Monitor,
-    /// A pencil: edit (a queued message).
-    Pencil,
-    /// An arrow turning up and right: send into the running turn (GOAT's
-    /// steer, `CornerUpRight`).
-    Steer,
-    /// Six dots: a handle to drag a row by.
-    Grip,
-    /// An X on the line glyphs' grid: take a row out (a queued message;
-    /// the window's `Close` fills its box and reads heavier beside them).
-    Remove,
-    /// A file (the Files tree, Paseo's `File`).
-    File,
-    /// A file with lines of text: an attached file's pill (Paseo's
-    /// `FileText`).
-    FileText,
-    /// The code panel's toggle (Paseo's `PanelRight`).
-    PanelRight,
-    /// The desktop sidebar toggle, preserving the existing right-panel glyph.
-    PanelLeft,
-    /// The compact sidebar's two full bars and one short bar, painted 16 by 12.
-    MenuCompact,
-}
-
-/// Every glyph, for the asset source.
-const ALL: [Glyph; 85] = [
-    Glyph::Mark,
-    Glyph::Minimize,
-    Glyph::Maximize,
-    Glyph::Restore,
-    Glyph::Close,
-    Glyph::Update,
-    Glyph::Menu,
-    Glyph::ChevronDown,
-    Glyph::ChevronUp,
-    Glyph::ChevronRight,
-    Glyph::ChevronLeft,
-    Glyph::Check,
-    Glyph::Search,
-    Glyph::ArrowUp,
-    Glyph::Stop,
-    Glyph::Shield,
-    Glyph::ShieldPlus,
-    Glyph::ShieldCheck,
-    Glyph::ShieldOff,
-    Glyph::ShieldEllipsis,
-    Glyph::ShieldAlert,
-    Glyph::Brain,
-    Glyph::Bot,
-    Glyph::Alert,
-    Glyph::CircleCheck,
-    Glyph::CircleX,
-    Glyph::Circle,
-    Glyph::CircleDot,
-    Glyph::SquareCheck,
-    Glyph::CalendarClock,
-    Glyph::Folder,
-    Glyph::FolderGit,
-    Glyph::Boxes,
-    Glyph::Machine,
-    Glyph::More,
-    Glyph::Sliders,
-    Glyph::Gear,
-    Glyph::Copy,
-    Glyph::Palette,
-    Glyph::Stethoscope,
-    Glyph::Keyboard,
-    Glyph::Bell,
-    Glyph::Sparkles,
-    Glyph::Server,
-    Glyph::Smartphone,
-    Glyph::Refresh,
-    Glyph::Info,
-    Glyph::ArrowLeft,
-    Glyph::Plus,
-    Glyph::Branch,
-    Glyph::PullRequest,
-    Glyph::PullRequestDraft,
-    Glyph::PullRequestClosed,
-    Glyph::GitMerge,
-    Glyph::Lightning,
-    Glyph::LightningFilled,
-    Glyph::Reset,
-    Glyph::Terminal,
-    Glyph::Message,
-    Glyph::Archive,
-    Glyph::Trash,
-    Glyph::Trash2,
-    Glyph::ArchiveRestore,
-    Glyph::Minus,
-    Glyph::GitBranchPlus,
-    Glyph::Commit,
-    Glyph::Upload,
-    Glyph::Download,
-    Glyph::Undo2,
-    Glyph::Split,
-    Glyph::Pin,
-    Glyph::Spinner,
-    Glyph::Board,
-    Glyph::Sun,
-    Glyph::Moon,
-    Glyph::Monitor,
-    Glyph::Pencil,
-    Glyph::Steer,
-    Glyph::Grip,
-    Glyph::Remove,
-    Glyph::File,
-    Glyph::FileText,
-    Glyph::PanelRight,
-    Glyph::PanelLeft,
-    Glyph::MenuCompact,
-];
-
-impl Glyph {
-    /// Its asset path.
-    #[must_use]
-    pub const fn path(self) -> &'static str {
-        match self {
-            Self::Mark => "kit/mark.svg",
-            Self::Minimize => "kit/minimize.svg",
-            Self::Maximize => "kit/maximize.svg",
-            Self::Restore => "kit/restore.svg",
-            Self::Close => "kit/close.svg",
-            Self::Update => "kit/update.svg",
-            Self::Menu => "kit/menu.svg",
-            Self::ChevronDown => "kit/chevron-down.svg",
-            Self::ChevronUp => "kit/chevron-up.svg",
-            Self::ChevronRight => "kit/chevron-right.svg",
-            Self::ChevronLeft => "kit/chevron-left.svg",
-            Self::Check => "kit/check.svg",
-            Self::Search => "kit/search.svg",
-            Self::ArrowUp => "kit/arrow-up.svg",
-            Self::Stop => "kit/stop.svg",
-            Self::Shield => "kit/shield.svg",
-            Self::ShieldPlus => "kit/shield-plus.svg",
-            Self::ShieldCheck => "kit/shield-check.svg",
-            Self::ShieldOff => "kit/shield-off.svg",
-            Self::ShieldEllipsis => "kit/shield-ellipsis.svg",
-            Self::ShieldAlert => "kit/shield-alert.svg",
-            Self::Brain => "kit/brain.svg",
-            Self::Bot => "kit/bot.svg",
-            Self::Alert => "kit/alert.svg",
-            Self::CircleCheck => "kit/circle-check.svg",
-            Self::CircleX => "kit/circle-x.svg",
-            Self::Circle => "kit/circle.svg",
-            Self::CircleDot => "kit/circle-dot.svg",
-            Self::SquareCheck => "kit/square-check.svg",
-            Self::CalendarClock => "kit/calendar-clock.svg",
-            Self::Folder => "kit/folder.svg",
-            Self::FolderGit => "kit/folder-git.svg",
-            Self::Boxes => "kit/boxes.svg",
-            Self::Machine => "kit/machine.svg",
-            Self::More => "kit/more.svg",
-            Self::Sliders => "kit/sliders.svg",
-            Self::Gear => "kit/gear.svg",
-            Self::Copy => "kit/copy.svg",
-            Self::Palette => "kit/palette.svg",
-            Self::Stethoscope => "kit/stethoscope.svg",
-            Self::Keyboard => "kit/keyboard.svg",
-            Self::Bell => "kit/bell.svg",
-            Self::Sparkles => "kit/sparkles.svg",
-            Self::Server => "kit/server.svg",
-            Self::Smartphone => "kit/smartphone.svg",
-            Self::Refresh => "kit/refresh.svg",
-            Self::Info => "kit/info.svg",
-            Self::ArrowLeft => "kit/arrow-left.svg",
-            Self::Plus => "kit/plus.svg",
-            Self::Branch => "kit/branch.svg",
-            Self::File => "kit/file.svg",
-            Self::FileText => "kit/file-text.svg",
-            Self::PanelRight => "kit/panel-right.svg",
-            Self::PanelLeft => "kit/panel-left.svg",
-            Self::MenuCompact => "kit/menu-compact.svg",
-            Self::PullRequest => "kit/pull-request.svg",
-            Self::PullRequestDraft => "kit/pull-request-draft.svg",
-            Self::PullRequestClosed => "kit/pull-request-closed.svg",
-            Self::GitMerge => "kit/git-merge.svg",
-            Self::Lightning => "kit/lightning.svg",
-            Self::LightningFilled => "kit/lightning-filled.svg",
-            Self::Reset => "kit/reset.svg",
-            Self::Terminal => "kit/terminal.svg",
-            Self::Message => "kit/message.svg",
-            Self::Archive => "kit/archive.svg",
-            Self::Trash => "kit/trash.svg",
-            Self::Trash2 => "kit/trash-2.svg",
-            Self::ArchiveRestore => "kit/archive-restore.svg",
-            Self::Minus => "kit/minus.svg",
-            Self::GitBranchPlus => "kit/git-branch-plus.svg",
-            Self::Commit => "kit/commit.svg",
-            Self::Upload => "kit/upload.svg",
-            Self::Download => "kit/download.svg",
-            Self::Undo2 => "kit/undo-2.svg",
-            Self::Split => "kit/split.svg",
-            Self::Pin => "kit/pin.svg",
-            Self::Spinner => "kit/spinner.svg",
-            Self::Board => "kit/board.svg",
-            Self::Sun => "kit/sun.svg",
-            Self::Moon => "kit/moon.svg",
-            Self::Monitor => "kit/monitor.svg",
-            Self::Pencil => "kit/pencil.svg",
-            Self::Steer => "kit/steer.svg",
-            Self::Grip => "kit/grip.svg",
-            Self::Remove => "kit/remove.svg",
+// One declaration owns the public enum, stable iteration order and paths.
+// Keeping these together makes a new glyph compiler-checked without duplicating
+// three inventories or permitting a missing-path fallback.
+macro_rules! glyph_inventory {
+    ($( $(#[$doc:meta])* $name:ident => $path:literal, )+) => {
+        /// A glyph the kit draws.
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        pub enum Glyph {
+            $( $(#[$doc])* $name, )+
         }
-    }
+
+        const ALL: [Glyph; [$(stringify!($name)),+].len()] = [$(Glyph::$name),+];
+
+        impl Glyph {
+            /// Its asset path.
+            #[must_use]
+            pub const fn path(self) -> &'static str {
+                match self { $(Self::$name => $path,)+ }
+            }
+        }
+    };
 }
+
+include!("assets/inventory.rs");
 
 /// The kit's assets, for `Application::with_assets`.
 #[derive(Debug, Clone, Copy, Default)]
@@ -699,3 +357,60 @@ mod settings_nav_glyph_tests {
         }
     }
 }
+
+#[cfg(test)]
+mod activity_indicator_asset_tests {
+    use super::{Assets, Glyph, view_box};
+    use gpui::AssetSource as _;
+    fn paint(dimension: u16, degrees: f32) -> image::RgbaImage {
+        let bytes = Assets
+            .load(Glyph::ActivityIndicator.path())
+            .unwrap()
+            .unwrap();
+        let tree = resvg::usvg::Tree::from_data(&bytes, &resvg::usvg::Options::default()).unwrap();
+        let side = u32::from(dimension);
+        let mut pixels = resvg::tiny_skia::Pixmap::new(side, side).unwrap();
+        let scale = f32::from(dimension).mul_add(32.0_f32.recip(), 0.0);
+        let transform = resvg::tiny_skia::Transform::from_scale(scale, scale).pre_concat(
+            resvg::tiny_skia::Transform::from_rotate_at(degrees, 16.0, 16.0),
+        );
+        resvg::render(&tree, transform, &mut pixels.as_mut());
+        image::RgbaImage::from_raw(side, side, pixels.take()).unwrap()
+    }
+    #[test]
+    fn activity_profile_keeps_alpha_and_foreground_arc_at_each_quarter_phase() {
+        assert_eq!(
+            Glyph::ActivityIndicator.path(),
+            "kit/activity-indicator.svg"
+        );
+        assert_eq!(
+            view_box(Glyph::ActivityIndicator.svg()),
+            Some([0.0, 0.0, 32.0, 32.0])
+        );
+        assert_eq!(view_box(Glyph::Spinner.svg()), Some([0.0, 0.0, 24.0, 24.0]));
+        for (phase, foreground, background) in [
+            (0.0, (25, 25), (16, 2)),
+            (90.0, (6, 25), (29, 16)),
+            (180.0, (6, 6), (16, 29)),
+            (270.0, (25, 6), (2, 16)),
+        ] {
+            let image = paint(32, phase);
+            assert_eq!(image.get_pixel(foreground.0, foreground.1).0[3], 255);
+            assert_eq!(image.get_pixel(background.0, background.1).0[3], 51);
+            assert_eq!(image.get_pixel(16, 16).0[3], 0);
+            assert_eq!(image.get_pixel(0, 0).0[3], 0);
+        }
+        for side in [10_u16, 16, 20, 36] {
+            let image = paint(side, 0.0);
+            assert_eq!(image.dimensions(), (u32::from(side), u32::from(side)));
+            assert!(image.pixels().any(|pixel| pixel.0[3] == 255));
+            assert!(image.pixels().any(|pixel| pixel.0[3] == 51));
+        }
+    }
+}
+
+#[cfg(test)]
+mod added_navigation_tests;
+
+#[cfg(test)]
+mod inventory_tests;

@@ -10,6 +10,12 @@ use crate::support::{Fixture, within};
 
 const HANDSHAKE_TEST_BUDGET: Duration = Duration::from_millis(50);
 
+#[cfg(target_os = "linux")]
+const LOCAL_READ_TEST_BUDGET: Duration = Duration::from_secs(5);
+
+#[cfg(target_os = "linux")]
+const LOCAL_READ_EXIT_BUDGET: Duration = Duration::from_secs(10);
+
 async fn terminal(fixture: &Fixture) -> vessel_proto::SessionId {
     let started = fixture
         .vessel(&["run", "claude", "--detach", "--cwd", &fixture.cwd()], b"")
@@ -264,6 +270,286 @@ async fn a_book_endpoint_never_waits_for_another_running_local_nodes_lock() {
         );
         endpoint.stop().await;
         client_home.stop().await;
+    })
+    .await;
+}
+
+#[cfg(target_os = "linux")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn node_stop_deadline_ends_a_process_with_a_blocked_identity_reader() {
+    within(async {
+        let fixture = Fixture::start().await;
+        // The persisted identity's format is part of the data-directory contract.
+        // A blocked read must not hold the CLI's blocking pool alive after expiry.
+        let file = fixture.data().join("node.id");
+        std::fs::remove_file(&file).unwrap();
+        assert!(
+            tokio::process::Command::new("mkfifo")
+                .arg(&file)
+                .status()
+                .await
+                .unwrap()
+                .success()
+        );
+        let seconds = LOCAL_READ_TEST_BUDGET.as_secs_f64().to_string();
+        let stopped = stop_with_blocked_reader(&fixture, &seconds).await;
+        assert!(!stopped.ok);
+        assert!(stopped.stderr.contains("--timeout"), "{}", stopped.stderr);
+        assert!(stopped.stderr.contains(&seconds), "{}", stopped.stderr);
+        assert_eq!(
+            fixture.owner().await.node_info().await.unwrap().state,
+            NodeState::Serving
+        );
+        fixture.stop().await;
+    })
+    .await;
+}
+
+#[cfg(target_os = "linux")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn node_stop_deadline_ends_a_process_with_a_blocked_lock_preflight() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let file = DataDir::new(fixture.data()).lock_path();
+        std::fs::remove_file(&file).unwrap();
+        assert!(
+            tokio::process::Command::new("mkfifo")
+                .arg(&file)
+                .status()
+                .await
+                .unwrap()
+                .success()
+        );
+        let seconds = LOCAL_READ_TEST_BUDGET.as_secs_f64().to_string();
+        let stopped = stop_with_blocked_reader(&fixture, &seconds).await;
+        assert!(!stopped.ok);
+        assert!(stopped.stderr.contains("--timeout"), "{}", stopped.stderr);
+        assert!(stopped.stderr.contains(&seconds), "{}", stopped.stderr);
+        assert_eq!(
+            fixture.owner().await.node_info().await.unwrap().state,
+            NodeState::Serving
+        );
+        fixture.stop().await;
+    })
+    .await;
+}
+
+#[cfg(target_os = "linux")]
+async fn stop_with_blocked_reader(fixture: &Fixture, seconds: &str) -> crate::support::Ran {
+    let mut child = fixture.spawn_vessel(&["node", "stop", "--timeout", seconds]);
+    drop(child.stdin.take());
+    // Retain the child so a regression cannot leave its blocked reader running
+    // after the test's own named exit deadline has diagnosed the hang.
+    let waited = tokio::time::timeout(LOCAL_READ_EXIT_BUDGET, child.wait()).await;
+    if waited.is_err() {
+        child.kill().await.unwrap();
+        panic!("blocked-reader CLI did not exit within {LOCAL_READ_EXIT_BUDGET:?}");
+    }
+    assert!(!waited.unwrap().unwrap().success());
+    child.wait_with_output().await.unwrap().into()
+}
+
+/// This location mirrors the isolated `HOME`/`XDG_CONFIG_HOME` in the fixture,
+/// never the actual user's service namespace.
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn service_file(home: &std::path::Path) -> std::path::PathBuf {
+    if cfg!(target_os = "linux") {
+        home.join("config/systemd/user/vessel.service")
+    } else {
+        home.join("Library/LaunchAgents/vessel.node.plist")
+    }
+}
+
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn node_stop_warns_about_a_personal_service_without_changing_or_invoking_it() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let file = service_file(fixture.data());
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+        let contents = "a personal service; never execute this text\n";
+        std::fs::write(&file, contents).unwrap();
+        let tools = tempfile::tempdir().unwrap();
+        let log = fixture.data().join("service-calls.log");
+        let fake = vessel_testkit::Fake::Tool.path().unwrap();
+        for name in ["systemctl", "launchctl"] {
+            std::os::unix::fs::symlink(&fake, tools.path().join(name)).unwrap();
+        }
+        // Any manager invocation would reach a logging stand-in, never the
+        // real user service namespace.
+        let stopped = fixture
+            .vessel_book(
+                fixture.data(),
+                &["--node", &fixture.node_address(), "node", "stop"],
+                &[
+                    ("PATH", tools.path().as_os_str()),
+                    ("FAKE_TOOL_LOG", log.as_os_str()),
+                ],
+            )
+            .await;
+        assert!(stopped.ok, "{}", stopped.stderr);
+        assert!(
+            stopped.stderr.contains("service differs"),
+            "{}",
+            stopped.stderr
+        );
+        assert!(
+            stopped.stdout.contains("lock released"),
+            "{}",
+            stopped.stdout
+        );
+        assert_eq!(std::fs::read_to_string(&file).unwrap(), contents);
+        assert!(!log.exists(), "service manager was invoked");
+        fixture.stop().await;
+    })
+    .await;
+}
+
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn node_stop_refuses_an_unreadable_service_before_requesting_shutdown() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let file = service_file(fixture.data());
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+        let contents = b"invalid UTF-8: \xff";
+        std::fs::write(&file, contents).unwrap();
+        let stopped = fixture.vessel(&["node", "stop"], b"").await;
+        assert!(!stopped.ok);
+        assert!(
+            stopped.stderr.contains("cannot inspect the user service"),
+            "{}",
+            stopped.stderr
+        );
+        assert_eq!(
+            fixture.owner().await.node_info().await.unwrap().state,
+            NodeState::Serving
+        );
+        assert_eq!(std::fs::read(&file).unwrap(), contents);
+        fixture.stop().await;
+    })
+    .await;
+}
+
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn node_stop_warns_during_drain_without_waiting_for_or_interrupting_live_sessions() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let session = terminal(&fixture).await;
+        let file = service_file(fixture.data());
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+        std::fs::write(&file, "personal unit").unwrap();
+        let stopped = fixture.vessel(&["node", "stop", "--when-idle"], b"").await;
+        assert!(stopped.ok, "{}", stopped.stderr);
+        assert!(
+            stopped.stderr.contains("service differs"),
+            "{}",
+            stopped.stderr
+        );
+        assert!(stopped.stdout.contains("draining"));
+        let client = fixture.owner().await;
+        assert_eq!(client.node_info().await.unwrap().state, NodeState::Draining);
+        assert!(client.session(session).await.unwrap().status.is_live());
+        fixture.stop().await;
+    })
+    .await;
+}
+
+#[cfg(target_os = "linux")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn node_stop_deadline_also_ends_a_process_with_a_blocked_service_reader() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let file = service_file(fixture.data());
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+        assert!(
+            tokio::process::Command::new("mkfifo")
+                .arg(&file)
+                .status()
+                .await
+                .unwrap()
+                .success()
+        );
+        // The FIFO has no writer. Its blocking open must not keep the CLI's
+        // runtime alive after the product deadline expires.
+        let seconds = LOCAL_READ_TEST_BUDGET.as_secs_f64().to_string();
+        let stopped = stop_with_blocked_reader(&fixture, &seconds).await;
+        assert!(!stopped.ok);
+        assert!(stopped.stderr.contains("--timeout"), "{}", stopped.stderr);
+        assert!(stopped.stderr.contains(&seconds), "{}", stopped.stderr);
+        assert_eq!(
+            fixture.owner().await.node_info().await.unwrap().state,
+            NodeState::Serving
+        );
+        fixture.stop().await;
+    })
+    .await;
+}
+
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn node_stop_does_not_read_another_directorys_malformed_service() {
+    within(async {
+        use vessel_client::book::{BookEntry, BookFile, TokenSource};
+
+        let home = Fixture::start().await;
+        let endpoint = Fixture::start().await;
+        let file = service_file(home.data());
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+        let contents = b"not this node's file: \xff";
+        std::fs::write(&file, contents).unwrap();
+        let entry = BookEntry {
+            address: endpoint.node_address().parse().unwrap(),
+            token: Some(TokenSource::File(
+                DataDir::new(endpoint.data()).token_path(),
+            )),
+            credential: None,
+            id: Some(endpoint.owner().await.node().id),
+        };
+        BookFile::open(&home.book())
+            .unwrap()
+            .add(&"endpoint".parse().unwrap(), &entry)
+            .unwrap();
+        let stopped = home
+            .vessel_book(home.data(), &["--node", "endpoint", "node", "stop"], &[])
+            .await;
+        assert!(stopped.ok, "{}", stopped.stderr);
+        assert!(!stopped.stderr.contains("service"), "{}", stopped.stderr);
+        assert!(!stopped.stdout.contains("lock released"));
+        assert_eq!(std::fs::read(&file).unwrap(), contents);
+        assert_eq!(
+            home.owner().await.node_info().await.unwrap().state,
+            NodeState::Serving
+        );
+        endpoint.stop().await;
+        home.stop().await;
+    })
+    .await;
+}
+
+#[cfg(target_os = "linux")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn node_stop_cannot_send_shutdown_when_its_service_warning_cannot_be_written() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let file = service_file(fixture.data());
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+        std::fs::write(&file, "personal unit").unwrap();
+        // The stderr peer was closed before exec, so the write failure has
+        // no race with a reader deciding when to drop its end of the pipe.
+        let mut child = fixture.spawn_vessel_with_closed_stderr(&["node", "stop"]);
+        let status = tokio::time::timeout(LOCAL_READ_EXIT_BUDGET, child.wait()).await;
+        assert!(
+            status.is_ok(),
+            "warning failure did not exit within {LOCAL_READ_EXIT_BUDGET:?}"
+        );
+        assert!(!status.unwrap().unwrap().success());
+        assert_eq!(
+            fixture.owner().await.node_info().await.unwrap().state,
+            NodeState::Serving
+        );
+        fixture.stop().await;
     })
     .await;
 }

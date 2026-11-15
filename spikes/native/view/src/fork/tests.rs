@@ -27,6 +27,7 @@ fn fleet() -> Fleet {
     Fleet {
         machines: vec![Machine {
             node: None,
+            connection_epoch: None,
             name: "isolated".to_owned(),
             reach: Reach::Online,
             sessions: vec![card],
