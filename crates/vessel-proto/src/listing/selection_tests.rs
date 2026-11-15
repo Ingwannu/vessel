@@ -64,3 +64,37 @@ fn only_a_present_selection_contributes_the_pending_feature_requirement() {
         assert_eq!(call.required_protocol(), None);
     }
 }
+
+#[test]
+fn omitted_creation_listing_stays_distinct_from_an_explicit_shown_override() {
+    let plain: crate::SessionSpec =
+        serde_json::from_str(r#"{"harness":"codex","mode":"structured"}"#).unwrap();
+    assert_eq!(plain.listing, None);
+    let explicit = plain.clone().with_listing(SessionListing::Shown);
+    assert_eq!(explicit.listing, Some(SessionListing::Shown));
+    assert!(!serde_json::to_string(&plain).unwrap().contains("listing"));
+    assert!(
+        serde_json::to_string(&explicit)
+            .unwrap()
+            .contains("listing")
+    );
+    for listing in [SessionListing::Shown, SessionListing::Background] {
+        let spec = plain.clone().with_listing(listing);
+        assert_eq!(
+            crate::CreateSession { spec: spec.clone() }
+                .into_call()
+                .since(),
+            None
+        );
+        let info = crate::SessionInfo::new(
+            crate::SessionId::random(),
+            spec,
+            chrono::DateTime::UNIX_EPOCH,
+        );
+        assert_eq!(info.listing, listing);
+        let hidden = info.for_protocol(crate::PROTOCOL_VERSION).unwrap();
+        assert!(hidden.listing.is_shown());
+        assert_eq!(hidden.spec.listing, None);
+        assert!(!serde_json::to_string(&hidden).unwrap().contains("listing"));
+    }
+}

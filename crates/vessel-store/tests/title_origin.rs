@@ -105,6 +105,16 @@ async fn pre_origin_schema_titles_are_unknown_including_explicit_ones() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
+    // Undo only this later append before the head's relative rollback fixture.
+    let before_listing: i64 = connection
+        .pragma_query_value(None, "user_version", |row| row.get(0))
+        .unwrap();
+    connection
+        .execute_batch("ALTER TABLE sessions DROP COLUMN listing;")
+        .unwrap();
+    connection
+        .pragma_update(None, "user_version", before_listing.checked_sub(1).unwrap())
+        .unwrap();
     let latest: i64 = connection
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();

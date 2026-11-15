@@ -461,9 +461,16 @@ const TITLE_ORIGIN_SCHEMA: usize = LABELS_SCHEMA.saturating_add(1);
 /// NULL preserves unknown provenance on rows written before this addition.
 const TITLE_ORIGIN: &str = "ALTER TABLE sessions ADD COLUMN title_origin TEXT;";
 
+/// Provisional: integration repoints this one constant after its newest entry.
+pub(super) const BACKGROUND_SCHEMA: usize = TITLE_ORIGIN_SCHEMA.saturating_add(1);
+
+/// Existing rows remain shown without rewriting their creation specifications.
+const BACKGROUND: &str =
+    r#"ALTER TABLE sessions ADD COLUMN listing TEXT NOT NULL DEFAULT '"shown"';"#;
+
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-pub(super) const MIGRATIONS: &[&str; TITLE_ORIGIN_SCHEMA] = &[
+pub(super) const MIGRATIONS: &[&str; BACKGROUND_SCHEMA] = &[
     V1,
     V2,
     V3,
@@ -482,4 +489,5 @@ pub(super) const MIGRATIONS: &[&str; TITLE_ORIGIN_SCHEMA] = &[
     INBOX,
     LABELS,
     TITLE_ORIGIN,
+    BACKGROUND,
 ];

@@ -662,3 +662,23 @@ modules are named for their responsibility: session templates. This separate
 refactor only renames modules and the internal synthetic-threshold projection
 helper. It changes no value, expectation or wire representation. Label rules
 and their tests remain byte-identical in the renamed files.
+
+### Durable listing and template projection
+
+The background append follows the head's newest migration through one named
+constant; its table length is checked by the array type. The production runner
+is unchanged. Existing rows default to Shown without rewriting their specs.
+The codec reads the immutable effective listing independently of the requested
+override; corruption keeps the session and column in its typed error.
+The original approval/device/log/marks and inbox rollback cases gain only this
+append's DROP before their existing SQL. The title-origin fixture first undoes
+this later append and its version, then runs the head's relative rollback and
+assertions unchanged. Reopening, idempotent migration, corruption and legacy
+spec retention have new tests.
+
+Metadata projection now hides listing together with labels on every existing
+info/transfer/template path. Listing-only creation fixtures exercise shared
+admission too, so an explicit Shown override cannot disappear at an older hop.
+A synthetic assigned threshold retains the effective and requested listing for
+a new-enough peer. These new checks still need execution; creation and discovery
+service wiring remain next.

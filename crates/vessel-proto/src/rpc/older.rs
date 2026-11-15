@@ -324,7 +324,10 @@ impl SessionInfo {
         assigned: Option<ProtocolVersion>,
     ) -> Option<Self> {
         let strip = !crate::lifecycle_version::visible(assigned, protocol)
-            && (!self.labels.is_empty() || !self.spec.labels.is_empty());
+            && (!self.labels.is_empty()
+                || !self.spec.labels.is_empty()
+                || !self.listing.is_shown()
+                || self.spec.listing.is_some());
         let archive = protocol < ENDED_OUTSIDE_THE_ARCHIVE && !self.status.is_live();
         if !strip && !archive {
             return None;
@@ -333,6 +336,8 @@ impl SessionInfo {
         if strip {
             info.labels.clear();
             info.spec.labels.clear();
+            info.listing = crate::SessionListing::Shown;
+            info.spec.listing = None;
         }
         if !archive {
             return Some(info);
@@ -483,9 +488,13 @@ mod tests {
         let peer = crate::PROTOCOL_VERSION;
         let hidden = info.for_protocol(peer).unwrap();
         assert!(hidden.labels.is_empty() && hidden.spec.labels.is_empty());
+        info.listing = crate::SessionListing::Background;
+        info.spec.listing = Some(crate::SessionListing::Background);
         assert!(info.for_protocol_with_metadata(peer, Some(peer)).is_none());
         let older = ProtocolVersion::new(peer.get().saturating_sub(1));
         let hidden = info.for_protocol_with_metadata(older, Some(peer)).unwrap();
+        assert!(hidden.listing.is_shown());
+        assert_eq!(hidden.spec.listing, None);
         assert!(hidden.labels.is_empty() && hidden.spec.labels.is_empty());
         assert!(!info.labels.is_empty() && !info.spec.labels.is_empty());
     }

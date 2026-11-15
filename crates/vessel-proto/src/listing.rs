@@ -18,6 +18,14 @@ pub enum SessionListing {
     Background,
 }
 
+impl SessionListing {
+    /// Omit the legacy shown state from replies that need no metadata.
+    #[must_use]
+    pub const fn is_shown(&self) -> bool {
+        matches!(self, Self::Shown)
+    }
+}
+
 /// A discovery read's inclusion policy, never permission to operate on an id.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]

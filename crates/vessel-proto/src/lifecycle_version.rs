@@ -8,7 +8,8 @@ use crate::ProtocolVersion;
 /// Assignment requires the shared required-protocol gate, CLI run/resume,
 /// list/update, MCP create/list/update, and the native/web metadata views
 /// to validate and handle labels. The integrator sets Some(version) only
-/// when these consumers are ready; None hides labels from every peer.
+/// when these consumers and background discovery/inheritance are ready;
+/// None hides labels and listing from every peer.
 pub const SINCE: Option<ProtocolVersion> = None;
 
 /// Unassigned metadata stays private even for the newest peer.

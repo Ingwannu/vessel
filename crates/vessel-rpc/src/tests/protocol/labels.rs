@@ -8,6 +8,12 @@ fn calls() -> Vec<Call> {
         "../../../../vessel-proto/tests/fixtures/labelled-requests.json"
     ))
     .unwrap();
+    direct.extend(
+        serde_json::from_str::<Vec<Call>>(include_str!(
+            "../../../../vessel-proto/tests/fixtures/listed-requests.json"
+        ))
+        .unwrap(),
+    );
     for selection in [
         vessel_proto::SessionSelection::shown(),
         vessel_proto::SessionSelection::all(),

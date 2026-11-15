@@ -7,6 +7,8 @@
 //! rather than guessed at.
 
 #[cfg(test)]
+mod background;
+#[cfg(test)]
 mod labels;
 mod migrations;
 

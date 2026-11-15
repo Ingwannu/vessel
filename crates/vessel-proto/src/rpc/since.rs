@@ -270,8 +270,8 @@ impl Call {
             | Self::GetAgentHistory(_) => None,
         };
         let required = fields.map_or(method, |since| method.max(ProtocolVersion::new(since)));
-        templates::on(self).map_or(Some(required), |labels| {
-            templates::required(required, labels, crate::lifecycle_version::SINCE)
+        templates::on(self).map_or(Some(required), |spec| {
+            templates::required(required, spec, crate::lifecycle_version::SINCE)
         })
     }
 }

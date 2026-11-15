@@ -1,4 +1,4 @@
-//! Rewrites label metadata nested in transfers and reusable session specs.
+//! Projects session metadata nested in transfers and reusable templates.
 //! The reply encoder is the only caller; storage keeps it independently of protocol assignment.
 
 use crate::automation::{PromptList, SavedPrompt, ScheduleInfo, ScheduleList, ScheduleTarget};
@@ -6,10 +6,11 @@ use crate::{ProtocolVersion, SessionImported, SessionSpec, TransferDetail, Trans
 
 fn spec(value: &SessionSpec, protocol: ProtocolVersion) -> Option<SessionSpec> {
     (!crate::lifecycle_version::visible(crate::lifecycle_version::SINCE, protocol)
-        && !value.labels.is_empty())
+        && (!value.labels.is_empty() || value.listing.is_some()))
     .then(|| {
         let mut older = value.clone();
         older.labels.clear();
+        older.listing = None;
         older
     })
 }
@@ -108,17 +109,24 @@ mod tests {
             },
         );
         spec.labels = serde_json::from_str(r#"{"env":"prod"}"#).unwrap();
+        spec.listing = Some(crate::SessionListing::Background);
         SessionInfo::new(SessionId::random(), spec, DateTime::UNIX_EPOCH)
     }
 
     fn assert_older(reply: &Reply) {
         assert!(serde_json::to_string(reply).unwrap().contains("labels"));
+        assert!(serde_json::to_string(reply).unwrap().contains("listing"));
         let older = crate::PROTOCOL_VERSION;
         let projected = reply.for_protocol(older).unwrap();
         assert!(
             !serde_json::to_string(&projected)
                 .unwrap()
                 .contains("labels")
+        );
+        assert!(
+            !serde_json::to_string(&projected)
+                .unwrap()
+                .contains("listing")
         );
     }
 

@@ -56,6 +56,8 @@ pub enum Column {
     Labels,
     /// `sessions.title_origin` (a `TitleOrigin`, ADR 0062).
     TitleOrigin,
+    /// `sessions.listing` (a `SessionListing`, ADR 0063).
+    Listing,
 }
 
 /// Anything that can go wrong in the store.

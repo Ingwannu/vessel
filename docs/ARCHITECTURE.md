@@ -1536,3 +1536,13 @@ name `vessel_proc` in store to `src/lock/`, which delegates the lock query
 only. The real CLI caller restricts proc's signal entry point to the force
 module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
+
+### Creation-only session discovery metadata (ADR 0063, wiring in progress)
+
+`SessionSpec.listing` keeps an omitted override distinct from explicit Shown.
+`SessionInfo.listing` is the immutable effective classification, independent of
+process state and archival. The store appends a default-Shown column; it does
+not rewrite original specs or change the migration runner. Protocol projection
+hides both fields while the lifecycle assignment is pending, including reusable
+templates and transfers. Creation inheritance and discovery consumers are the
+remaining wiring; these types alone do not enable background creation.
