@@ -26,6 +26,8 @@ pub use capacity::{
 };
 
 pub(crate) use lease_read::{current as resource_run, pending as pending_starts};
+#[cfg(test)]
+pub(crate) use read::workspace_memberships;
 pub(crate) use read::{load, reservation, resource_owner, workspace};
 pub(crate) use write::apply;
 

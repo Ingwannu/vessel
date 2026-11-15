@@ -222,3 +222,17 @@ SetupChoice::Run before any backing effect. Its caller must choose Skip, finaliz
 the independent descriptor, then ask the workspace-aware bootstrap owner later.
 The existing legacy worktree.create Run behavior remains a distinct legacy path;
 its helper is not a workspace bootstrap adapter. No W3-owned files are edited.
+
+### Same-writer workspace membership lookup (A5 seam, source-only)
+
+The staged crate-internal registry::workspace_memberships(&Connection,WorkspaceId)
+reuses the snapshot membership decoder with an SQL workspace predicate. It opens
+no read transaction of its own: an A5 writer first require_active, reads these
+explicit ids, joins current eligibility/attention, then mutates in the SAME writer
+transaction. No cwd/Creator/client loop, lifecycle-as-liveness, or root-only Clear
+rule is introduced. Pending/ended/historical members are retained for the caller
+to classify. The helper/export are cfg(test) under A10 until the actual A5 writer
+caller removes staging. Whole-workspace Read clears all eligible non-archived owned
+agents without a root filter; Unread alone selects the latest eligible relative
+root (A5 source contract). This extension is NOT in reviewed0140 or the type-only
+carrier and has no checked/reviewed/runtime claim yet.

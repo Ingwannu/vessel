@@ -44,7 +44,7 @@ pub(crate) fn load(connection: &Connection) -> Result<StoredRegistry, StoreError
             workspaces.push(decode(&text)?);
         }
     }
-    let memberships = memberships(&transaction)?;
+    let memberships = memberships(&transaction, None)?;
     transaction.commit()?;
     Ok(StoredRegistry {
         revision: RegistryRevision::from(
@@ -55,9 +55,23 @@ pub(crate) fn load(connection: &Connection) -> Result<StoredRegistry, StoreError
     })
 }
 
-fn memberships(connection: &Connection) -> Result<Vec<WorkspaceMembership>, StoreError> {
-    let mut statement = connection.prepare_cached("SELECT workspace,kind,resource FROM workspace_registry_resources ORDER BY workspace,kind,resource")?;
-    let mut rows = statement.query([])?;
+/// Read exactly this workspace on the caller's existing SQLite connection.
+/// The caller owns its transaction and `require_active`/role/attention checks;
+/// pending, archived and historical resources are not silently filtered here.
+#[cfg(test)]
+pub(crate) fn workspace_memberships(
+    connection: &Connection,
+    workspace: WorkspaceId,
+) -> Result<Vec<WorkspaceMembership>, StoreError> {
+    memberships(connection, Some(workspace))
+}
+
+fn memberships(
+    connection: &Connection,
+    workspace: Option<WorkspaceId>,
+) -> Result<Vec<WorkspaceMembership>, StoreError> {
+    let mut statement = connection.prepare_cached("SELECT workspace,kind,resource FROM workspace_registry_resources WHERE (?1 IS NULL OR workspace=?1) ORDER BY workspace,kind,resource")?;
+    let mut rows = statement.query(params![workspace.map(|id| id.to_string())])?;
     let mut memberships = Vec::new();
     while let Some(row) = rows.next()? {
         let (workspace, kind, id): (String, String, String) =
