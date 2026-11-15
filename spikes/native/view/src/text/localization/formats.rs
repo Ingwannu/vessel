@@ -8,24 +8,24 @@
 //!   this is not calendar conversion, time-zone arithmetic or complete Intl.
 use super::{
     Date, number,
-    runtime::{Bundle, InitError, format_one},
+    resolution::{Bundle, InitError, Transform, format_one},
 };
 use chrono::{Datelike as _, Timelike as _};
 use fluent_bundle::{FluentArgs, FluentResource, FluentValue};
 
-pub(super) fn install(
-    bundle: &mut Bundle,
+pub(super) fn install<R: std::borrow::Borrow<FluentResource>>(
+    bundle: &mut Bundle<R>,
     tag: &str,
     sources: &[&str],
-    pseudo: bool,
+    transform: Transform,
 ) -> Result<(), InitError> {
     bundle.set_formatter(Some(number::display));
-    let translated = patterns(tag, sources, pseudo)?;
+    let translated = patterns(tag, sources, transform)?;
     let english_sources = super::EMBEDDED
         .get(super::ENGLISH.index)
         .ok_or(InitError::MissingLocale)?
         .sources;
-    let english = patterns("en", english_sources, pseudo)?;
+    let english = patterns("en", english_sources, transform)?;
     let cycle = number::rules(tag).ok_or(InitError::FormatRules)?.hour_cycle;
     let english_cycle = number::rules("en")
         .ok_or(InitError::FormatRules)?
@@ -53,7 +53,7 @@ pub(super) fn install(
     Ok(())
 }
 
-fn patterns(tag: &str, sources: &[&str], pseudo: bool) -> Result<Bundle, InitError> {
+fn patterns(tag: &str, sources: &[&str], transform: Transform) -> Result<Bundle, InitError> {
     let language = tag
         .parse()
         .map_err(|e| InitError::Locale(std::sync::Arc::new(e)))?;
@@ -63,8 +63,8 @@ fn patterns(tag: &str, sources: &[&str], pseudo: bool) -> Result<Bundle, InitErr
         .map_err(|e| InitError::Bundle(vec![e]))?;
     bundle.set_formatter(Some(number::display));
     bundle.set_use_isolating(false);
-    if pseudo {
-        bundle.set_transform(Some(super::runtime::pseudo));
+    if transform == Transform::Pseudo {
+        bundle.set_transform(Some(super::resolution::pseudo));
     }
     // Resources retain their own references, including month/weekday names.
     // No DATETIME callback is installed here; build validation rejects it in
