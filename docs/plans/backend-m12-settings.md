@@ -899,3 +899,80 @@ name error. A pure transition fixture covers idle blank/unchanged, pending
 and failed-write retry. No input engine, grammar, store or control paint
 changes. This correction is prepared before the first normal capture
 compilation; its new fixture still needs execution with the package gate.
+
+## Selection package: actual native gate and base6 integration
+
+The immutable970563a2 package gate
+settings2-20261115T104023Z-970563a2 completed all nine steps. Web preparation,
+fakes, node, fonts, native format/quality, whole Clippy and normal app build
+returned0. Native tests returned101: raw totals1285 passed/1 failed/2 ignored.
+The only failure was the existing page test
+find::a_find_over_5000_entries_stays_well_under_a_frame_once_folded:
+first find2.267537995s against its unchanged2s assertion. End load was45.78
+on the20-vCPU build VM. This is correlation, not proof of the cause.
+No E2 find implementation, fixture or threshold was changed.
+
+All twenty field engine tests and the new blank/unchanged/pending/refusal
+rename-button fixture passed in that run. Changed view/kit crates actually
+recompiled. The whole gate remains RED; successful build/field tests do not
+upgrade it. Its raw logs/spec/steps remain in
+/tmp/work/m12-settings4/rg-field-export2. Export was correctly withheld by
+the all-success policy, so no new selection UI capture exists yet.
+An exact failed-test narrow rerun at the same970563a2 is registered as
+settings2-narrow-20261115T111540Z-970563a2 returned 101: 0 passed,
+1 failed, with cold time 2.199252879s. Both original receipts remain red.
+The coordinator subsequently identified the load-sensitive criterion and
+authorized its owner to replace it with deterministic work assertions;
+no further unchanged timing rerun is required.
+
+The earlier settings2-20261115T092959Z-970563a2 never compiled: it ended143
+when the coordinator restarted/resized the build VM at10:35:42. The one
+authorized replacement is the completed104023Z run above;143 is not a
+compiler finding or pass. No local Cargo/rustc is used.
+
+After the whole run ended, announced package base6 (18eedad4) was merged
+as84e44fb287690fffb244423f92675be3756fe556. Only Architecture/README had
+conflicts; both additions were retained. Product sources merged
+automatically, including the selected-connection guard. This combined
+head has NOT been compiled/tested. The lead's fixed native lock head
+dd13ce37 was subsequently announced green and merged as e6502cff.
+The supported lead receipt spike-20261115T114348Z-dd13ce37 was retrieved:
+all steps returned zero, with native tests 1408/0/2 and the corrected lock.
+That receipt proves the lead source, not the combined selection source.
+
+Required next: changed-head native gate/normal supported export; actual EN/KO, both
+themes/layouts selection, failed-save/retry captures; one bounded V1
+package review. Do not reuse older rename PNGs or label the timing failure
+as an accepted infrastructure exemption. Physical/OS/IME and latest
+combined behavior remain unverified, and the earlier sibling-occlusion
+policy finding remains open.
+
+
+### Resume point: fixed-lock selection integration
+
+The current source includes the owner's isolated find-work correction
+20112b08 plus its required registration fix 2a4ca95a, adopted locally as
+4f6444e1 and b972c69a. The original cache implementation moved into its
+own file without a runtime algorithm change; counters exist only in tests.
+The new assertions measure folds, visits, per-frame work and complete result
+equality instead of VM scheduling time. This is work-bound evidence to be
+executed, not a runtime latency guarantee. No other search package is imported.
+The missing cache module registration was caught and corrected before use.
+
+The final source after merging the announced fixed-lock base is e6502cff.
+Its combined native gate and supported app export are still owed. Capture
+adoption must pin that actual consuming commit and run, verify the export's
+hashes and scope, and keep a shared root's different source identity explicit.
+No new selected-text, failed-write or retry UI captures have been taken.
+The twenty earlier engine tests remain scoped evidence on their recorded
+source; no new combined or physical keyboard/OS/IME pass is claimed.
+
+The separate root-only book-values producer is 7becce7f on 18eedad4.
+V3 accepted its source through e3764115; the single approved replacement
+Clippy run settings2-narrow-20261115T122609Z-7becce7f is queued. Its nine
+new root tests have not run. After that check, hand its exact app-line
+range and actual result to the native lead for the next base. It must not
+be passed into the node integrator's gate as an app-tree dependency.
+The client file-safety staging, format/upsert implementation, native
+appearance compatibility tests and ManagedLocal all-writer enforcement
+remain separate unfinished work. No production permissions were changed.
