@@ -699,3 +699,13 @@ package without changing this MCP response adapter. Its own strict and complete
 MCP suite, including the stricter actual legacy pipe decoder, are the next
 changed-source checks. Current app trees still take only their announced app
 base; this node merge is not an app adoption.
+
+
+The first compatibility strict run compiled the product adapter but failed in
+the shared test decoder because vessel-mcp has no direct serde derive dependency.
+The decoder now uses the existing serde_json typed Map deserializer for the
+actual structured slot, rejecting arrays/scalars/null without a new dependency.
+Negotiated-version, unchanged text and structured equality/absence assertions
+remain; no validation is relaxed. The known compile-red queued MCP suite was
+superseded only after terminal cancellation, and its failed strict log is kept.
+Corrected strict and the full actual MCP suite remain owed.
