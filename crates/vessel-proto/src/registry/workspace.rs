@@ -115,6 +115,11 @@ pub enum WorkspaceLifecycle {
         /// Kept durably so interrupted cleanup can be inspected and resumed.
         at: DateTime<Utc>,
     },
+    /// Exclusive recovery claim; resources stay archived until backing validation completes.
+    Restoring {
+        /// Retained recovery intent survives a node restart without duplicate creation.
+        at: DateTime<Utc>,
+    },
     /// Mutations cannot launch resources until authoritative recovery completes.
     Archived {
         /// Host timestamp used for history ordering.

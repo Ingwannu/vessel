@@ -410,6 +410,28 @@ mod tests {
     }
 
     #[test]
+    fn registry_visibility_and_mutation_remain_person_only() {
+        let agent = Principal::Agent {
+            node: NodeId::random(),
+            session: SessionId::random(),
+            scopes: vec![Scope::Read, Scope::Operate],
+        };
+        for method in [
+            Method::GetRegistry,
+            Method::ListWorkspaces,
+            Method::GetWorkspace,
+            Method::RenameWorkspace,
+            Method::PinWorkspace,
+        ] {
+            assert_eq!(
+                refuse_agents(&agent, method).unwrap_err().code,
+                ErrorCode::Forbidden
+            );
+            assert!(refuse_agents(&Principal::Owner, method).is_ok());
+        }
+    }
+
+    #[test]
     fn roots_that_would_reach_the_token_or_the_home_are_refused() {
         let places = Places {
             data: PathBuf::from("/home/me/.vessel"),

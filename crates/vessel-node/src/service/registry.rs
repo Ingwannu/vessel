@@ -135,9 +135,12 @@ impl NodeService {
         let record = self.registry_record(id).await?;
         match record.descriptor.lifecycle {
             WorkspaceLifecycle::Active => Ok(record),
-            WorkspaceLifecycle::Archiving { .. } | WorkspaceLifecycle::Archived { .. } => Err(
-                WireError::new(ErrorCode::Conflict, "workspace is not active"),
-            ),
+            WorkspaceLifecycle::Archiving { .. }
+            | WorkspaceLifecycle::Restoring { .. }
+            | WorkspaceLifecycle::Archived { .. } => Err(WireError::new(
+                ErrorCode::Conflict,
+                "workspace is not active",
+            )),
         }
     }
 

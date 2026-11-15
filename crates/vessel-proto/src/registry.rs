@@ -29,3 +29,36 @@ use crate::ProtocolVersion;
 /// consumers validate workspace ownership and partial cleanup outcomes.
 /// None refuses registry calls before dispatch, including forwarded calls.
 pub const PROJECT_WORKSPACE_REGISTRY: Option<ProtocolVersion> = None;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{Method, Request as _, WorkspaceId};
+    #[test]
+    fn registry_methods_share_one_feature_gate_and_preserve_typed_response_targets() {
+        let requests = [
+            GetRegistry::default().into_call(),
+            ListWorkspaces::default().into_call(),
+            GetWorkspace {
+                workspace: WorkspaceId::random(),
+            }
+            .into_call(),
+            RenameWorkspace {
+                workspace: WorkspaceId::random(),
+                title: None,
+            }
+            .into_call(),
+            PinWorkspace {
+                workspace: WorkspaceId::random(),
+                pin: WorkspacePin::Unpinned,
+            }
+            .into_call(),
+        ];
+        for call in requests {
+            assert_eq!(call.required_protocol(), PROJECT_WORKSPACE_REGISTRY);
+            assert_eq!(call.method().since(), PROJECT_WORKSPACE_REGISTRY);
+            assert_eq!(call.method().shape(), crate::MethodShape::Unary);
+        }
+        assert_eq!(GetWorkspace::METHOD, Method::GetWorkspace);
+    }
+}

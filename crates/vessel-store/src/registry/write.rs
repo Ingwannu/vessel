@@ -25,9 +25,9 @@ pub(crate) fn require_active(connection: &Connection, id: WorkspaceId) -> Result
     let record = read::workspace(connection, id)?.ok_or(StoreError::RegistryConflict)?;
     match record.descriptor.lifecycle {
         WorkspaceLifecycle::Active => Ok(()),
-        WorkspaceLifecycle::Archiving { .. } | WorkspaceLifecycle::Archived { .. } => {
-            Err(StoreError::RegistryConflict)
-        }
+        WorkspaceLifecycle::Archiving { .. }
+        | WorkspaceLifecycle::Restoring { .. }
+        | WorkspaceLifecycle::Archived { .. } => Err(StoreError::RegistryConflict),
     }
 }
 
