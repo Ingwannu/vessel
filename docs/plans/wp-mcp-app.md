@@ -131,3 +131,23 @@ stopped in the view crate on a missing semicolon in a unit-returning block.
 That is corrected, and the access-error pattern uses the exact Forbidden
 variant rather than a redundant equality guard. The run did not reach the
 app controller check; no UI/runtime success is inferred from it.
+
+## Shared delivery integration hold
+
+The current Scope/Visit/Task checks and selected.call fence do not yet prove
+validity after bounded event backpressure or a queued UI result. Before a
+consumer-ready handoff, the real reply must carry W12's opaque weak
+DeliveryGuard and validate the exact original context immediately before
+application, alongside the existing outstanding action/ticket checks. A
+preflight refusal carries only a typed error and never a fabricated guard.
+An admitted write whose outcome cannot be confirmed retains input and requires
+a fresh read; an older binding cannot alter or retire its successor.
+
+The link also needs the canonical zero-frame SelectedConnection::check_call
+before even the older node.settings read can run against a peer missing the
+shared MCP feature. That is protocol support, never an authorization verdict.
+W2 currently owns the shared selected.rs/delivery-export edit slot and first
+promotion with its A4 consumer. W18 waits for the lead's integrated line and
+then requests the next slot for check_call plus its real MCP envelope consumer;
+no staging attribute is removed here and no raw client escapes the link.
+Existing UI/model tests do not claim this still-pending transport queue proof.
