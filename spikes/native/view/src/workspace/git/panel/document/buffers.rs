@@ -9,7 +9,13 @@
 //!   the joined buffer; review keys are still allocated only on interaction.
 //! - Cost: joining text allocates one bounded buffer per column. The caller must
 //!   apply its body-cache budget, not retain every file's editor indefinitely.
-use super::*;
+use std::sync::Arc;
+
+use vessel_proto::workspace::LineKind;
+
+use super::super::Layout;
+use super::{DiffCell, DiffDocument, DisplayRow, SourceLine, SourceRow};
+use crate::workspace::diff_rows::DiffRow;
 
 /// A row's semantic paint, independent of a toolkit colour or editor engine.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

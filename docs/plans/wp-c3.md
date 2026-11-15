@@ -614,3 +614,13 @@ Checking repository; the later diff phase has only its spinner. Empty uses the
 same center/inset with8-point gap. This does not change the old toolbar spinner
 or claim a redraw/capture/whole-screen pass; the provisional header, failure
 surface and final complete body still need their reference/capture pass.
+
+## Exact compiler correction after the pane/document check
+
+The fixed-lock 84fa native narrow reached the changed View/Kit crates and
+returned source errors: the diff profile addressed Tokens::status as a field,
+and the packed-buffer projection used a wildcard import. The profile now calls
+the existing theme-aware status accessor; the projection names its dependencies
+explicitly. The public-field documentation reported in the same run had already
+been corrected in 5ac39be2. This is a source correction, not an execution pass;
+earlier queued checks retain their original source and cannot validate it.

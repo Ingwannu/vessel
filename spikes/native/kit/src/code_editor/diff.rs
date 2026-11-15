@@ -207,8 +207,8 @@ impl DiffEditor {
         style = style.with_line_presentation(Some(Arc::new(Presentation {
             rows: Arc::clone(&self.rows),
             sample: self.sample.clone(),
-            added: tokens.status.success.foreground,
-            removed: tokens.status.error.foreground,
+            added: tokens.status().success.foreground,
+            removed: tokens.status().error.foreground,
             muted: tokens.neutral.foreground_muted,
         })));
         self.editor
