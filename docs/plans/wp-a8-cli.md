@@ -210,3 +210,11 @@ reads, collection bounds and private diagnostics. These are in-memory client
 adapter evidence pending VM execution, not stored-runtime/provider proof. The
 legacy snapshot has only generic Permission labels; checked presentation fields
 will supply richer title/description after base8 adoption.
+
+Preflight indexes one bounded canonical reply with typed request ids and moves
+selected bodies into Ready rather than cloning schemas. It rejects duplicate ids
+in the fresh snapshot as well as in selected rows; choosing a duplicate's first
+body would hide a changed/malformed request. The private index lives only for one
+read, with no persistence, subscriptions, capability or independent projection.
+A regression supplies two different current bodies under one id and requires
+refusal before any response work.

@@ -273,3 +273,21 @@ fn retained_preflight_bodies_are_not_embedded_in_diagnostics() {
     };
     assert_eq!(question.message, "synthetic-private-form-detail");
 }
+
+#[tokio::test]
+async fn a_fresh_snapshot_with_duplicate_identity_cannot_choose_its_first_body() {
+    let owner = SessionId::random();
+    let request = permission();
+    let row = Row::permission(owner, &request);
+    let mut changed = request.clone();
+    changed.options[0].name = "A different current body".into();
+    let mut source = Memory {
+        snapshots: VecDeque::from([(owner, Ok(held(vec![request, changed], Vec::new())))]),
+        ..Memory::default()
+    };
+    assert!(matches!(
+        preflight(&mut source, &[row]).await,
+        Err(SourceError::Duplicate)
+    ));
+    assert_eq!(source.read, [owner]);
+}

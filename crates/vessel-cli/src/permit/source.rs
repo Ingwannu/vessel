@@ -2,7 +2,7 @@
 //! Inbox is an attention projection and deliberately suppresses archived rows.
 //! Existing session.list/conversation calls do not start a provider or a turn.
 use super::pending::{PendingId, Row};
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use vessel_client::{CallError, NodeClient};
 use vessel_proto::conversation::Conversation;
 use vessel_proto::{PermissionRequest, Question, SessionId, SessionInfo, SessionMode};
@@ -173,32 +173,34 @@ pub(crate) async fn preflight(
         return Err(SourceError::Duplicate);
     }
     let held = source.conversation(first.agent_id).await?;
+    let count = held
+        .permissions
+        .len()
+        .checked_add(held.questions.len())
+        .ok_or(SourceError::Limit)?;
+    if count > MAX_PENDING_ROWS {
+        return Err(SourceError::Limit);
+    }
+    let mut permissions = unique(held.permissions, |request| request.id)?;
+    let mut questions = unique(held.questions, |question| question.id)?;
     let mut ready = Vec::with_capacity(rows.len());
     let mut budget = budget::Budget::default();
     for row in rows {
         let item = match row.id {
             PendingId::Permission(id) => {
-                let request = held
-                    .permissions
-                    .iter()
-                    .find(|request| request.id == id)
-                    .ok_or(SourceError::Gone)?;
-                budget.charge(request)?;
+                let request = permissions.remove(&id).ok_or(SourceError::Gone)?;
+                budget.charge(&request)?;
                 Ready::Permission {
                     session: row.agent_id,
-                    request: request.clone(),
+                    request,
                 }
             }
             PendingId::Question(id) => {
-                let question = held
-                    .questions
-                    .iter()
-                    .find(|question| question.id == id)
-                    .ok_or(SourceError::Gone)?;
-                budget.charge(question)?;
+                let question = questions.remove(&id).ok_or(SourceError::Gone)?;
+                budget.charge(&question)?;
                 Ready::Question {
                     session: row.agent_id,
-                    question: question.clone(),
+                    question,
                 }
             }
         };
@@ -206,5 +208,20 @@ pub(crate) async fn preflight(
     }
     Ok(ready)
 }
+// An ephemeral index of one already-bounded reply; it owns/moves complete forms
+// rather than cloning payloads or accepting a duplicate identity's first body.
+fn unique<Id: Ord, Form>(
+    forms: Vec<Form>,
+    id: impl Fn(&Form) -> Id,
+) -> Result<BTreeMap<Id, Form>, SourceError> {
+    let mut indexed = BTreeMap::new();
+    for form in forms {
+        if indexed.insert(id(&form), form).is_some() {
+            return Err(SourceError::Duplicate);
+        }
+    }
+    Ok(indexed)
+}
+
 #[cfg(test)]
 mod tests;
