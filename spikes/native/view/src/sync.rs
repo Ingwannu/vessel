@@ -54,7 +54,10 @@ pub fn member_line(lang: Lang, member: &FleetMember, now: DateTime<Utc>) -> Vec<
     let words = lang.machines();
     [
         Some(words.applied(member.applied.map(Generation::get))),
-        Some(words.kept_edits(member.conflicts.len())),
+        Some(match KeptEdits::of(member) {
+            KeptEdits::Unreported => lang.sync().kept(KeptEdits::Unreported),
+            KeptEdits::Known(count) => words.kept_edits(count),
+        }),
         member
             .reported_at
             .map(|reported| words.reported(Ago::of(reported, now))),
@@ -88,3 +91,34 @@ pub fn secret_names(manifest: &Manifest) -> Vec<String> {
         .collect();
     names.into_iter().collect()
 }
+
+mod member;
+pub use member::{MemberBadge, MemberRow};
+mod page;
+mod rows;
+mod snapshot;
+pub use page::{LocalCommand, Page, Part, Problem, Reading};
+pub use rows::{FileKind, KeptEdits, connection_variant};
+pub use snapshot::{
+    FileMode, FileSize, Home, Presence, Published, Reads, Secret, SecretEmpty, SharedFile,
+    Snapshot, Usage,
+};
+
+impl MemberState {
+    /// A short state badge uses the shared semantic vocabulary.
+    #[must_use]
+    pub const fn variant(self) -> crate::badge::Variant {
+        match self {
+            Self::NotYet => crate::badge::Variant::Muted,
+            Self::UpToDate => crate::badge::Variant::Success,
+            Self::Behind(_) => crate::badge::Variant::Warning,
+        }
+    }
+}
+
+/// Read progress is neutral, independently of a member's behind status.
+pub const LOADING: crate::badge::Variant = crate::badge::Variant::Muted;
+/// The member reported that it preserved its own changes.
+pub const KEPT_EDITS_NOTICE: crate::alert::Variant = crate::alert::Variant::Warning;
+/// The node's conflict-copy suffix, a path value rather than translated prose.
+pub const INCOMING_SUFFIX: &str = ".vessel-incoming";

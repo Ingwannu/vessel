@@ -21,27 +21,30 @@
 //!   revision (`FindCache`), so the second search is quick.
 //! - Shortcut: no element of the conversation holds the keys while the
 //!   composer does, so Mod+F is heard by a keystroke observer the area
-//!   keeps (`observe_keystrokes`), not by an action on an element.
-//! - Not yet: the matched words are not highlighted in the text (the
-//!   entry is brought into view); a search is not run again as the
-//!   session grows while the bar is open.
+//!   keeps (`observe_keystrokes`), not by an action on an element. The
+//!   app's shortcuts (track S2's registry, rebindable) call
+//!   [`Shell::conversation_find`]; once they bind Find, the observer goes
+//!   (opening twice for one press does no harm meanwhile).
+//! - Marks: the matches are marked in a person's messages, in replies
+//!   and in an answered question's text (GOAT's yellow, the current one
+//!   amber, `Marking`); the search runs again as the session grows while
+//!   the bar is open (`find_grew`). A question still waiting is answered
+//!   over the composer, so its row in the timeline is one quiet line and
+//!   holds no mark.
 
 use std::hash::{DefaultHasher, Hash as _, Hasher as _};
 use std::time::Duration;
 
-use vessel_app_kit::assets::Glyph;
-use vessel_app_kit::picker::glyph;
-use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    KeyDownEvent, ParentElement as _, Pixels, Stateful, StatefulInteractiveElement as _,
-    Styled as _, Window, div, px,
-};
-use vessel_app_kit::{
-    Reveal, TextField, Tokens, Type, TypeExt as _, VirtualList, breakpoint, popup,
-};
-use vessel_app_view::timeline::{Finder, MAX_QUERY, Match, step};
+use vessel_app_kit::ui::{Context, Pixels, Window, px};
+use vessel_app_kit::{Reveal, TextField, VirtualList};
+use vessel_app_view::timeline::{Finder, MAX_QUERY, Match, start_at, step};
+use vessel_proto::EventSeq;
 
 use crate::shell::Shell;
+
+mod bar;
+
+pub(super) use bar::bar;
 
 /// The bar's width (GOAT's `--thread-details-panel-width`, 17.5rem) and
 /// its distance from the conversation's edges (`top-3 right-3`).
@@ -76,6 +79,10 @@ pub(crate) struct FindBar {
     again: bool,
     /// The match current when a refresh began.
     keep: Option<Match>,
+    /// Opened at a message (a search hit, GOAT's find "on the word at the
+    /// matched message"): the record it starts at, until the search has
+    /// read that far and made the first match there current.
+    at: Option<EventSeq>,
 }
 
 /// What find marks on screen: its query, and the current match.
@@ -142,16 +149,29 @@ impl Shell {
         let keys = cx.observe_keystrokes(|shell, event, window, cx| {
             let stroke = &event.keystroke;
             let modifiers = stroke.modifiers;
-            if stroke.key == "f"
-                && modifiers.secondary(cx)
-                && !modifiers.shift
-                && !modifiers.alt
-                && shell.areas.conversation.shown.is_some()
-            {
-                shell.open_find(window, cx);
+            if stroke.key == "f" && modifiers.secondary(cx) && !modifiers.shift && !modifiers.alt {
+                shell.conversation_find(window, cx);
             }
         });
         self.areas.conversation.keys = Some(keys);
+    }
+
+    /// Find in the session shown (the shortcuts' Find, Mod+F by default):
+    /// open the bar, or give its field the keys again; nothing when no
+    /// session shows. Calling it twice for one press does no harm.
+    pub(crate) fn conversation_find(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if self.areas.conversation.shown.is_none() {
+            return;
+        }
+        self.open_find(window, cx);
+    }
+
+    /// Update a retained field's language without clearing its search.
+    pub(crate) fn refresh_find_words(&self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if let Some(bar) = &self.areas.conversation.find {
+            bar.field
+                .set_placeholder(self.t.lang.conversation().find_in_session(), window, cx);
+        }
     }
 
     /// Open the bar, or give its field the keys again.
@@ -180,8 +200,28 @@ impl Shell {
             refreshing: false,
             again: false,
             keep: None,
+            at: None,
         });
         cx.notify();
+    }
+
+    /// Open find on `query` at the message starting at record `at` (a
+    /// search hit): the current match is the first one there, once the
+    /// session is read that far; until then none is brought into view.
+    pub(super) fn find_at(
+        &mut self,
+        query: &str,
+        at: EventSeq,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.open_find(window, cx);
+        let Some(bar) = self.areas.conversation.find.as_mut() else {
+            return;
+        };
+        bar.at = Some(at);
+        bar.field.set_text(query, window, cx);
+        self.find_changed(query.to_owned(), cx);
     }
 
     /// Close the bar.
@@ -275,10 +315,15 @@ impl Shell {
         let Some(finder) = bar.finder.as_mut() else {
             return true;
         };
-        let Some(matches) = finder.step(&mut area.find_cache, area.timeline.entries()) else {
+        let Some(mut matches) = finder.step(&mut area.find_cache, area.timeline.entries()) else {
             return false;
         };
+        // What a rewind left behind is not drawn, so find skips it.
+        matches.retain(|found| !area.timeline.rewound(found.entry));
         bar.finder = None;
+        let start = bar
+            .at
+            .and_then(|at| start_at(area.timeline.entries(), area.timeline.next(), &matches, at));
         if bar.refreshing {
             // The same match stays current, found again by what it is (the
             // page's rule: a refresh must not take the reader back to it).
@@ -288,13 +333,24 @@ impl Shell {
             bar.index = at.unwrap_or_else(|| bar.index.min(matches.len().saturating_sub(1)));
             bar.matches = matches;
             bar.refreshing = false;
-            if std::mem::take(&mut bar.again) {
+            let again = std::mem::take(&mut bar.again);
+            if let Some(index) = start {
+                bar.index = index;
+                bar.at = None;
+                self.find_reveal(cx);
+            }
+            if again {
                 self.start_search(true, cx);
             }
         } else {
             bar.matches = matches;
-            bar.index = 0;
-            self.find_reveal(cx);
+            bar.index = start.unwrap_or(0);
+            // Opened at a message not read yet: nothing is brought into
+            // view (the message is, once read); a refresh settles it.
+            if bar.at.is_none() || start.is_some() {
+                bar.at = None;
+                self.find_reveal(cx);
+            }
         }
         cx.notify();
         true
@@ -335,149 +391,14 @@ impl Shell {
             .map(|run| run.lead)
             .filter(|lead| *lead != found && !area.open_runs.contains(lead));
         if let Some(lead) = folded_in {
-            self.toggle_run(lead, cx);
+            self.toggle_run(super::Seat::SESSION, lead, cx);
         }
         let area = &self.areas.conversation;
         if let Some(row) = area.rows.row_index(found, area.folds.as_ref(), &area.logs) {
-            area.list.reveal(row, Reveal::Nearest);
+            area.list.reveal(area.at(row), Reveal::Nearest);
         }
     }
 }
 
-/// The bar over the conversation's top right, when it is open.
-pub(super) fn bar(
-    shell: &Shell,
-    tokens: &Tokens,
-    window: &Window,
-    cx: &mut Context<'_, Shell>,
-) -> Option<AnyElement> {
-    let bar = shell.areas.conversation.find.as_ref()?;
-    let words = shell.t.lang.conversation();
-    let surfaces = popup::Surfaces::of(tokens);
-    let narrow = breakpoint::phone(window);
-    let neutral = tokens.neutral;
-    let has_query = !bar.query.trim().is_empty();
-    let none = has_query && bar.finder.is_none() && bar.matches.is_empty();
-    let count = if !has_query {
-        String::new()
-    } else if bar.finder.is_some() {
-        words.count_pending().to_owned()
-    } else {
-        words.count_text(bar.matches.len(), bar.index)
-    };
-    let can_move = bar.finder.is_none() && !bar.matches.is_empty();
-    let shell_row = div()
-        .flex()
-        .flex_row()
-        .items_center()
-        .gap(px(2.0))
-        .h(px(if narrow { 44.0 } else { 36.0 }))
-        .pl(px(12.0))
-        .pr(px(4.0))
-        .bg(surfaces.surface1)
-        .border_1()
-        .border_color(surfaces.border_accent)
-        .rounded(px(popup::MENU_RADIUS))
-        .shadow(popup::shadow_md(tokens))
-        .on_key_down(cx.listener(|shell, event: &KeyDownEvent, _window, cx| {
-            match event.keystroke.key.as_str() {
-                "escape" => {
-                    shell.close_find(cx);
-                    cx.stop_propagation();
-                }
-                "enter" if event.keystroke.modifiers.shift => {
-                    shell.find_move(false, cx);
-                    cx.stop_propagation();
-                }
-                _ => {}
-            }
-        }))
-        .child(bar.field.input(tokens, cx))
-        .child(
-            div()
-                .min_w(px(40.0))
-                .flex_none()
-                .text_center()
-                .type_(Type::Meta)
-                .text_color(if none {
-                    neutral.destructive
-                } else {
-                    neutral.foreground_muted
-                })
-                .child(count),
-        )
-        .child(
-            small_button("find-previous", Glyph::ChevronUp, can_move, tokens, narrow).when(
-                can_move,
-                |button| {
-                    button.on_click(cx.listener(|shell, _event, _window, cx| {
-                        shell.find_move(false, cx);
-                    }))
-                },
-            ),
-        )
-        .child(
-            small_button("find-next", Glyph::ChevronDown, can_move, tokens, narrow).when(
-                can_move,
-                |button| {
-                    button.on_click(cx.listener(|shell, _event, _window, cx| {
-                        shell.find_move(true, cx);
-                    }))
-                },
-            ),
-        )
-        .child(
-            small_button("find-close", Glyph::Close, true, tokens, narrow).on_click(cx.listener(
-                |shell, _event, _window, cx| {
-                    shell.close_find(cx);
-                },
-            )),
-        );
-    // On a phone the bar takes its own place above the conversation: laid
-    // over it, it would hide the very match it scrolls to (the page lays
-    // it over at every width, the same fault).
-    let frame = if narrow {
-        div().flex_none().px(px(INSET)).pt(px(8.0)).pb(px(4.0))
-    } else {
-        div()
-            .absolute()
-            .top(px(INSET))
-            .right(px(INSET))
-            .w(px(WIDTH))
-    };
-    Some(frame.child(shell_row).into_any_element())
-}
-
-/// One of the bar's buttons (GOAT's `icon-xs` ghost button): its glyph,
-/// dimmed while it cannot act.
-fn small_button(
-    id: &'static str,
-    mark: Glyph,
-    enabled: bool,
-    tokens: &Tokens,
-    narrow: bool,
-) -> Stateful<Div> {
-    let neutral = tokens.neutral;
-    let hover = popup::Surfaces::of(tokens).surface2;
-    div()
-        .id(id)
-        .size(px(if narrow { 32.0 } else { 24.0 }))
-        .flex()
-        .flex_none()
-        .items_center()
-        .justify_center()
-        .rounded(px(6.0))
-        .when(enabled, |button| {
-            button.cursor_pointer().hover(move |style| style.bg(hover))
-        })
-        .child(glyph(
-            mark,
-            // The close cross fills its box; the chevrons do not.
-            if mark == Glyph::Close { 12.0 } else { 14.0 },
-            if enabled {
-                neutral.foreground_muted
-            } else {
-                neutral.foreground_extra_muted
-            },
-        ))
-}
+#[cfg(test)]
+mod language_tests;

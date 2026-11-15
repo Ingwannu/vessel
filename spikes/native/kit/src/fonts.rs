@@ -7,8 +7,17 @@
 //! holds because no system face is ever asked for: both faces ship in the
 //! binary and every style names them. Embedded rather than read from
 //! files beside the binary: one file to install, nothing to find at
-//! start, at about 5 MB (Pretendard's three weights are most of it; the
+//! start, at about 6.7 MB (Pretendard's four weights are most of it; the
 //! real build subsets them, as the page does).
+//!
+//! [Decision Log: form paths]
+//! - Purpose: match GOAT's `GitActionsControl` inherited text-sm14/20 mono rows.
+//! - Constraint: existing Mono12/20 callers and fallbacks must stay unchanged.
+//! - Alternatives: area font literals, or a UI-scaled label with a mono family.
+//! - Choice: one named MonoBody14/20 normal step on the code scale and face.
+//! - Why: metrics cannot mix independent UI/code preferences; `TypeExt` already
+//!   consumes the shared metrics/family and retains its fallback list.
+//! - Cost: one additional public type step; no font asset or editing engine.
 
 use std::borrow::Cow;
 use std::sync::atomic::{AtomicU8, Ordering};
@@ -22,11 +31,20 @@ pub const MONO: &str = "Geist Mono";
 /// The fallback for every script Geist lacks.
 pub const HANGUL: &str = "Pretendard";
 
-static FACES: [&[u8]; 7] = [
+/// The weights the design draws: 300 (Paseo's desktop screen title,
+/// `headers/screen-title.tsx`, track G2's `screen_header`), 400, 500 and
+/// 600, each in Geist and in Pretendard so Hangul keeps the Latin's
+/// weight (a missing weight would be drawn at the nearest one, or
+/// synthesized). The 300 pair costs 1,725,412 bytes (Geist Light 125,444,
+/// Pretendard Light 1,599,968), from the same packages (`scripts/fonts.sh`)
+/// under the same licences.
+static FACES: [&[u8]; 9] = [
+    include_bytes!("../../assets/fonts/Geist-Light.ttf"),
     include_bytes!("../../assets/fonts/Geist-Regular.ttf"),
     include_bytes!("../../assets/fonts/Geist-Medium.ttf"),
     include_bytes!("../../assets/fonts/Geist-SemiBold.ttf"),
     include_bytes!("../../assets/fonts/GeistMono-Regular.ttf"),
+    include_bytes!("../../assets/fonts/Pretendard-Light.otf"),
     include_bytes!("../../assets/fonts/Pretendard-Regular.otf"),
     include_bytes!("../../assets/fonts/Pretendard-Medium.otf"),
     include_bytes!("../../assets/fonts/Pretendard-SemiBold.otf"),
@@ -125,6 +143,8 @@ pub enum Type {
     Tiny,
     /// `--t-mono`: 12 / 20 / 400, ids, paths.
     Mono,
+    /// GOAT's form path row: 14 / 20 / 400, on the code scale and face.
+    MonoBody,
 }
 
 impl Type {
@@ -132,11 +152,21 @@ impl Type {
     /// ([`ui`], [`code`]).
     #[must_use]
     pub fn metrics(self) -> (f32, f32, FontWeight) {
+        self.metrics_with(ui, code)
+    }
+
+    // Injectable resolvers exercise the same production path with unequal
+    // preferences without racing process-wide font settings in parallel tests.
+    fn metrics_with(
+        self,
+        interface: fn(f32) -> f32,
+        code: fn(f32) -> f32,
+    ) -> (f32, f32, FontWeight) {
         let (size, line, weight) = self.written();
-        if self == Self::Mono {
+        if matches!(self, Self::Mono | Self::MonoBody) {
             (code(size), code(line), weight)
         } else {
-            (ui(size), ui(line), weight)
+            (interface(size), interface(line), weight)
         }
     }
 
@@ -152,6 +182,7 @@ impl Type {
             Self::Card => (11.5, 14.4, FontWeight::SEMIBOLD),
             Self::Tiny => (10.5, 14.0, FontWeight::NORMAL),
             Self::Mono => (12.0, 20.0, FontWeight::NORMAL),
+            Self::MonoBody => (14.0, 20.0, FontWeight::NORMAL),
         }
     }
 
@@ -159,7 +190,7 @@ impl Type {
     #[must_use]
     pub fn family(self) -> SharedString {
         match self {
-            Self::Mono => MONO.into(),
+            Self::Mono | Self::MonoBody => MONO.into(),
             Self::Title
             | Self::Body
             | Self::Label
@@ -201,4 +232,131 @@ pub fn measure(window: &gpui::Window, text: &str, step: Type) -> f32 {
             .text_system()
             .shape_line(text.to_owned().into(), gpui::px(size), &[run], None);
     f32::from(line.width).ceil()
+}
+
+/// `text` cut in its middle with "…" so it is at most `width` points in
+/// `step`'s face; the whole text when it fits. A path keeps its start (the
+/// root) and its end (the file's name), which a cut at either end loses.
+///
+/// [Decision Log]
+/// - Purpose: a path in a settings row was clipped mid-word with no mark
+///   that anything was missing (the coordinator's review of Settings ›
+///   Agents); the brief's rule for a path is its own element of a set
+///   width, cut in the middle, the whole of it in a tooltip.
+/// - Constraint: GPUI truncates only at a text's end; the cut has to be
+///   chosen before drawing, from measured widths.
+/// - Choice: the longest middle cut that fits, found by halving the kept
+///   length ([`elide_middle_by`]), measured with [`measure`].
+/// - Cost: a few line shapings per drawn path (about log2 of its length).
+#[must_use]
+pub fn elide_middle(window: &gpui::Window, text: &str, step: Type, width: f32) -> String {
+    elide_middle_by(text, |candidate| measure(window, candidate, step) <= width)
+}
+
+/// The longest middle cut of `text` that `fits` (the whole text when it
+/// does): as many characters kept at the start as at the end, one more at
+/// the end when odd (a file's name is at the end). `fits` must hold for
+/// every shorter cut of a cut it holds for.
+#[must_use]
+pub fn elide_middle_by(text: &str, fits: impl Fn(&str) -> bool) -> String {
+    if fits(text) {
+        return text.to_owned();
+    }
+    let chars: Vec<char> = text.chars().collect();
+    let cut = |keep: usize| -> String {
+        // Half, rounded down: the extra character goes to the end.
+        let head = keep >> 1;
+        let tail = keep.saturating_sub(head);
+        chars
+            .iter()
+            .take(head)
+            .chain(std::iter::once(&'…'))
+            .chain(chars.iter().skip(chars.len().saturating_sub(tail)))
+            .collect()
+    };
+    let (mut low, mut high) = (0_usize, chars.len().saturating_sub(1));
+    while low < high {
+        // The upper middle, so the search always moves.
+        let middle = low.saturating_add(high).saturating_add(1) >> 1;
+        if fits(&cut(middle)) {
+            low = middle;
+        } else {
+            high = middle.saturating_sub(1);
+        }
+    }
+    cut(low)
+}
+
+#[cfg(test)]
+mod mono_body_tests {
+    use super::*;
+
+    fn same(points: f32) -> f32 {
+        points
+    }
+    fn code_eighteen(points: f32) -> f32 {
+        points.mul_add(1.5, 0.0)
+    }
+
+    #[test]
+    fn form_paths_add_the_exact_reference_step_without_changing_existing_mono() {
+        assert_eq!(
+            Type::Mono.metrics_with(same, same),
+            (12.0, 20.0, FontWeight::NORMAL)
+        );
+        assert_eq!(
+            Type::MonoBody.metrics_with(same, same),
+            (14.0, 20.0, FontWeight::NORMAL)
+        );
+        assert_eq!(Type::Mono.family(), SharedString::from(MONO));
+        assert_eq!(Type::MonoBody.family(), SharedString::from(MONO));
+        assert_eq!(Type::Body.family(), SharedString::from(SANS));
+    }
+
+    #[test]
+    fn both_code_steps_keep_size_and_line_on_code_while_body_stays_on_interface() {
+        assert_eq!(
+            Type::Mono.metrics_with(same, code_eighteen),
+            (18.0, 30.0, FontWeight::NORMAL)
+        );
+        assert_eq!(
+            Type::MonoBody.metrics_with(same, code_eighteen),
+            (21.0, 30.0, FontWeight::NORMAL)
+        );
+        assert_eq!(
+            Type::Body.metrics_with(same, code_eighteen),
+            (14.0, 21.0, FontWeight::NORMAL)
+        );
+    }
+}
+
+#[cfg(test)]
+mod elide_tests {
+    use super::elide_middle_by;
+
+    fn at_most(count: usize) -> impl Fn(&str) -> bool {
+        move |text| text.chars().count() <= count
+    }
+
+    #[test]
+    fn a_text_that_fits_is_kept_whole() {
+        assert_eq!(
+            elide_middle_by("/usr/bin/codex", at_most(14)),
+            "/usr/bin/codex"
+        );
+    }
+
+    #[test]
+    fn a_long_path_keeps_its_root_and_its_name() {
+        let path = "/tmp/build/vessel-target-m12-agents/debug/fake-acp";
+        let cut = elide_middle_by(path, at_most(20));
+        assert_eq!(cut.chars().count(), 20);
+        assert_eq!(cut, "/data/bui…g/fake-acp");
+        assert!(cut.starts_with("/data/") && cut.ends_with("fake-acp"));
+    }
+
+    #[test]
+    fn nothing_fits_but_the_mark_itself() {
+        assert_eq!(elide_middle_by("abcdef", at_most(1)), "…");
+    }
 }
