@@ -115,3 +115,30 @@ local all-targets view Clippy passed; its tests travel as the immutable
 waiting local test wrapper was cancelled under the coordinator exception.
 That test run does not validate the combined base until its own checks
 run; no combined feature or runtime pass is inferred.
+
+## Pairing/registry ownership agreement
+
+G4 confirmed it has no competing route-edit/upsert or identity-to-profile
+store. E1 owns the one typed client-book upsert and connection-edit API;
+G4 pairing consumes it after new/changed-host confirmation. Merge on the
+authenticated NodeId and pinned key, preserve an existing internal book
+alias, and keep display names out of identity matching. Do not add a
+second registry or connector. G4 retains the existing Connected record's
+authenticated identity/non-reused epoch, parsed BookEntry binding and
+retirement/facts in the extracted refresh lifecycle.
+
+The operation/result contract must distinguish ordinary book failure
+(no admission retirement) from a post-pairing partial outcome. Redeeming
+an invitation or writing credentials may already have happened before a
+book write fails. That outcome must remain typed, retire only admission
+that actually changed, and never automatically redeem the one-use
+invitation again. Credential recovery and local book retry are separate
+from remote pairing. The format/compatibility/security decision precedes
+implementation; no route-upsert API is claimed by this agreement.
+
+The next pure value is `hosts::Label`: nonblank Unicode display text,
+separate from the ASCII book alias and NodeId. It trims the source's
+JavaScript whitespace set at construction, including BOM and excluding
+NEL, rather than silently substituting Rust's different trim set. A
+missing legacy label can resolve to the typed NodeId for display. These
+values introduce no registry, credential lookup or settings mutation.

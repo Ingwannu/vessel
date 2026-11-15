@@ -10,6 +10,9 @@
 //! - Boundary: no credentials, transport, persistence or UI tokens here.
 //!   This policy does not change the machine's book name or node identity.
 
+mod label;
+pub use label::{EmptyLabel, Label};
+
 /// Paseo's host colors, in `HOST_COLORS` order (none then identity colors).
 /// This is a choice, not a paint value; the kit owns its actual colors.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]

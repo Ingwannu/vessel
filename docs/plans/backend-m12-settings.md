@@ -816,3 +816,17 @@ K owns the later additive blur factory and Appearance profiles; W12 owns
 the later composer layout/ButtonOnly policy. Neither is folded into this
 move-only change. Narrow compilation and existing field tests are owed
 before reporting the split as usable.
+
+Pure field split `0cee06de` narrow checks are now complete: exact remote
+kit all-targets Clippy exit zero (`settings2-narrow-20261115T065223Z-0cee06de`),
+and the unchanged field/composer-hook/form tests passed 16/0/0
+(`settings2-narrow-20261115T065533Z-0cee06de`). The queued run is retained;
+no duplicate or unchanged rerun was started. This is a move-only narrow
+result, not the select-all package or combined-base approval.
+
+The lead then required W4's events-only extraction followed by its sole
+Editability API to enter a new package base first. The uncommitted E2
+selection/profile experiment was preserved as a patch and per-file hashes
+and removed from the working tree. After that base is announced, retain
+the rendering/style move, reuse W4's Editability and add E2 select_all
+separately. Do not restore the duplicate E2 editability implementation.

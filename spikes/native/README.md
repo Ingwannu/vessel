@@ -82,7 +82,9 @@ Machine presentation policy lives in pure `view::hosts`: an explicit badge
 choice takes precedence while the managed-local-machine lookup is pending;
 only the automatic choice waits, then hides local or names remote. These
 values own no credentials, persistence or UI paint and never replace the
-client's authenticated identity. E1 wires their consumer separately.
+client's authenticated identity. E1 wires their consumer separately. The
+separate `hosts::Label` validates Unicode display text using the source's
+outer-whitespace rules; it is never parsed as a CLI alias or authority.
 
 The existing agent-option query/cache method lives in private native
 `link/src/options.rs`; the root actor still calls it for `Command::Options`.
