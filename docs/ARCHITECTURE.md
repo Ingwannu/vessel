@@ -1659,3 +1659,12 @@ unsupported override before process spawn, with a typed Unsupported mapping.
 The field does not enter SessionSpec, user messages, argv or environment.
 Reload orchestration and actual native override/restore transports are separate
 work; see docs/plans/provider-transient-context.md. No dependency edge changes.
+
+
+### Settings writer lifetime
+
+The node settings owner retains an owned serialization guard in a tracked task
+through atomic file replacement and runtime application. RPC cancellation drops
+only the waiter. After connections finish, teardown closes settings mutation
+admission and joins admitted writers before the store closes (ADR 0064). This
+adds no crate edge, setting, format or wire method.
