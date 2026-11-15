@@ -22,7 +22,7 @@ pub(crate) fn bump_revision(connection: &Connection) -> Result<(), StoreError> {
 
 /// Every member/label write checks lifecycle within its writer transaction.
 pub(crate) fn require_active(connection: &Connection, id: WorkspaceId) -> Result<(), StoreError> {
-    let record = read::workspace(connection, id)?.ok_or(StoreError::RegistryConflict)?;
+    let record = read::workspace(connection, id)?.ok_or(StoreError::RegistryMissing(id))?;
     match record.descriptor.lifecycle {
         WorkspaceLifecycle::Active => Ok(()),
         WorkspaceLifecycle::Archiving { .. }

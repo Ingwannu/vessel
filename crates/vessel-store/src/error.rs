@@ -142,6 +142,12 @@ pub enum StoreError {
     /// because one failure answers several callers.
     #[error("committing to the database failed")]
     Commit(#[source] Arc<rusqlite::Error>),
+    /// Missing and inactive are distinct admission refusals; callers never parse a generic message.
+    #[error("workspace {0} is not registered")]
+    RegistryMissing(vessel_proto::WorkspaceId),
+    /// Existing ownership is retained, but new actors/assignments require an Active lifecycle.
+    #[error("workspace {0} is not active")]
+    RegistryInactive(vessel_proto::WorkspaceId),
     /// A lifecycle or membership CAS failed; no partial mutation was committed.
     #[error("workspace registry revision changed or the workspace is not active")]
     RegistryConflict,
@@ -286,10 +292,12 @@ impl StoreError {
             // A row without its file: removed under the node.
             Self::PushDenied => ErrorCode::Forbidden,
             Self::InboxGone
+            | Self::RegistryMissing(_)
             | Self::UnknownSession(_)
             | Self::UnknownDevice(_)
             | Self::Attachment(AttachmentFileError::Missing(_)) => ErrorCode::NotFound,
             Self::RegistryFull
+            | Self::RegistryInactive(_)
             | Self::RegistryRecordTooLarge
             | Self::RegistryConflict
             | Self::PushFull
