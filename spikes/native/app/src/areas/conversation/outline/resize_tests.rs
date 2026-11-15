@@ -92,6 +92,8 @@ fn seed(shell: &mut Shell, cx: &mut Context<'_, Shell>) {
     assert_eq!(area.outline.len(), 2);
     // A3's local fallback still paints an exact target for stale-click checks.
     shell.prompt_index_refresh();
+    // This fixture replaces the resource directly, outside open_session's notify.
+    cx.notify();
 }
 
 #[gpui::test]
@@ -126,6 +128,7 @@ fn a_replaced_resources_hover_timer_cannot_activate_the_current_pointer(cx: &mut
             seed(&mut shell, cx);
             shell
         });
+        cx.observe(&shell, |_, _, cx| cx.notify()).detach();
         TimerProbe { shell }
     });
     assert!(rail_shown(cx, 1280.0));
