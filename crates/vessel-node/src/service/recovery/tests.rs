@@ -79,6 +79,9 @@ impl Fixture {
     async fn start(&self) -> Node {
         let mut config = Config::new(self.data.clone(), HarnessEnv::new(self.home.clone()));
         config.bind = Some("127.0.0.1:0".parse().unwrap());
+        // Invitations require an advertised route. The pairing fixture
+        // replaces this sentinel with the actual ephemeral listener before dial.
+        config.public = vec!["ws://127.0.0.1:1".parse().unwrap()];
         config.harness_lookup = Lookup::new([self.bin.clone()]);
         Node::start(config).await.unwrap()
     }
