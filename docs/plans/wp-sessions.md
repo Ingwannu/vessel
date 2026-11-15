@@ -275,3 +275,28 @@ History rows without a rendered authenticated node do not install an open
 callback; they cannot ask a later Fleet snapshot to bless an originally unbound
 alias. This is only the legacy address pin. Canonical resident/lease admission
 must still precede resource switching in the coordinated product cutover.
+# Canonical staged lifecycle foundation
+
+[Decision Log]
+- Purpose: keep one lifecycle owner type while the full A2 area joins W12's
+  canonical resident bundle.
+- Existing constraint: the isolated producer uses flat compatibility namespaces;
+  full A2 already owns directory modules with the same names. Keeping both files
+  makes Rust module resolution ambiguous and retaining the old owner duplicates
+  its binding/readiness policy.
+- Choice: preserve the full directory modules, alias their staged resident path
+  to `areas::session_lifecycle`, and re-export the same local action/UI-ticket
+  values from `view::session_lifecycle`. Remove the old concrete owner copy.
+- Why: the reviewed producer remains the sole type; existing page and link
+  imports keep their names without introducing another map or authority source.
+- Effects: the legacy UI-only counter now uses the canonical ticket's checked
+  FIRST/next API. It still cannot mint a resident operation ticket. The staged
+  module remains `cfg(test)`, with no bundle insertion or product promotion.
+
+The isolated foundation's bounded V4 source adoption is `7e710a189`; its complete
+tree equals the exact `04287520` strict and five-GPUI-test checkpoint. The full
+A2 union additionally merges announced native base `3e7820e3` and needs its own
+changed-source checks. That earlier evidence is not this union's final gate.
+The generic acknowledgement path must not service prearmed stops: the actual
+stop adapter still requires W12's checked kernel, acknowledged-held owner state,
+original receipt/guard/context and exact originating Window commit.
