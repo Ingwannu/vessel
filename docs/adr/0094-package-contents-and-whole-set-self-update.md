@@ -142,10 +142,16 @@ the new one.
   comes back at the next check, because it is part of the app.
 - **A running node is replaced on disk, not restarted.** Linux keeps the
   old inode running; Windows renames it aside. The local-node controller
-  (W15) must restart its node after the app's restart, or when the
-  node's version differs from the app's label. The uninstaller cannot
-  remove a node that is still running; the controller should stop it
-  first.
+  (W15) stops the node it owns before the app's update restart and
+  starts the bundled one after it. To notice a binary replaced under a
+  running node (a repair), it compares the file's identity (SHA-256, or
+  size and modification time) with the one it spawned. The node's own
+  version (`CARGO_PKG_VERSION`, 0.1.0) is not the app's label, and this
+  ADR does not compile the label into the node: that would be a node-line
+  change. A node the app only attaches to is never restarted by it;
+  compatibility there is the handshake's protocol range. The uninstaller
+  cannot remove a node that is still running; the controller should stop
+  it first.
 - **Platforms:**
   - AppImage and macOS bundles carry no companions. The updater refuses
     companions beside them, and the build makes neither yet.
