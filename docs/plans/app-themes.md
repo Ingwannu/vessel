@@ -165,6 +165,15 @@ Fast native format, size, boundary and token checks pass: 513 files,
 15 existing size exceptions, four crate edges, seven owned external crates,
 two name rules, and no new token literals. The first narrow Clippy found
 one large-by-value argument; the builder now borrows its baseline scale.
-The changed-source narrow check is queued in the short lane. Filtered tests,
-the separate full native gate, captures and runtime are unverified at this
-checkpoint. This is not a consumer-ready or full-slice approval.
+The changed-source narrow all-target kit Clippy passed. Filtered palette
+tests also passed: four passed, zero failed, 109 filtered out, after a cold
+build. The source hashes before and after both checks match `bf9b6ab8`.
+
+A final M4 inspection reduced the mapping test from 71 lines to 43 by
+pairing each actual/expected colour directly instead of repeating two
+parallel arrays. An independent comparison confirms the same 23 pairs
+in the same order; no expectation or product code changes. The first
+remote gate, still queued before any step, was cancelled for this correction
+and is not a pass. The corrected test source needs its own narrow check
+and full native gate. Captures and runtime remain unverified. This is not
+a consumer-ready or full-slice approval.

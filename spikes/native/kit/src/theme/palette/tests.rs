@@ -217,64 +217,36 @@ fn variants_project_page_surfaces_but_keep_shared_lane_and_alpha_tokens() {
     ] {
         let tokens = Tokens::palette(palette);
         let neutral = tokens.neutral;
-        assert_eq!(
-            [
-                tokens.bg_shell,
-                tokens.bg_base,
-                tokens.bg_surface,
-                tokens.bg_elevated,
-                tokens.bg_well,
-                tokens.border_subtle,
-                tokens.border_strong,
-                tokens.text_primary,
-                tokens.text_secondary,
-                tokens.text_tertiary,
-                tokens.danger,
-                tokens.btn_primary_fg
-            ],
-            [
-                neutral.surface_sidebar,
-                neutral.surface0,
-                neutral.surface1,
-                neutral.surface2,
-                neutral.surface2,
-                neutral.border,
-                neutral.border_accent,
-                neutral.foreground,
-                neutral.foreground_muted,
-                neutral.foreground_extra_muted,
-                neutral.destructive,
-                neutral.surface0
-            ]
-        );
-        assert_eq!(
-            [
-                tokens.bg_hover,
-                tokens.bg_active,
-                tokens.border_faint,
-                tokens.text_disabled,
-                tokens.st_building,
-                tokens.st_validating,
-                tokens.st_review,
-                tokens.st_ready,
-                tokens.st_needs_you,
+        for (actual, expected) in [
+            (tokens.bg_shell, neutral.surface_sidebar),
+            (tokens.bg_base, neutral.surface0),
+            (tokens.bg_surface, neutral.surface1),
+            (tokens.bg_elevated, neutral.surface2),
+            (tokens.bg_well, neutral.surface2),
+            (tokens.border_subtle, neutral.border),
+            (tokens.border_strong, neutral.border_accent),
+            (tokens.text_primary, neutral.foreground),
+            (tokens.text_secondary, neutral.foreground_muted),
+            (tokens.text_tertiary, neutral.foreground_extra_muted),
+            (tokens.danger, neutral.destructive),
+            (tokens.btn_primary_fg, neutral.surface0),
+            (tokens.bg_hover, base.bg_hover),
+            (tokens.bg_active, base.bg_active),
+            (tokens.border_faint, base.border_faint),
+            (tokens.text_disabled, base.text_disabled),
+            (tokens.st_building, base.st_building),
+            (tokens.st_validating, base.st_validating),
+            (tokens.st_review, base.st_review),
+            (tokens.st_ready, base.st_ready),
+            (tokens.st_needs_you, base.st_needs_you),
+            (
                 neutral.interaction_highlight,
-                neutral.sheet_handle
-            ],
-            [
-                base.bg_hover,
-                base.bg_active,
-                base.border_faint,
-                base.text_disabled,
-                base.st_building,
-                base.st_validating,
-                base.st_review,
-                base.st_ready,
-                base.st_needs_you,
                 base.neutral.interaction_highlight,
-                base.neutral.sheet_handle
-            ]
-        );
+            ),
+            (neutral.sheet_handle, base.neutral.sheet_handle),
+        ] {
+            assert_eq!(actual, expected, "{palette:?}");
+        }
     }
 }
 
