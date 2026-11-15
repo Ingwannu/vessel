@@ -24,7 +24,8 @@ impl Shell {
             session: open.session,
         };
         let surface = self.areas.composer_shell.surface(target);
-        if self.route != Route::Session
+        if self.composer_current_target() != Some(target)
+            || self.route != Route::Session
             || !open.structured
             || surface.mode() != Mode::Chat
             || surface.access() != Access::Editable

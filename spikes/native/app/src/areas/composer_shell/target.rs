@@ -10,7 +10,7 @@ use vessel_app_view::composer_shell::surface::{
 };
 use vessel_app_view::prefs::SendKey;
 
-use crate::{routes::Route, shell::Shell};
+use crate::shell::Shell;
 
 impl Shell {
     /// A window overlay must belong to the actual selected panel, including its
@@ -27,34 +27,39 @@ impl Shell {
     }
 
     pub(crate) fn composer_current_target(&self) -> Option<DraftKey> {
-        match self.route {
-            Route::Draft => Some(DraftKey::New),
-            Route::Session => self
-                .areas
-                .session
-                .open
-                .as_ref()
-                .filter(|open| open.structured)
-                .map(|open| DraftKey::Session {
-                    session: open.session,
-                }),
-            _ => None,
-        }
+        self.composer_destination()
     }
 
+    /// Local actions require the current destination; the field getter itself
+    /// is only an exact-key resource lookup and grants no focus or I/O authority.
     pub(crate) fn composer_shell_field(&self, target: DraftKey) -> Option<&TextField> {
-        if self.composer_current_target() != Some(target) {
-            return None;
-        }
-        Some(match target {
-            DraftKey::New => &self.areas.draft.composer,
-            DraftKey::Session { .. } => &self.areas.session.composer,
-        })
+        (self.composer_current_target() == Some(target))
+            .then(|| self.composer_field(target))
+            .flatten()
     }
 
+    fn composer_mode(&self, target: DraftKey) -> Option<Mode> {
+        match target {
+            DraftKey::New | DraftKey::Session { .. } => {
+                Some(self.areas.composer_shell.surface(target).mode())
+            }
+            DraftKey::Workspace {
+                node,
+                workspace,
+                draft,
+            } => self.workspace_draft_mode(
+                &vessel_app_view::layout::LayoutKey::Workspace { node, workspace },
+                draft,
+            ),
+        }
+    }
+
+    /// Rendering may read a retained background field. Its owner supplies
+    /// readonly state; every key, paste and fullscreen action admits separately.
     pub(crate) fn composer_surface(&self, target: DraftKey, cx: &App) -> Option<Surface> {
-        let field = self.composer_shell_field(target)?;
+        let field = self.composer_field(target)?;
         let mut surface = self.areas.composer_shell.surface(target);
+        surface.set_mode(self.composer_mode(target)?);
         let editable = field.composer_is_editable(cx)
             && (target != DraftKey::New || self.areas.draft.creation.flow.may_submit());
         surface.set_access(if editable {
@@ -70,7 +75,7 @@ impl Shell {
         target: DraftKey,
         touch: bool,
         window: &Window,
-    ) -> ComposerLayout {
+    ) -> Option<ComposerLayout> {
         let viewport = if touch {
             ComposerViewport::Compact
         } else {
@@ -80,14 +85,18 @@ impl Shell {
             SendKey::Enter => SendOn::Enter,
             SendKey::ModEnter => SendOn::ModEnter,
         };
-        ComposerLayout::inline(viewport, self.composer_font(target), send)
+        Some(ComposerLayout::inline(
+            viewport,
+            self.composer_font(target)?,
+            send,
+        ))
     }
 
-    pub(crate) fn composer_font(&self, target: DraftKey) -> ComposerFont {
-        match self.areas.composer_shell.surface(target).mode() {
+    pub(crate) fn composer_font(&self, target: DraftKey) -> Option<ComposerFont> {
+        self.composer_mode(target).map(|mode| match mode {
             Mode::Chat => ComposerFont::Chat,
             Mode::Terminal => ComposerFont::Terminal,
-        }
+        })
     }
 
     pub(crate) fn composer_expand(

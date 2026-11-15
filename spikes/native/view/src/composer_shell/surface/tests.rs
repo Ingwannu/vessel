@@ -100,3 +100,18 @@ fn send_exits_fullscreen_before_preparing_and_failure_unlocks_without_reexpandin
         assert_eq!(surface.mode(), Mode::Chat);
     }
 }
+
+#[test]
+fn projecting_the_owners_mode_preserves_retained_surface_state() {
+    let mut surface = Surface::new(Mode::Chat, Access::Editable, SubmitPolicy::PreserveAndLock);
+    surface.expand(Layout::Compact, RenderedLines::new(3));
+    surface.set_mode(Mode::Terminal);
+    assert_eq!(surface.mode(), Mode::Terminal);
+    assert_eq!(surface.extent(), Extent::Fullscreen);
+    assert!(!surface.autocomplete());
+    surface.set_submission(Submission::Preparing);
+    surface.set_mode(Mode::Chat);
+    assert_eq!(surface.access(), Access::ReadOnly);
+    assert_eq!(surface.extent(), Extent::Inline);
+    assert_eq!(surface.overlay(), Overlay::None);
+}

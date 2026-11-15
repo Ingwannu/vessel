@@ -34,9 +34,4 @@ impl ComposerShellArea {
     pub(super) fn surface_mut(&mut self, target: DraftKey) -> &mut Surface {
         self.surfaces.entry(target).or_default()
     }
-
-    /// Preserve the ordinary chat behavior until a host supplies another policy.
-    pub(crate) fn permits_menu(&self, target: DraftKey) -> bool {
-        self.surface(target).autocomplete()
-    }
 }

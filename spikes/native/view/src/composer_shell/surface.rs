@@ -129,6 +129,12 @@ impl Surface {
         self.mode
     }
 
+    /// Project the retained owner's mode without replacing its editor or state.
+    /// Admission and any audio lease transition remain with the host owner.
+    pub fn set_mode(&mut self, mode: Mode) {
+        self.mode = mode;
+    }
+
     /// The presentation is read through the controller, never mutated by a screen.
     #[must_use]
     pub const fn extent(self) -> Extent {

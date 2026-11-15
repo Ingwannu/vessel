@@ -1,4 +1,5 @@
-//! Existing composer input wrappers: menu/recall/attachment hook order stays shared.
+//! Existing field/layout/hooks are shared by exact draft keys on every surface.
+//! Current destination admits actions; rendering does not grant send authority.
 
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::field::composer_hooks::{KeyAnswer, hooked};
@@ -10,14 +11,11 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{PillParts, Tokens, pill_parts};
 use vessel_app_view::composer::drafts::DraftKey;
-use vessel_app_view::composer_shell::surface::{Extent, Layout, RenderedLines};
+use vessel_app_view::composer_shell::surface::{Access, Extent, Layout, Mode, RenderedLines};
 
 use super::Over;
 use crate::shell::Shell;
 
-/// The session composer's text with its keys offered to the menu first
-/// (`field::composer_hooks`); pasted images and files are attached
-/// (`files.rs`).
 pub(crate) fn text(
     shell: &Shell,
     tokens: &Tokens,
@@ -25,11 +23,9 @@ pub(crate) fn text(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    inline(shell, Over::Session, tokens, touch, window, cx)
+    legacy(shell, Over::Session, tokens, touch, window, cx)
 }
 
-/// The new chat's composer text, its keys offered to its `/` menu first
-/// (the draft's card draws it in place of the bare field).
 pub(crate) fn draft_text(
     shell: &Shell,
     tokens: &Tokens,
@@ -37,11 +33,40 @@ pub(crate) fn draft_text(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    inline(shell, Over::Draft, tokens, touch, window, cx)
+    legacy(shell, Over::Draft, tokens, touch, window, cx)
 }
 
-fn target(shell: &Shell, over: Over) -> Option<DraftKey> {
-    match over {
+/// W3 supplies the exact retained key; absent keys never select global New.
+/// Background fields remain readable, with editability supplied by their owner.
+pub(crate) fn workspace_text(
+    shell: &Shell,
+    target: DraftKey,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    if !matches!(target, DraftKey::Workspace { .. }) {
+        return None;
+    }
+    inline(
+        shell,
+        target,
+        tokens,
+        crate::areas::draft::compact(window),
+        window,
+        cx,
+    )
+}
+
+fn legacy(
+    shell: &Shell,
+    over: Over,
+    tokens: &Tokens,
+    touch: bool,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let target = match over {
         Over::Draft => Some(DraftKey::New),
         Over::Session => shell
             .areas
@@ -51,32 +76,31 @@ fn target(shell: &Shell, over: Over) -> Option<DraftKey> {
             .map(|open| DraftKey::Session {
                 session: open.session,
             }),
-    }
+    };
+    target
+        .and_then(|target| inline(shell, target, tokens, touch, window, cx))
+        .unwrap_or_else(|| div().into_any_element())
 }
 
 fn inline(
     shell: &Shell,
-    over: Over,
+    target: DraftKey,
     tokens: &Tokens,
     touch: bool,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
-) -> AnyElement {
-    let Some(target) = target(shell, over) else {
-        return div().into_any_element();
-    };
-    let Some(surface) = shell.composer_surface(target, cx) else {
-        return div().into_any_element();
-    };
-    // The dock never mounts the same Entity while the fullscreen host mounts it.
+) -> Option<AnyElement> {
+    let surface = shell.composer_surface(target, cx)?;
+    let field = shell.composer_field(target)?;
+    // Exactly one host mounts this retained Entity at a time.
     if surface.extent() == Extent::Fullscreen && touch {
-        return div().min_h(px(spacing::S8)).into_any_element();
+        return Some(div().min_h(px(spacing::S8)).into_any_element());
     }
-    let layout = shell.composer_inline_layout(target, touch, window);
-    let input = hooked_text(shell, over, layout, tokens, cx);
-    let lines = shell.slash_field(over).rendered_composer_rows(cx);
+    let layout = shell.composer_inline_layout(target, touch, window)?;
+    let input = hooked_text(shell, target, layout, tokens, cx)?;
     let can_expand = touch
-        && lines.is_some_and(|rows| {
+        && shell.composer_current_target() == Some(target)
+        && field.rendered_composer_rows(cx).is_some_and(|rows| {
             surface.can_expand(Layout::Compact, RenderedLines::new(rows.get()))
         });
     let expand = can_expand.then(|| {
@@ -102,11 +126,13 @@ fn inline(
             cx.listener(move |shell, _, window, cx| shell.composer_expand(target, window, cx)),
         )
     });
-    div()
-        .relative()
-        .child(input)
-        .children(expand)
-        .into_any_element()
+    Some(
+        div()
+            .relative()
+            .child(input)
+            .children(expand)
+            .into_any_element(),
+    )
 }
 
 impl Shell {
@@ -118,63 +144,71 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) -> Option<AnyElement> {
         let _field = self.composer_shell_field(target)?;
-        let over = match target {
-            DraftKey::New => Over::Draft,
-            DraftKey::Session { .. } => Over::Session,
-        };
-        Some(hooked_text(self, over, layout, tokens, cx))
+        hooked_text(self, target, layout, tokens, cx)
     }
 }
 
 fn hooked_text(
     shell: &Shell,
-    over: Over,
+    target: DraftKey,
     layout: ComposerLayout,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
-) -> AnyElement {
-    let field = shell.slash_field(over);
+) -> Option<AnyElement> {
+    let field = shell.composer_field(target)?;
     let element = field.composer_element(layout, tokens, cx);
     let weak = cx.entity().downgrade();
     let pasting = weak.clone();
-    let new_chat = over == Over::Draft;
-    let target = target(shell, over);
-    hooked(
+    Some(hooked(
         field,
         element,
         move |key, window: &mut Window, cx: &mut App| {
             weak.update(cx, |shell, cx| {
-                let Some(target) =
-                    target.filter(|target| shell.composer_shell_field(*target).is_some())
-                else {
+                let _field = match shell.composer_shell_field(target) {
+                    Some(field) => field,
+                    None => return KeyAnswer::Pass,
+                };
+                let Some(surface) = shell.composer_surface(target, cx) else {
                     return KeyAnswer::Pass;
                 };
-                if shell.areas.composer_shell.surface(target).extent() == Extent::Fullscreen {
+                if surface.extent() == Extent::Fullscreen {
                     if key == vessel_app_kit::field::composer_hooks::ComposerKey::Escape {
                         shell.composer_collapse(target, window, cx);
                         return KeyAnswer::Taken;
                     }
                     return KeyAnswer::Pass;
                 }
-                if shell.areas.composer_shell.permits_menu(target)
+                if surface.autocomplete()
                     && shell.composer_file_key(target, key, window, cx) == KeyAnswer::Taken
                 {
                     return KeyAnswer::Taken;
                 }
-                shell.slash_key(over, key, window, cx)
+                match Over::for_target(target) {
+                    Some(over) => shell.slash_key(over, key, window, cx),
+                    // Draft commands have no admitted configuration snapshot yet.
+                    // Their provider list cannot come from another draft/session.
+                    None => KeyAnswer::Pass,
+                }
             })
             .unwrap_or(KeyAnswer::Pass)
         },
-        // Pasted images and files are the composer's attachments.
         move |pasted, _window, cx: &mut App| {
             pasting
                 .update(cx, |shell, cx| {
-                    if target.is_none_or(|target| shell.composer_shell_field(target).is_none()) {
+                    if shell.composer_shell_field(target).is_none()
+                        || shell.composer_surface(target, cx).is_none_or(|surface| {
+                            surface.mode() != Mode::Chat || surface.access() != Access::Editable
+                        })
+                    {
                         return KeyAnswer::Pass;
                     }
-                    shell.composer_pasted(new_chat, pasted, cx)
+                    match target {
+                        DraftKey::New => shell.composer_pasted(true, pasted, cx),
+                        DraftKey::Session { .. } => shell.composer_pasted(false, pasted, cx),
+                        DraftKey::Workspace { .. } => shell.composer_pasted_at(target, pasted, cx),
+                    }
                 })
                 .unwrap_or(KeyAnswer::Pass)
         },
-    )
+    ))
 }
