@@ -61,12 +61,13 @@ fn valid(caller: &DeviceSelf) -> bool {
             .scopes
             .iter()
             .enumerate()
-            .all(|(index, scope)| !caller.scopes[..index].contains(scope))
+            .all(|(index, scope)| !caller.scopes.iter().take(index).any(|prior| prior == scope))
 }
 
 impl Page {
     /// Refreshing authority invalidates previous management intent immediately.
     /// A stale callback cannot clear a newer admission's surfaces.
+    #[must_use]
     pub fn checking_authority(&mut self, context: &ConnectionContext, ticket: Ticket) -> bool {
         if self.check_context(context).is_err() {
             return false;
@@ -77,6 +78,7 @@ impl Page {
     }
 
     /// A reply cannot grant permissions or a caller id to another admission.
+    #[must_use]
     pub fn authority_answer(
         &mut self,
         context: &ConnectionContext,

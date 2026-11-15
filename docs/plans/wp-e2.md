@@ -147,3 +147,14 @@ no screen or RPC wiring yet; therefore existing controls do not yet consume
 this grant and no effective-authority protection is claimed from this step.
 No product output contains the synthetic invitation. Narrow View checks are
 next on the remote builder; final feature review/gate remains pending.
+
+
+The first remote attempt at69d45683 was interrupted while queued by the
+coordinator's build-VM restart (signal143 at10:35:42); it compiled nothing.
+After the coordinator's authorized one-time replacement and the gated2e95b7d3
+merge8fb011c88, exact8fb View Clippy found a panicking-slice lint in the
+duplicate-scope check. No tests ran and that result is red. The check now
+uses only bounded iterators; every original assertion and the five-scope
+contract bound remains unchanged. New authority-read result booleans are
+must-use. The next narrow batch proves only the pure View step, before
+installing the separately prepared RPC/screen wiring.
