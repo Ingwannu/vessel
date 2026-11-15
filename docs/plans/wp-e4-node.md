@@ -36,7 +36,7 @@ Existing assets and reuse decision:
 
 | Node responsibility | Implemented behavior and selected evidence | Remaining boundary |
 |---|---|---|
-| Safe daemon report | Real bounded collector, canonical pending request, typed client and CLI; real-source and authority fixtures passed | Whole package gate and protocol assignment |
+| Safe daemon report | Real bounded collector, canonical pending request, typed client and CLI; real-source and authority fixtures passed | Final review and protocol assignment |
 | Identity, platform and uptime | Startup clock captured before I/O; lifecycle/private-text canaries and actual node identities tested | Successful assigned wire request after integration |
 | Store/schema and session counts | Actual guarded SQLite aggregate reader and runtime projection; source/timeout/cancellation cases tested | Not a store-integrity scan or atomic whole-machine snapshot |
 | Agents and cached readiness | Immutable current-profile selection, safe owner metadata, no refresh; cache projection and no-execution traps tested | Provider diagnostics is a separate A9 package |
@@ -45,7 +45,7 @@ Existing assets and reuse decision:
 | Broader system/tool metrics | CPU/heap allocation, disk capacity, workspace/socket counts, latency and tool probes are absent | Explicit difference from Paseo; no full diagnostic parity claim |
 | Recent failure summary | Bounded code/time journal; actual guard regression observes scope and collector refusals newest first without loss | Not a raw daemon log viewer |
 | Shareable text/JSON | Root and complete export budgets; safe typed errors and CLI debug-output privacy fixtures | Assigned-protocol successful CLI report after integration |
-| Bundled web UI | Existing node-hosted web implementation is preserved | Whole package regression gate; no new Diagnostics screen here |
+| Bundled web UI | Existing node-hosted web implementation and package regression gate pass | No new Diagnostics screen here |
 
 The canonical pending method, collector and `NodeClient::diagnostics()` are
 product code. The feature number remains unassigned, so the current real wire
@@ -196,3 +196,26 @@ window. The latest shared node head is consumed with its protocol, schema and
 existing cases unchanged. These results do not replace the full package gate.
 The CLI distinguishes missing Read scope from missing authentication using
 closed messages, while keeping private connection/source chains internal.
+
+## Package gate outcome
+
+The frozen product source `95e4505f` passed the complete root package gate:
+all 18 executed steps returned zero, including both testkit prebuilds and
+normal/TypeScript/forge strict Clippy. Rust has 2,422 passed, zero failed and
+12 ignored across 116 summaries; TypeScript generation/freshness has four
+passed and no generated diff. Web lint/types/build, 464 units and 68 E2E cases
+passed; the feature-specific forge fixture has four passed. All 22 workspace
+crates were actually compiled in the Rust test log.
+
+The selected 2,000 input hashes match both the frozen Git source and the
+post-run worktree. The generated file retains eight canonical whitespace
+warnings in the complete diff check; authored paths excluding that file pass.
+It is not manually reformatted. Earlier failed/interrupted/narrow runs remain
+separate evidence and are not relabelled as this whole execution.
+
+This outcome establishes the gated node package on Linux. Final implementation
+review and integration are still separate. The pending number stays None;
+successful assigned-wire, native consumer, other-OS and deployment behavior
+are not claimed. The integrator assigns the version and validates the combined
+line, including supported/older-wire cases after assignment. No live service
+or permissions were changed.

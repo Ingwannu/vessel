@@ -738,3 +738,18 @@ red (Cargo 101, 58 seconds): redundant args qualification and a redundant
 process-id getter closure. No other owned-library diagnostic is reported in
 that run. Both CLI warnings are corrected next; this is not yet an aggregate
 strict-Clippy pass or any execution/whole-package evidence.
+
+## E4 package checkpoint
+
+The complete node package is gated at `95e4505f`, on the designated node head
+with protocol 23, minimum 2 and schema 18 unchanged. The full root run returned
+zero for all 18 steps: Rust 2,422/0/12, TypeScript four/zero with no stale diff,
+web 464 units and 68 E2E passes, forge fixture four/zero. The final package plan
+records scope and source evidence. The result record adds only documentation;
+no unchanged-tree gate is rerun.
+
+Implementation review, protocol assignment and successful assigned-wire
+integration remain distinct from this gate. The native bounded node.info
+consumer has separate evidence and does not adopt the new full producer yet.
+No full Paseo diagnostic parity, provider/raw-log, other-OS or live deployment
+claim is made.
