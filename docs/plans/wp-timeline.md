@@ -2,7 +2,7 @@
 
 Status: A7 native rendering is being filled in on package base4 `3cd0d3fc`;
 canonical protocol and resident-context consumption remain pending their owners'
-verified hashes. A8 approvals/questions belong to W4. Updated2026-11-15T08:45Z.
+verified hashes. A8 approvals/questions belong to W4. Updated2026-11-15T08:43Z.
 
 ## Reference and asset check
 
@@ -136,8 +136,12 @@ precise context-boundary and distinct-file summary tests were not in that run);
 kit asset/raster/notice tests3passed. Compact/bookmark adapter at `f8aaaa1d`
 passed strict all-target native app/view/kit Clippy in remote run
 `wp-timeline-narrow-20261115T081535Z-f8aaaa1d`; this excludes subsequent base
-merges and Chat controls. Those controls at `a6a6dfe48` have a queued narrow run
-`wp-timeline-narrow-20261115T084001Z-a6a6dfe4`. No whole package gate, captures
+merges and Chat controls. The controls at `a6a6dfe48` passed fonts but failed
+strict Clippy on a test fixture's get/unwrap idiom in run
+`wp-timeline-narrow-20261115T084001Z-a6a6dfe4`; the fixture is corrected without
+changing product behavior. L separately passed the exact Chat EN/KO wording and
+data shape at `a6a6dfe48` (`/tmp/work/m12-i18n/ko-review-a7-a6a6dfe48/result.json`);
+this is not timeline behavior or package approval. No whole package gate, captures
 or V4 review yet. Real providers and new
 wire activation remain unverified; no real agent was run.
 
