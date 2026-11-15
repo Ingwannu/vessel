@@ -223,3 +223,29 @@ admissions must match it and reject old Ready/plans/routes instead of resuming
 implicitly. W9's actual FD PhysicalRoot remains a separate physical authority.
 No new generation type, workspace ID, local counter or stronger fake-store claim
 is implemented here; the production adapter waits for the reviewed producer.
+
+## Strict terminal drain: actual completion versus logical status
+
+[Decision Log]
+- Purpose and intent: a workspace member stop must not authorize backing cleanup
+  merely because a close RPC returned or a terminal status became ended.
+- Existing assets and constraints: TerminalHandle::ended observes metadata.
+  Shell output drain has a deadline, session/group sweeps log failures, script
+  pumps are aborted without joining, and a command-file removal follows final
+  status publication. ProcessLifetime revocation is explicitly not cleanup proof.
+- Alternatives: reuse legacy close/ended, infer exit from a PID, or add a second
+  terminal registry. Each loses actual runner postconditions or ownership.
+- Choice: extend the existing terminal runner's shared state with a single typed
+  completion observation, issued only after its owned cleanup finishes. Keep
+  process exit, descendant scope, output drain and auxiliary I/O facts distinct.
+  Unsupported or unobserved facts stay Unknown; timeout or task loss cannot mint
+  a clean receipt. Strict node membership drain retains the original handle and
+  reports incomplete instead of forgetting it on timeout.
+- Why: the actual runner owns those resources and can preserve a reason that
+  legacy status currently discards. No client, NodeId cache, process snapshot or
+  file path can manufacture that observation.
+- Advantages, costs and effects: legacy close/status behavior stays compatible.
+  Physical deletion remains unavailable whenever any required cleanup fact is
+  unproved. In particular, a signal sent to descendants or a revoked process
+  observation alone cannot certify their exit. This is a planned extension;
+  no new completion API or deletion authority is implemented by this paragraph.
