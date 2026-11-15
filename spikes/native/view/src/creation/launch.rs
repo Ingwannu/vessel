@@ -64,6 +64,9 @@ impl fmt::Debug for LaunchPlan {
 #[derive(Clone, PartialEq, Eq)]
 pub struct ShellInput(Prompt);
 impl ShellInput {
+    /// Reserve the final CR inside the existing terminal input call's byte cap.
+    pub const MAX_BYTES: usize = vessel_proto::terminals::SendTerminal::MAX_BYTES.saturating_sub(1);
+
     /// The one CR completes the person's trimmed command at their shell prompt.
     #[must_use]
     pub fn terminal_data(&self) -> String {
@@ -122,6 +125,13 @@ impl Launch {
                     return Err(LaunchProblem::ChatPayload);
                 }
                 let trimmed = text.trim();
+                if trimmed.len() > ShellInput::MAX_BYTES {
+                    return Err(ProfileError::TooLong {
+                        kind: vessel_proto::terminal_profiles::TextKind::Prompt,
+                        max: ShellInput::MAX_BYTES,
+                    }
+                    .into());
+                }
                 let input = (!trimmed.is_empty())
                     .then(|| Prompt::parse(trimmed).map(ShellInput))
                     .transpose()?;

@@ -46,6 +46,20 @@ pub enum Failure {
     OutcomeUnknown,
 }
 
+impl Failure {
+    /// The legacy placement walk may already have made a worktree or run setup
+    /// before a later RPC fails. A node refusal alone cannot prove no effect.
+    #[must_use]
+    pub const fn placement(problem: &crate::workspace::problem::Problem) -> Self {
+        use crate::workspace::problem::Problem;
+        match problem {
+            Problem::Older => Self::Unsupported,
+            Problem::Unsent => Self::QueueFull,
+            Problem::Node { .. } | Problem::Gone(_) => Self::OutcomeUnknown,
+        }
+    }
+}
+
 /// One active draft submission, retained independently of its rendered route.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum Flow {
