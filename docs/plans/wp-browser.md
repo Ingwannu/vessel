@@ -1016,3 +1016,12 @@ an uncertain release stops the profile. This is an explicit trusted-driver
 obligation, not behavior supplied by the generic mutex or its fake fixture.
 Actual held-key/pointer multi-target/connection/focus tests and the W22 owner
 transaction remain required before raw forwarding or an engine can be enabled.
+
+
+A fresh reference result-schema/output comparison is retained in
+[browser-result-parity.md](browser-result-parity.md). It identifies the current
+foundation's missing per-operation facts, dialog envelope, log timing/source
+fields and MCP summary/projection as pre-qualification debt. The catalogue/input
+work must not be relabelled complete22-tool behavior. No new DTO, method, number,
+renderer or engine is enabled by that checklist; missing facts cannot be filled
+with request echoes or joined from a later document.
