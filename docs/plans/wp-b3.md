@@ -707,3 +707,13 @@ production writer/start gate and startup identity index remain active. Tests cov
 two restore pins on one physical root, wrong operation, stale token, shared root
 blocking and continued physical ownership after resolution. They are unrun, and
 provide no actual SQL/whole-filesystem recovery proof by themselves.
+
+
+### VM lint result 9fe6c1d1
+
+wp-checkpoints-node-narrow-20261115T122206Z-9fe6c1d1 finished rc1/cargo101
+at12:57 UTC after163 seconds. Store lib stopped on one similar_names lint in
+capture escrow settlement (charged/changed); the SQL affected-row count is now
+updated. The run did not complete the later dependency graph, current worker API
+or recovery interfaces, and no runtime pass follows from it. Exact logs remain
+in production-store-clippy. No lint allowance is added.

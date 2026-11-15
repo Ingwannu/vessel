@@ -71,8 +71,8 @@ pub(crate) fn capture_settled(
         return Err(CheckpointError::StorageFull.into());
     }
     let charged = i64::try_from(charged).map_err(|_large| CheckpointError::StorageFull)?;
-    let changed = connection.execute("UPDATE checkpoint_captures SET reserved_bytes=?1 WHERE id=?2 AND generation=?3 AND boundary=?4 AND state=?5 AND reserved_bytes=?6",params![charged,key.capture.to_string(),generation,boundary,state,i64::try_from(reserved).map_err(|_large|CheckpointError::StorageFull)?])?;
-    if changed != 1 {
+    let updated = connection.execute("UPDATE checkpoint_captures SET reserved_bytes=?1 WHERE id=?2 AND generation=?3 AND boundary=?4 AND state=?5 AND reserved_bytes=?6",params![charged,key.capture.to_string(),generation,boundary,state,i64::try_from(reserved).map_err(|_large|CheckpointError::StorageFull)?])?;
+    if updated != 1 {
         return Err(CheckpointError::StaleCapture.into());
     }
     Ok(())
