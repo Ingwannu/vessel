@@ -23,7 +23,7 @@ pub(super) enum Policy {
 
 pub(super) fn run(
     runtime: tokio::runtime::Runtime,
-    policy: std::sync::mpsc::Receiver<Policy>,
+    policy: &std::sync::mpsc::Receiver<Policy>,
     commands: mpsc::Sender<actor::Command>,
     state: watch::Receiver<Snapshot>,
 ) {
@@ -45,7 +45,7 @@ async fn preserve(commands: mpsc::Sender<actor::Command>, mut state: watch::Rece
             Ok(Ok(())) => {}
             Ok(Err(error)) => tracing::warn!(%error, "OS exit release was not acknowledged"),
             Err(_closed) => {
-                tracing::warn!("OS exit controller stopped before release acknowledgement")
+                tracing::warn!("OS exit controller stopped before release acknowledgement");
             }
         }
     }

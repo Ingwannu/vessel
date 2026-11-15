@@ -66,7 +66,7 @@ impl Fixture {
                     request_notice.send(reply).unwrap();
                 }
             }));
-            run(runtime, admission, commands, state);
+            run(runtime, &admission, commands, state);
             done.send(()).unwrap();
         });
         Self {
