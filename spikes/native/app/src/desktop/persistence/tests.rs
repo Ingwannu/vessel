@@ -64,17 +64,17 @@ fn app_fence_rejects_late_geometry_and_unreconciled_preference_edits(cx: &mut Te
         assert!(matches!(
             flush_current(&current, cx),
             StateReadiness::LaunchOnly
-        ))
+        ));
     });
     assert_eq!(store.load_window().unwrap(), Some(moved));
     shell.update_in(cx, |shell, window, cx| {
-        shell.prefer(&PreferenceChange::Theme(Theme::Light), window, cx)
+        shell.prefer(&PreferenceChange::Theme(Theme::Light), window, cx);
     });
     cx.update(|_, cx| {
         assert!(matches!(
             flush_current(&current, cx),
             StateReadiness::Changed
-        ))
+        ));
     });
     let flushing = cx.update(|_, cx| flush_state(cx));
     let written = super::super::testing::wait(flushing).unwrap();
@@ -82,14 +82,14 @@ fn app_fence_rejects_late_geometry_and_unreconciled_preference_edits(cx: &mut Te
         assert!(matches!(
             flush_current(&written, cx),
             StateReadiness::Changed
-        ))
+        ));
     });
     cx.run_until_parked();
     cx.update(|_, cx| {
         assert!(matches!(
             flush_current(&written, cx),
             StateReadiness::LaunchOnly
-        ))
+        ));
     });
 }
 
