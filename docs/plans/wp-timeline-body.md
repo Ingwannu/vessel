@@ -69,3 +69,11 @@ parent declaration; static manifest intake found and corrected it before any
 isolated compile was submitted. SPDX Apache-2.0 is verified from the locked
 registry package. This reuses the existing text-editing category, with no new
 wording table or dependency version. Exact standalone native checks remain owed.
+
+The single kernel's computed diff now retains only its truncation bit beside the
+existing versioned output cache, instead of recalculating a Myers script on every
+draw for that caption. No public Kit API or second content cache is introduced.
+The prior kernel matched A7 byte-for-byte before this amendment; the updated
+kernel and new headless warm-render/cut-retention fixture remain identical in the
+two preparation trees. Their new execution is owed and is not inferred from the
+earlier322 pass. The final handoff still requires announced base9 and exact checks.

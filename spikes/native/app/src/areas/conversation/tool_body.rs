@@ -9,7 +9,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Start, Type, TypeExt as _, lines_box, output_box, skeleton, version_of};
 use vessel_app_view::timeline::{
-    MAX_LINES, Side, ToolSection, ToolSectionLabel, diff_lines, json_text, tool_sections,
+    DiffLine, MAX_LINES, Side, ToolSection, ToolSectionLabel, diff_lines, json_text, tool_sections,
     unified_lines, word_highlights,
 };
 use vessel_proto::timeline::{DetailOffset, ToolCallDetail, ToolFailure};
@@ -308,11 +308,49 @@ pub(super) fn computed_diff(
     // either splits the diff again (their lengths alone kept a first diff
     // on screen after a second of the same lengths).
     let version = version_of(old.unwrap_or("")).rotate_left(1) ^ version_of(new);
+    let (lines, cut) = diff_output(
+        id,
+        version,
+        || diff_lines(old, new),
+        paint.tokens,
+        window,
+        cx,
+    );
+    div()
+        .flex()
+        .flex_col()
+        .gap(px(spacing::S1))
+        .child(lines)
+        .when(cut, |block| {
+            block.child(
+                div()
+                    .type_(Type::Meta)
+                    .text_color(paint.secondary)
+                    .child(paint.words.diff_cut(MAX_LINES)),
+            )
+        })
+}
+
+/// Metadata follows the same versioned output admission as the actual diff.
+/// Recomputing `Myers` just to show a truncation caption would defeat that cache.
+fn diff_output<'a>(
+    id: ElementId,
+    version: u64,
+    make: impl FnOnce() -> (Vec<DiffLine<'a>>, bool),
+    tokens: &vessel_app_kit::Tokens,
+    window: &mut Window,
+    cx: &mut App,
+) -> (AnyElement, bool) {
+    let metadata = window.use_keyed_state(child_id(&id, "diff-cut"), cx, |_, _| {
+        std::rc::Rc::new(std::cell::Cell::new(false))
+    });
+    let cut = std::rc::Rc::clone(metadata.read(cx));
     let lines = annotated_lines_box(
         id,
         version,
         || {
-            let (lines, _) = diff_lines(old, new);
+            let (lines, truncated) = make();
+            cut.set(truncated);
             let highlights = word_highlights(&lines);
             let emphasis = lines
                 .iter()
@@ -339,27 +377,15 @@ pub(super) fn computed_diff(
             }
         },
         Start::Top,
-        paint.tokens,
+        tokens,
         window,
         cx,
     );
-    // Whether it was cut, asked again each frame: the lines borrow the
-    // texts and cost no copy, unlike the box's own.
-    let (_, cut) = diff_lines(old, new);
-    div()
-        .flex()
-        .flex_col()
-        .gap(px(spacing::S1))
-        .child(lines)
-        .when(cut, |block| {
-            block.child(
-                div()
-                    .type_(Type::Meta)
-                    .text_color(paint.secondary)
-                    .child(paint.words.diff_cut(MAX_LINES)),
-            )
-        })
+    (lines, cut.get())
 }
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod diff_tests;
