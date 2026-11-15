@@ -239,7 +239,7 @@ fn agent_events_of_ten_reach_older_clients_too() {
     let plain = agent(AgentEvent::TurnStarted {
         content: vec![text("look")],
     });
-    assert_eq!(plain.since(), ProtocolVersion::new(2));
+    assert_eq!(plain.required_protocol(), Some(ProtocolVersion::new(2)));
     assert_eq!(plain.for_protocol(V9), None);
 }
 
