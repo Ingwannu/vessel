@@ -5,8 +5,7 @@ use crate::shell::Shell;
 use std::path::PathBuf;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    Context, Div, InteractiveElement as _, ParentElement as _, StatefulInteractiveElement as _,
-    Styled as _, div, px,
+    Context, Div, ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button_with_kind};
 use vessel_app_link::workspace::{Ask, ProjectAsk, ProjectChange, ProjectFailure};
@@ -30,13 +29,13 @@ impl Shell {
     pub(super) fn project_changed(
         &mut self,
         machine: &str,
-        key: ProjectActionKey,
+        key: &ProjectActionKey,
         result: Result<ProjectChanged, ProjectFailure>,
     ) {
         if machine != key.host().as_str() {
             return;
         }
-        let current = self.areas.workspace.page.actions.settle(&key) == ProjectReply::Current;
+        let current = self.areas.workspace.page.actions.settle(key) == ProjectReply::Current;
         if !current {
             // A book alias may now name a different node: never hydrate from an old reply.
             if self.areas.workspace.projects.contains_key(machine) {
@@ -62,7 +61,7 @@ impl Shell {
                     .page
                     .removing
                     .as_ref()
-                    .is_some_and(|remove| remove.pending.as_ref() == Some(&key))
+                    .is_some_and(|remove| remove.pending.as_ref() == Some(key))
                 {
                     self.areas.workspace.page.removing = None;
                 }
@@ -73,7 +72,7 @@ impl Shell {
                     self.areas.workspace.page.error = Some(said);
                 }
                 if let Some(remove) = self.areas.workspace.page.removing.as_mut()
-                    && remove.pending.as_ref() == Some(&key)
+                    && remove.pending.as_ref() == Some(key)
                 {
                     remove.pending = None;
                     remove.error = Some(failure);
@@ -170,7 +169,7 @@ impl Shell {
             ProjectActionError::Busy => {}
             ProjectActionError::Exhausted => {
                 self.areas.workspace.page.error =
-                    Some(self.words.projects().identifiers_exhausted().to_owned())
+                    Some(self.words.projects().identifiers_exhausted().to_owned());
             }
         }
     }

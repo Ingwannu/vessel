@@ -61,7 +61,7 @@ fn a_cancelled_reply_cannot_hydrate_a_rebound_host_or_settle_the_new_form(
                 created_at: "1970-01-01T00:00:00Z".parse().unwrap(),
                 revision: 0,
             };
-            shell.project_changed("laptop", old, Ok(ProjectChanged::Registered(project)));
+            shell.project_changed("laptop", &old, Ok(ProjectChanged::Registered(project)));
             assert_eq!(shell.areas.workspace.page.actions.pending(), Some(&new));
             assert!(
                 shell.areas.workspace.projects["laptop"]

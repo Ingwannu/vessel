@@ -55,7 +55,7 @@ impl Page {
             adding: None,
             path: super::field(window, cx),
             url: super::field(window, cx),
-            actions: Default::default(),
+            actions: vessel_app_view::workspace::projects::actions::ProjectActions::default(),
             form_host: None,
             removing: None,
             error: None,
