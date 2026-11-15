@@ -132,7 +132,7 @@ implementation is parked separately until this return is addressed.
   Its later barrier also proves the peer survived the intentional wait.
 
 The correction's local narrow Clippy passed, and all nine removal tests
-passed, including the paused-time case. Both changed native crates were
+passed, including the paused-time case. The link and its view dependency were
 actually compiled. A comparison retained all 34 original assertions in
 order after removing only timeout wrappers; the product source and explicit
 virtual advance were unchanged. Formatting and compile-free quality checks
@@ -143,3 +143,22 @@ added rationale comment omitted code markup around the root helper's name.
 Fonts, formatting and quality passed; build and tests did not run. That
 execution remains failed. The markup is corrected without changing a test
 or product instruction, followed by a new exact-source A13 run.
+
+## Corrected exact-source result
+
+The correction `6fe855ab` plus markup-only follow-up `aded954c` passed A13:
+`agents-20261115T041734Z-aded954c`, all six native steps zero and no skips.
+Raw totals are 1061 passed, zero failed and one existing ignored private
+capture: 1059 runtime tests plus two document tests. All nine removal cases
+passed, including the explicit paused deadline advance and post-call read
+barrier. The native test step actually compiled the changed link crate
+(and kit/app); its view dependency was already cached in this run.
+Queue wait was 1714 seconds, execution 42 seconds, load 13.13 to 11.72.
+The earlier markup failure remains failed, with no build/test result.
+
+The five combined changed paths were checked against their exact Git blobs.
+Only tests and notes changed from the prior implementation. The immutable
+packet was sent to V1 first; review is pending. No new screen, real node
+policy or persistent removal was exercised. No new capture family exists
+for this test correction, and the older forty-image visual disposition is
+unchanged. There is no unchanged-source gate rerun for these result notes.

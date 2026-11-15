@@ -2,22 +2,25 @@
 
 ## Latest checkpoint
 
-V1 returned `7a2c7eb2` for test liveness: finite named phases and an outer
-safety net are required around every new await that can hang. No additional
-product blocker was found. The test-only correction retains the original
-assertions, event ordering, read barrier and explicit product-time advance;
-the first correction commit `6fe855ab` passed local narrow checks but its
-A13 gate stopped at Clippy on documentation markup added afterward. The
-markup-only follow-up requires a new exact-source A13 run and review. The earlier green run is not a
-source pass for the correction.
+V1 returned `7a2c7eb2` for test liveness only. The test-only correction
+`6fe855ab` retains all original assertions, ordering, product deadline and
+explicit virtual-time advance, with finite named phases and abort cleanup.
+Its first A13 run stopped at Clippy on rationale-comment markup. Follow-up
+`aded954c` fixes that markup and passed exact-source A13
+`agents-20261115T041734Z-aded954c`: six steps zero/no skips, 1059 runtime
+plus two document passes, zero failures, one existing ignored private
+capture. V1 received the source/gate packet first; review remains pending.
+The old failed execution remains failed. Result notes do not rerun a gate.
 
 Coordinator order is Models, then registry/Add with the one shared title
 comparator; Remove waits for the reviewed common trigger. Models scope was
-documented in `2b8e01d3`. Its uncompiled working changes are parked outside
-the repository as a patch and hash manifest, to fix the returned slice
-first. The N3 handoff for named launch-profile CRUD was sent once with
+documented in `2b8e01d3`. Its uncompiled working changes remain outside
+the repository as a patch and prepared-source manifest; they are not a
+registered screen or a compile result. The N3 handoff for named launch-profile CRUD was sent once with
 exact references/fields/semantics; build nothing on it before its number is
-assigned. The Models loader's integrated handoff is also pending.
+assigned. The minimal shared loader producer `434933b3` and its results-only
+follow-up `533b21ff` now have V1 source/A13 clearance for provisional use;
+first Models runtime evidence remains separate.
 
 `69cef4f1` records the fresh 40-image packet. V1 opened every final image,
 matched all image hashes and passed the submitted normal/list/detail and
@@ -41,8 +44,17 @@ guard without starting a node. S2 separately proved its full fleet with
 both the shared and its own root binaries. Those are S2's runs; G3 did not
 repeat the full fleet or relabel the older failed capture setup as green.
 
-Next: address V1's review, then consume only G2's reviewed integrated trigger
-and leading16 seam for the Remove UI. Registry/Add rules and screens still
+Next after this return: integrate the assigned lead line (`d30804b2` or
+later), preserving the lead's shared code and lower size record. The
+coordinator delegated a behavior-neutral move of the existing agent-option
+reader into `link/src/options.rs`, with its actual root actor caller and
+`pub(super)` visibility. Keep this separate from the other control track's
+error-type move. The move gets source-only review; its immediate module
+registration/size-record commit is the head gated by A13. The ratchet
+rejects a record above the measured size too, so do not claim the
+intermediate move has an isolated quality/compile pass. Then Models, then
+registry/Add. Remove still waits for the reviewed shared trigger and
+leading16 seam; do not duplicate them. Registry/Add rules and screens still
 remain, as do the shared alphabetical comparator and Models screen. Named
 launch-profile CRUD needs the separately reported node contract. No local
 capture/build/fleet/display processes remain running.
