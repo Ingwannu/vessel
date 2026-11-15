@@ -173,7 +173,7 @@ fn zone_and_edit_failures_speak_the_persons_language_without_log_copy() {
         (
             EditError::Unknown,
             "This machine uses a newer format. Update the app to view it.",
-            "기계에서 더 새로운 형식을 사용합니다. 앱을 업데이트하면 볼 수 있습니다.",
+            "머신에서 더 새로운 형식을 사용합니다. 앱을 업데이트하면 볼 수 있습니다.",
         ),
         (
             EditError::Ended,

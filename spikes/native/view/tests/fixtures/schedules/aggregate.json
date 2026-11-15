@@ -1,0 +1,7 @@
+[
+  {"id":"all-known-hosts-connecting","hosts":["connecting","connecting"],"body":"loading"},
+  {"id":"reachable-hosts-all-empty","hosts":["empty","empty"],"body":"empty"},
+  {"id":"empty-host-and-settling-host","hosts":["empty","connecting"],"body":"loading"},
+  {"id":"data-from-reachable-host-while-another-connects","hosts":["content","connecting"],"body":"content"},
+  {"id":"failed-loading-routes-to-retry","hosts":["failed","connecting"],"body":"failed"}
+]

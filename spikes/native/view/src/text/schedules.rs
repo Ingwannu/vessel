@@ -188,7 +188,7 @@ const KO: ScheduleWords = ScheduleWords {
     ended: "종료됨",
     unknown_filter: "기타 상태",
     unknown_badge: "알 수 없음",
-    newer_machine: "기계에서 더 새로운 형식을 사용합니다. 앱을 업데이트하면 볼 수 있습니다.",
+    newer_machine: "머신에서 더 새로운 형식을 사용합니다. 앱을 업데이트하면 볼 수 있습니다.",
     paused: "일시 정지됨",
     finished: "완료됨",
     expired: "기간 만료됨",
@@ -214,5 +214,5 @@ const KO: ScheduleWords = ScheduleWords {
     interrupted: "중단됨",
     edit_ended: "끝난 예약은 수정할 수 없습니다",
     structured_only: "예약은 실행할 때마다 새 대화를 시작합니다. 이전 대화를 이어서 시작하거나 터미널 세션을 열 수는 없습니다.",
-    read_only: "이 기계의 예약은 이 기기에서 조회만 할 수 있습니다.",
+    read_only: "이 머신의 예약은 이 기기에서 조회만 할 수 있습니다.",
 };

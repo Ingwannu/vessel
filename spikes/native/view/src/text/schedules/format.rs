@@ -26,35 +26,21 @@ impl Lang {
     /// Menu labels use the same product meaning as the editor's title.
     #[must_use]
     pub fn schedule_action(self, product: Product, action: Action) -> String {
-        if product == Product::Schedule {
-            return self.schedules().action(action).to_owned();
-        }
-        if action == Action::RunNow {
-            return self.schedules().run_now.to_owned();
-        }
-        let noun = match (self, product) {
-            (Self::En, Product::RecurringPrompt) => "recurring prompt",
-            (Self::Ko, Product::RecurringPrompt) => "반복 프롬프트",
-            (Self::En, Product::Unknown) => "automation",
-            (Self::Ko, Product::Unknown) => "자동 실행",
-            (Self::En | Self::Ko, Product::Schedule) => {
-                return self.schedules().action(action).to_owned();
-            }
+        let (en, ko) = match action {
+            Action::RunNow => return self.schedules().run_now.to_owned(),
+            Action::Edit => ("Edit", "수정"),
+            Action::Pause => ("Pause", "일시 정지"),
+            Action::Resume => ("Resume", "재개"),
+            Action::Delete => ("Delete", "삭제"),
         };
-        let verb = match (self, action) {
-            (Self::En, Action::Edit) => "Edit",
-            (Self::En, Action::Pause) => "Pause",
-            (Self::En, Action::Resume) => "Resume",
-            (Self::En, Action::Delete) => "Delete",
-            (Self::Ko, Action::Edit) => "수정",
-            (Self::Ko, Action::Pause) => "일시 정지",
-            (Self::Ko, Action::Resume) => "재개",
-            (Self::Ko, Action::Delete) => "삭제",
-            (Self::En | Self::Ko, Action::RunNow) => return self.schedules().run_now.to_owned(),
+        let (noun_en, noun_ko) = match product {
+            Product::Schedule => return self.schedules().action(action).to_owned(),
+            Product::RecurringPrompt => ("recurring prompt", "반복 프롬프트"),
+            Product::Unknown => ("automation", "자동 실행"),
         };
         match self {
-            Self::En => format!("{verb} {noun}"),
-            Self::Ko => format!("{noun} {verb}"),
+            Self::En => format!("{en} {noun_en}"),
+            Self::Ko => format!("{noun_ko} {ko}"),
         }
     }
     /// Human cadence copy; the typed expression is only a fallback for shapes

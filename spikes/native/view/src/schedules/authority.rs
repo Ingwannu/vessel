@@ -74,7 +74,7 @@ mod tests {
         );
         assert_eq!(
             authority.explanation(Lang::Ko),
-            Some("이 기계의 예약은 이 기기에서 조회만 할 수 있습니다.")
+            Some("이 머신의 예약은 이 기기에서 조회만 할 수 있습니다.")
         );
         assert!(actions(&schedule, &Authority::default()).contains(&Action::RunNow));
         // A refusal for this row cannot suppress another row's unknown

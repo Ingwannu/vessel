@@ -190,3 +190,22 @@ fn schedule_and_unknown_target_action_words_stay_distinct_from_recurring_prompts
         assert_eq!(Lang::Ko.schedule_action(Product::Unknown, action), ko);
     }
 }
+
+#[test]
+fn interval_unit_choices_only_expose_seconds_to_preserve_an_opened_value() {
+    use crate::schedules::cadence::IntervalUnit::{self, Days, Hours, Minutes, Seconds};
+    let ordinary = &[Minutes, Hours, Days];
+    assert_eq!(IntervalUnit::choices(None), ordinary);
+    for value in [60, 120, 7200, 86400] {
+        assert_eq!(
+            IntervalUnit::choices(Some(value.try_into().unwrap())),
+            ordinary
+        );
+    }
+    for value in [90, 61, 3601] {
+        assert_eq!(
+            IntervalUnit::choices(Some(value.try_into().unwrap())),
+            &[Seconds, Minutes, Hours, Days]
+        );
+    }
+}

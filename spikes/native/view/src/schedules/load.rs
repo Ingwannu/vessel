@@ -1,0 +1,117 @@
+//! Correlation and typed failures for schedule calls. Identities never wrap;
+//! replies from an earlier visit cannot settle a newer read or mutation.
+
+use std::sync::Arc;
+use vessel_proto::WireError;
+
+/// Concurrent Automation operations across the aggregate page and its link.
+pub const MAX_IN_FLIGHT: usize = 4;
+
+/// A machine's validated book key, separate from its display/host name.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct MachineKey(Arc<str>);
+
+impl MachineKey {
+    /// Parse once at the fleet boundary. The view cannot depend on the client's
+    /// book module, so reuse its existing view-side name contract.
+    #[must_use]
+    pub fn of(name: &str) -> Option<Self> {
+        crate::machines::name_problem(name, &[], None)
+            .is_none()
+            .then(|| Self(Arc::from(name)))
+    }
+
+    /// The key handed back to the link's book lookup.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+/// One local request identity, with no meaning on the node's wire.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Ticket(u64);
+
+/// Monotonic identities issued by one screen model.
+#[derive(Debug, Default)]
+pub struct Tickets(u64);
+
+impl Tickets {
+    /// Refuse a request on exhaustion rather than reusing a delayed identity.
+    pub fn issue(&mut self) -> Option<Ticket> {
+        self.0 = self.0.checked_add(1)?;
+        Some(Ticket(self.0))
+    }
+}
+
+/// A failure the pure view can interpret; link errors retain their full source.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Failure {
+    /// Actual node refusal, with its typed code and original diagnostic data.
+    Node(WireError),
+    /// Automation methods are absent from this node's protocol.
+    Older,
+    /// Machine is not connected.
+    Offline,
+    /// Bounded request pool is full.
+    Busy,
+    /// A typed response named a resource other than the requested one.
+    Unexpected,
+    /// A write lost its reply; the machine may already have acted.
+    Unconfirmed,
+    /// Local identities exhausted; reopening the app gives a fresh model.
+    Exhausted,
+}
+
+impl Failure {
+    /// Reads are safe to repeat; these two failures require an external fix first.
+    #[must_use]
+    pub const fn retryable(&self) -> bool {
+        match self {
+            Self::Older | Self::Exhausted | Self::Unconfirmed => false,
+            Self::Node(_) | Self::Offline | Self::Busy | Self::Unexpected => true,
+        }
+    }
+    /// Ordinary offline failures use the reference's load-error sentence. A
+    /// refusal/old protocol/correlation failure must keep its corrective words.
+    #[must_use]
+    pub fn needs_explanation(&self) -> bool {
+        match self {
+            Self::Node(error) => error.code == vessel_proto::ErrorCode::Forbidden,
+            Self::Older | Self::Unexpected | Self::Exhausted | Self::Unconfirmed => true,
+            Self::Offline | Self::Busy => false,
+        }
+    }
+    /// Shared Alert meaning; a caller never chooses its own warning colour.
+    #[must_use]
+    pub const fn variant(&self) -> crate::alert::Variant {
+        match self {
+            Self::Older => crate::alert::Variant::Warning,
+            Self::Busy => crate::alert::Variant::Info,
+            Self::Node(_)
+            | Self::Offline
+            | Self::Unexpected
+            | Self::Exhausted
+            | Self::Unconfirmed => crate::alert::Variant::Error,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn book_keys_and_tickets_have_no_ambiguous_fallback() {
+        for name in ["laptop", "build-server", "box.2"] {
+            assert_eq!(MachineKey::of(name).unwrap().as_str(), name);
+        }
+        for name in ["", "bad name", "../node", "한글", "-node"] {
+            assert!(MachineKey::of(name).is_none());
+        }
+        let mut tickets = Tickets(u64::MAX.saturating_sub(1));
+        assert!(tickets.issue().is_some());
+        assert_eq!(tickets.issue(), None);
+        assert_eq!(tickets.issue(), None);
+    }
+}

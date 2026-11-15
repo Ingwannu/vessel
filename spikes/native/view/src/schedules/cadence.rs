@@ -32,6 +32,17 @@ impl IntervalUnit {
     /// Largest to smallest, for lossless form decomposition.
     pub const DESCENDING: [Self; 4] = [Self::Days, Self::Hours, Self::Minutes, Self::Seconds];
 
+    /// The reference offers minutes, hours and days. Seconds is retained only
+    /// for an opened interval that would otherwise lose its exact value.
+    #[must_use]
+    pub fn choices(opened: Option<EverySeconds>) -> &'static [Self] {
+        if opened.is_some_and(|value| IntervalParts::of(value).unit() == Self::Seconds) {
+            &[Self::Seconds, Self::Minutes, Self::Hours, Self::Days]
+        } else {
+            &[Self::Minutes, Self::Hours, Self::Days]
+        }
+    }
+
     /// Elapsed seconds represented by one unit.
     #[must_use]
     pub const fn seconds(self) -> u32 {

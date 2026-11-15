@@ -18,7 +18,9 @@ pub use crate::badge::Variant;
 pub mod description;
 pub mod editor;
 pub mod history;
+pub mod load;
 pub mod locale;
+pub mod page;
 
 use chrono::{DateTime, Utc};
 use vessel_proto::automation::{

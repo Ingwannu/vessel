@@ -84,6 +84,13 @@ typed cadence, revision-preserving edits and run/session navigation. The
 page has no schedule screen. Paseo's schedule-format tests supply formatting
 cases; portable cases for the future page are in `view/tests/fixtures/schedules/`
 (G2's notes describe deliberate differences and the contract gaps).
+The list's `schedules::page` keeps per-book-key snapshots, bounded correlated
+reads and row-local writes; unresolved obsolete calls still consume capacity.
+Uncertain writes require a fresh read before manual retry and are never retried
+automatically. `schedules::locale` uses generated `locales/{en,ko}/schedules.ftl`
+for new list words; accepted cadence/action/state/editor errors remain in their
+original table until the separately owned migration. None of these pure rules
+implies that the corresponding screen has been wired or visually reviewed.
 The command palette's matching lives in the shared pure `view::matcher`
 module; its cursor and result bands stay in `view::palette`. Provider
 catalogs reuse the same parsed `Query` and opaque ordered `Score` with
