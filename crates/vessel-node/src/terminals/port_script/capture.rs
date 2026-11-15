@@ -41,7 +41,7 @@ pub(super) async fn read(
 ) -> Result<Vec<u8>, PortScriptError> {
     // One extra byte distinguishes an exact-cap EOF from silent truncation.
     let mut bytes = Vec::with_capacity(usize::from(MAX_OUTPUT_BYTES).saturating_add(1));
-    reader
+    let _bytes_read = reader
         .take(u64::from(MAX_OUTPUT_BYTES).saturating_add(1))
         .read_to_end(&mut bytes)
         .await

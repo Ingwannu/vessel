@@ -384,10 +384,17 @@ printf '\357\273\2773210\n'
 #[tokio::test]
 async fn unsuccessful_exit_and_overflow_are_refused_without_output_in_diagnostics() {
     let sandbox = Sandbox::new();
-    for (name, script) in [
+    enum Expected {
+        Exit,
+        Stdout,
+        Stderr,
+        Exact,
+    }
+    for (name, script, expected) in [
         (
             "failed",
             "#!/bin/sh\nprintf '3210\\n'\nprintf 'private-stderr' >&2\nexit 7\n".to_owned(),
+            Expected::Exit,
         ),
         (
             "stdout",
@@ -395,6 +402,7 @@ async fn unsuccessful_exit_and_overflow_are_refused_without_output_in_diagnostic
                 "#!/bin/sh\nprintf '%s' '{}'\n",
                 "x".repeat(usize::from(MAX_OUTPUT_BYTES) + 1)
             ),
+            Expected::Stdout,
         ),
         (
             "stderr",
@@ -402,6 +410,7 @@ async fn unsuccessful_exit_and_overflow_are_refused_without_output_in_diagnostic
                 "#!/bin/sh\nprintf '3210\\n'\nprintf '%s' '{}' >&2\n",
                 "x".repeat(usize::from(MAX_OUTPUT_BYTES) + 1)
             ),
+            Expected::Stderr,
         ),
         (
             "exact",
@@ -410,6 +419,7 @@ async fn unsuccessful_exit_and_overflow_are_refused_without_output_in_diagnostic
                 " ".repeat(usize::from(MAX_OUTPUT_BYTES) - "3210".len()),
                 "x".repeat(usize::from(MAX_OUTPUT_BYTES))
             ),
+            Expected::Exact,
         ),
     ] {
         Sandbox::executable(&sandbox.root.root.join(name), &script);
@@ -424,18 +434,17 @@ async fn unsuccessful_exit_and_overflow_are_refused_without_output_in_diagnostic
         if let Err(error) = &result {
             assert!(!format!("{error:?} {error}").contains("private-stderr"));
         }
-        match name {
-            "failed" => assert!(matches!(result, Err(PortScriptError::Exit(Some(7))))),
-            "stdout" => assert!(matches!(
+        match expected {
+            Expected::Exit => assert!(matches!(result, Err(PortScriptError::Exit(Some(7))))),
+            Expected::Stdout => assert!(matches!(
                 result,
                 Err(PortScriptError::OutputLimit(vessel_proc::Stream::Stdout))
             )),
-            "stderr" => assert!(matches!(
+            Expected::Stderr => assert!(matches!(
                 result,
                 Err(PortScriptError::OutputLimit(vessel_proc::Stream::Stderr))
             )),
-            "exact" => assert_eq!(result.unwrap().get(), 3210),
-            _ => unreachable!(),
+            Expected::Exact => assert_eq!(result.unwrap().get(), 3210),
         }
     }
 }
@@ -541,7 +550,7 @@ async fn cancelling_or_timing_out_live_capture_kills_the_child_and_its_inherited
             // stdin stays open: neither fake could have exited through EOF.
             // EOF here proves both the leader and descendant closed stdout.
             let mut rest = Vec::new();
-            observer.read_to_end(&mut rest).await.unwrap();
+            let _remaining = observer.read_to_end(&mut rest).await.unwrap();
             drop(stdin);
         }
     })
