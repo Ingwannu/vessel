@@ -225,7 +225,7 @@ fn entry_element(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let drawn = entries::entry(paint, index, entry, open(area, index), window, cx);
+    let drawn = entries::entry(paint, index, entry, area.entry_expanded(index), window, cx);
     let said = if let EntryKind::Prompt(prompt) = &entry.kind {
         Some(prompt.text.as_str())
     } else if let EntryKind::Steer { text, .. } = &entry.kind {
@@ -259,30 +259,6 @@ fn entry_element(
     } else {
         drawn
     }
-}
-
-/// Whether entry `index`'s disclosure is open: a tool call while it
-/// works, else closed; turned by the person. A tool call whose permission
-/// waits stays closed: the card over the composer shows its detail.
-fn open(area: &ConversationArea, index: usize) -> bool {
-    if let Some(tool) = area
-        .timeline
-        .entries()
-        .get(index)
-        .and_then(|entry| entry.kind.as_tool())
-        .filter(|tool| vessel_app_view::timeline::plan_text(tool).is_some())
-    {
-        let outcome = vessel_app_view::timeline::plan_outcome(area.timeline.entries(), &tool.id);
-        return area.plans.expansion(&tool.id, outcome)
-            == vessel_app_view::timeline::PlanExpansion::Expanded;
-    }
-    let default = area
-        .timeline
-        .entries()
-        .get(index)
-        .and_then(|entry| entry.kind.as_tool())
-        .is_some_and(|tool| tool.working() && !area.timeline.asks_permission(&tool.id));
-    default != area.toggled.contains(&index)
 }
 
 /// The entries the conversation keeps but does not draw (the owner's

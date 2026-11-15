@@ -9,10 +9,10 @@ use std::rc::Rc;
 use vessel_app_kit::ui::{App, Subscription};
 use vessel_app_kit::{DialogState, MenuState, Reveal, VirtualList};
 use vessel_app_link::ActKind;
-use vessel_app_view::prefs::ConversationDisplay;
+use vessel_app_view::prefs::{ConversationDisplay, ReasoningExpansion};
 use vessel_app_view::timeline::{
-    FindCache, Folds, Live, Logs, OutlineItem, PlanDisclosures, Rows, Timeline, plan_outcome,
-    plan_text,
+    Disclosures, FindCache, Folds, Live, Logs, OutlineItem, PlanDisclosures, Rows, Timeline,
+    plan_outcome, plan_text,
 };
 use vessel_proto::{ErrorCode, EventSeq, SessionId, SessionInfo};
 
@@ -90,7 +90,9 @@ pub(crate) struct ConversationArea {
     pub(super) collapse: bool,
     /// Entries whose disclosure the person toggled (a tool card, a
     /// thought), against its default.
-    pub(crate) toggled: HashSet<usize>,
+    pub(super) disclosures: Disclosures,
+    /// Kept Chat default, shared with embedded conversations through set_reasoning.
+    pub(super) reasoning: ReasoningExpansion,
     /// Each decision owns its plan disclosure; text changes retain the person's choice.
     pub(super) plans: PlanDisclosures,
     /// The rows drawn.
@@ -185,7 +187,8 @@ impl ConversationArea {
             logs: Logs::default(),
             agent_log: AgentLog::Hidden,
             collapse: collapsing(None),
-            toggled: HashSet::new(),
+            disclosures: Disclosures::default(),
+            reasoning: ReasoningExpansion::default(),
             plans: PlanDisclosures::default(),
             rows: Rows::All(0),
             list: VirtualList::new(true),
@@ -267,7 +270,7 @@ impl ConversationArea {
         self.open_runs.clear();
         self.logs = Logs::default();
         self.agent_log = AgentLog::Hidden;
-        self.toggled.clear();
+        self.disclosures.clear();
         self.plans.clear();
         self.rows = Rows::All(0);
         self.list.reset(0);
@@ -363,8 +366,8 @@ impl ConversationArea {
         if let Some(tool) = plan {
             self.plans
                 .toggle(&tool.id, plan_outcome(self.timeline.entries(), &tool.id));
-        } else if !self.toggled.remove(&entry) {
-            let _new = self.toggled.insert(entry);
+        } else {
+            self.disclosures.toggle(entry, self.entry_default(entry));
         }
         if let Some(row) = self.rows.row_index(entry, self.folds.as_ref(), &self.logs) {
             let row = self.at(row);

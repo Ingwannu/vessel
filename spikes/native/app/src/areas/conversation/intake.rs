@@ -109,7 +109,10 @@ impl ConversationArea {
             self.fresh = Some((change.added_from, std::time::Instant::now()));
         }
         if self.folds.is_some() {
-            self.folds = Some(Folds::of(self.timeline.entries()));
+            self.folds = Some(Folds::with_reasoning(
+                self.timeline.entries(),
+                self.reasoning.expanded(),
+            ));
         }
         self.logs = Logs::of(self.timeline.entries());
         self.outline = outline(self.timeline.entries());

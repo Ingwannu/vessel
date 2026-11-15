@@ -112,10 +112,18 @@ impl Folds {
     /// already.
     #[must_use]
     pub fn of(entries: &[Entry]) -> Self {
+        Self::with_reasoning(entries, false)
+    }
+
+    /// Expanded reasoning must not disappear inside a closed tool group.
+    #[must_use]
+    pub fn with_reasoning(entries: &[Entry], expand_reasoning: bool) -> Self {
         let mut runs = Vec::new();
         let mut start: Option<usize> = None;
         for (index, entry) in entries.iter().enumerate() {
-            match (entry.kind.folds(), start) {
+            let folds = entry.kind.folds()
+                && !(expand_reasoning && matches!(entry.kind, EntryKind::Thought { .. }));
+            match (folds, start) {
                 (true, None) => start = Some(index),
                 (false, Some(from)) => {
                     close(&mut runs, entries, from, index);

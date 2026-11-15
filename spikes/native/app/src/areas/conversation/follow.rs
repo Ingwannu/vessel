@@ -46,7 +46,8 @@ impl Shell {
             return;
         }
         area.collapse = collapse;
-        area.folds = collapse.then(|| Folds::of(area.timeline.entries()));
+        area.folds = collapse
+            .then(|| Folds::with_reasoning(area.timeline.entries(), area.reasoning.expanded()));
         area.open_runs.clear();
         area.rows_again();
         self.origin_display(collapse);

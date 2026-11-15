@@ -335,6 +335,7 @@ pub(crate) fn start(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_,
     let appearance = shell.prefs.settings.appearance;
     crate::areas::session::set_content_width(appearance.content_width);
     shell.conversation_display(appearance.conversation);
+    shell.conversation_reasoning(appearance.reasoning);
     cx.observe_window_appearance(window, |shell, window, cx| {
         apply_theme(shell, window, cx);
     })

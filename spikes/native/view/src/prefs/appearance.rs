@@ -26,6 +26,9 @@ pub struct Appearance {
     /// How a conversation shows tool calls.
     #[serde(deserialize_with = "lenient")]
     pub conversation: ConversationDisplay,
+    /// Initial expansion of reasoning messages; each explicit disclosure wins.
+    #[serde(deserialize_with = "lenient")]
+    pub reasoning: ReasoningExpansion,
     /// Whether the app moves (Settings › Appearance › Animations).
     #[serde(deserialize_with = "lenient")]
     pub animations: Animations,
@@ -197,4 +200,23 @@ pub enum ConversationDisplay {
 impl ConversationDisplay {
     /// Both, in the order Settings offers them.
     pub const ALL: [Self; 2] = [Self::Full, Self::CollapseTools];
+}
+
+/// The Chat preference changes defaults, never a person's explicit disclosure.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReasoningExpansion {
+    /// Reasoning starts folded.
+    #[default]
+    Collapsed,
+    /// Reasoning starts open and remains outside collapsed tool groups.
+    Expanded,
+}
+
+impl ReasoningExpansion {
+    /// Whether reasoning messages start open.
+    #[must_use]
+    pub const fn expanded(self) -> bool {
+        matches!(self, Self::Expanded)
+    }
 }

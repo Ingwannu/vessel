@@ -47,6 +47,7 @@ mod area;
 mod bar;
 mod bench;
 mod bubbles;
+mod disclosures;
 /// The slot over the composer, and the requests' cards for other areas
 /// ([`dock::requests`]).
 pub(crate) mod dock;

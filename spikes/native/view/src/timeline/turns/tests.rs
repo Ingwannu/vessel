@@ -29,7 +29,10 @@ fn reply(text: &str) -> Value {
     json!({"event":"message_chunk","content":{"type":"text","text":text}})
 }
 fn tool() -> Value {
-    json!({"event":"tool_call","id":"read","title":"Read source","kind":"read","status":"completed"})
+    tool_id("read")
+}
+fn tool_id(id: &str) -> Value {
+    json!({"event":"tool_call","id":id,"title":"Read source","kind":"read","status":"completed"})
 }
 fn end() -> Value {
     json!({"event":"turn_ended","reason":"end_turn"})
@@ -121,7 +124,7 @@ fn a_human_steer_stays_visible_inside_the_folded_work() {
         prompt(),
         tool(),
         json!({"event":"steered","content":[{"type":"text","text":"Also test it"}]}),
-        tool(),
+        tool_id("read-again"),
         reply("Done"),
         end(),
     ]);
@@ -133,4 +136,23 @@ fn a_human_steer_stays_visible_inside_the_folded_work() {
         &HashSet::new(),
     );
     assert_eq!(rows, Rows::Some(vec![0, 2, 4, 5]));
+}
+
+#[test]
+fn automatically_expanded_reasoning_is_never_hidden_by_a_tool_group() {
+    use crate::timeline::Folds;
+    let timeline = timeline(vec![
+        prompt(),
+        tool(),
+        json!({"event":"thought_chunk","content":{"type":"text","text":"Thinking"}}),
+        tool_id("read-again"),
+        reply("Done"),
+        end(),
+    ]);
+    let ordinary = Folds::of(timeline.entries());
+    assert!(ordinary.run_of(2).is_some());
+    let expanded = Folds::with_reasoning(timeline.entries(), true);
+    assert!(expanded.run_of(2).is_none());
+    assert!(expanded.run_of(1).is_some());
+    assert!(expanded.run_of(3).is_some());
 }

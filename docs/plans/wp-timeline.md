@@ -13,8 +13,8 @@ must be opened before their corresponding implementation is changed.
 
 Decision: **modify/reuse** `spikes/native/view/src/timeline/`, `link/src/sending.rs`
 and `app/src/areas/conversation/`; they already own folding, stable identity,
-virtual rows, requests, queues and optimistic messages. No new dependency or UI
-kit control is needed. Standard serde decoders and existing output/Markdown/lines
+virtual rows, requests, queues and optimistic messages. Existing UI kit controls are reused; the bounded diff adds the already
+transitive `similar` library as an explicit view dependency. Standard serde decoders and existing output/Markdown/lines
 controls suffice. A second stream model would duplicate sequencing and stale-answer
 protection; a general JSON renderer alone loses tool semantics.
 
@@ -118,7 +118,7 @@ in the separate timeline protocol package (ADR 0084) and consumed after review.
   and conversation area render them. Unknown payloads retain their original text.
 - Why: one folding and identity path; testable semantics without a window; finite
   node request deadlines remain owned by link.
-- Effects: additional typed render models, no new dependencies; features requiring
+- Effects: additional typed render models and the explicit diff dependency; features requiring
   unavailable canonical fields stay hidden until the node contract is present.
 
 ## Validation and resume point
@@ -258,3 +258,19 @@ that just arrived, so `Rows::first_difference` identifies the first measurement
 that must be replaced. Two regression tests pin entry identity, that earlier
 invalidation, reopening and human-steer visibility. Compaction retention waits
 for the reviewed canonical event contract rather than inventing a placeholder.
+
+### Reasoning default and explicit disclosure
+
+E2 approved `Appearance.reasoning: ReasoningExpansion::{Collapsed,Expanded}`
+(default Collapsed), persisted through the existing lenient Preferences and
+PreferenceChange pipeline. Settings startup/change applies it to the session
+and fork origin; embedded conversations call `ConversationArea::set_reasoning`
+before ingesting records. The Chat control waits for L's shared getter base.
+Paseo `agent-stream/presentation.ts:177-185` and its regression at
+`presentation.test.ts:747-754` keep automatically expanded reasoning outside a
+collapsed tool group. `Folds::with_reasoning` does the same. Storing a toggled
+bit against a changing default inverted the person's choice when a running tool
+completed; explicit disclosure values now retain the actual choice across tool
+completion and default changes. Plan outcome disclosures remain independently
+owned by the shared Plan renderer contract. Tests cover local lenient fallback,
+roundtrip/change isolation, group exclusion and explicit-choice persistence.

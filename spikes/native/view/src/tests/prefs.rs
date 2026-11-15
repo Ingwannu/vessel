@@ -29,8 +29,8 @@ fn apply(prefs: &Preferences, json: &str) -> Preferences {
 #[test]
 fn defaults_are_the_contracts() {
     let values = Preferences::default();
-    // Keep the page/bridge fixture unchanged. The native document adds two
-    // explicit fields (the language, and Appearance's Animations, word 39)
+    // Keep the page/bridge fixture unchanged. The native document adds three
+    // explicit fields (language, animations and reasoning expansion)
     // and differs in one stated default: ended sessions are listed
     // (`SidebarView::default`, 2026-11-14; the page and the bridge still
     // write `"ended":false` until the node line's slice moves them, and
@@ -40,7 +40,7 @@ fn defaults_are_the_contracts() {
         .replacen('{', r#"{"language":"system","#, 1)
         .replacen(
             r#""conversation":"full""#,
-            r#""conversation":"full","animations":"on""#,
+            r#""conversation":"full","reasoning":"collapsed","animations":"on""#,
             1,
         )
         .replacen(r#""ended":false"#, r#""ended":true"#, 1);
@@ -448,4 +448,21 @@ fn animations_are_kept_changed_alone_and_lenient() {
     let unknown: Preferences =
         serde_json::from_str(r#"{"appearance":{"animations":"sometimes"}}"#).unwrap();
     assert_eq!(unknown.appearance.animations, Animations::On);
+}
+
+#[test]
+fn reasoning_expansion_is_independent_and_invalid_values_fall_back_locally() {
+    use crate::prefs::ReasoningExpansion;
+
+    let prefs: Preferences =
+        serde_json::from_str(r#"{"appearance":{"theme":"dark","reasoning":"future"}}"#).unwrap();
+    assert_eq!(prefs.appearance.theme, Theme::Dark);
+    assert_eq!(prefs.appearance.reasoning, ReasoningExpansion::Collapsed);
+    let changed = prefs
+        .changed(&PreferenceChange::Reasoning(ReasoningExpansion::Expanded))
+        .unwrap();
+    assert_eq!(changed.appearance.theme, Theme::Dark);
+    assert!(changed.appearance.reasoning.expanded());
+    let wire = serde_json::to_string(&changed).unwrap();
+    assert_eq!(serde_json::from_str::<Preferences>(&wire).unwrap(), changed);
 }

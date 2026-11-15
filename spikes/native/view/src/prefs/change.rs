@@ -9,8 +9,8 @@ use vessel_proto::{HarnessKind, NodeId, ProfileName};
 use super::{
     ActionId, AgentDefaults, AgentKind, Alerts, Animations, Bindings, Choices, CodeSize,
     ContentWidth, ConversationDisplay, Grouping, InterfaceSize, MAX_ACTIONS, MAX_EDITS,
-    MAX_MACHINES, MachineDefaults, Panel, Preferences, SendKey, SessionSort, Theme, TooMany,
-    TurnDelivery,
+    MAX_MACHINES, MachineDefaults, Panel, Preferences, ReasoningExpansion, SendKey, SessionSort,
+    Theme, TooMany, TurnDelivery,
 };
 
 /// One change: the setting it names, and its value.
@@ -29,6 +29,8 @@ pub enum PreferenceChange {
     ContentWidth(ContentWidth),
     /// How a conversation shows tool calls.
     Conversation(ConversationDisplay),
+    /// How reasoning messages start before a person toggles them.
+    Reasoning(ReasoningExpansion),
     /// Whether the app moves.
     Animations(Animations),
     /// Whether the sidebar shows.
@@ -177,6 +179,7 @@ impl Preferences {
             PreferenceChange::CodeSize(size) => self.appearance.code_size = *size,
             PreferenceChange::ContentWidth(width) => self.appearance.content_width = *width,
             PreferenceChange::Conversation(display) => self.appearance.conversation = *display,
+            PreferenceChange::Reasoning(expansion) => self.appearance.reasoning = *expansion,
             PreferenceChange::Animations(animations) => self.appearance.animations = *animations,
             PreferenceChange::SidebarPanel(panel) => self.layout.sidebar = *panel,
             PreferenceChange::InspectorPanel(panel) => self.layout.inspector = *panel,

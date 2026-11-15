@@ -192,7 +192,8 @@ impl ConversationArea {
     fn inherit(&mut self, records: &[EventRecord], collapse: bool) {
         let _change = self.timeline.apply(records);
         self.collapse = collapse;
-        self.folds = collapse.then(|| Folds::of(self.timeline.entries()));
+        self.folds = collapse
+            .then(|| Folds::with_reasoning(self.timeline.entries(), self.reasoning.expanded()));
         self.logs = Logs::of(self.timeline.entries());
         self.rows_again();
     }
@@ -256,6 +257,7 @@ impl Shell {
                 let mut origin = ConversationArea::new(cx);
                 // The same agent: the fork's spec is its origin's.
                 origin.info.clone_from(&area.info);
+                origin.reasoning = area.reasoning;
                 origin.inherit(records, area.collapse);
                 let rows = origin.rows.len();
                 tracing::debug!(
@@ -312,7 +314,9 @@ impl Shell {
     pub(super) fn origin_display(&mut self, collapse: bool) {
         if let Some(origin) = self.areas.conversation.origin.area_mut() {
             origin.collapse = collapse;
-            origin.folds = collapse.then(|| Folds::of(origin.timeline.entries()));
+            origin.folds = collapse.then(|| {
+                Folds::with_reasoning(origin.timeline.entries(), origin.reasoning.expanded())
+            });
             origin.open_runs.clear();
             origin.rows_again();
         }
