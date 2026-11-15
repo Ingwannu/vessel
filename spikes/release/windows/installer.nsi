@@ -95,7 +95,9 @@ Section "Vessel"
   File "${STAGE}\${EXE}"
   File "${STAGE}\LICENSE.md"
   File "${STAGE}\README.txt"
-  ; The embedded fonts' licence (SIL OFL 1.1 asks each copy to carry it).
+  ; The licences of what the app embeds: the fonts' (SIL OFL 1.1 asks
+  ; each copy to carry it) and any agent mark's that comes with one;
+  ; build.sh's licenses() fills the folder.
   SetOutPath "$INSTDIR\licenses"
   File "${STAGE}\licenses\*.txt"
   SetOutPath "$INSTDIR"
@@ -119,7 +121,9 @@ Section "Uninstall"
   Delete "$INSTDIR\${EXE}"
   Delete "$INSTDIR\LICENSE.md"
   Delete "$INSTDIR\README.txt"
-  Delete "$INSTDIR\licenses\*-OFL.txt"
+  ; Every text the installer put there (not just the fonts'), so the
+  ; folder empties and RMDir removes it.
+  Delete "$INSTDIR\licenses\*.txt"
   RMDir "$INSTDIR\licenses"
   ; What the app's own updates leave beside it: a build moved aside while
   ; it ran, and a download cut short.

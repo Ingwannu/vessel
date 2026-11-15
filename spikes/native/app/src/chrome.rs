@@ -26,17 +26,15 @@ pub(crate) fn title_bar(
         .flex_row()
         .items_center()
         .gap(px(7.0))
-        // At a phone's width the sidebar is a sheet, opened from here
-        // (ADR 0036). The button occludes the bar so a press is the
-        // button's, not the bar's drag.
-        // Also on a wide window while the sidebar is hidden (Mod+B or this
-        // button), to bring it back. Paseo keeps its sidebar toggle in the
-        // header at every width; here the wide title bar shows it only
-        // while the sidebar is hidden (a difference: the wide title bar
-        // stays as it was while the sidebar is there to close).
-        .when(narrow || !shell.sidebar_shown(), |content| {
-            content.child(
-                div()
+        // The sidebar's toggle, always there as Paseo's (its window-owned
+        // collapse toggle, `PanelLeft`, `desktop-sidebar-layout.ts`): at a
+        // phone's width it opens the sidebar's sheet (ADR 0036, the menu
+        // mark), wider it shows or hides the sidebar (the layout's
+        // preference, as Mod+B). The button occludes the bar so a press is
+        // the button's, not the bar's drag.
+        .child({
+            let glyph = if narrow { Glyph::Menu } else { Glyph::PanelLeft };
+            div()
                     .id("open-sidebar")
                     .w(px(32.0))
                     .h(px(28.0))
@@ -49,15 +47,16 @@ pub(crate) fn title_bar(
                     .cursor_pointer()
                     .child(
                         vessel_app_kit::ui::svg()
-                            .path(Glyph::Menu.path())
+                            .path(glyph.path())
                             .size(px(14.0))
                             .text_color(tokens.text_secondary),
                     )
                     .on_click(
                         cx.listener(|this, _event, window, cx| this.toggle_sidebar(window, cx)),
-                    ),
-            )
+                    )
         })
+        // The palette's search mark (track S's, `areas::palette::entry`).
+        .child(crate::areas::palette::title_trigger(shell, tokens, cx))
         // The mark in the text's colour at the text's size, beside the name
         // (docs/design/brand/README.md: "In the interface").
         .child(vessel_app_kit::mark_mono(14.0, tokens.text_primary))

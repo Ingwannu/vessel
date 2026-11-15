@@ -5,6 +5,9 @@
 
 use tokio::sync::mpsc;
 use vessel_app_kit::TypeExt as _;
+use vessel_app_kit::frame::{Lines, panel_edges};
+use vessel_app_kit::theme::radius::R5;
+use vessel_app_kit::theme::spacing::{S1, S2};
 use vessel_app_kit::tokens;
 use vessel_app_kit::ui::{
     AnyElement, AsyncApp, Context, FluentBuilder as _, InteractiveElement as _, IntoElement,
@@ -21,8 +24,13 @@ use crate::routes::{self, Route};
 /// The window's state.
 pub(crate) struct Shell {
     link: Option<Link>,
+    /// Commands the link gave back, settled on the next update
+    /// (`crate::unsent`).
+    unsent: mpsc::UnboundedSender<vessel_app_link::Unsent>,
     /// Every word on screen, in the person's language.
     pub(crate) t: &'static Text,
+    pub(crate) words: &'static vessel_app_view::localization::Translator,
+    pub(crate) language: crate::language::Language,
     pub(crate) fleet: Fleet,
     pub(crate) route: Route,
     pub(crate) areas: Areas,
@@ -60,10 +68,18 @@ pub(crate) struct Shell {
     /// At a phone's width, the sidebar's sheet is open, over what was on
     /// screen when it opened: going anywhere else closes it.
     sidebar_sheet: Option<(Route, Option<vessel_proto::SessionId>)>,
+    /// The brand's drawing behind the content (worker B's `brand.rs`).
+    pub(crate) brand: crate::brand::Brand,
 }
 
 impl Shell {
-    pub(crate) fn new(t: &'static Text, window: &mut Window, cx: &mut Context<'_, Self>) -> Self {
+    pub(crate) fn new(
+        prefs: Prefs,
+        language: crate::language::Language,
+        words: &'static vessel_app_view::localization::Translator,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> Self {
         let areas = Areas::new(window, cx);
         let (link, notice) = match Link::start(crate::LABEL) {
             Ok((link, events)) => {
@@ -73,13 +89,20 @@ impl Shell {
             }
             Err(error) => (None, Some(format!("{error}"))),
         };
+        let (unsent, returned) = mpsc::unbounded_channel();
+        cx.spawn(async move |this, cx| crate::unsent::receive(this, returned, cx).await)
+            .detach();
         let mut shell = Self {
             link,
-            t,
+            unsent,
+            t: vessel_app_view::Lang::from_tag(words.locale().tag()).text(),
+            words,
+            language,
             fleet: Fleet::default(),
             route: Route::Draft,
+            brand: crate::brand::Brand::default(),
             areas,
-            prefs: Prefs::load(),
+            prefs,
             notice,
             notice_detail: None,
             foot_tips: (
@@ -96,15 +119,49 @@ impl Shell {
         };
         crate::update::start(&mut shell, cx);
         areas::settings::start(&mut shell, window, cx);
+        areas::shortcuts::listen(&mut shell, cx);
         shell.announce_update();
         routes::arrive(Route::Draft, &mut shell, window, cx);
         shell
     }
 
+    /// Send `command`; one the link does not take settles on the next
+    /// update, after the caller's own code, through the handler its
+    /// answer would reach (`crate::unsent`: callers that set what waits
+    /// after sending settle too).
     pub(crate) fn command(&self, command: Command) {
-        if let Some(link) = &self.link {
-            link.send(command);
+        let taken = match &self.link {
+            Some(link) => link.submit(command),
+            None => Err(vessel_app_link::Unsent::new(
+                vessel_app_link::Rejected::Closed,
+                command,
+            )),
+        };
+        if let Err(unsent) = taken {
+            // The receiver lives as long as the shell's window.
+            let _closing = self.unsent.send(unsent);
         }
+    }
+
+    /// A command the link did not take: what waits on it settles in the
+    /// app's words. Without a link at all, the foot keeps saying why the
+    /// link did not start.
+    pub(crate) fn unsent(&mut self, unsent: vessel_app_link::Unsent, cx: &mut Context<'_, Self>) {
+        tracing::warn!(why = %unsent.why, "the link did not take a command");
+        let words = self.t.unsent;
+        match crate::unsent::settle(unsent, words) {
+            crate::unsent::Settle::Answer(event) => self.on_event(*event, cx),
+            crate::unsent::Settle::Prompt { session, text } => {
+                self.prompt_unsent(session, text);
+                self.notice = Some(words.to_owned());
+            }
+            crate::unsent::Settle::Say => {
+                if self.link.is_some() {
+                    self.notice = Some(words.to_owned());
+                }
+            }
+        }
+        cx.notify();
     }
 
     /// Checked device dispatch keeps a refused queue from leaving its page pending.
@@ -118,6 +175,18 @@ impl Shell {
             .as_ref()
             .ok_or(vessel_app_view::devices::Problem::Offline)?
             .request_devices(machine, ticket, ask)
+    }
+
+    /// Checked read-only dispatch settles a full or closed command queue.
+    pub(crate) fn sync_send(
+        &self,
+        machine: vessel_app_view::devices::MachineKey,
+        ticket: vessel_app_view::devices::Ticket,
+    ) -> Result<(), vessel_app_view::sync::Problem> {
+        self.link
+            .as_ref()
+            .ok_or(vessel_app_view::sync::Problem::Offline)?
+            .request_sync(machine, ticket)
     }
 
     /// Show `route` from where no window is at hand; what arriving does
@@ -137,8 +206,22 @@ impl Shell {
     fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
             Event::Devices(answer) => self.devices_answer(answer, cx),
+            Event::Machines(answer) => self.machines_answer(answer, cx),
+            Event::Sync(answer) => self.sync_answer(answer),
+            Event::NodeSettings(answer) => self.node_settings_answer(answer),
             Event::Fleet(fleet) => {
-                self.fleet = fleet;
+                // The link reads the fleet every 2 s; a read that changed
+                // nothing draws nothing (an idle window repainted every
+                // 2 s, measured by the coordinator on 0.0.0.0.13).
+                if self.loaded && fleet.machines == self.fleet.machines {
+                    self.fleet.read_at = fleet.read_at;
+                    if self.route == Route::Settings {
+                        self.agent_load(false, cx);
+                    }
+                    return;
+                }
+                let earlier = std::mem::replace(&mut self.fleet, fleet);
+                self.offers_fleet(&earlier);
                 if !self.loaded {
                     self.loaded = true;
                     // With no machine there is nothing to type to: pairing
@@ -151,15 +234,32 @@ impl Shell {
                 self.settle_draft();
                 self.retitle();
                 self.workspace_fleet();
+                if self.route == Route::Settings {
+                    self.agent_load(false, cx);
+                }
             }
-            Event::Records { session, records } => self.records(&session, &records, cx),
-            Event::Started(card) => self.started(&card, cx),
+            Event::Agents {
+                machine,
+                request,
+                answer,
+            } => self.agents_answer(&machine, request, answer, cx),
+            Event::Records { session, records } => {
+                self.records(&session, &records, cx);
+                // Track P: a session's reported `/` commands kept for its agent.
+                self.offers_commands_seen();
+                self.composer_files_seen(cx);
+            }
+            Event::Started(card) => self.started_with_files(&card, cx),
             Event::Sent { .. } => {}
             Event::Paired { node, via, address } => self.paired(&node, via, address, cx),
             Event::PairFailed(why) => self.pair_failed(why),
             Event::BookUnreadable(fault) => self.book_unreadable(&fault),
+            Event::SessionLost { session, why } => self.session_lost(session, why),
             Event::Acted(answer) => {
-                if let Some(answer) = self.board_acted(answer, cx) {
+                if let Some(answer) = self
+                    .board_acted(answer, cx)
+                    .and_then(|answer| self.option_acted(answer, cx))
+                {
                     self.acted(answer, cx);
                 }
             }
@@ -170,11 +270,20 @@ impl Shell {
                 harness,
                 outcome,
             } => self.options_arrived(machine, harness, outcome),
+            Event::OptionsKept { machine, lists } => self.offers_kept(&machine, lists),
+            Event::Upload { session, key, step } => self.composer_upload(session, key, step, cx),
             Event::Failed(why) => {
                 self.start_failed();
                 self.notice = Some(why);
             }
-            Event::Workspace { machine, answer } => self.workspace_answer(&machine, answer, cx),
+            Event::Workspace { machine, answer } => {
+                // An answer that changed nothing drawn asks for no frame
+                // (an idle git panel refreshes every five seconds).
+                if !self.workspace_answer(&machine, answer, cx) {
+                    return;
+                }
+            }
+            Event::Searched(answer) => self.message_searched(answer, cx),
         }
         cx.notify();
     }
@@ -265,7 +374,9 @@ impl Shell {
         // The tooltip on the words only, so it sits above them, not
         // above the middle of the full-width foot.
         let (tips, place) = &self.foot_tips;
-        let words = div().id("foot").flex_none().child(notice);
+        // Its own width while it fits, wrapping when the window is
+        // narrower (it did not shrink and was cut; the owner's word 40).
+        let words = div().id("foot").flex_initial().min_w_0().child(notice);
         areas::common::foot(
             div().flex().child(tips.on(words, place, detail, touch)),
             tokens,
@@ -280,10 +391,11 @@ const BATCH: usize = 512;
 
 impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+        let started = crate::region::begin(self, cx);
         if std::mem::take(&mut self.arrive_pending) {
             routes::arrive(self.route, self, window, cx);
         }
-        self.settle_devices(window);
+        self.settle_settings(window);
         let tokens = tokens(cx);
         // ADR 0036: below the phone's width the sidebar is a sheet from the
         // title bar; it closes when the person goes anywhere from it, and
@@ -302,7 +414,7 @@ impl Render for Shell {
             vessel_app_kit::sheet(
                 "sidebar-sheet",
                 vessel_app_kit::Edge::Left,
-                areas::sidebar::render(self, &tokens, true, cx).into_any_element(),
+                areas::sidebar::render(self, &tokens, true, window, cx).into_any_element(),
                 &tokens,
                 cx.listener(|this, _event, window, cx| this.toggle_sidebar(window, cx)),
             )
@@ -316,6 +428,8 @@ impl Render for Shell {
             .flex()
             .flex_col()
             .face(vessel_app_kit::Type::Body)
+            // Every key-up, for the shortcuts' repeat check (track S's).
+            .on_key_up(cx.listener(|this, _event, _window, _cx| this.areas.shortcuts.released()))
             .bg(tokens.bg_shell)
             .text_color(tokens.text_primary)
             .child(chrome::title_bar(self, &tokens, window, cx))
@@ -327,7 +441,7 @@ impl Render for Shell {
                     .flex()
                     .flex_row()
                     .when(!phone && self.sidebar_shown(), |row| {
-                        row.child(routes::sidebar(self.route, self, &tokens, cx))
+                        row.child(routes::sidebar(self, &tokens, window, cx))
                     })
                     .child(
                         // `min_w` 0: GPUI measures a text's least width
@@ -338,35 +452,51 @@ impl Render for Shell {
                             .flex_1()
                             .min_w(px(0.0))
                             .h_full()
-                            .pb(px(8.0))
-                            .pr(px(8.0))
-                            .when(phone || !self.sidebar_shown(), |frame| frame.pl(px(8.0)))
+                            .pb(px(S2))
+                            .pr(px(S2))
+                            // Room for the edge's outer line at the top and,
+                            // beside the sidebar, at the left (worker B's
+                            // two-line edge, the owner's word 36).
+                            .when(!phone, |frame| frame.pt(px(S1)))
+                            .pl(px(if phone || !self.sidebar_shown() { S2 } else { S1 }))
                             .child(
                                 div()
+                                    .relative()
                                     .size_full()
-                                    .flex()
-                                    .flex_col()
-                                    .bg(tokens.neutral.surface0)
-                                    .border_1()
-                                    .border_color(tokens.border_faint)
-                                    .rounded(px(vessel_app_kit::theme::radius::R5))
-                                    .overflow_hidden()
-                                    .children(self.updated.as_ref().map(|updated| {
-                                        areas::about::updated(self, updated, &tokens, cx)
-                                    }))
-                                    .child(frame)
-                                    .children(
-                                        self.notice.clone().map(|notice| {
-                                            self.foot(notice, &tokens, touch)
-                                        }),
-                                    ),
+                                    .child(
+                                        div()
+                                            .size_full()
+                                            .flex()
+                                            .flex_col()
+                                            .bg(tokens.neutral.surface0)
+                                            .rounded(px(R5))
+                                            .overflow_hidden()
+                                            .relative()
+                                            .child(self.brand.backdrop(&tokens))
+                                            .children(self.updated.as_ref().map(|updated| {
+                                                areas::about::updated(self, updated, &tokens, cx)
+                                            }))
+                                            .child(page::arriving(self, frame))
+                                            .children(self.notice.clone().map(|notice| {
+                                                self.foot(notice, &tokens, touch)
+                                            })),
+                                    )
+                                    .child(div().absolute().top_0().left_0().size_full().child(
+                                        panel_edges(R5, if phone { Lines::One } else { Lines::Two }, &tokens),
+                                    )),
                             ),
                     )
                     // Under the title bar, so its menu button stays to close
                     // it with.
                     .children(sheet),
             )
-            .children(areas::toasts::render(self, &tokens, window, cx));
+            .children(areas::toasts::render(self, &tokens, window, cx))
+            .children(areas::palette::render(self, &tokens, window, cx))
+            .child(vessel_app_kit::frame_log::drawn(started));
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }
 }
+
+#[cfg(test)]
+pub(crate) mod language_tests;
+mod page;

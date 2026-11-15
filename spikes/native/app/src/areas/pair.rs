@@ -6,21 +6,27 @@
 //!    single-use secret).
 //! 2. The key shown large, with nothing to type, and one sentence: it
 //!    must be the same as the key the machine printed with the link. Then
-//!    the name, under a label that stays, filled in with a name the book
-//!    does not have, so Pair works at once. A name that looks like the key
+//!    the name, under a label that stays, empty with a placeholder that
+//!    says an empty name uses the machine's own. The link carries no name;
+//!    the machine says it once paired. The field never shows a value that
+//!    will be saved as a different name. A name that looks like the key
 //!    or a link is called that, beside the field, as it is typed.
 //!
 //! Errors are shown beside the control they are about, not in the frame's
 //! foot. The app reaches the machine afterwards as the CLI does, directly
 //! or through its relay, with the device credential it stored.
 
-use vessel_app_kit::dialog::{DialogContent, DialogSize, DialogState, dialog};
-use vessel_app_kit::ui::{
-    AnyElement, Context, Div, IntoElement as _, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px,
-};
-use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, button, settings};
+#[cfg(all(test, target_os = "linux"))]
+pub(crate) mod capture;
+
+mod render;
+pub(crate) use render::render;
+
+use vessel_app_kit::TextField;
+use vessel_app_kit::dialog::DialogState;
+use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::{Command, NameProblem, Offer, default_name, name_problem, read_link};
+use vessel_app_view::pairing::{LinkProblem, PairProblem, PairedNotice, PreparedFailure};
 
 use crate::routes::Route;
 use crate::shell::Shell;
@@ -30,13 +36,12 @@ pub(crate) struct Pairing {
     link: TextField,
     name: TextField,
     offer: Option<Offer>,
-    link_error: Option<String>,
+    link_error: Option<LinkProblem>,
     name_problem: Option<NameProblem>,
-    pair_error: Option<String>,
+    pair_error: Option<PreparedFailure>,
     busy: bool,
-    /// The name the app filled in; kept as it is, the node's own name is
-    /// used instead once pairing says it.
-    prefilled: Option<String>,
+    success_notice: Option<PairedNotice>,
+    book_notice: Option<PreparedFailure>,
     /// The modal's focus (Escape closes it).
     dialog: DialogState,
 }
@@ -54,7 +59,10 @@ impl Pairing {
                 "",
                 |shell: &mut Shell, text, _window, cx| shell.pair(text, cx),
                 |shell: &mut Shell, text, cx| {
-                    shell.areas.pair.name_problem = name_problem(&text, &shell.book_names());
+                    // Empty is allowed: the machine's own name.
+                    shell.areas.pair.name_problem = (!text.trim().is_empty())
+                        .then(|| name_problem(&text, &shell.book_names()))
+                        .flatten();
                     shell.areas.pair.pair_error = None;
                     cx.notify();
                 },
@@ -66,7 +74,8 @@ impl Pairing {
             name_problem: None,
             pair_error: None,
             busy: false,
-            prefilled: None,
+            success_notice: None,
+            book_notice: None,
             dialog: DialogState::new(cx),
         }
     }
@@ -76,18 +85,53 @@ impl Pairing {
 pub(crate) fn arrive(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
     // The new chat behind the modal, as arriving there makes it.
     crate::areas::draft::arrive(shell, window, cx);
-    let t = shell.t;
+    refresh_words(shell, window, cx);
+    shell.areas.pair.link.focus(window, cx);
+}
+
+/// Translate cached field labels without touching the person's text or focus.
+pub(crate) fn refresh_words(shell: &Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
+    let words = shell.words.pairing();
     shell
         .areas
         .pair
         .link
-        .set_placeholder(t.link_placeholder, window, cx);
+        .set_placeholder(words.link_placeholder(), window, cx);
     shell
         .areas
         .pair
         .name
-        .set_placeholder(t.name_hint, window, cx);
-    shell.areas.pair.link.focus(window, cx);
+        .set_placeholder(words.name_placeholder(), window, cx);
+}
+
+/// Reword retained outcomes only at the language-change event, never on arrival
+/// (an event may defer arrival to the next frame).
+pub(crate) fn translate_outcomes(shell: &mut Shell) {
+    if let Some(failure) = shell.areas.pair.pair_error.as_mut() {
+        failure.translate(shell.words);
+    }
+    if let Some(notice) = shell.areas.pair.book_notice.as_mut() {
+        let previous = notice.words().to_owned();
+        notice.translate(shell.words);
+        if shell.notice.as_deref() == Some(previous.as_str()) {
+            shell.notice = Some(notice.words().to_owned());
+        }
+    }
+    if let Some(notice) = shell.areas.pair.success_notice.as_mut() {
+        let previous = notice.words().to_owned();
+        match notice.translate(shell.words) {
+            Ok(()) if shell.notice.as_deref() == Some(previous.as_str()) => {
+                shell.notice = Some(notice.words().to_owned());
+                if let Some((text, _address)) = shell.notice_detail.as_mut()
+                    && *text == previous
+                {
+                    notice.words().clone_into(text);
+                }
+            }
+            Ok(()) => {}
+            Err(error) => tracing::error!(%error, "the paired status could not change language"),
+        }
+    }
 }
 
 impl Shell {
@@ -114,12 +158,10 @@ impl Shell {
                 pair.name_problem = None;
                 // The link is held only as the offer, not left on screen.
                 pair.link.clear(window, cx);
-                let name = default_name(&self.book_names());
-                self.areas.pair.name.set_text(&name, window, cx);
-                self.areas.pair.prefilled = Some(name);
+                self.areas.pair.name.clear(window, cx);
                 self.areas.pair.name.focus(window, cx);
             }
-            Err(error) => self.areas.pair.link_error = Some(error.to_string()),
+            Err(error) => self.areas.pair.link_error = Some(LinkProblem::from(&error)),
         }
         cx.notify();
     }
@@ -130,19 +172,26 @@ impl Shell {
             return;
         }
         let Some(offer) = pair.offer.clone() else {
-            pair.link_error = Some(self.t.paste_first.to_owned());
+            pair.link_error = Some(LinkProblem::Missing);
             cx.notify();
             return;
         };
-        if let Some(problem) = name_problem(&name, &self.book_names()) {
-            self.areas.pair.name_problem = Some(problem);
-            cx.notify();
-            return;
-        }
+        // Empty uses the machine's own valid, free book name when it answers;
+        // otherwise the app supplies a free fallback. Typed names stay typed.
+        let prefer_node_name = name.trim().is_empty();
+        let name = if prefer_node_name {
+            default_name(&self.book_names())
+        } else {
+            if let Some(problem) = name_problem(&name, &self.book_names()) {
+                self.areas.pair.name_problem = Some(problem);
+                cx.notify();
+                return;
+            }
+            name
+        };
         let pair = &mut self.areas.pair;
         pair.busy = true;
         pair.pair_error = None;
-        let prefer_node_name = pair.prefilled.as_deref() == Some(name.trim());
         self.command(Command::Pair {
             offer,
             name,
@@ -182,9 +231,15 @@ impl Shell {
         let pair = &mut self.areas.pair;
         pair.busy = false;
         pair.offer = None;
-        let notice = self.t.paired(node, via);
-        self.notice_detail = Some((notice.clone(), address));
-        self.notice = Some(notice);
+        match PairedNotice::new(node, via, self.words) {
+            Ok(notice) => {
+                let text = notice.words().to_owned();
+                pair.success_notice = Some(notice);
+                self.notice_detail = Some((text.clone(), address));
+                self.notice = Some(text);
+            }
+            Err(error) => tracing::error!(%error, "the paired status could not be formatted"),
+        }
         self.route_to(Route::Draft);
         self.settle_draft();
         cx.notify();
@@ -194,241 +249,18 @@ impl Shell {
     /// (never the file's text: it may hold a token) in the frame's foot,
     /// and beside the pairing form when a pairing was under way.
     pub(crate) fn book_unreadable(&mut self, fault: &vessel_app_view::files::FileFault) {
-        let words = self.t.lang.machines_unreadable(fault);
+        let failure = PreparedFailure::new(PairProblem::Book(fault.clone()), self.words);
+        let words = failure.words().to_owned();
+        self.areas.pair.book_notice = Some(failure);
         if self.areas.pair.busy {
-            self.pair_failed(words.clone());
+            self.pair_failed(PairProblem::Book(fault.clone()));
         }
         self.notice = Some(words);
     }
 
-    pub(crate) fn pair_failed(&mut self, why: String) {
+    pub(crate) fn pair_failed(&mut self, why: PairProblem) {
         let pair = &mut self.areas.pair;
         pair.busy = false;
-        pair.pair_error = Some(why);
+        pair.pair_error = Some(PreparedFailure::new(why, self.words));
     }
-}
-
-pub(crate) fn render(
-    shell: &Shell,
-    tokens: &Tokens,
-    window: &mut Window,
-    cx: &mut Context<'_, Shell>,
-) -> Div {
-    // Paseo pairs in a modal over the screen it was asked from: here the
-    // new chat, where pairing leads.
-    let narrow = crate::areas::draft::compact(window);
-    let modal = match &shell.areas.pair.offer {
-        None => link_step(shell, tokens, window, narrow, cx),
-        Some(offer) => confirm_step(shell, offer, tokens, window, narrow, cx),
-    };
-    crate::areas::draft::render(shell, tokens, window, cx).child(modal)
-}
-
-/// The first step, Paseo's paste-link modal: what to paste, the field,
-/// why it is a secret, Cancel and Pair.
-fn link_step(
-    shell: &Shell,
-    tokens: &Tokens,
-    window: &Window,
-    narrow: bool,
-    cx: &mut Context<'_, Shell>,
-) -> AnyElement {
-    let words = shell.t.lang.pairing();
-    let pair = &shell.areas.pair;
-    let neutral = tokens.neutral;
-    let body = div()
-        .flex()
-        .flex_col()
-        .gap(px(16.0))
-        .child(
-            div()
-                .type_(Type::Body)
-                .text_color(neutral.foreground_muted)
-                .child(words.helper),
-        )
-        .child(
-            div()
-                .flex()
-                .flex_col()
-                .gap(px(8.0))
-                .child(field_label(words.label, tokens))
-                .child(pair.link.element(tokens, narrow, cx))
-                .children(pair.link_error.clone().map(|error| beside(error, tokens))),
-        )
-        .child(
-            div()
-                .type_(Type::Meta)
-                .text_color(neutral.foreground_muted)
-                .child(words.security_warning),
-        )
-        .child(actions(
-            words.cancel,
-            button("pair-link", words.pair, true, tokens).on_click(cx.listener(
-                |this, _event, window, cx| {
-                    let text = this.areas.pair.link.text(cx);
-                    this.read_offer(&text, window, cx);
-                },
-            )),
-            tokens,
-            cx,
-        ));
-    modal(shell, words.title, body, tokens, window, narrow, cx)
-}
-
-/// The second step, Paseo's host confirmation: what connecting allows, the
-/// host, its key's fingerprint (the machine printed the same with the
-/// link) and its relay in a settings card; then the name the book will
-/// call it (Vessel's), Cancel and Connect.
-fn confirm_step(
-    shell: &Shell,
-    offer: &Offer,
-    tokens: &Tokens,
-    window: &Window,
-    narrow: bool,
-    cx: &mut Context<'_, Shell>,
-) -> AnyElement {
-    let t = shell.t;
-    let words = t.lang.pairing();
-    let pair = &shell.areas.pair;
-    let neutral = tokens.neutral;
-    let card = settings::card(tokens)
-        .child(settings::row(
-            words.host,
-            Some(offer.node.clone().into()),
-            None,
-            true,
-            tokens,
-        ))
-        .child(settings::row(
-            words.fingerprint,
-            Some(offer.key.clone().into()),
-            None,
-            false,
-            tokens,
-        ))
-        .child(settings::row(
-            words.relay,
-            Some(offer.routes.join(", ").into()),
-            None,
-            false,
-            tokens,
-        ));
-    let body = div()
-        .flex()
-        .flex_col()
-        .gap(px(16.0))
-        .child(
-            div()
-                .type_(Type::Body)
-                .text_color(neutral.foreground_muted)
-                .child(words.confirm_description),
-        )
-        .child(card)
-        .child(
-            div()
-                .flex()
-                .flex_col()
-                .gap(px(8.0))
-                .child(field_label(t.name_label, tokens))
-                .child(pair.name.element(tokens, narrow, cx))
-                .child(match pair.name_problem {
-                    Some(problem) => beside(problem_words(problem, shell).to_owned(), tokens),
-                    None => div()
-                        .type_(Type::Meta)
-                        .text_color(neutral.foreground_muted)
-                        .child(t.name_hint),
-                }),
-        )
-        .children(pair.pair_error.clone().map(|error| beside(error, tokens)))
-        .child(actions(
-            words.cancel,
-            button(
-                "pair-connect",
-                if pair.busy {
-                    words.pairing
-                } else {
-                    words.connect
-                },
-                true,
-                tokens,
-            )
-            .on_click(cx.listener(|this, _event, _window, cx| this.pair_from_field(cx))),
-            tokens,
-            cx,
-        ));
-    modal(shell, words.confirm_title, body, tokens, window, narrow, cx)
-}
-
-/// The modal (the kit's dialog: Paseo's adaptive modal sheet).
-fn modal(
-    shell: &Shell,
-    title: &'static str,
-    body: Div,
-    tokens: &Tokens,
-    window: &Window,
-    narrow: bool,
-    cx: &mut Context<'_, Shell>,
-) -> AnyElement {
-    dialog(
-        &shell.areas.pair.dialog,
-        DialogContent {
-            title: title.into(),
-            body: body.into_any_element(),
-            footer: Vec::new(),
-            size: DialogSize::Normal,
-        },
-        tokens,
-        window,
-        narrow,
-        |shell: &mut Shell, window, cx| shell.close_pairing(window, cx),
-        cx,
-    )
-}
-
-/// A field's label (Paseo's: 14, medium, muted).
-fn field_label(text: &'static str, tokens: &Tokens) -> Div {
-    div()
-        .type_(Type::Label)
-        .text_color(tokens.neutral.foreground_muted)
-        .child(text)
-}
-
-/// Cancel and the step's own button, side by side and as wide (Paseo's
-/// `actions`: 12 between, 8 above).
-fn actions(
-    cancel: &'static str,
-    go: vessel_app_kit::ui::Stateful<Div>,
-    tokens: &Tokens,
-    cx: &mut Context<'_, Shell>,
-) -> Div {
-    div()
-        .flex()
-        .flex_row()
-        .gap(px(12.0))
-        .mt(px(8.0))
-        .child(
-            button("pair-cancel", cancel, false, tokens)
-                .flex_1()
-                .on_click(cx.listener(|this, _event, window, cx| this.close_pairing(window, cx))),
-        )
-        .child(go.flex_1())
-}
-
-const fn problem_words(problem: NameProblem, shell: &Shell) -> &'static str {
-    let t = shell.t;
-    match problem {
-        NameProblem::Empty => t.name_empty,
-        NameProblem::LooksLikeKey => t.name_is_key,
-        NameProblem::LooksLikeLink => t.name_is_link,
-        NameProblem::Invalid => t.name_invalid,
-        NameProblem::Taken => t.name_taken,
-    }
-}
-
-/// An error, beside the control it is about (Paseo's: 14, destructive).
-fn beside(text: String, tokens: &Tokens) -> Div {
-    div()
-        .type_(Type::Body)
-        .text_color(tokens.neutral.destructive)
-        .child(text)
 }

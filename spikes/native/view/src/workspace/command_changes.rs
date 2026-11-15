@@ -58,6 +58,11 @@ impl<'a> Listed<'a> {
     #[must_use]
     pub fn of(commands: &'a ProjectCommands) -> Option<Self> {
         match commands {
+            // Every field named on purpose, no `..` (unlike the other wire
+            // patterns): a person approves this set by its digest, so a
+            // field the node adds (terminals, say) must break the build
+            // here until the screen shows it or refuses it by type.
+            // Ignoring it would approve commands the screen never showed.
             ProjectCommands::Listed {
                 setup,
                 teardown,

@@ -58,6 +58,8 @@ use gpui::prelude::*;
 use gpui::{AnyElement, App, Context, Entity, Focusable as _, Window, div, px};
 use gpui_base::input::{Input, InputEditorStyle, InputEvent, InputState, Textarea, TextareaState};
 
+pub mod composer_hooks;
+
 use crate::fonts::{self, Type};
 use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
@@ -75,6 +77,22 @@ enum Kind {
     Line(Entity<InputState>),
     /// Lines that grow (the composer).
     Lines(Entity<TextareaState>, MultilineStyle),
+}
+
+/// A field's text engine, held weakly for [`TextField::focused_composing`].
+enum Known {
+    Line(gpui::WeakEntity<InputState>),
+    Lines(gpui::WeakEntity<TextareaState>),
+}
+
+thread_local! {
+    /// Every field the kit made on this thread (GPUI's main thread), live
+    /// or not yet pruned.
+    static KNOWN: std::cell::RefCell<Vec<Known>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
+fn register(field: Known) {
+    KNOWN.with(|known| known.borrow_mut().push(field));
 }
 
 /// A multiline editor's shell; both presentations share one text engine.
@@ -231,6 +249,7 @@ impl TextField {
             window,
             cx,
         );
+        register(Known::Lines(state.downgrade()));
         Self {
             kind: Kind::Lines(state, style),
             focused,
@@ -266,6 +285,7 @@ impl TextField {
             window,
             cx,
         );
+        register(Known::Line(state.downgrade()));
         Self {
             kind: Kind::Line(state),
             focused,
@@ -364,6 +384,76 @@ impl TextField {
                 state.marked_text_range(window, cx).is_some()
             }),
         }
+    }
+
+    /// Whether this field has the keys with its caret at the very start and
+    /// nothing selected (track S2's Alt+Up, Paseo's edit-the-last-queued
+    /// prompt, acts only there, so the key still moves the caret anywhere
+    /// else). A field without the keys answers no.
+    pub fn at_start(&self, window: &Window, cx: &App) -> bool {
+        if !self.focus_handle(cx).is_focused(window) {
+            return false;
+        }
+        let range = match &self.kind {
+            Kind::Line(state) => state.read(cx).selected_range(),
+            Kind::Lines(state, _) => state.read(cx).selected_range(),
+        };
+        range.start == 0 && range.end == 0
+    }
+
+    /// Whether any kit text field in this window has the keys and an input
+    /// method composing in it: what a window-wide shortcut listener asks
+    /// before acting on a key (track S2's registry), since the fields are
+    /// private to the areas that own them.
+    ///
+    /// [Decision Log]
+    /// - Purpose: S2's shortcuts must leave keys to an input method in
+    ///   every field, not only the ones S2 knows about (the pairing form,
+    ///   a conversation's find, queue and rename, Devices, Projects, and
+    ///   whatever G1 and G3 add).
+    /// - Constraint: those fields are private to their areas; a list of
+    ///   them in S2's code would miss the next one.
+    /// - Choice: every field the kit makes registers a weak handle to its
+    ///   text engine (one per field, thread-local: GPUI's entities live on
+    ///   the main thread); this asks each live one, dropping the dead.
+    ///   Only the focused field counts, as in [`Self::composing`].
+    /// - Cost: one weak handle per field ever made, pruned here; a field
+    ///   made outside the kit (none today) is not seen.
+    pub fn focused_composing(window: &mut Window, cx: &mut App) -> bool {
+        use gpui::EntityInputHandler as _;
+
+        let known = KNOWN.with(|known| std::mem::take(&mut *known.borrow_mut()));
+        let mut alive = Vec::with_capacity(known.len());
+        let mut composing = false;
+        for field in known {
+            let marked = match &field {
+                Known::Line(weak) => weak.upgrade().map(|state| {
+                    !composing
+                        && state.read(cx).focus_handle(cx).is_focused(window)
+                        && state.update(cx, |state, cx| {
+                            state.marked_text_range(window, cx).is_some()
+                        })
+                }),
+                Known::Lines(weak) => weak.upgrade().map(|state| {
+                    !composing
+                        && state.read(cx).focus_handle(cx).is_focused(window)
+                        && state.update(cx, |state, cx| {
+                            state.marked_text_range(window, cx).is_some()
+                        })
+                }),
+            };
+            if let Some(marked) = marked {
+                composing |= marked;
+                alive.push(field);
+            }
+        }
+        KNOWN.with(|known| {
+            // Fields made while asking (none can be, but keep them).
+            let mut known = known.borrow_mut();
+            alive.append(&mut known);
+            *known = alive;
+        });
+        composing
     }
 
     /// Give it the keys.
@@ -683,10 +773,25 @@ mod composing_tests {
                 mark(other, "ㅎ", window, cx);
                 assert!(!other.composing(window, cx), "the other field has no keys");
                 assert!(!focused.composing(window, cx), "the other's marked text");
+                assert!(
+                    !TextField::focused_composing(window, cx),
+                    "only the other field is marked"
+                );
                 mark(focused, "하", window, cx);
                 assert!(focused.composing(window, cx), "a syllable in progress");
+                assert!(
+                    TextField::focused_composing(window, cx),
+                    "the window's focused field"
+                );
                 unmark(focused, window, cx);
                 assert!(!focused.composing(window, cx), "committed");
+                assert!(!TextField::focused_composing(window, cx), "committed");
+                // The caret after the committed syllable is not at the
+                // start; emptied, it is, and only for the field with keys.
+                assert!(!focused.at_start(window, cx), "after 하");
+                focused.clear(window, cx);
+                assert!(focused.at_start(window, cx), "empty, focused");
+                assert!(!other.at_start(window, cx), "no keys");
                 unmark(other, window, cx);
             }
         });
