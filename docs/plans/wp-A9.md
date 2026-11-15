@@ -660,3 +660,22 @@ is byte-identical to81. Runtime81 does not become an exact f0d3 whole-gate
 claim. Final package integration, modern provider RPC/binding and canonical
 queued-delivery guards remain prerequisites. No final A9 gate or new consumer
 capture matrix has been run.
+
+
+## Base9 and resume boundary
+
+Merged the announced green db42d9c5 base as a779b1eb0 after all own checks
+finished. Conflicts were only README append/spacing and the view root's adjacent
+alphabetical/attention registrations; both modules and all documentation were
+preserved. The shared SearchField and current canonical field/glyph/picker
+union remain the lead's, not another area implementation. No new glyph/control
+is added. The base's1510/0/2 is not this combined branch's gate. The reported
+f0d3/81 narrow evidence belongs to the earlier base and is not relabelled as
+base9 integration proof. A combined narrow is owed before implementation resumes.
+
+Coordinator accepted A9 as blocked/unfinished on the canonical W22 provider
+handoff and actual shared queued-delivery producer. N3 confirmed full expanded
+ADR0076's contract/document pass, but no assigned/callable A10 implementation
+exists either. The separate wp-A10.md records only its app contract/dependency
+audit; neither package is marked built/passed. No final whole gate or capture
+family is spent while these required producers are unavailable.

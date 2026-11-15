@@ -147,7 +147,8 @@ Thus the domain does not require W22's modern snapshot, but every real queued
 consumer still depends on the shared delivery producer, and the N3
 implementation itself has no assigned/callable handoff. Pure implementation
 against canonical DTOs is also unavailable on base9; no shadow types or moving
-node carrier are added. Stop at this reviewed-contract/documentation boundary.
+node carrier are added. Stop at this documentation boundary based on the reviewed node ADR; the app
+plan itself is not an implementation approval.
 No profile service call, controller, editor, marker or draft/live mutation has
 been enabled. A9 and A10 remain unfinished; no whole package gate, captures or
 feature approval follows from this document.
