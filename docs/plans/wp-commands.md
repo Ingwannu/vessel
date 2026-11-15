@@ -669,3 +669,13 @@ additional delivery guard/export, follow and queue modules retain their literal
 cfg(test) staging attributes. F4 activates none of them and gains no live
 resident/follow/connection delivery authority from this merge. The announced
 next node-only base8 remains under gate and is not consumed yet.
+
+Exact a67511993a6a85757bba60ba12934cb8649bc18d combined strict Clippy is GREEN:
+wp-commands-narrow-20261115T124801Z-a6751199, all targets of View/Kit/Link/App,
+-D warnings, native-fonts0/native-cargo0. The same-source actual App/Kit test
+run124814 remains in progress. This source predates the later whitespace,
+canonical FileQuery, S2 menu and official d18/c526 union, so none of those later
+changes inherit this green result. A control-only patch/byte manifest for the
+existing composition extraction is recorded under the package evidence folder;
+consumers retain W4 FieldId and W13/K callback factories instead of copying the
+older whole field file. No standalone control gate or V4 acceptance is claimed.
