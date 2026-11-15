@@ -81,7 +81,7 @@ impl std::fmt::Debug for SourceError {
     }
 }
 
-/// Complete current bodies, with their actual session rather than a fake InboxKey.
+/// Complete current bodies, with their actual session rather than a fake `InboxKey`.
 #[derive(Clone, PartialEq, Eq)]
 pub(crate) enum Ready {
     Permission {

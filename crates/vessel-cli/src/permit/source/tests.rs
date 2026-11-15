@@ -77,7 +77,7 @@ fn question() -> Question {
 }
 fn held(permissions: Vec<PermissionRequest>, questions: Vec<Question>) -> Conversation {
     Conversation {
-        queue: Default::default(),
+        queue: vessel_proto::PromptQueue::default(),
         commands: Vec::new(),
         usage: None,
         permissions,
