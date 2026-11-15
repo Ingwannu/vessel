@@ -134,9 +134,6 @@ pub(crate) fn request_confirmed_quit(confirmation: Confirmation, cx: &mut App) {
 }
 
 pub(crate) fn begin_finalization(cx: &mut App) -> bool {
-    if !crate::quit::admit(cx) {
-        return false;
-    }
     if !cx.has_global::<Managed>() {
         return true;
     }
@@ -162,6 +159,11 @@ fn quit(after: Option<AfterQuit>, confirmation: Option<Confirmation>, cx: &mut A
     // the canonical actor first so the quit policy cannot read an older window.
     let before = crate::desktop::flush_preferences(cx);
     cx.spawn(async move |cx| {
+        // App-level admission runs after a menu/button's Shell borrow ends.
+        if !cx.update(crate::quit::admit) {
+            cx.update(end_finalization);
+            return;
+        }
         if let Err(error) = before.await {
             cx.update(|cx| failed(cx, &error, None));
             return;

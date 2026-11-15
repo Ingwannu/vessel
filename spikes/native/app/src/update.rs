@@ -287,6 +287,10 @@ impl Shell {
         );
         let flush = crate::desktop::flush_preferences(cx);
         cx.spawn(async move |this, cx| {
+            if !cx.update(crate::quit::admit) {
+                cx.update(crate::local_node::end_finalization);
+                return;
+            }
             let result = finalize.await;
             if let Err(error) = result {
                 tracing::warn!(%error, "update restart preserved the owned local node");
@@ -307,7 +311,9 @@ impl Shell {
                 });
                 return;
             }
-            let _closed = this.update(cx, |shell, cx| {
+            cx.update(|cx| {
+                // No Shell entity is mutably borrowed during the all-window
+                // guard, and there is no await before spawning the update.
                 if !crate::quit::admit(cx) {
                     crate::local_node::end_finalization(cx);
                     return;
@@ -322,8 +328,10 @@ impl Shell {
                     Err(ApplyError::Restart(error)) => {
                         crate::local_node::end_finalization(cx);
                         tracing::warn!(error = %vessel_app_updater::chain(&error), "the updated app did not start");
-                        shell.notice = Some(shell.updates.restart_failed(shell.words).to_string());
-                        cx.notify();
+                        let _closed = this.update(cx, |shell, cx| {
+                            shell.notice = Some(shell.updates.restart_failed(shell.words).to_string());
+                            cx.notify();
+                        });
                     }
                 }
             });

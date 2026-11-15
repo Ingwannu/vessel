@@ -228,3 +228,9 @@ The desktop-shell owner must call it before removing that particular window;
 last non-macOS close still uses whole-app request_quit. The guard state test
 covers Dirty/Pending/Failed refusal and Ready admission without preference edits;
 it does not claim C5's buffer mapping or OS hard-exit recovery is implemented.
+
+All-window admission runs in an App-level update after the initiating Shell
+button/menu borrow has ended. Re-reading that same entity during its mutable
+Context callback would violate GPUI's entity borrowing. Final update execution
+also performs its guard outside any Shell borrow and does not await before
+updater.restart; only a failed restart then updates the originating Shell notice.
