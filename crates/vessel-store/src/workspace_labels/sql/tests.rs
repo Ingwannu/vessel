@@ -177,6 +177,10 @@ fn host_color_and_spelling_win_and_unknown_unassignment_creates_nothing() {
     })
     .unwrap();
     assert!(absent.catalog.is_none());
+    assert_eq!(
+        absent.assignments,
+        crate::workspace_labels::plans::AssignmentChange::Unchanged
+    );
     assert!(catalog(&connection).unwrap().is_empty());
     let _created = committed(&mut connection, |db| {
         assign(
@@ -198,6 +202,10 @@ fn host_color_and_spelling_win_and_unknown_unassignment_creates_nothing() {
     assert_eq!(repeated.result.label.name.as_str(), "Ready");
     assert_eq!(repeated.result.labels, vec!["Ready".parse().unwrap()]);
     assert!(repeated.catalog.is_none());
+    assert_eq!(
+        repeated.assignments,
+        crate::workspace_labels::plans::AssignmentChange::Unchanged
+    );
     assert_eq!(revision(&connection), 1);
 }
 
@@ -230,6 +238,10 @@ fn atomic_rename_updates_every_assignment_including_archived_and_recolor_is_cata
     })
     .unwrap();
     assert_eq!(renamed.result.affected.get(), 2);
+    assert_eq!(
+        renamed.assignments,
+        crate::workspace_labels::plans::AssignmentChange::Changed
+    );
     for workspace in [a, b] {
         assert_eq!(
             names(&connection, workspace).unwrap(),
@@ -250,6 +262,10 @@ fn atomic_rename_updates_every_assignment_including_archived_and_recolor_is_cata
     })
     .unwrap();
     assert_eq!(recolored.result.affected.get(), 0);
+    assert_eq!(
+        recolored.assignments,
+        crate::workspace_labels::plans::AssignmentChange::Unchanged
+    );
     assert_eq!(revision(&connection), before);
     assert_eq!(
         catalog(&connection).unwrap().first().unwrap().color,
@@ -348,6 +364,10 @@ fn delete_recomputes_advisory_count_removes_assignments_and_is_idempotent() {
     };
     let removed = committed(&mut connection, |db| delete(db, &registry, &request)).unwrap();
     assert_eq!(removed.result.affected.get(), 2);
+    assert_eq!(
+        removed.assignments,
+        crate::workspace_labels::plans::AssignmentChange::Changed
+    );
     assert!(removed.catalog.is_some());
     assert!(names(&connection, a).unwrap().is_empty());
     assert!(names(&connection, b).unwrap().is_empty());

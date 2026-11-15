@@ -63,6 +63,10 @@ writer transaction. Archive claims must precede teardown; archived/missing
 workspaces refuse assignment. Mutations affecting assignments also invoke
 `registry::bump_revision(connection)` in that transaction. Registry snapshots
 join assignments from this owner, never maintain a second descriptor store.
+The SQL mutation result also carries the existing typed assignment-change
+fact. The real writer must map it to the registry's after-commit watch effect;
+incrementing a durable revision alone would leave existing observers asleep.
+Recolor-only and idempotent mutations do not invalidate workspace assignments.
 
 Planned method rows (not registered by this document):
 

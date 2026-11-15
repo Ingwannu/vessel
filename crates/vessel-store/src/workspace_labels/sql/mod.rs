@@ -27,6 +27,9 @@ pub(super) trait Registry {
 pub(super) struct Mutation<T> {
     pub(super) result: T,
     pub(super) catalog: Option<CatalogDelta>,
+    /// The real writer maps this to registry watch invalidation after commit.
+    /// Incrementing its durable revision alone does not wake subscribers.
+    pub(super) assignments: super::plans::AssignmentChange,
 }
 
 /// Appended to the shared migration list only after the parent registry lands.

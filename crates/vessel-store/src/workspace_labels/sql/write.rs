@@ -58,6 +58,7 @@ pub(in crate::workspace_labels) fn assign(
             labels: plan.names,
         },
         catalog: plan.catalog,
+        assignments: plan.assignment,
     })
 }
 
@@ -111,6 +112,7 @@ pub(in crate::workspace_labels) fn update(
             affected,
         },
         catalog: plan.catalog,
+        assignments: assignment_change(affected),
     })
 }
 
@@ -138,6 +140,7 @@ pub(in crate::workspace_labels) fn delete(
                 affected: LabelCount::default(),
             },
             catalog: None,
+            assignments: plans::AssignmentChange::Unchanged,
         });
     };
     let affected = affected(connection, &definition.name)?;
@@ -153,6 +156,7 @@ pub(in crate::workspace_labels) fn delete(
         catalog: Some(CatalogDelta::Remove {
             name: definition.name.clone(),
         }),
+        assignments: assignment_change(affected),
     })
 }
 
@@ -165,4 +169,12 @@ fn affected(connection: &Connection, name: &LabelName) -> Result<LabelCount, Sto
     u32::try_from(count)
         .map(LabelCount::new)
         .map_err(StoreError::WorkspaceLabelCount)
+}
+
+fn assignment_change(affected: LabelCount) -> plans::AssignmentChange {
+    if affected.get() == 0 {
+        plans::AssignmentChange::Unchanged
+    } else {
+        plans::AssignmentChange::Changed
+    }
 }
