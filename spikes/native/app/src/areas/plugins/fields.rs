@@ -5,8 +5,7 @@ use vessel_app_kit::{
     ui::{Context, IntoElement, ParentElement as _, Styled as _, Window, div, px},
 };
 use vessel_proto::plugins::{
-    ButtonBehavior, Caption, ContentText, ContributionId, ControlContent, InvalidPluginValue,
-    MenuEntry, Surface,
+    Caption, ContentText, ContributionId, ControlContent, InvalidPluginValue, Surface,
 };
 
 #[derive(Clone)]
@@ -99,26 +98,12 @@ pub(super) fn collect(surface: &Surface, fields: &mut Vec<(ContributionId, Capti
             ControlContent::Stack { surface }
             | ControlContent::Row { surface }
             | ControlContent::Section { surface, .. } => collect(surface, fields),
-            ControlContent::Button { button } => collect_behavior(&button.behavior, fields),
+            ControlContent::Button { .. } => {}
             ControlContent::Text { .. }
             | ControlContent::Markdown { .. }
             | ControlContent::Choice { .. }
             | ControlContent::Toggle { .. }
             | ControlContent::Status { .. } => {}
-        }
-    }
-}
-fn collect_behavior(behavior: &ButtonBehavior, fields: &mut Vec<(ContributionId, Caption)>) {
-    match behavior {
-        ButtonBehavior::Action { .. } => {}
-        ButtonBehavior::Popover { surface } => collect(surface, fields),
-        ButtonBehavior::Menu { items } => {
-            for item in items {
-                match item {
-                    MenuEntry::Separator { .. } => {}
-                    MenuEntry::Item { behavior, .. } => collect_behavior(behavior, fields),
-                }
-            }
         }
     }
 }

@@ -1,8 +1,8 @@
-use super::{SurfaceEvent, SurfaceView, draw};
+use super::{SurfaceEvent, SurfaceView, draw, popovers::Trigger};
 use std::rc::Rc;
 use vessel_app_kit::{
     MenuHandlers, MenuItem, Tokens,
-    ui::{AnyElement, Context, Pixels, Point, Window},
+    ui::{AnyElement, Context, Window},
 };
 use vessel_app_view::plugins::SurfaceProblem;
 use vessel_proto::plugins::{Availability, ButtonBehavior, ContributionId, MenuEntry};
@@ -11,17 +11,18 @@ pub(super) struct Shown {
     control: ContributionId,
     path: Vec<ContributionId>,
     entries: Vec<MenuEntry>,
-    at: Point<Pixels>,
+    trigger: Trigger,
 }
 impl SurfaceView {
     pub(super) fn press(
         &mut self,
         control: &ContributionId,
         behavior: &ButtonBehavior,
-        at: Point<Pixels>,
+        trigger: Trigger,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        self.pending_popup = None;
         if let Err(problem) = self.with_registry(|registry| self.state.check_current(registry)) {
             cx.emit(SurfaceEvent::Rejected(problem));
             return;
@@ -36,13 +37,13 @@ impl SurfaceView {
                     control: control.clone(),
                     path: vec![],
                     entries: items.clone(),
-                    at,
+                    trigger,
                 });
-                self.menu.open(at, window, cx);
+                self.menu.open(trigger.at, window, cx);
                 cx.notify();
             }
             ButtonBehavior::Popover { .. } => {
-                cx.emit(SurfaceEvent::Rejected(SurfaceProblem::Value));
+                self.queue_popover(control.clone(), vec![], trigger.bounds, window, cx);
             }
         }
     }
@@ -86,14 +87,16 @@ impl SurfaceView {
                     control: shown.control.clone(),
                     path,
                     entries: items.clone(),
-                    at: shown.at,
+                    trigger: shown.trigger,
                 });
                 if let Some(shown) = &self.shown_menu {
-                    self.menu.open(shown.at, window, cx);
+                    self.menu.open(shown.trigger.at, window, cx);
                 }
             }
             ButtonBehavior::Popover { .. } => {
-                cx.emit(SurfaceEvent::Rejected(SurfaceProblem::Value));
+                let control = shown.control.clone();
+                let anchor = shown.trigger.bounds;
+                self.queue_popover(control, path, anchor, window, cx);
             }
         }
         cx.notify();
@@ -111,14 +114,13 @@ fn rows(entries: &[MenuEntry]) -> (Vec<MenuItem>, Vec<ContributionId>) {
                 id,
                 title,
                 availability,
-                behavior,
+                behavior: _,
             } => {
                 if *availability == Availability::Hidden {
                     continue;
                 }
                 let mut row = MenuItem::new(title.as_str().to_owned());
-                row.disabled = *availability != Availability::Enabled
-                    || matches!(behavior, ButtonBehavior::Popover { .. });
+                row.disabled = *availability != Availability::Enabled;
                 row.starts_group = group;
                 group = false;
                 items.push(row);

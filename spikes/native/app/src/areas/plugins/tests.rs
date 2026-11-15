@@ -1,4 +1,5 @@
 use super::*;
+mod popover;
 use gpui::TestAppContext;
 use vessel_app_kit::{Scheme, SchemeChoice};
 use vessel_app_view::plugins::{HostSupport, SnapshotApplied, Submission};
@@ -126,7 +127,16 @@ fn presented_button_dispatch_rechecks_offline_owner_before_any_request_event(
             panic!("button");
         };
         let behavior = button.behavior.clone();
-        view.press(&control, &behavior, press, window, cx);
+        view.press(
+            &control,
+            &behavior,
+            popovers::Trigger {
+                at: press,
+                bounds: None,
+            },
+            window,
+            cx,
+        );
     });
     cx.run_until_parked();
     assert!(captured.borrow().iter().any(|event| matches!(
@@ -141,16 +151,6 @@ fn presented_button_dispatch_rechecks_offline_owner_before_any_request_event(
     );
 }
 fn fixture_with_markdown(markdown: Option<&str>) -> (Rc<RefCell<Registry>>, ContributionAddress) {
-    let installation = PluginAddress {
-        node: NodeId::random(),
-        plugin: "fixture".parse().expect("id"),
-        generation: RuntimeGeneration::random(),
-    };
-    let address = ContributionAddress {
-        installation: installation.clone(),
-        kind: ContributionKind::Screen,
-        contribution: "home".parse().expect("id"),
-    };
     let mut controls = vec![
         Control {
             id: "text".parse().expect("id"),
@@ -192,6 +192,19 @@ fn fixture_with_markdown(markdown: Option<&str>) -> (Rc<RefCell<Registry>>, Cont
             },
         );
     }
+    fixture_controls(controls)
+}
+fn fixture_controls(controls: Vec<Control>) -> (Rc<RefCell<Registry>>, ContributionAddress) {
+    let installation = PluginAddress {
+        node: NodeId::random(),
+        plugin: "fixture".parse().expect("id"),
+        generation: RuntimeGeneration::random(),
+    };
+    let address = ContributionAddress {
+        installation: installation.clone(),
+        kind: ContributionKind::Screen,
+        contribution: "home".parse().expect("id"),
+    };
     let document = ClientDocument::new(
         vec!["act".parse().expect("method")],
         vec![Contribution {

@@ -1,6 +1,7 @@
 use super::*;
 use crate::plugins::testing::catalog;
 mod origin;
+mod popover;
 use crate::plugins::{HostSupport, Installation, SnapshotApplied};
 use vessel_proto::plugins::{
     Availability, Button, ButtonBehavior, ChoiceOption, ClientDocument, Contribution,

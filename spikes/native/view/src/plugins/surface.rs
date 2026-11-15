@@ -7,8 +7,8 @@ mod tests;
 use super::{Problem, Registry};
 use std::{collections::BTreeMap, fmt, sync::Arc};
 use vessel_proto::plugins::{
-    Action, ClientDocument, ContentText, ContributionAddress, ContributionContent, ContributionId,
-    ControlContent, RpcName, Surface, ToggleState,
+    Action, ButtonBehavior, Caption, ClientDocument, ContentText, ContributionAddress,
+    ContributionContent, ContributionId, ControlContent, RpcName, Surface, ToggleState,
 };
 
 /// Retained edits share the declaration-size budget rather than multiplying
@@ -292,6 +292,34 @@ impl SurfaceState {
             origin: Arc::clone(&self.origin),
             submission: Submission::Action(action),
         })
+    }
+
+    /// Resolve the exact current popup declaration through the same ancestor
+    /// availability and menu-path walker as actions. This is presentation data,
+    /// not a persisted lease, node grant or permission to invoke a helper.
+    /// # Errors
+    /// Refuses unavailable graphs, disabled ancestors and non-popover leaves.
+    pub fn popover(
+        &self,
+        registry: &Registry,
+        id: &ContributionId,
+        menu_path: &[ContributionId],
+    ) -> Result<(&Caption, &Surface), SurfaceProblem> {
+        self.check_current(registry)?;
+        let (control, enabled) = self.control(id)?;
+        if !enabled {
+            return Err(SurfaceProblem::Disabled);
+        }
+        let ControlContent::Button { button } = &control.content else {
+            return Err(SurfaceProblem::Value);
+        };
+        let (title, behavior) = controls::behavior(button, menu_path)?;
+        match behavior {
+            ButtonBehavior::Popover { surface } => Ok((title, surface)),
+            ButtonBehavior::Action { .. } | ButtonBehavior::Menu { .. } => {
+                Err(SurfaceProblem::Value)
+            }
+        }
     }
 
     /// Recheck a retained intention after any queued UI work, without reusing a

@@ -2,7 +2,7 @@
 //! through popover/menu ancestors so hidden nested fields cannot dispatch.
 use super::SurfaceProblem;
 use vessel_proto::plugins::{
-    Action, Availability, Button, ButtonBehavior, ContributionId, Control, ControlContent,
+    Action, Availability, Button, ButtonBehavior, Caption, ContributionId, Control, ControlContent,
     MenuEntry, Surface,
 };
 
@@ -63,10 +63,21 @@ pub(super) fn action<'a>(
     button: &'a Button,
     path: &[ContributionId],
 ) -> Result<&'a Action, SurfaceProblem> {
+    match behavior(button, path)?.1 {
+        ButtonBehavior::Action { action } => Ok(action),
+        ButtonBehavior::Menu { .. } | ButtonBehavior::Popover { .. } => Err(SurfaceProblem::Value),
+    }
+}
+
+pub(super) fn behavior<'a>(
+    button: &'a Button,
+    path: &[ContributionId],
+) -> Result<(&'a Caption, &'a ButtonBehavior), SurfaceProblem> {
     if button.availability != Availability::Enabled {
         return Err(SurfaceProblem::Disabled);
     }
     let mut behavior = &button.behavior;
+    let mut title = &button.title;
     for identity in path {
         let ButtonBehavior::Menu { items } = behavior else {
             return Err(SurfaceProblem::Value);
@@ -82,17 +93,15 @@ pub(super) fn action<'a>(
             MenuEntry::Item {
                 availability,
                 behavior: selected,
-                ..
+                title: selected_title,
             } => {
                 if *availability != Availability::Enabled {
                     return Err(SurfaceProblem::Disabled);
                 }
                 behavior = selected;
+                title = selected_title;
             }
         }
     }
-    match behavior {
-        ButtonBehavior::Action { action } => Ok(action),
-        ButtonBehavior::Menu { .. } | ButtonBehavior::Popover { .. } => Err(SurfaceProblem::Value),
-    }
+    Ok((title, behavior))
 }

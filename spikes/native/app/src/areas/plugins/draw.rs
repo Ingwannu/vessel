@@ -1,6 +1,6 @@
 use super::{SurfaceEvent, SurfaceView};
 use gpui::StatefulInteractiveElement as _;
-use std::sync::Arc;
+use std::{cell::Cell, rc::Rc, sync::Arc};
 use vessel_app_kit::{
     ButtonConfig, ButtonContent, ButtonKind, ButtonState, ControlSizing, Tokens, Type,
     TypeExt as _,
@@ -20,7 +20,15 @@ use vessel_proto::plugins::{
 pub(super) fn identity(view: &SurfaceView, control: &ContributionId) -> ElementId {
     // Includes kind, node and generation, so two hosts/surfaces never share a
     // Markdown/editor cache entry merely because local control IDs agree.
-    ElementId::Name(format!("plugin-{:?}-{}", view.state.address(), control.as_str()).into())
+    ElementId::Name(
+        format!(
+            "plugin-{:?}-{:?}-{}",
+            view.instance,
+            view.state.address(),
+            control.as_str()
+        )
+        .into(),
+    )
 }
 
 pub(super) fn surface(
@@ -257,14 +265,9 @@ fn draw_button(
     }
     let field = control_id.clone();
     let behavior = button.behavior.clone();
-    // Popovers stay unavailable until the opening/context adapter is wired;
-    // no modal substitute or area-owned popup renderer is introduced.
-    let available = look.live
-        && button.availability == Availability::Enabled
-        && !matches!(
-            behavior,
-            vessel_proto::plugins::ButtonBehavior::Popover { .. }
-        );
+    let anchor = Rc::new(Cell::new(None));
+    let measured = Rc::clone(&anchor);
+    let available = look.live && button.availability == Availability::Enabled;
     let element = vessel_app_kit::button_control(
         identity(view, &field),
         ButtonContent::Label(button.title.as_str().to_owned().into()),
@@ -272,13 +275,24 @@ fn draw_button(
         look.tokens,
     )
     .on_click(cx.listener(move |view, event: &ClickEvent, window, cx| {
-        view.press(&field, &behavior, event.position(), window, cx);
+        view.press(
+            &field,
+            &behavior,
+            super::popovers::Trigger {
+                at: event.position(),
+                bounds: measured.get(),
+            },
+            window,
+            cx,
+        );
     }))
     .into_any_element();
     Some(
         div()
             .debug_selector(|| "plugin-surface-button".to_owned())
+            .relative()
             .child(element)
+            .child(vessel_app_kit::picker::anchor_probe(&anchor))
             .into_any_element(),
     )
 }
@@ -298,7 +312,15 @@ fn markdown(
             images: vessel_app_kit::ImagePolicy::RefuseAll,
             on_link: Arc::new(move |link, _event, window, cx| {
                 match link.as_str().parse::<AttachmentUrl>() {
-                    Ok(url) => opener(&url, window, cx),
+                    Ok(url) => {
+                        drop(owner.update(cx, |view, cx| {
+                            match view.with_registry(|registry| view.state.check_current(registry))
+                            {
+                                Ok(()) => opener(&url, window, cx),
+                                Err(problem) => cx.emit(SurfaceEvent::Rejected(problem)),
+                            }
+                        }));
+                    }
                     Err(_untrusted) => {
                         drop(owner.update(cx, |_view, cx| cx.emit(SurfaceEvent::LinkRejected)));
                     }

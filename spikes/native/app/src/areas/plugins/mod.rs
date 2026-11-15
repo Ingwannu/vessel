@@ -5,6 +5,7 @@ mod draw;
 mod fields;
 mod hub;
 mod menus;
+mod popovers;
 #[cfg(test)]
 mod tests;
 
@@ -17,15 +18,16 @@ use std::{
 };
 use vessel_app_kit::{
     MenuState,
+    popover::PopoverState,
     ui::{
-        App, Context, Entity, InteractiveElement as _, IntoElement, ParentElement as _,
-        Styled as _, Subscription, Window, div,
+        App, Context, Entity, FluentBuilder as _, InteractiveElement as _, IntoElement,
+        ParentElement as _, Styled as _, Subscription, Window, div,
     },
 };
 use vessel_app_view::plugins::{
     FieldValue, Problem, Registry, SurfaceProblem, SurfaceRequest, SurfaceState,
 };
-use vessel_proto::plugins::{AttachmentUrl, ContributionAddress, ContributionId};
+use vessel_proto::plugins::{AttachmentUrl, ContributionAddress, ContributionId, Surface};
 
 /// The owner supplies its core opener; tests always inject a recording fake.
 type Opener = Arc<dyn Fn(&AttachmentUrl, &mut Window, &mut App) + Send + Sync>;
@@ -39,6 +41,12 @@ enum SurfaceEvent {
 
 struct SurfaceView {
     state: SurfaceState,
+    body: Surface,
+    inputs: Rc<popovers::InputScope>,
+    instance: gpui::EntityId,
+    popover: PopoverState,
+    shown_popover: Option<popovers::Opening>,
+    pending_popup: Option<Rc<()>>,
     registry: Weak<RefCell<Registry>>,
     fields: BTreeMap<ContributionId, Entity<fields::Field>>,
     subscriptions: Vec<Subscription>,
@@ -59,8 +67,29 @@ impl SurfaceView {
         let borrowed = registry.try_borrow().map_err(|_busy| Problem::Busy)?;
         let state = SurfaceState::new(&borrowed, address)?;
         drop(borrowed);
+        let body = state.surface().clone();
+        Ok(Self::build(
+            registry,
+            state,
+            body,
+            opener,
+            popovers::InputScope::root(),
+            window,
+            cx,
+        ))
+    }
+
+    fn build(
+        registry: &Rc<RefCell<Registry>>,
+        state: SurfaceState,
+        body: Surface,
+        opener: Opener,
+        inputs: Rc<popovers::InputScope>,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> Self {
         let mut field_specs = Vec::new();
-        fields::collect(state.surface(), &mut field_specs);
+        fields::collect(&body, &mut field_specs);
         let mut fields = BTreeMap::new();
         let mut subscriptions = Vec::new();
         for (identity, label) in field_specs {
@@ -74,21 +103,30 @@ impl SurfaceView {
             ));
             let _old = fields.insert(identity, field);
         }
-        Ok(Self {
+        Self {
             state,
+            body,
+            inputs,
+            instance: cx.entity_id(),
+            popover: PopoverState::new(cx),
+            shown_popover: None,
+            pending_popup: None,
             registry: Rc::downgrade(registry),
             fields,
             subscriptions,
             menu: MenuState::new(cx),
             shown_menu: None,
             opener,
-        })
+        }
     }
 
     fn with_registry<T>(
         &self,
         work: impl FnOnce(&Registry) -> Result<T, SurfaceProblem>,
     ) -> Result<T, SurfaceProblem> {
+        if !self.inputs.is_live() {
+            return Err(Problem::Stale.into());
+        }
         let registry = self.registry.upgrade().ok_or(Problem::Stale)?;
         let registry = registry.try_borrow().map_err(|_busy| Problem::Busy)?;
         work(&registry)
@@ -114,10 +152,11 @@ impl SurfaceView {
         };
         // Reusing a control id does not give a removed editor's queued event
         // ownership of its successor. Kit supplies the real retained editor id.
-        if !self
-            .fields
-            .get(identity)
-            .is_some_and(|field| field.read(cx).editor.id() == *source)
+        if !self.inputs.is_live()
+            || !self
+                .fields
+                .get(identity)
+                .is_some_and(|field| field.read(cx).editor.id() == *source)
         {
             cx.emit(SurfaceEvent::Rejected(Problem::Stale.into()));
             return;
@@ -148,6 +187,10 @@ impl SurfaceView {
     }
 
     fn change(&mut self, identity: &ContributionId, value: FieldValue, cx: &mut Context<'_, Self>) {
+        if !self.inputs.is_live() {
+            cx.emit(SurfaceEvent::Rejected(Problem::Stale.into()));
+            return;
+        }
         match self.state.edit(identity, value) {
             Ok(()) => self.submit(identity, cx),
             Err(problem) => cx.emit(SurfaceEvent::Rejected(problem)),
@@ -173,15 +216,27 @@ impl Render for SurfaceView {
         let live = self
             .with_registry(|registry| self.state.check_current(registry))
             .is_ok();
-        let body = draw::surface(self, self.state.surface(), &tokens, live, window, cx);
+        let body = draw::surface(self, &self.body, &tokens, live, window, cx);
         let overlay = menus::overlay(self, &tokens, window, cx);
+        let popover = popovers::overlay(self, &tokens, window, cx);
         div()
             .id("plugin-surface-root")
-            .size_full()
+            .w_full()
+            .when(self.inputs.is_root(), |body| body.size_full())
+            .when(!self.inputs.is_root(), |body| {
+                body.px(vessel_app_kit::ui::px(vessel_app_kit::theme::spacing::S3))
+            })
             .min_w_0()
             .min_h_0()
             .overflow_y_scroll()
             .child(body)
             .children(overlay)
+            .children(popover)
+    }
+}
+
+impl Drop for SurfaceView {
+    fn drop(&mut self) {
+        self.inputs.retire();
     }
 }

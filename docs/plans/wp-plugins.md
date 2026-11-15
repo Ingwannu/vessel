@@ -490,3 +490,49 @@ the intended queued-event boundary observable; changed execution is still owed.
 Existing kit bounds.inset supplies the same click point without duplicating
 pixel arithmetic. Required owned String field callbacks borrow text only at
 the plugin adapter and do not change the kit callback contract.
+
+
+## Native declared popover opening ownership
+
+[Decision Log]
+- Purpose: render native declarative popovers without retaining input authority
+  across close/reopen and without replacing them with area-owned modal UI.
+- Existing assets/constraints: the line includes W19b's V1-reviewed content
+  popover, kit picker anchor_probe, the finite Surface renderer, canonical graph
+  decoder and real kit FieldId callbacks. A UI lease is not a node/context grant.
+- Alternatives: reuse all fields/subscriptions across openings, add a second
+  popup renderer, or instantiate the existing SurfaceView for the actual body.
+- Choice: each opening owns one new body entity and one forwarding subscription.
+  Only currently presented fields are instantiated; nested popup fields wait
+  for their own opening. Fresh entity IDs scope Markdown/control caches too.
+- Why: retiring that owner drops the subscription and invalidates a private
+  input lifetime before kit acknowledges close/focus. Ancestor retirement also
+  reaches a separately retained nested body. No reopen grows a subscription Vec.
+- Cost/impact: popup drafts begin empty on a new opening. Native forms use a
+  fixed named360-point width because this declarative author format has no CSS
+  sizing; kit still owns viewport limits, desktop anchoring and compact sheets.
+  Graph depth/control/document bounds also bound nested body copies. This is a
+  deliberate native author-port policy, not executable React state parity.
+
+The pure resolver selects popup title/body through the SAME menu identity and
+availability walker as action dispatch, after live immutable graph checks. The
+root trigger is measured with kit anchor_probe; missing measurement refuses.
+Menu-to-form opening is deferred beyond the core menu's close/focus handling.
+Only the latest private opening intent may complete; no numeric counter or
+persisted pane lease grants authority. Opening actions, input and forwarded
+requests independently retain existing graph/node/generation checks.
+
+A replaced body is retired before its exact old kit lease is closed. Stale
+close cannot acknowledge a successor's focus. Its captured events cannot be
+forwarded, and a separately retained old body refuses edits/actions and authored
+links through its retired input lifetime. Markdown HTTP(S) validation and
+RefuseAll images remain in the same kit renderer; opener calls now also check
+current input and graph eligibility. Static offline links therefore refuse
+until the owner is live again, preserving the popup lifetime rule consistently.
+
+These source changes remain inside the parent staging gate. Authored pure and
+actual GPUI cases cover menu availability/live resolution, ancestor retirement,
+actual measured-trigger opening, close/reopen with different real editor IDs,
+retained old-body Submit refusal, stale old close, successor real Enter and
+constant root subscription ownership. They are NOT executed proof, retained
+pointer-frame tests, Node authorization, final rendered captures or F6 acceptance.
