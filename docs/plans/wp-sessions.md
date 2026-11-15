@@ -206,3 +206,10 @@ The legacy `started` path retains its previous unbound behavior until W3 cutover
 its later lifecycle actions require reopening. The shared completion body moves
 to the existing session opening sidecar, lowering session.rs's measured ratchet
 to 641. This is the legacy receipt adapter, not a resident or connection manager.
+
+Navigation cancellation defers the accepted dialog-close acknowledgement until
+the next window-dependent settlement, or before another confirmation opens.
+This clears the old weak opener cycle without moving focus away from a newer
+field. A regression switches opener fields between cancelled and new decisions;
+stale dismissal preserves the new dialog, and its own dismissal returns only to
+the new opener. Deferred UI cleanup is distinct from a network mutation ticket.

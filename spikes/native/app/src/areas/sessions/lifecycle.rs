@@ -20,9 +20,14 @@ pub(super) struct State {
     confirming: Lifecycle,
     asking: Option<Prepared>,
     dialog: DialogState,
+    dialog_focus: DialogFocus,
     after: Option<Prepared>,
     ready: Option<Prepared>,
     error: Option<(LifecycleTarget, Problem)>,
+}
+enum DialogFocus {
+    Settled,
+    Return,
 }
 enum Problem {
     Busy,
@@ -49,6 +54,7 @@ impl State {
             confirming: Lifecycle::default(),
             asking: None,
             dialog: DialogState::new(cx),
+            dialog_focus: DialogFocus::Settled,
             after: None,
             ready: None,
             error: None,
@@ -58,7 +64,9 @@ impl State {
         if let Some(ticket) = self.confirming.pending().map(|pending| pending.ticket) {
             let _cancelled = self.confirming.finish(ticket);
         }
-        self.asking = None;
+        if self.asking.take().is_some() {
+            self.dialog_focus = DialogFocus::Return;
+        }
         self.after = None;
         self.ready = None;
     }
@@ -102,6 +110,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        self.settle_lifecycle_dialog(window, cx);
         if self.sessions_lifecycle_busy() {
             return;
         }
@@ -310,6 +319,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        self.settle_lifecycle_dialog(window, cx);
         let Some(ready) = self.areas.sessions.lifecycle.ready.take() else {
             return;
         };
@@ -357,6 +367,13 @@ impl Shell {
             LifecycleAction::Archive | LifecycleAction::Unarchive => {}
         }
         cx.notify();
+    }
+    fn settle_lifecycle_dialog(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        let state = &mut self.areas.sessions.lifecycle;
+        if matches!(state.dialog_focus, DialogFocus::Return) {
+            state.dialog.dismissed(window, cx);
+            state.dialog_focus = DialogFocus::Settled;
+        }
     }
     fn dismiss_session_lifecycle(
         &mut self,

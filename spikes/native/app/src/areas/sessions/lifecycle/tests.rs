@@ -208,3 +208,57 @@ fn unbound_open_cannot_borrow_latest_fleet_identity_for_a_mutation(cx: &mut Test
         ));
     });
 }
+
+#[gpui::test]
+fn navigation_ends_old_focus_cycle_before_a_new_confirmation_opens(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let (_, _, _, pending) = pending_exit(shell);
+        let _cancelled = shell.areas.sessions.lifecycle.running.finish(pending);
+        shell.areas.sessions.lifecycle.after = None;
+        shell.areas.session.composer.focus(window, cx);
+        shell.prepare_session_lifecycle(LifecycleAction::Archive, window, cx);
+        let first = shell
+            .areas
+            .sessions
+            .lifecycle
+            .confirming
+            .pending()
+            .unwrap()
+            .ticket;
+        shell.cancel_session_navigation();
+        shell.areas.draft.composer.focus(window, cx);
+        let new_opener = shell.areas.draft.composer.focus_handle(cx);
+        shell.prepare_session_lifecycle(LifecycleAction::Delete, window, cx);
+        let second = shell
+            .areas
+            .sessions
+            .lifecycle
+            .confirming
+            .pending()
+            .unwrap()
+            .ticket;
+        shell.dismiss_session_lifecycle(first, window, cx);
+        assert!(!new_opener.is_focused(window));
+        shell.dismiss_session_lifecycle(second, window, cx);
+        assert!(new_opener.is_focused(window));
+        assert!(
+            shell
+                .areas
+                .sessions
+                .lifecycle
+                .confirming
+                .pending()
+                .is_none()
+        );
+        assert!(
+            !shell
+                .areas
+                .session
+                .composer
+                .focus_handle(cx)
+                .is_focused(window)
+        );
+    });
+}
