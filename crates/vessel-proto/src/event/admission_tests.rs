@@ -56,7 +56,7 @@ fn metadata_events() -> Vec<(SessionEvent, ProtocolVersion)> {
         (
             SessionEvent::Renamed {
                 title: "fixture".parse().unwrap(),
-                origin: crate::TitleOrigin::Unknown,
+                origin: crate::TitleOrigin::default(),
             },
             ProtocolVersion::new(9),
         ),

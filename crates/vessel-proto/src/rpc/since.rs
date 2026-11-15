@@ -17,29 +17,7 @@ impl Call {
     /// call's requirement as well as their own.
     #[must_use]
     pub fn required_protocol(&self) -> Option<ProtocolVersion> {
-        let method = self.method().since()?;
-        if let Self::Forward(request) = self {
-            return request
-                .call
-                .required_protocol()
-                .map(|inner| inner.max(method));
-        }
-        if let Self::Relay(request) = self {
-            return request
-                .call
-                .required_protocol()
-                .map(|inner| inner.max(method));
-        }
-        if let Self::Deliver(request) = self {
-            return request
-                .call
-                .required_protocol()
-                .map(|inner| inner.max(method));
-        }
-        let required = self.since()?;
-        labels::on(self).map_or(Some(required), |labels| {
-            labels::required(required, labels, crate::lifecycle_version::SINCE)
-        })
+        self.since()
     }
 
     /// The protocol version this call needs: its method's, or a later one
@@ -90,12 +68,7 @@ impl Call {
                 };
                 // An added agent came in 11 (ADR 0032): an older node
                 // cannot decode it.
-                fields.max(added(Some(&spec.harness))).max(
-                    (!spec.labels.is_empty())
-                        .then_some(crate::lifecycle_version::SINCE)
-                        .flatten()
-                        .map(ProtocolVersion::get),
-                )
+                fields.max(added(Some(&spec.harness)))
             }
             Self::HarnessOptions(request) => added(Some(&request.harness)),
             Self::ListProfiles(request) => added(request.harness.as_ref()),
@@ -296,7 +269,10 @@ impl Call {
             | Self::RewindSession(_)
             | Self::GetAgentHistory(_) => None,
         };
-        Some(fields.map_or(method, |since| method.max(ProtocolVersion::new(since))))
+        let required = fields.map_or(method, |since| method.max(ProtocolVersion::new(since)));
+        labels::on(self).map_or(Some(required), |labels| {
+            labels::required(required, labels, crate::lifecycle_version::SINCE)
+        })
     }
 }
 
@@ -308,14 +284,7 @@ fn added(harness: Option<&HarnessRef>) -> Option<u32> {
 }
 
 fn template_since(spec: Option<&crate::SessionSpec>) -> Option<u32> {
-    spec.and_then(|spec| {
-        spec.side_question_of.map(|_| 19).max(
-            (!spec.labels.is_empty())
-                .then_some(crate::lifecycle_version::SINCE)
-                .flatten()
-                .map(ProtocolVersion::get),
-        )
-    })
+    spec.and_then(|spec| spec.side_question_of.map(|_| 19))
 }
 
 fn target_since(target: &crate::automation::ScheduleTarget) -> Option<u32> {
