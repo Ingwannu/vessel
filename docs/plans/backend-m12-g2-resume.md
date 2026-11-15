@@ -135,3 +135,35 @@ assignment: G4 confirmed no equivalent active profile and is frozen on its
 own slice. No area override or parallel notice was implemented. Automation
 screens remain undelivered; resume with the schedules list, its new Fluent
 labels and the separately retained accepted cadence/error tables.
+
+### Clean boundary after the activity alpha correction
+
+- `ef91b954` isolated typed-menu source and A13 gate passed V1. Its UI is held
+  for after-close root-key delivery and the formerly incorrect activity alpha;
+  V1 has not independently passed the author's88+16 pictures or Light aliases.
+- `e2827533` separately corrects ring compositing. Its exact A13 run
+  `schedules-20261115T031952Z-e2827533` is green:6 steps/no skip,
+  1076 ordinary+2 docs/0 failed/1 inherited ignored. New activity16+menu4
+  inspected pictures and their final file manifests are with V1; review pending.
+- All probe apps and the owned virtual display are stopped, authority removed.
+  No fleet was started for these shared-control probes. The remote driver ended.
+- The coordinator now requires the lead's0.0.0.0.19 line at the next clean
+  boundary, after this frozen gate/evidence hand-off. Do not continue building
+  registrations on the old published0.17 line. Merge, do not rebase. Remake the
+  pure menu split and typed restore over the lead's current single renderer,
+  preserving every lead-defined seam and policy. Earlier gates are scoped to
+  their immutable commits, not proof of the future merged tree.
+- LinkError extraction is delegated conditionally on that new base. Recheck
+  whether it remains in link/lib.rs and whether a registration seam already
+  exists. If needed, move only the unchanged type to its own module with root
+  public re-export, exact body hash, unchanged variants/Display/API/actor and a
+  lowered measured size record. Gate/review it as move-only; registrations are
+  a separate commit. Send the lead those two hashes only in the0.19 hand-over,
+  not before. The external0.17 proposal is preparation only, not a patch to apply.
+- K's c679 palette producer overlaps the existing theme/palette.rs public
+  GREEN_500 used by menu success. Coordinator/lead own a single-colour-module
+  integration preserving that fixed meaning and K's Palette API. Do not copy
+  the literal or widen visibility without review; do not change a frozen tree.
+- The partial-host-error Alert profile remains unassigned, not implemented.
+  No area override or parallel renderer is permitted. List view/Fluent/target
+  preparation remains external and uncompiled; Automation screens remain0/6.

@@ -329,7 +329,8 @@ opacity is applied by the element, after GPUI's monochrome mask gamma
 correction; baking it into SVG opacity makes the visible ring too strong.
 `ActivityTrack`/`ActivityArc` are registered originals. The combined
 `ActivityIndicator` asset and legacy Spinner are preserved. See the
-activity-alpha decision note for the pixel evidence and platform scope.
+[activity-alpha decision](../../docs/plans/backend-m12-g2-activity-alpha.md)
+for the pixel evidence and platform scope.
 
 The menu's pending feedback explicitly uses Numeric16 of that profile;
 other legacy spinner callers retain their existing appearance.

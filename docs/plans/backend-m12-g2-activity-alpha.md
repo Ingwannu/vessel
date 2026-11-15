@@ -60,3 +60,40 @@ no tolerance, lint allowance or production value changed. The failed log is
 retained. The corrected narrow run passed with actual Kit checking. The
 correction still needs its own A13 whole gate and post-correction pixels;
 the preceding ef91 gate cannot stand in for changed Rust.
+
+## Completed source gate and scoped native evidence
+
+The exact `e2827533` run `schedules-20261115T031952Z-e2827533`
+completed with six native steps zero and no skip. Ten raw test summaries total
+1076 ordinary plus2 documentation tests passed, zero failed, one inherited
+ignored. Kit and App were actually checked/compiled, including the new opaque
+mask regression. The changed native source, not the preceding ef91 result,
+is what that gate checked.
+
+A separate locally built external probe actually compiled Kit/App. Its product
+source manifest contains714 files, aggregate
+`bcd496ebdec3fff53e6301b4d447d46b4db674bee749c7ebe0778ce105fb7bd0`.
+The source archive, external probe/patch, binary and original/proof-family font
+hashes are pinned in its build record. No installable fixture path was added.
+
+All16 corrected activity PNGs were personally opened: English1280/Korean390,
+both themes, active phases and App reduce_motion static phases. Interior
+large36 ring samples now exactly match source-over20%: dark51,55,54 and
+light227,227,228; full arc and clear centre match the requested foreground and
+background. Measured10/16/20/36 bounds remain correct. Active phase pairs
+change; static pairs have identical pixels and settled prepaint counts
+111/131/85/120. Four additional personally opened menu pictures show the
+corrected Numeric16 pending slot refusing stale Enter while remaining open.
+They are a separate final evidence folder, with no reused old-alpha PNG.
+
+Final per-file manifests pin both corrected sets and the separate earlier104
+pictures. Exact external tools are retained; the pixel/phase verifier recomputes
+read-only. All owned probe processes are stopped. The private virtual display
+was stopped by verified PID/executable/start time and its authority file removed.
+Only temporary evidence write bits were removed; no service permissions changed.
+
+Submitted to V1 first. This is author-inspected Linux/App-flag evidence, not
+independent UI approval, an optical750ms measurement, four-scale proof, other
+backend/OS preference integration, keyboard focus restoration or a product
+list/Git/provider first-use claim. The after-close key-routing issue remains
+open separately. Unchanged Rust does not need another gate for these notes.
