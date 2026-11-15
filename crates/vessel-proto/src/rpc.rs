@@ -59,7 +59,8 @@ pub use contract::{Request, UnexpectedReply};
 pub use frames::{ClientFrame, ClientInfo, Hello, ServerFrame, SubscriptionEnd, Welcome};
 pub use requests::{
     Ack, CreateSession, EventPage, GetNode, GetSession, KillSession, ListHarnesses, ListSessions,
-    ReadEvents, RenameSession, SendInput, StopNode, StopWhen, Subscribe, Subscribed, Unsubscribe,
+    ReadEvents, RenameSession, SendInput, SetLabels, StopNode, StopWhen, Subscribe, Subscribed,
+    Unsubscribe,
 };
 pub use shape::MethodShape;
 

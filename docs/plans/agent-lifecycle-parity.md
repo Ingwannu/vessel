@@ -1281,3 +1281,9 @@ derives. A nullable or optional patch would blur "nothing to update" with an
 empty current state, so it is not used. No external package is needed. Payload
 shape/refusal tests belong beside the RPC payload; registration, version checks,
 authorization and mutation behavior remain the later wiring step.
+
+
+The SetLabels value now retains both required fields, using LabelPatch's
+existing validating deserializer. Payload tests check exact target/map round
+trip and missing/empty/malformed target or patch refusal. No Request marker,
+method row, handler, send path, event or available mutation is added yet.
