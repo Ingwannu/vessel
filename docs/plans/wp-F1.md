@@ -1190,16 +1190,12 @@ this source scan is not compiler or runtime evidence.
 
 ### Menu reference correction before package proof
 
-Rechecking pinned schedule-row.tsx262–330 found two own presentation errors:
-Edit was ordered before cadence actions, and heartbeat rows exposed the node's
-extra existing-session pause/resume/run capability. Row menu presentation now
-keeps the source order cadence action / Run now / Edit / Delete and limits
-heartbeat menus to Edit / Delete. Typed node/Page operations retain their
-existing capability; no protocol or backend restriction is invented. Pending
-caption direction is tested with an explicit new-chat fixture, while heartbeat
-presentation separately asserts the two disabled entries during unrelated
-legacy operation state. Existing accepted action-copy tables are not moved.
-These corrected-source cases remain unexecuted and are not a menu/UI PASS.
+The earlier78ace994 source reading incorrectly moved Edit after the execution
+items. Immutable1c00b365 schedule-row.tsx363–389 actually has Edit FIRST,
+then ScheduleExecutionMenuItems, separator, Delete. This claim and its test
+ordering are corrected below; that prior reading was not source/UI approval.
+The separate heartbeat visibility correction (Edit/Delete only) remains valid
+from ScheduleExecutionMenuItems277–279. Node/Page capabilities are unchanged.
 
 
 ### Off-route form events
@@ -1531,3 +1527,16 @@ used by both select Form and textarea Md; no copied5/11 area constants.
 F1 explicitly opts its prompt into Md+Expanded; no area style override.
 Literal both-theme/layout/mixed-minimum regressions are authored; current
 compiler/runtime/actual96+longprompt first-use proof remains owed.
+
+
+### Correct the mistaken menu ordering claim
+
+The immutable pinned blob was reread (working file matches1c00b365, clean).
+Menu order is now Edit / Pause-or-Resume / Run now / separator / Delete. The
+existing starts_group field supplies Delete's separator through the sole
+shared renderer. Pending-direction tests retain all of their original action
+states/caption conditions and now assert that source order; no assertion is
+removed to hide a failure. Heartbeat remains Edit/Delete, and the existing
+read-only history addition stays explicitly beyond the Paseo source.
+Old78 source and the pre-correction notes were wrong, not an accepted parity
+exception. Current compiler/actual menu input/first-use evidence is still owed.

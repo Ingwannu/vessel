@@ -175,10 +175,10 @@ impl Row<'_> {
         let allowed = super::super::actions(self.schedule, self.authority);
         let pending = self.mutation.progress();
         [
+            Action::Edit,
             Action::Pause,
             Action::Resume,
             Action::RunNow,
-            Action::Edit,
             Action::Delete,
         ]
         .into_iter()

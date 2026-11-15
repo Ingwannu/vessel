@@ -55,6 +55,7 @@ pub(super) fn menu(
                 MenuItem::new(label)
             }
             .with_leading(glyph(entry.action));
+            item.starts_group = entry.action == Action::Delete;
             match entry.state {
                 EntryState::Enabled => {}
                 EntryState::Disabled => item.disabled = true,

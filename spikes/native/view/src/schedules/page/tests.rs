@@ -273,15 +273,15 @@ fn polling_a_paused_state_does_not_reverse_the_pending_menu_caption() {
         row.menu_entries(),
         [
             MenuEntry {
+                action: Action::Edit,
+                state: EntryState::Disabled
+            },
+            MenuEntry {
                 action: Action::Pause,
                 state: EntryState::Pending
             },
             MenuEntry {
                 action: Action::RunNow,
-                state: EntryState::Disabled
-            },
-            MenuEntry {
-                action: Action::Edit,
                 state: EntryState::Disabled
             },
             MenuEntry {
@@ -296,15 +296,15 @@ fn polling_a_paused_state_does_not_reverse_the_pending_menu_caption() {
         page.row(&key).unwrap().menu_entries(),
         [
             MenuEntry {
+                action: Action::Edit,
+                state: EntryState::Enabled
+            },
+            MenuEntry {
                 action: Action::Resume,
                 state: EntryState::Enabled
             },
             MenuEntry {
                 action: Action::RunNow,
-                state: EntryState::Enabled
-            },
-            MenuEntry {
-                action: Action::Edit,
                 state: EntryState::Enabled
             },
             MenuEntry {
