@@ -172,3 +172,11 @@ send and scoped callbacks, not activation of another delivery policy. K's later
 Legacy/Windowed notification arms and W13 captured-submit widening must preserve
 the same one guarded invocation. Real-engine modifier/newline and nested guard
 fixtures are prepared; compilation remains pending.
+
+Client/plugin parsing and inline token boundaries reuse the existing shared
+matcher::whitespace predicate, exposed crate-only with F4 owner agreement. Its
+body/ranking are unchanged. JavaScript trim/\s includes BOM and excludes NEL;
+Rust trim would otherwise execute a literal /exit+NEL as an archive. Adversarial
+BOM/NEL fixtures cover client refusal, plugin arguments and inline boundaries.
+References: client-slash-commands/index.ts:49-69 and
+plugins/client-slash-commands/model.ts:51-62. No second whitespace helper added.

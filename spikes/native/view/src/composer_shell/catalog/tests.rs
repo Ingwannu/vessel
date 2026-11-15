@@ -102,3 +102,21 @@ fn plugin_arguments_are_trimmed_once_and_attachments_disable_local_execution() {
     assert!(plugin_call("/plug", Context::Attached, &entries).is_none());
     assert!(plugin_call("/exit", Context::TextOnly, &entries).is_none());
 }
+
+#[test]
+fn shared_javascript_whitespace_keeps_plugin_and_inline_boundaries_exact() {
+    let name: CommandName = "plug".parse().unwrap();
+    let entries = merge(Target::Session, [Entry::plugin(&name, &())], []);
+    let (_, args) = plugin_call(
+        "\u{feff}/plug\u{feff} hello\u{feff}",
+        Context::TextOnly,
+        &entries,
+    )
+    .unwrap();
+    assert_eq!(args.as_str(), "hello");
+    assert!(plugin_call("/plug\u{0085}hello", Context::TextOnly, &entries).is_none());
+    let bom = "use\u{feff}/skill";
+    assert_eq!(active(bom, bom.len()).unwrap().range.query, "skill");
+    let nel = "use\u{0085}/skill";
+    assert!(active(nel, nel.len()).is_none());
+}

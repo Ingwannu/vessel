@@ -171,7 +171,7 @@ pub fn ranked<'a, 'entry, Plugin>(
                 }
             )
     };
-    let query = query.trim();
+    let query = query.trim_matches(crate::matcher::whitespace);
     if query.is_empty() {
         return entries.iter().filter(eligible).collect();
     }
@@ -197,14 +197,13 @@ pub fn active(text: &str, caret: usize) -> Option<Active> {
     let before = text.get(..caret)?;
     for (start, _) in before.rmatch_indices('/') {
         let previous = text.get(..start)?.chars().next_back();
-        if previous.is_some_and(|character| !character.is_whitespace()) {
+        if previous.is_some_and(|character| !crate::matcher::whitespace(character)) {
             continue;
         }
         let query = text.get(start.saturating_add(1)..caret)?;
-        if query
-            .chars()
-            .any(|character| character.is_whitespace() || matches!(character, '/' | '"' | '\''))
-        {
+        if query.chars().any(|character| {
+            crate::matcher::whitespace(character) || matches!(character, '/' | '"' | '\'')
+        }) {
             continue;
         }
         return Some(Active {
@@ -244,13 +243,20 @@ pub fn plugin_call<'a, 'entry, Plugin>(
     if context == Context::Attached {
         return None;
     }
-    let token = text.trim().strip_prefix('/')?;
-    let (name, args) = token.find(char::is_whitespace).map_or((token, ""), |at| {
-        (
-            token.get(..at).unwrap_or_default(),
-            token.get(at..).unwrap_or_default().trim(),
-        )
-    });
+    let token = text
+        .trim_matches(crate::matcher::whitespace)
+        .strip_prefix('/')?;
+    let (name, args) = token
+        .find(crate::matcher::whitespace)
+        .map_or((token, ""), |at| {
+            (
+                token.get(..at).unwrap_or_default(),
+                token
+                    .get(at..)
+                    .unwrap_or_default()
+                    .trim_matches(crate::matcher::whitespace),
+            )
+        });
     entries.iter().find_map(|entry| match entry.source {
         Source::Plugin(plugin) if entry.name() == name => Some((plugin, Arguments(args))),
         Source::Client(_) | Source::Provider { .. } | Source::Plugin(_) => None,

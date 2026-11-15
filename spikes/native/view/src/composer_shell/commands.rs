@@ -47,7 +47,9 @@ impl ClientCommand {
         if context == Context::Attached {
             return None;
         }
-        let name = text.trim().strip_prefix('/')?;
+        let name = text
+            .trim_matches(crate::matcher::whitespace)
+            .strip_prefix('/')?;
         Self::ALL
             .into_iter()
             .find(|command| name == command.name() || command.aliases().contains(&name))
@@ -96,6 +98,16 @@ mod tests {
                 None,
                 "{text}"
             );
+        }
+    }
+    #[test]
+    fn js_whitespace_does_not_turn_a_nel_suffixed_prompt_into_an_archive() {
+        assert_eq!(
+            ClientCommand::parse("\u{feff}/exit\u{feff}", Context::TextOnly),
+            Some(ClientCommand::Exit)
+        );
+        for text in ["\u{0085}/exit", "/exit\u{0085}"] {
+            assert_eq!(ClientCommand::parse(text, Context::TextOnly), None);
         }
     }
 }

@@ -206,7 +206,7 @@ struct Hit {
     span: Range<usize>,
 }
 
-fn whitespace(value: char) -> bool {
+pub(crate) fn whitespace(value: char) -> bool {
     // ECMAScript's \s includes BOM but excludes Unicode's next-line
     // character. Rust's is_whitespace would split different words.
     matches!(
