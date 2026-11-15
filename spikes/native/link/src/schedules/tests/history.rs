@@ -171,7 +171,7 @@ async fn historical_session_metadata_uses_its_original_read_without_a_live_opene
         };
         assert_eq!(answer.request, request);
         assert_eq!(answer.result.unwrap(), info);
-        assert!(peer.calls.lock().unwrap().is_empty());
+        assert!(peer.requests.as_mut().unwrap().try_recv().is_err());
     })
     .await;
 }

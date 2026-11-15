@@ -214,15 +214,10 @@ fn a_form_submission_refused_by_the_local_queue_settles_its_original_mailbox() {
             panic!("not schedules")
         };
         assert!(data.message(message));
-        assert_eq!(
-            data.editor
-                .mailbox(&io::Operation::Targets)
-                .unwrap()
-                .request(),
-            Some(&request)
-        );
-        assert_eq!(data.editor.failure(), Some(&failure));
-        assert!(data.editor.value().is_none());
+        let slot = data.editor.mailbox(&io::Operation::Targets).unwrap();
+        assert_eq!(slot.request(), Some(&request));
+        assert_eq!(slot.failure(), Some(&failure));
+        assert!(slot.value().is_none());
     }
 }
 
