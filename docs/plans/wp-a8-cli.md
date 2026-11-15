@@ -135,3 +135,15 @@ category and walks every printable cause with a synthetic private-answer canary.
 It would expose that answer through the previous inner #[source] annotation.
 The CLI module remains test-only pending checked DTO/output integration; execution
 of this new regression is still owed on the build VM.
+
+
+The actual clap argument edge also redacts its InvalidValue context for invalid
+--input JSON. Changing only ModifiedInput's Debug or InvalidInput's Display is
+insufficient: clap's standard formatter normally quotes the entire rejected
+argument. The opt-in TypedValueParser delegates to clap's existing String parser
+and ModifiedInput decoder, preserves the returned clap error and original cause,
+and replaces only the printable argument value with a fixed redaction marker.
+No JSON is decoded twice and valid values retain their original opaque bytes.
+A regression walks the complete actual clap error chain for malformed JSON
+containing a private canary. Source inspection uses pinned clap_builder4.6.7's
+public TypedValueParser/Error::insert boundary; VM execution remains pending.

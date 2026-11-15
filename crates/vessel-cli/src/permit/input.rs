@@ -32,3 +32,30 @@ impl ModifiedInput {
         &self.0
     }
 }
+
+/// The standard typed parser keeps its original error source, but its printable
+/// argument context must not echo an opaque provider payload on invalid JSON.
+#[derive(Clone)]
+pub(crate) struct Parser;
+impl clap::builder::TypedValueParser for Parser {
+    type Value = ModifiedInput;
+    fn parse_ref(
+        &self,
+        command: &clap::Command,
+        argument: Option<&clap::Arg>,
+        value: &std::ffi::OsStr,
+    ) -> Result<Self::Value, clap::Error> {
+        use clap::builder::TypedValueParser as _;
+        use clap::error::{ContextKind, ContextValue};
+        clap::builder::StringValueParser::new()
+            .try_map(|text: String| text.parse::<ModifiedInput>())
+            .parse_ref(command, argument, value)
+            .map_err(|mut error| {
+                let _private = error.insert(
+                    ContextKind::InvalidValue,
+                    ContextValue::String("[redacted]".to_owned()),
+                );
+                error
+            })
+    }
+}

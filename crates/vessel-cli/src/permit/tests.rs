@@ -86,3 +86,18 @@ fn denial_message_and_interrupt_are_distinct_and_preserved() {
         Interruption::KeepRunning
     );
 }
+
+#[test]
+fn invalid_json_diagnostics_keep_the_source_without_echoing_the_argument() {
+    let canary = "synthetic-private-invalid-json";
+    let invalid = format!("{{\"answer\":\"{canary}\"");
+    let error = Cli::try_parse_from(["permit", "allow", SESSION, "--input", &invalid]).unwrap_err();
+    assert_eq!(error.kind(), clap::error::ErrorKind::ValueValidation);
+    assert!(std::error::Error::source(&error).is_some());
+    let mut cause: Option<&dyn std::error::Error> = Some(&error);
+    while let Some(current) = cause {
+        assert!(!current.to_string().contains(canary));
+        assert!(!format!("{current:?}").contains(canary));
+        cause = current.source();
+    }
+}

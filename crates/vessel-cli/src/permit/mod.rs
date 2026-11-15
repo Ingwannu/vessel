@@ -55,7 +55,7 @@ pub(crate) enum Command {
         #[command(flatten)]
         requests: Requests,
         /// JSON is validated before connecting; provider validation still applies.
-        #[arg(long)]
+        #[arg(long, value_parser = input::Parser)]
         input: Option<ModifiedInput>,
     },
     /// Deny an explicitly named request, or every request with --all.
