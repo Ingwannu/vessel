@@ -10,8 +10,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use super::kernel::{descriptor_writer, identity};
-use super::record::Record;
 use super::{KernelWriter, NodeProcess};
+use crate::procfs::Record;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Descriptor(u32);

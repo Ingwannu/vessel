@@ -4,17 +4,17 @@
 use std::io::{self, Read};
 
 /// Keep byte budgeting inside the external-format decoder.
-pub(super) struct Record(Vec<u8>);
+pub(crate) struct Record(Vec<u8>);
 
 impl Record {
     /// One read cap bounds allocation before inspecting any record field.
-    pub(super) const MAX_BYTES: u64 = 65_536;
+    pub(crate) const MAX_BYTES: u64 = 65_536;
 
     /// Read only this observation record, retaining the original I/O cause.
     ///
     /// # Errors
     /// The record is inaccessible or exceeds the named byte cap.
-    pub(super) fn read(path: &std::path::Path) -> io::Result<Self> {
+    pub(crate) fn read(path: &std::path::Path) -> io::Result<Self> {
         Self::from_reader(std::fs::File::open(path)?)
     }
 
@@ -35,7 +35,7 @@ impl Record {
     }
 
     /// Borrow for one format decode; never pass these bytes into domain state.
-    pub(super) fn bytes(&self) -> &[u8] {
+    pub(crate) fn bytes(&self) -> &[u8] {
         &self.0
     }
 }

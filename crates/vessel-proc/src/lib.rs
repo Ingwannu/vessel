@@ -53,6 +53,8 @@ mod error;
 mod group;
 pub mod listening;
 pub mod lock;
+#[cfg(target_os = "linux")]
+mod procfs;
 mod session;
 mod signal;
 mod spec;

@@ -6,6 +6,13 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- Shared-reader preparation: move the existing bounded proc record reader to the
+  private procfs owner, retaining every check, error source, bound and test.
+  Existing lock observations remain its actual callers; identity is still only
+  a contract. Decision: modify the existing reader instead of adding a second
+  decoder or external file-reading dependency. Canonical ProcessId adoption
+  waits for its reviewed prerequisite, without creating a competing PID type.
+
 - Initial issuer contract refined: opt-in identity::spawn prepares the safe
   Tokio SIGCHLD path and retained seed before returning. Capture refuses an
   ordinary/unseeded, reaped or released Child. External disposition changes

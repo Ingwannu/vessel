@@ -8,7 +8,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use super::NodeProcess;
-use super::record::Record;
+use crate::procfs::Record;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct StartTicks(u64);

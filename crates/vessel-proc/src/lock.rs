@@ -7,8 +7,6 @@ mod descriptor;
 mod generation;
 #[cfg(target_os = "linux")]
 mod kernel;
-#[cfg(target_os = "linux")]
-mod record;
 
 #[cfg(target_os = "linux")]
 pub use kernel::observe;
