@@ -123,18 +123,12 @@ impl Actor {
             published,
         } = self;
         let _withdraw = WithdrawOnDrop(published.clone());
-        let vessel_proc::Spawned {
+        let Wired {
             mut child,
-            stdin,
-            stdout,
-            stderr,
-        } = spawned;
-        let (writer, outgoing) = mpsc::channel(PIPE_QUEUE);
-        let (incoming, mut messages) = mpsc::channel(PIPE_QUEUE);
-        let mut workers = Workers::new();
-        workers::reader(&mut workers, stdout, incoming);
-        workers::writer(&mut workers, stdin, outgoing);
-        workers::stderr(&mut workers, stderr, logs.clone());
+            writer,
+            mut messages,
+            mut workers,
+        } = Wired::new(spawned, &logs);
         let mut core = Core::new(address.clone(), writer.clone(), published);
         writer
             .try_send(NodeToHelper::Initialize {
@@ -154,24 +148,75 @@ impl Actor {
         }
         .run()
         .await;
-        core.retire(
-            result
-                .as_ref()
-                .err()
-                .map_or(CallError::Closed, RuntimeError::call_error),
-        );
-        requests.close();
-        // Queued, unissued work may release its byte permits immediately; issued
-        // callbacks keep theirs in Core until the owned child is reaped below.
-        while let Ok(request) = requests.try_recv() {
-            drop(request.reply.send(Err(CallError::Closed)));
-        }
-        let cleanup = shutdown::reap(&mut child, &writer).await;
-        workers.abort_all();
-        while workers.join_next().await.is_some() {}
-        let receipt = cleanup?;
-        result.map(|()| receipt)
+        finish(
+            &mut core,
+            &mut child,
+            &mut requests,
+            &mut workers,
+            &writer,
+            result,
+        )
+        .await
     }
+}
+
+/// Pipe ownership is prepared once; dropping it aborts workers and retains
+/// Child's ordinary group cleanup guard even if initialization refuses.
+struct Wired {
+    child: vessel_proc::Child,
+    writer: mpsc::Sender<NodeToHelper>,
+    messages: mpsc::Receiver<Option<vessel_proto::plugins::HelperToNode>>,
+    workers: Workers,
+}
+
+impl Wired {
+    fn new(spawned: vessel_proc::Spawned, logs: &SharedLogs) -> Self {
+        let vessel_proc::Spawned {
+            child,
+            stdin,
+            stdout,
+            stderr,
+        } = spawned;
+        let (writer, outgoing) = mpsc::channel(PIPE_QUEUE);
+        let (incoming, messages) = mpsc::channel(PIPE_QUEUE);
+        let mut workers = Workers::new();
+        workers::reader(&mut workers, stdout, incoming);
+        workers::writer(&mut workers, stdin, outgoing);
+        workers::stderr(&mut workers, stderr, logs.clone());
+        Self {
+            child,
+            writer,
+            messages,
+            workers,
+        }
+    }
+}
+
+async fn finish(
+    core: &mut Core,
+    child: &mut vessel_proc::Child,
+    requests: &mut Requests,
+    workers: &mut Workers,
+    writer: &mpsc::Sender<NodeToHelper>,
+    result: Result<(), RuntimeError>,
+) -> Result<vessel_proc::OwnedGroupExit, RuntimeError> {
+    core.retire(
+        result
+            .as_ref()
+            .err()
+            .map_or(CallError::Closed, RuntimeError::call_error),
+    );
+    requests.close();
+    // Unissued work can release permits now; Core keeps issued admission
+    // until the permanent actor retirement and checked cleanup below.
+    while let Ok(request) = requests.try_recv() {
+        drop(request.reply.send(Err(CallError::Closed)));
+    }
+    let cleanup = shutdown::reap(child, writer).await;
+    workers.abort_all();
+    while workers.join_next().await.is_some() {}
+    let receipt = cleanup?;
+    result.map(|()| receipt)
 }
 
 struct Live<'a> {
@@ -187,47 +232,37 @@ struct Live<'a> {
 
 impl Live<'_> {
     async fn run(self) -> Result<(), RuntimeError> {
-        let Self {
-            core,
-            child,
-            requests,
-            messages,
-            workers,
-            logs,
-            cancelled,
-            stop,
-        } = self;
         let ready_by = tokio::time::Instant::now()
             .checked_add(REQUEST_DEADLINE)
             .ok_or(RuntimeError::ReadyTimeout)?;
         loop {
-            let deadline = if core.is_ready() {
-                core.deadline()
+            let deadline = if self.core.is_ready() {
+                self.core.deadline()
             } else {
                 Some(ready_by)
             };
-            if stop.is_cancelled() {
+            if self.stop.is_cancelled() {
                 return Ok(());
             }
             tokio::select! {
-                () = stop.cancelled() => return Ok(()),
-                request = requests.recv() => match request {
-                    Some(request) => core.admit(request)?, None => return Ok(()),
+                () = self.stop.cancelled() => return Ok(()),
+                request = self.requests.recv() => match request {
+                    Some(request) => self.core.admit(request)?, None => return Ok(()),
                 },
-                message = messages.recv() => {
+                message = self.messages.recv() => {
                     let message = message.flatten().ok_or(RuntimeError::EndOfStream)?;
-                    logs.helper_diagnostic(&message)?;
-                    core.receive(message)?;
+                    self.logs.helper_diagnostic(&message)?;
+                    self.core.receive(message)?;
                 },
-                completed = workers.join_next() => match completed {
+                completed = self.workers.join_next() => match completed {
                     Some(Ok(Ok(WorkerExit::Reader | WorkerExit::Stderr))) => {},
                     Some(Ok(Ok(WorkerExit::Writer))) | None => return Err(RuntimeError::EndOfStream),
                     Some(Ok(Err(error))) => return Err(error),
                     Some(Err(cause)) => return Err(RuntimeError::Task(TaskFailure::new(cause))),
                 },
-                code = child.wait() => return Err(RuntimeError::Exited { code: code.map_err(RuntimeError::Wait)? }),
-                () = cancelled.notified() => core.cancellations()?,
-                () = sleep_until(deadline) => return Err(if core.is_ready() { RuntimeError::CallTimeout } else { RuntimeError::ReadyTimeout }),
+                code = self.child.wait() => return Err(RuntimeError::Exited { code: code.map_err(RuntimeError::Wait)? }),
+                () = self.cancelled.notified() => self.core.cancellations()?,
+                () = sleep_until(deadline) => return Err(if self.core.is_ready() { RuntimeError::CallTimeout } else { RuntimeError::ReadyTimeout }),
             }
         }
     }
