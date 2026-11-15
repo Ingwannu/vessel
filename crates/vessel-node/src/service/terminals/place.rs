@@ -161,26 +161,6 @@ impl NodeService {
             .ok_or_else(|| TerminalsError::Conflict(ended.to_owned()))
     }
 
-    /// After a start: the place still there, or the terminal ended and
-    /// forgotten (its session or project went away meanwhile; deletion
-    /// ends what is registered, so one of the two always ends it). A
-    /// removal of its worktree cannot have begun meanwhile: the start held
-    /// the worktree (`Workspaces::hold_folder`) until it was registered.
-    pub(in crate::service) async fn still_placed(
-        &self,
-        handle: &TerminalHandle,
-        place: &TerminalPlace,
-    ) -> Result<(), TerminalsError> {
-        check(
-            &self.sessions,
-            &self.workspaces,
-            &self.terminals,
-            handle,
-            place,
-        )
-        .await
-    }
-
     /// Hold the worktree `folder` is in, if any, from removal, setup and
     /// teardown until the terminal starting there is registered (ADR 0030's
     /// count, protocol 11): a removal either sees the start, or claimed the

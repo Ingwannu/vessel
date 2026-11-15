@@ -1676,10 +1676,15 @@ families and durable startup recovery is still required before activation.
 Terminal shell startup also retains physical-root admission through registration
 and placement validation. `workspace::starting` maps nested/aliased CWD ancestry
 through `vessel-workspace::physical`; `workspace::metadata` bounds blocking root
-probes independently and keeps permits until actual I/O completion. Remaining
-script starts, actor wake/move and checkpoint restore orchestration are not yet
+probes independently and keeps permits until actual I/O completion. Actor wake/move and checkpoint restore orchestration are not yet
 connected, so this source does not establish complete root-wide exclusion.
 New-session creation and ended-session resume transfer both admission and the
 worktree start count into the existing retained session task. Store refusal
 drains a failed process before admission is released; successful registration
 provides the live-session observation used by later restore admission.
+
+Script/service actors receive a generic per-attempt admission callback. The node
+opens its registration receipt only after registry insertion and placement
+validation; each first/retry/manual spawn then claims physical admission and
+rechecks approval. The session actor publishes its process before releasing the
+hold. No node identity or workspace dependency enters the session crate.

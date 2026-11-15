@@ -269,3 +269,18 @@ ignored. Terminal-start commit 78bd7d16 has a registered remote clippy request;
 its result and this session-start slice's compile/runtime proof remain pending.
 New session fixtures cover replacement before spawn and guard release after
 actual registration or failed-store process cleanup. They have not yet run.
+
+### Script process attempts
+
+The existing script actor now accepts a generic admission callback without a
+node dependency. The node uses it for every actual spawn: first run, automatic
+service retry and manual restart. A registration receipt opens only after the
+registry and placement check succeed, so an actor cannot spawn in the interval
+before its handle is visible. Admission is released after process publication;
+active processes remain visible and must be refused by the restore controller.
+An approval recheck follows admission because waiting can outlive approval.
+Stopping a pending attempt cancels admission before spawn. Existing library
+callers keep the original unadmitted entry point; the node uses only the admitted
+one. Three isolated process fixtures cover publication-before-release, reacquire
+on retry plus cancellation while waiting, and refusal without command execution.
+This slice is source connected; remote compilation and execution remain owed.

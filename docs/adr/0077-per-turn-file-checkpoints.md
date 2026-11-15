@@ -653,3 +653,13 @@ the bounded metadata worker pool; it does not start an unbounded second pool.
 The ordinary process owner remains the runtime, with its existing group cleanup.
 Automatic script restarts, actor wake/move and lifecycle cleanup remain separate
 required consumers before checkpoint restoration can be enabled.
+
+Script/service admission belongs to each process attempt, including automatic
+retries. Holding admission only around the RPC's initial registry insertion
+would miss later spawns. The session crate therefore receives a generic async
+admission callback and does not learn node/workspace types. The node withholds
+a registration receipt until registry insertion and placement verification;
+only then may the callback claim the physical root. Approval is checked again
+following admission. The process is published before releasing its hold, so
+restore must then refuse the live terminal rather than depend on a lifetime
+observation or PID. This adds no dependency edge or wire capability.

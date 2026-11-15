@@ -3,19 +3,19 @@
 
 use std::sync::Arc;
 
-use chrono::Utc;
+mod starting;
 use vessel_proto::ports::{ListPorts, PortList, PortOwner};
 use vessel_proto::scripts::{
     ListScripts, RestartScript, RunScript, ScriptList, ScriptPlace, ScriptRefusal, ScriptRunOutcome,
 };
-use vessel_proto::terminals::{TerminalInfo, TerminalPlace};
-use vessel_proto::{Creator, TerminalId, WireError};
-use vessel_session::terminals::{Leftover, RestartError, ScriptStart, start_script};
+use vessel_proto::terminals::TerminalPlace;
+use vessel_proto::{Creator, WireError};
+use vessel_session::terminals::{Leftover, RestartError};
 
 use super::{Connection, NodeService};
 use crate::principal::Principal;
 use crate::profiles::launch::creator;
-use crate::terminals::{self, MAX_WAIT_SECS, Owner, Plan, Start, TerminalsError};
+use crate::terminals::{MAX_WAIT_SECS, Plan, TerminalsError};
 use crate::workspace::{DirError, ScriptRoot};
 
 fn wire(error: TerminalsError) -> WireError {
@@ -148,67 +148,18 @@ impl NodeService {
                 return Err(wire(refusal));
             }
         };
-        let id = TerminalId::random();
-        // One lock decides the limits and that the script does not run
-        // already, so two runs at once cannot both start.
-        let reserved = self.terminals.reserve(Start {
-            owner: Owner {
-                session: plan.place.session(),
-                project: Some(plan.script_root.project),
-                agent: None,
+        starting::start(
+            self,
+            starting::Opening {
+                spec,
+                leftover: Leftover(leftover),
+                plan,
+                hold,
+                creator: creator(principal),
             },
-            id,
-            folder: folder.clone(),
-            run: Some((plan.root.clone(), plan.entry.name.clone())),
-        });
-        let reservation = match reserved {
-            Ok(reservation) => reservation,
-            Err(refusal) => {
-                remove_leftover(leftover.as_deref()).await;
-                return match refusal {
-                    TerminalsError::Running(terminal) => {
-                        Ok(refused(ScriptRefusal::AlreadyRunning { terminal }))
-                    }
-                    other @ (TerminalsError::NotFound(_)
-                    | TerminalsError::Limit(_)
-                    | TerminalsError::Forbidden(_)
-                    | TerminalsError::Conflict(_)
-                    | TerminalsError::Unsupported(_)
-                    | TerminalsError::Invalid(_)
-                    | TerminalsError::Spawn(_)
-                    | TerminalsError::ShuttingDown
-                    | TerminalsError::Wire(_)) => Err(wire(other)),
-                };
-            }
-        };
-        let runner = &self.terminals.runner;
-        let spec = terminals::scrubbed(spec, &runner.config.removed);
-        let info = TerminalInfo::new(id, plan.place.clone(), folder, plan.kind(), Utc::now())
-            .with_creator(creator(principal));
-        let workspaces = Arc::clone(&self.workspaces);
-        let (project, digest) = (plan.script_root.project, plan.digest.clone());
-        let handle = start_script(ScriptStart {
-            info,
-            spec,
-            leftover: Leftover(leftover),
-            service: matches!(
-                plan.entry.kind(),
-                vessel_proto::scripts::ScriptKind::Service
-            ),
-            approved: move || workspaces.is_approved(project, &digest),
-            scrollback: runner.config.scrollback,
-            shutdown: runner.shutdown.clone(),
-            tasks: runner.tasks.clone(),
-        });
-        self.terminals
-            .register(reservation, handle.clone(), Some(Arc::clone(&plan)));
-        drop(hold);
-        self.still_placed(&handle, &plan.place)
-            .await
-            .map_err(wire)?;
-        Ok(ScriptRunOutcome::Started {
-            terminal: Box::new(handle.info()),
-        })
+        )
+        .await
+        .map_err(wire)
     }
 
     /// `script.restart`: in place while it runs, in a new terminal once it

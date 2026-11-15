@@ -519,3 +519,6 @@ async fn the_nodes_stop_interrupts_them() {
 
 #[path = "terminals/lifetime.rs"]
 mod lifetime;
+
+#[path = "terminals/admission.rs"]
+mod admission;

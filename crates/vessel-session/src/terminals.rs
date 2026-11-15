@@ -41,7 +41,7 @@ use std::time::Duration;
 
 pub use backoff::{Backoff, MAX_RESTARTS, Retry, STABLE};
 pub use handle::{InputError, Page, RestartError, TerminalHandle};
-pub use script::{ScriptStart, start_script};
+pub use script::{ScriptStart, start_script, start_script_admitted};
 pub use shell::{ShellStart, start_shell};
 
 /// How much of a terminal's log is kept in memory.

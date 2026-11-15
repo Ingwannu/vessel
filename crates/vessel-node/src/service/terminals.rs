@@ -5,7 +5,7 @@
 mod open;
 mod place;
 
-pub(super) use place::archived;
+pub(super) use place::{archived, check as check_place};
 
 use chrono::Utc;
 use vessel_proto::terminals::{

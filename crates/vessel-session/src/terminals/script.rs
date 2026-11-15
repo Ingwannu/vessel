@@ -67,6 +67,26 @@ pub fn start_script<A>(start: ScriptStart<A>) -> TerminalHandle
 where
     A: Fn() -> bool + Send + Sync + 'static,
 {
+    start_script_admitted(start, || {
+        std::future::ready(Ok::<(), std::convert::Infallible>(()))
+    })
+}
+
+/// Start with node-owned admission before every process attempt, including restarts.
+/// The returned hold survives through process publication, then is released.
+/// This generic callback keeps workspace authority outside the session crate.
+#[must_use]
+pub fn start_script_admitted<A, Admit, F, Hold, E>(
+    start: ScriptStart<A>,
+    admit: Admit,
+) -> TerminalHandle
+where
+    A: Fn() -> bool + Send + Sync + 'static,
+    Admit: Fn() -> F + Send + Sync + 'static,
+    F: std::future::Future<Output = Result<Hold, E>> + Send + 'static,
+    Hold: Send + 'static,
+    E: std::fmt::Display + Send + 'static,
+{
     let ScriptStart {
         info,
         spec,
@@ -98,6 +118,7 @@ where
         leftover,
         service,
         approved,
+        admit,
         restarting,
     };
     drop(
@@ -111,13 +132,14 @@ where
 }
 
 /// Owns a run for its life.
-struct ScriptActor<A> {
+struct ScriptActor<A, Admit> {
     log: TermLog,
     stop: Stopper,
     spec: CommandSpec,
     leftover: Leftover,
     service: bool,
     approved: A,
+    admit: Admit,
     restarting: mpsc::Receiver<()>,
 }
 
@@ -133,8 +155,13 @@ enum Ended {
     Restart,
 }
 
-impl<A: Fn() -> bool> ScriptActor<A> {
-    async fn run(mut self) {
+impl<A: Fn() -> bool, Admit> ScriptActor<A, Admit> {
+    async fn run<F, Hold, E>(mut self)
+    where
+        Admit: Fn() -> F,
+        F: std::future::Future<Output = Result<Hold, E>>,
+        E: std::fmt::Display,
+    {
         self.log.status(SessionStatus::Starting);
         let mut backoff = Backoff::default();
         let mut attempt = 1_u32;
@@ -245,8 +272,42 @@ impl<A: Fn() -> bool> ScriptActor<A> {
         }
     }
 
+    /// Admission is cancel-safe before spawn; an existing process owns its own stop.
+    async fn admitted<F, Hold, E>(&mut self) -> Result<Hold, Ended>
+    where
+        Admit: Fn() -> F,
+        F: std::future::Future<Output = Result<Hold, E>>,
+        E: std::fmt::Display,
+    {
+        let admitted = tokio::select! {
+            biased;
+            _step = self.stop.next() => return Err(Ended::Stopped(None)),
+            admitted = (self.admit)() => admitted,
+        };
+        admitted.map_err(|error| {
+            self.log
+                .notice(format!("vessel: process admission refused: {error}"));
+            Ended::Spawn
+        })
+    }
+
     /// Run the command once, to its end, a stop or a restart.
-    async fn once(&mut self, first: &mut bool, attempt: u32) -> Ended {
+    async fn once<F, Hold, E>(&mut self, first: &mut bool, attempt: u32) -> Ended
+    where
+        Admit: Fn() -> F,
+        F: std::future::Future<Output = Result<Hold, E>>,
+        E: std::fmt::Display,
+    {
+        let hold = match self.admitted().await {
+            Ok(hold) => hold,
+            Err(ended) => return ended,
+        };
+        // Admission can wait: approval withdrawn during that wait runs nothing.
+        if !(self.approved)() {
+            self.log
+                .notice("vessel: process approval was withdrawn".to_owned());
+            return Ended::Spawn;
+        }
         let Ok(Spawned {
             mut child,
             stdin,
@@ -261,6 +322,7 @@ impl<A: Fn() -> bool> ScriptActor<A> {
         };
         drop(stdin);
         self.log.running(Some(child.lifetime()));
+        drop(hold);
         if *first {
             *first = false;
             self.log.status(SessionStatus::Running);
