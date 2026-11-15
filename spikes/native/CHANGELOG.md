@@ -265,4 +265,3 @@ On Windows, please check that the last Korean syllable is sent when you press En
 입력창이 카드 자체가 되었습니다.
 모델 선택에 모든 에이전트가 나옵니다.
 고친 로고를 씁니다.
-
