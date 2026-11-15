@@ -10,7 +10,8 @@ use crate::{
 };
 use std::collections::BTreeMap;
 use vessel_app_kit::ui::{
-    AnyElement, Context, IntoElement as _, ParentElement as _, Styled as _, Window, div,
+    AnyElement, Context, Entity, IntoElement as _, ParentElement as _, Styled as _, WeakEntity,
+    Window, div,
 };
 use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _};
 use vessel_app_view::composer::{context::ContextScope, drafts::Drafts};
@@ -25,10 +26,26 @@ struct WorkspaceDraft {
     destination: DraftDestination,
     launch: Launch,
     composer: TextField,
+    // Keeps the one field callback owner alive; the field below shares its engine.
+    _editor: Entity<Editor>,
     creation: CreationState,
     // Only an authoritative WorkspaceLookup may supply this; no cwd fallback.
     scope: Option<ContextScope>,
     error: Option<String>,
+}
+/// Callback ownership carries this exact draft address through the kit's engine.
+struct Editor {
+    workspace: LayoutKey,
+    draft: DraftId,
+    shell: WeakEntity<Shell>,
+    field: TextField,
+}
+impl Editor {
+    fn submitted(&mut self, text: String, _window: &mut Window, cx: &mut Context<'_, Self>) {
+        let _closed = self.shell.update(cx, |shell, cx| {
+            shell.submit_workspace_draft(&self.workspace, self.draft, text, cx);
+        });
+    }
 }
 impl Shell {
     /// W6 resolves exactly this field; an absent draft is never the global New field.
@@ -107,21 +124,28 @@ impl Shell {
                 vessel_app_view::composer::context::ContextProblem::Scope,
             ));
         }
+        let owner = cx.entity().downgrade();
         let target = key.clone();
-        let composer = TextField::composer(
-            seed.text.as_str(),
-            move |shell: &mut Shell, text, _window, cx| {
-                shell.submit_workspace_draft(&target, draft, text, cx)
-            },
-            window,
-            cx,
-        );
+        // The kit deliberately takes a function pointer. Put the captured
+        // address in its model owner, rather than inferring a global field.
+        let editor = cx.new(|cx| {
+            let field = TextField::composer("", Editor::submitted, window, cx);
+            field.set_text(seed.text.as_str(), window, cx);
+            Editor {
+                workspace: target,
+                draft,
+                shell: owner,
+                field,
+            }
+        });
+        let composer = editor.read(cx).field.clone();
         let _previous = self.areas.draft.workspace_drafts.entries.insert(
             (key, draft),
             WorkspaceDraft {
                 destination: seed.destination,
                 launch: seed.launch,
                 composer,
+                _editor: editor,
                 creation: CreationState::default(),
                 scope: None,
                 error: None,
