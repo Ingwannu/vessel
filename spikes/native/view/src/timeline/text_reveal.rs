@@ -66,8 +66,9 @@ impl TextReveal {
     /// Rust strings cannot contain the source's dangling high-surrogate case.
     #[must_use]
     pub fn visible_end(&self, text: &str, phase: TextPhase) -> usize {
-        if phase == TextPhase::Complete {
-            return text.len();
+        match phase {
+            TextPhase::Complete => return text.len(),
+            TextPhase::Streaming => {}
         }
         if self.settled() {
             return trailing_complete_end(text);

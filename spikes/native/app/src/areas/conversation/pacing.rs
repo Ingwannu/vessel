@@ -32,13 +32,16 @@ impl Kept {
             self.reveal.retarget(text);
             self.version = version;
         }
-        if phase == TextPhase::Complete {
-            self.reveal.complete();
-        } else if !changed
-            && !self.reveal.settled()
-            && let Some(elapsed) = self.clock.frame(now)
-        {
-            self.reveal.advance(elapsed);
+        match phase {
+            TextPhase::Complete => self.reveal.complete(),
+            TextPhase::Streaming => {
+                if !changed
+                    && !self.reveal.settled()
+                    && let Some(elapsed) = self.clock.frame(now)
+                {
+                    self.reveal.advance(elapsed);
+                }
+            }
         }
         let pending = !self.reveal.settled();
         if !pending {
@@ -49,7 +52,7 @@ impl Kept {
 }
 
 /// Read-only snapshots are history. A closing/status record clears the managed
-/// Timeline::turn; older turns never reanimate.
+/// `Timeline::turn`; older turns never reanimate.
 pub(super) fn phase(area: &ConversationArea, entry: &Entry) -> TextPhase {
     if area.shown.is_some() && area.timeline.turn().is_some_and(|turn| entry.seq >= turn) {
         TextPhase::Streaming
