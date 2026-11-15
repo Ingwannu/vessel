@@ -1,7 +1,10 @@
 //! What a workspace call can fail with, mapped to the wire once.
 
+mod task;
+
 use super::comparison::{CacheError, JobError};
 use std::sync::Arc;
+use task::ProjectTaskCause;
 use vessel_proto::workspace::RelPath;
 use vessel_proto::{ErrorCode, ProjectId, WireError, WorktreeId};
 use vessel_store::StoreError;
@@ -19,6 +22,9 @@ pub(crate) enum WorkspaceError {
     /// Waiting never permits following changed repository or base authority facts.
     #[error("the repository changed while waiting; refresh before trying again")]
     GitTargetChanged,
+    /// A tracked project/backing operation stopped; retain its actual task cause.
+    #[error("the project operation stopped")]
+    ProjectTask(#[source] ProjectTaskCause),
     /// The node found no usable git.
     #[error("this machine has no usable git (2.25 or newer)")]
     NoGit,
@@ -149,6 +155,11 @@ impl From<FileError> for WorkspaceError {
 }
 
 impl WorkspaceError {
+    /// Seal a tracked task's input-controlled panic payload at its diagnostic boundary.
+    pub(crate) fn project_task(cause: tokio::task::JoinError) -> Self {
+        Self::ProjectTask(ProjectTaskCause::new(cause))
+    }
+
     /// The wire's form: a code a client branches on, and a message.
     pub(crate) fn wire(&self) -> WireError {
         let code = match self {
@@ -167,6 +178,7 @@ impl WorkspaceError {
             Self::Git(_)
             | Self::Store(_)
             | Self::Io(_)
+            | Self::ProjectTask(_)
             | Self::Comparison(_)
             | Self::History(_)
             | Self::ComparisonJob(JobError::Worker(_))

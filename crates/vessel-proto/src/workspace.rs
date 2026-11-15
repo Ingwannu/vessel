@@ -19,9 +19,11 @@ mod path;
 mod port_range;
 mod port_script;
 mod project;
+mod project_limits;
 mod project_text;
 mod service_port;
 mod service_ports;
+mod setup_progress;
 mod support;
 mod text;
 mod url;
@@ -62,6 +64,7 @@ pub use project::{
     GetProjectCommands, InitProject, ListProjects, ProjectCommands, ProjectInfo, ProjectList,
     ProjectState, RemoveProject,
 };
+pub use project_limits::MAX_PROJECT_COMMANDS;
 pub use project_text::trim_project_text;
 pub use service_port::{InvalidServicePort, ServicePort};
 pub use service_ports::{InvalidServicePorts, ServicePorts, ServicePortsView};
@@ -78,4 +81,10 @@ pub use worktree::{
     SessionPlace, SessionWorkspace, SetupChoice, SetupFailure, SetupOutput, SetupState, Snapshot,
     SnapshotList, WorktreeBase, WorktreeBranch, WorktreeInfo, WorktreeList, WorktreeRefusal,
     WorktreeStart,
+};
+
+pub use setup_progress::{
+    CancelSetup, CancelSetupOutcome, InvalidSetupCommandIndex, ReadSetupProgress,
+    SetupCommandIndex, SetupCommandProgress, SetupCommandResult, SetupCommandState, SetupCursor,
+    SetupProgress, SetupProgressReply, SetupRunState, WORKTREE_SETUP_OBSERVATION,
 };

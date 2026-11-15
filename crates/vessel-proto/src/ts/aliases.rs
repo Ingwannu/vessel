@@ -135,6 +135,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("CronExpr", Alias::Named),
     ("CustomAgentSlot", Alias::Quantity),
     ("DeviceId", Alias::Handle),
+    ("DiagnosticProcessId", Alias::Handle),
     ("DiagnosticSchemaVersion", Alias::Quantity),
     ("DraftText", Alias::Content),
     ("DurationMs", Alias::Quantity),
@@ -166,7 +167,6 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("LaunchId", Alias::Handle),
     ("LimitKey", Alias::Named),
     ("LimitName", Alias::Named),
-    ("LimitPercent", Alias::Quantity),
     ("MaxRuns", Alias::Quantity),
     ("McpServerName", Alias::Named),
     ("MimeType", Alias::Named),
@@ -205,6 +205,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("QueueEntryId", Alias::Handle),
     ("RefName", Alias::Named),
     ("RegistryId", Alias::Named),
+    ("RegistryRevision", Alias::Quantity),
     ("RegistryVersion", Alias::Named),
     ("RelPath", Alias::Named),
     ("RemoteName", Alias::Named),
@@ -238,6 +239,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ToolCallId", Alias::Handle),
     ("TransferId", Alias::Handle),
     ("UploadId", Alias::Handle),
+    ("WorkspaceId", Alias::Handle),
     ("WorktreeId", Alias::Handle),
 ];
 

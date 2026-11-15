@@ -335,3 +335,25 @@ commit, without changing any old value or assertion. Do not split the shared
 guard; the common plumbing refactor owns its structure. Local engines and
 microphone capture remain deferred. The CLI file client follows the node service
 and still needs its file-format contract amendment.
+
+## Settings-file diagnostic prerequisite
+
+The central file reader is being hardened separately from the pending dictation
+field. Invalid existing blocks can quote a mistaken credential in serde errors;
+the store must keep that cause private and publish category/path metadata only.
+ADR 0038 records the reuse decision and cost. No Paseo behavior is claimed for
+this security floor. Narrow store/node tests and strict Clippy remain owed; no
+product dictation wiring or whole-package evidence is established by this fix.
+
+Resume: the safe parse diagnostic and four store tests plus one startup-log
+test are implemented on the designated node head. Local rustfmt, size and diff
+checks pass; compilation and test execution remain owed on the build machine.
+The lock change only adds the already locked path-tracker to the store dependency
+list. Submit the exact commit and narrow evidence for security review before
+merging it into the feature package.
+
+The first executed narrow Clippy stopped on unwrap_in_result in the test log
+writer; no product code failed. The writer now recovers its own capture mutex
+through PoisonError::into_inner, as existing internal tables do. Test inputs,
+marker assertions and recovery branches are unchanged. The first failed log is
+retained; strict and runtime checks on this correction remain owed.

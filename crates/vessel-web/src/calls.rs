@@ -136,6 +136,7 @@ const fn forwardable(method: Method) -> bool {
         | Method::WriteUpload
         | Method::FinishUpload
         | Method::ReadAttachment
+        | Method::ReleaseWorkspaceAutomation | Method::GetRegistry | Method::ListWorkspaces | Method::GetWorkspace | Method::RenameWorkspace | Method::PinWorkspace
         | Method::ListProjects
         | Method::GetProject
         | Method::AddProject
@@ -154,6 +155,7 @@ const fn forwardable(method: Method) -> bool {
         | Method::GitStatus
         | Method::GitCompare
         | Method::GitCompareFile
+        | Method::GitHistory
         | Method::GitChanges
         | Method::GitDiff
         | Method::GitShow
@@ -229,6 +231,7 @@ const fn forwardable(method: Method) -> bool {
         | Method::ListInbox
         | Method::GetInboxEntry
         | Method::MarkInbox
+        | Method::Diagnostics
         | Method::GetPushKey
         | Method::SubscribePush
         | Method::UnsubscribePush
@@ -245,7 +248,9 @@ const fn forwardable(method: Method) -> bool {
         | Method::ForkSession
         | Method::RewindSession
         // Protocol 17: an agent's own history (ADR 0053).
-        | Method::GetAgentHistory => true,
+        | Method::GetAgentHistory
+        | Method::DetachSession
+        => true,
         Method::Subscribe
         | Method::SubscribeTerminal
         | Method::Unsubscribe

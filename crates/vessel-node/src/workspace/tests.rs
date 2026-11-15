@@ -1054,3 +1054,7 @@ mod git_apart;
 
 #[cfg(test)]
 mod queued_roots;
+
+mod project_admission;
+
+mod project_task;

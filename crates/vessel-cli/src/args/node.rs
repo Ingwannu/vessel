@@ -42,6 +42,12 @@ pub(crate) enum NodeCommand {
     Stop(Stop),
     /// Show the node: version, state (serving or draining), live sessions.
     Status,
+    /// Collect a bounded metadata-only report from the selected node.
+    Diagnostics {
+        /// Emit validated canonical JSON instead of text.
+        #[arg(long)]
+        json: bool,
+    },
     /// Make a single-use link that pairs a new device with the node (needs
     /// the `admin` scope). Prints the link, and a QR code on a terminal.
     Pair {

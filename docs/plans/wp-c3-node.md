@@ -520,3 +520,27 @@ the track's external evidence directory. No unchanged rerun is needed.
 These are selected libraries, not a whole root gate, V3 runtime acceptance,
 protocol assignment/admission, generated TS freshness, observation/subscription,
 model generation or app/UI proof. GIT_PANEL remainsNone and C3 remains incomplete.
+
+## Announced9c150c6e node-head merge (Gate50c)
+
+Merged the announced node head independently of the App tree. Its own all18
+steps0/Rust2549/0/12 is BASE evidence, not a result for this runtime union.
+The reviewed staged leaf and generated comparison TS variants are retained.
+This C3 runtime branch already supplies actual compare/file/history handlers,
+so its two existing comparison rows stay pending GIT_PANEL(None), not staged;
+its package test explicitly checks the runtime form. The shared values-only
+leaf on the integrator line remains staged. No number is assigned here.
+
+Conflict resolution preserves both project task cause sealing and C3 typed
+cache/job/write errors. Comparison classifications appear once; incoming detach/
+registry/diagnostics rows are retained, with the new history row appended at
+the table end. History remains in the client preframe-None fixture and proto
+classifications. The browser bridge now includes history with the existing git
+read group and deduplicates the comparison join; it remains a single bridge.
+Generic WORKSPACE_FAMILIES_LATER stays empty, retaining the pending-number guard.
+Both incoming project-task/admission and own queued-root modules remain.
+
+Only pure size/standalone pinned rustfmt/text/diff preflight ran locally. Exact
+merged compilation, tests and generated TS freshness for own history are still
+owed. Prior67/0/0 and af78 Clippy keep their original source assignments. No
+whole package, V3 runtime acceptance, app merge or product availability claim.
