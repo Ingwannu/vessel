@@ -31,6 +31,14 @@
 //!   (GPUI has no inert subtree); what is behind it cannot be clicked,
 //!   but a Tab could reach it. Focus goes to the dialog on open, not to
 //!   its first field: the screen focuses a field itself when it has one.
+//!
+//! [Decision Log: captured dismissal]
+//! - Purpose: closing an old dialog must not dismiss a newer decision.
+//! - Constraint: a function pointer cannot retain the decision's identity.
+//! - Alternatives: caller-global mutable identity or a second modal renderer.
+//! - Choice: accept a clonable closure, used by Escape, scrim and close glyph.
+//! - Why: each path retains the same immutable identity without kit domain types.
+//! - Cost: the caller owns stale-decision policy; legacy function items still fit.
 
 use gpui::prelude::*;
 use gpui::{
@@ -112,7 +120,7 @@ pub fn dialog<V: 'static>(
     tokens: &Tokens,
     window: &Window,
     narrow: bool,
-    close: fn(&mut V, &mut Window, &mut Context<'_, V>),
+    close: impl Fn(&mut V, &mut Window, &mut Context<'_, V>) + Clone + 'static,
     cx: &mut Context<'_, V>,
 ) -> AnyElement {
     let surfaces = Surfaces::of(tokens);
@@ -134,13 +142,14 @@ pub fn dialog<V: 'static>(
             .border_color(surfaces.surface2)
             .children(content.footer)
     });
+    let escape_close = close.clone();
     let card = div()
         .id("dialog")
         .track_focus(&state.focus)
         .on_key_down(
             cx.listener(move |view: &mut V, event: &KeyDownEvent, window, cx| {
                 if event.keystroke.key == "escape" {
-                    close(view, window, cx);
+                    escape_close(view, window, cx);
                     cx.stop_propagation();
                     cx.notify();
                 }
@@ -167,7 +176,7 @@ pub fn dialog<V: 'static>(
                 .rounded_t(px(popup::SHEET_RADIUS))
                 .child(handle(tokens.neutral.foreground_extra_muted))
         })
-        .child(header(content.title, &surfaces, narrow, close, cx))
+        .child(header(content.title, &surfaces, narrow, close.clone(), cx))
         .child(
             div()
                 .id("dialog-body")
@@ -237,7 +246,7 @@ fn header<V: 'static>(
     title: SharedString,
     surfaces: &Surfaces,
     narrow: bool,
-    close: fn(&mut V, &mut Window, &mut Context<'_, V>),
+    close: impl Fn(&mut V, &mut Window, &mut Context<'_, V>) + 'static,
     cx: &mut Context<'_, V>,
 ) -> gpui::Div {
     let close_size = if narrow { 44.0 } else { 28.0 };
@@ -262,6 +271,7 @@ fn header<V: 'static>(
         .child(
             div()
                 .id("dialog-close")
+                .debug_selector(|| "dialog-close".to_owned())
                 .size(px(close_size))
                 .flex()
                 .items_center()
@@ -281,6 +291,9 @@ fn header<V: 'static>(
                 ),
         )
 }
+
+#[cfg(test)]
+mod dismissal_tests;
 
 #[cfg(test)]
 mod tests {
