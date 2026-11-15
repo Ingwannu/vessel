@@ -207,3 +207,29 @@ helpers preserve every picker/focus assertion while keeping the existing test
 below its function budget. No lint allowance or test expectation changed. The
 skill documentation action now targets the coordinator's published repository
 and the existing Agent tools heading. No opener is invoked by this correction.
+
+## Skills-only portable-carrier preparation
+
+The announced base 8c (`2b806402`) is merged without editing the shared selected
+connection or delivery exports. The canonical portable carrier deliberately
+contains no `NodeSettings.mcp` field. This private consumer now removes both
+legacy settings RPC imports and the injection-patch constructor; Tools read and
+both switch choices return typed Unsupported without touching the connection.
+The real Skills calls remain typed. This does not enable the pending feature.
+
+The production selected-call regression now exercises an actual Skills read
+constructed before retirement and first polled afterwards. A separate framed
+peer test exercises all three unavailable Tools actions and proves none is
+substituted with a legacy settings call. The native-only partial-patch helper
+and its test no longer describe a consumer; policy-preserving partial patch
+behavior remains with the separate node settings owner and its regressions.
+The safe peer-error-category assertion remains unchanged. The fixture reuses
+existing `testing::state`/peer, with no second actor or shared fixture edits.
+
+Prior `adac5123` all-target strict passed and `9d24cb2c` actual tests passed
+16/0/0 (App five, Link four, View seven). These are prior-source evidence; they
+do not attest this base/Skills-only change or queued DeliveryGuard behavior.
+Current exact checks, canonical carrier/line adoption and the real guarded
+result envelope are still required. The private branch contains root work in
+progress and must never be merged wholesale into the app line: delivery is a
+native-only straight packet on the checked announced base.

@@ -81,13 +81,7 @@ async fn deadline_is_unconfirmed_and_does_not_retry_a_mutation() {
     assert_eq!(node.calls.load(Ordering::SeqCst), 1);
 }
 #[test]
-fn injection_is_a_partial_host_patch_and_errors_carry_no_peer_text() {
-    let patch = calls::injection(Injection::On);
-    assert_eq!(patch.mcp.unwrap().inject, Some(Injection::On));
-    assert!(patch.park_after.is_none());
-    assert!(patch.drivers.is_none());
-    let patch = calls::injection(Injection::Off).mcp.unwrap();
-    assert!(patch.policy.is_none());
+fn errors_carry_no_peer_text() {
     let unsafe_text = "a credential-bearing peer diagnostic";
     let safe = calls::problem(vessel_client::CallError::Remote(
         vessel_proto::WireError::new(ErrorCode::Forbidden, unsafe_text),
@@ -96,12 +90,8 @@ fn injection_is_a_partial_host_patch_and_errors_carry_no_peer_text() {
     assert!(!format!("{safe:?}").contains(unsafe_text));
 }
 
-#[tokio::test]
-async fn retired_original_connection_cannot_poll_a_read_or_follow_a_new_alias() {
-    use crate::testing::{Home, peer, state};
-    let home = Home::new();
-    let (mut actor, _events) = state(&home);
-    let mut peer = peer::connect("host").await;
+async fn selected(actor: &mut crate::State) -> (calls::Selected, crate::testing::peer::Peer) {
+    let mut peer = crate::testing::peer::connect("host").await;
     let client = peer.client.take().unwrap();
     let context = actor
         .admissions
@@ -115,13 +105,41 @@ async fn retired_original_connection_cannot_poll_a_read_or_follow_a_new_alias() 
     };
     let connected = crate::Connected::new(client, Vec::new(), binding, context.clone());
     let _previous = actor.clients.insert("host".into(), connected);
-    let selected = calls::Selected {
-        connection: actor.selected_connection(&context).unwrap(),
-        context: context.clone(),
-    };
+    (
+        calls::Selected {
+            connection: actor.selected_connection(&context).unwrap(),
+            context,
+        },
+        peer,
+    )
+}
+
+#[tokio::test]
+async fn unavailable_tools_never_substitute_a_legacy_settings_rpc() {
+    use crate::testing::{Home, state};
+    let home = Home::new();
+    let (mut actor, _events) = state(&home);
+    let (selected, peer) = selected(&mut actor).await;
+    for action in [
+        Action::ReadTools,
+        Action::Inject(Injection::On),
+        Action::Inject(Injection::Off),
+    ] {
+        assert_eq!(selected.execute(action).await, Err(Problem::Unsupported));
+    }
+    assert!(peer.calls.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn retired_original_connection_cannot_poll_a_read_or_follow_a_new_alias() {
+    use crate::testing::{Home, state};
+    let home = Home::new();
+    let (mut actor, _events) = state(&home);
+    let (selected, peer) = selected(&mut actor).await;
+    let context = selected.context.clone();
     // The async method is constructed before retirement and first polled
     // afterwards, exercising the actual shared guard rather than a mock flag.
-    let pending = selected.execute(Action::ReadTools);
+    let pending = selected.execute(Action::ReadSkills);
     let Some(original) = actor.clients.get("host") else {
         panic!("the original test connection is missing");
     };
