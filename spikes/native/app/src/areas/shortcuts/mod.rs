@@ -27,9 +27,11 @@ use std::time::Instant;
 use gpui::KeystrokeEvent;
 use vessel_app_kit::TextField;
 use vessel_app_kit::ui::{App, Context, Subscription, Window};
+use vessel_app_view::prefs::PreferenceChange;
 use vessel_app_view::settings::Section;
 use vessel_app_view::shortcuts::{
-    Action, Held, KeyPress, Matched, Pending, Platform, chord_of, code_of, commanding, matched,
+    Action, Held, KeyPress, Matched, Pending, Platform, ShortcutScope, chord_of, code_of,
+    commanding, matched,
 };
 use vessel_app_view::sidebar::{Step, step_session};
 
@@ -148,15 +150,34 @@ impl Shell {
             Matched::Wait(pending) => self.areas.shortcuts.pending = Some(pending),
             Matched::None => {}
             Matched::Run { action, index } => {
-                if self.run_shortcut(action, index, repeat, window, cx) {
+                if action.enabled(self.shortcut_scope(event), platform)
+                    && self.run_shortcut(action, index, repeat, window, cx)
+                {
                     cx.stop_propagation();
                 }
             }
         }
     }
 
+    /// The palette's lifetime wins over retained terminal focus. Toolkit
+    /// context names are interpreted only at this input boundary.
+    fn shortcut_scope(&self, event: &KeystrokeEvent) -> ShortcutScope {
+        if self.areas.palette.is_open() {
+            ShortcutScope::CommandCenter
+        } else if event
+            .context_stack
+            .iter()
+            .any(|context| context.contains("Terminal"))
+        {
+            ShortcutScope::Terminal
+        } else {
+            ShortcutScope::Elsewhere
+        }
+    }
+
     /// Do what `action` says; whether it did anything (else the key goes
-    /// on to the field and the controls).
+    /// on to the field and the controls). The exhaustive dispatch stays
+    /// in one table so adding an action cannot leave a handler implicit.
     fn run_shortcut(
         &mut self,
         action: Action,
@@ -175,6 +196,10 @@ impl Shell {
                 }
             }
             Action::Settings => self.open_settings(None, window, cx),
+            Action::CycleTheme => {
+                let next = self.prefs.settings.appearance.theme.next();
+                self.prefer(&PreferenceChange::Theme(next), window, cx);
+            }
             Action::GoBoard => self.go(Route::Board, window, cx),
             Action::GoMachines => self.open_settings(Some(Section::Overview), window, cx),
             Action::GoSync => self.open_settings(Some(Section::Sync), window, cx),
