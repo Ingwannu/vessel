@@ -70,3 +70,20 @@ fn duration_thresholds_do_not_drift() {
         );
     }
 }
+
+#[test]
+fn failed_responses_keep_their_footer_but_do_not_copy_the_withheld_error_reply() {
+    let timeline = entries(vec![
+        json!({"event":"turn_started","content":[]}),
+        message("Partial work"),
+        json!({"event":"tool_call","id":"read","title":"Read","kind":"read","status":"completed"}),
+        message("service unavailable"),
+        json!({"event":"turn_failed","message":"Internal error: service unavailable"}),
+    ]);
+    let footer = TurnFooter::of(timeline.entries(), 4).unwrap();
+    assert_eq!(footer.completion, TurnCompletion::Failed);
+    assert_eq!(footer.response, "Partial work");
+    assert_eq!(footer.started_at, Some(DateTime::UNIX_EPOCH));
+    let failed_only = entries(vec![json!({"event":"turn_failed","message":"unavailable"})]);
+    assert!(TurnFooter::of(failed_only.entries(), 0).is_none());
+}

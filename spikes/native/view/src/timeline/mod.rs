@@ -90,7 +90,7 @@ pub use question_step::{
 pub use rewind::rewind_point;
 pub use rows::Rows;
 pub use runs::{Folds, RunSummary, Tally, ToolRun};
-pub use turn_footer::{TurnFooter, duration_label};
+pub use turn_footer::{TurnCompletion, TurnFooter, duration_label};
 pub use turns::{TurnActivity, TurnFold, TurnFolds};
 pub use usage::ModelUsage;
 pub use window::{

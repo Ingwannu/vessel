@@ -120,10 +120,11 @@ pub(super) fn entry(
         ),
         // Paseo's turn footer: the reply's copy button and how long the
         // turn worked; the turn's tokens are the context meter's.
-        EntryKind::TurnEnded { reason, .. } => {
-            super::footer::completed(paint, index, *reason, window, cx)
-        }
-        EntryKind::TurnFailed { .. } => failure(paint, words.spoken(entry, paint.catalog)),
+        EntryKind::TurnEnded { .. } => super::footer::completed(paint, index, window, cx),
+        EntryKind::TurnFailed { .. } => div()
+            .child(failure(paint, words.spoken(entry, paint.catalog)))
+            .child(super::footer::completed(paint, index, window, cx))
+            .into_any_element(),
         EntryKind::Log { line } => log_line(paint, line),
         EntryKind::Forked { from, .. } => {
             let head = paint.fork_headers.words(*from, paint.catalog);

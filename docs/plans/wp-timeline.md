@@ -338,3 +338,15 @@ will adapt ConversationArea/Seat behind W12's V1-reviewed keyed-context contract
 no parallel SessionView/composer manager is introduced here. Until that contract
 lands, this package's existing single-session and embedded rows remain its
 consumer boundary.
+
+### Failed response footer
+
+Paseo `agent-stream/layout.ts:75-110` finds an assistant-message or tool fallback
+for a completed footer; it does not require successful completion. Native now
+keeps that footer for a failed response with observed assistant/tool work.
+`TurnCompletion::{Ended(StopReason),Failed}` retains the distinction without
+inventing a stop reason. The existing failure card says why; the footer keeps
+factual timing/copy, suppresses any provider reply already withheld as duplicate
+failure text, and never borrows an earlier response. An error-only partial log
+without a response/tool host gets no synthetic footer. Regression tests pin
+failed response boundaries, explicit failure state and copied content.

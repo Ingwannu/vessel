@@ -30,7 +30,7 @@ use vessel_app_kit::ui::{
     px,
 };
 use vessel_app_kit::{CopyLook, Type, TypeExt as _, breakpoint, copy_button};
-use vessel_app_view::timeline::{TurnFooter, duration_label};
+use vessel_app_view::timeline::{TurnCompletion, TurnFooter, duration_label};
 use vessel_proto::StopReason;
 
 use super::entries::{Paint, id};
@@ -46,7 +46,6 @@ mod label;
 pub(super) fn completed(
     paint: &Paint<'_>,
     index: usize,
-    reason: StopReason,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
@@ -57,11 +56,12 @@ pub(super) fn completed(
     let worked = footer
         .started_at
         .map(|start| words.worked_for(&duration_label(start, footer.completed_at)));
-    let worked = match (worked, reason) {
-        (Some(worked), StopReason::EndTurn) => Some(worked),
-        (Some(worked), other) => Some(format!("{worked} · {}", words.stop_reason(other))),
-        (None, StopReason::EndTurn) => None,
-        (None, other) => Some(words.stop_reason(other).to_owned()),
+    let worked = match (worked, footer.completion) {
+        (worked, TurnCompletion::Ended(StopReason::EndTurn) | TurnCompletion::Failed) => worked,
+        (Some(worked), TurnCompletion::Ended(other)) => {
+            Some(format!("{worked} · {}", words.stop_reason(other)))
+        }
+        (None, TurnCompletion::Ended(other)) => Some(words.stop_reason(other).to_owned()),
     };
     let when = words.when(footer.completed_at, Local::now().fixed_offset());
     let primary = worked.unwrap_or_else(|| when.clone());

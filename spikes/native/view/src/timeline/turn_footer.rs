@@ -3,14 +3,26 @@
 
 use chrono::{DateTime, Utc};
 
-use super::{Entry, EntryKind};
+use super::{Entry, EntryKind, repeats_failure};
+use vessel_proto::StopReason;
 
 const SECONDS_PER_MINUTE: i64 = 60;
 const MINUTES_PER_HOUR: i64 = 60;
 
+/// Completion stays distinct from its provider failure message.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TurnCompletion {
+    /// A normal protocol stop retains its exact reason.
+    Ended(StopReason),
+    /// The turn failed; the existing failure row says why.
+    Failed,
+}
+
 /// Completion time and response content share the same turn boundary.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TurnFooter {
+    /// Failure cannot be mislabeled as a successful end.
+    pub completion: TurnCompletion,
     /// Always available for a real completion, even in partial history.
     pub completed_at: DateTime<Utc>,
     /// Absent when the loaded response has no visible start.
@@ -20,13 +32,29 @@ pub struct TurnFooter {
 }
 
 impl TurnFooter {
-    /// Only a turn-end entry can own a completed footer.
+    /// A real completion owns its footer; failed turns need a response/tool host.
     #[must_use]
     pub fn of(entries: &[Entry], index: usize) -> Option<Self> {
         let end = entries.get(index)?;
-        if !matches!(end.kind, EntryKind::TurnEnded { .. }) {
-            return None;
-        }
+        let completion = match end.kind {
+            EntryKind::TurnEnded { reason, .. } => TurnCompletion::Ended(reason),
+            EntryKind::TurnFailed { .. } => TurnCompletion::Failed,
+            EntryKind::Ready { .. }
+            | EntryKind::Prompt(_)
+            | EntryKind::Steer { .. }
+            | EntryKind::Question { .. }
+            | EntryKind::Message { .. }
+            | EntryKind::Thought { .. }
+            | EntryKind::Tool(_)
+            | EntryKind::Plan { .. }
+            | EntryKind::Permission(_)
+            | EntryKind::Log { .. }
+            | EntryKind::Status { .. }
+            | EntryKind::Parking(_)
+            | EntryKind::Forked { .. }
+            | EntryKind::Profile { .. }
+            | EntryKind::Model(_) => return None,
+        };
         let before = entries.get(..index)?;
         let boundary = before.iter().rposition(|entry| {
             matches!(
@@ -39,10 +67,19 @@ impl TurnFooter {
             .filter(|entry| matches!(entry.kind, EntryKind::Prompt(_)))
             .map(|entry| entry.at);
         let start = boundary.map_or(0, |at| at.saturating_add(1));
-        let response = before
-            .get(start..)?
+        let response_entries = before.get(start..)?;
+        if completion == TurnCompletion::Failed
+            && !response_entries
+                .iter()
+                .any(|entry| matches!(entry.kind, EntryKind::Message { .. } | EntryKind::Tool(_)))
+        {
+            return None;
+        }
+        let response = response_entries
             .iter()
-            .filter_map(|entry| {
+            .enumerate()
+            .filter(|(offset, _)| !repeats_failure(entries, start.saturating_add(*offset)))
+            .filter_map(|(_, entry)| {
                 if let EntryKind::Message { text } = &entry.kind {
                     Some(text.as_str())
                 } else {
@@ -52,6 +89,7 @@ impl TurnFooter {
             .collect::<Vec<_>>()
             .join("\n\n");
         Some(Self {
+            completion,
             completed_at: end.at,
             started_at,
             response,
