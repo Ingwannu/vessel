@@ -91,7 +91,7 @@ impl fmt::Display for DictateError {
                 source: CallError::UnassignedProtocol { .. },
                 ..
             } => {
-                out.write_str("dictation is not available in this build; use a node and client with dictation support")?
+                out.write_str("dictation is not available in this build; use a node and client with dictation support")?;
             }
             Failure::Call {
                 source: CallError::NotInProtocol { .. },

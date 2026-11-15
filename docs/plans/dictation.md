@@ -903,3 +903,11 @@ carrier; that head will replace the earlier connection-factory observer choice,
 with both staging expectations removed at the first real resource consumer.
 It is not merged early. Focused root runtime and current CLI strict are still
 pending on the prior immutable snapshot, so neither proves this merged head.
+
+
+The first corrected CLI strict snapshot reached both binary configurations and
+reported only a missing statement semicolon and drop of a Copy unit-signal
+result. These are corrected without message, transport, assertion or deadline
+changes. The run remains nonzero evidence; actual CLI/actor execution and the
+current merged-head package gate are still owed. The signal is internal to the
+same driver task; it is not a discarded remote refusal.

@@ -40,7 +40,7 @@ pub(super) async fn upload(
         sequence = ChunkSeq::new(sequence.get().checked_add(1).ok_or(Failure::Sequence)?);
     }
     let final_seq = final_seq.ok_or(Failure::Empty)?;
-    drop(finishing.send(()));
+    let _closed = finishing.send(());
     call(
         client,
         FinishDictation {
