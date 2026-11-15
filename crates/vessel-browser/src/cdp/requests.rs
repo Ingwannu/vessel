@@ -47,6 +47,7 @@ methods! {
     ClearViewport => "Emulation.clearDeviceMetricsOverride",
     InsertText => "Input.insertText",
     MouseEvent => "Input.dispatchMouseEvent",
+    KeyEvent => "Input.dispatchKeyEvent",
     FrameTree => "Page.getFrameTree",
     IsolatedWorld => "Page.createIsolatedWorld",
     SnapshotTraversal => "Runtime.callFunctionOn",
@@ -61,7 +62,10 @@ macro_rules! request {
         }
     };
 }
+mod keyboard;
+mod modifiers;
 mod pointer;
+pub(crate) use keyboard::{KeyboardError, KeyboardState};
 mod snapshot;
 pub(crate) use pointer::{MouseEvent, PointerState};
 pub(crate) use snapshot::{FrameTree, IsolatedWorld, SnapshotTraversal};

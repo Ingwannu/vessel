@@ -147,3 +147,19 @@ fn a_late_graph_without_any_ref_cannot_bypass_the_namespace_fence() {
         Err(SnapshotError::Reference(ReferenceError::Stale))
     ));
 }
+
+#[test]
+fn changed_form_value_invalidates_an_otherwise_identical_binding() {
+    let value = element(0, "textbox", "Own", Some("@e1"));
+    let node: graph::Node = serde_json::from_value(value).unwrap();
+    let graph::Node::Element { fingerprint, .. } = node else {
+        panic!("element fixture")
+    };
+    let original = Binding(fingerprint.clone());
+    let same = Binding(fingerprint.clone());
+    assert!(original.same_fingerprint(&same));
+    let mut changed = fingerprint;
+    changed.value =
+        vessel_proto::browser::PageText::try_from("changed-by-page".to_owned()).unwrap();
+    assert!(!original.same_fingerprint(&Binding(changed)));
+}

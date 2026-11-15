@@ -41,14 +41,22 @@ impl Page {
                 self.execute(event).await.map(|_| ())
             }
             HumanInput::Text { text } => self.execute(InsertText { text }).await.map(|_| ()),
-            // Keyboard/IME admission must not fall back to evaluated JavaScript
-            // or literal text. The sealed key adapter is a separate next slice.
-            HumanInput::Key { .. } => Err(PageError::Unsupported),
+            HumanInput::Key {
+                key,
+                action,
+                modifiers,
+            } => {
+                let event = self.keyboard.event(&key, action, modifiers)?;
+                self.execute(event).await.map(|_| ())
+            }
             HumanInput::ReleaseAll => {
                 if let Some(position) = self.pointer_position {
                     for event in self.pointer.release_all(position).into_iter().flatten() {
                         let _released = self.execute(event).await?;
                     }
+                }
+                for event in self.keyboard.release_all() {
+                    let _released = self.execute(event).await?;
                 }
                 Ok(())
             }

@@ -129,7 +129,8 @@ async fn peer(listener: TcpListener) {
             "Runtime.callFunctionOn" => snapshot_result(&call),
             "Runtime.evaluate" => serde_json::json!({"result":{"value":3}}),
             "Page.captureScreenshot" => serde_json::json!({"data":"bm90LXBuZw=="}),
-            "Input.dispatchMouseEvent"
+            "Input.dispatchKeyEvent"
+            | "Input.dispatchMouseEvent"
             | "Input.insertText"
             | "Page.enable"
             | "Runtime.enable"
@@ -182,6 +183,16 @@ async fn human_input(page: &mut Page) {
     })
     .await
     .unwrap();
+    for key in ["Control", "a"] {
+        page.human_input(HumanInput::Key {
+            key: RequiredInput::try_from(key.to_owned()).unwrap(),
+            action: vessel_proto::browser::KeyAction::Down,
+            modifiers: vessel_proto::browser::KeyModifiers::default(),
+        })
+        .await
+        .unwrap();
+    }
+    page.human_input(HumanInput::ReleaseAll).await.unwrap();
     let invalid:HumanInput=serde_json::from_value(serde_json::json!({"kind":"pointer","position":{"x":1000,"y":0},"action":{"kind":"move"},"modifiers":{}})).unwrap();
     assert!(matches!(
         page.human_input(invalid).await,
@@ -193,7 +204,7 @@ async fn human_input(page: &mut Page) {
     .unwrap();
     assert!(matches!(
         page.human_input(key).await,
-        Err(PageError::Unsupported)
+        Err(PageError::Keyboard(requests::KeyboardError::Unsupported))
     ));
 }
 

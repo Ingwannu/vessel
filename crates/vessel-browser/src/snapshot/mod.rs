@@ -40,6 +40,12 @@ impl std::fmt::Debug for SnapshotError {
 /// Page content and element fingerprints never enter diagnostic formatting.
 #[derive(Clone)]
 pub(crate) struct Binding(graph::Fingerprint);
+impl Binding {
+    /// Replaced/changed form state must refuse before a later trusted action.
+    pub(crate) fn same_fingerprint(&self, observed: &Self) -> bool {
+        self.0 == observed.0
+    }
+}
 impl std::fmt::Debug for Binding {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("SnapshotBinding([redacted])")

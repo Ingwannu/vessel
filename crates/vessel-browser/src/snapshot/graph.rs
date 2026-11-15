@@ -82,7 +82,7 @@ impl HeadingLevel {
 }
 
 /// Exact state retained for later replacement detection; never shown in tool output/Debug.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Fingerprint {
     pub(super) tag: PageText,

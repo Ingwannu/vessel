@@ -643,3 +643,24 @@ stderr; hold profile/capacity through child wait plus real proxy drain. Candidat
 identity and scoped diagnostics cannot qualify a supported engine. Do not release
 on a wait/actor failure without cleanup evidence. No new generic spawn/raw CDP
 surface or process identity implementation is introduced by this prerequisite.
+
+## Next staged human keyboard adapter
+
+[Decision Log]
+- Purpose: trusted page key-down/up and release-all must be distinct from text
+  insertion, an arbitrary eval string, a shell, and the native global keyboard.
+- Existing assets: HumanInput already distinguishes Key/Text; pointer modifier
+  masks, target serialization and uncertain-delivery quarantine can be reused.
+  W22b owns the only native interceptor and supplies no raw forwarding yet.
+- Alternatives: emulate DOM events in JS, forward raw arbitrary CDP, or extend
+  our sealed CDP request vocabulary with a typed finite key grammar.
+- Choice: modify that vocabulary with rawKeyDown/keyUp, target-owned held state
+  and repeat detection; committed text remains Input.insertText on its separate
+  channel. Unsupported physical/layout/IME keys refuse; no text/eval fallback.
+- Reason: our human text channel must not insert the same character twice, and
+  held keys must release only in their owning page. The official Input CDP schema
+  distinguishes raw keys from char/text and specifies modifier/virtual-key units.
+- Impact: this is an initial subset (ASCII letters/digits, named navigation and
+  modifier keys, F1-F12), not complete browser_keypress chord/layout/IME parity.
+  It remains test-staged and does not register a native focus/raw-key producer.
+  Actual multi-tab keyboard routing/cancellation and Windows behavior are owed.

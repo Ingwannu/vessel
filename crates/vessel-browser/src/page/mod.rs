@@ -30,12 +30,12 @@ pub(crate) enum PageError {
     Exhausted,
     #[error("browser refused target closure")]
     CloseRefused,
-    #[error("browser input operation is not implemented by this adapter")]
-    Unsupported,
     #[error("browser rejected navigation")]
     Navigation,
     #[error("browser snapshot could not be produced")]
     Snapshot(#[from] crate::snapshot::SnapshotError),
+    #[error("browser target keyboard input was refused")]
+    Keyboard(#[from] requests::KeyboardError),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -55,6 +55,7 @@ pub(crate) struct Page {
     pointer: requests::PointerState,
     pointer_position: Option<vessel_proto::browser::CssPoint>,
     references: crate::references::References<crate::snapshot::Binding>,
+    keyboard: requests::KeyboardState,
 }
 impl std::fmt::Debug for Page {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -121,6 +122,7 @@ impl Page {
                 pointer: requests::PointerState::default(),
                 pointer_position: None,
                 references: crate::references::References::default(),
+                keyboard: requests::KeyboardState::default(),
             }),
             Err(source) => {
                 // Never report a ready target after partial setup. The profile
