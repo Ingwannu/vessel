@@ -124,19 +124,20 @@ Restart marks interrupted starts Uncertain rather than rerunning them. This
 requires the lifecycle consumer to stop resources only after all starts settle.
 A generic metadata CAS is not evidence that resource teardown happened.
 
-The lifetime budget is explicit: at most 256 workspace/backing identities and
-4096 resource ownership claims, including archived, failed, interrupted and ended
-records. Each workspace atomically reserves 8 KiB descriptor, 256 KiB recovery,
-16 KiB intent and 1 KiB bookkeeping capacity before backing effects. Resource
-claims reserve 256 bytes each before spawn. The total logical payload allowance
-is the named MAX_RETAINED_BYTES formula in the store capacity module. Fixed slot
-reservations cover later growth without borrowing a create receipt's independent
-budget. Oversized records fail without publishing partial state. New identities
-return RegistryFull at capacity; exact existing identities can still reconcile
-and settle, with no eviction or ownership/key release. Physical SQLite indexes,
-page allocation and WAL remain subject to the existing store management; this
-logical payload bound is not a disk quota. A complete public snapshot is bounded
-by descriptor and membership limits and fits the existing 16 MiB frame ceiling.
+The lifetime budget is explicit: MAX_WORKSPACES workspace/backing identities and
+MAX_RESOURCES resource ownership claims, including archived, failed, interrupted
+and ended records. Each workspace atomically reserves MAX_DESCRIPTOR_BYTES,
+MAX_RECOVERY_BYTES, MAX_INTENT_BYTES and WORKSPACE_KEY_BYTES capacity before
+backing effects. Resource claims reserve RESERVED_BYTES_PER_RESOURCE before
+spawn. MAX_RETAINED_BYTES is computed from these named constants in the store
+capacity module. Fixed slot reservations cover later growth without borrowing a
+create receipt's independent budget. Oversized records fail without publishing
+partial state. New identities return RegistryFull at capacity; exact existing
+identities can still reconcile and settle, with no eviction or ownership/key
+release. Physical SQLite indexes, page allocation and WAL remain subject to the
+existing store management; this logical payload bound is not a disk quota.
+Descriptor and membership caps bound a complete public snapshot below the
+existing RPC MAX_FRAME ceiling.
 
 Coalesced watches emit only after a successful writer commit. Consumers re-read
 a complete descriptor/membership snapshot on wake; no polling interval, cwd
@@ -161,3 +162,26 @@ approves a command digest nor performs metadata generation. Script and setup
 consumers must enforce the retained gate before automatic execution and offer a
 separate explicit action after release. Historical create intent stays blocked,
 so replay cannot reinterpret the original request as a newly authorized effect.
+
+
+## Stable terminal runs and restart admission
+
+A terminal may retain its TerminalId over several process runs. The initial
+claim deliberately refuses an already Ready resource. Its supervisor retains
+the opaque first lease, completes registration, and proves the previous process
+has actually joined before requesting claim_registry_restart. A signal, revoked
+lifetime token or an ambiguous wait error is not proof that a process stopped.
+
+Restart compares exact workspace/resource/predecessor lease and requires its
+stored stage still Ready plus an Active workspace at the expected revision. It
+then allocates a new Pending lease in that same transaction. Concurrent restarts,
+foreign owners, Archiving/Restoring, pending/uncertain predecessors and late
+completions refuse. The resource id/owner and retained capacity slot never change;
+restarting an existing row remains possible when fresh resource capacity is full.
+
+registry_resource_run exposes retained admission metadata for supervisor recovery.
+Ready means the last run was registered; it attests neither current liveness nor
+successful wait/join. The node supervisor must reconcile the actual resource and
+run generation before using the opaque predecessor token. The store does not
+infer process state from cwd, PID shape or an elapsed time. Failed initial starts
+remain separate and retryable only after proof that no actor was spawned.

@@ -195,3 +195,14 @@ now explicitly choose those mappings, with no wildcard or head-case rewrite.
 The registry dependency migration contains only its live descriptor/reservation/
 resource/revision tables. Project presentation storage is deferred to the later
 project package's append; no unused project-metadata table is reserved here.
+
+
+Registry dependency checkpoint: current local Store suite 96 passed/0 failed,
+node registry provisioning 5/0, TypeScript generation 4/0. Strict all-target
+Clippy then found explicit pin defaults, a borrowed error adapter, one oversized
+existing worktree function after fixed-id admission, and an unused test result.
+These are corrected without changing head test expectations. Stable terminal
+restart now has a distinct exact-predecessor lease API and two new adversarial
+cases plus at-capacity restart coverage; current checks and A12 remain owed.
+Existing Ready admission is not process-exit proof. Its consumer must join the
+old run before restarting; no signal/lifetime heuristic is substituted here.
