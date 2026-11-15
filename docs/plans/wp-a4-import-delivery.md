@@ -126,3 +126,13 @@ their data while the failure disables all captures. Row dispatch already advance
 the visit before its effect, so its redundant second advance is removed. The
 priority rule is exhausted after this RED; all subsequent checks use short without
 priority. The actual App binary regression has not executed yet.
+
+The actual4e App binary selection executed two cases: receipt/draft preservation
+passed, retained-callback dispatch stopped before input because its row selector
+was absent. GPUI debug_bounds indexes debug_selector, not ElementId. The existing
+production row now exposes that same row identity to the visual harness; there
+is no second renderer or copied handler. The fixture explicitly uses1280x900.
+The same eight old-render cases and all current-input assertions are preserved
+while setup/interception/input/positive-control helpers are split below the
+strict function-size bound. Loaded scope is borrowed and every unit closure
+terminates explicitly; no lint allowance, timing relaxation or assertion removal.
