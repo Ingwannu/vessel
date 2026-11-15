@@ -106,3 +106,10 @@ added there; no field or authority semantics change. Session rollups now also
 carry current failed outcomes, independently of unread, so native five-bucket
 status cannot confuse a read failure with a finished result. A regression marks
 a failure read and verifies failure persists until a new turn removes it.
+
+The pre-existing local queued check finished under the operator's existing-job
+exception. It was a non-strict check in a changing worktree, so it is diagnostic
+only, not immutable-source evidence. It exposed two test warnings after the
+ProcessLifetime base merge: unnecessary TimeDelta qualification and an ignored
+TaskTracker::close boolean. Both are corrected without changing runtime logic.
+All new compilation remains VM-only; immutable strict checks are still pending.

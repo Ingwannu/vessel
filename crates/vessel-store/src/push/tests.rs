@@ -105,7 +105,7 @@ fn late_gone_for_the_same_capability_cannot_delete_a_renewed_lease() {
     let mut renewed = old.clone();
     renewed.expires_at = old
         .expires_at
-        .checked_add_signed(chrono::TimeDelta::seconds(1))
+        .checked_add_signed(TimeDelta::seconds(1))
         .unwrap();
     subscribe(&db, &renewed, now()).unwrap();
     apply(&db, &PushWrite::Expire(Box::new(old))).unwrap();

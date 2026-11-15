@@ -217,7 +217,7 @@ mod tests {
             }
         );
         stop.cancel();
-        tasks.close();
+        let _closed = tasks.close();
         tasks.wait().await;
     }
     #[test]
