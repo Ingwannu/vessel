@@ -223,3 +223,12 @@ New key. Duplex tests check the captured source on every reply and a shell
 regression prevents another draft's equal ticket from completing New. Actual
 workspace dispatch/settlement awaits W6's keyed preparation bridge and the
 reviewed workspace runtime; this correlation change performs no new RPC.
+
+The legacy placement walk's generic failure can follow a successful worktree
+creation or setup command. It no longer converts such node/transport failures
+into a known creation refusal permitting another worktree. The flow retains
+its payload and reports outcome unknown until durable reconciliation exists.
+Only an unsent ask or protocol preflight remains a no-dispatch refusal; an
+explicit user cancellation keeps its existing stop behavior. This conservative
+difference avoids blind duplication without claiming receipt recovery for the
+legacy path. Pure transition tests cover both classes.
