@@ -20,7 +20,10 @@ impl MutationError {
     pub fn of(error: &CallError) -> Self {
         match error {
             CallError::Disconnected | CallError::UnexpectedReply(_) => Self::Uncertain,
-            CallError::RequestIdsExhausted | CallError::NotInProtocol { .. } => Self::Refused,
+            // Pending features never enter a mutation's transport queue.
+            CallError::RequestIdsExhausted
+            | CallError::NotInProtocol { .. }
+            | CallError::UnassignedProtocol { .. } => Self::Refused,
             CallError::Remote(error) => match error.code {
                 ErrorCode::Unavailable | ErrorCode::Internal => Self::Uncertain,
                 ErrorCode::InvalidRequest
@@ -73,6 +76,16 @@ mod tests {
         );
         assert_eq!(
             MutationError::of(&CallError::RequestIdsExhausted),
+            MutationError::Refused
+        );
+    }
+
+    #[test]
+    fn an_unassigned_feature_is_a_definitive_unsent_refusal() {
+        assert_eq!(
+            MutationError::of(&CallError::UnassignedProtocol {
+                method: Method::BeginUpload
+            }),
             MutationError::Refused
         );
     }

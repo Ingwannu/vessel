@@ -32,6 +32,8 @@ use crate::ring::{Follow, FollowError, Ring};
 #[derive(Debug)]
 pub(crate) struct Shared {
     pub(crate) id: SessionId,
+    /// Local-only account/location snapshot, changed with the actual launch.
+    pub(crate) limits: watch::Sender<crate::LimitAssociation>,
     /// Latest info, published by the actor.
     pub(crate) info: watch::Receiver<SessionInfo>,
     /// Recent records and the live stream. A `std` mutex: it is held only
@@ -123,6 +125,12 @@ fn current(route: &watch::Receiver<Route>) -> Result<AgentInput, SessionError> {
 pub struct SessionHandle(pub(crate) Arc<Shared>);
 
 impl SessionHandle {
+    /// Saved-sign-in association of the actual launch, without credentials.
+    #[must_use]
+    pub fn limit_association(&self) -> crate::LimitAssociation {
+        self.0.limits.borrow().clone()
+    }
+
     /// The session's id.
     #[must_use]
     pub fn id(&self) -> SessionId {

@@ -16,6 +16,8 @@ mod base64_bytes;
 mod board;
 pub mod conversation;
 mod device;
+pub mod diagnostics;
+pub mod dictation;
 mod error;
 mod event;
 mod fleet;
@@ -29,6 +31,9 @@ pub mod history;
 mod id;
 pub mod inbox;
 mod key;
+pub mod labels;
+pub mod lifecycle_version;
+pub mod limits;
 pub mod lsp;
 mod model;
 mod name;
@@ -102,6 +107,7 @@ pub use id::{
     ToolCallId, TransferId, UploadId, WorktreeId,
 };
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
+pub use labels::{InvalidLabel, LabelKey, LabelValue, SessionLabels};
 pub use model::{
     DurationMs, ListModels, ModelApi, ModelCall, ModelFailure, ModelRoute, ModelStop, SessionModel,
     TokenCount, TokenUsage,

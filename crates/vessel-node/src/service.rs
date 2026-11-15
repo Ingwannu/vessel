@@ -64,6 +64,7 @@ mod terminals;
 // through the service's own checks; protocol 13's previews of them.
 mod followed;
 mod inbox;
+mod limits;
 mod notices;
 mod prompts;
 mod push;
@@ -143,6 +144,7 @@ pub(crate) struct NodeService {
     listings: tokio::sync::Semaphore,
     /// The node's settings (protocol 12, `crate::settings`).
     settings: Arc<crate::settings::Settings>,
+    limits: crate::limits::Limits,
     /// Turns followed for their starters (protocol 11,
     /// `automation::notices`).
     notices: Arc<Notices>,
@@ -178,6 +180,7 @@ pub(crate) struct Parts {
     pub(crate) schedules: Schedules,
     pub(crate) settings: Arc<crate::settings::Settings>,
     pub(crate) push: Arc<crate::push::Push>,
+    pub(crate) limits: crate::limits::Limits,
 }
 
 impl NodeService {
@@ -208,6 +211,7 @@ impl NodeService {
             schedules,
             settings,
             push,
+            limits,
         } = parts;
         let store = sessions.store().clone();
         Self {
@@ -244,6 +248,7 @@ impl NodeService {
             searches: tokio::sync::Semaphore::new(search::AT_ONCE),
             listings: tokio::sync::Semaphore::new(history::AT_ONCE),
             settings,
+            limits,
             notices: Arc::default(),
             side_opening: Arc::default(),
             push,

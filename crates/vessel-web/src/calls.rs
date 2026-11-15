@@ -72,7 +72,9 @@ fn decode(call: &RawJson) -> Result<UnaryCall, Failure> {
 )]
 const fn forwardable(method: Method) -> bool {
     match method {
-        Method::QueryUsage
+        Method::GetUsageLimits
+        | Method::SetUsageLookup
+        | Method::QueryUsage
         | Method::NodeInfo
         | Method::ListHarnesses
         | Method::ListSessions
@@ -267,7 +269,9 @@ fn failure(error: CallError) -> Failure {
             negotiated,
         },
         CallError::Disconnected => Failure::Disconnected,
-        CallError::UnexpectedReply(_) | CallError::RequestIdsExhausted => Failure::Failed {
+        CallError::UnexpectedReply(_)
+        | CallError::RequestIdsExhausted
+        | CallError::UnassignedProtocol { .. } => Failure::Failed {
             message: error.to_string(),
         },
     }

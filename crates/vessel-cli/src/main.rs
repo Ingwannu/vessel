@@ -16,6 +16,7 @@ mod connect;
 mod conversation;
 mod devices;
 mod error;
+mod file_terminals;
 mod fleet;
 mod forge;
 mod history;
@@ -112,7 +113,7 @@ async fn cli() -> ExitCode {
         | Command::Run(_)
         | Command::Attach { .. }
         | Command::Send(_)
-        | Command::Log { .. }
+        | Command::Log(_)
         | Command::Search(_)
         | Command::History(_)
         | Command::Kill { .. }

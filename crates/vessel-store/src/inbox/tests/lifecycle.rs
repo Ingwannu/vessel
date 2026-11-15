@@ -170,14 +170,16 @@ fn rewind_withdraws_old_completion_and_tools_without_deleting_the_log() {
     assert_eq!(records, 3);
 }
 
-// Drop only this appended migration: the search schema before it stays real.
+// Drop the inbox's migration and the one appended after it since the
+// lifecycle merge (the labels' column, schema 17), so migrating again runs
+// the inbox's backfill: the search schema before them stays real.
 fn migrate_again_without_inbox(db: &mut Connection) {
     let version: i64 = db
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    db.execute_batch("DROP TABLE inbox_tools; DROP TABLE inbox; DROP TABLE inbox_meta; DROP TABLE push_subscriptions;")
+    db.execute_batch("ALTER TABLE sessions DROP COLUMN labels; DROP TABLE inbox_tools; DROP TABLE inbox; DROP TABLE inbox_meta; DROP TABLE push_subscriptions;")
         .unwrap();
-    db.pragma_update(None, "user_version", version.saturating_sub(1))
+    db.pragma_update(None, "user_version", version.saturating_sub(2))
         .unwrap();
     schema::migrate(db).unwrap();
 }

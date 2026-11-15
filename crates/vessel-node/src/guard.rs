@@ -185,6 +185,8 @@ untargeted!(
     vessel_proto::push::SubscribePush,
     vessel_proto::push::UnsubscribePush,
     vessel_proto::push::ReportPushPresence,
+    vessel_proto::limits::GetUsageLimits,
+    vessel_proto::limits::SetUsageLookup,
     // Protocol 12: a search reads, and reads are not ownership-checked.
     vessel_proto::search::SearchMessages,
     // The node's settings: no session's.
@@ -342,6 +344,8 @@ untargeted!(
 );
 
 guarded! {
+    get_usage_limits: vessel_proto::limits::GetUsageLimits => vessel_proto::limits::UsageLimits;
+    set_usage_lookup: vessel_proto::limits::SetUsageLookup => vessel_proto::limits::ExternalLookup;
     query_usage: vessel_proto::usage::QueryUsage => vessel_proto::usage::UsageReport;
     node_info: GetNode => NodeInfo;
     list_harnesses: ListHarnesses => Vec<Harness>;

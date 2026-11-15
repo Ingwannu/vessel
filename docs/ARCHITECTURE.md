@@ -1165,6 +1165,18 @@ push builder, while the protocol uses the workspace's existing URL parser.
 Inbox live-request reads recover one exact pending form from the session
 actor independently of event retention, capped at 15 MiB per reply. Default
 summary reads retain the bounded durable projection for background refresh.
+
+The web client's `data/usage` owns the typed accounting call, a single
+in-flight/latest-selection reader, and pure locale-aware facts. Its
+Settings Usage feature draws those facts with existing row controls;
+changing machine/period hides the previous identity before the effect
+starts, and unmounting discards queued or late observations. No browser
+provider access or price arithmetic is introduced. Missing optional
+counts retain field coverage; unsafe browser integers are labelled rather
+than presented as exact. Account limits remain a separate merged-contract
+dependency (ADR 0075).
+
+
 ## Native app localization (milestone 12, staged)
 
 The separate `spikes/native` workspace keeps UI and I/O out of
@@ -1353,6 +1365,141 @@ first. The CLI prints no link or QR on refusal; older clients keep the human
 message while typed clients can localize the stable error reason. No new
 RPC, external dependency, persistent state or ownership rule is introduced.
 
+## Opt-in saved-sign-in limits (milestone 12, protocol 23, ADR 0042)
+
+`vessel-harness::limits` owns the supported agents' saved-login formats,
+fixed vendor origins, bounded response decoding and per-node request context.
+`LimitBinding` captures only launch configuration and a canonical profile
+label. Session actors retain that binding through park/wake and rewind;
+successful profile moves replace it with their actual target's binding, and
+failed moves preserve it. A profile reload cannot silently retarget a running
+session's quota lookup. After a node restart a stored session has no live
+binding: it reports unassociated rather than choosing today's profile.
+Bindings do not prove which sign-in a running agent has kept in memory.
+
+`vessel-node::limits` owns a 32-command mailbox, at most two concurrent probes,
+and at most 256 RAM-only account/binding observations. Its independent owner
+saves and applies policy even after an RPC is cancelled. Turning lookup off
+cancels the generation and clears observations; old jobs cannot publish into
+a later opt-in generation. Blocking credential/response/certificate work
+retains a shared two-slot admission permit until the closure actually exits,
+including when its awaiting task was cancelled. Shutdown drains this work.
+A bounded vendor/token cooldown is shared across aliases and Codex/OpenCode;
+policy toggles do not bypass it. There is no background polling.
+
+`vessel-store::usage_lookup` persists only the off/on decision in an atomic,
+owner-only file. It is separate from SQLite usage history and sync; malformed
+policy fails off. Library configuration disables all local probes. Binaries
+capture only nonsecret routing/path facts and select the local backend; the
+administrator's persisted policy still defaults off. Fake-enabled builds
+refuse that backend. Tests use only synthetic temporary sign-ins and recorded
+vendor response shapes, never the operator's files or vendor network.
+
+`service::limits` enforces destination read for cached facts, operate for an
+explicit refresh, and admin for the machine policy. Agents may read only their
+own local session. Read-only viewers cannot see credit balances. Remote
+forwarding uses the existing origin/destination scope intersection; no login,
+private path or endpoint is accepted from or returned to a client. It forwards
+sanitized facts or the admin policy choice, never credentials.
+
+`vessel-client::usage` and the CLI expose the same typed calls. A full-window
+notice is a fact about the observed saved login, with independent window ids
+and an optional latest known future reset. Paid-use permission suppresses that
+notice. It neither diagnoses why a turn stopped nor implements automatic
+continuation. Native screens and persistent wait/switch recovery remain outside
+this node slice.
+
+For a multi-provider agent, `LimitBinding::check_session_model` keeps native
+provider-format knowledge in the harness. The node asks the existing cached
+options channel before a session probe and rechecks after it. An unknown or
+changed provider cannot attribute the saved OpenAI account to that session;
+the explicitly selected account scope remains available independently.
+
+## Dictation contract (ADR 0067, staged)
+
+`vessel-proto::dictation` owns bounded audio values and their decoders, and
+provider metadata (`settings_values`, `local_model`). It does not perform
+I/O. The metadata retains a parsed endpoint URL, using the existing
+workspace `url` dependency, and a typed catalogue with future IDs retained
+on read. It loads or downloads no model. PCM and transcript diagnostics redact their contents.
+The stream actor and endpoint are subsequent implementation slices; no
+method, settings field or provider is available from these values alone.
+No crate edge changes: the node will reuse its existing HTTP and secret
+storage dependencies when the service lands.
+
+The unregistered settings values (`settings`, `patch`, `secret_ref`) distinguish
+keep, set and reset, validate provider options against the merged choice, and
+redact reference diagnostics. Their read view reports only key presence. They
+resolve no credential and provide no file codec or callable settings field.
+
+The next staged node helpers own provider PCM conversion, bounded segments,
+in-memory WAV encoding and opaque connection ownership. Their tests are compiled
+under a test-only module until the RPC wiring removes staging; helper tests do
+not establish a live service or the transport-close path.
+
+The node's `http_tls` module builds the operating-system root, explicit
+ring and ALPN configuration once per client constructor. `catalogue::fetch`
+uses that shared configuration; it retains its own address validation,
+HTTP policy and deadlines. This extraction introduces no destination,
+credential, request or new dependency. Later asynchronous callers must run
+the synchronous root loading on a blocking worker.
+
+`FleetFiles::resolved_secret` reuses the node's secret parser and lookup,
+returning the existing non-serializable `ResolvedValue` for internal header
+consumers. The `secret_value` wire-copy wrapper delegates to it; no new RPC
+can read a secret and storage/refusal behaviour is unchanged.
+
+## Session creation labels (ADR 0063)
+
+`vessel-proto::labels` validates the bounded label map before creation.
+`SessionSpec.labels` retains what creation asked; `SessionInfo.labels`
+starts with it, while the store keeps a distinct current-label column.
+Import copies that current map. While the protocol is unassigned, every peer
+receives infos without labels; after assignment, older peers do,
+including nested transfer replies and saved/scheduled session specs. One
+optional version constant is assigned at integration; no dependency edge changes.
+Filtering and patch/event ingress follow in the next slices.
+
+## Staged project-file terminal contract (ADR 0066)
+
+`vessel-workspace::project_file::terminals` owns TOML terminal decoding and
+ordered digest fields; it starts no process. `vessel-proto::workspace`
+carries the validated commands into the existing approval snapshot.
+The node describes that snapshot through the existing project-command path;
+reply adaptation refuses it to peers without the assigned field version.
+The CLI's `file_terminals` formatter makes those commands visible. Runtime
+terminal creation, service-port assignment and health are later changes.
+No dependency edge, external dependency or store schema changes.
+
+## Project pull-request values (ADR 0061, transport pending)
+
+`vessel-proto::forge` owns an opaque bounded provider cursor, a cursor's
+source-repository association and a validated page of open PR summaries.
+The page decoder caps retained entries before constructing domain data;
+duplicate numbers, another repository, non-open entries and empty
+continuations fail the whole page. Cursor diagnostics omit provider text.
+These values register no call and add no fields to existing replies or
+events. Their feature version remains unassigned; `pr.list` continues to
+mean watched sessions. Project resolution, provider listing and client/CLI
+transport are a following stage, not exposed by these value definitions.
+
+## Ended conversations in the page (ADR 0036 amendment)
+
+The bridge's `wire::SidebarView::default` and the page's `prefs-change`
+start with ended sessions visible. `data/sidebar` reuses that page default
+and still applies archive exclusion separately. The existing `PrefsDoc`
+field reader fills an absent choice from the wire default, preserving an
+explicit false and unknown file fields without a migration or rewrite.
+
+## Timeline following during layout
+
+The page's `data/follow-end` decides end intent from consecutive scroll
+and layout geometry. `features/session/window-follow` owns the DOM snapshot;
+`window-watch` applies it to scroll, container resize and row measurement,
+while `window-pin` still owns a requested row. A layout-queued scroll must
+not turn an end reader into an upward reader before resize delivery.
+An actual upward move stays authoritative, so resize does not pull that
+reader down. Listener/observer cleanup remains local to the timeline.
 
 ## Planned node-control process boundary (proposed)
 
@@ -1370,7 +1517,6 @@ process generation and namespace verification precede the separate CLI
 caller; authenticated directory binding and session consent remain in the
 CLI. ADR 0001 records rejected alternatives and the tests owed by each step;
 ADR 0064 retains the product contract and platform refusals.
-
 
 The reviewed contract also requires name-level restrictions in the same
 implementation commits as the edges. The store-to-proc move restricts the

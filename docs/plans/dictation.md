@@ -91,19 +91,19 @@ below that (225–228). Nothing under `server/dictation/` reads
 `isLowConfidence`. Voice mode does (`voice-turn-controller.ts` 69–78
 and 180–182).
 
-Config, `providers/openai/config.ts` 45–82: key from the saved config,
+Config, `providers/openai/config.ts` 34–46: key from the saved config,
 else `OPENAI_STT_API_KEY`, else `OPENAI_API_KEY`. No key means no
 endpoint config. Base URL from the config, else `OPENAI_STT_BASE_URL`,
 else `OPENAI_BASE_URL`. Model: `STT_MODEL` then the saved model.
 
 ### Settings
 
-`packages/server/src/server/speech/speech-config-resolver.ts` 47–48:
+`packages/server/src/server/speech/speech-config-resolver.ts` 48–49:
 dictation on by default, voice mode off by default. Provider default
-`local` (34–37). Enabled flag and provider can be overridden by
+`local` (39–43). Enabled flag and provider can be overridden by
 `PASEO_DICTATION_ENABLED` and `PASEO_DICTATION_STT_PROVIDER` (82–90).
 
-`providers/local/config.ts` 29 and 60: language default `en`; local STT
+`providers/local/config.ts` 39, 47 and 60: language default `en`; local STT
 model default is the catalog entry with `defaultFor: "stt"`.
 
 `providers/local/sherpa/model-catalog.ts` 259–267: that entry is
@@ -200,23 +200,138 @@ Each one is in ADR 0067 with its reason. Short list:
   observe is not in the contract.
 - Voice mode, TTS, and model download are not in these slices.
 
+## Implementation slices
+
+The original implementation draft was too large to review as one change.
+It is being rebuilt in responsibility-sized parts:
+
+- 2a: audio wire values and validated decoders only; no callable methods,
+  provider, settings, or node behaviour yet.
+- 2b1: validated provider metadata and the local-model catalogue; no settings
+  object or I/O yet.
+- 2b2a: unregistered settings values and strict keep/set/reset patch.
+- 2b2b: settings persistence and wiring, using the existing settings/secret path.
+- 2c onward: bounded audio processing, endpoint, stream actor and the five
+  RPC rows, split at those responsibility boundaries with their refusal tests.
+- 3: the CLI file client, after the node service passes review.
+
+Decision: modify existing serde/base64 infrastructure. Keep separate PCM
+and transcript types because terminal bytes and user speech have different
+limits and privacy requirements. The existing base64 decoder has no size
+cap; PCM therefore checks its encoded length before allocating decoded
+bytes. No dependency is added. Decoder failures are typed and never contain
+user audio or transcript text. Debug output is redacted. PCM MIME parameters
+are decoded once; duplicates are refused rather than taking the last value.
+The API retains any u32 sequence so the stream can return `TooLong`, while
+finish-budget decoding refuses values over five minutes.
+
+## Review correction: authoritative versions and bounds
+
+Decision: modify existing types. `SINCE` uses `ProtocolVersion` and aliases
+`PROTOCOL_VERSION` until the integrator assigns its permanent version. No
+second numeric protocol value can drift from the base. The input bounds
+have one definition shared by validation and error formatting; byte-to-KiB
+conversion also has one definition. The refusal text and accepted inputs
+stay the same. No new dependency or wire method is added.
+
+## TLS configuration extraction
+
+Decision: modify and reuse the existing catalogue TLS construction. The
+endpoint needs the same OS roots, explicit ring provider and ALPN, while
+reqwest's `rustls-no-provider` feature cannot build without an explicit
+provider. Moving only that construction to node `http_tls` avoids copying
+policy or installing a process-global provider. No dependency changes.
+The catalogue retains its URL validation, redirect/proxy policy, timeouts
+and `FetchError::Tls` source. Existing tests and expectations are unchanged.
+
+The existing coverage is the two catalogue reader tests and the loopback
+HTTP tests `the_catalogue_is_fetched_when_asked_and_an_entry_is_added_from_the_copy`
+and `an_unreachable_registry_is_unavailable_and_the_copy_stays`. They cover
+fetch/cache/refusal behaviour, not a real HTTPS handshake or every OS trust
+store. The future endpoint must invoke synchronous root loading on a
+blocking worker; this extraction preserves catalogue initialization timing.
+
+## Resolved secret lookup extraction
+
+Decision: modify and reuse the existing secret reader/getter. The header
+consumer needs the existing non-serializable `ResolvedValue`, whereas
+`secret_value` deliberately constructs a serializable wire value for
+`secret.copy`. `FleetFiles::resolved_secret` keeps parsing and lookup in the
+secret owner; the old wire wrapper delegates and keeps its behaviour.
+An inherent method avoids a new module export or wider visibility. No
+store format, credential, scope, error or dependency changes.
+
+Existing tests remain unchanged: `set_and_remove_keep_comments_and_other_entries`
+and `errors_never_show_a_value` in the secret module, and the actual fleet
+copy test `a_secret_is_copied_only_where_the_home_was_granted_admin`.
+The endpoint that consumes the new helper is a later slice; this does not
+verify sending its header or authenticating to a real provider.
+
+## Boundary test maintenance
+
+Decision: modify existing tests and API comments. Boundary fixtures derive
+from each value type's existing constants, including multibyte transcript
+lengths, encoded audio size and finish-budget JSON. This keeps the tested
+edge aligned when a bound changes, without changing accepted inputs or
+refusal messages. Count calculations use explicit integer division, keeping
+the rounding policy visible to the lint gate. No dependency, setting or wire
+method is added.
+
+## Settings contract values
+
+Decision: extend the existing dictation values, reuse SecretName and its
+central validator, and add a change type because Option alone loses the
+keep/reset distinction. The strict incoming patch has a separate lenient file
+decoding view; unknown nested fields cannot make the whole file fall back to
+defaults. Unknown file options may be forgotten on write, but known settings
+and the secret reference survive. No dependency is added. Paseo speech-settings.ts
+149–175 clears null fields and resets site options on provider changes;
+persisted-config.ts 99–115 makes provider fields strict. The contract now
+records those behaviours before implementation. Read views expose only key
+presence; a safely decoded/redacted reference is only for a write and lookup.
+
+The value-only slice adds no NodeSettings field, persistence or method.
+Tests cover defaults, omission versus null for every field, provider switching,
+unknown choices, inactive options and secret-reference diagnostics. The later
+persistence slice must test failed writes/refusals leave the whole file and
+runtime unchanged and newly selected references resolve before saving.
+
+## Audio and connection ownership implementation
+
+Decision: new node helpers, reusing DictationPcm, SampleRate and Bytes. The
+node's attachment RIFF signature check detects images, not audio; it cannot
+resample, check silence or encode PCM WAV. No existing node converter or
+connection identity provides this responsibility. Standard checked integer
+arithmetic avoids an audio dependency and keeps the mono PCM contract narrow.
+Opaque Arc identity plus a context-drop token reuses existing cancellation;
+existing Outbound::closed also covers transport closure before context teardown.
+
+Paseo pcm16-resampler.ts owns floating interpolation with a carry sample;
+dictation-stream-manager.ts343–406 and619–645 append a whole chunk before
+checking the threshold. The proposed integer phase retains continuity, with
+explicit fixture-limited rounding differences in ADR0067. Tests will cover
+chunking invariance, source fixture counts/samples, silence, WAV metadata,
+pre-mutation segment overflow, opaque owner identity and lifetime cancellation.
+The actual transport-close test belongs to wiring, not to the identity helper.
+
 ## Resume point
 
-Done: Paseo read as cited above. Vessel's RPC, settings, secrets,
-forwarding and agent refusal read. ADR 0067 written, then corrected:
-confidence stays with voice mode, a chunk is one second (one shorter
-tail) and `seq` 0..=1_799 refuses as `TooLong`, `format` is fixed at
-`start`, the id is a log-safe token, and the protocol number is
-`dictation::SINCE` at merge. No code.
+Done: audio values, provider metadata, TLS and resolved-secret extraction, and
+unregistered settings values. The named node head was merged; keep/set/reset,
+provider switching, inactive-field refusal and reference privacy are implemented.
+No call, NodeSettings field, file codec, stream or HTTP provider is registered.
 
-Half-done: nothing.
+Settings wiring still owes the four file/race/atomicity tests in ADR0067. Use the
+integrator's common file policy when that head is merged; do not add a parallel
+loader. Preserve unknown fields if the common policy preserves them. The
+selection check is not a secret-store transaction and caches no credential.
 
-Next: slice 2, on this branch, after this docs commit is reported.
-Do not change `PROTOCOL_VERSION`. Gate the new methods on
-`dictation::SINCE`. Do not add `sherpa-onnx`. Do not open a
-microphone.
-
-Gate: run on the docs commit before it is reported. The numbers and
-the log paths are in that report. They are not copied back into this
-file, because a second commit only to record them would need the gate
-again.
+Next: stage real audio/owner helpers under the test-only dictation module, with
+tests beside each rule, followed by endpoint and actor slices. These establish
+staged source behaviour, not a product path. Wiring waits for the shared protocol
+accessor and call-table refactor, removes staging, and gets a whole product gate.
+Existing settings literals gain default completion only in the optional-field
+commit, without changing any old value or assertion. Do not split the shared
+guard; the common plumbing refactor owns its structure. Local engines and
+microphone capture remain deferred. The CLI file client follows the node service
+and still needs its file-format contract amendment.

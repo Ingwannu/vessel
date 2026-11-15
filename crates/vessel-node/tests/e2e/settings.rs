@@ -18,6 +18,9 @@ use vessel_proto::settings::{
 use crate::agents::{as_agent, code, credential, structured, vessel_mcp};
 use crate::support::{Fixture, within};
 
+#[cfg(test)]
+mod aside;
+
 fn idle(minutes: u16) -> ParkAfter {
     ParkAfter::Idle {
         minutes: IdleMinutes::clamped(minutes),

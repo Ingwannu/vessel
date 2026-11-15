@@ -69,6 +69,7 @@ impl NodeService {
         connection: &Connection,
         request: CreateSchedule,
     ) -> Result<ScheduleInfo, WireError> {
+        crate::label_ingress::target(&request.definition.target)?;
         let asker = asker(connection.principal());
         if !matches!(asker.via, Via::Delegated { .. }) {
             self.check_target(connection.principal(), &request.definition.target)
@@ -85,6 +86,7 @@ impl NodeService {
         connection: &Connection,
         request: UpdateSchedule,
     ) -> Result<ScheduleInfo, WireError> {
+        crate::label_ingress::target(&request.definition.target)?;
         let asker = asker(connection.principal());
         if !matches!(asker.via, Via::Delegated { .. }) {
             self.check_target(connection.principal(), &request.definition.target)
