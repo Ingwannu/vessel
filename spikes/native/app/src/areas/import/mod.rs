@@ -99,6 +99,18 @@ impl ImportArea {
         }
     }
 
+    /// All scope changes share the visit fence, including A -> B -> A.
+    fn choose(&mut self, scope: Scope) -> bool {
+        if self.model.importing() {
+            return false;
+        }
+        if self.model.scope() != Some(&scope) && !self.advance_visit() {
+            return false;
+        }
+        self.model.choose(scope);
+        true
+    }
+
     fn reproject(&mut self) {
         let visible: Vec<_> = self
             .model

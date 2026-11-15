@@ -42,7 +42,7 @@ fn scope() -> Scope {
 }
 fn loaded(shell: &mut Shell, scope: Scope) {
     let area = &mut shell.areas.import;
-    area.model.choose(scope.clone());
+    assert!(area.choose(scope.clone()));
     let Ask::List { ticket, .. } = area.model.refresh().unwrap().unwrap() else {
         panic!("list")
     };
@@ -114,13 +114,14 @@ fn retained_callbacks_refuse_reopen_and_scope_aba_before_any_effect(cx: &mut Tes
                     boundary.set(Some(probe.read(cx).renders.get()));
                     probe.update(cx, |probe, cx| {
                         probe.shell.update(cx, |shell, cx| {
-                            shell.close_import(window, cx);
-                            shell.open_import(window, cx);
+                            if !aba {
+                                shell.close_import(window, cx);
+                                shell.open_import(window, cx);
+                            }
                             if aba {
                                 let mut other = original.clone();
                                 other.cwd = Some("/other".into());
                                 loaded(shell, other);
-                                shell.areas.import.advance_visit();
                             }
                             loaded(shell, original.clone());
                             shell.areas.import.dialog.focus(window, cx);

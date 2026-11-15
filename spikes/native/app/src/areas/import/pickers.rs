@@ -165,7 +165,7 @@ impl Shell {
             .model
             .scope()
             .is_none_or(|old| old.machine != scope.machine || old.harness != scope.harness);
-        self.areas.import.model.choose(scope);
+        self.areas.import.choose(scope);
         if agent_changed {
             self.areas.import.profiles = Ok(Vec::new());
             self.history_profiles();
