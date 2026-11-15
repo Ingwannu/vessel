@@ -5,7 +5,7 @@ use crate::browser::BrowserTools;
 use serde::{Deserialize, Deserializer};
 
 /// Serde invokes this only for a present field. Deserialize the value itself,
-/// so null/boolean/object cannot collapse a named mutation into Option::None.
+/// so null/boolean/object cannot collapse a named mutation into `Option::None`.
 pub(super) fn change<'de, D: Deserializer<'de>>(
     source: D,
 ) -> Result<Option<BrowserTools>, D::Error> {
