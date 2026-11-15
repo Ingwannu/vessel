@@ -8,8 +8,6 @@ use std::fmt::Write as _;
 use super::{BuildError, Coverage, Kind, Language, source, validate::expanded};
 
 mod plain;
-#[cfg(test)]
-mod tests;
 
 pub(crate) fn generate(
     languages: &[Language],
@@ -310,3 +308,6 @@ fn pascal(value: &str) -> String {
         })
         .collect()
 }
+
+#[cfg(test)]
+mod tests;

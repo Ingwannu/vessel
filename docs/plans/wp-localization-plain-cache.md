@@ -40,4 +40,7 @@ The first narrow run, `i18n-narrow-20261115T142509Z-af9f7c87`, passed fonts
 and failed Clippy on two discarded projection-map insertion results; tests
 did not run. The insertion results are now explicitly retained, including the
 same pattern in the fixture. Corrected narrow and W5 integration results are
-pending; no compiler or runtime pass is claimed yet.
+pending; no compiler or runtime pass is claimed yet. The corrected run
+`i18n-narrow-20261115T143045Z-b1dd1a48` then found an ambiguous fixture-map
+value type after changing its default insertion. The fixture now declares its
+string map explicitly. Further validation uses the ordinary lane.
