@@ -494,7 +494,10 @@ mod tests {
             Glyph::Scissors,
         ] {
             assert_eq!(view_box(glyph.svg()), Some([0.0, 0.0, 24.0, 24.0]));
-            assert_eq!(Assets.list(glyph.path()).unwrap(), [glyph.path().into()]);
+            assert_eq!(
+                Assets.list(glyph.path()).unwrap(),
+                [gpui::SharedString::from(glyph.path())]
+            );
             let bytes = Assets.load(glyph.path()).unwrap().unwrap();
             let tree =
                 resvg::usvg::Tree::from_data(&bytes, &resvg::usvg::Options::default()).unwrap();

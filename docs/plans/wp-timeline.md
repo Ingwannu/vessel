@@ -314,3 +314,9 @@ Turn projection moves the previous row map instead of cloning the full mounted
 index on each stream batch. Disclosure splices preserve already mounted tail
 rows and their bookkeeping; only a full list reset drops/rebuilds the tail.
 This avoids duplicate pending/working rows after a turn disclosure.
+
+A GPUI state regression drives actual `VirtualList` splice bookkeeping through
+an open turn, completion that hides earlier rows, find-style reveal, disclosure
+close and working-footer removal. It asserts stable final-answer entry identity
+and exactly one mounted tail throughout, including the brief interval when
+external running state has not caught up with the completion record.

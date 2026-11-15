@@ -133,3 +133,6 @@ pub(super) fn decorate(
         content.into_any_element()
     }
 }
+
+#[cfg(test)]
+mod tests;
