@@ -30,6 +30,98 @@ fn account(root: &std::path::Path) -> FileMetadata {
         mode: OrdinaryMode::new(0o600).unwrap(),
     }
 }
+
+#[tokio::test]
+async fn checkpoint_restart_reconstructs_staged_objects_and_rolls_back_without_forward_replay() {
+    use super::journal::RecoveryState;
+    let sandbox = Sandbox::new();
+    let dir = sandbox.repo("project");
+    let git = sandbox.git().await;
+    let cancel = CancellationToken::new();
+    let archive = Archive::open(private_dir(&sandbox, "captured")).unwrap();
+    let paths = enumeration::paths(&git, &dir).await.unwrap();
+    let selected = capture::image(&Root::open(&dir).unwrap(), &archive, &paths, &cancel).unwrap();
+    fs::write(dir.join("README.md"), b"later edit").unwrap();
+    let before_archive = Archive::open(private_dir(&sandbox, "before")).unwrap();
+    let before =
+        capture::image(&Root::open(&dir).unwrap(), &before_archive, &paths, &cancel).unwrap();
+    let target = selected.effective(&before, account(&dir)).unwrap();
+    let stage_path = private_dir(&sandbox, "journal");
+    let stage = Stage::open(&stage_path).unwrap();
+    let root = Root::open(&dir).unwrap();
+    let prepared = Prepared::new(&root, &archive, &stage, &before, &target, &cancel).unwrap();
+    let encoded = serde_json::to_string(&prepared.evidence().unwrap()).unwrap();
+    let index = PathCount::new(0).unwrap();
+    assert_eq!(
+        prepared.recovery_state(&root, index, &cancel).unwrap(),
+        RecoveryState::Original
+    );
+    prepared.apply(&root, &stage, index, &cancel).unwrap();
+    drop(prepared);
+    drop(stage);
+    drop(root);
+    let stage = Stage::open(&stage_path).unwrap();
+    let root = Root::open(&dir).unwrap();
+    let recovered =
+        Prepared::recovering(&before, &target, &serde_json::from_str(&encoded).unwrap()).unwrap();
+    assert_eq!(
+        recovered.recovery_state(&root, index, &cancel).unwrap(),
+        RecoveryState::Desired
+    );
+    assert!(recovered.apply(&root, &stage, index, &cancel).is_err());
+    assert_eq!(
+        recovered.undo(&root, &stage, index, &cancel).unwrap(),
+        Undo::Restored
+    );
+    assert_eq!(
+        recovered.recovery_state(&root, index, &cancel).unwrap(),
+        RecoveryState::Original
+    );
+    assert_eq!(fs::read(dir.join("README.md")).unwrap(), b"later edit");
+}
+
+#[tokio::test]
+async fn checkpoint_restart_keeps_an_equal_content_external_replacement_as_a_conflict() {
+    use super::journal::RecoveryState;
+    let sandbox = Sandbox::new();
+    let dir = sandbox.repo("project");
+    let git = sandbox.git().await;
+    let cancel = CancellationToken::new();
+    let archive = Archive::open(private_dir(&sandbox, "captured")).unwrap();
+    let paths = enumeration::paths(&git, &dir).await.unwrap();
+    let selected = capture::image(&Root::open(&dir).unwrap(), &archive, &paths, &cancel).unwrap();
+    fs::write(dir.join("README.md"), b"later edit").unwrap();
+    let before_archive = Archive::open(private_dir(&sandbox, "before")).unwrap();
+    let before =
+        capture::image(&Root::open(&dir).unwrap(), &before_archive, &paths, &cancel).unwrap();
+    let target = selected.effective(&before, account(&dir)).unwrap();
+    let stage = Stage::open(&private_dir(&sandbox, "journal")).unwrap();
+    let root = Root::open(&dir).unwrap();
+    let prepared = Prepared::new(&root, &archive, &stage, &before, &target, &cancel).unwrap();
+    let encoded = serde_json::to_string(&prepared.evidence().unwrap()).unwrap();
+    let index = PathCount::new(0).unwrap();
+    prepared.apply(&root, &stage, index, &cancel).unwrap();
+    let current_mode = fs::metadata(dir.join("README.md")).unwrap().permissions();
+    fs::write(
+        dir.join("outside"),
+        fs::read(dir.join("README.md")).unwrap(),
+    )
+    .unwrap();
+    fs::set_permissions(dir.join("outside"), current_mode).unwrap();
+    fs::rename(dir.join("outside"), dir.join("README.md")).unwrap();
+    drop(prepared);
+    let recovered =
+        Prepared::recovering(&before, &target, &serde_json::from_str(&encoded).unwrap()).unwrap();
+    assert_eq!(
+        recovered.recovery_state(&root, index, &cancel).unwrap(),
+        RecoveryState::Conflict
+    );
+    assert_eq!(
+        recovered.undo(&root, &stage, index, &cancel).unwrap(),
+        Undo::Conflict
+    );
+    assert_eq!(fs::read(dir.join("README.md")).unwrap(), b"hello\n");
+}
 #[tokio::test]
 async fn restore_retains_current_read_write_bits_and_rollback_restores_the_actual_original() {
     let sandbox = Sandbox::new();

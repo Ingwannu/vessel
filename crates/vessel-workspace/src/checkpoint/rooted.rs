@@ -41,14 +41,6 @@ pub(super) struct Identity {
     links: u64,
 }
 impl Identity {
-    /// Rename may update timestamps; it must never substitute another inode.
-    pub(in crate::checkpoint) fn same_entry(self, other: Self) -> bool {
-        self.device == other.device
-            && self.inode == other.inode
-            && self.owner == other.owner
-            && self.group == other.group
-            && self.links == other.links
-    }
     pub(super) fn of(metadata: &Metadata) -> Self {
         Self {
             device: metadata.dev(),

@@ -3,6 +3,8 @@
 //! All desired regular files are staged before the first project mutation.
 //! Existing replacements exchange inodes, retaining the original inside the
 //! journal. Rollback refuses an external change rather than overwriting it.
+mod journal;
+mod original;
 pub(super) mod stage;
 #[cfg(test)]
 mod tests;
@@ -13,6 +15,7 @@ use super::{
     inspect,
     rooted::{Identity, Root, mutation::ParentPolicy},
 };
+use original::Original;
 use stage::{Slot, SlotKind, Stage};
 use tokio_util::sync::CancellationToken;
 use vessel_proto::checkpoint::{
@@ -24,13 +27,19 @@ pub(super) struct Step {
     pub(super) path: CheckpointPath,
     before: FileState,
     desired: FileState,
-    before_identity: Option<Identity>,
-    desired_identity: Option<Identity>,
+    before_identity: Original,
+    desired_identity: Option<vessel_proto::checkpoint::ObjectFingerprint>,
     index: PathCount,
 }
 #[derive(Debug)]
 pub(super) struct Prepared {
     steps: Vec<Step>,
+    mode: Mode,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Mode {
+    Fresh,
+    Recovery,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum Undo {
@@ -81,7 +90,9 @@ impl Prepared {
                     *metadata,
                     cancellation,
                 )?;
-                Some(stage.identity(Slot::new(index, SlotKind::Desired))?)
+                Some(original::object(
+                    stage.identity(Slot::new(index, SlotKind::Desired))?,
+                ))
             } else {
                 None
             };
@@ -89,12 +100,15 @@ impl Prepared {
                 path: change.path,
                 before,
                 desired: target,
-                before_identity,
+                before_identity: Original::from(before_identity),
                 desired_identity,
                 index,
             });
         }
-        Ok(Self { steps })
+        Ok(Self {
+            steps,
+            mode: Mode::Fresh,
+        })
     }
     pub(super) fn steps(&self) -> &[Step] {
         &self.steps
@@ -110,9 +124,14 @@ impl Prepared {
             .steps
             .get(index.get())
             .ok_or(CheckpointError::InvalidPath)?;
-        if root.entry_identity(&step.path)? != step.before_identity
+        if self.mode != Mode::Fresh
+            || !step
+                .before_identity
+                .fresh_matches(root.entry_identity(&step.path)?)
             || inspect::path(root, &step.path, cancellation)? != step.before
-            || root.entry_identity(&step.path)? != step.before_identity
+            || !step
+                .before_identity
+                .fresh_matches(root.entry_identity(&step.path)?)
         {
             return Err(CheckpointError::StalePreview.into());
         }
@@ -132,7 +151,7 @@ impl Prepared {
                     != step.before
                     || !same_entry(
                         Some(stage.identity(Slot::new(step.index, SlotKind::Desired))?),
-                        step.before_identity,
+                        step.before_identity.object(),
                     )
                 {
                     return Err(CheckpointError::CaptureUnstable.into());
@@ -144,7 +163,7 @@ impl Prepared {
                     != step.before
                     || !same_entry(
                         Some(stage.identity(Slot::new(step.index, SlotKind::Deleted))?),
-                        step.before_identity,
+                        step.before_identity.object(),
                     )
                 {
                     return Err(CheckpointError::CaptureUnstable.into());
@@ -181,7 +200,10 @@ impl Prepared {
             (FileState::Present { .. }, FileState::Present { .. }) => {
                 let original = Slot::new(step.index, SlotKind::Desired);
                 if stage.inspect(original, cancellation)? != step.before
-                    || !same_entry(Some(stage.identity(original)?), step.before_identity)
+                    || !same_entry(
+                        Some(stage.identity(original)?),
+                        step.before_identity.object(),
+                    )
                 {
                     return Ok(Undo::Conflict);
                 }
@@ -197,7 +219,10 @@ impl Prepared {
             (FileState::Present { .. }, FileState::Absent) => {
                 let original = Slot::new(step.index, SlotKind::Deleted);
                 if stage.inspect(original, cancellation)? != step.before
-                    || !same_entry(Some(stage.identity(original)?), step.before_identity)
+                    || !same_entry(
+                        Some(stage.identity(original)?),
+                        step.before_identity.object(),
+                    )
                 {
                     return Ok(Undo::Conflict);
                 }
@@ -217,17 +242,19 @@ impl Prepared {
             }
         }
         if inspect::path(root, &step.path, cancellation)? != step.before
-            || !same_entry(root.entry_identity(&step.path)?, step.before_identity)
+            || !same_entry(
+                root.entry_identity(&step.path)?,
+                step.before_identity.object(),
+            )
         {
             return Ok(Undo::Conflict);
         }
         Ok(Undo::Restored)
     }
 }
-fn same_entry(current: Option<Identity>, expected: Option<Identity>) -> bool {
-    match (current, expected) {
-        (Some(current), Some(expected)) => current.same_entry(expected),
-        (None, None) => true,
-        (Some(_), None) | (None, Some(_)) => false,
-    }
+fn same_entry(
+    current: Option<Identity>,
+    expected: Option<vessel_proto::checkpoint::ObjectFingerprint>,
+) -> bool {
+    current.map(original::object) == expected
 }

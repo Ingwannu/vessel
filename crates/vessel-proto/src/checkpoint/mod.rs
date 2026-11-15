@@ -9,6 +9,7 @@ mod event;
 mod evidence;
 mod image;
 mod metadata;
+mod mutation;
 mod owner;
 mod rpc;
 #[cfg(test)]
@@ -31,6 +32,7 @@ pub use evidence::{
 };
 pub use image::{EffectiveDesiredImage, Entry, FileImage, FileState};
 pub use metadata::{FileMetadata, GroupId, OrdinaryMode, OwnerId};
+pub use mutation::{StagedPath, StagedPaths};
 pub use owner::{CheckpointHumanOrigin, CheckpointOwner};
 pub use rpc::{
     ChangeCursor, ChangePage, CheckpointCursor, CheckpointMark, CheckpointPage,

@@ -568,3 +568,23 @@ This is an unrun coordinator barrier, not proof of real FD/node assembly. Common
 root exclusion may be released after invalidating a read-only candidate, as its
 existing contract says; that does not release this separate worker/root/quota
 guard. Thus a stalled read does not force the next prompt/wake to wait for it.
+
+
+### Durable staged-object evidence (filesystem mechanism, not DB wiring)
+
+New bounded storage-only proto StagedPath/StagedPaths carry stable original and
+written ObjectFingerprints for exactly the approved changed paths. They are not
+RPC types and add no TypeScript declaration/protocol assignment. Workspace keeps
+full observations for fresh admission, exports canonical staged-object evidence,
+and reconstructs recovery expectations from that evidence instead of accepting
+whatever inode currently occupies the path. A reconstructed operation refuses
+forward apply; it can classify Original/Desired/Conflict and perform guarded undo.
+Stable hashes retain device/inode/owner/group/nlink while excluding rename-time
+changes. Fresh before-write checks still compare the full original observation.
+
+Two isolated filesystem fixtures drop/reopen handles and deserialize evidence:
+rollback of an applied replacement succeeds only for the expected written inode;
+an equal-content/equal-mode external replacement stays a conflict and keeps its
+bytes. These tests are unrun. Store path-journal persistence of this evidence and
+actual crash/startup controller assembly are still the next work; serialized
+fixture reconstruction is not a process-crash/recovery pass.

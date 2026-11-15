@@ -19,9 +19,11 @@ impl Identity {
         digest.update(self.links.to_le_bytes());
         digest
     }
+    pub(in crate::checkpoint) fn object_fingerprint(self) -> ObjectFingerprint {
+        ObjectFingerprint::new(BlobHash::from_bytes(self.object_digest().finalize().into()))
+    }
     pub(in crate::checkpoint) fn observation(self) -> ObservedPresence {
-        let object =
-            ObjectFingerprint::new(BlobHash::from_bytes(self.object_digest().finalize().into()));
+        let object = self.object_fingerprint();
         let mut digest = self.object_digest();
         digest.update(b"full\0");
         digest.update(self.size.to_le_bytes());
