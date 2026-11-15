@@ -3,11 +3,14 @@
 
 mod location;
 mod percent;
+pub mod recognize;
 
 use std::num::NonZeroU32;
 use std::sync::Arc;
 
 use vessel_proto::HttpUrl;
+
+use crate::matcher::whitespace;
 
 /// A path parsed from assistant prose; it grants no authority to read that path.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -91,9 +94,9 @@ pub enum Link {
 /// Classify a target, preserving raw percent escapes outside authored hrefs.
 #[must_use]
 pub fn classify(value: &str, origin: Origin, workspace: Workspace) -> Option<Link> {
-    let value = value.trim();
-    if value.starts_with("https://") || value.starts_with("http://") {
-        return value.parse().ok().map(Link::External);
+    let value = value.trim_matches(whitespace);
+    if let Some(url) = http_url(value) {
+        return Some(Link::External(url));
     }
     let target = parse_file(value, origin)?;
     let absolute = absolute(target.path.as_str()) || target.path.as_str().starts_with("~/");
@@ -110,11 +113,29 @@ pub fn classify(value: &str, origin: Origin, workspace: Workspace) -> Option<Lin
     }
 }
 
+fn http_url(value: &str) -> Option<HttpUrl> {
+    let (scheme, rest) = value.split_once("://")?;
+    let normalized = if scheme.eq_ignore_ascii_case("http") {
+        "http"
+    } else if scheme.eq_ignore_ascii_case("https") {
+        "https"
+    } else {
+        return None;
+    };
+    if scheme == normalized {
+        value.parse().ok()
+    } else {
+        format!("{normalized}://{rest}").parse().ok()
+    }
+}
+
 /// Parse the location alone, without performing navigation or filesystem access.
 #[must_use]
 pub fn parse_file(value: &str, origin: Origin) -> Option<FileTarget> {
-    let value = value.trim().trim_matches(['\'', '"', '`']);
-    if value.is_empty() || value.chars().any(char::is_control) {
+    let value = value
+        .trim_matches(whitespace)
+        .trim_matches(['\'', '"', '`']);
+    if value.is_empty() || value.contains('?') || value.chars().any(char::is_control) {
         return None;
     }
     let (value, file_url) = match value.strip_prefix("file://") {
@@ -126,6 +147,23 @@ pub fn parse_file(value: &str, origin: Origin) -> Option<FileTarget> {
         return None;
     }
     let (path, lines) = location::extract(value)?;
+    // A raw colon is either the Windows drive or a valid location delimiter.
+    // Encoded colons are decoded afterwards and remain filename bytes.
+    let colon_path = if file_url && path.get(2..3) == Some(":") {
+        path.strip_prefix('/').unwrap_or(path)
+    } else {
+        path
+    };
+    if colon_path.match_indices(':').any(|(index, _)| {
+        index != 1
+            || !colon_path
+                .as_bytes()
+                .first()
+                .is_some_and(u8::is_ascii_alphabetic)
+            || !matches!(colon_path.as_bytes().get(2), Some(b'/' | b'\\'))
+    }) {
+        return None;
+    }
     let decoded = if origin == Origin::Href || file_url {
         percent::decode(path).unwrap_or_else(|| path.to_owned())
     } else {
@@ -138,10 +176,6 @@ pub fn parse_file(value: &str, origin: Origin) -> Option<FileTarget> {
         normalized.as_str()
     };
     if normalized.is_empty() || normalized.chars().any(char::is_control) {
-        return None;
-    }
-    // Unrecognized schemes cannot accidentally turn into local path opens.
-    if normalized.contains(':') && !absolute(normalized) {
         return None;
     }
     Some(FileTarget {
@@ -158,11 +192,32 @@ fn absolute(path: &str) -> bool {
 }
 
 fn looks_like_file(path: &str) -> bool {
+    if path.starts_with("./") || path.starts_with("../") {
+        return true;
+    }
+    if let Some((first, _)) = path.split_once('/')
+        && domain_like(first)
+    {
+        return false;
+    }
     let name = path.rsplit('/').next().unwrap_or(path);
+    if name.starts_with('.') && name.len() > 1 {
+        return true;
+    }
     let Some((_, extension)) = name.rsplit_once('.') else {
         return false;
     };
     EXTENSIONS.contains(&extension.to_ascii_lowercase().as_str())
+}
+
+fn domain_like(segment: &str) -> bool {
+    segment.contains('.')
+        && segment.split('.').all(|part| {
+            !part.is_empty()
+                && part
+                    .bytes()
+                    .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
+        })
 }
 
 /// Reference extension allowlist; inferred tokens alone use it, never authored links.

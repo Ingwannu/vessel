@@ -1,6 +1,7 @@
 //! Location suffixes are stripped before decoding a path so encoded colons stay literal.
 
 use super::Lines;
+use crate::matcher::whitespace;
 
 pub(super) fn extract(value: &str) -> Option<(&str, Option<Lines>)> {
     if let Some((path, fragment)) = value.rsplit_once('#') {
@@ -25,11 +26,17 @@ pub(super) fn extract(value: &str) -> Option<(&str, Option<Lines>)> {
         .strip_suffix(')')
         .and_then(|value| value.rsplit_once('('))
     {
-        return Some((path.trim_end(), Some(parse_range(location, ',')?)));
+        return Some((
+            path.trim_end_matches(whitespace),
+            Some(parse_range(location, ',')?),
+        ));
     }
     for marker in [" lines ", " line "] {
         if let Some((path, location)) = value.rsplit_once(marker) {
-            return Some((path.trim_end(), Some(parse_range(location, ':')?)));
+            return Some((
+                path.trim_end_matches(whitespace),
+                Some(parse_range(location, ':')?),
+            ));
         }
     }
     // The first suffix that consists solely of valid line/column syntax wins;
