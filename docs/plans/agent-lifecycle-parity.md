@@ -1032,3 +1032,8 @@ transport descriptor grants no permission, keeps the exact origin, and leaves
 callback selection to Links. Test fixture visibility exists only to share the
 synthetic manifest across policy and real-transport tests; it is absent from
 product builds. These comments add no behavior or assertion change.
+
+The route regression also compares the export frame directly with its input
+origin, so identically rebuilding the wrong principal for both export and close
+cannot satisfy the test. Existing expected values and product behavior remain
+unchanged; this strengthens only the new authority regression.

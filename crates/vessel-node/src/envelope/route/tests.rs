@@ -50,6 +50,10 @@ fn forward_relay_and_callback_member_frames_keep_the_exact_origin_and_transfer()
             let (closed_at, closer, call) = unpack(frame(hop, target, &origin, close));
             assert_eq!(opened_at, target);
             assert_eq!(closed_at, opened_at);
+            assert_eq!(
+                opener, origin,
+                "export must retain the input principal and scopes"
+            );
             assert_eq!(closer, opener);
             let original = Principal::delegated(device, &Scope::ALL, opener, NodeId::random());
             let cleanup = Principal::delegated(device, &Scope::ALL, closer, NodeId::random());
