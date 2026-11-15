@@ -156,6 +156,7 @@ pub(super) async fn walk(client: &NodeClient, reply: &Reply, start: StartAsk) {
         }
     };
     let ended = match made {
+        Ok(_spec) if walk.left() => StartEnded::Stopped,
         Ok(spec) => begin(client, &reply.machine, spec, start.prompt)
             .await
             .map_or_else(StartEnded::Failed, |card| {
@@ -349,6 +350,11 @@ async fn output(walk: &Walk<'_>, info: &WorktreeInfo, commands: &[String]) -> Fo
             },
         )
         .await;
+        // Cancellation can arrive while the final page is in flight.
+        // Never let that completed page authorize a session afterwards.
+        if walk.left() {
+            return Followed::Left;
+        }
         let page = match page {
             Ok(page) => page,
             Err(problem) => {
@@ -404,3 +410,7 @@ async fn begin(
         .map_err(|error| problem(&error))?;
     Ok(Card::from_session(machine, &info))
 }
+
+#[cfg(test)]
+#[path = "start/tests.rs"]
+mod tests;

@@ -141,3 +141,6 @@ scripts-invalid-config = The project file is invalid. No new run is authorized; 
 
 # Declaration is separate from observed listening sockets.
 scripts-declared-port = Declared port
+
+# Cancels the client creation walk; it does not signal the setup runner.
+scripts-cancel-creation = Cancel session creation

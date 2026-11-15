@@ -144,7 +144,7 @@ pub(super) fn refused(ask: ScriptAsk, problem: &Problem) -> ScriptAnswer {
 
 #[cfg(test)]
 #[path = "scripts/peer.rs"]
-mod peer;
+pub(super) mod peer;
 #[cfg(test)]
 #[path = "scripts/tests.rs"]
 mod tests;

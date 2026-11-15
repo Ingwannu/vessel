@@ -142,11 +142,15 @@ pub(super) fn header(
         )
         .when(working, |row| {
             row.child(
-                button("start-stop", labels.stop, false, tokens).on_click(cx.listener(
-                    |this, _event, _window, cx| {
-                        this.stop_start(cx);
-                    },
-                )),
+                button(
+                    "start-stop",
+                    shell.words.scripts().cancel_creation(),
+                    false,
+                    tokens,
+                )
+                .on_click(cx.listener(|this, _event, _window, cx| {
+                    this.stop_start(cx);
+                })),
             )
         })
         .when(foldable, |row| {

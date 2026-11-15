@@ -141,3 +141,6 @@ scripts-invalid-config = 프로젝트 파일이 올바르지 않습니다. 새 �
 
 # Declaration is separate from observed listening sockets.
 scripts-declared-port = 선언된 포트
+
+# Cancels the client creation walk; it does not signal the setup runner.
+scripts-cancel-creation = 세션 생성 취소

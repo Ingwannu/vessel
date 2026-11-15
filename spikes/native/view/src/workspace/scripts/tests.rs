@@ -270,7 +270,9 @@ fn declared_port_is_displayed_but_never_becomes_an_observed_listener() {
     let terminal = run(&target);
     snapshot.scripts.runs.push(terminal.clone());
     if let Ok(ports) = &mut snapshot.ports {
-        ports.scan = PortScan::Scanned;
+        ports.scan = PortScan::Scanned {
+            at: chrono::DateTime::UNIX_EPOCH,
+        };
         assert!(listeners(Some(&terminal), ports).is_empty());
     }
 }

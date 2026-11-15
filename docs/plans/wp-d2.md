@@ -115,3 +115,12 @@ The first remote narrow submission was interrupted before registration by
 the shared submit-lock incident (tool-owner inventory: no run for c350918f).
 It produced no compile or test result. A local narrow check covers the updated
 adapter; a fresh committed snapshot will be used for the next remote request.
+
+## Cancellation while the last legacy output page is in flight
+
+The legacy start walk now rechecks its answers channel after an awaited
+setup-output reply and immediately before creating the session. Otherwise
+cancelling while the last successful output page was in flight could still
+create a session. The existing button now says Cancel session creation; its
+channel closure does not signal the node's setup runner. Actual runner
+cancellation remains the separately correlated ADR0093 operation.

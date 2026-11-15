@@ -9,9 +9,9 @@ use vessel_proto::{
 };
 
 const FRAME_BYTES: usize = 65_536;
-pub(super) struct Peer {
-    pub(super) client: NodeClient,
-    pub(super) calls: Arc<Mutex<Vec<Call>>>,
+pub(in crate::workspace) struct Peer {
+    pub(in crate::workspace) client: NodeClient,
+    pub(in crate::workspace) calls: Arc<Mutex<Vec<Call>>>,
     task: tokio::task::JoinHandle<()>,
 }
 impl Drop for Peer {
@@ -35,7 +35,7 @@ async fn write(stream: &mut DuplexStream, frame: ServerFrame) {
         .unwrap();
     stream.write_all(&bytes).await.unwrap();
 }
-pub(super) async fn connect(
+pub(in crate::workspace) async fn connect(
     answer: impl Fn(&Call) -> Result<Reply, vessel_proto::WireError> + Send + 'static,
 ) -> Peer {
     let (local, mut remote) = tokio::io::duplex(FRAME_BYTES);
