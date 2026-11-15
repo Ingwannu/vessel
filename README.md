@@ -95,6 +95,12 @@ identity matches the connected node, success
 also observes its lock being released. Another directory's loopback
 endpoint only proves connection closure; remote success confirms only the
 request.
+Before a local shutdown or drain, the CLI compares the user service file
+with the current installer template for the authenticated directory. A
+personal or older file is left alone and produces a warning that the node
+may start again. Unreadable, malformed or oversized service files are
+refused before shutdown. No service manager is invoked and a matching disk
+file does not prove which configuration it loaded.
 Forced cleanup, service-manager finalization and restart are pending.
 
 Sessions survive client disconnects; stopping the node marks live ones
