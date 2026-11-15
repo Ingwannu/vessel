@@ -1455,4 +1455,11 @@ default listing and accepts explicit JSON/YAML, quiet and headerless output.
 Relay registration shutdown (ADR0096) drains its bounded pending data opens
 before reporting Stopped; it does not terminate an already handed-off secure
 data connection. A dropped runner is not a completed graceful-stop receipt.
-The isolated implementation still requires its narrow checks and review.
+Its source and seven runtime cases have been checked; the full gate remains
+held on a session-start E2E failure (see the isolated lifetime plan).
+
+`vessel [--node NAME] node diagnostics [--json]` collects a bounded metadata
+report over that node's existing authenticated connection. It is served from
+protocol 24 on. Against an older peer the command refuses before sending, so no
+local report stands in for the selected node.
+The command's safe error output omits private connection/source details.

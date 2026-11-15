@@ -174,3 +174,19 @@ when merging again; no foreign diagnostics behavior will be replaced.
 This does not turn ef78 results into a combined9c source pass. Physical DNS
 worker and repeated-toggle resource bounds remain unproved; settings/consent
 UI remains outside this lifetime seam.
+
+
+The repeated clean-point merge keeps both module registrations (pending and
+incoming diagnostics), and both appended README/architecture sections. No
+behavior from incoming diagnostics is discarded. ts/aliases.rs merged without
+conflict and its final blob is identical to node9c150c6e; the cherry-picked
+removal introduces no remaining alias diff. The ef78 runtime/full-gate result
+remains its old-source evidence. The merged9c tree has no combined check or
+new gate claim yet; the integrator owns its eventual combined-line verdict.
+
+
+The broad staged Git whitespace check reports spaces in the incoming generated
+web wire file. That file is byte-identical to gated node9c150c6e and is not
+rewritten here. The resolved relay module and documentation paths pass their
+scoped whitespace check. This is a qualification of the merge check, not an
+extra product edit or a green whole-tree whitespace claim.
