@@ -8,6 +8,8 @@
 //! - Cost: native font-family resolution is a later kit concern, not CSS here.
 
 use serde::{Deserialize, Serialize};
+mod faces;
+pub use faces::{FaceName, FamilyFace, GenericFamily};
 
 /// Longest family preference, measured as upstream JavaScript UTF-16 units.
 pub const MAX_FAMILY_UNITS: usize = 200;
@@ -15,7 +17,10 @@ pub const MAX_FAMILY_UNITS: usize = 200;
 /// A safe, trimmed font-family preference; empty means the default stack.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
-pub struct FontFamily(String);
+pub struct FontFamily {
+    spelling: String,
+    faces: Vec<FamilyFace>,
+}
 
 /// Why a family draft cannot be committed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
@@ -48,19 +53,28 @@ impl FontFamily {
             return Err(FamilyError::Forbidden);
         }
         check_constructs(text)?;
-        Ok(Self(text.to_owned()))
+        Ok(Self {
+            spelling: text.to_owned(),
+            faces: faces::decode(text),
+        })
+    }
+
+    /// Parsed stack entries; resolution never reparses the saved spelling.
+    #[must_use]
+    pub fn faces(&self) -> &[FamilyFace] {
+        &self.faces
     }
 
     /// Whether the embedded default stack is selected; omit it from old files.
     #[must_use]
     pub fn is_default(&self) -> bool {
-        self.0.is_empty()
+        self.spelling.is_empty()
     }
 
     /// The retained trimmed value; empty uses the normal default stack.
     #[must_use]
     pub fn as_str(&self) -> &str {
-        &self.0
+        &self.spelling
     }
 }
 
@@ -99,7 +113,7 @@ impl TryFrom<String> for FontFamily {
 
 impl From<FontFamily> for String {
     fn from(family: FontFamily) -> Self {
-        family.0
+        family.spelling
     }
 }
 

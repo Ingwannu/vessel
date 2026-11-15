@@ -18,7 +18,7 @@ mod syntax;
 mod width;
 
 pub use draft::{Commit, Draft, DraftText};
-pub use family::{FamilyError, FontFamily, MAX_FAMILY_UNITS};
+pub use family::{FaceName, FamilyError, FamilyFace, FontFamily, GenericFamily, MAX_FAMILY_UNITS};
 pub use number::Number;
 pub use syntax::SyntaxTheme;
 pub use width::{ContentMaximum, ContentPixels, WidthError};
