@@ -84,7 +84,7 @@ pub struct ContributionAddress {
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum PluginPanelContext {
     /// The pane's existing W11 workspace identity is authoritative.
-    Workspace,
+    Workspace {},
     /// The pane's workspace owns this session, checked again on open and restore.
     Agent {
         /// Session displayed by this panel.
