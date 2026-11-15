@@ -17,7 +17,7 @@ use vessel_app_view::workspace::editor::{ConflictKind, EditorStatus};
 use vessel_app_view::workspace::size::size_word;
 
 use super::appear::appear;
-use super::editing::Editing;
+use super::editing::{Editing, ReloadDecision};
 use super::frame::note;
 use crate::shell::Shell;
 
@@ -76,7 +76,14 @@ pub(super) fn body(
             }),
         )
         .children(editing.find.clone())
-        .children(conflict_bar(shell, editing, tokens, cx))
+        .children(
+            shell
+                .areas
+                .workspace
+                .code
+                .file_key()
+                .and_then(|key| conflict_bar(shell, editing, key, tokens, cx)),
+        )
         .child(div().flex_1().min_h_0().child(editor.element(tokens, cx)))
         .into_any_element()
 }
@@ -172,6 +179,7 @@ fn toolbar(shell: &Shell, editing: &Editing, tokens: &Tokens) -> Div {
 fn conflict_bar(
     shell: &Shell,
     editing: &Editing,
+    key: super::buffers::FileKey,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
@@ -202,12 +210,20 @@ fn conflict_bar(
                     false,
                     tokens,
                 )
-                .on_click(cx.listener(|this, _event, _window, cx| this.editor_overwrite(cx)))
+                .on_click({
+                    let key = key.clone();
+                    cx.listener(move |this, _, _, cx| {
+                        this.editor_overwrite(&key, cx);
+                    })
+                })
             }))
             .child(
-                button("code-editor-reload", labels.editor_reload, false, tokens).on_click(
-                    cx.listener(|this, _event, window, cx| this.editor_reload(window, cx)),
-                ),
+                button("code-editor-reload", labels.editor_reload, false, tokens).on_click({
+                    let key = key.clone();
+                    cx.listener(move |this, _, window, cx| {
+                        this.editor_reload(&key, window, cx);
+                    })
+                }),
             )
     });
     let bar = div()
@@ -261,7 +277,10 @@ pub(super) fn reload_dialog(
         .as_ref()?
         .edit
         .as_ref()?;
-    let state = editing.reload.as_ref()?;
+    let prompt = editing.reload.as_ref()?;
+    let state = &prompt.dialog;
+    let ticket = prompt.ticket;
+    let key = shell.areas.workspace.code.file_key()?;
     let labels = shell.words().labels();
     let content = DialogContent {
         title: labels.editor_reload_title.into(),
@@ -272,9 +291,12 @@ pub(super) fn reload_dialog(
             .into_any_element(),
         footer: vec![
             button("code-reload-cancel", labels.cancel, false, tokens)
-                .on_click(cx.listener(|this, _event, _window, cx| {
-                    this.editor_reload_answered(false, cx);
-                }))
+                .on_click({
+                    let key = key.clone();
+                    cx.listener(move |this, _, _, cx| {
+                        this.editor_reload_answered(&key, ticket, ReloadDecision::Keep, cx);
+                    })
+                })
                 .into_any_element(),
             vessel_app_kit::button_with_kind(
                 "code-reload-confirm",
@@ -283,9 +305,12 @@ pub(super) fn reload_dialog(
                 ButtonState::Enabled,
                 tokens,
             )
-            .on_click(
-                cx.listener(|this, _event, _window, cx| this.editor_reload_answered(true, cx)),
-            )
+            .on_click({
+                let key = key.clone();
+                cx.listener(move |this, _, _, cx| {
+                    this.editor_reload_answered(&key, ticket, ReloadDecision::Reload, cx);
+                })
+            })
             .into_any_element(),
         ],
         size: DialogSize::Normal,
@@ -296,7 +321,9 @@ pub(super) fn reload_dialog(
         tokens,
         window,
         narrow,
-        |shell: &mut Shell, _window, cx| shell.editor_reload_answered(false, cx),
+        move |shell: &mut Shell, _window, cx| {
+            shell.editor_reload_answered(&key, ticket, ReloadDecision::Keep, cx);
+        },
         cx,
     ))
 }

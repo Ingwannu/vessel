@@ -102,7 +102,7 @@ fn document_element(
     let weak = cx.entity().downgrade();
     let actions = Actions::new(move |href, _, app| {
         let _gone = weak.update(app, |shell, cx| {
-            shell.markdown_link(&key, href.as_str(), cx)
+            shell.markdown_link(&key, href.as_str(), cx);
         });
     })
     .with_images(move |_| {

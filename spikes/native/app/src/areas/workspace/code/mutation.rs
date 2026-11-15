@@ -116,14 +116,8 @@ impl CodePanel {
 }
 
 impl Shell {
-    pub(super) fn refuse_active_file_mutation(&mut self) -> bool {
-        if self
-            .areas
-            .workspace
-            .code
-            .file_key()
-            .is_some_and(|key| self.areas.workspace.code.file_mutating(&key))
-        {
+    pub(super) fn refuse_file_mutation(&mut self, key: &FileKey) -> bool {
+        if self.areas.workspace.code.file_mutating(key) {
             self.areas.workspace.code.files.actions.refused =
                 Some(self.words().labels().file_busy.to_owned());
             true

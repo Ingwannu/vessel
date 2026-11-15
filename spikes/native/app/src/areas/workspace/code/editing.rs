@@ -46,10 +46,22 @@ pub(super) struct Editing {
     /// Bumped by every autosave set or stopped; a timer checks it.
     pub(super) autosave: u64,
     /// Reload's question, made when first asked.
-    pub(super) reload: Option<DialogState>,
+    pub(super) reload: Option<ReloadPrompt>,
     /// Link correlation and the model sequence captured when sent.
     pub(super) reading: Option<(FileTicket, u64)>,
     pub(super) writing: Option<(FileTicket, u64)>,
+}
+
+/// An answer must belong to the exact opening, even at the same file path.
+pub(super) struct ReloadPrompt {
+    pub(super) ticket: FileTicket,
+    pub(super) dialog: DialogState,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum ReloadDecision {
+    Keep,
+    Reload,
 }
 
 impl Editing {
@@ -85,7 +97,8 @@ impl Shell {
         key: &super::buffers::FileKey,
         cx: &mut Context<'_, Self>,
     ) {
-        if self.areas.workspace.code.file_mutating(key) {
+        if self.refuse_file_mutation(key) {
+            cx.notify();
             return;
         }
         let Some(editing) = self.editing_for(key) else {
@@ -93,17 +106,6 @@ impl Shell {
         };
         let step = editing.model.save();
         self.run_step_for(key.clone(), step, cx);
-    }
-
-    fn editing(&mut self) -> Option<&mut Editing> {
-        self.areas
-            .workspace
-            .code
-            .files
-            .viewer
-            .as_mut()?
-            .edit
-            .as_mut()
     }
 
     /// The person typed in the editor.
@@ -208,46 +210,86 @@ impl Shell {
         self.run_step_for(key, step, cx);
     }
 
-    /// Overwrite the file that changed on disk with the buffer.
-    pub(super) fn editor_overwrite(&mut self, cx: &mut Context<'_, Self>) {
-        let Some(editing) = self.editing() else {
+    /// Conflict actions keep the originating buffer rather than looking up a
+    /// selected file again when their queued click is dispatched.
+    pub(super) fn editor_overwrite(
+        &mut self,
+        key: &super::buffers::FileKey,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if self.refuse_file_mutation(key) {
+            cx.notify();
+            return;
+        }
+        let Some(editing) = self.editing_for(key) else {
             return;
         };
         let step = editing.model.overwrite();
-        self.run_step(step, cx);
+        self.run_step_for(key.clone(), step, cx);
     }
 
-    /// Reload: at once for a clean buffer, else after Paseo's question.
-    pub(super) fn editor_reload(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
-        if self.refuse_active_file_mutation() {
+    pub(super) fn editor_reload(
+        &mut self,
+        key: &super::buffers::FileKey,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if self.refuse_file_mutation(key) {
             cx.notify();
             return;
         }
-        let Some(editing) = self.editing() else {
+        let Some(editing) = self.editing_for(key) else {
             return;
         };
-        if editing.model.modified() {
-            let dialog = editing.reload.get_or_insert_with(|| DialogState::new(cx));
-            dialog.focus(window, cx);
-            cx.notify();
+        if !editing.model.modified() {
+            let step = editing.model.reload();
+            self.run_step_for(key.clone(), step, cx);
             return;
         }
-        let step = editing.model.reload();
-        self.run_step(step, cx);
-    }
-
-    /// Reload's question answered: take the disk's file, or keep editing.
-    pub(super) fn editor_reload_answered(&mut self, reload: bool, cx: &mut Context<'_, Self>) {
-        let Some(editing) = self.editing() else {
-            return;
-        };
-        editing.reload = None;
-        let step = if reload {
-            editing.model.reload()
+        let opening = editing.reload.is_none();
+        let ticket = if opening {
+            self.next_file_ticket()
         } else {
-            Step::None
+            None
         };
-        self.run_step(step, cx);
+        let Some(editing) = self.editing_for(key) else {
+            return;
+        };
+        if let Some(ticket) = ticket {
+            editing.reload = Some(ReloadPrompt {
+                ticket,
+                dialog: DialogState::new(cx),
+            });
+        }
+        if let Some(prompt) = &mut editing.reload {
+            prompt.dialog.focus(window, cx);
+        }
+        cx.notify();
+    }
+
+    pub(super) fn editor_reload_answered(
+        &mut self,
+        key: &super::buffers::FileKey,
+        ticket: FileTicket,
+        choice: ReloadDecision,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let Some(editing) = self.editing_for(key) else {
+            return;
+        };
+        if editing
+            .reload
+            .as_ref()
+            .is_none_or(|prompt| prompt.ticket != ticket)
+        {
+            return;
+        }
+        editing.reload = None;
+        let step = match choice {
+            ReloadDecision::Reload => editing.model.reload(),
+            ReloadDecision::Keep => Step::None,
+        };
+        self.run_step_for(key.clone(), step, cx);
     }
 
     /// The file is left (Back, another file): flushed, then closed.

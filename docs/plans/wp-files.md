@@ -301,3 +301,19 @@ shared admitted workspace resolver; W12 tabs and G4 connection leases are still
 pending. The existing Name-keyed buffer rename limitation remains outstanding.
 `file_workspace_scope` exposes only the active session's resolved root snapshot,
 not proof of a live lease, and makes no extra node request.
+
+### Reload decision lifetime
+
+Reload/Overwrite actions capture the original retained FileKey. A destructive
+reload prompt additionally carries its own FileTicket, including Cancel,
+Escape and scrim dismissal through the shared captured-dialog API. A queued
+answer from an older opening cannot consume a newer prompt at the same path;
+a tab switch cannot apply its decision to another file's dirty content. The
+new isolated shell regression pins both cases. This prepares owner-scoped
+pane rendering without a second dialog renderer or active-file alias lookup.
+
+W12's1720 producer was adopted with its reviewed canonical value dependencies,
+then placed on HOLD by its owner pending a self-contained shared-line successor.
+The source remains retained, no consumer-ready claim is made, and no File target
+is offered by its launcher. G4 live connection admission and the actual resident
+resource cutover remain outstanding; neither is inferred from Machine.node.

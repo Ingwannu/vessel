@@ -127,3 +127,44 @@ fn retained_editor_receives_only_its_original_ticket_and_scope(cx: &mut TestAppC
         assert_eq!(shell.editing_for(&a).unwrap().model.content(), "retained a");
     });
 }
+
+#[gpui::test]
+fn reload_decisions_keep_the_original_file_and_dialog_opening(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update(cx, |shell, cx| {
+        let root = root();
+        target(shell, root);
+        shell.open_file_at("a.txt".parse().unwrap(), None, cx);
+        let a = shell.areas.workspace.code.file_key().unwrap();
+        let ticket = shell.editing_for(&a).unwrap().reading.unwrap().0;
+        shell.editor_read_answered("node", ticket, &read(root, "a.txt"), Ok(text("a")), cx);
+        let old = shell.next_file_ticket().unwrap();
+        let current = shell.next_file_ticket().unwrap();
+        shell.editing_for(&a).unwrap().reload = Some(editing::ReloadPrompt {
+            ticket: current,
+            dialog: vessel_app_kit::DialogState::new(cx),
+        });
+        shell.open_file_at("b.txt".parse().unwrap(), None, cx);
+        let b = shell.areas.workspace.code.file_key().unwrap();
+        let ticket = shell.editing_for(&b).unwrap().reading.unwrap().0;
+        shell.editor_read_answered("node", ticket, &read(root, "b.txt"), Ok(text("b")), cx);
+        let _step = shell.editing_for(&b).unwrap().model.edit("unsaved b");
+        shell.editor_reload_answered(&a, old, editing::ReloadDecision::Reload, cx);
+        assert_eq!(
+            shell
+                .editing_for(&a)
+                .unwrap()
+                .reload
+                .as_ref()
+                .unwrap()
+                .ticket,
+            current
+        );
+        shell.editor_reload_answered(&a, current, editing::ReloadDecision::Keep, cx);
+        assert!(shell.editing_for(&a).unwrap().reload.is_none());
+        assert_eq!(shell.editing_for(&b).unwrap().model.content(), "unsaved b");
+        assert!(shell.editing_for(&b).unwrap().model.modified());
+        assert_eq!(shell.areas.workspace.code.file_key(), Some(b));
+    });
+}
