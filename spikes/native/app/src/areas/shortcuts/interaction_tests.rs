@@ -149,3 +149,109 @@ fn real_modifier_event_reveals_after_delay_and_binding_change_cancels_it(cx: &mu
         assert!(!shell.shortcut_badges_visible(window, cx));
     });
 }
+
+#[gpui::test]
+fn compact_viewport_blocks_shortcuts_and_help_but_keeps_pointer_palette(cx: &mut TestAppContext) {
+    let (shell, cx) = setup(cx);
+    cx.simulate_resize(gpui::size(gpui::px(390.0), gpui::px(844.0)));
+    cx.run_until_parked();
+    shell.update_in(cx, |shell, window, cx| {
+        shell.go(crate::routes::Route::Draft, window, cx);
+        shell.areas.draft.composer.focus(window, cx);
+        assert!(!super::available(window));
+        shell.open_shortcuts_help(window, cx);
+        assert!(!shell.areas.shortcuts.help.is_open());
+    });
+    cx.simulate_keystrokes(match Platform::native() {
+        Platform::Mac => "cmd-k",
+        Platform::Other => "ctrl-k",
+    });
+    cx.run_until_parked();
+    shell.update_in(cx, |shell, window, cx| {
+        assert!(!shell.areas.palette.is_open());
+        shell.open_palette(window, cx);
+        assert!(shell.areas.palette.is_open());
+        assert!(!shell.areas.palette.keyboard_available);
+        shell.close_palette(window, cx);
+    });
+    cx.simulate_resize(gpui::size(gpui::px(600.0), gpui::px(844.0)));
+    cx.run_until_parked();
+    shell.update_in(cx, |shell, window, cx| {
+        assert!(super::available(window));
+        shell.open_shortcuts_help(window, cx);
+        assert!(shell.areas.shortcuts.help.is_open());
+    });
+}
+
+#[gpui::test]
+fn layout_close_never_reaches_window_fallback_in_an_active_session(cx: &mut TestAppContext) {
+    use super::dispatch::{Callbacks, KeyboardHandler};
+    use vessel_app_view::shortcuts::Action;
+    use vessel_app_view::shortcuts::dispatcher::{Handled, Priority};
+    let (shell, cx) = setup(cx);
+    shell.update_in(cx, |shell, window, cx| {
+        let _fallback = shell
+            .register_shortcut_handler(KeyboardHandler {
+                id: "desktop-test-close".parse().unwrap(),
+                actions: vec![Action::CloseTab],
+                priority: Priority::new(-100),
+                callbacks: Callbacks {
+                    enabled: |_, _, _, _| true,
+                    perform: |shell, _, _, _| {
+                        shell.notice = Some("window-close-fallback".to_owned());
+                        Handled::Yes
+                    },
+                },
+            })
+            .unwrap();
+        shell.route = crate::routes::Route::Session;
+        shell.areas.session.open = Some(crate::areas::session::Open {
+            machine: "fake".to_owned(),
+            session: vessel_proto::SessionId::random(),
+            title: "Fixture".to_owned(),
+            agent: "fake".to_owned(),
+            structured: false,
+            live: true,
+        });
+        // The root resource has no lifecycle owner yet. That refusal is still
+        // handled: the same Mod+W must never close the application window.
+        let root = shell.areas.session.open.as_ref().unwrap().session;
+        let key = vessel_app_view::layout::LayoutKey::Session {
+            machine: vessel_app_view::layout::HostAlias::parse("fake").unwrap(),
+            session: root,
+        };
+        let _tab = shell
+            .layout_open_target(
+                &key,
+                vessel_app_view::layout::Target::Agent(root),
+                vessel_app_view::layout::OpenIntent::Reveal,
+                vessel_app_view::layout::Placement::Focused,
+                window,
+                cx,
+            )
+            .unwrap();
+        shell.areas.session.composer.focus(window, cx);
+    });
+    cx.run_until_parked();
+    let close = match Platform::native() {
+        Platform::Mac => "cmd-w",
+        Platform::Other => "ctrl-w",
+    };
+    cx.simulate_keystrokes(close);
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, _| {
+        assert_eq!(
+            shell.notice.as_deref(),
+            Some(shell.words.layout().refused())
+        );
+        assert_eq!(shell.prefs.layouts[0].layout.tabs().count(), 1);
+    });
+    shell.update_in(cx, |shell, window, cx| {
+        shell.go(crate::routes::Route::Draft, window, cx);
+    });
+    cx.simulate_keystrokes(close);
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, _| {
+        assert_eq!(shell.notice.as_deref(), Some("window-close-fallback"));
+    });
+}

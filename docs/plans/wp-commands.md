@@ -1,7 +1,8 @@
 # F4 command center and keyboard parity
 
-Status: implementation in progress on package base 4 (3cd0d3fc), merged as
-f12d347b. S2's exact theme/input dependency eddce254 is reviewed V1 PASS.
+Status: implementation in progress on shared line d6aac578d, with exact
+canonical value prerequisite e46cd57b and portable W12 producer 9480d4d0
+(adopted as ad8f4931b). S2's exact theme/input dependency eddce254 is reviewed V1 PASS.
 Canonical defaults, dispatcher, Settings/help and source projection are written;
 app compilation, feature-owner integration and package verification remain open.
 No command-center or keyboard tracker row is passed. No new node RPC is needed
@@ -290,3 +291,33 @@ unconsumed focus results and help scrolling arithmetic). The root source was
 split into palette/root.rs, scrolling now uses GPUI item positions, and the other
 issues were corrected. This is not an all-target green claim. The next immutable
 suite includes the badge and actual workspace-owner admission changes.
+
+
+## Pane owner adoption and compact boundary (10:2x checkpoint)
+
+The held W12 producer 1720 was never adopted. Exact canonical proto values e46
+are merged unchanged, followed only by the portable native producer 9480. This
+preserves both C5 Intelligence and Layout answer registrations; neither owner
+module is replaced. The producer's changed-source Clippy evidence is scoped to
+its own head, not evidence that the combined command package compiles.
+
+[Decision Log]
+- Purpose: connect one keyboard dispatcher to the reviewed pane owner without
+  recreating pane policy, resource creation or lifecycle management.
+- Constraint: Mod+W can have a desktop fallback, while a refused/cancelled pane
+  close must remain handled. The owner is the only source of that distinction.
+- Alternatives: a second key listener or direct layout mutations would duplicate
+  scope and close policy; both are rejected.
+- Choice: a closed Action-to-LayoutAction translation and priority100 owner
+  callback. The desktop fallback is lower priority; missing index payloads are
+  refused. NewTab opens the owner's passive chooser and creates no agent.
+- Impact: keyboard pane commands work only in the owner's Session scope. Palette
+  workspace commands still await an owner captured-scope validation seam, so
+  stale workspace actions cannot silently apply to a newly active workspace.
+
+Paseo keyboard/availability.ts excludes iOS/Android (constants/platform.ts)
+plus compact xs/sm below600 (constants/layout.ts). The native interceptor,
+capture, help opener and shortcut chips share available(window); pointer-opened
+command center remains usable compact. Tests cover390 refusal and600 admission,
+and a real Mod+W refusal reaching the pane owner rather than window fallback.
+These new tests are written but not executed at this checkpoint.

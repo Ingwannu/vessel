@@ -62,7 +62,7 @@ impl Shell {
 
     /// Help, the palette and the shortcut all open this same retained dialog.
     pub(crate) fn open_shortcuts_help(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
-        if f32::from(window.viewport_size().width) < vessel_app_kit::picker::COMPACT {
+        if !super::available(window) {
             return;
         }
         self.close_palette(window, cx);
@@ -147,7 +147,7 @@ pub(crate) fn render(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
-    if f32::from(window.viewport_size().width) < vessel_app_kit::picker::COMPACT {
+    if !super::available(window) {
         return None;
     }
     let motion = shell.areas.shortcuts.help.motion.sample(

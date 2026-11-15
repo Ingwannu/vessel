@@ -4,6 +4,7 @@
 use super::{ShortcutGroup, ShortcutScope};
 mod adapters;
 mod identity;
+mod layout;
 use crate::shortcuts::keys::Platform;
 
 /// What the one shortcut engine can ask a feature to perform.

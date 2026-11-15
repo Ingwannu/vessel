@@ -47,6 +47,7 @@ pub(crate) mod dispatch;
 pub(crate) mod help_dialog;
 #[cfg(test)]
 mod interaction_tests;
+mod layout;
 pub(crate) mod page;
 #[cfg(test)]
 mod tests;
@@ -61,6 +62,7 @@ pub(crate) struct ShortcutListener {
     compiled: CompiledBindings,
     dispatch: dispatch::NativeDispatcher,
     core_registration: Option<dispatch::Registration>,
+    layout_registration: Option<dispatch::Registration>,
     help: help_dialog::HelpDialog,
     /// When the app started: a press's time is counted from it.
     since: Instant,
@@ -102,6 +104,7 @@ impl ShortcutListener {
             compiled: CompiledBindings::default(),
             dispatch: dispatch::NativeDispatcher::default(),
             core_registration: None,
+            layout_registration: None,
             help: help_dialog::HelpDialog::new(window, cx),
             since: Instant::now(),
             page: page::ShortcutsPage::new(cx),
@@ -129,6 +132,13 @@ pub(crate) fn listen(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_
     match dispatch::register_core(shell) {
         Ok(registration) => shell.areas.shortcuts.core_registration = Some(registration),
         Err(error) => tracing::warn!(%error, "shortcut core registration refused"),
+    }
+    if let Some(old) = shell.areas.shortcuts.layout_registration.take() {
+        shell.remove_shortcut_handler(&old);
+    }
+    match layout::register(shell) {
+        Ok(registration) => shell.areas.shortcuts.layout_registration = Some(registration),
+        Err(error) => tracing::warn!(%error, "layout shortcut registration refused"),
     }
     let activation = cx.observe_window_activation(window, |shell, window, _cx| {
         if !window.is_window_active() {
