@@ -105,8 +105,9 @@ explicit consequence, and the initially-hidden/30-second/copy/blur rule.
 Deliberate differences: the node's invitation expires in ten minutes and
 works once (Paseo's offer can be cached longer); the page's masking policy
 is retained as a stronger credential display limit. Revoked entries are
-filtered as on the page rather than shown as active devices; a named
-state says Paired or Not seen, not a guessed live connection state.
+filtered as on the page rather than shown as active devices. Ordinary
+paired rows have no badge; a never-seen row says Not seen. A current-device
+badge requires a proven identity, never a guessed live connection state.
 An explicit Refresh also lets devices paired outside this app appear
 without minting another invitation. Read and action failures use localized
 code-based words instead of an untrusted node message. Loading is a plain
@@ -296,3 +297,85 @@ These checks run under the ordinary account that owns the scratch fleet.
 Its token files remain 0600; the node book refers to those files rather
 than containing tokens. No production service or permission changed. No
 physical phone, QR scan or browser build is claimed by these retakes.
+
+
+## Sync slice
+
+The read-only Sync design, source comparisons, wire gaps, privacy checks
+and evidence are in [the Sync notes](backend-m12-g4-sync.md). The Devices
+row followup in that slice retains disabled buttons while its revoke
+confirmation is open, preserving the layout underneath it.
+
+## Coordinator followup: compact Devices rows
+
+In the same pass as the Sync surface correction, a device now has one
+access/last-use hint. Pairing history and every independent scope remain
+in the existing exact tooltip, with viewer-local seconds and named offset;
+the list no longer stacks three history lines. The access label is a
+primary display summary, never an authorization decision. A read plus
+sharing/forwarding grant is not mislabeled read-only. The fake fleet now
+includes read-only and session-access rows with checks; `row-access` upgrades
+only the named inert rows of an already-seeded disposable fleet.
+
+Normal active devices have no badge: the heading already says they are
+paired. Unseen/revoked facts and a proven caller identity have typed,
+short distinguishing badges. The connection currently supplies no caller
+id, so the app passes an unreported identity; it never identifies itself
+by a device label. N3's pending `device.self` supplies that fact later.
+The accepted m11 revoked filter is retained (V1 confirmed that conditional
+badge examples do not request a history view). No revocation policy,
+credential policy or node call changed. Tooltips keep Paseo's existing
+no-touch behaviour; no new detail surface or parallel control was added.
+The legacy web-fixture helper remains unchanged; screen tests now compare
+the compact hints, sparse badges and full tooltip in both languages.
+
+This followup shares the Sync correction's passed native gate (386 tests)
+and normal build. Twenty-eight affected Devices frames were individually
+opened: long and many rows, pending confirmations, and desktop exact
+tooltips, both languages, themes and widths. Pending controls stay in
+place and disabled. The fake-node revoke completed after each resume;
+only the inert test record was restored. No invitation was created, no
+production service or permission changed, and private credential-file
+ownership and modes passed. See the Sync notes for the combined checks.
+
+## Pending V1 followup: wrapped actions
+
+The distinguishing badge/action group previously wrapped to the next
+line's left edge on narrow rows. The area now shares one production
+composition with a bounds regression: the existing kit button stays in
+a natural-width, nonshrinking group with automatic leading margin.
+It keeps the trailing edge whether beside or beneath the text; a
+full-width group was rejected because it would move ordinary actions
+below their names too. The shared kit's geometry and button appearance
+are unchanged. The test covers badge present/absent and short/wrapping
+names, measures the actual button edge, and checks badge/button centres.
+
+This is an unverified work-in-progress correction: formatting passed,
+but compilation, the bounds test and new narrow-screen captures remain
+pending. See the Sync notes for integration/resumption requirements.
+
+## Lead's finishing work (2026-11-13, after `1a91edee`)
+
+The lead merged G4's last follow-ups (`1a91edee`, a `wip:` commit) into
+`backend/m12-spike` and checked them on the fake fleet; G4 resumes from the
+lead's head.
+
+- Devices: a row is the device's name, one hint (its access and when it was
+  last seen) and the revoke action; a badge only for an exception (not seen
+  yet, revoked, this device). At 390 points a wrapped badge and button stay
+  at the row's end (V1's second finding). Paseo has no list of paired
+  devices (its settings have the pair-a-device row and modal only), so the
+  row follows Paseo's settings row: title, one hint, trailing action.
+- Sync, read as a whole against Paseo's settings conventions (Paseo has no
+  Sync page):
+  - a shared file's path is one line of a set width, cut in the middle
+    (kit `fonts::elide_middle`), the whole path in a tooltip (it wrapped at
+    its slashes over three lines);
+  - a tool server's row is its name only (the same title on every row);
+  - a secret's row is its name in the code face as the title, what uses it
+    as the hint, and the presence badge at the row's end;
+  - kept: a member's hint keeps "N behind home" beside its "behind" badge
+    (the count is not in the badge); machine connections no longer repeat
+    their badge in the hint (V1's first finding, G4's follow-up).
+- A Sync read the link did not take settles as the devices page's does.
+- Offline: both pages say the app's sentence, no transport text.
