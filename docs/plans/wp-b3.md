@@ -1,9 +1,10 @@
 # Per-turn file checkpoints: implementation plan
 
 ADR 0077 passed design review at `a852bde3`; acceptance is a contract decision,
-not a product/runtime pass. The node branch consumes the reviewed integration head `ba45a6e3` (Quality B)
-and the shared `Request`/`UnexpectedReply` extraction `1c8d0b93`; pending rows now live at the end of `rpc/table.rs`. The separate
-app branch consumes package base 4 `3cd0d3fc`; no app feature is implemented yet.
+not a product/runtime pass. The node branch consumes the reviewed integration
+head `ede20014` (Quality B and gate 44); pending rows live at the end of
+`rpc/table.rs`. The separate app branch consumes package base 6 `18eedad4`
+and awaits its fixed-lock line update; no app feature is implemented yet.
 
 ## References and existing assets
 
@@ -31,7 +32,8 @@ staging. No provider SDK, tool-call-count inference or new crate edge.
   deadline fencing. Timeout acknowledges without joining blocked I/O; capacity
   remains occupied until actual cleanup. Candidate persistence and durable Ready
   activation are separate phases; uncertain activation retains the archive.
-  The real store/coordinator assembly still needs connecting. No real prompt/TurnEnded wiring yet.
+  The real store/coordinator assembly still needs connecting. Real actor
+  prompt/TurnEnded hooks exist, but the node does not install their bridge yet.
 - node/service/checkpoints: registered methods explicitly refuse as unavailable.
   Guarded authorization and agent refusal remain in front of the seam. Ordinary
   human forwarding preserves destination checks. Pending calls refuse locally
@@ -475,3 +477,26 @@ is not SQL durability: the node controller must await the restore row's matching
 EventSeq before releasing the physical lease and resuming. A new fake-actor test
 covers one result, retry/refusal, conversation identity, and held queue until
 resume. It has not run. The node restore controller remains unwired.
+
+
+### Effective account preflight (staged)
+
+[Decision Log]
+- Purpose: private storage must belong to the actual executing service account;
+  comparing blobs only to the archive folder owner could accept a foreign tree.
+- Existing asset: Linux checkpoint Root/Archive/Stage already open FD-relative,
+  refuse ACL/xattr metadata and validate modes; they lacked an effective UID check.
+- Alternatives: a caller-supplied UID could diverge from process credentials, and
+  account names do not establish the kernel identity.
+- Choice: reuse the already resolved rustix dev dependency's process feature for
+  geteuid; keep it dev-only while these filesystem mechanisms are staged.
+- Consequences: project roots and private folders refuse foreign owners; private
+  directories require exactly 0700 including absence of special bits. Root/group
+  ownership and ACLs are never rewritten. Captured ordinary permissions remain
+  subject to the frozen effective desired-image policy.
+
+Isolated fixtures require the actual non-root build UID, test its own 0700 folder,
+read only foreign-owned root metadata, and refuse 0750/setgid/sticky folders. Only
+temporary fixture modes change. They are unrun; no production account/permission
+flow is claimed. Root safety, archive safety and actual service operation remain
+separate from source inspection.

@@ -26,7 +26,7 @@ nix = { workspace = true, features = ["fs"] }
 [dev-dependencies]
 # ADR 0077 staged Linux no-follow/ACL preflight; already resolved and used
 # by the store's attachment implementation. No new crate version.
-rustix = { workspace = true, features = ["fs"] }
+rustix = { workspace = true, features = ["fs", "process"] }
 tempfile.workspace = true
 # `write_executable`: scripts a test runs, written so running them never
 # meets ETXTBSY.

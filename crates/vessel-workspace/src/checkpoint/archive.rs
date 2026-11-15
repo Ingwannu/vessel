@@ -14,8 +14,7 @@ use vessel_proto::{
 };
 
 const PRIVATE_MODE: u32 = 0o600;
-const PRIVATE_DIRECTORY_MODE: u32 = 0o700;
-const ORDINARY_BITS: u32 = 0o777;
+const PERMISSION_BITS: u32 = 0o7777;
 const DIRECTORY: OFlags = OFlags::RDONLY
     .union(OFlags::DIRECTORY)
     .union(OFlags::NOFOLLOW)
@@ -44,11 +43,7 @@ impl Archive {
             rustix::fs::openat(CWD, &path, DIRECTORY, Mode::empty())
                 .map_err(std::io::Error::from)?,
         );
-        let metadata = folder.metadata()?;
-        if metadata.mode() & ORDINARY_BITS != PRIVATE_DIRECTORY_MODE {
-            return Err(CheckpointError::UnsupportedMetadata.into());
-        }
-        refuse_attributes(&folder)?;
+        super::account::private_directory(&folder)?;
         Ok(Self { folder, path })
     }
     /// Private per-capture folder, never a shared temporary filename namespace.
@@ -120,7 +115,7 @@ impl Archive {
         if !found.is_file()
             || found.nlink() != 1
             || found.uid() != self.folder.metadata()?.uid()
-            || found.mode() & ORDINARY_BITS != PRIVATE_MODE
+            || found.mode() & PERMISSION_BITS != PRIVATE_MODE
         {
             return Err(CheckpointError::UnsafeEntry.into());
         }
@@ -137,7 +132,7 @@ impl Archive {
             || before.nlink() != 1
             || before.len() != bytes.get()
             || before.uid() != self.folder.metadata()?.uid()
-            || before.mode() & ORDINARY_BITS != PRIVATE_MODE
+            || before.mode() & PERMISSION_BITS != PRIVATE_MODE
         {
             return Err(CheckpointError::UnsafeEntry.into());
         }

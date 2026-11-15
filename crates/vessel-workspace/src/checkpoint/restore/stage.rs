@@ -22,8 +22,6 @@ const CREATE: OFlags = OFlags::WRONLY
     .union(OFlags::NOFOLLOW)
     .union(OFlags::CLOEXEC);
 const PRIVATE_MODE: u32 = 0o600;
-const DIRECTORY_MODE: u32 = 0o700;
-const ORDINARY_BITS: u32 = 0o777;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::checkpoint) enum SlotKind {
     Desired,
@@ -59,10 +57,7 @@ impl Stage {
             rustix::fs::openat(CWD, path, DIRECTORY, Mode::empty())
                 .map_err(std::io::Error::from)?,
         );
-        if folder.metadata()?.mode() & ORDINARY_BITS != DIRECTORY_MODE {
-            return Err(CheckpointError::UnsupportedMetadata.into());
-        }
-        refuse_attributes(&folder)?;
+        crate::checkpoint::account::private_directory(&folder)?;
         Ok(Self { folder })
     }
     pub(in crate::checkpoint) fn prepare(

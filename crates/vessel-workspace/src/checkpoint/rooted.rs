@@ -80,6 +80,7 @@ impl Root {
             rustix::fs::openat(CWD, path, DIRECTORY, Mode::empty()).map_err(io::Error::from)?,
         );
         let metadata = file.metadata()?;
+        super::account::owned(&metadata)?;
         refuse_attributes(&file)?;
         let mount = MountId::of(&file)?;
         Ok(Self {

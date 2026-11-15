@@ -4,6 +4,8 @@
 //! owns workspace exclusion and runs synchronous I/O off its async worker.
 
 #[cfg(target_os = "linux")]
+mod account;
+#[cfg(target_os = "linux")]
 mod archive;
 #[cfg(target_os = "linux")]
 mod capture;
