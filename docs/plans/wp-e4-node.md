@@ -284,3 +284,10 @@ Strict follow-up run `diagnostics-20261115T162652Z-6be6f9f6` failed after
 the prelude `Future` trait in the typed responder. The correction uses `Future`
 directly, without a lint exception. No test ran in that strict invocation;
 its older source also excludes the later raw fixture and observer correction.
+
+The next announced green consuming head `1c762ccf` is merged without conflicts
+while only a narrow check was queued. All 20 incoming changed files retain the
+head bytes. Diagnostics stays 24; the current protocol is now 25, minimum 2,
+schema 20. The supported-version matrix therefore exercises both 24 and 25.
+The typed responder advertises its exact simulated server maximum so each
+welcome agrees with that fixture range. No feature constant is overridden.

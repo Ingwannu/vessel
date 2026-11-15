@@ -51,6 +51,8 @@ async fn phase<F: Future>(name: &str, work: F) -> F::Output {
 async fn open(version: ProtocolVersion) -> (NodeClient, MemoryTransport) {
     let (client_end, mut peer) =
         vessel_rpc::memory::pair(std::num::NonZeroUsize::new(RESPONDER_CAPACITY).unwrap());
+    let mut info = super::super::node();
+    info.protocol.max = version;
     let serving = tokio::spawn(async move {
         let hello = phase("hello", peer.next()).await.unwrap().unwrap();
         assert!(matches!(
@@ -62,7 +64,7 @@ async fn open(version: ProtocolVersion) -> (NodeClient, MemoryTransport) {
             peer.send(
                 serde_json::to_string(&ServerFrame::Welcome(Welcome {
                     protocol: version,
-                    node: super::super::node(),
+                    node: info,
                 }))
                 .unwrap(),
             ),
