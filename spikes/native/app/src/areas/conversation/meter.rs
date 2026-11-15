@@ -368,12 +368,26 @@ fn compact(
 /// A ring's stroke from twelve o'clock, clockwise, `percent` of the way
 /// round (100: the whole track), in `bounds`.
 fn ring_path(bounds: Bounds<Pixels>, percent: f32) -> Option<gpui::Path<Pixels>> {
-    let points = ring_points(bounds, percent);
+    let mut points = ring_points(bounds, percent);
+    let whole = percent >= 100.0;
+    if whole {
+        // The last point is the first again: drawn and then closed, the
+        // joint at twelve was stroked twice and the translucent track
+        // showed a brighter tick there (0.0.0.0.19 smoke).
+        points.truncate(points.len().saturating_sub(1));
+    }
     let (first, rest) = points.split_first()?;
     let mut path = PathBuilder::stroke(px(STROKE));
     path.move_to(*first);
     for next in rest {
         path.line_to(*next);
+    }
+    // The whole track is Paseo's closed circle. Left open, its two square
+    // ends met at twelve with a notch, and with no context data (the track
+    // alone, as an ended session shows it) the ring read as a loading
+    // spinner beside Send (the coordinator's 0.0.0.0.18 smoke).
+    if whole {
+        path.close();
     }
     path.build().ok()
 }

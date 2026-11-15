@@ -41,6 +41,9 @@ pub enum Target {
 /// whose lifetime is the app: an A-to-B-to-A switch cannot reuse tickets.
 #[derive(Debug, Default)]
 pub struct Page {
+    // A selected public record, never an invitation or a credential. Kept
+    // while a read is pending; a successful list reconciles it by id.
+    pub(super) inspection: Option<vessel_proto::DeviceInfo>,
     /// What the page is about.
     pub target: Target,
     /// The device list's state.
@@ -60,6 +63,7 @@ impl Page {
             self.listing = Listing::Empty;
             self.inviting = Inviting::Empty;
             self.revoking = Revoking::Empty;
+            self.inspection = None;
             self.target = target;
         }
     }
