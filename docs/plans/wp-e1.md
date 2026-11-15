@@ -243,10 +243,13 @@ Windows refusal are still unimplemented. No all-writer safety claim is made.
 The shared public values are isolated on the app base18eedad4 as the exact
 range ending7becce7f. V3 accepted source through e3764115 (route identity,
 unchanged appearance values and the precise ManagedLocalAlias grammar).
-The root all-targets Clippy run122609Z remains queued; nine new root tests
-and seven native compatibility assertions still need execution. This is
-not a compiling/consumer-ready handoff. The checked result goes to the
-native lead for announced adoption, not into the node integrator's tree.
+The root all-targets Clippy run122609Z completed with rc0: actual
+Checking vessel-proto and Finished in106s were independently inspected
+by V3. Nine new root tests and seven native compatibility assertions
+still need execution; this is not a full consumer-ready handoff. The
+coordinator corrected the initial routing instruction: only the five
+root/docs commits are cherry-picked onto the node line, never app ancestry.
+The app receives the checked values through an announced base merge.
 
 This private development branch merged the fixed-lock selection source
 0610958f as744a383e. It includes the announced dd13ce37 base and the
@@ -320,3 +323,23 @@ without adding a hello that discards that issued credential. G4's retained
 operation owns IssuedInMemory before any later authenticated probe; probe
 failure retains the credential, and local retry never redeems again.
 No SDK receipt, changed preamble or secure-wrapper code is implemented yet.
+
+
+### Shared producer integration receipt still pending
+
+The strict run is settings2-narrow-20261115T122609Z-7becce7f, exact source
+7becce7f4c16bb9f620d432b858a2707ea1b57b8. Its cargo log SHA begins
+d646dcac293a0df0; spec, steps and original output are preserved. Clippy
+compiled all targets but did not execute unit tests. V3 row214 closed
+only this strict-check debt, retaining source acceptance and test debt.
+
+The node integrator picked the five source commits, in order, as
+ a58e08bc, c1717a02, d9bbb8c0,390fc201,c75d6391. It reports all code,
+manifest hunks and producer plan byte-identical, a single toml_edit
+reference on its own lock, and both sets of ownership documentation
+retained. Its whole A12 gate47b on c75d6391 is running; actual nine-test
+results, whole-gate result and announced app base remain pending.
+No source from that unannounced batch is merged into this development
+branch or the frozen selection gate. ManagedLocal consumers remain
+preparation-only. The native re-export compatibility assertions are still
+separate; node tests cannot establish native consumer/runtime approval.
