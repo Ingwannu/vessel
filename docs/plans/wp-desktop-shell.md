@@ -408,3 +408,13 @@ published by that author, including Korean-only early notes. CHANGELOG.sources
 records each source text hash; only19/20 additionally have the independent
 signed-manifest note comparison supplied above. Seventeen releases exercise the
 real initial5/+10 reveal controls without invented history or an external fetch.
+
+Per-window removal has a typed optional document-admission callback registered
+by the quit/document owner. Additional/macOS closes defer to App after the
+initiating Shell borrow ends, coalesce while Checking, and retain refused windows.
+Both before admission and immediately before removal, non-macOS last-window
+status is revalidated and routes the normal quit finalizer. There is no second
+save/discard policy. A real GPUI regression requests close from inside the same
+Shell update twice, asserts one refusal/no removal, then permits only that window
+without quitting the remaining one. Execution and W15 callback registration remain
+pending the combined native check.
