@@ -1,4 +1,4 @@
-## Settings package: gated and author-inspected, independent review pending
+## Settings package: bounded independent source, gate and visual pass
 
 Diagnostics `205f1e01` and Chat `b3ef8338` form this vocabulary package over
 `df11d9d5`. Exact product source `b3ef8338a09079319b4d4e03055e8865c0a4f530`
@@ -33,9 +33,17 @@ Unmigrated neighboring Settings labels remain plain in pseudo mode. About's
 previous bounded reviewer pass stays separate; real fork/rewind and updater
 I/O evidence from that earlier package remains owed.
 
-Resume point: submit this package's exact source/gate/capture index to the
-independent reviewer first; fix any returned defect before new work. Only then
-coordinator acceptance and lead merge. The next requested area is Appearance,
+The independent reviewer returned a bounded source/native/inspected visual pass
+on this exact package and its two docs-only follow-ups. All 140 PNG hashes and
+dimensions and the retained app hash were independently verified; all 32
+English/Korean base-page before/after pixel encodings match. The reviewer
+personally opened 32 risk-selected originals, not all 140, and found no new
+overlap or clipping in that sample. The report generator remains unchanged.
+This is no approval of the latest combined application or the excluded flows
+above. No unchanged gate or additional capture matrix was requested.
+
+Resume point: coordinator acceptance and lead merge remain separate from that
+bounded reviewer pass. The next requested area is Appearance,
 awaiting the lead's ownership ruling; no Appearance source is changed. Other
 Settings sections, Sidebar/Palette, Agents and Overview retain their owners.
 The authenticated display and isolated current fleet remain available for the
@@ -89,7 +97,8 @@ the failed run remains in the evidence. Source coverage has no missing keys
 in either shipped language. Before Settings captures are retained from the
 previous exact binary; eight draft-screen frames were rejected and replaced
 by inspected captures of the intended screens.
-The package whole native gate and after screen comparisons are still owed.
+The later package result at the top of this plan supersedes this source-only
+checkpoint: the whole native gate and after screen comparisons are complete.
 
 The Settings owner released chat.rs/diagnostics.rs words, the Display arms
 in choices.rs, their view fields/adapters/catalogs and the transitional
