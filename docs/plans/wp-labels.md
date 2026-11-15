@@ -378,3 +378,12 @@ reviewed transaction/watch contract. Neither the carrier nor Store helpers have
 been merged here: the lead's type adoption and announced gate47 node helpers
 are distinct required boundaries. The draft reuses the writer/savepoint/read
 pool and same-transaction labels projection; no physical lifecycle authority.
+
+The 480534 strict run recovered mechanically red at shared dispatch 101/100,
+again before app compilation. The typed Labels registration is already one line;
+the announced line's existing handle uses the entire 100-line function budget.
+Moved only its SavePrefs body verbatim into a private async helper in the same
+file. The actor still awaits the identical spawn_blocking save and logs exactly
+the same failures before handling another command. No size allowance, dispatch
+order, preference ownership or persistence semantics changed. Base8 is present
+for the next meaningful remote check, including the FieldId integration.
