@@ -22,6 +22,18 @@ pub(crate) fn ensure(prefs: &vessel_app_link::Prefs, cx: &mut App) {
             None
         }
     };
+    if let Some(controller) = &controller {
+        let mut signals = controller.quit_signals();
+        cx.spawn(async move |cx| {
+            while let Some(signal) = signals.recv().await {
+                match signal {
+                    Ok(_intent) => cx.update(crate::desktop::request_quit),
+                    Err(error) => tracing::warn!(%error,"desktop quit signal observer failed"),
+                }
+            }
+        })
+        .detach();
+    }
     cx.set_global(Managed {
         controller,
         finalizing: false,
@@ -97,15 +109,14 @@ pub(crate) fn finalize(
 }
 
 fn request_quit(cx: &mut App) {
-    let after = crate::desktop::current_local_preferences(cx).after_quit;
-    quit(after, None, cx);
+    quit(None, None, cx);
 }
 
 pub(crate) fn request_keep_quit(cx: &mut App) {
-    quit(AfterQuit::KeepRunning, None, cx);
+    quit(Some(AfterQuit::KeepRunning), None, cx);
 }
 pub(crate) fn request_confirmed_quit(confirmation: Confirmation, cx: &mut App) {
-    quit(AfterQuit::Stop, Some(confirmation), cx);
+    quit(Some(AfterQuit::Stop), Some(confirmation), cx);
 }
 
 pub(crate) fn begin_finalization(cx: &mut App) -> bool {
@@ -126,16 +137,25 @@ pub(crate) fn end_finalization(cx: &mut App) {
     }
 }
 
-fn quit(after: AfterQuit, confirmation: Option<Confirmation>, cx: &mut App) {
+fn quit(after: Option<AfterQuit>, confirmation: Option<Confirmation>, cx: &mut App) {
     if !begin_finalization(cx) {
         return;
     }
-    let finalize = finalize(after, confirmation, cx);
-    let flush = crate::desktop::flush_preferences(cx);
+    // A window can request quit immediately after its preference edit. Settle
+    // the canonical actor first so the quit policy cannot read an older window.
+    let before = crate::desktop::flush_preferences(cx);
     cx.spawn(async move |cx| {
+        if let Err(error) = before.await {
+            cx.update(|cx| failed(cx, &error));
+            return;
+        }
+        let after = after.unwrap_or_else(|| {
+            cx.update(|cx| crate::desktop::current_local_preferences(cx).after_quit)
+        });
+        let finalize = cx.update(|cx| finalize(after, confirmation, cx));
         let result = finalize.await;
         match result {
-            Ok(()) => match flush.await {
+            Ok(()) => match cx.update(|cx| crate::desktop::flush_preferences(cx)).await {
                 Ok(()) => cx.update(App::quit),
                 Err(error) => cx.update(|cx| failed(cx, &error)),
             },

@@ -26,7 +26,7 @@ fn finish_records_completion_after_the_model_has_already_hidden(cx: &mut TestApp
         shell.areas.onboarding.model.go_to(Step::Phone).unwrap();
         let visit = match shell.areas.onboarding.model.state() {
             State::Open(open) => open.visit(),
-            _ => panic!("setup fixture did not open"),
+            State::Deciding | State::Hidden => panic!("setup fixture did not open"),
         };
         shell.onboarding_answer(
             Answer::Bound {

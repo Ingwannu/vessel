@@ -22,8 +22,9 @@ pub(super) async fn run(
     published: watch::Sender<Snapshot>,
 ) {
     let mut node = None;
+    let mut log_source = None;
     if config.preferences.management == Management::Enabled && config.launch.is_some() {
-        let result = start(&config, &mut node).await;
+        let result = start(&config, &mut node, &mut log_source).await;
         publish(&published, node.as_ref(), result.err());
     }
     let mut observe = true;
@@ -54,7 +55,11 @@ pub(super) async fn run(
         };
         match command {
             Command::Logs(reply) => {
-                let result = match node.as_ref().and_then(LocalNode::logs) {
+                let result = match node
+                    .as_ref()
+                    .and_then(LocalNode::logs)
+                    .or_else(|| log_source.clone())
+                {
                     Some(logs) => logs.read().await.map_err(ManagerError::Logs),
                     None => Err(ManagerError::NoLogs),
                 };
@@ -67,19 +72,23 @@ pub(super) async fn run(
                     continue;
                 }
                 let prior = published.borrow().clone();
+                let prior_status = prior.status;
                 let _previous = published.send_replace(Snapshot {
                     status: Status::Working,
                     ..prior
                 });
                 let result = match action {
-                    Action::Start => start(&config, &mut node).await,
+                    Action::Start => start(&config, &mut node, &mut log_source).await,
                     Action::Stop => control(&mut node, StopPolicy::Protect, false).await,
                     Action::Restart => control(&mut node, StopPolicy::Protect, true).await,
                     Action::InterruptConfirmed(_confirmation) => {
                         control(&mut node, StopPolicy::InterruptConfirmed, false).await
                     }
                 };
-                observe = result.is_ok();
+                observe = true;
+                if node.is_none() && result.is_ok() {
+                    published.send_modify(|snapshot| snapshot.status = prior_status);
+                }
                 publish(&published, node.as_ref(), result.err());
             }
             Command::Finalize {
@@ -118,6 +127,7 @@ pub(super) async fn run(
 async fn start(
     config: &Configuration,
     node: &mut Option<LocalNode>,
+    log_source: &mut Option<vessel_local_node::LogReader>,
 ) -> Result<(), Arc<LocalNodeError>> {
     if matches!(
         node.as_ref().map(LocalNode::status),
@@ -126,7 +136,14 @@ async fn start(
         return Ok(());
     }
     if let Some(launch) = &config.launch {
-        *node = Some(LocalNode::start(launch.clone()).await.map_err(Arc::new)?);
+        *log_source = None;
+        *node = Some(
+            LocalNode::start_observed(launch.clone(), |logs| {
+                *log_source = Some(logs);
+            })
+            .await
+            .map_err(Arc::new)?,
+        );
     }
     Ok(())
 }

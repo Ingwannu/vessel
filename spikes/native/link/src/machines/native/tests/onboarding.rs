@@ -18,7 +18,7 @@ async fn replacement_is_refused_and_a_stale_release_cannot_remove_the_new_visit(
     model.reopen(target.clone(), Layout::Wide).unwrap();
     let first = match model.state() {
         State::Open(open) => open.visit(),
-        _ => panic!("setup did not open"),
+        State::Deciding | State::Hidden => panic!("setup did not open"),
     };
     fixture
         .state
@@ -31,7 +31,9 @@ async fn replacement_is_refused_and_a_stale_release_cannot_remove_the_new_visit(
         next(&mut fixture.events).await,
         Event::Onboarding(Answer::Bound { result: Ok(()), .. })
     ));
-    let replacement = fixture.state.clients.get("other").unwrap().clone();
+    let Some(replacement) = fixture.state.clients.get("other").cloned() else {
+        panic!("missing replacement fixture");
+    };
     let _old = fixture
         .state
         .clients
@@ -45,7 +47,7 @@ async fn replacement_is_refused_and_a_stale_release_cannot_remove_the_new_visit(
     model.go_to(Step::Providers).unwrap();
     let second = match model.state() {
         State::Open(open) => open.visit(),
-        _ => panic!("setup closed"),
+        State::Deciding | State::Hidden => panic!("setup closed"),
     };
     fixture
         .state

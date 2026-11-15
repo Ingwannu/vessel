@@ -8,6 +8,8 @@
 //! - Cost: one runtime thread; finalization must complete before app runtime teardown.
 
 mod actor;
+mod signals;
+pub use signals::QuitSignal;
 pub mod registration;
 
 use std::path::PathBuf;
@@ -175,6 +177,16 @@ pub enum Action {
 }
 
 impl Controller {
+    /// Observe app quit signals once, on this process-owned reactor.
+    #[must_use]
+    pub fn quit_signals(&self) -> mpsc::Receiver<Result<QuitSignal, std::io::Error>> {
+        let (sender, receiver) = mpsc::channel(1);
+        if let Some(runtime) = &self.runtime {
+            drop(runtime.spawn(signals::observe(sender)));
+        }
+        receiver
+    }
+
     /// Explicit read of the bounded tail, executed on the controller reactor.
     ///
     /// # Errors
