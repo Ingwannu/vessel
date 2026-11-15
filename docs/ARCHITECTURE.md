@@ -1397,3 +1397,13 @@ provider-format knowledge in the harness. The node asks the existing cached
 options channel before a session probe and rechecks after it. An unknown or
 changed provider cannot attribute the saved OpenAI account to that session;
 the explicitly selected account scope remains available independently.
+
+### Startup recovery values (ADR 0059)
+
+`vessel-proto::restart` defines the disabled/reference-prompt policy and partial
+patch values using the existing bounded `PromptText`. The feature protocol is
+unassigned. Both settings replies pass through peer projection, including the
+existing recursive envelope walker; an unassigned field stays hidden from every
+peer. The node's existing response builder supplies only the disabled default.
+There is no recovery settings engine, request registration or startup service
+in this value-only slice; those remain staged and wiring work.
