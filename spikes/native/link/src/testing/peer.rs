@@ -167,25 +167,32 @@ async fn start(name: &str, control: Option<mpsc::Sender<Request>>) -> Peer {
         // One tracked owner: dropping the peer cancels both halves, no child task.
         tokio::select! { () = reading => {}, () = writing => {} }
     });
-    let (reader, writer) = tokio::io::split(local);
-    let client = NodeClient::over(
-        vessel_rpc::Framed::new(reader, writer, NonZeroUsize::new(FRAME_BYTES).unwrap()),
-        ClientInfo {
-            name: "machine-book-tests".to_owned(),
-            version: "0".to_owned(),
-        },
-        &ClientConfig::default(),
-    )
-    .await
-    .unwrap();
-    Peer {
-        client: Some(client),
+    // Own cleanup before the first handshake await: a failed phase drops the
+    // Peer and aborts its one task, including both framed transport halves.
+    let mut peer = Peer {
+        client: None,
         calls,
         subscribed,
         task: Some(task),
         requests: None,
         frames,
-    }
+    };
+    let (reader, writer) = tokio::io::split(local);
+    let client = super::phase(
+        "framed peer handshake",
+        NodeClient::over(
+            vessel_rpc::Framed::new(reader, writer, NonZeroUsize::new(FRAME_BYTES).unwrap()),
+            ClientInfo {
+                name: "machine-book-tests".to_owned(),
+                version: "0".to_owned(),
+            },
+            &ClientConfig::default(),
+        ),
+    )
+    .await
+    .unwrap();
+    peer.client = Some(client);
+    peer
 }
 
 struct Frame {
@@ -201,7 +208,7 @@ async fn send(frames: &mpsc::Sender<Frame>, frame: ServerFrame) -> bool {
 }
 impl Peer {
     pub(crate) async fn push(&self, frame: ServerFrame) {
-        assert!(send(&self.frames, frame).await);
+        assert!(super::phase("injected frame write receipt", send(&self.frames, frame)).await);
     }
 }
 

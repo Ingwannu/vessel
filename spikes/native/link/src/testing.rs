@@ -1,7 +1,9 @@
 //! Isolated actor inputs and the one framed test peer, shared by book and
 //! device-binding regressions. No live node, global HOME edit or credentials.
+mod deadline;
 pub(crate) mod peer;
 use crate::{Event, State};
+pub(crate) use deadline::{phase, within};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
