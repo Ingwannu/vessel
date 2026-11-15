@@ -51,6 +51,7 @@ pub mod agents;
 mod demo;
 pub mod devices;
 pub mod node_settings;
+pub mod plugins;
 pub mod search;
 pub mod sync;
 #[cfg(target_arch = "wasm32")]
