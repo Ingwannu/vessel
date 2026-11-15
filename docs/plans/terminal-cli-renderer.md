@@ -161,3 +161,19 @@ Paseo app runtime's bar/blink defaults. It compares effective appearance, not
 unset program overrides with explicit display parameters. Original four scenes
 and their source bytes remain unchanged; added0..8/reset cases supplement them.
 No actual CLI writer/reset-guard integration or OS terminal proof follows.
+
+Exact8bb1ff4b executed48 tests with zero failures and strict all-target Clippy
+passed. The independent receiver oracle compared16 scenes/448 cells, five
+supported style flags, effective cursor appearance/position/visibility and
+input modes: zero differences for these fixtures. Original four scene inputs
+remain unchanged. This measures explicitly chosen bar/blink renderer defaults,
+not every possible configuration or retained terminal line-wrap metadata.
+The artifact is ansi-display-cursor-oracle-8bb1ff4b.json; this is a staged pure
+serializer, with no stdout/PTY/actual attach caller or source decoder feedback.
+
+The minimum producer's later repeated1049 and DECSTR VT negotiation defects
+remain a consumer qualification hold. These16 scenes do not cover them.
+Its corrected346653a9 source has separate checks pending; no renderer/CLI
+consumer qualification can be inferred from the earlier48-test result or a
+green frozen2d5 whole. Keep the original failures, corpora and these bounded
+display results as separate evidence rather than replacing any expectation.
