@@ -17,8 +17,8 @@ fence; preparing the fixture does not bypass that writer order.
 - Alternatives: lock-only evidence; trusting Ready/identity; a random pipe name
   alone; a new public RPC; unsafe peer APIs. These either retain the race, expose
   the token to a squatter, or violate the approved boundaries.
-- Choice: prove the peer on the actual opened local transport before sending
-  any persisted token. Unix uses the kernel peer PID against the still-unreaped
+- Choice: for an owned launch, prove the peer on the actual opened local
+  transport before sending any persisted token. Unix uses the kernel peer PID against the still-unreaped
   direct Child. Windows uses the private single-instance transcript below.
 - Why: ordinary connections remain Attached and cannot acquire owner authority.
   The proven transport never reconnects; later owner-only calls use that same
@@ -65,6 +65,24 @@ If these constraints cannot be established safely, the platform remains typed
 Unsupported for Owned. unsafe_code stays forbid. Windows compile plus a console
 probe under wine is only an approximation; real Windows behavior stays unverified
 until actually executed there.
+
+## Canonical Attached compatibility limit
+
+The coordinator scoped the credential-before-proof requirement to Owned
+promotion. Canonical Attached probing remains the existing shared client path:
+on Windows the globally enumerable canonical pipe receives the token first.
+This is a known pre-existing Windows local-IPC limitation, not a guarantee
+provided by this package. Unix's canonical socket remains inside the private
+0700 node home. The launch-private proof must never be described as protecting
+that separate canonical Attached path.
+
+A subsequent shared base item will add mutual token-knowledge proof to canonical
+Windows IPC for the CLI, attach and desktop together, through vessel-rpc's local
+transport. It requires its own ADR and V3 review after this package; it is not
+implemented or activated here. Refusing the current compatibility path was
+considered, but would break existing Attached reuse and Keep-to-reopen behavior
+without fixing the other clients. This documented compatibility decision does
+not relax Owned's private transcript or permit token output before Owned proof.
 
 ## Causal fixture and checks
 
