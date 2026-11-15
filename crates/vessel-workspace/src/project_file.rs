@@ -530,3 +530,6 @@ mod declared_ports_tests;
 
 #[cfg(test)]
 mod allocation_tests;
+
+#[cfg(test)]
+mod environment_tests;

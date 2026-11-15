@@ -19,7 +19,9 @@ use std::collections::BTreeMap;
 
 use serde::Deserialize;
 use sha2::{Digest as _, Sha256};
-use vessel_proto::scripts::{InvalidScriptEntry, ScriptEntry, ScriptKind, ScriptName};
+use vessel_proto::scripts::{
+    InvalidScriptEntry, ScriptEntry, ScriptKind, ScriptName, ServiceEnvName,
+};
 use vessel_proto::workspace::{
     InvalidRelPath, InvalidServicePort, InvalidText, ProjectCommand, RelPath, ServicePort,
 };
@@ -41,6 +43,16 @@ pub(super) type RawTable = BTreeMap<String, RawScript>;
 /// What is wrong with a file's scripts. Nothing in the file runs then.
 #[derive(Debug, thiserror::Error)]
 pub enum ScriptsError {
+    /// Refuse the entire file before environment injection could overwrite a peer.
+    #[error("services `{first}` and `{second}` share the environment name `{environment}`")]
+    Environment {
+        /// The earlier service in stable name order.
+        first: ScriptName,
+        /// The later service that would overwrite its environment variables.
+        second: ScriptName,
+        /// The shared normalization used by runtime injection.
+        environment: ServiceEnvName,
+    },
     /// A declaration cannot be represented as a valid script or service.
     #[error("`vessel.toml` script declaration: {0}")]
     Declaration(#[source] InvalidScriptEntry),
@@ -118,7 +130,27 @@ pub(super) fn entries(
     {
         return Err(ScriptsError::Both(first.name.clone()));
     }
+    environment_names(&entries)?;
     Ok(entries)
+}
+
+/// Check services only: a plain script contributes no peer-port variables.
+fn environment_names(entries: &[ScriptEntry]) -> Result<(), ScriptsError> {
+    let mut names = BTreeMap::new();
+    for entry in entries
+        .iter()
+        .filter(|entry| entry.kind() == ScriptKind::Service)
+    {
+        let environment = ServiceEnvName::of(&entry.name);
+        if let Some(first) = names.insert(environment.clone(), &entry.name) {
+            return Err(ScriptsError::Environment {
+                first: first.clone(),
+                second: entry.name.clone(),
+                environment,
+            });
+        }
+    }
+    Ok(())
 }
 
 fn entry(kind: ScriptKind, name: &str, raw: RawScript) -> Result<ScriptEntry, ScriptsError> {

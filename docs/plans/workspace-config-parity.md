@@ -328,3 +328,13 @@ Current state: the approved data/parser layers are reviewed. The helper
 primitive is committed under the test-only module and is undergoing narrow
 Clippy/test checks. There is no product allocator/proxy/health caller.
 Whole-package gate and integration review remain owed.
+
+Service environment-name preparation: modify the existing `ScriptName`
+asset rather than parsing names again in the allocator. Its ASCII grammar
+allows the standard library's uppercase/collapse rule to reproduce Paseo's
+`workspace-service-env.ts:25–31`; no Unicode dependency or new wire field is
+needed. A derived private-storage `ServiceEnvName` is shared by file
+collision checks and future injection. The decoder refuses two services
+with the same derived name before returning any usable file, as ADR 0066
+already requires; plain-script names do not participate. Runtime injection
+still follows in the package, without a product caller in this step.
