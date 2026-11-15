@@ -12,6 +12,12 @@ channel; SSH routes come later).
 This is a workspace of its own, outside Vessel's: Vessel's gate does not
 build it, and its tree (GPUI's) stays out of the main lock file.
 
+The native process registers its first Shell in the one `app::host_windows`
+registry. This keeps OS callback routing independent of desktop persistence and
+node startup; callbacks must still validate their own source/context. The staged
+live-root dispatcher and optional factory contract are described in
+`docs/plans/shared-host-windows.md`; a missing factory is explicitly unavailable.
+
 ## Crates, and what may depend on what
 
 | Crate | Owns | Must not | Depends on |
@@ -58,6 +64,21 @@ Nothing of GPUI's reaches `view` or `link` (ADR 0035, 0036): the browser
 track compiles them to WebAssembly, and the layer under the kit can be
 replaced without touching them.
 
+The link's wasm32 build has its types without its calls. A `Command`'s
+or `Event`'s payload (an `Act`, a workspace `Ask`/`Answer`, a start's
+types, `NodeName`) builds on both targets. Everything that reaches a
+node through `vessel-client`, tokio's runtime or files carries
+`#[cfg(not(target_arch = "wasm32"))]`: whole modules where they are only
+calls (`connections`, `dispatch`, `workspace::{calls, follow, run}`), and
+single items and imports where a file mixes both (`session.rs`,
+`workspace/{mod, start, pulls}.rs`). `web.rs` answers every `Command`
+from the demo fleet or refuses it the way a node refuses something it does
+not support. In a browser, `NodeName` is a twin of the desktop's over the
+view's `machine_book::Name`. The native gate does not build wasm32, so a
+change to the link's commands or modules is checked with
+`cargo check --locked -p vessel-app-link --target wasm32-unknown-unknown`
+as well.
+
 Settings' agent discovery remains in `view::agent_status` (the page's
 fixtures). `agent_status::readiness` separately describes the node's
 installation, conversation support and authentication facts from
@@ -72,6 +93,11 @@ Provider-removal preparation stays in `view::agent_status::removal` and
 reuses the existing machine-page tickets. Agent snapshots retain the
 reporting `NodeId`, so a reused book name cannot stand in for identity.
 The prepared request is not yet connected to a destructive call or control.
+
+The kit field keeps its editor factories, weak IME registry and events in
+`field.rs`; `field/presentation.rs` draws the existing form/composer shells
+and `field/styles.rs` projects tokens onto the same engines. Original public
+entry points are re-exported unchanged; composer hooks retain their contract.
 
 The existing agent-option query/cache method lives in private native
 `link/src/options.rs`; the root actor still calls it for `Command::Options`.
@@ -1358,3 +1384,9 @@ capture obligation. Vendor patch7 and its precise source/runtime/paint limitatio
 spikes/release/patches/README.md. The optional `mapped_diff_audit` example is a
 control-only capture surface, unbuilt/unrun; it cannot prove C3 first-use. This
 isolated producer does not include C3 View/Link/app or any root-runtime changes.
+
+`TextField::select_all` uses the existing engine for line and multiline
+fields. Rename consumes the shared typed `Editability` at dispatch/answer;
+its `rename_element` profile wraps the same bare editor. The kit-internal
+`field::settings_frame` shares only the inset-focus bridge with Appearance
+profiles, leaving chrome to each profile and all events in the one engine.
