@@ -162,9 +162,9 @@ pub struct ReadSetupProgress {
     /// Wait only while this exact cursor remains current.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub after: Option<SetupCursor>,
-    /// Maximum wait in seconds; the node applies its usual long-poll cap.
+    /// Maximum wait in milliseconds; the node applies its usual long-poll cap.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub wait: Option<u32>,
+    pub wait_ms: Option<DurationMs>,
 }
 
 /// Absence means no structured observation is available, not success.

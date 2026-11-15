@@ -7,7 +7,7 @@ fn pending_setup_calls_have_one_table_row_and_no_assigned_protocol() {
     let call = Call::SetupProgress(ReadSetupProgress {
         worktree,
         after: None,
-        wait: None,
+        wait_ms: None,
     });
     assert_eq!(call.since(), WORKTREE_SETUP_OBSERVATION);
     assert_eq!(Method::SetupProgress.since(), None);
@@ -43,5 +43,22 @@ fn generations_are_distinct_and_unknown_states_remain_unknown() {
         serde_json::from_str::<SetupProgressReply>(&serde_json::to_string(&empty).unwrap())
             .unwrap(),
         empty
+    );
+}
+
+#[test]
+fn observation_waits_keep_their_explicit_millisecond_unit_on_the_wire() {
+    let request = ReadSetupProgress {
+        worktree: WorktreeId::random(),
+        after: None,
+        wait_ms: Some(DurationMs::from_duration(std::time::Duration::from_millis(
+            1234,
+        ))),
+    };
+    let wire = serde_json::to_string(&request).unwrap();
+    assert!(wire.contains("\"wait_ms\":1234"));
+    assert_eq!(
+        serde_json::from_str::<ReadSetupProgress>(&wire).unwrap(),
+        request
     );
 }

@@ -14,7 +14,7 @@ async fn snapshot(workspaces: &Workspaces, worktree: vessel_proto::WorktreeId) -
         .setup_progress(ReadSetupProgress {
             worktree,
             after: None,
-            wait: None,
+            wait_ms: None,
         })
         .await
         .unwrap()
@@ -36,7 +36,9 @@ async fn until(
             .setup_progress(ReadSetupProgress {
                 worktree,
                 after: Some(progress.cursor),
-                wait: Some(1),
+                wait_ms: Some(vessel_proto::DurationMs::from_duration(
+                    std::time::Duration::from_secs(1),
+                )),
             })
             .await
             .unwrap()
@@ -161,7 +163,7 @@ async fn cancellation_is_generation_specific_and_restart_does_not_invent_command
             .setup_progress(ReadSetupProgress {
                 worktree: worktree.id,
                 after: None,
-                wait: None,
+                wait_ms: None,
             })
             .await
             .unwrap()

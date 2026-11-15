@@ -47,8 +47,10 @@ impl Workspaces {
             });
             (entry.written.subscribe(), wait)
         };
-        if let Some(seconds) = request.wait.filter(|_| wait) {
-            let limit = Duration::from_secs(seconds.min(MAX_WAIT_SECS).into());
+        if let Some(duration) = request.wait_ms.filter(|_| wait) {
+            let limit = duration
+                .as_duration()
+                .min(Duration::from_secs(MAX_WAIT_SECS.into()));
             let _changed = tokio::time::timeout(limit, changed.changed()).await;
         }
         let state = self.state();

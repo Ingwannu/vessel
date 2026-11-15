@@ -203,11 +203,18 @@ impl NodeService {
         mut request: vessel_proto::workspace::ReadSetupProgress,
     ) -> Result<vessel_proto::workspace::SetupProgressReply, WireError> {
         if matches!(connection.principal(), Principal::Delegated { .. }) {
-            request.wait = None;
+            request.wait_ms = None;
         }
         let here = self.links.node();
         let shares = Waiter::of(connection.principal(), here).shares(here);
-        let _slot = self.wait_slot(connection, shares, &mut request.wait);
+        let mut wait = request
+            .wait_ms
+            .filter(|duration| !duration.as_duration().is_zero())
+            .map(|_| crate::workspace::MAX_WAIT_SECS);
+        let _slot = self.wait_slot(connection, shares, &mut wait);
+        if wait.is_none() {
+            request.wait_ms = None;
+        }
         self.workspaces
             .setup_progress(request)
             .await
