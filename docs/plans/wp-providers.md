@@ -401,3 +401,21 @@ patch, commit/status and hashes even when freshness correctly reports a diff.
 The pending fa4 strict/integration replacements were already registered when
 this earlier local compile result was inspected; retain their terminal evidence,
 then use a changed head rather than replaying an obsolete snapshot.
+
+## Node44 integration and test-helper correction
+
+The required ede20014 merge keeps the one shared AgentEvent.required_protocol
+accessor, its inner-event projection even under an assigned enclosing event,
+and W12's independent CommandsChanged kind projection. The two guards match
+different variants and remain in designated-head-first order. No duplicate
+accessor, number or assertion is introduced. Other architecture additions merge
+intact, including exactly W16's reviewed value-only plugin boundary.
+
+Post-resize strict fa4 also found new MCP integration helpers outside an explicit
+cfg(test) module. The corrected file now marks helpers test-only and lists all
+ignored AgentOutput variants without lint allowances. Assertions and native
+request bytes are unchanged. The first edit script stopped before adding its
+evidence paragraph; this checkpoint supplies that missing record. Existing
+red outputs remain in provider-mcp-clippy-node42-resize-recovery. No new local
+cargo/rustc invocation is permitted; the already waiting TS job finished with
+the previously recorded browser-classification error, and all new work is remote.
