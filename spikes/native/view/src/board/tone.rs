@@ -124,7 +124,7 @@ impl<'a> Row<'a> {
         let card = self.card;
         match &card.detail.created_by {
             Creator::Owner => Origin::Owner,
-            Creator::Device { id } => Origin::Device(first(&id.to_string(), 6)),
+            Creator::Device { id, .. } => Origin::Device(first(&id.to_string(), 6)),
             Creator::Agent { session, .. } => Origin::Agent {
                 id: first(&session.to_string(), 4),
                 parent: self.parent,

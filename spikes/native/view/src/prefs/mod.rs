@@ -11,7 +11,7 @@
 //! - Constraint: a file written by a newer Vessel may hold a value this one
 //!   does not know (a theme, a size past the range); the page then shows
 //!   the default for that one setting and keeps the rest.
-//! - Choice: the bridge's types and JSON, field for field; every field is
+//! - Choice: the bridge's types and JSON, plus this app's language choice; every field is
 //!   read on its own and falls back to its default when it does not parse
 //!   ([`lenient`]), as the page's first paint does. A change is one
 //!   [`PreferenceChange`], applied by [`Preferences::changed`] with the
@@ -24,6 +24,7 @@
 mod appearance;
 mod change;
 mod keys;
+mod language;
 mod send;
 
 use std::cmp::Ordering;
@@ -35,7 +36,8 @@ use serde::{Deserialize, Serialize};
 use vessel_proto::{ChoiceValue, HarnessKind, NodeId, OptionId, ProfileName};
 
 pub use appearance::{
-    Appearance, CodeSize, ContentWidth, ConversationDisplay, InterfaceSize, OutOfRange, Theme,
+    Animations, Appearance, CodeSize, ContentWidth, ConversationDisplay, InterfaceSize, OutOfRange,
+    Theme,
 };
 pub use change::{PreferenceChange, Refused, ShortcutEdit, ShortcutEdits, ShortcutTarget};
 pub use keys::{ActionId, Bindings, InvalidActionId, InvalidKeyBinding, KeyBinding, TooMany};
@@ -103,6 +105,9 @@ where
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Preferences {
+    /// The app language, or the operating system when System.
+    #[serde(deserialize_with = "lenient")]
+    pub language: crate::localization::LanguagePreference,
     /// How the app looks.
     #[serde(deserialize_with = "lenient")]
     pub appearance: Appearance,
@@ -137,6 +142,15 @@ pub struct Layout {
     /// The inspector (a session's summary).
     #[serde(deserialize_with = "lenient")]
     pub inspector: Panel,
+    /// The sidebar's width when dragged, whole points (`None`: the
+    /// default, `panels::SIDEBAR`). Not written while `None`, so the
+    /// document the page and the bridge share is unchanged until a panel
+    /// is dragged.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub sidebar_width: Option<u16>,
+    /// The code panel's width when dragged (`panels::CODE_PANEL`).
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub panel_width: Option<u16>,
 }
 
 /// Whether a panel shows.
@@ -182,10 +196,13 @@ impl SendKey {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TurnDelivery {
-    /// It waits in the session's queue for the turn to end.
-    #[default]
+    /// It waits in the session's queue for the turn to end (behind a
+    /// permission request it interrupts: `session::send_delivery`).
     Queue,
-    /// It joins the running turn, where the agent can steer.
+    /// It joins the running turn, where the agent can steer; otherwise it
+    /// replaces the turn. Paseo's default (`storage.ts`, the owner's word
+    /// 45).
+    #[default]
     Steer,
     /// The turn is stopped and it starts the next.
     Interrupt,
@@ -239,7 +256,7 @@ pub enum Alerts {
 }
 
 /// How the sidebar lists sessions.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct SidebarView {
     /// What sessions are grouped by.
@@ -248,9 +265,48 @@ pub struct SidebarView {
     /// Their order within a group.
     #[serde(deserialize_with = "lenient")]
     pub sort: SessionSort,
-    /// Whether ended sessions are listed.
-    #[serde(deserialize_with = "lenient")]
+    /// Whether ended sessions are listed (on unless the person turned it
+    /// off; see [`SidebarView::default`]).
+    #[serde(deserialize_with = "lenient_on")]
     pub ended: bool,
+}
+
+/// [Decision Log] Ended sessions are listed by default (2026-11-14, the
+/// coordinator's ruling after the 0.0.0.0.17 smoke test)
+/// - Purpose: a machine whose sessions have all ended (interrupted or
+///   exited) showed an empty sidebar after the update, though 0.0.0.0.16
+///   listed them; the person's one session vanished until the switch was
+///   found.
+/// - Reference: Paseo lists a session until it is archived; the switch
+///   stays for hiding ended ones.
+/// - Before: the page's and the bridge's shared document (ADR 0036) says
+///   `"ended": false` (`web/src/data/prefs-change.ts`,
+///   `crates/vessel-web/src/wire/prefs.rs`), and this model followed it.
+/// - Choice: native moves first: a document without the field reads as
+///   on, and a stored `false` (the person's choice) stays off. The page
+///   and the bridge are the node line's to move (its own slice); until
+///   then the two read a document without the field differently, which
+///   `tests/prefs.rs` pins as the one stated difference. Once they move,
+///   the contract fixture says `true` and that exception goes.
+impl Default for SidebarView {
+    fn default() -> Self {
+        Self {
+            group: Grouping::default(),
+            sort: SessionSort::default(),
+            ended: true,
+        }
+    }
+}
+
+/// [`lenient`] for a switch that is on unless written off: an unreadable
+/// value reads as on, as a missing one does.
+fn lenient_on<'de, D>(deserializer: D) -> Result<bool, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Ok(Maybe::<bool>::deserialize(deserializer)?
+        .known()
+        .unwrap_or(true))
 }
 
 /// What the sidebar groups sessions by.
@@ -336,7 +392,7 @@ impl TryFrom<BTreeMap<OptionId, ChoiceValue>> for Choices {
         let fits = |(id, value): (&OptionId, &ChoiceValue)| {
             id.as_str().len() <= MAX_CHOICE_TEXT
                 && match value {
-                    ChoiceValue::Select { value } => value.as_str().len() <= MAX_CHOICE_TEXT,
+                    ChoiceValue::Select { value, .. } => value.as_str().len() <= MAX_CHOICE_TEXT,
                     ChoiceValue::Toggle { .. } => true,
                 }
         };
