@@ -46,6 +46,7 @@ struct Run {
 
 /// A page as runs in record order. `expected` is the first record asked
 /// for; a later first record means the ones before it were pruned.
+#[must_use]
 fn render(
     conversation: &mut Conversation,
     expected: EventSeq,
@@ -91,6 +92,7 @@ fn render(
 }
 
 /// Only a raw page can prove pruning: omitting earlier tail records is selection.
+#[must_use]
 fn pruned(expected: EventSeq, records: &[EventRecord]) -> Option<Run> {
     let first = records.first()?;
     (first.seq > expected).then(|| Run {

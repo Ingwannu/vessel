@@ -1,7 +1,12 @@
 //! Tail selection through the real CLI after a fake terminal's final record.
 
 use crate::support::{Fixture, within};
+use std::time::Duration;
+
 use vessel_proto::{EventSeq, SessionId};
+
+/// A closed run has already delivered its final record; only stream teardown remains.
+const LOG_END_BUDGET: Duration = Duration::from_secs(10);
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn tail_keeps_the_last_records_without_a_false_retention_notice_and_zero_is_empty() {
@@ -15,9 +20,13 @@ async fn tail_keeps_the_last_records_without_a_false_retention_notice_and_zero_i
             .await;
         assert!(attached.ok, "{}", attached.stderr);
         let mut ended = owner.follow(session, EventSeq::ZERO).await.unwrap();
-        while let Some(record) = ended.next().await {
-            drop(record.unwrap());
-        }
+        tokio::time::timeout(LOG_END_BUDGET, async {
+            while let Some(record) = ended.next().await {
+                drop(record.unwrap());
+            }
+        })
+        .await
+        .expect("the completed session's log did not close");
         let count = u32::try_from(owner.session(session).await.unwrap().next_seq.get()).unwrap();
         let all = owner.read(session, EventSeq::ZERO, count).await.unwrap();
         assert!(all.at_end);

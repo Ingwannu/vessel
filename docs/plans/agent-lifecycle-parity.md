@@ -302,7 +302,11 @@ No row of the crate table changes.
   derive their rejected input from the platform's integer bound. The first
   narrow clippy run found a redundant module qualification in that new test;
   it is shortened without changing the assertion. Clippy and the tests still
-  need their successful runs before the whole gate.
+  need their successful runs before the whole gate. After the path correction,
+  narrow clippy passed, the six log units passed, and the CLI tail case passed.
+  The CLI case now gives its final-stream teardown wait a named sub-deadline;
+  no expected value or product deadline changes. That test and clippy need
+  confirmation on the updated head before the whole gate.
 - Time/kind selection and follow are protected drafts for slices 5b and 5c,
   outside this tail slice. They reuse its tail type and window. Existing render
   test expectations stay unchanged, including the raw-chunk boundary.
