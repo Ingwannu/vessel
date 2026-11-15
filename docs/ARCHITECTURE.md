@@ -1659,3 +1659,10 @@ unsupported override before process spawn, with a typed Unsupported mapping.
 The field does not enter SessionSpec, user messages, argv or environment.
 Reload orchestration and actual native override/restore transports are separate
 work; see docs/plans/provider-transient-context.md. No dependency edge changes.
+
+Standalone tool body values live in vessel-proto::timeline: a closed eleven-kind
+ToolCallDetail vocabulary, validated display identities and measurement units.
+The portable body kernel has no event/RPC attachment or execution path; native
+renderers borrow it without creating a competing provider model. No dependency
+edge changes. See docs/plans/timeline-body-values.md for exact source provenance
+and pending consumer-adoption checks.
