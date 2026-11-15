@@ -1,7 +1,9 @@
 //! Creation status is rendered from exhaustive typed state and Fluent words.
 
 use vessel_app_kit::alert::{Content, Size, Variant, alert};
-use vessel_app_kit::ui::{Context, Div, IntoElement as _, ParentElement as _, div};
+use vessel_app_kit::ui::{
+    Context, Div, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, div,
+};
 use vessel_app_kit::{Tokens, button};
 use vessel_app_view::creation::{Failure, Flow, Stage};
 
