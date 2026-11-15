@@ -247,9 +247,15 @@ impl LocalNode {
                 // consume; no caller observes a false exit or another owner.
                 let lease = std::mem::replace(&mut self.lease, Lease::AttachedDisconnected(node));
                 if let Lease::Owned { client, child } = lease {
-                    drop(client);
-                    let observer = (*child).keep()?;
-                    self.lease = Lease::Kept { node, observer };
+                    match (*child).keep() {
+                        Ok(observer) => {
+                            self.lease = Lease::Kept { node, observer };
+                        }
+                        Err(child) => {
+                            self.lease = Lease::Owned { client, child };
+                            return Err(LaunchError::ReleaseCapability.into());
+                        }
+                    }
                 }
             }
         }
