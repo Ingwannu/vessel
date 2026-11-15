@@ -31,7 +31,13 @@ fn stale_ticket_and_wrong_machine_cannot_consume_prepared_files(cx: &mut TestApp
         let node = NodeId::random();
         assert_eq!(
             shell
-                .prepare_draft_files_on(Ticket::new(1), node, "fixture", "text")
+                .prepare_draft_input(
+                    Ticket::new(1),
+                    vessel_proto::timeline::ClientMessageId::random(),
+                    node,
+                    "fixture",
+                    "text"
+                )
                 .unwrap(),
             None
         );
@@ -41,12 +47,24 @@ fn stale_ticket_and_wrong_machine_cannot_consume_prepared_files(cx: &mut TestApp
             cx,
         );
         let prepared = shell
-            .prepare_draft_files_on(Ticket::new(2), node, "fixture", "first")
+            .prepare_draft_input(
+                Ticket::new(2),
+                vessel_proto::timeline::ClientMessageId::random(),
+                node,
+                "fixture",
+                "first",
+            )
             .unwrap()
             .unwrap();
         assert_eq!(prepared.ticket(), Ticket::new(2));
         assert_eq!(
-            shell.prepare_draft_files_on(Ticket::new(3), node, "fixture", "second"),
+            shell.prepare_draft_input(
+                Ticket::new(3),
+                vessel_proto::timeline::ClientMessageId::random(),
+                node,
+                "fixture",
+                "second"
+            ),
             Err(PrepareProblem::Busy)
         );
         shell.rejected_draft_files(Ticket::new(1), cx);
@@ -74,7 +92,13 @@ fn background_completion_moves_only_captured_files_and_reads_its_own_capabilitie
             cx,
         );
         let _prepared = shell
-            .prepare_draft_files_on(ticket, node, "fixture", "captured")
+            .prepare_draft_input(
+                ticket,
+                vessel_proto::timeline::ClientMessageId::random(),
+                node,
+                "fixture",
+                "captured",
+            )
             .unwrap()
             .unwrap();
         shell.composer_add(
@@ -162,7 +186,13 @@ fn context_only_creation_freezes_history_and_rejects_only_the_matching_ticket(
         assert!(shell.draft_has_files());
         let ticket = Ticket::new(11);
         let _prepared = shell
-            .prepare_draft_files_on(ticket, NodeId::random(), "fixture", "")
+            .prepare_draft_input(
+                ticket,
+                vessel_proto::timeline::ClientMessageId::random(),
+                NodeId::random(),
+                "fixture",
+                "",
+            )
             .unwrap()
             .unwrap();
         shell

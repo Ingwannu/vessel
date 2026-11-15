@@ -24,23 +24,6 @@ impl PreparedSubmission {
 pub(crate) use vessel_app_view::composer::attach::PrepareProblem;
 
 impl Shell {
-    /// The creation flow supplies the node it admitted before any asynchronous work.
-    pub(crate) fn prepare_draft_files_on(
-        &mut self,
-        ticket: Ticket,
-        expected_node: vessel_proto::NodeId,
-        machine: &str,
-        text: &str,
-    ) -> Result<Option<PreparedSubmission>, PrepareProblem> {
-        self.prepare_draft_input(
-            ticket,
-            vessel_proto::timeline::ClientMessageId::random(),
-            expected_node,
-            machine,
-            text,
-        )
-    }
-
     /// Creation retains one canonical identity before preparing its first payload.
     pub(crate) fn prepare_draft_input(
         &mut self,

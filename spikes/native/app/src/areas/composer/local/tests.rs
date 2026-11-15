@@ -13,7 +13,13 @@ fn pending_intake_and_recovered_unknown_input_block_creation_before_any_snapshot
         shell.local_intake_started(DraftKey::New, cx);
         assert!(shell.draft_has_payload(cx));
         assert_eq!(
-            shell.prepare_draft_files_on(Ticket::new(1), NodeId::random(), "fixture", "text"),
+            shell.prepare_draft_input(
+                Ticket::new(1),
+                vessel_proto::timeline::ClientMessageId::random(),
+                NodeId::random(),
+                "fixture",
+                "text"
+            ),
             Err(vessel_app_view::composer::attach::PrepareProblem::Busy)
         );
         assert!(shell.areas.composer.starting.borrow().is_none());
@@ -22,7 +28,13 @@ fn pending_intake_and_recovered_unknown_input_block_creation_before_any_snapshot
         let _new = shell.areas.composer.local.recovered.insert(DraftKey::New);
         assert!(shell.draft_has_payload(cx));
         assert_eq!(
-            shell.prepare_draft_files_on(Ticket::new(2), NodeId::random(), "fixture", "text"),
+            shell.prepare_draft_input(
+                Ticket::new(2),
+                vessel_proto::timeline::ClientMessageId::random(),
+                NodeId::random(),
+                "fixture",
+                "text"
+            ),
             Err(vessel_app_view::composer::attach::PrepareProblem::Busy)
         );
     });
