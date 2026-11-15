@@ -1,0 +1,39 @@
+//! C3 git panel meaning, independent of the pane manager and transport.
+//!
+//! [Decision Log]
+//! - Purpose: one interpretation for Changes, working diff and commit diff.
+//! - Constraints: the old Base wire scope includes working changes, whereas
+//!   Paseo distinguishes Committed and All; unavailable support stays explicit.
+//! - Alternatives: another session-bound panel or decisions in drawing code.
+//! - Choice: typed preferences, read projection and demand; existing diff rows
+//!   and git action preparation remain the shared lower-level implementation.
+//! - Cost: registry/layout binding arrives through their owners' contracts.
+
+mod comparison;
+mod history;
+mod options;
+mod projection;
+mod requests;
+mod tree;
+
+pub use comparison::{Comparison, ComparisonMode, RepositoryKey, Whitespace};
+pub use history::{
+    COMMIT_FILE_RETAIN_FOR, CommitLocation, CommitPublication, HISTORY_FRESH_FOR, HistoryCache,
+    HistoryCapability, HistoryCommit, HistoryData, HistoryState, history_state,
+};
+pub use options::{
+    DisplayPreferences, Fold, FormFactor, InlineDiff, Layout, PanelState, PanelTarget,
+    Presentation, TreeVisibility, Wrap,
+};
+pub use projection::{Body, Demand, DiffRead, EmptyAction, RepositoryRead, body, empty_action};
+pub use requests::{ComparisonTicket, FileTicket, PanelReads, StatusTicket};
+pub use tree::{ChangeIndex, ChangeTotals, ChangeTree, ChangeTreeRow, LineCount, TreeDepth};
+
+#[cfg(test)]
+mod tests;
+
+#[cfg(test)]
+mod tree_tests;
+
+#[cfg(test)]
+mod requests_tests;

@@ -31,6 +31,9 @@ Status: skeleton in progress. Source specification: Paseo 0.15.4,
   silently substituted for Committed.
 - `panels/changes/state.ts`, `hooks/use-changes-preferences/storage.ts`:
   unified, no wrap, show whitespace, tree hidden, separate diff, commits closed.
+  Presentation uses desktop capabilities for GPUI desktop, rather than Paseo's
+  React Native platform flag (which denotes its mobile renderer). Compact panes
+  still use combined/unified output; a desktop separate diff keeps the tree.
 - `git/diff-pane.tsx:1077–1180,1455–1660`: status loading/error/not-git precede
   diff loading/too-large/error/empty/data. Empty mode action is suppressed
   under ignored whitespace; committed+dirty offers Uncommitted; uncommitted
@@ -70,6 +73,24 @@ Per-commit narrow checks only; one whole native gate and one package review at
 completion. Node work receives its root gate and V3 review; security-sensitive
 boundaries retain per-commit review. Captures once at package close, using fake
 nodes and authenticated owned displays. No real agent, preview or real forge.
-Current: reference/assets audit complete, node gap ADR assigned; view/link/screen
-skeleton next, with the new entry hidden until useful. No C3 parity row is yet
-claimed built or passed. Existing bounded Git/PR approval is not package parity.
+Current: view comparison/options/body/history projection, diff-only tree and
+correlated read store exist. The tree shares its directory-first order with the
+document, retains duplicate source order and deep compressed identities, and
+keeps absent line counts unknown. It uses an iterative arena for bounded deep
+paths; UTF-16 code-unit comparison preserves the reference's non-ASCII order.
+`diff-tree.test.ts`, `diff-order.test.ts`, `use-commits-query.test.ts`, comparison/
+presentation/preferences reference tests supply cases. No file explorer changes.
+
+The read store reuses `Reading`/`RequestKeys`; mode/base/whitespace/repository
+changes reject old tickets. A refreshed summary invalidates file bodies even
+when counts match, until node revisions can prove content equality. Unsent
+reads settle via the same failure transition. Request issuers must live above
+disposable panes. No registration, runtime screen or complete skeleton claim yet.
+
+The first local view clippy stopped on missing variant docs/markup; fixed in
+the current source. Narrow checks of the installed view code are pending.
+Node comparison staging has separate protocol/workspace clippy and library
+tests green (382 passed, 0 failed, 1 ignored); no new node method admitted.
+Next: complete typed link/screen/words skeleton, node All private index,
+classified history, observation/cache and the write policy. No C3 row is claimed
+built or passed. Existing bounded Git/PR approval is not package parity.

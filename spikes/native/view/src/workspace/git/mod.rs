@@ -26,6 +26,7 @@ mod header;
 mod intent;
 mod issue;
 mod menu;
+pub mod panel;
 mod poll;
 mod repository;
 mod scopes;
