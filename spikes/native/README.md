@@ -786,8 +786,10 @@ catalog beside their remaining legacy words; rewind diagnostics remain in logs.
 Fork menus, empty-fork labels and source captions use `fork.ftl`. Source titles
 are prepared at fleet/act or language events and evicted when no longer listed;
 rendering borrows these cached captions. Failure/origin notices are retained at
-the answer boundary for live retranslation. The staged vocabulary move still
-retains diagnostic detail until the separate typed-error correction.
+the answer boundary for live retranslation. Typed fork/origin-read failures and
+unknown empty-fork reasons choose whole recovery sentences; original diagnostics
+remain in logs/session state. An uncertain fork asks to check the session list
+before retrying.
 General's Language row uses System first, then each embedded language's own
 name. Its typed preference goes through `Prefs::prefer`; labels, retained
 field placeholders and pairing outcomes update at once, without restarting

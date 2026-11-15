@@ -214,10 +214,9 @@ impl Shell {
         let forking = &mut self.areas.conversation.forking;
         if let Some(notice) = &mut forking.notice {
             let owned = self.notice.as_deref() == Some(&*notice.words());
-            match notice.translate(self.words) {
-                Ok(()) if owned => self.notice = Some(notice.words().to_string()),
-                Ok(()) => {}
-                Err(error) => tracing::error!(%error, "translating fork notice"),
+            notice.translate(self.words);
+            if owned {
+                self.notice = Some(notice.words().to_string());
             }
         }
         self.translate_origin_notice();
@@ -276,15 +275,14 @@ impl Shell {
                 forking.opening = Some(Open::of(&Card::from_session(&answer.machine, info)));
             }
             Err(ActFailed {
-                code: Some(_),
+                code: Some(code),
                 message,
-            }) => match PreparedNotice::new(Notice::Refused(message.clone()), self.words) {
-                Ok(notice) => {
-                    self.notice = Some(notice.words().to_string());
-                    forking.notice = Some(notice);
-                }
-                Err(error) => tracing::error!(%error, "preparing fork notice"),
-            },
+            }) => {
+                tracing::warn!(?code, %message, "fork refused");
+                let notice = PreparedNotice::new(Notice::Refused((*code).into()), self.words);
+                self.notice = Some(notice.words().to_string());
+                forking.notice = Some(notice);
+            }
             // No answer at all: the session's lost connection says it.
             Err(ActFailed { code: None, .. })
             | Ok(
@@ -352,3 +350,6 @@ impl Shell {
         }
     }
 }
+
+#[cfg(test)]
+mod language_tests;

@@ -8,7 +8,9 @@
 //! - Tradeoff: one caption per listed source; removed sessions are evicted.
 
 mod notice;
+mod problem;
 pub use notice::{Notice, PreparedNotice};
+pub use problem::{OriginProblem, Problem};
 
 use crate::{
     Fleet,

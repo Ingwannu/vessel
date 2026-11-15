@@ -201,10 +201,8 @@ impl ConversationArea {
 impl Shell {
     /// Only reword the retained result; reading/retrying and row state stay put.
     pub(super) fn translate_origin_notice(&mut self) {
-        if let Origin::Unread { notice, .. } = &mut self.areas.conversation.origin
-            && let Err(error) = notice.translate(self.words)
-        {
-            tracing::error!(%error, "translating fork origin notice");
+        if let Origin::Unread { notice, .. } = &mut self.areas.conversation.origin {
+            notice.translate(self.words);
         }
     }
 
@@ -272,23 +270,13 @@ impl Shell {
             }
             Err(ActFailed { code, message }) => {
                 if let Origin::Reading { from, until, .. } = area.origin {
-                    match PreparedNotice::new(
-                        Notice::Origin {
-                            removed: *code == Some(ErrorCode::NotFound),
-                            message: message.clone(),
-                        },
-                        self.words,
-                    ) {
-                        Ok(notice) => {
-                            area.origin = Origin::Unread {
-                                removed: *code == Some(ErrorCode::NotFound),
-                                notice,
-                                from,
-                                until,
-                            }
-                        }
-                        Err(error) => tracing::error!(%error, "preparing fork origin notice"),
-                    }
+                    tracing::warn!(?code, %message, "fork origin unreadable");
+                    area.origin = Origin::Unread {
+                        removed: *code == Some(ErrorCode::NotFound),
+                        notice: PreparedNotice::new(Notice::Origin((*code).into()), self.words),
+                        from,
+                        until,
+                    };
                 }
             }
             Ok(
@@ -394,3 +382,6 @@ pub(super) fn forked_line(paint: &Paint<'_>, words: String) -> AnyElement {
         Above::Nothing => line.into_any_element(),
     }
 }
+
+#[cfg(test)]
+mod language_tests;

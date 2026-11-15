@@ -1,3 +1,27 @@
+## Fork typed-recovery correction (source ready; full gate/screens owed)
+
+The diagnostic-preserving fork move is `ec544b88`. This independent correction
+projects all wire codes to safe fork recoveries; origin reads have removed,
+access, version, unavailable and generic recovery messages. Original diagnostics
+stay in host logs/authoritative session state. Unknown empty-fork failures now
+carry a typed `Other` reason rather than copying diagnostic text into each frame;
+existing protocol classification of the two known empty-fork reasons is unchanged.
+No protocol or node behavior changes. An uncertain fork result asks the person to
+check the session list before retrying, avoiding an unqualified duplicate retry.
+
+The final fork catalog has 24 messages per language. Tests cover whole English/
+Korean recoveries and all eleven wire-code classifications plus absent transport
+code. Three native input regressions feed actual fork/origin inner handlers, then
+apply the language change while preserving composer text/caret/selection/focus,
+retained origin target/retry state and ownership of another area's later notice.
+They do not run a node/agent or independently prove the parent act-routing guard.
+All-target view Clippy, 833 library tests and ten contract tests pass. Native
+format, size, boundaries and tokens pass with no allowance increase; candidate
+source coverage has zero missing keys in both languages. Initial generated-doc
+Clippy warnings came from two CamelCase translator comments; they now use plain
+words. The preceding vocabulary move also passed remote all-target native
+Clippy. Full native gate and captures are still owed; no completion claim yet.
+
 ## Fork vocabulary migration (source ready; full gate/screens owed)
 
 Reuses the generated catalog, retained-notice pattern and existing fleet events;

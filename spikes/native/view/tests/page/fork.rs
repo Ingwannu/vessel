@@ -4,7 +4,7 @@
 //! agent named (a point) and no rewind left behind.
 
 use serde_json::json;
-use vessel_app_view::fork::{Notice, PreparedNotice};
+use vessel_app_view::fork::{Notice, OriginProblem, PreparedNotice, Problem};
 use vessel_app_view::localization::{Locale, Translator};
 use vessel_app_view::timeline::{EntryKind, Timeline, Until, fork_point, origin_of};
 use vessel_proto::{EventRecord, EventSeq, SessionId};
@@ -89,21 +89,18 @@ fn a_forked_session_opens_with_a_line_naming_its_source() {
 }
 
 #[test]
-fn a_refused_fork_says_paseos_words_and_the_nodes() {
+fn a_refused_fork_says_a_translated_recovery() {
     assert_eq!(
-        notice(Notice::Refused(" ".to_owned()), "en"),
-        "Failed to fork chat"
+        notice(Notice::Refused(Problem::Point), "en"),
+        "The selected point cannot be used to fork this conversation. Choose another turn and try again."
     );
     assert_eq!(
-        notice(
-            Notice::Refused("the agent did not fork at the chosen point".to_owned()),
-            "en"
-        ),
-        "Failed to fork chat: \u{2068}the agent did not fork at the chosen point\u{2069}"
+        notice(Notice::Refused(Problem::Failed), "en"),
+        "Could not confirm the fork. Check the session list before trying again."
     );
     assert_eq!(
-        notice(Notice::Refused(String::new()), "ko"),
-        "채팅을 분기하지 못했습니다"
+        notice(Notice::Refused(Problem::Failed), "ko"),
+        "분기 결과를 확인하지 못했습니다. 다시 시도하기 전에 세션 목록을 확인하세요."
     );
 }
 
@@ -157,44 +154,19 @@ fn a_forks_origin_is_read_up_to_the_turn_it_continues_from() {
 #[test]
 fn an_origin_that_cannot_be_read_is_said_plainly() {
     assert_eq!(
-        notice(
-            Notice::Origin {
-                removed: true,
-                message: "not found".to_owned()
-            },
-            "en"
-        ),
+        notice(Notice::Origin(OriginProblem::Removed), "en"),
         "The conversation it was forked from was removed."
     );
     assert_eq!(
-        notice(
-            Notice::Origin {
-                removed: false,
-                message: "connection lost.".to_owned()
-            },
-            "en"
-        ),
-        "The conversation it was forked from could not be read: \u{2068}connection lost\u{2069}. Open the \
-         session again to try again."
+        notice(Notice::Origin(OriginProblem::Unavailable), "en"),
+        "The machine is unavailable. Open the session again to retry reading the conversation it was forked from."
     );
     assert_eq!(
-        notice(
-            Notice::Origin {
-                removed: false,
-                message: " ".to_owned()
-            },
-            "ko"
-        ),
+        notice(Notice::Origin(OriginProblem::Failed), "ko"),
         "분기한 원래 대화를 읽지 못했습니다. 세션을 다시 열면 다시 읽습니다."
     );
     assert_eq!(
-        notice(
-            Notice::Origin {
-                removed: true,
-                message: String::new()
-            },
-            "ko"
-        ),
+        notice(Notice::Origin(OriginProblem::Removed), "ko"),
         "분기한 원래 대화는 삭제되었습니다."
     );
 }
@@ -217,7 +189,7 @@ fn an_empty_fork_says_why_in_the_persons_words() {
     );
     assert_eq!(
         empty_fork(&failed("`initialize` failed", true)),
-        Some(EmptyFork::Other("`initialize` failed".to_owned()))
+        Some(EmptyFork::Other)
     );
     assert_eq!(
         empty_fork(&failed("the agent did not fork at the chosen point", false)),
@@ -241,7 +213,6 @@ fn catalog(tag: &str) -> &'static Translator {
 
 fn notice(outcome: Notice, tag: &str) -> String {
     PreparedNotice::new(outcome, catalog(tag))
-        .unwrap()
         .words()
         .to_string()
 }

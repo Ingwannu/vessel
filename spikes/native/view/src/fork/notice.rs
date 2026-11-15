@@ -1,50 +1,22 @@
-//! Retained fork/origin notices; diagnostics are kept for the staged move only.
-use crate::localization::{ForkFailedKind, ForkOriginUnreadKind, FormatError, Translator};
+//! Only typed outcomes are retained here; the host logs original diagnostics.
+use super::{OriginProblem, Problem};
+use crate::localization::Translator;
 use std::sync::Arc;
 
-/// The original facts needed to reword a retained notice after navigation.
-#[derive(Debug)]
+/// The safe recovery needed to reword a retained notice after navigation.
+#[derive(Debug, Clone, Copy)]
 pub enum Notice {
     /// The node refused a fork.
-    Refused(String),
-    /// A source could not be read; a removed source has its own sentence.
-    Origin {
-        /// Whether the source no longer exists on its machine.
-        removed: bool,
-        /// Diagnostic retained by the staged wording-preserving move.
-        message: String,
-    },
+    Refused(Problem),
+    /// The source conversation could not be read.
+    Origin(OriginProblem),
 }
 
 impl Notice {
-    fn format(&self, catalog: &Translator) -> Result<Arc<str>, FormatError> {
-        let words = catalog.fork();
+    fn words(self, catalog: &Translator) -> &str {
         match self {
-            Self::Refused(message) => words
-                .failed(
-                    if message.trim().is_empty() {
-                        ForkFailedKind::Plain
-                    } else {
-                        ForkFailedKind::Detail
-                    },
-                    message,
-                )
-                .map(Arc::from),
-            Self::Origin { removed, message } => {
-                let message = message.trim().trim_end_matches('.');
-                words
-                    .origin_unread(
-                        if *removed {
-                            ForkOriginUnreadKind::Removed
-                        } else if message.is_empty() {
-                            ForkOriginUnreadKind::Plain
-                        } else {
-                            ForkOriginUnreadKind::Detail
-                        },
-                        message,
-                    )
-                    .map(Arc::from)
-            }
+            Self::Refused(problem) => problem.words(catalog),
+            Self::Origin(problem) => problem.words(catalog),
         }
     }
 }
@@ -57,21 +29,18 @@ pub struct PreparedNotice {
 }
 
 impl PreparedNotice {
-    /// # Errors
-    /// Keeps the formatter error if both translation and fallback fail.
-    pub fn new(outcome: Notice, catalog: &Translator) -> Result<Self, FormatError> {
-        Ok(Self {
-            words: outcome.format(catalog)?,
+    /// Prepare a safe recovery without accepting diagnostic text.
+    #[must_use]
+    pub fn new(outcome: Notice, catalog: &Translator) -> Self {
+        Self {
+            words: Arc::from(outcome.words(catalog)),
             outcome,
-        })
+        }
     }
 
     /// Reword without another request, navigation or mutation of input.
-    /// # Errors
-    /// Keeps the previous prepared text if formatting fails.
-    pub fn translate(&mut self, catalog: &Translator) -> Result<(), FormatError> {
-        self.words = self.outcome.format(catalog)?;
-        Ok(())
+    pub fn translate(&mut self, catalog: &Translator) {
+        self.words = Arc::from(self.outcome.words(catalog));
     }
 
     /// Share retained text without allocation in a frame.

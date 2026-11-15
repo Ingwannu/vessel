@@ -1088,8 +1088,9 @@ conversation tables. Rewind recoveries project typed node codes; fork source
 captions are retained in `view::fork::Headers` across unchanged fleet events.
 The host refreshes captions at fleet/act/language events and invalidates rows
 only when captions change. Origin and frame notices retain shared text for
-language refresh without another request. The staged fork migration retains
-diagnostics pending its separate typed correction.
+language refresh without another request. Typed fork/origin-read recoveries keep
+diagnostics in host logs/session state; unknown empty-fork reasons borrow a
+complete recovery message rather than copying a diagnostic while drawing.
 The host reads the typed
 language preference before creating a shell; System resolves against the
 host tag, while VESSEL_APP_LANG is the checking override. General's language

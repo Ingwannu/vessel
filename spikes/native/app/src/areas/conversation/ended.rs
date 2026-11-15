@@ -117,11 +117,7 @@ fn empty_fork_banner(
     .when(!going, |button| {
         button.on_click(cx.listener(|shell, _event, _window, cx| shell.empty_fork_remove(cx)))
     });
-    let line = match why {
-        EmptyFork::NotAtPoint => vessel_app_kit::ui::SharedString::from(words.empty_not_at_point()),
-        EmptyFork::CannotFork => vessel_app_kit::ui::SharedString::from(words.empty_cannot_fork()),
-        EmptyFork::Other(message) => vessel_app_kit::ui::SharedString::from(message.clone()),
-    };
+    let line = why.words(shell.words);
     let callout = callout((words.empty_heading(), line), Some(remove), tokens, narrow);
     let refused = area
         .refused
