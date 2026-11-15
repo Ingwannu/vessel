@@ -25,7 +25,7 @@ pub use bounds::{
 pub use changes::{Change, ChangeKind};
 pub use evidence::{
     FileFingerprint, IgnoreFingerprint, ObjectFingerprint, ObservedEntry, ObservedPresence,
-    ObservedSnapshot, RootFingerprint, SnapshotEvidence,
+    ObservedSnapshot, PhysicalRoot, RootFingerprint, SnapshotEvidence,
 };
 pub use image::{EffectiveDesiredImage, Entry, FileImage, FileState};
 pub use metadata::{FileMetadata, GroupId, OrdinaryMode, OwnerId};

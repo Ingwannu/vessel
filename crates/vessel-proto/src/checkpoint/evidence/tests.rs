@@ -5,6 +5,7 @@ fn path(name: &str) -> CheckpointPath {
 }
 fn evidence(entries: Vec<ObservedEntry>) -> SnapshotEvidence {
     SnapshotEvidence::new(
+        vessel_proto_physical(),
         RootFingerprint::new(BlobHash::from_bytes([1; 32])),
         IgnoreFingerprint::new(BlobHash::from_bytes([2; 32])),
         entries,
@@ -27,7 +28,12 @@ fn observations_are_canonical_and_duplicate_paths_refuse() {
     );
     let valid = evidence(vec![first.clone()]);
     assert_eq!(
-        SnapshotEvidence::new(valid.root(), valid.ignore(), vec![first.clone(), first]),
+        SnapshotEvidence::new(
+            vessel_proto_physical(),
+            valid.root(),
+            valid.ignore(),
+            vec![first.clone(), first]
+        ),
         Err(CheckpointError::DuplicatePath)
     );
     let encoded = serde_json::to_string(&valid).unwrap();
@@ -83,6 +89,10 @@ fn image_and_observations_must_cover_identical_paths_and_presence() {
 }
 #[test]
 fn restart_decoder_cannot_bypass_the_content_evidence_association() {
-    let invalid = r#"{"image":[],"evidence":{"root":"1111111111111111111111111111111111111111111111111111111111111111","ignore":"2222222222222222222222222222222222222222222222222222222222222222","entries":[{"path":"extra","presence":{"kind":"absent"}}]}}"#;
+    let invalid = r#"{"image":[],"evidence":{"physical":"0000000000000000000000000000000000000000000000000000000000000000","root":"1111111111111111111111111111111111111111111111111111111111111111","ignore":"2222222222222222222222222222222222222222222222222222222222222222","entries":[{"path":"extra","presence":{"kind":"absent"}}]}}"#;
     assert!(serde_json::from_str::<ObservedSnapshot>(invalid).is_err());
+}
+
+fn vessel_proto_physical() -> PhysicalRoot {
+    PhysicalRoot::new(BlobHash::from_bytes([0; 32]))
 }

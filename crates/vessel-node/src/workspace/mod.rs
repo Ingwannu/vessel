@@ -23,6 +23,8 @@
 //!   otherwise read the node's token and become its owner).
 
 mod error;
+#[cfg(test)]
+pub(crate) mod exclusion;
 mod files;
 mod forge;
 mod git;

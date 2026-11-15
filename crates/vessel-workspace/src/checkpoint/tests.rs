@@ -46,6 +46,20 @@ mod linux {
         assert_eq!(root_fingerprint, second.evidence().root());
         assert_ne!(first.evidence(), second.evidence());
     }
+    #[tokio::test]
+    async fn physical_root_admission_identity_survives_access_mode_changes() {
+        let sandbox = Sandbox::new();
+        let dir = sandbox.repo("project");
+        fs::set_permissions(&dir, fs::Permissions::from_mode(0o750)).unwrap();
+        let root = Root::open(&dir).unwrap();
+        let physical = root.physical();
+        let before = root.fingerprint();
+        fs::set_permissions(&dir, fs::Permissions::from_mode(0o700)).unwrap();
+        let changed = Root::open(&dir).unwrap();
+        assert_eq!(changed.physical(), physical);
+        assert_ne!(changed.fingerprint(), before);
+        assert_ne!(Root::open(sandbox.path()).unwrap().physical(), physical);
+    }
     fn archive(sandbox: &Sandbox) -> Archive {
         let path = sandbox.path().join("archive");
         fs::create_dir(&path).unwrap();

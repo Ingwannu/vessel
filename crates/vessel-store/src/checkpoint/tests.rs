@@ -50,9 +50,14 @@ pub(super) fn evidence() -> vessel_proto::checkpoint::SnapshotEvidence {
         checkpoint::{IgnoreFingerprint, RootFingerprint, SnapshotEvidence},
     };
     SnapshotEvidence::new(
+        vessel_proto_physical(),
         RootFingerprint::new(BlobHash::from_bytes([1; 32])),
         IgnoreFingerprint::new(BlobHash::from_bytes([2; 32])),
         Vec::new(),
     )
     .unwrap()
+}
+
+fn vessel_proto_physical() -> vessel_proto::checkpoint::PhysicalRoot {
+    vessel_proto::checkpoint::PhysicalRoot::new(vessel_proto::BlobHash::from_bytes([0; 32]))
 }

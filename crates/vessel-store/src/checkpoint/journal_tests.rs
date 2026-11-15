@@ -813,12 +813,14 @@ fn equal_contents_cannot_hide_a_changed_root_or_ignore_observation() {
     journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
     for evidence in [
         SnapshotEvidence::new(
+            vessel_proto_physical(),
             RootFingerprint::new(BlobHash::from_bytes([3; 32])),
             plan.evidence.ignore(),
             Vec::new(),
         )
         .unwrap(),
         SnapshotEvidence::new(
+            vessel_proto_physical(),
             plan.evidence.root(),
             IgnoreFingerprint::new(BlobHash::from_bytes([4; 32])),
             Vec::new(),
@@ -848,4 +850,8 @@ fn equal_contents_cannot_hide_a_changed_root_or_ignore_observation() {
         .outcome,
         RestoreOutcome::InProgress { .. }
     ));
+}
+
+fn vessel_proto_physical() -> vessel_proto::checkpoint::PhysicalRoot {
+    vessel_proto::checkpoint::PhysicalRoot::new(vessel_proto::BlobHash::from_bytes([0; 32]))
 }

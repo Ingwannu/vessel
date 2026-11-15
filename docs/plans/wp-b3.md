@@ -132,3 +132,17 @@ candidate reports temporary Busy rather than implying a ready image. The store
 never reads blobs to render marks; the node must still enforce session visibility.
 W11 confirms its start/archive lease is not a file-writer lock; lifecycle
 exclusion is being aligned with the archive owner before actual restore wiring.
+
+The canonical staged root admission owner is workspace::exclusion, keyed by the
+FD-derived PhysicalRoot independent of WorkspaceId and path aliases. RAII token
+release has a direct notification, not a fallible bounded release message.
+Queue/deadline/lost-reply/drain/recovery-pin tests accompany it. The lifecycle
+owner will consume this seam for actual backing mutations after the producer is
+green and reviewed; no separate cwd or workspace-id lock is introduced. Shared
+writer and actor call-site wiring remain owed; the gate alone is not exclusion.
+
+Scoped validation: the eight changed root crates' all-target clippy (including
+proto TS derivation) passed on `c580d9eb`. This includes physical-observation
+capture and the rebased pending handler seam, but precedes journal FULL-sync,
+metadata pagination and root admission. The new later behavior tests remain
+queued; no whole gate or production activation is claimed.

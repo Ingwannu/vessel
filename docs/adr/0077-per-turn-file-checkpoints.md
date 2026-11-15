@@ -557,3 +557,27 @@ or policy-restoration error refuses an affirmative acknowledgement; ambiguous
 commits are resolved by the existing operation identity/status, never by replay.
 Tests inspect the actual connection policy during commit and after rollback.
 This proves policy selection, not power-cut behavior of an arbitrary device.
+
+### Physical-root admission and lifecycle ordering
+
+Logical WorkspaceId and worktree identity never replace physical exclusion.
+The filesystem derives a separate PhysicalRoot from the opened directory's
+filesystem device and inode; access-mode or logical-membership changes do not
+mint another lock. Aliases of that same directory share admission. A single
+bounded node owner grants opaque RAII RootLease values. A dropped or undelivered
+lease cancels its token and notifies the owner directly, so releasing a lease
+cannot fail because a bounded request queue is full. The owner prunes cancelled
+leases before admission, including an immediate next request.
+
+Archive/restore lifecycle ordering is durable workspace state claim, then
+physical-root admission, then physical mutations and postcondition verification,
+then lease release and lifecycle settlement. No caller holds a root lease while
+waiting for a workspace lifecycle claim. A writer retains its lease while I/O
+is in flight even when its caller deadline expires. A read-only capture can
+release this common lease at deadline only after its publication lease has been
+invalidated; it still retains its separate bounded worker, root capture guard,
+reservation and staging until actual cleanup. Startup restores every unresolved
+physical root into RecoveryPending admission before starting agents or writers.
+Only verified physical rollback plus durable journal resolution clears that pin.
+The in-memory gate alone is not restart reconciliation or proof that all callers
+have been wired through it.

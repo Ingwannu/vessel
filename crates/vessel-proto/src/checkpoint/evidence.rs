@@ -6,7 +6,9 @@ use serde::{Deserialize, Serialize};
 macro_rules! fingerprint {
     ($name:ident,$doc:literal) => {
         #[doc=$doc]
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+        #[derive(
+            Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
+        )]
         #[serde(transparent)]
         pub struct $name(BlobHash);
         impl $name {
@@ -23,6 +25,10 @@ macro_rules! fingerprint {
         }
     };
 }
+fingerprint!(
+    PhysicalRoot,
+    "An FD-derived device/inode admission identity, independent of logical workspaces."
+);
 fingerprint!(
     RootFingerprint,
     "A physical root observation used to reject stale plans."
@@ -66,12 +72,14 @@ pub struct ObservedEntry {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "RawEvidence", into = "RawEvidence")]
 pub struct SnapshotEvidence {
+    physical: PhysicalRoot,
     root: RootFingerprint,
     ignore: IgnoreFingerprint,
     entries: Vec<ObservedEntry>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct RawEvidence {
+    physical: PhysicalRoot,
     root: RootFingerprint,
     ignore: IgnoreFingerprint,
     entries: Vec<ObservedEntry>,
@@ -82,6 +90,7 @@ impl SnapshotEvidence {
     /// # Errors
     /// Too many paths or duplicate names refuse the whole evidence set.
     pub fn new(
+        physical: PhysicalRoot,
         root: RootFingerprint,
         ignore: IgnoreFingerprint,
         mut entries: Vec<ObservedEntry>,
@@ -95,10 +104,16 @@ impl SnapshotEvidence {
             return Err(CheckpointError::DuplicatePath);
         }
         Ok(Self {
+            physical,
             root,
             ignore,
             entries,
         })
+    }
+    /// Shared writer exclusion key; access-mode changes do not mint another lock.
+    #[must_use]
+    pub const fn physical(&self) -> PhysicalRoot {
+        self.physical
     }
     /// Frozen physical root, not the logical workspace's identity.
     #[must_use]
@@ -119,12 +134,13 @@ impl SnapshotEvidence {
 impl TryFrom<RawEvidence> for SnapshotEvidence {
     type Error = CheckpointError;
     fn try_from(raw: RawEvidence) -> Result<Self, Self::Error> {
-        Self::new(raw.root, raw.ignore, raw.entries)
+        Self::new(raw.physical, raw.root, raw.ignore, raw.entries)
     }
 }
 impl From<SnapshotEvidence> for RawEvidence {
     fn from(value: SnapshotEvidence) -> Self {
         Self {
+            physical: value.physical,
             root: value.root,
             ignore: value.ignore,
             entries: value.entries,

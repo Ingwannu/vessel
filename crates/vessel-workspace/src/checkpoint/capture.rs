@@ -96,6 +96,6 @@ pub(super) fn observed(
             return Err(CheckpointError::CaptureUnstable.into());
         }
     }
-    let evidence = SnapshotEvidence::new(root.fingerprint(), ignore, before)?;
+    let evidence = SnapshotEvidence::new(root.physical(), root.fingerprint(), ignore, before)?;
     Ok(ObservedSnapshot::new(image, evidence)?)
 }
