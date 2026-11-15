@@ -6,6 +6,17 @@ use crate::shell::{Shell, language_tests};
 use gpui::TestAppContext;
 use vessel_app_link::desktop::preferences::Coordinator;
 
+fn assert_document_notice(shell: &Shell, guard: fn(&Shell) -> DocumentReadiness) {
+    let words = shell.words.quit();
+    let expected = match guard(shell) {
+        DocumentReadiness::Dirty => words.documents_dirty(),
+        DocumentReadiness::Pending => words.documents_pending(),
+        DocumentReadiness::Failed => words.documents_failed(),
+        DocumentReadiness::Ready => panic!("fixture must refuse document admission"),
+    };
+    assert_eq!(shell.notice.as_deref(), Some(expected));
+}
+
 #[gpui::test]
 async fn keep_quit_refusal_preserves_the_window_and_releases_the_shared_phase(
     cx: &mut TestAppContext,
@@ -48,6 +59,7 @@ async fn keep_quit_refusal_preserves_the_window_and_releases_the_shared_phase(
                 shell.notice.is_some() && !quit::is_finalizing(cx)
             })
             .await;
+        shell.read_with(window, |shell, _cx| assert_document_notice(shell, guard));
         window.update(|_window, cx| {
             assert_eq!(cx.windows().len(), 1);
             assert!(!quit::is_finalizing(cx));
