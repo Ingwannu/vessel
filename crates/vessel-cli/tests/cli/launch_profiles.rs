@@ -11,7 +11,7 @@ async fn phase<T>(name: &str, job: impl Future<Output = T>) -> T {
 }
 async fn run(fixture: &Fixture, args: &[&str]) -> Ran {
     let mut command = tokio::process::Command::new(env!("CARGO_BIN_EXE_vessel"));
-    command
+    let _configured = command
         .arg("--node")
         .arg(fixture.node_address())
         .arg("--data-dir")
@@ -30,23 +30,22 @@ async fn run(fixture: &Fixture, args: &[&str]) -> Ran {
     let mut stderr = child.stderr.take().unwrap().take(8193);
     let output = tokio::spawn(async move {
         let mut bytes = Vec::new();
-        stdout.read_to_end(&mut bytes).await.unwrap();
+        let _read = stdout.read_to_end(&mut bytes).await.unwrap();
         bytes
     });
     let error = tokio::spawn(async move {
         let mut bytes = Vec::new();
-        stderr.read_to_end(&mut bytes).await.unwrap();
+        let _read = stderr.read_to_end(&mut bytes).await.unwrap();
         bytes
     });
-    let status = match tokio::time::timeout(PHASE, child.wait()).await {
-        Ok(status) => status.unwrap(),
-        Err(_) => {
-            let _already_exited = child.start_kill();
-            phase("CLI killed and reaped", child.wait()).await.unwrap();
-            let _out = phase("killed CLI stdout drains", output).await.unwrap();
-            let _err = phase("killed CLI stderr drains", error).await.unwrap();
-            panic!("launch CLI did not complete")
-        }
+    let status = if let Ok(status) = tokio::time::timeout(PHASE, child.wait()).await {
+        status.unwrap()
+    } else {
+        let _already_exited = child.start_kill();
+        let _killed = phase("CLI killed and reaped", child.wait()).await.unwrap();
+        let _out = phase("killed CLI stdout drains", output).await.unwrap();
+        let _err = phase("killed CLI stderr drains", error).await.unwrap();
+        panic!("launch CLI did not complete")
     };
     let stdout = phase("CLI stdout drains", output).await.unwrap();
     let stderr = phase("CLI stderr drains", error).await.unwrap();
@@ -71,7 +70,7 @@ async fn launch_cli_preserves_pending_refusal_for_every_typed_operation() {
                 None,
                 "assigned happy-wire coverage is a separate integration obligation"
             );
-            let fixture = phase("fixture starts", Fixture::start()).await;
+            let fixture = Box::pin(phase("fixture starts", Fixture::start())).await;
             let input = tempfile::tempdir().unwrap();
             let replace = input.path().join("replace.json");
             let options = input.path().join("options.json");
