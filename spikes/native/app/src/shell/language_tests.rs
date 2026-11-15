@@ -29,6 +29,11 @@ impl Render for Probe {
 }
 
 impl Shell {
+    /// Test fixtures borrow the same Link that the real area dispatches through.
+    pub(crate) fn fixture_link(&self) -> &Link {
+        self.link.as_ref().expect("fixture has an actual test Link")
+    }
+
     pub(crate) fn with_test_link(
         window: &mut Window,
         cx: &mut Context<'_, Self>,

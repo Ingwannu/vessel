@@ -23,10 +23,8 @@
 //!   never grows memory.
 
 mod command;
-// Staged shared envelope capability; real callers remove both exact attributes.
-#[cfg(test)]
+// Devices result envelopes consume the shared weak lease after UI queueing.
 mod delivery;
-#[cfg(test)]
 pub use delivery::DeliveryGuard;
 #[cfg(not(target_arch = "wasm32"))]
 mod connections;
@@ -39,9 +37,9 @@ mod event;
 pub mod machines;
 #[cfg(not(target_arch = "wasm32"))]
 mod nodes;
-#[cfg(test)]
+#[cfg(any(test, feature = "testing"))]
 #[cfg(not(target_arch = "wasm32"))]
-mod testing;
+pub mod testing;
 // The agents' lists kept between runs (owner word 28); a browser keeps
 // none yet (no files).
 #[cfg(not(target_arch = "wasm32"))]

@@ -29,7 +29,11 @@ pub(super) fn render(
         ),
         Target::Online(machine) => (
             words.paired_with(machine.as_str()),
-            listed(shell, tokens, compact, cx),
+            if state.page.authority().may_manage() {
+                listed(shell, tokens, compact, cx)
+            } else {
+                super::authority::render(shell, tokens, compact, cx)
+            },
         ),
     };
     div()
@@ -40,9 +44,11 @@ pub(super) fn render(
             settings::card(tokens).child(body),
             tokens,
         ))
-        .when(matches!(state.page.target, Target::Online(_)), |body| {
-            body.child(super::invitation::render(shell, tokens, compact, cx))
-        })
+        .when(
+            matches!(state.page.target, Target::Online(_)) && state.page.authority().may_manage(),
+            |body| body.child(super::invitation::render(shell, tokens, compact, cx)),
+        )
+        .children(super::receive::unconfirmed(shell, tokens))
         .children(state.tips.render(tokens))
         .into_any_element()
 }
@@ -139,7 +145,7 @@ fn refresh(
         {
             return;
         }
-        shell.devices_list();
+        shell.devices_authority();
         cx.notify();
     }))
     .into_any_element()
@@ -194,9 +200,8 @@ fn device_row(
             shell.devices_choose_revoke(&revoke_context, id, window, cx);
         }))
     });
-    // A caller's identity is not yet supplied by this connection. Never
-    // identify this device by its label; device.self will supply the fact.
-    let badge = DeviceBadge::of(device, None).map(|badge| {
+    // Only this admitted caller’s node-reported id can identify this device.
+    let badge = DeviceBadge::of(device, state.page.authority().device()).map(|badge| {
         vessel_app_kit::badge::badge(
             words.state(badge),
             crate::badge::variant(badge.variant()),

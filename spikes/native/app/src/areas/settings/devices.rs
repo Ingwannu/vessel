@@ -2,8 +2,10 @@
 //! Pure state and credential policy live in `view::devices`; this area
 //! holds field/focus handles and wires their actions to `link::devices`.
 
+mod authority;
 mod inspection;
 mod invitation;
+mod receive;
 mod revoke;
 mod row;
 mod rows;
@@ -11,9 +13,9 @@ mod rows;
 use std::{cell::Cell, collections::HashMap, rc::Rc};
 use vessel_app_kit::ui::{AnyElement, Context, Window};
 use vessel_app_kit::{DialogState, TextField, Tooltips};
-use vessel_app_link::devices::{Answer, Ask, Outcome};
+use vessel_app_link::devices::{Ask, Outcome};
 use vessel_app_view::devices::{
-    ConnectionContext, IdentityChange, Listing, MachineKey, Page, Target,
+    Authority, ConnectionContext, IdentityChange, Listing, MachineKey, Page, Target,
 };
 use vessel_app_view::settings::Section;
 use vessel_proto::DeviceId;
@@ -27,6 +29,7 @@ pub(crate) struct Devices {
     pub(super) dialog: DialogState,
     pub(super) copied: Option<&'static str>,
     pub(super) tips: Tooltips,
+    pub(super) receipt: Option<receive::Receipt>,
     pub(super) places: HashMap<DeviceId, vessel_app_kit::tooltip::Place>,
 }
 
@@ -41,11 +44,13 @@ impl Devices {
             dialog: DialogState::new(cx),
             copied: None,
             tips: Tooltips::new(),
+            receipt: None,
             places: HashMap::new(),
         }
     }
     fn bind(&mut self, context: Option<ConnectionContext>) {
         if self.page.bind(context) == IdentityChange::Replaced {
+            self.receipt = None;
             self.copied = None;
             self.places.clear();
             self.tips = Tooltips::new();
@@ -61,6 +66,16 @@ impl Shell {
         ticket: vessel_app_view::devices::Ticket,
         ask: Ask,
     ) -> Result<(), vessel_app_view::devices::Problem> {
+        if self
+            .areas
+            .settings
+            .devices
+            .receipt
+            .as_ref()
+            .is_some_and(|receipt| receipt.validate(&context).is_err())
+        {
+            return Err(vessel_app_view::devices::Problem::TargetChanged);
+        }
         if self.route != Route::Settings
             || self.areas.settings.section != Section::Devices
             || super::choices::chosen_machine(self)
@@ -74,6 +89,11 @@ impl Shell {
                 .is_err()
         {
             return Err(vessel_app_view::devices::Problem::TargetChanged);
+        }
+        if !matches!(ask, Ask::Authority)
+            && !self.areas.settings.devices.page.authority().may_manage()
+        {
+            return Err(vessel_app_view::devices::Problem::AccessNotConfirmed);
         }
         self.devices_dispatch(context, ticket, ask)
     }
@@ -95,6 +115,7 @@ impl Shell {
             .page
             .check_context(context)
             .is_ok()
+            && self.areas.settings.devices.page.authority().may_manage()
     }
 
     pub(crate) fn devices_retired(
@@ -116,6 +137,7 @@ impl Shell {
             .context()
             .is_some_and(|context| context.tag() == *tag)
         {
+            state.page.interrupted();
             state.bind(None);
             changed = true;
         }
@@ -125,6 +147,7 @@ impl Shell {
     /// Reconcile the selected machine before drawing, including navigation
     /// made outside Settings. A departing credential is dropped immediately.
     pub(crate) fn settle_devices(&mut self, window: &Window) {
+        self.devices_validate();
         let target = if self.route != Route::Settings
             || self.areas.settings.section != Section::Devices
             || vessel_app_kit::breakpoint::phone(window) && !self.areas.settings.pushed
@@ -156,14 +179,17 @@ impl Shell {
         state.page.target(target);
         state.bind(context);
         if matches!(state.page.target, Target::Online(_))
-            && matches!(state.page.listing, Listing::Empty)
+            && matches!(state.page.authority(), Authority::Unchecked)
         {
-            self.devices_list();
+            self.devices_authority();
         }
     }
 
     pub(super) fn devices_list(&mut self) {
         let state = &mut self.areas.settings.devices;
+        if !state.page.authority().may_manage() {
+            return;
+        }
         let Some(context) = state.page.context().cloned() else {
             return;
         };
@@ -185,14 +211,23 @@ impl Shell {
         }
     }
 
-    pub(crate) fn devices_answer(&mut self, answer: Answer, cx: &mut Context<'_, Self>) {
+    fn devices_outcome(
+        &mut self,
+        context: &ConnectionContext,
+        outcome: Outcome,
+        cx: &mut Context<'_, Self>,
+    ) {
         let state = &mut self.areas.settings.devices;
-        if state.page.check_context(&answer.context).is_err() {
-            return;
-        }
-        match answer.outcome {
+        match outcome {
+            Outcome::Authority(ticket, result) => {
+                if state.page.authority_answer(context, ticket, result)
+                    && state.page.authority().may_manage()
+                {
+                    self.devices_list();
+                }
+            }
             Outcome::Listed(ticket, result) => {
-                if !state.page.listed(&answer.context, ticket, result) {
+                if !state.page.listed(context, ticket, result) {
                     return;
                 }
                 if let Listing::Ready(devices) = &state.page.listing {
@@ -211,7 +246,7 @@ impl Shell {
                 }
             }
             Outcome::Invited(ticket, result) => {
-                if state.page.invited(&answer.context, ticket, result) {
+                if state.page.invited(context, ticket, result) {
                     if let vessel_app_view::devices::Inviting::Ready(pairing) = &state.page.inviting
                     {
                         invitation::clock(pairing.expires(), cx);
@@ -220,7 +255,7 @@ impl Shell {
                 }
             }
             Outcome::Revoked(ticket, result) => {
-                if state.page.revoked(&answer.context, ticket, result) {
+                if state.page.revoked(context, ticket, result) {
                     self.devices_list();
                 }
             }

@@ -1,54 +1,54 @@
-//! Isolated actor inputs and the one framed test peer, shared by book and
-//! device-binding regressions. No live node, global HOME edit or credentials.
-mod deadline;
+//! Explicit, nondefault regression scenarios over the one real framed actor.
+//! No facade exposes a client, State, epoch source, sender or guard constructor.
+//!
+//! [Decision Log]
+//! - Purpose: App tests must consume real guarded replies across retirement.
+//! - Constraint: dependency feature builds have no cfg(test) or dev dependencies.
+//! - Alternatives: fabricated guards or another codec would bypass the boundary.
+//! - Choice: one fallible framed owner and an opaque bounded scenario, with
+//!   legacy assertions confined to unit-only modules and the existing feature.
+//! - Why: the same State admission/dispatch and original lease remain authority.
+//! - Cost: optional direct RPC framing is explicitly testing-only (package plan).
+#[cfg(test)]
+pub(crate) mod actor;
+#[cfg(test)]
+mod assertions;
+mod failure;
+mod home;
 pub(crate) mod peer;
+mod scenario;
+#[cfg(test)]
+pub(crate) use assertions::{phase, state, within};
+pub use failure::{FixtureError, Phase};
+pub(crate) use home::Home;
+pub use scenario::{Reconnect, Scenario};
+
 use crate::{Event, State};
-pub(crate) use deadline::{phase, within};
 use std::collections::HashMap;
-use std::path::PathBuf;
-use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::sync::mpsc;
 pub(crate) const DEADLINE: std::time::Duration = std::time::Duration::from_secs(5);
-static NEXT: AtomicU64 = AtomicU64::new(0);
-pub(crate) struct Home(pub(crate) PathBuf);
-impl Home {
-    pub(crate) fn new() -> Self {
-        let path = std::env::temp_dir().join(format!(
-            "vessel-machine-actor-{}-{}",
-            std::process::id(),
-            NEXT.fetch_add(1, Ordering::Relaxed)
-        ));
-        std::fs::create_dir_all(&path).unwrap();
-        Self(path)
-    }
-    pub(crate) fn book(&self) -> PathBuf {
-        self.0.join("nodes.toml")
+
+fn make_state(
+    home: &Home,
+    commands: mpsc::WeakSender<crate::Command>,
+    events: mpsc::Sender<Event>,
+) -> State {
+    State {
+        label: "test".to_owned(),
+        commands,
+        events,
+        clients: HashMap::new(),
+        follow: None,
+        follow_machine: None,
+        book_path: crate::machines::BookPath::File(home.book()),
+        workspace: crate::workspace::Hub::default(),
+        agents: crate::agents::Hub::default(),
+        admissions: vessel_app_view::connection::ConnectionEpochs::default(),
+        device_calls: crate::devices::Hub::default(),
+        sync_calls: crate::sync::Hub::default(),
+        offers: std::sync::Arc::default(),
     }
 }
-impl Drop for Home {
-    fn drop(&mut self) {
-        std::fs::remove_dir_all(&self.0).unwrap();
-    }
-}
-pub(crate) fn state(home: &Home) -> (State, mpsc::Receiver<Event>) {
-    let (events, receiving) = mpsc::channel(crate::CHANNEL);
-    let (commands, _inbox) = mpsc::channel(crate::CHANNEL);
-    (
-        State {
-            label: "test".to_owned(),
-            commands: commands.downgrade(),
-            events,
-            clients: HashMap::new(),
-            follow: None,
-            follow_machine: None,
-            book_path: crate::machines::BookPath::File(home.book()),
-            workspace: crate::workspace::Hub::default(),
-            agents: crate::agents::Hub::default(),
-            admissions: vessel_app_view::connection::ConnectionEpochs::default(),
-            device_calls: crate::devices::Hub::default(),
-            sync_calls: crate::sync::Hub::default(),
-            offers: std::sync::Arc::default(),
-        },
-        receiving,
-    )
-}
+
+#[cfg(test)]
+mod actor_cases;
