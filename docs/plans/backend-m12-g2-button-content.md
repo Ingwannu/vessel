@@ -123,3 +123,10 @@ runs remain distinct; no UI/OS/S2/G3 first-use or F1/full-primary pass follows.
 V1 source review is requested next; consumers wait for that bounded disposition.
 The primary app tree merged074ade16; that merge changed only documentation
 because the complete approved G4 prerequisites were already adopted.
+
+V1 independently accepted isolated82584106 SOURCE and exact Kit narrow scope
+(135/0/0), including all16 manifest blobs and unchanged published outline test
+body. S2/G3 received that exact code plus result30d9c165, with the typed API and
+newer-glyph union constraint. This is a shared producer handoff, not consuming
+UI/OS/accessibility or full F1 approval; legacy disabled/domain conventions and
+final feature-package evidence remain explicit. No unchanged gate was rerun.
