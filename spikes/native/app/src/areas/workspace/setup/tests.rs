@@ -61,9 +61,7 @@ fn fixture(result: Option<SetupCommandResult>) -> Model {
                     command: "printf fixture".parse().unwrap(),
                     state: result.map_or(SetupCommandState::Running, |result| {
                         SetupCommandState::Finished {
-                            elapsed: DurationMs::from_duration(std::time::Duration::from_millis(
-                                61000,
-                            )),
+                            elapsed: DurationMs::from_duration(std::time::Duration::from_secs(61)),
                             result,
                         }
                     }),

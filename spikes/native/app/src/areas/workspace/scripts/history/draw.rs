@@ -1,5 +1,5 @@
 //! The person acknowledges only the received records drawn with this button.
-use super::*;
+use super::{Context, Shell};
 use vessel_app_kit::ui::{
     Div, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, Styled as _, div,
     px,

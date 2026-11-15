@@ -114,7 +114,7 @@ pub(super) fn render(card: &Card<'_>, window: &mut Window, cx: &mut Context<'_, 
         let address = address.clone();
         let run = snapshot.cursor.run;
         cancel = cancel.on_click(cx.listener(move |shell, _event, window, cx| {
-            (dispatch.cancel)(shell, &address, run, window, cx)
+            (dispatch.cancel)(shell, &address, run, window, cx);
         }));
     }
     body.child(cancel)
@@ -138,22 +138,7 @@ fn command(
         SetupCommandState::Running => (words.running(), badge::Variant::Muted, None),
         SetupCommandState::Unknown => (words.unknown(), badge::Variant::Warning, None),
         SetupCommandState::Finished { elapsed, result } => {
-            let (label, tone) = match result {
-                SetupCommandResult::Exited { code: Some(0) } => {
-                    (words.completed(), badge::Variant::Success)
-                }
-                SetupCommandResult::Exited { code: Some(_) } => {
-                    (words.failed(), badge::Variant::Error)
-                }
-                SetupCommandResult::Exited { code: None } => {
-                    (words.exit_unknown(), badge::Variant::Warning)
-                }
-                SetupCommandResult::SpawnFailed => (words.spawn_failed(), badge::Variant::Error),
-                SetupCommandResult::TimedOut => (words.timed_out(), badge::Variant::Error),
-                SetupCommandResult::Cancelled => (words.cancelled(), badge::Variant::Muted),
-                SetupCommandResult::IoFailed => (words.io_failed(), badge::Variant::Error),
-                SetupCommandResult::Unknown => (words.unknown(), badge::Variant::Warning),
-            };
+            let (label, tone) = result_style(shell, *result);
             (label, tone, Some(*elapsed))
         }
     };
@@ -195,7 +180,7 @@ fn command(
         let run = snapshot.cursor.run;
         let index = row.index;
         header = header.on_click(cx.listener(move |shell, _event, window, cx| {
-            (dispatch.toggle)(shell, &address, run, index, window, cx)
+            (dispatch.toggle)(shell, &address, run, index, window, cx);
         }));
     }
     let mut card = div()
@@ -240,4 +225,22 @@ fn notice(text: &str, tokens: &Tokens) -> Div {
         vessel_app_kit::alert::Size::Small,
         tokens,
     )
+}
+
+fn result_style(shell: &Shell, result: SetupCommandResult) -> (&str, badge::Variant) {
+    let words = shell.words.setupobs();
+    match result {
+        SetupCommandResult::Exited { code: Some(0) } => {
+            (words.completed(), badge::Variant::Success)
+        }
+        SetupCommandResult::Exited { code: Some(_) } => (words.failed(), badge::Variant::Error),
+        SetupCommandResult::Exited { code: None } => {
+            (words.exit_unknown(), badge::Variant::Warning)
+        }
+        SetupCommandResult::SpawnFailed => (words.spawn_failed(), badge::Variant::Error),
+        SetupCommandResult::TimedOut => (words.timed_out(), badge::Variant::Error),
+        SetupCommandResult::Cancelled => (words.cancelled(), badge::Variant::Muted),
+        SetupCommandResult::IoFailed => (words.io_failed(), badge::Variant::Error),
+        SetupCommandResult::Unknown => (words.unknown(), badge::Variant::Warning),
+    }
 }
