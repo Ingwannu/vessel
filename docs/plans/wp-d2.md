@@ -87,3 +87,16 @@ per-row and aggregate tones, validated public/proxy/direct targets and preferenc
 fallback/deduplication policy. These are view rules tested with fixed data, not a
 new wire API. No current node is reported healthy and no proxy URL is fabricated.
 The native adapter will accept them only from the workspace track's reviewed report.
+
+## Package-base merge
+
+Merged the announced package base `8d5513e4` under A8. The only textual conflict
+was the native size allow-list: the head's removal of the now-split link root wins;
+this package's already-reduced project/detail records remain reduced. No node-head
+merge or fake harness conflict was resolved independently. The legacy workspace
+registration moved into this package's actor module, so it remains outside the
+split shared link root. The root crates changed only by consuming the announced base.
+
+Setup observation/cancellation is this package's node responsibility (ADR 0093),
+on the announced node head with the shared method table and pending protocol rows.
+Allocator/environment/proxy/health remain the separate workspace runtime package.
