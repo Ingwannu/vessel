@@ -1,4 +1,4 @@
-//! Actual framed root/summary/diff replies enter the real CodePanel owner.
+//! Actual framed root/summary/diff replies enter the real `CodePanel` owner.
 use super::*;
 use gpui::TestAppContext;
 use vessel_app_link::{
