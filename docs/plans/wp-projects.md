@@ -144,3 +144,7 @@ reservations Uncertain; no automatic filesystem replay occurs. Descriptor
 publication and reservation Ready are one transaction. The node module remains
 test-only until pending RPC wiring; existing worktree.create still chooses a
 random id before delegating to the same implementation.
+
+Contract narrow Clippy on 702277bd returned three documentation-markdown lints
+(no type/runtime error). They are corrected in the next commit and rechecked;
+the failed log remains evidence. Tests on that commit were 5 passed/0 failed.
