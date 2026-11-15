@@ -101,7 +101,7 @@ impl Shell {
 
 use theme_tile::{Columns, Preview, State as TileState};
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, IntoElement as _, ParentElement as _,
+    AnyElement, Context, Div, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Scheme, Tokens, settings, theme_tile};
@@ -114,7 +114,7 @@ pub(crate) fn render(
     shell: &Shell,
     tokens: &Tokens,
     compact: bool,
-    window: &gpui::Window,
+    window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let words = shell.t.lang.settings();

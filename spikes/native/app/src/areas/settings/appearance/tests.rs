@@ -1,6 +1,6 @@
 //! Actual field events through the existing editor, isolated from link I/O.
 use super::*;
-use gpui::{AppContext as _, Entity, Render, TestAppContext};
+use gpui::{AppContext as _, Entity, IntoElement, Render, TestAppContext};
 use vessel_app_kit::field::AppearanceProfile;
 use vessel_app_view::{
     appearance::{SyntaxTheme, form::Field},

@@ -118,7 +118,7 @@ impl Shell {
             .refresh_preview(&self.prefs.settings.appearance, cx);
         cx.notify();
     }
-    fn appearance_focus(&mut self, field: Field, window: &mut Window, cx: &mut Context<'_, Self>) {
+    fn appearance_focus(field: Field, window: &mut Window, cx: &mut Context<'_, Self>) {
         match field {
             Field::InterfaceFamily | Field::MonoFamily => {}
             Field::InterfaceSize | Field::ContentSize | Field::CodeSize | Field::Width => {
@@ -167,8 +167,8 @@ macro_rules! binding {
             ) {
                 shell.appearance_commit(Field::$field, &raw, window, cx);
             }
-            fn focus(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
-                shell.appearance_focus(Field::$field, window, cx);
+            fn focus(_: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
+                Shell::appearance_focus(Field::$field, window, cx);
             }
         }
     };

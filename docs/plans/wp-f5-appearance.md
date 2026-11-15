@@ -581,3 +581,14 @@ qualifications after importing the same engine types for blur. The correction
 adds a paragraph separator and uses the imported names. No runtime branch,
 callback ordering, assertion, lint or ownership boundary changes. App strict
 completion, tests, export and F5 UI are still unverified from this run.
+
+
+The 0e667fa34 replacement narrow themes-narrow-20261115T154730Z-0e667fa3
+reached App and ended FAILED (fonts0, Cargo101/13s). The four App diagnostics
+were a redundant Window qualifier, an unused fluent import, the missing named
+IntoElement test import, and an unused self argument on the focus helper.
+The focus scheduling helper is now associated; the same closed field is
+captured and the existing deferred focus check/select-all remains identical.
+No product validation, geometry, callback order or test assertion changes.
+Kit/View were checked in this invocation; the selected command as a whole
+is not a pass and no runtime/test/export evidence is inferred.
