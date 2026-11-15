@@ -644,6 +644,8 @@ impl Handler for Fake {
         rewind_session: vessel_proto::forking::RewindSession => SessionInfo;
         agent_history: vessel_proto::history::GetAgentHistory => vessel_proto::history::AgentHistoryPage;
         detach_session: vessel_proto::subagents::DetachSession => vessel_proto::subagents::DetachedSession;
+        list_provider_children: vessel_proto::subagents::ListProviderChildren => vessel_proto::subagents::ProviderChildren;
+        read_provider_child: vessel_proto::subagents::ReadProviderChild => vessel_proto::subagents::ProviderChildPage;
     }
 }
 

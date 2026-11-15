@@ -234,3 +234,5 @@ A declared native Claude task does not require a tool-use alias to exist. Its re
 task id and lifecycle remain visible when that optional alias is absent; the
 router reports partial retained history because unlabelled sidechain attribution
 cannot be proven. It never invents an alias or replaces the actual task identity.
+
+The client and RPC whole-method-table test fakes explicitly refuse all pending relationship methods, including both provider reads. This completes the generated trait without adding fake provider success or changing existing test expectations; integration checks must compile those consumer test targets as well as node/agent/proto.
