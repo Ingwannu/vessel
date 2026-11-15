@@ -34,7 +34,7 @@ async fn native_history_process_reads_pages_without_creating_or_resuming_a_threa
         page.entries.first().unwrap().updated_at,
         Some(HistoryTimestamp::UnixSeconds(123))
     );
-    assert_eq!(page.entries.get(1).unwrap().updated_at, None);
+    assert_eq!(page.entries[1].updated_at, None);
     assert_eq!(
         std::fs::read_to_string(audit).unwrap(),
         "initialize\ninitialized\nthread/list\nthread/list\n"

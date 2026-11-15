@@ -182,3 +182,11 @@ The current protocol/generator source differs from that run only in the
 non-generator forwardable-set test's expected strings. Generated declarations
 were not hand-edited. Overall TS step remains RED with the named base defect;
 exact current-head freshness and the final gate remain required after adoption.
+
+The exactedb all-target strict run reached the external native-history process
+test and returned one get_unwrap lint. A whole changed-file scan found the same
+pattern twice in the typed history test and an unchecked fixture request-id add.
+All use validated test indexing after the unchanged two-entry assertion, and a
+checked request-id increment. No production code or test expectations change.
+The generated snapshot intentionally retains its generator's trailing spaces;
+Rust/docs whitespace checks are separate from that immutable generated artifact.
