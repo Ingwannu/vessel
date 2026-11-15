@@ -235,8 +235,6 @@ pending requirement before ids, the writer queue or dispatch. The new
 SDK error is mapped at the root MCP, web and fleet-hop boundaries; native
 matches belong to their existing owner. No title settings types or new
 calls are added by this foundation. Current calls remain assigned; pending
-
-calls are added in this commit. Current calls remain assigned; pending
 state tests exercise both admission guards, while the existing in-memory
 suite checks legacy requests and older-peer refusals. A pending feature's
 end-to-end request test lands with that feature.
@@ -729,3 +727,12 @@ consumes it and refuses mismatch before an attempt. Five preflight cases,
 seven transport cases and six text cases pass (18 total), with node
 all-targets Clippy passing. The title output budget has one definition.
 No settings state or file is mutated by this module; wiring remains next.
+
+Retained-view implementation checkpoint: MetadataSettings::deserialize_view
+ignores later metadata/candidate keys and keeps known values; ordinary
+Deserialize stays strict for patches. Both share one generic streaming
+provider bound and the canonical constructor. Future effort reads Unknown;
+known bad shapes still fail. Proto all-targets Clippy and all 277 library
+tests pass, including three view cases. No settings field, file reader or
+extra keeping mechanism is registered by this value decoder alone.
+The duplicated partial shared-admission sentence is also removed here.
