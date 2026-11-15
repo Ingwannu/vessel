@@ -421,3 +421,19 @@ aligned after checking the entire product prefix is byte-identical; the narrow
 read method's existing doc reference is backticked. This imports no node runtime
 behavior or branch ancestry. The app root strict predecessor is obsolete while
 queued; its record must be kept if superseded under the standing rule.
+
+Approved package base8b c3429952 (native1450/0/2, root82ae7c91) is merged
+without conflicts before further submission. SavePrefs now carries Box<Prefs>
+per the shared producer; the existing private helper preserves that allocation
+through spawn_blocking. No staged resident/follow API is activated here.
+
+Root app union run wp-inbox-app-root-20261115T150621Z-8a20e0c9 returned actual
+Store arithmetic/function-budget lints, two missing test Handler methods, a
+missing process field in an own terminal fixture and an unnecessary qualifier.
+The savepoint-only helper extraction matches the node tree after its complete
+diff was inspected; same transaction/pending veto/post-commit effects remain.
+The lease division is checked and exact half-life renewal follows the already
+pinned reference boundary; before/at/after tests and revoked-row absence match
+the corrected node fixtures. Fake handlers only deny the existing pending calls;
+no method row, SDK authority, version or runtime branch is imported. Root union
+strict/tests remain owed; prior native1090 tests do not establish that result.

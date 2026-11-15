@@ -114,7 +114,7 @@ impl State {
     }
 }
 
-async fn save_preferences(prefs: super::Prefs) {
+async fn save_preferences(prefs: Box<super::Prefs>) {
     let saved = tokio::task::spawn_blocking(move || prefs.save()).await;
     match saved {
         Ok(Ok(())) => {}

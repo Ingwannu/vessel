@@ -1,6 +1,7 @@
 //! Real `SQLite` transaction boundaries for leases, revocation and stale 410s.
 use super::*;
 use crate::{CredentialHash, devices, schema};
+use rusqlite::OptionalExtension as _;
 use vessel_proto::{DeviceInfo, DeviceSecret};
 const LEASE_STEP: TimeDelta = TimeDelta::hours(1);
 fn now() -> DateTime<Utc> {
@@ -105,7 +106,7 @@ fn late_gone_for_the_same_capability_cannot_delete_a_renewed_lease() {
     let mut renewed = old.clone();
     renewed.expires_at = old
         .expires_at
-        .checked_add_signed(chrono::TimeDelta::seconds(1))
+        .checked_add_signed(TimeDelta::seconds(1))
         .unwrap();
     subscribe(&db, &renewed, now()).unwrap();
     apply(&db, &PushWrite::Expire(Box::new(old))).unwrap();
@@ -133,20 +134,30 @@ fn explicit_unsubscribe_removes_a_renewal_without_an_attempt_identity() {
 }
 
 #[test]
-fn activity_renews_only_after_half_life_and_stale_410_cannot_remove_the_renewal() {
+fn activity_renews_at_half_life_and_stale_410_cannot_remove_the_renewal() {
     let db = database();
     let lease = stored(device(&db, vec![Scope::Read]));
     subscribe(&db, &lease, now()).unwrap();
+    let half = now() + (PUSH_LEASE / 2);
     apply(
         &db,
         &PushWrite::Renew {
             device: lease.device,
-            now: now() + (PUSH_LEASE / 2),
+            now: half - LEASE_STEP,
         },
     )
     .unwrap();
     assert_eq!(list(&db, now()).unwrap()[0].expires_at, lease.expires_at);
-    let later = now() + (PUSH_LEASE / 2 + LEASE_STEP);
+    apply(
+        &db,
+        &PushWrite::Renew {
+            device: lease.device,
+            now: half,
+        },
+    )
+    .unwrap();
+    assert_eq!(list(&db, half).unwrap()[0].expires_at, half + PUSH_LEASE);
+    let later = half + LEASE_STEP;
     apply(
         &db,
         &PushWrite::Renew {
@@ -155,7 +166,7 @@ fn activity_renews_only_after_half_life_and_stale_410_cannot_remove_the_renewal(
         },
     )
     .unwrap();
-    assert_eq!(list(&db, later).unwrap()[0].expires_at, later + PUSH_LEASE);
+    assert_eq!(list(&db, later).unwrap()[0].expires_at, half + PUSH_LEASE);
     apply(&db, &PushWrite::Expire(Box::new(lease))).unwrap();
     assert_eq!(list(&db, later).unwrap().len(), 1);
 }
@@ -190,14 +201,21 @@ fn activity_cannot_resurrect_revoked_readless_or_expired_push_leases() {
             },
         )
         .unwrap();
-        let expiry: i64 = db
+        let expiry: Option<i64> = db
             .query_row(
                 "SELECT expires_at FROM push_subscriptions WHERE device=?1",
                 [lease.device.to_string()],
                 |row| row.get(0),
             )
+            .optional()
             .unwrap();
-        assert_eq!(time_from_sql(expiry), lease.expires_at);
+        if state == 0 {
+            // The existing revoke transaction deletes this subscription.
+            // Activity must leave it absent, rather than recreating a row.
+            assert!(expiry.is_none());
+        } else {
+            assert_eq!(expiry.map(time_from_sql), Some(lease.expires_at));
+        }
         assert!(list(&db, later).unwrap().is_empty());
     }
 }

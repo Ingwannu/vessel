@@ -553,6 +553,8 @@ impl Handler for FakeNode {
         delete_prompt: vessel_proto::automation::DeletePrompt => Ack;
         list_inbox: vessel_proto::inbox::ListInbox => vessel_proto::inbox::InboxPage;
         mark_inbox: vessel_proto::inbox::MarkInbox => Ack;
+        inbox_attention: vessel_proto::inbox_attention::GetInboxAttention => Vec<vessel_proto::inbox_attention::SessionAttention>;
+        read_inbox_through: vessel_proto::inbox_attention::ReadInboxThrough => Ack;
         claim_notification: vessel_proto::notifications::ClaimNotification => vessel_proto::notifications::NotificationClaim;
         clear_terminal_attention: vessel_proto::notifications::ClearTerminalAttention => vessel_proto::notifications::TerminalAttention;
         report_terminal_activity: vessel_proto::notifications::ReportTerminalActivity => vessel_proto::notifications::TerminalAttention;

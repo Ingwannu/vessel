@@ -53,61 +53,31 @@ pub(super) fn apply(
             device,
             credential,
             done,
-        } => {
-            let applied = isolated(transaction, |connection| {
-                devices::insert(connection, &device, &credential)
-            });
-            Answer::Done(done, applied)
-        }
-        Write::DeviceSeen { device, at, done } => {
-            let applied = isolated(transaction, |connection| {
-                devices::seen(connection, device, at)
-            });
-            Answer::Done(done, applied)
-        }
-        Write::RevokeDevice { device, at, done } => {
-            let applied = isolated(transaction, |connection| {
-                devices::revoke(connection, device, at)
-            });
-            Answer::Done(done, applied)
-        }
+        } => write_answer(transaction, done, |connection| {
+            devices::insert(connection, &device, &credential)
+        }),
+        Write::DeviceSeen { device, at, done } => write_answer(transaction, done, |connection| {
+            devices::seen(connection, device, at)
+        }),
+        Write::RevokeDevice { device, at, done } => write_answer(transaction, done, |connection| {
+            devices::revoke(connection, device, at)
+        }),
         Write::Mark {
             session,
             mark,
             at,
             done,
-        } => {
-            let applied = isolated(transaction, |connection| {
-                marks::mark(connection, session, mark, at)
-            });
-            effects.attention |= applied.is_ok();
-            Answer::Marked(done, applied)
-        }
+        } => marked_answer(transaction, effects, done, |connection| {
+            marks::mark(connection, session, mark, at)
+        }),
         Write::ReadAttention {
             session,
             through,
             at,
             done,
-        } => {
-            let applied = isolated(transaction, |connection| {
-                let waiting: bool = connection.query_row(
-                    "SELECT EXISTS(SELECT 1 FROM inbox WHERE session=?1 AND waiting=1)",
-                    [session.to_string()],
-                    |row| row.get(0),
-                )?;
-                if waiting {
-                    return Err(StoreError::AttentionWaiting);
-                }
-                marks::mark(
-                    connection,
-                    session,
-                    vessel_proto::Mark::Read { through },
-                    at,
-                )
-            });
-            effects.attention |= applied.is_ok();
-            Answer::Marked(done, applied)
-        }
+        } => marked_answer(transaction, effects, done, |connection| {
+            read_attention(connection, session, through, at)
+        }),
         Write::Delete { session, done } => {
             let applied = isolated(transaction, |connection| marks::delete(connection, session));
             if applied.is_ok() {
@@ -119,13 +89,9 @@ pub(super) fn apply(
             session,
             next,
             done,
-        } => {
-            let applied = isolated(transaction, |connection| {
-                again::reopen(connection, session, next)
-            });
-            effects.attention |= applied.is_ok();
-            Answer::Marked(done, applied)
-        }
+        } => marked_answer(transaction, effects, done, |connection| {
+            again::reopen(connection, session, next)
+        }),
         Write::Attach { kept, at, done } => {
             let applied = isolated(transaction, |connection| {
                 attachments::insert(connection, &kept, time_to_sql(at)?)
@@ -157,6 +123,39 @@ pub(super) fn apply(
             Answer::Done(done, applied)
         }
     }
+}
+
+// Both paths keep their existing savepoint, answer and post-commit wakeup.
+fn marked_answer(
+    transaction: &mut Transaction<'_>,
+    effects: &mut Effects,
+    done: Done<vessel_proto::KeptMarks>,
+    operation: impl FnOnce(&Connection) -> Result<vessel_proto::KeptMarks, StoreError>,
+) -> Answer {
+    let applied = isolated(transaction, operation);
+    effects.attention |= applied.is_ok();
+    Answer::Marked(done, applied)
+}
+fn read_attention(
+    connection: &Connection,
+    session: SessionId,
+    through: vessel_proto::EventSeq,
+    at: chrono::DateTime<chrono::Utc>,
+) -> Result<vessel_proto::KeptMarks, StoreError> {
+    let waiting: bool = connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM inbox WHERE session=?1 AND waiting=1)",
+        [session.to_string()],
+        |row| row.get(0),
+    )?;
+    if waiting {
+        return Err(StoreError::AttentionWaiting);
+    }
+    marks::mark(
+        connection,
+        session,
+        vessel_proto::Mark::Read { through },
+        at,
+    )
 }
 
 // State-only writes keep the same savepoint and acknowledgement boundary,
