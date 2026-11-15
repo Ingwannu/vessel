@@ -1181,7 +1181,9 @@ The staged native notification consumer uses one App Global for bounded opaque
 tag routing. Each record holds only the original GPUI window handle, weak Shell,
 canonical connection source and destination. The kit root boundary verifies that
 the original content still occupies that window; the consumer then fences its
-source before selection. This is per-notice routing, not a second host registry.
+source before selection. Deferred grants, heartbeat and idle-cache tasks also
+use that root boundary and stop after content retirement. This is per-notice
+routing, not a second host registry.
 A closed/dead/unknown recipient uses the shared host registry for generic Inbox
 activation, with no source authority transferred. Missing live roots and factory
 remain explicitly unavailable. The provisional receiving union uses the reviewed

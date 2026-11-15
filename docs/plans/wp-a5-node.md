@@ -1,5 +1,23 @@
 # A5: existing node inbox and push boundary
 
+## Current receiving-union status
+
+The APP source36d5caa4 provisionally consumes the V1 row273 shared host slice.
+Original recipients retain exact root/weak/context checks; generic fallback uses
+the sole host owner without transferring a source. Deferred grants, heartbeat
+and idle-cache effects share the private root-lifetime adapter. Native errors
+remain in Inbox/badges but are suppressed from OS delivery per Paseo client
+session-context.tsx267-269. Current native strict/unit checks are queued.
+
+APP root8c116fd0 passed five-crate all-target strict in
+wp-inbox-app-root-20261115T181744Z-8c116fd0 (rc0/168s); later host/native changes
+leave its root build inputs unchanged. Its actual vesseld build/node tests are
+still pending. The five attention methods remain unassigned. Workspace mutations
+remain design-only pending canonical membership, role and mutation-clock owners.
+No owning whole gate, final capture matrix or full A5 verdict is claimed.
+Sections below retain earlier checkpoint history; their pending/experimental
+statements are bounded to those earlier sources, not current evidence.
+
 ## Ownership and scope
 
 The integrated node inbox and account-free Web Push are the existing N1 base.
