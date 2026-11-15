@@ -148,6 +148,11 @@ changes or captures are required by this node-only package.
   schedule get/update, harness/profile/options) with fake-node integration
   coverage adapted from the previous implementation draft.
 - In progress: policy/injection and skills contracts. No new RPC method is
-  registered; wrappers use existing calls. Compilation is pending.
+  registered; wrappers use existing calls. First narrow clippy found an empty
+  string guard, fixed; the second found seven public API documentation lints,
+  fixed in the following adapter commit. Test execution is pending.
+- Draft adapter now applies one immutable policy to listing and direct calls,
+  exposes `machine` beside compatible `node`, and refuses local-only routing
+  before mutation. This is not yet a persisted node launch setting.
 - Next: fill existing node adapters, stage missing services, narrow checks;
   wire only after the shared method-table gate, then package gate/review.

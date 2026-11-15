@@ -26,6 +26,7 @@ mod args;
 mod automation;
 mod conversation;
 mod driving;
+mod exposure;
 mod forge;
 mod forking;
 mod id;
@@ -81,6 +82,7 @@ pub struct VesselTools {
     /// `create_terminal` opens one by default, and a heartbeat's target
     /// (protocol 11).
     own: Option<SessionId>,
+    policy: vessel_proto::mcp::ToolPolicy,
 }
 
 /// Where a tool's calls go: this node (`None`) or another of the fleet.
@@ -93,6 +95,7 @@ impl VesselTools {
         Self {
             client: Arc::new(client),
             own: None,
+            policy: vessel_proto::mcp::ToolPolicy::default(),
         }
     }
 
@@ -111,7 +114,13 @@ impl VesselTools {
 
     async fn call(&self, name: &str, args: &JsonObject) -> Result<Value, ToolError> {
         match id::decode(name) {
-            id::Decoded::Tool(tool) => self.dispatch(tool, args).await,
+            id::Decoded::Tool(tool) => {
+                if !self.policy.permits(tool) {
+                    return Err(ToolError::Disabled { tool });
+                }
+                exposure::validate_selector(tool, args)?;
+                self.dispatch(tool, args).await
+            }
             id::Decoded::LspPrefix => self.lsp(name, args).await,
             id::Decoded::Unknown => Err(ToolError::Arguments(format!("no tool `{name}`"))),
         }
@@ -202,7 +211,7 @@ impl VesselTools {
     /// The node a `node` argument names: this one when it is left out or
     /// names this node; another by its id, or by its name in the fleet.
     async fn target(&self, args: &JsonObject) -> Result<Target, ToolError> {
-        let Some(given) = text(args, "node")? else {
+        let Some(given) = exposure::selector(args)? else {
             return Ok(None);
         };
         let this = self.client.node();
@@ -274,7 +283,9 @@ impl ServerHandler for VesselTools {
         _request: Option<PaginatedRequestParams>,
         _context: RequestContext<RoleServer>,
     ) -> Result<ListToolsResult, ErrorData> {
-        Ok(ListToolsResult::with_all_items(tools()))
+        Ok(ListToolsResult::with_all_items(exposure::visible(
+            &self.policy,
+        )))
     }
 
     async fn call_tool(
@@ -302,6 +313,9 @@ enum ToolError {
     /// The call itself is wrong: a JSON-RPC error.
     #[error("{0}")]
     Arguments(String),
+    /// A direct invocation cannot bypass the launch visibility snapshot.
+    #[error("tool `{}` is disabled for this session", tool.as_str())]
+    Disabled { tool: id::ToolId },
     /// Typed LSP arguments or results failed to encode/decode at the SDK edge.
     #[error("invalid LSP tool JSON")]
     LspJson(#[source] serde_json::Error),
@@ -359,9 +373,14 @@ fn node_schema() -> Value {
 fn tool(
     name: &'static str,
     description: &'static str,
-    properties: Value,
+    mut properties: Value,
     required: &[&str],
 ) -> Tool {
+    if let Some(fields) = properties.as_object_mut()
+        && let Some(node) = fields.get("node").cloned()
+    {
+        let _old = fields.insert("machine".to_owned(), node);
+    }
     let mut schema = JsonObject::new();
     let _none = schema.insert("type".to_owned(), json!("object"));
     let _none = schema.insert("properties".to_owned(), properties);

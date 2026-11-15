@@ -124,6 +124,7 @@ pub enum AddedId {
 
 impl AddedId {
     /// The name [`ToolId::parse`] accepts for this tool.
+    #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::GetSession => "get_session",
@@ -143,6 +144,7 @@ impl ToolId {
     /// `name` as a tool this build has.
     ///
     /// `None` is an unknown name. It is refused, not ignored.
+    #[must_use]
     pub fn parse(name: &str) -> Option<Self> {
         Some(match name {
             "list_nodes" => Self::ListNodes,
@@ -207,6 +209,7 @@ impl ToolId {
     ///
     /// Modules that still match the text take this, until that match moves
     /// onto the enum. It is not a second decode.
+    #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::ListNodes => "list_nodes",

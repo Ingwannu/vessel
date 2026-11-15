@@ -79,6 +79,9 @@ impl TryFrom<PolicyInput> for ToolPolicy {
 
 impl ToolPolicy {
     /// Refuse excessive or duplicate entries before storing a launch choice.
+    ///
+    /// # Errors
+    /// Excessive or repeated denylist entries are refused.
     pub fn new(enabled: ToolAccess, disabled: Vec<StoredTool>) -> Result<Self, InvalidMcp> {
         if disabled.len() > MAX_DISABLED_TOOLS {
             return Err(InvalidMcp::DisabledCount);
@@ -101,6 +104,9 @@ impl ToolPolicy {
     }
 
     /// Reads preserve future names; new edits must not claim to enforce one.
+    ///
+    /// # Errors
+    /// A future tool name cannot be newly disabled by this build.
     pub fn validate_edit(&self) -> Result<(), InvalidMcp> {
         if self
             .disabled
@@ -129,6 +135,9 @@ pub struct ProviderPolicy {
 pub struct ProviderPolicies(Vec<ProviderPolicy>);
 impl ProviderPolicies {
     /// Validate count and uniqueness before constructing a node policy.
+    ///
+    /// # Errors
+    /// Excessive or repeated provider overrides are refused.
     pub fn new(items: Vec<ProviderPolicy>) -> Result<Self, InvalidMcp> {
         if items.len() > MAX_PROVIDER_POLICIES {
             return Err(InvalidMcp::ProviderCount);
@@ -151,6 +160,9 @@ impl ProviderPolicies {
     }
 
     /// Reject unknown new edits without losing future names in saved settings.
+    ///
+    /// # Errors
+    /// A future tool name cannot be newly disabled by this build.
     pub fn validate_edit(&self) -> Result<(), InvalidMcp> {
         self.0
             .iter()
