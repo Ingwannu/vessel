@@ -3,8 +3,8 @@
 use crate::Prefs;
 use std::collections::{BTreeMap, BTreeSet};
 use vessel_app_view::prefs::{
-    Appearance, Composer, Layout, MAX_ACTIONS, MAX_MACHINES, MachineDefaults, Notifications,
-    Preferences, Refused, SidebarView,
+    AgentDefaults, Appearance, Composer, Layout, MAX_ACTIONS, MAX_MACHINES, MachineDefaults,
+    Notifications, Preferences, Refused, SidebarView,
 };
 
 fn field<T: PartialEq + Clone>(current: &mut T, before: &T, after: &T) {
@@ -18,15 +18,30 @@ fn map<K: Ord + Clone, V: PartialEq + Clone>(
     before: &BTreeMap<K, V>,
     after: &BTreeMap<K, V>,
 ) {
+    merge_map(current, before, after, |target, _before, after| {
+        target.clone_from(after)
+    });
+}
+
+fn merge_map<K: Ord + Clone, V: PartialEq + Clone>(
+    current: &mut BTreeMap<K, V>,
+    before: &BTreeMap<K, V>,
+    after: &BTreeMap<K, V>,
+    changed: fn(&mut V, Option<&V>, &V),
+) {
     for key in before.keys().chain(after.keys()).collect::<BTreeSet<_>>() {
-        if before.get(key) != after.get(key) {
-            match after.get(key) {
-                Some(value) => {
+        if before.get(key) == after.get(key) {
+            continue;
+        }
+        match after.get(key) {
+            Some(value) => match current.get_mut(key) {
+                Some(target) => changed(target, before.get(key), value),
+                None => {
                     let _old = current.insert(key.clone(), value.clone());
                 }
-                None => {
-                    let _old = current.remove(key);
-                }
+            },
+            None => {
+                let _old = current.remove(key);
             }
         }
     }
@@ -95,7 +110,12 @@ fn preferences(current: &mut Preferences, before: &Preferences, after: &Preferen
     );
     sidebar(&mut current.sidebar, before.sidebar, after.sidebar);
     map(&mut current.shortcuts, &before.shortcuts, &after.shortcuts);
-    defaults(&mut current.defaults, &before.defaults, &after.defaults);
+    merge_map(
+        &mut current.defaults,
+        &before.defaults,
+        &after.defaults,
+        machine_defaults,
+    );
 }
 
 fn appearance(current: &mut Appearance, before: Appearance, after: Appearance) {
@@ -145,40 +165,94 @@ fn sidebar(current: &mut SidebarView, before: SidebarView, after: SidebarView) {
     fields!(current,before,after;group,sort,ended);
 }
 
-fn defaults<K: Ord + Clone>(
-    current: &mut BTreeMap<K, MachineDefaults>,
-    before: &BTreeMap<K, MachineDefaults>,
-    after: &BTreeMap<K, MachineDefaults>,
+fn machine_defaults(
+    current: &mut MachineDefaults,
+    before: Option<&MachineDefaults>,
+    after: &MachineDefaults,
 ) {
-    for key in before.keys().chain(after.keys()).collect::<BTreeSet<_>>() {
-        if before.get(key) == after.get(key) {
-            continue;
-        }
-        match (before.get(key), after.get(key)) {
-            (Some(old), Some(new)) => {
-                let MachineDefaults {
-                    agent: _,
-                    agents: _,
-                } = new;
-                let target = current.entry(key.clone()).or_default();
-                field(&mut target.agent, &old.agent, &new.agent);
-                map(&mut target.agents, &old.agents, &new.agents);
-            }
-            (None, Some(new)) => {
-                let _old = current.insert(key.clone(), new.clone());
-            }
-            (Some(_), None) => {
-                let _old = current.remove(key);
-            }
-            (None, None) => {}
-        }
-    }
+    let MachineDefaults {
+        agent: _,
+        agents: _,
+    } = after;
+    // An absent old entry is its default record, not permission to overwrite
+    // a concurrent window's independently created fields on the same host.
+    let empty = MachineDefaults::default();
+    let before = before.unwrap_or(&empty);
+    field(&mut current.agent, &before.agent, &after.agent);
+    merge_map(
+        &mut current.agents,
+        &before.agents,
+        &after.agents,
+        agent_defaults,
+    );
+}
+
+fn agent_defaults(
+    current: &mut AgentDefaults,
+    before: Option<&AgentDefaults>,
+    after: &AgentDefaults,
+) {
+    let AgentDefaults {
+        profile: _,
+        choices: _,
+    } = after;
+    let empty = AgentDefaults::default();
+    let before = before.unwrap_or(&empty);
+    // Choices is the view's validated atomic option bag. Cloning it preserves
+    // its bounds; profile and choices remain independent form fields.
+    fields!(current,before,after;profile,choices);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use vessel_app_view::prefs::{Grouping, Theme};
+
+    #[test]
+    fn concurrent_default_records_preserve_independent_host_profile_and_choice_fields() {
+        use vessel_app_view::prefs::{AgentKind, Choices};
+        use vessel_proto::{ChoiceValue, HarnessKind, NodeId, OptionId, ProfileName};
+        let node = NodeId::random();
+        let kind = AgentKind(HarnessKind::Claude);
+        let profile: ProfileName = "work".parse().unwrap();
+        let choices = Choices::try_from(BTreeMap::from([(
+            OptionId::new("fast"),
+            ChoiceValue::Toggle { on: true },
+        )]))
+        .unwrap();
+        for existing in [false, true] {
+            let mut before = Prefs::default();
+            if existing {
+                let _old = before
+                    .settings
+                    .defaults
+                    .entry(node)
+                    .or_default()
+                    .agents
+                    .insert(kind, AgentDefaults::default());
+            }
+            let mut current = before.clone();
+            let machine = current.settings.defaults.entry(node).or_default();
+            machine.agent = Some(HarnessKind::Claude);
+            machine.agents.entry(kind).or_default().profile = Some(profile.clone());
+            let mut after = before.clone();
+            after
+                .settings
+                .defaults
+                .entry(node)
+                .or_default()
+                .agents
+                .entry(kind)
+                .or_default()
+                .choices = choices.clone();
+            let next = apply(&current, &before, &after).unwrap();
+            let machine = next.settings.defaults.get(&node).unwrap();
+            let agent = machine.agents.get(&kind).unwrap();
+            assert_eq!(machine.agent, Some(HarnessKind::Claude));
+            assert_eq!(agent.profile.as_ref(), Some(&profile));
+            assert_eq!(agent.choices, choices);
+        }
+    }
 
     #[test]
     fn stale_unrelated_settings_and_nonsettings_fields_survive() {

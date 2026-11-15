@@ -247,3 +247,13 @@ unchanged. G2 owns menu/select focus-helper adoption.
 App narrow 7 at 9ad0eea73 reached one remaining type-inference error in the menu
 click listener; its event now explicitly names GPUI ClickEvent. No complete app
 clippy or behavioral pass is claimed yet.
+
+## Concurrent default-record edits
+
+The canonical coordinator now merges fields inside machine and agent default
+records even when both windows created the same previously absent map entry.
+Previously the second insertion could replace the first window's chosen agent
+or profile. A regression covers both absent and existing entries while changing
+independent host-agent, profile and choices fields. Choices remains the view's
+validated atomic option bag (the existing AgentDefaults change API), so no merge
+can construct an oversized invalid bag. Removal remains a whole map-key delta.
