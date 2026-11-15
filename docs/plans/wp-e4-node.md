@@ -170,3 +170,10 @@ The newer shared node head preserves protocol 23, minimum 2 and schema 18.
 Its process owner now supplies the canonical ProcessId, so the diagnostic
 self-process edge removes its duplicate identifier and reuses the checked
 root value. No lifetime/guard, process carrier or signal behavior changes.
+
+The first product TypeScript generation attempt found the diagnostic PID alias
+row before DeviceId, outside the canonical sorted order. The generator's
+binary search therefore reported it unclassified and stopped before writing
+new declarations. Only the new row moves into its correct sorted position;
+existing shared classifications and their order are unchanged. The failed
+generation remains separate from the subsequent corrected source check.
