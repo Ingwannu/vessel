@@ -767,3 +767,25 @@ out directory, then selected fixtures may run on the approved CFT host as its
 service account with sandbox on. No arbitrary target scp/local Cargo/second
 runtime is used. No actual artifact has been exported/run by W14 yet; existing
 remote ordinary tests remain intact, and source/runtime qualification is owed.
+
+## Candidate bundle observation, not qualification
+
+[Decision Log]
+- Purpose: an unchanged chrome executable path/hash must not silently preserve
+  a candidate launch identity after another runtime asset has been replaced.
+- Existing assets: Candidate already streams SHA-256 under finite Preparation and
+  checks root ownership/nonwritable ancestry. It observes only Chrome and shell.
+- Alternatives: trust only the executable, or observe the complete fixed bundle
+  and retain metadata versions for a post-start unchanged check.
+- Choice: extend that same inspector with a bounded sorted bundle manifest. One
+  named owner limits4096 entries,16 directory levels and1GiB total regular bytes;
+  files reuse the existing512MiB per-file/64KiB streaming owners. Links, special
+  files, unsafe ownership/modes and incomplete/changing reads refuse.
+- Reason: bundle resources/libraries/snapshots must not inherit earlier evidence
+  just because the main executable was unchanged. Relative names, file kind/mode,
+  byte count and file digest participate in one deterministic observed digest.
+- Impact: this remains a candidate observation, not a QualifiedRuntime. Node
+  binary/configuration, OS/dependencies/sandbox policy, transport and all required
+  actual runtime/Preview proofs remain separate. The actual fixed bundle currently
+  has303 regular files/396335288bytes/depth3, root-owned/nonwritable to service.
+  No files, installation, permissions or host policy are changed by inspection.

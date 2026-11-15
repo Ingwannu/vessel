@@ -3,6 +3,7 @@
 //! The future supervisor owns this plan/profile through actual child cleanup;
 //! the node actor may offer a browser only after the complete reviewed runtime,
 //! proxy, input, Preview and platform qualification, not merely these hashes.
+mod bundle;
 mod identity;
 #[cfg(test)]
 mod tests;

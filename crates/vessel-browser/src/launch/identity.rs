@@ -1,4 +1,5 @@
 //! Read-only runtime identity, without an installation path or qualification grant.
+use super::bundle::Bundle;
 use sha2::{Digest as _, Sha256};
 use std::fs::{self, File};
 use std::os::unix::fs::MetadataExt as _;
@@ -38,6 +39,7 @@ pub(crate) enum LaunchError {
 /// Hashes alone never become a `QualifiedRuntime` token.
 pub(super) struct Candidate {
     browser_digest: [u8; 32],
+    bundle: Bundle,
 }
 impl Candidate {
     pub(super) fn inspect() -> Result<Self, LaunchError> {
@@ -46,13 +48,16 @@ impl Candidate {
         }
         verify(Path::new(BROWSER), &BROWSER_DIGEST)?;
         verify(Path::new(super::FIXED_SHELL), &SHELL_DIGEST)?;
+        let bundle = Bundle::inspect(Path::new(BROWSER).parent().ok_or(LaunchError::Identity)?)?;
         Ok(Self {
             browser_digest: BROWSER_DIGEST,
+            bundle,
         })
     }
     #[cfg(test)]
     pub(super) const FIXTURE: Self = Self {
         browser_digest: BROWSER_DIGEST,
+        bundle: Bundle::fixture(),
     };
     pub(super) const fn browser_path() -> &'static str {
         BROWSER
@@ -64,7 +69,11 @@ impl Candidate {
         // Borrowing the actual Child excludes this owner reaping it concurrently.
         // The debugger pipes must also belong to this same supervised child.
         let executable = format!("/proc/{}/exe", child.pid());
-        verify(Path::new(&executable), &self.browser_digest)
+        verify(Path::new(&executable), &self.browser_digest)?;
+        let _observed = self
+            .bundle
+            .verify_unchanged(Path::new(BROWSER).parent().ok_or(LaunchError::Identity)?)?;
+        Ok(())
     }
 }
 fn verify(path: &Path, expected: &[u8; 32]) -> Result<(), LaunchError> {
@@ -95,7 +104,14 @@ fn verify(path: &Path, expected: &[u8; 32]) -> Result<(), LaunchError> {
     }
     Ok(())
 }
-fn digest(reader: &mut impl std::io::Read) -> Result<[u8; 32], LaunchError> {
+pub(super) fn digest(reader: &mut impl std::io::Read) -> Result<[u8; 32], LaunchError> {
+    let mut total = MAX_EXECUTABLE_BYTES;
+    digest_with_budget(reader, &mut total)
+}
+pub(super) fn digest_with_budget(
+    reader: &mut impl std::io::Read,
+    total: &mut u64,
+) -> Result<[u8; 32], LaunchError> {
     let mut hash = Sha256::new();
     let mut buffer = vec![0_u8; FILE_READ_BYTES].into_boxed_slice();
     let mut remaining = MAX_EXECUTABLE_BYTES;
@@ -104,9 +120,9 @@ fn digest(reader: &mut impl std::io::Read) -> Result<[u8; 32], LaunchError> {
         if count == 0 {
             break;
         }
-        remaining = remaining
-            .checked_sub(u64::try_from(count).map_err(|_overflow| LaunchError::Identity)?)
-            .ok_or(LaunchError::Identity)?;
+        let bytes = u64::try_from(count).map_err(|_overflow| LaunchError::Identity)?;
+        remaining = remaining.checked_sub(bytes).ok_or(LaunchError::Identity)?;
+        *total = total.checked_sub(bytes).ok_or(LaunchError::Identity)?;
         hash.update(buffer.get(..count).ok_or(LaunchError::Identity)?);
     }
     Ok(hash.finalize().into())
