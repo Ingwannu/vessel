@@ -43,3 +43,31 @@ async fn dictate_help_names_a_file_and_refuses_a_missing_argument() {
     })
     .await;
 }
+
+#[tokio::test]
+async fn unconsumed_json_is_refused_before_file_or_node_work() {
+    within(async {
+        let root = tempfile::tempdir().unwrap();
+        let result = vessel_in(
+            root.path(),
+            &[
+                "--node",
+                "not a node address",
+                "dictate",
+                "missing.wav",
+                "--json",
+            ],
+            b"",
+        )
+        .await;
+        assert!(!result.ok);
+        assert!(result.stdout.is_empty());
+        assert!(
+            result
+                .stderr
+                .contains("does not support explicit output selection")
+        );
+        assert!(!root.path().join("config").exists());
+    })
+    .await;
+}

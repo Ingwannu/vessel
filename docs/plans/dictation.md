@@ -6,7 +6,7 @@ merge. This plan does not change `PROTOCOL_VERSION`.
 
 ## Current resume point (2026-11-15)
 
-The designated head ede20014 and source-reviewed file-diagnostic prerequisite are
+The designated head 82ae7c91 and source-reviewed file-diagnostic prerequisite are
 on the feature branch. Product wiring now connects the real bounded registry,
 provider, canonical ConnectionLife accessor and shared codec, with five pending
 method-table rows. The protocol constant remains None. The generated guard checks
@@ -881,3 +881,25 @@ setup replies and two large assembled-service futures. The import/semicolon are
 corrected, setup returns are named, and the two existing test futures are boxed.
 The test deadline, inputs, branches and assertions are unchanged. The original
 nonzero run remains retained; none of this establishes runtime success.
+
+
+### New head and mechanical native compatibility
+
+The staged-row/output-seam head is merged; existing head behavior and entries
+were retained. Dictation keeps real pending rows and consumes no explicit output
+presentation. A real-binary regression checks that --json is refused before an
+invalid file/node can cause work; default final-only stdout remains unchanged.
+The two CLI text conflicts preserve the formatted models handler and both head
+presentation errors, adding only dictation's arm and private error boundary.
+
+The three native idle-release NodeSettings fixtures now explicitly omit dictation
+with None; this is mechanical compatibility only. No existing value, assertion,
+branch or other native file changes. One focused native view check is owed on the
+compatibility commit after a prescribed remote label is idle. Root checks do not
+establish native compilation.
+
+The next announced shared head will supply the canonical real connection life
+carrier; that head will replace the earlier connection-factory observer choice,
+with both staging expectations removed at the first real resource consumer.
+It is not merged early. Focused root runtime and current CLI strict are still
+pending on the prior immutable snapshot, so neither proves this merged head.
