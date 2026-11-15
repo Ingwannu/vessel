@@ -182,6 +182,7 @@ impl Demo {
         };
         // The two reachable machines differ only by name.
         let online = |name: &str| Machine {
+            node: None,
             name: name.to_owned(),
             reach: Reach::Online,
             sessions: on(name),
@@ -193,14 +194,7 @@ impl Demo {
             machines: vec![
                 online("laptop"),
                 online("build-server"),
-                Machine {
-                    name: "old-box".to_owned(),
-                    reach: Reach::Unreachable("no route: this is the browser's demo".to_owned()),
-                    sessions: Vec::new(),
-                    agents: Vec::new(),
-                    protocol: None,
-                    version: None,
-                },
+                Machine::unreachable("old-box".to_owned(), "no route: this is the browser's demo"),
             ],
             read_at: Some(now),
         }

@@ -285,3 +285,58 @@ fn report_scope_counts_requested_hosts_independently_of_saved_host_count() {
     );
     assert!(!run.report().unwrap().as_str().contains("private-label"));
 }
+
+#[test]
+fn a_shared_welcome_identity_cannot_be_retargeted_to_another_client_reply() {
+    let mut tickets = Tickets::default();
+    let ticket = tickets.next_ticket().unwrap();
+    let host = MachineKey::from_book("host");
+    let expected = NodeId::random();
+    let other = NodeId::random();
+    let mut run = Collection::default();
+    run.start(ticket, client(), [(host.clone(), Ok(()))]);
+    run.expect_node(&host, expected);
+    run.running(ticket, &host);
+    run.expect_node(&host, other);
+    run.answer(ticket, &host, Ok(result(other)));
+    assert!(matches!(
+        run.rows().first().unwrap().progress,
+        Progress::Failed(Problem::InvalidReply)
+    ));
+    assert!(!run.report().unwrap().as_str().contains(&other.to_string()));
+}
+
+#[test]
+fn the_shared_fleet_retires_changed_removed_and_offline_identity_without_raw_errors() {
+    let mut tickets = Tickets::default();
+    let ticket = tickets.next_ticket().unwrap();
+    let host = MachineKey::from_book("host");
+    let first = NodeId::random();
+    let replacement = NodeId::random();
+    let mut run = Collection::default();
+    run.start(ticket, client(), [(host.clone(), Ok(()))]);
+    run.expect_node(&host, first);
+    run.running(ticket, &host);
+    run.answer(ticket, &host, Ok(result(first)));
+    let mut machine =
+        crate::Machine::unreachable("host".to_owned(), "PRIVATE-FAILURE-MUST-NOT-COPY");
+    machine.reach = crate::Reach::Online;
+    machine.node = Some(replacement);
+    run.reconcile(&[machine.clone()]);
+    assert!(matches!(
+        run.rows().first().unwrap().progress,
+        Progress::Failed(Problem::ConnectionChanged)
+    ));
+    machine.reach = crate::Reach::Unreachable("PRIVATE-FAILURE-MUST-NOT-COPY".to_owned());
+    run.reconcile(&[machine]);
+    assert!(matches!(
+        run.rows().first().unwrap().progress,
+        Progress::Failed(Problem::Offline)
+    ));
+    assert!(!run.report().unwrap().as_str().contains("PRIVATE-FAILURE"));
+    run.reconcile(&[]);
+    assert!(matches!(
+        run.rows().first().unwrap().progress,
+        Progress::Failed(Problem::Offline)
+    ));
+}

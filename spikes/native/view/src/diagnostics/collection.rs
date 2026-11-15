@@ -2,6 +2,7 @@
 //! Refresh and close replace the run identity, so late replies cannot revive it.
 
 use super::DaemonSnapshot;
+use crate::board::{Machine, Reach};
 use crate::devices::{MachineKey, Ticket};
 use vessel_proto::{NodeId, NodeState, ProtocolVersion};
 
@@ -130,7 +131,7 @@ pub enum Progress {
 pub struct HostRow {
     /// Existing parsed book identity, used solely for correlation.
     pub machine: MachineKey,
-    /// Authenticated identity from the first answer, when known.
+    /// Welcome identity pinned for this run, or the first admitted reply when initially unknown.
     pub admitted: Option<NodeId>,
     /// Current request outcome.
     pub progress: Progress,
@@ -194,6 +195,14 @@ impl Collection {
         self.phase = Phase::Collecting;
         self.finish();
     }
+    /// Freeze the shared fleet's welcome identity before dispatch; never retarget an active read.
+    pub fn expect_node(&mut self, machine: &MachineKey, node: NodeId) {
+        if let Some(row) = self.rows.iter_mut().find(|row| &row.machine == machine)
+            && row.progress == Progress::Pending
+        {
+            row.admitted = Some(node);
+        }
+    }
     /// Mark only the pending row of the current run as dispatched.
     pub fn running(&mut self, ticket: Ticket, machine: &MachineKey) {
         if self.ticket != Some(ticket) {
@@ -223,7 +232,7 @@ impl Collection {
         }
         row.progress = match result {
             Ok(answer) => {
-                row.admitted = Some(answer.admitted);
+                let wrong_admission = row.admitted.is_some_and(|node| node != answer.admitted);
                 let wrong_basic = answer
                     .facts
                     .as_ref()
@@ -232,9 +241,10 @@ impl Collection {
                     .daemon
                     .node()
                     .is_some_and(|node| node != answer.admitted);
-                if wrong_basic || wrong_report {
+                if wrong_admission || wrong_basic || wrong_report {
                     Progress::Failed(Problem::InvalidReply)
                 } else {
+                    row.admitted = Some(answer.admitted);
                     match (&answer.facts, &answer.daemon) {
                         (Err(problem), DaemonSnapshot::Unavailable(_)) => {
                             Progress::Failed(*problem)
@@ -260,6 +270,34 @@ impl Collection {
             row.progress = Progress::Failed(Problem::ConnectionChanged);
             self.report = None;
             self.finish();
+        }
+    }
+    /// Reconcile the shared fleet identity before any pending or completed facts are drawn.
+    pub fn reconcile(&mut self, machines: &[Machine]) {
+        let changes: Vec<_> = self
+            .rows
+            .iter()
+            .filter_map(|row| {
+                match machines
+                    .iter()
+                    .find(|machine| machine.name == row.machine.as_str())
+                {
+                    Some(machine) => match &machine.reach {
+                        Reach::Online => machine
+                            .node
+                            .filter(|node| row.admitted.is_some_and(|old| old != *node))
+                            .map(|node| FleetChange::Connected(row.machine.clone(), node)),
+                        Reach::Unreachable(_) => Some(FleetChange::Offline(row.machine.clone())),
+                    },
+                    None => Some(FleetChange::Offline(row.machine.clone())),
+                }
+            })
+            .collect();
+        for change in changes {
+            match change {
+                FleetChange::Connected(machine, node) => self.connected(&machine, node),
+                FleetChange::Offline(machine) => self.invalidate(&machine),
+            }
         }
     }
     /// A renamed/forgotten/offline entry cannot retain a pending old-connection result.
@@ -331,3 +369,9 @@ impl Collection {
 
 #[cfg(test)]
 mod tests;
+
+/// A bounded projection of fleet changes; no raw reachability error is retained.
+enum FleetChange {
+    Connected(MachineKey, NodeId),
+    Offline(MachineKey),
+}

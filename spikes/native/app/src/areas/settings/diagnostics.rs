@@ -82,6 +82,13 @@ impl Shell {
         let state = &mut self.areas.settings.diagnostics;
         state.target = target;
         state.collection.start(ticket, client, hosts);
+        for machine in &self.fleet.machines {
+            if let Some(node) = machine.node {
+                state
+                    .collection
+                    .expect_node(&MachineKey::from_book(&machine.name), node);
+            }
+        }
         self.pump_diagnostics();
         self.areas.settings.diagnostics.dialog.focus(window, cx);
         cx.notify();
@@ -149,26 +156,11 @@ impl Shell {
     }
     /// Retire pending data after forget, rename or disconnect before accepting more results.
     pub(crate) fn settle_diagnostics(&mut self) {
-        if self.areas.settings.diagnostics.collection.phase() == &Phase::Hidden {
-            return;
-        }
-        let invalid: Vec<_> = self
-            .areas
+        self.areas
             .settings
             .diagnostics
             .collection
-            .rows()
-            .iter()
-            .filter(|row| {
-                !self.fleet.machines.iter().any(|machine| {
-                    machine.name == row.machine.as_str() && machine.reach == Reach::Online
-                })
-            })
-            .map(|row| row.machine.clone())
-            .collect();
-        for key in invalid {
-            self.areas.settings.diagnostics.collection.invalidate(&key);
-        }
+            .reconcile(&self.fleet.machines);
     }
 }
 

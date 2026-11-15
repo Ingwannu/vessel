@@ -233,3 +233,24 @@ The next changed-crate narrow compiled the updated typed consumer/UI and found
 one redundant Hub qualification in the new in-memory lifecycle test. Corrected
 without changing that test's assertions or protocol. No functional runtime
 failure is implied by that lint result; scoped execution is still queued.
+
+### Shared package base 2
+
+Merged announced 6036eeb8, including the shared optional Machine.node welcome
+identity and kit editing/event seams. Only the size-list line conflicted: the
+already accepted Diagnostics/Chat integration had extracted demo/catalog and
+shrunk demo below its former base record, so the existing lower record remains;
+no allowance was raised. The actual file is checked after the union. The
+connection-ready hook remains the single fanout and the new node field remains
+the sole fleet identity; no feature-owned parallel identity registry is added.
+
+Before dispatch, this consumer pins a row to Machine.node when available. A
+reply admitted by another node cannot override that expected identity. An
+active request cannot be retargeted by a second expectation. A replaced fleet
+identity also retires prior facts; same-id reconnect still uses the lifecycle
+notice. A regression proves the cross-client reply is refused.
+
+The capture rebuild began just before this base merge, so only its verified
+private process group was interrupted; that artifact is not final evidence.
+The earlier 28 scoped tests and narrow-7 Clippy passed on the prior base; the
+new base/identity consumer still require their own narrow tests and final gate.
