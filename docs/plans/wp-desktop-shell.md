@@ -29,8 +29,9 @@ their authenticated owner adapters; desktop never substitutes a book alias.
 ## Current status
 
 Implementation is source under integration, not a completed parity claim. The
-latest application base is package line 18eedad4 (base 6, connection preflight
-and the safe Windows environment broadcast), merged in 129b06b9b. No node head was merged directly into this application tree.
+latest application base is package line dd13ce37 (base 6, connection preflight,
+the safe Windows environment broadcast, reviewed G2 menu profiles and corrected
+Cargo.lock). No node head was merged directly into this application tree.
 There is no final whole native gate, inspected capture set or V4 package verdict.
 Shared producer review and narrow checks do not substitute for those proofs.
 

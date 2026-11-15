@@ -24,6 +24,41 @@ impl Render for Probe {
 }
 
 #[gpui::test]
+fn unsupported_zoom_is_hidden_and_refused_without_changing_native_scale(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(crate::shell::language_tests::shell_without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let scale = window.scale_factor();
+        for action in [
+            DesktopAction::ZoomIn,
+            DesktopAction::ZoomOut,
+            DesktopAction::ActualSize,
+        ] {
+            assert!(!Shell::desktop_shortcut_supported(action));
+            assert!(!shell.run_desktop_shortcut(action, window, cx));
+        }
+        assert_eq!(window.scale_factor(), scale);
+        assert!(rows(shell, Group::All).iter().all(|row| match row.item {
+            Item::Desktop(action) => Shell::desktop_shortcut_supported(action),
+            Item::Edit(_)
+            | Item::Reload
+            | Item::ForceReload
+            | Item::Minimize
+            | Item::Maximize
+            | Item::Quit
+            | Item::Help(_) => true,
+        }));
+        for action in [
+            DesktopAction::NewWindow,
+            DesktopAction::CloseWindow,
+            DesktopAction::Fullscreen,
+        ] {
+            assert!(Shell::desktop_shortcut_supported(action));
+        }
+    });
+}
+
+#[gpui::test]
 fn context_menu_restores_input_focus_and_disabled_copy_is_skipped(cx: &mut TestAppContext) {
     crate::shell::language_tests::init(cx);
     for (copy, paste) in [

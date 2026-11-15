@@ -23,6 +23,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> bool {
+        if !Self::desktop_shortcut_supported(action) {
+            return false;
+        }
         match action {
             DesktopAction::NewWindow => crate::desktop::open_additional(cx),
             DesktopAction::CloseWindow => vessel_app_kit::chrome::request_close(window, cx),
