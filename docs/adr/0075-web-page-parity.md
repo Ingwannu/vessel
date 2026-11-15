@@ -190,3 +190,13 @@ prompt/menu enters or leaves. Listeners are owned by the visible host and
 released with its last message. The timeline observer is intentionally not
 reused: it owns reading intent and row anchors, which feedback must not
 change. No timer polling or second notification store is introduced.
+
+
+The feedback correction's executed source is `dac496599`. Its whole gate
+passes 2,307 Rust tests (twelve ignored), four TypeScript freshness checks,
+464 web units, 79 browser cases and four forge fixtures. This is execution
+evidence, not review or integration approval. The retained 32-image matrix
+belongs to the earlier unchanged toast renderer `7e3418d8` and its caption-
+only capture harness `37a723ba`; later menu ownership is exercised by the
+real-browser regressions. Earlier failures and the precise capture/provenance
+limits remain documented in the plan.

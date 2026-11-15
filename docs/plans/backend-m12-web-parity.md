@@ -1254,3 +1254,68 @@ regression shares the existing real lazy-route harness with the dialog
 case. This proves a menu ownership defect, without claiming it alone
 explains both intermittent whole-run failures. Changed-source checks and
 whole evidence remain pending.
+
+
+### Feedback package executed result
+
+Executed source `dac4965996491e214bc6f5391df6cce8e012359e` passes all
+eighteen whole-gate stages on the merged contract base. Independent raw-log
+sums are 116 Rust summaries, 2,307 passed / zero failed / twelve ignored;
+two TypeScript-generation summaries total four passed, with no diff; 464
+web unit tests, 79 browser cases and four forge fixtures pass. Format,
+boundary/size checks, all three Clippy modes, lint, typecheck, fonts and
+fresh bundle/binary builds pass. Both fixture prebuilds precede tests in
+the same environment. The changed web, node and CLI crates actually compile.
+A separate six-case browser run passes the dialog/menu/early-Escape/recorder
+regressions and the unchanged Display and reconnect cases.
+
+The new controlled menu counterfactual fails on the retained old renderer:
+Display first owns keyboard focus; releasing the held lazy page leaves the
+menu painted and activates Prompt instead. Its frozen source and asset
+record are retained. The corrected whole run closes the current gate; it
+does not erase the earlier security-receipt failure, the short-phone hit
+failure after the earlier green run, the capture-title collection failure,
+or the two `774f41b8` browser failures. Existing head assertions, deadlines
+and retries remain unchanged.
+
+The visual evidence is deliberately separate. Sixteen capture cases produce
+32 originals across en-US/ko-KR, light/dark, and 1280x900, 390x844, 390x600,
+800x600, showing a normal copy toast and a scrolled stack. Every original
+was opened and rehashed; all sixteen capture cases check horizontal
+overflow, page errors and console errors. Their renderer
+is `7e3418d8`; harness `37a723ba` changes only the duplicate viewport title.
+All 3,385 selected inputs match before/after; 3,216 tracked contents match
+that harness commit. The eighteen served static assets match its bundle.
+That matrix proves its submitted short-text states, not a new latest-head
+render or a rendered long error, permission card, cold phone bootstrap,
+physical device, IME or accessibility audit. Browser locale varies; the
+existing English UI labels are not a complete Korean translation. The toast
+renderer and tests
+remain unchanged by the later menu-only correction.
+
+Five capture fleet identities were recorded and are gone. The two capture
+helper launch snapshots were missed; only current PID absence is claimed
+for those helpers. Current owned-runtime/browser-profile scans are empty;
+private fixture data is empty with the original owner and mode 0700. The
+final cleanup sends no additional signals after normal test teardown. No
+live services, OS permission changes, real agent prompts, real accounts,
+vendor account calls, native authored changes or deployment are part of this
+work.
+The remote whole is identified by its immutable commit, checkout/spec and
+logs; no bespoke remote pre/post source manifest is claimed.
+
+### Resume point after feedback
+
+Done: the feedback source above and its full gate; review submission carries
+the exact source, historical adverse evidence and original capture scope.
+Review/integration approval is separate from this author's executed result.
+No new node method, field, protocol or store schema is authored here.
+
+Next: the assigned F3 web usage package, preserving reported accounting and
+context when external lookup is off. The source owner's report/inspect/
+source-consent calls remain pending until a reviewed, assigned node head
+contains them. Do not consume drafts, invent a number or simulate working
+quota data in the browser. Same-binding success, refresh origin, explicit
+source disclosure and unsupported session associations must remain typed.
+Pure formatting/time preparation has not been installed into this tree and
+is not part of this package's gate or review.
