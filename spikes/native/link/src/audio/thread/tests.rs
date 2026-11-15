@@ -59,7 +59,7 @@ fn a_slow_device_destructor_keeps_the_slot_after_callbacks_are_fenced() {
     let (release, released) = blocking::sync_channel(1);
     let (sender, _receiver) = mpsc::channel(1);
     let task = std::thread::spawn(move || {
-        run(owner, &sender, |fence, _budget| {
+        run(owner, &sender, |fence, _budget, _upload| {
             Ok(Device {
                 fence,
                 dropped,
@@ -77,7 +77,7 @@ fn a_slow_device_destructor_keeps_the_slot_after_callbacks_are_fenced() {
     assert!(engine.reserve(CapturePurpose::Dictation).is_ok());
 }
 
-struct Frames(Processor, Budget);
+struct Frames(Processor, Budget, Gate);
 impl CaptureDevice for Frames {
     fn start(&self) -> Result<(), DeviceFailure> {
         Ok(())
@@ -90,7 +90,7 @@ impl CaptureDevice for Frames {
                 .and_then(|permit| {
                     self.0
                         .capture(&[0.0; 160])
-                        .map(|audio| Held::new(audio, permit))
+                        .map(|audio| Held::new(audio, permit, self.2.snapshot()))
                         .map_err(|_private| DeviceFailure::Processing)
                 }),
         )
@@ -106,8 +106,8 @@ fn normalized_queue_overrun_disposes_the_device_and_cannot_reuse_a_generation() 
     let (owner, handle) = engine.reserve(CapturePurpose::Dictation).unwrap();
     let status = handle.status();
     let (sender, mut receiver) = mpsc::channel(1);
-    run(owner, &sender, |_fence, budget| {
-        Ok(Frames(processor(), budget))
+    run(owner, &sender, |_fence, budget, upload| {
+        Ok(Frames(processor(), budget, upload))
     });
     assert_eq!(*status.borrow(), State::Failed(DeviceFailure::Overrun));
     let frame = receiver.try_recv().unwrap();
@@ -125,7 +125,7 @@ fn opening_failure_releases_reservation_without_any_running_state() {
     let (owner, handle) = engine.reserve(CapturePurpose::Dictation).unwrap();
     let status = handle.status();
     let (sender, _receiver) = mpsc::channel(1);
-    run::<Frames>(owner, &sender, |_fence, _budget| {
+    run::<Frames>(owner, &sender, |_fence, _budget, _upload| {
         Err(DeviceFailure::Unavailable)
     });
     assert_eq!(*status.borrow(), State::Failed(DeviceFailure::Unavailable));
@@ -158,7 +158,9 @@ fn stop_wakes_a_silent_device_without_waiting_for_another_callback() {
     let (done, finished) = blocking::sync_channel(1);
     let (sender, _receiver) = mpsc::channel(1);
     let task = std::thread::spawn(move || {
-        run(owner, &sender, |_fence, _budget| Ok(Silent { started }));
+        run(owner, &sender, |_fence, _budget, _upload| {
+            Ok(Silent { started })
+        });
         done.send(()).unwrap();
     });
     running.recv_timeout(Duration::from_secs(2)).unwrap();

@@ -13,6 +13,7 @@ use super::capture::Held;
 use super::dsp::Processor;
 use super::format::{Channels, Format, RateHz};
 use super::owner::DeviceFailure;
+use super::upload_access::Gate;
 use crate::cancel::Fence;
 
 const DEVICE_OPEN_TIMEOUT: Duration = Duration::from_secs(1);
@@ -38,7 +39,11 @@ impl std::fmt::Debug for Native {
 }
 
 impl Native {
-    pub(super) fn open(fence: Arc<Fence>, budget: Budget) -> Result<Self, DeviceFailure> {
+    pub(super) fn open(
+        fence: Arc<Fence>,
+        budget: Budget,
+        upload: Gate,
+    ) -> Result<Self, DeviceFailure> {
         let device = cpal::default_host()
             .default_input_device()
             .ok_or(DeviceFailure::Unavailable)?;
@@ -51,7 +56,7 @@ impl Native {
         let format = Format::new(rate, channels).map_err(|_private| DeviceFailure::Format)?;
         let processor =
             Processor::capture_only(format).map_err(|_private| DeviceFailure::Processing)?;
-        let (callback, frames) = Callback::channel(format, Arc::clone(&fence), budget);
+        let (callback, frames) = Callback::channel(format, Arc::clone(&fence), budget, upload);
         let overrun = callback.overrun();
         let interrupted = Arc::new(AtomicBool::new(false));
         let stream = build(&device, &config, callback, fence, Arc::clone(&interrupted))?;
@@ -74,10 +79,10 @@ impl CaptureDevice for Native {
 
     async fn receive(&mut self) -> Result<Held, DeviceFailure> {
         let frame = self.frames.recv().await.ok_or(DeviceFailure::Interrupted)?;
-        let (samples, permit) = frame.into_parts();
+        let (samples, permit, access) = frame.into_parts();
         self.processor
             .capture(&samples)
-            .map(|audio| Held::new(audio, permit))
+            .map(|audio| Held::new(audio, permit, access))
             .map_err(|_private| DeviceFailure::Processing)
     }
 

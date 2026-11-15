@@ -65,7 +65,24 @@ impl Frame {
         if expected.purpose() != vessel_app_view::audio::CapturePurpose::Conversation {
             return Err(CaptureError::Invalid);
         }
+        if !frame.uploadable() {
+            return Err(CaptureError::Muted);
+        }
         Ok(Self(Source::Capture(frame)))
+    }
+    fn permitted(&self) -> bool {
+        match &self.0 {
+            Source::Bytes(_) => true,
+            #[cfg(any(target_os = "linux", target_os = "windows"))]
+            Source::Capture(frame) => frame.uploadable(),
+        }
+    }
+    fn interval(&self) -> Option<crate::audio::UploadInterval> {
+        match &self.0 {
+            Source::Bytes(_) => None,
+            #[cfg(any(target_os = "linux", target_os = "windows"))]
+            Source::Capture(frame) => frame.upload_interval(),
+        }
     }
 }
 
@@ -75,6 +92,8 @@ pub(super) enum CaptureError {
     Invalid,
     #[error("capture is stopped")]
     Stopped,
+    #[error("this capture interval is muted")]
+    Muted,
     #[error("capture queue overflow stopped the conversation")]
     Overrun,
 }
@@ -136,6 +155,9 @@ impl Capture {
     pub(super) fn submit(&self, frame: Frame) -> Result<(), CaptureError> {
         if self.fence.is_closed() {
             return Err(CaptureError::Stopped);
+        }
+        if !frame.permitted() {
+            return Err(CaptureError::Muted);
         }
         let count = u32::try_from(frame.pcm().len()).map_err(|_private| CaptureError::Invalid)?;
         let permit = Arc::clone(&self.budget)
@@ -263,9 +285,20 @@ impl Uploader {
         if self.fence.is_closed() {
             return Ok(Continue::No);
         }
+        if !frame.permitted() {
+            return Ok(Continue::Yes);
+        }
+        let interval = frame.interval();
+        let muted = async move {
+            match interval {
+                Some(interval) => interval.closed().await,
+                None => std::future::pending().await,
+            }
+        };
         tokio::select! {
             biased;
             () = self.fence.closed() => Ok(Continue::No),
+            () = muted => Ok(Continue::Yes),
             result = tokio::time::timeout(STOP_DEADLINE, node.upload(frame)) => match result {
                 Ok(Ok(())) => Ok(Continue::Yes),
                 Ok(Err(failure)) => Err(failure),

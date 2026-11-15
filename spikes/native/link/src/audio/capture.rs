@@ -71,11 +71,20 @@ pub enum AcquireError {
 pub(super) struct Held {
     audio: super::dsp::Captured,
     permit: super::budget::Permit,
+    access: super::upload_access::Access,
 }
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 impl Held {
-    pub(super) fn new(audio: super::dsp::Captured, permit: super::budget::Permit) -> Self {
-        Self { audio, permit }
+    pub(super) fn new(
+        audio: super::dsp::Captured,
+        permit: super::budget::Permit,
+        access: super::upload_access::Access,
+    ) -> Self {
+        Self {
+            audio,
+            permit,
+            access,
+        }
     }
 }
 
@@ -87,6 +96,7 @@ pub struct Frame {
     pcm: Bytes,
     level: vessel_app_view::voice::Level,
     _permit: super::budget::Permit,
+    access: super::upload_access::Access,
 }
 impl Frame {
     #[cfg(any(target_os = "linux", target_os = "windows"))]
@@ -97,6 +107,7 @@ impl Frame {
             pcm,
             level,
             _permit: held.permit,
+            access: held.access,
         }
     }
     /// Routing is determined by this acquisition, never by the current UI route.
@@ -113,6 +124,16 @@ impl Frame {
     #[must_use]
     pub const fn level(&self) -> vessel_app_view::voice::Level {
         self.level
+    }
+    /// Whether this block's original capture interval still permits upload.
+    /// Recheck immediately before creating an upload; unmute never revives old PCM.
+    #[must_use]
+    pub fn uploadable(&self) -> bool {
+        self.access.live()
+    }
+    #[cfg(test)]
+    pub(crate) fn upload_interval(&self) -> Option<super::upload_access::Interval> {
+        self.access.interval()
     }
     /// Borrow audio at the upload/codec boundary; do not put it in diagnostics.
     #[must_use]

@@ -326,3 +326,21 @@ Stop drains/retires the owned frames before remote teardown; a synthetic-device
 regression checks permits survive channel transfer and are all released while
 the remote Stop reply is held. No microphone opens in that fixture. Compile and
 runtime checks of this accounting change are still owed.
+
+### Capture-origin mute intervals
+
+[Decision Log]
+- Purpose: queued PCM must never become uploadable merely because mute was quickly toggled off.
+- Existing constraint: view mute state and checking at upload time cannot identify audio buffered during a previous mute interval; level processing still needs microphone samples.
+- Alternatives: clearing one queue misses partial callbacks and in-flight requests; discarding every device block stops level processing.
+- Choice: snapshot an opaque upload interval before the first sample of each normalized block. Mute permanently closes that interval; unmute creates a new one. The callback suppresses upload on control-lock contention, never waits on it. Stop independently closes the acquisition fence.
+- Effect: device normalization and RMS continue while muted; the staged uploader drops invalid queued frames and cancels a held upload on interval closure. Copies of PCM outside its owning frame remain forbidden by the acquisition budget contract. A new upload cannot make already transmitted bytes disappear remotely.
+
+The mute mutator and voice adapter remain test-only until the real duplex
+conversation owner exists. Public frames expose an uploadable predicate; no
+product route claims mute or conversation readiness. Fakes exercise an immediate
+mute/unmute with a held request and queued PCM, then acquire the entire byte
+budget before issuing Stop to prove mute itself released all old frames.
+Callback tests cover a partial block spanning each control transition. These
+checks are newly authored and await remote execution; no physical microphone,
+provider cancellation or platform permission claim follows from them.

@@ -5,7 +5,10 @@
 //! refused until duplex playback is wired. Tests open no device.
 
 mod budget;
+mod upload_access;
 pub use budget::CAPTURE_QUEUE_BYTES;
+#[cfg(all(test, not(target_arch = "wasm32")))]
+pub(crate) use upload_access::Interval as UploadInterval;
 mod capture;
 pub use capture::{AcquireError, Capture, CaptureControl, CaptureState, DeviceFailure, Frame};
 pub use format::{Channels, Format, FormatError, FrameCount, RateHz};

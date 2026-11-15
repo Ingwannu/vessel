@@ -1232,7 +1232,12 @@ device worker; Stop wakes a silent callback reader without polling. Other
 platforms return typed Unsupported. Conversation acquisition returns
 ConversationUnavailable until duplex output wiring exists. No product entry
 point invokes acquisition yet; fake tests prove ownership, not physical device
-or permission behavior. The speaker callback/reference/drain code remains staged.
+or permission behavior. Its acquisition-wide64000-byte permit follows each
+frame through raw capture, normalization, queuing and any borrowing upload.
+A frame's uploadable predicate reflects its original capture interval; an old
+or muted interval cannot reopen after unmute. The conversation mute mutator and
+cancellable uploader are still test-only. The speaker callback/reference/drain
+code remains staged.
 Voice glyph source/notices live in kit/src/assets/voice/; their existing outline
 Stop counterpart is unchanged.
 

@@ -253,3 +253,55 @@ async fn the_same_capture_budget_survives_device_normalization_queue_and_upload(
     reply_tx.send(Ok(())).unwrap();
     task.await.unwrap();
 }
+
+#[cfg(any(target_os = "linux", target_os = "windows"))]
+#[tokio::test]
+async fn mute_cancels_held_upload_and_unmute_never_revives_queued_or_muted_capture() {
+    use crate::audio::testing::CaptureFixture;
+    use vessel_app_view::{audio::CapturePurpose, voice::Mute};
+    let mut device = CaptureFixture::new(CapturePurpose::Conversation);
+    let lease = device.lease();
+    let (capture, handle, actor) = with_fence(device.fence());
+    for _ in 0..2 {
+        capture
+            .submit(Frame::from_capture(lease, device.frame()).unwrap())
+            .unwrap();
+    }
+    let probe = Arc::new(Probe::default());
+    let (upload_tx, upload_rx) = oneshot::channel();
+    let (stop_tx, stop_rx) = oneshot::channel();
+    let (reply_tx, reply_rx) = oneshot::channel();
+    let task = tokio::spawn(actor.run(
+        Node {
+            probe: Arc::clone(&probe),
+            entered_upload: Some(upload_tx),
+            entered_stop: Some(stop_tx),
+            stop_reply: reply_rx,
+        },
+        Device {
+            probe: Arc::clone(&probe),
+            release: Ok(()),
+        },
+    ));
+    upload_rx.await.unwrap();
+    device.mute(Mute::Muted);
+    let muted_frame = device.frame();
+    device.mute(Mute::Open);
+    assert!(matches!(
+        Frame::from_capture(lease, muted_frame),
+        Err(CaptureError::Muted)
+    ));
+    // Actual frame destruction must precede Stop: otherwise Stop itself could
+    // cancel a broken mute path and make this regression pass accidentally.
+    tokio::time::timeout(Duration::from_secs(2), device.wait_empty())
+        .await
+        .unwrap();
+    assert!(!device.fence().is_closed());
+    assert_eq!(probe.sent.load(Ordering::Acquire), 1);
+    handle.stop();
+    stop_rx.await.unwrap();
+    assert_eq!(probe.sent.load(Ordering::Acquire), 1);
+    assert_eq!(device.available(), CAPTURE_QUEUE_BYTES);
+    reply_tx.send(Ok(())).unwrap();
+    task.await.unwrap();
+}

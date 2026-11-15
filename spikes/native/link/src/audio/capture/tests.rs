@@ -43,6 +43,7 @@ async fn a_queued_frame_has_typed_fixed_metadata_and_stop_discards_it() {
         Held::new(
             processor.capture(&[0.0; 160]).unwrap(),
             owner.budget().reserve().unwrap(),
+            owner.upload_gate().snapshot(),
         ),
     );
     assert_eq!(frame.format().rate().get(), 16_000);

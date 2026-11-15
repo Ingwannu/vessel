@@ -29,6 +29,16 @@ impl Budget {
     pub(super) fn available(&self) -> usize {
         self.0.available_permits()
     }
+    #[cfg(test)]
+    pub(super) async fn wait_empty(&self) {
+        // Acquiring the entire budget observes actual destruction of every
+        // retained frame, including a request held outside the data queue.
+        let held = Arc::clone(&self.0)
+            .acquire_many_owned(u32::try_from(CAPTURE_QUEUE_BYTES).unwrap())
+            .await
+            .unwrap();
+        drop(held);
+    }
     pub(super) fn reserve(&self) -> Result<Permit, TryAcquireError> {
         Arc::clone(&self.0)
             .try_acquire_many_owned(NORMALIZED_BLOCK_BYTES)

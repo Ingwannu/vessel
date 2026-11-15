@@ -34,9 +34,18 @@ impl CaptureFixture {
     pub(crate) fn available(&self) -> usize {
         self.owner.budget().available()
     }
+    pub(crate) async fn wait_empty(&self) {
+        self.owner.budget().wait_empty().await;
+    }
+    pub(crate) fn mute(&self, mute: vessel_app_view::voice::Mute) {
+        self.owner.upload_gate().set_mute(mute).unwrap();
+    }
     pub(crate) fn frame(&mut self) -> Frame {
         let permit = self.owner.budget().reserve().unwrap();
         let audio = self.processor.capture(&[0.0; 160]).unwrap();
-        Frame::new(self.owner.lease(), Held::new(audio, permit))
+        Frame::new(
+            self.owner.lease(),
+            Held::new(audio, permit, self.owner.upload_gate().snapshot()),
+        )
     }
 }

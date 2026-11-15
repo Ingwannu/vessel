@@ -14,6 +14,7 @@ use vessel_app_view::audio::{CaptureCompletion, CaptureLease, CapturePurpose, Ca
 
 use super::AudioError;
 use super::budget::Budget;
+use super::upload_access::Gate;
 use crate::cancel::Fence;
 
 static ENGINE: OnceLock<Engine> = OnceLock::new();
@@ -35,6 +36,7 @@ pub(super) struct Owner {
     status: watch::Sender<State>,
     failure: Option<DeviceFailure>,
     budget: Budget,
+    upload: Gate,
 }
 
 /// This handle gates callbacks; it cannot release physical ownership.
@@ -66,6 +68,7 @@ impl Engine {
                 status,
                 failure: None,
                 budget: Budget::default(),
+                upload: Gate::new(Arc::clone(&fence)),
             },
             Handle {
                 lease,
@@ -77,6 +80,9 @@ impl Engine {
 }
 
 impl Owner {
+    pub(super) fn upload_gate(&self) -> Gate {
+        self.upload.clone()
+    }
     pub(super) fn budget(&self) -> Budget {
         self.budget.clone()
     }
