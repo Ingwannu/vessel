@@ -310,7 +310,8 @@ async fn sessions_that_ended_before_schema_7_are_archived() {
         .unwrap();
     connection
         .execute_batch(
-            "ALTER TABLE sessions DROP COLUMN title_origin;
+            "DROP TRIGGER timeline_admission_insert; DROP TRIGGER timeline_admission_delete; DROP TABLE timeline_admissions; DROP TABLE timeline_admission_usage; DROP TABLE timeline_admission_meta;
+ALTER TABLE sessions DROP COLUMN title_origin;
              DROP TABLE usage_samples;
              DROP TABLE usage_meta;
              ALTER TABLE sessions DROP COLUMN usage_cost_baseline;

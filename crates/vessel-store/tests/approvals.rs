@@ -20,7 +20,8 @@ mod fixtures;
 /// ledger, side plans, search,
 /// schedules, saved prompts, hooks, the set an approval covered, and pull
 /// request feedback.
-const UNDO_SCHEMAS_10_TO_16: &str = "ALTER TABLE sessions DROP COLUMN title_origin;
+const UNDO_SCHEMAS_10_TO_16: &str = "DROP TRIGGER timeline_admission_insert; DROP TRIGGER timeline_admission_delete; DROP TABLE timeline_admissions; DROP TABLE timeline_admission_usage; DROP TABLE timeline_admission_meta;
+ALTER TABLE sessions DROP COLUMN title_origin;
      DROP TABLE usage_samples;
      DROP TABLE usage_meta;
      ALTER TABLE sessions DROP COLUMN usage_cost_baseline;
