@@ -38,7 +38,11 @@ device-authority-unavailable = Could not check this connection’s access right 
 device-authority-management = Device management
 
 # A sent write lost its admission; no success or definite failure is inferred.
+# Warning title after a sent operation lost a confirmed result; stay short.
 device-authority-uncertain-title = Result unconfirmed
+# Invitation result is unknown after retirement or a local deadline; no credential remains.
 device-authority-uncertain-invitation = Could not confirm whether a pairing link was created. It cannot be shown safely. Create a fresh link when needed.
+# Sent access-removal result is unknown; ask for a manual device-list check before retry.
 device-authority-uncertain-revocation = Could not confirm whether access was revoked. Check the paired devices before trying again; reconnect first if needed.
+# Both sent operation kinds have unknown results; one whole recovery sentence for the notice.
 device-authority-uncertain-both = Could not confirm whether the pairing link was created or access was revoked. Check the paired devices before trying again; reconnect first if needed, and create a fresh link when needed.

@@ -38,7 +38,11 @@ device-authority-unavailable = 지금은 이 연결의 권한을 확인할 수 �
 device-authority-management = 기기 관리
 
 # A sent write lost its admission; no success or definite failure is inferred.
+# Warning title after a sent operation lost a confirmed result; stay short.
 device-authority-uncertain-title = 결과 확인 필요
+# Invitation result is unknown after retirement or a local deadline; no credential remains.
 device-authority-uncertain-invitation = 페어링 링크가 만들어졌는지 확인하지 못했습니다. 안전하게 표시할 수 없으므로 필요하면 새 링크를 만드세요.
+# Sent access-removal result is unknown; ask for a manual device-list check before retry.
 device-authority-uncertain-revocation = 접근이 해제되었는지 확인하지 못했습니다. 필요하면 다시 연결하고, 페어링된 기기를 확인한 뒤 재시도하세요.
+# Both sent operation kinds have unknown results; one whole recovery sentence for the notice.
 device-authority-uncertain-both = 페어링 링크 생성과 접근 해제의 결과를 확인하지 못했습니다. 필요하면 다시 연결해 페어링된 기기를 확인한 뒤 재시도하고, 새 링크가 필요하면 다시 만드세요.

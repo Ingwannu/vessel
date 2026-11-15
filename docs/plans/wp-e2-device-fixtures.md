@@ -248,3 +248,10 @@ pattern rather than renaming the product keep-alive field or exporting a
 handle. No second runtime, assertion weakening or lint allowance is introduced.
 The queued fixed graph remains pinned to e284 (identical Cargo/lock edges).
 Changed-source strict checks are next on the corrected straight package head.
+
+
+The corrected9f141b87 strict run then stopped in the View catalog build:
+all four new uncertainty entries need their own translator-context comment;
+one preceding group comment is insufficient. The next correction gives each
+message its place and semantics, without changing copy or generated APIs.
+No current-source Link/App check or runtime result is inferred from this red.
