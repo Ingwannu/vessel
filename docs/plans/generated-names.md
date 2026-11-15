@@ -687,3 +687,18 @@ The initialized-trust factory passes library validation. Next connect
 validated settings and file compatibility, construct the dedicated pool
 once, reuse admission/credentials/records, and observe the accepted first
 prompt before actor comparison/application. Nothing starts branch work.
+
+### Prepared body and all-candidate validation contract
+
+Reuse the selector's checked constructor, the text edge's neutral defaults
+and the bounded LLM encoder. A private Prepared type owns encoded bytes
+and API identity with redacted Debug; only successful encoding constructs
+it in product code. The completion client consumes it and rejects an API
+mismatch before sending. Pure validation checks each stored manual entry,
+including later candidates, using an unsent neutral request; automatic
+empty settings are valid without a route. No probes, key reads or writes.
+Tests owe override/default models, missing/later bad candidates, future
+effort, actual thinking-budget refusal, positive shared output budget,
+source/style preparation and API mismatch with zero recorded attempts.
+Constructor extraction is a separate behavior-preserving step before the
+new preflight entry points. Production settings and observer wiring follow.

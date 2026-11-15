@@ -836,3 +836,30 @@ apply a title; the later owner must do those operations in that order.
   certificate change requires the owner to rebuild it. Tests check shared
   trust identity and independent policies without opening a socket. No
   generation, route or credential discovery is added by the factory.
+
+### Prepared title requests and settings preflight
+
+[Decision Log]
+- Purpose and intent: make the bounded encoder the only product constructor
+  of a metadata request that can reach the transport, and validate every
+  manual setting before it can be saved.
+- Existing constraints: route selection checks one tuple; writing needs
+  all candidates checked. The text edge owns neutral defaults and effort
+  mapping, while the LLM encoder owns the actual provider cap check.
+- Alternatives considered: duplicate those checks in Settings, send a
+  probe to the provider, or let the client take arbitrary bytes.
+- Choice: reuse one candidate checker and neutral request constructor.
+  One encoder produces a redacted Prepared body with its API identity.
+  Actual title preparation supplies captured material and style. Pure
+  settings validation uses an unsent empty conversation to check the same
+  model/effort/output policy, with no route, key or capability discovery.
+- Why this choice: a route's declared flags and allowed model pair can be
+  checked without spending. The positive title-output budget is named in
+  this owner and converted to OutputTokens before encoding. An API mismatch
+  at the transport boundary is refused before any call.
+- Effects: empty automatic settings remain valid even without routes;
+  every manual entry, including a later entry, must resolve and encode.
+  Reload-time selection still skips vanished entries as already stated.
+  A typed preflight refusal leaves file and active settings untouched.
+  This validates declared local configuration, not remote model availability.
+  No setting is registered or saved in this staged preparation slice.
