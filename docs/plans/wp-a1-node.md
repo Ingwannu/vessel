@@ -395,3 +395,9 @@ Background mirror in both persisted SessionInfo and spec. This proves only the
 staged join when executed; the public controller must still call validation
 before count/receipt work, and legacy/unbound inheritance remains its own owner.
 New source execution is owed; no listing RPC/protocol availability is changed.
+
+
+Exact3307 strict compiled the combined source and returned one authored test
+let_and_return lint in the real actor fixture's admission helper. The fixture
+now returns the identical awaited result directly; no actor, identity, count,
+listing or registry assertion changes. Current corrected execution remains owed.

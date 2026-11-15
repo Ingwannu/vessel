@@ -42,7 +42,7 @@ async fn workspace(fixture: &Fixture) -> WorkspaceId {
 }
 
 async fn admit(fixture: &Fixture, workspace: WorkspaceId, session: SessionId) -> Receipt {
-    let admitted = fixture
+    fixture
         .store
         .admit_creation(CreationAdmission {
             identity: CreationIdentity::new(
@@ -65,8 +65,7 @@ async fn admit(fixture: &Fixture, workspace: WorkspaceId, session: SessionId) ->
             .unwrap(),
         })
         .await
-        .unwrap();
-    admitted
+        .unwrap()
 }
 
 #[tokio::test]
