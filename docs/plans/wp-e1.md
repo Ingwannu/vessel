@@ -343,3 +343,18 @@ No source from that unannounced batch is merged into this development
 branch or the frozen selection gate. ManagedLocal consumers remain
 preparation-only. The native re-export compatibility assertions are still
 separate; node tests cannot establish native consumer/runtime approval.
+
+### Remaining inherited dialog differences
+
+Reread the complete `components/rename-modal.tsx` and its actual
+`HostRenameButton` caller in `screens/settings/host-appearance-section.tsx`.
+The host caller passes no custom validator: unchanged/nonblank/pending
+button gating matches that call, while Vessel's existing ASCII book-name
+validation is a documented adaptation until labels are separate.
+Two existing drawing differences still belong to the later Overview
+redraw: Paseo changes the submit label to its saving sentence while
+pending, whereas the current native dialog retains the rename label;
+Paseo's error text uses its base size, whereas the inherited native error
+uses Type::Meta. The selection/profile subfeature does not fix these or
+claim complete host-dialog parity. Preserve them in the E1 remaining-work
+list rather than interpreting pending-input evidence as a full UI pass.
