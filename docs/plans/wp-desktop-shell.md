@@ -209,9 +209,10 @@ zero-return/success-code result as Unconfirmed, mapped honestly to Other at the
 binary bridge. Real Windows execution remains unverified; Wine packaging checks
 are separate.
 The release owner confirmed that plain windows-gnu native check is not provisioned
-on the build VM (missing C compiler and fxc environment). T is adding the agreed
-locked cargo-xwin/MSVC narrow selection with the release tool environment. Until
-that interface lands, Windows cfg compilation is pending; no local fallback runs.
+on the build VM (missing C compiler and fxc environment). T installed the agreed
+locked cargo-xwin/MSVC --native-windows-check selection with the release SDK/fxc
+environment. Exact36d11faaa is queued under wp-desktop-shell-win-check as a Windows
+all-target typecheck only, not a runtime or root cross-check. No local fallback runs.
 
 ## Canonical preferences and feature caches
 

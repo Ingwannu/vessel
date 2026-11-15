@@ -72,7 +72,7 @@ fn guarded_close(window: &Window, cx: &mut App) -> bool {
             let admitted = record
                 .shell
                 .upgrade()
-                .is_none_or(|shell| shell.update(cx, |shell, cx| handler(shell, cx)));
+                .is_none_or(|shell| shell.update(cx, handler));
             if admitted {
                 if !cfg!(target_os = "macos") && cx.windows().len() <= 1 {
                     super::request_quit(cx);
@@ -153,7 +153,7 @@ fn open(placement: Placement, launch: Option<Launch>, cx: &mut App) {
     }
     let primary = matches!(placement, Placement::Primary);
     match cx.open_window(options, move |window, cx| {
-        window.on_window_should_close(cx, |window, cx| may_close(window, cx));
+        window.on_window_should_close(cx, may_close);
         crate::motion::note_renderer(window, cx);
         let shell = cx.new(|cx| Shell::new(prefs, language, words, window, cx));
         cx.global_mut::<Desktop>().records.push(WindowRecord {
