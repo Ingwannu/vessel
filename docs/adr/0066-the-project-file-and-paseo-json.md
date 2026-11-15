@@ -788,3 +788,9 @@ reasons, required cache/wait ownership bounds, all-client approval display,
 failed-write preservation and actual route revocation prerequisites. These
 values do not qualify allocator/helper/health/proxy/Preview execution. A
 separate real-handler review and enclosing feature gate are still required.
+
+The legacy web bridge also refuses every staged service method before it
+obtains a node client. This conservative staging boundary does not remove
+an existing service feature: no qualified browser consumer exists for these
+new methods. Its later admission needs a separate reviewed decision and
+complete display; native/CLI admission is not inherited implicitly.

@@ -251,6 +251,15 @@ const fn forwardable(method: Method) -> bool {
         | Method::GitCompare
         | Method::GitCompareFile => true,
         Method::Subscribe
+        // Values-only service methods have no qualified browser consumer yet.
+        | Method::ListWorkspaceScripts
+        | Method::StartWorkspaceScript
+        | Method::StopWorkspaceScript
+        | Method::RestartWorkspaceScript
+        | Method::GetWorkspaceServiceEnv
+        | Method::GetServiceSettings
+        | Method::SetServiceGateway
+        | Method::SetServiceExposure
         | Method::SubscribeTerminal
         | Method::Unsubscribe
         | Method::ReportApplied
@@ -321,6 +330,15 @@ mod tests {
                 "fleet.peers",
                 // Protocol 11: a terminal's stream has its own frame.
                 "terminal.subscribe",
+                // Staged service values do not enable a browser bridge path.
+                "workspace.script.list",
+                "workspace.script.start",
+                "workspace.script.stop",
+                "workspace.script.restart",
+                "workspace.service.env",
+                "service.settings",
+                "service.set_gateway",
+                "service.set_exposure",
             ]
         );
     }
@@ -333,6 +351,8 @@ mod tests {
             r#"{"method":"session.subscribe","params":{"session":"00000000-0000-0000-0000-000000000000","from":0}}"#,
             r#"{"method":"no.such","params":null}"#,
             r#"{"method":"session.get","params":{"nope":1}}"#,
+            r#"{"method":"service.settings","params":{}}"#,
+            r#"{"method":"workspace.script.list","params":{"workspace":"00000000-0000-0000-0000-000000000000","query":{"kind":"initial"}}}"#,
             "[1,2]",
         ] {
             let call = RawJson::from_text(refused).unwrap();

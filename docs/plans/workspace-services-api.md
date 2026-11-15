@@ -452,3 +452,10 @@ constructs its known-valid selected target separately from the fallible plan
 constructor, so the latter returns only the rule's validation result. No input
 set, assertion, expected error or deadline changes. This failed compile/lint
 receipt also remains recorded and ran no tests.
+
+The legacy web bridge has its own exhaustive admission decision. It refuses
+all these staged methods before obtaining a node client, including Admin
+reads; the values package provides no qualified web consumer. Its complete
+refused-method test gains only the new methods, and decoding tests cover
+service Read and Admin requests. A future browser admission change needs a
+separate reviewed decision, rather than inheriting CLI/native admission.
