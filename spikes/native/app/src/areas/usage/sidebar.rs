@@ -15,9 +15,9 @@ use vessel_app_view::{
     connection::ConnectionContext,
     sidebar::navigation::{Builtin, Visibility},
     usage::{
-        Inventory, InventorySurface, MIN_SUMMARY_METER_WIDTH, Phase, SUMMARY_METER_GAP,
-        SummaryAccount, SummaryLayout, SummaryMeasurements, SummaryWidth, SummaryWindowCount,
-        pinned_windows, summary_layout,
+        Inventory, InventorySurface, MIN_SUMMARY_METER_WIDTH, SUMMARY_METER_GAP, SummaryAccount,
+        SummaryLayout, SummaryMeasurements, SummaryWidth, SummaryWindowCount, pinned_windows,
+        summary_layout,
     },
 };
 use vessel_proto::{limits::LimitKey, usage_reports::UsageSourceId};
@@ -111,10 +111,7 @@ pub(crate) fn sidebar_summary(
     if !visible(shell) {
         return None;
     }
-    let inventory = match shell.areas.usage.summary.phase() {
-        Phase::Ready(inventory) => inventory,
-        Phase::Idle | Phase::Loading { .. } | Phase::Failed { .. } => return None,
-    };
+    let inventory = shell.areas.usage.summary.phase().observation()?;
     let reports = candidates(inventory, shell.words);
     let pinned = pinned_windows(
         &reports,

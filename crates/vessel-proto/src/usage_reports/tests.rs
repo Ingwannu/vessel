@@ -125,6 +125,7 @@ fn all_current_and_retained_success_paths_redact_money_and_private_details() {
             observed: success.clone(),
         },
         SourceReportState::Refreshing {
+            origin: UsageRefreshOrigin::Available,
             started_at: Some(DateTime::UNIX_EPOCH),
             retained: Some(success.clone()),
         },

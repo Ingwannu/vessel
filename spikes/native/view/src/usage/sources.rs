@@ -35,12 +35,14 @@ pub fn source_view<'a>(state: &'a SourceReportState, words: &'static Translator)
             None,
             false,
         ),
-        SourceReportState::Refreshing { retained, .. } => (
+        SourceReportState::Refreshing {
+            retained, origin, ..
+        } => (
             retained.as_ref(),
             Some(words.usage().loading().to_owned()),
             None,
             None,
-            false,
+            *origin == vessel_proto::usage_reports::UsageRefreshOrigin::Available,
         ),
         SourceReportState::Available { observed } => (Some(observed), None, None, None, true),
         SourceReportState::Unavailable {

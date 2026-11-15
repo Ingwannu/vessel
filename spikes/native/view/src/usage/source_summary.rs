@@ -1,4 +1,4 @@
-//! Only actual available observations feed pins; source/account labels cannot define identities.
+//! Available observations, including their pending refresh, feed pins; source/account labels cannot define identities.
 use super::{Inventory, LimitStatus, SummaryAccount, SummaryWindow, limit_view, window_label};
 use crate::{agent_mark::AgentMark, localization::Translator};
 use vessel_proto::{
@@ -41,8 +41,17 @@ pub fn summary_candidates(
                 {
                     return None;
                 }
-                let SourceReportState::Available { observed } = &entry.state else {
-                    return None;
+                let observed = match &entry.state {
+                    SourceReportState::Available { observed }
+                    | SourceReportState::Refreshing {
+                        origin: vessel_proto::usage_reports::UsageRefreshOrigin::Available,
+                        retained: Some(observed),
+                        ..
+                    } => observed,
+                    SourceReportState::NotRequested
+                    | SourceReportState::Refreshing { .. }
+                    | SourceReportState::Unavailable { .. }
+                    | SourceReportState::Failed { .. } => return None,
                 };
                 Some(SummaryAccount {
                     source: entry.source().clone(),
@@ -194,6 +203,29 @@ mod tests {
                 },
             ));
         }
+        for (account, origin) in [
+            (
+                "pending-current",
+                vessel_proto::usage_reports::UsageRefreshOrigin::Available,
+            ),
+            (
+                "pending-failed",
+                vessel_proto::usage_reports::UsageRefreshOrigin::Unavailable,
+            ),
+        ] {
+            entries.push(SourceReportEntry::new(
+                format!("copilot:{account}").parse().unwrap(),
+                "Same label".parse().unwrap(),
+                Some(BuiltinUsageSource::Copilot),
+                None,
+                None,
+                SourceReportState::Refreshing {
+                    origin,
+                    started_at: None,
+                    retained: Some(observed.clone()),
+                },
+            ));
+        }
         entries.push(SourceReportEntry::new(
             "copilot:failed".parse().unwrap(),
             "Same label".parse().unwrap(),
@@ -222,13 +254,13 @@ mod tests {
             refresh_problem: None,
         };
         let candidates = summary_candidates(&inventory, words);
-        assert_eq!(candidates.len(), 2);
+        assert_eq!(candidates.len(), 3);
         let pinned = super::super::pinned_windows(
             &candidates,
             &super::super::PinSelection::default(),
             super::super::DisplayAs::Remaining,
         );
-        assert_eq!(pinned.len(), 2);
+        assert_eq!(pinned.len(), 3);
         assert_eq!(pinned[0].percent.text(), "65%");
         assert_ne!(pinned[0].group, pinned[1].group);
         reports.policy = ExternalLookup::Off;
