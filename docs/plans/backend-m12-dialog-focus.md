@@ -48,3 +48,9 @@ captured absence. Narrow verification is pending; no runtime or UI pass
 is claimed. The whole feature package gate and consuming Devices stale
 context/intent proof remain separate. Unadopted callers do not receive
 implicit restoration, and the generic helper makes no domain decision.
+
+
+The first exact-source remote narrow Clippy run on `fe53a206` stopped on
+two test-only semicolon-format lints; no test ran and no pass is claimed
+from that run. The correction changes those statements only. The failed
+run remains retained as `devices-narrow-20261115T080025Z-fe53a206`.
