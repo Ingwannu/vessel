@@ -548,3 +548,16 @@ Wait for its announcement, merge it, then run the combined remote narrow
 once. Captured-submit and composer submit-press changes not present in this
 announced base are not inferred adopted. No new F5 app binary or captures
 exist yet; all earlier red logs and source-only packets remain separate.
+
+
+## Resume point: announced c3429952 union
+
+The lead announced c3429952 after native1450/0/2. It replaces the previously
+awaited 41eee587: the centrally owned SavePrefs(Box<Prefs>) command is adopted
+unchanged, including the Appearance save call. The existing Appearance sync
+still precedes persistence. The shared source-identified multiline factory,
+FormMinimum and tests remain the announced source; their one callback dispatcher
+retains Windowed alongside Plain/Identified. E2 presentation/style separation
+remains, and presentation now uses the same FormMinimum shell/minimum rather
+than retaining a second form shell. No captured-submit or B2 press-metadata
+branch is inferred included. The merge is not an F5 compile/runtime pass.

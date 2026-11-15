@@ -23,6 +23,10 @@ use gpui_base::input::{InputState, TextareaState};
 
 pub mod composer_hooks;
 mod editability;
+mod multiline;
+pub use multiline::SendOn;
+mod form_minimum;
+pub use form_minimum::FormMinimum;
 mod events;
 pub use editability::Editability;
 pub use events::FieldEvents;
@@ -43,9 +47,6 @@ pub(crate) use styles::apply_tokens;
 
 #[cfg(test)]
 use crate::theme::Tokens;
-
-/// The most lines the composer grows to before it scrolls.
-const COMPOSER_LINES: usize = 12;
 
 /// The composer's text's smallest height (Paseo's `MIN_INPUT_HEIGHT`).
 const COMPOSER_MIN: f32 = 46.0;
@@ -82,11 +83,6 @@ enum MultilineStyle {
     Form,
 }
 
-/// GOAT's small textarea grows within its 256-point maximum. At the
-/// kit's 20-point line height twelve complete lines fit within that cap.
-const FORM_LINES: usize = 12;
-/// Three lines plus GOAT's small insets and border fit its desktop minimum.
-const FORM_MIN_LINES: usize = 3;
 /// GOAT's small control: 66 / 78 points inside its one-point border.
 const FORM_MIN: f32 = 68.0;
 const FORM_MIN_TOUCH: f32 = 80.0;
@@ -94,29 +90,6 @@ const FORM_MAX: f32 = 256.0;
 /// GOAT's small insets: spacing(2.5) - 1 and spacing(1) - 1.
 const FORM_INSET_X: f32 = 9.0;
 const FORM_INSET_Y: f32 = 3.0;
-
-/// Which press sends a composer's text (Settings › General › Send
-/// shortcut, the page's `compose-keys.ts`).
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum SendOn {
-    /// Enter (and Mod+Enter) sends; Shift+Enter starts a line.
-    #[default]
-    Enter,
-    /// Mod+Enter sends; Enter and Shift+Enter start a line.
-    ModEnter,
-}
-
-impl SendOn {
-    /// Whether an Enter that is not Shift+Enter sends; `with_mod` when
-    /// Command (Control elsewhere) was held.
-    #[must_use]
-    pub const fn sends(self, with_mod: bool) -> bool {
-        match self {
-            Self::Enter => true,
-            Self::ModEnter => with_mod,
-        }
-    }
-}
 
 /// A text field: a form's one line, or a composer's text.
 #[derive(Debug, Clone)]
@@ -128,6 +101,7 @@ pub struct TextField {
     /// Which press sends (a composer's; a form field's Enter always
     /// submits).
     send: Rc<Cell<SendOn>>,
+    form_minimum: FormMinimum,
 }
 
 impl TextField {
@@ -146,90 +120,6 @@ impl TextField {
             window,
             cx,
         )
-    }
-
-    /// A composer's text: lines that grow; the press [`SendOn`] names
-    /// (Enter unless [`Self::set_send_on`] says otherwise) calls
-    /// `on_submit` with the text, Shift+Enter starts a new line.
-    ///
-    /// The engine sends on Enter and Mod+Enter and starts a line on
-    /// Shift+Enter (`submit_on_enter`); in [`SendOn::ModEnter`] a plain
-    /// Enter that reaches here starts a line instead (the engine's own
-    /// Enter-starts-a-line mode would start one on Mod+Enter too, before
-    /// sending).
-    pub fn composer<V: 'static>(
-        placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
-        window: &mut Window,
-        cx: &mut Context<'_, V>,
-    ) -> Self {
-        Self::multiline(MultilineStyle::Composer, placeholder, on_submit, window, cx)
-    }
-
-    /// A multiline form field on the one-line form field's surface.
-    /// Enter starts a line; Mod+Enter submits. It grows from three to
-    /// twelve lines, then the existing text engine scrolls. GOAT's small
-    /// textarea supplies the 68 / 80-point minimum and 256-point cap.
-    pub fn form_multiline<V: 'static>(
-        placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
-        window: &mut Window,
-        cx: &mut Context<'_, V>,
-    ) -> Self {
-        Self::multiline(MultilineStyle::Form, placeholder, on_submit, window, cx)
-    }
-
-    fn multiline<V: 'static>(
-        style: MultilineStyle,
-        placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
-        window: &mut Window,
-        cx: &mut Context<'_, V>,
-    ) -> Self {
-        let placeholder = placeholder.to_owned();
-        let minimum = match style {
-            MultilineStyle::Composer => 1,
-            MultilineStyle::Form => FORM_MIN_LINES,
-        };
-        let maximum = match style {
-            MultilineStyle::Composer => COMPOSER_LINES,
-            MultilineStyle::Form => FORM_LINES,
-        };
-        let state = cx.new(|cx| {
-            TextareaState::new(window, cx)
-                .auto_grow(minimum, maximum)
-                .submit_on_enter(true)
-                .placeholder(placeholder)
-        });
-        let focused = Rc::new(Cell::new(false));
-        let shortcut = match style {
-            MultilineStyle::Composer => SendOn::Enter,
-            MultilineStyle::Form => SendOn::ModEnter,
-        };
-        let send = Rc::new(Cell::new(shortcut));
-        listen(
-            &state,
-            Handlers {
-                callbacks: Callbacks::Plain {
-                    on_submit,
-                    // Growing forms update layout and submit availability.
-                    on_change: match style {
-                        MultilineStyle::Composer => None,
-                        MultilineStyle::Form => Some(|_, _, cx| cx.notify()),
-                    },
-                },
-                focused: Rc::clone(&focused),
-                send: Some(Rc::clone(&send)),
-            },
-            window,
-            cx,
-        );
-        register(Known::Lines(state.downgrade()));
-        Self {
-            kind: Kind::Lines(state, style),
-            focused,
-            send,
-        }
     }
 
     /// Which press sends a composer's text (a form field ignores it).
@@ -263,6 +153,7 @@ impl TextField {
             kind: Kind::Line(state),
             focused,
             send: Rc::new(Cell::new(SendOn::Enter)),
+            form_minimum: FormMinimum::Default,
         }
     }
 

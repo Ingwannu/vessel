@@ -1691,3 +1691,10 @@ after accepted catalog/eligibility/locale changes outside paint. F6 validates
 that integration; F5 creates no second registry, loader, callback subscription
 or synthetic product catalog. Generic contributed colour production in kit
 has no plugin dependency and shares the existing token projection.
+## Native search lifetime
+
+The existing cross-session Searching value belongs once to PaletteArea, outside
+the session-owned ConversationArea. Existing Shell search calls, the link and
+the renderer keep their interfaces. Replacing a conversation resident therefore
+preserves debounce, query tickets and merged cross-machine replies. The isolated
+prerequisite and test boundary are in docs/plans/wp-a3-search-residency.md.

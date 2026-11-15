@@ -13,7 +13,10 @@ are signed and installed), ADR 0014 (what may be linked), and
 
 ```
 spikes/release/
-  build.sh               every artifact of one label, on Linux
+  build.sh               every artifact of one label, on Linux, in two steps
+                         (--compile-only on the build VM, --package-from where
+                         the secrets are; ADR 0099)
+  update-key.pub         the release key's public half, compiled into the app
   hello/                 the smallest GPUI window (a target's first proof)
   updater/               vessel-app-updater: the app's updater, no GPUI
   feed/                  vessel-app-feed: release key, signed feed, sums
@@ -22,6 +25,8 @@ spikes/release/
                          gpui-base 0.8.1 (a steady caret while motion is held)
   tools/fxc-wine         Microsoft's fxc.exe under wine, for GPUI's shaders
   tools/fetch-fxc.py     fetches fxc.exe and d3dcompiler_47.dll from the SDK
+  tools/patch-feed.py    writes the feed's address into a built app (ADR 0099)
+  tools/feed-slot-proof.sh  runs a built Linux app to show it reads that slot
   windows/installer.nsi  the per-user installer
   windows/README.txt, linux/README.txt   what each package says
   ci/app-release.yml     the hosted-runner workflow (not under .github: not run)
@@ -45,17 +50,24 @@ cargo-xwin fetches Microsoft's CRT and SDK libraries into
 fetches the HLSL compiler. Both are Microsoft's files under Microsoft's
 terms (see "Left for the owner").
 
-A build:
+A build, since 2026-11-15 in two steps on two machines (ADR 0099, and
+"Labels compiled without secrets" below):
 
 ```bash
-VESSEL_DIST_DIR=<dist root> VESSEL_TOOLS_DIR=<tools> \
+# the build VM (no secret; the remote gate's release compile mode runs this)
+VESSEL_TOOLS_DIR=<tools> spikes/release/build.sh 0.0.0.0.21 windows-x64 linux-x64 --compile-only DIR
+# the machine with the secrets, in a checkout of the same commit; no compiler
+VESSEL_DIST_DIR=<dist root> VESSEL_UPDATE_FEED_FILE=<address file> \
 VESSEL_UPDATE_SECRET=<secret key file> \
-spikes/release/build.sh 0.0.0.0.1 windows-x64 linux-x64
+spikes/release/build.sh 0.0.0.0.21 windows-x64 linux-x64 --package-from DIR [--publish]
 ```
 
-With `VESSEL_UPDATE_FEED` and `VESSEL_UPDATE_KEY` set, the app is built
-to update itself from that feed; `--publish` then writes the channel's
-signed manifest (the moment every installed copy sees the new build).
+The compile step compiles in the label and the release key's public half
+(`update-key.pub`); the package step writes the feed's address into the
+built app and signs. `--publish` then writes the channel's signed manifest
+(the moment every installed copy sees the new build). Labels up to
+0.0.0.0.20 were built in one step with the address compiled in
+(`VESSEL_UPDATE_FEED`, now refused).
 
 ## Step 1: a GPUI window built for Windows on Linux
 
@@ -961,6 +973,181 @@ never rebuilt.
     Linux build (the one that replaced 0.0.0.0.16) on Xvfb held its
     motion (software renderer) and used 0.5% of a core on its first
     screen, ERROR 0.
+
+- **0.0.0.0.18**:
+  - Built from exactly `1d1f11df` (`backend/m12-spike`, native gate
+    1169 passed, root gate green), checked out detached and run through
+    `cargo-slot`'s priority lane (5 jobs, a slot at once); this branch
+    then merged it. Windows took 6 min 40 s, Linux 9 min 6 s.
+  - The set went into place at 05:10:02 UTC on 2026-11-15 and was
+    published to `preview` at 05:51:37 UTC, after the coordinator's
+    smoke test on the real node. The notes carry one known problem (in
+    a small window or with many projects the bottom of the sidebar is
+    pushed off screen and does not scroll) and what was not checked on
+    screen (the attachment file dialog, pasted file list and drag and
+    drop; pressing the rename pencil; the PR view against real GitHub
+    and on Windows). The terminal model and the provider removal rule
+    were left out of the notes: it was not shown that either is visible
+    yet.
+  - From outside, the public feed serves the manifest (equal to the
+    local one) and all seven files, byte for byte the dist folder's,
+    with matching sums and signature. The published 0.0.0.0.17 Linux
+    build took 0.0.0.0.18 by itself 10 s after its start (ERROR 0, no
+    leftover `.part`, no feed token in its log). `/dl/` on loopback lists
+    0.0.0.0.18 first with its seven files; from outside it answers 302.
+  - Sizes, with the change against 0.0.0.0.17: setup 13,601,986
+    (+117,539), exe 49,992,192 (+556,544), zip 19,887,870 (+189,362),
+    linux 86,921,328 (+506,392), tar.gz 30,103,857 (+183,681).
+  - Checks: icons the same as 0.0.0.0.17, the Windows version resource
+    0.0.0.0.18, the debuglink read from a copy (CRC matches, mtime
+    unchanged), the four licence texts in both archives, no feed token
+    or path in the build log. Not measured this time (the budget was
+    tight): CPU on Xvfb.
+
+- **0.0.0.0.19**:
+  - Built from exactly `d28d7551` (`backend/m12-spike`, native gate
+    1253 passed and 2 ignored; the root gate of the package base
+    `719bbba1` stands, as nothing outside `spikes/native` but plans
+    changed), through `cargo-slot`'s priority lane (5 jobs, 164 s in
+    line: the machine has 2 slots now). Windows took 8 min 9 s, Linux
+    14 min 4 s.
+  - New code faces: `scripts/fonts.sh` ran before the build (the build
+    only fetches when a face it knows is missing) and added Geist Mono
+    Bold, Italic and BoldItalic from `geist` 1.9.2; every face and
+    licence text already there came out byte for byte the same. All
+    four Geist Mono faces are inside both executables. The kit's only
+    fallback after Geist and Geist Mono is Pretendard (no generic
+    `monospace` or `serif`, TYPE-07).
+  - The set went into place at 07:27:08 UTC on 2026-11-15 and was
+    published to `preview` at 07:33:26 UTC, after the coordinator's
+    smoke test on the real node. The notes say S2's `0690faed` fixes the
+    sidebar's known problem of 0.0.0.0.18, carry two known problems
+    (the Settings pencil can overlap its neighbour; a terminal's wrapped
+    lines may not be rejoined after its width changes) and what was not
+    checked on screen.
+  - From outside, the public feed serves the manifest (equal to the
+    local one) and all seven files, byte for byte the dist folder's,
+    with matching sums and signature. The published 0.0.0.0.18 Linux
+    build took 0.0.0.0.19 by itself 12 s after its start (ERROR 0, no
+    leftover `.part`). `/dl/` on loopback lists 0.0.0.0.19 first with
+    its seven files; from outside it answers 302.
+  - Sizes, with the change against 0.0.0.0.18: setup 13,956,153
+    (+354,167), exe 51,661,312 (+1,669,120), zip 20,524,176 (+636,306),
+    linux 88,784,040 (+1,862,712), tar.gz 30,743,512 (+639,655).
+  - Checks: icons the same as 0.0.0.0.18, the Windows version resource
+    0.0.0.0.19, the debuglink read from a copy (CRC matches, mtime
+    unchanged), the four licence texts in both archives, no feed token
+    or path in the build log.
+
+- **0.0.0.0.20**:
+  - Built from exactly `01b1e220` (`backend/m12-spike`, native gate
+    1277 passed and 2 ignored; outside `spikes/native` only documents
+    changed since `d28d7551`, so the root gate of `719bbba1` stands),
+    through the priority lane (164 s in line). Windows took 10 min 38 s,
+    Linux 31 min 12 s (the machine was loaded). `fonts.sh` ran first and
+    left all 15 faces and texts byte for byte as they were.
+  - In place at 08:55:06 UTC on 2026-11-15, published to `preview` at
+    09:02:12 UTC after the coordinator's smoke test (the palette in
+    Korean, the eight themes and Ctrl+Alt+T's selection). The notes list
+    a desktop that takes Ctrl+Alt+T first (Ubuntu opens a terminal with
+    it) among what was not checked on screen.
+  - From outside, the feed serves the manifest and all seven files, byte
+    for byte the dist folder's, with matching sums and signature; the
+    published 0.0.0.0.19 Linux build took 0.0.0.0.20 by itself 12 s after
+    its start (ERROR 0); `/dl/` lists 0.0.0.0.20 first.
+  - Sizes, with the change against 0.0.0.0.19: setup 13,951,901
+    (-4,252), exe 51,643,904 (-17,408), zip 20,516,184 (-7,992), linux
+    88,754,616 (-29,424), tar.gz 30,743,390 (-122).
+  - Checks: icons the same as 0.0.0.0.19, the Windows version resource
+    0.0.0.0.20, the debuglink from a copy, the four licence texts in both
+    archives, no feed token or path in the build log.
+  - The same morning the owner's Windows copy of 0.0.0.0.14 took
+    0.0.0.0.19 slowly: the proxy's log shows the 51.7 MB executable
+    started at 08:15:42 and broken off at 31.9 MB at 08:17:39 (about
+    0.27 MB/s), with no retry reaching the feed afterwards; the same file
+    came in 0.87 s from this machine through the public path, so the line
+    to the owner was the limit. The owner took the 14 MB installer from
+    `/dl/` instead. Follow-ups the coordinator approved: the feed answers
+    a byte range since 09:08 UTC (the preview proxy, its README says how),
+    and the updater resumes, downloads a compressed file and shows a
+    broken-off download (ADR 0094's branch).
+
+## The command line and the node in the package (ADR 0094, 2026-11-15)
+
+The coordinator decided that the package carries `vessel` and `vesseld`
+beside the app (W15's local-node controller needs the node; Paseo's desktop
+ships its daemon and command line), and that updates replace the three as
+one set. `docs/adr/0094-package-contents-and-whole-set-self-update.md` has
+the reasons and the trade-offs. Where it stands:
+
+- Built behind `VESSEL_PACKAGE_NODE=1` (`build.sh`, off by default): the
+  zip, the installer and the tarball get the two programs in a `bin`
+  folder beside the app (`bin\vessel.exe` and `bin\vesseld.exe`,
+  `bin/vessel` and `bin/vesseld`; only `bin` goes on `PATH`, the layout W15
+  and W19's getter use), and the dist folder gets each alone as the
+  update's companions; `--publish` names them with `--companion`.
+- The manifest stays schema 1; companions are an optional field the
+  published apps (0.0.0.0.3 to 0.0.0.0.18) skip, and the first build with
+  them puts in the companions an old app could not.
+- The updater: the whole set downloaded and verified before any swap,
+  companions first and the app last, every placed file put back when one
+  fails; tests listed in the ADR.
+- Resuming, a gzip copy of every update file, and a failed state that
+  says what was kept and when the next try is (the ADR's addendum, after
+  the owner's slow Windows update of 2026-11-15): these need no flag and
+  reach the owner with the first label built from this branch; the gzip
+  copies are made by every build from then on.
+- Not shipped in any label until the local-node controller is in a build.
+  Shown on 2026-11-15: `vessel-cli` and `vessel-node` build for Windows
+  with `cargo-xwin` (console programs, 74.4 MB and 56.9 MB) and import
+  only DLLs Windows ships. Not shown: that they run there.
+
+## Labels compiled without secrets (ADR 0099, 2026-11-15)
+
+The operator ruled that no compiler runs on the machine with the feed's
+token and the signing key, and the build VM keeps no secret. The
+coordinator chose to compile labels on the build VM with a fixed slot for
+the feed's address and to write the address into the built executables
+here. `docs/adr/0099-release-builds-compile-without-secrets.md` has the
+reasons, the checks and the tests. Where it stands:
+
+- Built on `backend/m12-release-adr0094` (commit 364b9345d), on top of ADR
+  0094's branch. The first label built from it also brings ADR 0094's
+  resuming and gzip updates. Its companions stay behind
+  `VESSEL_PACKAGE_NODE`.
+- The updater reads the address from a 512-byte slot through
+  `black_box`. `build.rs` and `build.sh` refuse `VESSEL_UPDATE_FEED`.
+- `build.sh --compile-only DIR` runs on the build VM.
+  `build.sh --package-from DIR` runs here: it checks DIR, proves the slot,
+  writes, verifies, packages, signs and checks with the compiled-in key.
+  It signs with the feed tool that the compile step built, so nothing
+  here runs `cargo`.
+- The build VM's Windows cross tools were installed by this track on
+  2026-11-15 and checked against this machine:
+  - fxc gives the same shader bytes.
+  - make-icons gives the same 18 files.
+  - Where they are is recorded with the VM's provisioning notes.
+- Shown without compiling, 2026-11-15:
+  - `tools/test_patch_feed.py`: 13 of 13 pass.
+  - A dry run of `--package-from` on stand-ins (no compiler, a throwaway
+    key, a loopback feed) passed. Its 13 refusal cases each stopped in
+    their place.
+  - The proof script's own run: a stand-in that reads its slot asked the
+    test feed after 4 s.
+- Gates on the build VM, 2026-11-15:
+  - The native gate of e3ae1c1ae is green: fmt, quality, clippy, build,
+    and tests 1253 passed, 0 failed, 2 ignored.
+  - That gate also found two non-exhaustive matches in the app's update
+    words on ADR 0094's new errors, fixed in e3ae1c1ae. Earlier heads of
+    the branch do not build the app.
+- The first real compile was trial label 0.0.0.99.1, never published:
+  - `--release-compile 0.0.0.99.1 linux-x64` of e3ae1c1ae took 605 s.
+    The slot was found once, at 0xcc0da4.
+  - Packaged here with the real address and no signing key, into a
+    scratch directory that was then removed. The compiled app asked a test
+    feed written into its slot after 6 s. The shipped app read the real
+    feed's signed manifest after 6 s.
+  - The package log holds neither the address nor its token.
 
 ## Logs and retries (from the build after 0.0.0.0.5)
 

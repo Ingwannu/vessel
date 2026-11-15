@@ -34,7 +34,7 @@ impl Shell {
             Ok(()) => {
                 self.areas.settings.refused = None;
                 super::appearance::sync(self, window, cx);
-                self.command(Command::SavePrefs(self.prefs.clone()));
+                self.command(Command::SavePrefs(Box::new(self.prefs.clone())));
                 match change {
                     PreferenceChange::Language(_) => {
                         if let Some(words) = language {
