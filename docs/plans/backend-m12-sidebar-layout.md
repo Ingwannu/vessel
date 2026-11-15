@@ -76,7 +76,11 @@ remain separate parts of one body (their existing area ownership); Add
 machine stays a fixed native navigation action beside the footer; the native
 foot keeps its existing build/reload/Settings content. Paseo's list nesting
 supports drag gestures, while this repair introduces no drag implementation.
-These differences do not justify extra scrolling regions or an unbounded body.
+The existing native outer inset (8) and section gap (12), expressed through
+kit tokens, are retained to preserve the reviewed row rails. Paseo's list
+content uses top 2 and bottom 16; this repair does not claim new inset or
+complete sidebar pixel parity. The change is the shared bounded scrolling
+boundary, with no extra scrolling region or per-section height allocation.
 
 ## Verification
 
@@ -108,5 +112,30 @@ The test-only isolated shell constructor is shared within the app crate so
 these real sidebar tests reuse its no-I/O setup. The tests exercise actual
 project/session renderers in both grouping modes, expanding eleven projects,
 wheel travel and Tab reach to the final row and fixed Settings button. This
-consumer checkpoint has not yet been compiled; new captures and the one
-package gate remain owed.
+consumer has passed its focused GPUI test in both grouping modes, at both
+window sizes. Narrow clippy also passes. The capture executable was built
+from the same product code; the package gate and final visual review remain
+owed until the evidence is complete.
+
+## Verification checkpoint
+
+The shared viewport's four focused tests pass, and the actual sidebar's
+focused test passes across two sizes and both grouping modes. They measure
+natural sections, fixed siblings and the offset, exercise wheel reach and
+fold clamping, and dispatch actual GPUI Tab/Shift+Tab navigation. Retaining
+focus does not pull a subsequent wheel back to the focused item.
+
+The initial capture matrix covers both sizes, both themes and languages,
+with additional status-group and stored-width-600 cases. All 64 original
+frames were opened. In the inspected cases Add machine, reload and Settings
+stay visible at the same position, and the wheel reaches the final existing
+row. Unfolding eleven projects does not displace the footer. Some wide
+frames have an incidental composer tooltip outside the sidebar; these are
+not a full-app visual approval. Long status-group titles at width 200 keep
+the previous heavy-ellipsis limitation. Additional middle-position frames
+make the unfolded project tail and the fold action directly visible.
+
+No permission policy or service account changes are made. The local build,
+headless probes and isolated fake fleet run as the normal developer account.
+Full row keyboard activation/accessibility, a phone-layout visual pass and
+platform-native screen-reader behavior are outside this repair's evidence.
