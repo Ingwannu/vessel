@@ -1010,3 +1010,13 @@ DTO/failure refs and content-loading state. Child IDs still own structural paren
 clones; no borrowed element identity escapes. The corrected current-source
 checks remain owed, and the old exact logs remain in resident-seat-tests and
 resident-seat-narrow; no GPUI/test pass is inferred from their compilation.
+
+W1 confirmed the current safe contract: Hold/refuse installation whenever its
+navigation_held() is true; no scoped finder refresh is claimed yet. The staged
+public wrapper now requires an explicit OwnerReadiness navigation argument and
+also refuses an actually open FindBar. Refusal returns the original moved
+projection without changing rows/disclosures/scroll/cache/controllers. W2 retains
+that returned projection and keeps its installed revision unchanged until an
+actual install; the helper never updates W2 metadata. A staged regression checks
+the returned prefix plus exact old rows/disclosure/anchor under a navigation Hold.
+This is a source amendment, not a checked W1 scoped finder implementation.

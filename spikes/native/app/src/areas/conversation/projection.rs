@@ -4,12 +4,14 @@
 
 use super::ConversationArea;
 use std::collections::HashSet;
+#[cfg(test)]
+use vessel_app_view::residents::OwnerReadiness;
 use vessel_app_view::timeline::{Entry, FindCache, Folds, Logs, Timeline, outline};
 
 /// Refusal returns ownership; a caller must not lose an accepted page projection.
 #[cfg(test)]
 pub(crate) struct UnappliedProjection {
-    /// Original projection, untouched when the receiver is a managed conversation.
+    /// Original projection, untouched when the receiver is managed or held.
     pub(crate) timeline: Box<Timeline>,
 }
 
@@ -19,14 +21,19 @@ impl ConversationArea {
     /// later query must never target this receiver through an old keyed Seat.
     ///
     /// # Errors
-    /// A managed identity/description refuses replacement and returns the projection.
+    /// A managed identity/description or navigation hold returns the projection.
     /// Staged until W2's first real caller; remove this cfg with that integration.
     #[cfg(test)]
     pub(crate) fn replace_readonly_projection(
         &mut self,
         timeline: Timeline,
+        navigation: OwnerReadiness,
     ) -> Result<(), UnappliedProjection> {
-        if self.shown.is_some() || self.info.is_some() {
+        if self.shown.is_some()
+            || self.info.is_some()
+            || self.find.is_some()
+            || !matches!(navigation, OwnerReadiness::Ready)
+        {
             return Err(UnappliedProjection {
                 timeline: Box::new(timeline),
             });

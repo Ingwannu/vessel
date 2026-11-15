@@ -56,12 +56,18 @@ fn prepend_preserves_explicit_choice_run_host_and_reading_anchor_by_entry_key(
         let mut area = ConversationArea::new(cx);
         area.turns = None;
         area.collapse = false;
-        assert!(area.replace_readonly_projection(projection(false)).is_ok());
+        assert!(
+            area.replace_readonly_projection(projection(false), OwnerReadiness::Ready)
+                .is_ok()
+        );
         area.toggle_entry(0);
         assert!(area.entry_expanded(0));
         assert!(area.open_runs.contains(&0));
         area.list.reveal(0, Reveal::Top);
-        assert!(area.replace_readonly_projection(projection(true)).is_ok());
+        assert!(
+            area.replace_readonly_projection(projection(true), OwnerReadiness::Ready)
+                .is_ok()
+        );
         assert!(area.shown.is_none());
         assert!(area.info.is_none());
         assert!(area.entry_expanded(1));
@@ -79,7 +85,9 @@ fn managed_receiver_returns_the_projection_without_mutating_either_side(
     cx.update(|cx| {
         let mut area = ConversationArea::new(cx);
         area.open("fake", SessionId::random());
-        let Err(unapplied) = area.replace_readonly_projection(projection(false)) else {
+        let Err(unapplied) =
+            area.replace_readonly_projection(projection(false), OwnerReadiness::Ready)
+        else {
             panic!("managed receiver must refuse")
         };
         assert_eq!(unapplied.timeline.entries().len(), 2);
@@ -96,13 +104,48 @@ fn an_open_group_keeps_its_intent_when_an_earlier_member_becomes_the_host(
         let mut area = ConversationArea::new(cx);
         area.turns = None;
         area.collapse = true;
-        assert!(area.replace_readonly_projection(projection(false)).is_ok());
+        assert!(
+            area.replace_readonly_projection(projection(false), OwnerReadiness::Ready)
+                .is_ok()
+        );
         area.toggle_run(0);
         assert!(area.open_runs.contains(&0));
-        assert!(area.replace_readonly_projection(projection(true)).is_ok());
+        assert!(
+            area.replace_readonly_projection(projection(true), OwnerReadiness::Ready)
+                .is_ok()
+        );
         assert_eq!(area.folds.as_ref().unwrap().run_of(1).unwrap().lead, 0);
         assert!(area.open_runs.contains(&0));
         assert!(!area.open_runs.contains(&1));
         assert_eq!(area.rows.len(), 3);
+    });
+}
+
+#[gpui::test]
+fn protected_navigation_returns_the_new_projection_without_changing_the_installed_rows(
+    cx: &mut gpui::TestAppContext,
+) {
+    cx.update(|cx| {
+        let mut area = ConversationArea::new(cx);
+        area.turns = None;
+        area.collapse = false;
+        assert!(
+            area.replace_readonly_projection(projection(false), OwnerReadiness::Ready)
+                .is_ok()
+        );
+        area.toggle_entry(0);
+        area.list.reveal(0, Reveal::Top);
+        let top = area.list.top();
+        let old = area.timeline.entries().to_vec();
+        let Err(unapplied) = area.replace_readonly_projection(
+            projection(true),
+            OwnerReadiness::Hold(vessel_app_view::residents::HoldReason::ActiveEditor),
+        ) else {
+            panic!("protected navigation must hold replacement")
+        };
+        assert_eq!(unapplied.timeline.entries().len(), 3);
+        assert_eq!(area.timeline.entries(), old);
+        assert!(area.entry_expanded(0));
+        assert_eq!(area.list.top(), top);
     });
 }
