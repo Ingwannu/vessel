@@ -26,10 +26,10 @@ async fn exact_members_are_drained_once_and_safety_outcomes_are_retained() {
             (Storage::Local, Backing::LocalPreserved)
             | (Storage::Shared, Backing::SharedPreserved) => {}
             (Storage::Dirty, Backing::Managed(RemoveWorktreeOutcome::Kept { reasons })) => {
-                assert_eq!(reasons.len(), 1)
+                assert_eq!(reasons.len(), 1);
             }
             (Storage::Removed, Backing::Managed(RemoveWorktreeOutcome::Removed { snapshot })) => {
-                assert!(snapshot.is_none())
+                assert!(snapshot.is_none());
             }
             other => panic!("safety outcome changed: {other:?}"),
         }

@@ -53,7 +53,7 @@ pub(super) struct Fake {
     pub waiting: watch::Sender<Starts>,
 }
 impl Fake {
-    pub fn new(members: Vec<Member>) -> Self {
+    pub(super) fn new(members: Vec<Member>) -> Self {
         Self {
             workspace: WorkspaceId::random(),
             state: Mutex::new(State {
@@ -69,17 +69,17 @@ impl Fake {
             waiting: watch::channel(Starts::Settled).0,
         }
     }
-    pub fn state(&self) -> MutexGuard<'_, State> {
+    pub(super) fn state(&self) -> MutexGuard<'_, State> {
         self.state.lock().unwrap()
     }
-    fn enter(&self, stage: Stage) -> Result<(), Fault> {
+    fn enter(&self, phase: Stage) -> Result<(), Fault> {
         let mut state = self.state();
-        state.calls.push(stage);
-        if stage != Stage::Claim {
-            assert_eq!(state.life, Life::Archiving);
+        state.calls.push(phase);
+        if phase != Stage::Claim && state.life != Life::Archiving {
+            return Err(Fault::Claimed);
         }
-        if state.refuse == Some(stage) {
-            Err(Fault::Stage(stage))
+        if state.refuse == Some(phase) {
+            Err(Fault::Stage(phase))
         } else {
             Ok(())
         }

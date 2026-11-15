@@ -49,11 +49,11 @@ impl Fake {
     fn state(&self) -> MutexGuard<'_, State> {
         self.state.lock().unwrap()
     }
-    fn enter(&self, stage: RecoveryStage) -> Result<(), Fault> {
+    fn enter(&self, phase: RecoveryStage) -> Result<(), Fault> {
         let mut state = self.state();
-        state.calls.push(stage);
-        if state.refuse == Some(stage) {
-            Err(Fault::Stage(stage))
+        state.calls.push(phase);
+        if state.refuse == Some(phase) {
+            Err(Fault::Stage(phase))
         } else {
             Ok(())
         }
@@ -203,7 +203,8 @@ async fn concurrent_restore_cannot_duplicate_backing_creation() {
                 source: Fault::Claimed
             }
         ));
-        fake.backing
+        let _previous = fake
+            .backing
             .send_replace(Some(RecoveryAction::RecreateBacking));
     };
     let (first, ()) = tokio::join!(restore(&fake, fake.workspace), second);
