@@ -459,3 +459,15 @@ proposal; no missing-request-ID shortcut is introduced. Existing MCP
 answer_permission continues to require one exact request and enforce session
 ownership. There is no unused HTTP server/permit implementation claimed as
 completed parity.
+
+Strict cb836083a found one remaining unused receiver in the synchronous
+tracking-capability handler. Negotiation now consults the existing node
+shutdown token and refuses a stopping destination before a notifying create.
+The pending feature gate remains unchanged; this adds no authority, polling
+or lint suppression. The earlier strict failure remains recorded.
+
+MCP tests at cb836083a stopped before execution on one new assertion that
+compared owned and borrowed SDK values. The assertion now compares two
+references to the same exact ID value; no assertion is removed. Unneeded
+dead-code expectations are removed from test modules that use the complete
+shared fixture. The failed compile is not counted as a passing MCP suite.

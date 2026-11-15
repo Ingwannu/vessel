@@ -4,7 +4,7 @@ use crate::{profiles::launch::creator, transfers::Holder};
 use vessel_proto::mcp::{
     ClosePromptReceipt, PromptReceiptState, ReadPromptReceipt, TrackPrompt, TrackedPrompt,
 };
-use vessel_proto::{Ack, WireError};
+use vessel_proto::{Ack, ErrorCode, WireError};
 
 impl NodeService {
     pub(crate) fn check_prompt_tracking(
@@ -12,7 +12,16 @@ impl NodeService {
         _: &Connection,
         _: vessel_proto::mcp::CheckPromptTracking,
     ) -> std::future::Ready<Result<Ack, WireError>> {
-        std::future::ready(Ok(Ack))
+        // This negotiation must refuse before a notifying create while the
+        // node is draining; merely having compiled the method is insufficient.
+        std::future::ready(if self.lifecycle.stopping().is_cancelled() {
+            Err(WireError::new(
+                ErrorCode::Unavailable,
+                "the node is stopping exact-turn tracking",
+            ))
+        } else {
+            Ok(Ack)
+        })
     }
     pub(crate) async fn track_prompt(
         &self,

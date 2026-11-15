@@ -323,7 +323,7 @@ async fn drive_session_and_check_ownership(
 ) {
     let (failed, got) = mcp.call("get_session", json!({ "session": session })).await;
     assert!(!failed, "{got}");
-    assert_eq!(got["id"], session);
+    assert_eq!(&got["id"], session);
     assert!(got["permissions"].is_array(), "{got}");
     let (failed, renamed) = mcp
         .call(

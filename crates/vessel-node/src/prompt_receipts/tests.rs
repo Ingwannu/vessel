@@ -159,7 +159,7 @@ async fn relayed_receipt_identity_includes_delivering_device_and_origin() {
 #[tokio::test(start_paused = true)]
 async fn cancelled_long_poll_releases_reader_budget_and_expiry_reclaims_admission() {
     use std::future::Future as _;
-    use std::task::{Context, Poll, Waker};
+    use std::task::{Context, Waker};
     let receipts = Arc::new(PromptReceipts::default());
     let opener = holder();
     let session = SessionId::random();
@@ -167,7 +167,7 @@ async fn cancelled_long_poll_releases_reader_budget_and_expiry_reclaims_admissio
     let mut reading = Box::pin(receipts.read(opener, session, reservation.id));
     // Poll once to reach the long-poll await without a timer or scheduler race.
     let mut context = Context::from_waker(Waker::noop());
-    assert!(matches!(reading.as_mut().poll(&mut context), Poll::Pending));
+    assert!(reading.as_mut().poll(&mut context).is_pending());
     assert_eq!(receipts.readers.available_permits(), MAX_READERS - 1);
     drop(reading);
     assert_eq!(receipts.readers.available_permits(), MAX_READERS);

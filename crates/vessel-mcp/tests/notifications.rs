@@ -9,7 +9,6 @@ use support::{Fixture, as_agent, owner, within};
 
 #[cfg(test)]
 #[path = "support/mcp.rs"]
-#[expect(dead_code, reason = "the shared fixture, not every helper of it")]
 mod support;
 
 async fn completion(stream: &mut SessionStream, child: SessionId, reply: &str) {
