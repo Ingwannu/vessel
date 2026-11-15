@@ -74,6 +74,36 @@ struct FocusProbe {
 }
 
 #[gpui::test]
+fn changing_the_active_session_pane_can_deactivate_find_without_changing_route(
+    cx: &mut gpui::TestAppContext,
+) {
+    use gpui::AppContext as _;
+    use vessel_proto::EventSeq;
+
+    language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(|window, cx| FocusProbe {
+        shell: cx.new(|cx| Shell::without_io(window, cx)),
+    });
+    probe.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            shell.route = crate::routes::Route::Session;
+            shell.find_at("remembered", EventSeq::new(10), window, cx);
+            shell.areas.conversation.reveal = Some(EventSeq::new(10));
+            let old =
+                std::rc::Rc::clone(&shell.areas.conversation.find.as_ref().unwrap().generation);
+            shell.conversation_deactivated(window, cx);
+            assert_eq!(shell.route, crate::routes::Route::Session);
+            assert!(shell.areas.conversation.find.is_none());
+            assert_eq!(shell.areas.conversation.find_query, "remembered");
+            assert_eq!(shell.areas.conversation.reveal, None);
+            assert!(!shell.areas.conversation.navigation_held());
+            assert!(shell.find_step(&old, cx));
+            assert!(window.focused(cx).is_none());
+        });
+    });
+}
+
+#[gpui::test]
 fn reopening_retains_the_query_and_edits_cancel_only_its_pending_destination(
     cx: &mut gpui::TestAppContext,
 ) {

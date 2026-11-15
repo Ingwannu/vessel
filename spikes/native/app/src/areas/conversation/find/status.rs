@@ -1,5 +1,5 @@
 //! Failure/retry and target lifetime; no second search or timeline owner.
-use super::REVEAL_DEADLINE;
+use super::{FindExit, REVEAL_DEADLINE};
 use crate::shell::Shell;
 use std::rc::Rc;
 use vessel_app_kit::ui::{Context, Window};
@@ -8,6 +8,19 @@ use vessel_app_view::timeline::{FindFailure, FindPhase};
 use vessel_proto::EventSeq;
 
 impl Shell {
+    /// Call on the old resident before changing active panes, including
+    /// Session → Session: its tasks must not be left attached to hidden input.
+    pub(crate) fn conversation_deactivated(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.finish_find(FindExit::Deactivate, window, cx);
+        self.areas.conversation.outline_pointer.leave();
+        self.areas.conversation.clear_prompts();
+        cx.notify();
+    }
+
     pub(in crate::areas::conversation) fn find_failed(&mut self, failure: FindFailure) {
         let Some(bar) = self.areas.conversation.find.as_mut() else {
             return;

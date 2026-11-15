@@ -284,9 +284,7 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         if route != crate::routes::Route::Session {
-            self.finish_find(FindExit::Deactivate, window, cx);
-            self.areas.conversation.outline_pointer.leave();
-            self.areas.conversation.clear_prompts();
+            self.conversation_deactivated(window, cx);
         }
     }
 

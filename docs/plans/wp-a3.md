@@ -238,3 +238,10 @@ its durable NodeId, so identity alone could leave an Unsupported set cached afte
 the peer gained the call. A protocol change now starts a new request identity;
 the link rejects a stale/unknown negotiated snapshot before sending. A real-shell
 regression upgrades the same node and requires a fresh metadata read.
+
+Pane selection calls `Shell::conversation_deactivated(window,cx)` against the old
+resident before swapping active resource getters, even when both routes are
+Session. This closes find, preserves its remembered query, cancels local prompt/
+hover work and invalidates its old tasks. Route departure calls the same boundary.
+Without it, a task whose Shell getter changed could abandon the hidden resident's
+search in progress. A GPUI regression deactivates without changing the route.
