@@ -10,7 +10,7 @@ Status: proposed values only. No method, event, driver call or feature is activa
 - Why: the values have no runtime dependency, do not duplicate provider dispatch, and let the actor use the same parser before reservation. A real transport must still authorize the operation; parsing grants no capability.
 - Advantages, costs and effects: GoalObjective has a documented64KiB UTF8 byte bound and rejects unsupported controls, unlike the reference's unbounded argument. It is redacted in Debug and never silently truncated. Status does not repeat objective text or provider diagnostics.
 
-Primary reference: `~/refs/paseo-latest/packages/server/src/server/agent/providers/codex-app-server-agent.ts:226-242` (goal argument case/whole-match), `:4125-4141` (root parsing), `:5143-5159` (catalog) and `:5166-5287` (out-of-band dispatch). Compact ignores arguments. Goal keywords pause/resume/clear are case-insensitive exact whole arguments; every other nonempty argument is an objective. JavaScript trim/whitespace includes BOM and excludes NEL, so the parser uses that exact closed character set.
+Primary reference: `packages/server/src/server/agent/providers/codex-app-server-agent.ts:226-242` (goal argument case/whole-match), `:4125-4141` (root parsing), `:5143-5159` (catalog) and `:5166-5287` (out-of-band dispatch). Compact ignores arguments. Goal keywords pause/resume/clear are case-insensitive exact whole arguments; every other nonempty argument is an objective. JavaScript trim/whitespace includes BOM and excludes NEL, so the parser uses that exact closed character set.
 
 Joint contract agreed with W23: SubmitPrompt gains optional intent, original content and the same ClientMessageId participate in identity; native deliveryStart is a selector that never cancels, queues or starts the foreground turn. CommandAccepted carries original content and a NativeCommandStatus; the strong command receipt stores status+echo sequence. W23 owns those fields and common input/actor integration. Known unsupported capability is refused before reservation; ambiguous post-commit results remain unknown with no blind retry.
 
@@ -24,3 +24,5 @@ adapter uses empty struct variants to validate the identical wire shape, preserv
 the public unit variants and serialized contract. All no-payload goal variants
 and invalid compact content now have adversarial fixtures. No assertion was
 weakened; the corrected immutable head still needs VM test and strict lint proof.
+
+Exact dd06 passed all four native-command value tests with TS enabled. Its strict all-target check found three lint defects: a documentation identifier, implicit integer division in a Unicode boundary fixture, and `name` colliding with the generated TS trait method. The successor uses the explicit `root_name` accessor and Euclidean division; JSON and intent validation remain identical. This is source correction, with successor VM checks still pending.

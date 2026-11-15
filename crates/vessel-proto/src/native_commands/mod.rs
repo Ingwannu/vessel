@@ -35,7 +35,7 @@ pub enum NativeCommandKind {
 impl NativeCommandKind {
     /// Canonical root name; the composer does not infer execution from a label.
     #[must_use]
-    pub const fn name(self) -> &'static str {
+    pub const fn root_name(self) -> &'static str {
         match self {
             Self::Compact => "compact",
             Self::Goal => "goal",
