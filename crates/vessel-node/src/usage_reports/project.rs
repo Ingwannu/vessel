@@ -31,6 +31,8 @@ pub(crate) fn entry(
     let state = match limits.state {
         AccountLimitState::Off | AccountLimitState::NotRequested => SourceReportState::NotRequested,
         AccountLimitState::Refreshing { retained } => SourceReportState::Refreshing {
+            // The legacy limits DTO does not identify the immediately preceding attempt.
+            origin: vessel_proto::usage_reports::UsageRefreshOrigin::Unavailable,
             started_at: None,
             retained: retained.map(success).transpose()?,
         },

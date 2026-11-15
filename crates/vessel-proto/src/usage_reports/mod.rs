@@ -30,7 +30,7 @@ pub use values::{
 mod state;
 pub use state::{
     NoQuotaReason, SourceReportEntry, SourceReportState, SuccessfulUsageReport,
-    UsageAttemptFailure, UsageFetchFailure, UsageLoginFailure, UsageProblem,
+    UsageAttemptFailure, UsageFetchFailure, UsageLoginFailure, UsageProblem, UsageRefreshOrigin,
 };
 mod disclosure;
 mod requests;

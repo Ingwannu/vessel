@@ -73,7 +73,19 @@ impl Owner {
         entry.waiters.push(reply);
         entry.failure = None;
         if let Some(report) = &mut entry.report {
+            let origin = match report.state {
+                SourceReportState::Available { .. } => {
+                    vessel_proto::usage_reports::UsageRefreshOrigin::Available
+                }
+                SourceReportState::NotRequested
+                | SourceReportState::Refreshing { .. }
+                | SourceReportState::Unavailable { .. }
+                | SourceReportState::Failed { .. } => {
+                    vessel_proto::usage_reports::UsageRefreshOrigin::Unavailable
+                }
+            };
             report.state = SourceReportState::Refreshing {
+                origin,
                 started_at: Some(Utc::now()),
                 retained: success(&report.state),
             };

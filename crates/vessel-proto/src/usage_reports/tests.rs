@@ -125,6 +125,7 @@ fn all_current_and_retained_success_paths_redact_money_and_private_details() {
             observed: success.clone(),
         },
         SourceReportState::Refreshing {
+            origin: UsageRefreshOrigin::Available,
             started_at: Some(DateTime::UNIX_EPOCH),
             retained: Some(success.clone()),
         },
@@ -344,4 +345,26 @@ fn source_methods_stay_pending_with_explicit_authority_and_unary_shape() {
         assert_eq!(method.scope(), Some(scope));
         assert_eq!(method.shape(), MethodShape::Unary);
     }
+}
+
+#[test]
+fn refresh_origin_roundtrip_preserves_current_success_and_omission_is_safe() {
+    let state = SourceReportState::Refreshing {
+        origin: UsageRefreshOrigin::Available,
+        started_at: None,
+        retained: Some(observed()),
+    };
+    let mut wire = serde_json::to_value(&state).unwrap();
+    assert_eq!(
+        serde_json::from_value::<SourceReportState>(wire.clone()).unwrap(),
+        state
+    );
+    assert!(wire.as_object_mut().unwrap().remove("origin").is_some());
+    assert!(matches!(
+        serde_json::from_value::<SourceReportState>(wire).unwrap(),
+        SourceReportState::Refreshing {
+            origin: UsageRefreshOrigin::Unavailable,
+            ..
+        }
+    ));
 }

@@ -83,6 +83,7 @@ async fn identical_refreshes_coalesce_and_revocation_fences_late_work_and_copied
     assert!(matches!(
         pending.reports[0].state,
         SourceReportState::Refreshing {
+            origin: vessel_proto::usage_reports::UsageRefreshOrigin::Available,
             retained: Some(_),
             ..
         }

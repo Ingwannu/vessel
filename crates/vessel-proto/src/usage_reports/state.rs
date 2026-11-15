@@ -98,6 +98,19 @@ pub struct SuccessfulUsageReport {
     pub report: AvailableUsageReport,
 }
 
+/// The attempt that a refresh is replacing, separate from an older successful snapshot.
+/// An omitted origin never promotes a retained failure to a current observation.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum UsageRefreshOrigin {
+    /// The immediately preceding attempt succeeded and remains visible while pending.
+    Available,
+    /// Failed, unavailable or unknown; success is retained only for the account card.
+    #[default]
+    Unavailable,
+}
+
 /// Every query state is explicit; a failure never promotes old values to current.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -107,6 +120,9 @@ pub enum SourceReportState {
     NotRequested,
     /// One admitted fetch is running.
     Refreshing {
+        /// Availability of the attempt being replaced, never inferred from snapshot presence.
+        #[serde(default)]
+        origin: UsageRefreshOrigin,
         /// Actual start when the source retained it; absent is never the query time.
         started_at: Option<DateTime<Utc>>,
         /// Previous success only for the same validated login binding.
