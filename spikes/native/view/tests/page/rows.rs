@@ -148,6 +148,12 @@ fn a_run_of_log_lines_is_one_row_or_none() {
         3,
         "the box holds every line of the run"
     );
+    assert_eq!(
+        Logs::all(&entries).lines().collect::<Vec<_>>().len(),
+        4,
+        "the Session actions' Agent log holds every run's lines"
+    );
+    assert!(Logs::all(&entries[3..5]).is_empty());
     let full = Rows::of(entries.len(), None, &logs, &HashSet::new());
     assert_eq!(full, Rows::Some(vec![0, 3, 4, 5, 6]));
     assert_eq!(full.row_index(1, None, &logs), Some(0));
@@ -156,4 +162,32 @@ fn a_run_of_log_lines_is_one_row_or_none() {
     assert_eq!(collapsed, Rows::Some(vec![3, 4, 6]));
     assert_eq!(collapsed.row_index(1, Some(&folds), &logs), None);
     assert_eq!(collapsed.row_index(5, Some(&folds), &logs), None);
+}
+
+// The agent's circle goes beside a turn's first reply only: a reply after
+// another reply (a tool call between them or not) has none; the person's
+// next message (a prompt or a steer) starts a new turn.
+#[test]
+fn only_a_turns_first_reply_carries_the_agents_circle() {
+    let entries = [
+        prompt(1, "go"),
+        message(2, "first"),
+        tool(3, ToolKind::Read),
+        message(4, "second"),
+        prompt(5, "again"),
+        message(6, "first again"),
+    ];
+    let firsts: Vec<usize> = (0..entries.len())
+        .filter(|&index| {
+            matches!(
+                entries[index].kind,
+                vessel_app_view::timeline::EntryKind::Message { .. }
+            ) && vessel_app_view::timeline::first_reply(&entries, index)
+        })
+        .collect();
+    assert_eq!(firsts, [1, 5]);
+    assert!(
+        vessel_app_view::timeline::first_reply(&[], 0),
+        "a reply with nothing before it"
+    );
 }

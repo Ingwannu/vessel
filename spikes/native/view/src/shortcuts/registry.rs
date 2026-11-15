@@ -6,7 +6,9 @@
 //! - Purpose: the listener, the palette's hints, the sidebar's hints and
 //!   Settings › Shortcuts read the same table, so a key shown is the key
 //!   that works.
-//! - Choice: the page's fourteen actions in its order with its defaults;
+//! - Choice: the page's fourteen actions in its order with its defaults,
+//!   and GOAT's two queue actions (send the first queued message now,
+//!   edit the last one) after the composer's focus;
 //!   an action has at most two bindings; "session 1–9" is fixed (Alt and
 //!   a digit, one per session) and cannot be reassigned. An override
 //!   replaces an action's defaults whole (an empty list unbinds it); ids
@@ -48,6 +50,13 @@ pub enum Action {
     Find,
     /// Focus the composer.
     FocusComposer,
+    /// Send the first queued message now (GOAT's
+    /// `thread.steerQueuedMessage`): into the running turn when the agent
+    /// takes a steer, else as a turn of its own.
+    SteerQueued,
+    /// Edit the last queued message (GOAT's `thread.editQueuedMessage`),
+    /// from the composer's very start only.
+    EditQueued,
     /// Show or hide the sidebar.
     ToggleSidebar,
     /// Show or hide the session's summary.
@@ -74,7 +83,7 @@ impl ShortcutGroup {
 
 impl Action {
     /// Every action, in the registry's order.
-    pub const ALL: [Self; 14] = [
+    pub const ALL: [Self; 16] = [
         Self::Palette,
         Self::NewSession,
         Self::Settings,
@@ -87,6 +96,8 @@ impl Action {
         Self::JumpSession,
         Self::Find,
         Self::FocusComposer,
+        Self::SteerQueued,
+        Self::EditQueued,
         Self::ToggleSidebar,
         Self::ToggleInspector,
     ];
@@ -107,6 +118,8 @@ impl Action {
             Self::JumpSession => "jump-session",
             Self::Find => "find",
             Self::FocusComposer => "focus-composer",
+            Self::SteerQueued => "steer-queued",
+            Self::EditQueued => "edit-queued",
             Self::ToggleSidebar => "toggle-sidebar",
             Self::ToggleInspector => "toggle-inspector",
         }
@@ -137,7 +150,9 @@ impl Action {
             | Self::PreviousSession
             | Self::NextSession
             | Self::JumpSession => ShortcutGroup::Navigation,
-            Self::Find | Self::FocusComposer => ShortcutGroup::Session,
+            Self::Find | Self::FocusComposer | Self::SteerQueued | Self::EditQueued => {
+                ShortcutGroup::Session
+            }
             Self::ToggleSidebar | Self::ToggleInspector => ShortcutGroup::Panels,
         }
     }
@@ -159,6 +174,9 @@ impl Action {
             Self::JumpSession => &[],
             Self::Find => &["Mod+F"],
             Self::FocusComposer => &["Mod+L"],
+            // GOAT's defaults (`packages/shared/src/keybindings.ts`).
+            Self::SteerQueued => &["Mod+Shift+Enter"],
+            Self::EditQueued => &["Alt+Up"],
             Self::ToggleSidebar => &["Mod+B"],
             Self::ToggleInspector => &["Mod+Shift+B"],
         }

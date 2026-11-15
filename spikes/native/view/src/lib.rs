@@ -10,27 +10,44 @@
 //! screens draw these values through Vessel's kit, whatever is under it.
 
 pub mod about;
+pub mod agent_mark;
 pub mod agent_status;
 pub mod ago;
 pub mod alert;
 pub mod badge;
 pub mod board;
+pub mod brand;
+pub mod composer;
+pub mod connections;
 mod conversation;
 pub mod devices;
+pub mod diagnostics;
 pub mod effort;
 pub mod extras;
 pub mod files;
+pub mod fork;
+pub mod idle_release;
 mod links;
+pub mod machine_book;
 pub mod machines;
+pub mod mark_attributions;
+pub mod matcher;
 pub mod models;
 pub mod notices;
+pub mod offers;
 mod options;
+pub mod overview;
+pub mod pairing;
 pub mod palette;
+pub mod panels;
 pub mod prefs;
+pub mod rewind;
+pub mod search;
 pub mod session;
 pub mod settings;
 pub mod shortcuts;
 pub mod sidebar;
+pub mod slider;
 pub mod sync;
 pub mod terminal;
 #[cfg(test)]
@@ -38,10 +55,13 @@ mod tests;
 mod text;
 pub mod timeline;
 pub mod toasts;
+pub mod updates;
 pub mod workspace;
 
+pub use agent_mark::AgentMark;
 pub use board::{
-    Agent, Attention, Card, Fleet, Lane, Machine, Phrase, Reach, Via, agent_name, rows_for_scroll,
+    Agent, Attention, Card, Fleet, Lane, Machine, NodeVersion, Phrase, Reach, Via, agent_name,
+    rows_for_scroll,
 };
 pub use conversation::{Asked, Conversation, Entry, Notice, Speaker, ToolState};
 pub use links::is_web_url;
@@ -51,7 +71,8 @@ pub use options::{
 };
 pub use text::localization;
 pub use text::{
-    AboutText, BoardWords, ConversationWords, Lang, MachinesText, NoticeWords, OptionsText,
-    PairingWords, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text, UpdateText,
+    BoardWords, ConversationWords, GitFailureText, GitHashText, GitHeaderText, GitLabels,
+    GitStashText, GitSuccessCommits, GitSuccessText, Lang, MachinesText, MarkText, NoticeWords,
+    OptionsText, OverviewText, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text,
     grouped, meter_tokens, short_tokens,
 };
