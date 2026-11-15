@@ -14,8 +14,8 @@ wp-checkpoints-node-narrow-20261115T171417Z-d437c087 finished rc1; the corrected
 ordinary narrow must include both binary callers. No priority retry is authorized.
 Only after this passes, run the current four-crate checkpoint suite;
 it includes all six actual root-admission units. Then extract and validate the
-minimal canonical RootLease/StartGuard borrow leaf on announced node9c150c6e
-and send that leaf alone to V3. No leaf exists or is adoptable yet.
+minimal canonical RootLease/StartGuard borrow leaf directly on the announced
+node head (currently 27502436) and send that leaf alone to V3. No leaf exists or is adoptable yet.
 
 The preserved old four-crate run
 wp-checkpoints-node-20261115T162908Z-4f74c616 finished rc1 at nested-vesseld:
@@ -1341,3 +1341,24 @@ Platform hook construction moved into the existing bootstrap module and the
 node.rs budget shrinks to 667. No dependency, protocol, schema or live account
 configuration changes. The next ordinary narrow includes the CLI caller as well
 as proto/workspace/node; all actual root/runtime tests still remain owed.
+
+
+### New-base and comparison-cache coordination (pending)
+
+Node27502436 was announced after the current immutable narrow submission. The
+planned minimal leaf takes that announced base directly and receives its own
+validation; the old-base narrow cannot prove the leaf or the new base. The full
+checkpoint union will consume the canonical migration-sequence extraction when
+its head is announced instead of creating another extraction. No final whole
+gate or handoff freeze has started. File.duplicate is an additional real writer
+on this base and must join canonical physical admission before restore activation.
+
+G1's comparison-cache coordination has no checked restore hook yet. Immutable
+Plan.key.worktree already names the exact original managed tree. The existing
+checkpoint_files lookup can retain WorkspaceRoot::Worktree plus entry.info.project
+from that same authoritative record before I/O; it must not infer either from
+session, cwd or alias, or resolve another root. A future C3 before/after guard
+joins the actual retained blocking mutation/recovery closure through completion,
+error and owner loss. The RPC waiter is not the completion boundary. Completed
+metadata-only retries perform no file I/O. This remains a consumer obligation,
+with no public hook, producer hash or comparison-cache parity claim.
