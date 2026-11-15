@@ -194,3 +194,25 @@ fn corrupted_reservation_accounting_is_not_a_free_slot_or_an_absent_key() {
         Err(StoreError::Creation(CreationError::CapacityCorrupt))
     ));
 }
+
+#[test]
+fn existing_key_conflict_is_not_hidden_by_exhausted_capacity() {
+    let mut db = database();
+    apply_committed(&mut db, Write::Admit(candidate("bound")), budget()).unwrap();
+    let mut conflicting = candidate("bound");
+    conflicting.receipt = Receipt::admitted(
+        Kind::Workspace,
+        conflicting.receipt.snapshot().reserved,
+        Fingerprint::new(BlobHash::from_bytes([8; 32])),
+    )
+    .unwrap();
+    let full = Budget {
+        count: 0,
+        retained: 0,
+        ..budget()
+    };
+    assert!(matches!(
+        apply_committed(&mut db, Write::Admit(conflicting), full),
+        Err(StoreError::Creation(CreationError::IntentConflict))
+    ));
+}

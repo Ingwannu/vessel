@@ -161,13 +161,12 @@ impl TryFrom<ReceiptWire> for Receipt {
             Self::admitted(wire.snapshot.kind, wire.snapshot.reserved, wire.fingerprint)?;
         let reserved = wire.snapshot.reserved;
         let valid_phase = match wire.snapshot.phase {
-            Phase::Accepted => true,
+            Phase::Accepted | Phase::Completed => true,
             Phase::WorkspaceReady => reserved.workspace_claim == WorkspaceClaim::Create,
             Phase::ResourceReady => reserved.resource.is_some(),
             Phase::PromptStarted => {
                 reserved.resource.is_some() && reserved.first_input == FirstInput::Present
             }
-            Phase::Completed => true,
             Phase::Failed { stage, .. } => match stage {
                 Stage::Workspace => reserved.workspace_claim == WorkspaceClaim::Create,
                 Stage::Resource => reserved.resource.is_some(),

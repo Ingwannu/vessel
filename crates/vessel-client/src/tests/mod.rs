@@ -424,6 +424,8 @@ impl Handler for FakeNode {
     }
 
     unserved! {
+        observe_creation: vessel_proto::creation::ObserveCreation => Option<vessel_proto::creation::Snapshot>;
+        subscribe_creation: vessel_proto::creation::SubscribeCreation => Option<vessel_proto::creation::Snapshot>;
         open_side_question: vessel_proto::side_questions::OpenSideQuestion => SessionInfo;
         prompt_side_question: vessel_proto::side_questions::PromptSideQuestion => vessel_proto::Delivered;
         reset_side_question: vessel_proto::side_questions::ResetSideQuestion => SessionInfo;

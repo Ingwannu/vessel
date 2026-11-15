@@ -1,7 +1,7 @@
 //! Person-only creation observations reuse the store and shared waiting limits.
 
 use super::{Connection, NodeService, wire};
-use crate::waits::Waiter;
+use crate::{principal::Principal, waits::Waiter};
 use std::time::Duration;
 use vessel_proto::creation::{ObserveCreation, Snapshot, SubscribeCreation};
 use vessel_proto::{ErrorCode, WireError};
@@ -13,7 +13,7 @@ impl NodeService {
         connection: &Connection,
         request: ObserveCreation,
     ) -> Result<Option<Snapshot>, WireError> {
-        person(connection)?;
+        person(connection.principal())?;
         self.creation_snapshot(request).await
     }
 
@@ -22,10 +22,13 @@ impl NodeService {
         connection: &Connection,
         request: SubscribeCreation,
     ) -> Result<Option<Snapshot>, WireError> {
-        person(connection)?;
+        person(connection.principal())?;
         let here = self.links.node();
         let shares = Waiter::of(connection.principal(), here).shares(here);
         let mut wait = request.wait.seconds();
+        if matches!(connection.principal(), Principal::Delegated { .. }) {
+            wait = None;
+        }
         let _slot = self.wait_slot(connection, shares, &mut wait);
         // Subscribe first. A write between the SQL read and changed() remains
         // visible; notifications may coalesce, never the authoritative row.
@@ -68,8 +71,8 @@ impl NodeService {
     }
 }
 
-fn person(connection: &Connection) -> Result<(), WireError> {
-    if connection.principal().agent().is_some() {
+fn person(principal: &Principal) -> Result<(), WireError> {
+    if principal.agent().is_some() {
         return Err(WireError::new(
             ErrorCode::Forbidden,
             "creation receipts are a person's operation history",
@@ -77,3 +80,6 @@ fn person(connection: &Connection) -> Result<(), WireError> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests;

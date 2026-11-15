@@ -504,6 +504,8 @@ impl Handler for Fake {
     }
 
     unserved! {
+        observe_creation: vessel_proto::creation::ObserveCreation => Option<vessel_proto::creation::Snapshot>;
+        subscribe_creation: vessel_proto::creation::SubscribeCreation => Option<vessel_proto::creation::Snapshot>;
         forward: vessel_proto::Forward => vessel_proto::Forwarded;
         relay: vessel_proto::RelayCall => vessel_proto::Forwarded;
         deliver: vessel_proto::Deliver => vessel_proto::Forwarded;

@@ -156,7 +156,7 @@ fn keys_validate_on_decode_without_trimming_or_debug_leakage() {
     assert!(!format!("{key:?}").contains("private key"));
     assert!(super::super::Key::parse("한".repeat(super::super::Key::MAX_CHARS)).is_ok());
     for raw in [
-        "".to_owned(),
+        String::new(),
         "x\ny".to_owned(),
         "x".repeat(super::super::Key::MAX_CHARS.saturating_add(1)),
     ] {

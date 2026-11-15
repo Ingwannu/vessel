@@ -100,3 +100,78 @@ async fn concurrent_last_slot_has_one_winner_and_reconciliation_survives_full_re
     ));
     store.close().await;
 }
+
+#[tokio::test]
+async fn deleting_a_completed_resource_does_not_release_its_key_or_claim() {
+    let (_temp, dir, store) = open().await;
+    let admission = any_candidate("completed");
+    let identity = admission.identity.clone();
+    let reserved = admission.receipt.snapshot().reserved;
+    let Some(Resource::Agent { session }) = reserved.resource else {
+        panic!("agent fixture required");
+    };
+    let mut info = vessel_proto::SessionInfo::new(
+        session,
+        vessel_proto::SessionSpec::new(
+            vessel_proto::HarnessKind::Codex,
+            vessel_proto::SessionMode::Structured {
+                model: None,
+                resume: None,
+                options: Vec::new(),
+            },
+        ),
+        chrono::DateTime::UNIX_EPOCH,
+    );
+    info.status = vessel_proto::SessionStatus::Exited { code: Some(0) };
+    let mut current = store.admit_creation(admission).await.unwrap();
+    store.create_session(info).await.unwrap();
+    for stage in [Stage::Workspace, Stage::Resource, Stage::Prompt] {
+        current = store
+            .advance_creation(
+                reserved.operation,
+                current.snapshot().revision,
+                Advance::Begin(stage),
+            )
+            .await
+            .unwrap();
+        current = store
+            .advance_creation(
+                reserved.operation,
+                current.snapshot().revision,
+                Advance::Finished(stage),
+            )
+            .await
+            .unwrap();
+    }
+    current = store
+        .advance_creation(
+            reserved.operation,
+            current.snapshot().revision,
+            Advance::Complete,
+        )
+        .await
+        .unwrap();
+    store.delete_session(session).await.unwrap();
+    store.close().await;
+    drop(store);
+    let store = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    let retried = store
+        .admit_creation(Admission {
+            identity,
+            receipt: any_candidate("unused").receipt,
+        })
+        .await
+        .unwrap();
+    assert_eq!(retried, current);
+    assert_eq!(store.session(session).await.unwrap(), None);
+    assert!(matches!(
+        store
+            .admit_creation(candidate("new-key", 7, WorkspaceId::random(), session))
+            .await,
+        Err(StoreError::Creation(CreationError::ResourceClaimed))
+    ));
+    store.close().await;
+}

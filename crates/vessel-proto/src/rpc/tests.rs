@@ -436,6 +436,8 @@ fn every_hop_of_the_envelope_has_its_own_scope() {
 /// group is in or out): changing it is a decision, so it is written out.
 const FORWARDABLE: &[&str] = &[
     "node.info",
+    "creation.observe",
+    "creation.subscribe",
     "harness.list",
     "session.list",
     "session.get",

@@ -277,6 +277,8 @@ impl Method {
     pub const fn forwardable(self) -> bool {
         match self {
             Self::NodeInfo
+            | Self::ObserveCreation
+            | Self::SubscribeCreation
             | Self::ListHarnesses
             | Self::ListSessions
             | Self::GetSession
