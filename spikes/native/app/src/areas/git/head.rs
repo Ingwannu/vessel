@@ -260,7 +260,7 @@ fn actions(
     };
     git.tips
         .on(
-            split_button("git-actions", content, &handlers, tokens, touch, cx),
+            split_button("git-actions", &content, &handlers, tokens, touch, cx),
             &git.actions_tip,
             tip,
             touch,

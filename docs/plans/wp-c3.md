@@ -170,3 +170,9 @@ as51aea1ab/2b9e079c. Only the pre-existing slider size record was tightened719
 →711; current base link records were retained. Neither previous producer checks
 nor style assertions approve this combined binary's interaction or pixels.
 Narrow compilation/tests and final C3 first-use captures remain required.
+
+The first split narrow check at38ea09b0 returned two source lints (one unquoted
+Rust type name and a borrowed-only label passed by value). The control now
+borrows its content/label naturally; these corrections do not change geometry
+or action policy. No unchecked allow/expectation was added. Its changed-source
+narrow check is required; no combined UI pass is claimed.

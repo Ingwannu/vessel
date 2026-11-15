@@ -16,7 +16,7 @@
 //!   trigger rather than at whichever point inside it was clicked.
 //! - Corrections: typed label density never wraps inside the fixed height;
 //!   absent primary actions use the reference's branch/caret-only shape.
-//!   The loader reuses the shared ActivityIndicator, with16 ink in20 layout.
+//!   The loader reuses the shared `ActivityIndicator`, with16 ink in20 layout.
 //! - Cost: the caller owns menu state and actions. The callbacks are an
 //!   open UI extension point: every area can wire its own owner type.
 
@@ -163,7 +163,7 @@ impl Geometry {
 #[must_use]
 pub fn split_button<V: 'static>(
     id: impl Into<ElementId>,
-    content: Content,
+    content: &Content,
     handlers: &SplitHandlers<V>,
     tokens: &Tokens,
     touch: bool,
@@ -207,7 +207,10 @@ pub fn split_button<V: 'static>(
         Content::MenuOnly(phase) => menu_only(
             frame,
             handlers,
-            Caret { phase, anchor },
+            Caret {
+                phase: *phase,
+                anchor,
+            },
             geometry,
             tokens,
             cx,
@@ -222,7 +225,7 @@ struct Caret {
 }
 
 fn primary<V: 'static>(
-    content: SplitContent,
+    content: &SplitContent,
     action: PrimaryAction<V>,
     geometry: Geometry,
     tokens: &Tokens,
@@ -259,13 +262,13 @@ fn primary<V: 'static>(
         .when(content.state != PrimaryState::Busy, |half| {
             half.child(glyph(content.icon, GLYPH, neutral.foreground))
                 .when(content.density == Density::Labelled, |half| {
-                    half.child(label(content.label))
+                    half.child(label(&content.label))
                 })
         })
 }
 
-fn label(text: SharedString) -> Div {
-    div().flex_none().whitespace_nowrap().child(one_line(&text))
+fn label(text: &SharedString) -> Div {
+    div().flex_none().whitespace_nowrap().child(one_line(text))
 }
 
 fn busy(colour: gpui::Hsla) -> Div {
@@ -374,7 +377,7 @@ mod tests {
             "Pull and push all changes",
             "모든 변경 사항을 가져오고 푸시하기",
         ] {
-            let mut label = label(text.into());
+            let mut label = label(&text.into());
             assert_eq!(
                 label.style().text.white_space,
                 Some(gpui::WhiteSpace::Nowrap)
