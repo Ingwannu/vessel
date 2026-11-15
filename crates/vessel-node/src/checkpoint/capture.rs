@@ -23,6 +23,9 @@ pub(super) struct Captures {
     quota: Quota,
 }
 impl Captures {
+    pub(super) fn idle(&self) -> bool {
+        self.jobs.is_empty()
+    }
     pub(super) fn admit(
         &mut self,
         key: CaptureKey,

@@ -3,7 +3,7 @@
 ADR 0077 passed design review at `a852bde3`; acceptance is a contract decision,
 not a product/runtime pass. The node branch consumes Quality B `29eebb8b`
 and the shared `Request`/`UnexpectedReply` extraction `1c8d0b93`. The separate
-app branch consumes package base `8d5513e4`; no app feature is implemented yet.
+app branch consumes package bases `8d5513e4` and `6036eeb8`; no app feature is implemented yet.
 
 ## References and existing assets
 
@@ -45,8 +45,11 @@ staging. No provider SDK, tool-call-count inference or new crate edge.
   bounded offsets and refuse expired or consumed previews; admission enforces
   the five-minute lifetime and four active previews per human principal; restart pins interrupted operations for recovery. A test-only adapter uses the existing writer, savepoint and durable reply;
   restore admission and all Pending path intents share that savepoint. Its
-  real-writer commit/restart/failure-injection tests remain unverified. Public
-  node assembly, retention and physical quota reconciliation remain owed.
+  real-writer commit/restart/failure-injection tests remain unverified. A durable garbage table transfers retired capture reservations out of session
+  FKs; cleanup acknowledgement releases them, and active previews/recovery block
+  deletion. This is staged under the existing writer delete savepoint; retention
+  and the real filesystem garbage collector still need connecting. Public node
+  assembly and full physical quota reconciliation remain owed.
 - workspace/checkpoint: test-only strict enumeration, rooted nofollow reads,
   private immutable raw blobs, bounded streaming and canonical fingerprints.
   Files are fully staged before per-path mutation; rename exchange retains
@@ -56,7 +59,9 @@ staging. No provider SDK, tool-call-count inference or new crate edge.
   and intermediate directories refuses before file mutation. The node must
   durably journal each step
   and verify the entire covered scope before claiming success. Linux is staged;
-  other platforms remain unavailable. Full enumeration/ignore/root revalidation
+  FD mount IDs also reject mount crossings on the same device; actual private
+  fixture and missing-capability tests are written but not yet verified. Other
+  platforms remain unavailable. Full enumeration/ignore/root revalidation
   at operation boundaries and crash-restart assembly remain owed.
 - session/checkpoint: test-only bounded acknowledgement prototype. Actual queue,
   steer, prompt-delivery and persisted-turn-end integration remains owed.
@@ -86,3 +91,14 @@ including delegated origin; a delivery DeviceId alone cannot authorize a
 plan. Local token/socket owners remain supported; direct/delegated agents
 are refused. Cross-origin sharing and local-owner retry tests accompany the
 amendment in the node package review.
+
+Recent scoped evidence: on `9a9c3882`, checkpoint-filtered tests passed 51 with
+zero failures and six ignored obligations. This includes real-writer savepoint
+rollback/restart, complete human principal isolation, inode checks and global
+reservation timeout fencing. It precedes owner shutdown draining, durable
+garbage and mount-ID changes. Protocol/web TypeScript declarations regenerated;
+the broader alias check found the baseline LimitPercent alias-of-alias
+classification and its one-line correction is isolated. Generated wire files
+retain the canonical generator's formatting; manual Rust sources pass whitespace
+checks independently. New node/app baseline integration follows the coordinator's
+announced `6c782cb6`, including the exact security e2e race fix `c5da5305`.

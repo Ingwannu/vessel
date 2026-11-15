@@ -529,3 +529,15 @@ lookup and identical-id retry. Per-owner preview admission uses that same
 identity. Scopes and revocation remain the existing per-call admission checks.
 This wording replaces the earlier ambiguous human-device wording; the package
 code review also reviews this amendment and its cross-origin/local-owner tests.
+
+### Staged garbage and owner lifetime
+
+Retired captures transfer their reservation into durable garbage independent
+of the deleted session's foreign key. The existing writer's deletion savepoint
+performs that transfer with metadata deletion; cleanup acknowledgement releases
+capacity only after actual worker handles and private files are gone. Startup
+reconciliation and the real filesystem collector remain implementation work.
+Closing the last capture client drains admitted workers before the owner drops
+their root guards or reservations. Caller disappearance is not I/O completion.
+Linux staging also checks FD mount IDs, since device identity alone cannot
+distinguish same-filesystem bind mounts; missing mount identity refuses support.

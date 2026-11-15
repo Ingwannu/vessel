@@ -84,6 +84,40 @@ async fn held_read_io_releases_prompt_and_late_candidate_never_publishes() {
     drop(client);
     owner.await.unwrap();
 }
+
+#[tokio::test(start_paused = true)]
+async fn dropping_all_clients_does_not_drop_the_owner_before_held_io_is_cleaned() {
+    let (release, held) = std::sync::mpsc::channel();
+    let held = std::sync::Mutex::new(Some(held));
+    let (entered, entry) = oneshot::channel();
+    let entered = std::sync::Mutex::new(Some(entered));
+    let (client, owner) = runner::start(
+        move |_key, _cancel| {
+            entered.lock().unwrap().take().unwrap().send(()).unwrap();
+            let _closed = held.lock().unwrap().take().unwrap().recv();
+            FileImage::new(Vec::new())
+        },
+        |_key, _phase| async { Ok(()) },
+        |_key, disposition| assert_eq!(disposition, Disposition::Discard),
+    );
+    let call = client.clone();
+    let actor =
+        tokio::spawn(async move { call.capture(key(), ReservedBytes::new(1).unwrap()).await });
+    entry.await.unwrap();
+    tokio::time::advance(CHECKPOINT_CAPTURE_DEADLINE).await;
+    assert_eq!(actor.await.unwrap(), Err(CheckpointError::CaptureTimedOut));
+    let mut lifecycle = client.lifecycle();
+    drop(client);
+    while *lifecycle.borrow_and_update() == runner::Lifecycle::Accepting {
+        lifecycle.changed().await.unwrap();
+    }
+    assert!(
+        !owner.is_finished(),
+        "closing callers cannot prematurely release an admitted worker"
+    );
+    release.send(()).unwrap();
+    owner.await.unwrap();
+}
 #[tokio::test(start_paused = true)]
 async fn held_publication_ack_cannot_revive_the_expired_lease() {
     let (hold, release) = oneshot::channel();

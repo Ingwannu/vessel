@@ -3,7 +3,7 @@
 use super::{capture::Captures, quota::ReservedBytes};
 use std::{future::Future, sync::Arc};
 use tokio::{
-    sync::{mpsc, oneshot},
+    sync::{mpsc, oneshot, watch},
     time::{Instant, sleep_until},
 };
 use tokio_util::sync::CancellationToken;
@@ -61,8 +61,17 @@ enum Event {
 #[derive(Debug, Clone)]
 pub(super) struct Client {
     requests: mpsc::Sender<Request>,
+    lifecycle: watch::Receiver<Lifecycle>,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum Lifecycle {
+    Accepting,
+    Draining,
 }
 impl Client {
+    pub(super) fn lifecycle(&self) -> watch::Receiver<Lifecycle> {
+        self.lifecycle.clone()
+    }
     pub(super) async fn capture(
         &self,
         key: CaptureKey,
@@ -120,16 +129,27 @@ where
 {
     let (requests, mut receive) = mpsc::channel::<Request>(CHECKPOINT_QUEUE);
     let (events, mut completed) = mpsc::channel::<Event>(CHECKPOINT_WORKERS);
+    let (state, lifecycle) = watch::channel(Lifecycle::Accepting);
     let read = Arc::new(read);
     let persist = Arc::new(persist);
     let cleanup = Arc::new(cleanup);
     let task = tokio::spawn(async move {
         let mut captures = Captures::default();
+        let mut requests_open = true;
         loop {
+            if !requests_open && captures.idle() {
+                break;
+            }
             let deadline = captures.deadline();
             tokio::select! {
-                request=receive.recv()=>{
-                    let Some(request)=request else {break;};
+                request=receive.recv(), if requests_open=>{
+                    let Some(request)=request else {
+                        // Closing callers does not make blocked I/O disappear. Drain
+                        // admitted workers before dropping their guards/reservations.
+                        requests_open=false;
+                        let _previous=state.send_replace(Lifecycle::Draining);
+                        continue;
+                    };
                     if Instant::now() >= request.deadline {
                         let _closed=request.reply.send(Err(CheckpointError::CaptureTimedOut));
                         continue;
@@ -164,7 +184,13 @@ where
             }
         }
     });
-    (Client { requests }, task)
+    (
+        Client {
+            requests,
+            lifecycle,
+        },
+        task,
+    )
 }
 
 async fn wait_deadline(deadline: Option<Instant>) {
