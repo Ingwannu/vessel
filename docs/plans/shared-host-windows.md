@@ -39,8 +39,11 @@ API under app::host_windows:
 
 The dispatcher module/reexport and Registry.factory each have literal cfg(test)
 staging. W7 removes the dispatcher/reexport/factory-field attributes with its real
-generic fallback caller. If promoting the module for W7 first, put only
-set_factory behind cfg(test) until the E3 startup consumer is present. No dead-code
+generic fallback caller. If promoting the module for W7 first, split set_factory
+out of the grouped reexport, keep that individual reexport behind cfg(test), and
+put only the set_factory function behind cfg(test) until the E3 startup consumer
+is present. The other three delivery exports and factory field become product
+code with W7's actual caller. No dead-code
 allowance, fake registration or public-visibility workaround is permitted.
 E3 reuses this owner and removes the same staging with its actual desktop menu,
 launch, lifecycle and factory consumers; it must not recreate Desktop.records.
