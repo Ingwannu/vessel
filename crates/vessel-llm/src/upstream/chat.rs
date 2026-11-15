@@ -339,7 +339,7 @@ impl StreamDecoder {
             return;
         }
         if let Some(usage) = chunk.usage {
-            self.usage = Some(usage_of(&usage));
+            self.usage = Some(super::usage::chat(&usage));
         }
         for choice in chunk.choices {
             if choice.index != 0 {
@@ -484,23 +484,6 @@ impl StreamDecoder {
         };
         out.push(ir::Event::Stop(stop));
         self.ended = true;
-    }
-}
-
-fn usage_of(usage: &wire::Usage) -> ir::Usage {
-    let cached = usage
-        .prompt_tokens_details
-        .and_then(|details| details.cached_tokens)
-        .unwrap_or(0);
-    ir::Usage {
-        input: usage.prompt_tokens.saturating_sub(cached),
-        cache_read: cached,
-        cache_write: 0,
-        output: usage.completion_tokens,
-        reasoning: usage
-            .completion_tokens_details
-            .and_then(|details| details.reasoning_tokens)
-            .unwrap_or(0),
     }
 }
 
