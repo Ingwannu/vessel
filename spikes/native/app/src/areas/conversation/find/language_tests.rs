@@ -241,7 +241,7 @@ fn a_missing_destination_loads_then_fails_and_a_closed_target_cannot_fail_a_new_
     });
     probe.update_in(cx, |probe, window, cx| {
         probe.shell.update(cx, |shell, cx| {
-            shell.find_at("needle", vessel_proto::EventSeq::new(10), window, cx)
+            shell.find_at("needle", vessel_proto::EventSeq::new(10), window, cx);
         });
     });
     cx.run_until_parked();
