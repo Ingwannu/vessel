@@ -14,6 +14,27 @@ impl Shell {
         match answer {
             Answer::Targets(Ok(targets)) => self.inbox_targets(targets, cx),
             Answer::Targets(Err(problem)) => self.areas.inbox.problem = Some(problem),
+            Answer::Presence(source, result) => {
+                if self
+                    .areas
+                    .inbox
+                    .store
+                    .nodes()
+                    .iter()
+                    .any(|node| node.source == source)
+                {
+                    self.areas
+                        .inbox
+                        .presence_problems
+                        .retain(|(id, _)| *id != source.node);
+                    if let Err(problem) = result {
+                        self.areas
+                            .inbox
+                            .presence_problems
+                            .push((source.node, problem));
+                    }
+                }
+            }
             Answer::Listed(source, request, result) => {
                 let notices = self.areas.inbox.store.receive(source.node, request, result);
                 let area = &mut self.areas.inbox;
@@ -43,6 +64,10 @@ impl Shell {
             })
             .collect();
         self.areas.inbox.store.retain(&retained);
+        self.areas
+            .inbox
+            .presence_problems
+            .retain(|(id, _)| retained.contains(id));
         if self
             .areas
             .inbox
@@ -61,12 +86,25 @@ impl Shell {
                 let changed = self.areas.inbox.store.nodes().iter().any(|node| {
                     node.source.node == id && node.source.connection != source.connection
                 });
+                let connected = self
+                    .areas
+                    .inbox
+                    .store
+                    .nodes()
+                    .iter()
+                    .any(|node| node.source == source);
                 self.areas.inbox.store.connect(source.clone());
-                if changed {
-                    if let Some(key) = self.areas.inbox.detail.key().filter(|key| key.node == id) {
-                        self.areas.inbox.detail = vessel_app_view::inbox::Detail::default();
-                        self.inbox_select(key, cx);
-                    }
+                if !connected {
+                    self.command(Command::Inbox(Ask::Presence {
+                        source: source.clone(),
+                        report: self.areas.inbox.presence.snapshot(),
+                    }));
+                }
+                if changed
+                    && let Some(key) = self.areas.inbox.detail.key().filter(|key| key.node == id)
+                {
+                    self.areas.inbox.detail = vessel_app_view::inbox::Detail::default();
+                    self.inbox_select(key, cx);
                 }
                 match self.areas.inbox.store.begin(id) {
                     Ok(Some(request)) => {
@@ -83,7 +121,7 @@ impl Shell {
                             source,
                             pages,
                             request,
-                        }))
+                        }));
                     }
                     Ok(None) => {}
                     Err(problem) => self.areas.inbox.problem = Some(problem),

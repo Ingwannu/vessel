@@ -78,3 +78,6 @@ inbox-notification-body = 확인이 필요한 일이 있습니다. Vessel을 열
 
 # Explains that oversized tool details were retained in source history.
 inbox-in-session = 전체 세부 내용은 원래 대화에 있습니다. 확인이 필요하면 답변하기 전에 대화를 여세요.
+
+# Safe status when the current node connection refuses a presence report.
+inbox-presence-failed = 알림 활동 상태를 보고하지 못했습니다. 받은 편지함은 계속 사용할 수 있습니다.

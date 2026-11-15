@@ -87,7 +87,7 @@ impl Shell {
                 return None;
             }
         };
-        self.areas.inbox.detail.begin(request, operation)?;
+        let _same_key = self.areas.inbox.detail.begin(request, operation)?;
         Some((source, key, request))
     }
 

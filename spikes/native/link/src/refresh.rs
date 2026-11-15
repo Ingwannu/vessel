@@ -108,6 +108,7 @@ impl State {
             client,
             agents,
             inbox_connection: crate::inbox::connection_id(),
+            inbox_presence: crate::inbox::PresenceHub::default(),
         })
     }
 

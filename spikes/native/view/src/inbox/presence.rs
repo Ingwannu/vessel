@@ -71,6 +71,14 @@ impl Default for Presence {
     }
 }
 impl Presence {
+    /// Current focus for a new connection, without replaying offline input.
+    #[must_use]
+    pub const fn snapshot(&self) -> Report {
+        Report {
+            focus: self.focus,
+            activity: Activity::Unchanged,
+        }
+    }
     /// A focus/visibility transition sends immediately but does not invent input.
     #[must_use]
     pub fn focus(&mut self, focus: Focus, now: Instant) -> Option<Report> {

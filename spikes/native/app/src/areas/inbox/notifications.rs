@@ -31,6 +31,7 @@ pub(super) fn listen(window: &Window, cx: &mut Context<'_, Shell>) {
 
 impl Shell {
     pub(crate) fn inbox_window(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        self.inbox_presence(window);
         let title = if self.prefs.settings.notifications.title {
             let count =
                 usize::try_from(self.areas.inbox.store.counts().unread()).unwrap_or(usize::MAX);
@@ -85,33 +86,31 @@ impl Shell {
     }
 
     fn inbox_visibility(&self, window: &Window) -> Visibility {
-        if !window.is_window_active() {
+        if !window.is_window_active() || !window.is_visible() {
             return Visibility::Away;
         }
-        if self.route == Route::Session {
-            if let Some(open) = &self.areas.session.open {
-                if let Some(node) = self
-                    .areas
-                    .inbox
-                    .store
-                    .nodes()
-                    .iter()
-                    .find(|node| node.source.name.as_str() == open.machine)
-                {
-                    return Visibility::Viewing {
-                        node: node.source.node,
-                        session: open.session,
-                    };
-                }
-            }
+        if self.route == Route::Session
+            && let Some(open) = &self.areas.session.open
+            && let Some(node) = self
+                .areas
+                .inbox
+                .store
+                .nodes()
+                .iter()
+                .find(|node| node.source.name.as_str() == open.machine)
+        {
+            return Visibility::Viewing {
+                node: node.source.node,
+                session: open.session,
+            };
         }
-        if self.route == Route::Inbox {
-            if let Some(key) = self.areas.inbox.detail.key() {
-                return Visibility::Viewing {
-                    node: key.node,
-                    session: key.session,
-                };
-            }
+        if self.route == Route::Inbox
+            && let Some(key) = self.areas.inbox.detail.key()
+        {
+            return Visibility::Viewing {
+                node: key.node,
+                session: key.session,
+            };
         }
         Visibility::Away
     }

@@ -78,3 +78,6 @@ inbox-notification-body = Something needs your attention. Open Vessel to view yo
 
 # Explains that oversized tool details were retained in source history.
 inbox-in-session = Complete details remain in the source conversation. Open it before answering if you need to inspect them.
+
+# Safe status when the current node connection refuses a presence report.
+inbox-presence-failed = Notification presence could not be reported. The inbox remains available.

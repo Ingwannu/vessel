@@ -10,7 +10,11 @@ mod answer;
 mod input;
 #[cfg(not(target_arch = "wasm32"))]
 mod node;
+#[cfg(not(target_arch = "wasm32"))]
+mod presence;
 pub use input::Input;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) use presence::PresenceHub;
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod peer;
 #[cfg(all(test, not(target_arch = "wasm32")))]
@@ -54,6 +58,13 @@ pub(crate) fn connection_id() -> vessel_app_view::inbox::ConnectionId {
 pub enum Ask {
     /// Re-read which machines are connected.
     Discover,
+    /// Coalesced real activity or focus report for this exact transport.
+    Presence {
+        /// Authenticated transport receiving the report.
+        source: Source,
+        /// No text, coordinates or client timestamp crosses this boundary.
+        report: vessel_app_view::inbox::presence::Report,
+    },
     /// Read a bounded descending prefix of durable entries.
     List {
         /// Exact connection identity.
@@ -102,6 +113,8 @@ pub enum Ask {
 pub enum Answer {
     /// Live identities and offline routes, from the current registry.
     Targets(Result<Vec<Target>, Problem>),
+    /// Safe status of a connection's last presence report.
+    Presence(Source, Result<(), Problem>),
     /// A node's current bounded snapshot.
     Listed(Source, Request, Result<Snapshot, Problem>),
     /// A confirmed form or withdrawal after a load, mark or answer.
@@ -110,7 +123,7 @@ pub enum Answer {
 impl Ask {
     fn validate(&self) -> Result<(), Problem> {
         match self {
-            Self::Discover | Self::List { .. } => Ok(()),
+            Self::Discover | Self::List { .. } | Self::Presence { .. } => Ok(()),
             Self::Get { source, key, .. }
             | Self::Mark { source, key, .. }
             | Self::Answer { source, key, .. } => {
@@ -129,6 +142,7 @@ impl Ask {
     pub fn refused(self, problem: Problem) -> Answer {
         match self {
             Self::Discover => Answer::Targets(Err(problem)),
+            Self::Presence { source, .. } => Answer::Presence(source, Err(problem)),
             Self::List {
                 source, request, ..
             } => Answer::Listed(source, request, Err(problem)),
@@ -190,7 +204,8 @@ impl crate::State {
         }
         let source = match &ask {
             Ask::Discover => return,
-            Ask::List { source, .. }
+            Ask::Presence { source, .. }
+            | Ask::List { source, .. }
             | Ask::Get { source, .. }
             | Ask::Mark { source, .. }
             | Ask::Answer { source, .. } => source,
@@ -203,6 +218,15 @@ impl crate::State {
                 .await;
             return;
         };
+        if let Ask::Presence { source, report } = ask {
+            connected.inbox_presence.report(
+                connected.client.clone(),
+                source,
+                report,
+                self.events.clone(),
+            );
+            return;
+        }
         let Ok(permit) = std::sync::Arc::clone(&self.inbox_calls.0).try_acquire_owned() else {
             self.emit(crate::Event::Inbox(
                 ask.refused(Problem::Refused(vessel_proto::ErrorCode::Unavailable)),
@@ -239,6 +263,10 @@ const DEADLINE: std::time::Duration = std::time::Duration::from_secs(15);
 #[cfg(not(target_arch = "wasm32"))]
 async fn bounded(client: &vessel_client::NodeClient, ask: Ask) -> Answer {
     let timeout = match &ask {
+        Ask::Presence { source, .. } => Answer::Presence(
+            source.clone(),
+            Err(Problem::Refused(vessel_proto::ErrorCode::Unavailable)),
+        ),
         Ask::Discover => {
             Answer::Targets(Err(Problem::Refused(vessel_proto::ErrorCode::Unavailable)))
         }
@@ -265,6 +293,7 @@ async fn bounded(client: &vessel_client::NodeClient, ask: Ask) -> Answer {
 async fn call(client: &vessel_client::NodeClient, ask: Ask) -> Answer {
     match ask {
         Ask::Discover => Answer::Targets(Err(Problem::InvalidReply)),
+        Ask::Presence { source, .. } => Answer::Presence(source, Err(Problem::InvalidReply)),
         Ask::List {
             source,
             pages,
