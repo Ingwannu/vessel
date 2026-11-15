@@ -1,7 +1,9 @@
 //! One shared renderer for point-opened and right-aligned action menus.
 
 use super::item::{Leading, paint};
-use super::{Direction, MenuHandlers, MenuItem, MenuState, keyboard_choice, pointer_choice};
+use super::{
+    Direction, MenuHandlers, MenuItem, MenuState, RenderLease, keyboard_choice, pointer_choice,
+};
 use std::rc::Rc;
 
 use crate::fonts::Type;
@@ -200,14 +202,22 @@ fn draw<V: 'static>(
     } = content;
     let get = handlers.state;
     let keys_items: Rc<[MenuItem]> = items.into();
-    let key_handlers = MenuHandlers {
-        state: get,
-        chose: Rc::clone(&handlers.chose),
+    let key_menu = KeyMenu {
+        handlers: MenuHandlers {
+            state: get,
+            chose: Rc::clone(&handlers.chose),
+        },
+        items: keys_items,
+        lease: state.render_lease(),
     };
     let on_key = cx.listener(move |view, event, window, cx| {
-        keyboard(view, event, window, cx, &key_handlers, &keys_items);
+        keyboard(view, event, window, cx, &key_menu);
     });
+    let outside_lease = state.render_lease();
     let on_outside = cx.listener(move |view: &mut V, _event, window, cx| {
+        if !get(view).accepts(&outside_lease) {
+            return;
+        }
         get(view).close_and_restore(window, cx);
         if layer == Layer::AboveDialog {
             // Dismissing a nested menu is one decision, not also a scrim press.
@@ -312,16 +322,32 @@ fn row<V: 'static>(
     let mut element = row_body(index, item, paint, narrow);
     if item.selectable() {
         let choice = item.clone();
+        let press_lease = state.render_lease();
+        let choice_lease = press_lease.clone();
         element = element
             .cursor_pointer()
             .hover(move |style| style.bg(wash))
             .active(move |style| style.bg(wash))
-            .on_mouse_down(MouseButton::Left, |_event, _window, cx| {
-                cx.stop_propagation();
-            })
+            .on_mouse_down(
+                MouseButton::Left,
+                cx.listener(move |view: &mut V, _event, _window, cx| {
+                    if get(view).accepts(&press_lease) {
+                        cx.stop_propagation();
+                    }
+                }),
+            )
             .on_click(cx.listener(move |view: &mut V, _event, window, cx| {
+                if !get(view).accepts(&choice_lease) {
+                    return;
+                }
                 if let Some(index) = pointer_choice(get(view), &choice, index) {
+                    if !get(view).same_cycle(&choice_lease) {
+                        return;
+                    }
                     get(view).restore_after_choice(window, cx);
+                    if !get(view).same_cycle(&choice_lease) {
+                        return;
+                    }
                     chose(view, index, window, cx);
                     cx.notify();
                 }
@@ -384,15 +410,28 @@ pub(super) fn ordinary_glyph(
 
 // Input routing stays separate from surface drawing; both menu entry points
 // and extended content dispatch through the same dismissal/selection guard.
+struct KeyMenu<V> {
+    handlers: MenuHandlers<V>,
+    items: Rc<[MenuItem]>,
+    lease: RenderLease,
+}
+
 fn keyboard<V: 'static>(
     view: &mut V,
     event: &KeyDownEvent,
     window: &mut Window,
     cx: &mut Context<'_, V>,
-    handlers: &MenuHandlers<V>,
-    items: &[MenuItem],
+    input: &KeyMenu<V>,
 ) {
+    let KeyMenu {
+        handlers,
+        items,
+        lease,
+    } = input;
     let menu = (handlers.state)(view);
+    if !menu.accepts(lease) {
+        return;
+    }
     match event.keystroke.key.as_str() {
         "escape" => menu.close_and_restore(window, cx),
         "down" | "tab" => menu.step(items, Direction::Next),
@@ -407,7 +446,13 @@ fn keyboard<V: 'static>(
         }
         "enter" | "space" => {
             if let Some(index) = keyboard_choice(menu, items) {
+                if !menu.same_cycle(lease) {
+                    return;
+                }
                 menu.restore_after_choice(window, cx);
+                if !(handlers.state)(view).same_cycle(lease) {
+                    return;
+                }
                 (handlers.chose)(view, index, window, cx);
             }
         }
