@@ -172,6 +172,13 @@ const fn forwardable(method: Method) -> bool {
         | Method::GitStash
         | Method::ListDir
         | Method::ReadFile
+        // ADR0083: unary workspace calls remain subject to node scope and
+        // pending protocol admission; no stream or browser authority is added.
+        | Method::InspectDirectory
+        | Method::ReadFileBytes
+        | Method::DuplicateFileEntry
+        | Method::ObserveFile
+        | Method::SuggestEntries
         | Method::WriteFile
         | Method::CreateDir
         | Method::RenamePath
@@ -260,6 +267,11 @@ const fn forwardable(method: Method) -> bool {
         | Method::GrantHome
         | Method::GetCallback
         | Method::ListPeers
+        | Method::GetSkillsStatus
+        | Method::ReconcileSkills
+        | Method::UninstallSkills
+        | Method::SaveSkillsSelection
+        | Method::ImportSkillsSelection
         | Method::StartVoice
         | Method::CaptureVoice
         | Method::NextVoice
@@ -329,6 +341,11 @@ mod tests {
                 "fleet.peers",
                 // Protocol 11: a terminal's stream has its own frame.
                 "terminal.subscribe",
+                "skills.status",
+                "skills.reconcile",
+                "skills.uninstall",
+                "skills.save_selection",
+                "skills.import_selection",
                 // ADR 0080: a desktop voice lease belongs to its direct connection.
                 "voice.start",
                 "voice.chunk",
@@ -339,6 +356,21 @@ mod tests {
                 "voice.speak",
             ]
         );
+    }
+
+    #[test]
+    fn file_panel_unaries_keep_pending_admission_when_forwarded() {
+        for method in [
+            Method::InspectDirectory,
+            Method::ReadFileBytes,
+            Method::DuplicateFileEntry,
+            Method::ObserveFile,
+            Method::SuggestEntries,
+        ] {
+            assert!(forwardable(method));
+            assert_eq!(method.since(), None);
+            assert_eq!(method.shape(), vessel_proto::MethodShape::Unary);
+        }
     }
 
     #[test]
