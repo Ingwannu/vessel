@@ -375,6 +375,7 @@ pub(super) fn combo_row<V: 'static>(
     }
     if !row.disabled {
         let chose = Rc::clone(&handlers.chose);
+        let get = handlers.state;
         element = element
             .cursor_pointer()
             .hover(move |style| style.bg(wash))
@@ -383,6 +384,7 @@ pub(super) fn combo_row<V: 'static>(
             })
             .on_click(cx.listener(move |view: &mut V, _event, window, cx| {
                 chose(view, index, window, cx);
+                get(view).restore_after_choice(window, cx);
                 cx.notify();
             }));
     }

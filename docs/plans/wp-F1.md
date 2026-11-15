@@ -179,3 +179,15 @@ missing. Admission is not settlement: the seed waits on actual schedule runs
 before asking for the next run. Only bash syntax/source inspection is checked
 so far; execution against the rebuilt fake fleet remains owed. No store files
 are edited and no real agent is involved.
+
+## Popup focus ownership
+
+Coordinator assigned combobox focus to G2 and dialog focus to G4 in sequence
+with its captured-dismiss seam; this package does not modify dialog.rs. The
+shared combobox now captures one weak opener, keeps state-only close compatible,
+and restores after final pointer/Enter choices or Escape/outside/scrim dismissal
+only while the list or search field still owns focus. Intermediate provider
+choices keep the popup focus; a newer field/dialog wins. The keyboard handler
+moves to picker/keys.rs to lower the parent's recorded size rather than raising
+it. Actual headless window regressions are added but not yet executed; Linux
+first-use focus remains unverified and the earlier menu F5 HOLD remains open.

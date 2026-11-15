@@ -148,8 +148,8 @@ pub fn combobox_with<V: 'static>(
     let neutral = tokens.neutral;
     let get = handlers.state;
     let on_key = key_handler(rows, handlers, cx);
-    let on_outside = cx.listener(move |view: &mut V, _event, _window, cx| {
-        get(view).close();
+    let on_outside = cx.listener(move |view: &mut V, _event, window, cx| {
+        get(view).close_and_restore(window, cx);
         cx.notify();
     });
 
@@ -244,8 +244,8 @@ fn placed<V: 'static>(
     if compact {
         // A sheet: the page dimmed behind, the list from the bottom.
         let viewport = window.viewport_size();
-        let on_scrim = cx.listener(move |view: &mut V, _event, _window, cx| {
-            get(view).close();
+        let on_scrim = cx.listener(move |view: &mut V, _event, window, cx| {
+            get(view).close_and_restore(window, cx);
             cx.notify();
         });
         anchored()

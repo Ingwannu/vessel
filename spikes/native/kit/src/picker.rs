@@ -36,8 +36,8 @@ use std::rc::Rc;
 
 use gpui::prelude::*;
 use gpui::{
-    AnyElement, App, Bounds, Context, Div, ElementId, FocusHandle, Hsla, KeyDownEvent, Pixels,
-    SharedString, Stateful, Window, canvas, div, px, svg,
+    AnyElement, App, Bounds, Context, Div, ElementId, FocusHandle, Hsla, Pixels, SharedString,
+    Stateful, WeakFocusHandle, Window, canvas, div, px, svg,
 };
 
 use crate::assets::Glyph;
@@ -48,7 +48,10 @@ use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
 
 mod combobox;
+mod focus;
+mod keys;
 pub use combobox::{ComboboxContent, ComboboxWidth, combobox, combobox_with};
+use keys::key_handler;
 mod rows;
 mod send;
 use rows::{note_row, rows_list, title_row};
@@ -419,6 +422,7 @@ pub struct ComboboxState {
     /// list refreshed behind it), rather than staying on an index.
     highlighted_label: Option<SharedString>,
     focus: FocusHandle,
+    return_to: Option<WeakFocusHandle>,
     search: TextField,
     header_leading: Option<Leading>,
     /// Where its trigger was last drawn, in the window.
@@ -460,6 +464,7 @@ impl ComboboxState {
             highlighted: None,
             highlighted_label: None,
             focus: cx.focus_handle(),
+            return_to: None,
             search,
             header_leading: None,
             anchor: Rc::new(Cell::new(None)),
@@ -478,6 +483,7 @@ impl ComboboxState {
     /// Open it, its search emptied and holding the keys, showing `search`
     /// while empty (or the list holding the keys, with no search row).
     pub fn open(&mut self, search: Option<&str>, window: &mut Window, cx: &mut App) {
+        self.capture_return_focus(window, cx);
         self.open = true;
         self.highlighted = None;
         self.highlighted_label = None;
@@ -632,40 +638,6 @@ fn room(anchor: Option<Bounds<Pixels>>, side: Side, window: &Window) -> f32 {
             Side::Below => bottom.mul_add(-1.0, height).mul_add(1.0, BEYOND),
         };
         room.clamp(MIN_HEIGHT, MAX_HEIGHT)
-    })
-}
-
-/// Arrows (wrapping), Enter, Escape, and Backspace in an empty search to
-/// go back, taken before the search row sees them.
-fn key_handler<V: 'static>(
-    rows: &[ComboRow],
-    handlers: &ComboHandlers<V>,
-    cx: &mut Context<'_, V>,
-) -> impl Fn(&KeyDownEvent, &mut Window, &mut App) + 'static {
-    let get = handlers.state;
-    let key_rows: Rc<[ComboRow]> = rows.into();
-    let chose = Rc::clone(&handlers.chose);
-    let back = handlers.back.clone();
-    cx.listener(move |view: &mut V, event: &KeyDownEvent, window, cx| {
-        let list = get(view);
-        match event.keystroke.key.as_str() {
-            "escape" => list.close(),
-            "down" => list.step(&key_rows, true),
-            "up" => list.step(&key_rows, false),
-            "enter" => {
-                if let Some(index) = list.choice(&key_rows) {
-                    chose(view, index, window, cx);
-                }
-            }
-            "backspace" if back.is_some() && list.query(cx).is_empty() => {
-                if let Some(back) = &back {
-                    back(view, window, cx);
-                }
-            }
-            _other => return,
-        }
-        cx.stop_propagation();
-        cx.notify();
     })
 }
 

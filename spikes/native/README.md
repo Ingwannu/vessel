@@ -1186,3 +1186,9 @@ Schedule shapes in the fake fleet are seeded by `scripts/schedule-fixtures.sh`,
 through the CLI: an exact interval, weekday cron, paused and failed schedules,
 a recurring prompt, and twelve past runs with session links. The seed checks
 those shapes and fails when one is missing; it never writes schedule storage.
+
+Combobox dismissal returns focus to its weakly held opener after a final choice,
+Escape, outside click or compact scrim. `close()` remains state-only for existing
+callbacks; the shared input renderer restores after callbacks that close it.
+`close_and_restore(window,cx)` is available for navigation. A newer field or
+modal that has already taken focus is preserved; intermediate choices stay open.
