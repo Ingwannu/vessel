@@ -249,3 +249,23 @@ remain owed. No whole gate or code review has run. FILE_CHECKPOINTS remains None
 the full checkpoint feature is not complete and this producer is not ready for
 consumer adoption. Continue from the retained source and collect the existing
 run before scheduling another meaningful scoped suite.
+
+### Retained session starts
+
+Session creation (including import/fork through creation) and ended-session
+resume now move both the physical `StartGuard` and the worktree `Starting`
+count into the existing retained session task. Startup revalidates the opened
+folder before launching. A store failure drains the failed process before
+releasing admission; successful startup releases only after runtime/durability
+registration. The default harness home is resolved through the existing profile
+configuration, and the selected canonical folder becomes the launch folder.
+Root revalidation uses the same bounded metadata pool as initial admission.
+This reuses existing task/process ownership rather than introducing a second
+process owner. Automatic script restarts and live actor wake/move paths still
+need their own admission; this slice does not establish complete root exclusion.
+
+The preceding fe0c868b remote suite completed with 92 passed, 0 failed and 6
+ignored. Terminal-start commit 78bd7d16 has a registered remote clippy request;
+its result and this session-start slice's compile/runtime proof remain pending.
+New session fixtures cover replacement before spawn and guard release after
+actual registration or failed-store process cleanup. They have not yet run.

@@ -42,6 +42,9 @@ use crate::models::Models;
 use crate::persist::{self, Durability, Persisted};
 use crate::workspace::Occupant;
 
+mod starting;
+pub(crate) use starting::Admission;
+
 /// Where a session was found.
 #[expect(
     clippy::large_enum_variant,
@@ -134,12 +137,16 @@ impl Sessions {
         spec: SessionSpec,
         options: LaunchOptions,
         lease: Option<tokio::sync::OwnedMutexGuard<()>>,
+        admission: Admission,
     ) -> Result<SessionInfo, ServiceError> {
         let sessions = Arc::clone(self);
         self.tasks
             .spawn(async move {
                 let _lease = lease;
-                sessions.start(spec, options).await
+                admission.revalidate().await?;
+                let started = sessions.start(spec, options).await;
+                drop(admission);
+                started
             })
             .await
             .map_err(ServiceError::Task)?
@@ -164,12 +171,9 @@ impl Sessions {
             handle.kill();
             self.forget(id);
             drop(durable);
-            // Remove it from the runtime once it has ended, without holding
-            // up this call's answer.
-            let sessions = Arc::clone(self);
-            drop(self.tasks.spawn(async move {
-                sessions.hand_over(handle, Persisted::Incomplete).await;
-            }));
+            // This retained task owns physical admission. A failed store must
+            // not release it while the unregistered process can still write.
+            self.hand_over(handle, Persisted::Incomplete).await;
             return Err(error.into());
         }
         let info = handle.info();

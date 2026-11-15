@@ -134,10 +134,20 @@ impl NodeService {
         if origin.is_some() {
             spec.place = None;
         }
-        // A place resolves to the folder `cwd` names (protocol 10). In a
-        // worktree, `_starting` keeps a removal out until the session is
-        // live, or failed to start (ADR 0030); it is dropped on return.
-        let (notices, _starting) = self.place(principal, &mut spec).await?;
+        // Both holds move into the session's retained creation task. RPC
+        // cancellation cannot expose a process before runtime registration.
+        let (notices, starting) = self.place(principal, &mut spec).await?;
+        let folder = spec
+            .cwd
+            .as_deref()
+            .unwrap_or_else(|| self.profiles.user_home());
+        let root = self
+            .workspaces
+            .admit_start(folder)
+            .await
+            .map_err(|error| error.wire())?;
+        spec.cwd = Some(root.folder().to_path_buf());
+        let admission = crate::sessions::Admission::new(root, starting);
         let mut options = self
             .launcher
             .options(&self.profiles, &spec, principal)
@@ -181,7 +191,7 @@ impl NodeService {
             }
         }
         options.fork = fork.map(Box::new);
-        let created = self.sessions.create(spec, options, lease).await;
+        let created = self.sessions.create(spec, options, lease, admission).await;
         if created.is_err() {
             self.agents.forget(id);
             self.models.retire(id);

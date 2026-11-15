@@ -644,3 +644,12 @@ survive caller cancellation until those steps settle. This connection alone does
 not fence script restarts, every session/agent launch or restore; those call sites
 and actual actor quiescence remain required before checkpoint activation. The
 terminal-start slice has not yet received compiled/runtime verification.
+
+Session-start ownership refinement: use the existing node-retained creation and
+resume tasks to own physical admission and worktree start counts together.
+Dropping the requesting RPC must not drop either guard before the process is
+registered or, on persistence failure, actually stopped. Revalidation shares
+the bounded metadata worker pool; it does not start an unbounded second pool.
+The ordinary process owner remains the runtime, with its existing group cleanup.
+Automatic script restarts, actor wake/move and lifecycle cleanup remain separate
+required consumers before checkpoint restoration can be enabled.

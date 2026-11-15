@@ -1,10 +1,11 @@
 //! A retained start keeps admission until registration makes it visible to restore.
 use super::{WorkspaceError, Workspaces};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 #[cfg(target_os = "linux")]
 use {
     super::exclusion::{ADMISSION_TIMEOUT, RootLease, RootRefusal},
-    std::{collections::BTreeSet, sync::Arc},
+    std::collections::BTreeSet,
     vessel_workspace::physical::Directory,
 };
 
@@ -13,6 +14,8 @@ pub(crate) struct StartGuard {
     folder: PathBuf,
     #[cfg(target_os = "linux")]
     directory: Arc<Directory>,
+    #[cfg(target_os = "linux")]
+    workspaces: Arc<Workspaces>,
     #[cfg(target_os = "linux")]
     lease: RootLease,
 }
@@ -25,21 +28,21 @@ impl StartGuard {
     pub(crate) async fn revalidate(&self) -> Result<(), WorkspaceError> {
         let directory = Arc::clone(&self.directory);
         let expected = self.lease.root();
-        tokio::task::spawn_blocking(move || {
-            directory.revalidate()?;
-            if directory
-                .ancestry()?
-                .nearest(&BTreeSet::from([expected]))
-                .is_none()
-            {
-                return Err(std::io::Error::other(
-                    "start left its admitted physical root",
-                ));
-            }
-            Ok(())
-        })
-        .await?
-        .map_err(WorkspaceError::Directory)?;
+        self.workspaces
+            .root_metadata(move || {
+                directory.revalidate()?;
+                if directory
+                    .ancestry()?
+                    .nearest(&BTreeSet::from([expected]))
+                    .is_none()
+                {
+                    return Err(std::io::Error::other(
+                        "start left its admitted physical root",
+                    ));
+                }
+                Ok(())
+            })
+            .await?;
         Ok(())
     }
     #[cfg(not(target_os = "linux"))]
@@ -55,7 +58,10 @@ impl StartGuard {
     }
 }
 impl Workspaces {
-    pub(crate) async fn admit_start(&self, folder: &Path) -> Result<StartGuard, WorkspaceError> {
+    pub(crate) async fn admit_start(
+        self: &Arc<Self>,
+        folder: &Path,
+    ) -> Result<StartGuard, WorkspaceError> {
         if self.stop.is_cancelled() {
             return Err(WorkspaceError::Stopping);
         }
@@ -98,6 +104,7 @@ impl Workspaces {
             Ok(StartGuard {
                 folder,
                 directory: Arc::new(directory),
+                workspaces: Arc::clone(self),
                 lease,
             })
         }

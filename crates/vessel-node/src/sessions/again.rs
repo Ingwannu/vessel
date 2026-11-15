@@ -152,11 +152,14 @@ impl Sessions {
         ended: EndedSession,
         launch: Relaunch,
         claim: Claim,
+        admission: super::Admission,
     ) -> Result<SessionHandle, ServiceError> {
         let sessions = Arc::clone(self);
         self.tasks
             .spawn(async move {
+                admission.revalidate().await?;
                 let started = sessions.reopen(ended, launch).await;
+                drop(admission);
                 drop(claim);
                 started
             })
@@ -189,7 +192,9 @@ impl Sessions {
             // Nothing is published: its persistence finds no record, and
             // hands it over at once.
             drop(gate);
-            self.persist(handle, durable, durability);
+            handle.kill();
+            self.persist(handle.clone(), durable, durability);
+            let _ended = handle.ended().await;
             return Err(error.into());
         }
         gate.open();

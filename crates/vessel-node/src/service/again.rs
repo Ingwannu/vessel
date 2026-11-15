@@ -36,7 +36,7 @@ impl NodeService {
             return Err(ServiceError::Draining);
         }
         let claim = self.sessions.claim(id)?;
-        let ended = self.sessions.ended(id).await?;
+        let mut ended = self.sessions.ended(id).await?;
         if let Some(parent) = ended.info.spec.side_question_of {
             crate::side_questions::person(connection.principal())?;
             let _parent = self.sessions.get(parent).await?;
@@ -45,7 +45,7 @@ impl NodeService {
         // Not into a worktree a removal (or setup) holds: the removal may
         // take the folder from under the agent. Held, once checked, until
         // the session is live (ADR 0030), so no removal starts meanwhile.
-        let _starting = match ended.info.spec.place.as_deref() {
+        let starting = match ended.info.spec.place.as_deref() {
             Some(SessionPlace::Worktree { worktree }) => Some(
                 self.workspaces
                     .start_in(*worktree)
@@ -53,6 +53,15 @@ impl NodeService {
             ),
             Some(SessionPlace::Project { .. }) | None => None,
         };
+        let folder = ended
+            .info
+            .spec
+            .cwd
+            .as_deref()
+            .unwrap_or_else(|| self.profiles.user_home());
+        let root = self.workspaces.admit_start(folder).await?;
+        ended.info.spec.cwd = Some(root.folder().to_path_buf());
+        let admission = crate::sessions::Admission::new(root, starting);
         let mut launch = self.launcher.again(&self.profiles, &ended.info)?;
         // The schedules its agent made in its last run go first: a run
         // started again is a new grant, and a heartbeat does not outlive
@@ -83,7 +92,11 @@ impl NodeService {
             Ok(())
         };
         let started = match granted.await {
-            Ok(()) => self.sessions.start_again(ended, launch, claim).await,
+            Ok(()) => {
+                self.sessions
+                    .start_again(ended, launch, claim, admission)
+                    .await
+            }
             Err(error) => Err(error),
         };
         let handle = match started {

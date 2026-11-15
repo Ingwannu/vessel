@@ -210,6 +210,9 @@ pub(crate) enum ServiceError {
     /// The session runtime refused or failed.
     #[error(transparent)]
     Session(#[from] SessionError),
+    /// Physical startup admission refused before an agent could start.
+    #[error(transparent)]
+    StartRoot(#[from] crate::workspace::WorkspaceError),
     /// The event log failed.
     #[error(transparent)]
     Store(#[from] StoreError),
@@ -439,6 +442,7 @@ impl ServiceError {
             }
             Self::SideQuestion(error) => error.code(),
             Self::Session(error) => error.code(),
+            Self::StartRoot(error) => return error.wire(),
             Self::Transfer(error) => error.code(),
             Self::Upload(error) => error.code(),
             Self::Store(error)
