@@ -521,3 +521,12 @@ returning a checked title behind redacted Debug. Tests owe Unicode/source
 cut boundaries, blank-prefix handling, fixed contract with replacement
 style, unknown effort, good/blank/invalid/overlong titles, invalid JSON,
 lone surrogates and escaped keys. No HTTP, settings or actor caller yet.
+
+Title text implementation checkpoint: staged Material, Prompt and Candidate
+all redact Debug. Source capture uses one Unicode-scalar bound; instructions
+use the existing raw title-unit bound. Replacement style leaves the output
+contract fixed. Typed decoding seals JSON errors, preserves the blank-title
+fallback, and refuses final decoded keys. Six adjacent filtered tests pass
+(0 failed) and node all-targets Clippy passes after one test-only formatting
+lint correction. No socket, real credential, settings or actor mutation
+was exercised here. The product caller and whole-commit gate remain owed.
