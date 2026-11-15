@@ -20,19 +20,18 @@ fn browser_methods_have_one_pending_version_and_explicit_authority_and_shape() {
         assert_eq!(method.shape(), shape);
         assert!(!method.forwardable());
     }
-    assert!(BROWSER_PROTOCOL.is_none());
     let call = BrowserCall {
         command: BrowserCommand::ListTabs(NoBrowserArgs {}),
     }
     .into_call();
-    assert_eq!(call.required_protocol(), None);
+    assert_eq!(call.required_protocol(), BROWSER_PROTOCOL);
     let control = BrowserControl {
         workspace: WorkspaceId::random(),
         opening_session: None,
         command: BrowserControlCommand::Drive(BrowserCommand::ListTabs(NoBrowserArgs {})),
     }
     .into_call();
-    assert_eq!(control.required_protocol(), None);
+    assert_eq!(control.required_protocol(), BROWSER_PROTOCOL);
 }
 
 #[test]
