@@ -14,7 +14,33 @@ pub(crate) async fn error(presentation: Presentation, error: &CliError) -> std::
         code: vessel_proto::ErrorCode,
         message: &'a str,
     }
-    let code = if matches!(
+    let code = code(error);
+    let message = crate::chain(error);
+    match presentation {
+        Presentation::Json | Presentation::Yaml => {
+            let envelope = Envelope {
+                error: Failure {
+                    code,
+                    message: &message,
+                },
+            };
+            let text = serde_json::to_string(&envelope).map_err(std::io::Error::other)?;
+            let prefix = if presentation == Presentation::Yaml {
+                "---\n"
+            } else {
+                ""
+            };
+            io::note(&format!("{prefix}{text}\n")).await
+        }
+        Presentation::Quiet | Presentation::Table(_) => {
+            io::note(&format!("error: {message}\n")).await
+        }
+    }
+}
+
+/// SDK admission failures have stable codes even before any remote frame exists.
+fn code(error: &CliError) -> vessel_proto::ErrorCode {
+    if matches!(
         error,
         CliError::ParityBlocked(_) | CliError::UnsupportedPresentation
     ) {
@@ -39,30 +65,33 @@ pub(crate) async fn error(presentation: Presentation, error: &CliError) -> std::
         vessel_proto::ErrorCode::Unavailable
     } else if matches!(error, CliError::NoSuchSession(_)) {
         vessel_proto::ErrorCode::NotFound
-    } else if let CliError::Call(vessel_client::CallError::Remote(failure)) = error {
-        failure.code
+    } else if let CliError::Call(failure) = error {
+        failure.code().unwrap_or(vessel_proto::ErrorCode::Internal)
     } else {
         vessel_proto::ErrorCode::Internal
-    };
-    let message = crate::chain(error);
-    match presentation {
-        Presentation::Json | Presentation::Yaml => {
-            let envelope = Envelope {
-                error: Failure {
-                    code,
-                    message: &message,
-                },
-            };
-            let text = serde_json::to_string(&envelope).map_err(std::io::Error::other)?;
-            let prefix = if presentation == Presentation::Yaml {
-                "---\n"
-            } else {
-                ""
-            };
-            io::note(&format!("{prefix}{text}\n")).await
-        }
-        Presentation::Quiet | Presentation::Table(_) => {
-            io::note(&format!("error: {message}\n")).await
-        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn pending_and_older_sdk_preflight_keep_unsupported_in_cli_errors() {
+        use vessel_client::CallError;
+        use vessel_proto::{ErrorCode, Method};
+        let pending = CliError::Call(CallError::UnassignedProtocol {
+            method: Method::CaptureTerminal,
+        });
+        assert_eq!(code(&pending), ErrorCode::Unsupported);
+        let older = CliError::Call(CallError::NotInProtocol {
+            method: Method::CreateSession,
+            needs: vessel_proto::PROTOCOL_VERSION,
+            negotiated: vessel_proto::MIN_PROTOCOL_VERSION,
+        });
+        assert_eq!(code(&older), ErrorCode::Unsupported);
+        assert_eq!(
+            code(&CliError::Usage("invalid request")),
+            ErrorCode::InvalidRequest
+        );
     }
 }

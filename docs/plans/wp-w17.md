@@ -626,3 +626,9 @@ is permitted, including metadata (the one earlier metadata exception completed).
   book default refuses missing/relative paths without adding a project, then
   succeeds with an explicit absolute host path. Latest execution remains owed.
 Legacy native workspace helpers are not changed by this adapter correction.
+
+Machine-readable runtime failures now reuse CallError::code() for both remote
+and local SDK admission errors. UnassignedProtocol/NotInProtocol remain
+Unsupported rather than being misclassified as Internal after the new SDK
+preflight seam. Added a nested CLI-error classification regression; it does not
+claim a frame was sent or that a pending call is available. Latest execution owed.
