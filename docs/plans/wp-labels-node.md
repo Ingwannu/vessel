@@ -183,3 +183,9 @@ serde default plus skip-serialization already infers an optional non-null array.
 Removed the invalid explicit annotation on the Vec projection before generating
 TS; the Rust value/serde contract stays unchanged. The remote TS step still owes
 actual feature compilation and generated declaration evidence.
+
+Run `wp-labels-node-narrow-20261115T164335Z-9224cca2` stopped in Store strict
+checking at two owned lints: a catch-all StoreError mapping and missing doc
+backticks. No tests ran and Node strict acceptance was not reached. The mapper
+now lists every current error variant, preserving unrelated sources while making
+future additions require a compiler decision; no allowance was added.

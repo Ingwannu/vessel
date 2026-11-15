@@ -22,7 +22,7 @@ pub(crate) fn catalog(connection: &Connection) -> Result<Vec<Label>, StoreError>
     sql::catalog(connection)
 }
 
-/// Called inside registry::load's held read transaction. Descriptor JSON is
+/// Called inside `registry::load`'s held read transaction. Descriptor JSON is
 /// deliberately untouched; ordered names join the same snapshot, colors do not.
 pub(crate) fn registry_labels(
     connection: &Connection,

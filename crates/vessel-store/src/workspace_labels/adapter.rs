@@ -27,7 +27,53 @@ impl sql::Registry for CanonicalRegistry {
             StoreError::RegistryInactive(_) => {
                 StoreError::WorkspaceLabelRefused(WorkspaceLabelFailure::WorkspaceInactive)
             }
-            error => error,
+            error @ (StoreError::WorkspaceLabelRefused(_)
+            | StoreError::WorkspaceLabelName(_)
+            | StoreError::WorkspaceLabelColor(_)
+            | StoreError::WorkspaceLabelIdentity
+            | StoreError::WorkspaceLabelCount(_)
+            | StoreError::WorkspaceLabelOrder
+            | StoreError::Io { .. }
+            | StoreError::NotPrivate { .. }
+            | StoreError::Locked { .. }
+            | StoreError::Random(_)
+            | StoreError::InvalidNodeId { .. }
+            | StoreError::InvalidNodeKey { .. }
+            | StoreError::InvalidToken { .. }
+            | StoreError::NewerSchema { .. }
+            | StoreError::Sqlite(_)
+            | StoreError::Commit(_)
+            | StoreError::RegistryConflict
+            | StoreError::RegistryFull
+            | StoreError::RegistryRecordTooLarge
+            | StoreError::RegistryRevisionExhausted
+            | StoreError::RegistryRevisionRange(_)
+            | StoreError::RegistryDecode(_)
+            | StoreError::Corrupt { .. }
+            | StoreError::CorruptId { .. }
+            | StoreError::CorruptDevice { .. }
+            | StoreError::CorruptAttachment { .. }
+            | StoreError::CorruptMessage { .. }
+            | StoreError::UnknownDevice(_)
+            | StoreError::DeviceExists(_)
+            | StoreError::Encode(_)
+            | StoreError::OutOfRange(_)
+            | StoreError::UnknownSession(_)
+            | StoreError::SessionExists(_)
+            | StoreError::SessionLive(_)
+            | StoreError::SessionEnded(_)
+            | StoreError::Attachment(_)
+            | StoreError::OutOfOrder { .. }
+            | StoreError::InboxGone
+            | StoreError::PushDenied
+            | StoreError::PushFull
+            | StoreError::CorruptPush { .. }
+            | StoreError::NotChild(_)
+            | StoreError::InvalidParentage(_)
+            | StoreError::Closed
+            | StoreError::Thread(_)
+            | StoreError::UsageBusy(_)
+            | StoreError::Task(_)) => error,
         })
     }
     fn changed(&self, connection: &Connection) -> Result<(), StoreError> {
