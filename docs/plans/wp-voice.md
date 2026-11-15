@@ -359,3 +359,13 @@ exhaustion. Synthetic probability sequences test these edges and composition
 with the outer turn boundary. There is still no runtime, model load, microphone
 probe or recognition/quality proof. Runtime+model distribution requires its
 separate reviewed ADR amendment before activation.
+
+### Typed turn composition before the real detector
+
+[Decision Log]
+- Purpose: connect validated capture order, inference-window carry, probability/outer boundaries, bounded utterance buffering and the ten-second final job.
+- Existing assets: Registry owns opaque connection authority; Windows/Gate/Boundary/InputBuffer/Finalization already own the lower policies.
+- Alternatives: duplicate those policies in the eventual RPC actor; compose them behind a detector parameter.
+- Choice: a staged Turn owns those exact mechanisms and an exact VoiceLease. Only contiguous sequence input is admitted; retransmits/gaps are refused before buffering/inference. Caller still checks connection authority through Registry before reaching it.
+- Why: a deterministic detector can exercise the complete policy while model distribution remains unapproved, without pretending RMS is VAD or activating a node call.
+- Impact: a confirmed start cancels the preceding turn's child work; an ending edge creates Finalization immediately so queue delay counts. Stop/error retires input, discards pre-roll/lookahead and resets the detector, never flushes into an agent prompt. Native inference, RPC/session/provider integration and real detector readiness remain absent.

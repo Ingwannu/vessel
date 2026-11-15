@@ -23,4 +23,5 @@ mod stt_form;
 mod synthesis;
 mod transcript;
 mod tts_endpoint;
+mod turn;
 mod updates;

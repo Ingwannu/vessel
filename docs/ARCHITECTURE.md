@@ -1675,3 +1675,10 @@ unsupported override before process spawn, with a typed Unsupported mapping.
 The field does not enter SessionSpec, user messages, argv or environment.
 Reload orchestration and actual native override/restore transports are separate
 work; see docs/plans/provider-transient-context.md. No dependency edge changes.
+
+The staged voice `turn` owner composes validated capture order, existing fixed
+inference windows, probability/outer speech boundaries, bounded pre-roll and
+utterance buffers, and final transcription deadlines. Registry remains the
+connection authority; its caller must admit the exact active lease before turn
+input. The detector parameter has no production inference implementation yet.
+No new voice runtime or RPC readiness follows from this test-only composition.

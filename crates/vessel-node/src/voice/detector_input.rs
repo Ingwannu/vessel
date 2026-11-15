@@ -33,6 +33,15 @@ pub(super) enum InputError {
     Order,
 }
 
+/// Fallible inference stops the current chunk at its first failed window.
+#[derive(Debug, thiserror::Error)]
+pub(super) enum PushError<E> {
+    #[error(transparent)]
+    Input(#[from] InputError),
+    #[error("voice detector refused a window")]
+    Observer(#[source] E),
+}
+
 pub(super) struct Windows {
     partial: Window,
     filled: usize,
@@ -59,23 +68,39 @@ impl Windows {
         stop: &CancellationToken,
         mut observe: impl FnMut(&Window),
     ) -> Result<(), InputError> {
+        match self.try_push(chunk, stop, |window| {
+            observe(window);
+            Ok::<(), std::convert::Infallible>(())
+        }) {
+            Ok(()) => Ok(()),
+            Err(PushError::Input(error)) => Err(error),
+            Err(PushError::Observer(never)) => match never {},
+        }
+    }
+    pub(super) fn try_push<E>(
+        &mut self,
+        chunk: &CapturePcm,
+        stop: &CancellationToken,
+        mut observe: impl FnMut(&Window) -> Result<(), E>,
+    ) -> Result<(), PushError<E>> {
         if stop.is_cancelled() {
             self.clear();
-            return Err(InputError::Cancelled);
+            return Err(InputError::Cancelled.into());
         }
-        let pcm = Pcm16::new(chunk.as_slice())?;
+        let pcm = Pcm16::new(chunk.as_slice()).map_err(InputError::from)?;
         for bytes in pcm.as_slice().as_chunks::<2>().0 {
             if stop.is_cancelled() {
                 self.clear();
-                return Err(InputError::Cancelled);
+                return Err(InputError::Cancelled.into());
             }
             // The pinned runtime consumes while buffered >512, not >=512:
             // retain a full final window until another sample actually arrives.
             if self.filled == WINDOW_SAMPLES {
-                observe(&self.partial);
+                let observed = observe(&self.partial);
                 self.clear();
+                observed.map_err(PushError::Observer)?;
                 if stop.is_cancelled() {
-                    return Err(InputError::Cancelled);
+                    return Err(InputError::Cancelled.into());
                 }
             }
             let slot = self
@@ -88,7 +113,7 @@ impl Windows {
         }
         if stop.is_cancelled() {
             self.clear();
-            return Err(InputError::Cancelled);
+            return Err(InputError::Cancelled.into());
         }
         Ok(())
     }

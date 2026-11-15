@@ -32,7 +32,10 @@ fn connection_and_session_exclusion_precede_any_provider_or_reload_work() {
         Err(Refusal::Stopped)
     ));
     assert!(registry.active_for_session(request.session).is_none());
-    registry.activate(attempt.ready.lease).unwrap();
+    assert_eq!(
+        registry.activate(attempt.ready.lease).unwrap(),
+        attempt.ready
+    );
     assert_eq!(
         registry
             .authorize(&sibling.owner(), attempt.ready.lease)
@@ -153,7 +156,10 @@ fn closure_cancels_jobs_without_retiring_an_unconfirmed_remote_reservation() {
     let connection = ConnectionLife::default();
     let request = start(SessionId::random());
     let attempt = registry.reserve(&connection, request).unwrap();
-    registry.activate(attempt.ready.lease).unwrap();
+    assert_eq!(
+        registry.activate(attempt.ready.lease).unwrap(),
+        attempt.ready
+    );
     drop(connection);
     assert!(attempt.cancel.is_cancelled());
     assert!(registry.active_for_session(request.session).is_none());
@@ -190,7 +196,7 @@ fn foreign_or_stale_stop_and_completion_do_not_cancel_the_active_generation() {
         .reserve(&connection, start(SessionId::random()))
         .unwrap();
     let lease = attempt.ready.lease;
-    registry.activate(lease).unwrap();
+    assert_eq!(registry.activate(lease).unwrap(), attempt.ready);
     let stale = VoiceLease {
         id: lease.id,
         epoch: VoiceEpoch::random(),
@@ -224,7 +230,7 @@ fn active_and_retained_nonce_quotas_are_independent_and_connection_scoped() {
         .map(|_| ConnectionLife::default())
         .collect();
     for connection in &connections[..ACTIVE_PER_NODE] {
-        registry
+        let _reserved = registry
             .reserve(connection, start(SessionId::random()))
             .unwrap();
     }
