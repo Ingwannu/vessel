@@ -68,17 +68,29 @@ pub(super) fn icon_element(
 ) -> gpui::Svg {
     let ink = icon_ink(icon, kind, ButtonPhase::Idle, tokens);
     let hover = icon_ink(icon, kind, ButtonPhase::Hovered, tokens);
+    let hover = (state == ButtonState::Enabled
+        && kind == ButtonKind::Ghost
+        && icon.tone == IconTone::Button)
+        .then_some(hover);
+    draw_icon(icon, size.icon(), ink, hover)
+}
+
+pub(super) fn circle_icon(icon: ButtonIcon, automatic: Hsla, tokens: &Tokens) -> gpui::Svg {
+    let ink = match icon.tone {
+        IconTone::Button => automatic,
+        IconTone::Muted => tokens.neutral.foreground_muted,
+    };
+    draw_icon(icon, super::design::CIRCLE_ICON, ink, None)
+}
+fn draw_icon(icon: ButtonIcon, size: gpui::Pixels, ink: Hsla, hover: Option<Hsla>) -> gpui::Svg {
     svg()
         .path(icon.glyph.path())
-        .size(size.icon())
+        .size(size)
         .flex_none()
         .text_color(ink)
-        .when(
-            state == ButtonState::Enabled
-                && kind == ButtonKind::Ghost
-                && icon.tone == IconTone::Button,
-            |element| element.group_hover(BUTTON_GROUP, move |style| style.text_color(hover)),
-        )
+        .when_some(hover, |element, ink| {
+            element.group_hover(BUTTON_GROUP, move |style| style.text_color(ink))
+        })
 }
 
 pub(super) struct Parts {

@@ -307,4 +307,6 @@ pub mod radius {
 pub mod icon {
     /// `ICON_SIZE.sm`: an icon-only action's glyph.
     pub const SM: f32 = 14.0;
+    /// `ICON_SIZE.lg`: source circular action and schedule line-box glyph.
+    pub const LG: f32 = 20.0;
 }
