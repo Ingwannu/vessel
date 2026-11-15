@@ -12,6 +12,7 @@ import type {
 } from "../wire/proto";
 import type { NodeKey } from "../wire/bridge";
 import type { Fleet } from "./fleet";
+import { entriesOf } from "./records";
 import { answerPermission } from "./calls";
 import { answerQuestion } from "./conversation-calls";
 import { attempt, type Outcome } from "./outcome";
@@ -137,13 +138,13 @@ export function questionReceipt(
       return "vanished";
   }
 }
-function sameValues(
-  expected: Partial<Record<string, AnswerValue>>,
-  reported: Partial<Record<string, AnswerValue>>,
+function sameValues<K extends string>(
+  expected: Readonly<Record<K, AnswerValue>>,
+  reported: Readonly<Record<K, AnswerValue>>,
 ): boolean {
   if (Object.keys(expected).length !== Object.keys(reported).length)
     return false;
-  return Object.entries(expected).every(([key, value]) => {
+  return entriesOf(expected).every(([key, value]) => {
     const other = reported[key];
     if (value === undefined || other === undefined || value.type !== other.type)
       return false;

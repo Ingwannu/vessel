@@ -10,6 +10,7 @@ import type {
   AttachmentId,
   BlobHash,
   CommandsDigest,
+  ClientMessageId,
   ContentHash,
   DeviceId,
   FieldName,
@@ -35,6 +36,7 @@ interface Handles {
   AttachmentId: AttachmentId;
   BlobHash: BlobHash;
   CommandsDigest: CommandsDigest;
+  ClientMessageId: ClientMessageId;
   ContentHash: ContentHash;
   DeviceId: DeviceId;
   FieldName: FieldName;

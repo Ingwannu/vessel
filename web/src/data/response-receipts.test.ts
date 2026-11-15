@@ -51,8 +51,11 @@ test("question settlement compares canonical values independent of map order", (
   const answer: QuestionAnswer = {
     answer: "accept",
     values: {
-      first: { type: "text", value: "left" },
-      second: { type: "choices", value: ["a", "b"] },
+      [fixtureId("FieldName", "first")]: { type: "text", value: "left" },
+      [fixtureId("FieldName", "second")]: {
+        type: "choices",
+        value: ["a", "b"],
+      },
     },
   };
   expect(
@@ -63,8 +66,11 @@ test("question settlement compares canonical values independent of map order", (
       outcome: {
         outcome: "answered",
         values: {
-          second: { type: "choices", value: ["a", "b"] },
-          first: { type: "text", value: "left" },
+          [fixtureId("FieldName", "second")]: {
+            type: "choices",
+            value: ["a", "b"],
+          },
+          [fixtureId("FieldName", "first")]: { type: "text", value: "left" },
         },
       },
     }),
