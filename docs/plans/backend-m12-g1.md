@@ -852,6 +852,75 @@ below an 800x600 window.
   unreachable, at its watch limit, session ended) each have their own
   sentence in Paseo's voice, where Paseo has one "isn't connected".
 
+### Resume (2026-11-14 22:47 UTC, paused by the coordinator for the account windows)
+
+- Committed on this branch: the merge of the lead's 0.0.0.0.17 line
+  (`e60165f3`, no conflicts), then three commits on top of the slice 3
+  WIP:
+  - The pattern rules: wire refusals and outcomes take `..`, and
+    `merge_methods` takes the pull request apart whole, because a merge
+    is a person's consent.
+  - Paseo's `aheadCount > 0` for a merge, when the node knows the
+    worktree's base.
+  - The form's base: `start_base`. The node measures a project against
+    `origin/main` and sends `pr.open`'s base as written, so the form
+    showed, and would have sent, a base no forge has.
+  - The facts title follows Paseo's pane: the body step, with the number
+    muted in the same run of text.
+- Found on the fake forge fleet (ADR 0060, the node line's
+  `vessel-forge-fixture`):
+  - The board's PR lines (#301–#308: passed, failed, running, Draft).
+  - The link at the head of Changes.
+  - The menu: Create PR on the `empty` case; View PR and the three merge
+    rows on `ready`.
+  - The facts dialog.
+- A whole gate runs detached on the head `b3767e6c`; it is not read yet.
+- Next, on waking:
+  1. Read the gate.
+  2. Capture the form again, with `Default branch` as its base.
+  3. Capture the form's refusals: a blank title, a title too long, an
+     existing PR, no access, rate-limited, and read-only (the node
+     answers Forbidden).
+  4. Capture `pr.open` on `empty`, the facts in every case, and the
+     merge rows and refusals: merge-refused, draft, conflicting and
+     read-only.
+  5. Capture the feedback switch.
+  6. Run the matrix: both themes, en and ko, 1280x800, 1024x700, 800x600
+     and 390, and glyphs at 1, 1.25, 1.5 and 2.
+  7. Split the WIP by responsibility, gate again, and hand the slices to
+     the lead.
+- Seen, not mine: from the sidebar, "All projects (14)" opens
+  build-server's Projects page, which says "No projects yet" (the
+  projects are on laptop).
+
+### Resume (2026-11-14 15:50 UTC, paused by the coordinator for the account windows)
+
+- Slice 3 (merge and feedback) is a WIP commit on this branch, after the
+  hand-off head `0036db7c`: `view::workspace::pull::{merge, merge_words}`
+  with tests, the merge rows in `pull::menu`, the words in `pulls.ftl`,
+  `PullAsk::Merge`/`Feedback` and their answers in the link,
+  `app/src/areas/pulls/{merge,feedback}.rs`, the menu's merge rows and
+  the facts' feedback switch. Clippy is clean on it (gate p4); its tests
+  were not run (the gate was stopped at the pause). Resume: run the whole
+  gate, fix what it finds, then split the WIP commit by responsibility
+  as slice 2 was.
+- On waking (the coordinator, once track N3's fake forge is on the node
+  line): first merge the lead's line at or after `ae8c1d38` (0.0.0.0.16,
+  which holds `0036db7c`), then capture the Create PR form, then the
+  facts, the link, the card line, and slice 3's rows and switch.
+- What the lead changed while merging `0036db7c`:
+  - The picker keeps both `Leading` forms (Mark and SmallGlyph). The
+    combobox draws the row tooltips, its row arguments are bundled in
+    one `Listing`, and combo rows moved to `kit/src/picker/rows.rs`.
+  - `code_git_width` is the width the frame draws (`PANEL.width`, for
+    word 29's edges), not the field.
+  - The screens' literal sizes in git/head, menu, stashes and commit, and
+    in pulls/facts, form and card, became named constants and spacing
+    steps.
+  - The form summary's colour is `theme::SUMMARY_LIGHT`.
+  - The WIP commit `76fedfb7` will conflict where it touches those
+    files: resolve toward the lead's names.
+
 ### Resume (2026-11-14 15:00 UTC)
 
 - Done: slice 1 with its matrix fixes and the idle fix; slice 2's rules,
@@ -861,8 +930,30 @@ below an 800x600 window.
   pane but captured only up to "Create PR isn't available" until a node
   can read a forge); track S3's kit transitions for the menu, the
   switcher, the dialogs and the tooltips; G2's kit menu controls.
-- Next: the merge slice (`pr.merge`, pinned number, head and method,
-  Paseo's confirmation) and the feedback switch (`pr.feedback`).
+- Next: the merge slice and the feedback switch. Design, from Paseo's
+  `git/policy.ts` (`canMergePr`, `buildDirectPullRequestMergeAction`) and
+  the node's contract (`forge/calls.rs`):
+  - Paseo merges on one choice, with no confirmation: "Merge PR
+    (squash)", "(merge)", "(rebase)" (ko "PR 병합(스쿼시)" …), pending
+    "Merging PR...", done "PR merged". The rows show only when the pull
+    request is open, not a draft, not conflicting, and the branch is
+    clean and in step with its remote (Paseo's `aheadOfOrigin` and
+    `behindOfOrigin` zero, `hasUncommittedChanges` false); each method
+    only when the repository allows it.
+  - The allowed methods are in `pr.get`'s whole pull request
+    (`merge_methods`), not in the card's summary: the git area reads it
+    when its session has one and again after each refresh that changed
+    the summary's `updated_at`.
+  - `pr.merge` pins the number and the head the person looked at
+    (`summary.head_commit`); a push since is `MergeRefusal::HeadMoved`.
+    Each refusal gets Paseo's sentence where it has one (`mergePrDraft`,
+    `mergePrClosed`, `mergePrConflicts`, `mergePrQueue`,
+    `mergePrNotReady`), else its own in Paseo's voice; the forge's own
+    words go under it as for `pr.open`.
+  - Feedback (`pr.feedback`, `SetFeedback`): a switch in the facts dialog
+    ("Send failing checks and reviews to the session"), its state from
+    `SessionPullRequest.feedback`.
+  - Captures wait for track N3's fake forge, as slice 2's facts do.
 - Capture helpers (outside the repository): `app.sh` (own display, own
   authority file), `drive.py`, `matrix*.sh`, `idle-cpu.sh`. The menu's
   rows below Fetch move down by one group when Create PR is offered:
