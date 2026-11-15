@@ -64,6 +64,10 @@ pub struct AgentCommand {
     /// [`AgentCommand::MAX_HINT`] bytes).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hint: Option<String>,
+    /// Explicit command classification (ADR 0085); absent from older reports.
+    /// Only a Skill may be completed inline; unknown and absent remain root-only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<crate::composer_commands::CommandKind>,
 }
 
 impl AgentCommand {
