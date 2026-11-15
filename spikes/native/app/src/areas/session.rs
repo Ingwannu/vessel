@@ -366,7 +366,7 @@ pub(crate) fn render(
             shell, tokens, window, cx,
         ));
     // Track F's slot: the screen, with the code panel beside it when out.
-    crate::areas::workspace::code_beside(shell, screen, tokens, window, cx)
+    crate::areas::layout::frame(shell, screen, tokens, window, cx)
 }
 
 /// Under an ended session's conversation: why it could not be started
