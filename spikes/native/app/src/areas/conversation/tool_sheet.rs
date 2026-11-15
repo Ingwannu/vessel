@@ -6,8 +6,8 @@ use super::{ConversationArea, Seat};
 use crate::shell::Shell;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, ElementId, FocusHandle, IntoElement as _, ParentElement as _, Styled as _,
-    Window, div, px, size,
+    AnyElement, Context, ElementId, IntoElement as _, ParentElement as _, Styled as _, Window, div,
+    px, size,
 };
 use vessel_app_kit::{
     DialogContent, DialogSize, Start, Tokens, Type, TypeExt as _, breakpoint, dialog, output_box,
@@ -28,7 +28,6 @@ enum Selection {
 struct Shown {
     generation: Generation,
     selection: Selection,
-    prior: Option<FocusHandle>,
 }
 
 /// Preserve the counter on clear/dehydration, just like other async UI identities.
@@ -56,7 +55,7 @@ impl SheetState {
         self.shown.take()
     }
 
-    fn show(&mut self, selection: Selection, prior: Option<FocusHandle>) -> bool {
+    fn show(&mut self, selection: Selection) -> bool {
         let Some(next) = self.next.checked_add(1) else {
             return false;
         };
@@ -64,7 +63,6 @@ impl SheetState {
         self.shown = Some(Shown {
             generation: Generation(next),
             selection,
-            prior,
         });
         true
     }
@@ -115,7 +113,7 @@ impl Shell {
         let Some(selection) = entry_selection(area, index) else {
             return false;
         };
-        if !area.tool_sheet.show(selection, window.focused(cx)) {
+        if !area.tool_sheet.show(selection) {
             return false;
         }
         area.dialog.focus(window, cx);
@@ -144,13 +142,10 @@ impl Shell {
         let Some(entry) = area.timeline.entries().get(lead) else {
             return false;
         };
-        if !area.tool_sheet.show(
-            Selection::Run {
-                lead,
-                key: entry.key.clone(),
-            },
-            window.focused(cx),
-        ) {
+        if !area.tool_sheet.show(Selection::Run {
+            lead,
+            key: entry.key.clone(),
+        }) {
             return false;
         }
         area.dialog.focus(window, cx);
@@ -168,12 +163,10 @@ impl Shell {
         let Some(area) = (seat.get_mut)(self) else {
             return;
         };
-        let Some(shown) = area.tool_sheet.take(generation) else {
+        let Some(_shown) = area.tool_sheet.take(generation) else {
             return;
         };
-        if let Some(prior) = shown.prior {
-            prior.focus(window, cx);
-        }
+        area.dialog.dismissed(window, cx);
         cx.notify();
     }
 }
@@ -355,10 +348,10 @@ mod generation_tests {
     #[test]
     fn an_old_dismissal_cannot_close_a_reopened_sheet_even_after_clear() {
         let mut state = SheetState::default();
-        assert!(state.show(entry(), None));
+        assert!(state.show(entry()));
         let old = state.shown.as_ref().unwrap().generation;
         state.clear();
-        assert!(state.show(entry(), None));
+        assert!(state.show(entry()));
         let current = state.shown.as_ref().unwrap().generation;
         assert!(state.take(old).is_none());
         assert_eq!(state.shown.as_ref().unwrap().generation, current);

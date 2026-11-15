@@ -557,3 +557,14 @@ W2 requested the entry-source prerequisite without the unreviewed A7 screen
 stack. Isolated bridge `20ae7edac` (parent base4) contains seven files/98 lines;
 its exact extraction has diff/size evidence only, while original `9fbda65af`
 passed all 1,059 view all-target tests. W2 owns its exact integration check.
+
+### Shared dialog actual-close adoption
+
+Announced app line `074ade16` merged as `a7d08bc12`. The kit dialog conflict was
+only the equivalent captured-closure variable naming; the incoming G4 renderer
+is retained exactly, including its public closure API and weak return-focus seam.
+Compact tool sheets now acknowledge `DialogState::dismissed` only after their
+generation matched and the selection was actually removed. The screen-local
+strong prior-focus handle is removed. Stale dismissals return without consuming
+the shared focus cycle, and newer focus cannot be stolen by old sheet cleanup.
+The existing local generation regression is preserved with the narrower state.
