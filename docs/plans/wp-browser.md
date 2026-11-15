@@ -17,7 +17,7 @@ PreparedFrame reuses W6's checked bounded PNG decoder/CPU RenderImage projection
 and view::browser::SurfaceMap: decoded raster dimensions must match metadata;
 CSS dimensions remain independent and letterbox points are excluded. Its
 receiving-union Kit/View/App all-target strict Clippy passed on exacta1e395f6;
-composition tests remain queued on exact89add9b11 (before typed dimension-error
+composition tests passed2/0/0 on exact89add9b11 (before typed dimension-error
 retention, with the same decode/size-match/map behavior).
 
 This model does not receive a frame or prove node/workspace/browser/revision,
@@ -276,3 +276,12 @@ shows actual changed Kit/App analysis. This settles the corrected preparation
 source's strict compile/lint check only. The source remains test-only, the old89
 composition test execution is still pending, and no live frame, GPU/paint, owner
 authority, engine, whole package or native capture is implied.
+
+
+Runwp-browser-native-frame-tests-20261115T172239Z-89add9b1 completed18:23:24 UTC:
+fonts0 and actual App binary tests2 passed/0 failed/0 ignored for areas::browser.
+The decoded PNG/CSS/letterbox composition and mismatched-metadata/invalid-pixel
+refusals executed. These tests predate only the typed conversion-error retention
+and docs; they are explicitly89 source evidence, while a1 is strict compile/lint
+evidence. Neither receipt is whole-package, actual frame stream, GPU/paint,
+node/resource/revision authority or supported-engine acceptance.
