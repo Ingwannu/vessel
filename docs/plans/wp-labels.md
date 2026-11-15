@@ -373,10 +373,11 @@ older immutable source and will be recovered before another submission.
 
 Registry adapter preparation now exists outside the active trees under
 /tmp/work/wp-labels/registry-adapter-prep with an unapplied patch and SHA256SUMS.
-It targets the corrected types-only carrier 65180ea8 (295 unused), and the
-reviewed transaction/watch contract. Neither the carrier nor Store helpers have
-been merged here: the lead's type adoption and announced gate47 node helpers
-are distinct required boundaries. The draft reuses the writer/savepoint/read
+Its textual base is the reviewed registry/Store contract. The types-only
+carrier 65180ea8 was subsequently withdrawn as c3429952 because its method rows
+require actual node handlers/guard targets; 295 stays unused and a corrected
+carrier is forbidden. No carrier was merged here. The adapter now waits for
+announced base9 (gate49 batch11+12), containing the full canonical implementation. The draft reuses the writer/savepoint/read
 pool and same-transaction labels projection; no physical lifecycle authority.
 
 The 480534 strict run recovered mechanically red at shared dispatch 101/100,
@@ -387,3 +388,10 @@ file. The actor still awaits the identical spawn_blocking save and logs exactly
 the same failures before handling another command. No size allowance, dispatch
 order, preference ownership or persistence semantics changed. Base8 is present
 for the next meaningful remote check, including the FieldId integration.
+
+The shared dispatch extraction is now a separate lead-requested slice. A patch
+prepared against c3429952 contains only the existing SavePrefs body moved to
+private async save_prefs(Box<Prefs>), with unchanged await/logging/order and no
+Labels/Projects arms. The normalized body matches its source exactly. Commit
+and remote strict check await that head's green announcement; it is not an A6
+handoff or approval to activate registry code.
