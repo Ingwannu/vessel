@@ -132,6 +132,11 @@ without partially changing the cached catalog. Disconnect/load failure keeps
 colors cached and revokes write authority. Four new regression tests are
 pending; no subscription or reconnect RPC is claimed wired.
 
+Additional reference edge: Save/inspection resolve the draft target against
+the current host catalog, not its opening snapshot. A concurrent recolor
+updates dirty-state calculation; an externally removed/renamed target cannot
+be saved. A regression covers this without optimistic mutation.
+
 Follow-up behavior: create failure retains its safe error and exact draft;
 a later successful toggle of a different label cannot erase an earlier
 concurrent failure; hiding/reopening a manager preserves in-flight work.

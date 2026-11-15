@@ -1,6 +1,6 @@
 //! Manager transitions preserve drafts on failure and inspect before deletion.
 
-use super::{Count, Failure, HostKey, HostState, Label, Name, Ticket};
+use super::{Catalog, Count, Failure, HostKey, HostState, Label, Name, Ticket};
 
 /// Uncommitted user input. Only `replacement` can cross into a node request.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -51,13 +51,13 @@ impl Draft {
 
     /// No-change and whitespace-only drafts do not enable Save.
     #[must_use]
-    pub fn replacement(&self) -> Option<Label> {
+    pub fn replacement(&self, current: &Label) -> Option<Label> {
         let name = self.text.parse::<Name>().ok()?;
         let label = Label {
             name,
             color: self.color,
         };
-        (label != self.original).then_some(label)
+        (label != *current).then_some(label)
     }
 }
 
@@ -218,10 +218,16 @@ impl Manager {
     /// Validate and reserve one atomic rename/recolor request.
     /// # Errors
     /// Refuses unavailable hosts, pending work and empty/unchanged drafts.
-    pub fn save(&mut self, host: HostState, ticket: Ticket) -> Result<Label, Failure> {
+    pub fn save(
+        &mut self,
+        host: HostState,
+        catalog: &Catalog,
+        ticket: Ticket,
+    ) -> Result<Label, Failure> {
         host.writable()?;
         let draft = self.editing()?;
-        let replacement = draft.replacement().ok_or(Failure::NoChange)?;
+        let current = catalog.get(&draft.original.name).ok_or(Failure::NotFound)?;
+        let replacement = draft.replacement(current).ok_or(Failure::NoChange)?;
         self.state = ManagerState::Saving { ticket, draft };
         self.error = None;
         Ok(replacement)
@@ -230,10 +236,19 @@ impl Manager {
     /// Inspection is mandatory before a destructive confirmation is presented.
     /// # Errors
     /// Refuses unavailable hosts and non-editing phases.
-    pub fn inspect(&mut self, host: HostState, ticket: Ticket) -> Result<Name, Failure> {
+    pub fn inspect(
+        &mut self,
+        host: HostState,
+        catalog: &Catalog,
+        ticket: Ticket,
+    ) -> Result<Name, Failure> {
         host.writable()?;
         let draft = self.editing()?;
-        let name = draft.original.name.clone();
+        let name = catalog
+            .get(&draft.original.name)
+            .ok_or(Failure::NotFound)?
+            .name
+            .clone();
         self.state = ManagerState::Inspecting { ticket, draft };
         self.error = None;
         Ok(name)

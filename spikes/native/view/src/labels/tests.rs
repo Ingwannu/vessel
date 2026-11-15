@@ -18,6 +18,10 @@ fn ticket(source: &mut Tickets) -> Ticket {
     source.issue().unwrap()
 }
 
+fn ready_catalog() -> Catalog {
+    Catalog::snapshot([label("Ready", Color::Violet)])
+}
+
 #[test]
 fn identity_collapses_whitespace_without_changing_host_spelling() {
     let normalized = name("  In\tProgress\n ");
@@ -173,14 +177,14 @@ fn save_keeps_case_only_rename_atomic_color_and_failed_draft() {
     let mut tickets = Tickets::default();
     let first = ticket(&mut tickets);
     assert_eq!(
-        manager.save(HostState::Online, first),
+        manager.save(HostState::Online, &ready_catalog(), first),
         Err(Failure::NoChange)
     );
     let draft = manager.draft_mut().unwrap();
     draft.set_text("  ready ");
     draft.set_color(Color::Teal);
     assert_eq!(
-        manager.save(HostState::Online, first),
+        manager.save(HostState::Online, &ready_catalog(), first),
         Ok(label("ready", Color::Teal))
     );
     assert_eq!(manager.select(key("b")), Err(Failure::Pending));
@@ -190,7 +194,9 @@ fn save_keeps_case_only_rename_atomic_color_and_failed_draft() {
     assert_eq!(manager.state().draft().unwrap().text(), "  ready ");
     assert_eq!(manager.error(), Some(Failure::NameTaken));
     assert_eq!(manager.query(), "ready");
-    manager.save(HostState::Online, first).unwrap();
+    manager
+        .save(HostState::Online, &ready_catalog(), first)
+        .unwrap();
     assert!(manager.completed(first, Ok(())));
     assert_eq!(manager.state(), &ManagerState::Listing);
     manager.reset().unwrap();
@@ -202,7 +208,7 @@ fn whitespace_only_draft_never_enables_save() {
     let mut draft = Draft::new(label("Ready", Color::Violet));
     draft.set_text(" \t ");
     draft.set_color(Color::Red);
-    assert!(draft.replacement().is_none());
+    assert!(draft.replacement(&label("Ready", Color::Violet)).is_none());
 }
 
 #[test]
@@ -218,7 +224,7 @@ fn delete_requires_matching_inspection_explicit_confirmation_and_online_host() {
         Err(Failure::NoChange)
     );
     assert_eq!(
-        manager.inspect(HostState::Online, inspect),
+        manager.inspect(HostState::Online, &ready_catalog(), inspect),
         Ok(name("Ready"))
     );
     assert_eq!(manager.reset(), Err(Failure::Pending));
@@ -234,7 +240,7 @@ fn delete_requires_matching_inspection_explicit_confirmation_and_online_host() {
     );
     assert!(manager.cancel_delete());
     assert_eq!(
-        manager.inspect(HostState::Online, inspect),
+        manager.inspect(HostState::Online, &ready_catalog(), inspect),
         Ok(name("Ready"))
     );
     assert!(manager.inspected(inspect, Ok(Count::new(0))));
@@ -253,11 +259,35 @@ fn inspection_failure_keeps_draft_and_host_switch_clears_idle_edit() {
     manager.select(key("a")).unwrap();
     manager.edit(label("Ready", Color::Sky)).unwrap();
     let inspect = ticket(&mut Tickets::default());
-    manager.inspect(HostState::Online, inspect).unwrap();
+    manager
+        .inspect(HostState::Online, &ready_catalog(), inspect)
+        .unwrap();
     assert!(manager.inspected(inspect, Err(Failure::Load)));
     assert_eq!(manager.error(), Some(Failure::Load));
     assert!(matches!(manager.state(), ManagerState::Editing(_)));
     manager.select(key("b")).unwrap();
     assert_eq!(manager.state(), &ManagerState::Listing);
     assert_eq!(manager.error(), None);
+}
+
+#[test]
+fn edit_dirty_state_follows_current_catalog_and_removed_targets_cannot_be_saved() {
+    let mut manager = Manager::default();
+    manager.edit(label("Ready", Color::Violet)).unwrap();
+    let ticket = ticket(&mut Tickets::default());
+    let recolored = Catalog::snapshot([label("Ready", Color::Sky)]);
+    assert_eq!(
+        manager.save(HostState::Online, &recolored, ticket),
+        Ok(label("Ready", Color::Violet))
+    );
+    assert!(manager.completed(ticket, Err(Failure::Update)));
+    assert_eq!(
+        manager.save(HostState::Online, &Catalog::default(), ticket),
+        Err(Failure::NotFound)
+    );
+    assert_eq!(
+        manager.inspect(HostState::Online, &Catalog::default(), ticket),
+        Err(Failure::NotFound)
+    );
+    assert!(matches!(manager.state(), ManagerState::Editing(_)));
 }
