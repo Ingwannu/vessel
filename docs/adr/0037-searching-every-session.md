@@ -124,3 +124,13 @@ walk found it, and is what lets a snippet always mark its words.
   written to the log, not the time they were first said.
 - Session titles are not searched: a client matches them in the list it
   has.
+
+## Prompt metadata for the native outline (proposed)
+
+The outline needs all visible user prompts before the client has downloaded a
+complete transcript. Text search cannot substitute: it requires words and keeps
+historical text after rewinds. A new pending Read request therefore projects
+prompt sequence/time/preview from a consistent retained-log snapshot, honoring
+rewinds, with bounded metadata pages and a typed retention/rewind revision.
+There is no new schema or dependency. The alternatives, bounds, older-peer
+admission and tests are specified in `docs/plans/wp-a3-node.md`.
