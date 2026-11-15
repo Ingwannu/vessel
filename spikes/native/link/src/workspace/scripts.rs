@@ -136,7 +136,6 @@ pub(super) async fn bounded<R: Unary>(
 #[cfg(not(target_arch = "wasm32"))]
 fn problem(failure: RequestFailure) -> Problem {
     match failure {
-        RequestFailure::Refused(_) => Problem::Gone(String::new()),
         RequestFailure::Call(CallError::Remote(error)) => Problem::Node {
             code: error.code,
             message: String::new(),
@@ -144,7 +143,8 @@ fn problem(failure: RequestFailure) -> Problem {
         RequestFailure::Call(
             CallError::NotInProtocol { .. } | CallError::UnassignedProtocol { .. },
         ) => Problem::Older,
-        RequestFailure::Call(
+        RequestFailure::Refused(_)
+        | RequestFailure::Call(
             CallError::Disconnected
             | CallError::UnexpectedReply(_)
             | CallError::RequestIdsExhausted,

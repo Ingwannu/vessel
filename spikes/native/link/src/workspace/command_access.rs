@@ -84,17 +84,14 @@ impl crate::State {
         let events = self.events.clone();
         let selected = (ask.target.context.machine().as_str() == machine)
             .then(|| self.selected_connection(&ask.target.context));
-        let client = match selected {
-            Some(Ok(client)) => client,
-            Some(Err(_)) | None => {
-                super::Hub::refuse(
-                    machine,
-                    super::Ask::CommandAccess(ask),
-                    Problem::Gone(String::new()),
-                    events,
-                );
-                return;
-            }
+        let Some(Ok(client)) = selected else {
+            super::Hub::refuse(
+                machine,
+                super::Ask::CommandAccess(ask),
+                Problem::Gone(String::new()),
+                events,
+            );
+            return;
         };
         drop(tokio::spawn(async move {
             let answer = run(&client, ask).await;

@@ -17,13 +17,17 @@ fn commands() -> ProjectCommands {
 }
 #[tokio::test]
 async fn reads_and_grants_echo_the_producing_admission_and_exact_digest() {
-    let peer = peer::connect(|call| match call {
-        Call::ProjectCommands(_) => Ok(Reply::ProjectCommands(commands())),
-        Call::ApproveCommands(_) => Err(WireError::new(
+    let peer = peer::connect(|call| {
+        if let Call::ProjectCommands(_) = call {
+            return Ok(Reply::ProjectCommands(commands()));
+        }
+        let Call::ApproveCommands(_) = call else {
+            panic!("unexpected request: {call:?}");
+        };
+        Err(WireError::new(
             ErrorCode::Forbidden,
             "synthetic-approval-peer-diagnostic",
-        )),
-        other => panic!("unexpected request: {other:?}"),
+        ))
     })
     .await;
     let (client, _connected, context) = peer.selected("fixture");

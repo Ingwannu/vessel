@@ -15,17 +15,14 @@ impl State {
             // original physical client again before poll and after completion.
             let selected = (ask.target().machine() == machine)
                 .then(|| self.selected_connection(&ask.target().context));
-            let client = match selected {
-                Some(Ok(client)) => client,
-                Some(Err(_)) | None => {
-                    Hub::refuse(
-                        machine,
-                        Ask::Scripts(ask),
-                        Problem::Gone(String::new()),
-                        events,
-                    );
-                    return;
-                }
+            let Some(Ok(client)) = selected else {
+                Hub::refuse(
+                    machine,
+                    Ask::Scripts(ask),
+                    Problem::Gone(String::new()),
+                    events,
+                );
+                return;
             };
             drop(tokio::spawn(async move {
                 let answer = super::scripts::run(&client, ask).await;
