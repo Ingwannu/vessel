@@ -1,5 +1,5 @@
 //! Project updater diagnostics into safe, translated recovery choices. The
-//! original UpdateError remains in UpdateState; no diagnostic becomes UI text.
+//! original `UpdateError` remains in `UpdateState`; no diagnostic becomes UI text.
 
 use vessel_app_updater::{FetchError, InstallError, OpenError, StageError, UpdateError};
 use vessel_app_view::updates::Problem;

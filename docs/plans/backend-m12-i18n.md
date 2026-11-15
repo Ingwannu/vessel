@@ -30,6 +30,11 @@ Local all-target view Clippy and 825 library tests plus ten catalog-contract
 tests pass. Native source checks pass. Status: **source ready, gate owed**;
 app compilation, whole native tests, wasm and screens remain unverified for
 this correction. There is no installed-app preview hook or fake transport.
+The first remote native Clippy run on `802c51a6` reported two doc-markdown
+diagnostics on the native classifier's header. Its type names are marked as
+code in a separate documentation correction; the failed run is retained.
+The instructed conversation split is merged at `fb7f7f2a` (`32eae9f4`, including
+`aaae7a03`); rewind/fork source work can now start on that layout.
 
 The About renderer also now borrows static licence values and the unavailable
 log-path label through its existing SharedString value slot, avoiding a fresh
