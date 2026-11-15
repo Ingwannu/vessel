@@ -72,6 +72,7 @@ pub mod theme;
 pub mod toast;
 pub mod toolbar_label;
 pub mod tooltip;
+pub mod toolbar_button;
 pub mod vector;
 pub mod virtual_list;
 mod widgets;
