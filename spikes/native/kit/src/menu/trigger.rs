@@ -3,7 +3,6 @@ use super::TriggerAnchor;
 use crate::{
     assets::Glyph,
     picker::anchor_probe,
-    popup,
     theme::{Tokens, spacing},
 };
 use gpui::prelude::*;
@@ -33,12 +32,12 @@ pub(super) struct Geometry {
 pub(super) fn geometry(sizing: TriggerSizing) -> Geometry {
     let visual = match sizing {
         TriggerSizing::Pointer => spacing::S1.mul_add(2.0, SCHEDULE_GLYPH),
-        TriggerSizing::Touch => popup::TOUCH_TARGET,
+        TriggerSizing::Touch => crate::control_sizing::TOUCH_TARGET,
     };
     Geometry {
         minimum: match sizing {
             TriggerSizing::Pointer => px(SCHEDULE_MINIMUM),
-            TriggerSizing::Touch => px(popup::TOUCH_TARGET),
+            TriggerSizing::Touch => px(crate::control_sizing::TOUCH_TARGET),
         },
         visual: px(visual),
         hit: px(HIT_SLOP.mul_add(2.0, visual)),
