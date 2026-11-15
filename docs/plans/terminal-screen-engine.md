@@ -89,3 +89,8 @@ fallback drops that identifier before invoking callbacks. The new expected
 response is empty, produced by the same actual server handlers; the other six
 query inputs/responses remain byte-identical. Its regression is staged before
 changing that fallback.
+
+The strict changed-package check caught a collapsible nested slice match in
+query decoding. A single nested slice pattern keeps the exact accepted shape;
+no parameter acceptance or expected reply changes. The original lint failure
+is retained. Next priority test includes the staged intermediate-query case.
