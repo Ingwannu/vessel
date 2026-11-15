@@ -36,7 +36,7 @@ px-other spikes/native/app/src/areas/conversation/search.rs 3
 px-other spikes/native/app/src/areas/draft/effort_card.rs 1
 px-other spikes/native/app/src/areas/draft/mod.rs 2
 px-other spikes/native/app/src/areas/draft/pickers.rs 1
-px-other spikes/native/app/src/areas/session.rs 3
+px-other spikes/native/app/src/areas/session.rs 2
 px-other spikes/native/app/src/areas/settings/agents/rows.rs 3
 px-other spikes/native/app/src/areas/settings/appearance.rs 6
 px-other spikes/native/app/src/areas/workspace/code/changes.rs 1
