@@ -19,38 +19,121 @@ actions!(
         ForceReload,
         Minimize,
         Maximize,
-        Changelog
+        Changelog,
+        About,
+        ReportIssue
     ]
 );
 
-pub(super) fn register(words: &Translator, cx: &mut App) {
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Capture {
+    Idle,
+    Recording,
+}
+#[derive(Clone, Copy, PartialEq, Eq)]
+struct MenuIdentity {
+    locale: vessel_app_view::localization::Locale,
+    capture: Capture,
+}
+struct Registered(MenuIdentity);
+impl gpui::Global for Registered {}
+
+fn identity(shell: &crate::shell::Shell) -> MenuIdentity {
+    MenuIdentity {
+        locale: shell.words.locale(),
+        capture: if shell.areas.shortcuts.page.recording() {
+            Capture::Recording
+        } else {
+            Capture::Idle
+        },
+    }
+}
+
+pub(super) fn refresh(shell: &crate::shell::Shell, window: &gpui::Window, cx: &mut App) {
+    if window.is_window_active()
+        && cx
+            .try_global::<Registered>()
+            .is_none_or(|registered| registered.0 != identity(shell))
+    {
+        register(shell, cx);
+    }
+}
+
+pub(super) fn register(shell: &crate::shell::Shell, cx: &mut App) {
+    let words = shell.words;
     let w = words.desktop_shell();
-    cx.set_menus([
-        Menu::new("Vessel").items([
-            MenuItem::action(w.whats_new().to_owned(), Changelog),
-            MenuItem::separator(),
-            MenuItem::action(w.quit().to_owned(), Quit),
-        ]),
-        Menu::new(w.file().to_owned()).items([
-            MenuItem::action(w.new_window().to_owned(), NewWindow),
-            MenuItem::action(w.close_window().to_owned(), CloseWindow),
-        ]),
-        Menu::new(w.edit().to_owned()).items(edit_items(words)),
-        Menu::new(w.view().to_owned()).items([
-            MenuItem::action(w.zoom_in().to_owned(), ZoomIn),
-            MenuItem::action(w.zoom_out().to_owned(), ZoomOut),
-            MenuItem::action(w.actual_size().to_owned(), ActualSize),
-            MenuItem::separator(),
-            MenuItem::action(w.reload().to_owned(), Reload),
-            MenuItem::action(w.force_reload().to_owned(), ForceReload),
-            MenuItem::separator(),
-            MenuItem::action(w.fullscreen().to_owned(), Fullscreen),
-        ]),
-        Menu::new(w.window().to_owned()).items([
-            MenuItem::action(w.minimize().to_owned(), Minimize),
-            MenuItem::action(w.maximize().to_owned(), Maximize),
-        ]),
-    ]);
+    let mut groups = vec![Menu::new("Vessel").items([
+        MenuItem::action(w.about().to_owned(), About),
+        MenuItem::action(w.whats_new().to_owned(), Changelog),
+        MenuItem::separator(),
+        MenuItem::action(w.quit().to_owned(), Quit),
+    ])];
+    for group in [
+        menus::Group::File,
+        menus::Group::Edit,
+        menus::Group::View,
+        menus::Group::Window,
+        menus::Group::Help,
+    ] {
+        let mut items = Vec::new();
+        for row in menus::rows(shell, group) {
+            if row.view.starts_group && !items.is_empty() {
+                items.push(MenuItem::separator());
+            }
+            items.push(native_item(row));
+        }
+        groups.push(Menu::new(label(group, words).to_owned()).items(items));
+    }
+    cx.set_menus(groups);
+    cx.set_global(Registered(identity(shell)));
+}
+
+fn label(group: menus::Group, words: &Translator) -> &str {
+    let w = words.desktop_shell();
+    match group {
+        menus::Group::All => w.menu(),
+        menus::Group::Context | menus::Group::Edit => w.edit(),
+        menus::Group::File => w.file(),
+        menus::Group::View => w.view(),
+        menus::Group::Window => w.window(),
+        menus::Group::Help => w.help(),
+    }
+}
+
+fn native_item(row: menus::Row) -> MenuItem {
+    // GPUI's public action registry is the same open boundary as input editing.
+    MenuItem::Action {
+        name: row.view.label,
+        action: action(row.item),
+        os_action: None,
+        checked: false,
+        disabled: row.view.disabled,
+    }
+}
+
+fn action(item: Item) -> Box<dyn gpui::Action> {
+    use vessel_app_view::desktop::HelpAction;
+    match item {
+        Item::Desktop(action) => match action {
+            DesktopAction::NewWindow => Box::new(NewWindow),
+            DesktopAction::CloseWindow => Box::new(CloseWindow),
+            DesktopAction::ZoomIn => Box::new(ZoomIn),
+            DesktopAction::ZoomOut => Box::new(ZoomOut),
+            DesktopAction::ActualSize => Box::new(ActualSize),
+            DesktopAction::Fullscreen => Box::new(Fullscreen),
+        },
+        Item::Edit(edit) => menus::edit_action(edit),
+        Item::Reload => Box::new(Reload),
+        Item::ForceReload => Box::new(ForceReload),
+        Item::Minimize => Box::new(Minimize),
+        Item::Maximize => Box::new(Maximize),
+        Item::Quit => Box::new(Quit),
+        Item::Help(help) => match help {
+            HelpAction::Changelog => Box::new(Changelog),
+            HelpAction::About => Box::new(About),
+            HelpAction::ReportIssue => Box::new(ReportIssue),
+        },
+    }
 }
 
 pub(super) fn listen(cx: &mut App) {
@@ -70,26 +153,22 @@ pub(super) fn listen(cx: &mut App) {
     route!(ForceReload, Item::ForceReload);
     route!(Minimize, Item::Minimize);
     route!(Maximize, Item::Maximize);
-    route!(Changelog, Item::Changelog);
+    route!(
+        Changelog,
+        Item::Help(vessel_app_view::desktop::HelpAction::Changelog)
+    );
+    route!(
+        About,
+        Item::Help(vessel_app_view::desktop::HelpAction::About)
+    );
+    route!(
+        ReportIssue,
+        Item::Help(vessel_app_view::desktop::HelpAction::ReportIssue)
+    );
 }
 
 fn invoke(item: Item, cx: &mut App) {
     crate::desktop::with_focused_shell(cx, move |shell, window, cx| {
         menus::invoke(shell, item, None, window, cx)
     });
-}
-
-fn edit_items(words: &Translator) -> Vec<MenuItem> {
-    use vessel_app_kit::editing;
-    let w = words.desktop_shell();
-    vec![
-        MenuItem::action(w.undo().to_owned(), editing::Undo),
-        MenuItem::action(w.redo().to_owned(), editing::Redo),
-        MenuItem::separator(),
-        MenuItem::action(w.cut().to_owned(), editing::Cut),
-        MenuItem::action(w.copy().to_owned(), editing::Copy),
-        MenuItem::action(w.paste().to_owned(), editing::Paste),
-        MenuItem::separator(),
-        MenuItem::action(w.select_all().to_owned(), editing::SelectAll),
-    ]
 }

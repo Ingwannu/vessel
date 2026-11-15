@@ -183,3 +183,25 @@ An installed CLI with an uneditable/unknown rc returns the manual PATH hint,
 while a foreign destination remains a typed refusal. Removal preserves the rc
 and reports its remaining configuration honestly. The existing ownership writer
 is reused rather than adding onboarding-specific filesystem policy.
+
+## Shared menu policy and close admission
+
+The native OS menu bar and kit popup now use one row vocabulary. Active-window
+locale/shortcut-recording changes rebuild native labels and zoom admission, so
+capturing a shortcut cannot be consumed by a stale native zoom item. Terminal
+context admission has independent typed Copy/Paste states; read-only script or
+service terminals keep Copy/Select All and disable Paste. Help destinations use
+`Shell::run_desktop_help(HelpAction, window, cx)` for About/version, the changelog
+sheet and the public issue form. Sidebar consumers call the same handler.
+
+The existing chrome renderer gains an optional close callback; without a host
+callback its default behavior remains ordinary window removal. Desktop menus,
+custom chrome and the OS should-close hook share the host lifecycle boundary.
+On Linux/Windows the last window stays visible while W15 finalizes owned work;
+additional windows and macOS windows can close normally. The later app-quit
+observer remains a backstop. Signal observations belong to W15's shared reactor.
+
+Local app narrow 1 and remote app narrow 5 reached only the two unbound
+cancellation acknowledgements in link; fixed by standalone 8a203181. The second
+local app check was still queued (its cwd/command and waiting child were checked)
+and was cancelled in favor of the warm remote target. No app-wide green claim.

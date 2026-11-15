@@ -40,6 +40,23 @@ use gpui_component::InteractiveElementExt as _;
 
 use crate::theme::Tokens;
 
+/// The application can defer last-window closure until its owned work is stopped.
+struct CloseHandler(fn(&mut Window, &mut gpui::App));
+impl gpui::Global for CloseHandler {}
+
+/// Install one host lifecycle boundary without replacing the chrome renderer.
+pub fn set_close_handler(handler: fn(&mut Window, &mut gpui::App), cx: &mut gpui::App) {
+    cx.set_global(CloseHandler(handler));
+}
+
+/// Chrome and application menus take the same host close boundary.
+pub fn request_close(window: &mut Window, cx: &mut gpui::App) {
+    match cx.try_global::<CloseHandler>().map(|handler| handler.0) {
+        Some(close) => close(window, cx),
+        None => window.remove_window(),
+    }
+}
+
 /// The bar's height.
 pub const HEIGHT: f32 = 36.0;
 
@@ -279,7 +296,7 @@ fn control(which: Control, tokens: &Tokens) -> Stateful<Div> {
         match which {
             Control::Minimize => window.minimize_window(),
             Control::Maximize | Control::Restore => window.zoom_window(),
-            Control::Close => window.remove_window(),
+            Control::Close => request_close(window, cx),
         }
     })
 }

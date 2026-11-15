@@ -3,7 +3,7 @@
 use super::*;
 use gpui::{AppContext as _, Entity, Render, TestAppContext};
 use vessel_app_kit::{Scheme, TextField};
-use vessel_app_view::desktop::CopyState;
+use vessel_app_view::desktop::{CopyState, EditContext, PasteState};
 
 struct Probe {
     shell: Entity<Shell>,
@@ -26,7 +26,11 @@ impl Render for Probe {
 #[gpui::test]
 fn context_menu_restores_input_focus_and_disabled_copy_is_skipped(cx: &mut TestAppContext) {
     crate::shell::language_tests::init(cx);
-    for copy in [CopyState::Available, CopyState::Unavailable] {
+    for (copy, paste) in [
+        (CopyState::Available, PasteState::Available),
+        (CopyState::Unavailable, PasteState::Available),
+        (CopyState::Unavailable, PasteState::Unavailable),
+    ] {
         let (view, cx) = cx.add_window_view(|window, cx| Probe {
             shell: cx.new(|cx| crate::shell::language_tests::shell_without_io(window, cx)),
             field: TextField::new("", |_probe, _text, _window, _cx| {}, window, cx),
@@ -45,7 +49,7 @@ fn context_menu_restores_input_focus_and_disabled_copy_is_skipped(cx: &mut TestA
                 assert!(crate::areas::desktop::open_edit_context(
                     shell,
                     gpui::point(px(20.0), px(40.0)),
-                    copy,
+                    EditContext { copy, paste },
                     window,
                     cx
                 ));
@@ -59,10 +63,24 @@ fn context_menu_restores_input_focus_and_disabled_copy_is_skipped(cx: &mut TestA
         view.update_in(cx, |probe, window, cx| {
             assert!(probe.field.focus_handle(cx).is_focused(window));
             let clipboard = cx.read_from_clipboard().unwrap().text().unwrap();
-            match copy {
-                CopyState::Available => assert_eq!(clipboard, "selected"),
-                CopyState::Unavailable => assert_eq!(probe.field.text(cx), "replacement"),
+            match (copy, paste) {
+                (CopyState::Available, PasteState::Available | PasteState::Unavailable) => {
+                    assert_eq!(clipboard, "selected")
+                }
+                (CopyState::Unavailable, PasteState::Available) => {
+                    assert_eq!(probe.field.text(cx), "replacement")
+                }
+                (CopyState::Unavailable, PasteState::Unavailable) => {
+                    assert_eq!(probe.field.text(cx), "selected")
+                }
             }
         });
+        if paste == PasteState::Unavailable {
+            cx.simulate_input("chosen selection");
+            cx.run_until_parked();
+            view.read_with(cx, |probe, cx| {
+                assert_eq!(probe.field.text(cx), "chosen selection")
+            });
+        }
     }
 }

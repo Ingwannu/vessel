@@ -103,3 +103,9 @@ desktop-shell-restart-hint = The previous application is still closing. Close it
 
 # Error-only launch window: no session action has been performed.
 desktop-shell-launch-hint = Check the link or directory, then close and reopen Vessel. Your sessions are unchanged.
+# Application menu group for version, release history and support destinations.
+desktop-shell-help = Help
+# Opens Settings About, which includes the running build version.
+desktop-shell-about = About Vessel
+# Opens the public project's issue form in the external browser.
+desktop-shell-report-issue = Report an issue

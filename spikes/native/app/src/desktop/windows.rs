@@ -20,6 +20,22 @@ pub(crate) fn open_additional(cx: &mut App) {
     open(Placement::Additional, None, cx);
 }
 
+/// Last-window removal waits for the same owned-node quit boundary as the menu.
+pub(super) fn request_close(window: &mut Window, cx: &mut App) {
+    if may_close(cx) {
+        window.remove_window();
+    }
+}
+
+fn may_close(cx: &mut App) -> bool {
+    if !cfg!(target_os = "macos") && cx.windows().len() <= 1 {
+        super::request_quit(cx);
+        false
+    } else {
+        true
+    }
+}
+
 fn open(placement: Placement, launch: Option<Launch>, cx: &mut App) {
     let prefs = (*cx.global::<Desktop>().preferences.current()).clone();
     let language = crate::language::Language::new();
@@ -73,6 +89,7 @@ fn open(placement: Placement, launch: Option<Launch>, cx: &mut App) {
     }
     let primary = matches!(placement, Placement::Primary);
     match cx.open_window(options, move |window, cx| {
+        window.on_window_should_close(cx, |_window, cx| may_close(cx));
         crate::motion::note_renderer(window, cx);
         let shell = cx.new(|cx| Shell::new(prefs, language, words, window, cx));
         cx.global_mut::<Desktop>().records.push(WindowRecord {

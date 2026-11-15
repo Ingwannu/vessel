@@ -12,8 +12,10 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, button_with_kind};
 use vessel_app_view::shortcuts::desktop::DesktopAction;
 
+mod rows;
 #[cfg(test)]
 mod tests;
+pub(super) use rows::rows;
 
 #[derive(Debug, Clone, Copy)]
 pub(super) enum Group {
@@ -23,6 +25,7 @@ pub(super) enum Group {
     View,
     Window,
     Context,
+    Help,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -44,25 +47,25 @@ pub(super) enum Item {
     Minimize,
     Maximize,
     Quit,
-    Changelog,
+    Help(vessel_app_view::desktop::HelpAction),
 }
 
-struct Row {
-    item: Item,
-    view: MenuItem,
+pub(super) struct Row {
+    pub(super) item: Item,
+    pub(super) view: MenuItem,
 }
 
 pub(super) fn open_context(
     shell: &mut Shell,
     position: gpui::Point<gpui::Pixels>,
-    copy: vessel_app_view::desktop::CopyState,
+    edit: vessel_app_view::desktop::EditContext,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) {
     let area = &mut shell.areas.desktop;
     area.focus = window.focused(cx);
     area.group = Group::Context;
-    area.copy = copy;
+    area.edit = edit;
     area.menu.open(position, window, cx);
     cx.notify();
 }
@@ -85,6 +88,7 @@ pub(crate) fn trigger(
             (Group::Edit, words.edit()),
             (Group::View, words.view()),
             (Group::Window, words.window()),
+            (Group::Help, words.help()),
         ]
     };
     Some(
@@ -120,92 +124,6 @@ pub(crate) fn trigger(
             )
             .into_any_element(),
     )
-}
-
-fn rows(shell: &Shell, group: Group) -> Vec<Row> {
-    let w = shell.words.desktop_shell();
-    if matches!(group, Group::Context) {
-        return [
-            (Edit::Copy, w.copy()),
-            (Edit::Paste, w.paste()),
-            (Edit::SelectAll, w.select_all()),
-        ]
-        .into_iter()
-        .map(|(edit, label)| {
-            let mut view = MenuItem::new(label.to_owned());
-            view.disabled = matches!(edit, Edit::Copy)
-                && shell.areas.desktop.copy == vessel_app_view::desktop::CopyState::Unavailable;
-            view.starts_group = matches!(edit, Edit::SelectAll);
-            Row {
-                item: Item::Edit(edit),
-                view,
-            }
-        })
-        .collect();
-    }
-    let mut rows = Vec::new();
-    let mut push = |item, label: &str, starts_group| {
-        let mut view = MenuItem::new(label.to_owned());
-        view.starts_group = starts_group;
-        if let Item::Desktop(
-            DesktopAction::ZoomIn | DesktopAction::ZoomOut | DesktopAction::ActualSize,
-        ) = item
-        {
-            view.disabled = shell.areas.shortcuts.page.recording();
-        }
-        rows.push(Row { item, view });
-    };
-    if matches!(group, Group::All | Group::File) {
-        push(
-            Item::Desktop(DesktopAction::NewWindow),
-            w.new_window(),
-            false,
-        );
-        push(
-            Item::Desktop(DesktopAction::CloseWindow),
-            w.close_window(),
-            false,
-        );
-        push(Item::Quit, w.quit(), true);
-    }
-    if matches!(group, Group::All | Group::Edit) {
-        for (item, label) in [
-            (Edit::Undo, w.undo()),
-            (Edit::Redo, w.redo()),
-            (Edit::Cut, w.cut()),
-            (Edit::Copy, w.copy()),
-            (Edit::Paste, w.paste()),
-            (Edit::SelectAll, w.select_all()),
-        ] {
-            push(
-                Item::Edit(item),
-                label,
-                matches!(item, Edit::Undo | Edit::Cut | Edit::SelectAll),
-            );
-        }
-    }
-    if matches!(group, Group::All | Group::View) {
-        push(Item::Desktop(DesktopAction::ZoomIn), w.zoom_in(), true);
-        push(Item::Desktop(DesktopAction::ZoomOut), w.zoom_out(), false);
-        push(
-            Item::Desktop(DesktopAction::ActualSize),
-            w.actual_size(),
-            false,
-        );
-        push(Item::Reload, w.reload(), true);
-        push(Item::ForceReload, w.force_reload(), false);
-        push(
-            Item::Desktop(DesktopAction::Fullscreen),
-            w.fullscreen(),
-            true,
-        );
-        push(Item::Changelog, w.whats_new(), true);
-    }
-    if matches!(group, Group::All | Group::Window) {
-        push(Item::Minimize, w.minimize(), true);
-        push(Item::Maximize, w.maximize(), false);
-    }
-    rows
 }
 
 pub(crate) fn render(
@@ -260,11 +178,11 @@ pub(super) fn invoke(
         Item::Minimize => window.minimize_window(),
         Item::Maximize => window.zoom_window(),
         Item::Quit => crate::desktop::request_quit(cx),
-        Item::Changelog => shell.open_changelog(window, cx),
+        Item::Help(action) => shell.run_desktop_help(action, window, cx),
     }
 }
 
-fn edit_action(edit: Edit) -> Box<dyn Action> {
+pub(super) fn edit_action(edit: Edit) -> Box<dyn Action> {
     // GPUI's action registry is an open toolkit boundary; the app's closed
     // edit vocabulary stays exhaustive before entering that boundary.
     use vessel_app_kit::editing;

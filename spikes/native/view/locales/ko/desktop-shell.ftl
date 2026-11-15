@@ -103,3 +103,9 @@ desktop-shell-restart-hint = 이전 앱이 아직 종료 중입니다. 앱을 �
 
 # Error-only launch window: no session action has been performed.
 desktop-shell-launch-hint = 링크나 폴더를 확인한 다음 Vessel을 다시 열어 주세요. 기존 세션은 변경되지 않았습니다.
+# Application menu group for version, release history and support destinations.
+desktop-shell-help = 도움말
+# Opens Settings About, which includes the running build version.
+desktop-shell-about = Vessel 정보
+# Opens the public project's issue form in the external browser.
+desktop-shell-report-issue = 문제 신고

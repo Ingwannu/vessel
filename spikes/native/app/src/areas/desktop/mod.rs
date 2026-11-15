@@ -27,7 +27,7 @@ pub(crate) struct DesktopArea {
     #[cfg(not(target_arch = "wasm32"))]
     group: menus::Group,
     #[cfg(not(target_arch = "wasm32"))]
-    copy: vessel_app_view::desktop::CopyState,
+    edit: vessel_app_view::desktop::EditContext,
     #[cfg(not(target_arch = "wasm32"))]
     focus: Option<gpui::FocusHandle>,
     #[cfg(not(target_arch = "wasm32"))]
@@ -50,7 +50,7 @@ impl DesktopArea {
             #[cfg(not(target_arch = "wasm32"))]
             group: menus::Group::File,
             #[cfg(not(target_arch = "wasm32"))]
-            copy: vessel_app_view::desktop::CopyState::default(),
+            edit: vessel_app_view::desktop::EditContext::default(),
             #[cfg(not(target_arch = "wasm32"))]
             focus: None,
             #[cfg(not(target_arch = "wasm32"))]
@@ -68,7 +68,10 @@ impl DesktopArea {
 pub(crate) fn pending(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
     preferences::rollback(shell, window, cx);
     #[cfg(not(target_arch = "wasm32"))]
-    crate::desktop::drain_pending(shell, window, cx);
+    {
+        native::refresh(shell, window, cx);
+        crate::desktop::drain_pending(shell, window, cx);
+    }
     #[cfg(target_arch = "wasm32")]
     let _browser = (shell, window, cx);
 }
@@ -77,18 +80,18 @@ pub(crate) fn pending(shell: &mut Shell, window: &mut Window, cx: &mut Context<'
 pub(crate) fn open_edit_context(
     shell: &mut Shell,
     position: gpui::Point<gpui::Pixels>,
-    copy: vessel_app_view::desktop::CopyState,
+    edit: vessel_app_view::desktop::EditContext,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> bool {
     #[cfg(not(target_arch = "wasm32"))]
     {
-        menus::open_context(shell, position, copy, window, cx);
+        menus::open_context(shell, position, edit, window, cx);
         true
     }
     #[cfg(target_arch = "wasm32")]
     {
-        let _browser = (shell, position, copy, window, cx);
+        let _browser = (shell, position, edit, window, cx);
         false
     }
 }
@@ -117,7 +120,7 @@ pub(crate) fn start(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_,
     preferences::start(shell, window, cx);
     #[cfg(not(target_arch = "wasm32"))]
     if cx.has_global::<crate::desktop::Desktop>() {
-        native::register(shell.words, cx);
+        native::register(shell, cx);
         cli::start(shell, window, cx);
     }
 }
@@ -135,6 +138,27 @@ pub(crate) fn cli_section(
     {
         let _browser = (shell, tokens, cx);
         None
+    }
+}
+
+impl Shell {
+    /// Help menu and sidebar use the same destinations and external opener.
+    pub(crate) fn run_desktop_help(
+        &mut self,
+        action: vessel_app_view::desktop::HelpAction,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        use vessel_app_view::desktop::HelpAction;
+        match action {
+            HelpAction::Changelog => self.open_changelog(window, cx),
+            HelpAction::About => {
+                self.open_settings(Some(vessel_app_view::settings::Section::About), window, cx)
+            }
+            HelpAction::ReportIssue => {
+                cx.open_url(concat!(env!("CARGO_PKG_REPOSITORY"), "/issues/new/choose"))
+            }
+        }
     }
 }
 
