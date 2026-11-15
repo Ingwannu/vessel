@@ -195,7 +195,7 @@ fn canonical_first_input_id_survives_known_retry_serialization_and_unknown_resta
     advance(
         &mut receipt,
         Advance::Fail {
-            code: crate::ErrorCode::Forbidden,
+            code: ErrorCode::Forbidden,
             certainty: Certainty::Known,
         },
     );
@@ -214,7 +214,7 @@ fn canonical_first_input_id_survives_known_retry_serialization_and_unknown_resta
     );
     let mut terminal = restarted.snapshot().reserved.clone();
     terminal.resource = Some(Resource::Terminal {
-        terminal: crate::TerminalId::random(),
+        terminal: TerminalId::random(),
     });
     assert!(Receipt::admitted(Kind::Workspace, terminal, receipt.fingerprint()).is_err());
 }
