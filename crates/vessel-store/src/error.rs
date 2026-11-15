@@ -63,7 +63,7 @@ pub enum Column {
 pub enum StoreError {
     /// Semantic label refusals remain structured at the RPC boundary.
     #[error("workspace label operation was refused ({0:?})")]
-    WorkspaceLabelRefused(vessel_proto::workspace_labels::WorkspaceLabelFailure),
+    WorkspaceLabelRefused(#[source] vessel_proto::workspace_labels::WorkspaceLabelFailure),
     /// A persisted label name no longer satisfies the validated grammar.
     #[error("stored workspace label name is invalid")]
     WorkspaceLabelName(#[source] vessel_proto::workspace_labels::LabelNameError),
@@ -282,17 +282,8 @@ impl StoreError {
     /// The wire error code for this failure.
     #[must_use]
     pub const fn code(&self) -> ErrorCode {
-        use vessel_proto::workspace_labels::WorkspaceLabelFailure;
         match self {
-            Self::WorkspaceLabelRefused(reason) => match reason {
-                WorkspaceLabelFailure::NameTaken | WorkspaceLabelFailure::WorkspaceInactive => {
-                    ErrorCode::Conflict
-                }
-                WorkspaceLabelFailure::LabelNotFound | WorkspaceLabelFailure::WorkspaceNotFound => {
-                    ErrorCode::NotFound
-                }
-                WorkspaceLabelFailure::Unknown => ErrorCode::Internal,
-            },
+            Self::WorkspaceLabelRefused(reason) => reason.code(),
             Self::WorkspaceLabelName(_)
             | Self::WorkspaceLabelColor(_)
             | Self::WorkspaceLabelIdentity

@@ -2323,7 +2323,11 @@ export type ErrorCode = "invalid_request" | "unauthorized" | "forbidden" | "prot
 /**
  * Further typed context for a refusal. Unknown future reasons stay readable.
  */
-export type ErrorDetail = { "kind": "schedule_preview", 
+export type ErrorDetail = { "kind": "workspace_label", 
+/**
+ * Stable label reason; clients never parse the diagnostic message.
+ */
+reason: WorkspaceLabelFailure, } | { "kind": "schedule_preview", 
 /**
  * The stable preview reason.
  */
@@ -9748,6 +9752,11 @@ root: string,
  * One server family per canonical workspace root.
  */
 language: Language, };
+
+/**
+ * Stable semantic reasons, never parsed from a peer's message text.
+ */
+export type WorkspaceLabelFailure = "name_taken" | "label_not_found" | "workspace_not_found" | "workspace_inactive" | "unknown";
 
 /**
  * The folder a git or file call works in.

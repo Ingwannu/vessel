@@ -101,7 +101,7 @@ Observer journal and mutation planners are now staged under cfg(test): the
 journal checks contiguous cursors, retained-history boundaries, generation
 changes and sequence exhaustion; assignment/update planners cover host-owned
 colors/spelling, unknown unassignment, stable order and atomic collision
-rejection. Their tests are pending. These modules have no product caller until
+rejection. Eight journal/planner tests passed on `2758645a`. These modules have no product caller until
 the registry/store/method wiring lands, per the staging rule.
 
 Merged reviewed identity-only commit `e45a5d89` after Quality B. The sole
@@ -115,12 +115,22 @@ atomic affected counts, and revision invalidation in the same transaction.
 The registry trait has an explicit test fake with only the agreed parent id
 key; it does not copy unreviewed registry lifecycle SQL. Eight real-SQL tests
 cover admission, collision, archived assignments, advisory deletion, rollback,
-ordinal exhaustion and corrupt rows. Their execution is pending. The SQL is
+ordinal exhaustion and corrupt rows. All eight passed on `82f5974e`
+(`wp-labels-node-narrow-20261115T070712Z-82f5974e`). This uses a fake registry,
+so it does not establish production registry integration. The SQL is
 not appended to the production migration list and no production registry
 adapter, writer command or RPC is registered yet.
 
+Patch decoding now distinguishes omission (preserve the current field) from
+explicit null (refuse invalid input). Semantic refusals carry a typed reason
+through the wire boundary; corrupt stored color diagnostics retain their
+source internally but cannot echo stored row text to a client. Regression
+tests for those boundaries are added and still await execution. The generated
+TypeScript declaration check passed all three tests on this source with
+`VESSEL_WRITE_TS=1`; it is scoped declaration evidence, not an RPC or whole gate.
+
 Next: reviewed ADR 0082 registry adoption and single-writer
 persistence. Node journal/planner tests, protocol wiring/old-peer/forwarded
-coverage and generated TypeScript remain owed. The native skeleton lives on
+coverage remain owed. The native skeleton lives on
 the separate app branch and must merge the announced app base first. No full
 gate, UI capture or production flow has been verified.
