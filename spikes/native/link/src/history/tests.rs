@@ -155,3 +155,6 @@ async fn reusing_a_book_alias_for_a_different_node_refuses_before_any_create() {
     );
     assert!(peer.calls.lock().unwrap().is_empty());
 }
+
+#[path = "listing_tests.rs"]
+mod listing;

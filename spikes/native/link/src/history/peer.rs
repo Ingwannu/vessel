@@ -14,9 +14,10 @@ use vessel_proto::{
 
 const FRAME_LIMIT: usize = 65_536;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(super) enum Behaviour {
     Success,
+    Page(vessel_proto::history::AgentHistoryPage),
     Refuse(ErrorCode),
     Disconnect,
 }
@@ -72,6 +73,13 @@ fn result(call: Call) -> Outcome {
 }
 
 pub(super) async fn connect(behaviours: Vec<Behaviour>) -> Peer {
+    connect_at(behaviours, vessel_proto::PROTOCOL_VERSION).await
+}
+
+pub(super) async fn connect_at(
+    behaviours: Vec<Behaviour>,
+    protocol: vessel_proto::ProtocolVersion,
+) -> Peer {
     let (local, mut remote) = tokio::io::duplex(FRAME_LIMIT);
     let calls = Arc::new(Mutex::new(Vec::new()));
     let recorded = Arc::clone(&calls);
@@ -97,10 +105,7 @@ pub(super) async fn connect(behaviours: Vec<Behaviour>) -> Peer {
         assert!(
             write(
                 &mut remote,
-                ServerFrame::Welcome(Welcome {
-                    protocol: vessel_proto::PROTOCOL_VERSION,
-                    node
-                })
+                ServerFrame::Welcome(Welcome { protocol, node })
             )
             .await
         );
@@ -109,6 +114,7 @@ pub(super) async fn connect(behaviours: Vec<Behaviour>) -> Peer {
                 recorded.lock().unwrap().push(call.clone());
                 let outcome = match behaviours.pop_front().unwrap_or(Behaviour::Success) {
                     Behaviour::Success => result(call),
+                    Behaviour::Page(page) => Outcome::Ok(Reply::GetAgentHistory(page)),
                     Behaviour::Refuse(code) => {
                         Outcome::Err(WireError::new(code, "untrusted peer message"))
                     }
