@@ -125,3 +125,28 @@ Those fixes and the group-sharing permission regression still need their
 changed-source narrow check and execution. Before the eventual whole root
 gate, merge exactly the reviewed base security-test race fix c5da5305; do not
 edit that test locally or relabel its base failure as feature evidence.
+
+
+## Latest execution and common bases
+
+Selected all-target clippy at17257659 passed for node/proto/workspace/client/RPC
+(`wp-git-node-narrow-20261115T081013Z-17257659`). Library execution in
+`wp-git-node-narrow-20261115T081315Z-17257659` returned608 passed/2 failed:
+client80/0 and node248/0 passed (including the owned job barriers and real node
+comparison cases); protocol280/2 stopped the remaining crate execution. The
+forwardable-set expectation omitted the two intentionally forwardable Read
+calls and is corrected here. The other failure is the base protocol-10 prefix
+family assertion assigning every git.* name version10, including pending
+methods. The integrator has announced its explicit family-list correction for
+gate40; wait for that reviewed head and put these names in its later-family
+list. Do not invent versions or weaken that base assertion locally.
+
+The group-sharing/private-index cancellation library cases have not yet run:
+Cargo stopped at protocol before workspace/RPC library execution. No claim is
+made from compilation or the separate raw git permission probes.
+
+Both trees merged reviewed base3(6c782cb6), including c5da5305; node merge
+5f760ac48 and app mergeaf28ae83. The app also takes base4(3cd0d3fc), whose root
+is unchanged. Future package evidence must identify its combined source rather
+than relabel earlier immutable narrow runs. New comparison base selection
+work is separate and still unverified.
