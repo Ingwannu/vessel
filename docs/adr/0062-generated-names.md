@@ -972,3 +972,89 @@ Rust's whitespace class, after the raw UTF-16 check. Paseo trims its model
 result with JavaScript's whitespace class instead. This stated difference
 keeps one canonical title constructor for typed, provisional and generated
 origins; the source/style contracts do not claim identical Unicode trimming.
+
+### Workspace commit and pull-request generation
+
+[Decision Log]
+- Purpose and intent: provide one Models-owned structured-generation boundary
+  for the authorized-root Git caller, without borrowing a session's identity,
+  admission or accounting. The session title producer remains private and keeps
+  its single attempt. This purpose-specific rule supersedes the earlier
+  single-call sketch for future commit and pull-request consumers only.
+- Existing implementation and constraints: Models already owns the immutable
+  route catalog, provider options, credential reader, initialized TLS client,
+  node permits and neutral usage/failure conversions. The reviewed complete
+  request/reply machinery owns API grammar. Session ModelCall publication and
+  the session usage ledger cannot truthfully attribute a workspace operation.
+  The root caller separately owns the checked diff, project instructions,
+  original-root revalidation, mutation reservation and product fallback text.
+- Alternatives considered: a temporary or borrowed session, widening the title
+  driver's private modules, a second provider/credential stack, or returning a
+  fallback without running a real generation boundary. Each misstates ownership
+  or conceals missing functionality. A callback alone also loses cancellation
+  accounting when the requesting future disappears.
+- Choice: a separate workspace purpose under the same Models owner, with typed
+  original operation/root attribution, bounded prompt and output values, a
+  frozen candidate catalog, the existing key reader and HTTP stack, and the
+  existing node permit. No SessionId, SessionHandle or per-session permit is
+  accepted or manufactured. Root identifiers are correlation facts, not file
+  authority; this producer neither opens a repository nor executes Git.
+- Candidate policy: Manual uses only its configured entries in order. Automatic
+  uses the existing four model hints and an optional explicit current model
+  selection; absence of a selection never borrows a session. Resolve against
+  one catalog, preserve the existing allowed-model/effort checks, and dedupe
+  equal provider/model/effort tuples by their first occurrence. No discovery or
+  automatic append to Manual is introduced. The title selector is unchanged.
+- Attempt policy: an initial call plus at most two JSON/schema corrections per
+  candidate, followed by the next eligible candidate. The limit is one named
+  constant at the policy type and appears through that constant in diagnostics
+  and tests. Transport retries remain disabled. Transport/finality failures
+  move to another candidate, not another same-candidate HTTP attempt. Correction
+  prompts retain the base prompt and safe schema diagnostics, never raw failed
+  output, credential material or parser text.
+- Schema policy: commit message and pull title are raw nonempty strings bounded
+  by the reference's maximum of 72 UTF-16 units; the pull body is a raw nonempty
+  string within the complete-response envelope bound. Do not trim a successful
+  Git response: unlike the branch-title generator, the Git generator returns
+  its schema result directly. Unknown response keys are ignored as by the
+  reference object schema. Markdown/snippet extraction must follow the shared
+  response loop. Git/forge text validation still belongs to the root caller.
+- Lifetime policy: a private, non-aborted tracked operation owns admission and
+  a token from the existing node hard-drain tracker before spawn. Caller loss
+  cancels further attempts. Once the existing key reader starts, the operation
+  joins its physical work before releasing capacity, even after cancellation;
+  no late result may start HTTP. In-flight HTTP is cancellable, suppresses later
+  attempts and cannot mutate a root. There is no new semaphore or tracker.
+- Accounting policy: Models owns bounded workspace-purpose reports keyed by
+  the original operation, including candidate/attempt identity, route/model,
+  duration, known reported stop, failure/cancellation and observed versus
+  unavailable usage. Every invoked transport is an attempt, not a claim that
+  the provider billed it. Caller drop cannot erase an admitted attempt. Reports
+  contain no prompt, diff, response text, endpoint or key. They are transient
+  diagnostics, not a fabricated session log or durable usage-ledger entry.
+  Any required retention/admission bound is named beside its owning type and
+  checked before spawn; active operations cannot be silently evicted.
+- Why this choice: it reuses the checked owners while preserving the original
+  root's cancellation and attribution. An owned settling operation can await
+  physical credentials without keeping an obsolete caller alive. A retained
+  report survives that caller's disappearance. Explicit usage availability
+  avoids treating an unreadable/cancelled reply as measured zero usage.
+- Costs and effects: bounded diagnostics have finite retention and no restart
+  durability. Direct complete HTTP and explicit finality remain Vessel choices;
+  the reference instead uses an internal agent run. No real agent is launched
+  here. Prompt/output/HTTP cost bounds are to be named and justified with the
+  implementation, not silently copied from the title-only budget. No setting,
+  method, assigned protocol or live root caller is enabled by this contract.
+
+Reference: server/session/checkout/git-metadata-generator.ts:63-83,125-228
+(raw Git schemas, patch bounds and purpose calls); agent/agent-response-loop.ts:
+307-345,398-483 (schema corrections, availability and candidate fallback);
+agent/structured-generation-providers.ts:24-92,136-169,225-264 (ordered resolution,
+current selection and defaults), all under packages/server/src/server in the
+reference tree. ADR 0087 owns the root caller and its fallback/authority rules.
+
+The service remains unimplemented at this contract checkpoint. Its exact Rust
+API is announced only after implementation, isolated fake-provider tests and
+review. The inherited title package's settings privacy/write-lifetime union
+must be integrated on its designated checked head before either package is
+claimed consumer-ready. No moving branch is an accepted producer API.
