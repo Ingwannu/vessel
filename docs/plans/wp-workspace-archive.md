@@ -186,3 +186,12 @@ not recursively acquire the marking lock. A gated fake completion regression
 aborts its caller and proves cleanup continues while a subsequent mark remains
 blocked until completion. Existing terminal close-timeout semantics remain;
 workspace backing cleanup still requires its separate verified drain contract.
+
+Real recovery additionally depends on W11's pending canonical admission/backing
+generation extension. Archived→Restoring advances it atomically, even when an
+existing directory is only unarchived; checked overflow refuses before effects.
+A partial/restart retry keeps the claimed generation. New Active run/start
+admissions must match it and reject old Ready/plans/routes instead of resuming
+implicitly. W9's actual FD PhysicalRoot remains a separate physical authority.
+No new generation type, workspace ID, local counter or stronger fake-store claim
+is implemented here; the production adapter waits for the reviewed producer.

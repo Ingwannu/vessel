@@ -49,6 +49,9 @@ pub(crate) trait RestoreBackend: Sync {
         workspace: WorkspaceId,
     ) -> impl Future<Output = Result<Recovery<Self::Plan>, Self::Error>> + Send;
     /// CAS Archived to Restoring; two calls cannot create the same backing twice.
+    /// The production adapter must advance W11's canonical admission generation
+    /// before I/O, including same-directory unarchive; partial retry retains it.
+    /// This staged fake workflow does not prove that pending store guarantee.
     fn claim_restore(
         &self,
         workspace: WorkspaceId,

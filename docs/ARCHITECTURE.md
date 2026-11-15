@@ -1638,7 +1638,8 @@ workflow is wired; DTO roundtrips alone do not advertise recovery capability.
 admission condition and acknowledged store timestamp (`session_archive`). The
 session actor admits IfIdle at the prompt mailbox; forced stop uses existing
 cancellation, and both fence later queue advances once a stop is admitted. The node keeps its existing marking/resume lock
-through stop and persistence on a tracked task; the typed client cannot preflight
+through stop, persistence and admitted terminal/watch completion on a tracked task;
+RPC waiter cancellation cannot release that completion or admission early. The typed client cannot preflight
 idle state itself. The existing session.mark scope/target ownership rule also
 applies to agent callers and forwarded requests. The feature threshold remains None until
 complete A2 lifecycle wiring is reviewed and integration assigns it.
