@@ -34,7 +34,7 @@ pub(super) fn session(db: &Connection) -> SessionId {
     info.id
 }
 
-fn prompt(session: SessionId, id: &str, text: &str) -> SubmitPrompt {
+pub(super) fn prompt(session: SessionId, id: &str, text: &str) -> SubmitPrompt {
     SubmitPrompt {
         native_command: None,
         session,
@@ -46,7 +46,7 @@ fn prompt(session: SessionId, id: &str, text: &str) -> SubmitPrompt {
     }
 }
 
-fn admit(db: &mut Connection, prompt: &SubmitPrompt) -> ReceiptAdmission {
+pub(super) fn admit(db: &mut Connection, prompt: &SubmitPrompt) -> ReceiptAdmission {
     let transaction = db
         .transaction_with_behavior(TransactionBehavior::Immediate)
         .unwrap();

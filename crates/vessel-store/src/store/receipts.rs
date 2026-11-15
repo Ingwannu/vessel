@@ -12,6 +12,29 @@ use crate::{
 };
 
 impl Store {
+    /// Read the original retained outcome without reserving, dispatching or loading
+    /// attachments. Session authorization and authenticated Creator come from the caller.
+    /// Direct turn bindings remain unobserved until their actor fact is retained.
+    ///
+    /// # Errors
+    /// A retained receipt cannot be decoded or the database cannot be read.
+    pub async fn observe_prompt_receipt(
+        &self,
+        request: vessel_proto::timeline::ObservePromptReceipt,
+        creator: Creator,
+    ) -> Result<vessel_proto::timeline::ObservePromptReceiptReply, StoreError> {
+        self.read(move |reader| {
+            reader.with(|connection| {
+                crate::timeline_admission::observation::observe_input(
+                    connection,
+                    &request.request,
+                    &creator,
+                )
+            })
+        })
+        .await
+    }
+
     /// Look up a retained outcome without reserving a fresh identity or dispatching.
     /// Replay remains available after a session stops, before live-provider preflight.
     ///

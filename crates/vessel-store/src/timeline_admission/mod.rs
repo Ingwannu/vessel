@@ -2,6 +2,9 @@
 //! Question claims stay staged until the actor/provider bridge is connected.
 
 mod fingerprint;
+pub(crate) mod observation;
+#[cfg(test)]
+mod observation_tests;
 pub(crate) mod question;
 mod receipt;
 #[cfg(test)]

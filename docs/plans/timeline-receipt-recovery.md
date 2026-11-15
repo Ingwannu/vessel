@@ -101,3 +101,10 @@ remains Unsupported; it is not a node read implementation or an assigned method.
 SubmitPrompt's SDK documentation now explicitly calls it read-or-admit, never a
 recovery query. The later owner-wiring commit must supply ordinary session and
 Creator checks and change the row to pending together with the real handler.
+
+The Store now has a read-only observation method using the existing retained
+lookup/fingerprint owner. It can return the exact original queue entry or command
+echo already in acceptance; direct/joined turn targets remain explicitly
+Unobserved until actual ticket metadata is wired. Query-only SQLite regressions
+are authored to catch accidental fresh admission and original-content conflicts.
+The RPC remains staged/Unsupported and no node handler or actor binding is claimed.
