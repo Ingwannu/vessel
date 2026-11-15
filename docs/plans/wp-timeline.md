@@ -833,7 +833,7 @@ adapters and source regressions, not a live resource cutover verdict.
   the existing drawing boundary with only explicit owner presentation state.
 - Choice: tool_detail::borrowed_body(Paint, ElementId, BorrowedDetail, Window, Context)
   renders the same sections/code/diff/prose/failure controls. BorrowedDetail holds
-  &ToolCallDetail, DetailState::{Running,Settled}, and Option<&ToolFailure>.
+  &ToolCallDetail, DetailContentState::{Loading,Ready}, and Option<&ToolFailure>.
 - Reason: A7's existing ToolDetailSource body delegates to this same function;
   A8 supplies its PermissionId-derived ElementId and actual loading state. No
   approval semantics, capability, request lifecycle or node method is inferred.
@@ -946,3 +946,11 @@ fake/node export (or an explicitly reviewed fixture producer), alongside the
 native app from the final frozen source. No legacy Delivered is presented as a
 canonical receipt, and no direct UI injection/demo route is added to hide that
 dependency. The final fleet/capture run has not started.
+
+A8's pending approval is proposed work, so the borrowed renderer's state was
+clarified to DetailContentState::{Loading,Ready}. It controls only the empty-body
+loading placeholder; Ready means the content can be displayed, including a
+proposal, and never claims execution, completion or approval. A8 uses Ready for
+reported proposed content while its outer card remains Pending. The same section
+renderer has no success styling derived from this state. This amendment is source
+only until the next meaningful checked handoff.

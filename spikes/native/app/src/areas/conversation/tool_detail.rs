@@ -123,9 +123,9 @@ pub(super) fn body(
         BorrowedDetail {
             detail,
             state: if source.tool().working() {
-                DetailState::Running
+                DetailContentState::Loading
             } else {
-                DetailState::Settled
+                DetailContentState::Ready
             },
             failure: source.failure(),
         },
@@ -134,18 +134,19 @@ pub(super) fn body(
     )
 }
 
-/// Rendering state is supplied by the owner, never inferred from an approval.
+/// Only empty-content loading presentation, never execution or approval outcome.
 #[derive(Clone, Copy)]
-pub(super) enum DetailState {
-    Running,
-    Settled,
+pub(super) enum DetailContentState {
+    Loading,
+    /// Content is ready to present, including work that is merely proposed.
+    Ready,
 }
 
 /// Shared borrowed body for canonical timeline and permission presentation DTOs.
 /// The caller retains identity/disclosure/approval; no `ToolView` or log is needed.
 pub(super) struct BorrowedDetail<'a> {
     pub(super) detail: &'a ToolCallDetail,
-    pub(super) state: DetailState,
+    pub(super) state: DetailContentState,
     pub(super) failure: Option<&'a ToolFailure>,
 }
 
@@ -166,7 +167,10 @@ pub(super) fn borrowed_body(
         return div().child(super::tool_sheet::empty_at(
             paint,
             child_id(&id, "loading"),
-            matches!(state, DetailState::Running),
+            match state {
+                DetailContentState::Loading => true,
+                DetailContentState::Ready => false,
+            },
         ));
     }
     div()
