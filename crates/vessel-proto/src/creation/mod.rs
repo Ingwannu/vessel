@@ -1,0 +1,68 @@
+//! Durable creation identities, reservations and safe snapshots (ADR 0091).
+//! No prompt, environment, command template or credential enters a snapshot.
+
+mod receipt;
+mod text;
+
+pub use receipt::{
+    Advance, Certainty, FirstInput, Kind, Phase, Receipt, Reservation, Resource, Snapshot, Stage,
+    WorkspaceClaim,
+};
+pub use text::{Fingerprint, Key, Revision};
+
+/// Refuse further admission rather than silently expiring an idempotency key.
+pub const MAX_RECEIPTS: usize = 10_000;
+
+/// Input or lifecycle errors never echo rejected keys or command/prompt text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum CreationError {
+    /// Idempotency identities must contain at least one character.
+    #[error("creation key cannot be empty")]
+    EmptyKey,
+    /// A bounded identity prevents admission/storage resource exhaustion.
+    #[error("creation key exceeds {} Unicode scalars", Key::MAX_CHARS)]
+    KeyTooLong,
+    /// Keep keys unambiguous in JSON, storage and diagnostic boundaries.
+    #[error("creation key cannot contain control characters")]
+    KeyControl,
+    /// An old intent cannot reuse another request's reserved resources.
+    #[error("creation key is already bound to a different intent")]
+    IntentConflict,
+    /// A resource id cannot be owned by two creation operations.
+    #[error("creation resource is already claimed")]
+    ResourceClaimed,
+    /// A stale caller must observe before attempting another transition.
+    #[error("creation revision changed")]
+    StaleRevision,
+    /// Replaying an invalid transition could repeat an external side effect.
+    #[error("invalid creation transition")]
+    InvalidTransition,
+    /// Never wrap a revision into an older observation.
+    #[error("creation revision exhausted")]
+    RevisionExhausted,
+    /// Receipt and claims are retained; admission fails instead of evicting keys.
+    #[error("creation receipt limit of {MAX_RECEIPTS} reached")]
+    Full,
+    /// Observation of a missing receipt is distinct from uncertain work.
+    #[error("creation receipt not found")]
+    NotFound,
+}
+
+impl CreationError {
+    /// One mapping for clients, store and service refusal projection.
+    #[must_use]
+    pub const fn code(self) -> crate::ErrorCode {
+        match self {
+            Self::EmptyKey | Self::KeyTooLong | Self::KeyControl => {
+                crate::ErrorCode::InvalidRequest
+            }
+            Self::IntentConflict
+            | Self::ResourceClaimed
+            | Self::StaleRevision
+            | Self::InvalidTransition => crate::ErrorCode::Conflict,
+            Self::RevisionExhausted => crate::ErrorCode::Internal,
+            Self::Full => crate::ErrorCode::Unavailable,
+            Self::NotFound => crate::ErrorCode::NotFound,
+        }
+    }
+}

@@ -6,6 +6,7 @@
 //! released, only appended to. A database newer than this build is refused
 //! rather than guessed at.
 
+mod creation;
 #[cfg(test)]
 mod labels;
 mod migrations;

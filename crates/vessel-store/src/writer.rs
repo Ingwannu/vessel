@@ -63,6 +63,11 @@ pub(crate) enum WriteOp {
 /// A change to the database.
 #[derive(Debug)]
 pub(crate) enum Write {
+    /// Admission and CAS never bypass the existing serialized writer.
+    Creation {
+        change: Box<crate::creation::Write>,
+        done: Done,
+    },
     /// Store a new session. Boxed: operations wait in a bounded queue, and
     /// an inline `SessionInfo` would size every slot for this rare one.
     Create { info: Box<SessionInfo>, done: Done },

@@ -105,6 +105,17 @@ async fn pre_origin_schema_titles_are_unknown_including_explicit_ones() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
+    // Roll back this package's later migration before the inherited fixture
+    // measures its title-origin predecessor. The original rollback is unchanged.
+    connection
+        .execute_batch("DROP TABLE creation_claims; DROP TABLE creation_receipts;")
+        .unwrap();
+    let after_creation: i64 = connection
+        .pragma_query_value(None, "user_version", |row| row.get(0))
+        .unwrap();
+    connection
+        .pragma_update(None, "user_version", after_creation.checked_sub(1).unwrap())
+        .unwrap();
     let latest: i64 = connection
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
