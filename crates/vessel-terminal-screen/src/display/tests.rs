@@ -21,7 +21,7 @@ struct Program {
     events: Vec<Event>,
     snapshots: Vec<Expected>,
 }
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 enum ProgramName {
     CursorOverrides,
@@ -131,7 +131,7 @@ fn check_frame(frame: &crate::FrameView<'_>, expected: &Expected) {
 }
 fn check_row(frame: &crate::FrameView<'_>, row: Row, expected: &Expected, line: usize) {
     let mut text = String::new();
-    let colors = expected.foreground.get(line).unwrap();
+    let colors = &expected.foreground[line];
     for column in 0..frame.columns() {
         let cell = frame.cell(row, crate::Column(column)).unwrap();
         if cell.width() != crate::Width::Continuation {
@@ -149,7 +149,7 @@ fn check_row(frame: &crate::FrameView<'_>, row: Row, expected: &Expected, line: 
     }
     assert_eq!(
         text.trim_end(),
-        expected.lines.get(line).unwrap(),
+        expected.lines[line],
         "{} row{line}",
         expected.checkpoint
     );

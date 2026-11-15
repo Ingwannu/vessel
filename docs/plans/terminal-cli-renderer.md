@@ -138,3 +138,15 @@ the new fields/programs. The original oracle and failing run remain retained.
 Readonly snapshots must preserve the same metadata/cell cut. No new parser,
 ANSI feedback, dependency/runtime/I/O or actual terminal consumer is introduced.
 This pending repair has not changed frozen2d5 or its whole; checks remain owed.
+
+Exact d105 executed46 tests successfully with2 remaining failures: the old
+latent-alternate-column unit fixture assumed an implicit home on entry, and the
+new pending-wrap oracle exposed ESC8 restore keeping the extra wrap column.
+The latent-column fixture now explicitly homes its test text while retaining
+every original A/G/bounds/inactive assertion. Separate bare1049 oracle cases
+still require nonzero/pending entry inheritance, so this cannot hide that bug.
+Cursor restore now clamps physical coordinates as the actual reference does.
+The d105 strict check found only three test lints (two get/unwrap spellings and
+a non-Copy fixture ID); those are corrected without changing expected data.
+All original31 cell hashes,239 mode checkpoints,11 marker checkpoints and
+the original26 metadata values remain unchanged. Checks on this head are owed.

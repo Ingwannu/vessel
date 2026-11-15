@@ -251,6 +251,11 @@ impl Grid {
     pub fn restore_cursor(&mut self) {
         self.pos = self.saved_pos;
         self.origin_mode = self.saved_origin_mode;
+        // Restore is an explicit cursor move in the reference: pending wrap
+        // clamps to the last physical column instead of surviving ESC 8.
+        self.row_clamp_top(self.origin_mode);
+        self.row_clamp_bottom(self.origin_mode);
+        self.col_clamp();
     }
 
     pub fn visible_rows(&self) -> impl Iterator<Item = &crate::row::Row> {

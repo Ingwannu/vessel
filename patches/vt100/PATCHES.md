@@ -67,4 +67,5 @@ No byte parser, runtime, PTY, toolkit, or harness is added to the upstream crate
     DECSTR, and inherit the primary cursor on1049 alternate entry. Why: the
     pinned headless metadata oracle exposed lost blink-only state and a wrong
     alternate starting position. Soft reset resets modes/saved presentation
-    without erasing live cells; no raw scanner or second interpretation added.
+    without erasing live cells. Cursor restore clamps pending wrap like the
+    reference's explicit cursor move. No raw scanner or second interpretation added.

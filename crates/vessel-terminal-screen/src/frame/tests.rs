@@ -196,7 +196,9 @@ fn inactive_primary_and_latent_alternate_columns_cannot_retarget_the_frame() {
     let mut engine = screen();
     feed(&mut engine, b"0\r\n1\r\n2\r\n3\r\n4");
     let primary = engine.create_marker(LineIndex(1)).unwrap();
-    feed(&mut engine, b"\x1b[?1049hABCDEFG");
+    // This fixture isolates latent-column bounds, not alternate entry position.
+    // The separate headless oracle verifies bare1049 inheritance at nonzero/pending columns.
+    feed(&mut engine, b"\x1b[?1049h\x1b[HABCDEFG");
     engine.resize(Size::new(4, 3).unwrap()).unwrap();
     let alternate = engine
         .frame(ViewportRequest::Pinned(&primary), rows())
