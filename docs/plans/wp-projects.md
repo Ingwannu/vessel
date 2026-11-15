@@ -98,3 +98,12 @@ source only and does not deploy to a running service.
   captures and native gate when the package is reviewable.
 - Blocked: full workspace lifecycle, project revision editor and metadata
   mutations await node contracts. No gate, capture or parity claim yet.
+
+## Form module boundary
+
+The existing registration form methods/rendering move to project_form.rs; the
+host list and navigation remain in projects.rs. No request, validation, callback
+or test expectation changes in this extraction. Moved pixel values reference
+existing exact-valued spacing tokens (the existing ten-point gap is six+four),
+so the new file introduces no style-ratchet entry. Command approval and script
+files remain outside this change.
