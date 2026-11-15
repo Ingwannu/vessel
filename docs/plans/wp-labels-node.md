@@ -169,3 +169,11 @@ assignment/catalog removal. The second uses a paused clock to prove delegated
 and exhausted-share Observe calls return without advancing through the long-poll
 wait. These are source-authored handler-policy tests, not public RPC availability
 or execution PASS. Lookup is empty and the user/data directories are isolated.
+
+The exhaustive-consumer audit found two required fake Handler implementations
+and the web bridge method classifier not yet extended in the first strict head.
+Added explicit Unsupported stubs to both existing fake tables and classified all
+five calls as browser-forwardable through ordinary node scope checks. No prior
+fake behavior or head test assertion was changed. The known-red queued head may
+be superseded once under the standing queued-run rule, after terminal cancellation
+is confirmed. The root architecture now records the real catalog data flow.

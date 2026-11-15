@@ -1727,6 +1727,24 @@ create driver wires it; no unwired node service ships in this dependency. Projec
 icons, editor integration and automatic archive remain separate incomplete work.
 No protocol number or full package acceptance follows from this architecture.
 
+### Workspace label catalog (ADR 0086, pending)
+
+`vessel-proto::workspace_labels` owns the validated name/color grammar, ordered
+assignment projection and pending unary calls. `vessel-store::workspace_labels`
+uses the existing writer savepoint/read pool and canonical registry admission.
+Catalog identity cascades rename/delete into assignments; colors are never copied
+into descriptors. The registry snapshot joins ordered names in its held read
+transaction and omits them for unavailable peers at direct and nested hops.
+
+The node's bounded label actor serializes commit -> journal publication -> reply,
+so cancelling an accepted request cannot lose its durable publication. Assignment
+changes use the existing post-commit registry wake; recolor/no-op do not. A bounded
+Observe read reuses connection/origin shares, downgrading delivered/exhausted calls
+to Now. Shutdown drains accepted label work after callers and before the Store.
+There is no second database, registry, event renderer or package dependency.
+Version assignment and reviewed end-to-end consumers remain required; pending
+source wiring alone is not public capability or parity acceptance.
+
 ### Settings writer lifetime
 
 The node settings owner retains an owned serialization guard in a tracked task

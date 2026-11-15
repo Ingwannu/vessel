@@ -136,6 +136,11 @@ const fn forwardable(method: Method) -> bool {
         | Method::WriteUpload
         | Method::FinishUpload
         | Method::ReadAttachment
+        | Method::ListWorkspaceLabels
+        | Method::AssignWorkspaceLabel
+        | Method::UpdateWorkspaceLabel
+        | Method::InspectWorkspaceLabelDelete
+        | Method::DeleteWorkspaceLabel
         | Method::ReleaseWorkspaceAutomation | Method::GetRegistry | Method::ListWorkspaces | Method::GetWorkspace | Method::RenameWorkspace | Method::PinWorkspace
         | Method::ListProjects
         | Method::GetProject
