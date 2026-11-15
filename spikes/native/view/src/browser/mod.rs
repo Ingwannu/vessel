@@ -5,7 +5,12 @@
 //! may turn an unavailable browser into a visible interactive page.
 
 mod navigation;
+mod surface;
 mod viewport;
 
 pub use navigation::{History, LoadState, Navigation, NavigationAction};
+pub use surface::{
+    InvalidSurface, LogicalLength, PageOffset, PagePoint, PageSize, PanePoint, PaneSize,
+    RasterSize, SurfaceMap,
+};
 pub use viewport::{CssPixels, DevicePreset, FixedViewport, Viewport};

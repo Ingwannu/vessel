@@ -137,3 +137,18 @@ This is not the product proxy or a supported/qualified browser. Runtime
 fingerprint changes must invalidate qualification. Full IPv6, QUIC,
 WebTransport, profile isolation, service revocation and Windows proofs are
 still owed, alongside all node/app gates and native captures.
+
+
+## Native frame input projection
+
+[Decision Log]
+- Reuse the existing finite-number type and fixed device dimensions. Terminal
+  cell rounding is unsuitable for browser CSS/subpixel input.
+- A pure SurfaceMap distinguishes physical raster, CSS viewport and logical
+  pane geometry. It preserves aspect ratio and rejects letterbox/right/bottom
+  border clicks instead of clamping them onto a page element.
+- The panel owner must supply the CSS dimensions and revision belonging to
+  the displayed frame. This geometry creates neither input authority nor a
+  fake painted page. The node rechecks target ownership/current viewport/revision.
+- Tests cover a doubled-density frame, centered fixed viewport, compact pane
+  scaling and invalid/empty geometry. No independent pane/layout is introduced.
