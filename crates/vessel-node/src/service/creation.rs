@@ -1,5 +1,8 @@
 //! Principal-bound creation observations reuse the store and shared waiting limits.
 
+#[cfg(test)]
+mod driver;
+
 use super::{Connection, NodeService, wire};
 use crate::{principal::Principal, waits::Waiter};
 use std::time::Duration;

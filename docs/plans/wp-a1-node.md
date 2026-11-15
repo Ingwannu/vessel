@@ -111,3 +111,12 @@ checks: metadata/observation Read, full profile configuration Admin and
 person-only profile operations. Fleet forwarding remains independently
 restricted (full profile get/set are node-local). No public protocol number
 or browser-specific authority is added by this classification.
+
+A test-only typed Runtime interface now exercises the phase driver against
+the real Store writer and an in-memory effect fake. It awaits each Begin
+commit before the fake can run, retains reserved identities across prompt
+refusal, and stops dispatch on Unknown/completed receipts. Crash fixtures
+separate idle Accepted from committed-Begin/no-effect recovery. This is an
+orchestration frame only: it is cfg(test), not a registered/shipping create
+RPC, and provides no principal/count/start-lease/generation-fence proof. The
+real controller and reviewed W11/runtime adapters remain missing.
