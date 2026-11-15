@@ -1,6 +1,6 @@
 //! Deferred integration choices keep their visit and batch through actual owner acknowledgements.
 
-use super::*;
+use super::{Context, Shell, Visit, Window};
 use std::collections::BTreeMap;
 use vessel_app_kit::ui::{
     AnyElement, FluentBuilder as _, IntoElement as _, ParentElement as _,
@@ -175,7 +175,7 @@ fn execute(
         // Pending MCP/skills methods have no protocol number yet. They are not
         // offered or called until their owner supplies a reviewed capability.
         Integration::Tools | Integration::Skills => {
-            settled(shell, operation, Outcome::Refused, window, cx)
+            settled(shell, operation, Outcome::Refused, window, cx);
         }
     }
 }

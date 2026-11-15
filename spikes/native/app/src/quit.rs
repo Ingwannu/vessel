@@ -33,7 +33,7 @@ pub(crate) fn initialize(cx: &mut App) {
     }
 }
 
-/// C5 registers once from CodePanel::new before any buffer can become dirty.
+/// C5 registers once from `CodePanel::new` before any buffer can become dirty.
 /// The callback observes all active/retained buffers and original write tickets.
 pub(crate) fn set_document_guard(guard: DocumentGuard, cx: &mut App) {
     if cx.has_global::<Documents>() {

@@ -1,6 +1,6 @@
 //! Local policy and controller operations reuse the shared settings controls.
 
-use super::*;
+use super::{Action, AfterQuit, Context, Intent, Logs, Management, Prompt, Shell, Status, Window};
 use vessel_app_kit::ui::{
     AnyElement, FluentBuilder as _, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, div,
@@ -110,7 +110,7 @@ fn controls(
         controls = controls.child(
             outline_button("local-node-start", words.start(), readable && idle, tokens).on_click(
                 cx.listener(|shell, _event, _window, cx| {
-                    shell.local_node_action(Action::Start, cx)
+                    shell.local_node_action(Action::Start, cx);
                 }),
             ),
         );
@@ -120,14 +120,14 @@ fn controls(
             .child(
                 outline_button("local-node-restart", words.restart(), idle, tokens).on_click(
                     cx.listener(|shell, _event, _window, cx| {
-                        shell.local_node_action(Action::Restart, cx)
+                        shell.local_node_action(Action::Restart, cx);
                     }),
                 ),
             )
             .child(
                 outline_button("local-node-stop", words.stop(), idle, tokens).on_click(
                     cx.listener(|shell, _event, _window, cx| {
-                        shell.local_node_action(Action::Stop, cx)
+                        shell.local_node_action(Action::Stop, cx);
                     }),
                 ),
             );
@@ -139,8 +139,9 @@ fn controls(
             ),
         )
         .child(
-            outline_button("local-log-path", words.copy_log_path(), readable, tokens)
-                .on_click(cx.listener(|shell, _event, _window, cx| shell.copy_local_log_path(cx))),
+            outline_button("local-log-path", words.copy_log_path(), readable, tokens).on_click(
+                cx.listener(|_shell, _event, _window, cx| Shell::copy_local_log_path(cx)),
+            ),
         )
         .into_any_element()
 }
@@ -323,7 +324,7 @@ fn interrupt_button(
                 }
                 match intent {
                     Intent::Quit => {
-                        crate::local_node::request_confirmed_quit(confirmation.clone(), cx)
+                        crate::local_node::request_confirmed_quit(confirmation.clone(), cx);
                     }
                     Intent::Stop => shell
                         .local_node_action(Action::InterruptConfirmed(confirmation.clone()), cx),

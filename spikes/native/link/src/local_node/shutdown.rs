@@ -1,6 +1,6 @@
 //! Runtime ownership outlives GPUI's non-vetoable 200ms shutdown observation.
 //!
-//! Ordinary quit/update already await protected finalization before App::quit.
+//! Ordinary quit/update already await protected finalization before `App::quit`.
 //! The OS backstop cannot do that: dropping a timed-out callback must not drop
 //! the runtime and implicitly kill an owned child's live sessions. A supervisor
 //! created before launch receives the irreversible policy synchronously. Preserve

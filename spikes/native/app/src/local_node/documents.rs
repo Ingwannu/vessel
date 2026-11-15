@@ -4,7 +4,7 @@ use crate::quit::{self, DocumentReadiness};
 use gpui::App;
 
 /// Run only after the initiating Shell/Window borrow ends. Final admission has
-/// no subsequent await before App::quit or updater.restart.
+/// no subsequent await before `App::quit` or `updater.restart`.
 pub(crate) fn admit(cx: &mut App) -> bool {
     let blocked = crate::desktop::shells(cx)
         .into_iter()

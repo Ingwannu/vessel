@@ -53,10 +53,10 @@ pub(super) struct ScopeState {
 }
 
 pub(super) fn prepare(shell: &mut Shell) {
-    if let Some((target, layout)) = shell.areas.onboarding.scope.reopen.take() {
-        if shell.areas.onboarding.model.reopen(target, layout).is_err() {
-            shell.notice = Some(shell.words.desktop().setup_failed().to_owned());
-        }
+    if let Some((target, layout)) = shell.areas.onboarding.scope.reopen.take()
+        && shell.areas.onboarding.model.reopen(target, layout).is_err()
+    {
+        shell.notice = Some(shell.words.desktop().setup_failed().to_owned());
     }
     if !matches!(shell.areas.onboarding.model.state(), ModelState::Deciding)
         || shell.prefs.onboarding.is_some()

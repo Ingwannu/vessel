@@ -129,7 +129,7 @@ fn apply(shell: &mut Shell, snapshot: Snapshot, cx: &mut Context<'_, Shell>) {
 }
 
 impl Shell {
-    fn copy_local_log_path(&mut self, cx: &mut Context<'_, Self>) {
+    fn copy_local_log_path(cx: &mut Context<'_, Self>) {
         let Some(controller) = cx
             .try_global::<crate::local_node::Managed>()
             .and_then(|managed| managed.controller.as_ref())

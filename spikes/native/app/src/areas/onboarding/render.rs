@@ -149,7 +149,7 @@ fn rail(shell: &Shell, open: &Open, tokens: &Tokens, cx: &mut Context<'_, Shell>
                 tokens,
             )
             .on_click(cx.listener(move |shell, _event, window, cx| {
-                shell.setup_move(visit, Some(item), window, cx)
+                shell.setup_move(visit, Some(item), window, cx);
             })),
         );
     }
@@ -168,17 +168,18 @@ fn footer(
     let words = shell.words.desktop();
     vec![
         button("setup-skip", words.skip(), false, tokens)
-            .when(last, |button| button.invisible())
-            .on_click(
-                cx.listener(move |shell, _event, window, cx| {
-                    shell.setup_complete(visit, window, cx)
-                }),
-            )
+            .when(last, vessel_app_kit::ui::Styled::invisible)
+            .on_click(cx.listener(move |shell, _event, window, cx| {
+                shell.setup_complete(visit, window, cx);
+            }))
             .into_any_element(),
         button("setup-back", words.back(), false, tokens)
-            .when(step == Step::Appearance, |button| button.invisible())
+            .when(
+                step == Step::Appearance,
+                vessel_app_kit::ui::Styled::invisible,
+            )
             .on_click(cx.listener(move |shell, _event, window, cx| {
-                shell.setup_move(visit, None, window, cx)
+                shell.setup_move(visit, None, window, cx);
             }))
             .into_any_element(),
         button_with_kind(
@@ -193,11 +194,9 @@ fn footer(
             tokens,
         )
         .when(advancing, |button| {
-            button.on_click(
-                cx.listener(move |shell, _event, window, cx| {
-                    shell.setup_continue(visit, window, cx)
-                }),
-            )
+            button.on_click(cx.listener(move |shell, _event, window, cx| {
+                shell.setup_continue(visit, window, cx);
+            }))
         })
         .into_any_element(),
     ]
