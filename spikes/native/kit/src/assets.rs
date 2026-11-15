@@ -3,12 +3,22 @@
 //! a line, a square, two offset squares, a cross).
 //!
 //! Embedded as text, not files: the kit needs no separate asset bundle.
-//! The inventory and inline drawings stay together so a registration is
-//! reviewed with its vector; that is why this file exceeds 400 lines.
+//! The inventory (the enum, its list and its paths) is here and the
+//! drawings are in `drawing.rs`, one arm per glyph: the two stayed in one
+//! file until the git row's glyphs took it past its listed size
+//! (docs/QUALITY.md M3). A registration still cannot miss its vector: the
+//! drawing's match has no catch-all.
 
 use std::borrow::Cow;
 
 use gpui::{AssetSource, SharedString};
+
+mod drawing;
+mod icon;
+
+#[cfg(test)]
+use icon::view_box;
+pub use icon::{IconError, window_icon};
 
 /// Vessel's mark, one colour (`fill="currentColor"`), embedded from the
 /// design system's own file by path (`docs/design/brand/`, the owner's
@@ -57,6 +67,16 @@ pub enum Glyph {
     Stop,
     /// The permissions mode.
     Shield,
+    /// A permissions mode that accepts edits (Paseo's `ShieldPlus`).
+    ShieldPlus,
+    /// A permissions mode that decides for itself (Paseo's `ShieldCheck`).
+    ShieldCheck,
+    /// A permissions mode that asks nothing (Paseo's `ShieldOff`).
+    ShieldOff,
+    /// A planning mode (Paseo's `ShieldEllipsis`).
+    ShieldEllipsis,
+    /// A permissions mode that asks before writing (Paseo's `ShieldAlert`).
+    ShieldAlert,
     /// The effort (thinking).
     Brain,
     /// An agent.
@@ -67,11 +87,24 @@ pub enum Glyph {
     CircleCheck,
     /// An error alert: a cross inside a circle, drawn on the kit's own grid.
     CircleX,
+    /// A task not started (Paseo's `Circle`): a ring on the same grid as
+    /// [`Self::CircleCheck`].
+    Circle,
+    /// A task under way (Paseo's `CircleDot`): the ring with a dot.
+    CircleDot,
+    /// A task list (Paseo's `CheckSquare`): a check in a rounded square.
+    SquareCheck,
     /// Scheduling: a calendar with a clock, on the shared 24-unit line grid.
     /// One asset serves navigation and empty states; no screen draws a second.
     CalendarClock,
     /// A folder.
     Folder,
+    /// A project: a folder holding a branch (Paseo's `FolderGit2`, an
+    /// original drawing on the shared 24-unit line grid).
+    FolderGit,
+    /// The agents a machine can run: three stacked boxes (Paseo's
+    /// `Boxes`, an original drawing on the shared 24-unit line grid).
+    Boxes,
     /// A machine.
     Machine,
     /// Three dots: a menu of more actions (the Session actions).
@@ -85,6 +118,8 @@ pub enum Glyph {
     Copy,
     /// Appearance (a painter's palette, Paseo's `Palette`).
     Palette,
+    /// Diagnostics: an original stethoscope on the shared 24-unit line grid.
+    Stethoscope,
     /// Shortcuts (a keyboard, Paseo's `Keyboard`).
     Keyboard,
     /// Notifications (a bell, Paseo's `Bell`).
@@ -107,6 +142,12 @@ pub enum Glyph {
     Branch,
     /// A pull request (Paseo's `GitPullRequest`).
     PullRequest,
+    /// A draft pull request (Paseo's `GitPullRequestDraft`).
+    PullRequestDraft,
+    /// A closed pull request (Paseo's `GitPullRequestClosed`).
+    PullRequestClosed,
+    /// A merged pull request (Paseo's `GitMerge`).
+    GitMerge,
     /// Fast mode, off: a lightning bolt's outline.
     Lightning,
     /// Fast mode, on: the bolt filled.
@@ -131,12 +172,27 @@ pub enum Glyph {
     GitBranchPlus,
     /// A commit node on its history line.
     Commit,
+    /// Push: an upward transfer arrow and an open tray.
+    Upload,
+    /// Pull: a downward transfer arrow and an open tray.
+    Download,
     /// Undo a file change: a returning arrow, separate from Reset.
     Undo2,
+    /// Fork a conversation: one way parting in two (Paseo's `Split`, its
+    /// fork menu).
+    Split,
     /// Pinned.
     Pin,
     /// Work going on: three quarters of a ring, turned by `spinner`.
     Spinner,
+    /// The board (three lanes of cards).
+    Board,
+    /// The light theme (a sun).
+    Sun,
+    /// The dark theme (a moon).
+    Moon,
+    /// The system's theme (a screen).
+    Monitor,
     /// A pencil: edit (a queued message).
     Pencil,
     /// An arrow turning up and right: send into the running turn (GOAT's
@@ -149,12 +205,19 @@ pub enum Glyph {
     Remove,
     /// A file (the Files tree, Paseo's `File`).
     File,
+    /// A file with lines of text: an attached file's pill (Paseo's
+    /// `FileText`).
+    FileText,
     /// The code panel's toggle (Paseo's `PanelRight`).
     PanelRight,
+    /// The desktop sidebar toggle, preserving the existing right-panel glyph.
+    PanelLeft,
+    /// The compact sidebar's two full bars and one short bar, painted 16 by 12.
+    MenuCompact,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 61] = [
+const ALL: [Glyph; 85] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -171,19 +234,30 @@ const ALL: [Glyph; 61] = [
     Glyph::ArrowUp,
     Glyph::Stop,
     Glyph::Shield,
+    Glyph::ShieldPlus,
+    Glyph::ShieldCheck,
+    Glyph::ShieldOff,
+    Glyph::ShieldEllipsis,
+    Glyph::ShieldAlert,
     Glyph::Brain,
     Glyph::Bot,
     Glyph::Alert,
     Glyph::CircleCheck,
     Glyph::CircleX,
+    Glyph::Circle,
+    Glyph::CircleDot,
+    Glyph::SquareCheck,
     Glyph::CalendarClock,
     Glyph::Folder,
+    Glyph::FolderGit,
+    Glyph::Boxes,
     Glyph::Machine,
     Glyph::More,
     Glyph::Sliders,
     Glyph::Gear,
     Glyph::Copy,
     Glyph::Palette,
+    Glyph::Stethoscope,
     Glyph::Keyboard,
     Glyph::Bell,
     Glyph::Sparkles,
@@ -195,6 +269,9 @@ const ALL: [Glyph; 61] = [
     Glyph::Plus,
     Glyph::Branch,
     Glyph::PullRequest,
+    Glyph::PullRequestDraft,
+    Glyph::PullRequestClosed,
+    Glyph::GitMerge,
     Glyph::Lightning,
     Glyph::LightningFilled,
     Glyph::Reset,
@@ -207,28 +284,26 @@ const ALL: [Glyph; 61] = [
     Glyph::Minus,
     Glyph::GitBranchPlus,
     Glyph::Commit,
+    Glyph::Upload,
+    Glyph::Download,
     Glyph::Undo2,
+    Glyph::Split,
     Glyph::Pin,
     Glyph::Spinner,
+    Glyph::Board,
+    Glyph::Sun,
+    Glyph::Moon,
+    Glyph::Monitor,
     Glyph::Pencil,
     Glyph::Steer,
     Glyph::Grip,
     Glyph::Remove,
     Glyph::File,
+    Glyph::FileText,
     Glyph::PanelRight,
+    Glyph::PanelLeft,
+    Glyph::MenuCompact,
 ];
-
-/// A line glyph on Lucide's grid (24 units, a stroke of 1.5, round ends),
-/// as Paseo's icons are drawn; the paths are the kit's own.
-macro_rules! line_glyph {
-    ($body:literal) => {
-        concat!(
-            r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">"#,
-            $body,
-            "</svg>"
-        )
-    };
-}
 
 impl Glyph {
     /// Its asset path.
@@ -251,19 +326,30 @@ impl Glyph {
             Self::ArrowUp => "kit/arrow-up.svg",
             Self::Stop => "kit/stop.svg",
             Self::Shield => "kit/shield.svg",
+            Self::ShieldPlus => "kit/shield-plus.svg",
+            Self::ShieldCheck => "kit/shield-check.svg",
+            Self::ShieldOff => "kit/shield-off.svg",
+            Self::ShieldEllipsis => "kit/shield-ellipsis.svg",
+            Self::ShieldAlert => "kit/shield-alert.svg",
             Self::Brain => "kit/brain.svg",
             Self::Bot => "kit/bot.svg",
             Self::Alert => "kit/alert.svg",
             Self::CircleCheck => "kit/circle-check.svg",
             Self::CircleX => "kit/circle-x.svg",
+            Self::Circle => "kit/circle.svg",
+            Self::CircleDot => "kit/circle-dot.svg",
+            Self::SquareCheck => "kit/square-check.svg",
             Self::CalendarClock => "kit/calendar-clock.svg",
             Self::Folder => "kit/folder.svg",
+            Self::FolderGit => "kit/folder-git.svg",
+            Self::Boxes => "kit/boxes.svg",
             Self::Machine => "kit/machine.svg",
             Self::More => "kit/more.svg",
             Self::Sliders => "kit/sliders.svg",
             Self::Gear => "kit/gear.svg",
             Self::Copy => "kit/copy.svg",
             Self::Palette => "kit/palette.svg",
+            Self::Stethoscope => "kit/stethoscope.svg",
             Self::Keyboard => "kit/keyboard.svg",
             Self::Bell => "kit/bell.svg",
             Self::Sparkles => "kit/sparkles.svg",
@@ -275,8 +361,14 @@ impl Glyph {
             Self::Plus => "kit/plus.svg",
             Self::Branch => "kit/branch.svg",
             Self::File => "kit/file.svg",
+            Self::FileText => "kit/file-text.svg",
             Self::PanelRight => "kit/panel-right.svg",
+            Self::PanelLeft => "kit/panel-left.svg",
+            Self::MenuCompact => "kit/menu-compact.svg",
             Self::PullRequest => "kit/pull-request.svg",
+            Self::PullRequestDraft => "kit/pull-request-draft.svg",
+            Self::PullRequestClosed => "kit/pull-request-closed.svg",
+            Self::GitMerge => "kit/git-merge.svg",
             Self::Lightning => "kit/lightning.svg",
             Self::LightningFilled => "kit/lightning-filled.svg",
             Self::Reset => "kit/reset.svg",
@@ -289,181 +381,20 @@ impl Glyph {
             Self::Minus => "kit/minus.svg",
             Self::GitBranchPlus => "kit/git-branch-plus.svg",
             Self::Commit => "kit/commit.svg",
+            Self::Upload => "kit/upload.svg",
+            Self::Download => "kit/download.svg",
             Self::Undo2 => "kit/undo-2.svg",
+            Self::Split => "kit/split.svg",
             Self::Pin => "kit/pin.svg",
             Self::Spinner => "kit/spinner.svg",
+            Self::Board => "kit/board.svg",
+            Self::Sun => "kit/sun.svg",
+            Self::Moon => "kit/moon.svg",
+            Self::Monitor => "kit/monitor.svg",
             Self::Pencil => "kit/pencil.svg",
             Self::Steer => "kit/steer.svg",
             Self::Grip => "kit/grip.svg",
             Self::Remove => "kit/remove.svg",
-        }
-    }
-
-    #[expect(clippy::too_many_lines, reason = "one arm per glyph, each its drawing")]
-    const fn svg(self) -> &'static str {
-        match self {
-            Self::Mark => MARK,
-            Self::Minimize => {
-                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0 5.5h10" stroke="black" stroke-width="1"/></svg>"#
-            }
-            Self::Maximize => {
-                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="black" stroke-width="1"/></svg>"#
-            }
-            Self::Restore => {
-                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect x="0.5" y="2.5" width="7" height="7" fill="none" stroke="black" stroke-width="1"/><path d="M2.5 2.5V0.5h7v7h-2" fill="none" stroke="black" stroke-width="1"/></svg>"#
-            }
-            Self::Close => {
-                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0.5 0.5l9 9M9.5 0.5l-9 9" stroke="black" stroke-width="1"/></svg>"#
-            }
-            Self::Update => {
-                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path d="M6 1.5v6.5M3.2 5.4L6 8.2l2.8-2.8M1.5 10.5h9" fill="none" stroke="black" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>"#
-            }
-            Self::Menu => {
-                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path d="M1.5 3h9M1.5 6h9M1.5 9h9" fill="none" stroke="black" stroke-width="1.2" stroke-linecap="round"/></svg>"#
-            }
-            Self::ChevronDown => line_glyph!(r#"<path d="M6 9l6 6 6-6"/>"#),
-            Self::ChevronUp => line_glyph!(r#"<path d="M6 15l6-6 6 6"/>"#),
-            Self::ChevronRight => line_glyph!(r#"<path d="M9 6l6 6-6 6"/>"#),
-            Self::ChevronLeft => line_glyph!(r#"<path d="M15 6l-6 6 6 6"/>"#),
-            Self::Check => line_glyph!(r#"<path d="M20 6L9 17l-5-5"/>"#),
-            Self::Search => {
-                line_glyph!(r#"<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/>"#)
-            }
-            Self::ArrowUp => line_glyph!(r#"<path d="M12 19V5M5 12l7-7 7 7"/>"#),
-            Self::Stop => line_glyph!(r#"<rect x="6" y="6" width="12" height="12" rx="1.5"/>"#),
-            Self::Shield => {
-                line_glyph!(r#"<path d="M12 3l7 3v5.5c0 4.6-3 8.1-7 9.5-4-1.4-7-4.9-7-9.5V6z"/>"#)
-            }
-            Self::Brain => line_glyph!(
-                r#"<path d="M12 5.5a3 3 0 0 0-5.6-1.2A3 3 0 0 0 4 8.5a3.2 3.2 0 0 0 .8 5.8A3 3 0 0 0 9 19a3 3 0 0 0 3-1.5z"/><path d="M12 5.5a3 3 0 0 1 5.6-1.2A3 3 0 0 1 20 8.5a3.2 3.2 0 0 1-.8 5.8A3 3 0 0 1 15 19a3 3 0 0 1-3-1.5"/>"#
-            ),
-            Self::Bot => line_glyph!(
-                r#"<rect x="4.5" y="8" width="15" height="11" rx="2.5"/><path d="M12 8V4.5M9.5 12.5v1.5M14.5 12.5v1.5"/>"#
-            ),
-            Self::Alert => {
-                line_glyph!(r#"<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.01"/>"#)
-            }
-            Self::CircleCheck => {
-                line_glyph!(r#"<circle cx="12" cy="12" r="9"/><path d="M7.5 12l3 3 6-6"/>"#)
-            }
-            Self::CircleX => {
-                line_glyph!(r#"<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>"#)
-            }
-            // Own calendar/clock composition; the macro supplies the same
-            // stroke, caps and joins as the neighbouring kit line drawings.
-            Self::CalendarClock => line_glyph!(
-                r#"<path d="M10 20H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3M8 3v4M16 3v4M4 10h16"/><circle cx="17" cy="17" r="4.5"/><path d="M17 14.5v2.75l1.75 1"/>"#
-            ),
-            Self::Folder => line_glyph!(
-                r#"<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2h7.5A2.5 2.5 0 0 1 21 9.5v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5z"/>"#
-            ),
-            Self::Machine => line_glyph!(
-                r#"<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>"#
-            ),
-            Self::More => line_glyph!(
-                r#"<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>"#
-            ),
-            Self::Sliders => line_glyph!(
-                r#"<path d="M19.5 7H10M14 17H4.5"/><circle cx="7" cy="7" r="2.75"/><circle cx="17" cy="17" r="2.75"/>"#
-            ),
-            Self::Gear => line_glyph!(
-                r#"<circle cx="12" cy="12" r="3"/><path d="M12 2.75v2.5M12 18.75v2.5M2.75 12h2.5M18.75 12h2.5M5.46 5.46l1.77 1.77M16.77 16.77l1.77 1.77M5.46 18.54l1.77-1.77M16.77 7.23l1.77-1.77"/><circle cx="12" cy="12" r="6.25"/>"#
-            ),
-            Self::Pencil => line_glyph!(
-                r#"<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z"/><path d="M14.5 5.5l3 3"/>"#
-            ),
-            Self::Remove => line_glyph!(r#"<path d="M18 6L6 18M6 6l12 12"/>"#),
-            Self::Steer => {
-                line_glyph!(r#"<path d="M15 14l5-5-5-5"/><path d="M4 20v-7a4 4 0 0 1 4-4h12"/>"#)
-            }
-            Self::Grip => line_glyph!(
-                r#"<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>"#
-            ),
-            Self::Copy => line_glyph!(
-                r#"<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>"#
-            ),
-            Self::Palette => line_glyph!(
-                r#"<path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4a4.6 4.6 0 0 0 4.6-4.6C21 5.9 17 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/>"#
-            ),
-            Self::Keyboard => line_glyph!(
-                r#"<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M8 14h8"/>"#
-            ),
-            Self::Bell => line_glyph!(
-                r#"<path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>"#
-            ),
-            Self::Sparkles => line_glyph!(
-                r#"<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15v4M17 17h4"/>"#
-            ),
-            Self::Server => line_glyph!(
-                r#"<rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/>"#
-            ),
-            Self::Smartphone => line_glyph!(
-                r#"<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M11 18h2"/>"#
-            ),
-            Self::Refresh => line_glyph!(
-                r#"<path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.5 4.5L20 16M20 20v-4h-4"/>"#
-            ),
-            Self::Info => {
-                line_glyph!(r#"<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/>"#)
-            }
-            Self::ArrowLeft => line_glyph!(r#"<path d="M19 12H5M12 19l-7-7 7-7"/>"#),
-            Self::Plus => line_glyph!(r#"<path d="M12 5v14M5 12h14"/>"#),
-            Self::Branch => line_glyph!(
-                r#"<path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>"#
-            ),
-            Self::Lightning => {
-                line_glyph!(r#"<path d="M13.25 2.75 4.75 13.5h6.75l-1 7.75 8.5-10.75h-6.75z"/>"#)
-            }
-            Self::LightningFilled => concat!(
-                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="black" stroke="black" stroke-width="1.5" stroke-linejoin="round">"#,
-                r#"<path d="M13.25 2.75 4.75 13.5h6.75l-1 7.75 8.5-10.75h-6.75z"/>"#,
-                "</svg>"
-            ),
-            Self::Reset => line_glyph!(
-                r#"<path d="M4.75 12a7.25 7.25 0 1 0 2.12-5.13L4.75 9"/><path d="M4.75 4.75V9H9"/>"#
-            ),
-            Self::Spinner => {
-                line_glyph!(r#"<path d="M12 3.75A8.25 8.25 0 1 1 3.75 12" stroke-width="2"/>"#)
-            }
-            Self::File => line_glyph!(
-                r#"<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>"#
-            ),
-            Self::PanelRight => line_glyph!(
-                r#"<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/>"#
-            ),
-            Self::PullRequest => line_glyph!(
-                r#"<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7M6 9v12"/>"#
-            ),
-            // The page's own drawings (`web/src/ui/kit/icon.css`, on a
-            // 16 grid at a stroke of 1), at one and a half times.
-            Self::Terminal => line_glyph!(r#"<path d="m6 7.5 4.5 4.5-4.5 4.5M12 16.5h6"/>"#),
-            Self::Message => line_glyph!(r#"<path d="M4.5 6.75h15v10.5H9l-4.5 3v-13.5z"/>"#),
-            Self::Archive => line_glyph!(
-                r#"<rect x="3" y="4.5" width="18" height="5.25" rx="1.5"/><path d="M4.8 9.75v7.5A2.25 2.25 0 0 0 7.05 19.5h9.9a2.25 2.25 0 0 0 2.25-2.25v-7.5"/><path d="M9.75 13.95h4.5"/>"#
-            ),
-            Self::Trash => line_glyph!(
-                r#"<path d="M3.75 6h16.5M18 6v13.5a2.25 2.25 0 0 1-2.25 2.25h-7.5A2.25 2.25 0 0 1 6 19.5V6M9 6V4.125A1.875 1.875 0 0 1 10.875 2.25h2.25A1.875 1.875 0 0 1 15 4.125V6"/>"#
-            ),
-            Self::Trash2 => line_glyph!(
-                r#"<path d="M3.75 6h16.5M18 6v13.5a2.25 2.25 0 0 1-2.25 2.25h-7.5A2.25 2.25 0 0 1 6 19.5V6M9 6V4.125A1.875 1.875 0 0 1 10.875 2.25h2.25A1.875 1.875 0 0 1 15 4.125V6M9.75 9.5v8M14.25 9.5v8"/>"#
-            ),
-            Self::ArchiveRestore => line_glyph!(
-                r#"<rect x="3" y="4.5" width="18" height="5.25" rx="1.5"/><path d="M4.8 9.75v7.5A2.25 2.25 0 0 0 7.05 19.5h9.9a2.25 2.25 0 0 0 2.25-2.25v-7.5M12 17.25v-5.5M8.75 15 12 11.75 15.25 15"/>"#
-            ),
-            Self::Minus => line_glyph!(r#"<path d="M5.25 12h13.5"/>"#),
-            Self::GitBranchPlus => line_glyph!(
-                r#"<path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9M15 18h6M18 15v6"/>"#
-            ),
-            // Reuse the git track's original drawing, rather than a second Commit.
-            Self::Commit => {
-                line_glyph!(r#"<circle cx="12" cy="12" r="4"/><path d="M3 12h5M16 12h5"/>"#)
-            }
-            Self::Undo2 => {
-                line_glyph!(r#"<path d="M9 5.5 4.5 10 9 14.5M5 10h8a6 6 0 0 1 6 6v3"/>"#)
-            }
-            Self::Pin => line_glyph!(
-                r#"<path d="M8.25 3.75h7.5"/><path d="M9.75 3.75v6L6 13.5v2.25h12V13.5l-3.75-3.75v-6"/><path d="M12 15.75V21"/>"#
-            ),
         }
     }
 }
@@ -474,6 +405,8 @@ pub struct Assets;
 
 impl AssetSource for Assets {
     fn load(&self, path: &str) -> gpui::Result<Option<Cow<'static, [u8]>>> {
+        // The agents' marks are not here: `agent_mark` rasterises its own
+        // embedded drawings at the display's pixels.
         let glyph = ALL.into_iter().find(|glyph| glyph.path() == path);
         Ok(glyph.map(|glyph| Cow::Borrowed(glyph.svg().as_bytes())))
     }
@@ -486,85 +419,6 @@ impl AssetSource for Assets {
             .map(SharedString::from)
             .collect())
     }
-}
-
-/// The window's icon (X11 reads it; Windows and macOS take theirs from the
-/// executable and the bundle, the release track's): the mark in white on
-/// a rounded tile of the brand colour, `size` pixels square.
-///
-/// # Errors
-/// The mark could not be drawn (only a broken build could cause it).
-pub fn window_icon(size: u32) -> Result<image::RgbaImage, IconError> {
-    // The tile is drawn in the mark's own units, read from its view box
-    // (the owner redraws the mark; nothing here assumes its numbers), the
-    // mark inset by a tenth of its box on each side.
-    let view = view_box(MARK).ok_or(IconError::Mark)?;
-    let paths = MARK
-        .split_once("<path")
-        .map(|(_, rest)| format!("<path{rest}"))
-        .ok_or(IconError::Mark)?
-        .replace("currentColor", "#ffffff")
-        .replace("</svg>", "");
-    let tile = tile_svg(view, &paths);
-    let tree = resvg::usvg::Tree::from_str(&tile, &resvg::usvg::Options::default())
-        .map_err(|_bad| IconError::Mark)?;
-    let mut pixmap = resvg::tiny_skia::Pixmap::new(size, size).ok_or(IconError::Size)?;
-    let scale = size_scale(size, tree.size().width());
-    resvg::render(
-        &tree,
-        resvg::tiny_skia::Transform::from_scale(scale, scale),
-        &mut pixmap.as_mut(),
-    );
-    image::RgbaImage::from_raw(size, size, pixmap.take()).ok_or(IconError::Size)
-}
-
-/// A drawing's view box: x, y, width, height.
-fn view_box(svg: &str) -> Option<[f32; 4]> {
-    let (_, rest) = svg.split_once("viewBox=\"")?;
-    let (text, _) = rest.split_once('"')?;
-    let mut numbers = text.split_whitespace().map(str::parse::<f32>);
-    let mut next = || numbers.next()?.ok();
-    Some([next()?, next()?, next()?, next()?])
-}
-
-/// The window icon's drawing: a rounded tile of the brand colour a fifth
-/// larger than the mark's view box, the mark's `paths` on it.
-#[expect(
-    clippy::float_arithmetic,
-    reason = "a view box's units are fractional; this is a drawing's geometry"
-)]
-fn tile_svg(view: [f32; 4], paths: &str) -> String {
-    let [x, y, width, height] = view;
-    let (inset_x, inset_y) = (width / 10.0, height / 10.0);
-    let (left, top) = (x - inset_x, y - inset_y);
-    let (wide, high) = (width + 2.0 * inset_x, height + 2.0 * inset_y);
-    // The tile's corner, as the first icon's: 180 of 840.
-    let corner = wide * 180.0 / 840.0;
-    format!(
-        r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="{left} {top} {wide} {high}"><rect x="{left}" y="{top}" width="{wide}" height="{high}" rx="{corner}" fill="#{BRAND:06x}"/>{paths}</svg>"##
-    )
-}
-
-/// How much to scale a drawing `width` wide to `size` pixels.
-#[expect(
-    clippy::cast_precision_loss,
-    clippy::as_conversions,
-    clippy::float_arithmetic,
-    reason = "an icon's size is a few hundred pixels: exact in f32, and the ratio is what resvg takes"
-)]
-fn size_scale(size: u32, width: f32) -> f32 {
-    size as f32 / width
-}
-
-/// The icon could not be made.
-#[derive(Debug, thiserror::Error)]
-pub enum IconError {
-    /// The mark's file is not as expected.
-    #[error("the mark could not be read")]
-    Mark,
-    /// The size is not a drawable one.
-    #[error("not a drawable icon size")]
-    Size,
 }
 
 #[cfg(test)]
@@ -617,6 +471,7 @@ mod tests {
             Glyph::GitBranchPlus,
             Glyph::Commit,
             Glyph::Undo2,
+            Glyph::Split,
         ] {
             assert_eq!(view_box(glyph.svg()), Some([0.0, 0.0, 24.0, 24.0]));
             let bytes = Assets.load(glyph.path()).unwrap().unwrap();
@@ -637,5 +492,210 @@ mod tests {
             }
         }
         assert_eq!(Glyph::Commit.path(), "kit/commit.svg");
+    }
+}
+
+#[cfg(test)]
+mod header_glyph_tests {
+    use super::{Assets, Glyph, view_box};
+    use gpui::AssetSource as _;
+
+    #[test]
+    fn compact_menu_has_the_reference_painted_extents_and_gaps_at_16_by_12() {
+        assert_eq!(
+            view_box(Glyph::MenuCompact.svg()),
+            Some([0.0, 0.0, 16.0, 12.0])
+        );
+        let bytes = Assets.load(Glyph::MenuCompact.path()).unwrap().unwrap();
+        let tree = resvg::usvg::Tree::from_data(&bytes, &resvg::usvg::Options::default()).unwrap();
+        let boxes: Vec<_> = tree
+            .root()
+            .children()
+            .iter()
+            .map(|node| {
+                let rect = node.abs_bounding_box();
+                // usvg's rounded-rect cubic extremum at x=0 can be
+                // -2.75e-32. Normalize only sub-EPSILON zero-origin noise;
+                // all sizes/y positions and native raster gaps stay exact.
+                let x = if rect.x().abs() < f32::EPSILON {
+                    0.0
+                } else {
+                    rect.x()
+                };
+                [x, rect.y(), rect.width(), rect.height()]
+            })
+            .collect();
+        assert_eq!(
+            boxes,
+            [
+                [0.0, 0.0, 16.0, 1.5],
+                [0.0, 5.25, 16.0, 1.5],
+                [0.0, 10.5, 8.0, 1.5]
+            ]
+        );
+        let mut pixels = resvg::tiny_skia::Pixmap::new(16, 12).unwrap();
+        resvg::render(
+            &tree,
+            resvg::tiny_skia::Transform::identity(),
+            &mut pixels.as_mut(),
+        );
+        let image = image::RgbaImage::from_raw(16, 12, pixels.take()).unwrap();
+        for y in [0, 1, 5, 6, 10, 11] {
+            assert!(image.get_pixel(4, y).0[3] > 0);
+        }
+        for y in [2, 3, 4, 7, 8, 9] {
+            for x in 0..16 {
+                assert_eq!(image.get_pixel(x, y).0[3], 0);
+            }
+        }
+        for y in [0, 1, 5, 6] {
+            assert!(image.get_pixel(15, y).0[3] > 0);
+        }
+        for y in [10, 11] {
+            for x in 8..16 {
+                assert_eq!(image.get_pixel(x, y).0[3], 0);
+            }
+        }
+        assert_eq!(Glyph::Menu.path(), "kit/menu.svg");
+        assert_eq!(Glyph::PanelRight.path(), "kit/panel-right.svg");
+    }
+    #[test]
+    fn left_panel_is_registered_on_the_same_line_grid() {
+        assert_eq!(
+            view_box(Glyph::PanelLeft.svg()),
+            Some([0.0, 0.0, 24.0, 24.0])
+        );
+        let bytes = Assets.load(Glyph::PanelLeft.path()).unwrap().unwrap();
+        let tree = resvg::usvg::Tree::from_data(&bytes, &resvg::usvg::Options::default()).unwrap();
+        let mut pixels = resvg::tiny_skia::Pixmap::new(24, 24).unwrap();
+        resvg::render(
+            &tree,
+            resvg::tiny_skia::Transform::identity(),
+            &mut pixels.as_mut(),
+        );
+        let image = image::RgbaImage::from_raw(24, 24, pixels.take()).unwrap();
+        assert!(image.pixels().any(|pixel| pixel.0[3] > 0));
+        for at in 0..24 {
+            for (x, y) in [(at, 0), (at, 23), (0, at), (23, at)] {
+                assert_eq!(image.get_pixel(x, y).0[3], 0);
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod transfer_glyph_tests {
+    use super::{Assets, Glyph, view_box};
+    use gpui::AssetSource as _;
+
+    #[test]
+    fn transfer_glyphs_load_and_paint_unclipped_at_menu_and_action_sizes() {
+        for glyph in [Glyph::Upload, Glyph::Download] {
+            assert_eq!(view_box(glyph.svg()), Some([0.0, 0.0, 24.0, 24.0]));
+            let bytes = Assets.load(glyph.path()).unwrap().unwrap();
+            let tree =
+                resvg::usvg::Tree::from_data(&bytes, &resvg::usvg::Options::default()).unwrap();
+            for size in [14_u16, 16] {
+                let side = u32::from(size);
+                let scale = f32::from(size).mul_add(24.0_f32.recip(), 0.0);
+                let mut pixels = resvg::tiny_skia::Pixmap::new(side, side).unwrap();
+                resvg::render(
+                    &tree,
+                    resvg::tiny_skia::Transform::from_scale(scale, scale),
+                    &mut pixels.as_mut(),
+                );
+                let image = image::RgbaImage::from_raw(side, side, pixels.take()).unwrap();
+                assert!(image.pixels().any(|pixel| pixel.0[3] > 0));
+                let edge = side.checked_sub(1).unwrap();
+                for at in 0..side {
+                    for (x, y) in [(at, 0), (at, edge), (0, at), (edge, at)] {
+                        assert_eq!(image.get_pixel(x, y).0[3], 0);
+                    }
+                }
+            }
+        }
+        assert_eq!(Glyph::ArrowUp.path(), "kit/arrow-up.svg");
+        assert_eq!(Glyph::Update.path(), "kit/update.svg");
+    }
+}
+
+#[cfg(test)]
+mod diagnostics_glyph_tests {
+    use super::{Assets, Glyph, view_box};
+    use gpui::AssetSource as _;
+    #[test]
+    fn stethoscope_loads_and_clears_edges_at_both_sidebar_sizes() {
+        let glyph = Glyph::Stethoscope;
+        assert_eq!(glyph.path(), "kit/stethoscope.svg");
+        assert_eq!(view_box(glyph.svg()), Some([0.0, 0.0, 24.0, 24.0]));
+        assert_eq!(
+            Assets.list(glyph.path()).unwrap(),
+            vec![gpui::SharedString::from(glyph.path())]
+        );
+        let bytes = Assets.load(glyph.path()).unwrap().unwrap();
+        let tree = resvg::usvg::Tree::from_data(&bytes, &resvg::usvg::Options::default()).unwrap();
+        for size in [16_u16, 20, 24] {
+            let side = u32::from(size);
+            let mut pixels = resvg::tiny_skia::Pixmap::new(side, side).unwrap();
+            resvg::render(
+                &tree,
+                resvg::tiny_skia::Transform::from_scale(
+                    f32::from(size) / 24.0,
+                    f32::from(size) / 24.0,
+                ),
+                &mut pixels.as_mut(),
+            );
+            let image = image::RgbaImage::from_raw(side, side, pixels.take()).unwrap();
+            assert!(image.pixels().any(|pixel| pixel.0[3] > 0));
+            let edge = side.checked_sub(1).unwrap();
+            for at in 0..side {
+                for (x, y) in [(at, 0), (at, edge), (0, at), (edge, at)] {
+                    assert_eq!(image.get_pixel(x, y).0[3], 0);
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod settings_nav_glyph_tests {
+    use super::{Assets, Glyph, view_box};
+    use gpui::AssetSource as _;
+
+    /// Settings' list draws these at 16 (pointer) and 20 (compact), as
+    /// Paseo's `densityIconSize("md")`; each paints and keeps its rim clear.
+    #[test]
+    fn project_and_provider_glyphs_paint_unclipped_at_both_list_sizes() {
+        for (glyph, path) in [
+            (Glyph::FolderGit, "kit/folder-git.svg"),
+            (Glyph::Boxes, "kit/boxes.svg"),
+        ] {
+            assert_eq!(glyph.path(), path);
+            assert_eq!(view_box(glyph.svg()), Some([0.0, 0.0, 24.0, 24.0]));
+            let bytes = Assets.load(glyph.path()).unwrap().unwrap();
+            let tree =
+                resvg::usvg::Tree::from_data(&bytes, &resvg::usvg::Options::default()).unwrap();
+            for size in [16_u16, 20, 24] {
+                let side = u32::from(size);
+                let scale = f32::from(size).mul_add(24.0_f32.recip(), 0.0);
+                let mut pixels = resvg::tiny_skia::Pixmap::new(side, side).unwrap();
+                resvg::render(
+                    &tree,
+                    resvg::tiny_skia::Transform::from_scale(scale, scale),
+                    &mut pixels.as_mut(),
+                );
+                let image = image::RgbaImage::from_raw(side, side, pixels.take()).unwrap();
+                assert!(
+                    image.pixels().any(|pixel| pixel.0[3] > 0),
+                    "{path} at {size}"
+                );
+                let edge = side.checked_sub(1).unwrap();
+                for at in 0..side {
+                    for (x, y) in [(at, 0), (at, edge), (0, at), (edge, at)] {
+                        assert_eq!(image.get_pixel(x, y).0[3], 0, "{path} at {size}");
+                    }
+                }
+            }
+        }
     }
 }
