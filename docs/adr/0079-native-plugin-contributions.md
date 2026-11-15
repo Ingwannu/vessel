@@ -432,3 +432,15 @@ recursive cleanup could remove concurrent user work and is therefore excluded.
 No source acquisition, settings mutation, node connection or executable launch
 is part of this command. Its actual CLI/output and permission tests are separate
 from installation/runtime/UI qualification.
+
+### Private saved settings envelope refinement
+
+The coordinator assigned the shared disk/wire separation to nodectl: the same
+settings.json is to hold a private SavedNodeSettings envelope while generic
+SetNodeSettings and Read replies retain only their safe typed surface. W16 will
+supply the qualified private plugin schema and dedicated mutation admission,
+not private fields in the generic wire patch or a second writer. The proposed
+contract, concrete resource budgets and required preservation/authority tests
+are in docs/plans/wp-plugin-settings.md. This is a design refinement, not an
+implemented slot, available storage API or plugin activation claim. Joining it
+waits for the envelope owner's reviewed source and announced containing head.
