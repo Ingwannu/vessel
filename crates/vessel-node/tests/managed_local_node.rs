@@ -8,7 +8,6 @@ use vessel_local_node::{
     Launch, LocalNode, LocalNodeError as Error, LocalStatus, NodeHome, QuitPolicy, StopPolicy,
 };
 use vessel_proto::{ClientInfo, NodeState, StopWhen};
-#[cfg(unix)]
 use vessel_testkit::Fake;
 
 const SAFETY_NET: Duration = Duration::from_secs(60);
@@ -122,7 +121,7 @@ async fn owned_restart_waits_for_old_exit_and_keep_on_quit_releases_control() {
 
 #[tokio::test]
 async fn active_fake_session_is_protected_and_a_drain_deadline_retains_ownership() {
-    vessel_testkit::within(SAFETY_NET, async {
+    vessel_testkit::within(SAFETY_NET, Box::pin(async {
         use vessel_proto::agents::{AddAgent, AgentDefinition, AgentToAdd};
         use vessel_proto::{HarnessRef, SessionEvent, SessionMode, SessionSpec, SessionStatus};
         let root = tempfile::tempdir().unwrap();
@@ -134,11 +133,11 @@ async fn active_fake_session_is_protected_and_a_drain_deadline_retains_ownership
             name,
             agent: AgentToAdd::Command { definition: AgentDefinition {
                 label: None,
-                program: vessel_testkit::Fake::Acp.path().unwrap().to_str().unwrap().parse().unwrap(),
+                program: Fake::Acp.path().unwrap().to_str().unwrap().parse().unwrap(),
                 args: Vec::new(), env: Vec::new(), inherit: Vec::new(), mcp: Vec::new(),
             }},
             replace: false,
-        }).await.unwrap();
+        })).await.unwrap();
         let spec = SessionSpec::new(HarnessRef::Added("lifecycle-fixture".parse().unwrap()), SessionMode::Structured {
             model: None, resume: None, options: Vec::new(),
         }).with_cwd(root.path().to_owned());
@@ -158,7 +157,7 @@ async fn active_fake_session_is_protected_and_a_drain_deadline_retains_ownership
         let exit = local.stop(StopPolicy::InterruptConfirmed).await.unwrap();
         assert_eq!(exit.code(), Some(0));
         assert_eq!(local.status(), LocalStatus::Exited(exit));
-    }).await.unwrap();
+    })).await.unwrap();
 }
 
 #[cfg(unix)]
