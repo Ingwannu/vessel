@@ -8,7 +8,7 @@ use std::fmt;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use uuid::{Uuid, Version};
+use uuid::{Uuid, Variant, Version};
 
 /// The reference timestamp-id alternative requires this many decimal digits.
 const LEGACY_TIMESTAMP_MIN_DIGITS: usize = 13;
@@ -49,6 +49,7 @@ impl FromStr for BrowserId {
     fn from_str(text: &str) -> Result<Self, Self::Err> {
         if let Ok(uuid) = Uuid::parse_str(text)
             && uuid.get_version() == Some(Version::Random)
+            && uuid.get_variant() == Variant::RFC4122
             && uuid.hyphenated().to_string().eq_ignore_ascii_case(text)
         {
             return Ok(Self(Arc::from(uuid.hyphenated().to_string())));
@@ -126,6 +127,9 @@ mod tests {
             uuid.urn().to_string(),
             format!(" {canonical}"),
             Uuid::nil().hyphenated().to_string(),
+            "00000000-0000-4000-0000-000000000000".to_owned(),
+            "00000000-0000-4000-c000-000000000000".to_owned(),
+            "00000000-0000-4000-e000-000000000000".to_owned(),
         ] {
             assert!(invalid.parse::<BrowserId>().is_err());
             assert!(

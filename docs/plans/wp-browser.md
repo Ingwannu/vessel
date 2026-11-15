@@ -210,3 +210,13 @@ the whole route. A current safe OS interface snapshot excludes this host's own
 addresses before and after a pinned-address dial. Missing observation refuses,
 including unimplemented Windows observation. No real browser/proxy is claimed
 by those primitives. The full policy proxy and qualified engine remain pending.
+
+
+## V3 identity correction
+
+Review found uuid's version nibble alone does not enforce the RFC variant.
+BrowserId now requires Variant::RFC4122 together with v4 and canonical spelling,
+matching Paseo rpc-schemas.ts16-18 fourth-group [89ab]. Fixtures reject NCS,
+Microsoft and future variant spellings through both direct parse and serde.
+The earlier successful tests did not cover this predicate and do not override
+the returned source finding.
