@@ -145,3 +145,28 @@ is CONTROL_HEIGHTS.sm = 28, not the older note's 32; native touch keeps the
 44-point target required by ADR 0036. Shared loaders remain the loader owner's
 producer, with no area spinner. The current integrated menu producer is not
 ready; historical source clears are not a current API handoff.
+
+## Split-button correction (control scope)
+
+The existing `kit::split_button` is extended, not duplicated. Current reference:
+`git/actions-split-button.tsx` (whole component/styles) and
+`components/ui/control-geometry.ts`: pointer26, compact28; inset8/12, gap4/8,
+borderAccent1, own md radius6, body14/21. Native touch remains44 (ADR0036).
+`Density` selects one-line words or just the required glyph, chosen by the
+caller from available panel width. Literal label breaks are folded through the
+existing one-line helper. `Content::MenuOnly` uses branch16/caret12/gap4 and
+width42/48, rather than drawing an empty primary half. Hover/held/open fills
+remain surface2, disabled primary remains0.6, and busy remains nonactivating.
+The shared ActivityIndicator's numeric16 vector in a centered20 slot preserves
+the reference's small20 indicator transformed by0.8 without a second spinner.
+
+The one existing app caller is adapted to the typed content/density; its view
+policy is not changed by this control commit. An absent primary now opens the
+menu through the whole branch/caret trigger. The caret's phase/anchor are a
+named struct. The old menu renderer's placement tuple is left to its shared
+owner's current integration, which must preserve `menu_right`; no second
+renderer is introduced here. Shared producer434933b3/docs533b21ff were consumed
+as51aea1ab/2b9e079c. Only the pre-existing slider size record was tightened719
+→711; current base link records were retained. Neither previous producer checks
+nor style assertions approve this combined binary's interaction or pixels.
+Narrow compilation/tests and final C3 first-use captures remain required.

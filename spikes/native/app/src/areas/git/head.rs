@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use gpui::AnimationExt as _;
 use vessel_app_kit::split_button::{
-    MenuPhase, PrimaryState, SplitContent, SplitHandlers, split_button,
+    Content, Density, MenuPhase, PrimaryState, SplitContent, SplitHandlers, split_button,
 };
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::toolbar_label::{LabelLayout, State, trigger};
@@ -224,15 +224,24 @@ fn actions(
         Some(action) if control.labelled => lang.git_primary_label(action, status),
         Some(_) | None => "",
     };
-    let content = SplitContent {
-        label: label.into(),
-        icon: Some(chosen.map_or(vessel_app_kit::assets::Glyph::Branch, menu::glyph)),
-        state,
-        menu: if git.menu.is_open() {
-            MenuPhase::Open
-        } else {
-            MenuPhase::Closed
-        },
+    let phase = if git.menu.is_open() {
+        MenuPhase::Open
+    } else {
+        MenuPhase::Closed
+    };
+    let content = match chosen {
+        Some(action) => Content::Split(SplitContent {
+            label: label.into(),
+            icon: menu::glyph(action),
+            density: if control.labelled {
+                Density::Labelled
+            } else {
+                Density::IconOnly
+            },
+            state,
+            menu: phase,
+        }),
+        None => Content::MenuOnly(phase),
     };
     let handlers = SplitHandlers {
         primary: Rc::new(move |shell: &mut Shell, window, cx| match chosen {

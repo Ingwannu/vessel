@@ -263,7 +263,11 @@ Labels remain whole and explanations belong below their row.
 `kit/split_button.rs` supplies Paseo's joined primary action and caret:
 26-point pointer / 44-point touch geometry, shared busy spinner, disabled
 primary, and `menu_right` for the menu aligned to the caret's right edge.
-The caller owns its actions, labels and menu state.
+`Content::MenuOnly` draws the branch/caret shape without a primary action;
+`Density::{Labelled,IconOnly}` keeps labels on one line and lets the caller
+reserve width. Busy uses the shared ActivityIndicator (16 ink in20 layout).
+Touch's44 target deliberately exceeds the current reference's28 compact height.
+The caller owns its actions, labels, density and menu state.
 
 Picker rows retain `Leading::Glyph` at 16 points; `Leading::SmallGlyph`
 is the explicit 14-point slot used by Paseo’s branch switcher.
