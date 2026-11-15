@@ -90,6 +90,33 @@ impl Default for Calls {
 
 #[cfg(not(target_arch = "wasm32"))]
 impl crate::State {
+    /// Older workspace resources retain their existing dispatch. C1 project
+    /// operations must use their captured admission rather than raw alias IO.
+    pub(crate) fn workspace(&self, machine: String, ask: super::Ask) {
+        let events = self.events.clone();
+        if matches!(
+            &ask,
+            super::Ask::ProjectChange(_)
+                | super::Ask::Project(
+                    super::ProjectAsk::List(_)
+                        | super::ProjectAsk::Add(_)
+                        | super::ProjectAsk::Clone(_)
+                        | super::ProjectAsk::Init(_)
+                        | super::ProjectAsk::Remove(_)
+                )
+        ) {
+            super::Hub::refuse(machine, ask, Problem::Unsent, events);
+            return;
+        }
+        match self.client(&machine) {
+            Ok(client) => self.workspace.ask(client.clone(), machine, ask, events),
+            Err(error) => {
+                let problem = Problem::Gone(error.to_string());
+                super::Hub::refuse(machine, ask, problem, events);
+            }
+        }
+    }
+
     pub(crate) async fn projects(&self, request: Request) {
         let Request { context, operation } = request;
         if !operation.matches(&context) {

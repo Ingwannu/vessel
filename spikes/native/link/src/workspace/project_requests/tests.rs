@@ -159,3 +159,38 @@ async fn exhausted_project_capacity_refuses_without_sending_a_write() {
     })
     .await;
 }
+
+#[tokio::test]
+async fn a_legacy_alias_only_project_write_cannot_bypass_selected_admission() {
+    within(async {
+        let home = Home::new();
+        let (mut state, mut events) = state(&home);
+        let mut peer = peer::connect("project-peer").await;
+        let client = peer.client.take().unwrap();
+        let context = state
+            .admissions
+            .admit(MachineKey::from_book("fixture"), client.node().id)
+            .unwrap();
+        let _previous = state.clients.insert(
+            "fixture".into(),
+            Connected::new(client, Vec::new(), binding(), context.clone()),
+        );
+        let Operation::Change(change) = change(&context) else {
+            panic!("fixture change");
+        };
+        state.workspace("fixture".into(), super::super::Ask::ProjectChange(change));
+        let event = events.recv().await.unwrap();
+        assert!(matches!(
+            event,
+            crate::Event::Workspace {
+                answer: Answer::ProjectChanged {
+                    result: Err(ProjectFailure::Call(Problem::Unsent)),
+                    ..
+                },
+                ..
+            }
+        ));
+        assert!(peer.calls.lock().unwrap().is_empty());
+    })
+    .await;
+}

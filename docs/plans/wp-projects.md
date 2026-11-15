@@ -429,3 +429,10 @@ renderer also disables submission when the physical admission no longer matches.
 same admitted cache plus manual-work readiness. An empty pending, failed or
 truncated list never chooses Empty. These are source-only additions until their
 exact remote checks pass; checked-suggestion acknowledgement is still absent.
+
+The legacy alias-only Workspace dispatch explicitly refuses C1 project list and
+mutation variants, including ProjectChange. Only the new captured-admission path
+can send them; Commands/Approve and other owners' workspace resources retain
+their existing route. The small actor dispatch moved from link/lib.rs into the
+owned project request module, shrinking the crate root. A framed regression
+checks that the old project-write route sends no RPC.
