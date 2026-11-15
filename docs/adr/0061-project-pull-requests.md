@@ -273,3 +273,20 @@ all owned waiters/jobs. A lost job result has no reliable key to publish;
 continuing with its flight retained would strand admission indefinitely.
 The parent node remains running. Tests exercise this owner failure path and
 check that another service on the same node token still answers.
+
+The staged fixtures need a safety net too: a regression in the owner must
+fail a test rather than leave a whole workspace gate waiting forever.
+They use the existing testkit preparation-before-clock boundary, with named
+finite journal/root, admission/reply, HTTP barrier, completion and drain
+phases. The existing ten-second HTTP/failed-job budgets and five-second
+root completion budget remain unchanged. The expiry case adds its explicit
+thirty-second virtual advance to its outer budget; its I/O phases retain
+their normal bounds. A timed blocking-pool fixture owns its release sender
+inside the timed future, so dropping that future releases the channel
+before runtime shutdown waits for the blocking worker. A separate driven
+timeout fixture checks that drop/exit order. Fixture git uses an owned
+asynchronous child, with bounded output waiting, kill and reap on expiry,
+and kill-on-drop when the enclosing case is cancelled. An existing fake
+held on its input pipe exercises the output deadline and actual child reap,
+with an empty environment and without an agent request. No product timeout,
+hook, barrier, admission count or cache assertion changes for this safety.

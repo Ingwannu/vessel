@@ -9,6 +9,8 @@
 //! types. Must not: know sessions, principals or the store (the node's
 //! `forge` module does), keep a token anywhere but memory, or log one.
 
+#[cfg(test)]
+mod deadline;
 mod gh;
 mod github;
 mod http;

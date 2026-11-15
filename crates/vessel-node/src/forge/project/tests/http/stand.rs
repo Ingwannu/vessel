@@ -73,14 +73,19 @@ async fn graphql(State(script): State<Arc<Script>>) -> axum::response::Response 
         seen.send(()).unwrap();
     }
     if let Some(wait) = reply.release {
-        wait.await.unwrap();
+        step("held HTTP response release", wait).await.unwrap();
     }
     (reply.status, reply.body).into_response()
 }
 impl Stand {
     pub(super) async fn start(fixture: &Fixture) -> Self {
         let script = Arc::new(Script::default());
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let listener = step(
+            "bind loopback fixture",
+            tokio::net::TcpListener::bind("127.0.0.1:0"),
+        )
+        .await
+        .unwrap();
         let address = listener.local_addr().unwrap();
         let app = Router::new()
             .route("/graphql", post(graphql))

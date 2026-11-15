@@ -1,8 +1,9 @@
 # Project pull-request provider/service candidate
 
 Status: provider/service candidate `04d32734` passed the additional
-builder's whole gate. Source review is pending. The earlier local workspace
-run remains red; project listing is not callable.
+builder's whole gate. Review returned its new test liveness boundary;
+the test-only correction below is awaiting changed-source validation.
+The earlier local workspace run remains red; project listing is not callable.
 
 ## Implemented boundary
 
@@ -79,6 +80,21 @@ deadline, assertion, shared test or product behavior was changed between
 the two runs.
 
 ## Review and following work
+
+The completed source review found no additional product/provider, shared-root,
+cache or credential blocker, but returned unbounded new fixture waits.
+Passing execution alone does not close that quality return. The correction
+retains every existing assertion, the one-worker blocking pool, channel
+barriers and existing finite deadlines. It adds the existing testkit outer
+safety net and named phase limits to the new waits, accounts explicitly
+for the expiry test's virtual advance, and replaces synchronous fixture
+git output with an owned asynchronous child killed and reaped on timeout.
+A driven timeout probe checks that dropping the timed release sender lets
+the blocking worker exit before runtime shutdown; a held-input fake checks
+that the owned child is killed and reaped after its output deadline.
+The fixture also cancels
+its async owners when an assertion or safety boundary drops it. These are
+test-only changes; the original source and passing gate remain retained.
 
 Submit the candidate and both executions to source review as a staged
 provider/service slice. It remains on the track branch: product wiring,

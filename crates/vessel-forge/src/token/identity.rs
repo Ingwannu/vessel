@@ -80,182 +80,316 @@ mod tests {
 
     #[tokio::test]
     async fn configured_identity_is_host_bound_and_refusals_always_invalidate_it() {
-        let github: ForgeHost = "github.com".parse().unwrap();
-        let enterprise: ForgeHost = "forge.example.invalid".parse().unwrap();
-        let credentials = Credentials::new(
-            EnvTokens {
-                github: Token::new("fixture-configured"),
-                enterprise: Some((
-                    enterprise.clone(),
-                    Token::new("fixture-enterprise").unwrap(),
-                )),
-            },
-            None,
-        );
-        let initial = credentials.identity(&github).await.unwrap();
-        assert_eq!(credentials.identity(&github).await.as_ref(), Some(&initial));
-        assert_ne!(credentials.identity(&enterprise).await.unwrap(), initial);
-        assert!(
-            credentials
-                .identity(&"other.example.invalid".parse().unwrap())
-                .await
-                .is_none()
-        );
-        credentials.refused(&github);
-        let refused = credentials.identity(&github).await.unwrap();
-        assert_ne!(refused, initial);
-        // gh's retry cooldown must not let a known second refusal reuse a
-        // page admitted before that refusal. No extra gh retry is added.
-        credentials.refused(&github);
-        assert_ne!(credentials.identity(&github).await.unwrap(), refused);
+        vessel_testkit::within(
+            std::time::Duration::from_secs(10),
+            Box::pin(async {
+                let github: ForgeHost = "github.com".parse().unwrap();
+                let enterprise: ForgeHost = "forge.example.invalid".parse().unwrap();
+                let credentials = Credentials::new(
+                    EnvTokens {
+                        github: Token::new("fixture-configured"),
+                        enterprise: Some((
+                            enterprise.clone(),
+                            Token::new("fixture-enterprise").unwrap(),
+                        )),
+                    },
+                    None,
+                );
+                let initial =
+                    crate::deadline::step("credential association", credentials.identity(&github))
+                        .await
+                        .unwrap();
+                assert_eq!(
+                    crate::deadline::step("credential association", credentials.identity(&github))
+                        .await
+                        .as_ref(),
+                    Some(&initial)
+                );
+                assert_ne!(
+                    crate::deadline::step(
+                        "credential association",
+                        credentials.identity(&enterprise)
+                    )
+                    .await
+                    .unwrap(),
+                    initial
+                );
+                assert!(
+                    crate::deadline::step(
+                        "credential association",
+                        credentials.identity(&"other.example.invalid".parse().unwrap())
+                    )
+                    .await
+                    .is_none()
+                );
+                credentials.refused(&github);
+                let refused =
+                    crate::deadline::step("credential association", credentials.identity(&github))
+                        .await
+                        .unwrap();
+                assert_ne!(refused, initial);
+                // gh's retry cooldown must not let a known second refusal reuse a
+                // page admitted before that refusal. No extra gh retry is added.
+                credentials.refused(&github);
+                assert_ne!(
+                    crate::deadline::step("credential association", credentials.identity(&github))
+                        .await
+                        .unwrap(),
+                    refused
+                );
+            }),
+        )
+        .await
+        .expect("the forge fixture must finish");
     }
 
     #[cfg(unix)]
     #[tokio::test]
     async fn gh_identity_changes_when_the_existing_token_cache_actually_refreshes() {
-        let temp = tempfile::tempdir().unwrap();
-        let program = temp.path().join("gh");
-        vessel_testkit::write_executable(&program, "#!/bin/sh\ncat credential-fixture\n").unwrap();
-        let data = temp.path().join("credential-fixture");
-        std::fs::write(&data, "fixture-first").unwrap();
-        let credentials = Credentials::new(
-            EnvTokens::default(),
-            Some(crate::Gh::new(program, temp.path().to_path_buf())),
-        );
-        let host: ForgeHost = "github.com".parse().unwrap();
-        let first = credentials.identity(&host).await.unwrap();
-        credentials.cache().get_mut(&host).unwrap().until = tokio::time::Instant::now();
-        assert_eq!(
-            credentials.identity(&host).await.as_ref(),
-            Some(&first),
-            "an unchanged credential refresh keeps its identity"
-        );
-        std::fs::write(&data, "fixture-second").unwrap();
-        assert_eq!(
-            credentials.identity(&host).await.as_ref(),
-            Some(&first),
-            "the existing cache lifetime still applies"
-        );
-        credentials.cache().get_mut(&host).unwrap().until = tokio::time::Instant::now();
-        let second = credentials.identity(&host).await.unwrap();
-        assert_ne!(second, first);
-        let super::super::Found::Token(token, _) = credentials.token(&host).await else {
-            panic!("fake gh has a token")
-        };
-        assert!(token.same_as(&Token::new("fixture-second").unwrap()));
-        credentials.refused(&host);
-        assert_ne!(credentials.identity(&host).await.unwrap(), second);
+        vessel_testkit::within(
+            std::time::Duration::from_secs(10),
+            Box::pin(async {
+                let temp = tempfile::tempdir().unwrap();
+                let program = temp.path().join("gh");
+                vessel_testkit::write_executable(&program, "#!/bin/sh\ncat credential-fixture\n")
+                    .unwrap();
+                let data = temp.path().join("credential-fixture");
+                std::fs::write(&data, "fixture-first").unwrap();
+                let credentials = Credentials::new(
+                    EnvTokens::default(),
+                    Some(crate::Gh::new(program, temp.path().to_path_buf())),
+                );
+                let host: ForgeHost = "github.com".parse().unwrap();
+                let first =
+                    crate::deadline::step("credential association", credentials.identity(&host))
+                        .await
+                        .unwrap();
+                credentials.cache().get_mut(&host).unwrap().until = tokio::time::Instant::now();
+                assert_eq!(
+                    crate::deadline::step("credential association", credentials.identity(&host))
+                        .await
+                        .as_ref(),
+                    Some(&first),
+                    "an unchanged credential refresh keeps its identity"
+                );
+                std::fs::write(&data, "fixture-second").unwrap();
+                assert_eq!(
+                    crate::deadline::step("credential association", credentials.identity(&host))
+                        .await
+                        .as_ref(),
+                    Some(&first),
+                    "the existing cache lifetime still applies"
+                );
+                credentials.cache().get_mut(&host).unwrap().until = tokio::time::Instant::now();
+                let second =
+                    crate::deadline::step("credential association", credentials.identity(&host))
+                        .await
+                        .unwrap();
+                assert_ne!(second, first);
+                let super::super::Found::Token(token, _) =
+                    crate::deadline::step("credential selection", credentials.token(&host)).await
+                else {
+                    panic!("fake gh has a token")
+                };
+                assert!(token.same_as(&Token::new("fixture-second").unwrap()));
+                credentials.refused(&host);
+                assert_ne!(
+                    crate::deadline::step("credential association", credentials.identity(&host))
+                        .await
+                        .unwrap(),
+                    second
+                );
+            }),
+        )
+        .await
+        .expect("the forge fixture must finish");
     }
 
     #[cfg(unix)]
     #[tokio::test]
     async fn a_negative_gh_cache_stays_negative_until_its_existing_expiry() {
-        let temp = tempfile::tempdir().unwrap();
-        let credentials = Credentials::new(EnvTokens::default(), Some(gh_fixture(&temp)));
-        let host: ForgeHost = "github.com".parse().unwrap();
-        assert!(credentials.identity(&host).await.is_none());
-        assert!(matches!(
-            credentials.token(&host).await,
-            super::super::Found::None(vessel_proto::forge::GhState::SignedOut)
-        ));
-        std::fs::write(temp.path().join("credential-fixture"), "fixture-new-login").unwrap();
-        assert!(
-            credentials.identity(&host).await.is_none(),
-            "unobserved login edits do not bypass the existing negative cache"
-        );
-        credentials.cache().get_mut(&host).unwrap().until = tokio::time::Instant::now();
-        assert!(credentials.identity(&host).await.is_some());
+        vessel_testkit::within(
+            std::time::Duration::from_secs(10),
+            Box::pin(async {
+                let temp = tempfile::tempdir().unwrap();
+                let credentials = Credentials::new(EnvTokens::default(), Some(gh_fixture(&temp)));
+                let host: ForgeHost = "github.com".parse().unwrap();
+                assert!(
+                    crate::deadline::step("credential association", credentials.identity(&host))
+                        .await
+                        .is_none()
+                );
+                assert!(matches!(
+                    crate::deadline::step("credential selection", credentials.token(&host)).await,
+                    super::super::Found::None(vessel_proto::forge::GhState::SignedOut)
+                ));
+                std::fs::write(temp.path().join("credential-fixture"), "fixture-new-login")
+                    .unwrap();
+                assert!(
+                    crate::deadline::step("credential association", credentials.identity(&host))
+                        .await
+                        .is_none(),
+                    "unobserved login edits do not bypass the existing negative cache"
+                );
+                credentials.cache().get_mut(&host).unwrap().until = tokio::time::Instant::now();
+                assert!(
+                    crate::deadline::step("credential association", credentials.identity(&host))
+                        .await
+                        .is_some()
+                );
+            }),
+        )
+        .await
+        .expect("the forge fixture must finish");
     }
 
     #[cfg(unix)]
     #[tokio::test]
     async fn eviction_cannot_reuse_a_generation_retained_by_an_old_page_key() {
-        let temp = tempfile::tempdir().unwrap();
-        std::fs::write(temp.path().join("credential-fixture"), "fixture-same-value").unwrap();
-        let credentials = Credentials::new(EnvTokens::default(), Some(gh_fixture(&temp)));
-        let first: ForgeHost = "first.example.invalid".parse().unwrap();
-        let retained = credentials.identity(&first).await.unwrap();
-        for number in 0..super::super::MAX_CACHED {
-            let other: ForgeHost = format!("h{number}.example.invalid").parse().unwrap();
-            assert!(credentials.identity(&other).await.is_some());
-        }
-        assert!(!credentials.cache().contains_key(&first));
-        assert_ne!(credentials.identity(&first).await.unwrap(), retained);
-        assert_eq!(format!("{retained:?}"), "CredentialIdentity(..)");
+        vessel_testkit::within(
+            std::time::Duration::from_secs(10),
+            Box::pin(async {
+                let temp = tempfile::tempdir().unwrap();
+                std::fs::write(temp.path().join("credential-fixture"), "fixture-same-value")
+                    .unwrap();
+                let credentials = Credentials::new(EnvTokens::default(), Some(gh_fixture(&temp)));
+                let first: ForgeHost = "first.example.invalid".parse().unwrap();
+                let retained =
+                    crate::deadline::step("credential association", credentials.identity(&first))
+                        .await
+                        .unwrap();
+                for number in 0..super::super::MAX_CACHED {
+                    let other: ForgeHost = format!("h{number}.example.invalid").parse().unwrap();
+                    assert!(
+                        crate::deadline::step(
+                            "credential association",
+                            credentials.identity(&other)
+                        )
+                        .await
+                        .is_some()
+                    );
+                }
+                assert!(!credentials.cache().contains_key(&first));
+                assert_ne!(
+                    crate::deadline::step("credential association", credentials.identity(&first))
+                        .await
+                        .unwrap(),
+                    retained
+                );
+                assert_eq!(format!("{retained:?}"), "CredentialIdentity(..)");
+            }),
+        )
+        .await
+        .expect("the forge fixture must finish");
     }
 
     #[cfg(unix)]
     #[tokio::test]
     async fn selected_environment_and_gh_sources_have_distinct_cache_associations() {
-        let temp = tempfile::tempdir().unwrap();
-        std::fs::write(temp.path().join("credential-fixture"), "fixture-same-value").unwrap();
-        let mut credentials = Credentials::new(
-            EnvTokens {
-                github: Token::new("fixture-same-value"),
-                enterprise: None,
-            },
-            Some(gh_fixture(&temp)),
-        );
-        let host: ForgeHost = "github.com".parse().unwrap();
-        let configured = credentials.identity(&host).await.unwrap();
-        assert!(matches!(
-            credentials.token(&host).await,
-            super::super::Found::Token(_, vessel_proto::forge::TokenSource::Environment)
-        ));
-        // Exercise the existing fallback branch on one owned fixture.
-        // Product environment selection remains immutable after startup;
-        // this adds neither process-env mutation nor a reload API.
-        credentials.env.github = None;
-        let gh = credentials.identity(&host).await.unwrap();
-        assert_ne!(gh, configured);
-        assert!(matches!(
-            credentials.token(&host).await,
-            super::super::Found::Token(_, vessel_proto::forge::TokenSource::Gh)
-        ));
+        vessel_testkit::within(
+            std::time::Duration::from_secs(10),
+            Box::pin(async {
+                let temp = tempfile::tempdir().unwrap();
+                std::fs::write(temp.path().join("credential-fixture"), "fixture-same-value")
+                    .unwrap();
+                let mut credentials = Credentials::new(
+                    EnvTokens {
+                        github: Token::new("fixture-same-value"),
+                        enterprise: None,
+                    },
+                    Some(gh_fixture(&temp)),
+                );
+                let host: ForgeHost = "github.com".parse().unwrap();
+                let configured =
+                    crate::deadline::step("credential association", credentials.identity(&host))
+                        .await
+                        .unwrap();
+                assert!(matches!(
+                    crate::deadline::step("credential selection", credentials.token(&host)).await,
+                    super::super::Found::Token(_, vessel_proto::forge::TokenSource::Environment)
+                ));
+                // Exercise the existing fallback branch on one owned fixture.
+                // Product environment selection remains immutable after startup;
+                // this adds neither process-env mutation nor a reload API.
+                credentials.env.github = None;
+                let gh =
+                    crate::deadline::step("credential association", credentials.identity(&host))
+                        .await
+                        .unwrap();
+                assert_ne!(gh, configured);
+                assert!(matches!(
+                    crate::deadline::step("credential selection", credentials.token(&host)).await,
+                    super::super::Found::Token(_, vessel_proto::forge::TokenSource::Gh)
+                ));
+            }),
+        )
+        .await
+        .expect("the forge fixture must finish");
     }
     #[cfg(unix)]
     #[tokio::test]
     async fn cached_identity_and_refusal_cooldown_do_not_start_extra_gh_lookups() {
-        let temp = tempfile::tempdir().unwrap();
-        let program = temp.path().join("gh");
-        vessel_testkit::write_executable(
-            &program,
-            "#!/bin/sh\nprintf 'call\\n' >> calls\necho fixture-token\n",
+        vessel_testkit::within(
+            std::time::Duration::from_secs(10),
+            Box::pin(async {
+                let temp = tempfile::tempdir().unwrap();
+                let program = temp.path().join("gh");
+                vessel_testkit::write_executable(
+                    &program,
+                    "#!/bin/sh\nprintf 'call\\n' >> calls\necho fixture-token\n",
+                )
+                .unwrap();
+                let credentials = Credentials::new(
+                    EnvTokens::default(),
+                    Some(crate::Gh::new(program, temp.path().to_path_buf())),
+                );
+                let host: ForgeHost = "github.com".parse().unwrap();
+                assert!(credentials.cached_identity(&host).is_none());
+                assert!(!temp.path().join("calls").exists());
+                let first =
+                    crate::deadline::step("credential association", credentials.identity(&host))
+                        .await
+                        .unwrap();
+                assert_eq!(credentials.cached_identity(&host).as_ref(), Some(&first));
+                credentials.cache().get_mut(&host).unwrap().until = tokio::time::Instant::now();
+                assert!(credentials.cached_identity(&host).is_none());
+                assert_eq!(
+                    std::fs::read_to_string(temp.path().join("calls"))
+                        .unwrap()
+                        .lines()
+                        .count(),
+                    1
+                );
+                assert_eq!(
+                    crate::deadline::step("credential association", credentials.identity(&host))
+                        .await
+                        .as_ref(),
+                    Some(&first)
+                );
+                credentials.refused(&host);
+                assert!(credentials.cached_identity(&host).is_none());
+                let refused =
+                    crate::deadline::step("credential association", credentials.identity(&host))
+                        .await
+                        .unwrap();
+                assert_ne!(refused, first);
+                let calls = std::fs::read_to_string(temp.path().join("calls")).unwrap();
+                assert_eq!(calls.lines().count(), 3);
+                credentials.refused(&host);
+                let again =
+                    crate::deadline::step("credential association", credentials.identity(&host))
+                        .await
+                        .unwrap();
+                assert_ne!(again, refused);
+                assert_eq!(credentials.cached_identity(&host).as_ref(), Some(&again));
+                assert_eq!(
+                    std::fs::read_to_string(temp.path().join("calls")).unwrap(),
+                    calls,
+                    "the existing cooldown suppresses another gh lookup, not invalidation"
+                );
+            }),
         )
-        .unwrap();
-        let credentials = Credentials::new(
-            EnvTokens::default(),
-            Some(crate::Gh::new(program, temp.path().to_path_buf())),
-        );
-        let host: ForgeHost = "github.com".parse().unwrap();
-        assert!(credentials.cached_identity(&host).is_none());
-        assert!(!temp.path().join("calls").exists());
-        let first = credentials.identity(&host).await.unwrap();
-        assert_eq!(credentials.cached_identity(&host).as_ref(), Some(&first));
-        credentials.cache().get_mut(&host).unwrap().until = tokio::time::Instant::now();
-        assert!(credentials.cached_identity(&host).is_none());
-        assert_eq!(
-            std::fs::read_to_string(temp.path().join("calls"))
-                .unwrap()
-                .lines()
-                .count(),
-            1
-        );
-        assert_eq!(credentials.identity(&host).await.as_ref(), Some(&first));
-        credentials.refused(&host);
-        assert!(credentials.cached_identity(&host).is_none());
-        let refused = credentials.identity(&host).await.unwrap();
-        assert_ne!(refused, first);
-        let calls = std::fs::read_to_string(temp.path().join("calls")).unwrap();
-        assert_eq!(calls.lines().count(), 3);
-        credentials.refused(&host);
-        let again = credentials.identity(&host).await.unwrap();
-        assert_ne!(again, refused);
-        assert_eq!(credentials.cached_identity(&host).as_ref(), Some(&again));
-        assert_eq!(
-            std::fs::read_to_string(temp.path().join("calls")).unwrap(),
-            calls,
-            "the existing cooldown suppresses another gh lookup, not invalidation"
-        );
+        .await
+        .expect("the forge fixture must finish");
     }
 }

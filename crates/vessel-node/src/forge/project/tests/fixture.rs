@@ -1,10 +1,11 @@
 //! Isolated real git/registry with no session, real agent or global env edit.
+mod git;
 use super::super::{Hosts, Mode, Outcome, ProjectPulls};
+use super::deadline::step;
 use crate::workspace::{Opening, Workspaces};
 use std::{
     ffi::OsString,
     path::{Path, PathBuf},
-    process::Command,
     sync::Arc,
 };
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
@@ -41,24 +42,30 @@ impl Fixture {
         std::fs::create_dir(&home).unwrap();
         let data = DataDir::new(home.join(".vessel"));
         data.prepare().unwrap();
-        let store = Store::open(&data, StoreConfig::default())
-            .await
-            .unwrap()
-            .store;
+        let store = step(
+            "open fixture journal",
+            Store::open(&data, StoreConfig::default()),
+        )
+        .await
+        .unwrap()
+        .store;
         let tasks = TaskTracker::new();
         let stop = CancellationToken::new();
-        let workspaces = Workspaces::start(
-            Opening {
-                data: data.root().to_path_buf(),
-                workspace: data.prepare_workspace_dir().unwrap(),
-                home,
-                git: Some(which::which("git").unwrap()),
-                git_env: env.clone(),
-                removed: crate::TerminalsConfig::default().removed.into(),
-            },
-            store,
-            tasks.clone(),
-            stop.clone(),
+        let workspaces = step(
+            "start fixture workspace owner",
+            Workspaces::start(
+                Opening {
+                    data: data.root().to_path_buf(),
+                    workspace: data.prepare_workspace_dir().unwrap(),
+                    home,
+                    git: Some(which::which("git").unwrap()),
+                    git_env: env.clone(),
+                    removed: crate::TerminalsConfig::default().removed.into(),
+                },
+                store,
+                tasks.clone(),
+                stop.clone(),
+            ),
         )
         .await
         .unwrap();
@@ -84,25 +91,16 @@ impl Fixture {
             workspaces,
         }
     }
-    pub(super) fn git(&self, dir: &Path, args: &[&str]) {
-        let output = Command::new("git")
-            .current_dir(dir)
-            .args(args)
-            .envs(self.env.iter().map(|(k, v)| (k, v)))
-            .output()
-            .unwrap();
-        assert!(
-            output.status.success(),
-            "git failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
+    pub(super) async fn git(&self, dir: &Path, args: &[&str]) {
+        git::run(dir, args, &self.env).await;
     }
     pub(super) async fn project(&self, name: &str, initial: Initial) -> ProjectInfo {
         let root: PathBuf = self.temp.path().join(name);
         std::fs::create_dir(&root).unwrap();
-        self.git(&root, &["init", "-q"]);
+        self.git(&root, &["init", "-q"]).await;
         if matches!(initial, Initial::Committed) {
-            self.git(&root, &["commit", "--allow-empty", "-q", "-m", "initial"]);
+            self.git(&root, &["commit", "--allow-empty", "-q", "-m", "initial"])
+                .await;
         }
         self.git(
             &root,
@@ -112,15 +110,33 @@ impl Fixture {
                 "origin",
                 &format!("https://github.com/fixture/{name}.git"),
             ],
-        );
-        self.workspaces.add_project(root, None).await.unwrap()
+        )
+        .await;
+        step(
+            "register fixture project",
+            self.workspaces.add_project(root, None),
+        )
+        .await
+        .unwrap()
     }
     pub(super) async fn read(&self, project: ProjectId, mode: Mode) -> Outcome {
-        self.client.read(project, None, mode).await
+        step(
+            "project listing reply",
+            self.client.read(project, None, mode),
+        )
+        .await
     }
     pub(super) async fn finish(self) {
         self.stop.cancel();
         let _closed = self.tasks.close();
-        self.tasks.wait().await;
+        step("drain fixture actors", self.tasks.wait()).await;
+    }
+}
+
+impl Drop for Fixture {
+    fn drop(&mut self) {
+        // A failed phase also closes owned async work; normal finish still
+        // waits for it explicitly rather than treating cancellation as exit.
+        self.stop.cancel();
     }
 }

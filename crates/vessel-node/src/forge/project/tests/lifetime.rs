@@ -6,33 +6,46 @@ use vessel_proto::workspace::WorkspaceRoot;
 
 #[tokio::test]
 async fn cancelling_queued_callers_cannot_make_an_unbounded_command_queue() {
-    let (commands, mut received) = mpsc::channel(MAX_ACTIVE);
-    let client = ProjectPulls {
-        commands,
-        admission: Arc::new(Semaphore::new(MAX_ACTIVE)),
-        stop: CancellationToken::new(),
-    };
-    let project = ProjectId::random();
-    for _ in 0..MAX_ACTIVE {
-        let mut request = Box::pin(client.read(project, None, Mode::Cached));
-        assert!(poll!(&mut request).is_pending());
-        drop(request);
-    }
-    assert_eq!(received.len(), MAX_ACTIVE);
-    assert_eq!(client.admission.available_permits(), 0);
-    assert!(matches!(
-        &*client.read(project, None, Mode::Cached).await.unwrap_err(),
-        Error::Admission(tokio::sync::TryAcquireError::NoPermits)
-    ));
-    while let Ok(request) = received.try_recv() {
-        request.answer(Err(Arc::new(Error::Stopped)));
-    }
-    assert_eq!(client.admission.available_permits(), MAX_ACTIVE);
-    client.stop.cancel();
-    assert!(matches!(
-        &*client.read(project, None, Mode::Cached).await.unwrap_err(),
-        Error::Stopped
-    ));
+    case(LIMIT, async {
+        let (commands, mut received) = mpsc::channel(MAX_ACTIVE);
+        let client = ProjectPulls {
+            commands,
+            admission: Arc::new(Semaphore::new(MAX_ACTIVE)),
+            stop: CancellationToken::new(),
+        };
+        let project = ProjectId::random();
+        for _ in 0..MAX_ACTIVE {
+            let mut request = Box::pin(client.read(project, None, Mode::Cached));
+            assert!(poll!(&mut request).is_pending());
+            drop(request);
+        }
+        assert_eq!(received.len(), MAX_ACTIVE);
+        assert_eq!(client.admission.available_permits(), 0);
+        assert!(matches!(
+            &*step(
+                "project client reply",
+                client.read(project, None, Mode::Cached)
+            )
+            .await
+            .unwrap_err(),
+            Error::Admission(tokio::sync::TryAcquireError::NoPermits)
+        ));
+        while let Ok(request) = received.try_recv() {
+            request.answer(Err(Arc::new(Error::Stopped)));
+        }
+        assert_eq!(client.admission.available_permits(), MAX_ACTIVE);
+        client.stop.cancel();
+        assert!(matches!(
+            &*step(
+                "project client reply",
+                client.read(project, None, Mode::Cached)
+            )
+            .await
+            .unwrap_err(),
+            Error::Stopped
+        ));
+    })
+    .await;
 }
 
 struct RootGuard {
@@ -55,7 +68,7 @@ fn cancelling_a_queued_blocking_root_open_keeps_its_permit_until_actual_exit() {
         .max_blocking_threads(1)
         .build()
         .unwrap();
-    runtime.block_on(async {
+    runtime.block_on(case(LIMIT, async {
         let fixture = Fixture::new().await;
         let project = fixture.project("app", Initial::Committed).await;
         let permits = Arc::new(Semaphore::new(MAX_ACTIVE));
@@ -65,10 +78,11 @@ fn cancelling_a_queued_blocking_root_open_keeps_its_permit_until_actual_exit() {
         let blocker = tokio::task::spawn_blocking(move || {
             started.send(()).unwrap();
             // A channel barrier, not a timing sleep. Dropping the sender
-            // on an assertion failure also releases the blocking thread.
+            // on a phase/whole-case timeout also releases this thread:
+            // the release sender belongs to the timed future above.
             let _released = wait.recv();
         });
-        running.await.unwrap();
+        step("blocking worker started", running).await.unwrap();
         let (ended, finished) = oneshot::channel();
         let keep = RootGuard {
             permit: Some(permit),
@@ -84,30 +98,73 @@ fn cancelling_a_queued_blocking_root_open_keeps_its_permit_until_actual_exit() {
         drop(resolving);
         assert_eq!(permits.available_permits(), MAX_ACTIVE - 1);
         release.send(()).unwrap();
-        blocker.await.unwrap();
+        step("blocking worker exit", blocker).await.unwrap();
         tokio::time::timeout(Duration::from_secs(5), finished)
             .await
             .expect("queued root open must actually exit")
             .unwrap();
         assert_eq!(permits.available_permits(), MAX_ACTIVE);
         fixture.finish().await;
-    });
+    }));
+}
+
+#[test]
+fn a_timed_out_barrier_releases_its_blocking_worker_before_runtime_shutdown() {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .max_blocking_threads(1)
+        .build()
+        .unwrap();
+    // This probe deliberately advances the virtual clock by one phase.
+    runtime.block_on(case(LIMIT.saturating_add(deadline::PHASE), async {
+        let (release, wait) = std::sync::mpsc::channel::<()>();
+        let (started, running) = oneshot::channel();
+        let (exited, finished) = oneshot::channel();
+        let blocker = tokio::task::spawn_blocking(move || {
+            started.send(()).unwrap();
+            assert!(wait.recv().is_err(), "timeout must drop the release sender");
+            exited.send(()).unwrap();
+        });
+        let expired = vessel_testkit::within(
+            deadline::PHASE,
+            Box::pin(async move {
+                // Owned inside the timed body, including while the worker starts.
+                step("shutdown probe worker started", running)
+                    .await
+                    .unwrap();
+                tokio::time::pause();
+                tokio::time::advance(deadline::PHASE).await;
+                std::future::pending::<()>().await;
+                drop(release);
+            }),
+        )
+        .await;
+        tokio::time::resume();
+        assert!(expired.is_err());
+        step("shutdown probe worker released", finished)
+            .await
+            .unwrap();
+        step("shutdown probe worker reaped", blocker).await.unwrap();
+    }));
 }
 
 #[tokio::test]
 async fn stop_refuses_new_calls_and_drains_the_owned_actor() {
-    let fixture = Fixture::new().await;
-    let project = fixture.project("app", Initial::Committed).await;
-    assert!(fixture.read(project.id, Mode::Cached).await.is_ok());
-    fixture.stop.cancel();
-    assert!(matches!(
-        &*fixture.read(project.id, Mode::Cached).await.unwrap_err(),
-        Error::Stopped
-    ));
-    let _closed = fixture.tasks.close();
-    fixture.tasks.wait().await;
-    assert!(fixture.client.admission.is_closed());
-    assert_eq!(fixture.client.admission.available_permits(), MAX_ACTIVE);
+    case(LIMIT, async {
+        let fixture = Fixture::new().await;
+        let project = fixture.project("app", Initial::Committed).await;
+        assert!(fixture.read(project.id, Mode::Cached).await.is_ok());
+        fixture.stop.cancel();
+        assert!(matches!(
+            &*fixture.read(project.id, Mode::Cached).await.unwrap_err(),
+            Error::Stopped
+        ));
+        let _closed = fixture.tasks.close();
+        step("drain stopped service", fixture.tasks.wait()).await;
+        assert!(fixture.client.admission.is_closed());
+        assert_eq!(fixture.client.admission.available_permits(), MAX_ACTIVE);
+    })
+    .await;
 }
 
 #[tokio::test]
@@ -153,9 +210,9 @@ async fn a_failed_job_stops_only_its_service_and_releases_every_waiter() {
                     .tasks
                     .spawn(owner.run(service.clone(), Arc::clone(&permits))),
             );
-            service.cancelled().await;
+            step("failed service cancellation", service.cancelled()).await;
             assert!(matches!(
-                &*answer.await.unwrap().unwrap_err(),
+                &*step("owner reply", answer).await.unwrap().unwrap_err(),
                 Error::Stopped
             ));
             assert!(permits.is_closed());
