@@ -5,7 +5,7 @@
 //! - Constraint: preserve the existing classifier and `CodeStyles` resolver;
 //!   the kit accepts only semantic byte runs and no view/plugin identities.
 //! - Choice: one `StyledText` row renderer, validated UTF-8 ranges and local
-//!   FontStack/FontSize. No input entity, caret, history or global mutation.
+//!   `FontStack`/`FontSize`. No input entity, caret, history or global mutation.
 //! - Reference: card surface1/border1/r8/py8, rows px12, caption px12/pb8;
 //!   full-row source tints and diff marker text colours live in `theme::output`.
 use crate::{

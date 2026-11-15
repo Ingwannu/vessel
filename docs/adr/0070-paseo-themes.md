@@ -660,3 +660,10 @@ and calls `Shell::appearance_catalog_changed(window,cx)` outside paint after
 accepted catalog/eligibility/locale changes. W16 validates this coupled path
 when Hub lands; F5 creates neither a second registry nor a synthetic catalog.
 Generic kit colour production/projection remains independent of plugin types.
+
+
+F5's parsed font-family value is immutable and shared between preference
+snapshots. Its private Arc-backed data retains one validated spelling and
+one decoded face list; serialization still writes only that spelling. This
+keeps local command/event variants compact without changing their public
+payload shape or introducing a second settings store.

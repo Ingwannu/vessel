@@ -5,7 +5,7 @@
 //! - Reference: Paseo hooks/use-settings/storage.ts sanitizeFontFamily.
 //! - Choice: validate at the input/serde edge; retain its trimmed spelling.
 //!   A UTF-16 count matches JavaScript's length rather than a UTF-8 byte cap.
-//! - Cost: native font-family resolution is a later kit concern, not CSS here.
+//! - Cost: native font-family resolution is an app concern, not CSS here.
 
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;

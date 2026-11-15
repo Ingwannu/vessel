@@ -640,7 +640,7 @@ fn first_line(prompt: &str) -> String {
 
 /// Paseo's chat column (`agent-stream/view.tsx`, `composer/dock`): the
 /// conversation and composer share one centred column. Its following
-/// maximum is owned by view::appearance::ContentPixels, not copied here.
+/// maximum is owned by `view::appearance::ContentPixels`, not copied here.
 ///
 /// The column's distance from the window's edges.
 const COLUMN_INSET: f32 = 16.0;

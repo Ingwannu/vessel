@@ -1,5 +1,5 @@
 //! One live editor per field. Raw drafts, IME, selection and history belong
-//! only to TextField; view supplies pure edit/commit/restore decisions.
+//! only to `TextField`; view supplies pure edit/commit/restore decisions.
 use super::State;
 use crate::shell::Shell;
 use gpui::{App, Context, Window};
