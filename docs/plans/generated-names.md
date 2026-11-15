@@ -183,17 +183,21 @@ that already uses `..` is left alone.
   including Rust, TypeScript and web E2E/forge. The physical preparation
   correction now retains original admission and hard-drain tracking through
   actual style/secret completion; keyless preparation remains immediate.
-  Source review passed the package and correction. The new held-real-closure
-  regressions remain unexecuted. The first strict check caught an incorrect
+  Source review passed the package and correction. The first strict check caught an incorrect
   token import path before tests could compile; the qualified path is corrected
   without changing ownership. Corrected strict checks passed. The models suite
   then passed its existing cases but exposed a fixture reinstall when the new
   physical-work cases created their second session. That fixture now installs
   its structured fake once per lookup; the same assertions and deadlines remain.
-  Corrected runtime validation is still owed.
-- **Next:** finish current correction validation before handover. On consuming
-  the announced checked settings repairs, verify that their privacy and writer
-  lifetime rules retain the metadata file adapter and runtime apply behavior.
+  Corrected focused validation now passes: the models library group has
+  57 passed, no failed or ignored tests, including both held-real-read cases
+  across rename, park, end and node cancellation, plus the immediate keyless
+  path. Formatting, size, boundaries and workspace Clippy also pass. This is
+  focused correction evidence, not a new whole-package gate.
+- **Next:** on consuming the announced checked settings repairs, verify that
+  their privacy and writer lifetime rules retain the metadata file adapter and
+  runtime apply behavior. Obtain the remaining integration review and combined
+  gate before handover.
   No unchanged whole-gate replay is requested. Real providers, credentials, native execution
   and other platforms remain unverified. Branch, commit-message and pull-request
   generation are later slices and have not started.
