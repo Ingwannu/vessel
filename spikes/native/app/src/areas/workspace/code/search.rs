@@ -302,13 +302,7 @@ impl Shell {
             return;
         };
         let chosen: Vec<String> = source
-            .lines()
-            .skip(first)
-            .take(
-                last.checked_sub(first)
-                    .and_then(|length| length.checked_add(1))
-                    .unwrap_or(0),
-            )
+            .selected_lines(first..=last)
             .map(str::to_owned)
             .collect();
         let start = u32::try_from(first.saturating_add(1)).unwrap_or(u32::MAX);

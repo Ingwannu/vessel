@@ -499,3 +499,7 @@ an index for the existing viewer, not another editor or renderer. Markdown
 shares the original Arc and the readonly cache continues to count its logical
 source bytes. Offsets/preview/control allocations remain outside that payload
 cap; no total-heap or frame-time proof is claimed. New tests are source-only.
+
+Selected readonly rows use the same compact index directly; even a selection
+starting far into a document does not walk preceding rows, and end/reversed
+ranges clamp to existing rows. Source fixtures pin overshooting/reversed input.

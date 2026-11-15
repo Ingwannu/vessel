@@ -61,6 +61,15 @@ impl SourceText {
                 .map_or(part, |line| line.strip_suffix('\r').unwrap_or(line)),
         )
     }
+    /// Borrow only a bounded selected row range, without walking preceding rows.
+    pub fn selected_lines(
+        &self,
+        lines: std::ops::RangeInclusive<usize>,
+    ) -> impl Iterator<Item = &str> {
+        let start = (*lines.start()).min(self.starts.len());
+        let end = lines.end().saturating_add(1).min(self.starts.len());
+        (start..end).filter_map(|index| self.line(index))
+    }
     /// Iterate borrowed lines for selection intake and existing lexer consumers.
     pub fn lines(&self) -> impl Iterator<Item = &str> {
         (0..self.starts.len()).filter_map(|index| self.line(index))
@@ -94,5 +103,11 @@ mod tests {
         assert!(Arc::ptr_eq(&original, &text.shared()));
         assert_eq!(text.starts, [0, 6]);
         assert_eq!(text.line(1), Some("second"));
+        assert_eq!(
+            text.selected_lines(1..=usize::MAX).collect::<Vec<_>>(),
+            ["second"]
+        );
+        let reversed = text.line_count()..=0;
+        assert_eq!(text.selected_lines(reversed).next(), None);
     }
 }
