@@ -1,5 +1,5 @@
 //! Workspace trailing data stays in place under hover actions, as the source
-//! resolveTrailingActionVisibility and TrailingActionScrim prescribe.
+//! `resolveTrailingActionVisibility` and `TrailingActionScrim` prescribe.
 use super::paint::Paints;
 use super::{Density, Hint};
 use gpui::prelude::*;
@@ -135,7 +135,7 @@ pub(super) fn render(
             slot = slot.child(scrim(group.clone(), paints));
         }
         slot=slot.child(div().id(format!("{group}-trailing-action")).absolute().top_0().right_0().flex()
-            .when(layout.action==Action::Hover,|action|action.hidden().group_hover(group,|style|style.flex()))
+            .when(layout.action==Action::Hover,|action|action.hidden().group_hover(group,Styled::flex))
             // Shared buttons own dispatch. Even a disabled nested action must
             // not turn its press into the parent workspace's navigation.
             .on_click(|_,_,cx|cx.stop_propagation()).children(trailing.action));

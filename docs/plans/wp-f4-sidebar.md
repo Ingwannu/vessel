@@ -300,3 +300,15 @@ not claimed by desktop pointer probes. Source drag scale1.02 remains unresolved
 in this first control checkpoint because GPUI exposes transforms for SVG but
 not a general Div transform; border/surface/shared shadow are present. This
 is not a final drag-visual or full F4 pass.
+
+The coordinator accepted natural-size GPUI drag preview as a deliberate
+native difference from `sidebar-workspace-row.tsx:499–506`: no1.02 Div scale,
+with source fill/border/shadow and the existing GPUI preview lifetime. No
+custom canvas, second layout or global drag behavior is introduced.
+
+The first kit narrow check383e7aba reached compilation and returned strict
+lints in new control documentation, Debug and test callbacks. Their corrections
+are kept as subsequent commits; the failed run is not relabeled green. The
+returned snapshot predates the callout/workspace-row/order additions, whose
+own compilation and behavior remain unverified until the next changed-head
+checks. The gate package remains unfinished; no final review is submitted.

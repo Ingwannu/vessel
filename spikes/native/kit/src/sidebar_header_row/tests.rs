@@ -21,7 +21,7 @@ impl Render for Probe {
             SidebarHeaderRow::new("source-nav", "Search", self.variant)
                 .leading(Glyph::Search)
                 .element(self.density, &Tokens::of(Scheme::Dark), move |_, _, _| {
-                    clicks.set(clicks.get() + 1)
+                    clicks.set(clicks.get().saturating_add(1));
                 })
                 .on_children_prepainted(move |bounds, _, _| *seen.borrow_mut() = bounds),
         )
@@ -115,7 +115,7 @@ impl Render for SlotsProbe {
                 slot(&self.trailing)
                     .id("slot-child")
                     .on_click(move |_, _, cx| {
-                        child_presses.set(child_presses.get() + 1);
+                        child_presses.set(child_presses.get().saturating_add(1));
                         cx.stop_propagation();
                     })
                     .into_any_element(),
@@ -124,7 +124,7 @@ impl Render for SlotsProbe {
         div().w(px(320.0)).child(row.element(
             Density::Desktop,
             &Tokens::of(Scheme::Dark),
-            move |_, _, _| row_presses.set(row_presses.get() + 1),
+            move |_, _, _| row_presses.set(row_presses.get().saturating_add(1)),
         ))
     }
 }

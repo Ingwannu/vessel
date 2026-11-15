@@ -19,7 +19,7 @@ struct Probe {
 }
 fn handler(presses: &Rc<Cell<usize>>) -> OnPress<Probe> {
     let presses = Rc::clone(presses);
-    Rc::new(move |_, _, _| presses.set(presses.get() + 1))
+    Rc::new(move |_, _, _| presses.set(presses.get().saturating_add(1)))
 }
 impl Render for Probe {
     fn render(&mut self, _: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {

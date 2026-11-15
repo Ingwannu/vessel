@@ -227,7 +227,7 @@ pub enum Glyph {
     Blocks,
     /// Add a registered project from the fixed footer.
     FolderPlus,
-    /// Open sidebar help (Paseo's CircleHelp alias).
+    /// Open sidebar help (Paseo's `CircleHelp` alias).
     CircleHelp,
 }
 

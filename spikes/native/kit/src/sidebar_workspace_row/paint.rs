@@ -4,9 +4,9 @@ use crate::{Scheme, Tokens};
 use gpui::Hsla;
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(super) struct Paints {
-    pub rest: Hsla,
-    pub hover: Hsla,
-    pub pressed: Hsla,
+    pub(super) rest: Hsla,
+    pub(super) hover: Hsla,
+    pub(super) pressed: Hsla,
 }
 impl Paints {
     pub(super) fn new(selection: Selection, drag: DragState, tokens: &Tokens) -> Self {

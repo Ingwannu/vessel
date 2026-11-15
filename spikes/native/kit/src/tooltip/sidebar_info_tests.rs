@@ -106,7 +106,7 @@ fn sidebar_info_desktop_hover_and_legacy_touch_keep_distinct_policies(cx: &mut T
             assert_eq!(
                 probe.tips.shown.borrow().is_some(),
                 matches!(mode, Mode::Desktop)
-            )
+            );
         });
         cx.simulate_click(at, Modifiers::none());
         cx.run_until_parked();

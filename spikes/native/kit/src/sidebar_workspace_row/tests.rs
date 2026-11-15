@@ -46,7 +46,7 @@ impl Render for Probe {
             .flex_col()
             .on_children_prepainted(move |bounds, _, _| *outer.borrow_mut() = bounds)
             .child(row.element(self.density, &tokens, move |_, _, _| {
-                presses.set(presses.get() + 1)
+                presses.set(presses.get().saturating_add(1));
             }))
             .child(div().h(px(1.0)))
     }

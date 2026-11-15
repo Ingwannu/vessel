@@ -167,7 +167,7 @@ impl SidebarHeaderRow {
             row = row.child(
                 trailing_frame(shortcut)
                     .hidden()
-                    .group_hover(self.id, |style| style.flex()),
+                    .group_hover(self.id, Styled::flex),
             );
         }
         let mut outer = div()
@@ -182,7 +182,7 @@ impl SidebarHeaderRow {
                     .h(px(geometry.header))
                     .px(px(spacing::S2))
                     .border_b_1()
-                    .border_color(tokens.neutral.border)
+                    .border_color(tokens.neutral.border);
             }
             Variant::Compact => outer = outer.px(px(spacing::S2)),
             Variant::Inline => {}
