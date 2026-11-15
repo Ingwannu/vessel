@@ -14,7 +14,7 @@ use super::{
 use gpui::{AppContext as _, Context, Window};
 use std::{cell::Cell, rc::Rc};
 /// The existing composer's maximum visible complete lines.
-const COMPOSER_LINES: usize = 12;
+pub(super) const COMPOSER_LINES: usize = 12;
 /// The existing form's maximum visible complete lines.
 const FORM_LINES: usize = 12;
 /// The existing form's minimum complete lines before its outer minimum.
