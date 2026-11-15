@@ -18,6 +18,7 @@ mod fingerprint;
 mod inspect;
 #[cfg(target_os = "linux")]
 mod policy;
+mod preview;
 #[cfg(target_os = "linux")]
 mod restore;
 #[cfg(target_os = "linux")]
@@ -44,6 +45,7 @@ pub enum CheckpointFsError {
 }
 
 pub use api::{Archive, IgnoreDefaults, Restore, Tree, image_fingerprint};
+pub use preview::private_metadata;
 pub use restore::{RecoveryState, Undo as Rollback};
 pub use storage::{CaptureStorage, Cleanup, StageDirectory, Storage};
 

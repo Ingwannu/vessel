@@ -930,3 +930,17 @@ was already corrected in4184aa0d6; current source retains it. The old AtFlags
 warning was also corrected before the replacement. No behavior tests executed.
 The replacement runs the current runtime/GC/physical-binding fixtures rather
 than presenting the older compile attempt as their verification.
+
+### Preview selected/current union (source; unrun)
+
+The admitted Tree preview read extends current coverage with explicit absent
+observations for selected files that disappeared. An existing selected name
+outside today's Git enumeration refuses UnsupportedScope; historical coverage
+cannot authorize reading/deleting a now-ignored file. Current image and evidence
+therefore cover the same union used by effective desired files. Final verification
+must use the whole frozen desired image as its union, including approved deleted
+paths, so a missing file is compared as Absent rather than omitted. The actual
+filesystem fixture covers deleted untracked files, private creation metadata,
+and refusal without replacing currently ignored data. The node account defaults
+come from actual effective UID/GID and private0600, not project or checkpoint
+ownership. No runtime controller claim follows from this worker mechanism.

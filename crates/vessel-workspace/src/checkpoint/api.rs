@@ -14,7 +14,7 @@ use vessel_proto::{
 
 /// Opened project root checked against the actual physical admission key.
 #[derive(Debug)]
-pub struct Tree(Root);
+pub struct Tree(pub(super) Root);
 /// Service-owned immutable raw blobs in an existing private capture directory.
 #[derive(Debug)]
 pub struct Archive(pub(super) archive::Archive);
