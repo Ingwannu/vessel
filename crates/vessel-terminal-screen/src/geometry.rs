@@ -4,6 +4,8 @@ use std::num::NonZeroU16;
 
 /// Combined admission budget for both screens and retained primary history.
 pub const MAX_SCREEN_CELLS: usize = 4_000_000;
+/// xterm's smallest supported width; wide-cell operations require a complete pair.
+pub const MIN_COLUMNS: u16 = 2;
 
 /// Nonempty geometry that can reserve both primary and alternate screens.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -17,6 +19,9 @@ impl Size {
     /// # Errors
     /// Returns [`ScreenError::Geometry`] for zero or oversized dimensions.
     pub fn new(cols: u16, rows: u16) -> Result<Self, ScreenError> {
+        if cols < MIN_COLUMNS {
+            return Err(ScreenError::Geometry);
+        }
         let value = Self {
             rows: NonZeroU16::new(rows).ok_or(ScreenError::Geometry)?,
             cols: NonZeroU16::new(cols).ok_or(ScreenError::Geometry)?,

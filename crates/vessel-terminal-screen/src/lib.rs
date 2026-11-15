@@ -10,7 +10,7 @@ mod range;
 pub use cell::{
     Attributes, BufferKind, Cell, Color, Column, Cursor, Row, Style, Visibility, Width,
 };
-pub use geometry::{MAX_SCREEN_CELLS, ScrollbackLines, Size};
+pub use geometry::{MAX_SCREEN_CELLS, MIN_COLUMNS, ScrollbackLines, Size};
 pub use model::{BytesTaken, FEED_BUDGET, Feed, Screen, Snapshot};
 pub use queries::{MAX_REPLY_BYTES, Replies, ReplyDuty};
 pub use range::{
@@ -20,8 +20,8 @@ pub use range::{
 /// A screen operation refuses before replacing a valid authority or allocating a reply.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum ScreenError {
-    /// Zero geometry or more cells than the persistent screen budget.
-    #[error("terminal geometry exceeds the screen cell budget")]
+    /// Unsupported geometry or more cells than the persistent screen budget.
+    #[error("terminal geometry is outside the screen limits")]
     Geometry,
     /// A scrollback preference exceeds the supported validated range.
     #[error("terminal scrollback exceeds its line limit")]

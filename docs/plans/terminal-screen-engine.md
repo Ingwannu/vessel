@@ -120,6 +120,12 @@ InputHandler links every actual soft wrap, including a wide glyph leaving
 one padding cell. The narrow engine correction records that link; no row text,
 expected history, cursor, fixture or hash is changed.
 
+Geometry admission now follows the reference's minimum complete wide-cell
+width. Its actual factory clamps a narrower request; this facade explicitly
+refuses that input before allocation, rather than accepting a width on which
+upstream wide-cell arithmetic is invalid. The existing geometry regression
+checks the named floor. This preserves honest PTY/screen size agreement.
+
 The strict changed-package check caught a collapsible nested slice match in
 query decoding. A single nested slice pattern keeps the exact accepted shape;
 no parameter acceptance or expected reply changes. The original lint failure

@@ -58,6 +58,11 @@ rerun must validate that production configuration too.
 ## Bounds and consumer boundary
 
 Geometry reserves both screens before admitting history under one cell budget.
+The minimum width follows xterm's complete wide-cell pair. The reference
+silently clamps a narrower request; this validated boundary refuses it before
+the engine allocates or mutates anything, so PTY and screen geometry cannot
+silently diverge. Native fitting must apply the same floor before requesting
+a resize. This is a stated validation difference, not support for narrower rows.
 The requested history setting retains Paseo's 0..1,000,000/default10,000 range;
 cell admission can lower the effective count for unusually large geometry.
 One capture has a named byte limit, includes empty rows and separators and

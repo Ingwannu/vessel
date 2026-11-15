@@ -270,6 +270,10 @@ fn capture_budget_refuses_without_changing_retained_screen_or_shorter_reads() {
 #[test]
 fn geometry_reserves_both_screens_and_split_utf8_remains_original() {
     assert_eq!(Size::new(0, 2), Err(ScreenError::Geometry));
+    assert_eq!(
+        Size::new(MIN_COLUMNS.checked_sub(1).unwrap(), 2),
+        Err(ScreenError::Geometry)
+    );
     assert_eq!(Size::new(2, 0), Err(ScreenError::Geometry));
     assert_eq!(Size::new(2000, 1001), Err(ScreenError::Geometry));
     assert!(Size::new(2000, 1000).is_ok());
