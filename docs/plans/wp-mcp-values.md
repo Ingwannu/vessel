@@ -76,3 +76,9 @@ accepted GetNode request is a writer barrier: the peer must receive it first at
 request id zero. This verifies absent frames and absent id allocation, rather
 than inferring either from an early empty-channel observation. It touches no
 real node, home, service or credentials. Execution remains owed.
+
+V3 row227 returned one A7 issue in the SDK fixture: its ten-second overall
+budget was a call-site literal. `SDK_FIXTURE_DEADLINE` now owns that unchanged
+value beside the fixture. Handshake, five refusal assertions and the accepted
+request writer barrier are unchanged. Exact corrected strict/unit execution and
+generated-wire freshness remain owed; the source review is not runtime proof.

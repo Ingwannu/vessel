@@ -7,9 +7,12 @@ use vessel_proto::skills::{
 use vessel_proto::{ClientFrame, Method, Outcome, Reply, RequestId, ServerFrame, Welcome};
 use vessel_rpc::CallError;
 
+// A hung framed peer must fail this fixture rather than retain a test worker.
+const SDK_FIXTURE_DEADLINE: std::time::Duration = std::time::Duration::from_secs(10);
+
 #[tokio::test]
 async fn staged_skills_wrappers_leave_the_first_real_request_at_id_zero() {
-    tokio::time::timeout(std::time::Duration::from_secs(10), async {
+    tokio::time::timeout(SDK_FIXTURE_DEADLINE, async {
         let (client_end, mut peer) = vessel_rpc::memory::pair(NonZeroUsize::new(4).unwrap());
         let handshake = async move {
             let hello = peer.next().await.unwrap().unwrap();
