@@ -1231,8 +1231,13 @@ The same accepted snapshot feeds a bounded OS delivery queue. First hydration
 and reconnect are silent; per-node cursor watermarks prevent replay when old
 pages are loaded or an entry is marked unread. Notification settings use the
 existing atomic app preference writer. OS text is generic under ADR 0041;
-opaque random tags map to source identities only in a bounded process-local
-map. A stale tag opens the inbox without guessing a source. The Linux GPUI
+opaque random tags map to original window, weak Shell, exact connection source
+and destination in one bounded App Global. Its response callback is installed
+once. The original handle must still contain that Shell through the kit root
+boundary; a retired connection opens only that original Inbox. Unknown, consumed,
+evicted or dead recipients explicitly return GenericUnavailable until the
+desktop owner provides its reviewed generic-host fallback. No second window
+registry or successor source action is introduced. The Linux GPUI
 patch suppresses daemon sound, and the app independently requests the system
 bell when selected. Actual display/audibility remains OS-controlled.
 
@@ -1281,7 +1286,8 @@ source adoption review and its own narrow checks; consumer/line gates remain
 separate. This is not a completed workspace or OS badge integration.
 Inbox's manual session-open control stays unavailable until the session owner
 provides a reviewed original-connection-bound opener; notification activation
-retains exact Inbox selection or its generic fallback.
+retains exact Inbox selection; closed/unknown-recipient fallback still awaits
+the reviewed desktop host API.
 Shared typed button content/loading/sizing is documented in
 `docs/plans/backend-m12-g2-button-content.md`. Label/Icon/IconAndLabel share one
 renderer; ButtonIcon::muted keeps the explicit source icon tone. button_control

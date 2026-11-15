@@ -1177,6 +1177,15 @@ Inbox live-request reads recover one exact pending form from the session
 actor independently of event retention, capped at 15 MiB per reply. Default
 summary reads retain the bounded durable projection for background refresh.
 
+The staged native notification consumer uses one App Global for bounded opaque
+tag routing. Each record holds only the original GPUI window handle, weak Shell,
+canonical connection source and destination. The kit root boundary verifies that
+the original content still occupies that window; the consumer then fences its
+source before selection. This is per-notice routing, not a second host registry.
+A closed/dead/unknown-recipient generic fallback remains explicitly unavailable
+until the desktop owner's reviewed host dispatcher is consumed. Its source and
+checks do not establish OS delivery or completed multiwindow navigation.
+
 The web client's `data/usage` owns the typed accounting call, a single
 in-flight/latest-selection reader, and pure locale-aware facts. A single
 names-only catalogue comes from the last all-agent report on the selected
