@@ -11,14 +11,14 @@ use super::*;
 pub(super) const WRITE_TEST_BUDGET: Duration = Duration::from_secs(10);
 
 #[derive(Debug, Default)]
-pub(super) struct GateSlot(StdMutex<Option<Gate>>);
+pub(crate) struct GateSlot(StdMutex<Option<Gate>>);
 
 impl GateSlot {
-    pub(super) fn take(&self) -> Option<Gate> {
+    pub(crate) fn take(&self) -> Option<Gate> {
         self.0.lock().unwrap().take()
     }
 
-    pub(super) fn install(&self) -> (oneshot::Receiver<()>, oneshot::Sender<()>) {
+    pub(crate) fn install(&self) -> (oneshot::Receiver<()>, oneshot::Sender<()>) {
         let (entered, observing) = oneshot::channel();
         let (release, released) = oneshot::channel();
         *self.0.lock().unwrap() = Some(Gate { entered, released });
@@ -27,13 +27,13 @@ impl GateSlot {
 }
 
 #[derive(Debug)]
-pub(super) struct Gate {
+pub(crate) struct Gate {
     entered: oneshot::Sender<()>,
     released: oneshot::Receiver<()>,
 }
 
 impl Gate {
-    pub(super) async fn wait(self) {
+    pub(crate) async fn wait(self) {
         self.entered.send(()).unwrap();
         self.released.await.unwrap();
     }

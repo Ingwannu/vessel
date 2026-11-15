@@ -127,6 +127,10 @@ impl NodeService {
         principal: &Principal,
         spec: &mut SessionSpec,
     ) -> Result<(Vec<String>, Option<Starting>), WireError> {
+        #[cfg(test)]
+        if let Some(gate) = self.place_gate.take() {
+            gate.wait().await;
+        }
         let Some(place) = spec.place.as_deref() else {
             if principal.agent().is_some()
                 && let Some(cwd) = &spec.cwd

@@ -60,7 +60,7 @@ mod settlement_tests;
 mod shutdown_tests;
 mod writer;
 #[cfg(test)]
-mod writer_tests;
+pub(crate) mod writer_tests;
 use vessel_proto::HarnessKind;
 use vessel_proto::parking::ParkAfter;
 use vessel_proto::settings::{

@@ -221,6 +221,7 @@ pub(super) fn runtime(
     config: &Config,
     loader: AttachmentLoader,
     private_dir: PathBuf,
+    admission: CancellationToken,
 ) -> Arc<SessionRuntime> {
     Arc::new(
         SessionRuntime::new(
@@ -235,7 +236,8 @@ pub(super) fn runtime(
             },
             CancellationToken::new(),
         )
-        .with_attachments(loader),
+        .with_attachments(loader)
+        .with_admission(admission),
     )
 }
 

@@ -6,6 +6,14 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- Generic launch admission now observes the same early node-stop and final
+  runtime-shutdown sources. Fresh checks precede actual structured and terminal
+  spawn (and terminal MCP write); actors remain alive through settings drain.
+  Held lookup/fake invocation tests and positive controls are authored, not run.
+  The first producer strict check stopped on Store doc/function-budget errors;
+  both are corrected without loosening a lint. A changed-source check is next.
+
+
 - Real Policy core is joined without engine admission/watch methods. Settings
   current reads the same primitive under the saved guard; candidate preparation
   remains saved-document based. Producer file/SQL failure, same-value debt,

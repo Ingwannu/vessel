@@ -1840,3 +1840,12 @@ without wiring Recovery.start, restart Journal/session runtime or a provider.
 It seals the primitive before draining accepted file/publication/SQL work and
 closes runtime and Store afterward. Engine-only admission/watch extensions
 are a later qualified consumer of the same state, not a second policy owner.
+
+
+`vessel-session::LaunchAdmission` observes the runtime's existing shutdown and,
+when configured by Node, the same early node-stop token. It has no close method
+or permission meaning. Blocking and async launch paths share its check before
+process effects, so delaying actor shutdown until settings settlement does not
+admit a start from a lookup already held across stop. The original post-spawn
+cleanup remains for racing admitted starts. Other preparers consume the same
+read-only handle and retain their independent caller-policy/deadline ownership.

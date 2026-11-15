@@ -92,6 +92,8 @@ mod dispatch_tests;
 /// The node's protocol implementation.
 #[derive(Debug)]
 pub(crate) struct NodeService {
+    #[cfg(test)]
+    pub(crate) place_gate: crate::settings::writer_tests::GateSlot,
     pub(crate) lsp: vessel_lsp::Manager,
     pub(crate) lsp_roots: Vec<crate::LspRoot>,
     pub(crate) lifecycle: Lifecycle,
@@ -235,6 +237,8 @@ impl NodeService {
             store.clone(),
         );
         Self {
+            #[cfg(test)]
+            place_gate: Default::default(),
             lsp,
             lsp_roots,
             lifecycle,

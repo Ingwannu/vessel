@@ -122,3 +122,98 @@ async fn now_and_drain_close_settings_before_the_idle_waiter_polls() {
     .await
     .unwrap();
 }
+
+#[cfg(unix)]
+#[tokio::test]
+async fn a_create_past_lifecycle_precheck_cannot_launch_while_settings_drains() {
+    tokio::time::timeout(WRITE_TEST_BUDGET, async {
+        let root = tempfile::tempdir().unwrap();
+        let data = DataDir::new(root.path().join("data"));
+        let home = root.path().join("home");
+        let bin = root.path().join("bin");
+        std::fs::create_dir(&home).unwrap();
+        std::fs::create_dir(&bin).unwrap();
+        let fake = vessel_testkit::Fake::Tool.path().unwrap();
+        for role in [
+            vessel_harness::fakes::Role::Structured,
+            vessel_harness::fakes::Role::Terminal,
+        ] {
+            vessel_harness::fakes::install(
+                &bin,
+                vessel_proto::HarnessKind::ClaudeCode,
+                role,
+                &fake,
+            )
+            .unwrap();
+        }
+        let mut config =
+            crate::Config::new(data.clone(), vessel_harness::HarnessEnv::new(home.clone()));
+        config.harness_lookup = vessel_harness::Lookup::new([bin]);
+        config.bind = Some("127.0.0.1:0".parse().unwrap());
+        let node = crate::Node::start(config).await.unwrap();
+        let url = format!("ws://{}/rpc", node.address().unwrap())
+            .parse()
+            .unwrap();
+        let bearer = data
+            .load_or_create_token()
+            .unwrap()
+            .expose()
+            .parse()
+            .unwrap();
+        let client = vessel_client::NodeClient::connect(
+            &url,
+            &bearer,
+            vessel_proto::ClientInfo {
+                name: "admission-fixture".to_owned(),
+                version: "0".to_owned(),
+            },
+        )
+        .await
+        .unwrap();
+        let service = Arc::clone(&node.secure.service);
+        let settings = Arc::clone(&service.0.settings);
+        let (write_entered, write_release) = settings.pause_write();
+        let first = Arc::clone(&settings);
+        let writer = tokio::spawn(async move {
+            first
+                .change(super::writer_tests::patch(ParkAfter::Never))
+                .await
+        });
+        write_entered.await.unwrap();
+        let (place_entered, place_release) = service.0.place_gate.install();
+        let create = tokio::spawn(async move {
+            client
+                .call(vessel_proto::CreateSession {
+                    spec: vessel_proto::SessionSpec::new(
+                        vessel_proto::HarnessKind::ClaudeCode,
+                        vessel_proto::SessionMode::Structured {
+                            model: None,
+                            resume: None,
+                            options: Vec::new(),
+                        },
+                    )
+                    .with_cwd(home.clone()),
+                })
+                .await
+        });
+        place_entered.await.unwrap();
+        service.0.lifecycle.stop(StopWhen::Now);
+        let stopping = tokio::spawn(node.stop());
+        assert!(settings.state.saved.try_lock().is_err());
+        place_release.send(()).unwrap();
+        assert!(
+            create.await.unwrap().is_err(),
+            "the request passed its lifecycle check but cannot start after stop"
+        );
+        assert!(settings.state.runtime.list().is_empty());
+        write_release.send(()).unwrap();
+        writer.await.unwrap().unwrap();
+        stopping.await.unwrap().unwrap();
+        assert!(
+            !root.path().join("home/fake-tool.log").exists(),
+            "the actual fake was never launched"
+        );
+    })
+    .await
+    .unwrap();
+}

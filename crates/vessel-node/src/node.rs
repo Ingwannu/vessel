@@ -297,7 +297,7 @@ async fn core(
     // Sessions ask the node for their prompts' attachments (protocol 10).
     let (loader, loads) = AttachmentLoader::channel(ATTACHMENT_LOADS);
     let stop = CancellationToken::new();
-    let runtime = setup::runtime(config, loader, setup.private_dir.clone());
+    let runtime = setup::runtime(config, loader, setup.private_dir.clone(), stop.clone());
     // A value saved with `node.set_settings` wins over `--park-after`
     // (protocol 12, `settings`).
     let policy = Arc::new(crate::recovery::policy::Policy::new(

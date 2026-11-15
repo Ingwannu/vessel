@@ -285,3 +285,36 @@ The raw legacy wire matrix and full public diagnostic-chain fixtures are
 ported without Recovery.start; their whole-case and RPC-step budgets retain
 their prior values. The RPC-step budget is independent of the physical writer
 budget: changing one must not silently change the other. All remain unexecuted.
+
+## Generic launch admission prerequisite
+
+[Decision Log]
+- Purpose and intent: settings can hold physical I/O while actors remain alive;
+  node stop must already refuse a new process whose lookup was admitted earlier.
+- Existing implementation and constraints: runtime shutdown previously supplied
+  the only close token and ran before settings drain. A lifecycle precheck or
+  post-spawn drop cannot prevent a child from executing after a held lookup.
+- Alternatives considered: close actors before settlement, create another stop
+  signal, or rely only on an early predicate. These lose the required order,
+  duplicate lifetime state or retain the lookup-to-spawn gap.
+- Selected approach: `LaunchAdmission` observes the existing node-stop and
+  runtime-shutdown tokens through one predicate. Runtime uses it immediately
+  before structured spawn, inside terminal blocking preparation before MCP write
+  and PTY spawn, and before probe/history calls. Existing post-spawn cleanup
+  remains for a start that races the final check.
+- Why this approach: one cloneable observer follows blocking work without
+  inventing cancellation, a quota, an engine or caller authorization. Its async
+  cancelled observer watches the same sources, including already closed ones.
+- Advantages, costs and effects: node early admission closes while actors still
+  live. The check does not reserve a PID or make check/spawn atomic; independently
+  admitted starts retain their existing cleanup. Native version helper checks
+  must consume the same handle after lookup; caller policy/deadline and retained
+  preparation remain separate obligations.
+
+Held actual lookup fixtures exercise structured and terminal creation with a
+real fake-program invocation log and an open-admission positive control. The
+node-stop token is cancelled while the actor-stop token remains open. Tests
+assert typed refusal, no registered session and no fake invocation. Standalone
+and configured observer wake cases use the original cancellation sources. These
+are authored, not executed, and do not qualify the later recovery/version-helper
+consumer. No Recovery, Journal or engine start is registered by this seam.
