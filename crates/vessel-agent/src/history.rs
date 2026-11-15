@@ -131,9 +131,9 @@ pub enum HistoryError {
     /// The agent could not be started.
     #[error("cannot start the agent")]
     Spawn(#[source] AgentError),
-    /// The agent does not list its conversations (`sessionCapabilities.list`)
-    /// or cannot load one (`loadSession`).
-    #[error("the agent does not list its conversations over ACP")]
+    /// The native listing method is absent, or ACP does not advertise listing
+    /// and loading conversations.
+    #[error("the agent does not list its conversations over this protocol")]
     CannotList,
     /// The agent refused the request as invalid (`invalid_params`): a
     /// cursor it no longer knows, or a folder it does not take.

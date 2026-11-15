@@ -52,13 +52,16 @@ async fn actual_native_metadata_and_empty_filter_paging_are_preserved() {
         json!({"data":[{"id":"native","cwd":"/work","name":"title","updatedAt":123},{"id":"unknown-time","cwd":"/work","preview":"preview"},{"id":"missing-folder"}]})
     ], Some(Path::new("/work"))).await.unwrap().unwrap();
     assert_eq!(page.entries.len(), 2);
-    assert_eq!(page.entries[0].session.as_str(), "native");
+    assert_eq!(page.entries.first().unwrap().session.as_str(), "native");
     assert_eq!(
-        page.entries[0].updated_at,
+        page.entries.first().unwrap().updated_at,
         Some(HistoryTimestamp::UnixSeconds(123))
     );
-    assert_eq!(page.entries[1].updated_at, None);
-    assert_eq!(page.entries[1].title.as_deref(), Some("preview"));
+    assert_eq!(page.entries.get(1).unwrap().updated_at, None);
+    assert_eq!(
+        page.entries.get(1).unwrap().title.as_deref(),
+        Some("preview")
+    );
     assert_eq!(page.next, None);
 }
 #[tokio::test]
