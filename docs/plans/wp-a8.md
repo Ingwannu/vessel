@@ -716,3 +716,39 @@ prefs::persist copy; the same existing boxed preferences and awaited blocking
 save/warning body remain. The Respond arm remains in the one dispatch table.
 The resource/minter staging attributes remain unchanged. This union requires
 fresh narrow verification; native730's1492/0/2 is prior-source evidence.
+
+## Coordinated Requests cutover contract
+
+The portable owner prerequisite on base82ca is a staged kernel, not a second
+live response manager. Its new canonical view::requests::Request identity must
+replace this branch's private response identity through a re-export. The actual
+question fields, drafts and page cursors remain in ConversationArea; W12 alone
+adds SessionResources.requests and its readiness/retirement/ingress joins.
+The older literal-test RequestEffects adapter is replaced, not enabled beside
+this kernel. Product global response Registry retirement remains a coordinated
+migration requirement; the portable producer does not perform it.
+
+The product mutation carrier must retain original ConnectionContext plus the
+exact FollowBinding and sole OperationTicket across queue, call and reply.
+Transport's internal RPC request number is not another UI admission manager.
+Local callbacks resolve the SAME token and claim to the full CURRENT
+Visible/Focused context; network replies never refresh their captured context.
+Before effects, the owner checks original node, exact current request and its
+actual offered option or retained FieldId. Prepare, sole ticket allocation and
+Sending commit are one synchronous operation, without an await. A failed mint
+leaves the editor and Sending state untouched.
+
+On return, the owner verifies its exact correlation before canonical settle
+consumes the ticket; only its successful callback may mutate the original form.
+A typed no-effect refusal may release Sending for correction. An uncertain
+wire outcome retains the owner fence and editor and cannot automatically retry.
+Retirement converts its exact Request tickets to Uncertain before replacement
+launch. Only an admitted exact resolution can reconcile a retired uncertainty;
+a snapshot's Pending state or omission, even with a higher unrelated through,
+cannot authorize resubmission. Full rich receipt/projection activation still
+waits W23's checked producer and W12's actual original-lease carrier.
+
+This contract is preparation for the coordinated consumer. It adds no live
+resource field, no new allocator, no transport call and no product staging
+promotion. Current staged primitive tests are not authority, populated bundle,
+keyboard/IME, whole-package or user-flow proof.
