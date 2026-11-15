@@ -75,8 +75,8 @@ pub(super) fn invalidate_candidates(connection: &Connection) -> Result<(), Error
 
 pub(super) fn put_plan(connection: &Connection, plan: &Plan) -> Result<(), Error> {
     let ready: bool = connection.query_row(
-        "SELECT EXISTS(SELECT 1 FROM checkpoint_captures WHERE id=?1 AND state='ready')",
-        [plan.key.capture.to_string()],
+        "SELECT EXISTS(SELECT 1 FROM checkpoint_captures WHERE id=?1 AND session=?2 AND worktree=?3 AND generation=?4 AND boundary=?5 AND state='ready')",
+        params![plan.key.capture.to_string(),plan.key.session.to_string(),plan.key.worktree.to_string(),encode(&plan.key.generation)?,encode(&plan.key.boundary)?],
         |row| row.get(0),
     )?;
     if !ready {
@@ -99,22 +99,33 @@ pub(super) fn put_plan(connection: &Connection, plan: &Plan) -> Result<(), Error
 
 pub(super) fn status(
     connection: &Connection,
+    session: vessel_proto::SessionId,
     id: RestoreId,
     device: DeviceId,
 ) -> Result<Operation, Error> {
-    let stored: Option<(String, String, String, String)> = connection
+    let stored: Option<(String, String, String, String, String)> = connection
         .query_row(
-            "SELECT plan,device,outcome,before_image FROM checkpoint_restores WHERE id=?1",
+            "SELECT plan,device,outcome,before_image,session FROM checkpoint_restores WHERE id=?1",
             [id.to_string()],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                ))
+            },
         )
         .optional()?;
-    let (plan, owner, outcome, before) = stored.ok_or(CheckpointError::NotFound)?;
+    let (plan, owner, outcome, before, recorded_session) =
+        stored.ok_or(CheckpointError::NotFound)?;
     let owner: DeviceId = serde_json::from_str(&encode(&owner)?)?;
-    if owner != device {
+    if owner != device || recorded_session != session.to_string() {
         return Err(CheckpointError::Forbidden.into());
     }
     Ok(Operation {
+        session,
         id,
         device,
         plan: serde_json::from_str(&encode(&plan)?)?,
@@ -130,7 +141,7 @@ pub(super) fn admit(
     restore: RestoreId,
     at: DateTime<Utc>,
 ) -> Result<Operation, Error> {
-    match status(connection, restore, plan.device) {
+    match status(connection, plan.key.session, restore, plan.device) {
         Ok(existing) => {
             if existing.plan != plan.id {
                 return Err(CheckpointError::RestoreIdConflict.into());
@@ -152,7 +163,8 @@ pub(super) fn admit(
         return Err(CheckpointError::StalePreview.into());
     }
     if serde_json::from_str::<FileImage>(&current)? != plan.current
-        || serde_json::from_str::<FileImage>(&desired)? != plan.desired
+        || serde_json::from_str::<vessel_proto::checkpoint::EffectiveDesiredImage>(&desired)?
+            != plan.desired
     {
         return Err(CheckpointError::StalePreview.into());
     }
@@ -175,6 +187,7 @@ pub(super) fn admit(
         params![restore.to_string(), plan.id.to_string()],
     )?;
     Ok(Operation {
+        session: plan.key.session,
         id: restore,
         plan: plan.id,
         device: plan.device,
@@ -188,7 +201,12 @@ pub(super) fn outcome(
     operation: &Operation,
     result: &RestoreOutcome,
 ) -> Result<(), Error> {
-    let current = status(connection, operation.id, operation.device)?;
+    let current = status(
+        connection,
+        operation.session,
+        operation.id,
+        operation.device,
+    )?;
     if current.plan != operation.plan {
         return Err(CheckpointError::RestoreIdConflict.into());
     }

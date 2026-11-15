@@ -13,6 +13,9 @@ use vessel_store::StoreConfig;
 )]
 mod fixtures;
 
+// Roll back checkpoint tables and then title origin on this base.
+const MIGRATIONS_REMOVED: i64 = 2;
+
 #[tokio::test]
 async fn origins_follow_renames_and_survive_reopening() {
     let (_temp, dir) = data_dir();
@@ -105,8 +108,6 @@ async fn pre_origin_schema_titles_are_unknown_including_explicit_ones() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    // Roll back checkpoint tables and then title origin on this base.
-    const MIGRATIONS_REMOVED: i64 = 2;
     let latest: i64 = connection
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();

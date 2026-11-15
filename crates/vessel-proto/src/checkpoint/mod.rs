@@ -16,7 +16,7 @@ pub use bounds::{
     CHECKPOINT_QUEUE, CHECKPOINT_RESTORE_DEADLINE, CHECKPOINT_WORKERS, CHECKPOINTS_PER_SESSION,
     CheckpointPath, FileBytes, ImageBytes, PathCount,
 };
-pub use image::{Entry, FileImage, FileState};
+pub use image::{EffectiveDesiredImage, Entry, FileImage, FileState};
 pub use metadata::{FileMetadata, GroupId, OrdinaryMode, OwnerId};
 pub use state::{Boundary, CaptureGeneration, CaptureKey, CheckpointError, RestoreOutcome};
 

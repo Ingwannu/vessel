@@ -13,6 +13,7 @@ struct Job {
     key: CaptureKey,
     deadline: Instant,
     bytes: ReservedBytes,
+    cancel: tokio_util::sync::CancellationToken,
     reply: Option<oneshot::Sender<Result<CaptureKey, CheckpointError>>>,
 }
 /// One owner, used only by the coordinator task; workers never borrow it.
@@ -36,15 +37,20 @@ impl Captures {
                 .values()
                 .any(|job| job.key.worktree == key.worktree)
         {
+            let _closed = reply.send(Err(CheckpointError::Busy));
             return Err(CheckpointError::Busy);
         }
-        self.quota.reserve(bytes)?;
+        if let Err(error) = self.quota.reserve(bytes) {
+            let _closed = reply.send(Err(error));
+            return Err(error);
+        }
         let previous = self.jobs.insert(
             key.capture,
             Job {
                 key,
                 deadline,
                 bytes,
+                cancel: tokio_util::sync::CancellationToken::new(),
                 reply: Some(reply),
             },
         );
@@ -57,6 +63,7 @@ impl Captures {
             if now >= job.deadline
                 && let Some(reply) = job.reply.take()
             {
+                job.cancel.cancel();
                 let _closed = reply.send(Err(CheckpointError::CaptureTimedOut));
             }
         }
@@ -107,6 +114,32 @@ impl Captures {
             .ok_or(CheckpointError::StaleCapture)?;
         self.quota.release(job.bytes);
         Ok(())
+    }
+    pub(super) fn deadline(&self) -> Option<Instant> {
+        self.jobs
+            .values()
+            .filter(|job| job.reply.is_some())
+            .map(|job| job.deadline)
+            .min()
+    }
+    pub(super) fn cancellation(
+        &self,
+        key: CaptureKey,
+    ) -> Option<tokio_util::sync::CancellationToken> {
+        self.jobs
+            .get(&key.capture)
+            .filter(|job| job.key == key)
+            .map(|job| job.cancel.clone())
+    }
+    pub(super) fn refuse(&mut self, key: CaptureKey, reason: CheckpointError) {
+        if let Some(job) = self.jobs.get_mut(&key.capture)
+            && job.key == key
+        {
+            job.cancel.cancel();
+            if let Some(reply) = job.reply.take() {
+                let _closed = reply.send(Err(reason));
+            }
+        }
     }
     pub(super) fn occupied(&self, root: WorktreeId) -> bool {
         self.jobs.values().any(|job| job.key.worktree == root)

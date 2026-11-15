@@ -58,7 +58,16 @@ fn ready_plan(connection: &Connection, key: CaptureKey) -> Plan {
         key,
         device: DeviceId::random(),
         current: empty.clone(),
-        desired: empty,
+        desired: empty
+            .effective(
+                &empty,
+                vessel_proto::checkpoint::FileMetadata {
+                    owner: vessel_proto::checkpoint::OwnerId::new(1000),
+                    group: vessel_proto::checkpoint::GroupId::new(1000),
+                    mode: vessel_proto::checkpoint::OrdinaryMode::new(0o600).unwrap(),
+                },
+            )
+            .unwrap(),
         expires: DateTime::<Utc>::MAX_UTC,
     }
 }
@@ -107,7 +116,7 @@ fn duplicate_restore_returns_the_committed_outcome_and_rejects_another_plan() {
     journal::outcome(&transaction, &operation, &RestoreOutcome::Unchanged).unwrap();
     transaction.commit().unwrap();
     assert_eq!(
-        journal::status(&connection, restore, plan.device)
+        journal::status(&connection, key.session, restore, plan.device)
             .unwrap()
             .outcome,
         RestoreOutcome::Unchanged
@@ -126,7 +135,7 @@ fn duplicate_restore_returns_the_committed_outcome_and_rejects_another_plan() {
         Err(Error::Refused(CheckpointError::RestoreIdConflict))
     ));
     assert!(matches!(
-        journal::status(&connection, restore, DeviceId::random()),
+        journal::status(&connection, key.session, restore, DeviceId::random()),
         Err(Error::Refused(CheckpointError::Forbidden))
     ));
 }
@@ -142,7 +151,7 @@ fn transaction_failure_does_not_consume_preview_or_create_a_restore() {
         transaction.rollback().unwrap();
     }
     assert!(matches!(
-        journal::status(&connection, restore, plan.device),
+        journal::status(&connection, key.session, restore, plan.device),
         Err(Error::Refused(CheckpointError::NotFound))
     ));
     assert!(journal::admit(&connection, &plan, restore, DateTime::UNIX_EPOCH).is_ok());

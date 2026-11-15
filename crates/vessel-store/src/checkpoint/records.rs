@@ -4,7 +4,9 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use vessel_proto::{
     DeviceId,
-    checkpoint::{CaptureKey, FileImage, RestoreId, RestoreOutcome, RestorePlanId},
+    checkpoint::{
+        CaptureKey, EffectiveDesiredImage, FileImage, RestoreId, RestoreOutcome, RestorePlanId,
+    },
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -13,11 +15,12 @@ pub(super) struct Plan {
     pub(super) key: CaptureKey,
     pub(super) device: DeviceId,
     pub(super) current: FileImage,
-    pub(super) desired: FileImage,
+    pub(super) desired: EffectiveDesiredImage,
     pub(super) expires: DateTime<Utc>,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(super) struct Operation {
+    pub(super) session: vessel_proto::SessionId,
     pub(super) id: RestoreId,
     pub(super) plan: RestorePlanId,
     pub(super) device: DeviceId,

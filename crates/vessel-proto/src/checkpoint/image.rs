@@ -78,7 +78,7 @@ impl FileImage {
         &self,
         current: &Self,
         account: FileMetadata,
-    ) -> Result<Self, CheckpointError> {
+    ) -> Result<EffectiveDesiredImage, CheckpointError> {
         let mut entries = self.0.clone();
         for entry in &mut entries {
             if let FileState::Present { metadata, .. } = &mut entry.state {
@@ -100,7 +100,35 @@ impl FileImage {
                     state: FileState::Absent,
                 }),
         );
-        Self::new(entries)
+        Ok(EffectiveDesiredImage(Self::new(entries)?))
+    }
+}
+
+/// Frozen post-policy target, distinct from the raw captured evidence.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct EffectiveDesiredImage(FileImage);
+impl EffectiveDesiredImage {
+    /// Immutable entries are shared by preview, journal and verification.
+    #[must_use]
+    pub const fn image(&self) -> &FileImage {
+        &self.0
+    }
+    /// Missing paths satisfy explicit absence, never empty-file contents.
+    #[must_use]
+    pub fn matches(&self, current: &FileImage) -> bool {
+        self.0
+            .entries()
+            .iter()
+            .all(|entry| match (&entry.state, current.get(&entry.path)) {
+                (FileState::Absent, None | Some(FileState::Absent)) => true,
+                (state, Some(actual)) => state == actual,
+                (FileState::Present { .. }, None) => false,
+            })
+            && current
+                .entries()
+                .iter()
+                .all(|entry| self.0.get(&entry.path).is_some() || entry.state == FileState::Absent)
     }
 }
 impl TryFrom<Vec<Entry>> for FileImage {

@@ -5,6 +5,9 @@
 
 mod capture;
 mod quota;
+mod runner;
+#[cfg(test)]
+mod runner_tests;
 
 #[cfg(test)]
 mod tests;
