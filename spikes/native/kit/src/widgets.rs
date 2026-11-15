@@ -324,6 +324,16 @@ pub fn markdown(id: impl Into<gpui::ElementId>, text: impl Into<SharedString>) -
     gpui_component::text::TextView::markdown(id, text)
 }
 
+/// Markdown used as an interactive control's label: clicks belong to the control,
+/// while description/body Markdown keeps its ordinary text-selection behavior.
+#[must_use]
+pub fn markdown_label(
+    id: impl Into<gpui::ElementId>,
+    text: impl Into<SharedString>,
+) -> impl IntoElement {
+    gpui_component::text::TextView::markdown(id, text).selectable(false)
+}
+
 /// One of a few choices (a machine, an agent): a pill, filled with the
 /// ink when chosen (the page's segmented choices).
 #[must_use]

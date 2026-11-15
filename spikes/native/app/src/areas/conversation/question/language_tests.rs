@@ -23,7 +23,12 @@ fn field(name: &str, kind: FieldKind) -> QuestionField {
     }
 }
 
-fn prepare(shell: &mut Shell, choice: bool, window: &mut Window, cx: &mut Context<'_, Shell>) {
+pub(super) fn prepare(
+    shell: &mut Shell,
+    choice: bool,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) {
     let mut fields = vec![field("question_0", text())];
     fields.push(field(
         "question_1",

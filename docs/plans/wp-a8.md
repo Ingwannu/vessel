@@ -250,3 +250,23 @@ would reuse one renderer for different prompts in the same window. The existing
 FieldId exposes a namespaced ElementId from its real input entity, preserving
 the renderer through frames and steps while separating successor/parallel forms.
 This reuses GPUI identity and does not create a second session/resident registry.
+
+
+Option label/description parity reuses kit::markdown rather than a new renderer
+or external Markdown dependency. Reference: question-form-card.tsx80-180 renders
+compact Markdown for both; description interactions are claimed separately from
+the option click. Native descriptions stop bubbling a click to the choice row.
+Rich text cache keys retain the real form identity and distinguish step/option
+parts. Preview needs W23's retained preview metadata and remains pending.
+
+The GPUI regression draws the actual production option row and verifies a
+description click leaves the step/draft unchanged, then a Markdown-label click
+selects the real option and advances. It has no real link, node or URL opener.
+The test is pending execution, not proof from source inspection.
+
+Coordinator approved kit::markdown_label as a thin sibling of markdown using
+the same TextView::markdown engine, selectable(false); existing selectable
+Markdown and all callers are unchanged. The label/body distinction matches
+Paseo question-form-card.tsx154. W12b owns link/image behavior; notify it with
+the resulting hash. The regression must click actual rendered label text, not
+row padding, so a selectable renderer cannot accidentally satisfy the test.

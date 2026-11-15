@@ -4,7 +4,9 @@
 //! its controls do are the parent module's; the step's rules are the
 //! view's (`view::timeline::question_step`).
 
+use std::sync::Arc;
 use vessel_app_kit::assets::Glyph;
+use vessel_app_kit::field::FieldId;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
@@ -13,7 +15,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{
     CardLook, CardState, Tokens, Type, TypeExt as _, breakpoint, card_button, chat_markdown,
-    version_of,
+    markdown, markdown_label, version_of,
 };
 use vessel_app_link::ActKind;
 use vessel_app_view::ConversationWords;
@@ -198,7 +200,7 @@ fn answers<P: Place>(
         let rows = options.into_iter().enumerate().map(|(index, choice)| {
             let on = picked(step, &answering.drafts, &choice.value);
             option_row::<P>(
-                (index, answering.cursor()),
+                (index, answering.cursor(), answering.field.id()),
                 choice,
                 on,
                 multiple,
@@ -287,7 +289,7 @@ fn tabs<P: Place>(
 
 /// One option: Paseo's row, a radio or a checkbox at its left.
 fn option_row<P: Place>(
-    (index, cursor): (usize, Cursor),
+    (index, cursor, source): (usize, Cursor, FieldId),
     choice: Choice,
     on: bool,
     multiple: bool,
@@ -326,21 +328,45 @@ fn option_row<P: Place>(
                 .gap(px(4.0))
                 .child(
                     div()
+                        .debug_selector("question-option-title")
                         .line_height(px(22.0))
                         .text_color(if on {
                             neutral.foreground
                         } else {
                             neutral.foreground_muted
                         })
-                        .child(choice.title),
+                        .child(markdown_label(
+                            option_text_key(source, cursor, index, "question-option-title"),
+                            choice.title,
+                        )),
                 )
                 .children(choice.description.map(|description| {
                     div()
+                        .id(option_text_key(source, cursor, index, "question-option-description-hit"))
                         .text_size(px(13.0))
                         .text_color(neutral.foreground_muted)
-                        .child(description)
+                        .debug_selector("question-option-description")
+                        // Reading/selecting a description must not pick its option.
+                        .on_click(|_event, _window, cx| cx.stop_propagation())
+                        .child(markdown(
+                            option_text_key(source, cursor, index, "question-option-description"),
+                            description,
+                        ))
                 })),
         )
+}
+
+/// The real form owns rich text caches; positions only distinguish its parts.
+fn option_text_key(
+    source: FieldId,
+    cursor: Cursor,
+    index: usize,
+    part: &'static str,
+) -> vessel_app_kit::ui::ElementId {
+    vessel_app_kit::ui::ElementId::NamedChild(
+        Arc::new(source.element_id(part)),
+        format!("{}-{index}", cursor.step).into(),
+    )
 }
 
 /// An option's mark: a radio (one answer) or a checkbox (several),
@@ -445,3 +471,6 @@ fn actions<P: Place>(
         .child(dismiss_button)
         .child(primary_button)
 }
+
+#[cfg(test)]
+mod tests;

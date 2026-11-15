@@ -27,7 +27,7 @@
 //!   answer is checked by the node's own check (`Question::check`) before
 //!   it goes, and a refusal (another client answered first, a value the
 //!   node will not take) is said under the card with the node's words.
-//! - Differences, kept: option labels are plain text; no option previews (Claude's `preview`
+//! - Differences, kept: no option previews (Claude's `preview`
 //!   reaches the node only under `_meta`, which the node does not keep);
 //!   the option rows scroll inside the card past 360 (280 on a phone), where Paseo's card
 //!   scrolls with the conversation.
