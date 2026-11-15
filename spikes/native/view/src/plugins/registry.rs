@@ -152,10 +152,12 @@ impl Installation {
     }
 
     /// Internal immutable origin binding; requests share the checked allocation.
+    #[must_use]
     pub(super) fn document_snapshot(&self) -> Arc<ClientDocument> {
         Arc::clone(&self.document)
     }
 
+    #[must_use]
     pub(super) fn matches_document(&self, snapshot: &Arc<ClientDocument>) -> bool {
         Arc::ptr_eq(&self.document, snapshot) || self.document.as_ref() == snapshot.as_ref()
     }
