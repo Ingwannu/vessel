@@ -342,6 +342,10 @@ No row of the crate table changes.
   the server boundary. Its reason is exact equality with the shared typed
   unassigned error; the server now refuses before the old node guard. Its
   Unsupported and no-work checks remain, and starting import is unchanged.
+- Narrow verification passed: protocol/RPC clippy; all 15 label-selected
+  unit tests, including the four new admission cases; node e2e clippy and
+  both real-node label-ingress cases. The complete gate remains owed on
+  the final admission commit. No failure was retried into green.
 - Paseo contract remains the labels record and optional update at
   `messages.ts:915,989-996`, and reserved keys in `agent-labels.ts:2-6`.
   This is the already stated temporary Vessel difference: labels await their
