@@ -57,9 +57,13 @@ The product consumer removes only the owner entry's required literal test gates
 and installs its real caller in the same union. It must prove cached Clean with
 new accepted text, dirty Discard/Cancel, pending/unknown reads and writes, stale
 target completion, shared-buffer bindings and compact automatic removals. No
-original remote attempt may be aborted, replayed or treated as resolved by a new
-read, reconnect, discarded local text or a retirement notice. The caller retains
-the original connection, root receipt and owner operation correlation.
+sent mutating attempt may be aborted, replayed or treated as resolved by a new
+read, reconnect, discarded local text or a retirement notice. These durable
+unknown-outcome holds apply to possibly mutating writes and path mutations.
+Readonly acquisition blocks close while its original ticket is pending, but its
+own definitive read reply, refusal or bounded deadline may settle that read;
+ordinary bounded read cleanup does not create an indefinite unknown-write hold.
+The caller retains the original connection, root receipt and owner correlation.
 
 The raw ClosePlan target getter and current-target query are presentation
 snapshots. Neither proves an incarnation, UI visit, transport lease or close
