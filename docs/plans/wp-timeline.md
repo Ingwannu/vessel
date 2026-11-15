@@ -821,3 +821,30 @@ This prevents accidentally installing a retained transcript or GPUI entities in
 another session or window. Old transport callbacks still require their original
 binding and fail the registry fence after retirement. These are staged owner
 adapters and source regressions, not a live resource cutover verdict.
+
+### Borrowed canonical detail body for A8
+
+[Decision Log]
+- Purpose: a PermissionPresentation.detail must keep provider precedence without
+  manufacturing a ToolView or timeline entry for a pending request.
+- Constraint: the earlier shared body read loading/failure through ToolDetailSource,
+  coupling the caller to a timeline model despite already having a canonical DTO.
+- Alternatives: duplicate A8 rendering, construct a synthetic log row, or extend
+  the existing drawing boundary with only explicit owner presentation state.
+- Choice: tool_detail::borrowed_body(Paint, ElementId, BorrowedDetail, Window, Context)
+  renders the same sections/code/diff/prose/failure controls. BorrowedDetail holds
+  &ToolCallDetail, DetailState::{Running,Settled}, and Option<&ToolFailure>.
+- Reason: A7's existing ToolDetailSource body delegates to this same function;
+  A8 supplies its PermissionId-derived ElementId and actual loading state. No
+  approval semantics, capability, request lifecycle or node method is inferred.
+- Tradeoff: this remains an internal conversation API using the existing Paint.
+  Plan approval keeps the shared Plan card; this body owns no Plan disclosure.
+  Sections/loading/failure derive structural NamedChild IDs from the caller's
+  ElementId, rather than stringifying a potentially colliding identity. No A8
+  files changed. Actual canonical field attachment still waits W23's checked slice.
+
+The queued 76fb narrow job was verified queued and cancelled once per the 12:1x
+stale-lock instruction: it predates dd13ce37. Terminal rc143 is an authorized
+queue cancellation, not a compiler result. Its single replacement contains the
+fixed lock and current coherent owner source; existing 94d80 app/kit tests remain
+queued and are not duplicated.

@@ -117,12 +117,56 @@ pub(super) fn body(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
+    borrowed_body(
+        paint,
+        ElementId::NamedInteger("canonical-tool".into(), super::entries::id(index)),
+        BorrowedDetail {
+            detail,
+            state: if source.tool().working() {
+                DetailState::Running
+            } else {
+                DetailState::Settled
+            },
+            failure: source.failure(),
+        },
+        window,
+        cx,
+    )
+}
+
+/// Rendering state is supplied by the owner, never inferred from an approval.
+#[derive(Clone, Copy)]
+pub(super) enum DetailState {
+    Running,
+    Settled,
+}
+
+/// Shared borrowed body for canonical timeline and permission presentation DTOs.
+/// The caller retains identity/disclosure/approval; no ToolView or log is needed.
+pub(super) struct BorrowedDetail<'a> {
+    pub(super) detail: &'a ToolCallDetail,
+    pub(super) state: DetailState,
+    pub(super) failure: Option<&'a ToolFailure>,
+}
+
+pub(super) fn borrowed_body(
+    paint: &Paint<'_>,
+    id: ElementId,
+    source: BorrowedDetail<'_>,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let BorrowedDetail {
+        detail,
+        state,
+        failure: reported,
+    } = source;
     let sections = tool_sections(detail);
-    if sections.is_empty() && source.failure().is_none() {
-        return div().child(super::tool_sheet::empty(
+    if sections.is_empty() && reported.is_none() {
+        return div().child(super::tool_sheet::empty_at(
             paint,
-            index,
-            source.tool().working(),
+            child_id(&id, "loading"),
+            matches!(state, DetailState::Running),
         ));
     }
     div()
@@ -130,17 +174,22 @@ pub(super) fn body(
         .flex_col()
         .gap(px(spacing::S1_5))
         .children(sections.iter().enumerate().map(|(part, section)| {
-            let id = ElementId::NamedInteger(
-                format!("canonical-tool-{index}").into(),
-                u64::try_from(part).unwrap_or(u64::MAX),
-            );
-            section_body(paint, id, section, window, cx)
+            section_body(
+                paint,
+                child_id(&id, &format!("section-{part}")),
+                section,
+                window,
+                cx,
+            )
         }))
         .children(
-            source
-                .failure()
-                .map(|reported| failure(paint, index, reported, window, cx)),
+            reported
+                .map(|reported| failure_at(paint, child_id(&id, "failure"), reported, window, cx)),
         )
+}
+
+fn child_id(parent: &ElementId, part: &str) -> ElementId {
+    ElementId::NamedChild(std::sync::Arc::new(parent.clone()), part.to_owned().into())
 }
 
 /// Sender text is provenance only, kept literal through the shared prose body.
@@ -181,11 +230,27 @@ pub(super) fn failure(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
+    failure_at(
+        paint,
+        ElementId::NamedInteger("canonical-tool-error".into(), super::entries::id(index)),
+        failure,
+        window,
+        cx,
+    )
+}
+
+fn failure_at(
+    paint: &Paint<'_>,
+    id: ElementId,
+    failure: &ToolFailure,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
     vessel_app_kit::alert::alert(
         vessel_app_kit::alert::Content {
             title: None,
             description: Some(vessel_app_kit::plain_text(
-                ElementId::NamedInteger("canonical-tool-error".into(), super::entries::id(index)),
+                id,
                 &failure.message,
                 version_of(&failure.message),
                 window,
