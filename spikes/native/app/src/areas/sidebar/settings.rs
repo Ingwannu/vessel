@@ -4,7 +4,7 @@
 //! [Decision Log]
 //! Existing kit settings section/row/info-tip, guarded G2 buttons and switch
 //! already own every control here. This body only binds the single typed
-//! navigation inventory to the existing PreferenceChange path; duplicating a
+//! navigation inventory to the existing `PreferenceChange` path; duplicating a
 //! store, a page frame or an area button would split the displayed and saved
 //! order. Unavailable plugin choices remain in the lower model until the
 //! plugin owner supplies its checked available groups. Retained tooltip places

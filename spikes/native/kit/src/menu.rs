@@ -198,7 +198,7 @@ impl MenuState {
     }
 
     /// Drop a missing definition and its entire suffix before drawing. Interior
-    /// state preserves the published renderer's shared MenuState reference.
+    /// state preserves the published renderer's shared `MenuState` reference.
     #[must_use]
     pub fn prune_pages(&self, has_page: impl Fn(&hierarchy::PageId) -> bool) -> bool {
         self.is_open() && self.path.borrow_mut().prune(has_page)

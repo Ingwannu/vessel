@@ -643,3 +643,10 @@ consume it with existing EN/KO move_up/move_down catalog words; the existing
 switch receives its row label through the toolkit's same element. No new
 keymap, role renderer or a11y completion claim. Correct the pure words helper's
 documentation: band descriptions are title info tips, not area paragraphs.
+
+
+Pre-priority checks on2ed: direct rustfmt --check on61 changed Rust files0,
+native size/boundaries/tokens0. Import scan completed; doc scan found four
+unquoted Rust identifiers (PreferenceChange, primary_keys, MenuState, MenuItem),
+corrected in comments only before requesting the exact revised priority head.
+No runtime code changed by this preflight correction.

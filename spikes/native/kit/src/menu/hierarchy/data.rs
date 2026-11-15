@@ -1,4 +1,4 @@
-//! Additive data API; legacy MenuItem and flat handlers remain intact.
+//! Additive data API; legacy `MenuItem` and flat handlers remain intact.
 //! One private row renderer consumes the legacy item plus this source role.
 use super::super::{Layer, MenuItem, MenuState, Width};
 use super::navigation::PageId;

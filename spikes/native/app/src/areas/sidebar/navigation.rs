@@ -7,7 +7,7 @@
 //! the existing preferences. Keep one projection instead of hardcoded lists
 //! per caller. Current builtin actions retain their existing owners; no fake
 //! History/Workspace/Usage callback substitutes for a missing producer. Hints
-//! read the existing effective registry until W22 supplies checked primary_keys;
+//! read the existing effective registry until W22 supplies checked `primary_keys`;
 //! no duplicate defaults or shortcut dispatcher are created here.
 use crate::shell::Shell;
 use vessel_app_kit::ui::{AnyElement, Context, Div, IntoElement as _, SharedString, Window};
