@@ -447,21 +447,36 @@ schedules-see-docs = See docs
 
 ## Schedule form choice search and empty feedback
 
+# Placeholder for searching project choices on the selected machine; short.
 schedules-form-search-projects = Search projects...
+# Placeholder for filtering the current provider/model browser; short.
 schedules-form-search-models = Search models...
+# Placeholder for filtering offered thinking-option choices; short.
 schedules-form-search-thinking = Search thinking options...
+# Placeholder for filtering offered session modes; short.
 schedules-form-search-modes = Search modes...
+# Placeholder for filtering IANA time-zone names; short.
 schedules-form-search-zones = Search time zones...
+# Project choice list has no matching offered project; not a transport diagnostic.
 schedules-form-empty-projects = No projects found
+# Model choice list has no offered model; provider read errors use separate feedback.
 schedules-form-empty-models = No models found
+# Thinking choice list has no matching offered option; short.
 schedules-form-empty-thinking = No thinking options found
+# Session-mode choice list has no matching offered mode; short.
 schedules-form-empty-modes = No modes found
+# Time-zone choice list has no matching IANA name; short.
 schedules-form-empty-zones = No time zones found
+# Fallback empty filtered choice list; short, not a failed node read.
 schedules-form-empty-choices = No matching options
+# Example five-field cron expression in the form; preserve digits, spaces and operators.
 schedules-form-cron-placeholder = 0 9 * * *
 
 # Source model-browser feedback; short loading/retry/no-matching-model labels.
 schedules-form-model-loading = Loading
+# Retry only the failed provider-model read; short button label, never repeats a write.
 schedules-form-model-retry = Retry
+# Disabled retry button while that provider-model read is pending; short.
 schedules-form-model-retrying = Retrying...
+# Successful model catalog/search with no matching models; not a provider error.
 schedules-form-model-no-matches = No models match your search

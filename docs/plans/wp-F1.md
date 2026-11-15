@@ -1611,3 +1611,16 @@ claim isolation persistence before its actual runtime option exists. Its
 local-save failure/ordering and remembered-choice readback need explicit
 consumer coverage before the final F1 proof. No preferences were changed by
 this documentation inventory.
+
+
+### 2a20 translation-data validation result
+
+Exact schedules-20261115T165017Z-2a20c26f reached actual View build-script
+compilation after fonts0, then cargo101/helper1 because the new cron placeholder
+had no attached translator context comment. The validator requires an individual
+message comment; a section heading does not count. Complete F1 data audit found
+15 unannotated new messages in each schedules.ftl, including search/empty and
+retry feedback. Each now has its own context comment. A local text comparison
+proved all message keys/values unchanged. No generator/build-support changes or
+accepted cadence/error table migration were made. No Kit/View/App strict PASS
+or tests are claimed from this failed run; the same corrected suite is owed.

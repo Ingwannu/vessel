@@ -447,21 +447,36 @@ schedules-see-docs = 문서 보기
 
 ## Schedule form choice search and empty feedback
 
+# Placeholder for searching project choices on the selected machine; short.
 schedules-form-search-projects = 프로젝트 검색...
+# Placeholder for filtering the current provider/model browser; short.
 schedules-form-search-models = 모델 검색...
+# Placeholder for filtering offered thinking-option choices; short.
 schedules-form-search-thinking = 추론 옵션 검색...
+# Placeholder for filtering offered session modes; short.
 schedules-form-search-modes = 모드 검색...
+# Placeholder for filtering IANA time-zone names; short.
 schedules-form-search-zones = 시간대 검색...
+# Project choice list has no matching offered project; not a transport diagnostic.
 schedules-form-empty-projects = 프로젝트를 찾을 수 없습니다
+# Model choice list has no offered model; provider read errors use separate feedback.
 schedules-form-empty-models = 모델을 찾을 수 없습니다
+# Thinking choice list has no matching offered option; short.
 schedules-form-empty-thinking = 추론 옵션을 찾을 수 없습니다
+# Session-mode choice list has no matching offered mode; short.
 schedules-form-empty-modes = 모드를 찾을 수 없습니다
+# Time-zone choice list has no matching IANA name; short.
 schedules-form-empty-zones = 시간대를 찾을 수 없습니다
+# Fallback empty filtered choice list; short, not a failed node read.
 schedules-form-empty-choices = 일치하는 옵션이 없습니다
+# Example five-field cron expression in the form; preserve digits, spaces and operators.
 schedules-form-cron-placeholder = 0 9 * * *
 
 # Source model-browser feedback; short loading/retry/no-matching-model labels.
 schedules-form-model-loading = 불러오는 중
+# Retry only the failed provider-model read; short button label, never repeats a write.
 schedules-form-model-retry = 다시 시도
+# Disabled retry button while that provider-model read is pending; short.
 schedules-form-model-retrying = 다시 시도 중...
+# Successful model catalog/search with no matching models; not a provider error.
 schedules-form-model-no-matches = 검색과 일치하는 모델이 없습니다
