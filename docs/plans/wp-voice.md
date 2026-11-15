@@ -486,3 +486,13 @@ its adapter, obtain one shared-writer owner for a typed cancellation/admission
 edge and full-queue/held-sink tests. ADR0080 records the commitment and partial
 framing proof obligations. No shared RPC edit, real upload or activation has
 occurred; do not weaken local Stop or claim already committed bytes retract.
+
+
+SpeechText's wire edge now validates borrowed text before its own Arc allocation
+instead of first allocating an unrestricted String. The outer JSON decoder's
+escaped scratch buffer remains subject to its frame bound; no allocation-free
+claim is made. A private speech visitor reuses the same length/blank rule and
+refuses wrong JSON scalars with a fixed error rather than serde's value-echoing
+String diagnostic. The secret-name visitor owns a different invariant and is
+not copied or widened. Numeric/boolean diagnostic and escaped/owned boundary
+tests are owed on the VM; this does not authorize real transport upload.
