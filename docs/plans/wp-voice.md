@@ -233,3 +233,10 @@ Chunk-partition invariance and cancellation fakes cover partial input and a
 stop raised by the first inference callback in a multi-window chunk. Stop/reset
 discards the incomplete window instead of padding a false speech observation.
 No model/native runtime is downloaded or loaded by this mechanism.
+
+Pending-start Stop target: proto now distinguishes caller nonce from an active
+node lease, so ordinary Stop can cancel before an epoch reply exists. The existing
+seven methods/one None feature remain unchanged. Service is still fail-closed;
+no application sends this pending contract before its node registry exists.
+Nonce ownership/tombstone/late completion obligations are in ADR0080. Generated
+TypeScript is owed via the approved remote named ts artifact step.

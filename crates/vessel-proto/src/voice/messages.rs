@@ -75,10 +75,35 @@ macro_rules! lease_request {
 
 lease_request! { /// Wait for a transient update without consuming it on cancellation.
 NextVoice }
-lease_request! { /// Release remote state after immediate local Stop has already gated upload.
-StopVoice }
 lease_request! { /// Barge-in cancels speech and the associated running agent turn.
 AbortVoice }
+
+/// Stop can cancel a caller-owned start before its server epoch was received.
+/// The service always checks the opaque connection owner before either branch.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum VoiceStopTarget {
+    /// Cancel only this caller's original start nonce, including a late completion.
+    Starting {
+        /// Must equal the original caller-selected start id on this connection.
+        id: VoiceId,
+    },
+    /// A ready generation additionally names the node-issued epoch.
+    Active {
+        /// A stale epoch cannot stop a later generation.
+        lease: VoiceLease,
+    },
+}
+
+/// Release remote state after immediate local Stop has already gated upload.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(deny_unknown_fields)]
+pub struct StopVoice {
+    /// Pending cancellation needs no speculative epoch; active cancellation is exact.
+    pub target: VoiceStopTarget,
+}
 
 /// Device receipts distinguish successful playback from discarded audio.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

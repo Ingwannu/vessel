@@ -300,3 +300,21 @@ actor; it never truncates confirmed speech. A Stop/abort discards both prefix an
 current utterance without STT commit. This is a deliberate resource difference,
 not proof that a two-second prefix covers physical/network conditions; detector
 and codec integration plus waveform validation remain owed.
+
+### Pending-start cancellation target clarification
+
+A Stop request cannot require a server epoch before the start reply was received.
+The typed target therefore distinguishes Starting(client VoiceId nonce) from
+Active(full VoiceLease). Both require the canonical opaque connection owner;
+Starting is not a bearer capability and cannot address another connection's
+start. The registry must cancel/retain the original start record through its
+actual factory/reload cleanup, fence late completion, and never bind that nonce
+to a later acquisition. Active always requires its exact epoch. This closes the
+implementation gap between the client-selected cancellation id described above
+and an epoch-only Stop request; it adds no method, feature number or schema.
+
+Local Stop still fences capture/upload/playback first. Sending pending Stop does
+not wait for the delayed start result; a late ready result is retired, never used
+to open capture. Unknown/rejected/lost remote cleanup stays explicitly uncertain.
+Owning-registry held-start/late-ready/cross-connection tests are owed with wiring;
+typed serialization fixtures alone do not prove remote teardown.

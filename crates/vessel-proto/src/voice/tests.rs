@@ -117,3 +117,25 @@ fn epochs_and_receipts_roundtrip_as_distinct_identifiers() {
         request
     );
 }
+
+#[test]
+fn pending_stop_roundtrips_without_fabricating_a_server_epoch() {
+    let id = VoiceId::random();
+    let pending = StopVoice {
+        target: VoiceStopTarget::Starting { id },
+    };
+    let json = serde_json::to_string(&pending).unwrap();
+    assert!(!json.contains("epoch"));
+    assert_eq!(serde_json::from_str::<StopVoice>(&json).unwrap(), pending);
+    let active = StopVoice {
+        target: VoiceStopTarget::Active { lease: lease() },
+    };
+    let json = serde_json::to_string(&active).unwrap();
+    assert!(json.contains("epoch"));
+    assert_eq!(serde_json::from_str::<StopVoice>(&json).unwrap(), active);
+    let mixed = format!(
+        r#"{{"target":{{"kind":"starting","id":"{id}","epoch":"{}"}}}}"#,
+        VoiceEpoch::random()
+    );
+    assert!(serde_json::from_str::<StopVoice>(&mixed).is_err());
+}

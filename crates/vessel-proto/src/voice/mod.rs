@@ -12,7 +12,7 @@ pub use audio::{CapturePcm, PlaybackPcm};
 pub use messages::{
     AbortVoice, AgentTurn, CaptureAck, CaptureVoice, Confidence, InputSpeech, NextVoice, Playback,
     PlaybackOutcome, PlayedVoice, ReadyVoice, SpeakVoice, StartVoice, StopVoice, StopVoiceResult,
-    VoiceFailure, VoiceLease, VoiceTranscript, VoiceUpdate,
+    VoiceFailure, VoiceLease, VoiceStopTarget, VoiceTranscript, VoiceUpdate,
 };
 pub use text::SpeechText;
 

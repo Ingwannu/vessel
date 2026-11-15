@@ -22,7 +22,8 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
     let params = match method {
         Method::StartVoice => json!({"id":id,"session":id}),
         Method::CaptureVoice => json!({"lease":voice_lease,"seq":0,"pcm":"AAA="}),
-        Method::NextVoice | Method::AbortVoice | Method::StopVoice => json!({"lease":voice_lease}),
+        Method::NextVoice | Method::AbortVoice => json!({"lease":voice_lease}),
+        Method::StopVoice => json!({"target":{"kind":"active","lease":voice_lease}}),
         Method::PlayedVoice => {
             json!({"lease":voice_lease,"playback":crate::voice::PlaybackId::random(),"outcome":"interrupted"})
         }
