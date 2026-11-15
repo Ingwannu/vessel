@@ -226,3 +226,19 @@ removed along with other owned temporary entries; the private SSD directory
 was verified empty. No live service or service-account permissions were
 changed or verified. No native screen, real agent, real node diagnostic
 response, phone, other OS or production behaviour is covered by this slice.
+
+
+### Committed checkpoints and handoff
+
+- `b6d0e93d`: ADR 0074 and acceptance plan; contract/documents review passed.
+- `86fbbb33`: merge of the green node line `a365d295`, without conflicts.
+- `2cdeea97`: D2 bounded diagnostic values and canonical declarations; the
+  gates above apply to its exact compiled inputs. Implementation review is
+  pending; the ADR remains proposed.
+
+Next is the staged D3 source collectors, failure journal and cancellation
+fixtures under their owning modules. Off-tree drafts are not installed or
+compiled and supply no implementation evidence. Cross-crate product API and
+wire wiring wait for the shared admission accessor and RPC method metadata.
+There is no callable diagnostic method for a screen or CLI to consume yet;
+the planned call/response and older-peer behaviour remain the D4 contract.
