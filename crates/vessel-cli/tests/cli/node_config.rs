@@ -97,3 +97,48 @@ async fn value_validation_precedes_even_local_credential_resolution() {
     })
     .await;
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn config_mutations_follow_the_assignment_and_keep_their_state_contract() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let owner = fixture.owner().await;
+        let saved = owner
+            .call(vessel_proto::settings::SetNodeSettings {
+                park_after: Some(ParkAfter::Never),
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+        let unset = fixture
+            .vessel(&["node", "config", "unset", "park_after"], b"")
+            .await;
+        let reload = fixture.vessel(&["node", "reload"], b"").await;
+        match vessel_proto::settings::NODE_CONFIG_PROTOCOL {
+            None => {
+                for ran in [unset, reload] {
+                    assert!(!ran.ok);
+                    assert!(
+                        ran.stderr.contains("protocol version is not assigned"),
+                        "{}",
+                        ran.stderr
+                    );
+                }
+                assert_eq!(owner.call(GetNodeSettings {}).await.unwrap(), saved);
+            }
+            Some(_) => {
+                assert!(unset.ok, "{}", unset.stderr);
+                assert!(reload.ok, "{}", reload.stderr);
+                let current: vessel_proto::settings::NodeSettings =
+                    serde_json::from_str(&unset.stdout).unwrap();
+                assert_eq!(current.park_after, ParkAfter::DEFAULT);
+                assert_eq!(owner.call(GetNodeSettings {}).await.unwrap(), current);
+                let report: vessel_proto::settings::ReloadedNodeSettings =
+                    serde_json::from_str(&reload.stdout).unwrap();
+                assert_eq!(report, Default::default());
+            }
+        }
+        fixture.stop().await;
+    })
+    .await;
+}

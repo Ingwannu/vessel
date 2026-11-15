@@ -239,6 +239,8 @@ const fn forwardable(method: Method) -> bool {
         // Protocol 12: the node's settings (the change needs `admin`).
         | Method::GetNodeSettings
         | Method::SetNodeSettings
+            | Method::UnsetNodeSettings
+            | Method::ReloadNodeSettings
         // Protocol 14: forking and rewinding a session (ADR 0052).
         | Method::ForkSession
         | Method::RewindSession

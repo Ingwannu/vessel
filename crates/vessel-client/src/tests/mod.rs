@@ -563,6 +563,8 @@ impl Handler for FakeNode {
         wake_session: vessel_proto::parking::WakeSession => SessionInfo;
         node_settings: vessel_proto::settings::GetNodeSettings => vessel_proto::settings::NodeSettings;
         set_node_settings: vessel_proto::settings::SetNodeSettings => vessel_proto::settings::NodeSettings;
+        unset_node_settings: vessel_proto::settings::UnsetNodeSettings => vessel_proto::settings::NodeSettings;
+        reload_node_settings: vessel_proto::settings::ReloadNodeSettings => vessel_proto::settings::ReloadedNodeSettings;
         fork_session: vessel_proto::forking::ForkSession => SessionInfo;
         rewind_session: vessel_proto::forking::RewindSession => SessionInfo;
         agent_history: vessel_proto::history::GetAgentHistory => vessel_proto::history::AgentHistoryPage;

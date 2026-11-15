@@ -1554,3 +1554,14 @@ selected-file kernel query to proc through `lock/query`. Its public
 this dependency inside that lock boundary. Proc still has no internal
 normal dependency; its snapshot alone grants no signal authority. The later
 CLI signal edge remains proposed and is not added by this move.
+
+
+### Typed node configuration control
+
+ADR 0064 extends the existing settings owner: proto owns the exhaustive key/
+patch mapping and strict JSON edge, store reads a bounded reload snapshot, and
+node serializes reload/reset with existing writes before publishing runtime
+changes. The CLI only validates, calls and prints typed results. New Admin
+unset/reload rows stay pending until NODE_CONFIG_PROTOCOL is assigned; no crate
+edge or configuration store is added. Startup's downgrade/set-aside policy stays
+separate from explicit reload's all-or-nothing validation.

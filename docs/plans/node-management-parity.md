@@ -13,9 +13,11 @@ slice order. The docs commit adds both and no command.
 - Source preparation: the existing selected-field read admission is extracted
   unchanged into check_read, with older/unassigned boundary tests. This does
   not change get/set behavior; narrow evidence for the later package is owed.
-- Draft: unset/reload now has the pending table rows and actual node/CLI callers,
-  bounded strict reload reads and persistence/runtime fixtures. It is not yet
-  committed or compiled, and generated TypeScript still needs regeneration.
+- Source committed: unset/reload has pending table rows and actual node/CLI
+  callers, bounded strict reload reads and persistence/runtime fixtures. It is
+  not compiled yet, and generated TypeScript still needs regeneration.
+  Merge the newly designated head and adopt its shared call preflight before
+  running this package's next narrow checks.
 
 - Contract review correction: the JSON budget is pinned with units and its
   complete-value/headroom rationale in ADR 0064. Implementation uses the one
@@ -28,8 +30,8 @@ slice order. The docs commit adds both and no command.
 
 - Config get/set uses the existing RPCs and a shared exhaustive key adapter.
   Strict JSON, a named input cap and safe category/location diagnostics are
-  recorded before its code commit. New unset/reload calls remain unregistered.
-  No compile, runtime or package-gate result is claimed for this draft yet.
+  recorded before its code commit. Unset/reload now has pending rows, with no
+  assigned number. No runtime or package-gate pass is claimed yet.
 
 - Work in progress: the config/reload package is drafted on the designated
   Quality B node head, now merged with the designated head 40. Reuse existing settings and persistence; new methods

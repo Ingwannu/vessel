@@ -51,7 +51,8 @@ use tokio::sync::Mutex;
 use vessel_proto::HarnessKind;
 use vessel_proto::parking::ParkAfter;
 use vessel_proto::settings::{
-    AgentDriver, AgentDrivers, NodeSettings, SetAgentDrivers, SetNodeSettings,
+    AgentDriver, AgentDrivers, NodeSettingKey, NodeSettings, ReloadedNodeSettings, SetAgentDrivers,
+    SetNodeSettings, SettingKeys, UnknownSettingKey,
 };
 use vessel_session::SessionRuntime;
 use vessel_store::{DataDir, SetAside};
@@ -59,6 +60,12 @@ use vessel_store::{DataDir, SetAside};
 /// Why a change was refused or not kept.
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum SettingsError {
+    /// Explicit reload never falls back after a failed read or validation.
+    #[error("the saved settings could not be reloaded: {0}")]
+    Reload(#[from] vessel_store::ReloadSettingsError),
+    /// Unknown reset keys cannot remove a future build's settings.
+    #[error(transparent)]
+    Key(#[from] UnknownSettingKey),
     /// A choice this node does not know.
     #[error("this node does not know that park_after; send never or idle with minutes")]
     Unknown,
@@ -199,6 +206,41 @@ impl Settings {
         self.replace(&mut saved, next).await
     }
 
+    /// Remove saved overrides through the existing locked write-before-apply rule.
+    pub(crate) async fn unset(&self, keys: &SettingKeys) -> Result<NodeSettings, SettingsError> {
+        let mut saved = self.saved.lock().await;
+        let mut next = *saved;
+        for key in keys.iter() {
+            key.clear(&mut next)?;
+        }
+        self.replace(&mut saved, next).await
+    }
+
+    /// Apply one complete validated disk snapshot under the mutation lock.
+    pub(crate) async fn reload(&self) -> Result<ReloadedNodeSettings, SettingsError> {
+        let mut saved = self.saved.lock().await;
+        let data_dir = self.data_dir.clone();
+        let next = tokio::task::spawn_blocking(move || data_dir.read_settings_for_reload())
+            .await
+            .map_err(SettingsError::Lost)??
+            .unwrap_or_default();
+        validate(next)?;
+        let before = self.in_force(*saved);
+        let after = self.in_force(next);
+        let mut report = ReloadedNodeSettings::default();
+        for key in NodeSettingKey::ALL {
+            key.report_change(&before, &after, &mut report)?;
+        }
+        // A strict snapshot contains nothing this build would discard later.
+        // No runtime state is published before every field and report validates.
+        *saved = next;
+        self.later.store(false, Ordering::Relaxed);
+        if before != after {
+            self.apply(&after);
+        }
+        Ok(report)
+    }
+
     // The same locked replacement is reused by explicit override removal;
     // no caller may publish settings before their atomic write succeeds.
     async fn replace(
@@ -277,3 +319,6 @@ fn set_aside(data_dir: &DataDir, unusable: &vessel_store::SettingsFileError) -> 
 fn offered(kind: HarnessKind) -> bool {
     vessel_harness::direct(kind).is_some_and(|direct| direct.selectable)
 }
+
+#[cfg(test)]
+mod tests;

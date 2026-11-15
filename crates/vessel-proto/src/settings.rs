@@ -17,7 +17,14 @@
 
 mod control;
 mod input;
-pub use control::{NodeSettingKey, SettingValue, UnknownSettingKey};
+pub use control::{
+    InvalidSettingKeys, NodeSettingKey, ReloadNodeSettings, ReloadedNodeSettings, SettingKeys,
+    SettingValue, UnknownSettingKey, UnsetNodeSettings,
+};
+
+/// Unset/reload require node application, typed CLI outcomes and a merge-assigned
+/// protocol before either endpoint admits these changing calls (ADR 0064).
+pub const NODE_CONFIG_PROTOCOL: Option<crate::ProtocolVersion> = None;
 pub use input::{InvalidSettingInput, SettingDecodeFailure};
 
 mod metadata;

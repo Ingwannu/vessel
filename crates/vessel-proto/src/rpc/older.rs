@@ -52,6 +52,7 @@ impl Reply {
             Self::NodeInfo(node) => node.for_protocol(protocol).map(Self::NodeInfo),
             Self::GetNodeSettings(settings) => settings.for_protocol(protocol).map(Self::GetNodeSettings),
             Self::SetNodeSettings(settings) => settings.for_protocol(protocol).map(Self::SetNodeSettings),
+            Self::UnsetNodeSettings(settings) => settings.for_protocol(protocol).map(Self::UnsetNodeSettings),
             Self::JoinFleet(joined) => joined.home.for_protocol(protocol).map(|home| {
                 Self::JoinFleet(crate::JoinedFleet { home })
             }),
@@ -293,6 +294,7 @@ impl Reply {
             | Self::ReportPushPresence(_)
             | Self::SearchMessages(_)
             // Protocol 12's, 14's and 17's: asked only by peers that read them.
+            | Self::ReloadNodeSettings(_)
             | Self::GetAgentHistory(_) => None,
         }
     }

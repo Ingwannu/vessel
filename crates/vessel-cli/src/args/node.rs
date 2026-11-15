@@ -42,6 +42,8 @@ pub(crate) enum NodeCommand {
     Update(Update),
     /// Stop gracefully; live sessions require --when-idle or --now.
     Stop(Stop),
+    /// Re-read saved settings, reporting applied/restart/launch-controlled keys.
+    Reload,
     /// Read or change typed whole-field settings on the selected node.
     Config {
         #[command(subcommand)]

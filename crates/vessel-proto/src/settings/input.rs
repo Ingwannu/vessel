@@ -31,7 +31,12 @@ pub enum InvalidSettingInput {
 #[derive(Debug)]
 pub struct SettingDecodeFailure {
     category: serde_json::error::Category,
-    line: usize,
+    location: Option<DecodeLocation>,
+}
+
+#[derive(Debug)]
+struct DecodeLocation {
+    line: std::num::NonZeroUsize,
     column: usize,
 }
 
@@ -39,19 +44,25 @@ impl From<serde_json::Error> for SettingDecodeFailure {
     fn from(error: serde_json::Error) -> Self {
         Self {
             category: error.classify(),
-            line: error.line(),
-            column: error.column(),
+            location: std::num::NonZeroUsize::new(error.line()).map(|line| DecodeLocation {
+                line,
+                column: error.column(),
+            }),
         }
     }
 }
 
 impl fmt::Display for SettingDecodeFailure {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            formatter,
-            "JSON {:?} error at line {}, column {}",
-            self.category, self.line, self.column
-        )
+        write!(formatter, "JSON {:?} error", self.category)?;
+        if let Some(location) = &self.location {
+            write!(
+                formatter,
+                " at line {}, column {}",
+                location.line, location.column
+            )?;
+        }
+        Ok(())
     }
 }
 impl std::error::Error for SettingDecodeFailure {}
@@ -60,6 +71,14 @@ impl SetNodeSettings {
     /// Bound an explicit config value or reload document before parsing.
     /// Startup's existing downgrade-tolerant file reader remains unchanged.
     pub const MAX_JSON_BYTES: usize = 1_048_576;
+
+    /// Decode the explicit reload snapshot before any runtime application.
+    ///
+    /// # Errors
+    /// Oversized, malformed, unknown or ignored data refuses the entire snapshot.
+    pub fn from_json(bytes: &[u8]) -> Result<Self, InvalidSettingInput> {
+        known(field(bytes)?)
+    }
 }
 
 /// Preserve the canonical type while refusing silent loss at this edge.

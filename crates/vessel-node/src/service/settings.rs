@@ -1,7 +1,10 @@
 //! Protocol 12's `node.settings` and `node.set_settings` (ADR 0038): the
 //! node's settings, kept and applied by `crate::settings`.
 
-use vessel_proto::settings::{GetNodeSettings, NodeSettings, SetNodeSettings};
+use vessel_proto::settings::{
+    GetNodeSettings, NodeSettings, ReloadNodeSettings, ReloadedNodeSettings, SetNodeSettings,
+    UnsetNodeSettings,
+};
 use vessel_proto::{ErrorCode, WireError};
 
 use super::{Connection, NodeService};
@@ -23,20 +26,44 @@ impl NodeService {
         _: &Connection,
         request: SetNodeSettings,
     ) -> Result<NodeSettings, WireError> {
-        self.settings.change(request).await.map_err(|error| {
-            let code = match error {
-                SettingsError::Unknown | SettingsError::UnknownDriver(_) => {
-                    ErrorCode::InvalidRequest
-                }
-                SettingsError::NoDirect(_) => ErrorCode::Unsupported,
-                // The node's own file needs a person's hand first.
-                SettingsError::Kept(_) => ErrorCode::Conflict,
-                SettingsError::Write(_) | SettingsError::Lost(_) => ErrorCode::Internal,
-            };
-            if matches!(code, ErrorCode::Internal | ErrorCode::Conflict) {
-                tracing::warn!(%error, "node settings not kept");
-            }
-            WireError::new(code, error.to_string())
-        })
+        self.settings.change(request).await.map_err(failure)
     }
+
+    /// Remove only validated saved overrides; permission comes from the guard.
+    pub(crate) async fn unset_node_settings(
+        &self,
+        _: &Connection,
+        request: UnsetNodeSettings,
+    ) -> Result<NodeSettings, WireError> {
+        self.settings.unset(&request.keys).await.map_err(failure)
+    }
+
+    /// Read and validate everything before publishing any runtime setting.
+    pub(crate) async fn reload_node_settings(
+        &self,
+        _: &Connection,
+        _: ReloadNodeSettings,
+    ) -> Result<ReloadedNodeSettings, WireError> {
+        self.settings.reload().await.map_err(failure)
+    }
+}
+
+fn failure(error: SettingsError) -> WireError {
+    let code = match &error {
+        SettingsError::Unknown
+        | SettingsError::UnknownDriver(_)
+        | SettingsError::Key(_)
+        | SettingsError::Reload(vessel_store::ReloadSettingsError::Input(_)) => {
+            ErrorCode::InvalidRequest
+        }
+        SettingsError::NoDirect(_) => ErrorCode::Unsupported,
+        SettingsError::Kept(_) => ErrorCode::Conflict,
+        SettingsError::Write(_)
+        | SettingsError::Lost(_)
+        | SettingsError::Reload(vessel_store::ReloadSettingsError::Read(_)) => ErrorCode::Internal,
+    };
+    if matches!(code, ErrorCode::Internal | ErrorCode::Conflict) {
+        tracing::warn!(%error, "node settings not kept");
+    }
+    WireError::new(code, error.to_string())
 }

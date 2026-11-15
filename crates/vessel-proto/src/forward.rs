@@ -443,6 +443,8 @@ impl Method {
             // read and changed by its owner and its own devices.
             | Self::GetNodeSettings
             | Self::SetNodeSettings
+            | Self::UnsetNodeSettings
+            | Self::ReloadNodeSettings
             | Self::InviteDevice
             | Self::ListDevices
             | Self::RevokeDevice

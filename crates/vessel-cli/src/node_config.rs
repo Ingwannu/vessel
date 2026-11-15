@@ -2,7 +2,9 @@
 //! Decode before resolving a connection; the node alone owns persistence.
 
 use vessel_proto::Method;
-use vessel_proto::settings::{GetNodeSettings, NodeSettingKey};
+use vessel_proto::settings::{
+    GetNodeSettings, NodeSettingKey, ReloadNodeSettings, SettingKeys, UnsetNodeSettings,
+};
 
 use crate::args::{ConfigCommand, Target};
 use crate::connect::connect;
@@ -23,6 +25,11 @@ pub(crate) async fn run(target: &Target, command: ConfigCommand) -> Result<(), C
                 None => output(&settings).await,
             }
         }
+        ConfigCommand::Unset { keys } => {
+            let keys = SettingKeys::new(keys)?;
+            let client = connect(target).await?.client;
+            output(&client.call(UnsetNodeSettings { keys }).await?).await
+        }
         ConfigCommand::Set { key, value } => {
             let change = key.change(&value)?;
             let client = connect(target).await?.client;
@@ -30,6 +37,12 @@ pub(crate) async fn run(target: &Target, command: ConfigCommand) -> Result<(), C
             output(&key.value(&settings)?).await
         }
     }
+}
+
+/// Reload through the same assigned-protocol admission as every typed call.
+pub(crate) async fn reload(target: &Target) -> Result<(), CliError> {
+    let client = connect(target).await?.client;
+    output(&client.call(ReloadNodeSettings {}).await?).await
 }
 
 async fn output(value: &impl serde::Serialize) -> Result<(), CliError> {

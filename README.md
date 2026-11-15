@@ -94,6 +94,11 @@ fields, dotted keys and ignored nulls are refused. This uses the authenticated
 node rather than editing a local config file. Launch settings still require
 their flags on the next start.
 
+`vessel node config unset park_after` removes the saved override;
+`vessel node reload` re-reads saved settings and prints the three change lists.
+These two calls await their protocol assignment and currently refuse with an
+unassigned-protocol error. They do not silently edit the local file instead.
+
 `vessel node stop` requests graceful shutdown through the node's Admin
 permission. With live sessions it lists them and refuses; `--when-idle`
 returns after starting a drain, and `--now --yes` interrupts them. Without

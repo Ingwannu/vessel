@@ -1884,3 +1884,22 @@ slots with the canonical range and approved literal program. A current or
 prior block is invalid on every approval reply while unassigned. CLI shows
 both choices; web refuses current, prior and approved-folder blocks until
 it can display them completely. No allocator or process runs in this stage.
+
+
+### Pending node configuration operations (ADR 0064)
+
+`node.unset_settings { keys }` and `node.reload {}` are Admin unary calls
+registered through NODE_CONFIG_PROTOCOL, currently unassigned. Both endpoints
+refuse them before dispatch/send while it is None, and refuse older peers after
+assignment. They are not forwardable node administration. Unset returns the live
+NodeSettings after removing validated saved whole-field overrides; its existing
+field projections still apply. Empty, repeated, unknown or excessive key sets
+are invalid. The key count derives from the one known-key declaration.
+
+Reload reads a bounded complete snapshot and returns `applied`,
+`restart_required` and `override_controlled`, each a list of typed setting keys.
+A missing file removes saved overrides; malformed/unknown/ignored data applies
+nothing and does not rewrite or set aside the file. Current parking/drivers
+settings are reloadable, and the latter two lists are empty for these keys.
+Saved values retain the existing precedence over launch defaults. No protocol
+number or schema migration is chosen by this registration.

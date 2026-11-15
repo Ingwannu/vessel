@@ -56,7 +56,9 @@ fn every_method_declares_authority_and_admin_is_rare() {
             "agent.install",
             "agent.install_output",
             "usage.lookup",
-            "node.set_settings"
+            "node.set_settings",
+            "node.unset_settings",
+            "node.reload"
         ]
     );
     assert_eq!(

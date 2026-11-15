@@ -378,6 +378,10 @@ macro_rules! method_table {
             RewindSession / rewind_session / "session.rewind" [Operate, 14, unary]: $crate::forking::RewindSession => $crate::SessionInfo;
             /// A page of an agent's own conversations, to import one (protocol 17, ADR 0053).
             GetAgentHistory / agent_history / "agent.history" [Operate, 17, unary]: $crate::history::GetAgentHistory => $crate::history::AgentHistoryPage;
+            /// Remove saved overrides together; pending node config protocol (ADR 0064).
+            UnsetNodeSettings / unset_node_settings / "node.unset_settings" [Admin, (pending $crate::settings::NODE_CONFIG_PROTOCOL), unary]: $crate::settings::UnsetNodeSettings => $crate::settings::NodeSettings;
+            /// Apply a complete validated settings snapshot; pending node config protocol.
+            ReloadNodeSettings / reload_node_settings / "node.reload" [Admin, (pending $crate::settings::NODE_CONFIG_PROTOCOL), unary]: $crate::settings::ReloadNodeSettings => $crate::settings::ReloadedNodeSettings;
         }
     };
 }

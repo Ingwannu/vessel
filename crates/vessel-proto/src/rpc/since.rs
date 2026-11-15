@@ -102,6 +102,13 @@ impl Call {
             // Drivers came in 18 (ADR 0057): an older node would keep
             // running the agent over ACP and say nothing.
             Self::SetNodeSettings(request) => request.drivers.map(|_| 18),
+            Self::UnsetNodeSettings(request) => {
+                let mut required = None;
+                for key in request.keys.iter() {
+                    required = required.max(Some(key.required_protocol()?.get()));
+                }
+                required
+            }
             Self::WriteFile(request) => match request.expect {
                 crate::workspace::WriteExpect::Content { .. } => Some(11),
                 crate::workspace::WriteExpect::Absent | crate::workspace::WriteExpect::Any => None,
@@ -262,6 +269,7 @@ impl Call {
             | Self::ParkSession(_)
             | Self::WakeSession(_)
             | Self::GetNodeSettings(_)
+            | Self::ReloadNodeSettings(_)
             | Self::ForkSession(_)
             | Self::RewindSession(_)
             | Self::GetAgentHistory(_) => None,

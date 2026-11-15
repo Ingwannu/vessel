@@ -30,6 +30,9 @@
 //!   person repairs the file, which leaves a node whose file was damaged
 //!   unable to change any setting from the app.
 
+mod reload;
+pub use reload::ReloadSettingsError;
+
 use std::io;
 use std::path::PathBuf;
 

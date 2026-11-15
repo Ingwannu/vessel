@@ -197,6 +197,8 @@ untargeted!(
     // The node's settings: no session's.
     vessel_proto::settings::GetNodeSettings,
     vessel_proto::settings::SetNodeSettings,
+    vessel_proto::settings::UnsetNodeSettings,
+    vessel_proto::settings::ReloadNodeSettings,
     // An agent's own history (ADR 0053): no session's, and refused to
     // agents (`workspace::policy`).
     vessel_proto::history::GetAgentHistory,

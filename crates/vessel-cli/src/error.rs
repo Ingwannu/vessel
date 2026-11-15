@@ -13,6 +13,9 @@ use vessel_remote::{
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum CliError {
+    /// Reset count/duplicates/unknown keys refuse before contact.
+    #[error(transparent)]
+    SettingsKeys(#[from] vessel_proto::settings::InvalidSettingKeys),
     /// Only typed settings are encoded; command input is never an error payload.
     #[error("could not encode the settings value")]
     SettingsEncode(#[source] serde_json::Error),
