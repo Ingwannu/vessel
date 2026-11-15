@@ -34,7 +34,7 @@ impl Shell {
     /// Until resident contexts land, this is the explicit route-to-draft bridge.
     pub(crate) fn composer_destination(&self) -> Option<DraftKey> {
         match self.route {
-            crate::routes::Route::Draft => Some(DraftKey::New),
+            crate::routes::Route::Draft | crate::routes::Route::NewWorkspace => Some(DraftKey::New),
             crate::routes::Route::Session => self
                 .areas
                 .session
@@ -99,13 +99,6 @@ impl Shell {
     }
     /// The creation area seeds this only after claiming the active draft's canonical target.
     /// History has no destination root until that draft's placement is chosen.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "fully implemented seed intake is staged until the creation/history producer integrates"
-        )
-    )]
     pub(crate) fn composer_seed_history(
         &mut self,
         target: DraftKey,

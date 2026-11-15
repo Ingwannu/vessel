@@ -65,6 +65,12 @@ impl fmt::Debug for DraftSeed {
 /// Seeding is accepted atomically or leaves the current draft untouched.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum SeedProblem {
+    /// A workspace form cannot consume an existing-workspace draft seed.
+    #[error("the seed belongs to a different creation target")]
+    TargetMismatch,
+    /// The canonical payload owner refused intake without losing its source.
+    #[error(transparent)]
+    Context(#[from] crate::composer::context::ContextProblem),
     /// An existing draft/payload is occupied or an uncertain operation owns it.
     #[error("the destination draft already contains unsent or pending work")]
     Busy,
@@ -75,3 +81,27 @@ pub enum SeedProblem {
     #[error("the selected creation placement is no longer available")]
     PlacementGone,
 }
+
+/// Selection for the top-level workspace form, before any workspace id exists.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkspaceForm {
+    /// Verified host captured by the initiating feature.
+    pub destination: DraftDestination,
+    /// Exact selected project context, if the entry supplied one.
+    pub project: Option<ProjectSeed>,
+    /// A blank shell is distinct from an initial chat.
+    pub launch: Launch,
+}
+impl WorkspaceForm {
+    /// Header actions seed only placement; the person chooses content afterwards.
+    #[must_use]
+    pub fn new(destination: DraftDestination, project: Option<ProjectSeed>) -> Self {
+        Self {
+            destination,
+            project,
+            launch: Launch::default(),
+        }
+    }
+}
+/// The top-level opener does not require or fabricate a layout workspace key.
+pub type NewWorkspaceSeed = WorkspaceForm;

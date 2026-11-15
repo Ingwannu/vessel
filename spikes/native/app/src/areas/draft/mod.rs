@@ -44,6 +44,7 @@ mod effort_card;
 mod features;
 mod pickers;
 mod probe;
+mod seed;
 mod status;
 mod submit;
 
@@ -391,7 +392,7 @@ pub(crate) fn render(
                 .text_size(px(vessel_app_kit::fonts::ui(22.0)))
                 .line_height(px(vessel_app_kit::fonts::ui(28.0)))
                 .text_color(neutral.foreground)
-                .child(t.welcome),
+                .child(shell.draft_heading()),
         )
         .child(card)
         .child(pickers::place(shell, &online, touch, tokens, cx).self_start());

@@ -20,3 +20,8 @@ creation-outcome-unknown = 결과를 확인하기 전에 연결이 끊겼습니�
 creation-registered-retry = 세션이 생성되었습니다. 해당 세션에서 첫 메시지를 다시 보내세요.
 # Retries delivery to the already-created session.
 creation-retry-first-message = 첫 메시지 다시 보내기
+
+# Top-level form; no workspace or agent exists yet.
+creation-new-workspace = 새 워크스페이스
+# Seed acceptance must not overwrite another draft.
+creation-seed-busy = 아직 보내지 않았거나 처리 중인 초안이 있습니다. 먼저 해당 작업을 마쳐 주세요.

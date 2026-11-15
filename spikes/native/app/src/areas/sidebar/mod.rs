@@ -139,7 +139,7 @@ pub(crate) fn render(
         nav = nav.child(
             row(
                 ElementId::Name(format!("nav-{route:?}").into()),
-                route.label(t),
+                route.label(shell),
                 shell.route == route,
                 tokens,
             )

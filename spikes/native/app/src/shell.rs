@@ -185,6 +185,10 @@ impl Shell {
 
     /// Show `route`.
     pub(crate) fn go(&mut self, route: Route, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if route == Route::NewWorkspace {
+            self.new_workspace_current(window, cx);
+            return;
+        }
         self.creation_departing();
         self.route = route;
         routes::arrive(route, self, window, cx);

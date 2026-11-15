@@ -7,7 +7,10 @@ mod launch;
 mod seed;
 mod ticket;
 
-pub use seed::{DraftDestination, DraftSeed, ProjectSeed, SeedPlace, SeedProblem};
+pub use seed::{
+    DraftDestination, DraftSeed, NewWorkspaceSeed, ProjectSeed, SeedPlace, SeedProblem,
+    WorkspaceForm,
+};
 
 pub use launch::{Launch, LaunchPlan, LaunchProblem, PayloadPresence, ShellInput};
 
