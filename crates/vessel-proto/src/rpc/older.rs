@@ -107,15 +107,18 @@ impl Reply {
                 profiles_for(profiles, protocol).map(Self::ReloadProfiles)
             }
             Self::GetSession(session) => info(session).map(Self::GetSession),
-            Self::GetConversation(conversation) => conversation
-                .usage
-                .as_ref()
-                .and_then(|usage| usage.for_protocol(protocol))
-                .map(|usage| {
-                    let mut conversation = conversation.clone();
-                    conversation.usage = Some(usage);
-                    Self::GetConversation(conversation)
-                }),
+            Self::GetConversation(conversation) => crate::timeline::compat::conversation(conversation,protocol,crate::timeline::TIMELINE_PARITY).map(Self::GetConversation),
+            Self::ListInbox(page) => {
+                let mut adapted=page.clone();
+                for entry in &mut adapted.entries {
+                    if let Some(value)=crate::timeline::compat::inbox(entry,protocol,crate::timeline::TIMELINE_PARITY) {*entry=value;}
+                }
+                (adapted!=*page).then_some(Self::ListInbox(adapted))
+            }
+            Self::GetInboxEntry(entry) => entry.as_ref().and_then(|entry|crate::timeline::compat::inbox(entry,protocol,crate::timeline::TIMELINE_PARITY)).map(|entry|Self::GetInboxEntry(Some(entry))),
+            Self::ChangeQueue(changed)=>crate::timeline::compat::queue(&changed.queue,protocol,crate::timeline::TIMELINE_PARITY).map(|queue| {
+                let mut changed=changed.clone();changed.queue=queue;Self::ChangeQueue(changed)
+            }),
             Self::CreateSession(session) => info(session).map(Self::CreateSession),
             Self::MoveProfile(session) => info(session).map(Self::MoveProfile),
             Self::RenameSession(session) => info(session).map(Self::RenameSession),
@@ -203,8 +206,10 @@ impl Reply {
             | Self::HarnessOptions(_)
             | Self::SessionOptions(_)
             | Self::SetSessionOption(_)
+            | Self::RespondQuestion(_)
+            | Self::RespondPermission(_)
+            | Self::SubmitPrompt(_)
             | Self::PromptSession(_)
-            | Self::ChangeQueue(_)
             | Self::DeleteSession(_)
             | Self::BeginUpload(_)
             | Self::WriteUpload(_)
@@ -284,8 +289,6 @@ impl Reply {
             | Self::SetUsageLookup(_)
             | Self::QueryUsage(_)
             | Self::DeletePrompt(_)
-            | Self::ListInbox(_)
-            | Self::GetInboxEntry(_)
             | Self::MarkInbox(_)
             | Self::GetPushKey(_)
             | Self::SubscribePush(_)

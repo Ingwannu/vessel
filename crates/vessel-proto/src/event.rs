@@ -37,7 +37,7 @@
 //! - Protocol 10 is the first to add to what an existing event holds: a
 //!   prompt (`TurnStarted`) may name an attachment, a content block a
 //!   version 9 client cannot decode. So an agent event's version is read
-//!   from its content too ([`AgentEvent::since`]), and its stand-in keeps
+//!   from its content too ([`AgentEvent::required_protocol`]), and its stand-in keeps
 //!   the event, each attachment shown as a `ResourceLink` to
 //!   `attachment:<id>`. Fields added as optional (`Ready.abilities`,
 //!   `TurnEnded.usage`) need none: older clients skip what they do not
@@ -171,7 +171,7 @@ impl SessionEvent {
     pub fn required_protocol(&self) -> Option<ProtocolVersion> {
         match self {
             Self::Status { .. } | Self::Terminal(_) => Some(ProtocolVersion::new(2)),
-            Self::Agent { event } => Some(event.since()),
+            Self::Agent { event } => event.required_protocol(),
             Self::ProfileChanged { .. } => Some(ProtocolVersion::new(5)),
             Self::ModelCall(_) => Some(ProtocolVersion::new(7)),
             Self::OptionsChanged { .. } | Self::Renamed { .. } => Some(ProtocolVersion::new(9)),
@@ -187,6 +187,13 @@ impl SessionEvent {
     /// can read this event as it is.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
+        // An assigned enclosing variant can still contain optional fields
+        // introduced later. Always let the inner event mask those fields.
+        if let Self::Agent { event } = self {
+            return event
+                .for_protocol(protocol)
+                .map(|event| Self::Agent { event });
+        }
         let readable = self
             .required_protocol()
             .is_some_and(|since| since <= protocol);
@@ -246,39 +253,27 @@ impl SessionEvent {
             )),
         }
     }
-
-    /// One origin rule shared with synthetic assigned-threshold tests,
-    /// without changing the durable event's own protocol version.
-    pub(crate) fn origin_for_protocol(
-        &self,
-        protocol: ProtocolVersion,
-        assigned: Option<ProtocolVersion>,
-    ) -> Option<Self> {
-        if let Self::Renamed { title, origin } = self {
-            let adapted = origin.for_protocol(protocol, assigned);
-            return (adapted != *origin).then(|| Self::Renamed {
-                title: title.clone(),
-                origin: adapted,
-            });
-        }
-        None
-    }
 }
 
 impl AgentEvent {
     /// The first protocol version that can decode this event: its
-    /// variant's, or 10 for a prompt holding an attachment.
+    /// variant's, or 10 for a prompt holding an attachment. A feature
+    /// awaiting its assigned protocol returns `None`; it must never be
+    /// published as though it belonged to the current protocol.
     #[must_use]
-    pub fn since(&self) -> ProtocolVersion {
+    pub fn required_protocol(&self) -> Option<ProtocolVersion> {
         match self {
-            Self::Steered { .. } | Self::QuestionAsked(_) | Self::QuestionResolved { .. } => {
-                ProtocolVersion::new(10)
+            Self::Notification(_) | Self::Compaction(_) | Self::Plugin(_) | Self::Error { .. } => {
+                crate::timeline::TIMELINE_PARITY
             }
-            Self::TurnStarted { content } if content.iter().any(is_attachment) => {
-                ProtocolVersion::new(10)
+            Self::Steered { .. } | Self::QuestionAsked(_) | Self::QuestionResolved { .. } => {
+                Some(ProtocolVersion::new(10))
+            }
+            Self::TurnStarted { content, .. } if content.iter().any(is_attachment) => {
+                Some(ProtocolVersion::new(10))
             }
             Self::UserMessageChunk { content } if is_attachment(content) => {
-                ProtocolVersion::new(10)
+                Some(ProtocolVersion::new(10))
             }
             Self::Ready { .. }
             | Self::TurnStarted { .. }
@@ -292,7 +287,7 @@ impl AgentEvent {
             | Self::PermissionResolved { .. }
             | Self::TurnEnded { .. }
             | Self::TurnFailed { .. }
-            | Self::HarnessLog { .. } => ProtocolVersion::new(2),
+            | Self::HarnessLog { .. } => Some(ProtocolVersion::new(2)),
         }
     }
 
@@ -300,12 +295,34 @@ impl AgentEvent {
     /// it can read this event as it is.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
-        if self.since() <= protocol {
+        if let Some(adapted) =
+            crate::timeline::compat::event(self, protocol, crate::timeline::TIMELINE_PARITY)
+        {
+            // Optional fields and a newer content block can need independent masks.
+            let legacy = adapted.for_protocol(protocol);
+            return Some(legacy.unwrap_or(adapted));
+        }
+        if self
+            .required_protocol()
+            .is_some_and(|since| since <= protocol)
+        {
             return None;
         }
         let log = |line: String| Some(Self::HarnessLog { line });
         match self {
-            Self::Steered { content } => log(match first_line(content) {
+            Self::Notification(notice) => {
+                log(format!("vessel: {:?}: {}", notice.level, notice.message))
+            }
+            Self::Compaction(compaction) => log(format!(
+                "vessel: context compaction {:?}",
+                compaction.status
+            )),
+            Self::Plugin(item) => log(format!(
+                "vessel: plugin {} contribution {}",
+                item.plugin, item.id
+            )),
+            Self::Error { message } => log(format!("vessel: error: {message}")),
+            Self::Steered { content, .. } => log(match first_line(content) {
                 Some(line) => format!("vessel: steered: {line}"),
                 None => "vessel: steered".to_owned(),
             }),
@@ -319,8 +336,10 @@ impl AgentEvent {
                 QuestionOutcome::Cancelled => "vessel: question cancelled",
             }
             .to_owned()),
-            Self::TurnStarted { content } => Some(Self::TurnStarted {
+            Self::TurnStarted { content, .. } => Some(Self::TurnStarted {
                 content: content.iter().map(link_for_attachment).collect(),
+
+                client_message_id: None,
             }),
             Self::UserMessageChunk { content } => Some(Self::UserMessageChunk {
                 content: link_for_attachment(content),
@@ -469,3 +488,12 @@ impl EventRecord {
 
 #[cfg(test)]
 mod admission_tests;
+
+#[cfg(test)]
+#[path = "event/protocol_tests.rs"]
+mod protocol_tests;
+
+mod optional;
+
+#[cfg(test)]
+mod timeline_tests;

@@ -292,6 +292,7 @@ mod tests {
             })
         );
         let conversation = crate::Conversation {
+            through: None,
             queue: crate::PromptQueue::default(),
             commands: Vec::new(),
             usage: Some(replayed),

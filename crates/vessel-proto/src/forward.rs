@@ -312,6 +312,9 @@ impl Method {
             | Self::SessionOptions
             | Self::SetSessionOption
             | Self::RenameSession
+            | Self::RespondQuestion
+            | Self::RespondPermission
+            | Self::SubmitPrompt
             | Self::PromptSession
             | Self::ChangeQueue
             | Self::GetConversation

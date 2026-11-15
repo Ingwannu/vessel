@@ -29,8 +29,8 @@ pub use marks::{
     TidiedWorktree,
 };
 pub use question::{
-    AnswerValue, ChoiceOption, FieldKind, InvalidAnswer, Question, QuestionAnswer, QuestionField,
-    QuestionOutcome, TextFormat,
+    AnswerValue, ChoiceOption, FieldKind, InvalidAnswer, InvalidQuestionPresentation, Question,
+    QuestionAnswer, QuestionField, QuestionOutcome, QuestionPresentationError, TextFormat,
 };
 pub use queue::{
     Delivered, Delivery, PromptQueue, QueueChange, QueueChanged, QueueHold, QueuedPrompt,
@@ -45,6 +45,9 @@ use crate::id::SessionId;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Conversation {
+    /// Exclusive event watermark for this authoritative projection. Absent on old nodes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub through: Option<crate::EventSeq>,
     /// The prompts waiting.
     pub queue: PromptQueue,
     /// The commands the agent offers now (none for an ended session).
