@@ -40,7 +40,8 @@ hierarchy work, not part of this defect correction.
 
 MenuState creates the lease; draw captures it independently for key, outside,
 row mouse-down and row click handlers. Each checks admission before changing
-state or propagation. The existing key routing moves into menu/input.rs to keep the one draw module
+state or propagation. The existing key routing moves into menu/input.rs to keep
+the one draw module
 below its size budget; it is not another renderer. GPUI track_focus installs a
 default pointer-focus listener: the same panel uses capture_any_mouse_down to
 prevent that default only when its lease is stale, including replaced state.
@@ -70,6 +71,20 @@ guard. Key dispatch also draws a dirty window before interceptors; the corrected
 regressions open B inside a real interceptor after A is drawn, then let the actual
 A key listener execute. A render-count boundary proves there was no draw between
 opening B and that listener. No copied callback or test-only product hook is used.
-Latest source execution and review remain pending. No whole gate, visual or
-review pass is claimed. No local Cargo/Rustc is permitted;
-all compilation runs through vessel-remote-gate on the build VM.
+Exact corrected code 47d74dbe8380138b498257dc508a794b4fcc63be:
+- Kit all-target strict Clippy rc0, run
+  `shell2-lease-20261115T122708Z-47d74dbe`,
+  `/tmp/work/m12-shell-s2/menu-lease-clippy-2`; actual changed Kit Checking.
+- Kit --lib tests 171 passed / 0 failed / 0 ignored, run
+  `shell2-lease-20261115T122919Z-47d74dbe`,
+  `/tmp/work/m12-shell-s2/menu-lease-tests-2`; actual changed Kit Compiling and
+  all five new lease tests explicitly ok. Fonts and command steps both rc0.
+- Existing tests, item/trigger/public geometry and focus-policy sources are
+  unchanged. Size/boundary checks pass with the existing 14 size exceptions.
+
+This documentation-only result update changes no gated native source.
+V1 review is pending. No whole gate, capture, OS, or full F4 approval is claimed.
+No new captures are made for this unchanged menu geometry; headless input
+execution is the correction evidence. No local Cargo/Rustc ran: all compilation
+went through vessel-remote-gate on the build VM. Development files remain owned
+by ubuntu; no service permissions, production data or process was changed.
