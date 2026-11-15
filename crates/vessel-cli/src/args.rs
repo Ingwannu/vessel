@@ -17,6 +17,7 @@ mod forge;
 mod history;
 mod inbox;
 mod log;
+mod metadata;
 mod node;
 mod nodes;
 pub(crate) mod parity;
@@ -34,6 +35,7 @@ pub(crate) use forge::{Method, PrCommand, Switch};
 pub(crate) use history::History;
 pub(crate) use inbox::InboxCommand;
 pub(crate) use log::{Log, LogMode};
+pub(crate) use metadata::{CreationMetadata, Discovery};
 pub(crate) use node::{DevicesCommand, Install, NodeCommand, Source, Update};
 pub(crate) use nodes::{FromStdin, NodesCommand};
 pub(crate) use search::Search;
@@ -132,7 +134,7 @@ pub(crate) enum Command {
     /// milestone 5): their providers, APIs and models, never a URL or key.
     Models,
     /// List sessions, newest first.
-    Sessions,
+    Sessions(Discovery),
     /// Start a session and attach to it.
     Run(Run),
     /// Attach to a session: its terminal, or its conversation.
@@ -363,6 +365,8 @@ pub(crate) struct Run {
     /// Harness to run: claude-code (or claude), codex, gemini, opencode, or
     /// an agent added on the node (`vessel agents`).
     pub(crate) harness: HarnessRef,
+    #[command(flatten)]
+    pub(crate) metadata: CreationMetadata,
     /// Drive it over ACP and show a conversation instead of its terminal UI
     /// (always, for an added agent).
     #[arg(long)]

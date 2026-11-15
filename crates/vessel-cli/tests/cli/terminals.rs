@@ -11,7 +11,7 @@ use vessel_node::Shell;
 use crate::support::{Fixture, within};
 
 /// A node with `/bin/sh` for terminals and the machine's git.
-async fn start() -> Fixture {
+pub(super) async fn start() -> Fixture {
     let git = which::which("git").expect("the tests need git on PATH");
     let git_folder = git.parent().unwrap().to_path_buf();
     Fixture::start_with(|config, _| {

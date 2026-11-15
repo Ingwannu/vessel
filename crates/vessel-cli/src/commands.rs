@@ -58,11 +58,7 @@ pub(crate) async fn run(mut cli: Cli) -> Result<(), CliError> {
             .await
         }
         Command::Models => crate::formatted_models::run(target, cli.output.presentation()).await,
-        Command::Sessions => {
-            let client = connect(target).await?.client;
-            let text = render::sessions(&client.sessions().await?);
-            Ok(io::out(text.as_bytes()).await?)
-        }
+        Command::Sessions(discovery) => crate::session_metadata::list(target, discovery).await,
         Command::Run(run) => run_session(target, run).await,
         Command::Project { command } => {
             crate::parity::projects::project(target, cli.output.presentation(), command).await
@@ -352,7 +348,11 @@ async fn run_session(target: &Target, run: Run) -> Result<(), CliError> {
         }
     };
     let (resolved, book) = nodes::resolve(target)?;
-    let mut spec = SessionSpec::new(run.harness, mode);
+    let mut spec =
+        SessionSpec::new(run.harness, mode).with_labels(crate::labels::parse(&run.metadata.label)?);
+    if let Some(listing) = run.metadata.listing {
+        spec = spec.with_listing(listing);
+    }
     spec.cwd = run.cwd.map(|cwd| node_cwd(&resolved, cwd)).transpose()?;
     spec.profile = run.profile;
     spec.title = run.title;

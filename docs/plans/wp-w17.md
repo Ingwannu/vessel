@@ -1639,3 +1639,31 @@ errors with no success stdout and unchanged Creator/receipt/place. Pure adversar
 receipt tests reject wrong identity, missing detach, rewritten provenance and changed
 idempotent timestamp. They are drafted/unexecuted and outside queued exact8447;
 no positive live RPC or full package claim follows from this source wiring.
+
+### Schema21 source merge and native metadata glue
+
+Merge announced93970acb (gate53 wholly green as integrator reports: Rust2577/0/12,
+web464, e2e80, forge4). Preserve lifecycle's exact legacy run check_call anchor,
+ListSessions default/selected tuple API, schema21 and all producer/export privacy
+rules. Union the architecture additions only; no source conflict was discarded.
+The queued immutable8447 suite stays on1c and does not cover this new source.
+
+[Decision Log]
+- Purpose: consume creation/discovery contracts without losing explicit metadata before preparatory effects.
+- Existing assets: canonical SessionListing/SessionSelection, generic typed client and
+  check_call, lifecycle's reserved pre-placement anchor, current CLI label parser.
+- Alternatives: `--visibility` confuses workspace visibility; repurposing `--background`
+  breaks pinned no-wait aliases; null fallback for explicit filters loses caller intent.
+- Choice: coordinator-ruled native `run --listing shown|background`, repeatable
+  `--label key=value` (pinned agent/run.ts79–82), and native `sessions` explicit filters.
+  Move the existing label parser unchanged to one shared CLI leaf; retain proto validation.
+- Impact: omitted listing stays None; explicit Shown stays Some and is gated just like
+  Background. Only implicit default discovery can fall back on the two typed local
+  protocol admission errors, never on a remote unsupported/error. No second label model,
+  new RPC or workspace visibility shortcut. Document the additions in ADR0063/help.
+
+The actual fake-node CLI test covers default compatibility versus explicit refusal;
+a real-git/fake-ACP control must actually create one worktree before metadata attempts
+can prove no preparatory worktree/session side effects. Future assigned branches
+verify applied classification/labels, not skipped tests. Current tests and strict
+are owed; no assigned/live metadata or preparatory-guard proof is claimed yet.

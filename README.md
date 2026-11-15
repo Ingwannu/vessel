@@ -1477,3 +1477,11 @@ report over that node's existing authenticated connection. It is served from
 protocol 24 on. Against an older peer the command refuses before sending, so no
 local report stands in for the selected node.
 The command's safe error output omits private connection/source details.
+
+Native `vessel run HARNESS` additionally accepts `--listing shown|background` and
+repeatable `--label key=value`; omitted listing preserves caller inheritance.
+Native `sessions --background` includes both discovery classes and `--label`
+requires all supplied labels. Explicit metadata needs the lifecycle protocol
+assignment and is refused while pending. Only an implicit default list may use
+the documented legacy compatibility read. These options do not change the parity
+run aliases `--background`, `-d` and `--detach`, which mean no-wait.

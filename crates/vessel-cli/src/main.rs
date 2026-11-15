@@ -25,6 +25,7 @@ mod history;
 mod inbox;
 mod init;
 mod io;
+mod labels;
 mod log;
 mod node_ctl;
 mod nodes;
@@ -37,6 +38,7 @@ mod render;
 mod search;
 mod secret;
 mod selector;
+mod session_metadata;
 mod terminals;
 mod transfer;
 mod ui;
@@ -135,7 +137,7 @@ async fn cli() -> ExitCode {
         | Command::Agents { .. }
         | Command::Fleet { .. }
         | Command::Models
-        | Command::Sessions
+        | Command::Sessions(_)
         | Command::Run(_)
         | Command::Attach { .. }
         | Command::Send(_)

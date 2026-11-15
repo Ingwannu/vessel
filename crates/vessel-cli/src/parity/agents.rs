@@ -7,6 +7,7 @@ mod mutate;
 mod prompt;
 mod receipt;
 mod row;
+use crate::labels::parse as labels;
 use row::AgentRow;
 
 use super::{
@@ -88,22 +89,6 @@ pub(super) fn structured(info: &SessionInfo) -> Result<(), CliError> {
             "this operation requires a structured agent; terminal process state is not turn state",
         )),
     }
-}
-
-pub(super) fn labels(raw: &[String]) -> Result<vessel_proto::SessionLabels, CliError> {
-    let mut labels = vessel_proto::SessionLabels::new();
-    for text in raw {
-        let (key, value) = text
-            .split_once('=')
-            .ok_or(CliError::Usage("labels must be key=value"))?;
-        labels
-            .insert(
-                key.parse().map_err(CliError::ParityLabel)?,
-                value.parse().map_err(CliError::ParityLabel)?,
-            )
-            .map_err(CliError::ParityLabel)?;
-    }
-    Ok(labels)
 }
 
 /// Scope before mutation; --all is explicit authority, not an ID fallback.

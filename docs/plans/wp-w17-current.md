@@ -1,7 +1,7 @@
 # W17 current invocation map
 
-Product checkpoint: announced gate52 node head
-`1c762ccf870162d3c82d8582ea4f96309654e6e6` merged after the gate50c adaptation, with move-only startup seam
+Product checkpoint: announced gate53 node head
+`93970acbb5c44cfc9649e2e93c3889575592f0cd`, schema21, merged after gate52, with move-only startup seam
 `7489af9ed`, separate registry startup `ece8d0913`, sealed EOF owner `63fba65a5`,
 and the unexecuted real-queue prerequisite fixture `8ddd99ae5`. Conditional C2
 source integration remains `0d7cf46e` product / `c0abda32` docs; full consumer
@@ -13,8 +13,9 @@ Runtime success states use 0, failures 1, help/version 0; ordinary returned wait
 are data with 0. Explicit unsupported output refuses before connection. Raw handlers
 keep their documented stream contracts. The latest exit-code process proof is owed.
 
-Latest source additionally includes announced metadata protocol25 and bounded screen-inbox
-work at c3966e380. The queued467 consumer run was cancelled before a slot (terminal143)
+Latest source additionally includes metadata protocol25, bounded screen-inbox work
+at c3966e380, pending atomic detach consumption and native lifecycle metadata flags.
+The latter source is not covered by the queued immutable8447 suite. The queued467 consumer run was cancelled before a slot (terminal143)
 because it predated these changes. Its ONE same-lane latest replacement is
 wp-cli-narrow-20261115T172916Z-8447cf72, exact8447cf723, queued ordinary.
 Neither queued run supplies compilation/test evidence yet.

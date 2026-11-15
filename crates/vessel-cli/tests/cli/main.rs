@@ -374,3 +374,5 @@ async fn sigterm_detaches_cleanly() {
 }
 
 mod workspace_rename;
+
+mod native_metadata;

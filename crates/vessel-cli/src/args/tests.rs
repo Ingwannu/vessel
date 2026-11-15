@@ -391,3 +391,56 @@ fn agents_install_takes_one_of_the_four_and_its_part() {
     // Only the four have documented installers.
     assert!(Cli::try_parse_from(["vessel", "agents", "install", "goose"]).is_err());
 }
+
+#[test]
+fn native_creation_listing_is_optional_and_does_not_repurpose_paseo_wait_aliases() {
+    let Cli {
+        command: Command::Run(run),
+        ..
+    } = Cli::try_parse_from([
+        "vessel",
+        "run",
+        "claude",
+        "--listing",
+        "shown",
+        "--label",
+        "purpose=one",
+        "--detach",
+    ])
+    .unwrap()
+    else {
+        panic!("native run expected")
+    };
+    assert_eq!(
+        run.metadata.listing,
+        Some(vessel_proto::SessionListing::Shown)
+    );
+    assert_eq!(run.metadata.label, ["purpose=one"]);
+    assert!(run.detach);
+    let Cli {
+        command: Command::Run(run),
+        ..
+    } = Cli::try_parse_from(["vessel", "run", "claude"]).unwrap()
+    else {
+        panic!("native run expected")
+    };
+    assert_eq!(run.metadata.listing, None);
+    assert!(run.metadata.label.is_empty());
+    assert!(Cli::try_parse_from(["vessel", "run", "claude", "--listing", "unknown"]).is_err());
+    let Cli {
+        command: Command::Sessions(query),
+        ..
+    } = Cli::try_parse_from([
+        "vessel",
+        "sessions",
+        "--background",
+        "--label",
+        "purpose=one",
+    ])
+    .unwrap()
+    else {
+        panic!("native sessions expected")
+    };
+    assert!(query.background);
+    assert_eq!(query.label, ["purpose=one"]);
+}

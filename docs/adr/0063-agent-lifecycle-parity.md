@@ -528,3 +528,30 @@ other list calls refuse rather than truncate.
   the protocol change. This track does not draw a screen.
 - Not verified here: no process was restarted and no list was filtered.
   The slices after this one implement the contract.
+
+## W17 native CLI metadata consumer (staged, execution owed)
+
+The native HARNESS grammar adds `run --listing <shown|background>`: it sets the
+canonical optional SessionListing override, preserving omission/inheritance. This
+is a Vessel addition, distinct from canonical workspace visibility and from
+Paseo's no-wait aliases. Repeatable `run --label key=value` reuses the CLI's single
+typed parser and the existing proto constructors; pinned Paseo run.ts79–82 uses
+exactly that spelling. The parity run grammar retains -d/--background/--detach as
+no-wait aliases (run.ts30–37), with no reinterpretation as listing metadata.
+
+Native `sessions --background`/`--label` create an explicit ListSessions::selected
+request with All/Shown scope and all labels. They never downgrade to legacy null.
+Only the implicit native default first checks a Shown request locally and may
+fall back to NodeClient::sessions() on typed UnassignedProtocol/NotInProtocol;
+remote errors/disconnection are never fallback permission. The legacy human
+renderer remains; unsupported explicit output selection still refuses before work.
+These native session-list flags are additions where Paseo has no `sessions` path;
+Paseo `ls` background workspace semantics remain W11's canonical registry concern.
+
+Creation builds labels/listing before the lifecycle-owned check_call anchor and
+before workspace::place. A staged real-git/fake-ACP regression proves the control
+path actually creates a worktree, then requires pending metadata refusal to leave
+worktree identities/session count unchanged. It covers explicit Shown as well as
+Background and labels; assignment later enables positive readback branches.
+No consumer test has executed yet, no protocol number is assigned here, and no
+label mutation/reload API or workspace visibility inference is introduced.
