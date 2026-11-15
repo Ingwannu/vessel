@@ -6,21 +6,10 @@ use std::task::Poll;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use vessel_proto::StopWhen;
-use vessel_proto::restart::SetRestartRecovery;
 use vessel_proto::settings::SetNodeSettings;
 
-use super::writer_tests::{WRITE_TEST_BUDGET, runtime_with_stop};
+use super::writer_tests::{RecoveryChoice, WRITE_TEST_BUDGET, recovery, runtime_with_stop};
 use super::*;
-
-fn recovery(enabled: bool) -> SetNodeSettings {
-    SetNodeSettings {
-        restart_recovery: Some(SetRestartRecovery {
-            enabled: Some(enabled),
-            prompt: None,
-        }),
-        ..SetNodeSettings::default()
-    }
-}
 
 #[tokio::test]
 async fn teardown_drains_saved_off_and_queued_on_before_runtime_and_store_close() {
@@ -36,11 +25,11 @@ async fn teardown_drains_saved_off_and_queued_on_before_runtime_and_store_close(
             )
             .await,
         );
-        settings.change(recovery(true)).await.unwrap();
+        settings.change(recovery(RecoveryChoice::On)).await.unwrap();
         let store = settings.state.recovery.store();
         let (entered, release) = settings.pause_cleanup();
         let first = Arc::clone(&settings);
-        let caller = tokio::spawn(async move { first.change(recovery(false)).await });
+        let caller = tokio::spawn(async move { first.change(recovery(RecoveryChoice::Off)).await });
         entered.await.unwrap();
         caller.abort();
         assert!(caller.await.unwrap_err().is_cancelled());
@@ -54,7 +43,7 @@ async fn teardown_drains_saved_off_and_queued_on_before_runtime_and_store_close(
         assert!(!saved_off.restart_recovery.unwrap().effective().enabled);
         assert!(settings.state.saved.try_lock().is_err());
         assert!(!settings.state.recovery.current().enabled);
-        let mut queued_on = Box::pin(settings.change(recovery(true)));
+        let mut queued_on = Box::pin(settings.change(recovery(RecoveryChoice::On)));
         assert!(matches!(futures_util::poll!(&mut queued_on), Poll::Pending));
         let teardown = crate::shutdown::Teardown {
             runtime: Arc::clone(&settings.state.runtime),
@@ -70,7 +59,7 @@ async fn teardown_drains_saved_off_and_queued_on_before_runtime_and_store_close(
         assert!(!runtime_stop.is_cancelled());
         assert!(store.sessions().await.is_ok());
         assert!(matches!(
-            settings.admission.submit(recovery(true)),
+            settings.admission.submit(recovery(RecoveryChoice::On)),
             Err(SettingsError::Stopping)
         ));
         release.send(()).unwrap();
@@ -82,7 +71,7 @@ async fn teardown_drains_saved_off_and_queued_on_before_runtime_and_store_close(
             Err(vessel_store::StoreError::Closed)
         ));
         assert!(matches!(
-            settings.admission.submit(recovery(true)),
+            settings.admission.submit(recovery(RecoveryChoice::On)),
             Err(SettingsError::Stopping)
         ));
     })
@@ -96,7 +85,7 @@ async fn now_and_drain_close_settings_before_the_idle_waiter_polls() {
         for when in [StopWhen::Now, StopWhen::WhenIdle] {
             let root = tempfile::tempdir().unwrap();
             let settings = super::writer_tests::settings(root.path()).await;
-            settings.change(recovery(true)).await.unwrap();
+            settings.change(recovery(RecoveryChoice::On)).await.unwrap();
             let stop = CancellationToken::new();
             let info = vessel_proto::NodeInfo {
                 id: vessel_proto::NodeId::random(),
@@ -124,7 +113,7 @@ async fn now_and_drain_close_settings_before_the_idle_waiter_polls() {
             // The real primitive's irreversible effect seal is tested beside it.
             assert_eq!(stop.is_cancelled(), matches!(when, StopWhen::Now));
             assert!(matches!(
-                settings.admission.submit(recovery(true)),
+                settings.admission.submit(recovery(RecoveryChoice::On)),
                 Err(SettingsError::Stopping)
             ));
             settings.shutdown().await;

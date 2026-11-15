@@ -1,34 +1,24 @@
 //! Real file/SQL failures must not become saved success or unchanged-value ACKs.
 
 use super::recovery_apply::RecoveryApplyError;
-use super::writer_tests::{WRITE_TEST_BUDGET, patch, settings};
+use super::writer_tests::{RecoveryChoice, WRITE_TEST_BUDGET, patch, recovery, settings};
 use super::*;
 use vessel_proto::restart::SetRestartRecovery;
 use vessel_store::StoreError;
-
-fn recovery(enabled: bool) -> SetNodeSettings {
-    SetNodeSettings {
-        restart_recovery: Some(SetRestartRecovery {
-            enabled: Some(enabled),
-            prompt: None,
-        }),
-        ..SetNodeSettings::default()
-    }
-}
 
 #[tokio::test]
 async fn failed_actual_off_replacement_keeps_the_previous_saved_policy_and_can_retry() {
     tokio::time::timeout(WRITE_TEST_BUDGET, async {
         let root = tempfile::tempdir().unwrap();
         let settings = settings(root.path()).await;
-        settings.change(recovery(true)).await.unwrap();
+        settings.change(recovery(RecoveryChoice::On)).await.unwrap();
         let path = settings.state.data_dir.settings_path();
         let original = std::fs::read(&path).unwrap();
         let kept = root.path().join("previous-settings");
         std::fs::rename(&path, &kept).unwrap();
         std::fs::create_dir(&path).unwrap();
         assert!(matches!(
-            settings.change(recovery(false)).await,
+            settings.change(recovery(RecoveryChoice::Off)).await,
             Err(SettingsError::Write(_))
         ));
         assert!(settings.current().await.restart_recovery.enabled);
@@ -37,7 +27,7 @@ async fn failed_actual_off_replacement_keeps_the_previous_saved_policy_and_can_r
         std::fs::rename(&kept, &path).unwrap();
         assert!(
             !settings
-                .change(recovery(false))
+                .change(recovery(RecoveryChoice::Off))
                 .await
                 .unwrap()
                 .restart_recovery
@@ -62,10 +52,10 @@ async fn failed_cleanup_keeps_saved_off_and_blocks_later_on_before_any_replaceme
     tokio::time::timeout(WRITE_TEST_BUDGET, async {
         let root = tempfile::tempdir().unwrap();
         let settings = settings(root.path()).await;
-        settings.change(recovery(true)).await.unwrap();
+        settings.change(recovery(RecoveryChoice::On)).await.unwrap();
         settings.state.recovery.store().close().await;
         assert!(matches!(
-            settings.change(recovery(false)).await,
+            settings.change(recovery(RecoveryChoice::Off)).await,
             Err(SettingsError::Recovery(RecoveryApplyError::Cleanup(
                 StoreError::Closed
             )))
@@ -74,7 +64,11 @@ async fn failed_cleanup_keeps_saved_off_and_blocks_later_on_before_any_replaceme
         let path = settings.state.data_dir.settings_path();
         let off = std::fs::read(&path).unwrap();
         let (_entered, _release) = settings.pause_write();
-        for change in [recovery(true), recovery(false), patch(ParkAfter::Never)] {
+        for change in [
+            recovery(RecoveryChoice::On),
+            recovery(RecoveryChoice::Off),
+            patch(ParkAfter::Never),
+        ] {
             assert!(matches!(
                 settings.change(change).await,
                 Err(SettingsError::Recovery(RecoveryApplyError::Cleanup(
@@ -101,7 +95,7 @@ async fn failed_on_apply_retries_an_identical_value_without_rewriting_or_false_s
         let settings = settings(root.path()).await;
         settings.state.recovery.store().close().await;
         assert!(matches!(
-            settings.change(recovery(true)).await,
+            settings.change(recovery(RecoveryChoice::On)).await,
             Err(SettingsError::Recovery(RecoveryApplyError::Apply(
                 StoreError::Closed
             )))
@@ -110,7 +104,7 @@ async fn failed_on_apply_retries_an_identical_value_without_rewriting_or_false_s
         let on = std::fs::read(&path).unwrap();
         let (_entered, _release) = settings.pause_write();
         assert!(matches!(
-            settings.change(recovery(true)).await,
+            settings.change(recovery(RecoveryChoice::On)).await,
             Err(SettingsError::Recovery(RecoveryApplyError::Apply(
                 StoreError::Closed
             )))

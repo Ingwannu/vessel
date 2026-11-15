@@ -79,6 +79,25 @@ pub(super) fn patch(park_after: ParkAfter) -> SetNodeSettings {
     }
 }
 
+#[derive(Clone, Copy)]
+pub(super) enum RecoveryChoice {
+    On,
+    Off,
+}
+
+pub(super) fn recovery(choice: RecoveryChoice) -> SetNodeSettings {
+    SetNodeSettings {
+        restart_recovery: Some(vessel_proto::restart::SetRestartRecovery {
+            enabled: Some(match choice {
+                RecoveryChoice::On => true,
+                RecoveryChoice::Off => false,
+            }),
+            prompt: None,
+        }),
+        ..SetNodeSettings::default()
+    }
+}
+
 #[tokio::test]
 async fn cancelled_caller_cannot_release_the_real_writer_or_reorder_application() {
     let result = tokio::time::timeout(WRITE_TEST_BUDGET, async {
