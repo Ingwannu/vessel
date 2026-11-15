@@ -235,3 +235,6 @@ pub fn root<V: 'static + gpui::Render>(
 ) -> gpui::Entity<gpui_component::Root> {
     cx.new(|cx| gpui_component::Root::new(view, window, cx))
 }
+
+mod root_owner;
+pub use root_owner::root_contains_view;
