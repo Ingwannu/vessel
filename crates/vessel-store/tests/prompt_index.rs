@@ -89,7 +89,7 @@ async fn prompt_index_reads_one_snapshot_and_survives_reopen_without_a_new_schem
 }
 
 #[tokio::test]
-async fn retention_invalidates_a_continuation_and_never_returns_pruned_prompts() {
+async fn prompt_index_retention_invalidates_a_continuation_and_never_returns_pruned_prompts() {
     let (_temp, dir) = fixtures::data_dir();
     let config = StoreConfig {
         retention: vessel_store::Retention {
@@ -130,7 +130,7 @@ async fn retention_invalidates_a_continuation_and_never_returns_pruned_prompts()
 /// Explicit timing evidence; no time threshold turns machine load into a test failure.
 #[tokio::test]
 #[ignore = "measurement of repeated snapshot paging; run explicitly with --ignored --nocapture"]
-async fn measure_metadata_pages_over_twenty_thousand_records() {
+async fn prompt_index_measure_metadata_pages_over_twenty_thousand_records() {
     use std::io::Write as _;
     use std::time::Instant;
     const TURNS: u64 = 10_000;

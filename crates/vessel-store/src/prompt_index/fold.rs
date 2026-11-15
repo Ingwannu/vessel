@@ -14,6 +14,12 @@ struct Chunked {
     preview: PreviewBuilder,
 }
 
+#[derive(Debug, Clone, Copy)]
+enum PromptSource {
+    Submitted,
+    History,
+}
+
 #[derive(Default)]
 pub(super) struct Index {
     entries: Vec<PromptLocation>,
@@ -57,7 +63,7 @@ impl Index {
                 self.flush()?;
                 let mut preview = PreviewBuilder::default();
                 for block in content {
-                    push(&mut preview, block);
+                    push(&mut preview, block, PromptSource::Submitted);
                 }
                 self.chunked = Some(Chunked {
                     first: record.seq,
@@ -72,7 +78,7 @@ impl Index {
                     timestamp: record.at,
                     preview: PreviewBuilder::default(),
                 });
-                push(&mut chunked.preview, content);
+                push(&mut chunked.preview, content, PromptSource::History);
                 Ok(())
             }
             AgentEvent::HarnessLog { .. } => Ok(()),
@@ -132,12 +138,28 @@ impl Index {
     }
 }
 
-fn push(preview: &mut PreviewBuilder, block: &ContentBlock) {
+fn push(preview: &mut PreviewBuilder, block: &ContentBlock, source: PromptSource) {
     match block {
         ContentBlock::Text { text } => preview.push(text),
-        ContentBlock::ResourceLink { .. }
-        | ContentBlock::Opaque { .. }
-        | ContentBlock::Attachment { .. } => {}
+        ContentBlock::ResourceLink { name, uri } => {
+            // Match the existing timeline text without allocating a whole URI
+            // or body before the bounded preview builder truncates it.
+            preview.push("[");
+            preview.push(name);
+            preview.push("](");
+            preview.push(uri);
+            preview.push(")");
+        }
+        ContentBlock::Attachment { attachment } => match source {
+            // Submitted files have their own chips, outside the prompt text.
+            PromptSource::Submitted => {}
+            PromptSource::History => {
+                preview.push("[");
+                preview.push(attachment.name.as_str());
+                preview.push("]");
+            }
+        },
+        ContentBlock::Opaque { .. } => {}
     }
 }
 

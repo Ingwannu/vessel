@@ -1,7 +1,8 @@
 # Session prompt index
 
 Status: contract, snapshot projection and pending RPC row implemented; validation
-is pending. Quality B is merged from 29eebb8b. No protocol number is assigned here.
+is pending. Node head 40 (ba45a6e3), including Quality B, is merged. The pending
+row is appended to rpc/table.rs. No protocol number is assigned here.
 
 ## Reference and asset check
 
@@ -77,6 +78,15 @@ per commit; complete root gate and TS freshness once for the node package.
 
 Done: typed values, pure fold/store tests, pending registration and service, raw
 client/server refusal tests for direct calls and all three fleet envelopes, and
-deterministic abandoned-running/queued-scan admission regression. All await compile.
+deterministic abandoned-running/queued-scan admission regression. Narrow clippy
+reported two client-test helper warnings, corrected in fa1a126e9. The combined
+library tests and generated TypeScript refresh are queued; no final gate claim.
+
+Preview text retains resource-link labels/URIs in the existing timeline's
+Markdown form. Submitted attachment chips stay outside the text; replayed file
+names use the timeline's bracketed caption. Each part streams into the bounded
+preview builder rather than first allocating a full body or URI. A projection
+regression covers both sources. Store integration/measurement test names share
+the `prompt_index` prefix so one targeted suite covers all A3 store boundaries.
 Next: narrow checks, TS generation, scan latency measurement, root gate and node
 review; then integrator protocol assignment and native consumption.
