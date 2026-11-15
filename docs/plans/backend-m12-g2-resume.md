@@ -12,7 +12,7 @@ Resume on `backend/m12-app-schedules`, in this track's existing worktree. Read t
   source delta and its A13 whole native gate: 1,060 ordinary plus two doc-test
   passes, zero failures, one inherited ignored test. Run
   `schedules-20261115T022318Z-f6674d0e`, evidence under
-  `/tmp/work/m12-g2/remote-menu-split-20261115/`. Merge-conflict and UI approval
+  `$TRACK_EVIDENCE/remote-menu-split-20261115/`. Merge-conflict and UI approval
   are not implied.
 - `ef91b954` restores typed leading/feedback/muted/dismissal/measured bounds
   on the published renderer, retaining menu_right and motion. Remote native
@@ -35,7 +35,7 @@ Resume on `backend/m12-app-schedules`, in this track's existing worktree. Read t
 The original list remains outside the tree and unverified. Automation screens
 remain undelivered. Next is the schedules list, followed by its editor, runs
 and saved prompts in separate feature slices. Current source preparation and
-owned-process details are kept in `/tmp/work/m12-g2/STATE.md`.
+owned-process details are kept in `$TRACK_EVIDENCE/STATE.md`.
 
 ## Committed and reviewed
 
@@ -51,15 +51,15 @@ owned-process details are kept in `/tmp/work/m12-g2/STATE.md`.
 | `7f56176cfd4309359c7290b67dbd7510252f2fd9` | Merge of reviewed desktop base `fc71dcf7`. V1 source-clear: native471 tests +2 doctests; canonical breakpoint44 and forwarding aliases, nine embedded faces, both sides' registrations/guides preserved. Imported root/client/node/web/release trees match the lead; no local root/web test claim. |
 | `ab1983e4aff134bbc642ed145b7ac93ba2fd16f4` | Selectable muted menu presentation and explicit ordinary14/16 glyph choice. V1 source-clear/provisional consumer reuse:474 tests +2 doctests, fmt and Clippy green. Runtime remains pending. |
 
-Latest gate evidence is under `/tmp/work/m12-g2/`: `menu-presentation-{fmt,clippy,tests}.log`, `menu-presentation-source.json` and `.sha256`. The350-file aggregate is `827544882fa5c611bfc8bc722aabdfcac180ecac922e61234b30b3f8e9af2449`. `native-manifest.py menu-presentation-source check` reproduces the selection and per-file sizes/hashes after the temporary example is removed. Actual Kit/App Checking and Compiling are present in the logs. Do not repeat this unchanged gate.
+Latest gate evidence is under `$TRACK_EVIDENCE/`: `menu-presentation-{fmt,clippy,tests}.log`, `menu-presentation-source.json` and `.sha256`. The350-file aggregate is `827544882fa5c611bfc8bc722aabdfcac180ecac922e61234b30b3f8e9af2449`. `native-manifest.py menu-presentation-source check` reproduces the selection and per-file sizes/hashes after the temporary example is removed. Actual Kit/App Checking and Compiling are present in the logs. Do not repeat this unchanged gate.
 
 V1 is the first reviewer; the coordinator receives its source/UI dispositions. Source-clear is not visual approval. All old invisible-trigger, pre-hit/border and pre-strict list images are excluded from current evidence; see the probe folders' exclusion notes. The list screen itself has no accepted commit.
 
 ## Current runtime probe
 
-`/tmp/work/m12-g2/control-probe-final.rs`, `build-control-probe.py`, `control_qa.py`, `capture-controls.py`, `capture-hit.py`, and `capture-keep-open.py` are uncommitted external probes. The build wrapper temporarily installs one example and removes it even on failure. Its patch/artifact/source hashes must accompany captures; nothing that supplies fixture data or opens a checking route belongs in an installable build.
+`$TRACK_EVIDENCE/control-probe-final.rs`, `build-control-probe.py`, `control_qa.py`, `capture-controls.py`, `capture-hit.py`, and `capture-keep-open.py` are uncommitted external probes. The build wrapper temporarily installs one example and removes it even on failure. Its patch/artifact/source hashes must accompany captures; nothing that supplies fixture data or opens a checking route belongs in an installable build.
 
-The first renewed probe build failed because shaping was called on App's TextSystem instead of the platform/window shaping interface. Its failure logs/patch were retained with the `failed-first-font-proof-` prefix. The corrected probe uses the SAME platform text-system instance as its Application and built successfully. Its external observational frame counter emitted one unused-return-value warning; no production lint was weakened and no unchanged gate was rerun. Exact build/probe/patch/binary records and24 personally inspected PNGs are in `/tmp/work/m12-g2/shots/shared-controls/`, with the limited scope and exclusions in its README. The artifact is from product source350; the temporary example was removed.
+The first renewed probe build failed because shaping was called on App's TextSystem instead of the platform/window shaping interface. Its failure logs/patch were retained with the `failed-first-font-proof-` prefix. The corrected probe uses the SAME platform text-system instance as its Application and built successfully. Its external observational frame counter emitted one unused-return-value warning; no production lint was weakened and no unchanged gate was rerun. Exact build/probe/patch/binary records and24 personally inspected PNGs are in `$TRACK_EVIDENCE/shots/shared-controls/`, with the limited scope and exclusions in its README. The artifact is from product source350; the temporary example was removed.
 
 Actual Light300 identity is still unverified. The lead's Light faces are embedded and were supplied through the ignored font workflow; do not fetch fonts again or change300 to400. Fontconfig metadata lists Light-only aliases, but fontdb prefers typographic family names, so an alias-based runtime comparison may be unavailable. The probe logs failure explicitly and keeps other input/geometry evidence separate. Requested weight or converter fixtures alone are not selected-face proof. Preserve this distinction when reporting to V1 and the lead.
 
@@ -69,7 +69,7 @@ The probe includes state/choice witnesses, measured inner trigger bounds, both o
 
 The original49 files were byte-verified and set aside before the lead merge:
 
-- `/tmp/work/m12-g2/list-wip-before-lead.json`: per-file hash/size/mode and original base.
+- `$TRACK_EVIDENCE/list-wip-before-lead.json`: per-file hash/size/mode and original base.
 - `list-wip-before-lead.patch`: tracked changes; SHA256 `f1c391006ee387217ea82ebb88eeb14d710379b6e4672444ddbb140bb52c9308`.
 - `list-wip-before-lead-untracked.tar`: the27 new files. V1 independently reconstructed the old407-gate source from these and its immutable base.
 - `list-original-files/`: verified original reconstruction.
@@ -85,7 +85,7 @@ The lead confirmed that its existing titlebar PanelLeft replaces the desktop Sid
 
 ## Next controls: prepared only, not approved or installed
 
-All scripts below are under `/tmp/work/m12-g2/`. They are preparation, not finished uncommitted product work. Recheck against the current tree and ledger; do not blindly execute all scripts or overwrite another track's changes.
+All scripts below are under `$TRACK_EVIDENCE/`. They are preparation, not finished uncommitted product work. Recheck against the current tree and ledger; do not blindly execute all scripts or overwrite another track's changes.
 
 | Waiting consumer | Preparation and exact scope |
 | --- | --- |
@@ -109,7 +109,7 @@ Saved-prompt contract preparation is `saved-prompts-contract-plan.md`: list(None
 
 ## Process and resource boundary
 
-Every build/check/clippy/test/run uses `/tmp/work/m12-tools/cargo-slot`, four jobs, one command at a time. Do not cancel/restart a queued build or run another to bypass its wait. Source stays frozen until the command ends. Ignored target configuration and fonts stay in place.
+Historical pre-VM builds used `$BUILD_SLOT`; ALL new Cargo/rustc/build/check/test work is remote-only through the current worker brief. Do not cancel/restart a queued build or run another to bypass its wait. Source stays frozen until the command ends. Ignored target configuration and fonts stay in place.
 
 Earlier owned fake-fleet/display PIDs were verified and stopped. The renewed capture display and every probe process have also been stopped; no process from this track's isolated fake-fleet or probe executable remained. Local builds/captures ran as UID1000 with new isolated home/runtime directories700. No production service, deployment or existing service-account permission change is part of this slice.
 
@@ -176,16 +176,16 @@ labels and the separately retained accepted cadence/error tables.
   caches, retained/off-route read-only engines and reference row-menu fixes are
   committed. They have NOT passed current App compilation, package gate or UI.
 - Exact715 ordinary run finished ViewClippy101/no tests. Its full batch is
-  retained at /tmp/work/m12-g2/f1-foundation-v1-20261115-clippy; own source fixes
+  retained at $TRACK_EVIDENCE/f1-foundation-v1-20261115-clippy; own source fixes
   are committed. Generated PlainSchedules resolver length awaits L's checked
   typed64-field chunks (984fd5b1 candidate, NOT adopted/green here).
 - Isolated shared picker: backend/m12-shared-picker-lease, worktree
-  /tmp/work/m12-g2/picker-lease-producer. Exact range914..a1b1..eceae..99ad57b8.
+  $TRACK_EVIDENCE/picker-lease-producer. Exact range914..a1b1..eceae..99ad57b8.
   A1/ece REDs are preserved. V1 source precheck99 found no remaining blocker;
   adoption still HOLD pending exact requested lib tests. Clippy run
   picker-control-20261115T144446Z-99ad57b8 is0 (ordinary short, priority0).
   Tests picker-control-20261115T150539Z-99ad57b8 are queued, same exact99.
-  Driver /tmp/work/m12-g2/run-picker-control-99ad57b8.sh PID110244 (verify actual
+  Driver $TRACK_EVIDENCE/run-picker-control-99ad57b8.sh PID110244 (verify actual
   command before touching). Label picker-control is temporary; drop only after
   checked handoff to V1/lead/W2, never while busy. No further priority is granted.
 - Picker user-facing per-open admission and weak return focus use the SAME
@@ -222,11 +222,11 @@ labels and the separately retained accepted cadence/error tables.
  98a666 selected Search13c integration;35ef Code form control;8c173 raw-cron
   opt-in;59f7 combobox header length correction;5a15 L Shape compatibility.
 - The isolated914..99ad57b8 picker is V1 SOURCE/requested Kit PASS: strict0 +
- 186/0/0. Source/manifest/raw run packet is /tmp/work/m12-g2/
-  picker-admission-99ad57b8-packet; V1 audit /tmp/work/m12-review/
+ 186/0/0. Source/manifest/raw run packet is $TRACK_EVIDENCE/
+  picker-admission-99ad57b8-packet; V1 audit $REVIEW_EVIDENCE/
   g2-picker-admission-99ad/audit.json. Final7c4f60f6 docs-only includes actual
   handed-off/retired result. Lead/W2/W5 received ONE selected producer range.
-- picker-control label was DROPPED rc0 (logs under /tmp/work/m12-g2/
+- picker-control label was DROPPED rc0 (logs under $TRACK_EVIDENCE/
   retire-picker-control-20261115.*), no reuse/new jobs. No App/consumer UI/native
   Linux focused-field F5/OS/IME proof is implied by the isolated186 result.
 - def6 and66735 Kit-only source jobs both cancelled while queued (143, no
@@ -254,3 +254,19 @@ labels and the separately retained accepted cadence/error tables.
   a parity exception. No cwd inference or old alias opener is allowed.
 - Only remote gate tool may run Cargo/rustc. Do not run boundary script locally
   (it calls metadata); prior accidental metadata disclosure remains preserved.
+
+
+## Base8c and evidence-location correction
+
+Announced WORKER base8c2b806402 (native1464/0/2, inherited only) was merged as
+810139be after reading the updated brief. No whole gate was running. Existing
+20c06d63 narrow submission/steps are immutable PRE-merge source; do not relabel
+its eventual outcome as this merged source. The final F1 package gate must use
+the coherent merged head. Source-only L Shape adaptation is unchanged; L is
+preparing a canonical checked Shape producer for the lead. No further
+generator edit is assigned to G2.
+
+Evidence filenames in this repository are relative to private TRACK_EVIDENCE
+and REVIEW_EVIDENCE roots; the operator's local receipt maps them. Concrete
+home/scratch paths have been removed from these two own plans under the public
+repository rule. No other owner's documentation/source was rewritten.

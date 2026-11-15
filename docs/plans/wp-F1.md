@@ -489,7 +489,7 @@ leading18/chevron16 and numeric14 loading in16slot. The new canonical icon MD16
 and validated loading FOURTEEN constants prevent per-area numeric copies.
 
 Old Settings/HostFilter signatures/defaults and exact old test-module bytes
-are preserved (source check at /tmp/work/m12-g2/form-control-preservation.json).
+are preserved (source check at $TRACK_EVIDENCE/form-control-preservation.json).
 No parallel trigger/list/focus path or area chrome is introduced. Source's
 outline ring is deliberately omitted under the app's existing container/field
 ring policy; border-only active treatment matches TextField's shared policy.
@@ -943,7 +943,7 @@ an earlier immutable source and cannot prove this later integration.
 
 Isolated580 Kit all-target Clippy0 +lib171/0/0 completed; exact runs, hashes,
 prior failure/cancellation records and boundaries are in shared-multiline-source.md
-and /tmp/work/m12-g2/multiline-final-packet-20261115. V1 source disposition is
+and $TRACK_EVIDENCE/multiline-final-packet-20261115. V1 source disposition is
 still required before G3 edits shared field files. This does not approve the
 current moving F1 source, new editor/history plumbing or any product capture.
 
@@ -980,7 +980,7 @@ V1 message5f690726 independently verified exact dcb..580 seven immutable
 Git blobs/byte lengths/SHA, five preserved field blobs, completed log hashes
 and step prefixes. Bounded SOURCE/requested KIT NARROW PASS: exact Kit
 Clippy0 +lib171/0/0, fonts/cargo0/no skips, actual Checking/Compiling.
-Audit /tmp/work/m12-review/g2-multiline-580/audit.json. This closes the preceding
+Audit $REVIEW_EVIDENCE/g2-multiline-580/audit.json. This closes the preceding
 source-disposition-pending checkpoint; it expands none of the listed limits.
 
 The checked exact producer chain/API, optional result docs, and newer-union/
@@ -1254,7 +1254,7 @@ native/visual approval.
 
 V1 final89528d40 accepted exact isolated914..99ad57b8 source and requested
 Kit narrow186/0/0 + Clippy0. The exact frozen manifest/log packet remains
-/tmp/work/m12-g2/picker-admission-99ad57b8-packet; docs result467f28f88.
+$TRACK_EVIDENCE/picker-admission-99ad57b8-packet; docs result467f28f88.
 Selected isolated handoff went to lead/W2/W5; it is not the full F1 branch.
 Main F1 now takes the exact six corrected picker child blobs (focus, keys,
 lifecycle, their tests and rows) from99 with fresh mtimes. Existing F1's one
