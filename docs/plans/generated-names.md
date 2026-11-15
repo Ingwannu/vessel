@@ -583,3 +583,12 @@ The proxy's Clone/policy stays unchanged. Node ownership creates metadata's
 pool once and passes it through the existing policy-checked wrapper.
 Tests owe shared trust identity, independent limits and unchanged original
 client, with no socket or root-file access. No new dependency or wire API.
+
+
+Dedicated transport implementation checkpoint: the policy-checked existing
+HTTP client is bounded across send and body, then uses the existing complete
+decoder. Provider failures remain typed behind safe diagnostics. Six
+recorded/stalled tests pass, including paused-clock deadline, one attempt,
+byte refusal, usage retention, key echo and error-chain sealing; node
+all-targets Clippy passes. No socket was opened. The module remains staged
+and has no production caller, permit acquisition or ModelCall writer yet.
