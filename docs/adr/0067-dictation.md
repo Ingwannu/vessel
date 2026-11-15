@@ -1141,3 +1141,21 @@ clone, never the lifetime guard; it ends on transport close or last-context drop
 This lets later resources consume life().closed() without each copying the
 transport mapping. Calls retaining a context through close grace cannot hide
 physical closure. The pure identity primitive and recording quota remain separate.
+
+
+[Decision Log]
+- Purpose and intent: every connection-owned resource must observe physical
+  closure even when another RPC still holds its context.
+- Existing implementation and constraints: ConnectionLife is pure and must not
+  own RPC, quota or a worker; Outbound already exposes a closing future.
+- Alternatives considered: repeat an Outbound wait in every future consumer, or
+  add another RPC token accessor just for this node-level projection.
+- Choice: the real connection factory creates one guard-free observer and maps
+  the existing future into its canonical life signal.
+- Why this choice: consumers need only the shared accessor, and neither the pure
+  identity primitive nor RPC gains another transport/cancellation capability.
+- Advantages, costs and effects: one small async task per admitted connection;
+  it holds only observers and has no I/O or await after either close wins. It
+  cannot prolong the context guard. Unlike real preparation/writer work, it
+  carries no blocking operation that shutdown must join. Resource workers still
+  retain their separate tracked retirement and reservation obligations.

@@ -6,7 +6,7 @@ merge. This plan does not change `PROTOCOL_VERSION`.
 
 ## Current resume point (2026-11-15)
 
-The designated head d432ef0f and source-reviewed file-diagnostic prerequisite are
+The designated head ede20014 and source-reviewed file-diagnostic prerequisite are
 on the feature branch. Product wiring now connects the real bounded registry,
 provider, canonical ConnectionLife accessor and shared codec, with five pending
 method-table rows. The protocol constant remains None. The generated guard checks
@@ -867,3 +867,9 @@ The product root-cache path passes its associated initializer directly to
 OnceLock; only tests close over the synthetic loader arguments. Both paths keep
 one initialization and the same persistent result semantics, without a product
 closure whose arguments disappear under cfg(test).
+
+
+The transport projection amendment now records why one connection-factory
+observer was chosen over per-resource waits or another RPC accessor, and its
+one-task/no-I/O cost. This is rationale for the existing source, not a new
+transport implementation or additional runtime evidence.
