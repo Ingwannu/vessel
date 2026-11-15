@@ -40,10 +40,12 @@ fn batch(node: vessel_proto::NodeId) -> Batch {
 
 #[tokio::test]
 async fn batch_resumes_each_native_id_in_its_original_directory_and_account() {
+    crate::testing::within(async {
+
     let peer = peer::connect(vec![]).await;
     let batch = batch(peer.client.node().id);
     let Reply::Imported { outcomes, .. } =
-        answer(&peer::admitted(&peer).2, Ask::Import(batch.clone())).await
+        bounded_answer(&peer::admitted(&peer).2, Ask::Import(batch.clone())).await
     else {
         panic!("batch receipt");
     };
@@ -63,54 +65,72 @@ async fn batch_resumes_each_native_id_in_its_original_directory_and_account() {
             matches!(&spec.mode, SessionMode::Structured { resume: Some(id), .. } if id == &entry.id)
         );
     }
+
+    drop(calls);
+
+    peer.finish().await;
+
+    }).await;
 }
 
 #[tokio::test]
 async fn definite_refusals_are_attributed_to_their_row_without_losing_successes() {
-    let peer = peer::connect(vec![
-        peer::Behaviour::Refuse(vessel_proto::ErrorCode::Conflict),
-        peer::Behaviour::Success,
-    ])
+    crate::testing::within(async {
+        let peer = peer::connect(vec![
+            peer::Behaviour::Refuse(vessel_proto::ErrorCode::Conflict),
+            peer::Behaviour::Success,
+        ])
+        .await;
+        let Reply::Imported { outcomes, .. } = bounded_answer(
+            &peer::admitted(&peer).2,
+            Ask::Import(batch(peer.client.node().id)),
+        )
+        .await
+        else {
+            panic!("batch");
+        };
+        assert!(matches!(
+            outcomes.first().unwrap().result,
+            Err(Problem::Refused(vessel_proto::ErrorCode::Conflict))
+        ));
+        assert!(outcomes.last().unwrap().result.is_ok());
+        assert_eq!(peer.calls.lock().unwrap().len(), outcomes.len());
+
+        peer.finish().await;
+    })
     .await;
-    let Reply::Imported { outcomes, .. } = answer(
-        &peer::admitted(&peer).2,
-        Ask::Import(batch(peer.client.node().id)),
-    )
-    .await
-    else {
-        panic!("batch");
-    };
-    assert!(matches!(
-        outcomes.first().unwrap().result,
-        Err(Problem::Refused(vessel_proto::ErrorCode::Conflict))
-    ));
-    assert!(outcomes.last().unwrap().result.is_ok());
-    assert_eq!(peer.calls.lock().unwrap().len(), outcomes.len());
 }
 
 #[tokio::test]
 async fn connection_loss_is_uncertain_instead_of_a_repeatable_create_failure() {
-    let peer = peer::connect(vec![peer::Behaviour::Disconnect]).await;
-    let Reply::Imported { outcomes, .. } = answer(
-        &peer::admitted(&peer).2,
-        Ask::Import(batch(peer.client.node().id)),
-    )
-    .await
-    else {
-        panic!("batch");
-    };
-    assert!(matches!(
-        outcomes.first().unwrap().result,
-        Err(Problem::Uncertain)
-    ));
-    assert_eq!(peer.calls.lock().unwrap().len(), 1);
+    crate::testing::within(async {
+        let peer = peer::connect(vec![peer::Behaviour::Disconnect]).await;
+        let Reply::Imported { outcomes, .. } = bounded_answer(
+            &peer::admitted(&peer).2,
+            Ask::Import(batch(peer.client.node().id)),
+        )
+        .await
+        else {
+            panic!("batch");
+        };
+        assert!(matches!(
+            outcomes.first().unwrap().result,
+            Err(Problem::Uncertain)
+        ));
+        assert_eq!(peer.calls.lock().unwrap().len(), 1);
+
+        peer.finish().await;
+    })
+    .await;
 }
 
 #[tokio::test]
 async fn account_choices_use_the_existing_profile_list_call() {
+    crate::testing::within(async {
+
     let peer = peer::connect(vec![]).await;
     let batch = batch(peer.client.node().id);
-    let Reply::Profiles { result, .. } = answer(
+    let Reply::Profiles { result, .. } = bounded_answer(
         &peer::admitted(&peer).2,
         Ask::Profiles {
             scope: batch.scope.clone(),
@@ -125,6 +145,10 @@ async fn account_choices_use_the_existing_profile_list_call() {
     assert!(
         matches!(peer.calls.lock().unwrap().first(), Some(Call::ListProfiles(request)) if request.harness.as_ref() == Some(&batch.scope.harness))
     );
+
+    peer.finish().await;
+
+    }).await;
 }
 
 #[test]
@@ -153,20 +177,25 @@ fn node_messages_do_not_reach_history_failures() {
 
 #[tokio::test]
 async fn reusing_a_book_alias_for_a_different_node_refuses_before_any_create() {
-    let peer = peer::connect(vec![]).await;
-    let mut request = batch(peer.client.node().id);
-    request.node = vessel_proto::NodeId::random();
-    let Reply::Imported { outcomes, .. } =
-        answer(&peer::admitted(&peer).2, Ask::Import(request)).await
-    else {
-        panic!("batch");
-    };
-    assert!(
-        outcomes
-            .iter()
-            .all(|outcome| matches!(outcome.result, Err(Problem::IdentityChanged)))
-    );
-    assert!(peer.calls.lock().unwrap().is_empty());
+    crate::testing::within(async {
+        let peer = peer::connect(vec![]).await;
+        let mut request = batch(peer.client.node().id);
+        request.node = vessel_proto::NodeId::random();
+        let Reply::Imported { outcomes, .. } =
+            bounded_answer(&peer::admitted(&peer).2, Ask::Import(request)).await
+        else {
+            panic!("batch");
+        };
+        assert!(
+            outcomes
+                .iter()
+                .all(|outcome| matches!(outcome.result, Err(Problem::IdentityChanged)))
+        );
+        assert!(peer.calls.lock().unwrap().is_empty());
+
+        peer.finish().await;
+    })
+    .await;
 }
 
 #[path = "listing_tests.rs"]
@@ -177,98 +206,132 @@ mod activation;
 
 #[tokio::test]
 async fn same_node_reconnect_rejects_original_history_admission_before_any_rpc() {
-    let peer = peer::connect(vec![]).await;
-    let (_home, mut state, _selected, old, mut events) = peer::admitted(&peer);
-    let previous = state.clients["fixture"].clone();
-    let next = state
-        .admissions
-        .admit(MachineKey::from_book("fixture"), old.node())
-        .unwrap();
-    assert_ne!(old.epoch(), next.epoch());
-    let _previous = state
-        .clients
-        .insert("fixture".into(), previous.renamed(next));
-    let mut request = batch(old.node());
-    request.scope.context = old;
-    state.history(Ask::Import(request)).await;
-    let event = crate::testing::within(async { events.recv().await.unwrap() }).await;
-    let crate::Event::History(answer) = event else {
-        panic!("history")
-    };
-    let Reply::Imported { outcomes, .. } = answer.into_reply() else {
-        panic!("import refusal")
-    };
-    assert!(
-        outcomes
-            .iter()
-            .all(|row| row.result == Err(Problem::IdentityChanged))
-    );
-    assert!(peer.calls.lock().unwrap().is_empty());
+    crate::testing::within(async {
+        let peer = peer::connect(vec![]).await;
+        let (_home, mut state, _selected, old, mut events) = peer::admitted(&peer);
+        let previous = state.clients["fixture"].clone();
+        let next = state
+            .admissions
+            .admit(MachineKey::from_book("fixture"), old.node())
+            .unwrap();
+        assert_ne!(old.epoch(), next.epoch());
+        let _previous = state
+            .clients
+            .insert("fixture".into(), previous.renamed(next));
+        let mut request = batch(old.node());
+        request.scope.context = old;
+        crate::testing::phase("history command", state.history(Ask::Import(request))).await;
+        let event = crate::testing::phase("history refusal event", async {
+            events.recv().await.unwrap()
+        })
+        .await;
+        let crate::Event::History(answer) = event else {
+            panic!("history")
+        };
+        let Reply::Imported { outcomes, .. } = answer.into_reply() else {
+            panic!("import refusal")
+        };
+        assert!(
+            outcomes
+                .iter()
+                .all(|row| row.result == Err(Problem::IdentityChanged))
+        );
+        assert!(peer.calls.lock().unwrap().is_empty());
+
+        peer.finish().await;
+    })
+    .await;
 }
 #[tokio::test]
 async fn full_history_budget_refuses_before_spawning_or_sending() {
-    let peer = peer::connect(vec![]).await;
-    let (_home, state, _selected, context, mut events) = peer::admitted(&peer);
-    let _held = std::sync::Arc::clone(&state.history_calls.0)
-        .try_acquire_many_owned(u32::try_from(MAX_CALLS).unwrap())
-        .unwrap();
-    let mut request = batch(context.node());
-    request.scope.context = context;
-    state
-        .history(Ask::Profiles {
-            scope: request.scope,
-            ticket: request.ticket,
+    crate::testing::within(async {
+        let peer = peer::connect(vec![]).await;
+        let (_home, state, _selected, context, mut events) = peer::admitted(&peer);
+        let _held = std::sync::Arc::clone(&state.history_calls.0)
+            .try_acquire_many_owned(u32::try_from(MAX_CALLS).unwrap())
+            .unwrap();
+        let mut request = batch(context.node());
+        request.scope.context = context;
+        state
+            .history(Ask::Profiles {
+                scope: request.scope,
+                ticket: request.ticket,
+            })
+            .await;
+        let event = crate::testing::phase("history refusal event", async {
+            events.recv().await.unwrap()
         })
         .await;
-    let event = crate::testing::within(async { events.recv().await.unwrap() }).await;
-    let crate::Event::History(answer) = event else {
-        panic!("history")
-    };
-    assert!(matches!(
-        answer.into_reply(),
-        Reply::Profiles {
-            result: Err(Problem::Unsent),
-            ..
-        }
-    ));
-    assert!(peer.calls.lock().unwrap().is_empty());
+        let crate::Event::History(answer) = event else {
+            panic!("history")
+        };
+        assert!(matches!(
+            answer.into_reply(),
+            Reply::Profiles {
+                result: Err(Problem::Unsent),
+                ..
+            }
+        ));
+        assert!(peer.calls.lock().unwrap().is_empty());
+
+        peer.finish().await;
+    })
+    .await;
 }
 
 #[tokio::test]
 async fn oversized_import_batch_never_reaches_the_peer() {
-    let peer = peer::connect(vec![]).await;
-    let mut request = batch(peer.client.node().id);
-    let row = request.entries.first().unwrap().clone();
-    request.entries = vec![row; vessel_app_view::history::MAX_IMPORT_ENTRIES + 1];
-    let Reply::Imported { outcomes, .. } =
-        answer(&peer::admitted(&peer).2, Ask::Import(request)).await
-    else {
-        panic!("batch refusal")
-    };
-    assert!(
-        outcomes
-            .iter()
-            .all(|row| row.result == Err(Problem::Capacity))
-    );
-    assert!(peer.calls.lock().unwrap().is_empty());
+    crate::testing::within(async {
+        let peer = peer::connect(vec![]).await;
+        let mut request = batch(peer.client.node().id);
+        let row = request.entries.first().unwrap().clone();
+        request.entries = vec![row; vessel_app_view::history::MAX_IMPORT_ENTRIES + 1];
+        let Reply::Imported { outcomes, .. } =
+            bounded_answer(&peer::admitted(&peer).2, Ask::Import(request)).await
+        else {
+            panic!("batch refusal")
+        };
+        assert!(
+            outcomes
+                .iter()
+                .all(|row| row.result == Err(Problem::Capacity))
+        );
+        assert!(peer.calls.lock().unwrap().is_empty());
+
+        peer.finish().await;
+    })
+    .await;
 }
 #[tokio::test]
 async fn a_mismatched_create_receipt_is_uncertain_instead_of_opening_another_conversation() {
-    let request = batch(vessel_proto::NodeId::random());
-    let mut wrong = SessionInfo::new(
-        vessel_proto::SessionId::random(),
-        request.entries.first().unwrap().spec(&request.scope),
-        chrono::DateTime::UNIX_EPOCH,
-    );
-    wrong.spec.cwd = Some("/wrong-conversation".into());
-    let peer = peer::connect(vec![peer::Behaviour::Session(Box::new(wrong))]).await;
-    let mut request = batch(peer.client.node().id);
-    request.entries.truncate(1);
-    let Reply::Imported { outcomes, .. } =
-        answer(&peer::admitted(&peer).2, Ask::Import(request)).await
-    else {
-        panic!("batch")
-    };
-    assert_eq!(outcomes.first().unwrap().result, Err(Problem::Uncertain));
-    assert_eq!(peer.calls.lock().unwrap().len(), 1);
+    crate::testing::within(async {
+        let request = batch(vessel_proto::NodeId::random());
+        let mut wrong = SessionInfo::new(
+            vessel_proto::SessionId::random(),
+            request.entries.first().unwrap().spec(&request.scope),
+            chrono::DateTime::UNIX_EPOCH,
+        );
+        wrong.spec.cwd = Some("/wrong-conversation".into());
+        let peer = peer::connect(vec![peer::Behaviour::Session(Box::new(wrong))]).await;
+        let mut request = batch(peer.client.node().id);
+        request.entries.truncate(1);
+        let Reply::Imported { outcomes, .. } =
+            bounded_answer(&peer::admitted(&peer).2, Ask::Import(request)).await
+        else {
+            panic!("batch")
+        };
+        assert_eq!(outcomes.first().unwrap().result, Err(Problem::Uncertain));
+        assert_eq!(peer.calls.lock().unwrap().len(), 1);
+
+        peer.finish().await;
+    })
+    .await;
+}
+
+async fn bounded_answer(selected: &crate::connections::SelectedConnection, request: Ask) -> Reply {
+    crate::testing::phase(
+        "history adapter result",
+        crate::history::answer(selected, request),
+    )
+    .await
 }

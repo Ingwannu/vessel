@@ -42,7 +42,7 @@ history-importing = Importing…
 # Import sheet label or message; keep actions short.
 history-cancel = Cancel
 # Import sheet label or message; keep actions short.
-history-open = Open
+history-open = Restore session
 # Import sheet label or message; keep actions short.
 history-select = Select
 # Import sheet label or message; keep actions short.

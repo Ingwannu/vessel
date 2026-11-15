@@ -72,7 +72,10 @@ pub(super) async fn publish(
         problem
     };
     let fallback = crate::Event::History(Answer::refused(request, problem));
-    let _closed = tokio::time::timeout(super::PUBLICATION_DEADLINE, events.send(fallback)).await;
+    // Retain the bounded call permit until the live owner can settle this ticket.
+    // A second dropping timeout would strand an already committed import forever.
+    // Receiver closure still releases the task; no retry or unbounded queue exists.
+    let _closed = events.send(fallback).await;
 }
 
 #[cfg(test)]

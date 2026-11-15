@@ -42,7 +42,7 @@ history-importing = 가져오는 중…
 # Import sheet label or message; keep actions short.
 history-cancel = 취소
 # Import sheet label or message; keep actions short.
-history-open = 열기
+history-open = 세션 복원
 # Import sheet label or message; keep actions short.
 history-select = 선택
 # Import sheet label or message; keep actions short.

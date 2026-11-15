@@ -77,7 +77,7 @@ pub(super) fn render(
         .into_iter()
         .map(|(choice, row)| ((choice, row.disabled), row))
         .unzip();
-    let scope = shell.areas.import.model.scope().cloned();
+    let capture = super::intent::Capture::of(shell);
     combobox(
         "history-picker",
         &shell.areas.import.picker,
@@ -86,14 +86,15 @@ pub(super) fn render(
         &ComboHandlers {
             state: |shell: &mut Shell| &mut shell.areas.import.picker,
             chose: std::rc::Rc::new(move |shell: &mut Shell, index, window, cx| {
-                if shell.areas.import.choosing != Some(which)
-                    || shell.areas.import.model.scope() != scope.as_ref()
-                {
+                if !capture.accepts(shell) || shell.areas.import.choosing != Some(which) {
                     return;
                 }
                 if let Some((choice, disabled)) = choices.get(index)
                     && !disabled
                 {
+                    if !shell.areas.import.advance_visit() {
+                        return;
+                    }
                     shell.history_choose(choice.clone());
                 }
                 shell.areas.import.picker.close();
@@ -226,6 +227,7 @@ fn field(
         Picker::Agent => &area.agent_anchor,
         Picker::Account => &area.account_anchor,
     };
+    let listener = super::intent::listener(shell, super::intent::Action::Picker(which));
     div()
         .flex()
         .flex_wrap()
@@ -249,8 +251,6 @@ fn field(
                 tokens,
             )
             .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
-            .on_click(
-                cx.listener(move |shell, _, window, cx| shell.history_picker(which, window, cx)),
-            ),
+            .on_click(cx.listener(move |shell, _, window, cx| listener(shell, window, cx))),
         )
 }

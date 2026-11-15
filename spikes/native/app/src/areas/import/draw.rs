@@ -12,14 +12,7 @@ use vessel_app_kit::{
 };
 use vessel_app_view::history::{History, Loading};
 
-#[derive(Clone, Copy)]
-enum Action {
-    Refresh,
-    Cancel,
-    Import,
-    More,
-    ShowAll,
-}
+use super::intent::Action;
 
 /// The new-conversation affordance mirrors Paseo's import pill.
 pub(crate) fn entry(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> AnyElement {
@@ -40,9 +33,6 @@ pub(crate) fn render(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
-    if shell.areas.import.pending_open.is_some() {
-        cx.defer_in(window, Shell::history_open_pending);
-    }
     if !shell.areas.import.open {
         return None;
     }
@@ -61,7 +51,7 @@ pub(crate) fn render(
         tokens,
         window,
         crate::areas::draft::compact(window),
-        Shell::close_import,
+        super::intent::listener(shell, Action::Cancel),
         cx,
     );
     Some(
@@ -94,10 +84,10 @@ fn body(shell: &Shell, tokens: &Tokens, window: &Window, cx: &mut Context<'_, Sh
         )
 }
 
-fn state(action: Action, model: &History) -> ButtonState {
+pub(super) fn state(action: &Action, model: &History) -> ButtonState {
     let ready = match action {
         Action::Cancel => true,
-        Action::ShowAll => !model.importing(),
+        Action::Row { .. } | Action::Picker(_) | Action::ShowAll => !model.importing(),
         Action::Refresh | Action::More => {
             !model.importing() && !matches!(model.loading(), Loading::Pending(_))
         }
@@ -136,25 +126,12 @@ fn button(
         ),
         Action::More => ("history-more", words.more(), ButtonKind::Ghost),
         Action::ShowAll => ("history-show-all", words.show_all(), ButtonKind::Ghost),
+        Action::Row { .. } | Action::Picker(_) => return div().into_any_element(),
     };
-    let enabled = state(action, &shell.areas.import.model);
+    let enabled = state(&action, &shell.areas.import.model);
+    let listener = super::intent::listener(shell, action);
     button_with_kind(id, label, kind, enabled, tokens)
-        .on_click(cx.listener(move |shell, _, window, cx| {
-            if state(action, &shell.areas.import.model) == ButtonState::Disabled {
-                return;
-            }
-            match action {
-                Action::Refresh => {
-                    shell.history_profiles();
-                    shell.history_refresh();
-                }
-                Action::Cancel => shell.close_import(window, cx),
-                Action::Import => shell.history_import(),
-                Action::More => shell.history_more(),
-                Action::ShowAll => shell.history_show_all(),
-            }
-            cx.notify();
-        }))
+        .on_click(cx.listener(move |shell, _, window, cx| listener(shell, window, cx)))
         .into_any_element()
 }
 
