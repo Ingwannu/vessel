@@ -4,8 +4,8 @@
 //! loading/input guards and fixed tones; kit owns each microphone/filled glyph.
 
 use vessel_app_kit::ui::{
-    App, ClickEvent, Div, ElementId, InteractiveElement as _, IntoElement as _, ParentElement as _,
-    Styled as _, Window, div, px,
+    AnyElement, App, ClickEvent, Div, ElementId, InteractiveElement as _, IntoElement as _,
+    ParentElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
     ButtonContent, ButtonIcon, ButtonState, CircleConfig, CircleTone, Tokens, assets::Glyph,
@@ -81,52 +81,8 @@ where
         Overlay::Switching(mute) => (mute, ButtonState::Disabled),
         Overlay::Active(mute) => (mute, ButtonState::Enabled),
     };
-    let muted = mute == Mute::Muted;
-    let mute_button = button_with_design(
-        "voice-mute",
-        ButtonContent::Icon(ButtonIcon::new(if muted {
-            Glyph::MicOff
-        } else {
-            Glyph::Mic
-        })),
-        CircleConfig::new(
-            if muted {
-                CircleTone::Danger
-            } else {
-                CircleTone::Surface
-            },
-            state,
-        )
-        .into(),
-        tokens,
-    )
-    .aria_label(
-        if muted {
-            words.voice().unmute()
-        } else {
-            words.voice().mute()
-        }
-        .to_owned(),
-    )
-    .on_click(actions.mute)
-    .into_element()
-    .debug_selector(|| "voice-mute".to_owned());
-    let config = CircleConfig::new(CircleTone::Danger, state);
-    let config = if state == ButtonState::Disabled {
-        config.loading()
-    } else {
-        config
-    };
-    let stop_button = button_with_design(
-        "voice-stop",
-        ButtonContent::Icon(ButtonIcon::new(Glyph::SquareFilled)),
-        config.into(),
-        tokens,
-    )
-    .aria_label(words.voice().stop().to_owned())
-    .on_click(actions.stop)
-    .into_element()
-    .debug_selector(|| "voice-stop".to_owned());
+    let mute_button = mute_action(mute, state, words, tokens, actions.mute);
+    let stop_button = stop_action(state, words, tokens, actions.stop);
     Some(
         frame(tokens)
             .child(
@@ -154,6 +110,75 @@ where
                     .child(stop_button),
             ),
     )
+}
+fn mute_action<M>(
+    mute: Mute,
+    state: ButtonState,
+    words: &Translator,
+    tokens: &Tokens,
+    on_click: M,
+) -> AnyElement
+where
+    M: Fn(&ClickEvent, &mut Window, &mut App) + 'static,
+{
+    let muted = mute == Mute::Muted;
+    button_with_design(
+        "voice-mute",
+        ButtonContent::Icon(ButtonIcon::new(if muted {
+            Glyph::MicOff
+        } else {
+            Glyph::Mic
+        })),
+        CircleConfig::new(
+            if muted {
+                CircleTone::Danger
+            } else {
+                CircleTone::Surface
+            },
+            state,
+        )
+        .into(),
+        tokens,
+    )
+    .aria_label(
+        if muted {
+            words.voice().unmute()
+        } else {
+            words.voice().mute()
+        }
+        .to_owned(),
+    )
+    .on_click(on_click)
+    .into_element()
+    .debug_selector(|| "voice-mute".to_owned())
+    .into_any_element()
+}
+fn stop_action<S>(
+    state: ButtonState,
+    words: &Translator,
+    tokens: &Tokens,
+    on_click: S,
+) -> AnyElement
+where
+    S: Fn(&ClickEvent, &mut Window, &mut App) + 'static,
+{
+    let config = CircleConfig::new(CircleTone::Danger, state);
+    let config = if state == ButtonState::Disabled {
+        config.loading()
+    } else {
+        config
+    };
+    button_with_design(
+        "voice-stop",
+        ButtonContent::Icon(ButtonIcon::new(Glyph::SquareFilled)),
+        config.into(),
+        tokens,
+    )
+    .aria_label(words.voice().stop().to_owned())
+    .on_click(on_click)
+    .into_element()
+    .debug_selector(|| "voice-stop".to_owned())
+    .into_any_element()
 }
 fn frame(tokens: &Tokens) -> Div {
     div()

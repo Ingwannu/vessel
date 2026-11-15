@@ -516,3 +516,10 @@ raw-input trait now names input_format/start_input/input_failure/next_input,
 distinct from native Input methods; start-failure fakes return a typed failure
 instead of unwrapping a lock in Result functions. No behavior or lint policy
 is relaxed. The queued36a1 source predates these corrections.
+
+Overlay composition was divided into placement and two private shared-button
+adapters to keep each function within the package's function budget. Painting,
+labels, generation/input guards and debug selectors remain the same existing
+Kit controls. Existing actual-composition tests remain the verification; no
+parallel button renderer or test mirroring was introduced. Queued30bc strict
+predates this structural change; latest combined compilation remains owed.
