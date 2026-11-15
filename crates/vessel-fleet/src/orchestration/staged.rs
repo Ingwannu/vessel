@@ -1,5 +1,5 @@
-//! Staged skill service, pending the shared method table and node controller.
-//! Tests exercise the actual filesystem machinery against isolated agent homes.
+//! Skill transaction machinery, called by the node's serialized blocking worker.
+//! The module name is historical; public requests remain feature-pending, not test-only.
 
 mod deletion;
 mod filesystem;

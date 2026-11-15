@@ -250,8 +250,11 @@ cleanup preflights depth 32 and 8192 entries before unlinking.
 
 Persistence runs last. A failed apply/save restores only content and modes
 still matching this transaction's own applied state, or already-original
-state. Recreated live names and outside edits retain both live data and
-recovery material. New directories are pruned only if empty. Save makes at
+state. Recreated live names and observed content/mode conflicts retain live data
+and recovery material. External writers are not serialized by this service;
+a writer racing after a content check is not covered by a general atomic
+multi-process transaction guarantee. Late-writer/platform behavior remains
+separate from the synthetic conflict checks. New directories are pruned only if empty. Save makes at
 most three convergence attempts and reconfirms each fresh removal plan.
 Recovery rolls back equal old/new selections unless the commit marker was
 written. After durable selection save, cleanup failure retains a journal but
