@@ -13,8 +13,9 @@
   that immutable Main candidate exactly. Only registration/frame hunks are
   applied to the older sidebar body; its existing renderer stays intact.
 - Impact: no new kit control, glyph, navigation inventory, settings page,
-  command registry or mutation protocol is included. The source is still
-  uncompiled in this isolated union; Main698's pending check is not a pass.
+  command registry or mutation protocol is included. The source was
+  uncompiled at the initial extraction; the exact checked checkpoints below
+  supersede that status. Main698's pending check is not evidence for this union.
 
 Pure APIs: panels::sidebar_form(viewport), sidebar_share(room,width,context),
 sidebar_minimum(context), sidebar_layout(viewport,room,asked,preference,context).
@@ -123,3 +124,65 @@ coupling shrank to308 and admitted it). Old590
 source/review/test evidence remains scoped to that source. The queued590
 export was cancelled before acquisition at18:19:33 UTC (terminal143);
 corrected-source tests and the one replacement export are still owed.
+
+
+## Corrected source and original capture result
+
+Exact6d00a04f passed strict all-target View/App Clippy and App+View execution
+on build-vm. Runs shell2-narrow-20261115T182800Z-6d00a04f and
+shell2-narrow-20261115T183347Z-6d00a04f both have fonts0/cargo0; raw total
+1188/0/2 (App96/0/2, View960/0/0, contracts10+3, page117, docs2).
+The changed View and App actually compile. The exact600 real-root fixture,
+ordinary0 admission and open-Explorer independent400-width-target fixtures
+are explicitly successful. The prior ordinary strict was supported-cancelled
+queued at18:27:47 terminal143 under coordinator9c749; cancellation is not
+execution evidence. That ruling authorized the sequential priority strict,
+tests and ONE export. No concurrent Cargo or local Rust execution was used.
+
+Same-source app export shell2-narrow-20261115T183830Z-6d00a04f has
+fonts0/build0/export0. Its full binary SHA256 is
+2c927c0de9477699f5b9076e243e7eec671ef34323a293bb1c51316ed5af0b6e.
+The exported shared_root.same_commit=false and four read-only root file
+hashes were independently checked. Those protocol23 roots match this
+portable source; they prove no new node behavior. The unmodified fleet.sh
+completed pairing, fixtures and seeding with exit0 under UID/GID1000.
+
+Eight valid originals are in
+/tmp/work/m12-shell-s2/policy-capture-corrected-v2/captures.
+Recipe, complete source/binary/PNG SHA and actual window geometry, preference
+assertions, input sequence, ownership/modes and cleanup are beside them in
+RECIPE.md and capture-manifest.json. Each of the eight was personally opened.
+The actual input is Ctrl+B followed by a saved Hidden preference check.
+Each fresh run has its own HOME/config (including correctly resolved paired
+credential paths), auth-cookie Xvfb, cache/data/runtime and forced EN/theme,
+scale1/reduced motion. No live node, real agent or production permission changed.
+
+| Width, both themes | Requested | Observed sidebar | Pinned source |
+| --- | --- | --- | --- |
+|1280x800|Shown|Docked; source-resolved native width264|desktop-sidebar-layout.ts7–20,40–87; _layout.tsx431–452|
+|1280x800|Hidden|Absent; content fills freed row|desktop-sidebar-layout.ts7–20; _layout.tsx443–452|
+|600x800|Shown|Docked; source-resolved native width200|constants/layout.ts37–40; desktop-sidebar-layout.ts40–87; _layout.tsx438–452|
+|600x800|Hidden|Absent; content fills freed row|desktop-sidebar-layout.ts7–20; _layout.tsx443–452|
+
+The pinned Paseo tree is1c00b365c9e0b74c1580eba33d905d693125ae21.
+Executing its unchanged extracted layout functions independently produces
+minimum0 and visibleShown/hiddenHidden at both widths; its own default is320,
+so the1280 native264 remains a separately stated choice. Native frame12,
+code480/800 budgets, global PHONE768 and temporary Settings exceptions are
+not conflated with the corrected ordinary admission0. No Explorer or Settings
+is open in these images; the inherited Draft route is not canonical workspace
+activation proof. Long sidebar titles at200 remain ellipsized.
+
+Capture-tool correction: an initial excluded set had window clientX=2,
+clipping PNGs to1278/598 despite the requested client width1280/600. Those
+originals and their hashes remain unchanged in the sibling initial folder,
+marked excluded. The admitted v2 recipe moves the same app to0,0 and asserts
+client position/size plus actual PNG IHDR dimensions; no image resize/edit or
+second VM export was used. This is a capture-tool failure, not source evidence.
+
+All recorded own app/Xvfb/node PIDs were identity-checked before termination
+and verified gone afterwards; no private-fleet fake/node process remained.
+Private preferences and Xauthority are0600. These inspected eight states and
+narrow checks do not grant full F4, canonical Explorer/workspace authority,
+physical OS shortcuts, all-row accessibility or latest combined-line approval.
+Coordinator comparison and V1 bounded disposition remain separate.
