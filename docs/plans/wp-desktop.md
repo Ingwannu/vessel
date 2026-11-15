@@ -222,7 +222,7 @@ remains unverified.
 | shutdownaaeabae1 / shutdown123843 | synthetic supervisor/reactor2/0; not actual OS/node integration |
 | controlaf4545c2 / control-tests130429 | actual App79/0/2, including generic quit and deferred-window guards |
 | control48eb2bcc / current-narrow134404 | strict RED: two uncalled old E3 setters and unnecessary CLI Option; no blanket suppression; owner-approved later cleanup |
-| currentd2f477b2 / link-current145243 | combined Link/App all-target strict check running; newer edits remain separate |
+| currentd2f477b2 / link-current145243 | strict RED at Link: obsolete test State field, needless context borrow, let-and-return; App not reached; corrected source queued separately |
 
 Root docs-only095f38c23 records the approved integration-test dev edge; prepared
 3d2128ae5 adds real Keep→Attached authority regression. Those additions do not

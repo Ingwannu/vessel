@@ -82,7 +82,7 @@ impl State {
         };
         // `agent.list` (protocol 11) names every agent the node knows, the
         // ones not installed too; `harness.list` only the installed.
-        let agents = if client.protocol() >= ProtocolVersion::new(11) {
+        if client.protocol() >= ProtocolVersion::new(11) {
             match client.call(vessel_proto::agents::ListAgents {}).await {
                 Ok(known) => Agent::known(&harnesses, &known),
                 Err(error) => {
@@ -92,8 +92,7 @@ impl State {
             }
         } else {
             Agent::all(&harnesses)
-        };
-        agents
+        }
     }
 
     /// A machine just connected: the lists its agents gave last time, if

@@ -39,7 +39,6 @@ pub(crate) fn state(home: &Home) -> (State, mpsc::Receiver<Event>) {
             commands: commands.downgrade(),
             events,
             clients: HashMap::new(),
-            local_registration: None,
             onboarding_scope: vessel_app_view::onboarding::scope::Scope::default(),
             follow: None,
             follow_machine: None,
