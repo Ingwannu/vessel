@@ -226,7 +226,8 @@ Ports. Allocation for one service, in this order: its own `port` if it
 has one; otherwise `port_script` if the block has one; otherwise `range`
 if the block has one; otherwise an ephemeral port. `port_script` is not
 passed to a shell. A relative path is a `RelPath` and is joined to the
-root the way `dir` is. An absolute path is a newtype: absolute, no NUL,
+root the way `dir` is. An absolute path is a newtype: absolute, no NUL or
+other control character,
 at most 4096 bytes, no empty, `.` or `..` component, and that text is
 what the approval shows and what is executed (no symlink resolution
 before the digest, so the digest does not depend on the machine). The
@@ -243,6 +244,103 @@ does not depend on chance, skips reserved ports, and skips a port that
 does not accept a loopback bind. Both fields are digested when the block
 is present, even though `port_script` wins at run time: editing the
 unused range is still a change to the set a person approved.
+
+#### Absolute executable paths across clients
+
+- Purpose and intent: a client must be able to read the approved path of a
+  node on another operating system. Decoding a Windows node's approval on
+  Unix must not turn a valid path into a transport error.
+- Existing constraints: `RelPath` supplies the relative-path rules. An
+  absolute path has the same byte bound (`RelPath::MAX_BYTES`), no NUL or
+  other control character,
+  and no empty, dot or parent component. These are lexical rules; neither
+  parsing nor hashing may touch the filesystem.
+- Alternatives considered: use the decoder host's `Path::is_absolute`;
+  keep unrestricted text; or validate the raw text against both supported
+  path grammars. The first is host dependent, and `Path::components`
+  normalizes away forbidden empty and dot components. Unrestricted text
+  would move validation into every execution path.
+- Choice: `ExecPath` owns private text and records whether its lexical
+  shape is valid for Unix, Windows, or both. Serialization uses that text
+  unchanged. At invocation the node accepts its own grammar or returns a
+  typed platform refusal before spawning; accepting a remote path for
+  inspection does not make that path executable on the local machine.
+- Windows grammar: drive plus root, UNC server/share, and verbatim and
+  device namespace roots follow the forms described by Rust's
+  [path prefixes](https://doc.rust-lang.org/std/path/enum.Prefix.html).
+  A root must be followed by a program component. Ordinary Windows paths
+  use either separator; verbatim paths use backslashes. Unix uses `/`;
+  a backslash there may be a literal filename character. Each grammar
+  checks the original components, before normalization.
+- Why this choice: the same decoder can carry a remote node's literal
+  approval text without changing its meaning according to the client's
+  host. Rust's [path documentation](https://doc.rust-lang.org/std/path/struct.Path.html#method.components)
+  explains why a native component iterator cannot enforce this contract.
+- Costs and effects: a well-formed foreign path can be inspected but is
+  refused at invocation on an incompatible node. Filesystem existence,
+  executable format and symlink resolution remain execution checks;
+  approval still does not pin the file's bytes. An absolute Windows UNC
+  path can reach a network share with the node user's credentials, just
+  as an absolute local path can reach an executable outside the project.
+  No new dependency or crate edge is needed.
+
+Both path types refuse the same `char::is_control` set, including NUL,
+line breaks, terminal escape controls, DEL and C1. NUL retains its own
+diagnostic. This is an approval security floor: control text must not hide
+or redraw what a person sees while the node later executes the full path.
+Absolute paths deliberately do not inherit `RelPath::MAX_PART_BYTES`.
+They can name a foreign filesystem whose component limits differ; native
+component limits are checked at execution along with existence and format.
+The shared overall byte cap still bounds inspection and transport. This
+does not add a filesystem probe to either decoding or hashing.
+
+#### Port-script selection and nonempty allocation values
+
+- Purpose and intent: validate the program and the allocation block once,
+  before either becomes part of an approval or execution plan.
+- Existing constraints: `RelPath` deliberately admits the folder root,
+  which is useful for file calls but cannot name a program. `ExecPath`
+  carries a foreign absolute path without filesystem access. Paseo's
+  `paseo-config-schema.ts:5–22` trims `portScript`, requires at least one
+  of `range` and `portScript`, allows both, and refuses unknown block keys.
+- Alternatives considered: public relative/absolute enum variants; an
+  unchecked command string; or an opaque value with one decoder. Public
+  variants let a caller insert `RelPath::root()`; unchecked text repeats
+  validation at every consumer. Neither protects the constructor boundary.
+- Choice: `PortScript` privately owns a non-root `RelPath` or an
+  `ExecPath`. Its decoder applies JavaScript whole-string trimming, then
+  validates the remaining literal path; serde uses that same decoder.
+  A borrowed target view permits inspection but is not an execution input.
+  `ServicePorts` privately owns its optional range and port script. Its
+  constructor and deserializer both refuse an empty block; no domain
+  default can construct one, and unknown block fields are refused.
+- Why this choice: the existing path types and serde conversion pattern
+  carry their invariants into the future parser. One project-text rule
+  owns JavaScript trimming for the range, terminal entries and port script,
+  so BOM and NEL handling cannot drift between these input edges. No
+  dependency or crate edge is added.
+- Costs and effects: these values remain outside wire replies and project
+  file parsing until their later integration slice. Their presence starts
+  no process. Program existence, relative-link containment, native grammar
+  compatibility and Windows command-script refusal are execution checks
+  still owed; the value slice cannot claim they have run.
+
+Relative program resolution is a deliberate difference from Paseo. Its
+allocator passes the trimmed command to the plugin's `execFile` wrapper
+(`workspace-service-port-allocator.ts:58–72`,
+`packages/plugin/src/server/process.ts:76–100`); a bare command name uses
+Node's [PATH lookup](https://github.com/nodejs/node/blob/v22.x/doc/api/child_process.md).
+Vessel treats even a bare name as relative to the approved project root,
+without consulting PATH. It also keeps `RelPath`'s portable forward-slash
+grammar and refusals, including parent, backslash, control and repository
+metadata components. These are the existing project containment floor:
+approval must not silently select an executable elsewhere through PATH
+or a relative path that escapes the root. The runtime test
+`bare_port_script_is_resolved_under_the_approved_root` must put a different
+fake program on PATH and prove that the project program is selected.
+Relative symlinks are resolved and checked by `Root::existing` at execution;
+the digest continues to cover the approved text, not a machine's resolved
+filename. These runtime tests remain unimplemented in the value slice.
 
 The service's environment, when it is started, gains `VESSEL_PORT` for
 its own port and `VESSEL_SERVICE_<NAME>_PORT` for every service in the
@@ -300,11 +398,29 @@ built the way the workspace's other test programs are. No fake answers
 in a release build.
 
 On Windows neither path uses a signal, systemd or launchd. `port_script`
-is the executable itself, not `cmd.exe`, with the same four arguments,
+names the executable itself, with no automatically inserted `cmd.exe`,
+and receives the same four arguments,
 placed in a job object so the timeout ends it and the children it
 starts, as ADR 0031 already does for a script. The terminal is that
 ADR's Windows shell (`pwsh.exe`, then `powershell.exe`, then
 `cmd.exe`). A failure to start is a typed error, not a skipped entry.
+
+This is a deliberate Windows difference from Paseo. Although the allocator
+requests `shell: false`, `packages/plugin/src/server/process.ts:36–44`
+overrides it: `shouldUseWindowsShell` returns `true` for a `.cmd` or `.bat`
+command script, which then runs through `cmd.exe`. Vessel will instead
+refuse those port scripts before spawning with
+`PortScriptError::WindowsCommandScript`: "a port script on Windows must be
+a native executable, not a .cmd or .bat command script". This security
+floor avoids introducing a command-line interpreter that reparses the four
+arguments, including a branch name chosen by a person or an agent. It
+does not claim that an executable the user explicitly approves cannot
+itself interpret input. The runtime slice must add
+`windows_command_scripts_are_refused_before_spawn`, covering mixed-case
+extensions, Win32-normalized names and resolved targets that identify a
+command script, with a metacharacter-bearing branch and proof that no
+child starts. The lexical path type alone neither performs this check nor
+claims that test has run; actual Windows execution remains unverified.
 
 Named-script whitespace is an existing difference retained here. Paseo's
 `getScriptConfigs` trims `command` (`utils/worktree.ts:331-337`). Vessel's

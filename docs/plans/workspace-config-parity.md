@@ -35,8 +35,14 @@ Read in Paseo 0.15.4. Paths are the package paths in that tree.
   one. `portScript` wins over `range`. An explicit service `port` wins
   over the block. The project block replaces the daemon-wide
   `worktrees.servicePorts`; it does not merge with it
-  (`workspace-service-port-allocator.ts`). The script is executed, not a
-  shell: four arguments, 10 s, 1024 bytes, one TCP port. A reserved port
+  (`workspace-service-port-allocator.ts`). The allocator requests direct
+  execution: four arguments, 10 s, 1024 bytes, one TCP port. On Windows,
+  the plugin's `process.ts:36–44` overrides `shell: false` for `.cmd` and
+  `.bat` and inserts `cmd.exe`. Vessel deliberately refuses that automatic
+  shell path with `PortScriptError::WindowsCommandScript` to keep a chosen
+  branch name out of interpreter reparsing (ADR 0066). Its runtime test
+  `windows_command_scripts_are_refused_before_spawn` is still owed.
+  A reserved port
   is refused. A port the script returns is not probed first.
 - Health (`script-health-monitor.ts`, `local-service-connection.ts`):
   TCP connect to loopback, not HTTP. `pending` for 5 s, then every 3 s
@@ -162,8 +168,8 @@ shown and a partial comparison cannot claim the commands are unchanged.
 - Done: slice 1's reviewed ADR and follow-up amendments; slice 2a's
   reviewed terminal approval contract and exhaustive web refusal.
 - Integration: node baseline `a365d295` is merged with both architecture
-  texts preserved. The merged head's whole gate is pending; the earlier
-  protocol-test waiver no longer applies. `PROJECT_FILE_KEYS` stays
+  texts preserved. Its root and web gates passed with no waiver or retry;
+  the earlier protocol-test waiver no longer applies. `PROJECT_FILE_KEYS` stays
   unassigned.
 - Implemented: slice 2a's terminal decoder, approval fields, digest vectors,
   compatibility and CLI rendering. The slice's validation results belong in
@@ -183,7 +189,26 @@ shown and a partial comparison cannot claim the commands are unchanged.
   The existing serde
   conversion pattern is reused; the observed-listener DTO is a separate
   fact, not a declared or allocated service port.
-- Then: add the executable path and nonempty allocation block, followed by
+- Implemented value contract: `ExecPath` keeps private literal text and
+  its Unix, Windows or shared grammar. Its decoder and serde check raw
+  components without filesystem access or native normalization; five
+  portable fixture tests cover prefix forms, components, round trips and
+  the shared byte bound. Rust's Windows prefix source also recognizes a
+  forward slash in the verbatim UNC marker; the remaining verbatim
+  components still use backslashes. The type is not yet a wire field or
+  project-file key. Native invocation and the Windows command-script
+  refusal remain later typed checks, with their tests still owed.
+- Approval display: the absolute path now shares `RelPath`'s control
+  character refusal. LF, CR, ESC, another C0, DEL and C1 are tested through
+  both text and serde for Unix, drive and UNC paths; NUL keeps its own
+  diagnostic. The absolute per-component limit remains a native execution
+  check, with its reason in ADR 0066.
+- Then: add the nonempty allocation block and project-relative program
+  path described in ADR 0066. Reuse `RelPath`, `ExecPath` and validated
+  serde through private owners; share the existing JavaScript trim rule
+  across the input edges. A relative bare program is project-rooted,
+  unlike Paseo's PATH lookup; the execution test proving that selection
+  and relative-link containment remain owed. Then add
   the file parser, digest, approval snapshots and exhaustive clients in
   separate small changes. Runtime follows with approval and lifecycle
   tests. Returned review findings take priority.
