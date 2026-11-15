@@ -94,6 +94,15 @@ impl SharedLogs {
         Ok(())
     }
 
+    pub(crate) fn interrupt_stderr(&self, parser: &mut StderrLines) -> Result<(), RuntimeError> {
+        let mut tail = self.tail.lock().map_err(|_poisoned| RuntimeError::Logs)?;
+        parser
+            .interrupted(Utc::now(), &mut tail)
+            .map_err(RuntimeError::LogIdentity)?;
+        self.publish(&tail);
+        Ok(())
+    }
+
     fn publish(&self, tail: &LogTail) {
         let latest = tail.latest();
         let _changed = self.revision.send_if_modified(|current| {

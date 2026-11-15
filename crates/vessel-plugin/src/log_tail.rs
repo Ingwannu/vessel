@@ -113,6 +113,19 @@ impl StderrLines {
         Ok(())
     }
 
+    /// A cancelled reader has no EOF proof. Retain captured bytes but never
+    /// label its unterminated prefix as a complete diagnostic line.
+    pub(crate) fn interrupted(
+        &mut self,
+        at: DateTime<Utc>,
+        tail: &mut LogTail,
+    ) -> Result<(), LogExhausted> {
+        if !self.prefix.is_empty() {
+            self.truncation = Some(LogTruncation::PrefixRetained);
+        }
+        self.finish(at, tail)
+    }
+
     fn emit(&mut self, at: DateTime<Utc>, tail: &mut LogTail) -> Result<(), LogExhausted> {
         let (message, captured) = LogText::capture(&self.prefix);
         let truncation = self.truncation.take().unwrap_or(captured);

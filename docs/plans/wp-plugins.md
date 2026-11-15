@@ -331,3 +331,16 @@ regressions cover refusal exactly at the deadline and timely initialization
 followed by later registration updates. Only the existing Tokio test-util
 feature is added for deterministic tests; no production timer/budget changes.
 This correction is not covered by earlier queued source hashes.
+
+V3 row193 returned the earlier abort-all shutdown because it could discard final
+stderr. The correction keeps the existing two-second bounded EOF drain after
+owned cleanup. A new regression holds the actual child stderr reader until
+after wait_checked has returned, then permits its first turn only inside drain;
+on one executor thread an immediate abort-all deterministically loses that
+diagnostic. A second controlled reader acknowledges parsing a partial line and
+then never reaches EOF. Timeout aborts and joins it, while its bounded capture
+guard retains the partial line with PrefixRetained rather than Complete.
+No EOF/descendant-death proof is inferred from timeout, and timeout still refuses
+lifecycle acknowledgement. The guard's emergency flush is best effort only on
+already-failed/cancelled reader paths; successful EOF flushes errors normally.
+No new deadline, signal implementation or public method is introduced.

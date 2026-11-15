@@ -2,7 +2,7 @@
 //! discard a half-read header or a half-written frame.
 
 use tokio::{
-    io::AsyncReadExt,
+    io::{AsyncRead, AsyncReadExt},
     process::{ChildStderr, ChildStdin, ChildStdout},
     sync::mpsc,
     task::{AbortHandle, JoinError, JoinSet},
@@ -125,21 +125,52 @@ pub(crate) fn writer(
     }));
 }
 
-pub(crate) fn stderr(workers: &mut Workers, mut stderr: ChildStderr, logs: SharedLogs) {
-    let _stderr = workers.tasks.spawn(async move {
-        let mut buffer = [0; STDERR_READ_BYTES];
-        let mut parser = StderrLines::default();
-        loop {
-            let length = stderr
-                .read(&mut buffer)
-                .await
-                .map_err(RuntimeError::Stderr)?;
-            if length == 0 {
-                logs.finish_stderr(&mut parser)?;
-                return Ok(WorkerExit::Stderr);
-            }
-            let bytes = buffer.get(..length).ok_or(RuntimeError::Logs)?;
-            logs.stderr(&mut parser, bytes)?;
-        }
-    });
+pub(crate) fn stderr(workers: &mut Workers, stderr: ChildStderr, logs: SharedLogs) {
+    let _stderr = workers.tasks.spawn(read_stderr(stderr, logs));
 }
+
+async fn read_stderr(
+    mut stderr: impl AsyncRead + Unpin,
+    logs: SharedLogs,
+) -> Result<WorkerExit, RuntimeError> {
+    let mut captured = StderrCapture {
+        parser: StderrLines::default(),
+        logs,
+        eof: false,
+    };
+    let mut buffer = [0; STDERR_READ_BYTES];
+    loop {
+        let length = stderr
+            .read(&mut buffer)
+            .await
+            .map_err(RuntimeError::Stderr)?;
+        if length == 0 {
+            captured.logs.finish_stderr(&mut captured.parser)?;
+            captured.eof = true;
+            return Ok(WorkerExit::Stderr);
+        }
+        let bytes = buffer.get(..length).ok_or(RuntimeError::Logs)?;
+        captured.logs.stderr(&mut captured.parser, bytes)?;
+    }
+}
+
+struct StderrCapture {
+    parser: StderrLines,
+    logs: SharedLogs,
+    eof: bool,
+}
+impl Drop for StderrCapture {
+    fn drop(&mut self) {
+        if !self.eof {
+            // Cancellation/failed reads cannot return a successful complete
+            // drain. Preserve the bounded prefix before the join completes.
+            // On a poisoned/exhausted store this is best effort: the original
+            // worker/timeout failure already prevents lifecycle acknowledgement.
+            drop(self.logs.interrupt_stderr(&mut self.parser));
+        }
+    }
+}
+
+#[cfg(test)]
+#[path = "workers_tests.rs"]
+mod tests;
