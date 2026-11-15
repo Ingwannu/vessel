@@ -5,8 +5,10 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Pin<S, W> {
     /// Validated source identity supplied by the node contract.
+    #[serde(alias = "sourceId")]
     pub source: S,
     /// Validated window identity, independent of label and account.
+    #[serde(alias = "windowId")]
     pub window: W,
 }
 

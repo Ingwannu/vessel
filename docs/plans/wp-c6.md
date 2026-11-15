@@ -181,3 +181,10 @@ Coordinator assigned the remaining arbitrary-body adaptive UsageOptions popover 
 - Choice: one pure `UsageHost::of_machine` projection uses the shared ConnectionContext for availability and the actual method table for support. Settings, modal, summary, session reads and stale-action checks all use that same admission fact; the actual usage RPC still decides scopes.
 - Impact: usage can display its own typed refusal/success independently of the session list. Dropping the admitted epoch makes the host disconnected even if an old Online display flag remains. No alias substitution or second connection registry is added.
 - Regression: a semantic-refusal Machine with a real fixture admission remains connected for usage; removing that epoch, including with an Online flag, becomes disconnected.
+
+### Preference compatibility uses the existing decoder
+[Decision Log]
+- Purpose: match Paseo preferences.ts:25–44: read legacy `pinned` only when `pins` is absent; old empty means defaults, while new explicit empty means no pins.
+- Existing asset: typed PinSelection plus the shared per-field lenient serde decoder already preserve valid host/display fields independently. Serde is already a dependency; no external API is needed.
+- Choice: modify that decoder with a private missing/present pin state, preserve new null/malformed/empty precedence, and accept sourceId/windowId plus displayAs/serverId aliases at the storage edge. Serialize only canonical native fields so compatibility is read once through the normal writer.
+- Impact: no second preference, pin registry or transport DTO. Default/explicit-empty distinction remains unchanged and the first edit still snapshots source defaults.
