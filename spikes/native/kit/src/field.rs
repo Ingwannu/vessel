@@ -382,6 +382,11 @@ impl TextField {
                     .text_size(px(fonts::ui(15.0)))
                     .line_height(px(fonts::ui(21.0)))
                     .text_color(neutral.foreground)
+                    // Submit already ran in the shared engine listener. Stop
+                    // the native textarea fallback from inserting another line.
+                    .on_action(|_: &gpui_base::input::Enter, _window, cx| {
+                        cx.stop_propagation();
+                    })
                     .child(Textarea::new(state))
                     .into_any_element()
             }
