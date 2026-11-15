@@ -46,6 +46,20 @@ struct Editor {
     field: TextField,
 }
 impl Editor {
+    fn edited(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
+        let LayoutKey::Workspace { node, workspace } = &self.workspace else {
+            return;
+        };
+        let target = DraftKey::Workspace {
+            node: *node,
+            workspace: *workspace,
+            draft: self.draft,
+        };
+        let text = self.field.text(cx);
+        let _closed = self.shell.update(cx, |shell, cx| {
+            shell.composer_keep_workspace_text(target, &text, cx);
+        });
+    }
     fn submitted(&mut self, text: String, _window: &mut Window, cx: &mut Context<'_, Self>) {
         let _closed = self.shell.update(cx, |shell, cx| {
             shell.submit_workspace_draft(&self.workspace, self.draft, text, cx);
@@ -138,12 +152,18 @@ impl Shell {
                 vessel_app_view::composer::context::ContextProblem::Scope,
             ));
         }
+        let source = DraftKey::Workspace {
+            node: seed.destination.node,
+            workspace,
+            draft,
+        };
         let owner = cx.entity().downgrade();
         let target = key.clone();
         // The kit deliberately takes a function pointer. Put the captured
         // address in its model owner, rather than inferring a global field.
         let editor = cx.new(|cx| {
             let field = TextField::composer("", Editor::submitted, window, cx);
+            field.on_edit(Editor::edited, window, cx);
             field.set_text(seed.text.as_str(), window, cx);
             Editor {
                 workspace: target,
@@ -165,6 +185,9 @@ impl Shell {
                 error: None,
             },
         );
+        // Programmatic seed writes emit no edit callback. Use the same exact
+        // retained field/value check as subsequent typing, after acceptance.
+        self.composer_keep_workspace_text(source, seed.text.as_str(), cx);
         cx.notify();
         Ok(())
     }

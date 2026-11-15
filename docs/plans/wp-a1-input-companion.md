@@ -54,3 +54,12 @@ After the announced root prerequisites land, check the exact combined union
 with all-target App/View/Link/Kit strict and actual owned GPUI/Link tests.
 Package gates, inspected captures, live resident admission, guarded hydration
 and final review remain separate outstanding work.
+
+The persistence follow-up reuses the already-tested captured Editor::edited
+binding and accepted-seed keep from the main owner. Ordinary typing now goes
+through W6's existing exact-field/value-matched workspace helper, as @ insertion
+does; programmatic initial text is kept only after its editor is admitted.
+The unchanged predecessor regression checks initial text, subsequent edits,
+sibling retention and separation from global New. This does not enable history
+intake, root authority, a second draft store or creation transport. The new
+receiving union still needs its actual compile/test check.
