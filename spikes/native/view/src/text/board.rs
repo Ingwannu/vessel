@@ -51,7 +51,7 @@ impl BoardWords {
     pub fn no_sessions_on(&self, machine: &str) -> String {
         match self.lang {
             Lang::En => format!("No sessions on {machine} yet"),
-            Lang::Ko => format!("{machine}에 아직 세션이 없습니다"),
+            Lang::Ko => format!("{machine} 머신에는 아직 세션이 없습니다"),
         }
     }
 
@@ -90,7 +90,7 @@ impl BoardWords {
                 "The agent on {machine} and everything it started stop now. The session's log stays."
             ),
             Lang::Ko => format!(
-                "{machine}의 에이전트와 그 에이전트가 시작한 모든 것이 지금 멈춥니다. 세션 기록은 남습니다."
+                "{machine} 머신의 에이전트와 그 에이전트가 시작한 모든 것이 지금 멈춥니다. 세션 기록은 남습니다."
             ),
         }
     }
