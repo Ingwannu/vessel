@@ -330,7 +330,10 @@ impl Shell {
 
 #[cfg(test)]
 impl Answering {
-    pub(super) fn request_source(&self, id: QuestionId) -> Option<(vessel_app_kit::FieldId, bool)> {
+    pub(super) fn request_source(
+        &self,
+        id: QuestionId,
+    ) -> Option<(vessel_app_kit::field::FieldId, bool)> {
         (self.id == id).then(|| (self.field.id(), self.sent))
     }
     pub(super) fn request_sending(&self) -> bool {

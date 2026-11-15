@@ -4,7 +4,7 @@ mod eligibility;
 mod lifecycle;
 
 use super::ConversationArea;
-use vessel_app_kit::FieldId;
+use vessel_app_kit::field::FieldId;
 use vessel_app_view::connection::ConnectionContext;
 use vessel_app_view::requests::Request;
 use vessel_app_view::residents::{FollowBinding, OperationTicket, ResidentProblem};

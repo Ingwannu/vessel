@@ -5,7 +5,7 @@ use crate::areas::layout::residents::{SessionResidents, SessionResources};
 use crate::areas::session::SessionView;
 use crate::shell::language_tests;
 use gpui::TestAppContext;
-use vessel_app_kit::FieldId;
+use vessel_app_kit::field::FieldId;
 use vessel_app_view::connection::{ConnectionContext, ConnectionEpochs, MachineKey};
 use vessel_app_view::layout::{
     AgentRole, Layout, LayoutKey, LayoutMode, OpenIntent, PaneId, Placement, Target,
@@ -40,8 +40,8 @@ impl Fixture {
         Request::Question(self.question)
     }
 }
-fn entered(_: FieldId, _: String, _: &mut Window, _: &mut Context<'_, Shell>) {}
-fn changed(_: FieldId, _: String, _: &mut Context<'_, Shell>) {}
+fn entered(_: &mut Shell, _: FieldId, _: String, _: &mut Window, _: &mut Context<'_, Shell>) {}
+fn changed(_: &mut Shell, _: FieldId, _: String, _: &mut Context<'_, Shell>) {}
 fn question(id: QuestionId) -> Question {
     Question {
         id,
@@ -333,7 +333,7 @@ fn permission_preparation_accepts_only_an_actual_offered_option(cx: &mut TestApp
         let context = residents.context(f.token, &f.claim).unwrap();
         let area = &mut residents.resources_mut(&context).unwrap().conversation;
         let id = PermissionId::random();
-        let offered: PermissionOptionId = "provider-actual-id".parse().unwrap();
+        let offered: PermissionOptionId = PermissionOptionId::new("provider-actual-id");
         area.live.permissions.push(PermissionRequest {
             id,
             tool_call: ToolCallId::new("actual-tool"),
@@ -350,7 +350,7 @@ fn permission_preparation_accepts_only_an_actual_offered_option(cx: &mut TestApp
                 binding,
                 Form::Permission {
                     id,
-                    option: "invented".parse().unwrap()
+                    option: PermissionOptionId::new("invented")
                 },
                 area
             ),

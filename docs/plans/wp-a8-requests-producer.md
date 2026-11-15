@@ -107,3 +107,13 @@ Requests controller is fixture-local: tests do not prove actual bundle lifetime,
 vote collection, guards, wire delivery or product registration. W12 alone owns
 those joins. The real retained SessionResources.conversation and its actual
 TextField are used; no drop/reprepare sequence is claimed as atomic proof.
+
+### First exact strict result
+
+Run wp-side-narrow-20261115T170043Z-c3d00004 failed compilation with seven
+source-integration diagnostics: this base exports FieldId at kit::field::FieldId,
+not the Kit root; fixture callbacks omitted the existing owner parameter; and
+opaque PermissionOptionId has new(), not FromStr, on this base. The correction
+uses those exact existing APIs and changes no engine or wire value. No new Kit
+export or node dependency is added. Four GPUI cases were not executed. Per the
+coordinator, the next corrected-source check uses the ordinary lane.
