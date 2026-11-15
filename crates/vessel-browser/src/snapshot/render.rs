@@ -60,7 +60,9 @@ fn line(node: &Node) -> Result<String, SnapshotError> {
                 attributes.push(format!("ref={}", reference.as_str()));
             }
             if !attributes.is_empty() {
-                line.push_str(&format!(" [{}]", attributes.join(" ")));
+                line.push_str(" [");
+                line.push_str(&attributes.join(" "));
+                line.push(']');
             }
             Ok(line)
         }

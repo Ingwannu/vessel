@@ -9,6 +9,7 @@ fn element(depth: u8, role: &str, name: &str, reference: Option<&str>) -> Value 
         "state":{"checked":null,"expanded":null,"selected":null,"disabled":false,"readonly":false,"level":null}})
 }
 fn encoded(nodes: Vec<Value>, visited: usize, truncated: bool) -> String {
+    let nodes = Value::Array(nodes);
     json!({"nodes":nodes,"visited":visited,"frames":0,"truncated":truncated}).to_string()
 }
 #[test]
@@ -35,7 +36,7 @@ fn own_graph_renders_escaped_lines_and_keeps_private_fingerprints_out_of_debug()
     assert_eq!(snapshot.content.completeness, TextCompleteness::Whole);
     assert_eq!(snapshot.stats.references.get(), 1);
     assert_eq!(
-        snapshot.stats.text_bytes.get() as usize,
+        usize::try_from(snapshot.stats.text_bytes.get()).unwrap(),
         snapshot.content.text.as_str().len()
     );
     assert!(
@@ -53,7 +54,7 @@ fn malformed_or_late_result_clears_all_previous_refs_and_consumes_its_range() {
         1,
         false,
     );
-    finish(&input, first, &mut refs).unwrap();
+    let _retained = finish(&input, first, &mut refs).unwrap();
     let second = refs.begin_snapshot().unwrap();
     assert!(refs.resolve(&old).is_err());
     assert_ne!(first.at(0).unwrap(), second.at(0).unwrap());
@@ -89,7 +90,10 @@ fn excess_graph_item_is_refused_before_its_payload_and_bad_depth_is_not_empty_su
     let error = finish(&input, namespace, &mut refs).unwrap_err();
     match error {
         SnapshotError::Decode(error) => assert!(error.to_string().contains("node limit")),
-        other => panic!("{other}"),
+        other @ (SnapshotError::Reference(_)
+        | SnapshotError::Graph
+        | SnapshotError::Render(_)
+        | SnapshotError::Evaluation(_)) => panic!("{other}"),
     }
     for input in [
         encoded(vec![], 0, false),
@@ -111,7 +115,8 @@ fn excess_graph_item_is_refused_before_its_payload_and_bad_depth_is_not_empty_su
 fn escaped_unicode_output_reserves_a_complete_visible_truncation_marker() {
     let mut refs = References::default();
     let namespace = refs.begin_snapshot().unwrap();
-    let text = "\0한".repeat(MAX_PAGE_TEXT_BYTES / 4);
+    const CHUNK: &str = "\0한";
+    let text = CHUNK.repeat(MAX_PAGE_TEXT_BYTES.checked_div(CHUNK.len()).unwrap());
     let input = encoded(vec![json!({"kind":"text","depth":0,"text":text})], 1, false);
     let snapshot = finish(&input, namespace, &mut refs).unwrap();
     assert_eq!(snapshot.content.completeness, TextCompleteness::Truncated);

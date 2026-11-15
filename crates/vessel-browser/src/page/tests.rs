@@ -114,7 +114,7 @@ async fn peer(listener: TcpListener) {
                 history(histories)
             }
             "Page.getFrameTree" => {
-                frame_queries += 1;
+                frame_queries = frame_queries.checked_add(1).unwrap();
                 let loader = if frame_queries == 4 {
                     "changed-loader"
                 } else {

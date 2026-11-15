@@ -68,7 +68,7 @@ pub(crate) fn finish(
     let result = decode(source, namespace, references);
     if result.is_err() {
         // Even a partially decoded/retained graph must not resolve later.
-        references.invalidate()?;
+        let _cleared_generation = references.invalidate()?;
     }
     result
 }
@@ -78,17 +78,17 @@ fn decode(
     references: &mut References<Binding>,
 ) -> Result<Snapshot, SnapshotError> {
     let graph: Graph = serde_json::from_str(source).map_err(SnapshotError::Decode)?;
-    complete(graph, namespace, references)
+    complete(&graph, namespace, references)
 }
 fn complete(
-    graph: Graph,
+    graph: &Graph,
     namespace: SnapshotNamespace,
     references: &mut References<Binding>,
 ) -> Result<Snapshot, SnapshotError> {
     references.check_namespace(namespace)?;
     graph.validate()?;
-    let content = render::render(&graph)?;
-    let count = retain(&graph, namespace, references)?;
+    let content = render::render(graph)?;
+    let count = retain(graph, namespace, references)?;
     Ok(Snapshot {
         stats: SnapshotStats {
             nodes: SnapshotMetric::new(graph.visited),
@@ -139,9 +139,9 @@ pub(crate) fn finish_evaluation(
     let decoded = result
         .remote_object::<ReturnedGraph>()
         .map_err(SnapshotError::Evaluation)
-        .and_then(|result| complete(result.value, namespace, references));
+        .and_then(|result| complete(&result.value, namespace, references));
     if decoded.is_err() {
-        references.invalidate()?;
+        let _cleared_generation = references.invalidate()?;
     }
     decoded
 }

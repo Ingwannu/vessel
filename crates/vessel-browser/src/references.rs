@@ -199,8 +199,10 @@ mod tests {
 
     #[test]
     fn reserved_ranges_preserve_large_integer_names_and_exhaust_before_wrap() {
-        let mut refs = References::<()>::default();
-        refs.next = 9_007_199_254_740_993;
+        let mut refs = References::<()> {
+            next: 9_007_199_254_740_993,
+            ..References::default()
+        };
         let namespace = refs.begin_snapshot().unwrap();
         assert_eq!(namespace.at(0).unwrap().as_str(), "@e9007199254740993");
         assert_eq!(namespace.at(499).unwrap().as_str(), "@e9007199254741492");

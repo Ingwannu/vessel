@@ -146,7 +146,8 @@ impl Page {
 
     /// The owner invalidates its element references at this same boundary.
     pub(crate) fn invalidate(&mut self) -> Result<BrowserRevision, PageError> {
-        self.references
+        let _cleared_generation = self
+            .references
             .invalidate()
             .map_err(crate::snapshot::SnapshotError::from)?;
         self.revision = self.revision.next().ok_or(PageError::Exhausted)?;
