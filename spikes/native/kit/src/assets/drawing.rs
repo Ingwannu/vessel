@@ -8,7 +8,9 @@
 use super::{Glyph, MARK};
 
 /// A line glyph on Lucide's grid (24 units, a stroke of 1.5, round ends),
-/// as Paseo's icons are drawn; the paths are the kit's own.
+/// as Paseo's icons are drawn. Canonical panel paths retain the upstream
+/// Lucide/Feather notice in docs/design/brand/lucide-LICENSE.txt; older
+/// original drawings keep their existing vectors.
 macro_rules! line_glyph {
     ($body:literal) => {
         concat!(

@@ -42,3 +42,9 @@ actual provider stroke1.5. No bitmap/image node is introduced. The system
 librsvg source overview in light/dark at all listed sizes/scales was opened:
 axes, outward/inward corners and X remain distinct and unclipped. That is
 source-only rendering, not executed Rust raster tests or native UI evidence.
+
+Asset/drawing module documentation distinguishes the newly licensed canonical
+panel vectors from older original drawings, points at the full notice and
+names both10-grid window chrome and24-grid UI roles. This changes no old SVG,
+loader or prefix entry; it prevents the new licensed vectors being described
+as original artwork.

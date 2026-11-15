@@ -211,6 +211,6 @@ glyph_inventory! {
     PanelMaximize => "kit/panel-maximize.svg",
     /// Panel restore's inward corners; distinct from window minimize/restore.
     PanelMinimize => "kit/panel-minimize.svg",
-    /// A24-grid UI close X; the window Close keeps its10-grid chrome shape.
+    /// A 24-grid UI close X; the window Close keeps its 10-grid chrome shape.
     X => "kit/x.svg",
 }
