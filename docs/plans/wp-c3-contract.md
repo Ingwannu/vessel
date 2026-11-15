@@ -39,3 +39,12 @@ cache, history and other C3 work remain on the separate node worktree. Run remot
 proto/client all-target Clippy and library tests on this exact isolated source,
 then request V3 quick source review. Only that exact reviewed producer may be
 provisionally adopted by native code; pending stays Unsupported until admission.
+
+## Review correction before staged registration
+
+V3 returned the two names in WORKSPACE_FAMILIES_LATER: that exception is only
+for assigned methods. Both remain outside the exception, so the shared family
+test continues to assert None in addition to the package-specific Read/unary/None
+fixtures. No admission is assigned. The next integration depends on the announced
+node head carrying the shared staged-row seam; the previous nested-vesseld test
+attempt stopped before executing library tests and does not prove root readiness.
