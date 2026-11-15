@@ -6,7 +6,7 @@ use vessel_app_kit::{
     attachment::{Body, attachment_frame, attachment_tray},
     ui::{
         Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-        ParentElement as _, SharedString,
+        ParentElement as _, SharedString, StatefulInteractiveElement as _, Styled as _,
     },
 };
 use vessel_app_view::composer::{drafts::DraftKey, preview::Snapshot, tray::Origin};
@@ -88,5 +88,48 @@ impl Shell {
                 .into_any_element()
         });
         Some(attachment_tray().children(files).children(contexts))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::shell::language_tests;
+    use gpui::TestAppContext;
+    use vessel_app_view::composer::context::{
+        ChatHistory, ContextId, ContextText, ContextTitle, Payload,
+    };
+    #[gpui::test]
+    fn pending_context_draws_from_the_admitted_snapshot_after_composer_changes(
+        cx: &mut TestAppContext,
+    ) {
+        language_tests::init(cx);
+        let (shell, cx) = cx.add_window_view(Shell::without_io);
+        shell.update_in(cx, |shell, window, cx| {
+            let history = ChatHistory::new(Payload {
+                id: ContextId::parse("fixture").unwrap(),
+                title: ContextTitle::parse("Before").unwrap(),
+                text: ContextText::parse("old context").unwrap(),
+                url: None,
+            });
+            shell
+                .composer_seed_history(DraftKey::New, history, window, cx)
+                .unwrap();
+            let snapshot = shell.composer_preview(DraftKey::New);
+            shell
+                .areas
+                .composer
+                .contexts
+                .tray(DraftKey::New)
+                .remove(&snapshot.contexts()[0]);
+            assert!(!shell.composer_has_context(DraftKey::New));
+            assert_eq!(snapshot.contexts()[0].text(), "old context");
+            let tokens = Tokens::of(vessel_app_kit::Scheme::Dark);
+            assert!(
+                shell
+                    .pending_attachment_preview(&snapshot, &tokens, cx)
+                    .is_some()
+            );
+        });
     }
 }
