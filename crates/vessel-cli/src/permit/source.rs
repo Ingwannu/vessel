@@ -2,7 +2,11 @@
 //! Inbox is an attention projection and deliberately suppresses archived rows.
 //! Existing session.list/conversation calls do not start a provider or a turn.
 use super::pending::{PendingId, Row};
-use std::collections::{BTreeMap, HashSet};
+use std::{
+    collections::{BTreeMap, HashSet},
+    future::Future,
+    time::Duration,
+};
 use vessel_client::{CallError, NodeClient};
 use vessel_proto::conversation::Conversation;
 use vessel_proto::{PermissionRequest, Question, SessionId, SessionInfo, SessionMode};
@@ -10,6 +14,8 @@ use vessel_proto::{PermissionRequest, Question, SessionId, SessionInfo, SessionM
 mod budget;
 const MAX_SESSIONS: usize = 10_000;
 const MAX_PENDING_ROWS: usize = 10_000;
+/// Read operation bound, independent of human answer lifetime and mutation ACK.
+const READ_DEADLINE: Duration = Duration::from_secs(30);
 
 /// One canonical node read boundary shared by the client and in-memory fixture.
 pub(crate) trait Source {
@@ -27,6 +33,8 @@ impl Source for NodeClient {
 
 #[derive(thiserror::Error)]
 pub(crate) enum SourceError {
+    #[error("the pending-request read exceeded its deadline")]
+    Deadline,
     #[error("selected forms exceed this command's payload budget; select fewer requests")]
     Budget,
     #[error("pending requests exceed this command's collection bound")]
@@ -51,6 +59,7 @@ impl From<CallError> for SourceError {
 impl std::fmt::Debug for SourceError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::Deadline => formatter.write_str("Deadline"),
             Self::Budget => formatter.write_str("Budget"),
             Self::Limit => formatter.write_str("Limit"),
             Self::Encoding(error) => formatter.debug_tuple("Encoding").field(error).finish(),
@@ -102,6 +111,9 @@ impl std::fmt::Debug for Ready {
 /// Every structured session participates, including archived or ended ones.
 /// No list is published from an incomplete or failed traversal.
 pub(crate) async fn list(source: &mut impl Source) -> Result<Vec<Row>, SourceError> {
+    bounded(collect(source), READ_DEADLINE).await
+}
+async fn collect(source: &mut impl Source) -> Result<Vec<Row>, SourceError> {
     let sessions = source.sessions().await?;
     if sessions.len() > MAX_SESSIONS {
         return Err(SourceError::Limit);
@@ -159,6 +171,9 @@ pub(crate) async fn preflight(
     source: &mut impl Source,
     rows: &[Row],
 ) -> Result<Vec<Ready>, SourceError> {
+    bounded(current(source, rows), READ_DEADLINE).await
+}
+async fn current(source: &mut impl Source, rows: &[Row]) -> Result<Vec<Ready>, SourceError> {
     let Some(first) = rows.first() else {
         return Ok(Vec::new());
     };
@@ -221,6 +236,15 @@ fn unique<Id: Ord, Form>(
         }
     }
     Ok(indexed)
+}
+
+async fn bounded<T>(
+    read: impl Future<Output = Result<T, SourceError>>,
+    deadline: Duration,
+) -> Result<T, SourceError> {
+    tokio::time::timeout(deadline, read)
+        .await
+        .map_err(|_elapsed| SourceError::Deadline)?
 }
 
 #[cfg(test)]

@@ -12,6 +12,7 @@ struct Memory {
     sessions: Option<Result<Vec<SessionInfo>, CallError>>,
     snapshots: VecDeque<(SessionId, Result<Conversation, CallError>)>,
     read: Vec<SessionId>,
+    hang: Option<SessionId>,
 }
 impl Source for Memory {
     async fn sessions(&mut self) -> Result<Vec<SessionInfo>, CallError> {
@@ -21,6 +22,9 @@ impl Source for Memory {
     }
     async fn conversation(&mut self, session: SessionId) -> Result<Conversation, CallError> {
         self.read.push(session);
+        if self.hang == Some(session) {
+            return std::future::pending().await;
+        }
         let (expected, result) = self
             .snapshots
             .pop_front()
@@ -289,6 +293,38 @@ async fn a_fresh_snapshot_with_duplicate_identity_cannot_choose_its_first_body()
     assert!(matches!(
         preflight(&mut source, &[row]).await,
         Err(SourceError::Duplicate)
+    ));
+    assert_eq!(source.read, [owner]);
+}
+
+#[tokio::test]
+async fn a_stalled_later_read_times_out_without_publishing_partial_rows() {
+    let a = structured(SessionId::random());
+    let b = structured(SessionId::random());
+    let mut source = Memory {
+        sessions: Some(Ok(vec![a.clone(), b.clone()])),
+        snapshots: VecDeque::from([(a.id, Ok(held(vec![permission()], Vec::new())))]),
+        hang: Some(b.id),
+        ..Memory::default()
+    };
+    assert!(matches!(
+        bounded(collect(&mut source), Duration::ZERO).await,
+        Err(SourceError::Deadline)
+    ));
+    assert_eq!(source.read, [a.id, b.id]);
+}
+
+#[tokio::test]
+async fn a_stalled_current_form_cannot_finish_preflight() {
+    let owner = SessionId::random();
+    let rows = [Row::permission(owner, &permission())];
+    let mut source = Memory {
+        hang: Some(owner),
+        ..Memory::default()
+    };
+    assert!(matches!(
+        bounded(current(&mut source, &rows), Duration::ZERO).await,
+        Err(SourceError::Deadline)
     ));
     assert_eq!(source.read, [owner]);
 }

@@ -227,3 +227,19 @@ safe generic caption rather than guessing from labels or arbitrary provider JSON
 The full producer may later retain optional bounded provider-name metadata; it is
 separate from the minimal typed body cut. This does not change request identity,
 selection, authority or acknowledgement requirements.
+
+## Bounded canonical reads
+
+The client/RPC unary call does not provide an answer deadline automatically.
+Listing and fresh-form preflight now each have one named30-second read budget,
+reusing Tokio's timeout boundary. This is a read operation bound, independent
+of the human request's lifetime and the15-second mutation acknowledgement wait.
+No partial list or completed preflight escapes a timeout, and no response is
+attempted from an incomplete preflight. A very large/slow node may require another
+explicit read; the client neither retries nor interprets timeout as settlement.
+
+Existing comparison read deadlines are private to that operation, so the permit
+edge keeps its own typed Deadline category and bounded future rather than adding
+an unrelated cross-feature utility. In-memory regressions let an initial snapshot
+complete and stall the next, and separately stall exact-owner preflight. Zero test
+budgets avoid wall-clock waits; source/static checks pass, VM execution is owed.
