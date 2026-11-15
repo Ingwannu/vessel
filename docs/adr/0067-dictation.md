@@ -188,8 +188,8 @@ budget below. The transcript arrives on `dictation.next`.
 `dictation.next { id }` waits for the next update:
 
 - `Partial { text }`, the committed segments joined by a single space,
-  trimmed, as Paseo joins them. Sent again whenever a segment's text
-  changes. Not stored.
+  trimmed, as Paseo joins them. Sent for every provider transcript result,
+  even when the joined text is unchanged. Not persisted.
 - `Final { text }`, once. The stream is then gone. A later call for
   that id is `not_found`.
 - `Failed { reason }`, once. The stream is then gone.
@@ -226,10 +226,13 @@ These numbers are Paseo's, with the environment overrides removed:
   stream failure. Paseo matches the words "buffer too small"; Vessel
   matches the variant, never the sentence.
 - Finish budget, in milliseconds: base 10_000, plus 15_000 for each
-  segment still in flight, plus 1_500 for each second of audio not
-  yet committed, plus 250 for each `seq` still missing up to
-  `final_seq`, and never above 300_000. The reply's `within_ms` is
-  that number. When it expires, `dictation.next` gets
+  pending committed segment or commit awaiting acknowledgement, plus 1_500
+  per rounded-up second of provider-rate open audio, plus 250 for each
+  sequence in the entire unacknowledged suffix through `final_seq`, and
+  never above 300_000. This suffix includes held chunks; it is not only
+  the empty holes. Seal an available final tail before estimating. Held
+  input is not charged a second time as open provider audio. The reply's
+  `within_ms` is that number. When it expires, `dictation.next` gets
   `Failed { TimedOut }`.
 - Finish with no chunk accepted yet is `invalid_request`, detail
   `NoAudio`, on the finish call. The stream ends there. There is no
@@ -255,6 +258,187 @@ Voice mode reads that flag
 69–78 and 180–182). Nothing under `packages/server/src/server/dictation/`
 reads it. Voice mode is out of scope, so this contract does not store the
 threshold and does not request log-probabilities.
+
+### Stream implementation amendment (proposed; source analysis only)
+
+Purpose and intent: preserve independently owned commit audio, submission-order
+text and bounded cancellation under out-of-order HTTP completion and missing
+client chunks. No stream may retain the whole recording while it waits.
+
+Existing implementation and constraints: manager285-306 emits partial text on
+each transcript event using committed IDs in order with empty placeholders; a
+later segment completing first can therefore emit its text before an earlier
+one completes. Joining uses one separator per committed ID and String.trim once,
+not trimming each piece or removing empty pieces. Its timeout estimate586-617
+counts the whole unacknowledged suffix (finalSeq-ackSeq), including already held
+out-of-order chunks, and rounds only bytesSinceCommit's provider-rate open audio
+up to seconds. Held input is represented by that suffix, not a second duration
+charge. Finish408-483 seals available trailing audio before estimating the wait.
+
+An inference from openai/stt.ts120-168 (not executed integration evidence): the
+provider's async commit captures a WAV but retains its mutable pcm16 and current
+segmentId until the request finally completes. Appending/committing during that
+request can include old audio again or reuse a segment ID, and its finally can
+clear later appended audio. Vessel detaches each bounded segment and assigns a
+fresh typed submission index before HTTP awaits. This ownership/memory security
+floor deliberately prevents overlapping mutable buffers and duplicate commit IDs;
+it is not a claim of preserving that inferred race.
+
+A further source inference, not an executed reproducer: the OpenAI provider
+emits committed before its HTTP wait (stt.ts123-133). The manager records that
+id at271-284; its finishing TooSmall error branch312-325 lowers counters without
+marking that id final, while710-783 still requires every committed id's final
+transcript. That path can therefore wait until its timeout. The contract's
+empty completed segment is an intentional no-stall resource floor over that
+inferred bookkeeping defect, not a claim that this reference path completes.
+An ignored TooSmall does not fabricate a transcript Partial; an ordinary empty
+successful transcript still emits its source event.
+
+Alternatives considered: ordered-prefix-only completion delays partials relative
+to the reference; trimming each nonempty piece changes interior spacing; replacing
+a pending partial silently drops an update; waiting for cancellation as another
+queued data command can deadlock behind a slow client. Letting finish disable
+commits retains unbounded audio as gaps close; resetting its deadline on every
+repeated finish lets a client extend work without a bound.
+
+Choice: keep submission-indexed transcript slots including empty results; emit
+on each completion and join/trim once with the JS whitespace rule. Release physical
+HTTP capacity on completion even when earlier results remain pending. Aggregate
+committed text plus separators is capped by the same transcript byte bound before
+allocating a joined result, so whitespace/empty-piece amplification is bounded.
+This extra retained-text floor can refuse even if eventual trimming would shrink
+that result; it is a typed TranscriptTooLong, never truncation.
+
+Keep two partial updates and a separate terminal update; full queues backpressure
+completion/data without blocking next, owner close, node stop, cancel, replacement
+or an active finish deadline. A cancelled pending next consumes nothing. Once a
+reply is ready, transport loss can lose that response as for any RPC; no additional
+replay guarantee is claimed. Cancellation must not pop before successful delivery
+to the response-ready point. No coalescing, detached unbounded tasks or tombstones.
+
+A repeated finish with the same final sequence reports its original deadline and
+never extends it; a different final sequence is BadAudio without mutation. Sequences
+above the stream cap fail TooLong before other shape checks. Keep bounded whole-
+chunk commits active while gaps close after finish; a terminal too-small response
+while finishing is an empty completed segment. These are resource/typed-refusal
+floors over the reference's resettable timer and finish-time commit bypass.
+
+Malformed wire input, including an invalid start format, is refused before
+replacement work. Unlike the reference's cleanup-before-format-parse order
+(manager179-220), it cannot destroy a valid existing stream. This is the existing
+validate-before-work floor. Once start has a valid typed format, replacement
+still retires the old generation before looking up its new configuration or key;
+a later unavailable provider does not restore the old stream.
+
+Preparation, retirement and unread terminal records retain the same stream quota.
+A replacement ends and tears down the old generation before resolving a new
+provider, and old teardown cannot remove a newer generation. A cancelled start
+must not orphan a live actor; nonabortable validation retains its quota until
+actual completion. Each connection also has the existing RPC in-flight frame cap;
+actor audio bounds do not replace that separate transport bound.
+
+Admission and cancellation are explicit choices. A chunk operation drains its
+accepted contiguous full chunks before exposing its acknowledgement. A short tail
+may be acknowledged while held. First finish admission waits behind that current
+chunk operation, then seals available final audio before estimating the budget.
+This prevents acknowledged-but-unforwarded full chunks from disappearing from the
+source formula. A first finish can therefore wait while a slow client leaves the
+partial queue full: it must drain next concurrently. Already active deadlines,
+next and stop signals are independent. A repeated matching finish returns the
+original within_ms without restarting that timer; conflicting final metadata is
+BadAudio without mutation.
+
+A per-stream data mailbox retains at most one queued chunk/finish command besides
+the current operation. A registry mailbox retains only bounded small start/lookup
+metadata, never audio. Each stream permits one pending next; an extra wait is a
+Conflict without consuming data. Explicit cancel answers Ack, frees its record
+and settles any existing wait with Failed { Cancelled } rather than leaving a
+waiter hung;
+a later next is not_found. A no-audio finish still reports NoAudio only on that
+call; an existing next settles as not_found, not a duplicate NoAudio update.
+
+Stop control is a bounded first-stop state, not another message behind audio.
+Cancel, replacement, transport close and node stop cannot overwrite an already
+chosen stop cause. The actor observes both connection context closure and the
+existing Outbound::closed, and node stopping. Per-stream cancellation uses a child
+of connection cancellation; it must not cancel that parent or another stream.
+An accepted chunk can finish forwarding after its caller drops the reply: cancel
+of a pending next consumes nothing, while cancellation of a start must leave no
+orphan. Those are separate responsibilities, not one blanket stream cancellation.
+
+At most the existing in-flight commit cap's independent HTTP jobs run per stream.
+They capture the running/finishing phase when the provider operation returns,
+before update backpressure can delay the actor folding that result. A TooSmall
+that completed before finish remains Upstream; one completed during finishing
+settles an empty segment without inventing a Partial event. A real successful
+empty transcript still emits Partial. Physical request capacity is not tied to
+an earlier segment's final ordering. Ready job results remain in bounded slots;
+no task is created per queued chunk. Pending transcript slots include completed jobs waiting for folding; that
+backpressure may increase the finish estimate compared with the reference
+whose transcript callback runs immediately. This is a bounded-queue resource
+floor, not another charge for open audio. A full partial queue may delay
+folding even an already completed job, and an active finish deadline can then time out a slow
+client. No provider-success-before-deadline delivery guarantee is added.
+
+Resource ownership: the service owns a global stream semaphore and each real
+connection owns its stream semaphore. The latter stays separate from the
+immutable Owner hash key. Streams and blocking workers retain only permits,
+owner markers and closure tokens, never the connection lifetime guard. A lease
+is not returned while nonabortable secret work still runs. Replacing an id reuses
+its admission after the old generation has actually retired; a late old teardown
+cannot remove a newer one. A canceled start waiting on such work leaves a retiring
+reservation until actual completion and cannot publish a ready orphan.
+
+Presence reads do not consume a stream slot. One bounded secret-read gate, with
+its capacity derived from the node's stream budget, is shared by preparation and
+presence. Acquisition waits before spawning work and is cancelable; after spawn,
+the permit lives in the blocking closure until it really ends. This extends the
+existing fleet permit-ownership pattern, not its membership OS lock, which would
+change read behavior. The closure calls only FleetFiles::resolved_secret, the
+existing read/get path. A corrupt store remains a typed internal cause, but
+read/start wire diagnostics never reveal a name, value or path. Hidden replies
+to unassigned/older peers skip the presence work entirely. The gate is independent
+of the stream quotas so a read does not look like an active recording.
+
+Typed failure data: the shared reason is an internally tagged object (`kind`),
+with the model carried inside LocalNotBuilt { model }, not a separate optional
+sibling that can accompany the wrong reason. Unknown kind decodes to Unknown.
+This makes the previously specified local-model refusal representable without
+invalid combinations; no reason ever carries provider text or credential data.
+The wire-detail wrapper and Failed update both use this one reason type.
+
+Reuse and sequence: DictationPcm/ChunkSeq/SampleRate/Transcript/WithinMs already
+own decoding and bounds. Expose typed aliases of their existing transcript and
+finish caps rather than restating numbers. Duration derives from the sequence
+cap and the one-second chunk rule. Reuse workspace::trim_project_text for the
+JavaScript rule rather than maintaining another character table. It returns
+a borrowed substring, allowing
+the joined String to be trimmed in place with one output allocation. The existing
+RPC frame/in-flight bound remains separate from these retained actor buffers.
+The provider is a closed endpoint/fake enum; the fake is cfg(test) only. Existing
+node settings remain the configuration owner; no parallel file reader or settings
+cache is introduced. Caller scopes and call registration wait for shared wiring.
+
+Tests owed: force a held tail and gap unlock, count and byte reorder caps,
+duplicate after a canceled chunk reply, sequence-before-shape refusal, accepted
+duration edges, exact budget components and cap, same/different repeated finish,
+out-of-order text and physical job reuse, JS whitespace and aggregate separators,
+full partial queues with cancel/replace/close/node-stop/active deadline, a canceled
+next restoring its exact update, extra-next Conflict, no-audio finish/wait behavior,
+completion-phase TooSmall across delayed folding, no Partial for ignored TooSmall,
+quota held through preparation/retirement/unread terminal records and a blocked
+secret read, fresh key edits/deletes, same-owner replacement, malformed start
+preserving the old generation, a valid replacement whose preparation fails,
+and stale teardown,
+two streams where one cancellation leaves the other usable, shared cached root
+failure/recreated service recovery, and real transport close with pending RPCs at
+wiring. Synchronize with events, never sleeps; preserve the existing outer limits.
+
+Advantages, costs and effects: ordering/spacing match the observed source contract
+while every retained audio/text/control resource has a bound. Tests must force
+out-of-order results, full update queues, missing sequences, cancelled waits,
+replacement/preparation races and connection closure with pending RPC calls.
+Those tests are owed; this amendment records design, not runtime proof.
 
 ### Audio and connection ownership implementation amendment (proposed)
 
@@ -673,8 +857,9 @@ setting changes. Retry is the reason, not a separate bool.
 
 Wire errors use the existing `ErrorCode` (`invalid_request`,
 `unsupported`, `unavailable`, `not_found`, `conflict`, `forbidden`)
-plus an `ErrorDetail::Dictation { reason }` with `#[serde(other)]`
-`Unknown` on the reason, so a newer reason stays readable. No new
+plus an `ErrorDetail::Dictation { reason }`. The reason is a tagged
+object with `kind`; `LocalNotBuilt` carries its typed `model` in that
+variant. `#[serde(other)] Unknown` keeps a newer reason readable. No new
 `ErrorCode`.
 
 ### Scopes

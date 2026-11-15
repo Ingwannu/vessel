@@ -69,7 +69,7 @@ reconnect starts a new id and resends from seq 0 (test at
 - 630–648: a 15 second block quieter than the peak is cleared, not
   committed. The same on the finish tail (664–690).
 - 748–770 and 787–800: final text is committed segments joined with a
-  space and trimmed. Empty audio still produces a final empty string.
+  space and trimmed. Silence-only accepted audio produces a final empty string; no chunks fail finish.
 - Language default `"en"` (155). Tests: unset config is English; blank
   `PASEO_DICTATION_LANGUAGE` is unset; the variable beats the setting
   (`dictation-stream-manager.test.ts` 169–214).
@@ -341,6 +341,32 @@ connection and body deadline must not resend. This differs from OpenAI SDK6.44.0
 becomes Upstream with no Final; the file client never automatically retries.
 These tests are owed until those staged implementations run.
 
+## Stream implementation sequence
+
+Decision: new bounded state owners, extending the existing audio, identity,
+endpoint, settings and secret paths. The reference manager has no resource-bound
+actor to reuse. Tokio bounded channels, watch state, child cancellation tokens
+and owned permits already serve the node; no actor framework or dependency is
+added. Reuse workspace::trim_project_text for the reference's JavaScript trim
+rule, not a new character table. Keep file reads in FleetFiles::resolved_secret;
+the fleet mutation permit pattern is useful, its membership OS lock is not.
+
+Paseo manager285–306 emits out-of-order completions immediately with submission-
+order placeholders; 408–483/586–617 seal before the finish estimate and count the
+whole unacknowledged suffix. Source-only inferences from stt.ts120–168 and
+manager271–325/710–783 are recorded in the ADR: mutable overlapping commits and
+a finishing TooSmall that can wait for a final id it never records. Detached
+segments and empty completed TooSmall results deliberately avoid those paths;
+no executed reference reproducer is claimed.
+
+Stage input ordering first, then aggregate text/finish arithmetic, then the
+stream actor and service admission in reviewable slices. Each rule's adversarial
+tests accompany its code. The ADR names the tests of bounded update queues,
+completion-phase capture, pending wait cancellation, replacement/preparation,
+quota ownership through blocking work, fresh secrets and two-stream isolation.
+Wiring adds the real transport-close, scope/ownership and version-filter cases.
+These tests are owed; this documents the choices before the implementation.
+
 ## Resume point
 
 Done: audio values, provider metadata, TLS and resolved-secret extraction,
@@ -366,29 +392,25 @@ Done as staged source: the JSON decoder and six tests, with the whole gate
 (Rust 1998/0/12, web unit 417, e2e 62). It returns only validated Transcript or a
 fixed typed error; the escape-looking speech fixture prevents a second parse.
 
-Done as staged source: the stream-owned HTTP client. URL/header validation precedes
-root loading; redirects, proxies and retries are disabled, with named connect,
-request and response bounds. The reader checks Content-Length and every append
-before decoding. Its fixed Debug hides nested transport diagnostics while
-retaining typed causes. Each TLS client copy has its own resumption store;
-sharing only root configuration must never accumulate endpoint host state.
-Nine loopback cases cover header-only authentication/WAV, redirect refusal,
-chunked and advertised size, bad credentials, response-body deadline, safe
-transport diagnostics, 503/429 hints with one upload and a fully accepted upload
-whose socket closes before headers. A rustls store probe adds the isolation test.
-Narrow clippy and the 27 helper tests pass; a strengthened body-deadline test
-also waits for client-side headers before advancing its clock and passes alone.
-The HTTP snapshot's whole gate passed (Rust 2008/0/12, web unit 417, e2e 62);
-its node-value-contract merge also passed (Rust 2203/0/12, web unit 436,
-e2e 63, forge 4). Product wiring remains absent.
+Done as staged source: the stream-owned HTTP client and its nine loopback
+cases plus the rustls session-store isolation test. The HTTP snapshot's whole
+gate passed (Rust 2008/0/12, web unit 417, e2e 62). It validates before roots,
+disables redirects/proxies/retries, caps the response before decoding, keeps
+foreign diagnostics fixed and gives each client its own TLS resumption store.
+This is test configuration evidence; no live service or registered call exists.
 
-Next: the stream contract amendment and actor.
-Active commit/stream quotas and fresh secret resolution belong to the service,
-not to the client's idle pool. Cancellation cannot retract accepted provider work. The shared protocol accessor is merged; wiring still waits for the call-table refactor,
-removes staging, and gets a whole product gate with actual transport close and
-scope tests. Name the one-second input-chunk duration beside the segment bound
-when wiring it; the segment limit must keep following the proto chunk rule.
-Existing settings literals gain default completion only in the optional-field
-commit, without changing any old value or assertion. Do not split the shared
-guard. Local engines and microphone capture remain deferred. The CLI file client
-follows the node service and still needs its file-format contract amendment.
+The node's shared protocol accessor and common settings-file recovery policy
+have been merged. Call plumbing still waits for the shared call-table refactor.
+Existing node-head constants, tables, cases and documents are retained.
+
+Next: input ordering, transcript assembly and finish-budget helpers, then the
+stream actor and service, all staged until wiring. Active commit/stream quotas
+and fresh secret resolution belong to the service, not the client's idle pool.
+Cancellation cannot retract accepted provider work. Wiring removes staging and
+gets a whole product gate with actual transport close and scope tests. Name the
+one-second chunk duration beside the segment bound when the new input owner
+consumes it; derive duration from the sequence cap instead of repeating a limit.
+Complete existing settings literals only in the optional-field commit, without
+changing any old value or assertion. Do not split the shared guard. The CLI
+file client follows the service and still needs its file contract amendment.
+Local engines and microphone capture remain deferred.

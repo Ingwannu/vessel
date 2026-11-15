@@ -1448,6 +1448,15 @@ session state. None of these layers adds a second secret reader or an HTTP polic
 to http_tls. The staged reader caps response bytes before the JSON edge, and only
 fixed diagnostics leave the client; the actor and product wiring remain later.
 
+The planned stream keeps accepted-input ordering separate from provider
+forwarding, and submission-order text separate from physical request completion.
+Its bounded data/update queues must leave cancellation, owner/transport close,
+node stop and an active finish deadline independent. Stream quotas include
+preparing, retiring and unread terminal records; blocking secret work owns its
+permit until completion. These are contract choices awaiting staged actor tests,
+not a registered service. The existing proto JavaScript trim policy and fleet
+secret reader remain the single owners of those rules.
+
 The node's `http_tls` module builds the operating-system root, explicit
 ring and ALPN configuration once per client constructor. `catalogue::fetch`
 uses that shared configuration; it retains its own address validation,
