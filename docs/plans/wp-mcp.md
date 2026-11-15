@@ -772,8 +772,9 @@ include this naming correction rather than submitting another duplicate suite.
   actual Store callback, a power-failure/fsync proof, every journal write edge
   or row618 durable queue/receipt recovery. It activates no feature or RPC.
 
-The first four-boundary source passed exact fleet strict; its actual child
-execution remains pending. The additional post-kill edit case is authored only. This slice also includes the unchanged notification fixture budget
+The first four-boundary source passed exact fleet strict and actual 35-test
+execution. The added post-kill edit source later passed its own strict and
+36-test execution; the exact receipts and scope are recorded below. This slice also includes the unchanged notification fixture budget
 name. Earlier source/check receipts are retained with their exact limits.
 
 
@@ -789,9 +790,8 @@ RecoveryConflict repeatedly, preserve that exact edit, and keep its journal and
 backups. Only an explicit fixture-side restoration of the captured applied
 bytes permits the original rollback and cleanup. This adds no automatic repair
 or retry to the product and does not prove arbitrary concurrent-writer races.
-The shared old-install preparation is reused. The prior four-boundary suite
-continues on its original immutable source; this new case remains unexecuted
-until the next changed-source batch.
+The shared old-install preparation is reused. The original four-boundary suite remains a separate immutable receipt; the
+new case now has its own changed-source execution receipt below.
 
 
 ## Gate-54 checked carrier and notice-values join
@@ -826,4 +826,22 @@ generation/freshness remain owed. The incoming generated union is kept exactly
 until the VM generates this larger runtime tree's own output. The actual
 pre-merge four-boundary fleet crash tests passed 35/0/0 (one entry is the child
 harness), with all four step hashes checked; the later post-kill edit case
-remains pending its own changed-source execution.
+subsequently passed its separate changed-source execution below.
+
+
+### Executed fleet crash scope
+
+Exact `74ba67d33` passed fleet all-target strict in run
+`wp-mcp-runtime-narrow-20261115T183054Z-74ba67d3` (rc0, four seconds) and all
+four steps of `wp-mcp-runtime-tests-20261115T183055Z-74ba67d3` (36/0/0, cargo
+ten seconds). All recorded step-log hashes were independently recomputed.
+The four-boundary parent and post-kill external-edit parent both executed: five
+owned child kills with exact callback readiness and reap, followed by real
+filesystem reopening. The normal child-harness entry is one of the 36 tests,
+not an extra independent feature.
+
+This closes the drafted fleet process-interruption cases only. It does not
+prove the actual node Store callback join, power-failure ordering, every
+journal-write crash edge, arbitrary concurrent filesystem writers, current
+gate54 union, cross-node flow, durable finish intents or package whole gate.
+No unchanged rerun is needed for this test slice.
