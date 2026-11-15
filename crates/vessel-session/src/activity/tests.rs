@@ -22,7 +22,7 @@ fn status(status: SessionStatus) -> SessionEvent {
 fn requested(id: PermissionId) -> SessionEvent {
     agent(AgentEvent::PermissionRequested(PermissionRequest {
         plan_proposal: None,
-        delivery_state: Default::default(),
+        delivery_state: vessel_proto::timeline::PermissionDeliveryState::Pending,
         tool_scope: None,
         id,
         tool_call: Some(ToolCallId::new("call-1")),

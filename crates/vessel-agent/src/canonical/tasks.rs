@@ -1,4 +1,4 @@
-//! Known TodoWrite arguments become typed task snapshots; labels do not select it.
+//! Known `TodoWrite` arguments become typed task snapshots; labels do not select it.
 use serde::Deserialize;
 use serde_json::Value;
 use vessel_proto::timeline::TimelineTaskId;

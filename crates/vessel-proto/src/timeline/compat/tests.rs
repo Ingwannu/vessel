@@ -28,7 +28,7 @@ fn rich_tool() -> ToolCall {
 fn permission() -> PermissionRequest {
     PermissionRequest {
         plan_proposal: None,
-        delivery_state: Default::default(),
+        delivery_state: crate::timeline::PermissionDeliveryState::Pending,
         tool_scope: Some(Box::new(crate::timeline::ToolCallScope::ProviderTurn {
             thread: "thread-1".parse().unwrap(),
             turn: "turn-1".parse().unwrap(),

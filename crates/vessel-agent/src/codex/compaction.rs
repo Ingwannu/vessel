@@ -94,20 +94,23 @@ impl Compactions {
         if self.buckets.len() >= MAX_COMPACTION_OBSERVATIONS {
             return None;
         }
+        let index = self.buckets.len();
         self.buckets.push(Bucket {
             turn,
             items: vec![],
             notification_completions: 0,
             item_completions: 0,
         });
-        Some(self.buckets.len() - 1)
+        Some(index)
     }
 
     fn item(&mut self, turn: Option<ExternalTurnId>, id: String, started: bool) -> Vec<AgentEvent> {
         let Some(index) = self.bucket(turn) else {
             return vec![];
         };
-        let bucket = &mut self.buckets[index];
+        let Some(bucket) = self.buckets.get_mut(index) else {
+            return vec![];
+        };
         let known = bucket.items.iter().position(|item| item.id == id);
         let position = if let Some(position) = known {
             position
@@ -115,12 +118,13 @@ impl Compactions {
             if self.admitted >= MAX_COMPACTION_OBSERVATIONS {
                 return vec![];
             }
-            self.admitted += 1;
+            self.admitted = self.admitted.saturating_add(1);
+            let position = bucket.items.len();
             bucket.items.push(Item {
                 id,
                 loading: started,
             });
-            bucket.items.len() - 1
+            position
         };
         if started {
             return if known.is_none() {
@@ -129,15 +133,18 @@ impl Compactions {
                 vec![]
             };
         }
-        if known.is_some() && !bucket.items[position].loading {
+        let Some(item) = bucket.items.get_mut(position) else {
+            return vec![];
+        };
+        if known.is_some() && !item.loading {
             return vec![];
         }
-        bucket.items[position].loading = false;
+        item.loading = false;
         if bucket.notification_completions > 0 {
-            bucket.notification_completions -= 1;
+            bucket.notification_completions = bucket.notification_completions.saturating_sub(1);
             return vec![];
         }
-        bucket.item_completions += 1;
+        bucket.item_completions = bucket.item_completions.saturating_add(1);
         vec![event(CompactionStatus::Completed)]
     }
 
@@ -153,9 +160,11 @@ impl Compactions {
         let Some(index) = existing.or_else(|| self.bucket(turn)) else {
             return vec![];
         };
-        let bucket = &mut self.buckets[index];
+        let Some(bucket) = self.buckets.get_mut(index) else {
+            return vec![];
+        };
         if bucket.item_completions > 0 {
-            bucket.item_completions -= 1;
+            bucket.item_completions = bucket.item_completions.saturating_sub(1);
             return vec![];
         }
         if let Some(item) = bucket.items.iter_mut().find(|item| item.loading) {
@@ -164,8 +173,8 @@ impl Compactions {
             if self.admitted >= MAX_COMPACTION_OBSERVATIONS {
                 return vec![];
             }
-            self.admitted += 1;
-            bucket.notification_completions += 1;
+            self.admitted = self.admitted.saturating_add(1);
+            bucket.notification_completions = bucket.notification_completions.saturating_add(1);
         }
         vec![event(CompactionStatus::Completed)]
     }
@@ -180,7 +189,7 @@ impl Compactions {
             for item in &mut bucket.items {
                 if item.loading {
                     item.loading = false;
-                    bucket.item_completions += 1;
+                    bucket.item_completions = bucket.item_completions.saturating_add(1);
                     completed.push(event(CompactionStatus::Completed));
                 }
             }

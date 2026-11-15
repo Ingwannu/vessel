@@ -45,7 +45,7 @@ pub(crate) enum Command {
         request: vessel_proto::timeline::DecidePlan,
         reply: plan::PlanReply,
     },
-    NativeCommand {
+    Native {
         intent: vessel_proto::native_commands::NativeCommandIntent,
         reply: native_command::NativeCommandReply,
     },

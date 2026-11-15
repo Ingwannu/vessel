@@ -73,7 +73,7 @@ impl AgentInput {
     ) -> Result<NativeCommandDispatch, InputError> {
         let (reply, result) = oneshot::channel();
         self.commands
-            .send(Command::NativeCommand { intent, reply })
+            .send(Command::Native { intent, reply })
             .await
             .map_err(|_closed| InputError::Closed)?;
         result.await.unwrap_or(Err(InputError::Closed))
@@ -97,7 +97,7 @@ mod tests {
         let input = AgentInput::new(sender);
         let task =
             tokio::spawn(async move { input.native_command(NativeCommandIntent::Compact).await });
-        let Some(Command::NativeCommand { intent, reply }) = commands.recv().await else {
+        let Some(Command::Native { intent, reply }) = commands.recv().await else {
             panic!("native command")
         };
         assert_eq!(intent, NativeCommandIntent::Compact);

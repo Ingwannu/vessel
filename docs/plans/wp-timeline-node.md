@@ -413,3 +413,18 @@ synthetic-permission lifetime/decision state and acknowledgements are attached,
 the session treats a PlanProposal carrier as unavailable and publishes only a
 static error, never an approval card. All driver plan decision arms are Unsupported.
 This closes exhaustive source paths without claiming an implemented plan workflow.
+
+### Current strict feedback corrections
+
+The later strict consumer run (wp-timeline-consumer-ts-20261115T145012Z-7fe21e03)
+reached proto tests and found two ambiguous Default trait spellings; those fixtures
+now name PermissionDeliveryState::Pending explicitly without changing assertions.
+The web preflight strict run reached the agent library and found existing staged
+carrier semicolons/docs, the internal Command::NativeCommand name suffix, and
+unchecked compaction observation indexing/arithmetic. Internal command dispatch
+now uses Native (public AgentInput and all wire names stay the same). Compaction
+uses checked collection access and explicit saturating finite counters under the
+existing 128-observation admission cap; it adds no eviction or guessed attribution.
+Other pending-state constructors receive the same explicit enum value. These
+are corrections to failed immutable snapshots, not claims those snapshots passed.
+Current-source strict/tests and the enclosing package gate remain required.

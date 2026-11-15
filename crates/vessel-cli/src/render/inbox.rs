@@ -156,7 +156,7 @@ mod tests {
     fn omitted_details_never_promise_that_pruned_content_can_be_opened() {
         let request = vessel_proto::PermissionRequest {
             plan_proposal: None,
-            delivery_state: Default::default(),
+            delivery_state: vessel_proto::timeline::PermissionDeliveryState::Pending,
             tool_scope: None,
             id: "00000000-0000-4000-8000-000000000012".parse().unwrap(),
             tool_call: Some(vessel_proto::ToolCallId::new("missing")),

@@ -57,7 +57,7 @@ mod support {
             SessionEvent::Agent {
                 event: AgentEvent::PermissionRequested(PermissionRequest {
                     plan_proposal: None,
-                    delivery_state: Default::default(),
+                    delivery_state: vessel_proto::timeline::PermissionDeliveryState::Pending,
                     tool_scope: None,
                     id: PermissionId::random(),
                     tool_call: Some(ToolCallId::new("fixture-tool")),

@@ -67,7 +67,7 @@ impl Driver {
         }
         self.emit(AgentEvent::PermissionRequested(PermissionRequest {
             plan_proposal: None,
-            delivery_state: Default::default(),
+            delivery_state: vessel_proto::timeline::PermissionDeliveryState::Pending,
             tool_scope: None,
             id,
             tool_call: Some(tool_call),

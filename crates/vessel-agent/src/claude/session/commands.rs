@@ -17,10 +17,10 @@ impl Session {
                 let _closed = reply.send(crate::NativeCommandOffers::None);
             }
             Command::DecidePlan { request, reply } => {
-                crate::input::plan::unsupported(request, reply)
+                crate::input::plan::unsupported(request, reply);
             }
-            Command::NativeCommand { intent, reply } => {
-                crate::input::native_command::unsupported(intent, reply)
+            Command::Native { intent, reply } => {
+                crate::input::native_command::unsupported(intent, reply);
             }
             Command::Prompt {
                 content,
