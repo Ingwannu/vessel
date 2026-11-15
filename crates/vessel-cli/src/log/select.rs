@@ -162,9 +162,7 @@ mod tests {
             ),
             (
                 SessionEvent::Status {
-                    status: SessionStatus::Failed {
-                        message: "failure".to_owned(),
-                    },
+                    status: SessionStatus::failed("failure"),
                 },
                 Some(Filter::Errors),
             ),

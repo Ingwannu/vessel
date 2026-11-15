@@ -125,6 +125,14 @@ Read first, and reproduced except for the differences ADR 0063 lists.
   `permissions` is a type containing `permission`; any other string is
   a substring of the type. Vessel accepts only the four names and
   refuses the rest, so a typo is not an empty log.
+- The permission filter has a representation difference: `logs.ts:238-240`
+  checks timeline item type names, but `packages/protocol/src/agent-types.ts:
+  375-389` has no permission item, and request/resolution are separate stream
+  events (`:424-435`). The live callback consumes timeline items only
+  (`logs.ts:384-393`), as does one-shot history (`:288-295`). Vessel selects
+  its durable typed permission request and resolution records instead, so
+  the named filter can show the approval activity present in its log. This
+  is source inspection, not an executed Paseo behavior claim.
 - Paseo's count parser is `Number.parseInt` (`logs.ts:201-209`), so a
   numeric prefix such as `2x` is accepted. Vessel parses the whole
   non-negative count and refuses a suffix; this prevents a mistyped count
@@ -297,45 +305,41 @@ No row of the crate table changes.
   and page were unchanged. Later label filtering, actor patches, CLI and MCP
   remain protected drafts until the shared accessor and call plumbing are
   ready; staged services are not a product build claim.
-- Implementation slice 5a, verification pending: one-shot `--tail` reuses
-  the existing read/render path. The count is parsed before connection and
-  its window allocates only for actual records. Zero selects no history;
-  omission keeps the unbounded-by-count snapshot behavior. Raw pages prove
-  retention gaps; dropping earlier tail records never invents a notice.
-  Parser/window units and a fake-node CLI test remain unrun. A raw-chunk
-  boundary test makes the projected-item difference explicit: the last record
-  of a split reply renders only its final fragment. Count-overflow tests
-  derive their rejected input from the platform's integer bound. The first
-  narrow clippy run found a redundant module qualification in that new test;
-  it is shortened without changing the assertion. Clippy and the tests still
-  need their successful runs before the whole gate. After the path correction,
-  narrow clippy passed, the six log units passed, and the CLI tail case passed.
-  The CLI case now gives its final-stream teardown wait a named sub-deadline;
-  no expected value or product deadline changes. Clippy and the CLI case
-  also passed on that updated head; its first whole gate is now pending.
+- Slice 5a tail passed its complete Rust gate on an independent build runner:
+  1984 passed, none failed, 12 ignored. Format, size, boundaries, clippy,
+  both prebuilds and dependency setup passed. Local narrow checks passed too.
+  Zero, window eviction, raw chunk boundaries and the real CLI tail were
+  covered. The original module-path lint was fixed before the whole run.
+  The count is parsed before connection; retained records allocate on arrival.
+  Tail uses the existing sequence/retention unit and can begin inside a message.
+- Selection slice 5b's first narrow compile found two test-only errors: a
+  failure fixture bypassed the existing status constructor, and a turn cursor
+  was unused. Both are corrected without changing assertions; the narrow
+  clippy, ten log units and two fake-node CLI cases now pass. The complete
+  gate is the remaining verification.
 - Implementation slice 5b, verification pending: time/kind predicates precede
   the existing tail window. Sequence gaps separate message chunks, but only
   raw page gaps generate retention notices. Parser, predicate, render-boundary
-  and fake-node selection tests have not run yet. Existing render expectations
-  stay unchanged. A no-match CLI assertion also checks that no banner is
-  fabricated.
+  and fake-node selection tests passed in the narrow runs. Existing render
+  expectations stay unchanged. A no-match CLI assertion also checks that no
+  banner is fabricated.
   The inherited stream-end wait and the new turn-end wait share one named
   event budget; their expected records and output remain unchanged.
 - Implementation slice 5c, verification pending: follow reuses these predicates,
   the tail window and the raw history cursor. Its omitted history count has
   one constant, also used by the CLI help. EOF, interruption and stream notices
   finish an open text line; terminal bytes stay untouched. The event-driven
-  history-to-live test and follow parser tests have not run yet. Selection and follow
-  still owe compilation and separate whole gates; tail's whole gate is pending.
+  history-to-live test and follow parser tests have not run yet. Selection's
+  complete gate is queued; follow still owes narrow and complete checks.
 - The contract's follow bullet and EOF explanation now name the same end.
   Parser and command-level checks are documented together: an invalid tail
   is refused by both products, with earlier validation in Vessel.
 - A source-preparation script continued after a failed conflict-resolution
-  step and left conflict markers in an unverified intermediate commit. The
-  follow-up repairs both owned files with every prior scenario retained.
-  No completed tail gate or product verification is claimed for that draft.
-- Next: finish the tail slice's whole gate, then run narrow checks and separate
-  whole gates for selection slice 5b and follow slice 5c while
+  step and left conflict markers in an unverified follow commit. A new
+  follow-up repaired both owned files with every prior scenario retained.
+  That intermediate commit was never compiled or used as gate evidence.
+- Next: finish selection slice 5b's complete gate, then run narrow checks and
+  the separate whole gate for follow slice 5c while
   label call wiring awaits the shared accessor. No new wire call or dependency
   is added by log options. All slices include the caller-to-projection
   citations and retain the raw-chunk test; the selection render context changes
