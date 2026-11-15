@@ -282,3 +282,8 @@ revision and current socket/host recheck; neither uses a stale rendered URL
 string. The current route is the legacy direct-host route. Proxy/public route
 selection and persistent preference remain unavailable until their typed
 runtime producer exists.
+
+The settings-card timer also uses the captured window and stops reads while
+the OS window is inactive. Mutation receipts only settle state; the visible
+window timer performs reconciliation, so a late reply cannot restart polling
+in the background. Final URL/lifecycle callback dispatch checks OS activity.

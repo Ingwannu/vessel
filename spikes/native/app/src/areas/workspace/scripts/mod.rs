@@ -93,7 +93,7 @@ impl Shell {
         self.read_scripts();
         if !self.areas.workspace.scripts.polling {
             self.areas.workspace.scripts.polling = true;
-            Self::poll_scripts(cx);
+            Self::poll_scripts(window, cx);
         }
     }
     fn scripts_visible(&self) -> bool {
@@ -156,13 +156,13 @@ impl Shell {
             }),
         );
     }
-    fn poll_scripts(cx: &mut Context<'_, Self>) {
-        cx.spawn(async move |this, cx| {
+    fn poll_scripts(window: &mut Window, cx: &mut Context<'_, Self>) {
+        cx.spawn_in(window, async move |this, cx| {
             loop {
                 cx.background_executor().timer(REFRESH_EVERY).await;
                 if this
-                    .update(cx, |shell, _cx| {
-                        if shell.scripts_visible() {
+                    .update_in(cx, |shell, window, _cx| {
+                        if window.is_window_active() && shell.scripts_visible() {
                             shell.read_scripts();
                         }
                     })
@@ -185,7 +185,7 @@ impl Shell {
         if !self.scripts_target_is_current(returned) {
             return;
         }
-        let (accepted, written) = match answer {
+        let accepted = match answer {
             ScriptAnswer::Read {
                 target,
                 key,
@@ -208,26 +208,22 @@ impl Shell {
                 {
                     self.project_commands(target.machine(), project, None, Ok(commands));
                 }
-                (accepted, false)
+                accepted
             }
             ScriptAnswer::Written {
                 target,
                 key,
                 result,
-            } => {
-                let accepted = self
-                    .areas
-                    .workspace
-                    .scripts
-                    .model
-                    .accept_write(&target, key, result);
-                (accepted, true)
-            }
+            } => self
+                .areas
+                .workspace
+                .scripts
+                .model
+                .accept_write(&target, key, result),
         };
         if accepted {
-            if written && self.scripts_visible() {
-                self.read_scripts();
-            }
+            // The window-aware timer performs reconciliation. A late write
+            // receipt never starts polling from an inactive OS window.
             cx.notify();
         }
     }
@@ -310,6 +306,9 @@ impl Shell {
         window: &Window,
         cx: &mut Context<'_, Self>,
     ) {
+        if !window.is_window_active() {
+            return;
+        }
         match ticket.target.surface {
             Surface::Project => self.script_action(ticket, action, cx),
             Surface::Panel { .. } => self.script_panel_action(ticket, action, window, cx),
@@ -323,6 +322,9 @@ impl Shell {
         window: &Window,
         cx: &mut Context<'_, Self>,
     ) {
+        if !window.is_window_active() {
+            return;
+        }
         match target.surface {
             Surface::Project => self.script_preview(target, preview, action, cx),
             Surface::Panel { .. } => self.script_panel_preview(target, preview, action, window, cx),
@@ -335,6 +337,9 @@ impl Shell {
         window: &Window,
         cx: &mut Context<'_, Self>,
     ) {
+        if !window.is_window_active() {
+            return;
+        }
         match surface {
             Surface::Project => self.refresh_scripts(target, cx),
             Surface::Panel { .. } => self.refresh_script_panel(surface, target, window, cx),
