@@ -453,3 +453,9 @@ unsupported-ACL platform boundary are specified in
 [wp-plugin-artifact](../plans/wp-plugin-artifact.md). This is a private source
 prerequisite, not acquisition/pinning, consent, persistence or helper activation.
 It introduces no second settings writer and cannot manufacture managed provenance.
+
+The proposed canonical Literal/Message resource values, prepared presentation
+and per-installation client-language lifetime are refined in
+[wp-plugin-localization-wire](../plans/wp-plugin-localization-wire.md). This
+proposal does not widen core Translator or approve a locale parser dependency;
+its manifest/lock edge and actual client admission require their owning review.
