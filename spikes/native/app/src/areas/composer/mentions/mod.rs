@@ -306,12 +306,7 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) -> KeyAnswer {
         self.observe_file_menu(target, cx);
-        let visible = !matches!(
-            self.file_menu(target).borrow().model.phase(),
-            mentions::Phase::Hidden
-        ) || (self.active_file_token(target, cx).is_some()
-            && matches!(&*self.areas.composer.mention_root.borrow(), Root::Reading(ask) if matches!(target, DraftKey::Session { session } if session == ask.session)));
-        if !visible {
+        if !self.composer_file_menu_owns_key(target, key, cx) {
             return KeyAnswer::Pass;
         }
         if key == ComposerKey::Escape {
