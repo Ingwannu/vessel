@@ -198,12 +198,12 @@ enum Error {
     Changed,
 }
 
-impl From<crate::proc_stat::Error> for Error {
-    fn from(error: crate::proc_stat::Error) -> Self {
+impl From<crate::proc_stat::StatError> for Error {
+    fn from(error: crate::proc_stat::StatError) -> Self {
         match error {
-            crate::proc_stat::Error::Fields => Self::Stat,
-            crate::proc_stat::Error::Encoding(cause) => Self::Encoding(cause),
-            crate::proc_stat::Error::Number(cause) => Self::Number(cause),
+            crate::proc_stat::StatError::Fields => Self::Stat,
+            crate::proc_stat::StatError::Encoding(cause) => Self::Encoding(cause),
+            crate::proc_stat::StatError::Number(cause) => Self::Number(cause),
         }
     }
 }

@@ -21,10 +21,10 @@ impl<'a> Stat<'a> {
     ///
     /// # Errors
     /// A missing stat prefix separator refuses the record.
-    pub(crate) fn split(bytes: &'a [u8]) -> Result<Self, Error> {
+    pub(crate) fn split(bytes: &'a [u8]) -> Result<Self, StatError> {
         let mut prefix = bytes.splitn(2, |byte| *byte == b' ');
-        let process = prefix.next().ok_or(Error::Fields)?;
-        let rest = prefix.next().ok_or(Error::Fields)?;
+        let process = prefix.next().ok_or(StatError::Fields)?;
+        let rest = prefix.next().ok_or(StatError::Fields)?;
         Ok(Self { process, rest })
     }
 
@@ -37,9 +37,9 @@ impl<'a> Stat<'a> {
     ///
     /// # Errors
     /// Missing structure, invalid encoding or an invalid number refuses.
-    pub(crate) fn started(&self) -> Result<StartTicks, Error> {
+    pub(crate) fn started(&self) -> Result<StartTicks, StatError> {
         if self.rest.first() != Some(&b'(') {
-            return Err(Error::Fields);
+            return Err(StatError::Fields);
         }
         // comm may contain spaces and ')'. The final ')' precedes numeric
         // fields, which contain neither, so its byte length is irrelevant.
@@ -47,27 +47,27 @@ impl<'a> Stat<'a> {
             .rest
             .iter()
             .rposition(|byte| *byte == b')')
-            .ok_or(Error::Fields)?;
+            .ok_or(StatError::Fields)?;
         let fields = self
             .rest
             .get(close.saturating_add(1)..)
-            .ok_or(Error::Fields)?;
+            .ok_or(StatError::Fields)?;
         if !fields.first().is_some_and(u8::is_ascii_whitespace) {
-            return Err(Error::Fields);
+            return Err(StatError::Fields);
         }
         let ticks = fields
             .split(u8::is_ascii_whitespace)
             .filter(|field| !field.is_empty())
             .nth(Self::START_TICKS.saturating_sub(Self::FIRST_AFTER_COMM))
-            .ok_or(Error::Fields)?;
-        let text = std::str::from_utf8(ticks).map_err(Error::Encoding)?;
-        text.parse().map(StartTicks).map_err(Error::Number)
+            .ok_or(StatError::Fields)?;
+        let text = std::str::from_utf8(ticks).map_err(StatError::Encoding)?;
+        text.parse().map(StartTicks).map_err(StatError::Number)
     }
 }
 
 /// Safe format failures preserve causes without carrying record bytes.
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum Error {
+pub(crate) enum StatError {
     /// Missing structure must not be interpreted as a process generation.
     #[error("process generation record lacks a required field")]
     Fields,

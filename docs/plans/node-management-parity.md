@@ -592,3 +592,10 @@ pending; the earlier focused checks do not replace it.
 A Linux child also receives a stderr socket whose peer was closed before
 exec. Its warning write must fail and the node must stay Serving. This
 pins warning-before-RPC ordering without a race or a wire-format copy.
+
+
+The private shared-stat strict check on 645a372a executed and refused the generic
+crate-visible Error name. The type is now StatError; mappings, parsing order,
+constants, concrete sources and the complete existing Generation tests are
+unchanged. No runtime test ran after that strict failure. Changed-source strict
+and actual Proc/Store tests remain owed; this is no identity/spawn proof.
