@@ -239,3 +239,7 @@ correction is not implemented yet: requests currently lack an admitted physical
 node/connection binding at dispatch. It remains a security blocker before F1
 handoff; the coordinator's new shared-button priority precedes the F1 remainder.
 Prepared form source outside the repository is uninstalled and unverified.
+
+Follow-up: the sidebar slot now actually wraps the unconditional area adapter
+in Some, keeping its existing optional-slot signature; the first replacement
+matched a different qualification and left that one-line caller unchanged.

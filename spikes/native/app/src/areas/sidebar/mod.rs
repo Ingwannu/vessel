@@ -282,7 +282,7 @@ fn schedules(
     touch: bool,
     cx: &mut Context<'_, Shell>,
 ) -> Option<vessel_app_kit::ui::AnyElement> {
-    super::schedules::sidebar(shell, tokens, touch, cx)
+    Some(super::schedules::sidebar(shell, tokens, touch, cx))
 }
 
 /// The slot between the navigation rows and the machines: the projects
