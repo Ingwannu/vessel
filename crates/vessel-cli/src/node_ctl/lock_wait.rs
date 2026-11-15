@@ -25,13 +25,17 @@ impl Released {
     /// The operating system cannot create the waiter thread.
     pub(super) fn subscribe(dir: &DataDir) -> Result<Self, CliError> {
         let path = dir.lock_path();
-        let pending = Pending::spawn(Kind::LockRelease, move || {
-            File::options()
-                .read(true)
-                .write(true)
-                .open(path)
-                .and_then(|file| file.lock().and_then(|()| file.unlock()))
-        })?;
+        let pending = Pending::spawn(
+            Kind::LockRelease,
+            move || {
+                File::options()
+                    .read(true)
+                    .write(true)
+                    .open(path)
+                    .and_then(|file| file.lock().and_then(|()| file.unlock()))
+            },
+            || tracing::debug!("node lock waiter completed after its command ended"),
+        )?;
         Ok(Self { pending })
     }
 

@@ -28,16 +28,20 @@ impl<T: Send + 'static> Pending<T> {
     ///
     /// # Errors
     /// The OS refuses to create the worker; the original I/O cause is preserved.
-    pub(super) fn spawn(kind: Kind, work: impl FnOnce() -> T + Send + 'static) -> io::Result<Self> {
+    pub(super) fn spawn(
+        kind: Kind,
+        work: impl FnOnce() -> T + Send + 'static,
+        on_closed: impl FnOnce() + Send + 'static,
+    ) -> io::Result<Self> {
         let (send, receive) = oneshot::channel();
         let waiter = std::thread::Builder::new()
             .name(kind.name().to_owned())
             .spawn(move || {
                 let result = work();
-                // The command may intentionally end before its worker does.
-                // Keep the lock waiter's existing diagnostic unchanged here.
+                // The caller retains its diagnostic and tracing target when
+                // the command intentionally ends before this worker does.
                 if send.send(result).is_err() {
-                    tracing::debug!("node lock waiter completed after its command ended");
+                    on_closed();
                 }
             })?;
         drop(waiter);

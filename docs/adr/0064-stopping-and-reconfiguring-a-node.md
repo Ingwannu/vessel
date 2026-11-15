@@ -844,7 +844,9 @@ The existing lock waiter's dedicated thread and borrowed oneshot receive
 are separated from its file operation before adding another caller. This is
 a behavior-preserving extraction: thread name, dropped-receiver diagnostic,
 lock open/acquire/unlock order, result and source mapping, cancellation and
-all existing tests remain unchanged. The extracted private helper has only
+all existing tests remain unchanged. The diagnostic stays in its original
+module through the completion callback, preserving its tracing target as
+well as its message. The extracted private helper has only
 the actual lock-release operation; later operation kinds arrive with their
 callers. It reads no environment and owns no file-format or node policy.
 The subsequent deadline fix is separate from this extraction (P2).

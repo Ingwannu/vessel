@@ -30,8 +30,9 @@ slice order. The docs commit adds both and no command.
   web unit 417 and e2e 62). The original return and failed narrow-check logs
   remain available; no failed run was called green.
 - Source: 2g1 extracts the existing lock waiter's thread/oneshot handoff
-  without changing behavior or test expectations. Focused and whole gates
-  are pending. The subsequent identity/preflight deadline change is separate.
+  without changing behavior or test expectations. Its completion diagnostic
+  remains in the original module to preserve the tracing target. Final
+  focused checks and the whole gate are pending. The subsequent identity/preflight deadline change is separate.
 - Next: gate 2g1, then deadline-safe local reads, service observations and
   finalization, force/restart and slices 3/4. Proc implementation still
   awaits its integration decision. Actual managers and agents are unverified.
