@@ -391,3 +391,8 @@ Delete now emits deletedCount/agentIds only after each node deletion acknowledge
 Archive emits agentId/status=archived/archivedAt from the acknowledged marks and refuses an
 already archived session. Missing archivedAt is an invalid node receipt, not a fabricated
 local timestamp. Live idle archival without force remains pending atomic node support.
+
+The first local TS generator run completed compilation but found a global declaration-name
+collision with forge::HostStatus. The registry enum keeps its Rust namespace and wire values
+and exports the distinct TypeScript name RegisteredHostStatus. No existing forge declaration
+or RPC serialization shape changes. Generator outputs remain uncommitted until rerun succeeds.

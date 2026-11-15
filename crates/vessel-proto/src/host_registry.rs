@@ -173,6 +173,7 @@ pub struct RemoveHostRegistration {
 /// Connection facts are projected from existing authorities, never guessed from registration.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "RegisteredHostStatus"))]
 #[serde(rename_all = "snake_case")]
 pub enum HostStatus {
     /// Existing destination authority currently has an established route.
