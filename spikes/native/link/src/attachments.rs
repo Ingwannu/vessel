@@ -35,6 +35,8 @@ use vessel_proto::{AttachmentName, AttachmentRef, Delivery, HarnessRef, OptionCh
 #[cfg(not(target_arch = "wasm32"))]
 mod capabilities;
 #[cfg(not(target_arch = "wasm32"))]
+pub mod local;
+#[cfg(not(target_arch = "wasm32"))]
 mod read;
 #[cfg(not(target_arch = "wasm32"))]
 mod submit;

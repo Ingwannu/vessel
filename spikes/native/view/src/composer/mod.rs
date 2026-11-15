@@ -14,6 +14,7 @@
 pub mod attach;
 pub mod context;
 pub mod drafts;
+pub mod local;
 pub mod matching;
 pub mod mentions;
 pub mod modes;
