@@ -195,11 +195,19 @@ test("every way in: the sidebar, the palette, Settings and the old addresses", a
   await page.keyboard.press("Escape");
   await expect(add).toBeHidden();
 
-  // The palette's action.
+  // The palette's action. The dialog takes focus after the palette has
+  // closed; an Escape sent before that reaches no overlay and the dialog
+  // stays open over the page (gate 29, 2026-11-15), so it waits for focus.
   await page.keyboard.press("Control+k");
   await page.getByRole("option", { name: /Add a machine/ }).click();
   await expect(add).toBeVisible();
+  await expect
+    .poll(() =>
+      add.evaluate((dialog) => dialog.contains(document.activeElement)),
+    )
+    .toBe(true);
   await page.keyboard.press("Escape");
+  await expect(add).toBeHidden();
 
   // A machine in the sidebar opens its detail in Settings, marked there.
   await sidebar
