@@ -778,7 +778,9 @@ In the crate table's order.
     `vesseld version` and `cleanup`; `node.stop` (`now`, or drain).
   - Devices (milestone 3): every connection has a principal (`Owner`,
     `Device`, `Agent`, `Delegated`), and every call is checked against its
-    method's scope by `guard::Guarded`, generated from one row per method;
+    method's scope by `guard::Guarded`, generated from the protocol's one
+    method table (`vessel_proto::method_table!`, which also generates the
+    envelope's `run_here` and the client's unary marker, Quality B);
     `NodeService`'s calls are inherent methods, so only `Guarded` can be
     served. `device.invite` (single-use, in memory by hash, at most a day,
     at most 64 waiting), `device.list`, `device.revoke` (closes the
@@ -1491,6 +1493,16 @@ These values register no call and add no fields to existing replies or
 events. Their feature version remains unassigned; `pr.list` continues to
 mean watched sessions. Project resolution, provider listing and client/CLI
 transport are a following stage, not exposed by these value definitions.
+
+### Startup recovery values (ADR 0059)
+
+`vessel-proto::restart` defines the disabled/reference-prompt policy and partial
+patch values using the existing bounded `PromptText`. The feature protocol is
+unassigned. Both settings replies pass through peer projection, including the
+existing recursive envelope walker; an unassigned field stays hidden from every
+peer. The node's existing response builder supplies only the disabled default.
+There is no recovery settings engine, request registration or startup service
+in this value-only slice; those remain for the staged and wiring slices.
 
 ## Ended conversations in the page (ADR 0036 amendment)
 

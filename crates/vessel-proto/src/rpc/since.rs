@@ -9,40 +9,18 @@ use crate::session::{SessionInput, SessionMode};
 use super::Call;
 
 impl Call {
-    /// The assigned requirement for admission. A feature awaiting a
-    /// protocol number returns `None`; senders must refuse it rather than
-    /// manufacture a version. Fleet envelopes propagate the inner call's
-    /// requirement before considering their own assigned version.
+    /// The assigned requirement for admission: [`Call::since`]. A feature
+    /// awaiting a protocol number returns `None`; senders must refuse it
+    /// rather than manufacture a version. Fleet envelopes take the inner
+    /// call's requirement as well as their own.
     #[must_use]
     pub fn required_protocol(&self) -> Option<ProtocolVersion> {
-        if let Self::Forward(request) = self {
-            return request
-                .call
-                .required_protocol()
-                .map(|inner| inner.max(self.method().since()));
-        }
-        if let Self::Relay(request) = self {
-            return request
-                .call
-                .required_protocol()
-                .map(|inner| inner.max(self.method().since()));
-        }
-        if let Self::Deliver(request) = self {
-            return request
-                .call
-                .required_protocol()
-                .map(|inner| inner.max(self.method().since()));
-        }
-        if let Self::SetNodeSettings(request) = self
-            && request.metadata.is_some()
-        {
-            return crate::GENERATED_NAMES.map(|version| version.max(self.since()));
-        }
-        Some(self.since())
+        self.since()
     }
 
     /// The protocol version this call needs: its method's, or a later one
-    /// when it uses a field added since or wraps a newer inner call. Every
+    /// when it uses a field added since or wraps a newer inner call; None
+    /// when its method's number, or an inner call's, is pending. Every
     /// hop must decode the full typed call. A node that predates a field would
     /// ignore it silently (and, say, start a session with the wrong profile
     /// or invite a device with more scopes than asked), so the client checks
@@ -53,8 +31,8 @@ impl Call {
         reason = "one arm per method, listed so that a new method must decide whether a \
                   field of it needs a later version; the list is the point"
     )]
-    pub fn since(&self) -> ProtocolVersion {
-        let method = self.method().since();
+    pub fn since(&self) -> Option<ProtocolVersion> {
+        let method = self.method().since()?;
         let fields = match self {
             // Every hop decodes the typed inner call. It must know its
             // method and fields too; an older hop could otherwise drop a
@@ -62,9 +40,9 @@ impl Call {
             // protocol-18 home would drop `session.create`'s
             // `side_question_of` and start a plain session (ADR 0045; N5,
             // N3, N2 and N1 each added this rule, merged here as one).
-            Self::Forward(request) => Some(request.call.since().get()),
-            Self::Relay(request) => Some(request.call.since().get()),
-            Self::Deliver(request) => Some(request.call.since().get()),
+            Self::Forward(request) => Some(request.call.since()?.get()),
+            Self::Relay(request) => Some(request.call.since()?.get()),
+            Self::Deliver(request) => Some(request.call.since()?.get()),
             Self::JoinFleet(request) => request.grant.iter().map(|scope| scope.since().get()).max(),
             // Options chosen at creation and a title came in 9: an older
             // node would start the session in the agent's default mode (a
@@ -126,7 +104,14 @@ impl Call {
             // cannot decode it (its guard compared a time instead).
             // Drivers came in 18 (ADR 0057): an older node would keep
             // running the agent over ACP and say nothing.
-            Self::SetNodeSettings(request) => request.drivers.map(|_| 18),
+            Self::SetNodeSettings(request) => {
+                let drivers = request.drivers.map(|_| 18);
+                if request.metadata.is_some() {
+                    Some(crate::GENERATED_NAMES?.get()).max(drivers)
+                } else {
+                    drivers
+                }
+            }
             Self::WriteFile(request) => match request.expect {
                 crate::workspace::WriteExpect::Content { .. } => Some(11),
                 crate::workspace::WriteExpect::Absent | crate::workspace::WriteExpect::Any => None,
@@ -291,7 +276,7 @@ impl Call {
             | Self::RewindSession(_)
             | Self::GetAgentHistory(_) => None,
         };
-        fields.map_or(method, |since| method.max(ProtocolVersion::new(since)))
+        Some(fields.map_or(method, |since| method.max(ProtocolVersion::new(since))))
     }
 }
 
@@ -356,10 +341,16 @@ mod requirement_tests {
                 }
                 .into_call(),
             ];
-            for call in std::iter::once(request).chain(wrappers) {
+            // A request needs what it says; an envelope needs both its own
+            // method's number and its inner call's, and nothing when either
+            // is pending (a pending method's row has no number to give).
+            let inner = request.since();
+            assert_eq!(request.required_protocol(), inner, "{method:?}");
+            for call in wrappers {
+                let expected = inner.zip(call.method().since()).map(|(i, own)| i.max(own));
                 assert_eq!(
                     call.required_protocol(),
-                    Some(call.since()),
+                    expected,
                     "{method:?} via {:?}",
                     call.method()
                 );

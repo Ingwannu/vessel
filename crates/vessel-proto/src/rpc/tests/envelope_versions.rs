@@ -1,6 +1,6 @@
 //! Every typed decoder along a fleet route must understand the full call.
 use super::*;
-use crate::{Deliver, NodeId, Origin, OriginBy, RelayCall};
+use crate::{Deliver, Forward, NodeId, Origin, OriginBy, RelayCall};
 
 fn envelopes(call: Call) -> [Call; 3] {
     let node = NodeId::random();
@@ -50,11 +50,11 @@ fn every_envelope_recursively_requires_the_inner_method_or_field_version() {
         ),
     ] {
         for outer in envelopes(inner) {
-            assert_eq!(outer.since(), needed);
+            assert_eq!(outer.since(), Some(needed));
             // Nested envelopes are rejected by forwarding policy, but their
             // version must still be checked before any handler sees them.
             for nested in envelopes(outer) {
-                assert_eq!(nested.since(), needed);
+                assert_eq!(nested.since(), Some(needed));
             }
         }
     }
@@ -67,7 +67,8 @@ fn metadata_patches_are_refused_before_dispatch_through_every_envelope() {
         ..crate::settings::SetNodeSettings::default()
     }
     .into_call();
-    let expected = crate::GENERATED_NAMES.map(|version| version.max(patch.since()));
+    let expected =
+        crate::GENERATED_NAMES.map(|version| version.max(patch.method().since().unwrap()));
     assert_eq!(patch.required_protocol(), expected);
     for outer in envelopes(patch) {
         assert_eq!(outer.required_protocol(), expected);

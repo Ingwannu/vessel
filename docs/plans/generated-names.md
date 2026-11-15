@@ -835,3 +835,14 @@ The Git-root test now initializes through the existing checked Git API and
 uses the shared safety net; no direct test command runner is needed.
 The designated Quality B head is the next clean-boundary merge; since()
 becomes optional there, with no new title method or assigned number.
+
+
+Quality B integration checkpoint: merge the designated node head, preserving
+its method table, optional since/required_protocol contract, method shapes,
+recovery field/projection, migrations and lowered size records. Metadata's
+existing settings-field requirement is reapplied inside since, with no new
+method row or assigned number. Settings projections compose on the already
+recovery-masked result. The recovery helper and assertions stay unchanged;
+its fixture gains only the new metadata default. Earlier new-title tests
+keep their checks through the optional head contract. One whole package
+gate follows narrow checks and regeneration on this merge.

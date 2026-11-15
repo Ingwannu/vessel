@@ -126,24 +126,25 @@ on the settings type when they merge.
 
 ### Shared admission foundation
 
-The purpose is to represent a protocol number that is not assigned while
-preserving the existing numeric inspection API used by many callers.
-The existing `Call::since()` table covers assigned method and field
-versions. A numeric sentinel or the current version would pretend a
-pending feature had an assigned version; changing every numeric API at
-once would disrupt unrelated features. The choice is one additive
-`Call::required_protocol() -> Option<ProtocolVersion>`, defaulting to
-`Some(self.since())`; feature-specific pending calls return `None`.
-All three fleet envelopes propagate the inner requirement. Client
-admission runs before request ids and the writer queue, and server
-admission runs before dispatch. A pending requirement is the typed
-`CallError::UnassignedProtocol { method }`, with code `Unsupported`.
-The benefit is an explicit state and one mechanism for every feature;
-the cost is that admission must use the optional accessor rather than
-numeric inspection. This foundation adds no pending call or title type;
-its guards test pending and assigned states, and a feature adds its
-end-to-end pending request test when registered. It opens no new network
-path and uses the same pure-Rust refusal on Windows.
+The method table represents unassigned protocol numbers explicitly. On the
+Quality B foundation, both `Method::since()` and `Call::since()` return
+`Option<ProtocolVersion>`; `required_protocol()` delegates to the latter.
+The metadata field contributes `GENERATED_NAMES` to the existing settings
+call, retaining its older fields' requirements. An unassigned contribution
+refuses the whole patch; assigned contributions combine with those fields
+and the method's version. There is no new method in the session-title package,
+so it adds no pending method row. Later new calls use the shared table's
+`[Scope, (pending GENERATED_NAMES), shape]` form until integration assigns it.
+
+All three fleet envelopes propagate the inner requirement. Client admission
+runs before request ids and the writer queue, and server admission before
+dispatch. A pending requirement is `CallError::UnassignedProtocol { method }`,
+with code `Unsupported`. The original shared-admission checkpoint introduced
+the optional accessor while keeping numeric inspection; Quality B now makes
+inspection optional too, with one method table. This package uses that head's
+contract, never a second admission rule or numeric sentinel. Existing assigned
+methods retain their versions. The pure-Rust refusal opens no network path
+and has the same behavior on Windows.
 
 ### The seam
 

@@ -7,6 +7,7 @@ fn settings() -> NodeSettings {
     NodeSettings {
         park_after: ParkAfter::Never,
         drivers: AgentDrivers::default(),
+        restart_recovery: crate::restart::RestartRecovery::default(),
         metadata: MetadataSettings::new(vec![MetadataProvider {
             route: "fast".parse().unwrap(),
             model: None,
@@ -87,4 +88,27 @@ fn an_assigned_threshold_keeps_metadata_only_for_readers_of_that_threshold() {
             .metadata
             .is_automatic()
     );
+}
+
+#[test]
+fn metadata_masking_keeps_the_heads_recovery_projection_even_when_metadata_is_default() {
+    let mut original = settings();
+    original.restart_recovery = crate::restart::RestartRecovery {
+        enabled: true,
+        prompt: "synthetic recovery instruction".parse().unwrap(),
+    };
+    for metadata in [original.metadata.clone(), MetadataSettings::default()] {
+        original.metadata = metadata;
+        let projected = original
+            .for_protocol(PROTOCOL_VERSION)
+            .unwrap_or_else(|| original.clone());
+        let json = serde_json::to_string(&projected).unwrap();
+        let recovery_visible = crate::restart::RESTART_RECOVERY_PROTOCOL
+            .is_some_and(|required| PROTOCOL_VERSION >= required);
+        assert_eq!(json.contains("restart_recovery"), recovery_visible);
+        assert_eq!(
+            json.contains("metadata"),
+            crate::speaks_generated_names() && !original.metadata.is_automatic()
+        );
+    }
 }

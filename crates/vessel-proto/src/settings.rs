@@ -24,6 +24,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::harness::HarnessKind;
 use crate::parking::ParkAfter;
+use crate::restart::RestartRecovery;
 
 /// The node's settings in force.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -36,6 +37,10 @@ pub struct NodeSettings {
     /// absent when every agent runs over ACP.
     #[serde(default, skip_serializing_if = "AgentDrivers::all_acp")]
     pub drivers: AgentDrivers,
+    /// Startup policy, hidden until its protocol is assigned (ADR 0059).
+    /// This value-only field does not enable an engine or register input.
+    #[serde(default, skip_serializing_if = "RestartRecovery::is_default")]
+    pub restart_recovery: RestartRecovery,
     /// Generated-name routes (ADR 0062); omitted for automatic selection and older peers.
     #[serde(
         default,
@@ -47,10 +52,30 @@ pub struct NodeSettings {
 }
 
 impl NodeSettings {
-    /// Hide unassigned/older generated-name fields on every direct or nested reply.
+    /// Project a reply for a peer, including a legacy settings mutation's
+    /// response. Unassigned fields stay hidden even from current peers.
     #[must_use]
     pub fn for_protocol(&self, protocol: crate::ProtocolVersion) -> Option<Self> {
-        self.for_protocol_with_names(protocol, crate::GENERATED_NAMES)
+        let recovery =
+            self.for_recovery_protocol(protocol, crate::restart::RESTART_RECOVERY_PROTOCOL);
+        let base = recovery.as_ref().unwrap_or(self);
+        match base.for_protocol_with_names(protocol, crate::GENERATED_NAMES) {
+            Some(projected) => Some(projected),
+            None => recovery,
+        }
+    }
+
+    fn for_recovery_protocol(
+        &self,
+        protocol: crate::ProtocolVersion,
+        assigned: Option<crate::ProtocolVersion>,
+    ) -> Option<Self> {
+        let supported = assigned.is_some_and(|required| protocol >= required);
+        (!supported && !self.restart_recovery.is_default()).then(|| {
+            let mut settings = self.clone();
+            settings.restart_recovery = RestartRecovery::default();
+            settings
+        })
     }
 
     fn for_protocol_with_names(
@@ -188,7 +213,7 @@ pub struct SetNodeSettings {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub drivers: Option<SetAgentDrivers>,
     /// Strict generated-name patch; an empty list resets automatic selection.
-    /// This build refuses it until `GENERATED_NAMES` is assigned at integration.
+    /// Refused until `GENERATED_NAMES` is assigned at integration.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metadata: Option<MetadataSettings>,
 }
@@ -196,6 +221,36 @@ pub struct SetNodeSettings {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn recovery_projection_respects_a_synthetic_assigned_boundary() {
+        let original = NodeSettings {
+            park_after: ParkAfter::Never,
+            drivers: AgentDrivers::default(),
+            restart_recovery: RestartRecovery {
+                enabled: true,
+                prompt: "custom boundary prompt".parse().unwrap(),
+            },
+            metadata: MetadataSettings::default(),
+        };
+        let required = crate::PROTOCOL_VERSION;
+        let older = crate::ProtocolVersion::new(required.get().checked_sub(1).unwrap());
+        for (protocol, assignment) in [(older, Some(required)), (required, None)] {
+            let projected = original
+                .for_recovery_protocol(protocol, assignment)
+                .unwrap();
+            assert_eq!(projected.restart_recovery, RestartRecovery::default());
+            assert!(
+                !serde_json::to_string(&projected)
+                    .unwrap()
+                    .contains("restart_recovery")
+            );
+        }
+        assert_eq!(
+            original.for_recovery_protocol(required, Some(required)),
+            None
+        );
+    }
 
     /// A node of 17 answers without `drivers`: every agent over ACP. A
     /// change names only the agents it changes.

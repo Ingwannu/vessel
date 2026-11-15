@@ -5040,7 +5040,12 @@ park_after: ParkAfter,
  * Which protocol drives each agent's new sessions (protocol 18);
  * absent when every agent runs over ACP.
  */
-drivers?: AgentDrivers, };
+drivers?: AgentDrivers, 
+/**
+ * Startup policy, hidden until its protocol is assigned (ADR 0059).
+ * This value-only field does not enable an engine or register input.
+ */
+restart_recovery?: RestartRecovery, };
 
 /**
  * Whether a node is taking new work.
@@ -6873,6 +6878,19 @@ session: SessionId,
  * The side the person saw. A stale id must not delete a newer side.
  */
 side: SessionId, };
+
+/**
+ * Node-level startup continuation policy (ADR 0059).
+ */
+export type RestartRecovery = { 
+/**
+ * Whether interrupted, eligible turns are continued at startup.
+ */
+enabled: boolean, 
+/**
+ * Exact text sent after restoring the provider's conversation.
+ */
+prompt: PromptText, };
 
 /**
  * `script.restart`: run a script's run again (in place while it runs, in

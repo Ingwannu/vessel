@@ -141,7 +141,7 @@ async fn node(target: &Target, command: NodeCommand) -> Result<(), CliError> {
             } else {
                 client.call(GetNodeSettings {}).await?
             };
-            Ok(io::out(render::node_settings(settings).as_bytes()).await?)
+            Ok(io::out(render::node_settings(&settings).as_bytes()).await?)
         }
     }
 }
@@ -376,7 +376,7 @@ pub(crate) fn node_cwd(resolved: &Resolved, cwd: PathBuf) -> Result<PathBuf, Cli
 async fn log_command(target: &Target, log: &crate::args::Log) -> Result<(), CliError> {
     let client = connect(target).await?.client;
     let info = log.session.resolve(&client).await?;
-    crate::log::print(&client, info.id, log).await
+    crate::log::print(&client, &info, log).await
 }
 
 #[cfg(test)]

@@ -56,6 +56,8 @@ impl Reply {
             Self::OpenSideQuestion(session) => info(session).map(Self::OpenSideQuestion),
             Self::ResetSideQuestion(session) => info(session).map(Self::ResetSideQuestion),
             Self::NodeInfo(node) => node.for_protocol(protocol).map(Self::NodeInfo),
+            Self::GetNodeSettings(settings) => settings.for_protocol(protocol).map(Self::GetNodeSettings),
+            Self::SetNodeSettings(settings) => settings.for_protocol(protocol).map(Self::SetNodeSettings),
             Self::JoinFleet(joined) => joined.home.for_protocol(protocol).map(|home| {
                 Self::JoinFleet(crate::JoinedFleet { home })
             }),
@@ -497,3 +499,6 @@ mod tests {
 
 #[cfg(test)]
 mod origins;
+
+#[cfg(test)]
+mod restart_tests;

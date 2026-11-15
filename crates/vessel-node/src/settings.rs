@@ -169,6 +169,7 @@ impl Settings {
         NodeSettings {
             park_after,
             drivers,
+            restart_recovery: vessel_proto::restart::RestartRecovery::default(),
             metadata,
         }
     }

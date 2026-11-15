@@ -27,6 +27,7 @@ mod log;
 mod node_ctl;
 mod nodes;
 mod pair;
+mod project_commands;
 mod remote;
 mod render;
 mod search;
