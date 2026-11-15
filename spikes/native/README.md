@@ -73,6 +73,20 @@ reuses the existing machine-page tickets. Agent snapshots retain the
 reporting `NodeId`, so a reused book name cannot stand in for identity.
 The prepared request is not yet connected to a destructive call or control.
 
+The kit field keeps its editor factories and weak IME registry in
+`field.rs`; the shared `field/events.rs` owns its original subscription,
+`field/editability.rs` its one editability API, `field/presentation.rs` the
+form/composer shells, and `field/styles.rs` token projection. Original public
+entry points are re-exported unchanged; composer hooks retain their contract.
+
+Machine presentation policy lives in pure `view::hosts`: an explicit badge
+choice takes precedence while the managed-local-machine lookup is pending;
+only the automatic choice waits, then hides local or names remote. These
+values own no credentials, persistence or UI paint and never replace the
+client's authenticated identity. E1 wires their consumer separately. The
+separate `hosts::Label` validates Unicode display text using the source's
+outer-whitespace rules; it is never parsed as a CLI alias or authority.
+
 The existing agent-option query/cache method lives in private native
 `link/src/options.rs`; the root actor still calls it for `Command::Options`.
 Its module split changes no request, cache order or event.
@@ -254,6 +268,9 @@ with the ordinary line grid at action 16/menu 14; legacy ArrowUp/Update stay.
 Shared action glyphs also include `Trash2`, `ArchiveRestore`, `Minus`,
 `GitBranchPlus`, `Commit` and `Undo2`; existing `Pencil`/`Archive` stay.
 Each is registered once in `assets.rs` on the same 24-unit line grid.
+`outline_button_with_glyph` puts one before an outline button's words
+(Paseo's `leftIcon`: 14 square, the button's 8 gap, glyph and words in one
+tone), as Settings › Overview's Remove draws its Trash2.
 
 `kit/badge.rs` supplies Paseo's StatusBadge for every area: typed success,
 warning, error and muted variants; small and extra-small sizes; optional
@@ -449,6 +466,9 @@ Paseo's pencil: `theme::icon::SM`, padding `spacing::S1`, `theme::radius::MD`,
 static muted ink, a frame and a hit (slop `spacing::S2`) computed from those;
 its caller owns the callback and pending state, with no extra paint. Unlike
 Paseo's it has no accessible name (the kit has no accessibility tree yet).
+Enabled actions consume the left-button release after the generated caller
+click, without a capture handler. Later transparent sibling overlap remains
+an open kit hit-test policy; this is parent isolation, not global occlusion.
 
 ### Rules every screen follows
 
@@ -1035,6 +1055,25 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+Settings Overview keeps its page and book-edit commands in
+`app/src/areas/settings/overview.rs`; `overview/dialogs.rs` only renders
+rename/removal dialogs and delegates actions to that parent. The browser
+demo's fixed agent and ACP-option catalog is `link/src/demo/catalog.rs`;
+`demo.rs` retains session state and event generation. These boundaries do
+not add another edit rule or another node implementation.
+
+`cargo run -p vessel-app-kit --example host_rename_audit` opens an isolated
+input audit of the shared rename action: ordinary, disabled, adjacent
+button and clipped-parent cases. Counters distinguish the action, its
+parent's mouse-down/release and the neighbour. It starts no node and adds no app
+route. The fixed grid is an audit fixture; the action itself is unchanged.
+
+`TextField::select_all` uses the existing engine for line and multiline
+fields. Rename consumes the shared typed `Editability` at dispatch/answer;
+its `rename_element` profile wraps the same bare editor. The kit-internal
+`field::settings_frame` shares only the inset-focus bridge with Appearance
+profiles, leaving chrome to each profile and all events in the one engine.
 
 ### Composer shell policy
 

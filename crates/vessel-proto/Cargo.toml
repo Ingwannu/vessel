@@ -29,6 +29,8 @@ uuid.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true
+# Exact local client-book integer round trips; never used by product proto.
+toml_edit.workspace = true
 
 # `docs/PERFORMANCE.md`: a subscription event's text, encoded and decoded.
 [[bench]]

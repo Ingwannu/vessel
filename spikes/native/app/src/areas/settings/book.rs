@@ -58,7 +58,7 @@ impl Shell {
     pub(crate) fn machines_answer(&mut self, answer: Answer, cx: &mut Context<'_, Self>) {
         // Settings › Overview says the answer to its own dialog's edit
         // there, not again as a notice.
-        let said = self.overview_answer(&answer);
+        let said = self.overview_answer(&answer, cx);
         match answer {
             Answer::Read(Ok(book)) => {
                 // Kept only while a machine page is shown (read for).
