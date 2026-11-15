@@ -1692,7 +1692,7 @@ its provider owner, while desktop logs/watchdogs belong to their lifecycle
 owners. This report deliberately excludes free log text, environment, endpoint
 addresses, keys, pairing links, private names/paths and version suffix text.
 
-The pending product implementation has passed strict selected-crate Clippy on
-Linux. Focused runtime checks, generated TypeScript freshness and the complete
-package gate remain outstanding; a successful assigned-protocol request is
-not claimed before integration assigns the feature.
+The source assembly and authority/lifetime rules have real node and synthetic
+process regression fixtures. Package verification is recorded separately in
+its plan; a successful assigned-protocol request is not claimed before
+integration assigns the feature.

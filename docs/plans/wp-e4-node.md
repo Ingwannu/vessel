@@ -32,27 +32,26 @@ Existing assets and reuse decision:
   process-metrics implementation still needs an owned typed source and the
   repository's dependency decision before adoption.
 
-## Audit and acceptance rows
+## Implementation and acceptance rows
 
-| Node responsibility | Existing evidence | Work still required |
+| Node responsibility | Implemented behavior and selected evidence | Remaining boundary |
 |---|---|---|
-| Safe daemon report and partial source states | D2 value-only acceptance; D3 private staged-source acceptance | Actual collector, one request, client, CLI and admission tests |
-| Process identity/version/monotonic uptime | Private lifecycle projection | Capture startup clock before I/O; actual caller and bind observations |
-| Store/schema and durable/runtime counts | Real SQLite/runtime component tests | Compose source timestamps, timeout and shutdown ownership |
-| Agent metadata/default-profile cached readiness | Metadata-only source tests; no agent invocation | Current immutable profile snapshot, bounded selection and actual caller |
-| Listener and configured/callback relay states | Owner-side watch projection | Publish actual bind state and aggregate without endpoint copies/cycles |
-| Provider diagnostics | Separate A9 provider package | Preserve ownership; this package neither duplicates nor consumes its unreviewed getter |
-| Self-process metrics | Fixed bounded Linux self-status source and typed process/memory values are implemented; runtime tests pending | Check the decoder and actual collector; other operating systems explicitly report Unsupported |
-| Broader system/tool metrics | CPU, heap allocation, disk capacity, workspace/socket counts, latency and external tool probes are absent | Preserve the explicit difference from Paseo; session counts do not substitute for these metrics |
-| Daemon status and local daemon logs | Existing node description; desktop/controller owners have separate responsibilities | Reuse those owners; no arbitrary remote log/path endpoint |
-| Recent failure summary | Private bounded typed-RPC journal tests | Common generated observation boundary; never claim a raw log tail |
-| Bundled web UI | Existing node-hosted web package and its gate | Preserve it; audit any advertised capability separately from report readiness |
-| Shareable rendering and failure output | Validated values only | Bound the complete export; exclude raw connection/error cause text |
+| Safe daemon report | Real bounded collector, canonical pending request, typed client and CLI; real-source and authority fixtures passed | Whole package gate and protocol assignment |
+| Identity, platform and uptime | Startup clock captured before I/O; lifecycle/private-text canaries and actual node identities tested | Successful assigned wire request after integration |
+| Store/schema and session counts | Actual guarded SQLite aggregate reader and runtime projection; source/timeout/cancellation cases tested | Not a store-integrity scan or atomic whole-machine snapshot |
+| Agents and cached readiness | Immutable current-profile selection, safe owner metadata, no refresh; cache projection and no-execution traps tested | Provider diagnostics is a separate A9 package |
+| Listener and relay state | Actual successful bind publication, weak relay ownership and exhaustive owner-side watch projection | No external relay-service reachability claim |
+| Self-process metrics | Canonical ProcessId, bounded fixed Linux self-status source, typed memory and decoder fixtures | Other operating systems explicitly return Unsupported; no other-OS runtime proof |
+| Broader system/tool metrics | CPU/heap allocation, disk capacity, workspace/socket counts, latency and tool probes are absent | Explicit difference from Paseo; no full diagnostic parity claim |
+| Recent failure summary | Bounded code/time journal; actual guard regression observes scope and collector refusals newest first without loss | Not a raw daemon log viewer |
+| Shareable text/JSON | Root and complete export budgets; safe typed errors and CLI debug-output privacy fixtures | Assigned-protocol successful CLI report after integration |
+| Bundled web UI | Existing node-hosted web implementation is preserved | Whole package regression gate; no new Diagnostics screen here |
 
-The pending diagnostic method and `NodeClient::diagnostics()` are now wired
-as an unverified product checkpoint. The number remains unassigned, so no
-successful wire request is claimed. CLI rendering and refusal/privacy fixtures are present but unverified;
-package-level validation remains.
+The canonical pending method, collector and `NodeClient::diagnostics()` are
+product code. The feature number remains unassigned, so the current real wire
+path explicitly refuses before sending or dispatching. Direct collector and
+generated-guard tests do not claim assigned-wire success. Selected product
+checks have passed; complete package validation remains separate.
 
 ## Contract and canonical wiring
 
@@ -190,3 +189,10 @@ The product returned all five expected codes; only the test's expected order
 is corrected. Proc tests were not reached in that fail-fast invocation.
 The subsequent run keeps all assertions and uses no-fail-fast to report both
 selected crates even if one fails. No deadline or product policy changes.
+
+The corrected expanded node/Proc run passed all 322 selected library tests,
+including the canonical PID decoder and actual newest-first guard-error
+window. The latest shared node head is consumed with its protocol, schema and
+existing cases unchanged. These results do not replace the full package gate.
+The CLI distinguishes missing Read scope from missing authentication using
+closed messages, while keeping private connection/source chains internal.

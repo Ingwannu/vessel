@@ -655,7 +655,7 @@ It found three Proc lints (similar pid/parent names, redundant qualification,
 unused read byte count) and the required explicit Diagnostics arm in the
 older-agent reply projection. The nonexistent Busy error variant was also
 confirmed by source review before execution, but compilation stopped earlier.
-All red logs stay under `/tmp/work/m12-diag/e4-wiring-clippy/`.
+All red logs are retained separately with the verification artifacts.
 
 The correction reuses Unavailable plus a closed Diagnostics ErrorDetail with
 Busy/Stopping and the single MAX_DIAGNOSTIC_COLLECTIONS constant. Existing

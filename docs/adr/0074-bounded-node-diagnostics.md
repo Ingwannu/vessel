@@ -219,8 +219,8 @@ client has a separate end-to-end `DIAGNOSTIC_REQUEST_TIMEOUT`. Typed source
 errors retain their causes internally; only closed reasons enter the report.
 
 The CLI now has a bounded text/JSON renderer and a safe error boundary.
-Assigned-protocol successful wire execution, compilation of this correction,
-full package tests and review remain unverified. Provider diagnostics belongs to
+Assigned-protocol successful wire execution and complete package acceptance
+are tracked separately from selected source/runtime checks. Provider diagnostics belongs to
 A9/W22 and is not implemented or registered by E4.
 
 The self-process decoder reuses the canonical root `vessel_proc::ProcessId`

@@ -33,9 +33,8 @@ fn request_message(error: &DiagnosticError) -> &'static str {
                 "diagnostics unavailable: reconnect before requesting another report"
             }
             CallError::Remote(error) => match error.code {
-                ErrorCode::Forbidden | ErrorCode::Unauthorized => {
-                    "diagnostics refused: Read scope is required"
-                }
+                ErrorCode::Forbidden => "diagnostics refused: Read scope is required",
+                ErrorCode::Unauthorized => "diagnostics refused: authentication is required",
                 ErrorCode::Unavailable => match error.detail {
                     Some(ErrorDetail::Diagnostics {
                         reason: DiagnosticRefusal::Busy,
