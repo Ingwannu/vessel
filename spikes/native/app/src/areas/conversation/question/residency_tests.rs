@@ -140,7 +140,7 @@ fn retiring_an_original_request_retains_the_actual_form_and_blocks_resend(cx: &m
             .id();
         let old = residents
             .begin_follow(fixture.token, |resources, notice| {
-                resources.conversation.requests_retired(notice)
+                resources.conversation.requests_retired(notice);
             })
             .unwrap();
         let ticket = residents
@@ -164,7 +164,7 @@ fn retiring_an_original_request_retains_the_actual_form_and_blocks_resend(cx: &m
             .unwrap();
         let next = residents
             .begin_follow(fixture.token, |resources, notice| {
-                resources.conversation.requests_retired(notice)
+                resources.conversation.requests_retired(notice);
             })
             .unwrap();
         let context = residents.context(fixture.token, &fixture.claim).unwrap();
@@ -221,7 +221,7 @@ fn settlement_rejects_foreign_and_duplicate_tickets_before_owner_mutation(cx: &m
         let residents = &mut shell.areas.session_residents;
         let binding = residents
             .begin_follow(fixture.token, |resources, notice| {
-                resources.conversation.requests_retired(notice)
+                resources.conversation.requests_retired(notice);
             })
             .unwrap();
         let foreign = residents
@@ -355,7 +355,7 @@ fn only_an_exact_resolution_record_releases_a_retired_uncertain_effect(cx: &mut 
             .unwrap();
         let fresh = residents
             .begin_follow(fixture.token, |resources, notice| {
-                resources.conversation.requests_retired(notice)
+                resources.conversation.requests_retired(notice);
             })
             .unwrap();
         residents

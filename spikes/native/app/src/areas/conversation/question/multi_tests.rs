@@ -86,7 +86,7 @@ fn simultaneous_fields_keep_their_own_draft_and_enter_targets_the_second_request
                     .sending,
                 None
             );
-        })
+        });
     });
 }
 
