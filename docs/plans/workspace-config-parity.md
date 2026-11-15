@@ -242,3 +242,15 @@ This does not include the staged allocator or a browser consumer. The ADR
 records the reuse choice, accepted platform limits and event-based tests.
 The node scanner and Preview must continue refusing authority from cached
 PID/port data until their own fresh ownership integration is implemented.
+
+### Carrier implementation checkpoint
+
+The separate process carrier now has runner-issued observations in Proc and
+PTY, delegated through AgentProcess and current session/terminal handles.
+Revocation precedes signal attempts, follows observed exit/wait uncertainty,
+and runs on owner drop. PTY's blocking waiter independently revokes its run.
+Session park, wake, profile replacement and service restart replace or clear
+the current observation; old observations cannot become live again. No wire,
+Preview admission or new dependency is introduced. Source is awaiting its
+narrow checks, security review and standalone package gate. Windows execution
+and fresh socket/workspace ownership remain unverified.

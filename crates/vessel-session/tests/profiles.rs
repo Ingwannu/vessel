@@ -1041,3 +1041,30 @@ async fn sessions_that_cannot_move_are_refused_unchanged() {
     })
     .await;
 }
+
+#[tokio::test]
+async fn a_profile_move_replaces_the_actual_process_observation() {
+    within(Box::pin(async {
+        let fixture = Fixture::new();
+        let profiles = profiles(fixture.homes());
+        let alt = named(&profiles, "claude-alt");
+        let work = named(&profiles, "claude-work");
+        let mut reader = fixture.movable(&alt).await;
+        let before = reader.handle().process_lifetime().unwrap();
+        let _moved = fixture
+            .runtime
+            .move_profile(reader.handle().id(), fixture.request(&alt, &work, false))
+            .await
+            .unwrap();
+        reader.until_moved().await;
+        before.ended().await;
+        let after = reader.handle().process_lifetime().unwrap();
+        assert!(!before.same_run(&after));
+        assert!(!before.is_live());
+        assert!(after.is_live());
+        fixture.runtime.shutdown().await;
+        after.ended().await;
+        assert!(reader.handle().process_lifetime().is_none());
+    }))
+    .await;
+}

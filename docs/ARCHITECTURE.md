@@ -1544,5 +1544,5 @@ revocation; AgentProcess and session/terminal handles pass read-only
 observations to node consumers. A checked `ProcessId` is only an OS value.
 Neither PID equality nor the observation alone proves socket ownership or
 authorizes Preview. Fresh complete inspection and workspace/session policy
-remain at the node boundary. This planned carrier introduces no dependency
+remain at the node boundary. This carrier introduces no dependency
 edge or wire type.

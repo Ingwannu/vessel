@@ -54,11 +54,11 @@ impl SessionRuntime {
         let (route, routed) = watch::channel(Route::Live(input.clone()));
         // One move at a time; a second waits for the first's answer.
         let (control, orders) = mpsc::channel(1);
-        let pid = agent.pid();
+        let process = agent.lifetime();
         let parts = self.parts(
             begin,
             notices,
-            (Input::Structured(routed), pid),
+            (Input::Structured(routed), process),
             (Some(control), launch.driver),
         );
         let ActorStart {

@@ -48,7 +48,9 @@ mod child;
 mod error;
 #[cfg(unix)]
 mod group;
+mod lifetime;
 pub mod listening;
+mod process_id;
 mod session;
 mod signal;
 mod spec;
@@ -58,6 +60,8 @@ pub use child::{Child, Spawned, spawn};
 pub use error::{InvalidGroup, SignalError, SpawnError, Stream, WaitError};
 #[cfg(unix)]
 pub use group::{ProcessGroup, REAP_GRACE};
+pub use lifetime::{ProcessLifetime, ProcessLifetimeGuard};
+pub use process_id::{InvalidProcessId, ProcessId};
 pub use session::kill_session;
 pub use signal::Signal;
 pub use spec::{CommandSpec, EnvValue, Environment};
