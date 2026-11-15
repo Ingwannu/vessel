@@ -33,6 +33,8 @@ impl Fixture {
                 node: node.clone(),
             },
             pending(),
+            Control::new(&owner),
+            crate::dictation::quota::tests::lease(),
         )
         .unwrap();
         Self {
@@ -227,3 +229,45 @@ mod control;
 
 #[path = "backpressure_tests.rs"]
 mod backpressure;
+
+#[tokio::test]
+async fn preparation_control_and_actual_actor_lease_survive_the_spawn_boundary() {
+    tokio::time::timeout(TEST_LIMIT, async {
+        let owner = CancellationToken::new();
+        let control = Control::new(&owner);
+        let first = Arc::new(StreamError::Input(
+            crate::dictation::input::InputError::TooLong,
+        ));
+        let selected = control.stop(
+            Arc::clone(&first),
+            super::super::control::Retention::KeepTerminal,
+        );
+        assert!(Arc::ptr_eq(&first, &selected));
+        let lease = crate::dictation::quota::tests::lease();
+        let retained = Arc::downgrade(&lease);
+        let (provider, _requests) = mpsc::channel(super::super::MAX_IN_FLIGHT_COMMITS);
+        let (handle, task) = spawn(
+            SampleRate::TRANSCRIPTION,
+            Source::Fake(provider),
+            CloseSignals {
+                owner,
+                node: CancellationToken::new(),
+            },
+            pending(),
+            control,
+            lease,
+        )
+        .unwrap();
+        assert!(retained.upgrade().is_some());
+        match handle.next().await.unwrap() {
+            Event::End(End::Failed(error)) => assert!(Arc::ptr_eq(&error, &first)),
+            Event::Partial(_) | Event::End(End::Final(_)) => {
+                panic!("the selected failure was lost")
+            }
+        }
+        task.await.unwrap();
+        assert!(retained.upgrade().is_none());
+    })
+    .await
+    .unwrap();
+}

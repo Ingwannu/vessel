@@ -74,13 +74,14 @@ pub(super) fn spawn<F>(
     source: Source,
     signals: CloseSignals,
     transport: F,
+    control: Control<StreamError>,
+    lease: Arc<super::quota::Lease>,
 ) -> StreamResult<(Handle, JoinHandle<()>)>
 where
     F: Future<Output = ()> + Send + 'static,
 {
     let input = Input::new(rate).map_err(|source| Arc::new(StreamError::Input(source)))?;
     let buffer = SegmentBuffer::new().map_err(|source| Arc::new(StreamError::Audio(source)))?;
-    let control = Control::new(&signals.owner);
     let (phase, phase_rx) = watch::channel(CommitPhase::Running);
     let (data, data_rx) = mpsc::channel(DATA_MAILBOX);
     let (next, next_rx) = mpsc::channel(NEXT_MAILBOX);
@@ -103,6 +104,7 @@ where
         life: Life::Live,
     };
     let task = tokio::spawn(async move {
+        let _lease = lease;
         let _completed = completed;
         state.run(data_rx, next_rx, signals, transport).await;
     });
