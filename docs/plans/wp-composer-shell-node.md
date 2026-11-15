@@ -1,14 +1,16 @@
 # Composer command discovery
 
-Contract: ADR 0085, proposed. Base: d954fa3a.
+Contract: ADR 0085, proposed. Quality B base `29eebb8b` merged at `b0da28bf`.
 
 Existing assets: reuse `AgentCommand`, bounded provider report conversion, prompt-free `probe`, workspace root validation and the one RPC method table. No new dependency.
 
 ## Resume point
 
-Values skeleton: optional CommandKind, typed draft root/config and catalog, one pending COMPOSER_COMMANDS constant. Command metadata is stripped from conversation replies, event records and forwarded reply envelopes while unassigned or before its assigned version. ACP namespaced metadata is parsed at the conversion edge; handshake probes now retain command reports that arrive before Ready. No command-discovery RPC is registered or callable yet.
+Values skeleton: optional CommandKind, typed draft root/config and catalog, one pending COMPOSER_COMMANDS constant. Command metadata is stripped from conversation replies, event records and forwarded reply envelopes while unassigned or before its assigned version. ACP namespaced metadata is parsed at the conversion edge. The pending RPC is registered and cannot be called until the integrator assigns its feature.
 
 Narrow prototype compile initially failed because a test used AttachmentLimits::default instead of DEFAULT. This is fixed but the corrected tests and Clippy have not yet run. No whole gate or generated TypeScript refresh has run.
+
+The first wiring Clippy (`18ff99aa`) found missing exhaustive choices in old-agent reply withholding and method forwarding. Fixed at `a9c02560`; its new remote run is queued. Claude flat-list classification now goes through the sole harness descriptor and is shared by probes/live reports (`3e1683a9`). The Codex native skill discovery/invocation slice and its fake-provider tests are implemented but unverified. Native custom prompt files, filesystem fallback, compact/goal execution remain explicit capability gaps in ADR 0085, not parity claims. Session handshake extraction lowers its product-file budget from1036 to939; no size allowance grows.
 
 Next: verify the values; retain before/after-Ready command discovery under one bounded probe policy; validate draft root/relative directory/options before spawn; reuse existing probe cache with the full draft configuration in its key. Register the pending call only after the shared method-table head is announced. Native provider discovery must be implemented or explicitly Unsupported; no inferred/fabricated empty result.
 

@@ -147,8 +147,10 @@ pub async fn probe_catalog_with(
     setup: AgentSetup,
 ) -> Result<Probed, ProbeError> {
     match driver {
-        Driver::Acp => probe_for(driver, command, setup, Purpose::Catalog).await,
-        Driver::CodexAppServer | Driver::ClaudeStream | Driver::OpencodeHttp => {
+        Driver::Acp | Driver::CodexAppServer => {
+            probe_for(driver, command, setup, Purpose::Catalog).await
+        }
+        Driver::ClaudeStream | Driver::OpencodeHttp => {
             Err(ProbeError::CatalogUnsupported { driver })
         }
     }

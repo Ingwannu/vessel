@@ -583,7 +583,6 @@ async fn a_command_probe_waits_for_the_catalog_and_validates_selected_options() 
 #[tokio::test]
 async fn unsupported_native_catalogs_refuse_before_spawning_the_command() {
     for driver in [
-        vessel_agent::Driver::CodexAppServer,
         vessel_agent::Driver::ClaudeStream,
         vessel_agent::Driver::OpencodeHttp,
     ] {
