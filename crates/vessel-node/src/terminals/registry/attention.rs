@@ -26,8 +26,8 @@ async fn watch(
         tokio::select! {
             biased;
             () = stop.cancelled() => return,
-            changed = changes.changed() => {
-                if changed.is_err() { return; }
+            update = changes.changed() => {
+                if update.is_err() { return; }
                 let _seen = wake.send(());
             }
         }

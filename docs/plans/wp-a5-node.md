@@ -223,3 +223,10 @@ completed rc0, 2 passed/0 failed/0 ignored at 13:42:57 UTC. It executed pending
 veto/delayed append watermark and two read-pool snapshots racing writer-committed
 whole-session Read/Unread. This is neither paired-device UI nor a whole runtime
 gate. The later enum/fixture changes were not present in that immutable source.
+
+Exact wp-inbox-node-20261115T123346Z-c2a75fda strict result: rc101, old completion
+fixtures still accessed NotificationSource as a struct (already corrected in
+510a6be1a), plus three own lints: similar watch binding name, needless borrowed
+Store argument and missing doc backticks. Those three are now corrected without
+changing deadlines/admission. The queued corrected30e9 run predates these lint
+fixes; its immutable result must be retained rather than relabelled current.

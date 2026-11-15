@@ -465,7 +465,7 @@ async fn core(
     // it makes runs through the service (`NodeRunner` holds it weakly).
     let (schedules, commands) = Schedules::channel();
     let ended = sessions.ends();
-    let push = setup::push(config, &store, &terminals, &tasks, &stop).await?;
+    let push = setup::push(config, store, &terminals, &tasks, &stop).await?;
     let limits = crate::limits::Limits::configured(config, stop.clone(), &tasks).await;
     let service = Arc::new(Guarded(NodeService::new(Parts {
         lsp,
