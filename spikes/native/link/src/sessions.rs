@@ -3,9 +3,10 @@
 
 mod access;
 // Promote only with the sole resident's real consumer and removal of raw ingress.
-#[cfg(all(test, not(target_arch = "wasm32")))]
-pub mod resident;
 pub mod lifecycle;
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
+pub mod resident;
 pub use access::{Access, Binding, Read};
 
 use vessel_app_view::Card;

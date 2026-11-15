@@ -104,6 +104,84 @@ fn install(
     })
 }
 
+// One ordered transport transcript: metadata, record and terminal frame must all
+// pass the actual selected stream before the receiver's lease is retired.
+async fn queue_original_stream(
+    fixture: &Fixture,
+    scope: &Scope,
+    end: SubscriptionEnd,
+    sender: &tokio::sync::mpsc::Sender<Envelope>,
+) {
+    let session = fixture.binding.resident.address.session;
+    let mut follow = phase(
+        "attach real framed session",
+        fixture.selected.follow_session(session, EventSeq::ZERO),
+    )
+    .await
+    .unwrap();
+    phase(
+        "queue admitted metadata",
+        fixture.selected.send_guarded(
+            sender,
+            scope.envelope(Payload::Metadata(Box::new(follow.info().unwrap().clone()))),
+        ),
+    )
+    .await
+    .unwrap();
+    fixture
+        .peer
+        .push(ServerFrame::Event {
+            subscription: SubscriptionId::new(1),
+            record: EventRecord {
+                seq: EventSeq::ZERO,
+                at: chrono::DateTime::UNIX_EPOCH,
+                event: SessionEvent::Status {
+                    status: SessionStatus::Running,
+                },
+            },
+        })
+        .await;
+    let record = phase("read real framed record", follow.next())
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    phase(
+        "queue admitted record",
+        fixture
+            .selected
+            .send_guarded(sender, scope.envelope(Payload::Records(vec![record]))),
+    )
+    .await
+    .unwrap();
+    fixture
+        .peer
+        .push(ServerFrame::SubscriptionEnded {
+            subscription: SubscriptionId::new(1),
+            end,
+        })
+        .await;
+    let payload = match phase("read real end or error frame", follow.next())
+        .await
+        .unwrap()
+    {
+        None => Payload::Eof,
+        Some(Err(error)) => Payload::Lost(ActFailed {
+            code: None,
+            message: error.to_string(),
+        }),
+        Some(Ok(_)) => panic!("unexpected extra record"),
+    };
+    phase(
+        "queue admitted terminal frame",
+        fixture
+            .selected
+            .send_guarded(sender, scope.envelope(payload)),
+    )
+    .await
+    .unwrap();
+}
+
 #[tokio::test]
 async fn queued_real_metadata_records_and_terminal_frames_recheck_the_original_lease() {
     within(async {
@@ -111,75 +189,8 @@ async fn queued_real_metadata_records_and_terminal_frames_recheck_the_original_l
             let fixture = fixture().await;
             let scope =
                 Scope::capture(&fixture.selected, &fixture.context, fixture.binding).unwrap();
-            let session = fixture.binding.resident.address.session;
-            let mut follow = phase(
-                "attach real framed session",
-                fixture.selected.follow_session(session, EventSeq::ZERO),
-            )
-            .await
-            .unwrap();
             let (sender, mut receiving) = tokio::sync::mpsc::channel(QUEUED_PARTS);
-            phase(
-                "queue admitted metadata",
-                fixture.selected.send_guarded(
-                    &sender,
-                    scope.envelope(Payload::Metadata(Box::new(follow.info().unwrap().clone()))),
-                ),
-            )
-            .await
-            .unwrap();
-            fixture
-                .peer
-                .push(ServerFrame::Event {
-                    subscription: SubscriptionId::new(1),
-                    record: EventRecord {
-                        seq: EventSeq::ZERO,
-                        at: chrono::DateTime::UNIX_EPOCH,
-                        event: SessionEvent::Status {
-                            status: SessionStatus::Running,
-                        },
-                    },
-                })
-                .await;
-            let record = phase("read real framed record", follow.next())
-                .await
-                .unwrap()
-                .unwrap()
-                .unwrap();
-            phase(
-                "queue admitted record",
-                fixture
-                    .selected
-                    .send_guarded(&sender, scope.envelope(Payload::Records(vec![record]))),
-            )
-            .await
-            .unwrap();
-            fixture
-                .peer
-                .push(ServerFrame::SubscriptionEnded {
-                    subscription: SubscriptionId::new(1),
-                    end,
-                })
-                .await;
-            let payload = match phase("read real end or error frame", follow.next())
-                .await
-                .unwrap()
-            {
-                None => Payload::Eof,
-                Some(Err(error)) => Payload::Lost(ActFailed {
-                    code: None,
-                    message: error.to_string(),
-                }),
-                Some(Ok(_)) => panic!("unexpected extra record"),
-            };
-            phase(
-                "queue admitted terminal frame",
-                fixture
-                    .selected
-                    .send_guarded(&sender, scope.envelope(payload)),
-            )
-            .await
-            .unwrap();
+            queue_original_stream(&fixture, &scope, end, &sender).await;
             fixture.state.clients["fixture"].retire();
             for _part in 0..QUEUED_PARTS {
                 let envelope = phase("receive queued original payload", receiving.recv())

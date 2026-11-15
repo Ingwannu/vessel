@@ -68,6 +68,11 @@ pub enum Payload {
         result: Box<Result<Acted, ActFailed>>,
     },
 }
+impl std::fmt::Debug for Payload {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("ResidentPayload(<opaque>)")
+    }
+}
 /// Invalid ingress never returns its peer payload or applies its mutation.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Problem {
@@ -148,6 +153,11 @@ pub struct CorrelatedRefusal {
     operation: Option<Operation>,
     phase: FailurePhase,
     reason: Refusal,
+}
+impl std::fmt::Debug for CorrelatedRefusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("CorrelatedRefusal(<opaque>)")
+    }
 }
 impl CorrelatedRefusal {
     pub(crate) fn new(
