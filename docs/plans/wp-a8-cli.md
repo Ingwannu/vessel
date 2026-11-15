@@ -243,3 +243,11 @@ edge keeps its own typed Deadline category and bounded future rather than adding
 an unrelated cross-feature utility. In-memory regressions let an initial snapshot
 complete and stall the next, and separately stall exact-owner preflight. Zero test
 budgets avoid wall-clock waits; source/static checks pass, VM execution is owed.
+
+Future shared-codec consumption must preserve its typed failure privately without
+printing arbitrary header/value keys through the CLI error chain. FillError may
+carry an unknown header from supplied JSON; a canonical unknown field may likewise
+come from that input. The same opaque diagnostic boundary used for DecodeFailure
+must cover these cases when handlers activate, with a private-canary cause-chain
+regression. This is a remaining integration requirement, not a current claim that
+unconsumed shared codec errors already pass through the product command.
