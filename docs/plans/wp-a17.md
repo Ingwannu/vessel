@@ -3,11 +3,12 @@
 Status: implemented/staged source, with changed-source checks in progress.
 No final whole gate, platform capture, assigned-wire integration or final V4
 approval is claimed. Remaining owner integrations are listed explicitly below.
-Historical commands/results and continuation details: `/tmp/work/wp-inbox/STATE.md`.
+Historical commands/results and continuation details are retained in the private
+A5 evidence packet.
 
 ## Reference behavior
 
-Paths are relative to Paseo 0.15.4 (`~/refs/paseo-latest`).
+Paths are relative to the Paseo 0.15.4 reference checkout.
 
 - `packages/app/src/contexts/session-context.tsx:260-310`: skip error alerts,
   suppress the actively viewed source and deduplicate attention transitions.
@@ -207,10 +208,10 @@ Unready owner integrations above remain outstanding work, not approved parity.
 
 ## Verification and operations
 
-All new Cargo/rustc/build/test/capture builds run on build-vm through
-`/tmp/work/m12-tools/vessel-remote-gate`; no new local Cargo. Static size/token
+All new Cargo/rustc/build/test/capture builds run on the build VM through
+`vessel-remote-gate`; no new local Cargo. Static size/token
 checks read source only and have passed on current app source. Exact commands,
-SHAs and raw failed/queued results are retained under `/tmp/work/wp-inbox/`.
+SHAs and raw failed/queued results are retained in the private A5 evidence packet.
 VM-restart rc143 logs remain infrastructure interruption, not compiler PASS.
 
 Latest completed runtime generation evidence: TS run
