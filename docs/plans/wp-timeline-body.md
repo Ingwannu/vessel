@@ -51,3 +51,19 @@ or its source/provenance graph; no second predicate or decoder is introduced.
 The moved computed-diff implementation imports FluentBuilder at its new call
 site; pinned GPUI defines conditional building on that separate trait. This
 static import audit is source preparation, not a compiler or draw-test pass.
+
+
+Preparation-only canonical dependency intake: full62d8743c8..d596 body values
+are present after announced node gate50c (9c150c6e, all18steps0, Rust2549/0/12,
+including body tests). This is vocabulary only. Coordinator permits preparation
+here but requires merging announced green app base9 before the actual handoff;
+any already-contained isolated pick must then disappear from the final delta.
+No rich fields/events/status/RPC/receipt/runtime activation is introduced.
+
+Dependency closure includes the native workspace declaration for the already
+locked similar2.7.0 and its actual About inventory entry in manifest order. The
+initial source-only cut had only view's workspace inheritance, not that required
+parent declaration; static manifest intake found and corrected it before any
+isolated compile was submitted. SPDX Apache-2.0 is verified from the locked
+registry package. This reuses the existing text-editing category, with no new
+wording table or dependency version. Exact standalone native checks remain owed.
