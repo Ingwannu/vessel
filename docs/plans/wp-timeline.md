@@ -1154,3 +1154,13 @@ Native-only borrowed-body source is separately isolated on official base8 as
 an actual A8 caller and legacy computed-diff delegation land together. W23's
 minimal d596 body-values prerequisite is source-passed but still awaits exact
 checks and integrator adoption; no field/event/RPC/runtime activation follows.
+
+Shared path ownership correction (14:55 UTC): the lead withdrew A7's table
+ownership because the coordinator had already assigned the single inventory to
+S2. S2's existing e7f3a244 inventory macro is the pending canonical seam. The A7
+paths.rs preparation is withdrawn; no shared-line path packet was delivered.
+Keep the original exhaustive path function until S2's reviewed, green seam is
+announced, then append only A7's four entries there. The two newly queued44ccd
+narrow/test runs are obsolete and canceled while still queued; retained143 logs
+are neither a compiler failure nor a pass. Their replacements wait for that seam
+rather than spending build slots on a withdrawn implementation.
