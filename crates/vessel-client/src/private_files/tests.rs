@@ -130,6 +130,10 @@ fn symlink_directory_and_traversal_are_refused_without_reading() {
     ] {
         assert!(matches!(Name::parse(unsafe_name), Err(Error::UnsafeName)));
     }
+    let exact_path = "x".repeat(MAX_BOOK_PATH_BYTES);
+    assert!(Name::parse(&exact_path).is_ok());
+    let over_path = "x".repeat(MAX_BOOK_PATH_BYTES.checked_add(1).unwrap());
+    assert!(matches!(Name::parse(&over_path), Err(Error::UnsafeName)));
     assert!(
         directory
             .read(Name::parse("missing").unwrap(), Purpose::Book)
