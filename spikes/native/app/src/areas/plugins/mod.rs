@@ -16,7 +16,10 @@ use std::{
 };
 use vessel_app_kit::{
     MenuState,
-    ui::{App, Context, Entity, IntoElement, Subscription, Window},
+    ui::{
+        App, Context, Entity, InteractiveElement as _, IntoElement, ParentElement as _,
+        Styled as _, Subscription, Window, div,
+    },
 };
 use vessel_app_view::plugins::{
     FieldValue, Problem, Registry, SurfaceProblem, SurfaceRequest, SurfaceState,
@@ -154,7 +157,6 @@ impl Render for SurfaceView {
             .is_ok();
         let body = draw::surface(self, self.state.surface(), &tokens, live, window, cx);
         let overlay = menus::overlay(self, &tokens, window, cx);
-        use vessel_app_kit::ui::{InteractiveElement as _, ParentElement as _, Styled as _, div};
         div()
             .id("plugin-surface-root")
             .size_full()

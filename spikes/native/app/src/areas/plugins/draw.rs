@@ -6,8 +6,8 @@ use vessel_app_kit::{
     badge::{self, Size, Variant},
     theme::spacing,
     ui::{
-        AnyElement, Context, Div, ElementId, IntoElement, ParentElement as _, Styled as _, Window,
-        div, px,
+        AnyElement, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _,
+        IntoElement, ParentElement as _, Styled as _, Window, div, px,
     },
 };
 use vessel_app_view::plugins::FieldValue;
@@ -228,7 +228,6 @@ fn toggle(
         0,
         look.tokens,
     );
-    use vessel_app_kit::ui::{FluentBuilder as _, InteractiveElement as _};
     let switch = switch.when(look.live, |switch| {
         switch.on_click(cx.listener(move |view, _event, _window, cx| {
             view.change(&field, FieldValue::Toggle(next), cx)
@@ -296,7 +295,6 @@ fn markdown(
             }
         },
     );
-    use vessel_app_kit::ui::InteractiveElement as _;
     div()
         .id(identity(view, control_id))
         .debug_selector(|| "plugin-surface-markdown".to_owned())
