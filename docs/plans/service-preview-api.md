@@ -114,3 +114,9 @@ panic hook is neither replaced nor claimed sanitized. Existing physical
 worker/stream cleanup tests and socket/permit/drain field order are intact.
 The returned finding must pass re-review and exact changed-source narrow
 checks before any source-ready statement; product/engine grants stay off.
+
+The second historical strict run found an unnecessary Future qualification
+and four ignored safety-net Results (plus the read count already fixed).
+The current tests now require each within result to succeed, so a timeout
+fails instead of being ignored. No deadline, payload assertion, cancellation
+or cleanup requirement changed. Old run receipts remain separate evidence.

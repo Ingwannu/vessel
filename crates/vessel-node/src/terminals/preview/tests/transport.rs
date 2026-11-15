@@ -49,7 +49,7 @@ async fn payload_waits_for_proof_and_revocation_wakes_pending_io() {
         let receipt = draining.await;
         assert!(receipt.belongs_to(&lease));
         assert_eq!(peer.read(&mut [0]).await.unwrap(), 0);
-    }).await;
+    }).await.unwrap();
 }
 
 #[tokio::test]
@@ -95,7 +95,8 @@ async fn cancelled_caller_does_not_release_worker_capacity_or_finish_drain() {
             Err(PreviewError::Revoked)
         ));
     })
-    .await;
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
@@ -132,7 +133,8 @@ async fn operation_deadline_also_leaves_physical_inspection_owned() {
             MAX_PREVIEW_PREPARATIONS
         );
     })
-    .await;
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
@@ -169,5 +171,6 @@ async fn stale_or_foreign_commands_do_not_dial_and_busy_refusals_preserve_causes
         pending(std::pin::pin!(listener.accept())).await;
         let _receipt = lease.revoke_and_drain().await;
     })
-    .await;
+    .await
+    .unwrap();
 }

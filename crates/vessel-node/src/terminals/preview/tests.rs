@@ -142,7 +142,7 @@ async fn listener() -> (TcpListener, PreviewOrigin) {
     (listener, origin)
 }
 
-async fn pending<F: std::future::Future>(mut future: std::pin::Pin<&mut F>) {
+async fn pending<F: Future>(mut future: std::pin::Pin<&mut F>) {
     std::future::poll_fn(|cx| {
         assert!(future.as_mut().poll(cx).is_pending());
         std::task::Poll::Ready(())
