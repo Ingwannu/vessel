@@ -29,7 +29,7 @@ async fn start(
     tasks: &TaskTracker,
     stop: &CancellationToken,
 ) -> (tokio::task::JoinHandle<()>, Arc<Settings>) {
-    let settings = Arc::new(crate::settings::Settings::open(
+    let settings = Arc::new(Settings::open(
         DataDir::new(fixture.data.path()),
         Arc::clone(&fixture.runtime),
         ParkAfter::Never,

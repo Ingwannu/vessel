@@ -220,6 +220,9 @@ assertions and deadlines are unchanged. At that clean correction boundary, the
 checked registry update brings protocol 25 and keeps schema 20; it changes no
 title setting or generation feature assignment. Corrected focused checks,
 generated TypeScript and the new combined gate remain pending.
+The corrected preflight found one unnecessary qualification in that test
+fixture; it now uses its existing Settings import. Product behavior, assertions
+and deadlines remain unchanged; corrected strict and settings checks are owed.
 
 The physical-lifetime correction reuses Sessions' existing hard-drained task
 tracker through the approved `metadata_work` token accessor. Forwarders'
