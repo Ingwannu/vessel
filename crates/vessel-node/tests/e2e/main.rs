@@ -33,6 +33,8 @@ mod device_invite;
 #[cfg(test)]
 mod device_self;
 #[cfg(test)]
+mod diagnostics;
+#[cfg(test)]
 mod fleet;
 #[cfg(test)]
 mod fleet_control;

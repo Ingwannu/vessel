@@ -1,5 +1,39 @@
 # E4: node diagnostics package
 
+## Assigned-wire validation follow-up
+
+The accepted node checkpoint is now integrated on the announced green head
+`9c150c6e`. The integrator assigned diagnostics protocol 24 in `729144ff`;
+minimum protocol stays 2. Incoming `97a020ef` boxes guarded calls on default
+worker stacks and `58defe1d` admits this command's own JSON switch. Those
+changes and the four transitioned protocol tests are preserved unchanged.
+Earlier unassigned-gate evidence below remains historical evidence, not a
+successful assigned-wire result.
+
+[Decision Log]
+- Purpose: prove the assigned transport reaches the selected real collector,
+  and distinguish transport behavior from the prior direct-guard proof.
+- Existing assets: reuse testkit fakes, the actual pairing/relay/fleet helpers,
+  the actual generated guard and the RPC memory transport. No new dependency,
+  product hook, principal, version override or second collector is needed.
+- Alternatives: more direct calls would not prove authenticated wire admission;
+  a broad fake handler would duplicate the shared method table.
+- Choice: modify the existing diagnostic test areas with real owner/paired
+  Read/no-Read and agent calls, two-node identity/count/revocation, fleet refusal,
+  selected named-node CLI exports and a previous-protocol CLI responder.
+  A dedicated typed responder tests client identity, reply correlation,
+  disconnect, caller abort and the actual named client timeout.
+- Lifetime: actual RPC partial deadlines and a disconnected caller leave queued
+  source leases held until the real blocking pool is released and shutdown
+  joins it. The earlier direct-future abort fixture stays separate; the wire
+  test does not pretend to identify a running OS read's cancellation point.
+- Tradeoff: synthetic responder fixtures isolate client behavior but do not
+  prove pairing or collection. Real temporary nodes and paired devices prove
+  those boundaries, without claiming physical machines or native adoption.
+
+New follow-up cases are authored and await strict compilation, focused tests
+and the one changed-tree package gate. No new execution result is claimed yet.
+
 ## Scope and existing assets
 
 This is the node half of the diagnostics package. The native owner owns the
@@ -47,11 +81,10 @@ Existing assets and reuse decision:
 | Shareable text/JSON | Root and complete export budgets; safe typed errors and CLI debug-output privacy fixtures | Assigned-protocol successful CLI report after integration |
 | Bundled web UI | Existing node-hosted web implementation and package regression gate pass | No new Diagnostics screen here |
 
-The canonical pending method, collector and `NodeClient::diagnostics()` are
-product code. The feature number remains unassigned, so the current real wire
-path explicitly refuses before sending or dispatching. Direct collector and
-generated-guard tests do not claim assigned-wire success. Selected product
-checks have passed; complete package validation remains separate.
+The collector and `NodeClient::diagnostics()` are product code. The original
+checkpoint was pending and its wire refused before send/dispatch. Protocol 24
+is now assigned on the consuming head; new supported-wire cases above require
+their own changed-tree execution. Original direct-guard evidence stays scoped.
 
 ## Contract and canonical wiring
 

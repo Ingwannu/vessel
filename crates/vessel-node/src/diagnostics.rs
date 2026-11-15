@@ -13,6 +13,8 @@ mod journal;
 mod lifetime;
 mod process;
 mod sources;
+#[cfg(test)]
+mod wire;
 
 use crate::{profiles::NodeProfiles, readiness::Readiness, relays::Relays};
 use admission::Admission;
