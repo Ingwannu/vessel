@@ -1025,3 +1025,26 @@ fields and MCP summary/projection as pre-qualification debt. The catalogue/input
 work must not be relabelled complete22-tool behavior. No new DTO, method, number,
 renderer or engine is enabled by that checklist; missing facts cannot be filled
 with request echoes or joined from a later document.
+
+
+## Staged completed-tab MCP projection
+
+[Decision Log]
+- Purpose: the foundation's generic Tab shape must not leak an internal nested
+  descriptor as the final new-tab/navigation/resize result, or echo a requested
+  URL/size instead of a redirect/effective backend observation.
+- Existing assets: BrowserResult::Tab already carries the completed typed node
+  descriptor; the single BrowserTool enum and output edge already match result
+  kind/target before exposure. No new DTO or external dependency is needed.
+- Choice: independently project those existing facts into flat operation results:
+  creation id/workspace/address, navigation id/address, traversal/reload id,
+  resize id/effective dimensions. The operation discriminator still uses the
+  one catalogue's name, not a second string table.
+- Why: typed backend observations are sufficient here, so missing-engine facts
+  need not be manufactured or queried from a later document. No favicon or
+  private profile descriptor is serialized into these completed-tab results.
+- Impact: staged-only fixtures deliberately return a different observed URL and
+  viewport from the request, and check fixed/responsive projection and traversal
+  shape. These tests are UNEXECUTED pending the announced-node join. Other result,
+  dialog, log, summary/context and actual execution debts remain in the linked
+  checklist; this change enables no tool, method or browser engine.

@@ -24,14 +24,14 @@ caller-selected cwd or control endpoint.
 | Operation | Reference result behavior | Current foundation and owed work |
 | --- | --- | --- |
 | List tabs | Scoped tab records include address/title, active/loading and history eligibility | Typed inventory exists; no real inventory/focus observation. MCP currently projects richer internal load/history enums rather than the reference flags. |
-| New tab | Flat id/workspace/address facts from the created tab | Generic Tab currently projects a nested record. Derive and project the actual created target facts. |
+| New tab | Flat id/workspace/address facts from the created tab | Staged projection now flattens the completed Tab id/workspace/address; actual creation and changed-source checks remain owed. |
 | Snapshot | Address/title/workspace, ARIA-YAML marker, text, truncation and named measured stats | Content/stats/revision exist. Add same-document descriptor facts and explicit reference output projection; do not query a later document and join it to an old snapshot. |
 | Click | Selected current ref and optional actual point | Applied has only id; typed action completion/projection remains owed. |
 | Fill | Current element ref on successful fill | Applied is insufficient for the final result projection; no executor yet. |
 | Wait | Which condition matched | Matched currently has id only. Actual predicate execution and matched-kind result remain owed. |
 | Type | Optional ref and optional actual point | Applied has only id; active-element/ref execution and result remain owed. |
 | Keypress | Key identity, optional ref/point | Applied has only id. A complete tool chord and observed target completion differ from the finite human raw-key subset. |
-| Navigate | Actual resulting address | Generic Tab exists; flatten actual result rather than echo the requested address. |
+| Navigate | Actual resulting address | Staged projection now flattens the completed Tab address; real navigation and changed-source checks remain owed. |
 | Back | Completed traversal id | History/controller model exists, no qualified actor/result flow. |
 | Forward | Completed traversal id | Same boundary as Back; no invented empty-history success. |
 | Reload | Completed reload id | Controller model exists, no qualified actor/result flow. |
@@ -43,7 +43,7 @@ caller-selected cwd or control endpoint.
 | Logs | Console entries and resource timing/network entries, each requested tail | Current DTO is a deliberately incomplete typed foundation; see log debt below. No real producer/ring exists. |
 | Evaluate | Actual serialized result plus truncation | Evaluation has capped JSON but internal field names/shape differ. Explicit result projection and real engine result/exception behavior remain owed; never echo the function as a result. |
 | Scroll | Applied deltas, optional ref and actual point | Applied has only id; element/actionability and result projection remain owed. |
-| Resize | Actual resulting width/height | Generic Tab carries effective viewport; extract actual acknowledged dimensions in the final projection. |
+| Resize | Actual resulting width/height | Staged projection now extracts completed effective dimensions for fixed/responsive modes, not requested ones. Actual resize and changed-source checks remain owed. |
 | Close tab | Completed close id | Controller now retains the target until ACK. Actual actor destruction/watch/slot settlement remains owed. |
 
 ## Shared result and log debt

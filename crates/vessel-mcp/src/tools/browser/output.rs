@@ -32,7 +32,14 @@ pub(super) fn render(
             let encoded: String = image.into();
             (meta, Some(ContentBlock::image(encoded, "image/png")))
         }
-        BrowserResult::Tab { tab } => (json!({"tab":tab_metadata(&tab)}), None),
+        BrowserResult::Tab { tab } => {
+            let Some(metadata) = completed_tab(tool, &tab) else {
+                return Ok(CallToolResult::error(vec![ContentBlock::text(
+                    "Browser tab result did not match its operation.",
+                )]));
+            };
+            (metadata, None)
+        }
         BrowserResult::Tabs { tabs } => {
             let tabs = tabs.as_slice().iter().map(tab_metadata).collect::<Vec<_>>();
             (json!({"tabs":tabs}), None)
@@ -63,6 +70,43 @@ pub(super) fn render(
     let mut reply = CallToolResult::success(content);
     reply.structured_content = Some(structured);
     Ok(reply)
+}
+// Project completed backend facts. In particular URL and effective dimensions
+// can differ from the request; echoing its arguments would hide that outcome.
+fn completed_tab(tool: BrowserTool, tab: &BrowserTab) -> Option<Value> {
+    use BrowserTool as T;
+    match tool {
+        T::NewTab => Some(json!({
+            "browserId": &tab.browser_id, "workspaceId": tab.workspace, "url": &tab.url
+        })),
+        T::Navigate => Some(json!({"browserId": &tab.browser_id, "url": &tab.url})),
+        T::Back | T::Forward | T::Reload => Some(json!({"browserId": &tab.browser_id})),
+        T::Resize => {
+            let size = match tab.viewport {
+                vessel_proto::browser::BrowserViewport::Responsive(size)
+                | vessel_proto::browser::BrowserViewport::Fixed(size) => size,
+            };
+            Some(
+                json!({"browserId": &tab.browser_id, "width": size.width.get(), "height": size.height.get()}),
+            )
+        }
+        T::ListTabs
+        | T::Snapshot
+        | T::Click
+        | T::Fill
+        | T::Wait
+        | T::Type
+        | T::Keypress
+        | T::Screenshot
+        | T::Upload
+        | T::Select
+        | T::Hover
+        | T::Drag
+        | T::Logs
+        | T::Evaluate
+        | T::Scroll
+        | T::CloseTab => None,
+    }
 }
 fn tab_metadata(tab: &BrowserTab) -> Value {
     // Project before serialization: encoding then removing an icon would still
@@ -186,3 +230,6 @@ mod tests {
         assert_eq!(result.is_error, Some(true));
     }
 }
+
+#[cfg(test)]
+mod tab_tests;
