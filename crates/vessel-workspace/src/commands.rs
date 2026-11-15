@@ -18,6 +18,10 @@
 //! - The first command that fails stops the rest: a later command usually
 //!   needs what the earlier one made.
 
+mod observation;
+
+pub use observation::{CommandEvent, CommandIndex, CommandOutcome};
+
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -68,15 +72,48 @@ pub async fn run(
     run: &Run<'_>,
     written: &Written,
 ) -> std::io::Result<Option<SetupFailure>> {
+    run_observed(commands, run, written, |_| {}).await
+}
+
+/// Run approved commands with actual execution boundaries. The callback is
+/// synchronous so the runner owns ordering; consumers keep bounded memory
+/// and wake readers, leaving persistence/network work outside the callback.
+///
+/// # Errors
+/// The command or log cannot be prepared or written.
+pub async fn run_observed(
+    commands: &[ProjectCommand],
+    run: &Run<'_>,
+    written: &Written,
+    mut observe: impl FnMut(CommandEvent<'_>),
+) -> std::io::Result<Option<SetupFailure>> {
     let mut log = Log::open(run.log, written).await?;
-    // The limits are minutes; an instant that far ahead always exists.
     let deadline = tokio::time::Instant::now()
         .checked_add(run.limit)
         .unwrap_or_else(tokio::time::Instant::now);
-    for (index, command) in commands.iter().enumerate() {
-        log.line(&format!("$ {}", command.as_str())).await?;
-        let outcome = one(command, index, run, deadline, &mut log).await?;
-        if let Some(failure) = outcome {
+    for (position, command) in commands.iter().enumerate() {
+        let index = CommandIndex(position);
+        let started = tokio::time::Instant::now();
+        observe(CommandEvent::Started { index, command });
+        let result = if run.cancel.is_cancelled() {
+            Ok(CommandOutcome::Cancelled)
+        } else {
+            match log.line(&format!("$ {}", command.as_str())).await {
+                Ok(()) => one(command, index, run, deadline, &mut log, &mut observe).await,
+                Err(error) => Err(error),
+            }
+        };
+        let outcome = match &result {
+            Ok(outcome) => *outcome,
+            Err(_io) => CommandOutcome::IoFailed,
+        };
+        observe(CommandEvent::Finished {
+            index,
+            elapsed: started.elapsed(),
+            outcome,
+        });
+        let outcome = result?;
+        if let Some(failure) = outcome.failure(index) {
             return Ok(Some(failure));
         }
     }
@@ -86,11 +123,12 @@ pub async fn run(
 /// One command, to its end, the deadline or a cancel.
 async fn one(
     command: &ProjectCommand,
-    index: usize,
+    index: CommandIndex,
     run: &Run<'_>,
     deadline: tokio::time::Instant,
     log: &mut Log<'_>,
-) -> std::io::Result<Option<SetupFailure>> {
+    observe: &mut impl FnMut(CommandEvent<'_>),
+) -> std::io::Result<CommandOutcome> {
     let (spec, script) = shell_command(command, run.dir, &run.env, run.scratch).await?;
     let spec = run.removed.iter().fold(spec, CommandSpec::env_remove);
     let spawned = vessel_proc::spawn(&spec);
@@ -103,7 +141,7 @@ async fn one(
     else {
         remove(script).await;
         log.line("vessel: the shell did not start").await?;
-        return Ok(Some(SetupFailure::Spawn));
+        return Ok(CommandOutcome::SpawnFailed);
     };
     drop(stdin);
     let (sender, mut receiver) = mpsc::channel::<Vec<u8>>(16);
@@ -111,7 +149,10 @@ async fn one(
     let ended = loop {
         tokio::select! {
             chunk = receiver.recv() => match chunk {
-                Some(chunk) => log.write(&chunk).await?,
+                Some(chunk) => {
+                    observe(CommandEvent::Output { index, bytes: &chunk });
+                    log.write(&chunk).await?;
+                },
                 None => break Ended::Closed,
             },
             () = tokio::time::sleep_until(deadline) => break Ended::TimedOut,
@@ -142,30 +183,23 @@ async fn one(
     };
     pumps.abort();
     remove(script).await;
-    let index = u32::try_from(index).unwrap_or(u32::MAX);
     Ok(match ended {
         Ended::TimedOut => {
             log.line("vessel: stopped at the time limit").await?;
-            Some(SetupFailure::TimedOut)
+            CommandOutcome::TimedOut
         }
         Ended::Cancelled => {
             log.line("vessel: stopped").await?;
-            Some(SetupFailure::Exit {
-                command: index,
-                code: None,
-            })
+            CommandOutcome::Cancelled
         }
-        Ended::Closed if code == Some(0) => None,
+        Ended::Closed if code == Some(0) => CommandOutcome::Exited(code),
         Ended::Closed => {
             log.line(&format!(
                 "vessel: exited with {}",
                 code.map_or_else(|| "a signal".to_owned(), |code| code.to_string())
             ))
             .await?;
-            Some(SetupFailure::Exit {
-                command: index,
-                code,
-            })
+            CommandOutcome::Exited(code)
         }
     })
 }
@@ -318,6 +352,9 @@ impl<'a> Log<'a> {
         Ok(())
     }
 }
+
+#[cfg(all(test, unix))]
+mod observation_tests;
 
 #[cfg(test)]
 #[cfg(unix)]
