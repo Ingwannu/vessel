@@ -30,6 +30,13 @@ callback updates matching pending UI to uncertain before replacement follow begi
 The callback precedes generation-allocation failure as well, so exhaustion cannot
 leave an obsolete Sending indicator. Notices cannot mint or readmit operations.
 
+Provider-child resources have their own `ResourceOwner::Subagents` vote and
+`OperationKind::Subagents` ticket namespace. The parent bundle retains the one
+concrete child query/readonly area. Main/origin Timeline Ready cannot erase a child
+query/find/confirmation hold, and a timeline reply cannot consume a child ticket.
+This extends the closed owner set instead of relying on last-writer aggregation;
+the six concrete owners must all supply clean snapshots before dehydration.
+
 ## Decision Log
 
 - Purpose and intent: two agent panes must own independent conversation, scroll,
