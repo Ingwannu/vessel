@@ -61,12 +61,12 @@ fn items(shell: &Shell) -> Vec<MenuItem> {
                     Some(_) | None => lang.git_action_label(row.action, status),
                 };
                 MenuItem {
-                    label: label.into(),
                     tone: vessel_app_kit::menu::Tone::Plain,
                     // Paseo's `isActionDisabled`: only a running write takes
                     // a row out of reach; any other reason is said on choice.
                     disabled: row.unavailable == Some(Unavailable::Writing),
                     starts_group: row.starts_group,
+                    ..MenuItem::new(label)
                 }
             }
             MenuEntry::Pull(pull) => pull_item(shell, &pull),
@@ -99,10 +99,10 @@ fn pull_item(shell: &Shell, entry: &PullEntry) -> MenuItem {
         PullEntry::Create | PullEntry::Unavailable(_) | PullEntry::Hidden => words.create(),
     };
     MenuItem {
-        label: label.into(),
         tone: vessel_app_kit::menu::Tone::Plain,
         disabled: shell.areas.git.writing.busy() || sending,
         starts_group: true,
+        ..MenuItem::new(label)
     }
 }
 

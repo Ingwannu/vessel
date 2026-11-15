@@ -24,23 +24,28 @@
 //! Integration decision: the published renderer owns both entry points.
 //! Keep item values, caller-owned state and drawing in separate modules so
 //! additive feedback can stay within the file budget without duplicating
-//! placement, keyboard handling or motion. This split changes no behaviour.
-
-// The sized-button entry and the future trigger share the same density type.
-pub use crate::control_sizing::ControlSizing as TriggerSizing;
+//! placement, keyboard handling or motion. The prior split changed no behaviour;
+//! typed feedback and dismissal are additive extensions of that renderer.
 
 mod draw;
 mod item;
-pub use draw::{menu, menu_right};
-pub use item::{MenuItem, Tone};
+#[cfg(test)]
+mod presentation_tests;
+#[cfg(test)]
+mod tests;
+mod trigger;
+pub use crate::select::Anchor as TriggerAnchor;
+pub use draw::{Content, Width, menu, menu_right, menu_with};
+pub use item::{Dismissal, ItemStatus, LeadingSize, MenuItem, Presentation, Tone};
+pub use trigger::{TriggerProfile, TriggerSizing, trigger, trigger_with};
 
-use gpui::{App, Context, FocusHandle, Pixels, Point, Window};
+use gpui::{App, Bounds, Context, FocusHandle, Pixels, Point, Window};
 use std::rc::Rc;
 
 /// A menu's state, kept by the screen that shows it.
 #[derive(Debug)]
 pub struct MenuState {
-    at: Option<Point<Pixels>>,
+    at: Option<Placement>,
     highlighted: Option<usize>,
     focus: FocusHandle,
 }
@@ -57,7 +62,7 @@ impl MenuState {
 
     /// Open it at `at` (where its trigger was pressed), taking the keys.
     pub fn open(&mut self, at: Point<Pixels>, window: &mut Window, cx: &mut App) {
-        self.at = Some(at);
+        self.at = Some(Placement::Pointer(at));
         self.highlighted = None;
         self.focus.focus(window, cx);
     }
@@ -76,25 +81,15 @@ impl MenuState {
 
     /// Move the highlight to the next row that can be chosen, forward or
     /// back, wrapping.
-    fn step(&mut self, items: &[MenuItem], forward: bool) {
-        let count = items.len();
-        if count == 0 {
-            return;
-        }
-        let mut at = self.highlighted;
-        for _ in 0..count {
-            let next = match (at, forward) {
-                (None, true) => 0,
-                (None | Some(0), false) => count.saturating_sub(1),
-                (Some(index), true) => index.saturating_add(1).checked_rem(count).unwrap_or(0),
-                (Some(index), false) => index.saturating_sub(1),
-            };
-            at = Some(next);
-            if items.get(next).is_some_and(|item| !item.disabled) {
-                self.highlighted = at;
-                return;
-            }
-        }
+    fn step(&mut self, items: &[MenuItem], direction: Direction) {
+        self.highlighted = next_index(items, self.highlighted, direction);
+    }
+
+    /// Open at a measured trigger's right/bottom corner, taking the keys.
+    pub fn open_end(&mut self, bounds: Bounds<Pixels>, window: &mut Window, cx: &mut App) {
+        self.at = Some(Placement::End(bounds));
+        self.highlighted = None;
+        self.focus.focus(window, cx);
     }
 }
 
@@ -106,7 +101,8 @@ pub type Chose<V> = Rc<dyn Fn(&mut V, usize, &mut Window, &mut Context<'_, V>)>;
 pub struct MenuHandlers<V> {
     /// The screen's menu state.
     pub state: fn(&mut V) -> &mut MenuState,
-    /// A row was chosen (the menu has closed).
+    /// A row was chosen. Close items dismiss first; `KeepOpen` items retain
+    /// this surface so the caller can publish pending/result feedback.
     pub chose: Chose<V>,
 }
 
@@ -114,4 +110,71 @@ impl<V> std::fmt::Debug for MenuHandlers<V> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MenuHandlers").finish_non_exhaustive()
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum Placement {
+    Pointer(Point<Pixels>),
+    End(Bounds<Pixels>),
+}
+impl Placement {
+    fn geometry(self, pointer_corner: gpui::Anchor) -> (Point<Pixels>, gpui::Anchor) {
+        match self {
+            Self::Pointer(at) => (at, pointer_corner),
+            Self::End(bounds) => (
+                gpui::point(bounds.right(), bounds.bottom()),
+                gpui::Anchor::TopRight,
+            ),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum Direction {
+    Next,
+    Previous,
+}
+
+fn next_index(items: &[MenuItem], from: Option<usize>, direction: Direction) -> Option<usize> {
+    let count = items.len();
+    if count == 0 {
+        return None;
+    }
+    // An open menu may lose rows after a node update. A stale position must
+    // restart at the first/last selectable item, not step through old indices.
+    let mut at = from.filter(|index| *index < count);
+    for _ in 0..count {
+        let next = match (at, direction) {
+            (None, Direction::Next) => 0,
+            (None | Some(0), Direction::Previous) => count.saturating_sub(1),
+            (Some(index), Direction::Next) => {
+                index.saturating_add(1).checked_rem(count).unwrap_or(0)
+            }
+            (Some(index), Direction::Previous) => index.saturating_sub(1),
+        };
+        at = Some(next);
+        if items.get(next).is_some_and(MenuItem::selectable) {
+            return at;
+        }
+    }
+    None
+}
+fn selected_index(items: &[MenuItem], highlighted: Option<usize>) -> Option<usize> {
+    highlighted.filter(|index| items.get(*index).is_some_and(MenuItem::selectable))
+}
+
+// Pointer and Enter converge here so a KeepOpen action cannot accidentally
+// close before its caller publishes pending state. Escape/outside still close.
+fn pointer_choice(state: &mut MenuState, item: &MenuItem, index: usize) -> Option<usize> {
+    if !item.selectable() {
+        return None;
+    }
+    if item.dismissal == Dismissal::Close {
+        state.close();
+    }
+    Some(index)
+}
+fn keyboard_choice(state: &mut MenuState, items: &[MenuItem]) -> Option<usize> {
+    let index = selected_index(items, state.highlighted)?;
+    pointer_choice(state, items.get(index)?, index)
 }

@@ -298,10 +298,17 @@ The source-specific `host_rename_button(id, ButtonState, tokens)` keeps
 Pencil14, padding4/radius6, static muted ink, visual22/hit38 in both layouts;
 its caller owns the callback and pending state, with no extra paint.
 
-The previous menu extensions (leading glyphs, typed feedback, quiet idle
-presentation and dismissal) are being reapplied to the published renderer in
-separate control commits. The published `menu_right`, surface arrival and
-keyboard-highlight motion remain the integration baseline.
+The menu's typed extensions are reapplied to the published renderer. Legacy
+`menu`/`menu_right` keep their signatures, surface arrival and keyboard-highlight
+motion; both and `menu_with(Content)` use one renderer. `Content::with_width`
+opts into the reference width, and `MenuState::open_end` anchors to measured
+inner trigger bounds. `with_leading` defaults to14; `with_leading_at` opts into
+Regular16 without changing the16-point slot. Pending/success labels and their
+feedback16 replace the ordinary content and refuse pointer/keyboard input.
+`Presentation::Muted` stays selectable; disabled/feedback take precedence.
+`Dismissal::Close` remains the default, with explicit KeepOpen for direct writes.
+The original Schedule/GitHeader trigger profiles share this sizing and placement;
+their outside hit extents derive from the visual frame and named hitSlop.
 `menu.rs` owns caller state and callbacks, `menu/item.rs` owns item values,
 and `menu/draw.rs` is the one renderer used by both entry points. The module
 split changes no labels, placement, input policy or motion.
@@ -317,8 +324,8 @@ TEN/SIXTEEN are typed source numeric literals. Legacy `slider::spinner`
 keeps its24-unit vector/800ms and existing callers. Both reuse one SVG
 rotation path and the existing App reduced-motion handling.
 
-The published menu stays on its existing path until the typed feedback
-extension is reapplied; other legacy callers retain their appearance.
+The menu's pending feedback explicitly uses Numeric16 of that profile;
+other legacy spinner callers retain their existing appearance.
 
 `kit/dialog.rs` keeps a fitting dialog at its natural size. When its
 content exceeds the card's existing height limit, only the body scrolls;
