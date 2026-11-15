@@ -8,18 +8,28 @@
 //! - Choice: Tokio's existing timeout, keeping every phase's five-second bound
 //!   and a separate outer limit for the complete multi-phase regression.
 //! - Cost: the outer label is the last safety net; phase names locate the wait.
-use std::{future::Future, time::Duration};
+use std::{future::Future, pin::Pin, time::Duration};
 
 const TEST_LIMIT: Duration = Duration::from_secs(30);
 
-pub(crate) async fn within<T>(test: impl Future<Output = T>) -> T {
-    tokio::time::timeout(TEST_LIMIT, test)
-        .await
-        .expect("memory-only connection regression exceeded its outer safety limit")
+// A few framed-client futures are large. Keep each safety wrapper on the
+// heap (static dispatch, no trait object) rather than multiply their stack
+// size through the outer timeout and scoped joins. This is test-only.
+pub(crate) fn within<T>(test: impl Future<Output = T>) -> Pin<Box<impl Future<Output = T>>> {
+    Box::pin(async move {
+        tokio::time::timeout(TEST_LIMIT, test)
+            .await
+            .expect("memory-only connection regression exceeded its outer safety limit")
+    })
 }
 
-pub(crate) async fn phase<T>(name: &'static str, wait: impl Future<Output = T>) -> T {
-    tokio::time::timeout(super::DEADLINE, wait)
-        .await
-        .unwrap_or_else(|_elapsed| panic!("connection regression phase timed out: {name}"))
+pub(crate) fn phase<T>(
+    name: &'static str,
+    wait: impl Future<Output = T>,
+) -> Pin<Box<impl Future<Output = T>>> {
+    Box::pin(async move {
+        tokio::time::timeout(super::DEADLINE, wait)
+            .await
+            .unwrap_or_else(|_elapsed| panic!("connection regression phase timed out: {name}"))
+    })
 }
