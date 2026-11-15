@@ -74,6 +74,19 @@ fn cursor_only_update_reuses_actual_row_preparation_and_paint(cx: &mut TestAppCo
         })
         .unwrap();
     assert_eq!(before, after);
+    window
+        .update(cx, |demo, _, cx| {
+            Rc::make_mut(&mut demo.frame).cursor = None;
+            cx.notify();
+        })
+        .unwrap();
+    cx.run_until_parked();
+    assert_eq!(
+        before,
+        window
+            .update(cx, |demo, _, _| demo.grid.probe.counts())
+            .unwrap()
+    );
 }
 
 #[derive(Clone, Copy)]
@@ -185,4 +198,21 @@ fn font_stack_changes_replace_retained_paint_even_with_unchanged_metrics(cx: &mu
             assert!(after.painted.get() > before.painted.get());
         })
         .unwrap();
+}
+
+#[gpui::test]
+fn containing_window_resize_invalidates_the_retained_paint_bounds(cx: &mut TestAppContext) {
+    cx.update(|cx| crate::init(cx, crate::SchemeChoice::Fixed(crate::Scheme::Dark)).unwrap());
+    let window = cx.open_window(size(px(240.0), px(96.0)), |_, cx| Demo::new(cx));
+    cx.run_until_parked();
+    let before = window
+        .update(cx, |demo, _, _| demo.grid.probe.counts())
+        .unwrap();
+    cx.simulate_window_resize(window.into(), size(px(320.0), px(128.0)));
+    cx.run_until_parked();
+    let after = window
+        .update(cx, |demo, _, _| demo.grid.probe.counts())
+        .unwrap();
+    assert!(after.prepared.get() > before.prepared.get());
+    assert!(after.painted.get() > before.painted.get());
 }
