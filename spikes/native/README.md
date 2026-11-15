@@ -1378,3 +1378,12 @@ profiles use one visual/hit/anchor frame. trigger_visual_size and trigger_space
 reserve only the visual footprint (Git26/32), never an invisible active trigger.
 The passive Div has no id/anchor/event/opacity. Exact first-use evidence and
 consumer integration remain their final package responsibility.
+
+button_with_design accepts ButtonDesign::Regular(ButtonConfig) or the typed
+CircleConfig family through the same button body/input guard. CircleConfig
+has no density/regular-size/kind fields: it is44 square, round, icon20, with
+Surface (surface0/neutral border/foreground) or Danger (fixed palette red600,
+red800,white), no hover or pressed override. Loading uses shared Small20 and
+refuses clicks. Existing button_control and every legacy signature stay intact.
+Button::aria_label forwards an explicit role/name without creating a keymap;
+consumer accessibility/OS/first-use evidence remains unverified.
