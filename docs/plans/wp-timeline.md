@@ -1,8 +1,9 @@
 # Conversation stream parity
 
-Status: A7 native rendering is being filled in on package base4 `3cd0d3fc`;
+Status: A7 native rendering is being filled in on app line `9e18cf0d`
+(base5 plus W12's checked shared pane producer);
 canonical protocol and resident-context consumption remain pending their owners'
-verified hashes. A8 approvals/questions belong to W4. Updated2026-11-15T09:08Z.
+verified hashes. A8 approvals/questions belong to W4. Updated 2026-11-15T10:30Z.
 
 ## Reference and asset check
 
@@ -621,3 +622,17 @@ Actual AgentEvent activation is held for W23's checked runtime/contract handoff.
   cover chunks across HarnessLog/Woken, Steered, invisible Terminal boundaries,
   overlapping late tool spans, search start and native list reveal. Shared W1
   controller identity/state is outside this change.
+
+
+### Checked baseline and shared-source union
+
+Fixed clean `c6f0c0c63` passed view all-target tests: 1,072 passed, no failures
+or ignored tests, including the identified pending-message ledger. It does not
+cover the subsequent notice/chunk-source changes in `0e9085da1`, whose strict
+Clippy is queued separately. The shared Plan prerequisite `9e53f43fd` merged as
+`1c6a65397`: its renderer body is unchanged, and its canonical PlanOutcome /
+PlanExpansion now have one definition in plan_types. App line `9e18cf0d` merged
+as `6e0485987`, preserving all existing glyphs plus the four owned additions
+(96 total). It contains exact W12 producer9480/e46 and no live resident resource
+map/cutover. No W10-authored node implementation is introduced. From this point
+all Rust compilation, tests and gates run on the prescribed build VM.
