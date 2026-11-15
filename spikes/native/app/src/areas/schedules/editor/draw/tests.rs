@@ -2,6 +2,7 @@
 use super::*;
 use crate::shell::language_tests;
 use gpui::{AppContext as _, Modifiers, Render, TestAppContext};
+use tokio::sync::mpsc::error::TryRecvError;
 use vessel_app_link::{Command, schedules::Request};
 use vessel_app_view::{
     connection::{ConnectionEpochs, MachineKey},
@@ -110,7 +111,7 @@ fn ready_form_enter_never_writes_but_the_actual_footer_sends_one_original_update
         });
         cx.simulate_keystrokes("enter");
         cx.run_until_parked();
-        assert!(commands.try_recv().is_err());
+        assert!(matches!(commands.try_recv(), Err(TryRecvError::Empty)));
         view.read_with(cx, |probe, cx| {
             let model = &probe.shell.read(cx).areas.schedules.data.editor;
             assert!(!model.pending_save());
@@ -147,7 +148,7 @@ fn ready_form_enter_never_writes_but_the_actual_footer_sends_one_original_update
         // The same rendered footer cannot submit a second request while pending.
         cx.simulate_click(bounds.center(), Modifiers::default());
         cx.run_until_parked();
-        assert!(commands.try_recv().is_err());
+        assert!(matches!(commands.try_recv(), Err(TryRecvError::Empty)));
         view.read_with(cx, |probe, cx| {
             assert!(
                 probe
