@@ -51,6 +51,9 @@ impl Shell {
         {
             return Err(PrepareProblem::Capacity);
         }
+        if !self.creation_has_attachment_room(DraftKey::New) {
+            return Err(PrepareProblem::Capacity);
+        }
         let mut held = self.areas.composer.starting.borrow_mut();
         if held.is_some() {
             return Err(PrepareProblem::Busy);
@@ -117,6 +120,9 @@ impl Shell {
     }
 
     pub(crate) fn rejected_draft_files(&mut self, ticket: Ticket, cx: &mut Context<'_, Self>) {
+        if !self.creation_has_attachment_room(DraftKey::New) {
+            return Err(PrepareProblem::Capacity);
+        }
         let mut held = self.areas.composer.starting.borrow_mut();
         if held
             .as_ref()
@@ -137,7 +143,7 @@ impl Shell {
 }
 
 #[cfg(test)]
-mod tests;
+pub(super) mod tests;
 
 mod workspace;
 #[cfg_attr(

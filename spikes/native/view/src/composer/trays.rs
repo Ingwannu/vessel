@@ -71,6 +71,11 @@ impl<T: Default> DraftTrays<T> {
         tray
     }
 
+    /// Release an owner-confirmed empty slot; retained content is the caller's responsibility.
+    pub fn remove(&mut self, key: DraftKey) -> Option<T> {
+        self.trays.remove(&key).map(|(_, tray)| tray)
+    }
+
     /// `from`'s tray is now `to`'s (the new chat's, once its session
     /// exists); `to`'s own, if it had one, is replaced.
     pub fn rename(&mut self, from: DraftKey, to: DraftKey) {

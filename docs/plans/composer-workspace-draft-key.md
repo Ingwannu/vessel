@@ -23,3 +23,7 @@ The active destination awaits the layout owner's canonical effective-target acce
 Workspace history seeding does not focus its field: pre-layout and background admission preserve the layout owner's focus decision. Preparation capacity counts both New and workspace holds before reserving a live-session send.
 
 Context/history intake refuses a new occupied-slot overflow before calling the legacy LRU tray accessor. The seventeenth context-bearing workspace draft receives typed Capacity; existing siblings and their suppressed/pending context remain intact. File intake similarly refuses a new full tray instead of dropping a sibling.
+
+## Reserved destination slots
+
+Creation now reserves an additional byte/context tray slot before any create effect, because newer input may remain in the source while its captured snapshot transfers. New owners count those reservations during intake; empty remnants alone are pruned, while suppressed context and pending revisions remain protected. If every slot contains retained data, preparation refuses Capacity before the create call. A regression fills the remaining slots, adds newer source input, completes in the background and requires every sibling plus both source/destination to survive. Completion also refuses an already-owned session destination instead of replacing its pending submission.

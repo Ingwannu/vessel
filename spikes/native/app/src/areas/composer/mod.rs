@@ -23,6 +23,7 @@ pub(crate) mod offers;
 mod pictures;
 mod prepared;
 mod preview;
+mod retention;
 pub(crate) mod running;
 mod sent;
 mod slash;

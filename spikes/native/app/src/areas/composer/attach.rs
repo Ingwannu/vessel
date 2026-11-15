@@ -133,9 +133,12 @@ impl Shell {
             );
             return;
         }
+        self.prune_empty_attachment_slots();
+        let reserved = self.reserved_attachment_slots().0;
         let composer = &self.areas.composer;
         if composer.trays.get(key).is_none()
-            && composer.trays.len() >= vessel_app_view::composer::trays::Trays::MAX
+            && composer.trays.len().saturating_add(reserved)
+                >= vessel_app_view::composer::trays::Trays::MAX
         {
             self.composer_context_refused(
                 vessel_app_view::composer::context::ContextProblem::Busy,
@@ -398,6 +401,9 @@ impl Shell {
         if !matches {
             return;
         }
+        if self.areas.composer.sends.contains_key(&card.session) {
+            return;
+        }
         let Some(starting) = self.areas.composer.starting.borrow_mut().take() else {
             return;
         };
@@ -427,7 +433,9 @@ impl Shell {
                 let _removed = draft.remove(captured.key);
             }
         }
-        *composer.trays.tray(DraftKey::Session { session }) = starting.files;
+        if !starting.files.is_empty() {
+            *composer.trays.tray(DraftKey::Session { session }) = starting.files;
+        }
         if let Some(context) = &starting.context {
             if let Some(draft) = composer.contexts.get_mut(source) {
                 let _settled = draft.settle(

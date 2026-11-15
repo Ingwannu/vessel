@@ -81,6 +81,9 @@ impl Shell {
         {
             return Err(PrepareProblem::Capacity);
         }
+        if !self.creation_has_attachment_room(target) {
+            return Err(PrepareProblem::Capacity);
+        }
         let machine =
             vessel_app_view::machine_book::Name::parse(machine).map_err(PrepareProblem::Machine)?;
         let context = self
@@ -126,7 +129,9 @@ impl Shell {
         let Some(held) = self.areas.composer.workspace_starting.get(&key) else {
             return;
         };
-        if held.machine.as_str() != card.machine {
+        if held.machine.as_str() != card.machine
+            || self.areas.composer.sends.contains_key(&card.session)
+        {
             return;
         }
         let machine = held.machine.clone();
