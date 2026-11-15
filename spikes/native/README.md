@@ -1580,3 +1580,11 @@ return focus; F1 still owes its combined gate and actual first-use evidence.
 existing bare/input engine. It owns Search/X marks and clear/edit/focus handling;
 plain field, multiline, composer and FormMinimum defaults are unchanged. Its
 selected13c control proof is source + focused Kit tests, not F1 consumer UI.
+
+
+`field::FormText::{Body,Code}` is an explicit identified-line form presentation
+via `TextField::with_source_text`. Body preserves existing form14/20; Code uses
+canonical MonoBody14/20 normal and its code-size preference. Both use the same
+input, FieldId, callbacks and form surface; old constructors, SearchField,
+FormMinimum, multiline and composer defaults stay unchanged. F1 raw cron is
+the intended Code consumer, with final combined checks/first-use still owed.

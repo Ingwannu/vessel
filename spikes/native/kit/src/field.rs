@@ -118,6 +118,7 @@ pub struct TextField {
     /// submits).
     send: Rc<Cell<SendOn>>,
     form_minimum: FormMinimum,
+    form_text: FormText,
 }
 
 mod multiline;
@@ -134,6 +135,8 @@ mod editability;
 pub use editability::Editability;
 mod search;
 pub use search::SearchField;
+mod form_text;
+pub use form_text::FormText;
 
 impl TextField {
     /// Which press sends a composer's text (a form field ignores it).
@@ -167,6 +170,7 @@ impl TextField {
             kind: Kind::Line(state),
             focused,
             form_minimum: FormMinimum::Default,
+            form_text: FormText::Body,
             send: Rc::new(Cell::new(SendOn::Enter)),
         }
     }
@@ -219,12 +223,14 @@ impl TextField {
         match &self.kind {
             Kind::Line(state) => {
                 project(state, tokens, tokens.neutral.foreground_muted, cx);
-                div()
+                let text = div()
                     .flex_1()
                     .min_w(px(0.0))
                     .type_(Type::Body)
                     .line_height(px(fonts::ui(20.0)))
-                    .text_color(tokens.neutral.foreground)
+                    .text_color(tokens.neutral.foreground);
+                self.form_text
+                    .apply(text)
                     .child(Input::new(state))
                     .into_any_element()
             }
@@ -351,13 +357,14 @@ impl TextField {
         match &self.kind {
             Kind::Line(state) => {
                 project(state, tokens, neutral.foreground_muted, cx);
-                form_shell(self.focused.get(), tokens, narrow)
+                self.form_text
+                    .apply(form_shell(self.focused.get(), tokens, narrow))
                     .child(div().flex_1().child(Input::new(state)))
                     .into_any_element()
             }
             Kind::Lines(state, MultilineStyle::Form) => {
                 project(state, tokens, neutral.foreground_muted, cx);
-                form_shell(self.focused.get(), tokens, narrow)
+                self.form_text.apply(form_shell(self.focused.get(), tokens, narrow))
                     .flex_col()
                     .items_stretch()
                     .px(px(FORM_INSET_X))
@@ -394,11 +401,13 @@ impl TextField {
     /// list's search row): 14 on 20, `foregroundMuted` while empty.
     pub fn bare(&self, tokens: &Tokens, cx: &mut App) -> AnyElement {
         let neutral = tokens.neutral;
-        let text = div()
-            .w_full()
-            .type_(Type::Body)
-            .line_height(px(fonts::ui(20.0)))
-            .text_color(neutral.foreground);
+        let text = self.form_text.apply(
+            div()
+                .w_full()
+                .type_(Type::Body)
+                .line_height(px(fonts::ui(20.0)))
+                .text_color(neutral.foreground),
+        );
         match &self.kind {
             Kind::Line(state) => {
                 project(state, tokens, neutral.foreground_muted, cx);

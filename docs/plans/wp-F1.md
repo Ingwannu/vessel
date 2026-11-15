@@ -1348,3 +1348,25 @@ is adopted. Existing field engines/children remain unchanged at this checkpoint.
 G2 now owns the coordinator-assigned next Body/Code form-text extension, with
 G3's SearchField default/body/bare behavior preserved. No F1/consumer UI/OS/IME
 proof is borrowed from G3's bounded check.
+
+
+### Typed Code form text, after G3's checked field baton
+
+[Decision Log]
+- Purpose/source: cadence-editor.tsx106–131 renders FormTextInput with only
+  fontFamily.mono changed; form-field.tsx/control-geometry retain MD32/44 and
+  font14/line20. Canonical Type::MonoBody is normal14/20 and uses the existing
+  code preference/embedded face/fallback pipeline, so no new font is needed.
+- Existing constraint: FormMinimum and FieldId/TextField/SearchField already
+  own the one engine and form surface. Area font-family overrides would repeat
+  typography and bypass the same control used for source-identified input.
+- Choice: closed FormText::{Body,Code}; an additive identified LINE constructor
+  with_source_text delegates exactly to with_source then records presentation.
+  Existing constructors explicitly retain Body. The same element/input/bare
+  text routes project Code; form surface, borders, min-height and callbacks stay.
+  No composer/multiline API accepts and silently ignores a Code argument.
+- Impact: source literal styles on both schemes/layouts plus real engine
+  change/Enter/source-id tests are authored. Search child blobs remain exact13c.
+  No local compilation or current F1/IME/UI/font-face execution is claimed.
+- Check boundary: queued66735 Kit-only suite is immutable PRE-Code source. Its
+  result cannot prove this change; the next meaningful F1 suite includes it.
