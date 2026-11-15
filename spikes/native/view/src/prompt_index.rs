@@ -124,8 +124,14 @@ impl PromptIndex {
             .source
             .as_ref()
             .is_some_and(|old| old.target == source.target);
+        let same_history = self.source.as_ref().is_some_and(|old| {
+            old.target.machine == source.target.machine
+                && old.target.node == source.target.node
+                && old.target.session == source.target.session
+        });
         self.source = Some(source);
-        if !same {
+        // Negotiated capabilities change requests, never the known history floor.
+        if !same_history {
             self.rewound = None;
         }
         if same {

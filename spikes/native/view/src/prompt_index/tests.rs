@@ -236,6 +236,38 @@ fn a_replaced_welcome_identity_cannot_answer_for_the_same_book_name_and_session(
 }
 
 #[test]
+fn negotiated_capabilities_do_not_forget_a_rewind_already_seen_on_follow() {
+    let mut index = PromptIndex::default();
+    let mut selected = target("one");
+    selected.node = Some(NodeId::random());
+    selected.protocol = Some(ProtocolVersion::new(
+        vessel_proto::PROTOCOL_VERSION.get().checked_sub(1).unwrap(),
+    ));
+    let _initial = index.refresh(selected.clone(), None).unwrap();
+    let after_rewind = index.history_changed(EventSeq::new(5)).unwrap();
+    let current_epoch = PromptIndexEpoch::new(EventSeq::ZERO, Some(EventSeq::new(5))).unwrap();
+    assert!(
+        index
+            .answered(
+                &after_rewind,
+                Ok(page(&after_rewind, &[1], None, current_epoch))
+            )
+            .is_none()
+    );
+    selected.protocol = Some(vessel_proto::PROTOCOL_VERSION);
+    let upgraded = index.refresh(selected, None).unwrap();
+    assert!(
+        index
+            .answered(&upgraded, Ok(page(&upgraded, &[1], None, epoch())))
+            .is_none()
+    );
+    assert_eq!(
+        index.phase(),
+        IndexPhase::Failed(IndexProblem::HistoryChanged)
+    );
+}
+
+#[test]
 fn followed_fallback_includes_steers_and_uses_the_same_bounded_preview_as_metadata() {
     use vessel_proto::{AgentEvent, ContentBlock, EventRecord, SessionEvent};
     let text = "\u{feff}  한글\n prompt ";
