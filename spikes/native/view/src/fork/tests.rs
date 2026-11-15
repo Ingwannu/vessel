@@ -26,6 +26,7 @@ fn fleet() -> Fleet {
     card.title = " plain ".to_owned();
     Fleet {
         machines: vec![Machine {
+            node: None,
             name: "isolated".to_owned(),
             reach: Reach::Online,
             sessions: vec![card],
