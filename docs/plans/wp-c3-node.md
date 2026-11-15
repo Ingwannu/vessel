@@ -473,7 +473,11 @@ workspace-test selection wp-git-root-fence-tests-20261115T133413Z-e103946f is
 running: its web/fake-binary/node-binary prerequisite stages passed, but no final
 library result is available yet. It excludes later shared-project cache scope
 and fixture lint corrections. Keep those exact source assignments; neither is a
-whole root gate or a runtime review pass. No additional local Cargo was started.
+whole root gate or a runtime review pass. No local Rust compilation was started. Correction: the local boundary scan
+invokes cargo metadata, so running it locally violated the VM-only Cargo rule.
+Future boundary/metadata commands run remotely; only standalone rustfmt, pure
+size and text scans remain local. Retain the earlier observation without
+claiming workflow compliance.
 
 ## Actual e103 history fixture failure
 
