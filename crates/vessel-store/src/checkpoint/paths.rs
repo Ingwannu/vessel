@@ -46,13 +46,9 @@ fn encode<T: Serialize>(value: &T) -> Result<String, Error> {
 
 /// Must share the writer transaction with durable restore admission, before writes.
 pub(super) fn prepare(connection: &Connection, operation: &Operation) -> Result<(), Error> {
-    let (plan, _consumed) = super::plans::owned(connection, operation.plan, operation.device)?;
-    let current = super::journal::status(
-        connection,
-        operation.session,
-        operation.id,
-        operation.device,
-    )?;
+    let (plan, _consumed) = super::plans::owned(connection, operation.plan, operation.owner)?;
+    let current =
+        super::journal::status(connection, operation.session, operation.id, operation.owner)?;
     if current != *operation
         || plan.key.session != operation.session
         || !matches!(current.outcome, RestoreOutcome::InProgress { .. })
@@ -80,12 +76,8 @@ pub(super) fn prepare(connection: &Connection, operation: &Operation) -> Result<
 
 /// Bound decoding before it can reach the worker or recovery coordinator.
 pub(super) fn list(connection: &Connection, operation: &Operation) -> Result<Vec<Entry>, Error> {
-    let _authorized = super::journal::status(
-        connection,
-        operation.session,
-        operation.id,
-        operation.device,
-    )?;
+    let _authorized =
+        super::journal::status(connection, operation.session, operation.id, operation.owner)?;
     let mut statement = connection.prepare(
         "SELECT path,before_state,desired_state,phase FROM checkpoint_paths WHERE restore=?1 ORDER BY path LIMIT ?2",
     )?;
@@ -127,12 +119,8 @@ pub(super) fn advance(
     previous: Phase,
     next: Phase,
 ) -> Result<(), Error> {
-    let current = super::journal::status(
-        connection,
-        operation.session,
-        operation.id,
-        operation.device,
-    )?;
+    let current =
+        super::journal::status(connection, operation.session, operation.id, operation.owner)?;
     if current.plan != operation.plan
         || !matches!(
             current.outcome,
@@ -163,7 +151,7 @@ pub(super) fn verify_terminal(
     operation: &Operation,
     result: &RestoreOutcome,
 ) -> Result<(), Error> {
-    let (plan, _consumed) = super::plans::owned(connection, operation.plan, operation.device)?;
+    let (plan, _consumed) = super::plans::owned(connection, operation.plan, operation.owner)?;
     let entries = list(connection, operation)?;
     let changed = plan.desired.changes(&operation.before).len();
     let valid = match result {

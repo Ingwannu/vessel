@@ -41,9 +41,9 @@ staging. No provider SDK, tool-call-count inference or new crate edge.
   the integrator adjusts its one schema constant in merge order. Restore
   admission reloads the capture's full key/session and frozen effective target.
   Durable per-path intent and compare-and-advance phases constrain terminal
-  outcomes; device-bound change pages share the frozen target/expiry, enforce
+  outcomes; human-principal-bound change pages share the frozen target/expiry, enforce
   bounded offsets and refuse expired or consumed previews; admission enforces
-  the five-minute lifetime and four active previews per device; restart pins interrupted operations for recovery. Existing writer
+  the five-minute lifetime and four active previews per human principal; restart pins interrupted operations for recovery. Existing writer
   transaction wiring, retention and physical quota reconciliation remain owed.
 - workspace/checkpoint: test-only strict enumeration, rooted nofollow reads,
   private immutable raw blobs, bounded streaming and canonical fingerprints.
@@ -78,3 +78,9 @@ After node completion: one whole node gate and V3 review; after consuming the
 reviewed node contract, native view/link/words/screen, complete confirmation,
 result/status flow, captures, one native gate and V4 review. Reuse kit controls;
 shared app/link roots receive only designated registration lines.
+
+The ownership amendment to ADR 0077 persists the complete human principal,
+including delegated origin; a delivery DeviceId alone cannot authorize a
+plan. Local token/socket owners remain supported; direct/delegated agents
+are refused. Cross-origin sharing and local-owner retry tests accompany the
+amendment in the node package review.

@@ -17,7 +17,7 @@ CREATE INDEX checkpoint_session ON checkpoint_captures(session, created_at);
 CREATE TABLE checkpoint_plans (
     id TEXT PRIMARY KEY NOT NULL,
     capture TEXT NOT NULL REFERENCES checkpoint_captures(id) ON DELETE RESTRICT,
-    device TEXT NOT NULL,
+    owner TEXT NOT NULL,
     current_image TEXT NOT NULL,
     desired_image TEXT NOT NULL,
     expires_at INTEGER NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE checkpoint_restores (
     id TEXT PRIMARY KEY NOT NULL,
     session TEXT NOT NULL REFERENCES sessions(id) ON DELETE RESTRICT,
     plan TEXT NOT NULL REFERENCES checkpoint_plans(id) ON DELETE RESTRICT,
-    device TEXT NOT NULL,
+    owner TEXT NOT NULL,
     outcome TEXT NOT NULL,
     phase TEXT NOT NULL CHECK(phase IN ('prepared','complete','recovery')),
     before_image TEXT NOT NULL,

@@ -2,22 +2,19 @@
 use super::records::CheckpointStoreError as Error;
 use chrono::{DateTime, Utc};
 use rusqlite::Connection;
-use vessel_proto::{
-    DeviceId,
-    checkpoint::{
-        CHECKPOINT_PAGE_ENTRIES, ChangeCursor, ChangePage, CheckpointError, PathCount,
-        RestorePlanId,
-    },
+use vessel_proto::checkpoint::{
+    CHECKPOINT_PAGE_ENTRIES, ChangeCursor, ChangePage, CheckpointError, CheckpointOwner, PathCount,
+    RestorePlanId,
 };
 
 pub(super) fn page(
     connection: &Connection,
     plan: RestorePlanId,
-    device: DeviceId,
+    owner: CheckpointOwner,
     after: Option<ChangeCursor>,
     at: DateTime<Utc>,
 ) -> Result<ChangePage, Error> {
-    let (stored, consumed) = super::plans::owned(connection, plan, device)?;
+    let (stored, consumed) = super::plans::owned(connection, plan, owner)?;
     if stored.expires <= at || consumed.is_some() {
         return Err(CheckpointError::StalePreview.into());
     }

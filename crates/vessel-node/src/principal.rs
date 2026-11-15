@@ -20,6 +20,8 @@ use vessel_proto::{
     DeviceId, DeviceSelf, ErrorCode, Method, NodeId, Origin, OriginBy, Scope, SessionId, WireError,
 };
 
+mod checkpoints;
+
 /// The caller behind one connection.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Principal {

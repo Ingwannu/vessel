@@ -1,9 +1,8 @@
 //! Authoritative plan decoding joins its capture instead of trusting a caller's key.
 use super::records::{CheckpointStoreError as Error, Plan};
 use rusqlite::{Connection, OptionalExtension as _};
-use vessel_proto::{
-    DeviceId,
-    checkpoint::{CaptureKey, CheckpointError, RestoreId, RestorePlanId},
+use vessel_proto::checkpoint::{
+    CaptureKey, CheckpointError, CheckpointOwner, RestoreId, RestorePlanId,
 };
 
 struct Stored {
@@ -12,7 +11,7 @@ struct Stored {
     worktree: String,
     generation: i64,
     boundary: String,
-    device: String,
+    owner: String,
     current: String,
     desired: String,
     expires: i64,
@@ -26,16 +25,16 @@ fn id<T: serde::de::DeserializeOwned>(source: &str) -> Result<T, Error> {
 pub(super) fn owned(
     connection: &Connection,
     plan: RestorePlanId,
-    device: DeviceId,
+    owner: CheckpointOwner,
 ) -> Result<(Plan, Option<RestoreId>), Error> {
     let raw = connection.query_row(
-        "SELECT c.id,c.session,c.worktree,c.generation,c.boundary,p.device,p.current_image,p.desired_image,p.expires_at,p.consumed_by
+        "SELECT c.id,c.session,c.worktree,c.generation,c.boundary,p.owner,p.current_image,p.desired_image,p.expires_at,p.consumed_by
          FROM checkpoint_plans p JOIN checkpoint_captures c ON c.id=p.capture WHERE p.id=?1 AND c.state='ready'",
         [plan.to_string()],
         |row| Ok(Stored {capture:row.get(0)?,session:row.get(1)?,worktree:row.get(2)?,generation:row.get(3)?,boundary:row.get(4)?,
-            device:row.get(5)?,current:row.get(6)?,desired:row.get(7)?,expires:row.get(8)?,consumed:row.get(9)?}),
+            owner:row.get(5)?,current:row.get(6)?,desired:row.get(7)?,expires:row.get(8)?,consumed:row.get(9)?}),
     ).optional()?.ok_or(CheckpointError::NotFound)?;
-    if raw.device != device.to_string() {
+    if serde_json::from_str::<CheckpointOwner>(&raw.owner)? != owner {
         return Err(CheckpointError::Forbidden.into());
     }
     let expires = chrono::DateTime::from_timestamp_millis(raw.expires)
@@ -43,7 +42,7 @@ pub(super) fn owned(
     Ok((
         Plan {
             id: plan,
-            device,
+            owner,
             key: CaptureKey {
                 capture: id(&raw.capture)?,
                 session: id(&raw.session)?,

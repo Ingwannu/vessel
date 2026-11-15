@@ -23,8 +23,8 @@ pub const CHECKPOINT_CAPTURE_DEADLINE: Duration = Duration::from_secs(30);
 pub const CHECKPOINT_IO_CHUNK: usize = 64 * 1024;
 /// Bounded response entries per page.
 pub const CHECKPOINT_PAGE_ENTRIES: usize = 100;
-/// Maximum pinned previews per device.
-pub const CHECKPOINT_PREVIEWS_PER_DEVICE: usize = 4;
+/// Maximum pinned previews per complete authenticated human principal.
+pub const CHECKPOINT_PREVIEWS_PER_OWNER: usize = 4;
 /// How long a confirmation plan remains usable.
 pub const CHECKPOINT_PREVIEW_LIFETIME: Duration = Duration::from_secs(5 * 60);
 /// Deadline before a restore enters recovery.

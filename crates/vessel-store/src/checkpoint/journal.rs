@@ -3,9 +3,8 @@
 use super::records::{CheckpointStoreError as Error, Operation, Plan};
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension as _, params};
-use vessel_proto::{
-    DeviceId,
-    checkpoint::{CaptureKey, CheckpointError, FileImage, RestoreId, RestoreOutcome},
+use vessel_proto::checkpoint::{
+    CaptureKey, CheckpointError, CheckpointOwner, FileImage, RestoreId, RestoreOutcome,
 };
 
 fn encode<T: serde::Serialize>(value: &T) -> Result<String, Error> {
@@ -101,12 +100,12 @@ pub(super) fn put_plan(
         return Err(CheckpointError::StalePreview.into());
     }
     let active: i64 = connection.query_row(
-        "SELECT count(*) FROM checkpoint_plans WHERE device=?1 AND expires_at>?2",
-        params![plan.device.to_string(), at.timestamp_millis()],
+        "SELECT count(*) FROM checkpoint_plans WHERE owner=?1 AND expires_at>?2",
+        params![encode(&plan.owner)?, at.timestamp_millis()],
         |row| row.get(0),
     )?;
     let active = usize::try_from(active).map_err(|_negative| CheckpointError::Busy)?;
-    if active >= vessel_proto::checkpoint::CHECKPOINT_PREVIEWS_PER_DEVICE {
+    if active >= vessel_proto::checkpoint::CHECKPOINT_PREVIEWS_PER_OWNER {
         return Err(CheckpointError::Busy.into());
     }
     let ready: bool = connection.query_row(
@@ -118,12 +117,12 @@ pub(super) fn put_plan(
         return Err(CheckpointError::NotFound.into());
     }
     let _changed = connection.execute(
-        "INSERT INTO checkpoint_plans(id,capture,device,current_image,desired_image,expires_at)
+        "INSERT INTO checkpoint_plans(id,capture,owner,current_image,desired_image,expires_at)
         VALUES (?1,?2,?3,?4,?5,?6)",
         params![
             plan.id.to_string(),
             plan.key.capture.to_string(),
-            plan.device.to_string(),
+            encode(&plan.owner)?,
             encode(&plan.current)?,
             encode(&plan.desired)?,
             plan.expires.timestamp_millis()
@@ -136,11 +135,11 @@ pub(super) fn status(
     connection: &Connection,
     session: vessel_proto::SessionId,
     id: RestoreId,
-    device: DeviceId,
+    owner: CheckpointOwner,
 ) -> Result<Operation, Error> {
     let stored: Option<(String, String, String, String, String)> = connection
         .query_row(
-            "SELECT plan,device,outcome,before_image,session FROM checkpoint_restores WHERE id=?1",
+            "SELECT plan,owner,outcome,before_image,session FROM checkpoint_restores WHERE id=?1",
             [id.to_string()],
             |row| {
                 Ok((
@@ -153,16 +152,16 @@ pub(super) fn status(
             },
         )
         .optional()?;
-    let (plan, owner, outcome, before, recorded_session) =
+    let (plan, recorded_owner, outcome, before, recorded_session) =
         stored.ok_or(CheckpointError::NotFound)?;
-    let owner: DeviceId = serde_json::from_str(&encode(&owner)?)?;
-    if owner != device || recorded_session != session.to_string() {
+    let recorded_owner: CheckpointOwner = serde_json::from_str(&recorded_owner)?;
+    if recorded_owner != owner || recorded_session != session.to_string() {
         return Err(CheckpointError::Forbidden.into());
     }
     Ok(Operation {
         session,
         id,
-        device,
+        owner,
         plan: serde_json::from_str(&encode(&plan)?)?,
         outcome: serde_json::from_str(&outcome)?,
         before: serde_json::from_str(&before)?,
@@ -176,7 +175,7 @@ pub(super) fn admit(
     restore: RestoreId,
     at: DateTime<Utc>,
 ) -> Result<Operation, Error> {
-    match status(connection, plan.key.session, restore, plan.device) {
+    match status(connection, plan.key.session, restore, plan.owner) {
         Ok(existing) => {
             if existing.plan != plan.id {
                 return Err(CheckpointError::RestoreIdConflict.into());
@@ -186,7 +185,7 @@ pub(super) fn admit(
         Err(Error::Refused(CheckpointError::NotFound)) => {}
         Err(error) => return Err(error),
     }
-    let (stored, consumed) = super::plans::owned(connection, plan.id, plan.device)?;
+    let (stored, consumed) = super::plans::owned(connection, plan.id, plan.owner)?;
     if stored.key.session != plan.key.session {
         return Err(CheckpointError::Forbidden.into());
     }
@@ -201,13 +200,13 @@ pub(super) fn admit(
     }
     let outcome = RestoreOutcome::InProgress { restore };
     let _changed = connection.execute(
-        "INSERT INTO checkpoint_restores(id,session,plan,device,outcome,phase,before_image,created_at)
+        "INSERT INTO checkpoint_restores(id,session,plan,owner,outcome,phase,before_image,created_at)
         VALUES (?1,?2,?3,?4,?5,'prepared',?6,?7)",
         params![
             restore.to_string(),
             plan.key.session.to_string(),
             plan.id.to_string(),
-            plan.device.to_string(),
+            encode(&plan.owner)?,
             encode(&outcome)?,
             encode(&stored.current)?,
             at.timestamp_millis()
@@ -221,7 +220,7 @@ pub(super) fn admit(
         session: plan.key.session,
         id: restore,
         plan: plan.id,
-        device: plan.device,
+        owner: plan.owner,
         outcome,
         before: plan.current.clone(),
     })
@@ -232,12 +231,7 @@ pub(super) fn outcome(
     operation: &Operation,
     result: &RestoreOutcome,
 ) -> Result<(), Error> {
-    let current = status(
-        connection,
-        operation.session,
-        operation.id,
-        operation.device,
-    )?;
+    let current = status(connection, operation.session, operation.id, operation.owner)?;
     if current.plan != operation.plan {
         return Err(CheckpointError::RestoreIdConflict.into());
     }

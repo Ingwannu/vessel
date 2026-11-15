@@ -214,7 +214,7 @@ tests derive their bounds from it, with checked arithmetic and quota reservation
 | `CHECKPOINT_CAPTURE_DEADLINE` | 30 seconds | Maximum actor wait for capture acknowledgement |
 | `CHECKPOINT_IO_CHUNK` | 64 KiB | Streaming buffer; not a file-sized allocation |
 | `CHECKPOINT_PAGE_ENTRIES` | 100 | Maximum list/preview page entries |
-| `CHECKPOINT_PREVIEWS_PER_DEVICE` | 4 | Concurrent pinned preview plans |
+| `CHECKPOINT_PREVIEWS_PER_OWNER` | 4 | Concurrent pinned preview plans per complete human principal |
 | `CHECKPOINT_PREVIEW_LIFETIME` | 5 minutes | Preview validity and pin duration |
 | `CHECKPOINT_RESTORE_DEADLINE` | 60 seconds | Deadline before entering recovery |
 | `CHECKPOINT_WORKERS` | 2 | Running workers per node, including timed-out workers awaiting cleanup |
@@ -370,7 +370,7 @@ a decoding-edge `Unknown` for newer peers, not string branching in the app.
 
 | Existing ErrorCode | Proposed typed reasons |
 | --- | --- |
-| Forbidden | NotOwner, NotDevice, PlanOwnerMismatch, ProtectedRoot |
+| Forbidden | NotOwner, NotHuman, PlanOwnerMismatch, ProtectedRoot |
 | NotFound | SessionNotFound, CheckpointNotFound, RestoreNotFound |
 | Unsupported | UnsupportedScope, UnsupportedPlatform, UnsafeEntry, UnsupportedMetadata, NoHistoricalCheckpoint |
 | Conflict | WorkspaceBusy, Busy, RootChanged, IgnorePolicyChanged, CaptureUnstable, CheckpointExpired, PreviewExpired, StalePreview, RestoreIdConflict, RecoveryPending |
@@ -398,7 +398,8 @@ New clients against old nodes show files checkpoints unsupported, never fall
 back to `session.rewind`. Checkpoint storage is not included in session
 export/import or fleet sync; moved/imported turns have no local file image.
 
-Only an authenticated human device with scope and session visibility may
+Only an authenticated human principal (owner, device or delegated human)
+with scope and session visibility may
 preview/restore. Delegated agent principals are refused even when they can
 operate a session, preventing self-confirmed destructive restore. Read/list
 uses the existing session visibility rules and carries metadata only. Every
@@ -514,3 +515,17 @@ worker/root reservation lasts through activation and actual cleanup. Requests
 carry the original deadline across the bridge, and the caller also bounds its
 wait including queue time. A dropped actor reply cannot authorize activation.
 These are staged mechanisms and tests, not proof of real runtime integration.
+
+### Human-principal ownership amendment
+
+A local token/socket owner is a permitted human client. Persist CheckpointOwner
+as LocalOwner, Device, or DelegatedHuman { delivering device, origin node,
+Owner | Device }. Direct and delegated agents are refused; clients cannot
+supply this identity in request parameters. Binding only the delivering
+DeviceId would let different humans or origin nodes through one home share
+confirmation plans and restore status. The complete authenticated identity
+therefore binds both plan and operation, including every pagination/status
+lookup and identical-id retry. Per-owner preview admission uses that same
+identity. Scopes and revocation remain the existing per-call admission checks.
+This wording replaces the earlier ambiguous human-device wording; the package
+code review also reviews this amendment and its cross-origin/local-owner tests.

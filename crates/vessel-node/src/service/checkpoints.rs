@@ -34,30 +34,34 @@ impl NodeService {
     }
     pub(crate) async fn preview_checkpoint(
         &self,
-        _connection: &Connection,
+        connection: &Connection,
         _request: PreviewCheckpoint,
     ) -> Result<RestorePreview, WireError> {
+        let _owner = connection.principal().checkpoint_owner()?;
         Err(unavailable())
     }
     pub(crate) async fn read_checkpoint_changes(
         &self,
-        _connection: &Connection,
+        connection: &Connection,
         _request: ReadCheckpointChanges,
     ) -> Result<ChangePage, WireError> {
+        let _owner = connection.principal().checkpoint_owner()?;
         Err(unavailable())
     }
     pub(crate) async fn restore_checkpoint(
         &self,
-        _connection: &Connection,
+        connection: &Connection,
         _request: RestoreCheckpoint,
     ) -> Result<RestoreOutcome, WireError> {
+        let _owner = connection.principal().checkpoint_owner()?;
         Err(unavailable())
     }
     pub(crate) async fn checkpoint_restore_status(
         &self,
-        _connection: &Connection,
+        connection: &Connection,
         _request: CheckpointRestoreStatus,
     ) -> Result<RestoreOutcome, WireError> {
+        let _owner = connection.principal().checkpoint_owner()?;
         Err(unavailable())
     }
 }

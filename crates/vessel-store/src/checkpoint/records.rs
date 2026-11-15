@@ -2,18 +2,16 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use vessel_proto::{
-    DeviceId,
-    checkpoint::{
-        CaptureKey, EffectiveDesiredImage, FileImage, RestoreId, RestoreOutcome, RestorePlanId,
-    },
+use vessel_proto::checkpoint::{
+    CaptureKey, CheckpointOwner, EffectiveDesiredImage, FileImage, RestoreId, RestoreOutcome,
+    RestorePlanId,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(super) struct Plan {
     pub(super) id: RestorePlanId,
     pub(super) key: CaptureKey,
-    pub(super) device: DeviceId,
+    pub(super) owner: CheckpointOwner,
     pub(super) current: FileImage,
     pub(super) desired: EffectiveDesiredImage,
     pub(super) expires: DateTime<Utc>,
@@ -23,7 +21,7 @@ pub(super) struct Operation {
     pub(super) session: vessel_proto::SessionId,
     pub(super) id: RestoreId,
     pub(super) plan: RestorePlanId,
-    pub(super) device: DeviceId,
+    pub(super) owner: CheckpointOwner,
     pub(super) outcome: RestoreOutcome,
     pub(super) before: FileImage,
 }

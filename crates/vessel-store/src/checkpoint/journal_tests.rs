@@ -6,10 +6,10 @@ use super::{
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, params};
 use vessel_proto::{
-    DeviceId, EventSeq, SessionId, WorktreeId,
+    EventSeq, SessionId, WorktreeId,
     checkpoint::{
-        Boundary, CaptureGeneration, CaptureId, CaptureKey, CheckpointError, FileImage, RestoreId,
-        RestoreOutcome, RestorePlanId,
+        Boundary, CaptureGeneration, CaptureId, CaptureKey, CheckpointError, CheckpointOwner,
+        FileImage, RestoreId, RestoreOutcome, RestorePlanId,
     },
 };
 
@@ -55,7 +55,9 @@ fn ready_plan(connection: &Connection, key: CaptureKey) -> Plan {
     Plan {
         id: RestorePlanId::random(),
         key,
-        device: DeviceId::random(),
+        owner: CheckpointOwner::Device {
+            device: vessel_proto::DeviceId::random(),
+        },
         current: empty.clone(),
         desired: empty
             .effective(
@@ -120,7 +122,7 @@ fn duplicate_restore_returns_the_committed_outcome_and_rejects_another_plan() {
     journal::outcome(&transaction, &operation, &RestoreOutcome::Unchanged).unwrap();
     transaction.commit().unwrap();
     assert_eq!(
-        journal::status(&connection, key.session, restore, plan.device)
+        journal::status(&connection, key.session, restore, plan.owner)
             .unwrap()
             .outcome,
         RestoreOutcome::Unchanged
@@ -139,7 +141,14 @@ fn duplicate_restore_returns_the_committed_outcome_and_rejects_another_plan() {
         Err(Error::Refused(CheckpointError::RestoreIdConflict))
     ));
     assert!(matches!(
-        journal::status(&connection, key.session, restore, DeviceId::random()),
+        journal::status(
+            &connection,
+            key.session,
+            restore,
+            CheckpointOwner::Device {
+                device: vessel_proto::DeviceId::random()
+            }
+        ),
         Err(Error::Refused(CheckpointError::Forbidden))
     ));
 }
@@ -156,7 +165,7 @@ fn transaction_failure_does_not_consume_preview_or_create_a_restore() {
         transaction.rollback().unwrap();
     }
     assert!(matches!(
-        journal::status(&connection, key.session, restore, plan.device),
+        journal::status(&connection, key.session, restore, plan.owner),
         Err(Error::Refused(CheckpointError::NotFound))
     ));
     assert!(journal::admit(&connection, &plan, restore, DateTime::UNIX_EPOCH).is_ok());
@@ -167,7 +176,9 @@ fn altered_owner_or_effective_target_never_reuses_a_preview_authorization() {
     let plan = ready_plan(&connection, key);
     journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
     let mut wrong = plan.clone();
-    wrong.device = DeviceId::random();
+    wrong.owner = CheckpointOwner::Device {
+        device: vessel_proto::DeviceId::random(),
+    };
     assert!(matches!(
         journal::admit(
             &connection,
@@ -214,7 +225,7 @@ fn a_late_callback_cannot_replace_a_terminal_result_or_a_different_session() {
         Err(Error::Refused(CheckpointError::RestoreIdConflict))
     ));
     assert!(matches!(
-        journal::status(&connection, SessionId::random(), restore, plan.device),
+        journal::status(&connection, SessionId::random(), restore, plan.owner),
         Err(Error::Refused(CheckpointError::Forbidden))
     ));
 }
@@ -226,7 +237,7 @@ fn restart_marks_pending_restores_recovery_without_discarding_before_images() {
     let restore = RestoreId::random();
     let operation = journal::admit(&connection, &plan, restore, DateTime::UNIX_EPOCH).unwrap();
     assert_eq!(super::recovery::pending(&connection).unwrap(), 1);
-    let recovered = journal::status(&connection, key.session, restore, plan.device).unwrap();
+    let recovered = journal::status(&connection, key.session, restore, plan.owner).unwrap();
     assert_eq!(
         recovered.outcome,
         RestoreOutcome::RecoveryRequired { restore }
@@ -524,7 +535,7 @@ fn preview_pages_share_one_target_expiry_and_device_authorization() {
         let page = changes::page(
             &connection,
             plan.id,
-            plan.device,
+            plan.owner,
             cursor,
             DateTime::UNIX_EPOCH,
         )
@@ -551,7 +562,9 @@ fn preview_pages_share_one_target_expiry_and_device_authorization() {
         changes::page(
             &connection,
             plan.id,
-            DeviceId::random(),
+            CheckpointOwner::Device {
+                device: vessel_proto::DeviceId::random()
+            },
             None,
             DateTime::UNIX_EPOCH
         ),
@@ -561,14 +574,14 @@ fn preview_pages_share_one_target_expiry_and_device_authorization() {
         changes::page(
             &connection,
             plan.id,
-            plan.device,
+            plan.owner,
             Some(ChangeCursor(PathCount::new(1).unwrap())),
             DateTime::UNIX_EPOCH
         ),
         Err(Error::Refused(CheckpointError::InvalidCursor))
     ));
     assert!(matches!(
-        changes::page(&connection, plan.id, plan.device, None, plan.expires),
+        changes::page(&connection, plan.id, plan.owner, None, plan.expires),
         Err(Error::Refused(CheckpointError::StalePreview))
     ));
     let _operation = journal::admit(
@@ -579,13 +592,7 @@ fn preview_pages_share_one_target_expiry_and_device_authorization() {
     )
     .unwrap();
     assert!(matches!(
-        changes::page(
-            &connection,
-            plan.id,
-            plan.device,
-            None,
-            DateTime::UNIX_EPOCH
-        ),
+        changes::page(&connection, plan.id, plan.owner, None, DateTime::UNIX_EPOCH),
         Err(Error::Refused(CheckpointError::StalePreview))
     ));
 }
@@ -595,7 +602,7 @@ fn preview_admission_enforces_lifetime_and_per_device_pin_limit() {
     let (connection, key) = fixture();
     let plan = ready_plan(&connection, key);
     let mut next = plan.clone();
-    for _ in 0..vessel_proto::checkpoint::CHECKPOINT_PREVIEWS_PER_DEVICE {
+    for _ in 0..vessel_proto::checkpoint::CHECKPOINT_PREVIEWS_PER_OWNER {
         next.id = RestorePlanId::random();
         journal::put_plan(&connection, &next, DateTime::UNIX_EPOCH).unwrap();
     }
@@ -604,7 +611,9 @@ fn preview_admission_enforces_lifetime_and_per_device_pin_limit() {
         journal::put_plan(&connection, &next, DateTime::UNIX_EPOCH),
         Err(Error::Refused(CheckpointError::Busy))
     ));
-    next.device = DeviceId::random();
+    next.owner = CheckpointOwner::Device {
+        device: vessel_proto::DeviceId::random(),
+    };
     next.expires = DateTime::<Utc>::MAX_UTC;
     assert!(matches!(
         journal::put_plan(&connection, &next, DateTime::UNIX_EPOCH),
@@ -652,4 +661,75 @@ fn empty_effective_target_is_unchanged_and_recovery_cannot_name_another_operatio
         Err(Error::Refused(CheckpointError::RecoveryPending))
     ));
     journal::outcome(&connection, &operation, &RestoreOutcome::Unchanged).unwrap();
+}
+
+#[test]
+fn delegated_origins_sharing_one_delivery_device_cannot_share_preview_or_restore_status() {
+    use vessel_proto::{DeviceId, NodeId, checkpoint::CheckpointHumanOrigin};
+    let (connection, key) = fixture();
+    let mut plan = ready_plan(&connection, key);
+    let delivering = DeviceId::random();
+    let origin_node = NodeId::random();
+    plan.owner = CheckpointOwner::DelegatedHuman {
+        delivering,
+        origin_node,
+        origin: CheckpointHumanOrigin::Owner,
+    };
+    journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
+    let restore = RestoreId::random();
+    let _operation = journal::admit(&connection, &plan, restore, DateTime::UNIX_EPOCH).unwrap();
+    for wrong_owner in [
+        CheckpointOwner::DelegatedHuman {
+            delivering,
+            origin_node: NodeId::random(),
+            origin: CheckpointHumanOrigin::Owner,
+        },
+        CheckpointOwner::DelegatedHuman {
+            delivering,
+            origin_node,
+            origin: CheckpointHumanOrigin::Device {
+                device: DeviceId::random(),
+            },
+        },
+        CheckpointOwner::Device { device: delivering },
+        CheckpointOwner::LocalOwner,
+    ] {
+        assert!(matches!(
+            super::plans::owned(&connection, plan.id, wrong_owner),
+            Err(Error::Refused(CheckpointError::Forbidden))
+        ));
+        assert!(matches!(
+            journal::status(&connection, key.session, restore, wrong_owner),
+            Err(Error::Refused(CheckpointError::Forbidden))
+        ));
+        let mut wrong = plan.clone();
+        wrong.owner = wrong_owner;
+        assert!(matches!(
+            journal::admit(&connection, &wrong, restore, DateTime::UNIX_EPOCH),
+            Err(Error::Refused(CheckpointError::Forbidden))
+        ));
+    }
+    assert_eq!(
+        journal::status(&connection, key.session, restore, plan.owner)
+            .unwrap()
+            .owner,
+        plan.owner
+    );
+}
+
+#[test]
+fn local_owner_keeps_its_authenticated_identity_across_restore_retries() {
+    let (connection, key) = fixture();
+    let mut plan = ready_plan(&connection, key);
+    plan.owner = CheckpointOwner::LocalOwner;
+    journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
+    let restore = RestoreId::random();
+    let operation = journal::admit(&connection, &plan, restore, DateTime::UNIX_EPOCH).unwrap();
+    journal::outcome(&connection, &operation, &RestoreOutcome::Unchanged).unwrap();
+    assert_eq!(
+        journal::admit(&connection, &plan, restore, plan.expires)
+            .unwrap()
+            .outcome,
+        RestoreOutcome::Unchanged
+    );
 }

@@ -7,6 +7,7 @@ mod bounds;
 mod changes;
 mod image;
 mod metadata;
+mod owner;
 mod rpc;
 #[cfg(test)]
 mod rpc_tests;
@@ -16,13 +17,14 @@ pub use crate::id::{CaptureId, CheckpointId, RestoreId, RestorePlanId};
 pub use bounds::{
     CHECKPOINT_CAPTURE_DEADLINE, CHECKPOINT_FILE_BYTES, CHECKPOINT_IMAGE_BYTES,
     CHECKPOINT_IO_CHUNK, CHECKPOINT_NODE_BYTES, CHECKPOINT_PAGE_ENTRIES, CHECKPOINT_PATH_BYTES,
-    CHECKPOINT_PATHS, CHECKPOINT_PREVIEW_LIFETIME, CHECKPOINT_PREVIEWS_PER_DEVICE,
-    CHECKPOINT_QUEUE, CHECKPOINT_RESTORE_DEADLINE, CHECKPOINT_WORKERS, CHECKPOINTS_PER_SESSION,
-    CheckpointPath, FileBytes, ImageBytes, PathCount,
+    CHECKPOINT_PATHS, CHECKPOINT_PREVIEW_LIFETIME, CHECKPOINT_PREVIEWS_PER_OWNER, CHECKPOINT_QUEUE,
+    CHECKPOINT_RESTORE_DEADLINE, CHECKPOINT_WORKERS, CHECKPOINTS_PER_SESSION, CheckpointPath,
+    FileBytes, ImageBytes, PathCount,
 };
 pub use changes::{Change, ChangeKind};
 pub use image::{EffectiveDesiredImage, Entry, FileImage, FileState};
 pub use metadata::{FileMetadata, GroupId, OrdinaryMode, OwnerId};
+pub use owner::{CheckpointHumanOrigin, CheckpointOwner};
 pub use rpc::{
     ChangeCursor, ChangePage, CheckpointCursor, CheckpointMark, CheckpointPage,
     CheckpointRestoreStatus, CheckpointState, ListCheckpoints, PreviewCheckpoint,
