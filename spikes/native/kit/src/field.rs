@@ -293,6 +293,19 @@ impl TextField {
 }
 
 #[cfg(test)]
+mod tests {
+    use super::SendOn;
+
+    #[test]
+    fn enter_sends_unless_the_shortcut_is_mod_enter() {
+        assert!(SendOn::Enter.sends(false));
+        assert!(SendOn::Enter.sends(true));
+        assert!(!SendOn::ModEnter.sends(false));
+        assert!(SendOn::ModEnter.sends(true));
+    }
+}
+
+#[cfg(test)]
 mod composing_tests {
     use gpui::{EntityInputHandler as _, Render, TestAppContext};
 

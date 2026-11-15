@@ -985,3 +985,35 @@ PID/executable/UID/start-time checks. No production/service permissions
 changed. All existing physicalIME/OS/GPU/accessibility/latest-union and
 inherited Saving/Meta/footer/sibling-policy limits remain separate.
 Same V4 row239 review closure is requested; no approval is inferred here.
+
+
+### Selection-only portable chain on package base 9
+
+[Decision Log]
+- Purpose: deliver the V4 row239 selection/rename correction without the
+  moving Settings branch's E1/F5, ADR0097 or inherited merge ancestry.
+- Existing assets: announced base db42d9c5 already supplies W4 callbacks,
+  Editability, FieldId, SearchField and typed FormMinimum. Reuse these
+  modules; neither an alternate editor nor an external dependency is needed.
+- Choice: replay only the lead's named commits in a straight chain.
+  All three W1 cache/test commits applied; none was empty.
+- Compatibility resolution: preserve base9's existing events, multiline,
+  identity, search, form-minimum and editability files exactly. Relocate
+  the six presentation/style function bodies byte-for-byte from that base,
+  retaining Expanded96 and default68/80 through the sole form-shell helper.
+  The presentation imports that existing helper through its parent alias.
+- The base9 SendOn regression is retained unchanged. An initial extraction
+  range inadvertently excluded it; the pre-check body audit caught this
+  before any compile or PASS claim, and this follow-up restores it.
+- Documentation conflicts keep only each selected commit's actual added
+  text, excluding missing parent context about other packages. The size
+  ratchet remains byte-identical to base9, without increasing any allowance.
+- Evidence before compilation: 24 source comparisons and all18 retained
+  root function bodies match their declared base/passed source; details at
+  /tmp/work/m12-settings4/portable/source-proof.json. Owned selection,
+  frame, rename, engine tests and actual dialog regression match385dc0950.
+  This is source comparison, not compiler/test/UI or new-base approval.
+- Verification pending: remote strict and native tests on this exact
+  portable tree, then V4 same-source/base-only qualification. Existing
+  captures remain attributed to385 and its prior base; no new capture,
+  whole E1/F5 completion or sibling-overlap resolution is inferred.
