@@ -66,7 +66,10 @@ pub(crate) fn overlay(
 pub(crate) fn error(shell: &Shell, tokens: &Tokens) -> Option<AnyElement> {
     let (target, problem) = shell.areas.sessions.lifecycle.error.as_ref()?;
     let open = shell.areas.session.open.as_ref()?;
-    if open.machine != target.host.as_str() || open.session != target.session {
+    if open.machine != target.host.as_str()
+        || open.session != target.session
+        || !target.matches_node(open.binding.as_ref().map(|binding| binding.address.node))
+    {
         return None;
     }
     let message = problem_words(shell, problem);

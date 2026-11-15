@@ -114,6 +114,44 @@ fn late_archive_ack_cannot_update_a_replacement_or_close_its_session(cx: &mut Te
 }
 
 #[gpui::test]
+fn a_peer_failure_cannot_render_under_another_admitted_node_with_reused_identifiers(
+    cx: &mut TestAppContext,
+) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, _, _| {
+        let (info, host, admitted, _) = pending_exit(shell);
+        shell.areas.sessions.lifecycle.error = Some((
+            LifecycleTarget {
+                host,
+                session: info.id,
+                node: Some(admitted),
+            },
+            Problem::LostReply(vessel_app_link::ActFailed {
+                code: None,
+                message: "synthetic original peer detail".to_owned(),
+            }),
+        ));
+        let tokens = vessel_app_kit::Tokens::of(vessel_app_kit::Scheme::Dark);
+        assert!(draw::error(shell, &tokens).is_some());
+        shell
+            .areas
+            .session
+            .open
+            .as_mut()
+            .unwrap()
+            .binding
+            .as_mut()
+            .unwrap()
+            .address
+            .node = NodeId::random();
+        assert!(draw::error(shell, &tokens).is_none());
+        shell.areas.session.open.as_mut().unwrap().binding = None;
+        assert!(draw::error(shell, &tokens).is_none());
+    });
+}
+
+#[gpui::test]
 fn stale_confirmation_callbacks_cannot_dismiss_or_submit_a_newer_decision(cx: &mut TestAppContext) {
     crate::shell::language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);
