@@ -17,6 +17,11 @@
 ///   for a method whose number the integrator has not assigned yet, where
 ///   `FEATURE` is the feature's `Option<ProtocolVersion>` constant (None
 ///   until assigned; both ends refuse the method while it is None).
+///   `(staged FEATURE)` is a pending method whose values landed before
+///   any runtime serves it: its `Handler` method answers `Unsupported` by
+///   default and the node's guard needs no service method for it. The
+///   package that serves it changes the row to `(pending FEATURE)` in the
+///   commit that adds its handler; a staged row's constant must stay None.
 /// - `shape` is how the method is answered: `unary` (one reply),
 ///   `stream` (the reply opens a stream of frames) or `envelope` (it
 ///   carries another call to a node and answers once; what it carries is
