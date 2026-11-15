@@ -1056,3 +1056,7 @@ The buffered-start change imports Retention for its guard. The existing cancel
 path now uses that same imported name instead of its redundant qualified path;
 this removes unused_qualifications without changing stop selection or teardown.
 The preceding strict failure is retained; a changed-source strict check is owed.
+
+The new switch regression explicitly binds the setup's returned effective view,
+matching the existing fixture convention. This resolves unused_results while
+keeping the configuration, all failure inputs and assertions unchanged.

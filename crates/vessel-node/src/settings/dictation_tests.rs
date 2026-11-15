@@ -125,7 +125,8 @@ async fn switching_to_an_endpoint_with_a_missing_or_empty_key_keeps_the_previous
     vessel_testkit::within(TEST_LIMIT, async {
         let f = Fixture::new();
         f.establish().await;
-        f.settings
+        let _local = f
+            .settings
             .change_dictation(
                 SetNodeSettings {
                     dictation: Some(SetDictation {
