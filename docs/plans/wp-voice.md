@@ -500,3 +500,12 @@ perform only immediate local fencing/cleanup and leave remote uncertainty
 visible. GPUI exposes fake idle-sleep delay/failure/count controls for these
 race tests. None of this is wired or verified on an OS yet, so keep-awake
 parity remains explicitly incomplete rather than an implied audio-engine feature.
+
+### Overlay Fluent validation feedback
+
+Run wp-voice-narrow-20261115T130733Z-013f9e87 passed fonts and returned101
+from the view build script: voice-mute lacked its message-attached translator
+context comment. The file-level group comment did not meet that rule. All
+three EN/KO action messages now have their own context comments; label text is
+unchanged. No current overlay/App strict or runtime pass is claimed. The next
+immutable strict snapshot also contains the newer duplex/cue source.
