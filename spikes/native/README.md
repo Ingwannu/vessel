@@ -391,6 +391,10 @@ for the pixel evidence and platform scope.
 The menu's pending feedback explicitly uses Numeric16 of that profile;
 other legacy spinner callers retain their existing appearance.
 
+`kit/dialog.rs` accepts a clonable close closure so Escape, the scrim and
+the close glyph retain the caller's decision identity. Function-item callers
+keep their existing behavior; stale-decision policy stays with the feature.
+
 `kit/dialog.rs` keeps a fitting dialog at its natural size. When its
 content exceeds the card's existing height limit, only the body scrolls;
 the heading and footer actions retain their size and remain reachable.
