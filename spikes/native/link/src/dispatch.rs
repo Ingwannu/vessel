@@ -56,7 +56,7 @@ impl State {
                 options,
             } => {
                 self.start(&machine, harness, folder, Some(prompt), options)
-                    .await
+                    .await;
             }
             Command::Options { machine, harness } => self.options(machine, harness),
             Command::KeepCommands {
