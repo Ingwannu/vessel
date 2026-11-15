@@ -1,5 +1,6 @@
 //! Reuses settings screens; setup owns only the gate, visits and completion.
 
+mod orchestration;
 mod render;
 mod scope;
 
@@ -26,6 +27,7 @@ pub(crate) struct Onboarding {
     shown: Option<Visit>,
     from: Option<Origin>,
     scope: scope::ScopeState,
+    integrations: orchestration::Setup,
 }
 
 /// Setup temporarily borrows existing settings owners without changing the
@@ -44,6 +46,7 @@ impl Onboarding {
             shown: None,
             from: None,
             scope: scope::ScopeState::default(),
+            integrations: orchestration::Setup::default(),
         }
     }
 }
@@ -154,6 +157,10 @@ fn enter_step(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell
     }
     let (visit, step, target) = (open.visit(), open.step(), open.host().clone());
     let host = target.machine().as_str().to_owned();
+    orchestration::leave(shell);
+    if shell.areas.onboarding.from.is_none() {
+        orchestration::opened(shell, cx);
+    }
     let area = &mut shell.areas.onboarding;
     if area.from.is_none() {
         area.from = Some(Origin {
@@ -198,6 +205,18 @@ impl Shell {
         if !scope::actionable(self) {
             return;
         }
+        if matches!(self.areas.onboarding.model.state(), State::Open(open) if open.visit() == visit && open.step() == Step::Orchestration)
+        {
+            orchestration::apply(self, visit, window, cx);
+            return;
+        }
+        self.advance_setup(visit, window, cx);
+    }
+
+    fn advance_setup(&mut self, visit: Visit, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if !scope::actionable(self) {
+            return;
+        }
         match self.areas.onboarding.model.next(visit) {
             Ok(Effect::Complete) => {
                 scope::release(self, visit);
@@ -224,6 +243,8 @@ impl Shell {
     }
 
     fn persist_setup_completion(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        orchestration::leave(self);
+        orchestration::closed(self);
         self.prefs.onboarding = Some(CompletionRecord {
             completed_at: chrono::Utc::now(),
         });
@@ -240,3 +261,12 @@ impl Shell {
 
 #[cfg(test)]
 mod tests;
+
+pub(crate) fn orchestration_content(
+    shell: &Shell,
+    tokens: &vessel_app_kit::Tokens,
+    compact: bool,
+    cx: &mut Context<'_, Shell>,
+) -> gpui::AnyElement {
+    orchestration::render(shell, tokens, compact, cx)
+}

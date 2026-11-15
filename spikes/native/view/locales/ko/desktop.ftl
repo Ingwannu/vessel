@@ -47,3 +47,9 @@ desktop-pair-phone = 다른 기기 연결
 desktop-phone-note = 이 머신의 기기 설정에서 휴대폰이나 다른 컴퓨터를 연결합니다.
 # First-run setup: open pairing. Keep concise for the compact dialog.
 desktop-open-pairing = 기기 연결 열기
+
+# Setup choice for installing or removing the local CLI only on Continue.
+desktop-cli = 명령줄 연동
+
+# Setup integration status read retry; this action does not install anything.
+desktop-retry = 다시 시도

@@ -89,6 +89,7 @@ pub(crate) fn dialog(
         );
     }
     let ready = super::scope::actionable(shell);
+    let advancing = ready && (step != Step::Orchestration || !super::orchestration::busy(shell));
     let content = if ready {
         crate::areas::settings::onboarding::step(shell, step, tokens, compact, window, cx)
     } else {
@@ -122,14 +123,14 @@ pub(crate) fn dialog(
             "setup-next",
             if last { words.finish() } else { words.next() },
             ButtonKind::Primary,
-            if ready {
+            if advancing {
                 ButtonState::Enabled
             } else {
                 ButtonState::Disabled
             },
             tokens,
         )
-        .when(ready, |button| {
+        .when(advancing, |button| {
             button.on_click(
                 cx.listener(move |shell, _event, window, cx| {
                     shell.setup_continue(visit, window, cx)

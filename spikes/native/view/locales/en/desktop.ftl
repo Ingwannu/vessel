@@ -47,3 +47,9 @@ desktop-pair-phone = Pair another device
 desktop-phone-note = Pair a phone or another computer using this machine's device settings.
 # First-run setup: open pairing. Keep concise for the compact dialog.
 desktop-open-pairing = Open device pairing
+
+# Setup choice for installing or removing the local CLI only on Continue.
+desktop-cli = Command-line integration
+
+# Setup integration status read retry; this action does not install anything.
+desktop-retry = Try again
