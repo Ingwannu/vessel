@@ -299,3 +299,24 @@ chains. They have NOT been compiled or executed. Direct rustfmt, size and
 whitespace checks are source checks only. The current separate native
 selection gate stays frozen; a later client narrow suite must execute
 these four tests and the nine private-file staging tests before review.
+
+The next pure adapter is `Connections::try_from(&BookEntry)`. Websocket
+token references and the complete existing SSH target survive unchanged.
+Secure expansion assigns deterministic1-based ids in direct-then-relay
+order and checks the same64-route cap before allocating another vector.
+It refuses inconsistent fields, missing credentials, empty routes and
+duplicate specifications without changing the old entry. Node identity
+remains the host's separate configured field; conversion proves no peer.
+Four additional prepared tests cover stable expansion, exact/one-over
+counts, complete websocket/SSH bindings and intact failure outcomes.
+No legacy reader or file writer invokes this conversion, so no read-time
+migration or stored-format compatibility pass is implied. All eight
+route-model/adapter tests still need actual compilation and execution.
+
+Pairing receipt boundary confirmed with the owner: the current generic
+`secure::pair` issues a credential before its later hello can fail. The
+new receipt path must use the actual encrypted `pair_over` preamble result
+without adding a hello that discards that issued credential. G4's retained
+operation owns IssuedInMemory before any later authenticated probe; probe
+failure retains the credential, and local retry never redeems again.
+No SDK receipt, changed preamble or secure-wrapper code is implemented yet.

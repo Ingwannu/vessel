@@ -22,6 +22,8 @@ use crate::credential::CredentialSource;
 use crate::secure::Route;
 use crate::url::NodeUrl;
 
+mod legacy;
+
 /// ADR 0097's per-host route budget, shared by model and future file decoder.
 pub const MAX_BOOK_ROUTES_PER_HOST: usize = 64;
 
@@ -219,6 +221,9 @@ pub enum ConnectionProblem {
     /// Secure routes in a host must share their configured identity/credential.
     #[error("the host's secure connections have different bindings")]
     SecureBindingMismatch,
+    /// Refuse contradictory public legacy fields instead of dropping one.
+    #[error("the legacy host has inconsistent transport bindings")]
+    InvalidLegacyBinding,
 }
 
 #[cfg(test)]
