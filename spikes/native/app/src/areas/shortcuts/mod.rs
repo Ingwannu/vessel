@@ -152,6 +152,9 @@ pub(crate) fn listen(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_
 fn press_of(event: &KeystrokeEvent) -> KeyPress {
     let stroke = &event.keystroke;
     let modifiers = stroke.modifiers;
+    // GPUI separates typed text (key_char, e.g. Option-S's ß) from the
+    // platform-normalized base key. Keep text first, then derive only the
+    // fallback identity that GPUI actually supplied; never invent a scan code.
     KeyPress {
         key: stroke
             .key_char

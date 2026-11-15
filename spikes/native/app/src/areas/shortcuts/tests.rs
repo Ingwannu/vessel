@@ -105,6 +105,22 @@ fn real_key_events_advance_preferences_through_existing_dispatch(cx: &mut TestAp
 }
 
 #[gpui::test]
+fn platform_base_key_fallback_survives_non_latin_typed_text(cx: &mut TestAppContext) {
+    let (view, cx) = setup(cx);
+    cx.simulate_keystrokes(match Platform::native() {
+        Platform::Mac => "cmd-alt-t->ㅅ",
+        Platform::Other => "ctrl-alt-t->ㅅ",
+    });
+    cx.run_until_parked();
+    view.read_with(cx, |probe, cx| {
+        assert_eq!(
+            probe.shell.read(cx).prefs.settings.appearance.theme,
+            Theme::System.next()
+        );
+    });
+}
+
+#[gpui::test]
 fn real_key_events_leave_theme_alone_while_palette_is_open(cx: &mut TestAppContext) {
     let (view, cx) = setup(cx);
     view.update_in(cx, |probe, window, cx| {

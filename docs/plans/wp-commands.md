@@ -603,3 +603,12 @@ violates that behavior in an active workspace. ToggleSidebar remains the existin
 left action. ToggleSidebars keeps its canonical binding but has no active native
 handler until S2's checked sidebar_toggle_both packet is adopted and registered.
 No sidebar state or lifecycle policy is copied into the dispatcher.
+
+Native conversion audit: GPUI's platform/keystroke.rs18-32 carries typed key_char
+separately from its platform-normalized base key (including Option and non-ASCII
+layout fallback); our press_of keeps typed text first and derives fallback only
+from that supplied base key. Linux platform.rs1418-1540 contains the upstream
+XKB/ASCII normalization. No scan code is invented at the Shell boundary. An
+actual GPUI synthetic event regression supplies a non-Latin typed character plus
+base T through the production interceptor. This proves adapter behavior only;
+macOS Option, Windows AltGr and actual OS layouts remain unverified.
