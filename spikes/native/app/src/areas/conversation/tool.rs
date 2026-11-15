@@ -26,6 +26,29 @@ pub(super) fn card(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
+    if let Some(text) = vessel_app_view::timeline::plan_text(tool) {
+        let seat = paint.seat;
+        return super::plan_card::card(
+            super::plan_card::PlanCard {
+                id: ElementId::NamedInteger("stream-plan".into(), super::entries::id(index)),
+                text: &text,
+                title: None,
+                description: None,
+                outcome: vessel_app_view::timeline::plan_outcome(paint.entries, &tool.id),
+                expansion: if open {
+                    vessel_app_view::timeline::PlanExpansion::Expanded
+                } else {
+                    vessel_app_view::timeline::PlanExpansion::Collapsed
+                },
+                footer: None,
+            },
+            move |shell, _window, cx| shell.toggle_entry(seat, index, cx),
+            paint.words,
+            paint.tokens,
+            window,
+            cx,
+        );
+    }
     let words = paint.words;
     let title = if tool.title.is_empty() {
         words.tool_call().to_owned()

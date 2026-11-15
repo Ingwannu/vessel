@@ -330,8 +330,9 @@ impl EntryKind {
     /// Whether this is a tool call or a thought: what "Collapse tool
     /// calls" folds into a run.
     #[must_use]
-    pub const fn folds(&self) -> bool {
-        matches!(self, Self::Tool(_) | Self::Thought { .. })
+    pub fn folds(&self) -> bool {
+        matches!(self, Self::Thought { .. })
+            || matches!(self, Self::Tool(tool) if super::plan_card::plan_text(tool).is_none())
     }
 }
 

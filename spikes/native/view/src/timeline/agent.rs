@@ -70,6 +70,7 @@ impl Timeline {
     fn turn_event(&mut self, record: &EventRecord, event: &AgentEvent) {
         match event {
             AgentEvent::PermissionRequested(request) => {
+                self.plan_permission_changed(&request.tool_call);
                 let title = self
                     .find_tool(&request.tool_call)
                     .map(|tool| tool.title.clone());
@@ -92,6 +93,14 @@ impl Timeline {
                     return;
                 };
                 let _was = self.waiting.remove(&index);
+                if let Some(tool) = self
+                    .entries
+                    .get(index)
+                    .and_then(|entry| entry.kind.as_permission())
+                    .map(|permission| permission.request.tool_call.clone())
+                {
+                    self.plan_permission_changed(&tool);
+                }
                 if let Some(entry) = self.change(index)
                     && let EntryKind::Permission(permission) = &mut entry.kind
                 {

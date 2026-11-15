@@ -154,3 +154,17 @@ owns send behavior. Prior question changes have been handed off as a patch and
 removed here with a forward commit. Their narrow clippy passed; no test or capture
 claim transfers with the handoff. The stream exposes one reusable Plan Markdown
 renderer so the pending approval card and settled plan have one body.
+
+### Plan renderer decision
+
+Reference read directly: `components/plan-card.tsx:10-101`. The shared
+`app::areas::conversation::plan_card::card` receives text, outcome, optional title /
+description / footer, typed expansion and an explicit toggle callback. Caller owns
+actions; viewing or expanding never sends an approval. `PlanDisclosures` keys local
+choices by tool identity and outcome: text updates retain disclosure, a changed
+decision resets it. A permission transition invalidates the earlier proposal row
+so virtual-list measurement does not leave a collapsed-height box around Markdown.
+A pending plan is hidden in-stream while the approval dock owns it, and is excluded
+from tool groups. Legacy detection is restricted to SwitchMode + typed input.plan;
+canonical Plan detail will replace that fallback when available. The 44-point phone
+header is a touch-target accessibility difference from Paseo's 24-point pointer row.

@@ -164,7 +164,11 @@ fn row_element(
     // messages, thoughts, tools, plans and questions; the session's state
     // is the header's, its usage the context meter's (slice M). What a
     // rewind left behind is no longer the conversation (slice R1).
-    if quiet(&entry.kind) || area.timeline.rewound(index) {
+    let waiting_plan = entry.kind.as_tool().is_some_and(|tool| {
+        vessel_app_view::timeline::plan_text(tool).is_some()
+            && area.timeline.asks_permission(&tool.id)
+    });
+    if quiet(&entry.kind) || area.timeline.rewound(index) || waiting_plan {
         return div().into_any_element();
     }
     let run = area
@@ -260,6 +264,17 @@ fn entry_element(
 /// works, else closed; turned by the person. A tool call whose permission
 /// waits stays closed: the card over the composer shows its detail.
 fn open(area: &ConversationArea, index: usize) -> bool {
+    if let Some(tool) = area
+        .timeline
+        .entries()
+        .get(index)
+        .and_then(|entry| entry.kind.as_tool())
+        .filter(|tool| vessel_app_view::timeline::plan_text(tool).is_some())
+    {
+        let outcome = vessel_app_view::timeline::plan_outcome(area.timeline.entries(), &tool.id);
+        return area.plans.expansion(&tool.id, outcome)
+            == vessel_app_view::timeline::PlanExpansion::Expanded;
+    }
     let default = area
         .timeline
         .entries()

@@ -26,6 +26,7 @@ mod meter;
 mod numbers;
 mod parking;
 mod permission;
+mod plan_card;
 mod question;
 mod rewind;
 mod search;
