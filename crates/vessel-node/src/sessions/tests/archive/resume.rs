@@ -62,9 +62,12 @@ async fn stored_archive_retains_resume_publication_exclusion_through_completion(
         let archived = archive.await.unwrap().unwrap();
         assert_eq!(archived.id, id);
         assert!(!archived.status.is_live());
+        assert_eq!(archived.marks.archived_at, Some(at));
         let resumed = resuming.await.unwrap();
         let _ready = ready(&resumed).await.unwrap();
-        assert_eq!(resumed.info().marks.archived_at, Some(at));
+        // Store::reopen intentionally unarchives the later explicit resume.
+        // It must not publish that transition before archive completion releases.
+        assert!(resumed.info().marks.archived_at.is_none());
         resumed.kill();
         fixture.settle().await;
         fixture.stop().await;

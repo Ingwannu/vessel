@@ -212,7 +212,8 @@ durability entry and store reopening under that same lock. If resume wins, archi
 re-finds the live run and the actor refuses an active/starting turn without Force.
 If archive wins, a later explicit resume is ordered after its durable mark. Added
 fake-backed regressions observe a real gated resume held behind stored archive
-completion, and an active resumed run after a stale ended snapshot. These new
+completion, then the existing explicit-resume unarchive transition, and an active
+resumed run after a stale ended snapshot. These new
 tests are written, not executed; the earlier 30-test result does not cover them.
 
 Real recovery additionally depends on W11's pending canonical admission/backing
