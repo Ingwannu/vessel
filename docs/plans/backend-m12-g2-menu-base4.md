@@ -54,3 +54,9 @@ Package formatting removes one extra blank line from the adopted G4 focus
 regression file; no test body, assertion or production helper byte changes.
 The menu producer includes only the four explicitly approved G4 producer
 changes (captured-dismiss prerequisite plus the three focus commits).
+
+The first exact menu narrow schedules-narrow-20261115T084711Z-873d403c failed
+Kit Clippy (fonts0/cargo101): the named placement value needed Copy, and the
+new regression's KeepOpen doc needed code formatting. No tests ran. Deriving
+Copy for its borrowed-state/Copy-anchor fields changes no behavior; the result
+is retained and a corrected-head narrow remains owed.

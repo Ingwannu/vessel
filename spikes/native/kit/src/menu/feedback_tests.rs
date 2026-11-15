@@ -1,4 +1,4 @@
-//! Real rendered KeepOpen activation and refusal after feedback replaces a row.
+//! Real rendered `KeepOpen` activation and refusal after feedback replaces a row.
 //! Pure index helpers cannot prove that an old pointer/keyboard handler is gone.
 use super::*;
 use crate::{Scheme, Tokens, assets::Glyph};
