@@ -299,3 +299,11 @@ and native opportunity/current-form gates now accept failed sources, preserving
 exact identity, unread, authority, once-only and focus checks. Web Push filters
 remain unchanged. New real-store and native opportunity regressions are owed
 execution; no source/runtime PASS is inferred from this correction.
+
+Before the owning whole gate, the announced common node head82ae7c91 is merged
+as041c429cf. The merge is conflict-free; five pending attention rows and None
+remain unchanged, and the Store product/tests are byte-identical to8829d9856.
+Older queued Store checks retain their original immutable scope. A current
+five-crate union narrow is required after they finish, before a whole/gate or
+adoption claim. The known alias classification base defect still awaits the
+announced gate49 head; it is not repaired by editing A5 head expectations.
