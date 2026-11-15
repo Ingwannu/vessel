@@ -158,7 +158,7 @@ resident-cutover approval remain outstanding.
 | Native44c pure view | Compile failed on an erroneous LifecycleTarget fixture field. Corrected at a809; its replacement has not returned. |
 | Native40aa all-kit | Queued after adding an intermediate glyph-hit event to the same drag endpoints; every copy assertion is retained. No current-source pass yet. |
 | Native88be App binary | Correct target `--bin vessel-app` queued. The earlier queued App `--lib` request was cancelled before execution. No App runtime evidence yet. |
-| Independent native valuesb7b | Strict proto+TS all-target Clippy0; exact four-test run queued. Prior dd06 ran4/0; b7 fixes only naming, documentation and boundary arithmetic. |
+| Independent native valuesb7b | Strict proto+TS all-target Clippy0; exact TS-enabled four-test run4/0 in `wp-composer-native-command-values-20261115T133831Z-b7b4e87e`. Prior dd06 also ran4/0; b7 fixes only naming, documentation and boundary arithmetic. |
 | Independent catalog carrier6988 / ce50 | Strict proto/agent/session+TS all-target Clippy0 at6988; commands-filter tests10/0 at ce50. Separate source scopes, no runtime activation. |
 | Node237 TS generation | Actual proto3/0 and web1/0; gate1 solely for the generated diff. Exact verified artifact applied, with no manual TypeScript edits. Generation equality remains queued. |
 | Node67c Codex schema | Exact installed-schema test1/0/0, step/gate0; run `tools-codex-contract-20261115T124102Z-67c5eb77`. Schema-only evidence for that older source. |
