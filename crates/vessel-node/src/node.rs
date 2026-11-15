@@ -5,7 +5,6 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use tokio::net::TcpListener;
-use tokio::sync::Semaphore;
 use tokio::sync::watch;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
@@ -15,7 +14,6 @@ use vessel_proto::ports::PortOwner;
 use vessel_proto::{NodeId, NodeInfo, RelayToken, RouteUrl};
 use vessel_relay::address::ClientAddress;
 use vessel_relay::{LinkState, TlsConfig};
-use vessel_rpc::Server;
 use vessel_secure::NodeKeypair;
 use vessel_session::{AttachmentLoader, RuntimeConfig, SessionRuntime};
 use vessel_store::{DataDir, NodeLock, Opened, Store};
@@ -36,7 +34,7 @@ use crate::lifecycle::Lifecycle;
 use crate::models::proxy::serve as serve_models;
 use crate::probes::Probes;
 use crate::relays::{self, Relays};
-use crate::secure::{MAX_UNADMITTED, SecureGateway};
+use crate::secure::SecureGateway;
 use crate::server::{self, Gateway};
 use crate::service::{NodeService, Parts};
 use crate::sessions::Sessions;
@@ -47,10 +45,12 @@ use crate::transfers::{self, Transfers};
 use crate::workspace::{Opening, Workspaces};
 
 mod attachment_setup;
+mod frontends;
 mod prepare;
 mod setup;
 
 use self::attachment_setup::{ATTACHMENT_LOADS, attachments};
+use self::frontends::Frontends;
 use self::prepare::{Prepared, prepare_off_thread};
 use self::setup::{SessionSetup, model_proxy};
 
@@ -101,17 +101,7 @@ impl Node {
         let (models, proxy) = model_proxy(models).await?;
         let session_setup = SessionSetup::new(&config, id, profiles, Arc::clone(&models), dirs);
 
-        let Core {
-            runtime,
-            lifecycle,
-            stop,
-            tasks,
-            forwarders,
-            devices,
-            agents,
-            service,
-            relays,
-        } = core(
+        let core = core(
             &config,
             id,
             &store,
@@ -121,42 +111,24 @@ impl Node {
             providers,
         )
         .await?;
-        drop(tokio::spawn(serve_models(models, proxy, stop.clone())));
-        let closing = CancellationToken::new();
-        let rpc = Arc::new(Server::new(
-            Arc::clone(&service),
-            lifecycle.watch_info(),
-            config.rpc.clone(),
-            closing.clone(),
-        ));
+        drop(tokio::spawn(serve_models(models, proxy, core.stop.clone())));
+        let Frontends {
+            rpc,
+            secure,
+            teardown,
+            connections,
+            agents,
+            relays,
+            lifecycle,
+            stop,
+            provider_registrations,
+        } = frontends::prepare(&config, core, keypair, store);
         let token = Arc::new(token);
-        let connections = TaskTracker::new();
 
         let (local, tcp) = bind(&config, id).await?;
         let local_endpoint = local.endpoint().clone();
         let address = tcp.as_ref().map(|(_, address)| *address);
 
-        let provider_registrations = service.0.providers.registrations();
-        let secure = SecureGateway {
-            keypair,
-            channel: vessel_secure::Config::default(),
-            service,
-            lifecycle: lifecycle.clone(),
-            devices,
-            config: config.rpc.clone(),
-            closing: closing.clone(),
-            connections: connections.clone(),
-            unadmitted: Arc::new(Semaphore::new(MAX_UNADMITTED)),
-            unadmitted_per_address: Arc::default(),
-        };
-        let teardown = Teardown {
-            runtime,
-            tasks,
-            forwarders,
-            closing,
-            connections: connections.clone(),
-            store,
-        };
         let router = tcp.map(|(listener, _)| {
             (
                 listener,
@@ -344,7 +316,8 @@ async fn core(
         .map_err(NodeError::Task)?;
     let lifecycle = Lifecycle::new(info, stop.clone(), Arc::clone(&runtime));
     let tasks = TaskTracker::new();
-    let provider_source: Arc<dyn crate::profiles::launch::McpSource> = setup.fleet_mcp.clone();
+    let provider_source: Arc<dyn crate::profiles::launch::McpSource> =
+        Arc::<fleet::FleetMcp>::clone(&setup.fleet_mcp);
     let providers = provider_setup.start(
         config,
         setup.probe_dir.clone(),

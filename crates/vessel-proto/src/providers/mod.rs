@@ -37,8 +37,8 @@ pub use text::{InvalidProvider, MAX_MODE_ID, MAX_PROVIDER_ID, ModeId, ProviderId
 
 use crate::ProtocolVersion;
 
-/// Assigned only after provider catalogue, configuration and create consumers
-/// are wired and reviewed; no current peer may call the unassigned methods.
+/// Assigned only after provider snapshot, diagnostic and participation consumers
+/// are wired and reviewed; atomic creation has its own future contract.
 pub const PROVIDERS: Option<ProtocolVersion> = None;
 
 /// Whether a configured provider participates in discovery and creation.
