@@ -5,7 +5,7 @@
 .toast-stack {
   --toast-card-width: 320px;
   position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) + var(--topbar-h) + var(--s-2));
+  top: calc(env(safe-area-inset-top, 0px) + var(--topbar-h) + var(--s-4));
   left: 50%;
   width: min(calc(var(--toast-card-width) + var(--s-3) * 2), 100vw);
   padding: var(--s-3);

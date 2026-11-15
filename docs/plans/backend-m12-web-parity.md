@@ -1168,3 +1168,27 @@ status roles and notification lifetimes remain unchanged. Both typechecks, full 
 frontend run also passes all 451 pure units; later edits only share browser
 fixtures and hide the empty toast host. Corrected browser behavior, affected
 captures and the complete package gate remain pending at this checkpoint.
+
+### Feedback boundary correction and base test receipt
+
+The first feedback package execution passed all nine new browser cases,
+the pure units and its 24 captures, but its whole gate was red on the
+existing history/security storage check: the sidebar painted before the
+verified welcome stored its tab-session receipt. The separately reviewed
+test correction waits for the same receipt as the existing page opener.
+It preserves every original assertion, reload and replay check and adds a
+bounded real-handshake delay test. No product authentication change,
+deadline increase or retry is part of that correction.
+
+Inspection also found a narrower toast defect: the initial card cleared
+the header, but its scroll viewport began seven pixels inside that header.
+A separate actual-page assertion fails at host top 44 versus header bottom
+51. The host now uses the existing larger spacing token and its shared
+browser fixture checks the host itself. Earlier images and runs remain
+evidence of their original source; they are not approvals of this fix.
+Affected captures and the changed-tree whole gate are still owed.
+
+The assigned node quality base is merged without conflicts. All incoming
+non-document changed blobs are preserved exactly, including generated
+types and their formatting; both existing README and architecture texts
+are retained. This page package adds no method, protocol or schema number.

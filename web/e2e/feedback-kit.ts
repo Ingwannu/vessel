@@ -58,12 +58,14 @@ export async function stackedToasts(page: Page): Promise<void> {
   }
   const stack = page.locator(".toast-stack");
   const bounds = await rectangle(stack);
+  const header = await rectangle(page.getByRole("banner"));
   const prompt = await rectangle(page.getByRole("form", { name: "Prompt" }));
   const next = await rectangle(
     page
       .getByRole("region", { name: "Question from the agent" })
       .getByRole("button", { name: "Next", exact: true }),
   );
+  expect(bounds.y).toBeGreaterThanOrEqual(header.y + header.height);
   expect(bounds.y + bounds.height).toBeLessThanOrEqual(
     Math.min(prompt.y, next.y),
   );

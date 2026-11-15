@@ -168,3 +168,9 @@ lifetimes. Unlike the reference's single active message, Vessel bounds its
 existing stack to a scrolling quarter-viewport, so accumulated feedback does
 not keep extending down the page. This is a layout rule; it does not claim
 that every notification or OS/device behavior has parity.
+
+The scroll host itself must clear the actual header, not just its first
+unpanned card. Shadow padding can make a normal card look clear while
+scrolling reveals content inside the header. A browser regression checks
+the host's top edge as well as its lower boundary; the existing larger
+spacing token provides that clearance without a second positioning model.
