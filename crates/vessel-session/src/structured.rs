@@ -321,30 +321,12 @@ impl StructuredActor {
                 } else {
                     None
                 };
-                let checkpoint_turn = matches!(event, AgentEvent::TurnStarted { .. })
-                    .then(|| {
-                        self.checkpoint_prompt
-                            .take()
-                            .map(|prompt| (prompt, self.life.out.next_seq()))
-                    })
-                    .flatten();
+                let checkpoint_turn = self.checkpoint_association(&event);
                 self.desk.observe(&event, self.life.out.next_seq());
                 self.life
                     .publish(&mut self.agent, SessionEvent::Agent { event })
                     .await;
-                if let Some((prompt, turn)) = checkpoint_turn {
-                    self.life
-                        .publish(
-                            &mut self.agent,
-                            SessionEvent::Checkpoint {
-                                event: vessel_proto::checkpoint::CheckpointEvent::TurnAssociated {
-                                    prompt,
-                                    turn,
-                                },
-                            },
-                        )
-                        .await;
-                }
+                self.publish_association(checkpoint_turn).await;
                 if let Some(title) = title {
                     self.life
                         .rename(&mut self.agent, title, vessel_proto::TitleOrigin::Given)

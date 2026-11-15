@@ -85,9 +85,11 @@ impl StructuredActor {
             tokio::select! {
                 biased;
                 step = self.life.stop.next() => { self.life.apply(&mut self.agent, step); return Err(SessionError::Ended); }
-                output = self.outputs.next(), if self.outputs_open => match output {
-                    Some(output) => self.output(output).await,
-                    None => { self.outputs_open = false; return Err(SessionError::Ended); }
+                output = self.outputs.next(), if self.outputs_open => if let Some(output) = output {
+                    self.output(output).await;
+                } else {
+                    self.outputs_open = false;
+                    return Err(SessionError::Ended);
                 },
                 () = tokio::time::sleep_until(deadline) => return Err(SessionError::CheckpointBusy),
             }
@@ -99,12 +101,11 @@ impl StructuredActor {
         receipt: Option<CheckpointReceipt>,
         sent: Result<(), SessionError>,
     ) -> Result<(), SessionError> {
-        let advance = match &sent {
-            Ok(()) => CheckpointAdvance::PromptSent,
-            Err(_) => {
-                self.checkpoint_prompt = None;
-                CheckpointAdvance::PromptRefused
-            }
+        let advance = if sent.is_ok() {
+            CheckpointAdvance::PromptSent
+        } else {
+            self.checkpoint_prompt = None;
+            CheckpointAdvance::PromptRefused
         };
         if let Some(receipt) = receipt {
             receipt.complete(advance);
@@ -124,6 +125,38 @@ impl StructuredActor {
             .await;
         if let Ok(Ok(receipt)) = captured {
             receipt.complete(CheckpointAdvance::TurnComplete);
+        }
+    }
+}
+
+pub(crate) struct TurnAssociation {
+    prompt: vessel_proto::EventSeq,
+    turn: vessel_proto::EventSeq,
+}
+impl StructuredActor {
+    pub(crate) fn checkpoint_association(
+        &mut self,
+        event: &vessel_proto::AgentEvent,
+    ) -> Option<TurnAssociation> {
+        if matches!(event, vessel_proto::AgentEvent::TurnStarted { .. }) {
+            self.checkpoint_prompt.take().map(|prompt| TurnAssociation {
+                prompt,
+                turn: self.life.out.next_seq(),
+            })
+        } else {
+            None
+        }
+    }
+    pub(crate) async fn publish_association(&mut self, association: Option<TurnAssociation>) {
+        if let Some(TurnAssociation { prompt, turn }) = association {
+            self.life
+                .publish(
+                    &mut self.agent,
+                    SessionEvent::Checkpoint {
+                        event: CheckpointEvent::TurnAssociated { prompt, turn },
+                    },
+                )
+                .await;
         }
     }
 }

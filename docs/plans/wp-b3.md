@@ -604,3 +604,18 @@ after removing the trigger, rejects altered object evidence and reopens the stor
 The public non-test storage fixture also uses this barrier. All remain unrun.
 Consumed plans no longer count as active preview authority or independently pin
 retirement: their restore/worker/metadata obligations provide the required pins.
+
+
+### VM lint result 420dcf66 and corrections
+
+wp-checkpoints-node-narrow-20261115T111842Z-420dcf66 finished rc1, cargo101
+at 12:19 UTC after 121 seconds of compilation. Seven session findings:
+single-pattern matches (2), receipt result missing Errors/double must_use,
+acknowledge missing must_use, structured output over100 lines, and a no-effect
+underscore binding in the test-only pause refusal. These are corrected by using
+if/if-let, documenting the actual receipt error, retaining the advancement
+receiver explicitly, and delegating the package's turn association handling to
+its checkpoint module. The established closed output dispatcher remains together
+and shrinks below the prior function length. No lint allowance or size ratchet is
+added. This old source stopped before later node/store changes and establishes
+no runtime pass; its exact failed logs remain in actor-hooks-clippy.

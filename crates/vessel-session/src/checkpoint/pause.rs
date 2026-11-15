@@ -177,8 +177,7 @@ impl StructuredActor {
                 drop(reply);
             }
             #[cfg(test)]
-            Control::RefuseNextStop { source, ready } => {
-                let _refused = source;
+            Control::RefuseNextStop { source: _, ready } => {
                 drop(ready);
             }
         }

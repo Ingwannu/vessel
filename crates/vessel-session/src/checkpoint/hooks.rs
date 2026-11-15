@@ -41,7 +41,8 @@ pub struct CheckpointReceipt {
 }
 impl CheckpointReceipt {
     /// The capture's exact association or typed unavailability.
-    #[must_use]
+    /// # Errors
+    /// The node refused or could not capture this exact boundary before deadline.
     pub const fn result(&self) -> Result<CaptureKey, CheckpointError> {
         self.result
     }
@@ -75,6 +76,7 @@ impl CheckpointRequest {
     /// Acknowledge capture without transferring any filesystem authority.
     /// The returned receiver lets the node retain prompt exclusion through delivery.
     /// A closed receiver means delivery is uncertain, not a successful send.
+    #[must_use = "retain delivery exclusion until the actor reports provider acceptance or refusal"]
     pub fn acknowledge(
         self,
         result: Result<CaptureKey, CheckpointError>,
