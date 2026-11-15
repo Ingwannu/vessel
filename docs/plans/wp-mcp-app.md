@@ -233,3 +233,21 @@ Current exact checks, canonical carrier/line adoption and the real guarded
 result envelope are still required. The private branch contains root work in
 progress and must never be merged wholesale into the app line: delivery is a
 native-only straight packet on the checked announced base.
+
+
+## Base 8e and canonical preference-save adapter
+
+Run `wp-mcp-app-narrow-20261115T160318Z-23756a3e` failed at the link with
+E0308: the merged command carries `Box<Prefs>`, while this branch's earlier
+private size-preserving extraction still accepted Prefs by value. This was a
+real compilation failure, before the new Tools/Skills regressions executed.
+The still-queued ordinary sibling was cancelled to terminal143 under the
+standing supersession rule; its assertions were not changed.
+
+The announced base8e `82ca07a7` is now merged. Its canonical W10b
+`save_prefs(Box<Prefs>)` helper replaces the obsolete local extraction, retaining
+the same awaited persistence and error handling and the orchestration arm.
+No second saver, lint exception, test relaxation or size record is added. The
+newer base9 candidate remains unadopted until announced green. Exact replacement
+strict and actual tests are required; earlier16/0 and strict0 remain scoped to
+their older source. Shared selected/delivery exports remain untouched.
