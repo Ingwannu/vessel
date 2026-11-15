@@ -1,7 +1,19 @@
-//! One subscription for legacy callbacks and window-aware form notifications.
-//! Existing constructors keep their default ordering; Appearance adds hooks
-//! to this same engine stream, never a second editor or subscription.
-use super::SendOn;
+//! Existing field event wiring, shared by one-line and multiline editors.
+//!
+//! [Decision Log]
+//! - Purpose: keep the shared field root within its existing size budget.
+//! - Constraint: preserve callback ordering, Enter/IME and focus behavior.
+//! - Alternatives: duplicate input wiring for request-scoped editors.
+//! - Choice: move the existing Handlers/listen together into this child module;
+//!   only parent visibility and imports change, with no behavioral change.
+//! - Cost: one source file; every existing constructor and caller stays intact.
+//! Window-aware Appearance hooks are one additional callback variant here;
+//! canonical Plain/Identified callbacks keep their signatures and identity.
+//! Focus flags update before notifications, as they do for ordinary fields.
+use super::{
+    SendOn,
+    identity::{FieldId, source},
+};
 use gpui::{Context, Entity, Window};
 use gpui_base::input::{InputBaseState, InputEvent, InputModeKind};
 use std::{cell::Cell, rc::Rc};
@@ -42,31 +54,134 @@ impl<V: 'static> Default for FieldEvents<V> {
     }
 }
 
-/// Only one change callback shape can be active for an engine.
-pub(super) enum Notifications<V: 'static> {
-    Legacy(Option<fn(&mut V, String, &mut Context<'_, V>)>),
-    Windowed(FieldEvents<V>),
+/// Follow a field's events: Enter, edits, and whether it holds the keys.
+/// What a field's events call.
+pub(super) struct Handlers<V: 'static> {
+    pub(super) callbacks: Callbacks<V>,
+    pub(super) focused: Rc<Cell<bool>>,
+    /// A composer's send press; `None` for a form field (Enter submits).
+    pub(super) send: Option<Rc<Cell<SendOn>>>,
 }
-impl<V: 'static> Notifications<V> {
-    fn edit<M: InputModeKind>(
+
+pub(super) fn listen<V: 'static, M: gpui_base::input::InputModeKind>(
+    state: &Entity<gpui_base::input::InputBaseState<M>>,
+    handlers: Handlers<V>,
+    window: &mut Window,
+    cx: &mut Context<'_, V>,
+) {
+    let Handlers {
+        callbacks,
+        focused,
+        send,
+    } = handlers;
+    cx.subscribe_in(
+        state,
+        window,
+        move |owner, state, event: &InputEvent, window, cx| match event {
+            InputEvent::PressEnter {
+                shift: false,
+                secondary,
+            } => {
+                if send
+                    .as_ref()
+                    .is_some_and(|send| !send.get().sends(*secondary))
+                {
+                    // Enter starts a line here (in place of a selection,
+                    // as typing does).
+                    state.update(cx, |state, cx| state.replace("\n", window, cx));
+                } else {
+                    let text = state.read(cx).value().to_string();
+                    callbacks.submit(owner, source(state.entity_id()), text, window, cx);
+                }
+            }
+            InputEvent::Change => {
+                if callbacks.changes() {
+                    let text = state.read(cx).value().to_string();
+                    callbacks.change(owner, source(state.entity_id()), text, window, cx);
+                }
+            }
+            InputEvent::Focus => {
+                focused.set(true);
+                cx.notify();
+                callbacks.focus(owner, window, cx);
+            }
+            InputEvent::Blur => {
+                focused.set(false);
+                cx.notify();
+                callbacks.blur(owner, state, window, cx);
+            }
+            InputEvent::PressEnter { .. } => {}
+        },
+    )
+    .detach();
+}
+
+/// Existing callbacks and request-scoped callbacks share the same event path.
+pub(super) enum Callbacks<V: 'static> {
+    Plain {
+        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        on_change: Option<fn(&mut V, String, &mut Context<'_, V>)>,
+    },
+    Identified {
+        on_submit: fn(&mut V, FieldId, String, &mut Window, &mut Context<'_, V>),
+        on_change: fn(&mut V, FieldId, String, &mut Context<'_, V>),
+    },
+    Windowed {
+        on_submit: TextEvent<V>,
+        events: FieldEvents<V>,
+    },
+}
+
+impl<V: 'static> Callbacks<V> {
+    fn changes(&self) -> bool {
+        match self {
+            Self::Plain { on_change, .. } => on_change.is_some(),
+            Self::Identified { .. } => true,
+            Self::Windowed { events, .. } => events.on_edit.is_some(),
+        }
+    }
+
+    fn submit(
         &self,
         owner: &mut V,
-        state: &Entity<InputBaseState<M>>,
+        id: FieldId,
+        text: String,
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) {
         match self {
-            Self::Legacy(Some(callback)) => callback(owner, state.read(cx).value().to_string(), cx),
-            Self::Legacy(None) => {}
-            Self::Windowed(events) => {
+            Self::Plain { on_submit, .. } => on_submit(owner, text, window, cx),
+            Self::Identified { on_submit, .. } => on_submit(owner, id, text, window, cx),
+            Self::Windowed { on_submit, .. } => on_submit(owner, text, window, cx),
+        }
+    }
+    fn change(
+        &self,
+        owner: &mut V,
+        id: FieldId,
+        text: String,
+        window: &mut Window,
+        cx: &mut Context<'_, V>,
+    ) {
+        match self {
+            Self::Plain { on_change, .. } => {
+                if let Some(on_change) = on_change {
+                    on_change(owner, text, cx);
+                }
+            }
+            Self::Identified { on_change, .. } => on_change(owner, id, text, cx),
+            Self::Windowed { events, .. } => {
                 if let Some(callback) = events.on_edit {
-                    callback(owner, state.read(cx).value().to_string(), window, cx);
+                    callback(owner, text, window, cx);
                 }
             }
         }
     }
+}
+
+impl<V: 'static> Callbacks<V> {
     fn focus(&self, owner: &mut V, window: &mut Window, cx: &mut Context<'_, V>) {
-        if let Self::Windowed(events) = self
+        if let Self::Windowed { events, .. } = self
             && let Some(callback) = events.on_focus
         {
             callback(owner, window, cx);
@@ -79,74 +194,12 @@ impl<V: 'static> Notifications<V> {
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) {
-        if let Self::Windowed(events) = self
+        if let Self::Windowed { events, .. } = self
             && let Some(callback) = events.on_blur
         {
             callback(owner, state.read(cx).value().to_string(), window, cx);
         }
     }
 }
-
-pub(super) struct Handlers<V: 'static> {
-    pub(super) on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
-    pub(super) notifications: Notifications<V>,
-    pub(super) focused: Rc<Cell<bool>>,
-    pub(super) send: Option<Rc<Cell<SendOn>>>,
-}
-impl<V: 'static> Handlers<V> {
-    fn handle<M: InputModeKind>(
-        &self,
-        owner: &mut V,
-        state: &Entity<InputBaseState<M>>,
-        event: &InputEvent,
-        window: &mut Window,
-        cx: &mut Context<'_, V>,
-    ) {
-        match event {
-            InputEvent::PressEnter {
-                shift: false,
-                secondary,
-            } => {
-                if self
-                    .send
-                    .as_ref()
-                    .is_some_and(|send| !send.get().sends(*secondary))
-                {
-                    state.update(cx, |state, cx| state.replace("\n", window, cx));
-                } else {
-                    (self.on_submit)(owner, state.read(cx).value().to_string(), window, cx);
-                }
-            }
-            InputEvent::Change => self.notifications.edit(owner, state, window, cx),
-            InputEvent::Focus => {
-                self.focused.set(true);
-                cx.notify();
-                self.notifications.focus(owner, window, cx);
-            }
-            InputEvent::Blur => {
-                self.focused.set(false);
-                cx.notify();
-                self.notifications.blur(owner, state, window, cx);
-            }
-            InputEvent::PressEnter { .. } => {}
-        }
-    }
-}
-pub(super) fn listen<V: 'static, M: InputModeKind>(
-    state: &Entity<InputBaseState<M>>,
-    handlers: Handlers<V>,
-    window: &mut Window,
-    cx: &mut Context<'_, V>,
-) {
-    cx.subscribe_in(
-        state,
-        window,
-        move |owner, state, event: &InputEvent, window, cx| {
-            handlers.handle(owner, state, event, window, cx);
-        },
-    )
-    .detach();
-}
-
 #[cfg(test)]
 mod tests;

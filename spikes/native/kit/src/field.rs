@@ -26,7 +26,9 @@ mod editability;
 mod events;
 pub use editability::Editability;
 pub use events::FieldEvents;
-use events::{Handlers, Notifications, listen};
+use events::{Callbacks, Handlers, listen};
+mod identity;
+pub use identity::FieldId;
 mod appearance;
 pub use appearance::AppearanceProfile;
 mod frame;
@@ -129,29 +131,6 @@ pub struct TextField {
 }
 
 impl TextField {
-    /// A form field showing `placeholder` while empty. Enter in it calls
-    /// `on_submit` on its owner with the text it holds.
-    pub fn new<V: 'static>(
-        placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
-        window: &mut Window,
-        cx: &mut Context<'_, V>,
-    ) -> Self {
-        Self::line(placeholder, on_submit, None, window, cx)
-    }
-
-    /// The same, also calling `on_change` with the text after every edit
-    /// (to say what is wrong with it beside the field as it is typed).
-    pub fn with_change<V: 'static>(
-        placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
-        on_change: fn(&mut V, String, &mut Context<'_, V>),
-        window: &mut Window,
-        cx: &mut Context<'_, V>,
-    ) -> Self {
-        Self::line(placeholder, on_submit, Some(on_change), window, cx)
-    }
-
     /// The same single-line engine, with optional edit/focus/blur hooks.
     /// Existing constructors retain their legacy callbacks and defaults.
     pub fn with_events<V: 'static>(
@@ -161,10 +140,9 @@ impl TextField {
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
-        Self::line_with(
+        Self::line(
             placeholder,
-            on_submit,
-            Notifications::Windowed(events),
+            Callbacks::Windowed { on_submit, events },
             window,
             cx,
         )
@@ -232,13 +210,14 @@ impl TextField {
         listen(
             &state,
             Handlers {
-                on_submit,
-                // A growing form changes the surrounding dialog's layout
-                // and submit availability; its owner must see each edit.
-                notifications: Notifications::Legacy(match style {
-                    MultilineStyle::Composer => None,
-                    MultilineStyle::Form => Some(|_, _, cx| cx.notify()),
-                }),
+                callbacks: Callbacks::Plain {
+                    on_submit,
+                    // Growing forms update layout and submit availability.
+                    on_change: match style {
+                        MultilineStyle::Composer => None,
+                        MultilineStyle::Form => Some(|_, _, cx| cx.notify()),
+                    },
+                },
                 focused: Rc::clone(&focused),
                 send: Some(Rc::clone(&send)),
             },
@@ -262,24 +241,7 @@ impl TextField {
 
     fn line<V: 'static>(
         placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
-        on_change: Option<fn(&mut V, String, &mut Context<'_, V>)>,
-        window: &mut Window,
-        cx: &mut Context<'_, V>,
-    ) -> Self {
-        Self::line_with(
-            placeholder,
-            on_submit,
-            Notifications::Legacy(on_change),
-            window,
-            cx,
-        )
-    }
-
-    fn line_with<V: 'static>(
-        placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
-        notifications: Notifications<V>,
+        callbacks: Callbacks<V>,
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
@@ -289,8 +251,7 @@ impl TextField {
         listen(
             &state,
             Handlers {
-                on_submit,
-                notifications,
+                callbacks,
                 focused: Rc::clone(&focused),
                 send: None,
             },

@@ -520,3 +520,31 @@ matching the shared engine/event fixtures so Focus and Blur are actual window
 events. Existing assertions and waits remain unchanged. Unit-valued consumer
 callbacks use explicit statement endings; the render closure still returns
 its element. These source preparations remain unexecuted until the next check.
+
+
+## Resume point: announced base8 field integration
+
+Announced package base8 `914071731` is merged before the next combined check.
+The canonical FieldId and identity tests are byte-identical to that head;
+existing composer hooks and form tests are byte-identical to the prior F5
+candidate. The existing E2 presentation/styles split remains, so the shared
+field stays below the normal file budget and its head exception is removed,
+without raising any other ratchet. The smaller session ratchet is preserved.
+The incoming fixed RED_600/RED_800 and GREEN_500 definitions remain unique,
+with the Palette/Tint APIs and glyph inventory retained.
+
+Plain and Identified callbacks now remain the canonical callback variants.
+Window-aware Appearance notifications are an additive Windowed variant in
+that SAME dispatcher, with one subscription and one submit dispatch call.
+There is no parallel legacy listener or duplicate FieldId. New/with_change
+come from the unchanged canonical identity module; with_events delegates to
+the same line factory. Ordinary and identified signatures are unchanged;
+focus flags update before optional hooks and blur reads the current text.
+The old private line_with/Notifications plumbing is retired in favor of this
+canonical seam. This is source integration, not a compile or runtime pass.
+
+The next lead line includes the centrally owned SavePrefs boxing change.
+Wait for its announcement, merge it, then run the combined remote narrow
+once. Captured-submit and composer submit-press changes not present in this
+announced base are not inferred adopted. No new F5 app binary or captures
+exist yet; all earlier red logs and source-only packets remain separate.
