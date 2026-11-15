@@ -56,6 +56,7 @@ async fn a_damaged_file_is_set_aside_and_a_change_does_not_replace_it() {
             .call(SetNodeSettings {
                 park_after: Some(ParkAfter::Never),
                 drivers: None,
+                ..SetNodeSettings::default()
             })
             .await
             .unwrap();
@@ -90,6 +91,7 @@ async fn a_later_builds_file_is_copied_before_the_first_change() {
             .call(SetNodeSettings {
                 park_after: Some(idle(5)),
                 drivers: None,
+                ..SetNodeSettings::default()
             })
             .await
             .unwrap();
@@ -107,6 +109,7 @@ async fn a_later_builds_file_is_copied_before_the_first_change() {
             .call(SetNodeSettings {
                 park_after: Some(ParkAfter::Never),
                 drivers: None,
+                ..SetNodeSettings::default()
             })
             .await
             .unwrap();
@@ -120,6 +123,7 @@ async fn a_later_builds_file_is_copied_before_the_first_change() {
             .call(SetNodeSettings {
                 park_after: Some(idle(7)),
                 drivers: None,
+                ..SetNodeSettings::default()
             })
             .await
             .unwrap();

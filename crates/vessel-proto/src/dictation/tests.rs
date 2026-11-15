@@ -124,5 +124,5 @@ fn sequence_and_finish_budget_have_distinct_boundary_policies() {
         MAX_FINISH_MS
     );
     assert!(serde_json::from_str::<WithinMs>(&(MAX_FINISH_MS + 1).to_string()).is_err());
-    assert!(SINCE <= crate::PROTOCOL_VERSION);
+    assert_eq!(SINCE, None::<crate::ProtocolVersion>);
 }

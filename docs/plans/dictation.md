@@ -534,3 +534,38 @@ corrupt-store fixed diagnostics. Narrow checks are pending. This remains test-on
 source, not a service admission or RPC/permission proof; the registry and settings
 consumers follow. Credential/path code receives its security review separately
 from the eventual combined feature-package review.
+
+## Inactive settings field and file projection
+
+The first field changes SINCE to an unassigned optional version. A present object,
+even empty or containing only null resets, makes the existing settings call
+unassigned; a null block is refused. Reply projection composes with the existing
+recovery projection and hides dictation on both settings replies and nested fleet
+envelopes. No number, new method or service activation is introduced here.
+
+The store's sole settings reader gains a lenient dictation view using the same
+validated values; flattening the remaining settings avoids another closed list
+of top-level keys. Unknown nested fields are ignored, all known overrides remain,
+and the existing later-file copy policy protects the original before a rewrite.
+Existing complete patch literals gain only their default completion. Existing
+reply fixtures gain an absent dictation field because that reply has no Default;
+no previous value or assertion changes. Borrowing saved settings replaces their
+old Copy assumption without changing existing parking/driver behavior.
+
+These files are a contract/file-codec draft with narrow checks and generated
+TypeScript still pending. Settings application/secret validation, the service
+and registered calls remain subsequent work; the real wire rejects this pending
+field before dispatch. No live or assigned-feature behavior is claimed.
+
+The first TS generation found a flat-name collision with the existing LSP
+Language. Only the dictation TS alias is renamed DictationLanguage; Rust names,
+validation and JSON stay unchanged. New metadata aliases are classified Named
+in the existing single alias registry, and the outer block is optional but not
+nullable in generated input, matching its strict object decoder.
+
+The first local TS check found only the new Language alias collision. The
+corrected source's second check was still waiting without compilation when it
+was moved to the remote TS artifact workflow. The generated declarations and
+remaining narrow checks are owed; this inactive field is not product evidence.
+The future-file test compares every known override for both endpoint and local
+settings before and after rewriting, and preserves the original backup bytes.

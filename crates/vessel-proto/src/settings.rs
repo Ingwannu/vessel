@@ -41,6 +41,9 @@ pub struct NodeSettings {
     /// This value-only field does not enable an engine or register input.
     #[serde(default, skip_serializing_if = "RestartRecovery::is_default")]
     pub restart_recovery: RestartRecovery,
+    /// Dictation support and effective settings; hidden for unsupported peers.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dictation: Option<crate::dictation::DictationSettings>,
 }
 
 impl NodeSettings {
@@ -48,7 +51,24 @@ impl NodeSettings {
     /// response. Unassigned fields stay hidden even from current peers.
     #[must_use]
     pub fn for_protocol(&self, protocol: crate::ProtocolVersion) -> Option<Self> {
-        self.for_recovery_protocol(protocol, crate::restart::RESTART_RECOVERY_PROTOCOL)
+        let recovery =
+            self.for_recovery_protocol(protocol, crate::restart::RESTART_RECOVERY_PROTOCOL);
+        let base = recovery.as_ref().unwrap_or(self);
+        base.for_dictation_protocol(protocol, crate::dictation::SINCE)
+            .or(recovery)
+    }
+
+    fn for_dictation_protocol(
+        &self,
+        protocol: crate::ProtocolVersion,
+        assigned: Option<crate::ProtocolVersion>,
+    ) -> Option<Self> {
+        let supported = assigned.is_some_and(|required| protocol >= required);
+        (!supported && self.dictation.is_some()).then(|| {
+            let mut settings = self.clone();
+            settings.dictation = None;
+            settings
+        })
     }
 
     fn for_recovery_protocol(
@@ -173,7 +193,9 @@ pub struct GetNodeSettings {}
 /// build wrote must still parse after a downgrade, keeping what this build
 /// knows. vessel-store's `a_file_from_a_later_build_keeps_what_this_build_knows`
 /// holds the rule.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// Dictation's strict incoming patch uses a separate lenient file projection in
+/// vessel-store; its unknown nested fields never refuse the whole settings file.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct SetNodeSettings {
     /// How long a structured session may stay idle before its agent is
@@ -185,6 +207,14 @@ pub struct SetNodeSettings {
     /// does not offer yet.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub drivers: Option<SetAgentDrivers>,
+    /// Strict incoming patch; the store has a lenient view of persisted values.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::dictation::settings_present"
+    )]
+    #[cfg_attr(feature = "ts", ts(optional))]
+    pub dictation: Option<crate::dictation::SetDictation>,
 }
 
 #[cfg(test)]
@@ -194,6 +224,7 @@ mod tests {
     #[test]
     fn recovery_projection_respects_a_synthetic_assigned_boundary() {
         let original = NodeSettings {
+            dictation: None,
             park_after: ParkAfter::Never,
             drivers: AgentDrivers::default(),
             restart_recovery: RestartRecovery {
@@ -266,3 +297,6 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod dictation_tests;
