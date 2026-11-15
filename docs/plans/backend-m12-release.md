@@ -1036,9 +1036,11 @@ one set. `docs/adr/0094-package-contents-and-whole-set-self-update.md` has
 the reasons and the trade-offs. Where it stands:
 
 - Built behind `VESSEL_PACKAGE_NODE=1` (`build.sh`, off by default): the
-  zip, the installer and the tarball get the two programs beside the app,
-  and the dist folder gets each alone as the update's companions;
-  `--publish` names them with `--companion`.
+  zip, the installer and the tarball get the two programs in a `bin`
+  folder beside the app (`bin\vessel.exe` and `bin\vesseld.exe`,
+  `bin/vessel` and `bin/vesseld`; only `bin` goes on `PATH`, the layout W15
+  and W19's getter use), and the dist folder gets each alone as the
+  update's companions; `--publish` names them with `--companion`.
 - The manifest stays schema 1; companions are an optional field the
   published apps (0.0.0.0.3 to 0.0.0.0.18) skip, and the first build with
   them puts in the companions an old app could not.

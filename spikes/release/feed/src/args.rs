@@ -323,7 +323,7 @@ mod tests {
              --artifact windows-x86_64:executable:0.0.0.0.20/app.exe \
              --artifact linux-x86_64:executable:0.0.0.0.20/app \
              --companion linux-x86_64:executable:node:0.0.0.0.20/vesseld \
-             --companion windows-x86_64:executable:cli:0.0.0.0.20/vessel-cli.exe \
+             --companion windows-x86_64:executable:cli:0.0.0.0.20/vessel.exe \
              --companion linux-x86_64:executable:cli:0.0.0.0.20/vessel",
         )
         .unwrap();

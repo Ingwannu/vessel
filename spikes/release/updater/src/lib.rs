@@ -72,9 +72,9 @@ pub use install::{DetectError, InstallError, Installation};
 pub use key::{KeyError, PublicKey};
 pub use label::{Label, LabelError};
 pub use manifest::{
-    Artifact, ArtifactPath, ArtifactPathError, ByteCount, ByteCountError, Companion, Envelope,
-    MAX_ARTIFACT_BYTES, MAX_ENVELOPE_BYTES, Manifest, Notes, OpenError, Published, Role, RoleError,
-    SCHEMA, Sha256, Sha256Error, TooLong,
+    Artifact, ArtifactPath, ArtifactPathError, ByteCount, ByteCountError, COMPANION_DIR, Companion,
+    Envelope, MAX_ARTIFACT_BYTES, MAX_ENVELOPE_BYTES, Manifest, Notes, OpenError, Published, Role,
+    RoleError, SCHEMA, Sha256, Sha256Error, TooLong,
 };
 pub use memory::Memory;
 pub use platform::{Packaging, Target, UnknownPackaging, UnknownTarget};

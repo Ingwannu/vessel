@@ -20,9 +20,9 @@ mod support {
         net::TcpListener,
     };
     use vessel_app_updater::{
-        Artifact, ByteCount, Channel, Companion, Envelope, FeedUrl, Installation, Manifest,
-        Packaging, PublicKey, Published, Role, SCHEMA, Settings, Sha256, Target, UpdateState,
-        Updater,
+        Artifact, ByteCount, COMPANION_DIR, Channel, Companion, Envelope, FeedUrl, Installation,
+        Manifest, Packaging, PublicKey, Published, Role, SCHEMA, Settings, Sha256, Target,
+        UpdateState, Updater,
     };
 
     /// The bytes of the "new build".
@@ -190,7 +190,14 @@ mod support {
 
     /// The file a companion of `role` is installed as on this machine.
     pub(crate) fn companion_file(dir: &Path, role: &Role) -> PathBuf {
-        dir.join(role.file_name(Target::current().unwrap()).unwrap())
+        dir.join(COMPANION_DIR)
+            .join(role.file_name(Target::current().unwrap()).unwrap())
+    }
+
+    /// Put an installed companion of `role` holding `bytes`.
+    pub(crate) fn put_companion(dir: &Path, role: &Role, bytes: &[u8]) {
+        std::fs::create_dir_all(dir.join(COMPANION_DIR)).unwrap();
+        std::fs::write(companion_file(dir, role), bytes).unwrap();
     }
 
     /// The names in `dir`, sorted.
@@ -287,8 +294,8 @@ mod support {
 
 use std::{sync::Arc, time::Duration};
 use support::{
-    Feed, NEW_BUILD, Seen, captured_log, companion_file, installed_app, names, serve, serve_under,
-    settings, settled,
+    Feed, NEW_BUILD, Seen, captured_log, companion_file, installed_app, names, put_companion,
+    serve, serve_under, settings, settled,
 };
 
 use vessel_app_updater::{
@@ -665,8 +672,7 @@ async fn a_newer_set_replaces_the_app_and_its_companions_together() {
     let address = serve(feed.root.path().to_path_buf()).await;
     let app_dir = tempfile::tempdir().unwrap();
     let installation = installed_app(app_dir.path());
-    // The old command line is there; the node is not (an older install).
-    std::fs::write(companion_file(app_dir.path(), &Role::Cli), b"old cli").unwrap();
+    // An install from before the set: no companion folder at all.
 
     let updater = Updater::start(
         settings(address, feed.key(), "0.0.0.0.19"),
@@ -689,8 +695,13 @@ async fn a_newer_set_replaces_the_app_and_its_companions_together() {
     if cfg!(unix) {
         assert_eq!(
             names(app_dir.path()),
-            ["vessel", "vessel-app", "vesseld"],
-            "leftovers, staging files, or the unknown role's file remain"
+            ["bin", "vessel-app"],
+            "leftovers or staging files remain"
+        );
+        assert_eq!(
+            names(&app_dir.path().join("bin")),
+            ["vessel", "vesseld"],
+            "an aside or the unknown role's file remains"
         );
     }
 }
@@ -711,7 +722,7 @@ async fn a_companion_that_does_not_verify_leaves_the_whole_set_as_it_was() {
     let address = serve(feed.root.path().to_path_buf()).await;
     let app_dir = tempfile::tempdir().unwrap();
     let installation = installed_app(app_dir.path());
-    std::fs::write(companion_file(app_dir.path(), &Role::Cli), b"old cli").unwrap();
+    put_companion(app_dir.path(), &Role::Cli, b"old cli");
 
     let updater = Updater::start(
         settings(address, feed.key(), "0.0.0.0.19"),
@@ -738,12 +749,13 @@ async fn a_companion_that_does_not_verify_leaves_the_whole_set_as_it_was() {
     );
     assert_eq!(
         names(app_dir.path()),
-        if cfg!(windows) {
-            ["vessel-app", "vessel-cli.exe"]
-        } else {
-            ["vessel", "vessel-app"]
-        },
-        "a staged file or a half set remains"
+        ["bin", "vessel-app"],
+        "a staged file remains"
+    );
+    assert_eq!(
+        names(&app_dir.path().join("bin")).len(),
+        1,
+        "a half set remains"
     );
 }
 
@@ -761,7 +773,7 @@ async fn the_running_builds_missing_companions_are_filled_in() {
     // 0.0.0.0.20 installed by an app from before the set: its executable
     // only. The command line is already there and right; the node is not.
     let installation = installed_app(app_dir.path());
-    std::fs::write(companion_file(app_dir.path(), &Role::Cli), b"cli").unwrap();
+    put_companion(app_dir.path(), &Role::Cli, b"cli");
 
     let updater = Updater::start(
         settings(address, feed.key(), "0.0.0.0.20"),

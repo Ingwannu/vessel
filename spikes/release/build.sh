@@ -24,10 +24,10 @@
 #   vessel-LABEL-linux-x64              the executable alone: the update
 #   SHA256SUMS (and SHA256SUMS.minisig when a signing key is given)
 # With VESSEL_PACKAGE_NODE=1 (ADR 0094), the command line and the node go
-# beside the app in the zip, the installer and the tarball (vessel-cli.exe
-# and vesseld.exe on Windows, vessel and vesseld on Linux), and each also
-# alone, as the update's companions:
-#   vessel-LABEL-windows-x64-vessel-cli.exe, vessel-LABEL-windows-x64-vesseld.exe
+# in a bin folder beside the app in the zip, the installer and the tarball
+# (bin\vessel.exe and bin\vesseld.exe on Windows, bin/vessel and
+# bin/vesseld on Linux), and each also alone, as the update's companions:
+#   vessel-LABEL-windows-x64-vessel.exe, vessel-LABEL-windows-x64-vesseld.exe
 #   vessel-LABEL-linux-x64-vessel, vessel-LABEL-linux-x64-vesseld
 #
 # Environment (no host names or paths live in this file):
@@ -150,8 +150,8 @@ else
     updates_en="This build does not update itself. Install a new build the same way; it replaces this one."
 fi
 if [ "$package_node" = 1 ]; then
-    updates_ko="$updates_ko 명령줄(vessel, Windows에서는 vessel-cli.exe)과 노드(vesseld)가 앱과 같은 폴더에 들어 있고, 앱과 함께 바뀝니다."
-    updates_en="$updates_en The command line (vessel; vessel-cli.exe on Windows) and the node (vesseld) are in the app's folder and change with it."
+    updates_ko="$updates_ko 명령줄(vessel)과 노드(vesseld)는 앱 옆 bin 폴더에 들어 있고 앱과 함께 바뀝니다. 명령줄을 쓰려면 그 bin 폴더를 PATH에 넣으세요."
+    updates_en="$updates_en The command line (vessel) and the node (vesseld) are in the bin folder beside the app and change with it; put that bin folder on PATH to use the command line."
 fi
 
 # The licences of what the app embeds that is not Vessel's, one text per
@@ -257,8 +257,6 @@ companions_linux() {
 
 # Windows: console programs, so neither the app's GUI subsystem nor its
 # resources (the flags are the app's alone; here only the static CRT).
-# The command line becomes vessel-cli.exe beside the app: Windows' file
-# names ignore case, and vessel.exe would be the app's Vessel.exe.
 companions_windows() {
     local tools="$VESSEL_TOOLS_DIR" triple=x86_64-pc-windows-msvc
     web_bundle
@@ -311,11 +309,14 @@ build_windows() {
     mkdir -p "$dir"
     cp "$exe" "$dir/Vessel.exe"
     if [ "$package_node" = 1 ]; then
-        local built="$root_target/$triple/release"
-        cp "$built/vessel.exe" "$dir/vessel-cli.exe"
-        cp "$built/vesseld.exe" "$dir/vesseld.exe"
-        cp "$built/vessel.exe" "$out/vessel-$label-windows-x64-vessel-cli.exe"
-        cp "$built/vesseld.exe" "$out/vessel-$label-windows-x64-vesseld.exe"
+        # In bin\, so the command line keeps its name beside Vessel.exe
+        # (Windows' names ignore case) and only bin\ goes on PATH.
+        local built="$root_target/$triple/release" program
+        mkdir -p "$dir/bin"
+        for program in vessel vesseld; do
+            cp "$built/$program.exe" "$dir/bin/$program.exe"
+            cp "$built/$program.exe" "$out/vessel-$label-windows-x64-$program.exe"
+        done
     fi
     cp "$repo/LICENSE.md" "$dir/LICENSE.md"
     licenses "$dir"
@@ -378,8 +379,9 @@ build_linux() {
     cp "$bin" "$dir/vessel-app"
     if [ "$package_node" = 1 ]; then
         local program
+        mkdir -p "$dir/bin"
         for program in vessel vesseld; do
-            install -m 0755 "$root_target/release/$program" "$dir/$program"
+            install -m 0755 "$root_target/release/$program" "$dir/bin/$program"
             install -m 0755 "$root_target/release/$program" "$out/$name-$program"
         done
     fi
@@ -443,7 +445,7 @@ if [ "$publish" = 1 ]; then
     [ -f "$out/vessel-$label-linux-x64" ] &&
         artifacts+=(--artifact "linux-x86_64:executable:$label/vessel-$label-linux-x64")
     # ADR 0094: the companions present in the set travel with their app.
-    for companion in windows-x64-vessel-cli.exe:windows-x86_64:cli windows-x64-vesseld.exe:windows-x86_64:node \
+    for companion in windows-x64-vessel.exe:windows-x86_64:cli windows-x64-vesseld.exe:windows-x86_64:node \
         linux-x64-vessel:linux-x86_64:cli linux-x64-vesseld:linux-x86_64:node; do
         IFS=: read -r file target role <<<"$companion"
         [ -f "$out/vessel-$label-$file" ] &&

@@ -143,15 +143,23 @@ pub struct Companion {
     pub sha256: Sha256,
 }
 
+/// The folder beside the app's executable that holds its companions.
+///
+/// Why a folder of their own (the coordinator's word on ADR 0094,
+/// 2026-11-15): putting it on `PATH` gives `vessel` and `vesseld` without
+/// the app itself, and on Windows the command line keeps its own name,
+/// `vessel.exe`, which beside the app's `Vessel.exe` would be the same name
+/// to a file system that ignores case.
+pub const COMPANION_DIR: &str = "bin";
+
 /// What a companion is. The file it is installed as comes from the role
-/// and the system ([`Role::file_name`]), never from the feed, so even a
-/// signed manifest cannot make the app write a file of another name.
+/// and the system ([`Role::file_name`], in [`COMPANION_DIR`]), never from
+/// the feed, so even a signed manifest cannot make the app write a file of
+/// another name.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub enum Role {
-    /// The command line, `vessel` (`vessel-cli.exe` on Windows, where
-    /// `vessel.exe` and the app's `Vessel.exe` are one name to the file
-    /// system).
+    /// The command line, `vessel` (`vessel.exe` on Windows).
     Cli,
     /// The node, `vesseld`.
     Node,
@@ -166,13 +174,13 @@ pub enum Role {
 pub struct RoleError;
 
 impl Role {
-    /// The file this role is installed as beside the app on `target`;
-    /// `None` for a role this build does not install.
+    /// The file this role is installed as in [`COMPANION_DIR`] on
+    /// `target`; `None` for a role this build does not install.
     #[must_use]
     pub const fn file_name(&self, target: Target) -> Option<&'static str> {
         let windows = matches!(target, Target::WindowsX86_64 | Target::WindowsAarch64);
         match (self, windows) {
-            (Self::Cli, true) => Some("vessel-cli.exe"),
+            (Self::Cli, true) => Some("vessel.exe"),
             (Self::Cli, false) => Some("vessel"),
             (Self::Node, true) => Some("vesseld.exe"),
             (Self::Node, false) => Some("vesseld"),
@@ -705,7 +713,7 @@ mod tests {
             .iter()
             .map(|companion| companion.role.file_name(Target::WindowsX86_64))
             .collect();
-        assert_eq!(names, [Some("vessel-cli.exe"), Some("vesseld.exe"), None]);
+        assert_eq!(names, [Some("vessel.exe"), Some("vesseld.exe"), None]);
         assert_eq!(Role::Cli.file_name(Target::LinuxX86_64), Some("vessel"));
         assert_eq!(Role::Node.file_name(Target::LinuxX86_64), Some("vesseld"));
 

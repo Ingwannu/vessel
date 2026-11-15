@@ -1,6 +1,8 @@
 # ADR 0094: The app's package carries the command line and the node, and updates them as one set
 
-Status: accepted by the coordinator, 2026-11-15 (milestone 12, track R).
+Status: accepted by the coordinator, 2026-11-15 (milestone 12, track R);
+the `bin` layout below agreed the same day with W15 and W19, whose shared
+tool-path getter (`link::desktop::bundle`) reads it.
 Built behind `VESSEL_PACKAGE_NODE=1` in `spikes/release/build.sh`, off by
 default. The first build after the app's local-node controller (track W15)
 lands ships it; no build before that does. No wire change, no change to the
@@ -34,8 +36,10 @@ together: a new app beside an old node is a pair nobody tested.
   everything verified before any swap; rollback on failure; published apps
   keep updating, either because the old format stays readable or through
   a bridge release; the feed's address and token never change.
-- Windows file names ignore case, so `vessel.exe` and `Vessel.exe` are one
-  name. The managed node may be running while the app updates.
+- Windows file names ignore case, so `vessel.exe` and `Vessel.exe` cannot
+  sit in one folder. The command line must be reachable by the name
+  `vessel` without the app itself landing on `PATH`. The managed node may
+  be running while the app updates.
 
 ## Alternatives considered
 
@@ -61,9 +65,16 @@ together: a new app beside an old node is a pair nobody tested.
   `companions` list: `role` (`cli`, `node`), `path`, `size` and `sha256`.
   The list is left out of the text when it is empty, so manifests without
   companions are byte for byte the old format.
-  - The installed file name comes from the role and the system, never from
-    the feed: `vessel` and `vesseld` on Linux, `vessel-cli.exe` and
-    `vesseld.exe` on Windows (`Role::file_name`).
+  - Where a companion is installed comes from the role and the system,
+    never from the feed: a `bin` folder beside the app's executable
+    (`COMPANION_DIR`) holding `vessel` and `vesseld` on Linux, `vessel.exe`
+    and `vesseld.exe` on Windows (`Role::file_name`). The folder keeps the
+    command line's own name on Windows, and putting only that folder on
+    `PATH` gives `vessel` and `vesseld` without the app. W15 proposed the
+    folder; the first draft of this ADR put `vessel-cli.exe` beside the
+    app, and was changed before anything shipped. macOS, when a bundle is
+    built: `Contents/Helpers` or `Contents/MacOS`, not `Contents/Resources`
+    (code there breaks signing).
   - A role this build does not know parses (`Role::Other`), so the
     manifest still opens, and is left out of the set.
   - Bounds: at most 8 companions per artifact, and a role listed twice is
@@ -80,8 +91,11 @@ together: a new app beside an old node is a pair nobody tested.
   - When one file fails, every file already placed is put back in reverse
     order: the aside is renamed over the new file, or a file the set added
     is removed.
+  - The `bin` folder is made when a copy has none (one installed before
+    the set).
   - After a whole set, Unix removes the asides. Windows leaves them for the
-    next start's clean-up, which now knows the companions' names too.
+    next start's clean-up, which now looks in `bin` for the companions'
+    asides too.
 - **Bridge, built into the new format itself:** a published app that
   updates to a set label replaces its executable only, because it ignores
   `companions`. The build it installs then runs, finds the feed's label
@@ -95,10 +109,10 @@ together: a new app beside an old node is a pair nobody tested.
   - Windows uses `cargo-xwin` with a static CRT, as console programs
     without the app's GUI subsystem or resources. Their imports go through
     the same list of DLLs that Windows ships.
-  - The files go beside the app in the zip, the installer (NSIS
-    `-DCOMPANIONS=1`; the uninstaller always removes them) and the
-    tarball. Each is also in the dist folder alone
-    (`vessel-LABEL-<target>-vessel[-cli.exe]`, `-vesseld[.exe]`), as the
+  - The files go in `bin` in the zip, the installer (NSIS
+    `-DCOMPANIONS=1`; the uninstaller always removes them and the folder)
+    and the tarball. Each is also in the dist folder alone
+    (`vessel-LABEL-<target>-vessel[.exe]`, `-vesseld[.exe]`), as the
     companions' artifacts. `--publish` and `vessel-app-feed publish
     --companion TARGET:PACKAGING:ROLE:PATH` add them to their artifact.
 
@@ -141,6 +155,9 @@ the new one.
 - **Verification:** `vessel-app-updater` tests cover the published types'
   reading of a manifest with companions (a frozen copy of the schema-1
   types), roles and bounds, the set swap, rollback after a failure half
-  way, the AppImage refusal, the companions' leftovers, and end to end: a
-  newer set, a companion that does not verify (nothing changes), and the
-  repair. `vessel-app-feed` tests cover `--companion` and check.
+  way, the `bin` folder made for a copy without one, the AppImage refusal,
+  the companions' leftovers, and end to end: a newer set into a copy with
+  no `bin`, a companion that does not verify (nothing changes), and the
+  repair. The installer with `-DCOMPANIONS=1` was compiled, installed and
+  uninstalled silently under wine (dummy programs): `bin\vessel.exe` and
+  `bin\vesseld.exe` beside `Vessel.exe`, all removed with the folder. `vessel-app-feed` tests cover `--companion` and check.
