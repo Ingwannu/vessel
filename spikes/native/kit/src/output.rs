@@ -83,7 +83,7 @@ const NUMBER: f32 = 32.0;
 const BAR: f32 = 2.0;
 
 /// How strongly a diff's line is washed in its colour.
-const WASH: f32 = 0.08;
+use crate::theme::output::OUTPUT_WASH as WASH;
 
 /// Where a text opens.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

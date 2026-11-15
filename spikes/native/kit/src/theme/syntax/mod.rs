@@ -4,6 +4,9 @@
 //! Nord follows the actual paired resolver, despite its stale file comment.
 
 mod palettes;
+mod selection;
+pub(crate) use selection::select;
+pub use selection::selected;
 
 use crate::Scheme;
 use gpui::Hsla;
@@ -41,8 +44,8 @@ pub enum SyntaxStyle {
     String,
     /// Number token.
     Number,
-    /// Literal token.
-    Literal,
+    /// A literal/constant token; retains the editor's existing name.
+    Constant,
     /// Function token.
     Function,
     /// Definition token.
@@ -76,13 +79,66 @@ pub enum SyntaxStyle {
 }
 
 impl SyntaxStyle {
+    /// The existing editor's external style key, shared by readonly rows.
+    pub(crate) const fn name(self) -> &'static str {
+        match self {
+            Self::Keyword => "keyword",
+            Self::Comment => "comment",
+            Self::String => "string",
+            Self::Number => "number",
+            Self::Constant => "constant",
+            Self::Function => "function",
+            Self::Definition => "definition",
+            Self::Class => "class",
+            Self::Type => "type",
+            Self::Tag => "tag",
+            Self::Attribute => "attribute",
+            Self::Property => "property",
+            Self::Variable => "variable",
+            Self::Operator => "operator",
+            Self::Punctuation => "punctuation",
+            Self::Regexp => "regexp",
+            Self::Escape => "escape",
+            Self::Meta => "meta",
+            Self::Heading => "heading",
+            Self::Link => "link",
+        }
+    }
+
+    /// Decode the external editor highlighter's string vocabulary at its edge.
+    pub(crate) fn parse(name: &str) -> Option<Self> {
+        match name {
+            "keyword" => Some(Self::Keyword),
+            "comment" => Some(Self::Comment),
+            "string" => Some(Self::String),
+            "number" => Some(Self::Number),
+            "literal" | "constant" => Some(Self::Constant),
+            "function" => Some(Self::Function),
+            "definition" => Some(Self::Definition),
+            "class" => Some(Self::Class),
+            "type" => Some(Self::Type),
+            "tag" => Some(Self::Tag),
+            "attribute" => Some(Self::Attribute),
+            "property" => Some(Self::Property),
+            "variable" => Some(Self::Variable),
+            "operator" => Some(Self::Operator),
+            "punctuation" => Some(Self::Punctuation),
+            "regexp" => Some(Self::Regexp),
+            "escape" => Some(Self::Escape),
+            "meta" => Some(Self::Meta),
+            "heading" => Some(Self::Heading),
+            "link" => Some(Self::Link),
+            _ => None,
+        }
+    }
+
     /// Every source role, for complete consumers and palette audits.
     pub const ALL: [Self; 20] = [
         Self::Keyword,
         Self::Comment,
         Self::String,
         Self::Number,
-        Self::Literal,
+        Self::Constant,
         Self::Function,
         Self::Definition,
         Self::Class,
@@ -99,6 +155,15 @@ impl SyntaxStyle {
         Self::Heading,
         Self::Link,
     ];
+}
+
+/// One caller-classified UTF-8 byte run for an existing text renderer.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CodeRun {
+    /// Byte positions within its supplied row text.
+    pub range: std::ops::Range<usize>,
+    /// Semantic colour class, never a private colour table.
+    pub style: SyntaxStyle,
 }
 
 /// Complete source colours. A fixed tuple keeps lookup exhaustive without
@@ -137,7 +202,7 @@ impl SyntaxColors {
             SyntaxStyle::Comment => comment,
             SyntaxStyle::String => string,
             SyntaxStyle::Number => number,
-            SyntaxStyle::Literal => literal,
+            SyntaxStyle::Constant => literal,
             SyntaxStyle::Function => function,
             SyntaxStyle::Definition => definition,
             SyntaxStyle::Class => class,

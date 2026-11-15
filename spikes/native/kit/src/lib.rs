@@ -34,6 +34,7 @@ pub mod chat_markdown;
 pub mod chrome;
 pub mod code;
 pub mod code_editor;
+pub mod code_preview;
 pub mod command;
 pub mod copy;
 pub mod dialog;
@@ -230,6 +231,14 @@ pub fn set_palette(cx: &mut App, palette: Palette) {
     cx.set_global(Theme { tokens });
     field::apply_tokens(cx, &tokens);
     cx.refresh_windows();
+}
+
+/// Change code colours independently of the app palette. Existing frame,
+/// selection and editing state are retained; windows redraw with new ink.
+pub fn set_syntax_palette(cx: &mut App, palette: syntax::SyntaxPalette) {
+    if syntax::select(palette) {
+        cx.refresh_windows();
+    }
 }
 
 /// Wrap a screen's root view as the component layer needs it (its

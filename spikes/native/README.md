@@ -1089,3 +1089,17 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+### Readonly appearance preview (F5, staged)
+
+`code_preview` takes prepared `PreviewRow`s, local `PreviewTypography` and
+palette tokens. Rows validate ordered UTF-8 runs and prepare diff prefixes
+once; paint uses one StyledText renderer with the SAME CodeStyles resolver
+as the editor. `SyntaxKind` remains a source-compatible alias of the shared
+semantic SyntaxStyle vocabulary, retaining Constant and the old seven kinds.
+No editor, caret, history or grammar is introduced. View's existing workspace
+lexer supplies classifications. Diff preview marker/tint tokens are in
+`theme::output`, next to the existing output wash; output::diff_line keeps
+its old colours. The readonly preview never mutates global typography or
+palette. Its source card is py8/r8/border1, row/caption px12 and caption pb8.
+Consumer wiring, actual captures and package review remain pending.

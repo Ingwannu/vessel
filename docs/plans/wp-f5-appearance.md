@@ -235,3 +235,9 @@ run `themes-20261115T073515Z-31952112` returned101 after compiling view:
 missing semicolon in the new family assignment, and an integer-division
 lint in the UTF-16 test. Both are corrected without a lint exemption or a
 changed bound/expectation. App/complete feature validation is still pending.
+
+The corrected local view check was cancelled while still waiting for its
+slot, before any compiler/log started, using the owned process group after
+command verification. It supplies no compile evidence. Reviewed plugin value
+types are now available and will be imported at this clean dependency point;
+subsequent selected checks must pin that combined dependency state instead.
