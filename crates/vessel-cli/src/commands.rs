@@ -25,9 +25,13 @@ use crate::{
     ui, workspace,
 };
 
-pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
+pub(crate) async fn run(mut cli: Cli) -> Result<(), CliError> {
+    cli.connection.apply(&mut cli.target)?;
     let target = &cli.target;
     match cli.command {
+        Command::Parity(command) => {
+            crate::parity::run(target, cli.output.presentation(), command).await
+        }
         Command::Inbox { command } => crate::inbox::command(target, command).await,
         Command::Node { command } => node(target, command).await,
         Command::Nodes { command } => nodes::command(target, command).await,

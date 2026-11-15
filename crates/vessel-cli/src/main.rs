@@ -27,6 +27,7 @@ mod log;
 mod node_ctl;
 mod nodes;
 mod pair;
+mod parity;
 mod project_commands;
 mod remote;
 mod render;
@@ -99,11 +100,26 @@ fn complain(text: &str) {
 }
 
 async fn cli() -> ExitCode {
-    let cli = Cli::parse();
+    let cli = match Cli::try_parse() {
+        Ok(cli) => cli,
+        Err(error) => {
+            let success = matches!(
+                error.kind(),
+                clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion
+            );
+            let _reported = error.print();
+            return if success {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::FAILURE
+            };
+        }
+    };
     // A node shows its lifecycle; client commands only warnings.
     let default_level = match cli.command {
         Command::Node { .. } => "info",
-        Command::Nodes { .. }
+        Command::Parity(_)
+        | Command::Nodes { .. }
         | Command::Status
         | Command::Harnesses
         | Command::Profiles { .. }

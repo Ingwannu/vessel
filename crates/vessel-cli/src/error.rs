@@ -13,6 +13,14 @@ use vessel_remote::{
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum CliError {
+    #[error(transparent)]
+    ParityLabel(#[from] vessel_proto::InvalidLabel),
+    #[error("cannot encode command output")]
+    ParityEncode(#[source] serde_json::Error),
+    #[error("agent history exceeded the bounded snapshot deadline")]
+    ParitySnapshotTimeout(#[source] tokio::time::error::Elapsed),
+    #[error("{0}")]
+    ParityBlocked(&'static str),
     /// Service input and reads must never expose unit environment contents.
     #[error(transparent)]
     Service(#[from] crate::init::ServiceError),

@@ -1,0 +1,38 @@
+//! Paseo-compatible invocation shapes. Node contracts and effects live elsewhere.
+
+mod agent;
+mod duration;
+pub(crate) mod output;
+
+pub(crate) use agent::{AgentCommand, AgentList, AgentRun, AgentSend, Selection, Wait};
+pub(crate) use duration::WaitBudget;
+pub(crate) use output::{ConnectionOptions, OutputOptions, Presentation};
+
+use crate::selector::SessionSelector;
+use clap::Subcommand;
+
+/// Root shortcuts share the same typed handlers as the agent group.
+#[derive(Debug, Subcommand)]
+pub(crate) enum ParityCommand {
+    /// Manage agent conversations (provider discovery remains `agents`).
+    Agent {
+        #[command(subcommand)]
+        command: AgentCommand,
+    },
+    /// List agents in the current directory, or across the node with --global.
+    Ls(AgentList),
+    /// Inspect an agent by its full ID or unique prefix.
+    Inspect { id: SessionSelector },
+    /// Wait for an agent turn, including permission and timeout results.
+    Wait(Wait),
+    /// Interrupt active turns without terminating idle agent processes.
+    Stop(Selection),
+    /// Delete agents after interrupting any active turn.
+    Delete(Selection),
+    /// Archive an agent, protecting an active turn unless --force is supplied.
+    Archive {
+        id: SessionSelector,
+        #[arg(long)]
+        force: bool,
+    },
+}

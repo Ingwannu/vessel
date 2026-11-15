@@ -3,7 +3,7 @@
 Base: `d954fa3a7a534ace48c45a184f45be5ee437add8` (node, protocol 23).
 Reference: Paseo 0.15.4, source commit `1c00b365c9e0b74c1580eba33d905d693125ae21`.
 This inventory records baseline facts, not a claim that names or handlers imply parity.
-117 canonical executable paths plus the `plugin add` compatibility alias are listed below.
+117 executable invocation paths, including the `plugin add` compatibility alias are listed below.
 The `speech` group and discovery-only group nodes have no action; they are not missing operations.
 
 [Decision Log]
