@@ -16,7 +16,8 @@ pub(crate) fn workspace_card(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<Div> {
-    if !matches!(target, DraftKey::Workspace { .. }) {
+    if !matches!(target, DraftKey::Workspace { .. }) || !shell.composer_accepts_attachments(target)
+    {
         return None;
     }
     let field = shell.composer_field(target)?;

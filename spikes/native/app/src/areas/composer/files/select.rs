@@ -48,7 +48,7 @@ impl Shell {
         pasted: Vec<Pasted>,
         cx: &mut Context<'_, Self>,
     ) -> KeyAnswer {
-        if pasted.is_empty() || self.composer_field(key).is_none() {
+        if pasted.is_empty() || !self.composer_accepts_attachments(key) {
             return KeyAnswer::Pass;
         }
         for paste in pasted {
@@ -73,7 +73,7 @@ impl Shell {
             .composer
             .attach_for
             .take()
-            .filter(|key| self.composer_field(*key).is_some())
+            .filter(|key| self.composer_accepts_attachments(*key))
         else {
             return;
         };

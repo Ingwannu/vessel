@@ -31,6 +31,22 @@ impl Preview {
     }
 }
 impl Shell {
+    /// Terminal drafts retain their text editor but expose no agent attachment input.
+    pub(super) fn composer_accepts_attachments(&self, target: DraftKey) -> bool {
+        match target {
+            DraftKey::Workspace {
+                node,
+                workspace,
+                draft,
+            } => {
+                self.workspace_draft_mode(
+                    &vessel_app_view::layout::LayoutKey::Workspace { node, workspace },
+                    draft,
+                ) == Some(vessel_app_view::composer_shell::surface::Mode::Chat)
+            }
+            DraftKey::New | DraftKey::Session { .. } => self.composer_field(target).is_some(),
+        }
+    }
     /// Until resident contexts land, this is the explicit route-to-draft bridge.
     pub(crate) fn composer_destination(&self) -> Option<DraftKey> {
         match self.route {
@@ -46,7 +62,7 @@ impl Shell {
                                 workspace: *workspace,
                                 draft: *draft,
                             };
-                            self.composer_field(target).map(|_| target)
+                            self.composer_accepts_attachments(target).then_some(target)
                         }
                         LayoutKey::Session { .. } => None,
                     },

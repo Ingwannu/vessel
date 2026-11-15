@@ -205,7 +205,7 @@ mod tests {
                         node,
                     },
                     place: SeedPlace::ExistingWorkspace(workspace),
-                    launch: Launch::BlankTerminal,
+                    launch: Launch::Chat,
                     text: ContextText::parse("").unwrap(),
                     history: None,
                 },
@@ -238,10 +238,39 @@ mod tests {
             let workspace = vessel_proto::WorkspaceId::random();
             let a = admit(shell, node, workspace, DraftId::random(), window, cx);
             let b = admit(shell, node, workspace, DraftId::random(), window, cx);
+            assert!(shell.composer_accepts_attachments(a));
+            let terminal = DraftId::random();
+            shell
+                .seed_draft(
+                    terminal,
+                    DraftSeed {
+                        destination: DraftDestination {
+                            machine: Name::parse("fixture").unwrap(),
+                            node,
+                        },
+                        place: SeedPlace::ExistingWorkspace(workspace),
+                        launch: Launch::BlankTerminal,
+                        text: ContextText::parse("").unwrap(),
+                        history: None,
+                    },
+                    window,
+                    cx,
+                )
+                .unwrap();
+            let terminal = DraftKey::Workspace {
+                node,
+                workspace,
+                draft: terminal,
+            };
+            assert!(!shell.composer_accepts_attachments(terminal));
             let tokens = vessel_app_kit::Tokens::of(vessel_app_kit::Scheme::Dark);
             assert!(
                 crate::areas::composer::workspace_card(shell, a, true, &tokens, window, cx)
                     .is_some()
+            );
+            assert!(
+                crate::areas::composer::workspace_card(shell, terminal, true, &tokens, window, cx)
+                    .is_none()
             );
             let ticket = Ticket::new(1);
             for target in [a, b] {
