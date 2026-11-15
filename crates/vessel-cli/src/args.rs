@@ -10,10 +10,13 @@ use crate::selector::SessionSelector;
 
 mod agents;
 mod automation;
+mod control;
 mod conversation;
 mod fleet;
 mod forge;
 mod history;
+mod inbox;
+mod log;
 mod node;
 mod nodes;
 mod search;
@@ -23,15 +26,18 @@ mod workspace;
 
 pub(crate) use agents::{AddAgentArgs, AgentsCommand};
 pub(crate) use automation::{PromptCommand, ScheduleArgs, ScheduleCommand};
+pub(crate) use control::{Confirmation, Stop, StopPolicy, StopTimeout};
 pub(crate) use conversation::{Compare, ConversationCommand, QueueCommand, Send};
 pub(crate) use fleet::{FleetCommand, MemoryCommand, SecretCommand};
 pub(crate) use forge::{Method, PrCommand, Switch};
 pub(crate) use history::History;
+pub(crate) use inbox::InboxCommand;
+pub(crate) use log::{Log, LogMode};
 pub(crate) use node::{DevicesCommand, Install, NodeCommand, Source, Update};
 pub(crate) use nodes::{FromStdin, NodesCommand};
 pub(crate) use search::Search;
 pub(crate) use terminals::{OpenShell, Ports, ScriptCommand, ScriptPlaceArgs, Shell, ShellCommand};
-pub(crate) use usage::{Period, UsageCommand};
+pub(crate) use usage::{LookupChoice, Period, UsageCommand};
 pub(crate) use workspace::{ProjectCommand, WorktreeCommand};
 
 /// Vessel: drive agent harnesses on this and other machines.
@@ -72,6 +78,11 @@ pub(crate) struct Target {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
+    /// List and answer attention across sessions on the selected node.
+    Inbox {
+        #[command(subcommand)]
+        command: InboxCommand,
+    },
     /// Run a node in the foreground, or install one on another machine.
     Node {
         #[command(subcommand)]
@@ -133,13 +144,7 @@ pub(crate) enum Command {
     /// import one: `vessel run AGENT --structured --resume ID --cwd DIR`.
     History(History),
     /// Print a session's log.
-    Log {
-        /// Session id, or a unique prefix of one.
-        session: SessionSelector,
-        /// First record to print.
-        #[arg(long, default_value = "0", value_parser = parse_seq)]
-        from: EventSeq,
-    },
+    Log(Log),
     /// Stop a session (its whole process group).
     Kill {
         /// Session id, or a unique prefix of one.

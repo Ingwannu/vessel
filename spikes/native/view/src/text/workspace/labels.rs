@@ -61,6 +61,9 @@ pub struct Labels {
     pub none: &'static str,
     pub start_without_setup: &'static str,
     pub approve_and_run: &'static str,
+    /// In place of Approve, when the set holds commands the app cannot
+    /// show yet (terminal commands, ADR 0066).
+    pub approval_unseen: &'static str,
     pub script_warning: &'static str,
     pub badge_new: &'static str,
     pub badge_changed: &'static str,
@@ -177,6 +180,7 @@ pub const EN: Labels = Labels {
     none: "None.",
     start_without_setup: "Start without setup",
     approve_and_run: "Approve and run",
+    approval_unseen: "This set also starts terminal commands, which this app cannot show yet, so it cannot be approved here.",
     script_warning: "A command that runs a script of the repository (./setup.sh, npm ci running package scripts) runs whatever that script says on that branch.",
     badge_new: "new",
     badge_changed: "changed",
@@ -293,6 +297,7 @@ pub const KO: Labels = Labels {
     none: "없음.",
     start_without_setup: "셋업 없이 시작",
     approve_and_run: "승인하고 실행",
+    approval_unseen: "이 묶음에는 이 앱이 아직 보여 줄 수 없는 터미널 명령도 있어서 여기서는 승인할 수 없습니다.",
     script_warning: "저장소의 스크립트를 실행하는 명령(./setup.sh, 패키지 스크립트를 실행하는 npm ci)은 그 브랜치의 스크립트가 시키는 대로 실행합니다.",
     badge_new: "새로 추가",
     badge_changed: "변경",

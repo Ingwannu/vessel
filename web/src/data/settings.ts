@@ -34,6 +34,7 @@ export const SETTINGS_SECTIONS = [
   "machines",
   "projects",
   "devices",
+  "usage",
   "sync",
   "about",
 ] as const;
@@ -71,6 +72,8 @@ export function settingsSectionLabel(section: SettingsSection): string {
       return "Agents";
     case "models":
       return "Models";
+    case "usage":
+      return "Usage";
     case "machines":
       return "Machines";
     case "projects":
@@ -98,6 +101,7 @@ export function settingsGroupOf(section: SettingsSection): SettingsGroup {
     case "machines":
     case "projects":
     case "devices":
+    case "usage":
     case "sync":
       return "machines";
     case "about":

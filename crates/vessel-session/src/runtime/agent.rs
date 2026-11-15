@@ -249,6 +249,7 @@ impl SessionRuntime {
         let control = handle.0.control.clone().ok_or(MoveError::Terminal)?;
         let ProfileMove {
             profile,
+            limits,
             from_home,
             to_home,
             mcp_servers,
@@ -298,6 +299,7 @@ impl SessionRuntime {
         };
         let (reply, answer) = oneshot::channel();
         let order = MoveOrder {
+            limits,
             command,
             setup,
             to,

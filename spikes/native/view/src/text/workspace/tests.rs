@@ -6,9 +6,9 @@ use chrono::{FixedOffset, NaiveDate, TimeZone, Utc};
 use vessel_proto::ProjectId;
 use vessel_proto::scripts::{ScriptEntry, ScriptKind};
 use vessel_proto::workspace::{
-    ApprovedCommands, CloneFailure, CloneStage, CommandSet, DiffScope, GitOperation, GitRefusal,
-    GitSupport, GitVersion, KeptReason, ProjectCommand, ProjectCommands, ProjectInfo, ProjectState,
-    RelPath, RepositoryConfigReason, SetupFailure, WorktreeRefusal,
+    ApprovedCommands, CloneFailure, CloneStage, CommandSet, DiffScope, FileTerminal, GitOperation,
+    GitRefusal, GitSupport, GitVersion, KeptReason, ProjectCommand, ProjectCommands, ProjectInfo,
+    ProjectState, RelPath, RepositoryConfigReason, SetupFailure, WorktreeRefusal,
 };
 
 use super::{En, Ko, Local, WorkspaceWords};
@@ -316,6 +316,7 @@ fn listed(
         digest: digest.to_string().repeat(64).parse().unwrap(),
         approved,
         scripts,
+        terminals: Vec::new(),
         last_approved: last.map(Box::new),
     }
 }
@@ -326,6 +327,7 @@ fn approved_set(setup: &[&str], scripts: Vec<ScriptEntry>) -> ApprovedCommands {
             setup: setup.iter().map(|text| command(text)).collect(),
             teardown: Vec::new(),
             scripts,
+            terminals: Vec::new(),
         },
         digest: "a".repeat(64).parse().unwrap(),
         approved_at: Utc.with_ymd_and_hms(2026, 11, 12, 9, 30, 0).unwrap(),
@@ -348,6 +350,25 @@ fn says_what_a_script_s_change_was() {
         En.script_change(&dev(), &moved),
         "its command and its folder"
     );
+}
+
+#[test]
+fn a_set_with_terminal_commands_is_refused_until_the_card_draws_them() {
+    // ADR 0066: the digest covers a set's terminal commands; the card cannot
+    // show them yet, so such a set must not be offered for approval.
+    let mut asked = listed(&["npm ci"], false, 'c', vec![dev()], None);
+    assert!(!Listed::of(&asked).unwrap().approves_unseen());
+    if let ProjectCommands::Listed { terminals, .. } = &mut asked {
+        terminals.push(FileTerminal {
+            name: None,
+            command: command("npm run watch"),
+        });
+    }
+    let shown = Listed::of(&asked).unwrap();
+    assert_eq!(shown.terminals.len(), 1);
+    assert!(shown.approves_unseen());
+    assert!(!En.labels().approval_unseen.is_empty());
+    assert!(!Ko.labels().approval_unseen.is_empty());
 }
 
 #[test]

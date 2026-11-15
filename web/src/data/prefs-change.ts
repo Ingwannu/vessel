@@ -24,7 +24,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   composer: { send: "enter", delivery: "queue" },
   shortcuts: {},
   notifications: { alerts: "off", title: true },
-  sidebar: { group: "machine", sort: "created", ended: false },
+  sidebar: { group: "machine", sort: "created", ended: true },
   defaults: {},
 };
 

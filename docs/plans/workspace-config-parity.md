@@ -1,6 +1,6 @@
 # Project configuration, as Paseo's
 
-Status: slice 1 decided, not implemented past the decision. ADR 0066.
+Status: slice 1 reviewed; slice 2 is split into independently reviewed changes. ADR 0066.
 
 ## What Paseo does
 
@@ -35,8 +35,14 @@ Read in Paseo 0.15.4. Paths are the package paths in that tree.
   one. `portScript` wins over `range`. An explicit service `port` wins
   over the block. The project block replaces the daemon-wide
   `worktrees.servicePorts`; it does not merge with it
-  (`workspace-service-port-allocator.ts`). The script is executed, not a
-  shell: four arguments, 10 s, 1024 bytes, one TCP port. A reserved port
+  (`workspace-service-port-allocator.ts`). The allocator requests direct
+  execution: four arguments, 10 s, 1024 bytes, one TCP port. On Windows,
+  the plugin's `process.ts:36–44` overrides `shell: false` for `.cmd` and
+  `.bat` and inserts `cmd.exe`. Vessel deliberately refuses that automatic
+  shell path with `PortScriptError::WindowsCommandScript` to keep a chosen
+  branch name out of interpreter reparsing (ADR 0066). Its runtime test
+  `windows_command_scripts_are_refused_before_spawn` is still owed.
+  A reserved port
   is refused. A port the script returns is not probed first.
 - Health (`script-health-monitor.ts`, `local-service-connection.ts`):
   TCP connect to loopback, not HTTP. `pending` for 5 s, then every 3 s
@@ -58,7 +64,7 @@ Not in `paseo.json`:
   are a later slice.
 - `worktrees.root` is the daemon file.
 
-## What Vessel already has
+## Vessel before this track
 
 `crates/vessel-workspace/src/project_file.rs` and `project_file/scripts.rs`:
 `vessel.toml`, setup, teardown, scripts, services, `dir`, digest versions
@@ -84,6 +90,7 @@ crates while writing ADR 0066.
 | Service run, terminal caps | session terminals, ADR 0031 | Modify. Terminals to open are shells that already exist. |
 | Port discovery | the existing scanner | Leave it. Assignment is a different fact (ADR 0031, option 1, which that ADR deferred). |
 | `paseo.json` parser | none, and ADR 0027 refused that filename | Do not add one. ADR 0066. |
+| Approval text and script comparison | CLI workspace formatter and web command-changes | Modify. Keep their behavior in focused modules and name every entry field before adding port data. |
 | Crate edge or dependency | none needed | No new edge, no new crate, no new dependency. |
 
 ## Slices
@@ -93,7 +100,7 @@ crates while writing ADR 0066.
    digest). The wire number is given at merge. The code, when it lands,
    gates the fields on one constant and does not change
    `PROTOCOL_VERSION` until that merge. No code yet.
-2. **Next.** Parse the missing keys, put them in the version 3 digest,
+2. **In progress.** Parse the missing keys, put them in the version 3 digest,
    open the terminals after a successful setup, allocate a service port,
    report health. Tests beside those rules. A file with none of the new
    keys keeps digest version 1 or 2 byte for byte. Wire fields are
@@ -116,17 +123,113 @@ panel is not a slice: Paseo pushes `workspace_setup_progress`, and Vessel
 already has `WorktreeInfo.setup` plus `worktree.output` (ADR 0066).
 Adding a second push is not one of this track's slices.
 
+## Slice 2a: terminal approval contract
+
+Reference read again before implementation:
+
+- `packages/server/src/utils/worktree.ts:285-316`: file order, commands
+  trimmed, blank commands skipped, names trimmed and blank names absent.
+- `packages/server/src/server/worktree-bootstrap.ts:271-343`: readiness
+  on first output or the 1.5 s deadline, carriage return, concurrent opens.
+- `packages/server/src/server/worktree-session.ts:549-597`: terminals
+  follow completed setup; setup failure bypasses them.
+- `packages/protocol/src/paseo-config-schema.ts:74-97`: tolerant decoder.
+
+Decision: modify the existing `ProjectFile`, approved `CommandSet`, reply
+adaptation, and CLI rendering. Reuse `ProjectCommand`, `SessionTitle`, the
+existing SHA-256 encoding and serde; no external dependency or crate edge.
+One terminal decoder owns the new list; a second project file would split
+approval. It uses JavaScript whitespace trimming before existing validators:
+BOM is trimmed and NEL is kept, unlike plain Rust `str::trim`. Differences remain ADR 0066's: TOML only, entire-file refusal,
+32 terminals and bounded titles, and sequential opens when execution lands.
+
+This change parses only `[[worktree.terminals]]`, includes it in the
+approval snapshot and displays it in the CLI formatter. It does **not**
+open terminals. Port keys, allocation, health, and automatic opening follow
+in separate changes. Version 3 already writes the empty service-port fields
+and the empty port slot per script, so completing those keys will not
+change a terminal-only file's digest. Fixed byte-encoding vectors pin
+versions 1, 2 and 3, independently of the implementation.
+
+`PROJECT_FILE_KEYS: Option<ProtocolVersion>` is `None` until integration
+assigns the number and clients can display the complete set. No sentinel
+and no `PROTOCOL_VERSION` bump. All negotiated peers currently receive
+`invalid` for a set with terminals (or a previous approval with terminals),
+including script list/run/restart approval replies and worktree creation.
+Tests also exercise the assigned-threshold branch with a synthetic version.
+An older node's absent terminal list decodes as empty. Existing files without
+terminals retain their old bytes and normal approval path. The web dialog
+and comparison each project every field by its generated type (including
+optional ones). Until terminal display/comparison lands, terminal-bearing
+current or previous sets return a typed refusal; no approval button is
+shown and a partial comparison cannot claim the commands are unchanged.
+
 ## Resume point
 
-- Done: ADR 0066 and this plan, then the review's document fixes, then
-  the shared-rule pass (no protocol number in the document, metadata
-  tables cited as ADR 0062 and added at merge, reach and credentials of
-  `port_script` and the opened terminals, Windows without signals). No
-  code. Digest versions 1 and 2 are unchanged. `paseo.json` is not read.
-- Half-done: nothing. The contract is written and not parsed.
-- Next: slice 2, in `project_file` and the node that runs setup and
-  starts a service. Do not start slice 3 or 4 in that change. Gate new
-  fields on one constant. Do not write a protocol number, and do not
-  change `PROTOCOL_VERSION`.
-- The slice report names the commit the gate was run on. This file does
-  not copy that log.
+- Done: slice 1's reviewed ADR and follow-up amendments; slice 2a's
+  reviewed terminal approval contract and exhaustive web refusal.
+- Integration: node baseline `a365d295` is merged with both architecture
+  texts preserved. Its root and web gates passed with no waiver or retry;
+  the earlier protocol-test waiver no longer applies. `PROJECT_FILE_KEYS` stays
+  unassigned.
+- Implemented: slice 2a's terminal decoder, approval fields, digest vectors,
+  compatibility and CLI rendering. The slice's validation results belong in
+  its review report; no runtime behaviour is implied by parsing these keys.
+- Half-done: automatic terminal execution is absent; port keys remain ignored
+  as before. `paseo.json` is not read.
+- Next: keep `PROJECT_FILE_KEYS` unassigned until the web approval dialog
+  displays terminals, web `command-changes` compares them, and the native
+  approval card displays them. The current web refusal is a deliberate
+  stopgap; display/comparison lands together with the native card's work.
+  The native lead owns its card and exhaustive adapter. This track owns
+  the web refusal now and its later terminal display/comparison.
+- In progress: 2b begins with validated `ServicePort` and `PortRange`
+  values. They are not yet fields of a request, reply or project file;
+  parsing, digests and execution are unchanged. Bounds and refusal text
+  share constants so a diagnostic cannot drift from the accepted grammar.
+  The existing serde
+  conversion pattern is reused; the observed-listener DTO is a separate
+  fact, not a declared or allocated service port.
+- Implemented value contract: `ExecPath` keeps private literal text and
+  its Unix, Windows or shared grammar. Its decoder and serde check raw
+  components without filesystem access or native normalization; five
+  portable fixture tests cover prefix forms, components, round trips and
+  the shared byte bound. Rust's Windows prefix source also recognizes a
+  forward slash in the verbatim UNC marker; the remaining verbatim
+  components still use backslashes. The type is not yet a wire field or
+  project-file key. Native invocation and the Windows command-script
+  refusal remain later typed checks, with their tests still owed.
+- Approval display: the absolute path now shares `RelPath`'s control
+  character refusal. LF, CR, ESC, another C0, DEL and C1 are tested through
+  both text and serde for Unix, drive and UNC paths; NUL keeps its own
+  diagnostic. The absolute per-component limit remains a native execution
+  check, with its reason in ADR 0066.
+- Implemented refactor: one `trim_project_text` input rule now serves
+  port ranges and terminal entries. Their existing tests and digest vectors
+  are unchanged; a shared-rule test pins BOM, NEL and Unicode line/paragraph
+  separators. No accepted input, approval bytes or execution path changes.
+- Implemented value layer: `PortScript` privately owns a non-root relative
+  path or an `ExecPath`, reusing their validation after shared edge trimming.
+  `ServicePorts` privately owns the optional range and program and refuses
+  an empty block through both its constructor and serde. Unknown keys and
+  explicit null choices are refused. Six unit tests cover the typed paths,
+  source chains, trim behavior, nonempty block and strict serde; a TypeScript
+  feature test pins optional fields without nullable values. These types
+  are not yet reachable from the project-file parser or a wire reply.
+- Prepared display boundary: the CLI command formatter and web script
+  comparison now have focused modules with complete entry projections.
+  Existing output and comparison expectations stay unchanged; no field
+  or approval behavior is added.
+- Before port fields: ADR 0066 now defines the `ScriptEntry` construction
+  invariant and complete borrowed display view. The native lead owns its
+  constructor/getter and exhaustive-card adaptation; web coverage and
+  comparison must name nested entry fields too. No implementation yet.
+- Then: add the file parser, digest and approval fields. A relative bare
+  program is checkout-rooted, using a worktree's own copy in its own folder,
+  unlike Paseo's PATH lookup; the execution test proving that selection
+  and relative-link containment remain owed. Add
+  approval snapshots and exhaustive clients in
+  separate small changes. Runtime follows with approval and lifecycle
+  tests. Returned review findings take priority.
+- Still unverified: Windows, actual shells, and negotiated support after
+  the integrator assigns the protocol number.

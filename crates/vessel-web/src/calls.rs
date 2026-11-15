@@ -72,7 +72,9 @@ fn decode(call: &RawJson) -> Result<UnaryCall, Failure> {
 )]
 const fn forwardable(method: Method) -> bool {
     match method {
-        Method::QueryUsage
+        Method::GetUsageLimits
+        | Method::SetUsageLookup
+        | Method::QueryUsage
         | Method::NodeInfo
         | Method::ListHarnesses
         | Method::ListSessions
@@ -222,6 +224,13 @@ const fn forwardable(method: Method) -> bool {
         | Method::CreatePrompt
         | Method::UpdatePrompt
         | Method::DeletePrompt
+        | Method::ListInbox
+        | Method::GetInboxEntry
+        | Method::MarkInbox
+        | Method::GetPushKey
+        | Method::SubscribePush
+        | Method::UnsubscribePush
+        | Method::ReportPushPresence
         // Protocol 12: searching every session's messages.
         | Method::SearchMessages
         // Protocol 12: parking and waking a session's agent.
@@ -260,7 +269,9 @@ fn failure(error: CallError) -> Failure {
             negotiated,
         },
         CallError::Disconnected => Failure::Disconnected,
-        CallError::UnexpectedReply(_) | CallError::RequestIdsExhausted => Failure::Failed {
+        CallError::UnexpectedReply(_)
+        | CallError::RequestIdsExhausted
+        | CallError::UnassignedProtocol { .. } => Failure::Failed {
             message: error.to_string(),
         },
     }

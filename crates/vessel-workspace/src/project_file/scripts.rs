@@ -141,9 +141,17 @@ pub(super) fn field(hash: &mut Sha256, bytes: &[u8]) {
     hash.update(bytes);
 }
 
-/// The scripts' part of a version 2 digest: their count, then each one's
-/// name, kind, command and folder, in name order.
-pub(super) fn digest(hash: &mut Sha256, scripts: &[ScriptEntry]) {
+/// Version three reserves a per-script port field; earlier approvals omit it.
+#[derive(Clone, Copy)]
+pub(super) enum DigestFields {
+    /// Preserve the byte encoding of approvals that predate terminal keys.
+    Original,
+    /// Include the port slot even before port allocation is implemented.
+    WithPorts,
+}
+
+/// Keep script ordering identical across digest versions.
+pub(super) fn digest(hash: &mut Sha256, scripts: &[ScriptEntry], fields: DigestFields) {
     hash.update(
         u64::try_from(scripts.len())
             .unwrap_or(u64::MAX)
@@ -157,5 +165,9 @@ pub(super) fn digest(hash: &mut Sha256, scripts: &[ScriptEntry]) {
             hash,
             script.dir.as_ref().map_or("", RelPath::as_str).as_bytes(),
         );
+        match fields {
+            DigestFields::Original => {}
+            DigestFields::WithPorts => field(hash, b""),
+        }
     }
 }
