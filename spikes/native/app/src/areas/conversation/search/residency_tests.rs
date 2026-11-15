@@ -193,3 +193,41 @@ fn message_search_failure_facts_reword_without_restarting_the_query(cx: &mut Tes
         });
     });
 }
+
+#[gpui::test]
+fn a_success_without_an_actor_delivery_guard_cannot_install_search_rows(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(|window, cx| {
+        let mut commands = None;
+        let shell = cx.new(|cx| {
+            let (mut shell, inbox) = language_tests::with_commands(window, cx);
+            commands = Some(inbox);
+            shell.fleet.machines = vec![machine("one")];
+            shell.message_search_query("needle", cx);
+            shell
+        });
+        Probe {
+            shell,
+            commands: commands.unwrap(),
+        }
+    });
+    cx.run_until_parked();
+    cx.executor().advance_clock(Duration::from_secs(1));
+    cx.run_until_parked();
+    let ask = probe.update(cx, |probe, _| {
+        std::iter::from_fn(|| probe.commands.try_recv().ok())
+            .find_map(|command| match command {
+                Command::Search(ask) => Some(ask),
+                _ => None,
+            })
+            .unwrap()
+    });
+    update(&probe, cx, |shell, cx| {
+        // Detached fixtures cannot issue real validity. This tests rejection,
+        // not successful wire delivery or an authorized connected machine.
+        let forged = answer(&ask);
+        assert!(forged.delivery.is_none());
+        shell.message_searched(forged, cx);
+        assert!(shell.message_search_rows().is_empty());
+    });
+}
