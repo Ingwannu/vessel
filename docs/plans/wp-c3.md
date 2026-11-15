@@ -724,3 +724,12 @@ from the same target and physical admission. Root discovery still runs again;
 no old ticket, metadata, failure or body is copied. Another context or immutable
 commit target keeps its own initial comparison. A direct Entry fixture pins all
 three cases. This is not a new identity registry or a reconnect fallback.
+
+Public viewport counters observe optional row projections, not every internal
+text-system shape call. Source inspection shows the existing cold longest-line
+width-cache path can measure one offclip source line to retain horizontal scroll
+metrics even with zero visible mapped rows. The lead is asked to rule on this
+bounded extent-measurement distinction versus the earlier empty-mask wording.
+The empty fixture's name is restricted to zero row projections/direct IME
+bounds, not a total shape-call count. No runtime result or silent geometry
+change is asserted.

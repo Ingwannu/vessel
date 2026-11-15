@@ -126,7 +126,7 @@ fn parent_scroll_reprojects_bounded_rows_including_a_cached_editor(cx: &mut Test
     }
 }
 #[gpui::test]
-fn empty_parent_mask_shapes_nothing_and_refuses_direct_ime_bounds(cx: &mut TestAppContext) {
+fn empty_parent_mask_projects_no_rows_and_refuses_direct_ime_bounds(cx: &mut TestAppContext) {
     cx.update(gpui_base::init);
     let mapping = Mapping::new("9999");
     let (owner, cx) = cx.add_window_view(|w, cx| input("one\ntwo", mapping.style(), w, cx));
