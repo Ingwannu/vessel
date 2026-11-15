@@ -39,3 +39,9 @@ connection parsing. Default legacy commands and no-color remain usable. Compare'
 existing --json is preserved; other compare formats and raw-stream selections
 are refused. Format strings now trim whitespace and ignore ASCII case as Paseo's
 normalizeFormat does. Added root clap graph/admission and actual CLI regressions.
+
+Corrected-head 872 targeted run compiled no tests: cargo failed E0599 because
+admission used SessionCommand::Compare instead of the actual nested
+SessionCommand::Conversation(ConversationCommand::Compare). Corrected both
+product and test patterns, preserving the real `session compare` CLI spelling.
+Evidence: /tmp/work/wp-cli/output-seam-tests. No runtime pass from that run.

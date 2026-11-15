@@ -2,7 +2,7 @@
 //! Raw attach/log streams keep their contract by refusing data-format selection.
 
 use crate::{
-    args::{Cli, Command, SessionCommand, parity::Presentation},
+    args::{Cli, Command, ConversationCommand, SessionCommand, parity::Presentation},
     error::CliError,
 };
 
@@ -16,7 +16,7 @@ pub(crate) fn check(cli: &Cli) -> Result<(), CliError> {
     // Compare already owns its JSON switch. It must continue to work without
     // enabling other output formats that its handler does not consume.
     if let Command::Session {
-        command: SessionCommand::Compare(args),
+        command: SessionCommand::Conversation(ConversationCommand::Compare(args)),
     } = &cli.command
         && args.json
         && requested == Presentation::Json
@@ -71,7 +71,7 @@ mod tests {
         ];
         let cli = Cli::try_parse_from(compare).unwrap();
         assert!(
-            matches!(cli.command, Command::Session { command: SessionCommand::Compare(ref args) } if args.json)
+            matches!(cli.command, Command::Session { command: SessionCommand::Conversation(ConversationCommand::Compare(ref args)) } if args.json)
         );
         assert!(check(&cli).is_ok());
     }
