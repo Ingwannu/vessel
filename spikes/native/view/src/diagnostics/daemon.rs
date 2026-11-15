@@ -8,7 +8,8 @@ use std::{fmt::Write as _, sync::Arc};
 use vessel_proto::{
     NodeId,
     diagnostics::{
-        DiagnosticHome, DiagnosticNode, DiagnosticReport, DiagnosticReportFields, DiagnosticSection,
+        DiagnosticHome, DiagnosticNode, DiagnosticProcess, DiagnosticReport,
+        DiagnosticReportFields, DiagnosticSection,
     },
 };
 
@@ -38,6 +39,7 @@ impl DaemonSnapshot {
                 let DiagnosticReportFields {
                     collected_at: _,
                     node: _,
+                    process,
                     store,
                     agents,
                     sessions,
@@ -45,7 +47,8 @@ impl DaemonSnapshot {
                     relays,
                     recent_failures,
                 } = report.fields();
-                available(store)
+                process_complete(process)
+                    && available(store)
                     && available(agents)
                     && available(sessions)
                     && available(listeners)
@@ -65,6 +68,7 @@ impl DaemonSnapshot {
         let DiagnosticReportFields {
             collected_at,
             node,
+            process,
             store,
             agents,
             sessions,
@@ -73,6 +77,11 @@ impl DaemonSnapshot {
             recent_failures,
         } = report;
         let mut text = node_section(*collected_at, node);
+        source(
+            &mut text,
+            "Daemon self process (numeric metadata only)",
+            process,
+        )?;
         source(&mut text, "Store (readability, not integrity)", store)?;
         source(&mut text, "Agents (cached observations)", agents)?;
         source(&mut text, "Runtime sessions", sessions)?;
@@ -103,6 +112,12 @@ fn node_section(collected_at: DateTime<Utc>, node: &DiagnosticNode) -> String {
     )
 }
 
+fn process_complete(source: &DiagnosticSection<DiagnosticProcess>) -> bool {
+    match source {
+        DiagnosticSection::Available { value, .. } => available(&value.memory),
+        DiagnosticSection::Unavailable { .. } => false,
+    }
+}
 fn available<T>(source: &DiagnosticSection<T>) -> bool {
     match source {
         DiagnosticSection::Available { .. } => true,

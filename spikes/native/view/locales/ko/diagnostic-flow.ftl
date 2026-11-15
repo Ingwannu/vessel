@@ -38,17 +38,17 @@ diagnostic-flow-process = 프로세스 진단
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-logs = 데몬 로그
 # Diagnostic sheet status or recovery; keep buttons short.
-diagnostic-flow-daemon-note = 기본 머신 정보는 별도로 수집합니다. 전체 데몬 보고서에는 머신의 API 지원이 필요합니다.
+diagnostic-flow-daemon-note = 기본 머신 정보와 프로토콜 24의 데몬 보고서는 각각 수집합니다.
 # Diagnostic sheet status or recovery; keep buttons short.
-diagnostic-flow-process-note = 프로세스 상세 정보에는 머신의 API 지원이 필요합니다. 로컬 프로세스를 검색하지 않습니다.
+diagnostic-flow-process-note = 데몬 자체의 숫자형 프로세스 메타데이터만 수집합니다. 지원하지 않는 항목은 별도로 표시합니다.
 # Diagnostic sheet status or recovery; keep buttons short.
-diagnostic-flow-logs-note = 데몬 로그를 보려면 머신의 API 지원이 필요합니다. 세션과 터미널 로그는 각각의 화면에서 확인할 수 있습니다.
+diagnostic-flow-logs-note = 원본 데몬 로그는 수집하지 않습니다. 보고서에는 실패한 노드 호출의 제한된 요약만 포함합니다.
 # Diagnostic sheet status or recovery; keep buttons short.
-diagnostic-flow-privacy = 보고서에는 기본 머신 식별 정보와 제공되지 않는 항목을 표시합니다. 머신 이름, 접속 경로, 키, 원본 오류는 제외합니다.
+diagnostic-flow-privacy = 보고서는 허용된 머신 메타데이터만 사용합니다. 머신 이름, 접속 경로, 키, 파일 경로, 원본 오류는 제외합니다.
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-report = 보고서 생성
 # Diagnostic sheet status or recovery; keep buttons short.
-diagnostic-flow-partial = 기본 정보만 제공
+diagnostic-flow-partial = 머신 진단
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-no-hosts = 저장된 머신이 없습니다. 클라이언트 보고서는 복사할 수 있습니다.
 
@@ -60,3 +60,6 @@ diagnostic-flow-collected-partial = 일부 항목 수집 완료
 
 # A reconnect invalidates the previous observation, including same-node reconnects.
 diagnostic-flow-connection-changed = 머신 연결이 변경되었습니다. 보고서를 다시 생성하세요.
+
+# Availability is resolved by each explicit host report, never inferred from this badge.
+diagnostic-flow-host-dependent = 머신에 따라 다름

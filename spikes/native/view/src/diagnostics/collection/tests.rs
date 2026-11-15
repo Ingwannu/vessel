@@ -340,3 +340,54 @@ fn the_shared_fleet_retires_changed_removed_and_offline_identity_without_raw_err
         Progress::Failed(Problem::Offline)
     ));
 }
+
+#[test]
+fn exact_admission_epochs_fence_same_node_answers_retirement_and_fleet_reconnect() {
+    use crate::connection::ConnectionEpochs;
+    let id = NodeId::random();
+    let machine = MachineKey::from_book("epoch-host");
+    let mut epochs = ConnectionEpochs::default();
+    let old = epochs.admit(machine.clone(), id).unwrap();
+    let next = epochs.admit(machine.clone(), id).unwrap();
+    let mut tickets = crate::devices::Tickets::default();
+    let ticket = tickets.next_ticket().unwrap();
+    let mut run = Collection::default();
+    run.start(
+        ticket,
+        ReportText::new("Client").unwrap(),
+        [(machine.clone(), Ok(()))],
+    );
+    run.expect_connection(old.clone());
+    run.running(ticket, &machine);
+    run.answer_connection(ticket, &next, Err(Problem::Failed));
+    assert_eq!(run.rows().first().unwrap().progress, Progress::Running);
+    // A stale retirement for another epoch cannot retire the selected one.
+    run.retired(&next.tag());
+    assert_eq!(run.rows().first().unwrap().progress, Progress::Running);
+    let mut snapshot = crate::Machine::unreachable("epoch-host".into(), "private test reason");
+    snapshot.reach = crate::Reach::Online;
+    snapshot.node = Some(id);
+    snapshot.connection_epoch = Some(next.epoch());
+    run.reconcile(&[snapshot]);
+    run.answer_connection(ticket, &old, Err(Problem::Failed));
+    assert_eq!(
+        run.rows().first().unwrap().progress,
+        Progress::Failed(Problem::Offline)
+    );
+    let next_ticket = tickets.next_ticket().unwrap();
+    run.start(
+        next_ticket,
+        ReportText::new("Client").unwrap(),
+        [(machine.clone(), Ok(()))],
+    );
+    run.expect_connection(next.clone());
+    run.running(next_ticket, &machine);
+    run.answer_connection(ticket, &old, Err(Problem::Failed));
+    assert_eq!(run.rows().first().unwrap().progress, Progress::Running);
+    run.retired(&next.tag());
+    run.answer_connection(next_ticket, &next, Err(Problem::Failed));
+    assert_eq!(
+        run.rows().first().unwrap().progress,
+        Progress::Failed(Problem::Offline)
+    );
+}

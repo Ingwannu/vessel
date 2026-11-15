@@ -41,7 +41,7 @@ pub(super) fn combined(
             }
             Progress::Pending | Progress::Running => return Err(Problem::Failed),
         }
-        text.push_str("  Extended process metrics: API unavailable\n  Daemon log: API unavailable (session and terminal logs are separate)");
+        text.push_str("  Arbitrary process inspection: not collected\n  Daemon log: not collected (failed node calls are a separate bounded summary)");
         if text.len() > MAX_REPORT_BYTES {
             return Err(Problem::TooLarge);
         }

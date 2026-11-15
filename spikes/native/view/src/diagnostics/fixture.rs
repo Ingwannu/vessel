@@ -35,6 +35,14 @@ pub(super) fn complete(node: NodeId) -> DaemonSnapshot {
                 uptime: DurationMs::from_duration(std::time::Duration::ZERO),
                 home: DiagnosticHome::Redacted,
             },
+            process: available(vessel_proto::diagnostics::DiagnosticProcess {
+                pid: 42.try_into().unwrap(),
+                parent: None,
+                memory: available(vessel_proto::diagnostics::DiagnosticMemory {
+                    resident_bytes: DiagnosticCount::new(4096),
+                    virtual_bytes: DiagnosticCount::new(8192),
+                }),
+            }),
             store: available(DiagnosticStore {
                 expected_schema: 1_u32.try_into().unwrap(),
                 observed_schema: 1_u32.try_into().unwrap(),

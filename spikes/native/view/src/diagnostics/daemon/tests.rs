@@ -27,6 +27,7 @@ fn report(id: NodeId) -> DiagnosticReport {
             uptime: DurationMs::from_duration(std::time::Duration::ZERO),
             home: DiagnosticHome::Redacted,
         },
+        process: missing(),
         store: DiagnosticSection::Unavailable {
             reason: DiagnosticUnavailable::Stale,
         },
@@ -170,4 +171,29 @@ fn a_complete_typed_report_is_distinct_from_partial_coverage() {
             .as_str()
             .contains("Unavailable:")
     );
+}
+
+#[test]
+fn numeric_process_data_is_rendered_and_missing_memory_stays_partial() {
+    let id = NodeId::random();
+    let DaemonSnapshot::Report(complete) = crate::diagnostics::fixture::complete(id) else {
+        panic!("fixture");
+    };
+    let mut fields = complete.fields().clone();
+    let DiagnosticSection::Available { value, .. } = &mut fields.process else {
+        panic!("process");
+    };
+    value.memory = DiagnosticSection::Unavailable {
+        reason: DiagnosticUnavailable::Unsupported,
+    };
+    let snapshot = DaemonSnapshot::Report(Arc::new(DiagnosticReport::try_from(fields).unwrap()));
+    assert!(!snapshot.complete());
+    let text = snapshot.render().unwrap();
+    assert!(
+        text.as_str()
+            .contains("Daemon self process (numeric metadata only)")
+    );
+    assert!(text.as_str().contains(r#""pid":42"#));
+    assert!(text.as_str().contains("unsupported"));
+    assert!(!text.as_str().contains("resident_bytes"));
 }

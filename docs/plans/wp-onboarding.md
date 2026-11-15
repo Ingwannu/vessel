@@ -1,3 +1,6 @@
+> Historical bounded-consumer closeout. The resumed protocol-24 integration
+> and its current validation status are in `wp-diagnostics-producer.md`.
+
 # App diagnostics consumer
 
 ## Scope and reference
@@ -162,7 +165,7 @@ one-build priority switch, so that local exception was never used.
 ## Validation and material limits
 
 Final whole native: wp-onboarding-20261115T090841Z-50f0ee0b, every step rc0,
-1302 passed / 0 failed / 2 ignored. Logs: /tmp/work/wp-onboarding/whole-native-base4.
+1302 passed / 0 failed / 2 ignored. Logs: the recorded package evidence
 The step set includes embedded fonts, format, size/boundaries/tokens, all-target
 Clippy, application build and the complete native test set. No owned root crate
 or web source changed; inherited base4 root changes have the coordinator's
@@ -176,8 +179,8 @@ cases cover identity, reconnect, ticket supersession, independent partial
 sources, bounds, closed failures and every EN/KO Problem/Progress sentence.
 
 Local final capture build completed in 7m18s; the exact binary SHA256 and tracked
-native source hash are in /tmp/work/wp-onboarding/package-manifest.json.
-The matrix is /tmp/work/wp-onboarding/captures/50f0ee0bb: EN/KO, dark/light,
+native source hash are in the recorded package evidence
+The matrix is the recorded package evidence: EN/KO, dark/light,
 1280x900, 390x844, 800x600, page/report plus scrolled page bottoms. Wide captures
 were moved to window origin so the PNGs match 1280x900, rather than the initial
 2px screen-edge clip. Smaller captures were already exact. The extra observed
@@ -252,12 +255,12 @@ wp-onboarding-narrow-20261115T113442Z-62eb5655, every selected step rc0
 (native-fonts, native-fmt, native-quality, native-clippy, native-test).
 The ten test-result groups sum to1304 passed /0 failed /2 ignored; both new
 Refresh and held-dispatch tests ran and passed, and view/link/app recompiled.
-Logs: /tmp/work/wp-onboarding/review-fix-testcfg-suite. This selection omits
+Logs: the recorded package evidence This selection omits
 native-build and exports no binary: it is not another whole gate or new
 capture claim. No local Cargo/Rustc ran during this correction. V4 passed
 the bounded app consumer on the same row173, reviewed range through6a523cc1c,
 corrected source62eb56555. All three original findings are closed. The verdict
-is /tmp/work/gk-review/findings/w20-e4-diagnostics-v4-correction-pass.md.
+is the V4 row173 findings
 This is not full parity/producer approval: Active RTT remains omitted and
 full daemon/desktop/process/raw-log sources remain unavailable. Tracker566
 is passed for the reviewed app consumer;569 remains skeleton and node/provider

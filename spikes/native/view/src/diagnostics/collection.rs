@@ -3,7 +3,8 @@
 
 use super::DaemonSnapshot;
 use crate::board::{Machine, Reach};
-use crate::devices::{MachineKey, Ticket};
+use crate::connection::ConnectionTag;
+use crate::devices::{ConnectionContext, MachineKey, Ticket};
 use vessel_proto::{NodeId, NodeState, ProtocolVersion};
 
 /// Maximum combined UTF-8 report bytes accepted for display or copying.
@@ -133,6 +134,8 @@ pub struct HostRow {
     pub machine: MachineKey,
     /// Welcome identity pinned for this run, or the first admitted reply when initially unknown.
     pub admitted: Option<NodeId>,
+    /// Shared physical admission, pinned before any app dispatch.
+    pub context: Option<ConnectionContext>,
     /// Current request outcome.
     pub progress: Progress,
 }
@@ -189,6 +192,7 @@ impl Collection {
             self.rows.push(HostRow {
                 machine,
                 admitted: None,
+                context: None,
                 progress,
             });
         }
@@ -201,6 +205,43 @@ impl Collection {
             && row.progress == Progress::Pending
         {
             row.admitted = Some(node);
+        }
+    }
+    /// Bind the same shared admission used by the link's before-poll guard.
+    pub fn expect_connection(&mut self, context: ConnectionContext) {
+        self.expect_node(context.machine(), context.node());
+        if let Some(row) = self
+            .rows
+            .iter_mut()
+            .find(|row| &row.machine == context.machine())
+            && row.progress == Progress::Pending
+        {
+            row.context = Some(context);
+        }
+    }
+    /// A response from another epoch cannot settle this run, even for the same node.
+    pub fn answer_connection(
+        &mut self,
+        ticket: Ticket,
+        context: &ConnectionContext,
+        result: Result<HostResult, Problem>,
+    ) {
+        if self
+            .rows
+            .iter()
+            .any(|row| row.context.as_ref() == Some(context))
+        {
+            self.answer(ticket, context.machine(), result);
+        }
+    }
+    /// Retirement is ordered before a later Fleet, so old text is removed immediately.
+    pub fn retired(&mut self, tag: &ConnectionTag) {
+        if self.rows.iter().any(|row| {
+            row.context
+                .as_ref()
+                .is_some_and(|context| context.tag() == *tag)
+        }) {
+            self.invalidate(tag.machine());
         }
     }
     /// Mark only the pending row of the current run as dispatched.
@@ -282,6 +323,13 @@ impl Collection {
                     .iter()
                     .find(|machine| machine.name == row.machine.as_str())
                 {
+                    Some(machine)
+                        if row.context.as_ref().is_some_and(|old| {
+                            machine.connection_context().as_ref() != Some(old)
+                        }) =>
+                    {
+                        Some(FleetChange::Offline(row.machine.clone()))
+                    }
                     Some(machine) => match &machine.reach {
                         Reach::Online => machine
                             .node

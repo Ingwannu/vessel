@@ -1,0 +1,90 @@
+# Protocol 24 diagnostics app consumer
+
+## Purpose and current status
+
+The coordinator resumed E4 after app package base 9 (`db42d9c5`), carrying
+node `9c150c6e` and the assigned protocol-24 diagnostics call. This supersedes
+the producer-unavailable boundary in the earlier bounded app package. The
+previous V4 row173 approval, whole1302/0/2, corrected tests1304/0/2 and captures
+are historical evidence only; they do not validate this follow-up.
+
+Integration is in progress. The shared selected-connection adapter is reserved
+behind the lead's G4 slot and is not applied before that source lands green.
+Only the view slice is independently checkable at this checkpoint. No live
+full-report, build, capture, new gate or review success is claimed yet.
+
+## Decision Log
+
+- Purpose: obtain real allowlisted daemon/process diagnostics while preserving
+  per-host partial outcomes, correlation, source bounds and safe copying.
+- Existing assets: `NodeClient::diagnostics`, immutable `DiagnosticReport`,
+  shared `ConnectionContext`, actor-owned connection epochs and the existing
+  `SelectedConnection` before-poll/completion guard. Existing Settings dialog,
+  view state machine, technical formatter and cached Fluent domains remain.
+- Alternatives: call a freshly resolved alias, create another epoch allocator,
+  duplicate the SDK deadline/identity wrapper, or merge a node worktree head.
+- Choice: capture the exact shared connection context in each Ask and Answer;
+  the actor selects that immutable client once. A minimal SDK adapter uses the
+  existing guard without changing call/follow/retirement behavior. Basic info
+  and the SDK diagnostic request run independently under one bounded host slot.
+- Why: reconnecting as the same node must still retire old intent. The SDK
+  already owns its ten-second transport deadline and report/welcome identity
+  comparison; the app should not recreate either rule or expose raw errors.
+- Consequences: old peers keep basic facts and explicit Unsupported diagnostics;
+  denied, busy, timed-out, invalid-identity and partial reports remain distinct.
+  Retiring a physical connection cancels both selected reads and immediately
+  removes old copyable data. Existing ticket and current-payload copy checks
+  still apply. No root/node/wire implementation is modified by this package.
+
+## Data flow and data policy
+
+The app pins each Machine's `ConnectionContext` before scheduling. Ask and
+Answer carry that context plus the existing run ticket. The link uses
+`selected_connection` and four nonqueued host permits. `node.info` retains its
+named ten-second bound; the independent SDK diagnostic call uses its canonical
+`DIAGNOSTIC_REQUEST_TIMEOUT`. The wrapper preserves typed DiagnosticError and
+selected-admission refusal separately, then the E4 edge maps them to closed
+Problem values. No remote message or cause chain enters a report.
+
+The view checks ticket, expected admission and response identity; shared
+retirement and Fleet reconciliation fence same-node reconnects, alias removal,
+rename and rebinding. No second resolver, connection cache or product epoch
+allocator is added. The SDK and node remain responsible for Read authority,
+nonforwardable admission, canonical report validation and bounded source work.
+
+`DiagnosticReport.process` is rendered as this daemon's numeric self-process
+metadata. Missing outer sources and missing nested memory remain partial,
+including Unsupported on other operating systems. Canonical typed section JSON
+retains timestamps, saturation and omission. The combined text still has the
+128KiB UTF-8 cap and64-host bound. No source is normalized into healthy zero.
+
+## Reference and deliberate differences
+
+Paseo app-diagnostic-sheet185-194 disables refresh while collecting;
+283-287 separately measures active latency;264-309 collects per-host diagnostics.
+The survey area5 sections53-56 describes app/daemon/process/log diagnostics.
+The existing refresh/action fence, report footer and copy policy are retained.
+
+Active RTT remains deliberately omitted: the current public SDK has no active
+latency/echo observation. Timing node.info would include scheduling/server work
+and is not the reference's five-second active transport measurement. This is
+independent of daemon API availability. Raw daemon/provider logs, arbitrary
+process enumeration, environment and paths remain excluded by ADR0074. The
+report's recent failed local node calls are a bounded code/time-only summary,
+not a raw log tail. Desktop lifecycle/updater diagnostics remain unavailable;
+provider diagnostics belongs to A9 and onboarding to its desktop owner.
+
+## Verification planned
+
+View tests cover numeric process formatting, nested memory partial state and
+exact-context/ticket/epoch retirement. Framed link tests cover the real assigned
+SDK request, independent basic failure, old-peer no-frame refusal, report-id
+mismatch, structured Busy/Forbidden, retired admission before polling, and real
+deadline/cancellation/permit reuse for both independent reads. Existing redaction,
+copy, language and refresh assertions remain. New framing has whole EN/KO goldens.
+
+Checks and builds use the remote gate only; local static checks do not invoke
+Cargo metadata. One final native gate and targeted end-to-end captures close
+this follow-up after the shared adapter and all checks are ready. The new
+producer runtime evidence must use matching protocol-24-capable binaries;
+older shared root binaries cannot prove a successful diagnostic call.

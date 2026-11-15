@@ -38,17 +38,17 @@ diagnostic-flow-process = Process diagnostics
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-logs = Daemon logs
 # Diagnostic sheet status or recovery; keep buttons short.
-diagnostic-flow-daemon-note = Basic host information is collected separately. The full daemon report needs a supported host API.
+diagnostic-flow-daemon-note = Basic host information and the protocol 24 daemon report are collected independently.
 # Diagnostic sheet status or recovery; keep buttons short.
-diagnostic-flow-process-note = Process details require a supported host API. No local process scan is run.
+diagnostic-flow-process-note = Only the daemon’s own numeric process metadata is collected. Unsupported sources stay explicit.
 # Diagnostic sheet status or recovery; keep buttons short.
-diagnostic-flow-logs-note = Daemon log viewing needs a supported host API. Session and terminal logs belong to their own views.
+diagnostic-flow-logs-note = Raw daemon logs are not collected. The report includes only a bounded summary of failed node calls.
 # Diagnostic sheet status or recovery; keep buttons short.
-diagnostic-flow-privacy = Reports contain basic host identity and explicit unavailable sections. Host names, routes, keys and raw errors are excluded.
+diagnostic-flow-privacy = Reports use allowlisted host metadata. Host names, routes, keys, paths and raw errors are excluded.
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-report = Run report
 # Diagnostic sheet status or recovery; keep buttons short.
-diagnostic-flow-partial = Basic information only
+diagnostic-flow-partial = Host diagnostics
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-no-hosts = No hosts are saved. You can still copy the client report.
 
@@ -60,3 +60,6 @@ diagnostic-flow-collected-partial = Collected with unavailable sections
 
 # A reconnect invalidates the previous observation, including same-node reconnects.
 diagnostic-flow-connection-changed = The host connection changed. Run the report again.
+
+# Availability is resolved by each explicit host report, never inferred from this badge.
+diagnostic-flow-host-dependent = Depends on host
