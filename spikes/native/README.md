@@ -254,6 +254,9 @@ with the ordinary line grid at action 16/menu 14; legacy ArrowUp/Update stay.
 Shared action glyphs also include `Trash2`, `ArchiveRestore`, `Minus`,
 `GitBranchPlus`, `Commit` and `Undo2`; existing `Pencil`/`Archive` stay.
 Each is registered once in `assets.rs` on the same 24-unit line grid.
+`outline_button_with_glyph` puts one before an outline button's words
+(Paseo's `leftIcon`: 14 square, the button's 8 gap, glyph and words in one
+tone), as Settings › Overview's Remove draws its Trash2.
 
 `kit/badge.rs` supplies Paseo's StatusBadge for every area: typed success,
 warning, error and muted variants; small and extra-small sizes; optional
@@ -449,6 +452,9 @@ Paseo's pencil: `theme::icon::SM`, padding `spacing::S1`, `theme::radius::MD`,
 static muted ink, a frame and a hit (slop `spacing::S2`) computed from those;
 its caller owns the callback and pending state, with no extra paint. Unlike
 Paseo's it has no accessible name (the kit has no accessibility tree yet).
+Enabled actions consume the left-button release after the generated caller
+click, without a capture handler. Later transparent sibling overlap remains
+an open kit hit-test policy; this is parent isolation, not global occlusion.
 
 ### Rules every screen follows
 
@@ -1049,3 +1055,16 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+Settings Overview keeps its page and book-edit commands in
+`app/src/areas/settings/overview.rs`; `overview/dialogs.rs` only renders
+rename/removal dialogs and delegates actions to that parent. The browser
+demo's fixed agent and ACP-option catalog is `link/src/demo/catalog.rs`;
+`demo.rs` retains session state and event generation. These boundaries do
+not add another edit rule or another node implementation.
+
+`cargo run -p vessel-app-kit --example host_rename_audit` opens an isolated
+input audit of the shared rename action: ordinary, disabled, adjacent
+button and clipped-parent cases. Counters distinguish the action, its
+parent's mouse-down/release and the neighbour. It starts no node and adds no app
+route. The fixed grid is an audit fixture; the action itself is unchanged.
