@@ -324,6 +324,7 @@ pub(super) fn rail(
     Some(
         div()
             .id("outline-rail")
+            .debug_selector(|| "outline-rail".to_owned())
             .track_focus(&pointer.focus)
             .tab_group()
             .on_key_down(cx.listener(|shell, event, _window, cx| shell.outline_key(event, cx)))
