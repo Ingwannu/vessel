@@ -13,6 +13,9 @@ use vessel_app_view::onboarding::{State, Step};
 
 use crate::shell::Shell;
 
+// Paseo onboarding-modal.tsx styles.rail.width; the shared kit owns card bounds.
+const RAIL_WIDTH: f32 = 200.0;
+
 pub(super) fn title(shell: &Shell, step: Step) -> &str {
     let words = shell.words.desktop();
     match step {
@@ -65,7 +68,12 @@ pub(crate) fn dialog(
     let step = open.step();
     let visit = open.visit();
     let compact = crate::areas::draft::compact(window);
-    let mut rail = div().flex().flex_row().flex_wrap().gap(px(S2));
+    let mut rail = div()
+        .flex()
+        .flex_col()
+        .flex_shrink_0()
+        .w(px(RAIL_WIDTH))
+        .gap(px(S2));
     for item in open.steps() {
         let item = *item;
         rail = rail.child(
@@ -86,12 +94,20 @@ pub(crate) fn dialog(
     } else {
         div().child(super::scope::hint(shell)).into_any_element()
     };
-    let body = div()
+    let pane = div()
         .flex()
         .flex_col()
+        .flex_1()
+        .min_w_0()
         .gap(px(S4))
-        .child(rail)
+        .child(title(shell, step).to_owned())
         .child(content);
+    let body = div()
+        .flex()
+        .flex_row()
+        .gap(px(S4))
+        .when(!compact, |body| body.child(rail))
+        .child(pane);
     let last = open.steps().last() == Some(&step);
     let footer = vec![
         button("setup-skip", words.skip(), false, tokens)
@@ -128,7 +144,7 @@ pub(crate) fn dialog(
             title: words.setup().into(),
             body: body.into_any_element(),
             footer,
-            size: DialogSize::Wide,
+            size: DialogSize::Setup,
         },
         tokens,
         window,

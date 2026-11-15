@@ -52,6 +52,9 @@ const CARD_WIDTH: f32 = 520.0;
 
 /// A wide card's widest, for a grid of cards.
 const WIDE_CARD_WIDTH: f32 = 640.0;
+// Paseo onboarding-modal.tsx: the rail and step pane share an 880×640 card.
+const SETUP_CARD_WIDTH: f32 = 880.0;
+const SETUP_CARD_HEIGHT: f32 = 640.0;
 
 /// How wide a dialog is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -60,6 +63,8 @@ pub enum DialogSize {
     Normal,
     /// 640 pixels, for a grid of cards.
     Wide,
+    /// Paseo setup rail and pane, 880×640 bounded by the viewport.
+    Setup,
 }
 
 /// A dialog's focus, kept by the screen that shows it.
@@ -119,7 +124,9 @@ pub fn dialog<V: 'static>(
     let width = match content.size {
         DialogSize::Normal => CARD_WIDTH,
         DialogSize::Wide => WIDE_CARD_WIDTH,
+        DialogSize::Setup => SETUP_CARD_WIDTH,
     };
+    let setup = content.size == DialogSize::Setup;
     let footer = (!content.footer.is_empty()).then(|| {
         div()
             .flex()
@@ -154,6 +161,7 @@ pub fn dialog<V: 'static>(
         .w_full()
         .overflow_hidden()
         .bg(surfaces.surface0)
+        .when(setup && !narrow, |card| card.h(px(SETUP_CARD_HEIGHT)))
         .when(!narrow, |card| {
             card.max_w(px(width))
                 .max_h(relative(0.85))

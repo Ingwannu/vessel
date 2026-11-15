@@ -1,6 +1,6 @@
 //! Serialized lifecycle commands keep failed-stop ownership alive for a retry.
 
-use super::{Action, Configuration, Connection, ManagerError, Snapshot};
+use super::{Action, Configuration, Confirmation, Connection, ManagerError, Snapshot};
 use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot, watch};
 use vessel_app_view::local_node::{LocalProvenance, Management, Status};
@@ -10,6 +10,7 @@ pub(super) enum Command {
     Action(Action),
     Finalize {
         policy: QuitPolicy,
+        confirmation: Option<Confirmation>,
         reply: oneshot::Sender<Result<(), ManagerError>>,
     },
 }
@@ -52,6 +53,11 @@ pub(super) async fn run(
         };
         match command {
             Command::Action(action) => {
+                if let Action::InterruptConfirmed(confirmation) = &action {
+                    if !valid_confirmation(&published, confirmation) {
+                        continue;
+                    }
+                }
                 let prior = published.borrow().clone();
                 let _previous = published.send_replace(Snapshot {
                     status: Status::Working,
@@ -61,14 +67,25 @@ pub(super) async fn run(
                     Action::Start => start(&config, &mut node).await,
                     Action::Stop => control(&mut node, StopPolicy::Protect, false).await,
                     Action::Restart => control(&mut node, StopPolicy::Protect, true).await,
-                    Action::InterruptConfirmed => {
+                    Action::InterruptConfirmed(_confirmation) => {
                         control(&mut node, StopPolicy::InterruptConfirmed, false).await
                     }
                 };
                 observe = result.is_ok();
                 publish(&published, node.as_ref(), result.err());
             }
-            Command::Finalize { policy, reply } => {
+            Command::Finalize {
+                policy,
+                confirmation,
+                reply,
+            } => {
+                if confirmation
+                    .as_ref()
+                    .is_some_and(|confirmation| !valid_confirmation(&published, confirmation))
+                {
+                    let _closed = reply.send(Err(ManagerError::StaleConfirmation));
+                    continue;
+                }
                 let result = match &mut node {
                     Some(current) => current
                         .quit(policy)
@@ -149,5 +166,12 @@ fn publish(
         status,
         failure,
         connection,
+        permit: Arc::new(()),
     });
+}
+
+fn valid_confirmation(published: &watch::Sender<Snapshot>, confirmation: &Confirmation) -> bool {
+    let current = published.borrow();
+    matches!(current.status, Status::Owned(_) | Status::Working)
+        && Arc::ptr_eq(&current.permit, &confirmation.0)
 }

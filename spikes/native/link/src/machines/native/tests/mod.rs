@@ -3,3 +3,5 @@ mod edits;
 mod errors;
 mod fixtures;
 mod peer;
+
+mod onboarding;

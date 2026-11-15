@@ -2,7 +2,7 @@
 
 use gpui::{App, Global};
 use std::rc::Rc;
-use vessel_app_link::local_node::{Configuration, Controller, ManagerError};
+use vessel_app_link::local_node::{Configuration, Confirmation, Controller, ManagerError};
 use vessel_app_view::local_node::{AfterQuit, Management};
 
 pub(crate) struct Managed {
@@ -34,11 +34,12 @@ pub(crate) fn ensure(prefs: &vessel_app_link::Prefs, cx: &mut App) {
         let controller = cx
             .try_global::<Managed>()
             .and_then(|managed| managed.controller.clone());
+        let after = crate::desktop::current_local_preferences(cx).after_quit;
         async move {
             if let Some(controller) = controller {
-                if let Err(error) = controller.finalize(AfterQuit::Stop, false).await {
+                if let Err(error) = controller.finalize(after, None).await {
                     tracing::warn!(%error,"protected OS quit preserved the local node");
-                    if let Err(error) = controller.finalize(AfterQuit::KeepRunning, false).await {
+                    if let Err(error) = controller.finalize(AfterQuit::KeepRunning, None).await {
                         tracing::warn!(%error,"local node release on OS quit failed");
                     }
                 }
@@ -81,7 +82,7 @@ fn configure(prefs: &vessel_app_link::Prefs, cx: &App) -> Result<Configuration, 
 
 pub(crate) fn finalize(
     after: AfterQuit,
-    confirmed: bool,
+    confirmation: Option<Confirmation>,
     cx: &App,
 ) -> impl Future<Output = Result<(), ManagerError>> + 'static {
     let controller = cx
@@ -89,7 +90,7 @@ pub(crate) fn finalize(
         .and_then(|managed| managed.controller.clone());
     async move {
         match controller {
-            Some(controller) => controller.finalize(after, confirmed).await,
+            Some(controller) => controller.finalize(after, confirmation).await,
             None => Ok(()),
         }
     }
@@ -97,14 +98,14 @@ pub(crate) fn finalize(
 
 fn request_quit(cx: &mut App) {
     let after = crate::desktop::current_local_preferences(cx).after_quit;
-    quit(after, false, cx);
+    quit(after, None, cx);
 }
 
 pub(crate) fn request_keep_quit(cx: &mut App) {
-    quit(AfterQuit::KeepRunning, false, cx);
+    quit(AfterQuit::KeepRunning, None, cx);
 }
-pub(crate) fn request_confirmed_quit(cx: &mut App) {
-    quit(AfterQuit::Stop, true, cx);
+pub(crate) fn request_confirmed_quit(confirmation: Confirmation, cx: &mut App) {
+    quit(AfterQuit::Stop, Some(confirmation), cx);
 }
 
 pub(crate) fn begin_finalization(cx: &mut App) -> bool {
@@ -125,11 +126,11 @@ pub(crate) fn end_finalization(cx: &mut App) {
     }
 }
 
-fn quit(after: AfterQuit, confirmed: bool, cx: &mut App) {
+fn quit(after: AfterQuit, confirmation: Option<Confirmation>, cx: &mut App) {
     if !begin_finalization(cx) {
         return;
     }
-    let finalize = finalize(after, confirmed, cx);
+    let finalize = finalize(after, confirmation, cx);
     let flush = crate::desktop::flush_preferences(cx);
     cx.spawn(async move |cx| {
         let result = finalize.await;

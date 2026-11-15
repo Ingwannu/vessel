@@ -264,7 +264,8 @@ impl Shell {
         if updates.updater.is_none() || !crate::local_node::begin_finalization(cx) {
             return;
         }
-        let finalize = crate::local_node::finalize(self.prefs.local_node.after_quit, false, cx);
+        let finalize =
+            crate::local_node::finalize(vessel_app_view::local_node::AfterQuit::Stop, None, cx);
         let flush = crate::desktop::flush_preferences(cx);
         cx.spawn(async move |this, cx| {
             let result = finalize.await;

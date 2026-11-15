@@ -77,7 +77,6 @@ impl Ask {
     pub fn operation(&self) -> vessel_app_view::agent_status::pages::Operation {
         use vessel_app_view::agent_status::pages::Operation;
         match self {
-            Self::Setup(_) => Problem::Call,
             Self::List => Operation::Discovery,
             Self::Check(agent) => Operation::Check(agent.clone()),
             Self::Install(install) => Operation::Install(*install),
@@ -91,6 +90,7 @@ impl AgentsError {
     pub const fn problem(&self) -> vessel_app_view::agent_status::problem::Problem {
         use vessel_app_view::agent_status::problem::Problem;
         match self {
+            Self::Setup(_) => Problem::Call,
             Self::Disconnected => Problem::Disconnected,
             Self::Busy => Problem::Busy,
             Self::NoTransport => Problem::NoTransport,

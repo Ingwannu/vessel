@@ -49,6 +49,9 @@ pub enum ManagerError {
     /// The controller stopped or cannot accept more work.
     #[error("local node command queue is unavailable")]
     Unavailable,
+    /// The displayed process state changed after a confirmation was shown.
+    #[error("local node confirmation is stale")]
+    StaleConfirmation,
 }
 
 impl Configuration {
@@ -106,6 +109,7 @@ pub struct Snapshot {
     /// Original failure, retained for diagnostics rather than parsing messages.
     pub failure: Option<Arc<LocalNodeError>>,
     connection: Option<Connection>,
+    permit: Arc<()>,
 }
 
 impl Snapshot {
@@ -114,7 +118,24 @@ impl Snapshot {
     pub fn connection(&self) -> Option<Connection> {
         self.connection.clone()
     }
+    /// Capture while showing the explicit interruption choice.
+    #[must_use]
+    pub fn confirmation(&self) -> Option<Confirmation> {
+        matches!(self.status, Status::Owned(_)).then(|| Confirmation(Arc::clone(&self.permit)))
+    }
+    /// The protected-stop refusal supplies actual session IDs to the confirmation UI.
+    #[must_use]
+    pub fn active_sessions(&self) -> Option<&[vessel_proto::SessionId]> {
+        match self.failure.as_deref() {
+            Some(LocalNodeError::ActiveSessions(sessions)) => Some(sessions),
+            _ => None,
+        }
+    }
 }
+
+/// Opaque confirmation bound to one observed owned-node state, never forged by UI.
+#[derive(Debug, Clone)]
+pub struct Confirmation(Arc<()>);
 
 /// Owned runtime is process-wide, never tied to a particular window's lifetime.
 #[derive(Debug)]
@@ -133,7 +154,7 @@ impl Drop for Controller {
 }
 
 /// Explicit user intent; interruption requires a distinct confirmed value.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum Action {
     /// Start or authenticate reuse at the managed home.
     Start,
@@ -142,7 +163,7 @@ pub enum Action {
     /// Stop then await actual exit before launching a replacement.
     Restart,
     /// The person explicitly confirmed interrupting active sessions.
-    InterruptConfirmed,
+    InterruptConfirmed(Confirmation),
 }
 
 impl Controller {
@@ -168,6 +189,7 @@ impl Controller {
             status: initial,
             failure: None,
             connection: None,
+            permit: Arc::new(()),
         });
         let (commands, inbox) = mpsc::channel(COMMAND_CAPACITY);
         drop(runtime.spawn(actor::run(configuration, inbox, published)));
@@ -201,12 +223,12 @@ impl Controller {
     pub fn finalize(
         &self,
         after: AfterQuit,
-        confirmed: bool,
+        confirmation: Option<Confirmation>,
     ) -> impl Future<Output = Result<(), ManagerError>> + 'static {
         let commands = self.commands.clone();
         let policy = match after {
             AfterQuit::KeepRunning => QuitPolicy::KeepRunning,
-            AfterQuit::Stop => QuitPolicy::Stop(if confirmed {
+            AfterQuit::Stop => QuitPolicy::Stop(if confirmation.is_some() {
                 StopPolicy::InterruptConfirmed
             } else {
                 StopPolicy::Protect
@@ -215,7 +237,11 @@ impl Controller {
         async move {
             let (reply, wait) = oneshot::channel();
             commands
-                .send(actor::Command::Finalize { policy, reply })
+                .send(actor::Command::Finalize {
+                    policy,
+                    confirmation,
+                    reply,
+                })
                 .await
                 .map_err(|_closed| ManagerError::Unavailable)?;
             wait.await.map_err(|_closed| ManagerError::Unavailable)?

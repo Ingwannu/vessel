@@ -75,6 +75,35 @@ pub(crate) fn section(
         .snapshot
         .as_ref()
         .is_some_and(|snapshot| snapshot.failure.is_some());
+    let confirmation = shell
+        .areas
+        .local_node
+        .snapshot
+        .as_ref()
+        .and_then(Snapshot::confirmation);
+    let active = shell
+        .areas
+        .local_node
+        .snapshot
+        .as_ref()
+        .and_then(Snapshot::active_sessions);
+    let live_rows = div()
+        .flex()
+        .flex_col()
+        .children(active.into_iter().flatten().map(|id| {
+            let title = shell
+                .fleet
+                .machines
+                .iter()
+                .flat_map(|machine| &machine.sessions)
+                .find(|card| card.session == *id)
+                .map(|card| card.title.clone());
+            div().child(
+                title
+                    .filter(|title| !title.is_empty())
+                    .unwrap_or_else(|| id.to_string()),
+            )
+        }));
     let card = settings::card(tokens)
         .child(settings::row_at(
             words.manage(),
@@ -125,12 +154,21 @@ pub(crate) fn section(
                         }),
                     ),
                 )
-                .child(
-                    outline_button("local-quit-interrupt", words.interrupt_quit(), true, tokens)
-                        .on_click(cx.listener(|_shell, _event, _window, cx| {
-                            crate::local_node::request_confirmed_quit(cx)
-                        })),
-                )
+                .when_some(confirmation, |actions, confirmation| {
+                    actions.child(
+                        outline_button(
+                            "local-quit-interrupt",
+                            words.interrupt_quit(),
+                            true,
+                            tokens,
+                        )
+                        .on_click(cx.listener(
+                            move |_shell, _event, _window, cx| {
+                                crate::local_node::request_confirmed_quit(confirmation.clone(), cx);
+                            },
+                        )),
+                    )
+                })
                 .child(
                     outline_button("local-quit-cancel", words.cancel_quit(), true, tokens)
                         .on_click(cx.listener(|shell, _event, _window, cx| {
@@ -138,7 +176,7 @@ pub(crate) fn section(
                             cx.notify();
                         })),
                 );
-            card.child(settings::row(
+            card.child(live_rows).child(settings::row(
                 words.quit_refused(),
                 Some(words.protected_note().into()),
                 Some(actions.into_any_element()),
