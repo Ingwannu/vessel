@@ -53,6 +53,7 @@ mod tests;
 mod text;
 pub mod timeline;
 pub mod toasts;
+pub mod voice;
 pub mod workspace;
 
 pub use agent_mark::AgentMark;

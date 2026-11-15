@@ -1,6 +1,7 @@
 # ADR 0080: Spoken conversation and desktop audio
 
-Status: proposed, 2026-11-15. Design review precedes product code.
+Status: initial contract accepted, 2026-11-15. Engine/dependency distribution
+amendments and product integration still require their own evidence.
 Protocol number given at merge; `voice::SINCE: Option<ProtocolVersion>` is
 `None` until assigned by the node integrator. No schema change: audio,
 voice leases and playback receipts are ephemeral.
@@ -68,8 +69,10 @@ request is a typed `CaptureBusy` refusal, never a second open device.
 
 `view::voice` owns validated presentation values, phases, mute, generation
 fencing, playback ordering and pure VAD boundary state. It does no I/O.
-`link::voice` owns the bounded command actor, node adapter, device thread,
-PCM conversion, playback acknowledgements and cancellation deadlines.
+`link::voice` owns the bounded conversation actor, node adapter, playback
+acknowledgements and cancellation deadlines. Shared `link::audio` owns
+the exclusive microphone/playback device thread, purpose leases and PCM
+conversion; dictation consumes that same engine rather than opening another.
 `app::areas::voice` draws the composer overlay and host settings through
 existing kit controls. Words come from EN/KO catalogs. Shared shell/link
 files receive registration lines only.
@@ -206,7 +209,10 @@ assistant speech follow the ordinary session history, unlike raw audio.
 A cancelled `next` consumes no queued update before response readiness.
 
 Typed ids, sequence, sample rate, PCM, character counts, confidence,
-playback group/index and duration values validate at decode. Audio `Debug`
+playback group and duration values validate at decode. The initial node
+emits one complete packet per synthesis segment, as the reference TTS
+manager does at lines 397-410; no arbitrary partial-group stream is exposed.
+Low-confidence and empty transcription variants cannot carry text. Audio `Debug`
 shows byte length only; transcript/speech values redact content. Old peers
 cannot send/receive the calls; omitted settings are not interpreted as
 support. Unknown settings/reasons remain readable. Method registration,

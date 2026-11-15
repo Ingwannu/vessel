@@ -997,3 +997,20 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+## Spoken-conversation skeleton (ADR 0080)
+
+`view::voice` models the seven conversation phases, exact node/session
+identity, mute and generation-fenced starts/stops without I/O. It cannot
+mark capture ready before node enable, retarget a late completion, or
+upload while muted or stopping. Its current public state is not a capability
+claim: no voice entry point is displayed.
+
+`link::voice` is staged under tests until the actual node adapter and shared
+`link::audio` device owner exist. Its bounded uploader and cancellation fence
+separate immediate local Stop from uncertain remote cleanup; queued PCM is
+discarded on Stop and device disposal precedes the remote wait. Fakes hold
+remote requests and fill data queues to check privacy and deadlines. These
+tests do not open a microphone or establish hardware/AEC readiness. The
+shared physical capture lease will remain owned until streams actually
+stop/drop, including failure paths; dictation consumes that same engine.
