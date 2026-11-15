@@ -165,5 +165,8 @@ changes or captures are required by this node-only package.
   before mutation. This is not yet a persisted node launch setting.
 - Done: skills selection/status/request value skeleton, plus one shared portable
   skill name used by fleet and skills. No skill file is installed by these values.
+- Done: private atomic selection persistence using the existing settings file
+  backup helper. Synthetic-file tests cover unknown fields, malformed JSON,
+  owner-only mode and refusal to read/write through a link (execution pending).
 - Next: fill existing node adapters, stage missing services, narrow checks;
   wire only after the shared method-table gate, then package gate/review.

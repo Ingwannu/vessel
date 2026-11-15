@@ -589,3 +589,12 @@ normalizes names before use. Malformed selections are typed refusals instead
 of Paseo's fallback to all, to avoid accidentally broadening installation.
 Skill names and operation lists are bounded by `MAX_SKILLS`; this is a stated
 resource limit beyond Paseo's unbounded arrays. No new dependency is added.
+
+
+Skill selection is stored in `skills.json`, separate from synchronized fleet
+content. Its optional selection distinguishes no choice from an explicit all
+choice for legacy import. The file uses store's existing atomic private write
+and set-aside machinery: malformed input is preserved as unreadable; future
+fields are copied aside before replacement. Whole-file reads are bounded.
+Links and special files are refused, including on write, so preserving a
+malformed file cannot change the permissions of a linked outside target.

@@ -114,7 +114,17 @@ impl DataDir {
         at: DateTime<Utc>,
         why: SetAside,
     ) -> Result<PathBuf, StoreError> {
-        let path = self.settings_path();
+        self.set_aside_config(SETTINGS_FILE, at, why)
+    }
+
+    /// Shared downgrade protection for owner-only package configuration files.
+    pub(crate) fn set_aside_config(
+        &self,
+        name: &str,
+        at: DateTime<Utc>,
+        why: SetAside,
+    ) -> Result<PathBuf, StoreError> {
+        let path = self.root().join(name);
         let kind = match why {
             SetAside::Unreadable => "unreadable",
             SetAside::Later => "later",
@@ -122,9 +132,9 @@ impl DataDir {
         let stamp = at.format("%Y%m%dT%H%M%S%.3fZ");
         for attempt in 1..=SET_ASIDE_TRIES {
             let name = if attempt == 1 {
-                format!("{SETTINGS_FILE}.{kind}-{stamp}")
+                format!("{name}.{kind}-{stamp}")
             } else {
-                format!("{SETTINGS_FILE}.{kind}-{stamp}-{attempt}")
+                format!("{name}.{kind}-{stamp}-{attempt}")
             };
             let aside = self.root().join(name);
             match std::fs::symlink_metadata(&aside) {
@@ -182,7 +192,7 @@ impl DataDir {
 
 /// Whether every key of `file`, at every depth, is in `known` with the
 /// same value.
-fn covered(file: &serde_json::Value, known: &serde_json::Value) -> bool {
+pub(crate) fn covered(file: &serde_json::Value, known: &serde_json::Value) -> bool {
     match (file, known) {
         (serde_json::Value::Object(file), serde_json::Value::Object(known)) => file
             .iter()

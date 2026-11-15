@@ -72,6 +72,7 @@ mod schema;
 mod search;
 mod settings_file;
 mod side_context;
+mod skills_file;
 mod store;
 mod token;
 mod usage;
