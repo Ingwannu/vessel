@@ -1671,3 +1671,10 @@ unsupported override before process spawn, with a typed Unsupported mapping.
 The field does not enter SessionSpec, user messages, argv or environment.
 Reload orchestration and actual native override/restore transports are separate
 work; see docs/plans/provider-transient-context.md. No dependency edge changes.
+## Native search lifetime
+
+The existing cross-session Searching value belongs once to PaletteArea, outside
+the session-owned ConversationArea. Existing Shell search calls, the link and
+the renderer keep their interfaces. Replacing a conversation resident therefore
+preserves debounce, query tickets and merged cross-machine replies. The isolated
+prerequisite and test boundary are in docs/plans/wp-a3-search-residency.md.
