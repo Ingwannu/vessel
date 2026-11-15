@@ -77,6 +77,9 @@ pub(crate) fn kind(entry: &Entry) -> &'static str {
         K::Forked { .. } => "forked",
         K::Profile { .. } => "profile",
         K::Model(_) => "model",
+        K::Notification(_) => "notification",
+        K::Compaction(_) => "compaction",
+        K::Plugin(_) => "plugin",
     }
 }
 
@@ -93,6 +96,7 @@ pub(crate) fn key(entry: &Entry) -> String {
         EntryKey::Permission(id) => format!("p{id}"),
         EntryKey::Question(id) => format!("q{id}"),
         EntryKey::Plan { seq, step } => format!("r{seq}.{step}"),
+        EntryKey::Plugin { plugin, id } => format!("plugin:{plugin}/{id}"),
     }
 }
 
