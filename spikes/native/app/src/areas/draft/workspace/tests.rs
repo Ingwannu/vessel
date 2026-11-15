@@ -35,6 +35,42 @@ fn seed(destination: DraftDestination, workspace: WorkspaceId, text: &str) -> Dr
     }
 }
 #[gpui::test]
+fn mode_comes_only_from_the_exact_drafts_retained_launch(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let node = NodeId::random();
+        let workspace = WorkspaceId::random();
+        let destination = connect(shell, node);
+        let key = LayoutKey::Workspace { node, workspace };
+        for (launch, expected) in [
+            (Launch::Chat, Mode::Chat),
+            (Launch::BlankTerminal, Mode::Terminal),
+            (
+                Launch::Profile(vessel_proto::terminal_profiles::Id::parse("configured").unwrap()),
+                Mode::Terminal,
+            ),
+        ] {
+            let draft = DraftId::random();
+            let mut input = seed(destination.clone(), workspace, "");
+            input.launch = launch;
+            shell.seed_draft(draft, input, window, cx).unwrap();
+            assert_eq!(shell.workspace_draft_mode(&key, draft), Some(expected));
+            assert_eq!(
+                shell.workspace_draft_mode(
+                    &LayoutKey::Workspace {
+                        node: NodeId::random(),
+                        workspace
+                    },
+                    draft
+                ),
+                None
+            );
+        }
+        assert_eq!(shell.workspace_draft_mode(&key, DraftId::random()), None);
+    });
+}
+#[gpui::test]
 fn history_and_initial_text_share_the_exact_admitted_workspace_editor(cx: &mut TestAppContext) {
     language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);

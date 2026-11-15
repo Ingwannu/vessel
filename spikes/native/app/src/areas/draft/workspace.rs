@@ -19,6 +19,7 @@ use vessel_app_view::composer::{
     context::ContextScope,
     drafts::{DraftKey, Drafts},
 };
+use vessel_app_view::composer_shell::surface::Mode;
 use vessel_app_view::creation::{DraftDestination, DraftSeed, Launch, SeedPlace, SeedProblem};
 use vessel_app_view::layout::{DraftId, LayoutKey, Target};
 
@@ -52,6 +53,22 @@ impl Editor {
     }
 }
 impl Shell {
+    /// Display policy follows this retained launch selection, never a global agent.
+    pub(crate) fn workspace_draft_mode(
+        &self,
+        workspace: &LayoutKey,
+        draft: DraftId,
+    ) -> Option<Mode> {
+        self.areas
+            .draft
+            .workspace_drafts
+            .entries
+            .get(&(workspace.clone(), draft))
+            .map(|entry| match entry.launch {
+                Launch::Chat => Mode::Chat,
+                Launch::BlankTerminal | Launch::Profile(_) => Mode::Terminal,
+            })
+    }
     /// W6 resolves exactly this field; an absent draft is never the global New field.
     pub(crate) fn workspace_draft_field(
         &self,
@@ -228,8 +245,11 @@ pub(crate) fn render_panel(
         },
         cx,
     );
-    let editor = match entry.launch {
-        Launch::Chat => {
+    let Some(mode) = shell.workspace_draft_mode(panel.workspace, *draft) else {
+        return unavailable(shell);
+    };
+    let editor = match mode {
+        Mode::Chat => {
             let Some(card) =
                 crate::areas::composer::workspace_card(shell, source, editable, tokens, window, cx)
             else {
@@ -238,7 +258,7 @@ pub(crate) fn render_panel(
             card.into_any_element()
         }
         // Terminal input uses this retained field without agent affordances.
-        Launch::BlankTerminal | Launch::Profile(_) => field
+        Mode::Terminal => field
             .element(tokens, vessel_app_kit::breakpoint::phone(window), cx)
             .into_any_element(),
     };
