@@ -10,7 +10,6 @@
 //! - it is the only place wire types are defined.
 
 mod agent;
-pub mod timeline;
 pub mod agents;
 pub mod automation;
 mod base64_bytes;
@@ -59,6 +58,7 @@ pub mod settings;
 pub mod side_questions;
 mod terminal;
 pub mod terminals;
+pub mod timeline;
 mod title;
 mod transfer;
 #[cfg(feature = "ts")]
