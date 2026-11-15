@@ -21,10 +21,13 @@ or second sheet renderer is introduced.
 Paseo `packages/app/src/usage/options.tsx:38-90` uses compactMode=sheet,
 DropdownMenuContent align=end, width340 and an arbitrary settings body.
 `components/ui/menu/menu-surface.tsx:213-285` supplies offset4, horizontal
-padding16, an anchored popover without a header. Its compact branch at354-410
-uses the existing adaptive sheet, with a title and natural content sizing.
-The native fitting compact default retains the existing dialog's 90% cap;
-explicit CompactLayout may select the same shared draggable snap engine.
+viewport padding16 for full-width positioning, an anchored popover without a
+header. This is not body padding: MenuPage at menu-item.tsx:384-387 adds only
+vertical4; settings rows own their horizontal16. Its compact branch at354-425
+uses the existing adaptive sheet, title, natural content sizing and an80% cap.
+The native popover adopts that cap and caller-owned row spacing; explicit
+CompactLayout may select the same shared draggable snap engine. The shared
+dialog's existing header/close styling remains the native compact header.
 
 ## API and data flow
 
@@ -46,6 +49,8 @@ Desktop is content-sized, viewport-capped, end/start aligned, offset4, popup
 surface/radius/shadow and QUICK motion. Compact calls the existing dialog with the
 same DialogState; no duplicate compact layout or gesture engine exists. This is
 a generic body control; host readiness, preferences and feature actions stay out.
+DialogLayout::with_body_spacing(BodySpacing::Caller) prevents double-insetting
+forms; the legacy Inset24 default and existing dialog tests stay unchanged.
 
 ## Validation and handoff
 

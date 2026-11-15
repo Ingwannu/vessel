@@ -52,7 +52,7 @@ mod layout;
 mod return_focus;
 mod sheet;
 
-pub use layout::{CompactLayout, DesktopHeight, DialogLayout, DialogWidth};
+pub use layout::{BodySpacing, CompactLayout, DesktopHeight, DialogLayout, DialogWidth};
 
 use crate::assets::Glyph;
 use crate::fonts::Type;
@@ -195,6 +195,7 @@ pub fn dialog<V: 'static>(
             &surfaces,
             sheet.as_ref(),
             release.as_ref(),
+            layout.body_spacing(),
         ))
         .children(footer);
     overlay(card, sheet, narrow, window, close, cx)
@@ -276,13 +277,14 @@ fn body(
     surfaces: &Surfaces,
     sheet: Option<&sheet::SheetFrame>,
     release: Option<&crate::sheet::snap::listener::OnRelease>,
+    spacing: BodySpacing,
 ) -> gpui::Stateful<gpui::Div> {
     div().id("dialog-body").flex().flex_col()
         // The body yields to the card's cap so long text cannot hide actions.
         .flex_auto().min_h(px(0.0)).overflow_y_scroll()
         .map(|body| match sheet { Some(sheet) => body.track_scroll(&sheet.scroll), None => body })
         .when(sheet.is_some(), Styled::relative)
-        .gap(px(16.0)).p(px(INSIDE)).type_(Type::Body)
+        .gap(px(16.0)).when(spacing == BodySpacing::Inset, |body| body.p(px(INSIDE))).type_(Type::Body)
         .text_color(surfaces.foreground_muted).child(content)
         .map(|body| match (sheet, release) {
             (Some(sheet), Some(release)) => body.child(sheet.listener(crate::sheet::snap::Origin::Content, release)),
