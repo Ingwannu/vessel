@@ -1429,3 +1429,12 @@ is held, confirms its owned task exists, drops the caller and drains normal
 shutdown tasks; the canonical mark/time remain committed. The shared inbox
 handler change is only this delegation/error-boundary adjustment; its original
 authority checks and messages are untouched.
+
+
+### Owned metadata order preparation (behavior-preserving)
+
+The existing metadata mutex is held in Arc so admission can transfer an owned
+lease to a retained task. Existing lock calls dereference the same mutex; no
+ordering, condition, operation, permission or test expectation changes here.
+The following inbox cancellation correction obtains that lease before spawning,
+instead of retaining arbitrarily many cancelled waiters. This is no new fence.
