@@ -37,6 +37,7 @@ use vessel_proto::{PermissionOption, PermissionOptionKind, PermissionRequest, Ra
 
 use super::approval::{AnswerWords, allows, answer_words, answers_of};
 use super::entry::{Permission, ToolView};
+use super::plan_card::plan_text;
 
 /// What the card's title says.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -99,10 +100,7 @@ pub fn permission_card<'a>(
     let input = tool
         .and_then(|tool| tool.input.as_ref())
         .map(RawJson::as_text);
-    let plan = input
-        .and_then(|input| serde_json::from_str::<PlanInput>(input).ok())
-        .map(|input| input.plan)
-        .filter(|plan| !plan.trim().is_empty());
+    let plan = tool.and_then(plan_text);
     let shell = tool.is_none_or(|tool| tool.kind == ToolKind::Execute);
     let command = input
         .filter(|_| shell)
@@ -165,13 +163,6 @@ pub fn permission_card<'a>(
         answers,
         count: (waiting > 1).then_some((1, waiting)),
     }
-}
-
-/// The plan a tool's input carries (Claude Code leaving plan mode puts its
-/// Markdown under `plan`); the input's other fields are not read.
-#[derive(Deserialize)]
-struct PlanInput {
-    plan: String,
 }
 
 /// The command a shell call's input carries; the input's other fields are
