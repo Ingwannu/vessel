@@ -233,3 +233,15 @@ assert the full isolated output, including nested countdown components; the othe
 duration check is strengthened from substring to the complete scoped label.
 Product formatting and Fluent's bidi protection remain unchanged. This test
 correction still needs its changed-source run; the earlier run remains red.
+
+### Reviewed usage wording corrections
+L reviewed the exact EN/KO Usage catalogs as words/data, not as package or runtime
+acceptance. Apply its machine versus client-device distinction, consistent Korean
+refresh/vendor wording, exact fixed-service description and the existing PARTICLE
+function for source disclosure. Per-key comments state that login/recipient values
+are translated store/service descriptions, never credential contents. The whole
+turn-coverage label becomes `Turns reported: reported / turns`, retaining the same
+typed two-argument API and avoiding the singular “1 turns” error. New whole-sentence
+goldens include Fluent isolation, Korean object particles and machine/device terms.
+No number format, credential permission, fetch or wire behavior changes. These
+goldens and the combined catalog still require the package's compiler/runtime gate.

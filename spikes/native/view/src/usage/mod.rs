@@ -58,3 +58,5 @@ pub use summary_layout::{
     MIN_SUMMARY_METER_WIDTH, SUMMARY_METER_GAP, SummaryLayout, SummaryMeasurements, SummaryWidth,
     SummaryWindowCount, summary_layout,
 };
+#[cfg(test)]
+mod wording_tests;

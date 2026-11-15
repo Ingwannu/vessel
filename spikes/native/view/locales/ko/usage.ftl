@@ -1,7 +1,7 @@
 ## Usage settings and factual account-limit notices.
 ## Values come from the node; absent usage must never be translated as zero.
 # Usage settings or limit notice; keep this whole label or explanation together.
-usage-lead = 이 기기의 에이전트가 보고한 토큰과 비용입니다. 누락된 사용량은 추정하지 않습니다.
+usage-lead = 이 머신의 에이전트가 보고한 토큰과 비용입니다. 누락된 사용량은 추정하지 않습니다.
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-totals = 보고된 사용량
 # Usage settings or limit notice; keep this whole label or explanation together.
@@ -13,17 +13,17 @@ usage-day = 최근 24시간
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-week = 최근 7일
 # Usage settings or limit notice; keep this whole label or explanation together.
-usage-refresh = 새로고침
+usage-refresh = 새로 고침
 # 현재 선택한 머신의 구성된 모든 계정을 명시적으로 조회합니다.
-usage-refresh-all = 모든 계정 새로고침
+usage-refresh-all = 모든 계정 새로 고침
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-retry = 다시 시도
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-loading = 사용량을 읽는 중…
 # Usage settings or limit notice; keep this whole label or explanation together.
-usage-offline = 기기가 오프라인입니다. 다시 연결하면 사용량을 읽을 수 있습니다.
+usage-offline = 머신이 오프라인입니다. 다시 연결하면 사용량을 읽을 수 있습니다.
 # Usage settings or limit notice; keep this whole label or explanation together.
-usage-unsupported = 사용량을 읽으려면 이 기기를 업데이트하세요.
+usage-unsupported = 사용량을 읽으려면 이 머신을 업데이트하세요.
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-busy = 사용량 요청이 진행 중입니다. 잠시 후 다시 시도하세요.
 # Usage settings or limit notice; keep this whole label or explanation together.
@@ -83,11 +83,11 @@ usage-no-backfill = 이전 기록은 소급 집계하지 않습니다.
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-lookup = 계정 한도 조회
 # Usage settings or limit notice; keep this whole label or explanation together.
-usage-lookup-disclosure = 이 기기가 설정된 에이전트의 저장된 로그인을 읽고 해당 공급자에게만 전송하여 계정 한도를 확인하도록 허용합니다. 관리자만 이 설정을 변경할 수 있습니다.
+usage-lookup-disclosure = 이 머신이 설정된 에이전트의 저장된 로그인을 읽고 해당 공급자에게만 전송하여 계정 한도를 확인하도록 허용합니다. 관리자만 이 설정을 변경할 수 있습니다.
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-lookup-off = 계정 한도 조회가 꺼져 있습니다. 보고된 토큰과 비용은 계속 확인할 수 있습니다.
 # Usage settings or limit notice; keep this whole label or explanation together.
-usage-not-requested = 아직 한도를 조회하지 않았습니다. 새로고침으로 저장된 계정을 조회하세요.
+usage-not-requested = 아직 한도를 조회하지 않았습니다. 새로 고침으로 저장된 계정을 조회하세요.
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-account-disclosure = 설정된 저장 계정의 한도입니다. 실행 중인 에이전트가 사용하는 로그인을 증명하지 않습니다.
 # Usage settings or limit notice; keep this whole label or explanation together.
@@ -115,7 +115,7 @@ usage-secondary = 보조 한도
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-reset-unknown = 초기화 시각이 보고되지 않음
 # Usage settings or limit notice; keep this whole label or explanation together.
-usage-reset-past = 보고된 초기화 시각이 지났습니다. 새로고침으로 다시 확인하세요.
+usage-reset-past = 보고된 초기화 시각이 지났습니다. 새로 고침으로 다시 확인하세요.
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-plan = 요금제
 # Usage settings or limit notice; keep this whole label or explanation together.
@@ -155,7 +155,7 @@ usage-wait = 초기화까지 대기
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-wait-hint = 프롬프트는 자동으로 전송되지 않습니다. 계정이 준비되면 계속하세요.
 # Usage settings or limit notice; keep this whole label or explanation together.
-usage-turn-coverage = 전체 { $turns }턴 중 { $reported }턴 보고됨
+usage-turn-coverage = 보고된 턴: { $reported } / { $turns }
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-reset-at = 보고된 초기화 시각: { $time }
 # Usage settings or limit notice; keep this whole label or explanation together.
@@ -191,9 +191,9 @@ usage-has-credits = 크레딧 사용 가능
 # Explicit vendor account fact; absence is not false.
 usage-unlimited = 무제한 크레딧
 # Explicit vendor account fact; absence is not false.
-usage-allowed = 제공업체 사용 허용
+usage-allowed = 공급자가 사용을 허용함
 # Explicit vendor account fact; absence is not false.
-usage-limit-reached = 제공업체 한도 도달 보고
+usage-limit-reached = 공급자가 한도 도달을 보고함
 # Explicit vendor account fact; absence is not false.
 usage-yes = 예
 # Explicit vendor account fact; absence is not false.
@@ -201,9 +201,9 @@ usage-no = 아니요
 # Usage modal heading, host picker or empty state.
 usage-title = 사용량
 # Usage modal heading, host picker or empty state.
-usage-host = 호스트
+usage-host = 머신
 # Usage modal heading, host picker or empty state.
-usage-no-hosts = 연결된 호스트가 없습니다.
+usage-no-hosts = 연결된 머신이 없습니다.
 # Settings opens the shared host-filtered usage modal.
 usage-open-modal = 사용량 열기
 # Usage summary short window labels or pinning controls.
@@ -227,7 +227,7 @@ usage-no-allowance = 이 로그인에 보고된 사용 한도가 없습니다.
 usage-inactive-plan = 보고된 구독이 비활성 상태입니다.
 
 # Account report or source access; keep this whole phrase and its typed values together.
-usage-source-unreachable = 소스가 사용량 서비스에 연결하지 못했습니다. 나중에 다시 시도하세요.
+usage-source-unreachable = 소스가 지정된 사용량 서비스에 연결하지 못했습니다. 나중에 다시 시도하세요.
 
 # Account report or source access; keep this whole phrase and its typed values together.
 usage-source-off = 이 소스 조회가 꺼져 있습니다.
@@ -235,8 +235,8 @@ usage-source-off = 이 소스 조회가 꺼져 있습니다.
 # Account report or source access; keep this whole phrase and its typed values together.
 usage-source-needs-consent = 소스의 변경된 로그인 접근 범위를 검토한 뒤 켜세요.
 
-# Account report or source access; keep this whole phrase and its typed values together.
-usage-source-disclosure = 명시적으로 새로고침하면 이 머신의 { $login }을(를) 읽어 { $recipient }에 전달할 수 있습니다. 접근을 켜는 것만으로 조회하지 않습니다.
+# $login과 $recipient는 번역된 로그인 저장소와 서비스 설명이며 실제 자격 증명 내용이 아닙니다.
+usage-source-disclosure = 명시적으로 새로 고침하면 이 머신의 { $login }{ PARTICLE($login, "object") } 읽어 { $recipient }에 전달할 수 있습니다. 접근을 켜는 것만으로 조회하지 않습니다.
 
 # Account report or source access; keep this whole phrase and its typed values together.
 usage-store-claude = 구성된 Claude Code 로그인
@@ -332,7 +332,7 @@ usage-disable-source = 소스 접근 끄기
 usage-source-reports = 계정 보고서
 
 # Account report or source access; keep this whole phrase and its typed values together.
-usage-no-source-reports = 발견된 계정이 없습니다. 지원되는 소스의 접근을 켠 뒤 명시적으로 새로고침하세요.
+usage-no-source-reports = 발견된 계정이 없습니다. 지원되는 소스의 접근을 켠 뒤 명시적으로 새로 고침하세요.
 
 # Source adapter availability, independent of its currently saved permission.
 usage-source-unsupported = 이 머신에서 이 소스를 사용할 수 없습니다.

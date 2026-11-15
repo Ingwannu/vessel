@@ -155,7 +155,7 @@ usage-wait = Wait for reset
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-wait-hint = No prompt will be sent automatically. Continue when the account is ready.
 # Usage settings or limit notice; keep this whole label or explanation together.
-usage-turn-coverage = { $reported } of { $turns } turns reported
+usage-turn-coverage = Turns reported: { $reported } / { $turns }
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-reset-at = Reported reset: { $time }
 # Usage settings or limit notice; keep this whole label or explanation together.
@@ -235,7 +235,7 @@ usage-source-off = Source lookup is off.
 # Account report or source access; keep this whole phrase and its typed values together.
 usage-source-needs-consent = Review this source’s updated sign-in access before enabling it.
 
-# Account report or source access; keep this whole phrase and its typed values together.
+# $login and $recipient are translated store/service descriptions, never credential contents.
 usage-source-disclosure = An explicit refresh may read { $login } on this machine and send that sign-in to { $recipient }. Enabling access does not fetch usage.
 
 # Account report or source access; keep this whole phrase and its typed values together.
