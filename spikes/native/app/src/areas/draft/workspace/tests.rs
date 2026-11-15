@@ -192,3 +192,46 @@ fn mode_comes_only_from_the_exact_drafts_retained_launch(cx: &mut TestAppContext
         assert_eq!(shell.workspace_draft_mode(&key, DraftId::random()), None);
     });
 }
+
+#[gpui::test]
+fn scoped_field_edits_keep_their_seed_and_never_overwrite_siblings(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    let node = NodeId::random();
+    let workspace = WorkspaceId::random();
+    let first = DraftId::random();
+    let sibling = DraftId::random();
+    let key = LayoutKey::Workspace { node, workspace };
+    let target = |draft| DraftKey::Workspace {
+        node,
+        workspace,
+        draft,
+    };
+    shell.update_in(cx, |shell, window, cx| {
+        let destination = connect(shell, node);
+        shell.areas.draft.composer.set_text("global", window, cx);
+        shell.new_chat_kept(cx);
+        for (draft, text) in [(first, "first"), (sibling, "sibling")] {
+            shell
+                .seed_draft(
+                    draft,
+                    seed(destination.clone(), workspace, text),
+                    window,
+                    cx,
+                )
+                .unwrap();
+            assert_eq!(shell.areas.composer.drafts.text(target(draft)), text);
+        }
+        shell
+            .workspace_draft_field(&key, first)
+            .unwrap()
+            .replace_all("edited", window, cx);
+    });
+    cx.run_until_parked();
+    shell.update_in(cx, |shell, _, cx| {
+        assert_eq!(shell.areas.composer.drafts.text(target(first)), "edited");
+        assert_eq!(shell.areas.composer.drafts.text(target(sibling)), "sibling");
+        assert_eq!(shell.areas.composer.drafts.text(DraftKey::New), "global");
+        assert_eq!(shell.areas.draft.composer.text(cx), "global");
+    });
+}
