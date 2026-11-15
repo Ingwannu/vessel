@@ -948,3 +948,11 @@ registration remain. Dialog header actions retain the actual overlay marker.
 Production Window zoom availability alone does not enable F4's three extensions
 before W19's checked adapter. New node registry values are canonical data, not
 a checked native workspace navigation producer. New union checks remain owed.
+
+Receiving9b R21 exact05f77 all4 native-crate strict is GREEN0. R14 actual
+App stopped144pass/1fail/2ignore: incoming PreparedRefusal golden still
+expected64 actions while F4's existing MAX_ACTIONS is128; displayed128 is
+correct. Updated ONLY the whole App English and corresponding View ENKO refusal
+goldens to128, preserving FSI/PDI and translation/cause/success
+clearing. No policy capacity, FTL wording/vars or formatter changed. Kit/View
+suites were not reached after App failed; no pass is inferred for them.
