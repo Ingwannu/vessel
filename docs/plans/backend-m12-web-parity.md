@@ -1,6 +1,6 @@
 # Web page parity
 
-Status: parity contract accepted; A1 whole gate passed, implementation review pending, 2026-11-15. ADR 0075.
+Status: bounded A1 implementation accepted; sidebar/viewport follow-up in progress, 2026-11-15. ADR 0075.
 
 ## Scope and evidence
 
@@ -302,8 +302,9 @@ zero failed / 12 ignored, TypeScript freshness two passed, frontend units
 428 passed, full browser E2E 63 passed, and sixteen capture cases passed.
 All format, size, boundaries, Clippy, web lint, typecheck and bundle steps
 passed. Execution identity, served assets and cleanup are recorded below.
-This is executed validation, with implementation review still pending;
-it is not whole-page parity or combined integration approval.
+This bounded A1 source/runtime/capture scope passed implementation review
+and maintainer acceptance. It is not whole-page parity or combined
+integration approval.
 
 A1 adds machine reported accounting in Settings: pick a machine and the
 past day/week, read totals and coverage, then explicitly refresh. It adds
@@ -698,3 +699,38 @@ capture diagnostic and the original HTML-audit error remain adverse
 historical evidence. They are corrected by this new changed-tree run,
 not relabelled as successes or waived. Implementation review and any
 combined-line gate remain separate from this result.
+
+
+## Sidebar and viewport follow-up
+
+Before extending accounting, two small page corrections follow as separate
+commits. First, an ended conversation remains in the sidebar by default:
+reuse the bridge's field-aware preference reader and the page's existing
+filter rather than migrating or overwriting a stored choice. Missing
+`sidebar.ended` means on; stored false stays false; archived remains out.
+ADR 0036 records the reason. The second correction will address following
+the timeline's end when the viewport and composer dock change together,
+keeping the existing browser assertion and deadlines intact. The A1 review
+handoff above remains tied to its immutable executed source.
+
+
+The default-on correction's first focused frontend run exposed four old
+live-only test cases that had relied implicitly on the old off default
+(17 passed, four failed). Those four view arguments now explicitly choose
+ended=false; their expected rows, order, names and assertions are kept.
+Separate added cases verify the new default, retained off choice and
+archive exclusion. The first bridge-unit run passed 54 and failed one
+new assertion that searched pretty-printed JSON without accounting for
+whitespace; it now uses that test module's existing compact comparison.
+This was a new test's assumption, not a stored-false product failure.
+The real-node browser flow and whole follow-up gate are still pending.
+
+
+After correcting that new test's whitespace assumption, scoped bridge
+Clippy passed, all 55 bridge unit tests passed, all 430 frontend unit tests
+passed, and web typecheck plus changed-file ESLint passed. The added real
+browser case checks ended visibility, acknowledged off, reload retention,
+turning on again and archive exclusion. It has not run at this checkpoint;
+the two corrections' whole gate and rendered evidence are still required.
+The older collapsed-rail Settings/theme-mark clipping at 800×600 is a
+separate later parity item; these corrections do not claim to repair it.

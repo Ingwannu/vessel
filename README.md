@@ -1311,3 +1311,7 @@ if unknown, supply it explicitly. `--after` fixes the UTC cursor for a
 reproducible preview; `--count` is 1–10. API callers reuse the returned
 cadence when saving so an interval keeps its preview anchor. `vessel status`
 also reports the node's time zone. ADR 0033 defines the daylight-saving rules.
+
+
+The page's sidebar keeps ended conversations visible until archived.
+Display → Show ended sessions can hide them; a saved off choice stays off.

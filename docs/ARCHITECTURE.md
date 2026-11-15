@@ -1321,3 +1321,12 @@ probe or automatic relay activation is performed. Existing Admin guards run
 first. The CLI prints no link or QR on refusal; older clients keep the human
 message while typed clients can localize the stable error reason. No new
 RPC, external dependency, persistent state or ownership rule is introduced.
+
+
+## Ended conversations in the page (ADR 0036 amendment)
+
+The bridge's `wire::SidebarView::default` and the page's `prefs-change`
+start with ended sessions visible. `data/sidebar` reuses that page default
+and still applies archive exclusion separately. The existing `PrefsDoc`
+field reader fills an absent choice from the wire default, preserving an
+explicit false and unknown file fields without a migration or rewrite.
