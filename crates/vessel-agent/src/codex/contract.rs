@@ -49,6 +49,7 @@ const FIELDS: &[(&str, &[&str])] = &[
     (
         "ThreadStartParams",
         &[
+            "config",
             "cwd",
             "model",
             "approvalPolicy",
@@ -59,6 +60,7 @@ const FIELDS: &[(&str, &[&str])] = &[
     (
         "ThreadResumeParams",
         &[
+            "config",
             "threadId",
             "cwd",
             "model",

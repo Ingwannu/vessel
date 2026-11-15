@@ -28,6 +28,7 @@ pub(crate) mod catalogue;
 mod catalogue_data;
 mod commands;
 mod mapper;
+mod mcp;
 mod mode;
 mod protocol;
 mod session;

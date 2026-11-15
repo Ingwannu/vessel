@@ -103,6 +103,8 @@ pub(super) enum SandboxPolicy {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct ThreadStartParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) config: Option<super::mcp::ThreadConfig>,
     pub(super) cwd: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) model: Option<String>,
@@ -115,6 +117,8 @@ pub(super) struct ThreadStartParams {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct ThreadResumeParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) config: Option<super::mcp::ThreadConfig>,
     pub(super) thread_id: String,
     pub(super) cwd: String,
     #[serde(skip_serializing_if = "Option::is_none")]

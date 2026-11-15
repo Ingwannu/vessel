@@ -328,3 +328,27 @@ single table stays in rpc/table.rs; the W12 pending draft row moves to its end
 without a number. No source budget is raised or existing assertion edited by
 this merge. Combined compilation remains owed before this dependency reaches
 main or any consumer-ready claim.
+
+## Codex native MCP preparation
+
+Paseo codex-app-server-agent.ts:903-925 and5387-5424 put the resolved stdio/HTTP
+MCP map under thread start/resume config.mcp_servers. Reuse Vessel's existing
+ResolvedMcpServers and secret wrapper in a native-only Serialize adapter; do not
+resolve again or flatten into process environment. Empty snapshots omit config,
+preserving native defaults. Native config Debug shows only a count. The positive
+fake audit records exact synthetic start/resume payloads into a private temp
+file, including literal arguments, stdio env and HTTP headers, without executing
+any MCP helper or contacting an endpoint. The native capability is staged here;
+old unsupported assertions stay until that positive test actually passes, then
+will narrow to the still unsupported choices in the same capability commit.
+
+The positive native MCP test actually passed locally on2026-11-15:
+/tmp/work/wp-providers/native-mcp-positive.log,1/0/0, including both start/resume
+with configured stdio+HTTP and empty omission. Cold compilation4m06s and the
+fake preparation inside testkit's pre-deadline setup account for its94.48s test
+summary. Only testkit processes ran, with synthetic environment/header values.
+After that proof the old combined omission assertion is narrowed to its still
+unsupported effort-choice half; its unchanged refusal assertion remains.
+The capability commit explicitly names removal of the old left-out expectation.
+The separate Debug unit test and combined Codex/options/catalogue checks remain
+owed; this single positive test is not a package-wide gate or reviewed handoff.

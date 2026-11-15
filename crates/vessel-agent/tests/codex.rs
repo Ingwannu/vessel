@@ -870,9 +870,9 @@ async fn only_the_running_turns_completion_ends_it() {
 
 /// Until the options slice, a session asked for a choice other than the
 /// mode is not started without it: the handshake fails as for an option
-/// an agent does not offer. Tool servers are said to be left out.
+/// an agent does not offer. Native MCP servers have their own exact transport proof.
 #[tokio::test]
-async fn other_choices_fail_the_handshake_and_tool_servers_are_said_to_be_left_out() {
+async fn unsupported_choices_still_fail_the_handshake() {
     within(async {
         let mut choosing = setup(None);
         choosing.options = vec![OptionChoice {
@@ -893,29 +893,6 @@ async fn other_choices_fail_the_handshake_and_tool_servers_are_said_to_be_left_o
                     if message.contains("effort")
             ),
             "{refused:?}"
-        );
-
-        let mut serving = setup(None);
-        let _none = serving.mcp_servers.insert(
-            "vessel".parse().unwrap(),
-            vessel_proto::McpTransport::Stdio {
-                command: "vessel".into(),
-                args: Vec::new(),
-                env: std::collections::BTreeMap::new(),
-            },
-        );
-        let (_agent, _input, mut outputs) = spawn(serving);
-        let said = until(&mut outputs, |output| {
-            matches!(output, AgentOutput::Event(AgentEvent::HarnessLog { .. }))
-        })
-        .await;
-        assert!(
-            matches!(
-                said.last(),
-                Some(AgentOutput::Event(AgentEvent::HarnessLog { line }))
-                    if line.contains("without vessel")
-            ),
-            "{said:?}"
         );
     })
     .await;

@@ -53,6 +53,7 @@ impl Session {
         let model = self.setup.model.as_ref().map(ToString::to_string);
         let sent = if let Some(thread) = &self.setup.resume {
             let params = ThreadResumeParams {
+                config: super::super::mcp::ThreadConfig::from_servers(&self.setup.mcp_servers),
                 thread_id: thread.to_string(),
                 cwd,
                 model,
@@ -65,6 +66,7 @@ impl Session {
                 .await
         } else {
             let params = ThreadStartParams {
+                config: super::super::mcp::ThreadConfig::from_servers(&self.setup.mcp_servers),
                 cwd,
                 model,
                 approval_policy: self.mode.approval(),
@@ -102,22 +104,6 @@ impl Session {
             abilities: Some(abilities),
         })
         .await;
-        // Nor tool servers (the thread's `config`, slice 3): said, so a
-        // session never lacks them unannounced.
-        if !self.setup.mcp_servers.is_empty() {
-            let names: Vec<String> = self
-                .setup
-                .mcp_servers
-                .keys()
-                .map(ToString::to_string)
-                .collect();
-            let line = format!(
-                "vessel: Codex's own protocol does not pass tool servers yet; this session runs \
-                 without {}",
-                names.join(", ")
-            );
-            self.emit(AgentEvent::HarnessLog { line }).await;
-        }
         None
     }
 }

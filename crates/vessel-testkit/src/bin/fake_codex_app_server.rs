@@ -69,6 +69,8 @@ use serde_json::{Value, json};
 
 #[path = "fake_codex_app_server/catalogue.rs"]
 mod catalogue;
+#[path = "fake_codex_app_server/launch_audit.rs"]
+mod launch_audit;
 
 /// The version printed when `FAKE_CODEX_VERSION` is unset: the one the
 /// driver's schema was generated from.
@@ -317,6 +319,7 @@ impl Server {
     }
 
     fn opened(&mut self, id: &Value, thread: &str, params: &Value) -> Result<(), Exit> {
+        launch_audit::record(params).map_err(|_failed| Exit::Closed)?;
         self.thread = Some(thread.to_owned());
         self.started = format!(
             "{} {} {}",
