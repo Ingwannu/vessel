@@ -274,7 +274,7 @@ async fn later_file_metadata_survives_an_unrelated_patch_and_reopen() {
             "metadata": {"future":true,"providers":[{"route":"sonnet","future":true,"effort":"future"}]}
         })).unwrap();
         std::fs::write(dir.settings_path(), &raw).unwrap();
-        let settings = crate::settings::Settings::open(dir.clone(), Arc::clone(&fixture.runtime), ParkAfter::Never, false);
+        let settings = Arc::new(crate::settings::Settings::open(dir.clone(), Arc::clone(&fixture.runtime), ParkAfter::Never, false));
         let metadata = settings.metadata().await;
         assert_eq!(metadata.providers()[0].effort, Some(vessel_proto::settings::MetadataEffort::Unknown));
         assert!(fixture.models.validate_metadata(&metadata).is_err());

@@ -2,6 +2,7 @@
 
 use super::*;
 use crate::models::{PER_NODE, PER_SESSION, blocking_tests::Stage};
+use crate::settings::Settings;
 use tokio_util::task::TaskTracker;
 use vessel_store::{DataDir, Store, StoreConfig};
 
@@ -27,7 +28,7 @@ async fn start(
     handle: &SessionHandle,
     tasks: &TaskTracker,
     stop: &CancellationToken,
-) -> tokio::task::JoinHandle<()> {
+) -> (tokio::task::JoinHandle<()>, Arc<Settings>) {
     let settings = Arc::new(crate::settings::Settings::open(
         DataDir::new(fixture.data.path()),
         Arc::clone(&fixture.runtime),
@@ -44,16 +45,17 @@ async fn start(
     let task = task::Task {
         handle: handle.clone(),
         models: Arc::clone(&fixture.models),
-        settings,
+        settings: Arc::clone(&settings),
         cwd: fixture.data.path().to_owned(),
         git: None,
         stop: stop.clone(),
         work: tasks.token(),
     };
-    tasks.spawn(async move {
+    let running = tasks.spawn(async move {
         let client = task.models.title_generator.client.as_ref().unwrap();
         task.run(client).await;
-    })
+    });
+    (running, settings)
 }
 
 async fn scenario(stage: Stage, cancel: Cancel) {
@@ -64,7 +66,7 @@ async fn scenario(stage: Stage, cancel: Cancel) {
     let tasks = TaskTracker::new();
     let stop = CancellationToken::new();
     let held = fixture.models.blocked_reads.hold(stage);
-    let running = start(&fixture, &handle, &tasks, &stop).await;
+    let (running, settings) = start(&fixture, &handle, &tasks, &stop).await;
     held.entered().await;
     cancel_title(&handle, &stop, cancel).await;
     running.await.unwrap();
@@ -87,7 +89,7 @@ async fn scenario(stage: Stage, cancel: Cancel) {
     assert_eq!(held.entries(), HELD_READS);
     assert!(fixture.upstream.seen().is_empty());
 
-    drain(&fixture, tasks, &held).await;
+    drain(&fixture, tasks, &held, settings).await;
     assert_eq!(fixture.models.node_slots.available_permits(), PER_NODE);
     assert_eq!(
         fixture
@@ -118,7 +120,12 @@ async fn scenario(stage: Stage, cancel: Cancel) {
     fixture.stop().await;
 }
 
-async fn drain(fixture: &Fixture, tasks: TaskTracker, held: &crate::models::blocking_tests::Hold) {
+async fn drain(
+    fixture: &Fixture,
+    tasks: TaskTracker,
+    held: &crate::models::blocking_tests::Hold,
+    settings: Arc<Settings>,
+) {
     // Use the actual node teardown: a grace-only tracker would finish here.
     fixture.runtime.shutdown().await;
     let store = Store::open(&DataDir::new(fixture.data.path()), StoreConfig::default())
@@ -128,6 +135,7 @@ async fn drain(fixture: &Fixture, tasks: TaskTracker, held: &crate::models::bloc
     let closing = CancellationToken::new();
     let draining = crate::shutdown::Teardown {
         runtime: Arc::clone(&fixture.runtime),
+        settings,
         tasks: tasks.clone(),
         forwarders: TaskTracker::new(),
         closing: closing.clone(),
