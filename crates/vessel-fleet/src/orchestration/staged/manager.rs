@@ -24,6 +24,11 @@ impl SkillLocations {
         legacy_codex: PathBuf,
         state: PathBuf,
     ) -> Result<Self, SkillError> {
+        for home in [&shared, &claude, &legacy_codex] {
+            if state.starts_with(home) || home.starts_with(&state) {
+                return Err(SkillError::Root);
+            }
+        }
         Ok(Self {
             homes: SkillHomes {
                 shared: SkillRoot::new(shared)?,

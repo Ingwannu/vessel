@@ -297,6 +297,10 @@ const fn refused(method: Method) -> bool {
         | Method::ListInbox
         | Method::GetInboxEntry
         | Method::MarkInbox
+        | Method::CheckPromptTracking
+        | Method::TrackPrompt
+        | Method::ReadPromptReceipt
+        | Method::ClosePromptReceipt
         | Method::GetPushKey
         | Method::SubscribePush
         | Method::UnsubscribePush

@@ -106,6 +106,9 @@ impl DeletionTransaction {
         );
         let state = state.create()?;
         let (roots, removals) = gather(homes, plan)?;
+        for home in roots.values() {
+            separate(&state, home)?;
+        }
         let journal = state.create_dir(&filename(&id))?;
         let document = Document {
             owner: Owner::Vessel,
@@ -135,6 +138,7 @@ impl DeletionTransaction {
         self.document.patches = patches::capture(service, plan, &self.journal)?;
         for home in service.homes.roots() {
             if let Some(dir) = home.read()? {
+                separate(&self.state, &dir)?;
                 // A patch may create a previously absent home; retain its handle.
                 if !self.roots.values().any(|root| root.path() == dir.path()) {
                     let slot = HOMES
@@ -274,6 +278,9 @@ pub(super) fn recover(
                 return Err(SkillError::Recovery);
             }
         }
+        for home in roots.values() {
+            separate(&state, home)?;
+        }
         let transaction = DeletionTransaction {
             state: state.open_dir(".")?,
             journal,
@@ -329,4 +336,11 @@ fn gather(
         return Err(SkillError::Budget);
     }
     Ok((roots, removals))
+}
+
+fn separate(state: &Dir, home: &Dir) -> Result<(), SkillError> {
+    if state.path().starts_with(home.path()) || home.path().starts_with(state.path()) {
+        return Err(SkillError::Root);
+    }
+    Ok(())
 }

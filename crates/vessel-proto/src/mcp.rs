@@ -2,6 +2,11 @@
 //! Values only: authentication, transport and filesystem work live elsewhere.
 
 mod context;
+mod receipts;
+pub use receipts::{
+    CheckPromptTracking, ClosePromptReceipt, PromptReceiptId, PromptReceiptState,
+    ReadPromptReceipt, TrackPrompt, TrackedPrompt,
+};
 mod id;
 pub use context::VoiceTools;
 

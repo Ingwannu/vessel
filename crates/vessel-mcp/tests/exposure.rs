@@ -39,3 +39,33 @@ async fn a_disabled_creation_cannot_bypass_the_catalogue() {
         fixture.node.stop().await.unwrap();
     }).await;
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn malformed_creation_options_never_leave_a_session_behind() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let owner = owner(&fixture).await;
+        let (own, env) = agent_env(&owner).await;
+        let tools =
+            VesselTools::new(vessel_mcp::connect(&env).await.unwrap()).with_own_session(own);
+        let (mut mcp, task) = serve(tools);
+        let names = mcp.initialize().await;
+        assert!(!names.iter().any(|name| name == "wait_turn"));
+        let before = owner.sessions().await.unwrap().len();
+        for arguments in [
+            json!({"harness":"claude","prompt":42}),
+            json!({"harness":"claude","prompt":"x","notify":"yes"}),
+            json!({"harness":"claude","prompt":"x","terminal":true,"notify":true}),
+            json!({"harness":"claude","notify":true}),
+        ] {
+            let (failed, reason) = mcp.call("create_session", arguments).await;
+            assert!(failed, "{reason}");
+            assert_eq!(owner.sessions().await.unwrap().len(), before);
+        }
+        drop(mcp);
+        task.await.unwrap().unwrap();
+        owner.kill(own).await.unwrap();
+        fixture.node.stop().await.unwrap();
+    })
+    .await;
+}

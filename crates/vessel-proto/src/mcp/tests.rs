@@ -66,3 +66,36 @@ fn invalid_future_identifiers_cannot_be_stored() {
             .is_err()
     );
 }
+
+#[test]
+fn exact_turn_tracking_stays_pending_across_fleet_hops() {
+    use crate::{Call, Forward, MethodShape, Request as _, Scope};
+    let call = CheckPromptTracking {}.into_call();
+    assert_eq!(call.since(), MCP_PARITY);
+    assert!(call.method().forwardable());
+    assert_eq!(call.method().shape(), MethodShape::Unary);
+    for method in [
+        crate::Method::TrackPrompt,
+        crate::Method::ReadPromptReceipt,
+        crate::Method::ClosePromptReceipt,
+    ] {
+        assert_eq!(method.scope(), Some(Scope::Operate));
+        assert_eq!(method.since(), MCP_PARITY);
+        assert!(method.forwardable());
+    }
+    let prompt = crate::conversation::PromptSession {
+        session: crate::SessionId::random(),
+        content: Vec::new(),
+        delivery: crate::Delivery::Queue,
+        notify: true,
+    }
+    .into_call();
+    assert_eq!(prompt.since(), Some(crate::ProtocolVersion::new(11)));
+    let forwarded = Forward {
+        node: crate::NodeId::random(),
+        call: Box::new(prompt),
+    }
+    .into_call();
+    assert_eq!(forwarded.since(), MCP_PARITY);
+    assert!(matches!(forwarded, Call::Forward(_)));
+}

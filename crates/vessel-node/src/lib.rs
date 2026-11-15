@@ -89,6 +89,7 @@ mod persist;
 mod principal;
 mod probes;
 mod profiles;
+mod prompt_receipts;
 mod push;
 mod readiness;
 mod relays;

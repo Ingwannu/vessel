@@ -278,3 +278,42 @@ Implementation checkpoint: the staged service is now product-wired behind
 pending methods. Narrow compilation and tests, TS generation, cross-node
 finish notifications and the whole package gate/review remain outstanding.
 This supersedes earlier progress bullets describing the service as test-only.
+
+
+## Completion notifications and exact remote turns
+
+A structured own-session tool context now defaults `notify` on and hides
+`wait_turn` from the advertised catalogue. The old direct wait adapter remains
+for compatibility; it still passes through the same tool policy. Send defaults
+to steer when the current canonical conversation permits it, otherwise
+interrupt; explicit delivery keeps its original meaning. Create validates all
+prompt/notify options before starting a session. A notifying remote create
+first calls pending `session.check_prompt_tracking` across the whole route,
+so an older/unsupported hop refuses before the creation side effect.
+
+The existing `Delivered` result does not identify the exact turn started by a
+queued/steered prompt. Guessing the next log turn could report a different
+concurrent prompt as complete. Three pending typed receipt calls reuse the
+existing `Sessions::prompt_tracked` oneshot: `session.prompt_tracked`,
+`session.prompt_receipt`, `session.close_prompt_receipt`. Operate ownership
+checks still act on the target session. Receipts also bind the authenticated
+opener (including delegated device and origin), with 32 per opener, 256 per
+node, 32 long-poll readers and a fixed 30-minute expiry while waiting to start.
+No receipt is an authority token; no receipt or notification is durable over
+node restart. Closing/expiry cannot grant another caller access.
+
+The calling node derives the parent only from its direct Agent principal,
+reserves the existing notification budget, and follows that receipt's exact
+turn through the normal grant-intersected fleet route. It reuses the local
+fenced completion/permission wording, interrupted-parent rule, rate bound and
+parent-end/shutdown cancellation. The setup and follower are tracked across
+RPC cancellation. Read failure reports notification unavailability rather than
+success. Receipt closure after an interrupted route may defer to expiry.
+No new callback can choose or prompt an arbitrary parent. Typed pending rows
+and nested call admission share MCP_PARITY=None until integration.
+
+Narrow strict feedback from the security checkpoint was corrected without
+lint suppression. TS also found an inherent SkillOperation::name collision
+with the TS trait, so the shared identity accessor is now `skill()`.
+Current checks are still pending; none of these source changes claims a
+cross-node runtime or whole-package PASS.

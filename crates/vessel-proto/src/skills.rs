@@ -104,7 +104,7 @@ pub enum SkillOperation {
 impl SkillOperation {
     /// Shared identity for confirmation and deterministic operation display.
     #[must_use]
-    pub const fn name(&self) -> &SkillName {
+    pub const fn skill(&self) -> &SkillName {
         match self {
             Self::Add { name } | Self::Update { name } | Self::Delete { name } => name,
         }

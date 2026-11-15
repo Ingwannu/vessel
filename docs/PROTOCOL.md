@@ -1887,3 +1887,17 @@ uninstall preserves the saved selection; import only establishes an unset
 selection. Private `skills.json` follows settings-file backup rules and adds
 no SQLite schema. `PROTOCOL_VERSION` is unchanged; integration assigns the
 single pending feature requirement.
+
+
+Pending exact-turn receipt methods (same `MCP_PARITY`) are forwardable unary
+calls. `session.check_prompt_tracking` requires Read and has no side effect;
+`session.prompt_tracked`, `session.prompt_receipt` and
+`session.close_prompt_receipt` require Operate plus ordinary target ownership.
+The receipt binds its exact session and authenticated opener; wrong identity,
+session, closed or expired receipts all return not-found. Pending reads wait
+at most 30 seconds. The ordinary local `session.prompt { notify: true }`
+retains protocol 11, while a `fleet.forward` carrying a notifying prompt also
+requires MCP_PARITY. The origin derives the notification parent from a direct
+Agent principal and follows the destination's exact turn-start sequence.
+Receipt storage is finite and ephemeral; no durable delivery guarantee is
+introduced, and no store schema number is needed.

@@ -40,7 +40,14 @@ impl Call {
             // protocol-18 home would drop `session.create`'s
             // `side_question_of` and start a plain session (ADR 0045; N5,
             // N3, N2 and N1 each added this rule, merged here as one).
-            Self::Forward(request) => Some(request.call.since()?.get()),
+            Self::Forward(request) => {
+                let inner = request.call.since()?.get();
+                if matches!(request.call.as_ref(), Call::PromptSession(prompt) if prompt.notify) {
+                    Some(inner.max(crate::mcp::MCP_PARITY?.get()))
+                } else {
+                    Some(inner)
+                }
+            }
             Self::Relay(request) => Some(request.call.since()?.get()),
             Self::Deliver(request) => Some(request.call.since()?.get()),
             Self::JoinFleet(request) => request.grant.iter().map(|scope| scope.since().get()).max(),
@@ -270,6 +277,10 @@ impl Call {
             | Self::SearchMessages(_)
             | Self::ParkSession(_)
             | Self::WakeSession(_)
+            | Self::CheckPromptTracking(_)
+            | Self::TrackPrompt(_)
+            | Self::ReadPromptReceipt(_)
+            | Self::ClosePromptReceipt(_)
             | Self::GetSkillsStatus(_)
             | Self::ReconcileSkills(_)
             | Self::UninstallSkills(_)

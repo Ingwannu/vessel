@@ -72,6 +72,7 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::GetCatalogue
         | Method::ListSchedules
         | Method::ListPrompts
+        | Method::CheckPromptTracking
         | Method::GetSkillsStatus
         | Method::ReconcileSkills
         | Method::UninstallSkills
@@ -80,6 +81,10 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::ListInbox => json!({}),
         Method::SaveSkillsSelection | Method::ImportSkillsSelection => {
             json!({"selection":{"mode":"all"}})
+        }
+        Method::TrackPrompt => json!({"session":id,"content":[],"delivery":"queue"}),
+        Method::ReadPromptReceipt | Method::ClosePromptReceipt => {
+            json!({"session":id,"receipt":id})
         }
         Method::RevokeDevice => json!({"device":id}),
         Method::ReadBlob => json!({"hash":hash}),

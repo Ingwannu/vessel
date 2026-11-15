@@ -469,6 +469,14 @@ macro_rules! method_table {
             GetNodeSettings / node_settings / "node.settings" [Read, 12, unary]: $crate::settings::GetNodeSettings => $crate::settings::NodeSettings;
             /// Change the node's settings; kept across restarts (protocol 12).
             SetNodeSettings / set_node_settings / "node.set_settings" [Admin, 12, unary]: $crate::settings::SetNodeSettings => $crate::settings::NodeSettings;
+            /// Verify every negotiated hop supports exact-turn tracking.
+            CheckPromptTracking / check_prompt_tracking / "session.check_prompt_tracking" [Read, (pending $crate::mcp::MCP_PARITY), unary]: $crate::mcp::CheckPromptTracking => $crate::Ack;
+            /// Exact-turn tracking for origin-side notification (pending ADR 0065).
+            TrackPrompt / track_prompt / "session.prompt_tracked" [Operate, (pending $crate::mcp::MCP_PARITY), unary]: $crate::mcp::TrackPrompt => $crate::mcp::TrackedPrompt;
+            /// Exact-turn tracking for origin-side notification (pending ADR 0065).
+            ReadPromptReceipt / read_prompt_receipt / "session.prompt_receipt" [Operate, (pending $crate::mcp::MCP_PARITY), unary]: $crate::mcp::ReadPromptReceipt => $crate::mcp::PromptReceiptState;
+            /// Exact-turn tracking for origin-side notification (pending ADR 0065).
+            ClosePromptReceipt / close_prompt_receipt / "session.close_prompt_receipt" [Operate, (pending $crate::mcp::MCP_PARITY), unary]: $crate::mcp::ClosePromptReceipt => $crate::Ack;
             /// Host orchestration skills (pending ADR 0065, Admin only).
             GetSkillsStatus / skills_status / "skills.status" [Admin, (pending $crate::mcp::MCP_PARITY), unary]: $crate::skills::GetSkillsStatus => $crate::skills::SkillsSnapshot;
             /// Host orchestration skills (pending ADR 0065, Admin only).

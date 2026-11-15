@@ -85,6 +85,13 @@ impl NodeService {
             connection.principal().permit(call.method())?;
             return forwarded(run_here(guard, connection, *call).await);
         }
+        if let Call::PromptSession(request) = call.as_ref()
+            && request.notify
+        {
+            return self
+                .prompt_remote_told(connection, node, request.clone())
+                .await;
+        }
         let here = self.links.node();
         // An agent of this node opens a terminal elsewhere only if its own
         // session's profile allows agent terminals, which only this node
@@ -209,7 +216,7 @@ impl NodeService {
     }
 
     /// Who a caller here is, for a call passed on to another node.
-    fn origin_of(&self, principal: &Principal) -> Result<Origin, WireError> {
+    pub(crate) fn origin_of(&self, principal: &Principal) -> Result<Origin, WireError> {
         let node = self.links.node();
         Ok(match principal {
             Principal::Owner => Origin {

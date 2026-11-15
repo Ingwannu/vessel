@@ -274,8 +274,9 @@ impl ServerHandler for VesselTools {
             .with_instructions(
                 "Vessel: start and drive other agent sessions, on this machine or another node \
                  of its fleet (`node`, from `list_nodes`). A session you start is yours: you \
-                 may send it input (queued or steered while it works), wait for its turns, \
-                 answer it, stop it, archive it and start it again. To give one a folder and \
+                 may send it input (queued or steered while it works), answer it, stop it, \
+                 archive it and start it again. A structured session agent receives completion \
+                 notifications by default; finish your turn to await the notice. To give one a folder and \
                  branch of its own, `create_worktree` in a project from `list_projects`, then \
                  `create_session` with that `worktree`. Where a person allowed it, open a \
                  terminal beside your session (`create_terminal`) and type into it.",
@@ -287,9 +288,11 @@ impl ServerHandler for VesselTools {
         _request: Option<PaginatedRequestParams>,
         _context: RequestContext<RoleServer>,
     ) -> Result<ListToolsResult, ErrorData> {
-        Ok(ListToolsResult::with_all_items(exposure::visible(
-            &self.policy,
-        )))
+        let mut tools = exposure::visible(&self.policy);
+        if self.own_session().is_some() {
+            tools.retain(|tool| tool.name != "wait_turn");
+        }
+        Ok(ListToolsResult::with_all_items(tools))
     }
 
     async fn call_tool(

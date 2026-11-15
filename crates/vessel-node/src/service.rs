@@ -66,6 +66,7 @@ mod followed;
 mod inbox;
 mod limits;
 mod notices;
+mod prompt_receipts;
 mod prompts;
 mod push;
 mod schedule_preview;
@@ -150,6 +151,7 @@ pub(crate) struct NodeService {
     /// Turns followed for their starters (protocol 11,
     /// `automation::notices`).
     notices: Arc<Notices>,
+    prompt_receipts: Arc<crate::prompt_receipts::PromptReceipts>,
     /// Creation/reset lease also held by a detached creation task.
     side_opening: Arc<tokio::sync::Mutex<()>>,
     push: Arc<crate::push::Push>,
@@ -255,6 +257,7 @@ impl NodeService {
             skills,
             limits,
             notices: Arc::default(),
+            prompt_receipts: Arc::default(),
             side_opening: Arc::default(),
             push,
         }

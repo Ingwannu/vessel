@@ -638,6 +638,10 @@ impl Handler for Fake {
         search_messages: vessel_proto::search::SearchMessages => vessel_proto::search::SearchPage;
         park_session: vessel_proto::parking::ParkSession => SessionInfo;
         wake_session: vessel_proto::parking::WakeSession => SessionInfo;
+        check_prompt_tracking: vessel_proto::mcp::CheckPromptTracking => vessel_proto::Ack;
+        track_prompt: vessel_proto::mcp::TrackPrompt => vessel_proto::mcp::TrackedPrompt;
+        read_prompt_receipt: vessel_proto::mcp::ReadPromptReceipt => vessel_proto::mcp::PromptReceiptState;
+        close_prompt_receipt: vessel_proto::mcp::ClosePromptReceipt => vessel_proto::Ack;
         skills_status: vessel_proto::skills::GetSkillsStatus => vessel_proto::skills::SkillsSnapshot;
         reconcile_skills: vessel_proto::skills::ReconcileSkills => vessel_proto::skills::SkillsSnapshot;
         uninstall_skills: vessel_proto::skills::UninstallSkills => vessel_proto::skills::SkillsSnapshot;

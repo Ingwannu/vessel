@@ -237,6 +237,10 @@ const fn forwardable(method: Method) -> bool {
         | Method::ParkSession
         | Method::WakeSession
         // Protocol 12: the node's settings (the change needs `admin`).
+        | Method::CheckPromptTracking
+        | Method::TrackPrompt
+        | Method::ReadPromptReceipt
+        | Method::ClosePromptReceipt
         | Method::GetSkillsStatus
         | Method::ReconcileSkills
         | Method::UninstallSkills
