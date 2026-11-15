@@ -17,6 +17,7 @@
 //! - The service managers are found on the search path, as harnesses are;
 //!   tests put stand-ins there and never reach the real ones.
 
+pub(super) mod matching;
 pub(super) mod paths;
 
 use std::path::{Path, PathBuf};
