@@ -151,3 +151,9 @@ promotion with its A4 consumer. W18 waits for the lead's integrated line and
 then requests the next slot for check_call plus its real MCP envelope consumer;
 no staging attribute is removed here and no raw client escapes the link.
 Existing UI/model tests do not claim this still-pending transport queue proof.
+
+The exact c0c6 test batch reached the app test module and stopped on an
+IntoElement import used by the Probe's return type: importing it as underscore
+made the trait name unavailable. It now uses the named trait import. No UI
+runtime test had started in that failed batch; the earlier pure9/0 remains
+the scoped older evidence, not a controller or delivery-guard proof.

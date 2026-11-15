@@ -2,7 +2,7 @@
 use super::*;
 use crate::shell::language_tests;
 use gpui::{AppContext as _, Render, TestAppContext};
-use vessel_app_kit::ui::{Entity, IntoElement as _, ParentElement as _, div};
+use vessel_app_kit::ui::{Entity, IntoElement, ParentElement as _, div};
 use vessel_app_kit::{Scheme, Tokens};
 use vessel_app_view::orchestration::{Output, Picker};
 use vessel_proto::NodeId;
