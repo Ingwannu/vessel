@@ -88,3 +88,8 @@ remaining pull after offset zero may request close. This complements the pure
 engine cases; it too is installed, not executed. Child actions/focus must still
 use the host's lease: the geometry adapter does not authorize arbitrary child
 callbacks or claim complete menu keyboard accessibility.
+
+Retained-frame fixture queues the new owner render explicitly via notify,
+while asserting dispatch still uses A before that redraw. Only after A's
+input is checked does the fixture park and exercise freshly rendered B. This
+avoids relying on unrelated mouse events to schedule B's new native frame.

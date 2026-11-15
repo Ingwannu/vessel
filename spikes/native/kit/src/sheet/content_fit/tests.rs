@@ -174,9 +174,10 @@ fn fitted_retained_frame_requires_the_host_admission_before_pointer_scroll_or_cl
     let (view, cx) = setup(cx, 300.0);
     cx.update(|window, cx| {
         let before = view.read(cx).renders.get();
-        view.update(cx, |this, _| {
+        view.update(cx, |this, cx| {
             this.generation.set(1);
             this.fit.reset();
+            cx.notify();
         });
         drag(window, cx);
         let this = view.read(cx);
