@@ -105,6 +105,7 @@ impl Reply {
             | Self::ForkSession(info)
             | Self::RewindSession(info) => one(info),
             Self::Subscribe(subscribed) => one(&subscribed.info),
+            Self::DetachSession(detached) => one(&detached.session),
             Self::ImportSession(imported) => imported.session.as_deref().and_then(one),
             Self::Forward(forwarded) | Self::Relay(forwarded) | Self::Deliver(forwarded) => {
                 nested(forwarded, protocol)

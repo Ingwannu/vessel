@@ -284,6 +284,7 @@ impl Method {
             | Self::PromptSideQuestion
             | Self::ResetSideQuestion
             | Self::CreateSession
+            | Self::DetachSession
             | Self::SendInput
             | Self::KillSession
             | Self::ReadEvents

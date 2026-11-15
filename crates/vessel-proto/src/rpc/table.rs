@@ -380,6 +380,8 @@ macro_rules! method_table {
             GetAgentHistory / agent_history / "agent.history" [Operate, 17, unary]: $crate::history::GetAgentHistory => $crate::history::AgentHistoryPage;
             /// Archive with actor-admitted idle/force condition (A2, pending).
             ArchiveSession / archive_session / "session.archive" [Operate, (pending $crate::workspace::WORKSPACE_LIFECYCLE), unary]: $crate::session_archive::ArchiveSession => $crate::session_archive::ArchivedSession;
+            /// Make a managed child independent without changing its process or conversation.
+            DetachSession / detach_session / "session.detach" [Operate, (pending $crate::subagents::SUBAGENT_RELATIONS), unary]: $crate::subagents::DetachSession => $crate::subagents::DetachedSession;
         }
     };
 }

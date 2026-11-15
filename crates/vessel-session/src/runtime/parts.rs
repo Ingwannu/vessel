@@ -114,7 +114,7 @@ impl SessionRuntime {
         let (model_calls, recorded) = mpsc::channel(MODEL_CALL_CAPACITY);
         let (renames, renaming) = mpsc::channel(RENAME_CAPACITY);
         let (forge, forge_view) = watch::channel(None);
-        let state = (seen, Marks::after(attention));
+        let state = (seen, Marks::after(attention, info.detach_receipt));
         let channels = (model_calls, renames, forge);
         let (info, kill, shared) = self.shared(info, (input, process), control, channels, state);
         let _previous = shared.limits.send_replace(limits);

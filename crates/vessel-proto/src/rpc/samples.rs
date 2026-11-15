@@ -40,6 +40,7 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::SessionOptions
         | Method::GetConversation
         | Method::ResumeSession
+        | Method::DetachSession
         | Method::DeleteSession
         | Method::GetPullRequest
         | Method::ParkSession

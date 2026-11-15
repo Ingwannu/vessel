@@ -39,6 +39,7 @@ mod fleet;
 mod fleet_control;
 mod profiles;
 mod sessions;
+mod subagents;
 mod transfers;
 // Protocol 9's calls: what a session runs with, and titles.
 mod options;

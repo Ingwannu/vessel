@@ -78,7 +78,8 @@ async fn device_windows_keep_a_stable_cursor_and_explicit_incompleteness() {
 /// column goes with `approvals`), the workspace's tables (9), retention's
 /// index (schema 1's in its place, 8), the conversation's columns and the
 /// attachments table (7).
-const UNDO_SCHEMAS_7_TO_16: &str = "ALTER TABLE sessions DROP COLUMN title_origin;
+const UNDO_SCHEMAS_7_TO_16: &str = "ALTER TABLE sessions DROP COLUMN detach_receipt;
+     ALTER TABLE sessions DROP COLUMN title_origin;
      DROP TABLE usage_samples;
      DROP TABLE usage_meta;
      ALTER TABLE sessions DROP COLUMN usage_cost_baseline;

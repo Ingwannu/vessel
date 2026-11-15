@@ -3,6 +3,7 @@
 
 mod archive;
 mod handover;
+mod subagents;
 
 use std::sync::Arc;
 

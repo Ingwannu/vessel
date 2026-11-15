@@ -57,6 +57,7 @@ mod session;
 pub mod session_archive;
 pub mod settings;
 pub mod side_questions;
+pub mod subagents;
 mod terminal;
 pub mod terminals;
 mod title;
