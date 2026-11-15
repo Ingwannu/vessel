@@ -203,7 +203,6 @@ fn a_deleted_opener_is_not_retained_and_no_opener_is_captured_only_once(cx: &mut
     });
 }
 
-
 #[gpui::test]
 fn the_dialog_itself_is_never_restored_as_its_own_opener(cx: &mut TestAppContext) {
     let (probe, cx) = mount(cx);
