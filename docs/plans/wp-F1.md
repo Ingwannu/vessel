@@ -1559,3 +1559,18 @@ explicitly propagates Enter in its submit branch. It still performs no field/
 model/write action. Actual event-order/root-key proof remains owed; this source
 request alone is not a claim that a deferred subscription controls every OS
 keyboard path. The shared engine/default callbacks are unchanged.
+
+
+### Ready-form submit regression and base8e
+
+Announced base8e82ca07a7 was merged without conflicts; no whole package gate
+was running. The queued ce36 narrow is immutable pre-merge evidence, not
+proof for the newer union. A real GPUI test now constructs an actually ready
+recurring-prompt edit using the existing parsed fixture, canonical connection
+epoch allocator, explicit older-preview fallback and a detached command queue.
+It renders the real identified rule field and the real form footer. Enter
+must leave the model ready and the queue empty; explicit Save must send exactly
+one Update with the opened id/revision/definition and original connection,
+and a second press while pending must send nothing. This tests the UI dispatch
+boundary only: no actual RPC, node permission, native OS/IME or final UI proof
+is claimed. Both theme cases are authored and still unexecuted.

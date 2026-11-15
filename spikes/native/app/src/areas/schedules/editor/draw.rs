@@ -284,3 +284,6 @@ pub(super) fn select(
         )
     }
 }
+
+#[cfg(test)]
+mod tests;

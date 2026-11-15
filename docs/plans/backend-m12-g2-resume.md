@@ -270,3 +270,39 @@ Evidence filenames in this repository are relative to private TRACK_EVIDENCE
 and REVIEW_EVIDENCE roots; the operator's local receipt maps them. Concrete
 home/scratch paths have been removed from these two own plans under the public
 repository rule. No other owner's documentation/source was rewritten.
+
+
+## Current F1 checkpoint (2026-11-15 16:47 UTC)
+
+- App base8d6eb merged08876, base8e82ca mergeddf0261482. Never merge a newer
+  candidate until it is announced green. No F1 whole gate/capture has started.
+- Current source includes typed Body/Code identified line, shared MD textarea
+  geometry +Expanded96, model-browser Empty/Failed/Retrying and scaled shared
+  loader, preserved selected model catalog, row one-line target/edit behavior.
+  These are unreviewed F1 source, not the historical shared producer passes.
+- Exact20c narrow RED: fonts0, actual KitChecking then cargo101 (doc-backticks,
+  missing test import/geometry fields, identical opacity arms). Full diagnostic
+  batch repaired14e5085f8. No tests/View/App ran on20c.
+- Exactce36 suite queued: schedules-20261115T162742Z-ce36c84f, ordinary SHORT.
+  Sequential Kit strict/tests then View+App strict/tests. Keep it immutable;
+  its head excludes later row menu-order fix222bde8eb and explicit-submit fix
+  30ffeaa94/aaba254bd and the base8e merge/new submit regression.
+- Node separate9c150c6e mergea6fa710ce; source25e7696a9+265b2c223 permits
+  known Ended updates without reactivation, refuses Unknown state/reason,
+  preserves owner/revision/no-replay checks; no wire/schema/number changes.
+  schedules-node-20261115T163706Z-265b2c22 queued ordinary SHORT, root node
+  strict then automation schedule tests. Prior25e queued run cancelled143,
+  preserved; not compile proof. Node V3 then integrator still owed. App Ended
+  admission remains refused until node reviewed/available; match View/row then.
+- Menu source was reread: pinned order Edit / Pause-or-Resume / Run / separator
+  Delete. The earlier78 ordering claim was wrong; corrected222 with tests/docs.
+- Form Enter has no source onSubmitEditing; only explicit footer writes. New
+  ready edit/actual rule/footer GPUI regression is authored, unexecuted.
+- L Shape adapter remains source-only here; canonical shared landing pending.
+  Do not touch generator or move accepted schedules words. W22 composition
+  packet remains scoped evidence, not an approved/landed producer to consume.
+- W11/W3 runtime provision and W21 runtime archive remain unavailable; isolation
+  hidden and in-scope. W12 admitted live opening remains unavailable; keep
+  history GetSession candidates unopened, never use legacy alias fallback.
+- Historical native Linux F5 HOLD remains open. No F1 native captures/OS/IME/
+  permissions/real node effects claimed. No own fleet/display/app runs locally.
