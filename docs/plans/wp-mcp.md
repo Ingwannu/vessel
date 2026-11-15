@@ -343,12 +343,14 @@ There are no native UI changes/captures or operator-home/service mutations.
 | cb836083a | strict failed unused synchronous receiver; fixed c7f0 with shutdown negotiation | strict-cb836 |
 | cb836083a | MCP suite stopped compiling a borrowed ID assertion; fixed c7f0; no MCP tests executed | mcp-tests-cb836 |
 | 7bfc7f72e | TS failed three unclassified aliases; fixed 146c83 | ts-7bfc7 |
-| 9e2be4d25 | TS regeneration queued, not a freshness pass | ts-9e2be |
+| 9e2be4d25 | TS generators 4 passed; stale file diff keeps step rc1; six artifact hashes verified and exact generated patch applied | ts-9e2be |
 | c7f0c5df1 | Changed-crate strict and functional suite queued, not passed | strict-c7f0, functional-c7f0 |
 
 The alias registry brands node-minted PromptReceiptId; SkillName and
-StoredTool remain plain names validated at the Rust boundary. Generated TS
-will be applied from verified remote artifacts, not hand-written.
+StoredTool remain plain names validated at the Rust boundary. Generated TS was applied from the verified remote artifact after confirming
+its source commit and unchanged proto/web generator input. The local file
+matches the artifact byte-for-byte. A subsequent exact-head freshness pass
+is still required; regeneration with a diff is not a green TS step.
 
 New unexecuted regression coverage includes delegated identity separation on
 both receipt read/close, cancellation returning long-poll reader budget,
