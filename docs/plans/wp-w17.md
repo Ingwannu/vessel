@@ -1592,3 +1592,15 @@ or test ran, and this is not source failure. Submit one same-command, same-lane
 immutable latest-source replacement in a new output bundle. It covers earlier
 held-queue/EOF/TUI/rename code as well as new ready-output scheduling and actual
 N25 acknowledgements. Do not duplicate a live replacement or call the old run proof.
+
+### Replacement receipt and reserved D1 metadata
+
+Latest ordinary consumer-suite receipt: wp-cli-narrow-20261115T172916Z-8447cf72,
+exact8447cf723, output bundle terminal-cli-units-head52. It is the one replacement
+for verified cancelled467; no duplicate submission. No test completion exists yet.
+
+C2 reports the minimal full-grid padding fix plus announced1c source-satisfactory;
+one corrected whole remains queued, not consumer-ready. Reserve its separate
+unreviewed cursor shape/blink and physical-row Hard/Soft properties in the frame
+design without adopting code or inventing defaults/tracking. Row246 only covers
+cursor position/visibility. Keep every new API staged and NodeAuthority OFF.

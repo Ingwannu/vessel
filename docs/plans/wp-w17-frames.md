@@ -139,3 +139,22 @@ Silent text capture is unaffected. Even a green frozen whole does not qualify a
 frame consumer until the pure owner's minimal projection correction and full-grid
 regressions are reviewed/executed. The node will not synthesize default cells to
 hide this gap or copy physical-row interpretation. No frame API is adopted here.
+
+## Reserved appearance and row-break properties (not adopted)
+
+C2's separate display/CLI branch proposes cursor_appearance with shape optionally
+Block/Underline/Bar and blink independently optionally On/Off. An unset program
+value means the renderer's default; it does not authorize inventing a block shape
+or blink choice. Actual pinned xterm can retain shape while invalid DECSCUSR changes
+blink. RowBreak::Soft means this physical row continues into the NEXT row, matching
+the server's getLine(i+1).isWrapped; Hard is distinct. All metadata must come from
+the same authoritative frame cut and engine, never a second tracker or text guess.
+
+These properties are reserved only in this design. The current row246 contract
+has position/visibility, not appearance/row breaks; C2's additional26 golden
+checkpoints and semantic tests/vendor corrections remain pending. An unimplemented
+property must be explicit unsupported coverage, not conflated with a supported
+program-unset default or Hard row. No DTO/serializer/API is frozen by this note,
+no separate renderer branch is consumed, and complete D1 copy/cursor appearance
+parity is not claimed. The padding correction merged onto announced1c is reported
+source-satisfactory but its ONE corrected whole still gates producer qualification.

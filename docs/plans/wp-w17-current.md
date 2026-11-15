@@ -15,8 +15,9 @@ keep their documented stream contracts. The latest exit-code process proof is ow
 
 Latest source additionally includes announced metadata protocol25 and bounded screen-inbox
 work at c3966e380. The queued467 consumer run was cancelled before a slot (terminal143)
-because it predated these changes; one same-lane latest-source replacement follows.
-It produced no compilation or test evidence.
+because it predated these changes. Its ONE same-lane latest replacement is
+wp-cli-narrow-20261115T172916Z-8447cf72, exact8447cf723, queued ordinary.
+Neither queued run supplies compilation/test evidence yet.
 
 Source means code over existing calls, with the limitations listed below; it does
 not mean latest-head tests passed. Pending means a typed grammar/refusal or an
