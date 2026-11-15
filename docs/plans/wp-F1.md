@@ -278,3 +278,14 @@ post-await fence, and retire cached/current requests on connection changes.
 No local alias scan, second connection registry or guessed epoch is added.
 Actual schedule writes/captures stay held until that shared security seam is
 reviewed and integrated. Prepared editor sources are still uninstalled.
+
+## Current build boundary
+
+All Rust compilation, Clippy, tests and capture builds now run through the
+remote gate tool. No new local Cargo/rustc process is allowed, including direct
+or scheduled capture builds. Rustfmt and source-only size/boundary/token checks
+compile nothing. Existing registered remote runs keep their original lane and
+immutable commit; a later source commit is not evidence for a queued old run.
+Capture executables must be exact-source remote exports with checked ABI,
+manifest and file hashes, using the assigned read-only shared root binaries
+when exporting only the app. A build/export is not a UI or whole-package pass.
