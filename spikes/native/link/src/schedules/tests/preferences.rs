@@ -10,14 +10,14 @@ use tokio::sync::mpsc::error::TryRecvError;
 use vessel_app_view::connection::{ConnectionContext, Refusal};
 use vessel_app_view::schedules::editor::{definition::Save, io};
 use vessel_proto::{
-    ChoiceValue, HarnessKind, OptionChoice, SessionMode, SessionSpec,
+    ChoiceValue, HarnessKind, OptionChoice, OptionId, OptionValueId, SessionMode, SessionSpec,
     automation::{AfterRun, CreateSchedule, ScheduleTarget},
 };
 fn choice() -> OptionChoice {
     OptionChoice {
-        id: "model".parse().unwrap(),
+        id: OptionId::new("model"),
         value: ChoiceValue::Select {
-            value: "remembered-model".parse().unwrap(),
+            value: OptionValueId::new("remembered-model"),
         },
     }
 }

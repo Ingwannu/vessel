@@ -1831,3 +1831,15 @@ loading consumer: FOURTEEN already exists in this unreviewed F1 branch only;
 EIGHTEEN does not. Preserve one canonical FOURTEEN definition when merging the
 checked shared handoff. Existing pixels()/TEN/SIXTEEN and all masks/motion stay.
 No loading.rs edit is currently active here; no F1 pass is borrowed by W12.
+
+
+### Opaque option fixture constructor audit
+
+While exact3a5 consumer tests were already running, source audit found the
+new preference fixtures had repeated an old incorrect FromStr assumption for
+opaque OptionId/OptionValueId. The canonical id.rs wrappers expose new, not
+FromStr. All matching new View/Link/App preference fixtures now use those
+existing constructors; parsing remains only for actually validated harnesses.
+No production parsing, wire shape, assertion or authority guard changed. The
+running3a5 source/outcome stays immutable; no cancellation or borrowed later
+proof. Corrected-source consumer checks remain owed after its actual outcome.

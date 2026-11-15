@@ -100,6 +100,7 @@ pub(super) fn restore(shell: &mut Shell) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use vessel_proto::OptionId;
     const UNKEEPABLE_MODEL_BYTES: usize = 65;
     #[test]
     fn canonical_snapshot_bounds_refuse_loss_without_changing_unrelated_preferences() {
@@ -109,7 +110,7 @@ mod tests {
             ..Default::default()
         };
         let choice = |value: String| OptionChoice {
-            id: "model".parse().unwrap(),
+            id: OptionId::new("model"),
             value: vessel_proto::ChoiceValue::Select {
                 value: vessel_proto::OptionValueId::new(value),
             },

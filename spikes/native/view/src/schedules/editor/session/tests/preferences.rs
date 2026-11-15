@@ -1,11 +1,11 @@
 //! Existing preferences seed only a current fresh selection; metadata stays intact.
 use super::*;
-use vessel_proto::{ChoiceValue, OptionChoice, SessionMode};
+use vessel_proto::{ChoiceValue, OptionChoice, OptionId, OptionValueId, SessionMode};
 fn pick(value: &str) -> OptionChoice {
     OptionChoice {
-        id: "model".parse().unwrap(),
+        id: OptionId::new("model"),
         value: ChoiceValue::Select {
-            value: value.parse().unwrap(),
+            value: OptionValueId::new(value),
         },
     }
 }
@@ -45,7 +45,7 @@ fn fresh_choices_restore_only_offered_selection_categories_and_never_override_a_
     let (mut model, opened) = fresh(choices::options());
     assert_eq!(model.remembered_choices(), Some(vec![pick("new-model")]));
     let unrelated = OptionChoice {
-        id: "custom".parse().unwrap(),
+        id: OptionId::new("custom"),
         value: ChoiceValue::Toggle { on: true },
     };
     assert!(model.restore_choices(opened.visit, &[pick("old-model"), unrelated]));
@@ -74,7 +74,7 @@ fn an_unoffered_default_cannot_become_a_save_ready_model() {
     let mut options = choices::options();
     let option = options.options.first_mut().unwrap();
     if let vessel_proto::OptionKind::Select { current, .. } = &mut option.kind {
-        *current = "not-offered".parse().unwrap();
+        *current = OptionValueId::new("not-offered");
     }
     let (mut model, opened) = fresh(options);
     assert!(matches!(model.prepare_save(), Err(Issue::Target)));
@@ -132,21 +132,21 @@ fn preferences_use_only_first_named_slots_and_preserve_the_offered_order() {
     let mut options = choices::options();
     let template = options.options.first().unwrap().clone();
     let mut effort = template.clone();
-    effort.id = "reasoning".parse().unwrap();
+    effort.id = OptionId::new("reasoning");
     effort.category = vessel_proto::OptionCategory::ThoughtLevel;
     let mut duplicate = template.clone();
-    duplicate.id = "second-model".parse().unwrap();
+    duplicate.id = OptionId::new("second-model");
     let mut mode = template;
-    mode.id = "permission-mode".parse().unwrap();
+    mode.id = OptionId::new("permission-mode");
     mode.category = vessel_proto::OptionCategory::Mode;
     options.options.insert(0, effort);
     options.options.push(duplicate);
     options.options.push(mode);
     let (mut model, opened) = fresh(options);
     let named = |id: &str| OptionChoice {
-        id: id.parse().unwrap(),
+        id: OptionId::new(id),
         value: ChoiceValue::Select {
-            value: "new-model".parse().unwrap(),
+            value: OptionValueId::new("new-model"),
         },
     };
     assert_eq!(
@@ -158,9 +158,9 @@ fn preferences_use_only_first_named_slots_and_preserve_the_offered_order() {
         ])
     );
     let duplicate = OptionChoice {
-        id: "second-model".parse().unwrap(),
+        id: OptionId::new("second-model"),
         value: ChoiceValue::Select {
-            value: "old-model".parse().unwrap(),
+            value: OptionValueId::new("old-model"),
         },
     };
     assert!(!model.restore_choices(opened.visit, &[duplicate]));
