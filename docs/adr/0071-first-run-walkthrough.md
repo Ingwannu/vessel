@@ -355,3 +355,14 @@ because Paseo's checked folders do.
 - Not offered, with reasons in the plan: the skills switch, the CLI
   switch, store links, agent-history suggestions, and `paseo onboard`.
   The tools switch and the phone step are offered.
+
+## Desktop integration amendment (2026-11-15)
+
+The desktop parity implementation in `docs/plans/wp-desktop.md` supersedes the
+proposed extra Machine step and no-host automatic opening above. Pairing remains
+the separate no-host route. The walkthrough follows the reference's five steps,
+connected and hydrated setup host gate, one decision per launch, and stale-visit
+guard. Compact layout omits Phone; a native phone never opens this walkthrough.
+Existing settings/provider/project/device controls are reused. Completion stays
+client-local in the private app preferences; a read failure suppresses automatic
+opening. The node lifecycle contract owns process creation and termination.
