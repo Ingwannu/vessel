@@ -18,8 +18,11 @@ remain authoritative; only actual dismissed acknowledgment clears snap state.
 Reference: Paseo packages/app/src/changelog/internal/changelog-sheet.ts:80-90
 uses desktop620/exact85%, compact85/95 draggable. Configuration tests verify actual
 short-content bounds and snap/scroll handoff. The desktop worker's earlier be31
-Kit suite passed166 tests including these changes; this isolated dd13 union is
-not yet checked and does not inherit a new combined PASS from that older result.
+Kit suite passed166 tests including these changes. Current isolated base8
+source7730d570a independently passed native format/quality/all-target Clippy and
+test steps in wp-desktop-popover-narrow-20261115T143258Z-7730d570: Kit193/0/0,
+aggregate1444/0/2. This suite omits native-build and actual OS captures; neither a
+whole feature gate nor native UI/consumer approval is inferred from this proof.
 
 Producer source is isolated from E3 app/link changes. Run Kit all-target Clippy
 and Kit library tests remotely, then request V1 review before lead consumption.

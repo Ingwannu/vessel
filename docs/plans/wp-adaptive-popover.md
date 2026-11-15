@@ -84,8 +84,8 @@ local source checks only. Compilation, Clippy and test execution run remotely.
 Initial isolated2a all-target Kit Clippy reached the source and reported one test
 callback type-inference error, a similar-name test binding, missing doc backticks
 and viewport arithmetic lints. The corrected source uses explicit callback type,
-distinct names and fused finite layout arithmetic, with no allowances. Tests have
-not run yet. No runtime, V1 or consumer-ready claim exists until exact results land.
+distinct names and fused finite layout arithmetic, with no allowances. Tests had
+not run at that initial checkpoint; exact current evidence follows below.
 The second exact1a Clippy typechecked the control/tests and reported only two
 unary float-negation lints on the margin constant. Current source uses a named
 signed viewport inset; no lint allowance is added. The next base8 source check
@@ -96,8 +96,8 @@ before routing a key, so a real keystroke interceptor now opens B after that dra
 and before A's actual listeners. Direct pointer dispatch in one window update
 similarly asserts the render count did not change. Both presentations test stale
 field-focus, arbitrary body action, outside/header dismissal and fresh B input.
-These corrected regressions and InputFence are not yet executed; earlier source
-typechecks do not prove this capture boundary.
+Those corrected regressions and InputFence still required execution at that
+source checkpoint; earlier typechecks did not prove the capture boundary.
 The exact039 priority suite passed formatting and structural checks, then Clippy
 stopped only on test target-index arithmetic and unreachable!. The corrected
 regression uses an exhaustive Target enum, without either operation or a lint
@@ -106,6 +106,15 @@ allowance. No test execution occurred in that failed suite.
 The control producer is isolated with only the typed dialog/snap prerequisite and
 this control. It began on dd13; package base8/91407173 is now merged in0313d40a9
 before its next remote run, including the reviewed S2 menu lease and FieldId.
-The queued Clippy2 job still inspects its selected1a/dd13 source, not this union.
+The old Clippy2 job inspected its selected1a/dd13 source, not this union.
+Exact source7730d570a passed the current base8 suite
+wp-desktop-popover-narrow-20261115T143258Z-7730d570: native-fonts/fmt/quality/Clippy
+all0; native-test1444passed/0failed/2ignored, including Kit193/0/0. All nine
+popover tests, both dialog configuration tests and both snap configuration tests
+executed successfully. The source includes actual arbitrary TextField input and
+opener focus, retained-frame pointer/key refusal before child actions/default
+focus, current nested-host dismissal containment, pending refusal and deferred
+retirement. It is a shared-control source/narrow packet, not native-build, actual
+Linux/Windows capture, accessibility, whole E3 or consumer feature approval.
 V1 reviews the checked producer, the lead lands it,
 then W5 consumes that checked producer rather than the desktop shell WIP branch.
