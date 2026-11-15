@@ -989,3 +989,10 @@ The crate's [execution staging guide](../../crates/vessel-browser/README.md)
 records current module responsibilities, pending data flow, cancellation and
 cleanup boundaries, one-owner bounds and exact verification limits. It does not
 advertise the staged primitives as a supported runtime or product browser.
+
+
+The shared parity tracker D3 rows509–513 now use PLAN section7's sole W14
+ownership instead of the withdrawn duplicate W18 assignment. They remain
+skeleton, with the unimplemented annotation/attachment row marked missing.
+Each row names the actual NoEngine/dependency boundary; no row is built/passed
+from source review, a bounded component test or another package's gate.
