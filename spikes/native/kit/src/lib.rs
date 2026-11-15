@@ -59,6 +59,7 @@ pub mod skeleton;
 pub mod slider;
 pub mod split_button;
 pub mod tabs;
+pub mod terminal_grid;
 pub mod theme;
 pub mod toast;
 pub mod toolbar_label;
