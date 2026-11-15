@@ -81,7 +81,7 @@ impl CaptureDevice for Frames {
     fn start(&self) -> Result<(), DeviceFailure> {
         Ok(())
     }
-    fn receive(&mut self) -> impl std::future::Future<Output = Result<Captured, DeviceFailure>> {
+    fn receive(&mut self) -> impl Future<Output = Result<Captured, DeviceFailure>> {
         std::future::ready(
             self.0
                 .capture(&[0.0; 160])

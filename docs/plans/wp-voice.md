@@ -304,3 +304,8 @@ cancellation releases all queued/in-flight bytes before a held remote Stop.
 The prior77ce467a remote check was canceled by signal143 while queued (no compile
 step). W19 did not cancel it or treat it as a test failure; build-tool owner T
 was asked whether a new latest-head submission is released before resubmitting.
+
+Public capture API, RMS, overlay values, glyphs and staged output compile under
+strict narrow25e5c8d9 except one unnecessarily qualified Future in the fake
+reader signature. Fixed to the2024-prelude name. This is compiler evidence only;
+no runtime/device/consumer-ready claim follows until the new head's checks pass.
