@@ -326,3 +326,15 @@ missing generated fonts; the assertion now names SharedString, and the exact
 pinned font packages are prepared under `/tmp/work/wp-timeline/` through the
 existing font script. The native ignore rule also covers a generated-font
 symlink, preserving the workspace's HDD artifact policy without shipping it.
+
+The L-approved Chat reasoning label/hint are prepared in isolated
+`chat-reasoning.ftl` resources with EN/KO whole-sentence checks. They do not
+publish a second Chat display adapter; the control still waits for the shared
+Chat base. `set_reasoning` is idempotent so applying the current preference to a
+resident or embedded conversation never discards its scroll position.
+
+Coordinator assigned the multi-session resident resource registry to W12. A7
+will adapt ConversationArea/Seat behind W12's V1-reviewed keyed-context contract;
+no parallel SessionView/composer manager is introduced here. Until that contract
+lands, this package's existing single-session and embedded rows remain its
+consumer boundary.

@@ -220,3 +220,24 @@ impl ReasoningExpansion {
         matches!(self, Self::Expanded)
     }
 }
+
+#[cfg(test)]
+mod reasoning_words {
+    use crate::localization::{ENGLISH, LanguagePreference, Translator, resolve_language};
+
+    #[test]
+    fn chat_reasoning_label_and_hint_keep_the_approved_whole_sentences() {
+        let en = Translator::get(ENGLISH).unwrap().chat_reasoning();
+        let ko = Translator::get(resolve_language(
+            LanguagePreference::System,
+            Some("ko"),
+            None,
+        ))
+        .unwrap()
+        .chat_reasoning();
+        assert_eq!(en.label(), "Always expand reasoning");
+        assert_eq!(en.hint(), "Expand reasoning messages automatically.");
+        assert_eq!(ko.label(), "추론 항상 펼치기");
+        assert_eq!(ko.hint(), "추론 메시지를 자동으로 펼칩니다.");
+    }
+}

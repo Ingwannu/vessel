@@ -53,6 +53,9 @@ impl ConversationArea {
     /// Embedded conversations use this same preference boundary before feeding
     /// records; no second preference store is needed.
     pub(crate) fn set_reasoning(&mut self, expansion: ReasoningExpansion) {
+        if self.reasoning == expansion {
+            return;
+        }
         self.reasoning = expansion;
         self.folds = self
             .collapse
