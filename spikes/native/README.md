@@ -1470,3 +1470,10 @@ value and Idle/Loading presentation to the one select renderer. Source MD is
 chevron16 and numeric14 activity in16slot; loading does not imply Disabled.
 Existing Settings/HostFilter entry signatures and defaults are preserved.
 Border-only active chrome retains the app's no-container-ring policy.
+
+`TextField::form_multiline_with_minimum(..., FormMinimum, ...)` uses the same
+textarea, handlers, Editability and256cap. Default preserves GOAT68/80; Expanded
+is Paseo's schedule-prompt96 in both layouts. Old constructors/callers stay
+unchanged; the option cannot be applied to a composer/line by a no-op builder.
+The old form chrome moved unchanged into field/form_minimum.rs to lower the
+root's product-line record635→618.

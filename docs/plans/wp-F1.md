@@ -496,3 +496,22 @@ ring policy; border-only active treatment matches TextField's shared policy.
 Both-theme literal geometry/paint/opacity/placeholder/source-slot regression
 source is added, but not executed yet. Final F1 checks/consumer captures own
 source interaction/actual slot/scale/focus proof; no producer/UI pass is claimed.
+
+## Shared multiline minimum source
+
+Coordinator5f0bf9d0 delegated the add-only option, W4 confirmed4fc88701 that it
+is not editing field.rs and no producer split is needed. Existing TextField
+form_multiline stays exactly the default GOAT68/80. The new explicit form-only
+constructor accepts FormMinimum::Default/Expanded; Expanded is the96-point
+source minimum (schedule-form-sheet.tsx1040), with the same TextareaState,
+Enter/IME/events/Editability and256 cap. No area height override or second
+engine is introduced; no public minimum builder silently ignores a line/composer.
+
+To respect the root ratchet, existing form_shell moves to field/form_minimum.rs
+with only pub(super) and fonts path qualification. Normalizing those two
+changes reproduces the original source digest in the external preservation
+manifest; form_tests.rs and events.rs are byte-identical. Root635 lowers to
+measured618, never raised. New literal/default and real existing-engine96/
+growth/cap cases cover both themes/layouts in source. They remain unexecuted
+until the changed F1 checks; source hash sent to W4 is coordination, not a
+reviewed/narrow-green consumer handoff or a focused-field/UI pass.
