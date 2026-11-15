@@ -377,8 +377,9 @@ The proposed canonical reservation definitions belong beside W23's existing
 | `MAX_NOTICE_KEY_BYTES` | 512 encoded UTF-8 bytes, checked before persistence. The actual key contains only fixed-size UUIDs, an EventSeq and closed enum tags. |
 | `MAX_NOTICE_PAYLOAD_BYTES` | 16 KiB of canonical encoded captured payload, including its fixed text and randomized fence. Reject excess before capture/admission, never truncate an id or synthesize a source. |
 | `MAX_NOTICE_STATE_BYTES` | 32 KiB for the complete key, source, payload, fingerprint, lifetime/provenance metadata and largest accepted/refused/uncertain/tombstone result. |
-| `MAX_FINISH_INTENT_STATE_BYTES` | 128 KiB for the original canonical request (subject to W23's existing 64 KiB validation), parent/target/grant/binding and every non-payload intent field. The stored input permits exact read-only recovery without reconstructing pruned content. |
-| `MAX_FINISH_CHECKPOINTS` | `NEEDS_YOU_MAX + 1`, using checked arithmetic: all allowed needs-you checkpoints plus one terminal/unavailable checkpoint. |
+| `MAX_FINISH_ORIGINAL_REQUEST_BYTES` | 64 KiB of the FULL canonical encoded original request, checked before finish registration or its original dispatch. This is an internal finish-registration resource floor beyond Paseo, not an existing generic SubmitPrompt validation or a new limit on ordinary submissions without finish registration. |
+| `MAX_FINISH_INTENT_STATE_BYTES` | 128 KiB for that bounded original request, parent/target/grant/binding and every non-payload intent field. The stored input permits exact read-only recovery without reconstructing pruned content. |
+| `MAX_FINISH_CHECKPOINTS` | `NEEDS_YOU_MAX + 1`, using checked arithmetic: all allowed needs-you checkpoints plus one terminal OR unavailable checkpoint. Capturing ObservationUnavailable irrevocably ends this intent's observation; it can never later capture Terminal. |
 
 Before any intent storage or original prompt effect, the same writer transaction
 reserves the full intent envelope plus `MAX_FINISH_CHECKPOINTS` complete notice
@@ -395,9 +396,11 @@ not guarantees of free durable capacity.
 
 Acknowledgement, uncertainty, replacement and log pruning never release these
 retained reservations. Settled state becomes a compact replay tombstone within
-its original charge. Only the same authorized whole-parent-session deletion or
-retention that releases W23 receipts may cascade its intent/checkpoint rows and
-accounting atomically. No new TTL or unbounded retention choice is introduced.
+its original charge. Only committed authorized WHOLE parent-session removal may cascade its intent/
+checkpoint rows and release accounting atomically. Retention qualifies only if
+it performs that same whole-session removal; ordinary log pruning, replacement,
+revocation or an accepted acknowledgement never releases the charge. No new TTL
+or unbounded retention choice is introduced.
 On startup verify the worst-case encoded envelope and derived accounting before
 admission; inconsistent rows refuse rather than reset/drop replay protection.
 SQLite page/WAL overhead and the ordinary queue's existing content limits remain
@@ -422,8 +425,11 @@ NoticeCheckpoint =
 
 The request alternatives are a closed Rust enum, not a string union. Source
 sequences belong to the intent's exact target and authoritative actual turn;
-`ObservationUnavailable` is a singleton for that intent. It is an explicit
-unknown outcome, never a fabricated terminal sequence or a claim of finish.
+`ObservationUnavailable` is a singleton for that intent and irrevocably ends
+its observation. Its retained delivery may still be unacknowledged, but a later
+reconnection/terminal record cannot restart the observer or add another terminal
+checkpoint under that intent. It is an explicit unknown outcome, never a
+fabricated terminal sequence or a claim of finish.
 The first captured payload, reason and randomized output fence are persisted
 within the reserved slot before admission; retries use that same payload/
 fingerprint and key. A pruned current snapshot with no original source EventSeq

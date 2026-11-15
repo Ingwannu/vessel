@@ -595,3 +595,13 @@ slot before storage or dispatch, through the existing W23 admission accounting.
 Acknowledged/uncertain tombstones retain that charge until authorized whole
 parent-session removal; there is no new eviction/TTL. The separately approved
 ObservePromptReceipt remains W23-owned under its existing None gate.
+
+
+The saved-original-request floor is explicitly finish-registration-only:
+`MAX_FINISH_ORIGINAL_REQUEST_BYTES` checks the full canonical encoded request
+against 64 KiB before registration/dispatch. W23 has no generic SubmitPrompt
+64 KiB bound; its similarly sized native-command text limit is unrelated.
+ObservationUnavailable irrevocably ends the observer, so the single extra
+checkpoint slot is terminal OR unavailable. Retention releases accounting only
+through committed authorized whole-parent-session removal; pruning, replacement
+or revocation never releases it.
