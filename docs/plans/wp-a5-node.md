@@ -99,3 +99,10 @@ arbitrary non-boundary elapsed samples. The exact terminal tracker reference
 path is corrected. TypeScript quantities classify elapsed idle and revision;
 regeneration and exact changed-source checks are still owed. V3 asserted no
 other inspected security defect; this is not a source PASS or runtime evidence.
+
+The next strict check found the two new reply variants missing from the
+pre-existing agent-field older projection's exhaustive no-op arm. They are
+added there; no field or authority semantics change. Session rollups now also
+carry current failed outcomes, independently of unread, so native five-bucket
+status cannot confuse a read failure with a finished result. A regression marks
+a failure read and verifies failure persists until a new turn removes it.

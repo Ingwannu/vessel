@@ -26,6 +26,8 @@ pub struct SessionAttention {
     pub unread: InboxCount,
     /// All current requests awaiting a person, including seen ones.
     pub waiting: InboxCount,
+    /// Current failed outcomes, independent of whether they have been read.
+    pub failed: InboxCount,
 }
 
 /// A person's passive read through an actually observed exclusive watermark.

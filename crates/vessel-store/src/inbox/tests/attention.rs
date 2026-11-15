@@ -79,3 +79,41 @@ fn badges_include_off_page_requests_and_exact_reads_do_not_consume_another() {
     assert_eq!(resolved[0].unread.get(), 0);
     assert_eq!(resolved[0].waiting.get(), 0);
 }
+
+#[test]
+fn failure_bucket_is_separate_from_unread_and_clears_when_work_restarts() {
+    let db = database();
+    let target = session(&db);
+    append(
+        &db,
+        target,
+        0,
+        AgentEvent::TurnFailed {
+            message: "fixture failure".to_owned(),
+        },
+    );
+    crate::inbox::mark(
+        &db,
+        &MarkInbox {
+            key: InboxKey {
+                session: target,
+                seq: EventSeq::ZERO,
+            },
+            read: InboxRead::Read,
+        },
+    )
+    .unwrap();
+    let attention = crate::inbox::attention::read(&db, &[target]).unwrap();
+    assert_eq!(attention[0].failed.get(), 1);
+    assert_eq!(attention[0].unread.get(), 0);
+    append(
+        &db,
+        target,
+        1,
+        AgentEvent::TurnStarted {
+            content: Vec::new(),
+        },
+    );
+    let attention = crate::inbox::attention::read(&db, &[target]).unwrap();
+    assert_eq!(attention[0].failed.get(), 0);
+}

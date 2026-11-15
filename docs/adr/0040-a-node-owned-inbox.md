@@ -165,7 +165,7 @@ session watermark or marks another pending permission/question read.
 
 `inbox.attention` reads at most 256 distinct requested sessions in one SQL
 snapshot, including all rows outside the loaded head page. Each existing
-session has independent unread/waiting counts; missing sessions are omitted.
+session has independent unread/waiting/current-failed counts; missing sessions are omitted.
 The native badge consumes this rollup, not partial rows or log marks.
 `inbox.read` is a direct-person, Read-scoped passive clear through an observed
 exclusive watermark. It reuses the existing marks transaction/order lock,
