@@ -584,3 +584,12 @@ package gate/captures/review. Later popover source636ff7613 and the Node API/
 installer/settings/runtime product still have separate obligations. The private
 canonical-model adoption restriction remains until the integrator and app base
 carry it through the announced line; no consumer handoff follows from this run.
+
+
+The exact636 popup checks reached App compilation and failed before tests:
+kit::Button intentionally implements styling/click admission, not ParentElement.
+The probe therefore belongs to a relative, non-growing, self-start wrapper which
+fits that actual button, using the existing picker probe. No kit API, button
+geometry/style or assertions are changed. Both failed logs remain; the corrected
+source is checked on the newly merged announced a7aab9d6 base, independently
+from the pre-popup973 success and the old636 compile-only failure.

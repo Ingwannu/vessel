@@ -274,8 +274,6 @@ fn draw_button(
         config(ButtonKind::Secondary, available, window),
         look.tokens,
     )
-    .relative()
-    .child(vessel_app_kit::picker::anchor_probe(&anchor))
     .on_click(cx.listener(move |view, event: &ClickEvent, window, cx| {
         view.press(
             &field,
@@ -292,7 +290,11 @@ fn draw_button(
     Some(
         div()
             .debug_selector(|| "plugin-surface-button".to_owned())
+            .relative()
+            .flex_none()
+            .self_start()
             .child(element)
+            .child(vessel_app_kit::picker::anchor_probe(&anchor))
             .into_any_element(),
     )
 }
