@@ -171,3 +171,11 @@ qualifications are changed to its existing re-export, matching the producer's
 published qualification-only cleanup; unrelated size ratios are untouched.
 The fail-first fixture remains on immutableeed7e854. Runtime performance,
 physical font transitions and new captures remain unverified.
+
+### Quiet font cache verification
+
+The pre-fix quiet-font regression executed and failed as intended (0 passed,
+1 failed). The changed code strict check stopped at seven unnecessary test
+qualifications; removing only those qualifications preserves the assertions.
+The corrected source still owes its exact test and strict check. Existing
+31-checkpoint screen parity evidence does not cover this UI cache change.

@@ -79,14 +79,14 @@ fn quiet_code_stack_change_invalidates_rows_with_unchanged_metrics(cx: &mut Test
         let area = &mut shell.areas.terminal;
         area.phase = Phase::Ready;
         area.fit = Some(GridSize::STANDARD);
-        area.probe.set(Some(gpui::Bounds::new(
-            gpui::point(gpui::px(0.0), gpui::px(0.0)),
-            gpui::size(gpui::px(640.0), gpui::px(384.0)),
+        area.probe.set(Some(Bounds::new(
+            gpui::point(px(0.0), px(0.0)),
+            gpui::size(px(640.0), px(384.0)),
         )));
         area.grid.update(cx, |grid, _| {
             grid.cell = vessel_app_kit::terminal_grid::CellSize {
-                width: gpui::px(8.0),
-                height: gpui::px(16.0),
+                width: px(8.0),
+                height: px(16.0),
             };
         });
         shell.terminal_present(window, cx);
