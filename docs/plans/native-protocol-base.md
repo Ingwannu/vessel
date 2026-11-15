@@ -46,7 +46,7 @@ measured totals are recorded in the handover, outside repository content.
 
 ## Resume point
 
-The node and declared-port merges are committed. Client/settings and
+The node and reviewed workspace-stack merges are committed. Client/settings and
 terminal approval adaptations pass focused link/view clippy and library
 tests. Declared-port consumers and regression cases are implemented. Next:
 complete focused checks and both whole gates on the final committed head.
@@ -76,8 +76,9 @@ rather than extending command execution.
 
 ### Declared service ports
 
-The declared-port boundary is merged separately because it was not yet on
-the selected node head. The native card destructures all `ScriptEntryView`
+The reviewed workspace stack through its node integration is merged
+separately because it was not yet on the selected node head. Its TOML
+parser now includes declared service ports in the approval digest. The native card destructures all `ScriptEntryView`
 fields without a rest pattern: name, kind, command, folder and declared
 port are drawn. Adding a field breaks this display until it is handled.
 Comparison uses the full borrowed view, while English and Korean name
@@ -91,3 +92,13 @@ Script kind, port and change wording therefore delegates to one small
 `script_words` module, reusing the existing `Lang` enum. Both languages
 share the comparison, so a new approved field cannot be named in only one
 language; the existing English/Korean outputs remain pinned by tests.
+
+### Owned node settings on the current node contract
+
+The current root settings own restart-recovery prompt text and are Clone,
+not Copy. Idle release borrows cached replies instead of moving them when
+painting or toggling. Test fixtures construct default recovery data without
+exposing it as another app control; the idle-release write continues to
+leave unrelated settings absent. Existing refresh, refusal and toggle tests
+exercise repeated access to the same owned reply. No recovery feature is
+assigned or enabled by this adaptation.
