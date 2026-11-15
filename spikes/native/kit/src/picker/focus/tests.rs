@@ -2,7 +2,6 @@
 //! an unmounted focus target stops swallowing the opener's keys.
 use super::super::*;
 use crate::{Scheme, Tokens};
-use gpui::prelude::*;
 use gpui::{Entity, KeyDownEvent, Modifiers, Render, TestAppContext, div, point, px};
 
 #[derive(Clone, Copy)]

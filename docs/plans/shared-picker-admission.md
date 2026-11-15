@@ -43,3 +43,21 @@ Kit all-target Clippy and Kit lib tests once for this changed producer head;
 715 ordinary F1 stays untouched. No new whole package or UI capture is claimed.
 Native Linux focused-field F5, IME/physical input, consumer UI and W2 product
 behavior are distinct evidence, not inferred from headless GPUI results.
+
+
+## First isolated check: actual RED, not adoption evidence
+
+Exact a1b1 run picker-control-20261115T143700Z-a1b1b607 ended fonts0,
+Kit Clippy101/no tests. The extraction incorrectly inserted the cycle/opener
+fields at the first open-argument declaration instead of inside ComboboxState.
+The complete compiler batch also found two redundant test prelude imports,
+an unnecessary mutable constructor binding and the test parse helper's required
+static string lifetime. These are corrected together, without changing geometry,
+weak admission, assertions or adding suppressions. This old run is preserved;
+none of its source or green font step is corrected-source compile proof.
+
+A local boundary script was also mistakenly treated as non-Cargo: inspection
+showed it calls cargo metadata --no-deps --offline. It compiled nothing, but
+still violated the all-Cargo-remote instruction. It will not be run locally
+again; further boundary/quality checks run through the remote helper. Direct
+rustfmt, source-size/token scans and Git checks alone remain local.

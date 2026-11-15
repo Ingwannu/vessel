@@ -4,7 +4,6 @@ use crate::{
     Scheme, TextField, Tokens,
     dialog::{DialogContent, DialogSize, DialogState},
 };
-use gpui::prelude::*;
 use gpui::{
     Entity, InputEvent as _, KeyDownEvent, Keystroke, Modifiers, MouseDownEvent, MouseUpEvent,
     Render, TestAppContext, VisualTestContext, div, point, px,
@@ -43,7 +42,7 @@ impl Probe {
     ) -> Self {
         let field = TextField::new("Actual opener", |_, _, _, _| {}, window, cx);
         field.focus(window, cx);
-        let mut this = Self {
+        let this = Self {
             field,
             dialog: DialogState::new(cx),
             visible: true,
@@ -167,7 +166,7 @@ fn open(view: &Entity<Probe>, cx: &mut VisualTestContext) {
     cx.update(|window, cx| view.update(cx, |this, cx| this.open(window, cx)));
     cx.run_until_parked();
 }
-fn press(window: &mut Window, cx: &mut App, text: &str) {
+fn press(window: &mut Window, cx: &mut App, text: &'static str) {
     let parsed = Keystroke::parse(text);
     assert!(parsed.is_ok());
     let Ok(keystroke) = parsed else {

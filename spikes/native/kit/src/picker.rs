@@ -114,8 +114,6 @@ pub fn pill(
     label: impl Into<SharedString>,
     quiet: Option<SharedString>,
     open: bool,
-    cycle: Rc<()>,
-    return_to: crate::focus::ReturnFocus,
     touch: bool,
     tokens: &Tokens,
 ) -> Stateful<Div> {
@@ -418,6 +416,8 @@ pub enum Side {
 #[derive(Debug)]
 pub struct ComboboxState {
     open: bool,
+    cycle: Rc<()>,
+    return_to: crate::focus::ReturnFocus,
     highlighted: Option<usize>,
     /// The highlighted row's label: the highlight follows its row when rows
     /// are added or removed above it while the list is open (an agent's
