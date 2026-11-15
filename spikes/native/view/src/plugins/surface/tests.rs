@@ -8,7 +8,7 @@ use vessel_proto::plugins::{
 #[test]
 fn all_fields_share_one_edit_budget_and_refusal_preserves_the_previous_draft() {
     const CHUNK_BYTES: usize = 16 * 1024;
-    const FILLED_FIELDS: usize = MAX_SURFACE_EDIT_BYTES / CHUNK_BYTES;
+    const FILLED_FIELDS: usize = MAX_SURFACE_EDIT_BYTES.div_euclid(CHUNK_BYTES);
     let (installation, address) = entry(
         (0..=FILLED_FIELDS)
             .map(|index| field(&format!("field-{index}")))
