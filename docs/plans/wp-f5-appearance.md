@@ -351,3 +351,11 @@ cursor rendering is duplicated, and C2's Rc row-cache changes are untouched.
 FontStack already supplies typed Eq/PartialEq identity for family+fallbacks;
 C2 owns adding that identity to RowsKey and its quiet-grid regression. This
 helper correction alone does not prove retained terminal-frame invalidation.
+
+Parsed local preview axes now live in view::appearance::form::PreviewDrafts.
+The edit edge parses each numeric/family change once; the app caches only
+resolved native typography. It no longer reparses three engine strings on
+every edit. Reset/external resync clears only the changed parsed axis, so
+unrelated raw drafts and their previews remain intact. No second editor state
+is introduced. A new view regression covers independent draft axes, current
+saved fallback, single-axis resync and the documented native preview bound.

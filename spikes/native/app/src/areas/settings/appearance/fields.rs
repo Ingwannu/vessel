@@ -55,6 +55,7 @@ impl State {
                 .as_ref()
                 .is_none_or(|before| form::saved_text(field, before) != next)
             {
+                self.drafts.reset(field);
                 self.fields
                     .of(field)
                     .set_text(&display(next, full), window, cx);
@@ -88,6 +89,7 @@ impl Shell {
         if edited.text.as_str() != raw {
             input.set_text(edited.text.as_str(), window, cx);
         }
+        state.drafts.apply(edited.preview);
         state.refresh_preview(&self.prefs.settings.appearance, cx);
         cx.notify();
     }
@@ -122,6 +124,7 @@ impl Shell {
         if input.text(cx) != text {
             input.set_text(&text, window, cx);
         }
+        self.areas.settings.appearance.drafts.reset(field);
         self.areas
             .settings
             .appearance

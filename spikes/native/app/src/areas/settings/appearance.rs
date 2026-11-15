@@ -32,6 +32,7 @@ pub(super) struct State {
     fields: fields::Fields,
     saved: Option<Appearance>,
     preview: Option<PreviewTypography>,
+    drafts: vessel_app_view::appearance::form::PreviewDrafts,
     rows: Result<Vec<PreviewRow>, PreviewError>,
 }
 impl State {
@@ -40,6 +41,7 @@ impl State {
             fields: fields::Fields::new(window, cx),
             saved: None,
             preview: None,
+            drafts: vessel_app_view::appearance::form::PreviewDrafts::default(),
             rows: preview::rows(),
         }
     }

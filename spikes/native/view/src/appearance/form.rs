@@ -1,6 +1,9 @@
 //! Pure field transitions over the existing editor's text. The native text
 //! engine alone owns caret/IME/history; this layer returns filtered text,
 //! parsed preview deltas and one optional saved-preference change.
+mod preview;
+pub use preview::{PreviewDrafts, PreviewValues};
+
 use super::{DraftText, FontFamily, Number};
 use crate::prefs::{Appearance, PreferenceChange};
 use std::fmt::Display;
