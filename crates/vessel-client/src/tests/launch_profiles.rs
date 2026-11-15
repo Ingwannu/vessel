@@ -14,13 +14,13 @@ async fn phase<T>(name: &str, future: impl Future<Output = T>) -> T {
         .await
         .unwrap_or_else(|_| panic!("phase timed out: {name}"))
 }
-fn refusal(error: CallError, method: Method, negotiated: ProtocolVersion) {
+fn refusal(error: &CallError, method: Method, negotiated: ProtocolVersion) {
     match NAMED_LAUNCH_PROFILES {
         None => assert!(
-            matches!(error, CallError::UnassignedProtocol { method: actual } if actual == method)
+            matches!(error, CallError::UnassignedProtocol { method: actual } if *actual == method)
         ),
         Some(needed) => assert!(
-            matches!(error, CallError::NotInProtocol { method: actual, needs, negotiated: actual_version } if actual == method && needs == needed && actual_version == negotiated)
+            matches!(error, CallError::NotInProtocol { method: actual, needs, negotiated: actual_version } if *actual == method && *needs == needed && *actual_version == negotiated)
         ),
     }
 }
@@ -59,67 +59,7 @@ async fn launch_profile_methods_and_nested_calls_are_never_sent_before_availabil
             )
             .await
             .unwrap();
-            refusal(
-                phase("list admission", client.launch_profiles())
-                    .await
-                    .unwrap_err(),
-                Method::ListLaunchProfiles,
-                negotiated,
-            );
-            refusal(
-                phase(
-                    "replace admission",
-                    client.replace_launch_profiles(
-                        LaunchProfileRevision::ZERO,
-                        LaunchProfiles::default(),
-                    ),
-                )
-                .await
-                .unwrap_err(),
-                Method::ReplaceLaunchProfiles,
-                negotiated,
-            );
-            let selection =
-                LaunchSelection::new(HarnessKind::Codex.into(), None, LaunchChoices::default());
-            refusal(
-                phase(
-                    "options admission",
-                    client.launch_profile_options(selection),
-                )
-                .await
-                .unwrap_err(),
-                Method::GetLaunchProfileOptions,
-                negotiated,
-            );
-            refusal(
-                phase(
-                    "eligibility admission",
-                    client.applicable_launch_profiles(session_id()),
-                )
-                .await
-                .unwrap_err(),
-                Method::GetApplicableLaunchProfiles,
-                negotiated,
-            );
-            let LaunchProfileClientError::Call(error) = phase(
-                "bundle admission",
-                client.apply_session_options(session_id(), LaunchChoices::default()),
-            )
-            .await
-            .unwrap_err() else {
-                panic!("not local admission")
-            };
-            refusal(error, Method::ApplySessionOptions, negotiated);
-            refusal(
-                phase(
-                    "nested admission",
-                    client.call_on(NodeId::random(), ListLaunchProfiles {}),
-                )
-                .await
-                .unwrap_err(),
-                Method::Forward,
-                negotiated,
-            );
+            check_admission(&client, negotiated).await;
             drop(client);
             assert!(
                 phase("peer sees client closure", peer)
@@ -131,4 +71,64 @@ async fn launch_profile_methods_and_nested_calls_are_never_sent_before_availabil
     )
     .await
     .unwrap();
+}
+
+async fn check_admission(client: &NodeClient, negotiated: ProtocolVersion) {
+    refusal(
+        &phase("list admission", client.launch_profiles())
+            .await
+            .unwrap_err(),
+        Method::ListLaunchProfiles,
+        negotiated,
+    );
+    refusal(
+        &phase(
+            "replace admission",
+            client.replace_launch_profiles(LaunchProfileRevision::ZERO, LaunchProfiles::default()),
+        )
+        .await
+        .unwrap_err(),
+        Method::ReplaceLaunchProfiles,
+        negotiated,
+    );
+    let selection = LaunchSelection::new(HarnessKind::Codex.into(), None, LaunchChoices::default());
+    refusal(
+        &phase(
+            "options admission",
+            client.launch_profile_options(selection),
+        )
+        .await
+        .unwrap_err(),
+        Method::GetLaunchProfileOptions,
+        negotiated,
+    );
+    refusal(
+        &phase(
+            "eligibility admission",
+            client.applicable_launch_profiles(session_id()),
+        )
+        .await
+        .unwrap_err(),
+        Method::GetApplicableLaunchProfiles,
+        negotiated,
+    );
+    let LaunchProfileClientError::Call(error) = phase(
+        "bundle admission",
+        client.apply_session_options(session_id(), LaunchChoices::default()),
+    )
+    .await
+    .unwrap_err() else {
+        panic!("not local admission")
+    };
+    refusal(&error, Method::ApplySessionOptions, negotiated);
+    refusal(
+        &phase(
+            "nested admission",
+            client.call_on(NodeId::random(), ListLaunchProfiles {}),
+        )
+        .await
+        .unwrap_err(),
+        Method::Forward,
+        negotiated,
+    );
 }

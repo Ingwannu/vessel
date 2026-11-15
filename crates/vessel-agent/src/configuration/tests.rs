@@ -168,12 +168,10 @@ async fn driver_closure_ends_owner_even_with_external_handles_and_unanswered_rep
             let (send, mut receive) = mpsc::channel(crate::process::COMMANDS);
             let input = Configuration::spawn(send);
             let pending_input = input.clone();
-            let pending = tokio::spawn(async move {
-                pending_input
-                    .apply_options(choices(&["a", "b"]))
-                    .await
-                    .unwrap()
-            });
+            let pending =
+                tokio::spawn(
+                    async move { pending_input.bundle(choices(&["a", "b"])).await.unwrap() },
+                );
             let unanswered = setter(&mut receive, "a").await;
             drop(receive);
             let result = phase("driver closure result", pending).await.unwrap();

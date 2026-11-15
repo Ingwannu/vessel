@@ -10,7 +10,7 @@ use std::{future::Future, sync::Arc};
 use tokio::sync::{OwnedSemaphorePermit, Semaphore, oneshot};
 use tokio_util::{
     sync::CancellationToken,
-    task::{TaskTracker, TaskTrackerToken},
+    task::{TaskTracker, task_tracker::TaskTrackerToken},
 };
 
 #[derive(Debug, Clone, Copy)]

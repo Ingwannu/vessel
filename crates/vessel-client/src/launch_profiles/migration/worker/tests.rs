@@ -44,7 +44,7 @@ fn host(mode: WriteMode) -> Arc<Mutex<Host>> {
 }
 fn read(host: &Arc<Mutex<Host>>) -> Ready<Result<LaunchProfilesSnapshot, CallError>> {
     let mut host = host.lock().unwrap();
-    host.reads += 1;
+    host.reads = host.reads.checked_add(1).unwrap();
     immediate(Ok(host.current.clone()))
 }
 fn stale_error(current: LaunchProfileRevision) -> CallError {
@@ -62,7 +62,7 @@ fn write(
     profiles: LaunchProfiles,
 ) -> Ready<Result<LaunchProfilesSnapshot, CallError>> {
     let mut host = host.lock().unwrap();
-    host.writes += 1;
+    host.writes = host.writes.checked_add(1).unwrap();
     let result = match host.mode {
         WriteMode::ConflictOnce | WriteMode::AlwaysStale => {
             let manual = profile(&format!("manual {}", host.writes), Vec::new());
@@ -146,10 +146,11 @@ async fn stale_rebuilds_preserve_manual_changes_and_persistent_failure_is_finite
         let one_conflict = host(WriteMode::ConflictOnce);
         let receipt = run(&one_conflict).await.unwrap();
         assert!(matches!(receipt.completion(), LegacyMigrationCompletion::Saved { revision, added } if revision.get() == 2 && added.len() == 2));
-        let saved = one_conflict.lock().unwrap();
-        assert_eq!((saved.reads, saved.writes), (2, 2));
-        assert_eq!(saved.current.profiles().as_slice().first().unwrap().display_name().as_str(), "manual 1");
-        drop(saved);
+        {
+            let saved = one_conflict.lock().unwrap();
+            assert_eq!((saved.reads, saved.writes), (2, 2));
+            assert_eq!(saved.current.profiles().as_slice().first().unwrap().display_name().as_str(), "manual 1");
+        }
         let repeated = host(WriteMode::AlwaysStale);
         assert!(matches!(run(&repeated).await, Err(LaunchProfileClientError::LegacyConflictBudget { last: Some(_) })));
         assert_eq!(repeated.lock().unwrap().writes, MAX_CAS_ATTEMPTS);
