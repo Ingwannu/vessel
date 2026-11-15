@@ -60,8 +60,10 @@ source for duplicate admission. Losing a notification opportunity leaves the
 inbox unchanged. Terminal admission is runtime-only, keyed by terminal revision;
 terminals themselves do not survive node restart.
 
-Terminal attention has an explicit Unknown state for a plain shell. Known
-activity is Idle or Working; attention is Finished or NeedsInput with an exact
+A known plain shell has explicit Untracked activity: neutral only in workspace
+aggregation, with no terminal completion claim. Unknown is reserved for missing,
+lost or future producer evidence. Known activity is Idle or Working; attention
+is Finished or NeedsInput with an exact
 non-reused revision. Only structured lifecycle/hook input owned by that
 terminal may change activity. Working to idle yields finished; an explicit
 needs-input signal yields needs-input; visible focus clears only that exact
@@ -191,8 +193,9 @@ Terminal metadata wakes the existing coalescing push worker. Its independent
 revision watermark does not consume an Inbox cursor; one generic encrypted
 notification per exact lease/burst may represent either canonical source enum
 variant. No fabricated SessionId, new payload, principal, listener or transport
-is introduced. Registry watchers hold only info receivers, not terminal handles,
-so pruning/closed senders and node cancellation end them. This path stays off
+is introduced. The observer retains the canonical registry owner and metadata revisions, never
+an individual terminal handle or a second PTY/follow task. Pruning releases the
+registry entry; closed change watches and node cancellation end the worker. This path stays off
 while the feature constant is unassigned.
 
 One factored lease predicate checks exact device, serialized subscription and

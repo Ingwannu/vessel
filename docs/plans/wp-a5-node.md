@@ -69,8 +69,9 @@ read/answered state and renewed leases are not inferred from registration time.
   push-service delivery proof is implied by the API.
 - No title, body preview, session id, path, prompt or file content crosses OS
   or push notification text. Clients reconnect to obtain authorized details.
-- The subscription lease is renewed by registration. Paseo heartbeat renewal
-  differs; the app must not assume reporting presence alone renews this API.
+- The integrated N1 base renews a subscription by registration. The staged A5
+  continuation below adds paired heartbeat renewal at or after half life; that
+  behavior is not part of the earlier integrated API evidence.
 - The existing session presence API is not a terminal attention API. The app
   package owns that extension and the single-recipient claim. New methods or
   request variants use the canonical metadata/version contract after its head
