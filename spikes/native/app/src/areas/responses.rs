@@ -79,7 +79,7 @@ impl Shell {
     }
 
     /// Ignore duplicate, wrong-target and successor-request replies.
-    pub(crate) fn response_answered(&mut self, answer: Reply) {
+    pub(crate) fn response_answered(&mut self, answer: &Reply) {
         if !self.areas.responses.registry.settle(&answer.pending) {
             return;
         }

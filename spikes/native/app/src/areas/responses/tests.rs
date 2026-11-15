@@ -71,7 +71,7 @@ fn a_late_refusal_cannot_decorate_a_successor_canceled_or_other_target(
                 Vec::new()
             };
             shell.areas.conversation.refused = None;
-            shell.response_answered(Reply {
+            shell.response_answered(&Reply {
                 pending: pending.clone(),
                 result: Err(Problem::Unconfirmed),
             });
@@ -90,7 +90,7 @@ fn a_late_refusal_cannot_decorate_a_successor_canceled_or_other_target(
             .areas
             .conversation
             .open("other", pending.target.session);
-        shell.response_answered(Reply {
+        shell.response_answered(&Reply {
             pending: pending.clone(),
             result: Err(Problem::Unsent),
         });
@@ -113,7 +113,7 @@ fn an_uncertain_result_preserves_the_card_and_duplicate_replies_cannot_clear_a_r
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, _window, _cx| {
         let pending = begin(shell);
-        shell.response_answered(Reply {
+        shell.response_answered(&Reply {
             pending: pending.clone(),
             result: Err(Problem::Unconfirmed),
         });
@@ -131,6 +131,7 @@ fn an_uncertain_result_preserves_the_card_and_duplicate_replies_cannot_clear_a_r
             .areas
             .conversation
             .answered(vessel_app_link::ActAnswer {
+                terminal: None,
                 machine: "scratch".into(),
                 session: pending.target.session,
                 kind: vessel_app_link::ActKind::Conversation,
@@ -154,7 +155,7 @@ fn an_uncertain_result_preserves_the_card_and_duplicate_replies_cannot_clear_a_r
             Answer::Permit(permission.id, permission.options[0].id.clone()),
         );
         assert_eq!(shell.areas.responses.seats.len(), 1);
-        shell.response_answered(Reply {
+        shell.response_answered(&Reply {
             pending: pending.clone(),
             result: Ok(()),
         });
@@ -178,7 +179,7 @@ fn an_offline_cached_request_is_retained_without_admission_or_replay(
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, _, _| {
         let pending = begin(shell);
-        shell.response_answered(Reply {
+        shell.response_answered(&Reply {
             pending: pending.clone(),
             result: Err(Problem::Unsent),
         });

@@ -234,3 +234,19 @@ Latest local all-four-crate narrow on6761865c exited101 for four missing named
 field doc comments in the new public link Response enum. Those comments are
 added before merging announced package base4. The run stopped before checking
 app, so it is not a passing compile/test result for A8.
+
+
+## Base4 narrow follow-up
+
+Merged the lead's common captured-dialog seam074ade16 after the base4 narrow
+finished. Exactd91e035f all-four-crate Clippy reached app and failed on the new
+ActAnswer.terminal test field and a needless owned reply argument. The former is
+explicitly None for an ordinary conversation; response handling borrows its reply.
+No actual A8 tests have passed from that stopped run.
+
+Question Markdown uses the existing retained renderer. Its keyed state must be
+unique to a retained form across simultaneous cards: a fixed question-prompt key
+would reuse one renderer for different prompts in the same window. The existing
+FieldId exposes a namespaced ElementId from its real input entity, preserving
+the renderer through frames and steps while separating successor/parallel forms.
+This reuses GPUI identity and does not create a second session/resident registry.

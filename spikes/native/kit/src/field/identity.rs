@@ -16,6 +16,14 @@ use gpui::{Context, EntityId, Window};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FieldId(EntityId);
 
+impl FieldId {
+    /// Namespace retained render state by the real editor, across cards and panes.
+    #[must_use]
+    pub fn element_id(self, name: &'static str) -> gpui::ElementId {
+        (name, self.0).into()
+    }
+}
+
 impl TextField {
     /// A form field showing `placeholder` while empty. Enter in it calls
     /// `on_submit` on its owner with the text it holds.

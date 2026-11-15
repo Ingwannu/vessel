@@ -92,7 +92,7 @@ pub(crate) fn card<P: Place>(
     let said = said(refused, &question, step, answering, *words);
     let prompt = step_prompt(&question, step);
     let prompt_body = chat_markdown(
-        "question-prompt",
+        answering.field.id().element_id("question-prompt"),
         &prompt,
         version_of(&prompt),
         None,
