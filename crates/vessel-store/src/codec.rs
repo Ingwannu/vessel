@@ -84,7 +84,7 @@ fn decode_text<T: serde::de::DeserializeOwned>(
 /// (`marks::MARK_COLUMNS`) from [`FIRST_MARK`] on, then attention and labels.
 pub(crate) const SESSION_COLUMNS: &str = "id, spec, status, created_at, ended_at, next_seq, harness_session, profile, created_by, \
      via, origin, model, title, abilities, pinned, archived_at, read_seq, marked_unread, \
-     attention_seq, labels";
+     attention_seq, labels, title_origin";
 
 /// Where the marks' columns start in [`SESSION_COLUMNS`].
 const FIRST_MARK: usize = 14;
@@ -92,6 +92,8 @@ const FIRST_MARK: usize = 14;
 const ATTENTION: usize = 18;
 /// Where the separate current-label projection is in [`SESSION_COLUMNS`].
 const LABELS: usize = 19;
+/// Provenance follows the head's current-label projection.
+const TITLE_ORIGIN: usize = LABELS.saturating_add(1);
 
 pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError> {
     let id = session_id_from_sql(&row.get::<_, String>(0)?)?;
@@ -150,6 +152,13 @@ pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError>
         Some(text) => decode(id, Column::Labels, &text)?,
     };
     info.board = stored_board(&info, kept.is_archived());
+    // The title-origin migration: who produced the title. `NULL` (every row from before
+    // it) is unknown, which generation does not replace.
+    info.title_origin = row
+        .get::<_, Option<String>>(TITLE_ORIGIN)?
+        .map(|origin| decode::<vessel_proto::TitleOrigin>(id, Column::TitleOrigin, &origin))
+        .transpose()?
+        .unwrap_or_default();
     Ok(info)
 }
 

@@ -64,6 +64,10 @@ async fn concurrent_open_and_ordinary_creation_share_one_side_and_restart_keeps_
             ErrorCode::NotFound
         );
         node.stop().await.unwrap();
+        assert_eq!(
+            fixture.saved_title_origin(side.id).await,
+            vessel_proto::TitleOrigin::Given
+        );
         let node = fixture.start().await;
         let client = fixture.connect(&node).await;
         let found = client.open_side_question(parent.id).await.unwrap();

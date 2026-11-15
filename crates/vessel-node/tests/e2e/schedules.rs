@@ -124,6 +124,10 @@ async fn a_run_starts_a_session_follows_its_turn_and_archives_it() {
         let runs = client.schedule_runs(schedule.id).await.unwrap();
         assert_eq!(runs.len(), 1);
         node.stop().await.unwrap();
+        assert_eq!(
+            fixture.saved_title_origin(session).await,
+            vessel_proto::TitleOrigin::Typed
+        );
     })
     .await;
 }
