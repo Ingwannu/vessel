@@ -25,8 +25,8 @@
 //!   and nothing behind it takes a click. On a narrow window it takes the
 //!   width less 16 pixels each side (ADR 0036: every screen from 360
 //!   wide).
-//! - Cost: the sheet does not follow a finger down to close (a tap on
-//!   the scrim or the close button does); focus is not trapped inside the
+//! - Cost: default fitting sheets close from the scrim or close button;
+//!   configured sheets reuse the snap engine. Focus is not trapped inside the
 //!   dialog the way the page's is
 //!   (GPUI has no inert subtree); what is behind it cannot be clicked,
 //!   but a Tab could reach it. Focus goes to the dialog on open, not to
@@ -46,7 +46,13 @@ use gpui::{
     SharedString, Window, anchored, deferred, div, point, px, relative, svg,
 };
 
+#[cfg(test)]
+mod configuration_tests;
+mod layout;
 mod return_focus;
+mod sheet;
+
+pub use layout::{BodySpacing, CompactLayout, DesktopHeight, DialogLayout, DialogWidth};
 
 use crate::assets::Glyph;
 use crate::fonts::Type;
@@ -57,12 +63,6 @@ use crate::widgets::TypeExt as _;
 /// The inset of a dialog's parts (Paseo's `spacing[6]`).
 const INSIDE: f32 = 24.0;
 
-/// A card's widest (Paseo's 520).
-const CARD_WIDTH: f32 = 520.0;
-
-/// A wide card's widest, for a grid of cards.
-const WIDE_CARD_WIDTH: f32 = 640.0;
-
 /// How wide a dialog is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DialogSize {
@@ -70,6 +70,8 @@ pub enum DialogSize {
     Normal,
     /// 640 pixels, for a grid of cards.
     Wide,
+    /// Explicit validated geometry, using the same renderer and snap engine.
+    Configured(DialogLayout),
 }
 
 /// A dialog's focus, kept by the screen that shows it.
@@ -77,6 +79,7 @@ pub enum DialogSize {
 pub struct DialogState {
     focus: FocusHandle,
     opener: crate::focus::ReturnFocus,
+    sheet: sheet::SheetState,
 }
 
 impl DialogState {
@@ -85,6 +88,7 @@ impl DialogState {
         Self {
             focus: cx.focus_handle(),
             opener: crate::focus::ReturnFocus::default(),
+            sheet: sheet::SheetState::default(),
         }
     }
 }
@@ -123,24 +127,16 @@ pub fn dialog<V: 'static>(
     cx: &mut Context<'_, V>,
 ) -> AnyElement {
     let surfaces = Surfaces::of(tokens);
-    let width = match content.size {
-        DialogSize::Normal => CARD_WIDTH,
-        DialogSize::Wide => WIDE_CARD_WIDTH,
+    let layout = content.size.layout();
+    let sheet = match (narrow, layout.compact()) {
+        (true, CompactLayout::Draggable(points)) => Some(state.sheet.frame(points, window, cx)),
+        (true, CompactLayout::Fixed(_))
+        | (false, CompactLayout::Fixed(_) | CompactLayout::Draggable(_)) => None,
     };
-    let footer = (!content.footer.is_empty()).then(|| {
-        div()
-            .flex()
-            .flex_shrink_0()
-            .flex_wrap()
-            .items_center()
-            .justify_end()
-            .gap(px(8.0))
-            .px(px(INSIDE))
-            .py(px(12.0))
-            .border_t_1()
-            .border_color(surfaces.surface2)
-            .children(content.footer)
-    });
+    let release = sheet
+        .as_ref()
+        .map(|sheet| sheet.on_release(close.clone(), cx));
+    let footer = footer(content.footer, &surfaces);
     let escape_close = close.clone();
     let card = div()
         .id("dialog")
@@ -163,37 +159,56 @@ pub fn dialog<V: 'static>(
         .overflow_hidden()
         .bg(surfaces.surface0)
         .when(!narrow, |card| {
-            card.max_w(px(width))
-                .max_h(relative(0.85))
+            card.max_w(layout.width().pixels())
+                .map(|card| match layout.height() {
+                    DesktopHeight::AtMost(height) => card.max_h(relative(height.fraction())),
+                    DesktopHeight::Exact(height) => card.h(relative(height.fraction())),
+                })
                 .border_1()
                 .border_color(surfaces.surface2)
                 .rounded(px(popup::DIALOG_RADIUS))
         })
-        .when(narrow, |sheet| {
-            sheet
-                .max_h(relative(0.9))
-                .rounded_t(px(popup::SHEET_RADIUS))
-                .child(handle(tokens.neutral.foreground_extra_muted))
+        .when(narrow, |card| {
+            card.map(|sheet| match layout.compact() {
+                CompactLayout::Fixed(height) => sheet.max_h(relative(height.fraction())),
+                CompactLayout::Draggable(_) => sheet,
+            })
+            .map(
+                |card| match sheet.as_ref().and_then(|sheet| sheet.geometry) {
+                    Some(geometry) => card.h(geometry.height),
+                    None => card,
+                },
+            )
+            .rounded_t(px(popup::SHEET_RADIUS))
+            .child(handle(tokens.neutral.foreground_extra_muted).map(|handle| {
+                match (&sheet, &release) {
+                    (Some(sheet), Some(release)) => handle
+                        .relative()
+                        .child(sheet.listener(crate::sheet::snap::Origin::Handle, release)),
+                    (Some(_), None) | (None, Some(_) | None) => handle,
+                }
+            }))
         })
         .child(header(content.title, &surfaces, narrow, close.clone(), cx))
-        .child(
-            div()
-                .id("dialog-body")
-                .flex()
-                .flex_col()
-                // An automatic basis preserves fitting dialogs' natural
-                // height. Only this part yields to the card's maximum:
-                // long refusals must not push their actions out of view.
-                .flex_auto()
-                .min_h(px(0.0))
-                .overflow_y_scroll()
-                .gap(px(16.0))
-                .p(px(INSIDE))
-                .type_(Type::Body)
-                .text_color(surfaces.foreground_muted)
-                .child(content.body),
-        )
+        .child(body(
+            content.body,
+            &surfaces,
+            sheet.as_ref(),
+            release.as_ref(),
+            layout.body_spacing(),
+        ))
         .children(footer);
+    overlay(card, sheet, narrow, window, close, cx)
+}
+
+fn overlay<V: 'static>(
+    card: gpui::Stateful<gpui::Div>,
+    sheet: Option<sheet::SheetFrame>,
+    narrow: bool,
+    window: &Window,
+    close: impl Fn(&mut V, &mut Window, &mut Context<'_, V>) + 'static,
+    cx: &mut Context<'_, V>,
+) -> AnyElement {
     // The whole window, wherever the screen that keeps it open is drawn
     // (Paseo's overlay is `absoluteFill` of the window).
     let size = window.viewport_size();
@@ -218,15 +233,63 @@ pub fn dialog<V: 'static>(
     };
     // Word 39: the scrim darkens and the card arrives over the kit's
     // surface length; Paseo's dialog leaves at once (its Modal unmounts).
-    let card = popup::appear("dialog-appear", card, crate::motion::STANDARD);
-    let scrim = scrim.child(card).with_animation(
-        "dialog-scrim-appear",
-        crate::motion::transition(crate::motion::STANDARD),
-        move |scrim, done| scrim.bg(shade.opacity(done)),
-    );
-    deferred(anchored().position(point(px(0.0), px(0.0))).child(scrim))
+    let overlay = if let Some(sheet) = sheet {
+        let coverage = sheet.geometry.map_or(0.0, |geometry| geometry.backdrop);
+        scrim
+            .bg(shade.opacity(coverage))
+            .child(card)
+            .into_any_element()
+    } else {
+        let card = popup::appear("dialog-appear", card, crate::motion::STANDARD);
+        scrim
+            .child(card)
+            .with_animation(
+                "dialog-scrim-appear",
+                crate::motion::transition(crate::motion::STANDARD),
+                move |scrim, done| scrim.bg(shade.opacity(done)),
+            )
+            .into_any_element()
+    };
+    deferred(anchored().position(point(px(0.0), px(0.0))).child(overlay))
         .with_priority(2)
         .into_any_element()
+}
+
+fn footer(children: Vec<AnyElement>, surfaces: &Surfaces) -> Option<gpui::Div> {
+    (!children.is_empty()).then(|| {
+        div()
+            .flex()
+            .flex_shrink_0()
+            .flex_wrap()
+            .items_center()
+            .justify_end()
+            .gap(px(8.0))
+            .px(px(INSIDE))
+            .py(px(12.0))
+            .border_t_1()
+            .border_color(surfaces.surface2)
+            .children(children)
+    })
+}
+
+fn body(
+    content: AnyElement,
+    surfaces: &Surfaces,
+    sheet: Option<&sheet::SheetFrame>,
+    release: Option<&crate::sheet::snap::listener::OnRelease>,
+    spacing: BodySpacing,
+) -> gpui::Stateful<gpui::Div> {
+    div().id("dialog-body").flex().flex_col()
+        // The body yields to the card's cap so long text cannot hide actions.
+        .flex_auto().min_h(px(0.0)).overflow_y_scroll()
+        .map(|body| match sheet { Some(sheet) => body.track_scroll(&sheet.scroll), None => body })
+        .when(sheet.is_some(), Styled::relative)
+        .gap(px(16.0)).when(spacing == BodySpacing::Inset, |body| body.p(px(INSIDE))).type_(Type::Body)
+        .text_color(surfaces.foreground_muted).child(content)
+        .map(|body| match (sheet, release) {
+            (Some(sheet), Some(release)) => body.child(sheet.listener(crate::sheet::snap::Origin::Content, release)),
+            (Some(_), None) | (None, Some(_) | None) => body,
+        })
 }
 
 /// A sheet's drag handle (Gorhom's indicator; Paseo themes it zinc 600,

@@ -53,6 +53,7 @@ pub mod menu;
 pub mod motion;
 pub mod output;
 pub mod picker;
+pub mod popover;
 pub mod popup;
 pub mod qr;
 pub mod resize;
