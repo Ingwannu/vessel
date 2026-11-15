@@ -175,3 +175,23 @@ The earlier 008181b3 run ended with signal 143 while queued; that separate
 infrastructure cancellation has no compiler/test result and is under tool-owner
 investigation. The corrected candidate must pass its own component suite before
 the one package gate and app export can start.
+
+## Raw Unicode-isolation goldens and base 6
+
+The corrected 3272224f component run compiled and executed the app tests:
+75 passed, 4 failed, 2 ignored. The four failures were new expected strings
+omitting Fluent's intentional U+2068/U+2069 direction isolates around paths and
+counts. The renderer's message output was retained. The test fixtures now assert
+complete raw sentences including the controls, in line with existing core,
+updates and fork goldens. No engine isolation setting is disabled and no output
+normalizer hides a discrepancy. Located problems now also have explicit raw
+English/Korean goldens for every case, replacing dependence on the old Rust
+formatter. Clipboard tests still assert the original unformatted path.
+
+The announced package base 6, 18eedad4 (incoming native 1404/0/2), was merged
+as 3265c841 after the failed component run; no whole gate had started. W12's
+layout initialization and G4's test-link constructor additions were preserved,
+as were both prepared-General constructor calls. Current whole-gate/export
+preparation waits for the lead's announced native lockfile correction; no
+--locked command is used against the known stale base-6 lock. A new merged-head
+component suite, then one whole package gate/export and captures remain owed.

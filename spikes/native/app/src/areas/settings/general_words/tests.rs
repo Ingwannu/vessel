@@ -23,7 +23,7 @@ fn refreshing_changed_storage_facts_replaces_the_prepared_hint() {
     );
     assert_eq!(
         prepared.hint.as_ref(),
-        "Kept by Vessel on this computer, so every launch opens with them.\n/isolated/prefs.json"
+        "Kept by Vessel on this computer, so every launch opens with them.\n\u{2068}/isolated/prefs.json\u{2069}"
     );
 }
 
@@ -44,7 +44,7 @@ fn real_language_dispatch_refreshes_hint_and_owned_notice_without_changing_input
             assert_eq!(shell.notice.as_deref(), Some("The path was copied."));
             assert_eq!(
                 shell.areas.settings.general.hint.as_ref(),
-                "Kept by Vessel on this computer, so every launch opens with them.\n/isolated/prefs.json"
+                "Kept by Vessel on this computer, so every launch opens with them.\n\u{2068}/isolated/prefs.json\u{2069}"
             );
         },
         |shell| &shell.areas.session.composer,
@@ -53,7 +53,7 @@ fn real_language_dispatch_refreshes_hint_and_owned_notice_without_changing_input
             assert_eq!(shell.notice.as_deref(), Some("경로를 복사했습니다."));
             assert_eq!(
                 shell.areas.settings.general.hint.as_ref(),
-                "Vessel이 이 컴퓨터에 보관하므로, 실행할 때마다 그대로 열립니다.\n/isolated/prefs.json"
+                "Vessel이 이 컴퓨터에 보관하므로, 실행할 때마다 그대로 열립니다.\n\u{2068}/isolated/prefs.json\u{2069}"
             );
             assert_eq!(
                 shell.prefs.kept,
