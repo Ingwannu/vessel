@@ -70,6 +70,7 @@ fn machine(name: &str) -> Machine {
     Machine {
         name: name.to_owned(),
         node: None,
+        connection_epoch: None,
         reach: Reach::Online,
         sessions: Vec::new(),
         agents: Vec::new(),

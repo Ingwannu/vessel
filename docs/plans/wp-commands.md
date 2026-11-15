@@ -1,6 +1,7 @@
 # F4 command center and keyboard parity
 
-Status: implementation in progress on shared line d6aac578d, with exact
+Status: implementation in progress on shared line 2e95b7d31 (merged222ad4052),
+with exact
 canonical value prerequisite e46cd57b and portable W12 producer 9480d4d0
 (adopted as ad8f4931b). S2's exact theme/input dependency eddce254 is reviewed V1 PASS.
 Canonical defaults, dispatcher, Settings/help and source projection are written;
@@ -363,3 +364,16 @@ Settings builds one effective-binding snapshot per page render and passes it to
 all rows. Long user sequences wrap between whole chords inside the existing row
 width using kit::command::key_badges for every cap. No new badge style/control
 is introduced; final visual inspection still owes long-sequence layout evidence.
+
+
+## Shared connection admission merge
+
+Announced shared line2e95 is merged without importing a separate node head.
+It includes base5, exact e46 canonical values, the same portable W12 producer,
+and G4's shared connection preflight. Conflict resolution preserves both C5
+Intelligence and Layout variants/handlers/modules, retains both architecture
+appendices and uses G4's extracted common peer-test helper. Every size allowance
+stays equal or decreases. The old Messages fixture now explicitly carries no
+connection_epoch; fake online reach/node data never invents an admitted lease.
+The current combined Clippy run bc790536 predates this merge; it cannot prove
+that this combined head compiles. No whole package gate has started.
