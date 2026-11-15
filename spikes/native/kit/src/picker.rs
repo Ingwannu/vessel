@@ -48,11 +48,13 @@ use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
 
 mod combobox;
+mod empty;
+pub use empty::{Empty as ComboboxEmpty, Retry as ComboboxRetry};
 mod focus;
 mod keys;
 mod leading;
 mod lifecycle;
-pub use combobox::{ComboboxContent, ComboboxWidth, combobox, combobox_with};
+pub use combobox::{ComboboxContent, ComboboxWidth, combobox, combobox_with, combobox_with_empty};
 use keys::key_handler;
 pub use leading::Leading;
 use lifecycle::RenderLease;
@@ -78,16 +80,6 @@ pub fn one_line(text: &SharedString) -> SharedString {
         text.clone()
     }
 }
-
-/// How far from its trigger a list opens (Paseo's `offset(5)`).
-const OFFSET: f32 = 5.0;
-
-/// The same, upward.
-const LIFT: f32 = -5.0;
-
-/// How far a list keeps from the window's edges (Paseo's
-/// `collisionPadding`).
-const EDGE: f32 = 16.0;
 
 /// The offset and the edge's margin, taken from the room on a side.
 const BEYOND: f32 = -21.0;

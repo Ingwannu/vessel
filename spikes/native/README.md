@@ -1610,3 +1610,11 @@ canonical MonoBody14/20 normal and its code-size preference. Both use the same
 input, FieldId, callbacks and form surface; old constructors, SearchField,
 FormMinimum, multiline and composer defaults stay unchanged. F1 raw cron is
 the intended Code consumer, with final combined checks/first-use still owed.
+
+
+`picker::ComboboxEmpty` optionally supplies source model loading/error/search
+feedback to `combobox_with_empty`, through the same leased surface renderer.
+`ComboboxRetry` delegates its existing callback only after open admission; the
+owner must still check original request/context/visit. Old combobox entries
+retain their existing empty/default behavior. The named model-browser loader
+keeps14-point layout, paint0.7, common masks/alpha/motion; final F1 proof is owed.

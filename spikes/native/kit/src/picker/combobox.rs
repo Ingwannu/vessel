@@ -10,8 +10,8 @@
 //! - Why and cost: matches combobox-frame-style.ts without estimating text; the
 //!   screen owns labels and header, GPUI performs intrinsic measurement.
 use super::{
-    COMPACT, ComboHandlers, ComboHeader, ComboRow, ComboboxState, EDGE, LIFT, OFFSET, RenderLease,
-    Side, key_handler, note_row, room, rows_list, search_row, title_row,
+    COMPACT, ComboHandlers, ComboHeader, ComboRow, ComboboxState, RenderLease, Side, key_handler,
+    note_row, room, rows_list, search_row, title_row,
 };
 use crate::{
     Tokens, Type, TypeExt as _,
@@ -22,6 +22,16 @@ use gpui::{
     Anchor, AnyElement, Bounds, Context, ElementId, MouseButton, Pixels, Window, anchored,
     deferred, div, point, px,
 };
+
+/// How far from its trigger a list opens (Paseo's `offset(5)`).
+const OFFSET: f32 = 5.0;
+
+/// The same, upward.
+const LIFT: f32 = -5.0;
+
+/// How far a list keeps from the window's edges (Paseo's
+/// `collisionPadding`).
+const EDGE: f32 = 16.0;
 
 /// Explicit legacy width or the reference's measured-anchor content sizing.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -134,6 +144,29 @@ pub fn combobox_with<V: 'static>(
     window: &Window,
     cx: &mut Context<'_, V>,
 ) -> Option<AnyElement> {
+    render(content, state, handlers, None, tokens, window, cx)
+}
+/// Source model-browser empty states through the same list surface and lease.
+pub fn combobox_with_empty<V: 'static>(
+    content: ComboboxContent<'_>,
+    state: &ComboboxState,
+    handlers: &ComboHandlers<V>,
+    empty: &super::empty::Empty<V>,
+    tokens: &Tokens,
+    window: &Window,
+    cx: &mut Context<'_, V>,
+) -> Option<AnyElement> {
+    render(content, state, handlers, Some(empty), tokens, window, cx)
+}
+fn render<V: 'static>(
+    content: ComboboxContent<'_>,
+    state: &ComboboxState,
+    handlers: &ComboHandlers<V>,
+    empty: Option<&super::empty::Empty<V>>,
+    tokens: &Tokens,
+    window: &Window,
+    cx: &mut Context<'_, V>,
+) -> Option<AnyElement> {
     let ComboboxContent {
         id: list_id,
         header,
@@ -198,9 +231,12 @@ pub fn combobox_with<V: 'static>(
             .on_mouse_down_out(on_outside)
     };
     panel = list_header(panel, header, state, handlers, tokens, cx);
-    panel = panel.child(rows_list(
-        header, rows, state, handlers, compact, tokens, cx,
-    ));
+    let body = if let Some(empty) = empty.filter(|_| rows.is_empty()) {
+        super::empty::render(empty, state, handlers, compact, tokens, cx)
+    } else {
+        rows_list(header, rows, state, handlers, compact, tokens, cx)
+    };
+    panel = panel.child(body);
 
     // Word 39: the list arrives as Paseo's popover does (opacity and a
     // small rise, `popup::appear`); a phone's sheet over the surface

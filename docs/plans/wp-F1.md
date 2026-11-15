@@ -1445,3 +1445,26 @@ F1/consumer UI and final whole proof remain owed, not borrowed from1473.
 - The deferred docs link (typed None until Vessel docs exist) is placed inside
   the text stack before the create button, as schedules-screen.tsx310–321.
   Enabling its one future URL value will not put it below the action.
+
+
+### Assigned source model-browser Empty presentation
+
+Coordinator3450f791 assigns this minimal extension within the one picker.
+- Pinned model-browser.tsx1218–1255/1320–1345/1682–1703: p16/gap8/center/
+  muted base14, Alert16+ordinary Primary MD Retry; search-empty Search16;
+  loading numeric14 with paint-only scale0.7.
+- ComboboxEmpty/ComboboxRetry +combobox_with_empty are additive; old entries
+  pass None to the SAME private surface renderer and keep old rows/empties.
+  A Retry uses the existing Back callback shape; disabled has no click handler,
+  and enabled rechecks the captured per-open lease before calling its owner.
+  It neither closes the list nor resolves domain requests. Parent/default focus
+  remains behind the existing panel admission. No arbitrary-body popup exists.
+- Named loading profile reuses existing opaque masks/track alpha/motion750ms;
+  layout remains14 while both masks receive source0.7 transform. Rotation and
+  scale are combined on the same arc transformation; no shader/local spinner.
+  Legacy activity_indicator delegates Ordinary, and old legacy rotate remains.
+- Placement's three private constants move unchanged into its existing child;
+  publicCOMPACT and old API stay. The measured root record shrinks599→591,
+  never raised. Literal profile/frame tests are authored; actual retained Retry
+  dispatch/native ink/phase/first-use and all current compiler proof are owed.
+  Prior e282 alpha/99 lease/control tests do NOT prove this new code/consumer.
