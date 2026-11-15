@@ -25,10 +25,8 @@ use vessel_proto::{
 pub enum Command {
     /// Correlated creation distinguishes registration from first-message delivery.
     Create(super::creation::Ask),
-    /// Resolve the existing session authority before path suggestions.
-    MentionRoot(crate::mentions::RootAsk),
     /// Debounced path suggestions for one captured composer.
-    Mentions(vessel_app_view::composer::mentions::Request),
+    Mentions(crate::mentions::Ask),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.

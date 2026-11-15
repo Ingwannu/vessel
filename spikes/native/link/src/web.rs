@@ -208,16 +208,18 @@ impl Link {
             )),
             // The demo fleet keeps no search index: every machine finds
             // nothing.
-            Command::MentionRoot(ask) => {
+            Command::Mentions(crate::mentions::Ask::Root(ask)) => {
                 self.emit(Event::MentionRoot(crate::mentions::RootAnswer {
                     ask,
                     result: Err(vessel_app_view::composer::mentions::Failure::Unsupported),
                 }))
             }
-            Command::Mentions(request) => self.emit(Event::Mentions(crate::mentions::Answer {
-                request,
-                result: Err(vessel_app_view::composer::mentions::Failure::Unsupported),
-            })),
+            Command::Mentions(crate::mentions::Ask::Suggestions(request)) => {
+                self.emit(Event::Mentions(crate::mentions::Answer {
+                    request,
+                    result: Err(vessel_app_view::composer::mentions::Failure::Unsupported),
+                }))
+            }
             Command::Search(ask) => self.emit(Event::Searched(crate::search::Answer {
                 machine: ask.machine,
                 ticket: ask.ticket,

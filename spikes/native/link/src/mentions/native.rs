@@ -1,5 +1,5 @@
 //! Transport and pure projection have a fakeable typed file boundary.
-use super::*;
+use super::{Answer, Ask, Failure, Request, RootAnswer, RootAsk, Suggestion};
 use std::{collections::VecDeque, time::Duration};
 use tokio::{sync::mpsc, task::JoinHandle};
 use vessel_app_view::composer::{
@@ -123,7 +123,7 @@ async fn lookup(source: &impl Source, request: &Request) -> Result<Vec<Suggestio
                 .as_str()
                 .rsplit_once('/')
                 .unwrap_or(("", query.as_str()));
-            let dir: RelPath = parent.parse().map_err(|_| Failure::InvalidReply)?;
+            let dir: RelPath = parent.parse().map_err(|_invalid| Failure::InvalidReply)?;
             let (files, listing) = tokio::join!(
                 source.find(FindFiles {
                     root,
@@ -185,7 +185,7 @@ fn project_listing(listing: DirListing, parent: &RelPath) -> Result<Vec<Suggesti
         } else {
             format!("{}/{}", parent.as_str(), entry.name)
         };
-        let path = text.parse().map_err(|_| Failure::InvalidReply)?;
+        let path = text.parse().map_err(|_invalid| Failure::InvalidReply)?;
         if rows.len() < RESULT_LIMIT {
             rows.push(Suggestion { path, kind });
         }
@@ -195,3 +195,20 @@ fn project_listing(listing: DirListing, parent: &RelPath) -> Result<Vec<Suggesti
 
 #[cfg(test)]
 mod tests;
+
+impl crate::State {
+    pub(crate) fn mention(&mut self, ask: Ask) {
+        let machine = match &ask {
+            Ask::Root(ask) => &ask.machine,
+            Ask::Suggestions(request) => &request.scope.machine,
+        };
+        let client = self
+            .clients
+            .get(machine.as_str())
+            .map(|connected| connected.client.clone());
+        match ask {
+            Ask::Root(ask) => self.mentions.root(client, ask, self.events.clone()),
+            Ask::Suggestions(request) => self.mentions.ask(client, request, self.events.clone()),
+        }
+    }
+}

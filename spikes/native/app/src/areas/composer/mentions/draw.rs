@@ -1,5 +1,5 @@
 //! The existing kit autocomplete handles rows, empty/error/loading and scroll.
-use super::*;
+use super::{Context, DraftKey, Root, Shell, Window};
 use vessel_app_kit::autocomplete::{AutocompleteRow, Listing, Motion, RowKind, autocomplete};
 use vessel_app_kit::ui::{
     AnyElement, FluentBuilder as _, IntoElement as _, ParentElement as _, SharedString, Styled,

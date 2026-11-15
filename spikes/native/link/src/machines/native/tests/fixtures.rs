@@ -48,6 +48,7 @@ pub(super) fn state(home: &Home) -> (State, mpsc::Receiver<Event>) {
             book_path: BookPath::File(home.book()),
             workspace: crate::workspace::Hub::default(),
             agents: crate::agents::Hub::default(),
+            mentions: crate::mentions::Hub::default(),
             device_calls: crate::devices::Hub::default(),
             sync_calls: crate::sync::Hub::default(),
             offers: std::sync::Arc::default(),

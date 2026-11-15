@@ -27,7 +27,7 @@ async fn read(client: &NodeClient, ask: &CapabilityAsk) -> Result<Target, Capabi
     let _permit = READERS
         .acquire()
         .await
-        .map_err(|_| CapabilityFailure::Offline)?;
+        .map_err(|_closed| CapabilityFailure::Offline)?;
     loop {
         let facts = client
             .conversation(ask.session)

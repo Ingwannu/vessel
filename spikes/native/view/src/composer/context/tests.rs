@@ -25,7 +25,7 @@ fn scope() -> ContextScope {
 fn workspace_files_are_pointers_deduped_by_scope_path_and_selection() {
     let file = WorkspaceFile {
         scope: scope(),
-        path: RelPath::try_from("src/main.rs".to_owned()).unwrap(),
+        path: "src/main.rs".parse::<RelPath>().unwrap(),
         selection: Selection::Whole,
     };
     let item = ContextAttachment::WorkspaceFile(file.clone());

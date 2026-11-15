@@ -111,6 +111,9 @@ impl Shell {
         let Some(item) = item else {
             return;
         };
+        if matches!(item, ContextAttachment::WorkspaceFile(_)) {
+            return;
+        }
         if let ContextAttachment::Snapshot {
             kind:
                 ContextKind::ForgeIssue | ContextKind::ForgeChangeRequest | ContextKind::PluginResource,
@@ -199,11 +202,11 @@ pub(super) fn tray(
             Shell::session_context_removed as vessel_app_kit::attachment::PillClick<Shell>,
         ),
     };
-    let handlers = PillHandlers {
-        on_open: Some(open),
-        on_remove: remove,
-    };
     let pills = tray.visible().enumerate().map(|(index, item)| {
+        let handlers = PillHandlers {
+            on_open: (!matches!(item, ContextAttachment::WorkspaceFile(_))).then_some(open),
+            on_remove: remove,
+        };
         let words = shell.words.composer();
         let (icon, subtitle) = match item {
             ContextAttachment::WorkspaceFile(file) => {

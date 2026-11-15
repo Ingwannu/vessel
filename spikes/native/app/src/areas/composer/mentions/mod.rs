@@ -134,7 +134,7 @@ impl Shell {
         *self.areas.composer.mention_root_token.borrow_mut() = Some(token.clone());
         *state = Root::Reading(ask.clone());
         drop(state);
-        self.command(Command::MentionRoot(ask));
+        self.command(Command::Mentions(vessel_app_link::mentions::Ask::Root(ask)));
     }
     pub(super) fn active_file_token(
         &self,
@@ -206,7 +206,9 @@ impl Shell {
                     .model
                     .begin(request.ticket);
                 if let Some(ready) = ready {
-                    shell.command(Command::Mentions(ready));
+                    shell.command(Command::Mentions(
+                        vessel_app_link::mentions::Ask::Suggestions(ready),
+                    ));
                     cx.notify();
                 }
             });

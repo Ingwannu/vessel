@@ -43,7 +43,7 @@ const READ_DEADLINE: std::time::Duration = std::time::Duration::from_secs(30);
 async fn read(client: &NodeClient, sent: &Sent) -> Result<Arc<[u8]>, LinkError> {
     tokio::time::timeout(READ_DEADLINE, download(client, sent))
         .await
-        .map_err(|_| LinkError::AttachmentRead(ReadProblem::TimedOut))?
+        .map_err(|_elapsed| LinkError::AttachmentRead(ReadProblem::TimedOut))?
 }
 
 async fn download(client: &NodeClient, sent: &Sent) -> Result<Arc<[u8]>, LinkError> {

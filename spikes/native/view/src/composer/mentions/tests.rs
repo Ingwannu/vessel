@@ -20,7 +20,7 @@ fn scope() -> Scope {
 }
 fn row(path: &str, kind: SuggestionKind) -> Suggestion {
     Suggestion {
-        path: RelPath::try_from(path.to_owned()).unwrap(),
+        path: path.parse::<RelPath>().unwrap(),
         kind,
     }
 }
@@ -45,7 +45,7 @@ fn token_detection_preserves_emails_unicode_and_invalid_character_rules() {
     let mention = active(text, end).unwrap().unwrap();
     assert_eq!(text.get(mention.range()).unwrap(), "@src/가.rs");
     assert_eq!(
-        quoted(&RelPath::try_from("my file.rs".to_owned()).unwrap()),
+        quoted(&"my file.rs".parse::<RelPath>().unwrap()),
         "\"my file.rs\""
     );
     assert!(
