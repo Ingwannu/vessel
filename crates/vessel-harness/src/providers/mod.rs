@@ -8,6 +8,7 @@ mod models;
 mod options;
 mod registry;
 mod selection;
+mod transport;
 
 pub use create::{CreateError, resolve_create};
 pub use launch::{
@@ -22,3 +23,4 @@ pub use registry::{
     ProviderRegistry, ProviderSource, RegistryError,
 };
 pub use selection::{ModelSelection, SelectionError, select_model};
+pub use transport::{ProviderProtocol, ProviderTransport, provider_transport};

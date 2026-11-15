@@ -106,6 +106,8 @@ pub enum DiscoveryFailure {
     ProbeFailed,
     /// Result violated a typed catalogue invariant.
     InvalidCatalogue,
+    /// Launch configuration cannot be honored, without echoing a secret/name.
+    ConfigurationUnavailable,
     /// Configuration changed while observation was in flight.
     Superseded,
     /// Owner is shutting down.

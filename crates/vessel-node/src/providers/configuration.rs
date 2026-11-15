@@ -13,7 +13,7 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 use vessel_harness::providers::{PluginDefinition, ProviderRegistry, RegistryError};
-use vessel_proto::providers::{Enabled, ProviderId, ProviderOverride, ProviderOverrides};
+use vessel_proto::providers::{Enabled, ProviderId, ProviderOverrides};
 use vessel_store::{DataDir, ProvidersFileError};
 
 const EDIT_CAPACITY: usize = 16;
@@ -189,10 +189,7 @@ async fn run(
                     continue;
                 }
                 let mut entries = overrides.entries().clone();
-                entries
-                    .entry(provider)
-                    .or_insert_with(ProviderOverride::default)
-                    .enabled = Some(enabled);
+                entries.entry(provider).or_default().enabled = Some(enabled);
                 let next = match ProviderOverrides::new(entries) {
                     Ok(next) => next,
                     Err(error) => {

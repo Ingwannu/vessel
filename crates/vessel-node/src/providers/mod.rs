@@ -4,6 +4,7 @@
 mod cache;
 mod configuration;
 mod owner;
+mod producer;
 
 #[cfg(test)]
 mod tests;

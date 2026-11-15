@@ -206,3 +206,16 @@ unreadable before a repair. No silent configuration reset is introduced.
 Synthetic tests cover concurrent changes, reopen, abandoned waiters, invalid
 generation, a nonregular file target and plugin collision. Execution is pending;
 node service wiring and its authorization checks remain separate unfinished work.
+
+## Explicit runtime producer
+
+Admitted work resolves only its immutable provider definition, explicit account
+homes, launcher lookup and named secrets supplied by the existing fleet source.
+Native protocol arguments follow the configured prefix. Configured environment
+keeps precedence over account home defaults. Discovery does not inherit the
+daemon environment implicitly; provider settings supply any additional required
+variables. Unsupported driver, absent launcher and unhonorable launch policy
+remain distinct states. A missing deny-policy adapter refuses before spawn.
+The producer exposes the generic owner hook to a future plugin runtime without
+executing an inert plugin definition. Fake Codex request audits cover this
+whole lookup/launch/probe boundary. These tests and service wiring are pending.

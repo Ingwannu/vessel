@@ -1544,12 +1544,18 @@ model/mode catalogues, create inputs and reader-safe diagnostic request values.
 Its feature version is unassigned and no method is registered.
 `vessel-harness::providers` owns the pure manifest, inheritance, command/env
 overlays, model merge and registry generation; plugin definitions enter as inert
-values. `vessel-agent::probe_provider_with` reuses one prompt-free agent probe
-for both models and modes. Only a compatible existing driver can be used.
+values. `vessel-agent::probe_provider_with` uses one prompt-free observation
+for models and modes. Codex reads paged model/list and configuration through
+its existing JSON-RPC codec, without creating a thread or turn; ACP reuses the
+existing finite probe. Only a compatible existing driver can be used.
 
 The test-only node provider module owns cache admission and bounded asynchronous
-refresh. A passive diagnostic never starts a process; a late old generation
-cannot publish after replacement. Product wiring, configuration persistence and
+refresh, scoped invalidations and passive snapshots. A passive diagnostic never
+starts a process; a late old generation cannot publish after replacement.
+The configuration owner serializes validation, durable writes and registry
+publication independently of a caller's cancellation. vessel-store's provider
+file boundary reuses settings preservation and private atomic file writes;
+commands and environment never appear in reader snapshots. Product wiring and
 missing native drivers remain separate work. Existing ACP sessions and node
 settings retain their current behaviour. No crate edge or external dependency
 is added by this stage.

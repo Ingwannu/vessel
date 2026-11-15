@@ -3,7 +3,9 @@
 use super::*;
 use std::collections::BTreeMap;
 use vessel_harness::providers::{ConfigurationRequirement, PluginRevision};
-use vessel_proto::providers::{CatalogueScope, LaunchSettings, ProviderKind, UnavailableReason};
+use vessel_proto::providers::{
+    CatalogueScope, LaunchSettings, ProviderKind, ProviderOverride, UnavailableReason,
+};
 
 async fn open(directory: &DataDir) -> Started {
     Configuration::open(directory.clone(), vec![], |_, _| async {
