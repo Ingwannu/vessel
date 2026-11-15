@@ -38,10 +38,17 @@ pub fn rename_alias(
     }
     Ok(())
 }
-/// Forget removes presentation only; it never closes resources on the node.
+/// Forget drops clean presentation and retains modified work for recovery.
+/// Retained alias-keyed metadata cannot authorize I/O: feature owners still need
+/// the originally admitted node binding before opening or mutating a resource.
 pub fn forget_alias(book: &mut BTreeMap<LayoutKey, Layout>, alias: &HostAlias) {
-    book.retain(|key, _| match key {
-        LayoutKey::Session { machine, .. } => machine != alias,
+    book.retain(|key, layout| match key {
+        LayoutKey::Session { machine, .. } => {
+            machine != alias
+                || layout
+                    .tabs()
+                    .any(|tab| tab.modified() == super::Modified::Dirty)
+        }
         LayoutKey::Workspace { .. } => true,
     });
 }
@@ -75,5 +82,49 @@ mod tests {
         forget_alias(&mut book, &from);
         assert!(book.contains_key(&new));
         assert_eq!(book.len(), 1);
+    }
+}
+
+#[cfg(test)]
+mod protection_tests {
+    use super::*;
+    use crate::layout::{AgentRole, DraftId, LayoutMode, Modified, OpenIntent, Placement, Target};
+    #[test]
+    fn forgetting_host_removes_clean_layout_but_preserves_modified_draft_and_tab_identity() {
+        let alias = HostAlias::parse("before").unwrap();
+        let dirty_key = LayoutKey::Session {
+            machine: alias.clone(),
+            session: vessel_proto::SessionId::random(),
+        };
+        let clean_key = LayoutKey::Session {
+            machine: alias.clone(),
+            session: vessel_proto::SessionId::random(),
+        };
+        let mut layout = Layout::default();
+        let target = Target::Draft(DraftId::random());
+        let tab = layout
+            .open(
+                target.clone(),
+                OpenIntent::New,
+                Placement::Focused,
+                AgentRole::Unknown,
+                LayoutMode::SplitPanes,
+            )
+            .unwrap();
+        layout.set_modified(tab, Modified::Dirty).unwrap();
+        let mut book = BTreeMap::from([
+            (dirty_key.clone(), layout),
+            (clean_key.clone(), Layout::default()),
+        ]);
+        forget_alias(&mut book, &alias);
+        assert!(!book.contains_key(&clean_key));
+        let retained = book.get(&dirty_key).unwrap();
+        assert_eq!(retained.tab(tab).unwrap().target(), &target);
+        assert_eq!(retained.tab(tab).unwrap().modified(), Modified::Dirty);
+        let durable = super::super::RememberedLayout::new(dirty_key, retained);
+        let decoded: super::super::RememberedLayout =
+            serde_json::from_str(&serde_json::to_string(&durable).unwrap()).unwrap();
+        assert_eq!(decoded.layout.tab(tab).unwrap().target(), &target);
+        assert_eq!(decoded.layout.tab(tab).unwrap().modified(), Modified::Dirty);
     }
 }
