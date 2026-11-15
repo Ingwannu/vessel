@@ -6,6 +6,10 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- Proposed: process ownership contract (2p0) is documented; review must pass
+  before any proc implementation. Kernel observations alone grant no signal
+  authority. Active map rows and manifests are still unchanged.
+
 - Done: slices 1, 2a (launchd), 2b (graceful stop).
 - Source committed: 2c (`337f92b8`) adds authenticated directory binding
   and OS-lock completion. Its whole gate had one shared side-question
