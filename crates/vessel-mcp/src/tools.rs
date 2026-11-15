@@ -303,7 +303,7 @@ impl ServerHandler for VesselTools {
     ) -> Result<CallToolResponse, ErrorData> {
         let args = request.arguments.unwrap_or_default();
         match self.call(&request.name, &args).await {
-            Ok(value) => Ok(CallToolResult::success(vec![McpContent::text(pretty(&value))]).into()),
+            Ok(value) => Ok(CallToolResult::structured(value).into()),
             Err(ToolError::Arguments(message)) => Err(ErrorData::invalid_params(message, None)),
             Err(ToolError::LspJson(error)) => {
                 Err(ErrorData::invalid_params(error.to_string(), None))
@@ -348,10 +348,6 @@ fn node_error(error: &CallError) -> String {
         | CallError::NotInProtocol { .. }
         | CallError::UnassignedProtocol { .. }) => other.to_string(),
     }
-}
-
-fn pretty(value: &Value) -> String {
-    serde_json::to_string_pretty(value).unwrap_or_else(|_unprintable| value.to_string())
 }
 
 /// Every tool with its input schema.

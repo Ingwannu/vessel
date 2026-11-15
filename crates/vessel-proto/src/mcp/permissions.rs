@@ -1,7 +1,7 @@
 //! Current permission summaries reuse conversation reads, never replay old log requests.
 
 use super::InvalidMcp;
-use crate::{PermissionRequest, SessionId, SessionStatus};
+use crate::{PermissionRequest, SessionId, SessionInfo, SessionStatus};
 use serde::Serialize;
 
 /// Maximum session inventory for one complete aggregate read.
@@ -36,4 +36,16 @@ impl PendingPermissions {
         }
         Ok(Self { permissions })
     }
+}
+
+/// Session metadata plus a sequential read of its current structured permissions.
+/// Terminal sessions have no structured permission inventory.
+#[derive(Debug, Clone, Serialize)]
+pub struct SessionDetails {
+    /// Existing session metadata fields retain their original positions.
+    #[serde(flatten)]
+    pub session: SessionInfo,
+    /// Current protocol requests, rather than historic log entries.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub permissions: Option<Vec<PermissionRequest>>,
 }

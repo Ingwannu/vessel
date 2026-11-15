@@ -172,7 +172,13 @@ impl McpClient {
         let value = if failed {
             Value::String(text.to_owned())
         } else {
-            serde_json::from_str(text).unwrap()
+            let value: Value = serde_json::from_str(text).unwrap();
+            assert_eq!(
+                result.get("structuredContent"),
+                Some(&value),
+                "structured result must equal its model-visible text"
+            );
+            value
         };
         (failed, value)
     }

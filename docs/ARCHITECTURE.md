@@ -813,7 +813,7 @@ In the crate table's order.
     memory, scopes, depth, the agent's connections; at most 8 live
     sessions an agent created and depth 3, checked under one lock), the
     agent preamble on the local socket, the ownership rule in the guard,
-    and the `vessel` MCP server in every session from `Config::vessel_mcp`.
+    and the `vessel` MCP server from `Config::vessel_mcp` when the host injection and exact-provider policy allow it.
   - Fleet (F2, F3, ADR 0012): state under `<data_dir>/fleet/`, with
     `<data_dir>/fleet.toml` making a node the home. One loop looks every
     5 s: the home bundles when its sources changed (at least every 10
@@ -992,7 +992,8 @@ In the crate table's order.
   as read) and `place` (never overwriting: a session whole or not at all,
   memory beside what differs).
 - `vessel-mcp`: `vessel mcp`, the MCP server on `rmcp` (stdio) a node
-  attaches to every session as `vessel`. Tools: `list_nodes`,
+  attaches as `vessel` under its persisted injection/provider launch policy.
+  Success returns matching JSON text and structured content. Tools: `list_nodes`,
   `list_sessions`, `create_session`, `send_input`, `answer_permission`,
   `read_events`, `wait_turn` (a long poll of `session.read` with `wait`),
   `kill_session`; milestone 11 (protocol 10, `tools/conversation.rs`):
@@ -1536,3 +1537,16 @@ name `vessel_proc` in store to `src/lock/`, which delegates the lock query
 only. The real CLI caller restricts proc's signal entry point to the force
 module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
+
+
+Pending ADR 0065 skill administration uses fleet's `orchestration` mechanisms
+(bundle-derived catalogue, directory-relative safe writes and transaction
+journals), store's private `skills.json`, and node's bounded tracked blocking
+writer. Startup repairs existing installs only. Pending exact-turn receipts
+let the origin node follow a remote prompt without guessing its log turn:
+normal fleet grant/ownership checks plus opener/session binding apply at the
+destination. These mechanisms add no crate dependency edge or SQLite schema;
+all new admission uses the single pending MCP_PARITY constant. Session agents
+receive completion notices by default and do not advertise the legacy wait
+tool. Voice context and browser tools remain their respective producers'
+responsibility, using the shared policy seams.

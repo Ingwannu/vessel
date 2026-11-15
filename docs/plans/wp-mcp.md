@@ -18,7 +18,7 @@ Reference paths below are relative to the Paseo 0.15.4 tree. `T` means
 `packages/server/src/server/agent/tools/paseo-tools.ts`. These source sections
 were read, including the handlers; the survey is an index, not proof.
 All Paseo outputs are structured content plus model-visible JSON text.
-Current Vessel tools return model-visible JSON text. `?` means optional.
+Vessel baseline tools returned model-visible JSON text; current success responses also carry matching structured content. `?` means optional.
 
 ## Tool correspondence before implementation
 
@@ -332,3 +332,11 @@ reads are sequential, not an atomic snapshot. Provider-discovery/launch-bundle
 and non-fleet host-directory facades remain dependent on their owners'
 reviewed contracts. Account profiles do not stand in for launch bundles, and
 an agent never reads an Owner's private host directory by default.
+
+
+Successful MCP results now reuse rmcp's structured-result constructor, which
+carries the same value as JSON text and structuredContent. The shared protocol
+owns the SessionDetails serializable output; the MCP adapter adds no serde
+dependency or parallel wire shape. Regression helpers compare both result
+channels on every successful integration call. Malformed creation tests assert
+the adapter's actual invalid-params response and unchanged node session count.

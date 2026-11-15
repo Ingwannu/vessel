@@ -58,8 +58,13 @@ async fn malformed_creation_options_never_leave_a_session_behind() {
             json!({"harness":"claude","prompt":"x","terminal":true,"notify":true}),
             json!({"harness":"claude","notify":true}),
         ] {
-            let (failed, reason) = mcp.call("create_session", arguments).await;
-            assert!(failed, "{reason}");
+            let response = mcp
+                .request(
+                    "tools/call",
+                    json!({"name":"create_session","arguments":arguments}),
+                )
+                .await;
+            assert_eq!(response["error"]["code"], -32602, "{response}");
             assert_eq!(owner.sessions().await.unwrap().len(), before);
         }
         drop(mcp);

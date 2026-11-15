@@ -10,6 +10,7 @@
 
 use rmcp::model::{JsonObject, Tool};
 use serde_json::{Value, json};
+use vessel_proto::mcp::SessionDetails;
 use vessel_proto::{
     ChoiceValue, EventSeq, GetSession, OptionChoice, OptionId, OptionValueId, RenameSession,
     SendInput, SessionId, SessionInfo, SessionInput, SessionOption, SessionTitle, SetSessionOption,
@@ -45,7 +46,10 @@ impl VesselTools {
         {
             return Err(ToolError::PermissionInventory);
         }
-        Ok(SessionDetails { info, permissions })
+        Ok(SessionDetails {
+            session: info,
+            permissions,
+        })
     }
 
     pub(super) async fn cancel_turn(&self, args: &JsonObject) -> Result<Cancelled, ToolError> {
@@ -91,15 +95,6 @@ impl VesselTools {
         )
         .await
     }
-}
-
-/// A sequential current-permission read beside ordinary session metadata.
-#[derive(Debug, serde::Serialize)]
-pub(super) struct SessionDetails {
-    #[serde(flatten)]
-    info: SessionInfo,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    permissions: Option<Vec<vessel_proto::PermissionRequest>>,
 }
 
 /// `session.send` of a cancel answers an ack. The tool names the session.

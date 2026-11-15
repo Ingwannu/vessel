@@ -37,6 +37,19 @@ pub(super) fn configure(
         let choices: Vec<OptionChoice> = items
             .iter()
             .map(|item| {
+                let allowed = match item.get("kind").and_then(Value::as_str) {
+                    Some("select") => ["id", "kind", "value"],
+                    Some("toggle") => ["id", "kind", "on"],
+                    _ => return Err(ToolError::Arguments("unknown launch option kind".into())),
+                };
+                if !item.as_object().is_some_and(|fields| {
+                    fields.len() == allowed.len()
+                        && fields.keys().all(|key| allowed.contains(&key.as_str()))
+                }) {
+                    return Err(ToolError::Arguments(
+                        "launch option contains missing or unexpected fields".into(),
+                    ));
+                }
                 serde_json::from_value(item.clone())
                     .map_err(|_bad| ToolError::Arguments("invalid launch option choice".into()))
             })
@@ -87,6 +100,7 @@ mod tests {
         assert!(!selected.labels.is_empty());
         for args in [
             json!({"labels":{"vessel.private":"bad"}}),
+            json!({"options":[{"id":"mode","kind":"toggle","on":true,"value":"plan"}]}),
             json!({"options":[{"id":"mode","kind":"toggle","on":true},{"id":"mode","kind":"toggle","on":false}]}),
             json!({"options":[{"id":"","kind":"toggle","on":true}]}),
         ] {

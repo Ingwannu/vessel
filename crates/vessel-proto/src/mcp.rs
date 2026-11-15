@@ -18,6 +18,7 @@ mod permissions;
 mod policy;
 pub use permissions::{
     MAX_PENDING_PERMISSIONS, MAX_PERMISSION_SESSIONS, PendingPermission, PendingPermissions,
+    SessionDetails,
 };
 
 pub use name::{MAX_TOOL_NAME_BYTES, StoredTool, ToolName};
