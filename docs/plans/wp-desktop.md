@@ -60,7 +60,8 @@ agent terminology; both identifiers are validated protocol IDs. Workspace links
 require the workspace contract before registration. Update artifacts remain
 Vessel's signed manifests, never Paseo's GitHub installer or unsigned Markdown.
 The built-in feed channel remains usable until stable/beta artifacts are published.
-An offline desktop can read bundled release notes without a client-side request.
+The updater's latest signed manifest notes remain the release-text source;
+the desktop-shell package owns retention and changelog presentation.
 
 ADR 0071's earlier proposal is superseded where it inserts a Machine step or
 opens without a setup host: pairing remains the no-host route; this wizard follows
