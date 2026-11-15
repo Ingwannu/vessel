@@ -228,3 +228,10 @@ selected kit library tests121/0/0, changed kit actually compiled. It covers
 the four-scale tile frame, earlier stack/syntax/contributed paints, not the
 later text-size/form/app adapter edits. No whole native package gate or
 screen capture is inferred from this focused result.
+
+Package base2 `6036eeb8` merged at `31952112`, preserving the shared
+Machine.node/Editability/events seams. Remote selected kit/view/app Clippy
+run `themes-20261115T073515Z-31952112` returned101 after compiling view:
+missing semicolon in the new family assignment, and an integer-division
+lint in the UTF-16 test. Both are corrected without a lint exemption or a
+changed bound/expectation. App/complete feature validation is still pending.

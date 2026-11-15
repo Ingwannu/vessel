@@ -186,7 +186,7 @@ impl Preferences {
             PreferenceChange::CodeSize(size) => self.appearance.code_size = *size,
             PreferenceChange::ContentSize(size) => self.appearance.content_size = *size,
             PreferenceChange::InterfaceFamily(family) => {
-                self.appearance.interface_family = family.clone()
+                self.appearance.interface_family = family.clone();
             }
             PreferenceChange::MonoFamily(family) => self.appearance.mono_family = family.clone(),
             PreferenceChange::SyntaxTheme(theme) => self.appearance.syntax_theme = *theme,

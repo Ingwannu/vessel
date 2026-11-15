@@ -35,7 +35,8 @@ fn counts_utf16_units_and_serde_cannot_bypass_the_invariant() {
     let limit = "x".repeat(MAX_FAMILY_UNITS);
     assert!(FontFamily::parse(&limit).is_ok());
     assert!(FontFamily::parse(&(limit + "x")).is_err());
-    let supplementary = "😀".repeat(MAX_FAMILY_UNITS / 2);
+    let scalar_units = "😀".encode_utf16().count();
+    let supplementary = "😀".repeat(MAX_FAMILY_UNITS.checked_div(scalar_units).unwrap());
     assert!(FontFamily::parse(&supplementary).is_ok());
     assert!(FontFamily::parse(&(supplementary + "x")).is_err());
     assert!(serde_json::from_str::<FontFamily>(r#""A;B""#).is_err());
