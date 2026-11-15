@@ -1,0 +1,20 @@
+[package]
+name = "vessel-browser"
+description = "Node-owned browser execution, reference lifetimes and network policy"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license-file.workspace = true
+repository.workspace = true
+
+[dependencies]
+vessel-proto.workspace = true
+vessel-relay.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+nix = { workspace = true, features = ["net"] }
+
+[lints]
+workspace = true

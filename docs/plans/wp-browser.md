@@ -198,3 +198,15 @@ text has a new 128 KiB per-field ceiling, beyond Paseo's observed tool schema,
 to keep bounded queue slots from retaining transport-sized strings. Oversized
 input refuses explicitly rather than truncating a password/function. These
 types do not persist human input or grant any engine/profile authority.
+
+
+## Engine primitives
+
+New vessel-browser owns browser execution/network state below node admission.
+Start with per-target refs (monotonic ids across snapshot replacement so stale
+@e strings cannot alias another element) and a public-only dial primitive.
+DNS is resolved once per outbound connection; any forbidden/mixed answer refuses
+the whole route. A current safe OS interface snapshot excludes this host's own
+addresses before and after a pinned-address dial. Missing observation refuses,
+including unimplemented Windows observation. No real browser/proxy is claimed
+by those primitives. The full policy proxy and qualified engine remain pending.

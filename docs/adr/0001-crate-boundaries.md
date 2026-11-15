@@ -325,3 +325,24 @@ its integration decision. Before the move starts, these conditions bind it:
   cleanup, API change, changed bound or error source, weakened assertion,
   different duplicate-writer handling, or changed `NotVisible` fallback.
   A kernel PID alone continues to grant no signal authority.
+
+
+## Browser implementation boundary (ADR 0078)
+
+[Decision Log]
+- Purpose: browser CDP/process/network state must not expand the node dispatcher
+  or the MCP adapter into another browser engine.
+- Existing constraints: proto owns typed commands; proc owns child groups; relay
+  already owns public-address classification. Node owns principals/workspace authority.
+- Choice: add vessel-browser; its first staged primitives depend on proto and relay.
+  Reuse relay's address classifier rather than maintaining a second special-range list.
+  Add the proc edge only with actual child-launch implementation. The new crate cannot
+  ask the node for arbitrary principal or store internals.
+- External choice: enable nix's existing net feature only for Linux interface snapshots
+  (safe getifaddrs wrapper), rather than parsing workspace-influenced command output
+  or adding unsafe FFI. Tokio resolves/dials checked socket addresses. Non-Linux remains
+  an explicit unsupported interface-observation path until qualified platform support.
+- Consequence: packet-policy primitives and ref maps can be tested independently. They
+  do not advertise a product engine; the real proxy/CDP/profile/qualification gates remain.
+
+Pinned API reference: https://docs.rs/nix/0.31.3/nix/ifaddrs/fn.getifaddrs.html .
