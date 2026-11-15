@@ -116,17 +116,24 @@ Changed: `build.rs`, and three call sites of Direct Manipulation in
   3. **This change**: `broadcast_environment_changed()` in a file of its
      own, exported from the crate root with
      `ENVIRONMENT_BROADCAST_TIMEOUT` (5 s) and a typed
-     `EnvironmentBroadcastError` (`TimedOut`, `Failed(windows::core::Error)`).
-     `SMTO_ABORTIFHUNG` skips a hung window, so the call cannot wait on
-     it forever; nothing in it panics.
+     `EnvironmentBroadcastError` (`TimedOut`, `Unconfirmed`,
+     `Failed(windows::core::Error)`). `SMTO_ABORTIFHUNG` skips a hung
+     window, so the call cannot wait on it forever; nothing in it panics.
+     `Unconfirmed` (added the same day, track R's review): the call
+     reported failure without an error code. A broadcast's result is not
+     per window, and such a failure is neither a timeout nor a refusal. It
+     used to come out as `Failed` with code 0, whose text reads "The
+     operation completed successfully". The thread's last error is cleared
+     before the call, so an old code cannot pass for this call's.
 - Why 3: one safe function beside the crate's other Win32 calls, no new
   crate or lint exception, and no change to upstream's own files beyond
   two lines in the crate root.
 - Cost: a third change to carry at every GPUI pin (the new file copies
   over; re-add the two lines). The call waits for the windows' answers,
   so the caller runs it off the UI thread.
-- Checked: compiled for `x86_64-pc-windows-msvc` with `cargo xwin check`;
-  its behaviour on Windows (a new terminal finding the new `PATH`) is
+- Checked: compiled for `x86_64-pc-windows-msvc` with `cargo xwin check`
+  (the `Unconfirmed` change is checked by the first Windows build that has
+  it); its behaviour on Windows (a new terminal finding the new `PATH`) is
   still to be shown on a Windows machine.
 
 To see the changes: unpack the published `.crate` and `diff -ru` it

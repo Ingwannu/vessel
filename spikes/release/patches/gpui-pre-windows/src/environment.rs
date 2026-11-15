@@ -6,7 +6,7 @@
 
 use std::time::Duration;
 
-use windows::Win32::Foundation::{ERROR_TIMEOUT, LPARAM, WPARAM};
+use windows::Win32::Foundation::{ERROR_SUCCESS, ERROR_TIMEOUT, LPARAM, SetLastError, WPARAM};
 use windows::Win32::UI::WindowsAndMessaging::{
     HWND_BROADCAST, SMTO_ABORTIFHUNG, SendMessageTimeoutW, WM_SETTINGCHANGE,
 };
@@ -16,13 +16,19 @@ use windows::core::w;
 /// does not answer.
 pub const ENVIRONMENT_BROADCAST_TIMEOUT: Duration = Duration::from_secs(5);
 
-/// Why the broadcast did not finish.
+/// Why the broadcast did not finish. In every case the environment itself
+/// is already written; what is unknown is which running programs were told.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EnvironmentBroadcastError {
     /// A window did not answer within [`ENVIRONMENT_BROADCAST_TIMEOUT`].
-    /// The environment is written; windows that answered have it.
+    /// Windows that answered have the new environment.
     TimedOut,
-    /// The system refused the broadcast.
+    /// The call reported failure without an error code. A broadcast to
+    /// every window can end this way (the result is not per window), so
+    /// it is neither a timeout nor a refusal: whether the windows were
+    /// told is not known.
+    Unconfirmed,
+    /// The system refused the broadcast, with this error.
     Failed(windows::core::Error),
 }
 
@@ -42,7 +48,11 @@ pub fn broadcast_environment_changed() -> Result<(), EnvironmentBroadcastError> 
     // SAFETY: `section` is a static, NUL-terminated wide string that
     // outlives the call (receivers read it during their answer, which the
     // call waits for), and `answer` is a live `usize` for the result.
+    // SetLastError takes a plain value. The thread's last error is cleared
+    // first so that a failure that sets no code reads as no code, not as
+    // whatever an earlier call on this thread left behind.
     let sent = unsafe {
+        SetLastError(ERROR_SUCCESS);
         SendMessageTimeoutW(
             HWND_BROADCAST,
             WM_SETTINGCHANGE,
@@ -56,9 +66,15 @@ pub fn broadcast_environment_changed() -> Result<(), EnvironmentBroadcastError> 
     if sent.0 != 0 {
         return Ok(());
     }
+    // Read at once: anything called after this could replace it.
     let error = windows::core::Error::from_thread();
-    if error.code() == windows::core::HRESULT::from_win32(ERROR_TIMEOUT.0) {
+    let code = error.code();
+    if code == windows::core::HRESULT::from_win32(ERROR_TIMEOUT.0) {
         Err(EnvironmentBroadcastError::TimedOut)
+    } else if code.is_ok() {
+        // No code: an `Error` here would read "The operation completed
+        // successfully", which says the opposite of what happened.
+        Err(EnvironmentBroadcastError::Unconfirmed)
     } else {
         Err(EnvironmentBroadcastError::Failed(error))
     }
