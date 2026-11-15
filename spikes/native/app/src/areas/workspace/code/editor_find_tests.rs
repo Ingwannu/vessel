@@ -131,6 +131,27 @@ fn keyboard_find_replace_and_escape_reach_the_retained_document(cx: &mut TestApp
         assert_eq!(editing.model.content(), "gamma beta gamma");
         assert!(editing.model.modified());
     });
+    cx.simulate_keystrokes("ctrl-s");
+    cx.run_until_parked();
+    probe.read_with(cx, |probe, cx| {
+        let editing = probe
+            .shell
+            .read(cx)
+            .areas
+            .workspace
+            .code
+            .files
+            .viewer
+            .as_ref()
+            .unwrap()
+            .edit
+            .as_ref()
+            .unwrap();
+        assert!(
+            editing.writing.is_some(),
+            "manual save must use the guarded request path"
+        );
+    });
     cx.simulate_keystrokes("escape");
     cx.run_until_parked();
     probe.read_with(cx, |probe, cx| {

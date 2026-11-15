@@ -266,3 +266,39 @@ fn prose_wraps_and_code_keeps_its_lines() {
     );
     assert!(!super::wraps("Makefile"));
 }
+
+#[test]
+fn saves_original_bom_and_line_separator_while_tracking_normalized_edits() {
+    let mut model = loaded("\u{feff}one\r\ntwo\r\n");
+    assert_eq!(model.content(), "one\ntwo\n");
+    assert_eq!(model.edit("one\r\nchanged\r\n"), Step::Autosave);
+    let (sequence, wire, _) = write_of(&model.save());
+    assert_eq!(wire, "\u{feff}one\r\nchanged\r\n");
+    assert_eq!(
+        model.saved(sequence, Written::Saved(version(20))),
+        Step::None
+    );
+    assert!(!model.modified());
+    assert_eq!(model.content(), "one\nchanged\n");
+    let read = read_of(&model.reconcile());
+    assert_eq!(model.read(read, Read::Text(wire, version(20))), Step::None);
+    assert_eq!(model.status(), EditorStatus::Clean);
+}
+
+#[test]
+fn a_queued_disk_read_adopts_its_format_only_after_the_write_settles() {
+    let mut model = loaded("a\rb\r");
+    let _step = model.edit("new\ntext\n");
+    let (sequence, wire, _) = write_of(&model.save());
+    assert_eq!(wire, "new\rtext\r");
+    let read = read_of(&model.reconcile());
+    assert_eq!(
+        model.read(read, Read::Text("new\r\ntext\r\n".to_owned(), version(11))),
+        Step::None
+    );
+    let _step = model.saved(sequence, Written::Saved(version(9)));
+    assert_eq!(model.status(), EditorStatus::Clean);
+    let _step = model.edit("next\ntext\n");
+    let (_, wire, _) = write_of(&model.save());
+    assert_eq!(wire, "next\r\ntext\r\n");
+}

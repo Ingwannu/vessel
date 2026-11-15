@@ -168,3 +168,19 @@ the authority; the UI checks protect buffer lifetime, not filesystem access.
 failed on test fixture ID constructors plus strict app style lints. Those
 failures are corrected in this source; the newer GPUI find/replace/Escape
 and mutation tests remain unexecuted until the next narrow check completes.
+
+## Source byte conventions and manual save
+
+The editor model retains `TextFormat` (first observed LF/CRLF/CR separator
+and UTF-8 BOM) independently from normalized editor text. Reads, guarded
+writes and queued disk reads preserve these conventions; semantic comparison
+uses normalized content so a separator-only disk change does not create a
+false conflict. Save steps encode the wire text but track normalized
+persisted content, preserving the in-flight serialization invariant. Tests
+cover CR, CRLF, BOM, trailing newlines and a queued format change during a
+write. The actual editor's primary-S handler invokes the same guarded save
+model; it does not send a parallel unguarded write.
+
+Narrow clippy on `48e876ed` failed only at an omitted `Div` import and an
+inferred key-event type; both are corrected here. This is compile evidence
+only, not an executed test result or package gate.

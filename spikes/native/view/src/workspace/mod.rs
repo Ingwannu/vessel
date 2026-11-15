@@ -34,6 +34,7 @@ pub mod setup_log;
 pub mod size;
 pub mod start;
 pub mod syntax;
+pub mod text_format;
 pub mod worktrees;
 
 /// The area's words: `text/workspace/`, by the app's convention.

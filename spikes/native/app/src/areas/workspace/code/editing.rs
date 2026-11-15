@@ -80,6 +80,21 @@ pub(super) fn whole_read(root: WorkspaceRoot, path: RelPath) -> ReadFile {
 }
 
 impl Shell {
+    pub(super) fn editor_save_for(
+        &mut self,
+        key: &super::buffers::FileKey,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if self.areas.workspace.code.file_mutating(key) {
+            return;
+        }
+        let Some(editing) = self.editing_for(key) else {
+            return;
+        };
+        let step = editing.model.save();
+        self.run_step_for(key.clone(), step, cx);
+    }
+
     fn editing(&mut self) -> Option<&mut Editing> {
         self.areas
             .workspace

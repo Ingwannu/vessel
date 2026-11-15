@@ -12,8 +12,9 @@ use vessel_app_kit::code_editor::{
 };
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    Context, Entity, InteractiveElement as _, IntoElement, ParentElement as _, Render,
-    StatefulInteractiveElement as _, Styled as _, Subscription, WeakEntity, Window, div, px,
+    Context, Div, Entity, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _,
+    Render, StatefulInteractiveElement as _, Styled as _, Subscription, WeakEntity, Window, div,
+    px,
 };
 use vessel_app_kit::{TextField, Type, TypeExt as _, button};
 
@@ -125,7 +126,7 @@ impl Render for FindPanel {
         div()
             .flex()
             .flex_col()
-            .on_key_down(cx.listener(|this, event, window, cx| {
+            .on_key_down(cx.listener(|this, event: &KeyDownEvent, window, cx| {
                 if event.keystroke.key == "escape" {
                     this.editor.close_find(window, cx);
                     cx.stop_propagation();
