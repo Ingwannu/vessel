@@ -88,11 +88,12 @@ fn held(permissions: Vec<PermissionRequest>, questions: Vec<Question>) -> Conver
 }
 
 #[tokio::test]
-async fn archived_structured_sessions_are_listed_and_terminals_are_not_queried() {
+async fn archived_background_sessions_are_listed_and_terminals_are_not_queried() {
     let live = structured(SessionId::random());
     let mut archived = structured(SessionId::random());
     archived.marks.archived_at = Some(chrono::DateTime::UNIX_EPOCH);
     archived.status = SessionStatus::Exited { code: Some(0) };
+    archived.listing = vessel_proto::SessionListing::Background;
     let terminal = session(
         SessionId::random(),
         SessionMode::Terminal {

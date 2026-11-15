@@ -278,3 +278,18 @@ keeps the same parser/privacy and canonical envelope checks, borrows the same
 formatter row, and explicitly binds the ignored value. Changed-source strict
 and actual private permit test execution remain owed. No product permit handler
 or rich response call is enabled by this source correction.
+
+## Announced node93970acb union and discovery scope
+
+The private CLI tree merges announced node93970acb (gate53 baseline18/18,
+Rust2577/0/12, schema21, protocol25). Baseline totals are not permit proof.
+Session discovery now has an explicit Shown/All selection, but the existing
+NodeClient::sessions uses ListSessions::default with selectionNone. The node
+preserves that exact legacy full collection through Sessions::list; it does
+not turn this call into Shown-only discovery or suppress archived sessions.
+Permit intentionally keeps this canonical full-list route, then reads each
+structured session's conversation. No discovery selection or invented RPC is
+needed. The existing archived-session fixture now also has Background listing,
+so accidentally filtering that independent classification fails the same
+listing regression. This remains a fake-source test, not live node authority
+or rich-response activation. Fresh strict and actual permit tests remain owed.
