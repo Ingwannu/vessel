@@ -121,6 +121,60 @@ async fn a_provider_switch_with_any_bad_field_or_new_key_changes_nothing() {
 }
 
 #[tokio::test]
+async fn switching_to_an_endpoint_with_a_missing_or_empty_key_keeps_the_previous_provider() {
+    vessel_testkit::within(TEST_LIMIT, async {
+        let f = Fixture::new();
+        f.establish().await;
+        f.settings
+            .change_dictation(
+                SetNodeSettings {
+                    dictation: Some(SetDictation {
+                        provider: Some(DictationChange::Set(DictationProvider::Local)),
+                        language: Some(DictationChange::Set("ko".parse().unwrap())),
+                        ..SetDictation::default()
+                    }),
+                    ..SetNodeSettings::default()
+                },
+                &f.reader,
+            )
+            .await
+            .unwrap();
+        let before = std::fs::read(f.data.settings_path()).unwrap();
+        let current = f.settings.current_dictation(&f.reader).await.unwrap();
+        let missing = "SWITCH_MISSING"
+            .parse::<vessel_proto::SecretName>()
+            .unwrap();
+        let empty = "SWITCH_EMPTY".parse::<vessel_proto::SecretName>().unwrap();
+        crate::fleet::set_secret(&f.files, &empty, " \t ").unwrap();
+        for name in [missing, empty] {
+            let result = f
+                .settings
+                .change_dictation(
+                    SetNodeSettings {
+                        park_after: Some(ParkAfter::DEFAULT),
+                        dictation: Some(SetDictation {
+                            provider: Some(DictationChange::Set(DictationProvider::Endpoint)),
+                            key: Some(DictationChange::Set(SecretReference::from(name))),
+                            ..SetDictation::default()
+                        }),
+                        ..SetNodeSettings::default()
+                    },
+                    &f.reader,
+                )
+                .await;
+            assert!(matches!(result, Err(SettingsError::DictationKeyAbsent)));
+            assert_eq!(std::fs::read(f.data.settings_path()).unwrap(), before);
+            assert_eq!(
+                f.settings.current_dictation(&f.reader).await.unwrap(),
+                current
+            );
+        }
+    })
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
 async fn failed_presence_read_refuses_before_an_unrelated_setting_is_written() {
     vessel_testkit::within(TEST_LIMIT, async {
         let f = Fixture::new();

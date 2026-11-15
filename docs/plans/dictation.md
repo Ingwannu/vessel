@@ -1041,3 +1041,13 @@ serialization rule or assertion. Replacing the entire derived serializer merely
 to adapt this argument would duplicate the other settings fields. The retained
 strict failure identifies this lint; the ensuing check covers the corrected
 callback without changing the running focused test's behavior.
+
+### Provider-switch key refusal regression
+
+The whole-candidate tests already refused a bad provider option and missing or
+empty newly selected keys. A separate regression now combines a real provider
+switch with each key refusal. It starts from local settings with a saved language
+and checks the complete file and effective settings after a refused endpoint
+switch. This would catch an implementation that persisted a provider reset before
+checking the new key, even if its same-provider key test passed. Production
+validation and writer code are unchanged; execution of this case is still owed.
