@@ -22,8 +22,10 @@ slice implements only the values and peer projection needed before wiring.
 R1: policy and partial-patch values; reused PromptText bound; default/debug/
 verbatim/multibyte tests; old/current-unassigned/synthetic-assigned projection;
 Get/Set and Forward/Relay/Deliver/nested tests; generated TypeScript.
-No request flag, request patch field, Call::since change, CLI, engine, runtime,
-store migration, assigned protocol, page or native implementation.
+No request flag, request patch field, Call::since change, new CLI setting,
+engine, runtime, store migration, assigned protocol, page or native implementation.
+The existing CLI settings renderer borrows its input after NodeSettings loses
+Copy; its existing command, output and requests are unchanged.
 
 R2: existing settings/file engine and recovery service staged under cfg(test)
 as A10 requires, reviewed as source reviewed, staged. A raw legacy Admin setter
@@ -78,3 +80,13 @@ Admin setter regression belongs to R2's staged engine. NodeSettings now owns
 a prompt and is Clone rather than Copy: consuming native settings views must
 borrow their saved result, and const settings fixtures must become factories.
 Those mechanical consumer changes belong to the native owner.
+
+## First whole candidate
+
+Candidate `de8b6a78` ran as `sessionextras-20261115T015726Z-de8b6a78`.
+Web preparation, format, size and boundaries passed; workspace Clippy stopped
+on the existing CLI renderer's now-non-Copy settings argument. The original
+run remains failed (Clippy 101; run 1), with load 15.54 at start and 14.02 at
+end. No tests or later stages ran. The renderer and its sole caller now borrow
+that value; there is no new CLI setting, output, request or behavior. A new
+narrow check and changed-tree whole run are required for this correction.
