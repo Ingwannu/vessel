@@ -86,7 +86,9 @@ impl State {
             attachments::Files::Prompt(prompt) => self.prompt_files(prompt).await,
             attachments::Files::Wake(wake) => self.wake_files(wake).await,
             attachments::Files::Read(sent) => {
-                let client = self.client(sent.machine.as_str()).cloned();
+                let client = self
+                    .attachment_client(&sent.machine, sent.node)
+                    .map_err(LinkError::AttachmentTarget);
                 attachments::spawn_read(client, sent, self.events.clone());
             }
         }

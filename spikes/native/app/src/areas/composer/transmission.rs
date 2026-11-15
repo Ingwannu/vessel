@@ -54,7 +54,13 @@ impl Shell {
             })
             .collect();
         if let Readiness::Ready(attachments) = tray.readiness() {
-            super::sent::seed(&composer.sent, waiting.machine.as_str(), session, tray);
+            super::sent::seed(
+                &composer.sent,
+                waiting.machine.as_str(),
+                waiting.expected_node,
+                session,
+                tray,
+            );
             let prompt = Arc::new(WithFiles {
                 message: waiting.message,
                 machine: waiting.machine,

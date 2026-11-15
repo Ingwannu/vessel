@@ -43,13 +43,20 @@ const UNDER_FILES: f32 = 2.0;
 pub(crate) struct SentFiles<'a> {
     shell: &'a Shell,
     /// The conversation's machine and session, when one is shown.
-    shown: Option<(vessel_app_view::machine_book::Name, SessionId)>,
+    shown: Option<(
+        vessel_app_view::machine_book::Name,
+        vessel_proto::NodeId,
+        SessionId,
+    )>,
 }
 
 impl std::fmt::Debug for SentFiles<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SentFiles")
-            .field("session", &self.shown.as_ref().map(|(_, session)| session))
+            .field(
+                "session",
+                &self.shown.as_ref().map(|(_, _, session)| session),
+            )
             .finish_non_exhaustive()
     }
 }
@@ -61,6 +68,11 @@ impl<'a> SentFiles<'a> {
         shell: &'a Shell,
         shown: Option<(vessel_app_view::machine_book::Name, SessionId)>,
     ) -> Self {
+        let shown = shown.and_then(|(machine, session)| {
+            shell
+                .attachment_node(&machine)
+                .map(|node| (machine, node, session))
+        });
         Self { shell, shown }
     }
 
@@ -104,7 +116,8 @@ impl<'a> SentFiles<'a> {
         cx: &mut Context<'_, Shell>,
     ) -> vessel_app_kit::ui::AnyElement {
         let frame = attachment_frame(&self.body(file), tokens);
-        let sent = self.shown.as_ref().map(|(machine, session)| Sent {
+        let sent = self.shown.as_ref().map(|(machine, node, session)| Sent {
+            node: *node,
             machine: machine.clone(),
             session: *session,
             attachment: file.id,
@@ -130,10 +143,12 @@ impl<'a> SentFiles<'a> {
     /// as its name over its kind.
     pub(crate) fn body(&self, file: &AttachmentRef) -> Body {
         let shell = self.shell;
-        let Some((machine, session)) = self.shown.as_ref().filter(|_| Pictures::shows(file)) else {
+        let Some((machine, node, session)) = self.shown.as_ref().filter(|_| Pictures::shows(file))
+        else {
             return label(shell, file);
         };
         let sent = Sent {
+            node: *node,
             machine: machine.clone(),
             session: *session,
             attachment: file.id,
@@ -223,7 +238,13 @@ impl Shell {
 /// kept in `store` from the bytes the composer holds (a pasted image), so
 /// the message shows them without reading them back. A file picked on
 /// this device is read back as any other (the file may have changed).
-pub(super) fn seed(store: &RefCell<Pictures>, machine: &str, session: SessionId, tray: &Tray) {
+pub(super) fn seed(
+    store: &RefCell<Pictures>,
+    machine: &str,
+    node: vessel_proto::NodeId,
+    session: SessionId,
+    tray: &Tray,
+) {
     let Ok(machine) = vessel_app_view::machine_book::Name::parse(machine) else {
         tracing::warn!("an attachment prompt has an invalid machine key");
         return;
@@ -236,6 +257,7 @@ pub(super) fn seed(store: &RefCell<Pictures>, machine: &str, session: SessionId,
         };
         if attachment.kind == AttachmentKind::Image {
             let sent = Sent {
+                node,
                 machine: machine.clone(),
                 session,
                 attachment: attachment.id,

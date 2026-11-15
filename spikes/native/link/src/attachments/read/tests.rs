@@ -52,6 +52,7 @@ pub(in crate::attachments) mod peer;
 async fn the_real_client_reads_chunks_from_an_in_memory_peer_and_delivers_one_answer() {
     let (client, task) = peer::connect(vec![chunk(b"abc", 5), chunk(b"de", 5)]).await;
     let sent = Sent {
+        node: client.node().id,
         machine: vessel_app_view::machine_book::Name::parse("laptop").unwrap(),
         session: "00000000-0000-4000-8000-000000000001".parse().unwrap(),
         attachment: "00000000-0000-4000-8000-000000000002".parse().unwrap(),
@@ -73,6 +74,7 @@ async fn the_real_client_reads_chunks_from_an_in_memory_peer_and_delivers_one_an
 async fn a_malformed_peer_finishes_as_a_failed_picture_instead_of_running_forever() {
     let (client, task) = peer::connect(vec![chunk(b"abc", 5), chunk(b"", 5)]).await;
     let sent = Sent {
+        node: client.node().id,
         machine: vessel_app_view::machine_book::Name::parse("laptop").unwrap(),
         session: "00000000-0000-4000-8000-000000000001".parse().unwrap(),
         attachment: "00000000-0000-4000-8000-000000000002".parse().unwrap(),
@@ -83,4 +85,23 @@ async fn a_malformed_peer_finishes_as_a_failed_picture_instead_of_running_foreve
     ));
     drop(client);
     assert_eq!(task.await.unwrap().len(), 2);
+}
+
+#[tokio::test]
+async fn a_rebound_node_cannot_receive_a_sent_image_read() {
+    let (client, task) = peer::connect(Vec::new()).await;
+    let sent = Sent {
+        node: vessel_proto::NodeId::random(),
+        machine: vessel_app_view::machine_book::Name::parse("laptop").unwrap(),
+        session: vessel_proto::SessionId::random(),
+        attachment: vessel_proto::AttachmentId::random(),
+    };
+    assert!(matches!(
+        read(&client, &sent).await,
+        Err(LinkError::AttachmentTarget(
+            super::super::TargetProblem::Changed { .. }
+        ))
+    ));
+    drop(client);
+    assert!(task.await.unwrap().is_empty());
 }

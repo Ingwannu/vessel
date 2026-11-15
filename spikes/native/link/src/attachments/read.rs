@@ -47,6 +47,7 @@ async fn read(client: &NodeClient, sent: &Sent) -> Result<Arc<[u8]>, LinkError> 
 }
 
 async fn download(client: &NodeClient, sent: &Sent) -> Result<Arc<[u8]>, LinkError> {
+    super::target::check(client, sent.node)?;
     let mut image = Collector::default();
     loop {
         let chunk = client

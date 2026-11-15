@@ -256,3 +256,8 @@ The retained context variant now directly contains the reviewed protocol plugin 
 - Tradeoffs: animation becomes a static preview and images over the dimension budget are visibly refused; no silent resize or arbitrary URL decoding is introduced. Codec allocation limits include a documented best-effort component; strict side limits remain separately enforced. This is not proof of a global GPU/decoded-cache memory bound, and W13's separate file renderer has not adopted it yet.
 
 Tests cover static PNG byte preservation, BMP conversion, invalid/oversized input, encoder output overflow and dimension refusal. The actual clipboard regression now waits for background validation and checks Send remains blocked until intake ends. VM execution and OS clipboard/dialog/drop captures are still owed.
+
+
+### Sent preview destination pin
+
+Sent image identity now includes the verified welcome NodeId as well as machine label/session/attachment. The existing attachment_client boundary and read collector both reject a rebound peer before issuing attachment.read; a late reply remains keyed to its old node and cannot populate the replacement node's image slot. No new registry or wire method is introduced. The in-memory peer test requires zero requests on wrong-node refusal, and a pure cache regression isolates equal label/session/attachment values across nodes. This pin does not establish the future resident connection lease or broaden the selected conversation's authority.

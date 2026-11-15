@@ -29,6 +29,8 @@ use vessel_proto::{AttachmentId, AttachmentKind, AttachmentLimits, AttachmentRef
 /// Which sent image: its machine, its session and its id there.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Sent {
+    /// Welcome identity captured before the read; aliases cannot replace it.
+    pub node: vessel_proto::NodeId,
     /// The machine the session is on.
     pub machine: crate::machine_book::Name,
     /// The session.
