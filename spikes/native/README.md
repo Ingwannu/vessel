@@ -1245,3 +1245,14 @@ fill_in) and add typed leading14/16, Pending/Success, selectable Muted, KeepOpen
 measured open_end and caller width. See docs/plans/backend-m12-g2-menu-base4.md
 for exact source, focus limits and consumer integration. The canonical palette
 GREEN_500 and existing CircleCheck own success ink/art; no second palette.
+
+### Allocation block approval boundary (base 5 adapter)
+
+`command_changes::Listed` projects every `ServicePortsView` field explicitly.
+Until the approval card displays and compares the full allocation block, it
+refuses any current or last-approved block, even with zero named services or
+when the current set removes the old block. The approved-folder comparison
+fallback also retains that refusal. A typed refusal has separate EN/KO
+Fluent copy; it does not enable allocation, helpers or `PROJECT_FILE_KEYS`.
+This keeps an unseen setting out of an approval digest while the native display
+is implemented. Existing terminal refusal and head test cases remain intact.

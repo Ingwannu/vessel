@@ -23,6 +23,7 @@
 //! - Cost: a third language is a third implementation; a new variant on
 //!   the wire is two arms to write.
 
+mod comparison_lists;
 mod en;
 mod ko;
 pub mod labels;
