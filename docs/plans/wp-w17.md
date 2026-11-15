@@ -1151,3 +1151,25 @@ private rpc module. Use the existing public vessel_proto::Method re-export inste
 The proto crate's own internal tests may still name crate::rpc. No wire/authority
 or data shape changes and no lint waiver. Retained public-host-cli-clippy2 spec/log/
 steps are source-red evidence, not an executed test or latest strict pass.
+
+### Bounded viewport marker boundary (2026-11-15 14:47 UTC)
+
+[Decision Log]
+- Purpose: a scrolled consumer must keep inspecting the same retained rows as output
+  grows, front rows trim and terminal reflow inserts or deletes physical rows.
+- Existing constraints: C2 inspected the pinned server Buffer.addMarker642-677 and
+  reflow insert/trim530-539. The frozen capture core has no marker/mode projection
+  API; a readonly visible snapshot cannot restore a mutable decoder.
+- Alternatives: tail-relative offsets drift under growth; unbounded row-remapping
+  logs and per-row shared allocations add unnecessary retention and ownership.
+- Choice: agree C2's engine-owned bounded physical-row marker registry in principle,
+  with typed buffer/epoch/marker identity and Retained/Evicted/Reset outcomes. Node
+  glue will own bounded per-view slots bound to the authenticated connection,
+  terminal and actor epoch, releasing on replacement, FollowLive and disconnect.
+- Reason/consequences: engine code alone adjusts markers on reflow/insert/delete/
+  trim; the node does not duplicate screen interpretation. Anchors identify a
+  viewport, never connection authority or a route. Exact pure types must land and
+  be agreed before any D1 wire DTO or call registration. No D1 code/rows are added.
+
+Capture remains Silent. NodeAuthority separately awaits C2's reviewed and gated
+same-parser presentation suppression; the CLI frame renderer is a later consumer.

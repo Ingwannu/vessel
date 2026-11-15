@@ -1,6 +1,6 @@
 # W17 current invocation map
 
-Product checkpoint: `27e4267f1c18f5d9f817260341f37d8f1bd6aa1f`, after node head
+Product checkpoint: `e4e4ea0a70bc1c013e6b3f887fa5f26e4b870cd6`, after node head
 `82ae7c91` and the reviewed W7 values-only carrier `c2dcebea`.
 This is a source/ownership map, **not a passing parity checklist**. All 117 paths are
 listed; flags/defaults, reference output/exits and exact Paseo registration references
@@ -19,8 +19,11 @@ monochrome, bounded inputs, finite waits and documented native fields are differ
 Executed evidence: exact source `0656af27` CLI units 134/0/0; original shared output source `5305e47a`
 strict 0 and 6 targeted/root/process tests passed and is integrated on `82ae7c91`. Public
 inventory dd33 strict failed one test declaration-position lint before tests; fixed
-at `85454788`. Its single changed-source strict run 134749 is queued; it predates
-the source-corrected ID-first send, version alias, W7 constants and extra guard tests. Full package,
+at `85454788`. Its changed-source strict run 134749 then failed E0603 before tests:
+the node service imported Method through private rpc instead of its public re-export.
+The checkpoint fixes that import; run wp-cli-narrow-20261115T143928Z-e4e4ea0a
+is queued for host-filtered proto/client/store/node tests. The failed strict source
+predates source-corrected ID-first send, version alias, W7 constants and extra guard tests. Full package,
 actual public-host authorization/DTO/client tests, latest CLI processes and A12 remain owed.
 
 | Paseo path | Vessel source entry | State | Existing call / owner boundary | Limitation |
