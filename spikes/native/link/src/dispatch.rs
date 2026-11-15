@@ -117,10 +117,37 @@ impl State {
 // remain one-line arms. The same blocking save remains awaited before the
 // actor handles its next command; errors and logging remain unchanged.
 async fn save_prefs(prefs: Box<super::Prefs>) {
-    let saved = tokio::task::spawn_blocking(move || prefs.save()).await;
-    match saved {
-        Ok(Ok(())) => {}
-        Ok(Err(error)) => tracing::warn!(%error, "could not save the app's choices"),
-        Err(error) => tracing::warn!(%error, "could not save the app's choices"),
+    let _outcome = save_preferences(prefs).await;
+}
+
+/// An explicit form may proceed only after the actor's ordered save succeeds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum SaveOutcome {
+    Saved,
+    Refused,
+}
+
+// One actor-awaited writer is shared with legacy SavePrefs. Do not timeout/drop
+// the blocking writer and start another: its file write could still be running.
+pub(super) async fn save_preferences(prefs: Box<super::Prefs>) -> SaveOutcome {
+    ordered_preferences(move || prefs.save()).await
+}
+
+// The private closure seam lets tests select an isolated file without changing
+// process-wide HOME/config state. Production always uses the same Prefs::save.
+pub(super) async fn ordered_preferences<F>(save: F) -> SaveOutcome
+where
+    F: FnOnce() -> Result<(), super::LinkError> + Send + 'static,
+{
+    match tokio::task::spawn_blocking(save).await {
+        Ok(Ok(())) => SaveOutcome::Saved,
+        Ok(Err(error)) => {
+            tracing::warn!(%error, "could not save the app's choices");
+            SaveOutcome::Refused
+        }
+        Err(error) => {
+            tracing::warn!(%error, "could not save the app's choices");
+            SaveOutcome::Refused
+        }
     }
 }

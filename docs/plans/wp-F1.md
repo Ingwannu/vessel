@@ -1624,3 +1624,32 @@ retry feedback. Each now has its own context comment. A local text comparison
 proved all message keys/values unchanged. No generator/build-support changes or
 accepted cadence/error table migration were made. No Kit/View/App strict PASS
 or tests are claimed from this failed run; the same corrected suite is owed.
+
+
+### Ordered preference-save integration (coordinator255fe519)
+
+[Decision Log]
+- Purpose: source submitNewAgent awaits preference persistence; failure must
+  not be followed by schedule create/update. Heartbeat does not persist it.
+- Existing asset: W10b's92a0ecfc private awaited save_prefs in dispatch119–126;
+  canonical Prefs/save_at stays the sole store. W10b was told those exact lines
+  before code and confirmed no overlapping writer (dc572568).
+- Choice: one actor-awaited save helper returns typed Saved/Refused. Legacy
+  SavePrefs still awaits the same blocking Prefs::save and keeps its defaults
+  and identical error logging. An F1 caller will inspect the outcome before
+  dispatching the original form request. No second or concurrent disk writer.
+- Alternative rejected: fire-and-forget preference command followed by schedule
+  save, which would write the schedule even if local persistence failed.
+- Tradeoff: retain the existing writer's await lifecycle. Timing out/dropping a
+  blocking file task and starting another would violate single-writer order. A
+  private closure seam permits isolated real-file tests without global config
+  mutation; production calls the same Prefs::save.
+- Proof: helper source only at this checkpoint. Form fan-in/refusal/remembered
+  choice readback and actual ordering tests remain to be wired and checked in
+  F1. V1 reviews the integration with the package, not a new whole gate.
+
+Base9db42d9c5 is merged as ebef8db83. Field/lib conflicts preserve current
+FormText/FormTextarea/Minimum plus canonical SearchField once; README retains
+both control notes and canonical glyph-inventory instructions. Search child
+blobs have no diff from the announced line. Source-only combined integration,
+not inherited1510/0/2 as F1 proof. No node branch was merged directly into App.
