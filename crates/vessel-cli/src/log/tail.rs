@@ -17,6 +17,7 @@ impl Tail {
     pub(crate) const ZERO: Self = Self(0);
 
     /// Expose the count only where retaining records needs it.
+    #[must_use]
     const fn get(self) -> usize {
         self.0
     }
@@ -44,6 +45,7 @@ pub(crate) struct Window {
 
 impl Window {
     /// Allocate only for actual matches, never from the requested count alone.
+    #[must_use]
     pub(crate) fn new(limit: Tail) -> Self {
         Self {
             limit,
@@ -63,6 +65,7 @@ impl Window {
     }
 
     /// Transfer the retained records to rendering without cloning their payloads.
+    #[must_use]
     pub(crate) fn into_records(self) -> VecDeque<EventRecord> {
         self.records
     }
