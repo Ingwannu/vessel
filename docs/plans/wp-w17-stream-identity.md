@@ -13,3 +13,8 @@ The missing arm is a compile-time consumer connection, not a separate behavior
 implementation. Strict checking belongs on the SDK plus caller union; W21 owns
 the initial/resubscribe identity and existing-RPC-source regressions. No local
 Cargo or service/ownership change was performed for this source leaf.
+
+The joint SDK consumer range now merges announced node head `9c150c6e` by the
+integrator's direction. The three original owned leaves are preserved; this
+merge does not transfer unrelated CLI diagnostics or registry ownership.
+Current union checks and V3 disposition remain required.

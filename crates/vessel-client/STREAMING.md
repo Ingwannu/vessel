@@ -25,3 +25,8 @@ metadata, a mismatch on resubscription, and continued connection usability after
 refusal. Run `cargo test -p vessel-client` and strict all-target client Clippy
 through the prescribed remote build runner. A passing client check does not
 prove downstream CLI or native consumer integration.
+
+The SDK and its node/CLI consumer adapters are merged onto announced node head
+`9c150c6e` for the current integration checks. Earlier 84 unit tests and two
+documentation tests passed on the original SDK source; merged-head checks remain
+separate evidence. No native dependency is advanced outside its shared base.
