@@ -9,6 +9,7 @@ mod item;
 mod measure;
 mod permission;
 mod question;
+mod question_reply;
 mod receipt;
 mod response;
 
@@ -26,7 +27,9 @@ pub use permission::{
 
 pub use question::{
     EmptyAnswerPolicy, QuestionDeliveryState, QuestionFieldPresentation, QuestionLifetime,
+    QuestionReference,
 };
+pub use question_reply::{QuestionResponseRefusal, RespondQuestion, RespondQuestionReply};
 pub use receipt::{PromptReceipt, SubmitPrompt, SubmitPromptReply};
 pub use response::{
     PermissionInterrupt, PermissionResponse, PermissionResponseRefusal, RespondPermission,

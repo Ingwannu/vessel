@@ -86,6 +86,22 @@ impl Session {
 
     pub(super) async fn item(&mut self, started: bool, notification: ItemNotification) {
         let item = notification.item;
+        match super::super::async_questions::question(&item) {
+            Ok(Some(question)) => {
+                if !started {
+                    self.emit(AgentEvent::QuestionAsked(question)).await;
+                }
+                return;
+            }
+            Err(message) => {
+                self.emit(AgentEvent::Error {
+                    message: message.to_owned(),
+                })
+                .await;
+                return;
+            }
+            Ok(None) => {}
+        }
         if started {
             if let Some(call) = mapper::tool_call(&item) {
                 if self.announced.insert(call.id.as_str().to_owned()) {

@@ -113,7 +113,6 @@ impl AnswerToken {
     ///
     /// # Errors
     /// The token no longer contains an admitted in-flight answer.
-    #[must_use]
     pub fn answer(&self) -> Result<&QuestionAnswer, StoreError> {
         if let QuestionState::Answering { answer, .. } = &self.record.state {
             Ok(answer)

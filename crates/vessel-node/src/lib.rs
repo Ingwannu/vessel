@@ -90,6 +90,7 @@ mod principal;
 mod probes;
 mod profiles;
 mod push;
+mod question_bridge;
 mod readiness;
 mod relays;
 mod secret_copy;

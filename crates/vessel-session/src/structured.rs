@@ -55,6 +55,7 @@ pub(crate) struct StructuredActor {
     /// Where a prompt's attachments are loaded (protocol 10,
     /// `attachments`); `None` in a runtime that keeps none.
     pub(crate) loader: Option<AttachmentLoader>,
+    pub(crate) questions: Option<std::sync::Arc<dyn crate::durable_questions::QuestionPersistence>>,
     /// The idle clock and the parked state (protocol 12, `parking`).
     pub(crate) parking: Parking,
     /// The node's `park_after` as it changes (protocol 12, `node.settings`);
@@ -127,6 +128,7 @@ impl StructuredActor {
                     match control {
                         Some(Control::Move(order)) => self.move_profile(*order).await,
                         Some(Control::Deliver(order)) => self.deliver(order).await,
+                        Some(Control::Question(order)) => self.answer_durable_question(order).await,
                         Some(Control::SideQuestion(order)) => self.side_question(order).await,
                         Some(Control::Queue(order)) => self.change_queue(order).await,
                         Some(Control::Cancel(order)) => self.cancel(order).await,
@@ -231,6 +233,12 @@ impl StructuredActor {
     }
 
     pub(crate) async fn output(&mut self, output: AgentOutput) {
+        if let AgentOutput::Event(AgentEvent::QuestionAsked(question)) = &output
+            && question.lifetime == vessel_proto::timeline::QuestionLifetime::Session
+        {
+            self.offer_durable_question(question.clone()).await;
+            return;
+        }
         // A session started again drops its agent's replay of the
         // conversation until `ready`, as a move does (`session/load`); that
         // `ready` is its run's first, so it is published as a new
@@ -327,6 +335,7 @@ impl StructuredActor {
                 }
                 if became_ready {
                     self.ready = true;
+                    self.restore_durable_questions().await;
                     self.life
                         .status(&mut self.agent, SessionStatus::Running)
                         .await;

@@ -26,7 +26,7 @@ impl AgentInput {
         .await
     }
 
-    /// Steer while preserving identity; PromptRequired does not emit or consume an echo.
+    /// Steer while preserving identity; `PromptRequired` does not emit or consume an echo.
     ///
     /// # Errors
     /// The ordinary steering errors, including connection loss and refusal.

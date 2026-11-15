@@ -58,7 +58,7 @@ fn an_unretainable_update_invalidates_the_prior_tool_snapshot() {
     };
     assert!(
         matches!(current.item, InboxItem::InSession {
-        request: InboxRequest::Permission { id }
+        request: InboxRequest::Permission { id }, ..
     } if id == request_id),
         "a superseded tool must never remain complete"
     );

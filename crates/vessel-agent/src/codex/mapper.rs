@@ -215,7 +215,7 @@ pub(super) fn tool_call_done(item: &ThreadItem) -> Option<ToolCallUpdate> {
 /// The agent's text of a completed item, for one that streamed no delta.
 pub(super) fn whole_text(item: &ThreadItem) -> Option<(&str, AgentEvent)> {
     match item {
-        ThreadItem::AgentMessage { id, text } if !text.is_empty() => Some((
+        ThreadItem::AgentMessage { id, text, .. } if !text.is_empty() => Some((
             id.as_str(),
             AgentEvent::MessageChunk {
                 content: ContentBlock::Text { text: text.clone() },

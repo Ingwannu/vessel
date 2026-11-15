@@ -51,6 +51,7 @@
 
 mod abilities;
 mod attached;
+mod canonical;
 mod claude;
 mod codex;
 mod context;

@@ -91,8 +91,12 @@ impl Seen {
     }
 
     /// Whether a permission or a question waits for an answer.
-    pub(crate) const fn waiting(&self) -> bool {
-        !self.permissions.is_empty() || !self.questions.is_empty()
+    pub(crate) fn waiting(&self) -> bool {
+        !self.permissions.is_empty()
+            || self
+                .questions
+                .iter()
+                .any(|question| question.lifetime == vessel_proto::timeline::QuestionLifetime::Turn)
     }
 
     /// Take in one committed record.
@@ -105,7 +109,9 @@ impl Seen {
             SessionEvent::Status { status } if !status.is_live() => {
                 // Nothing waits on an ended session, and it offers nothing.
                 self.permissions.clear();
-                self.questions.clear();
+                self.questions.retain(|question| {
+                    question.lifetime == vessel_proto::timeline::QuestionLifetime::Session
+                });
                 self.commands.clear();
             }
             SessionEvent::Status { .. }
@@ -135,7 +141,26 @@ impl Seen {
                 self.permissions.retain(|request| request.id != *id);
             }
             AgentEvent::QuestionAsked(question) => {
-                push_bounded(&mut self.questions, question.clone());
+                self.questions.retain(|pending| pending.id != question.id);
+                if question.lifetime == vessel_proto::timeline::QuestionLifetime::Session {
+                    self.questions.push(question.clone());
+                } else {
+                    if self
+                        .questions
+                        .iter()
+                        .filter(|pending| {
+                            pending.lifetime == vessel_proto::timeline::QuestionLifetime::Turn
+                        })
+                        .count()
+                        >= Self::MAX_WAITING
+                        && let Some(oldest) = self.questions.iter().position(|pending| {
+                            pending.lifetime == vessel_proto::timeline::QuestionLifetime::Turn
+                        })
+                    {
+                        let _displaced = self.questions.remove(oldest);
+                    }
+                    self.questions.push(question.clone());
+                }
             }
             AgentEvent::QuestionResolved { id, .. } => {
                 self.questions.retain(|question| question.id != *id);
@@ -143,7 +168,9 @@ impl Seen {
             AgentEvent::TurnEnded { .. } | AgentEvent::TurnFailed { .. } => {
                 // A turn's requests end with it, answered or not.
                 self.permissions.clear();
-                self.questions.clear();
+                self.questions.retain(|question| {
+                    question.lifetime == vessel_proto::timeline::QuestionLifetime::Session
+                });
             }
             AgentEvent::TurnStarted { .. }
             | AgentEvent::UserMessageChunk { .. }

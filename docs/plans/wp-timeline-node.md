@@ -223,3 +223,28 @@ release replay reservations. Writer dispatch is split into a retained-admission
 module so central dispatch stays within its existing function/file budgets.
 The session callback/foreground dispatch bridge is still unconnected, and these
 new public storage operations have not yet passed their actual tests.
+
+## Durable question actor bridge (not yet verified)
+
+The node supplies QuestionPersistence and opaque one-effect answer leases to
+SessionRuntime. There is no session-to-store dependency and no second mutable
+question registry. Provider async agentMessage items decode at the Codex edge;
+the actor reserves their stable tool/item source before publishing QuestionAsked.
+Retained questions are restored on Ready even when provider history no longer
+contains the item. Normal turn/session cleanup and bounded inbox degradation
+retain Session lifetime and delivery state. Ordinary blocking request eviction
+cannot evict a durable request. Unsupported/uncertain requests are never made
+falsely actionable to older peers.
+
+Answer claims capture the actor foreground before admission. A turn target only
+steers that same turn; PromptRequired refuses without falling back to a new turn.
+An idle target may start one follow-up. Decline needs no provider prompt. Only an
+observed acceptance can settle the retained claim and publish its resolution;
+known-not-sent restores Pending, while lost/uncertain execution remains protected.
+The sibling respond_question method/committed acknowledgement and authoritative
+snapshot watermark are still being connected. No checked runtime claim is made.
+
+Claude Task/Agent inputs now share canonical::sub_agent_input, one serde decoder
+returning SubAgentDetail for the canonical launch marker and provider child
+routing. The native opaque wire representation remains unchanged; child routers
+must call this helper rather than inspect or clone another JSON-tree parser.

@@ -86,7 +86,7 @@ impl NodeService {
                 .map(|project| project.name.clone());
         }
         if request.fetch == vessel_proto::inbox::InboxFetch::LiveRequest
-            && let vessel_proto::inbox::InboxItem::InSession { request } = entry.item
+            && let vessel_proto::inbox::InboxItem::InSession { request, .. } = entry.item
         {
             let Some(item) = self
                 .sessions

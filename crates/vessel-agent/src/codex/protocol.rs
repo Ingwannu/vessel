@@ -318,7 +318,12 @@ pub(super) struct ErrorNotification {
 pub(super) enum ThreadItem {
     AgentMessage {
         id: String,
+        #[serde(default)]
         text: String,
+        #[serde(default)]
+        delivery: Option<super::async_questions::Delivery>,
+        #[serde(default)]
+        questions: Option<Vec<super::async_questions::Asked>>,
     },
     Reasoning {
         id: String,

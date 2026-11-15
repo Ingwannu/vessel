@@ -299,17 +299,7 @@ impl Driver {
                 self.emit(event).await;
             }
             Inbound::OptionSet { id, result, reply } => {
-                let answer = match result {
-                    Ok(applied) => {
-                        self.options.apply(applied);
-                        self.report_options().await;
-                        Ok(self.options.listed())
-                    }
-                    Err(error) => Err(crate::error::InputError::Refused {
-                        id,
-                        message: describe(&error),
-                    }),
-                };
+                let answer = self.option_applied(id, result).await;
                 // The caller may have stopped waiting; the change stands.
                 if reply.send(answer).is_err() {
                     tracing::debug!("option change reply dropped");
@@ -322,10 +312,28 @@ impl Driver {
                 reply,
             } => {
                 self.steered(content, result, client_message_id, reply)
-                    .await
+                    .await;
             }
         }
         None
+    }
+
+    async fn option_applied(
+        &mut self,
+        id: OptionId,
+        result: Result<Applied, Error>,
+    ) -> Result<Vec<vessel_proto::SessionOption>, crate::InputError> {
+        match result {
+            Ok(applied) => {
+                self.options.apply(applied);
+                self.report_options().await;
+                Ok(self.options.listed())
+            }
+            Err(error) => Err(crate::error::InputError::Refused {
+                id,
+                message: describe(&error),
+            }),
+        }
     }
 
     /// Report the options if they differ from the last report (always the

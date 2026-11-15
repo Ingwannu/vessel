@@ -60,6 +60,7 @@ pub struct SessionRuntime {
     /// The node's attachment loader (protocol 10), which every structured
     /// session asks for its prompts' attachments.
     attachments: Option<AttachmentLoader>,
+    questions: Option<Arc<dyn crate::durable_questions::QuestionPersistence>>,
     /// How long an idle structured session runs before its agent is
     /// parked, as the node now says (protocol 12, ADR 0038): every actor
     /// follows it, so a change applies to live sessions at once.
@@ -95,6 +96,7 @@ impl SessionRuntime {
             tasks: TaskTracker::new(),
             sessions: RwLock::new(HashMap::new()),
             attachments: None,
+            questions: None,
             park_after,
             claims: claims::Claims::default(),
             drivers: drivers::Drivers::default(),
@@ -128,6 +130,16 @@ impl SessionRuntime {
     #[must_use]
     pub fn with_attachments(mut self, loader: AttachmentLoader) -> Self {
         self.attachments = Some(loader);
+        self
+    }
+
+    /// Supply the one node-owned durable question service before starting sessions.
+    #[must_use]
+    pub fn with_questions(
+        mut self,
+        questions: Arc<dyn crate::durable_questions::QuestionPersistence>,
+    ) -> Self {
+        self.questions = Some(questions);
         self
     }
 

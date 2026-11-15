@@ -217,7 +217,10 @@ fn tool_call(id: &str, name: &str, input: &Value) -> ToolCall {
             .collect(),
         raw_input: RawJson::from_text(input.to_string()).ok(),
 
-        detail: None,
+        detail: matches!(name, "Task" | "Agent")
+            .then(|| crate::canonical::sub_agent_input(input))
+            .flatten()
+            .map(|detail| Box::new(vessel_proto::timeline::ToolCallDetail::SubAgent(detail))),
         failure: None,
         agent_message: None,
     }

@@ -109,6 +109,26 @@ impl SessionHandle {
         self.prompt_identified(content, delivery, by, None).await
     }
 
+    /// Serialize a blocking/durable question response against this actor's exact foreground.
+    ///
+    /// # Errors
+    /// Terminal/ended/moving sessions or an unavailable actor.
+    pub async fn respond_question(
+        &self,
+        question: vessel_proto::QuestionId,
+        answer: vessel_proto::QuestionAnswer,
+    ) -> Result<crate::durable_questions::QuestionDispatch, SessionError> {
+        let route = self.structured("a question response")?;
+        self.order(route, |reply| {
+            Control::Question(crate::durable_questions::answer::QuestionOrder {
+                question,
+                answer,
+                reply,
+            })
+        })
+        .await
+    }
+
     /// Rich responses retain typed provider refusal before any request mutation.
     ///
     /// # Errors

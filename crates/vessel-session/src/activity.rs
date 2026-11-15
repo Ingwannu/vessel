@@ -54,8 +54,9 @@
 //!   actor published it, so a replay of the log gives the same facts (the
 //!   quiet timer and the pull requests aside).
 
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::sync::Arc;
+use vessel_proto::timeline::QuestionLifetime;
 
 use chrono::{DateTime, Utc};
 use vessel_proto::{
@@ -80,7 +81,7 @@ pub(crate) struct Tracker {
     /// Permission requests and questions asked and not yet resolved.
     /// Rarely more than one; a set so a resolution matches its own request,
     /// whatever order several are answered in.
-    pending: HashSet<Waiting>,
+    pending: HashMap<Waiting, QuestionLifetime>,
     /// The session's pull requests as the node last gave them: `None`
     /// while it cannot see them (`PullRequests::Unseen`).
     pulls: Option<Arc<[PullRequestFacts]>>,
@@ -103,7 +104,7 @@ impl Tracker {
             last_activity_at: created_at,
             seen: false,
             interrupted: false,
-            pending: HashSet::new(),
+            pending: HashMap::new(),
             pulls: None,
             policy: Policy::default(),
         }
@@ -123,7 +124,7 @@ impl Tracker {
                 // `Starting` is where a tracker begins and `Running` says
                 // nothing about turns; only the end changes the facts.
                 if !status.is_live() {
-                    self.pending.clear();
+                    self.pending.retain(|_request, lifetime| *lifetime == QuestionLifetime::Session);
                     // Nothing watches an ended session (ADR 0029).
                     self.forge(None);
                     self.set(Activity::Exited, at);
@@ -157,23 +158,41 @@ impl Tracker {
                 self.set(Activity::Active, at);
             }
             AgentEvent::PermissionRequested(request) => {
-                self.waits(Waiting::Permission(request.id), at);
+                self.waits(Waiting::Permission(request.id), QuestionLifetime::Turn, at);
             }
-            AgentEvent::QuestionAsked(question) => self.waits(Waiting::Question(question.id), at),
+            AgentEvent::QuestionAsked(question) => {
+                self.waits(Waiting::Question(question.id), question.lifetime, at)
+            }
             AgentEvent::PermissionResolved { id, .. } => {
                 self.resolved(Waiting::Permission(*id), at);
             }
             AgentEvent::QuestionResolved { id, .. } => self.resolved(Waiting::Question(*id), at),
             AgentEvent::TurnEnded { reason, .. } => {
                 // A turn's requests end with it, answered or not.
-                self.pending.clear();
+                self.pending
+                    .retain(|_request, lifetime| *lifetime == QuestionLifetime::Session);
                 self.interrupted = *reason == StopReason::Cancelled;
-                self.set(Activity::Idle, at);
+                self.set(
+                    if self.pending.is_empty() {
+                        Activity::Idle
+                    } else {
+                        Activity::WaitingInput
+                    },
+                    at,
+                );
             }
             AgentEvent::TurnFailed { .. } => {
-                self.pending.clear();
+                self.pending
+                    .retain(|_request, lifetime| *lifetime == QuestionLifetime::Session);
                 self.interrupted = false;
-                self.set(Activity::Idle, at);
+                self.set(
+                    if self.pending.is_empty() {
+                        Activity::Idle
+                    } else {
+                        Activity::WaitingInput
+                    },
+                    at,
+                );
             }
             // A steer is the person adding to a turn already active.
             AgentEvent::UserMessageChunk { .. }
@@ -192,8 +211,8 @@ impl Tracker {
     }
 
     /// The agent asks its owner something.
-    fn waits(&mut self, waiting: Waiting, at: DateTime<Utc>) {
-        let _new = self.pending.insert(waiting);
+    fn waits(&mut self, waiting: Waiting, lifetime: QuestionLifetime, at: DateTime<Utc>) {
+        let _new = self.pending.insert(waiting, lifetime);
         self.set(Activity::WaitingInput, at);
     }
 
@@ -202,7 +221,7 @@ impl Tracker {
         // A resolution after the turn ended (the agent's driver withdraws
         // what a closed turn left open) changes nothing: not the activity,
         // not when the agent was last seen.
-        if !self.pending.remove(&waiting) {
+        if self.pending.remove(&waiting).is_none() {
             return;
         }
         // The turn goes on once nothing waits on the owner.

@@ -142,6 +142,7 @@ pub(crate) enum Control {
     /// Boxed: the rest are small, and they are many.
     Move(Box<MoveOrder>),
     Deliver(Deliver),
+    Question(crate::durable_questions::answer::QuestionOrder),
     SideQuestion(crate::side_questions::SidePrompt),
     Queue(Change),
     Cancel(Cancel),

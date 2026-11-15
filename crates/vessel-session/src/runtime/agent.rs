@@ -95,6 +95,7 @@ impl SessionRuntime {
             desk,
             gate,
             loader: self.attachments.clone(),
+            questions: self.questions.clone(),
             parking,
             park_setting,
             opening,

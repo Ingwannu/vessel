@@ -73,7 +73,7 @@ async fn large_live_form_remains_exact_and_answerable_after_source_pruning_for_a
         let fresh = fixture.connect(&node).await;
         let records = fresh.read(session, EventSeq::ZERO, 100).await.unwrap();
         let entry = fresh.inbox(ListInbox::default()).await.unwrap().entries.remove(0);
-        let InboxItem::InSession { request: vessel_proto::inbox::InboxRequest::Question { id } } = entry.item else { panic!("large form must remain an exact reference"); };
+        let InboxItem::InSession { request: vessel_proto::inbox::InboxRequest::Question { id }, .. } = entry.item else { panic!("large form must remain an exact reference"); };
         assert!(!records.records.is_empty());
         assert!(records.records.iter().all(|record| record.seq > entry.key.seq), "source must be absent from both log and ring");
         let expanded = fresh.inbox_request(entry.key).await.unwrap().unwrap();

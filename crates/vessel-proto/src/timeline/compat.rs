@@ -260,7 +260,14 @@ pub(crate) fn inbox(
             permission_changed(request) || tool.as_deref().is_some_and(tool_changed)
         }
         InboxItem::Question { question } => question_changed(question),
-        InboxItem::InSession { .. }
+        InboxItem::InSession {
+            question: Some(question),
+            ..
+        } => {
+            let _metadata = question;
+            true
+        }
+        InboxItem::InSession { question: None, .. }
         | InboxItem::Finished
         | InboxItem::Failed
         | InboxItem::Limit
@@ -284,7 +291,22 @@ pub(crate) fn inbox(
             Some(question) => InboxItem::Question { question },
             None => InboxItem::Unknown,
         },
-        same @ (InboxItem::InSession { .. }
+        InboxItem::InSession {
+            request,
+            question: Some(reference),
+        } => {
+            if reference.lifetime == QuestionLifetime::Session
+                || reference.delivery_state != QuestionDeliveryState::Pending
+            {
+                InboxItem::Unknown
+            } else {
+                InboxItem::InSession {
+                    request: *request,
+                    question: None,
+                }
+            }
+        }
+        same @ (InboxItem::InSession { question: None, .. }
         | InboxItem::Finished
         | InboxItem::Failed
         | InboxItem::Limit

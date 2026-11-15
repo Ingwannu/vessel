@@ -130,7 +130,7 @@ impl Sessions {
     /// A structured session's conversation as it stands (protocol 10): a
     /// live one's from its runtime, an ended one's from the store.
     pub(crate) async fn conversation(&self, id: SessionId) -> Result<Conversation, ServiceError> {
-        match self.find(id).await? {
+        let mut conversation = match self.find(id).await? {
             Found::Live { handle, .. } => Ok(handle.conversation()?),
             Found::Stored(info) => match info.spec.mode {
                 SessionMode::Terminal { .. } => {
@@ -142,7 +142,14 @@ impl Sessions {
                     .await?
                     .ok_or(ServiceError::NotFound(id)),
             },
-        }
+        }?;
+        conversation
+            .questions
+            .retain(|question| question.lifetime == vessel_proto::timeline::QuestionLifetime::Turn);
+        conversation
+            .questions
+            .extend(self.store.pending_questions(id).await?);
+        Ok(conversation)
     }
 }
 

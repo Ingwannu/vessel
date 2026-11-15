@@ -73,7 +73,7 @@ pub(crate) async fn command(target: &Target, command: InboxCommand) -> Result<()
                     )
                     .await
                 }
-                InboxItem::InSession { request } if decline => {
+                InboxItem::InSession { request, .. } if decline => {
                     decline_compact(&client, entry.key.session, *request).await
                 }
                 InboxItem::InSession { .. } => Err(CliError::Usage(

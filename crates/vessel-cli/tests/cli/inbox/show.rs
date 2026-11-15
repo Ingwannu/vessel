@@ -29,6 +29,7 @@ async fn show_recovers_every_choice_after_pruning_without_marking_or_answering()
         let entry = &page.entries[0];
         let InboxItem::InSession {
             request: vessel_proto::inbox::InboxRequest::Question { id },
+            ..
         } = entry.item
         else {
             panic!("the list must carry the exact compact request");

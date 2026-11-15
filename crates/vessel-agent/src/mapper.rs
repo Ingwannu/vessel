@@ -22,7 +22,7 @@ mod tool;
 
 pub(crate) use prompt::prompt_block;
 pub(crate) use question::{Refusal, elicitation_response, question};
-pub(crate) use report::turn_usage;
+pub(crate) use report::{cut, turn_usage};
 pub(crate) use tool::{
     permission_options, permission_outcome, permission_tool_call, tool_call, tool_call_update,
 };

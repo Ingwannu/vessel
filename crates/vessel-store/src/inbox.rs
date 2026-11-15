@@ -160,7 +160,7 @@ fn agent(
 // Rewind changes the agent's conversation without deleting its log. Cached
 // tools and a completion from the abandoned branch must not remain current.
 fn clear_branch(connection: &Connection, session: SessionId) -> Result<(), StoreError> {
-    let _rows = connection.execute("DELETE FROM inbox WHERE session=?1", [session.to_string()])?;
+    let _rows = connection.execute("DELETE FROM inbox WHERE session=?1 AND coalesce(json_extract(item,'$.question.lifetime'),'turn')<>'session'", [session.to_string()])?;
     let _tools = connection.execute(
         "DELETE FROM inbox_tools WHERE session=?1",
         [session.to_string()],
@@ -170,7 +170,7 @@ fn clear_branch(connection: &Connection, session: SessionId) -> Result<(), Store
 
 fn clear_waiting(connection: &Connection, session: SessionId) -> Result<(), StoreError> {
     let _rows = connection.execute(
-        "DELETE FROM inbox WHERE session=?1 AND waiting=1",
+        "DELETE FROM inbox WHERE session=?1 AND waiting=1 AND coalesce(json_extract(item,'$.question.lifetime'),'turn')<>'session'",
         [session.to_string()],
     )?;
     Ok(())
@@ -346,9 +346,11 @@ fn deferred(item: &InboxItem) -> InboxItem {
     match item {
         InboxItem::Permission { request, .. } => InboxItem::InSession {
             request: InboxRequest::Permission { id: request.id },
+            question: None,
         },
         InboxItem::Question { question } => InboxItem::InSession {
             request: InboxRequest::Question { id: question.id },
+            question: Some(question.into()),
         },
         InboxItem::InSession { .. }
         | InboxItem::Finished

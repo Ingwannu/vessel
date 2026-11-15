@@ -184,6 +184,11 @@ impl Desk {
         self.started
     }
 
+    /// Canonical foreground identity; None when idle or before the echo is published.
+    pub(crate) const fn turn(&self) -> Option<EventSeq> {
+        self.turn
+    }
+
     /// Whether a turn runs.
     pub(crate) const fn running(&self) -> bool {
         self.started > self.ended_turns
@@ -288,7 +293,7 @@ impl StructuredActor {
     }
 
     /// Start a turn with `content`, its attachments loaded first.
-    async fn start(
+    pub(crate) async fn start(
         &mut self,
         content: Vec<ContentBlock>,
         client_message_id: Option<vessel_proto::timeline::ClientMessageId>,

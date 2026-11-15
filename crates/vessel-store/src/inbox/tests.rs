@@ -328,7 +328,8 @@ fn huge_forms_keep_a_pending_reference_instead_of_clipping_choices() {
     assert_eq!(
         page.entries[0].item,
         InboxItem::InSession {
-            request: vessel_proto::inbox::InboxRequest::Permission { id: request.id }
+            request: vessel_proto::inbox::InboxRequest::Permission { id: request.id },
+            question: None,
         }
     );
     assert!(page.entries[0].item.waiting());

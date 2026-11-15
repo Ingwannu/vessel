@@ -119,6 +119,7 @@ pub mod board;
 mod config;
 mod conversation;
 mod delivery;
+pub mod durable_questions;
 mod error;
 mod forge;
 mod forking;
