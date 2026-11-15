@@ -103,6 +103,7 @@ impl Workspaces {
                     teardown: file.teardown,
                     scripts: file.scripts,
                     terminals: file.terminals,
+                    service_ports: file.service_ports,
                 };
                 let (approved, last_approved) = {
                     let mut state = self.state();
@@ -119,6 +120,7 @@ impl Workspaces {
                     teardown: set.teardown,
                     scripts: set.scripts,
                     terminals: set.terminals,
+                    service_ports: set.service_ports,
                     digest,
                     last_approved,
                 }

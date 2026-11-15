@@ -34,6 +34,7 @@ fn agent(kind: HarnessKind, name: &str, unavailable: Option<&str>) -> Agent {
 fn lists_the_app_then_each_machine_in_paseos_shape() {
     let laptop = Machine {
         node: None,
+        connection_epoch: None,
         name: "laptop".to_owned(),
         reach: Reach::Online,
         sessions: Vec::new(),
@@ -59,6 +60,7 @@ fn lists_the_app_then_each_machine_in_paseos_shape() {
 fn says_why_a_machine_is_unreachable_without_its_address() {
     let away = Machine {
         node: None,
+        connection_epoch: None,
         name: "gpu-box".to_owned(),
         reach: Reach::Unreachable(
             "connecting to ws://10.0.0.7:7077 failed (connection refused)".to_owned(),
