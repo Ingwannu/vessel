@@ -46,17 +46,23 @@ slice order. The docs commit adds both and no command.
   the first narrow clippy failure is retained, not called green.
 - Merged: node head `242076b5`, conflict-free, before the proc move. Its
   existing tables, documents and tests remain intact.
-- Next: gate service observations on the merged tree, then descriptor
-  possession, generation/namespace verification and the real force caller
-  as separately reviewed slices. Config/reload/session-restart work and
-  real manager/agent execution remain unverified.
+- Next: merge the designated terminal-deletion repair head and gate service
+  observations again. Descriptor possession, generation/namespace verification
+  and the real force caller remain separate reviewed changes. Config/reload/
+  session-restart work and real manager/agent execution remain unverified.
 - Reviewed: 2h0's documents-only observation contract passed review.
 - Source: 2h service-file observations reuse installer paths and rendering,
   with bounded decoding, pre-RPC warnings and isolated CLI fixtures. No disk
   match gives loaded-manager authority. The first focused clippy found a
   test-doc Markdown issue; final auxiliary clippy, 16 service units and
   18 stop cases passed. The merged-tree clippy and all 170 CLI unit/
-  integration cases also passed; its whole gate is pending.
+  integration cases also passed. Source review passed. The whole gate remains
+  red (2,221 Rust tests passed, one failed, 12 ignored): the unchanged terminal
+  deletion case received Conflict while its log was still being written.
+  The integrator owns that base race. Do not change its test or node code,
+  waive the failure or replay before the designated repair head arrives.
+  All other steps passed, including forge 4, web unit 442 and e2e 65.
+  Source approval is separate from the outstanding full-gate evidence.
 
 ## Existing asset check
 
