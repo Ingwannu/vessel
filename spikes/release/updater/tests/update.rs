@@ -20,8 +20,9 @@ mod support {
         net::TcpListener,
     };
     use vessel_app_updater::{
-        Artifact, ByteCount, Channel, Envelope, FeedUrl, Installation, Manifest, Packaging,
-        PublicKey, Published, SCHEMA, Settings, Sha256, Target, UpdateState, Updater,
+        Artifact, ByteCount, Channel, Companion, Envelope, FeedUrl, Installation, Manifest,
+        Packaging, PublicKey, Published, Role, SCHEMA, Settings, Sha256, Target, UpdateState,
+        Updater,
     };
 
     /// The bytes of the "new build".
@@ -55,8 +56,33 @@ mod support {
         /// Publish `label` on `channel` with one artifact for this machine,
         /// described as `described` (its real bytes are `NEW_BUILD`).
         pub(crate) fn publish(&self, channel: &str, label: &str, described: &[u8]) {
+            self.publish_set(channel, label, described, &[]);
+        }
+
+        /// [`Feed::publish`] with companions (ADR 0094): each is served as
+        /// `served` and described as `described`.
+        pub(crate) fn publish_set(
+            &self,
+            channel: &str,
+            label: &str,
+            described: &[u8],
+            companions: &[(Role, &[u8], &[u8])],
+        ) {
             let path = format!("{label}/vessel-{label}-app");
             self.file(&path, NEW_BUILD);
+            let companions = companions
+                .iter()
+                .map(|(role, served, described)| {
+                    let path = format!("{label}/vessel-{label}-{role}");
+                    self.file(&path, served);
+                    Companion {
+                        role: role.clone(),
+                        path: path.parse().unwrap(),
+                        size: ByteCount::try_from(u64::try_from(described.len()).unwrap()).unwrap(),
+                        sha256: Sha256::of(described),
+                    }
+                })
+                .collect();
             let manifest = Manifest {
                 schema: SCHEMA,
                 channel: channel.parse().unwrap(),
@@ -69,6 +95,7 @@ mod support {
                     path: path.parse().unwrap(),
                     size: ByteCount::try_from(u64::try_from(described.len()).unwrap()).unwrap(),
                     sha256: Sha256::of(described),
+                    companions,
                 }],
             };
             let text = serde_json::to_string(&manifest).unwrap();
@@ -161,6 +188,21 @@ mod support {
         address
     }
 
+    /// The file a companion of `role` is installed as on this machine.
+    pub(crate) fn companion_file(dir: &Path, role: &Role) -> PathBuf {
+        dir.join(role.file_name(Target::current().unwrap()).unwrap())
+    }
+
+    /// The names in `dir`, sorted.
+    pub(crate) fn names(dir: &Path) -> Vec<String> {
+        let mut names: Vec<_> = std::fs::read_dir(dir)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+            .collect();
+        names.sort();
+        names
+    }
+
     /// A copy of the "app" of build `running` in a temporary directory.
     pub(crate) fn installed_app(dir: &Path) -> Installation {
         let app = dir.join("vessel-app");
@@ -245,11 +287,12 @@ mod support {
 
 use std::{sync::Arc, time::Duration};
 use support::{
-    Feed, NEW_BUILD, Seen, captured_log, installed_app, serve, serve_under, settings, settled,
+    Feed, NEW_BUILD, Seen, captured_log, companion_file, installed_app, names, serve, serve_under,
+    settings, settled,
 };
 
 use vessel_app_updater::{
-    FeedUrl, Label, OpenError, StageError, UpdateError, UpdateState, Updater,
+    FeedUrl, Label, OpenError, Role, StageError, UpdateError, UpdateState, Updater,
 };
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -604,4 +647,144 @@ async fn the_log_never_names_the_feeds_path() {
     ] {
         assert!(text.contains(step), "no {step:?} in the log:\n{text}");
     }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_newer_set_replaces_the_app_and_its_companions_together() {
+    let feed = Feed::new();
+    feed.publish_set(
+        "preview",
+        "0.0.0.0.20",
+        NEW_BUILD,
+        &[
+            (Role::Cli, b"new cli", b"new cli"),
+            (Role::Node, b"new node", b"new node"),
+            ("helper".parse().unwrap(), b"later", b"later"),
+        ],
+    );
+    let address = serve(feed.root.path().to_path_buf()).await;
+    let app_dir = tempfile::tempdir().unwrap();
+    let installation = installed_app(app_dir.path());
+    // The old command line is there; the node is not (an older install).
+    std::fs::write(companion_file(app_dir.path(), &Role::Cli), b"old cli").unwrap();
+
+    let updater = Updater::start(
+        settings(address, feed.key(), "0.0.0.0.19"),
+        installation.clone(),
+        &tokio::runtime::Handle::current(),
+    )
+    .unwrap();
+    let state = settled(&updater).await;
+
+    assert!(matches!(state, UpdateState::Ready { .. }), "{state:?}");
+    assert_eq!(std::fs::read(installation.executable()).unwrap(), NEW_BUILD);
+    assert_eq!(
+        std::fs::read(companion_file(app_dir.path(), &Role::Cli)).unwrap(),
+        b"new cli"
+    );
+    assert_eq!(
+        std::fs::read(companion_file(app_dir.path(), &Role::Node)).unwrap(),
+        b"new node"
+    );
+    if cfg!(unix) {
+        assert_eq!(
+            names(app_dir.path()),
+            ["vessel", "vessel-app", "vesseld"],
+            "leftovers, staging files, or the unknown role's file remain"
+        );
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_companion_that_does_not_verify_leaves_the_whole_set_as_it_was() {
+    let feed = Feed::new();
+    // The node the host serves is not the one the key signed for.
+    feed.publish_set(
+        "preview",
+        "0.0.0.0.20",
+        NEW_BUILD,
+        &[
+            (Role::Cli, b"new cli", b"new cli"),
+            (Role::Node, b"replaced!", b"new node!"),
+        ],
+    );
+    let address = serve(feed.root.path().to_path_buf()).await;
+    let app_dir = tempfile::tempdir().unwrap();
+    let installation = installed_app(app_dir.path());
+    std::fs::write(companion_file(app_dir.path(), &Role::Cli), b"old cli").unwrap();
+
+    let updater = Updater::start(
+        settings(address, feed.key(), "0.0.0.0.19"),
+        installation.clone(),
+        &tokio::runtime::Handle::current(),
+    )
+    .unwrap();
+    let state = settled(&updater).await;
+
+    let UpdateState::Failed { error } = state else {
+        panic!("not failed: {state:?}");
+    };
+    assert!(
+        matches!(*error, UpdateError::Stage(StageError::Digest)),
+        "{error:?}"
+    );
+    assert_eq!(
+        std::fs::read(installation.executable()).unwrap(),
+        b"the running build"
+    );
+    assert_eq!(
+        std::fs::read(companion_file(app_dir.path(), &Role::Cli)).unwrap(),
+        b"old cli"
+    );
+    assert_eq!(
+        names(app_dir.path()),
+        if cfg!(windows) {
+            ["vessel-app", "vessel-cli.exe"]
+        } else {
+            ["vessel", "vessel-app"]
+        },
+        "a staged file or a half set remains"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_running_builds_missing_companions_are_filled_in() {
+    let feed = Feed::new();
+    feed.publish_set(
+        "preview",
+        "0.0.0.0.20",
+        NEW_BUILD,
+        &[(Role::Cli, b"cli", b"cli"), (Role::Node, b"node", b"node")],
+    );
+    let address = serve(feed.root.path().to_path_buf()).await;
+    let app_dir = tempfile::tempdir().unwrap();
+    // 0.0.0.0.20 installed by an app from before the set: its executable
+    // only. The command line is already there and right; the node is not.
+    let installation = installed_app(app_dir.path());
+    std::fs::write(companion_file(app_dir.path(), &Role::Cli), b"cli").unwrap();
+
+    let updater = Updater::start(
+        settings(address, feed.key(), "0.0.0.0.20"),
+        installation.clone(),
+        &tokio::runtime::Handle::current(),
+    )
+    .unwrap();
+    let state = settled(&updater).await;
+
+    assert!(matches!(state, UpdateState::UpToDate { .. }), "{state:?}");
+    assert_eq!(
+        std::fs::read(installation.executable()).unwrap(),
+        b"the running build",
+        "the running app itself is not replaced"
+    );
+    assert_eq!(
+        std::fs::read(companion_file(app_dir.path(), &Role::Node)).unwrap(),
+        b"node"
+    );
+    assert_eq!(
+        std::fs::read(companion_file(app_dir.path(), &Role::Cli)).unwrap(),
+        b"cli"
+    );
+    // A repair does not stop the task: a later build still updates.
+    assert!(updater.check_now());
 }

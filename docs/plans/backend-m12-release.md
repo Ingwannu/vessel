@@ -992,6 +992,29 @@ never rebuilt.
     or path in the build log. Not measured this time (the budget was
     tight): CPU on Xvfb.
 
+## The command line and the node in the package (ADR 0094, 2026-11-15)
+
+The coordinator decided that the package carries `vessel` and `vesseld`
+beside the app (W15's local-node controller needs the node; Paseo's desktop
+ships its daemon and command line), and that updates replace the three as
+one set. `docs/adr/0094-package-contents-and-whole-set-self-update.md` has
+the reasons and the trade-offs. Where it stands:
+
+- Built behind `VESSEL_PACKAGE_NODE=1` (`build.sh`, off by default): the
+  zip, the installer and the tarball get the two programs beside the app,
+  and the dist folder gets each alone as the update's companions;
+  `--publish` names them with `--companion`.
+- The manifest stays schema 1; companions are an optional field the
+  published apps (0.0.0.0.3 to 0.0.0.0.18) skip, and the first build with
+  them puts in the companions an old app could not.
+- The updater: the whole set downloaded and verified before any swap,
+  companions first and the app last, every placed file put back when one
+  fails; tests listed in the ADR.
+- Not shipped in any label until the local-node controller is in a build.
+  Not yet shown: that `vessel-cli` and `vessel-node` build for Windows
+  with `cargo-xwin` and import only the DLLs Windows ships (the first
+  build with the flag tells), and the Windows sizes.
+
 ## Logs and retries (from the build after 0.0.0.0.5)
 
 - **The log file**: `spikes/release/applog` (`vessel-app-log`). The app

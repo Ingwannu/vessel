@@ -23,7 +23,9 @@
 ; Built by spikes/release/build.sh:
 ;   makensis -DLABEL=<label> -DSTAGE=<dir with Vessel.exe, LICENSE.md,
 ;            README.txt and licenses\> -DICONS=<tools/make-icons.py's output>
-;            -DOUTFILE=<setup.exe> installer.nsi
+;            [-DCOMPANIONS=1] -DOUTFILE=<setup.exe> installer.nsi
+; COMPANIONS (ADR 0094): the command line (vessel-cli.exe) and the node
+; (vesseld.exe) are in STAGE and go beside the app.
 
 ; A 64-bit installer: the app is x64 only, so nothing is lost on Windows,
 ; and it runs under a wine without 32-bit support, where it was tested.
@@ -95,6 +97,12 @@ Section "Vessel"
   File "${STAGE}\${EXE}"
   File "${STAGE}\LICENSE.md"
   File "${STAGE}\README.txt"
+!ifdef COMPANIONS
+  ; ADR 0094: the command line and the node, replaced with the app by its
+  ; updates (spikes/release/updater, the install module).
+  File "${STAGE}\vessel-cli.exe"
+  File "${STAGE}\vesseld.exe"
+!endif
   ; The licences of what the app embeds: the fonts' (SIL OFL 1.1 asks
   ; each copy to carry it) and any agent mark's that comes with one;
   ; build.sh's licenses() fills the folder.
@@ -128,6 +136,13 @@ Section "Uninstall"
   ; What the app's own updates leave beside it: a build moved aside while
   ; it ran, and a download cut short.
   Delete "$INSTDIR\${EXE}.old-*"
+  ; The companions (ADR 0094), whether this installer put them there or
+  ; an update of the app did later; a node still running stays, and so
+  ; does the folder.
+  Delete "$INSTDIR\vessel-cli.exe"
+  Delete "$INSTDIR\vesseld.exe"
+  Delete "$INSTDIR\vessel-cli.exe.old-*"
+  Delete "$INSTDIR\vesseld.exe.old-*"
   Delete "$INSTDIR\.vessel-update-*"
   Delete "$INSTDIR\uninstall.exe"
   RMDir "$INSTDIR"

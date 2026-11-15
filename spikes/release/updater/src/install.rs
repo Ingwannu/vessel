@@ -32,13 +32,48 @@
 //! macOS (a bundle, a directory) is named here so the feed and the state
 //! can describe it, but replacing a bundle is not built yet: it cannot be
 //! run on the machines this is built on (`docs/plans/backend-m12-release.md`).
+//!
+//! [Decision Log] The set (ADR 0094)
+//! - Purpose: the command line and the node ship beside the app; an
+//!   update must leave the three of one build together, never a new app
+//!   beside an old node or the reverse half way.
+//! - Constraints: the swap above, per file; the node may be running
+//!   (the app's managed local node), which Windows allows to be renamed
+//!   but not replaced; no helper process.
+//! - Alternatives: an archive unpacked over the folder (a crash half way
+//!   leaves a mix, and nothing to go back to); a directory per build with
+//!   a pointer to the current one (a launcher or a link the installer, the
+//!   Start menu and the portable zip would all have to follow).
+//! - Choice: every file of the set is downloaded and verified first
+//!   ([`crate::stage`]); then each is put in place in turn, the companions
+//!   first and the app last, keeping what it replaced aside: on Unix a
+//!   hard link to the old file before the staged one is renamed over it
+//!   (the path is never missing), on Windows the rename aside the app
+//!   already used. When any file fails, every file already placed is put
+//!   back (the aside renamed over the new one, or a file the set added
+//!   removed), in reverse order. When all are placed, Unix removes the
+//!   asides; Windows leaves them for the next start's clean-up, as before.
+//! - Why: one code path for the app alone and for the set; nothing to
+//!   launch; the folder holds either the old set or the new one after any
+//!   single failure.
+//! - Cost: a crash of the app between two renames of the set leaves a
+//!   mix until the next check (which repairs the companions of the running
+//!   label); on Unix an aside link needs a file system with hard links
+//!   (every one a home directory sits on), and without them the update
+//!   fails before changing anything.
 
 use std::{
     ffi::OsString,
     path::{Path, PathBuf},
 };
 
-use crate::{label::Label, platform::Packaging, stage::STAGING_PREFIX, stage::Staged};
+use crate::{
+    label::Label,
+    manifest::Role,
+    platform::{Packaging, Target},
+    stage::STAGING_PREFIX,
+    stage::Staged,
+};
 
 /// The most directory entries looked at when cleaning up, so an app kept
 /// in a crowded folder (Downloads) does not make every start slow.
@@ -70,10 +105,30 @@ pub enum DetectError {
     NoDirectory,
 }
 
+/// A companion downloaded for the set, with the file name it takes beside
+/// the app ([`Role::file_name`]).
+#[derive(Debug)]
+pub(crate) struct StagedCompanion {
+    /// The file it becomes, in the app's directory.
+    pub(crate) file_name: &'static str,
+    /// The verified download.
+    pub(crate) staged: Staged,
+}
+
+/// One file of a set put in place, and where the file it replaced is
+/// kept until the whole set is in.
+#[derive(Debug)]
+struct Placed {
+    dest: PathBuf,
+    /// `None`: the set added this file (there was none before).
+    aside: Option<PathBuf>,
+}
+
 /// Why replacing the app failed. The app is left as it was.
 #[derive(Debug, thiserror::Error)]
 pub enum InstallError {
-    /// The running executable could not be renamed aside (Windows).
+    /// The file being replaced could not be moved aside (renamed on
+    /// Windows, linked on Unix).
     #[error("the running app could not be moved aside")]
     MoveAside(#[source] std::io::Error),
     /// The staged build could not be made executable (Unix).
@@ -168,12 +223,10 @@ impl Installation {
         self.path.parent().unwrap_or(&self.path)
     }
 
-    /// The name the replaced file is moved aside to on Windows.
-    #[cfg(windows)]
-    fn aside(&self, running: &Label) -> PathBuf {
-        let mut name = self.file_name();
-        name.push(format!(".old-{running}"));
-        self.path.with_file_name(name)
+    /// Where a companion of `file_name` sits: beside the app.
+    #[must_use]
+    pub fn companion_path(&self, file_name: &str) -> PathBuf {
+        self.staging_dir().join(file_name)
     }
 
     fn file_name(&self) -> OsString {
@@ -191,62 +244,92 @@ impl Installation {
     /// # Errors
     /// [`InstallError`]; the copy on disk is then the one that was there.
     pub fn replace_with(&self, staged: &Staged, running: &Label) -> Result<(), InstallError> {
+        self.replace_set(Some(staged), &[], running)
+    }
+
+    /// Put a set in place (ADR 0094): `companions` beside the app, then
+    /// `app` in the app's place; `app` is `None` when only companions are
+    /// missing beside the running build. All or nothing: when one file
+    /// fails, every file already placed is put back.
+    ///
+    /// Blocking file I/O: call it from a blocking thread.
+    ///
+    /// # Errors
+    /// [`InstallError`]; the files on disk are then the ones that were
+    /// there (unless putting one back failed too, which is logged and
+    /// leaves the old file beside it under its aside name).
+    pub(crate) fn replace_set(
+        &self,
+        app: Option<&Staged>,
+        companions: &[StagedCompanion],
+        running: &Label,
+    ) -> Result<(), InstallError> {
         match self.packaging {
-            Packaging::Executable | Packaging::AppImage => {
-                self.replace_file(staged.path(), running)?;
-                #[cfg(windows)]
-                record_version(&self.path, staged.label());
-                Ok(())
+            Packaging::Executable => {}
+            // An AppImage carries everything inside its one file: there is
+            // nothing beside it to keep in step.
+            Packaging::AppImage if companions.is_empty() => {}
+            packaging @ (Packaging::AppImage | Packaging::AppBundle) => {
+                return Err(InstallError::Unsupported(packaging));
             }
-            Packaging::AppBundle => Err(InstallError::Unsupported(Packaging::AppBundle)),
         }
-    }
-
-    #[cfg(windows)]
-    fn replace_file(&self, staged: &Path, running: &Label) -> Result<(), InstallError> {
-        let aside = self.aside(running);
-        std::fs::rename(&self.path, &aside).map_err(InstallError::MoveAside)?;
-        tracing::info!(
-            aside = %crate::service::file_name(&aside),
-            "the running executable is renamed aside"
-        );
-        if let Err(error) = std::fs::rename(staged, &self.path) {
-            // Put the running app back where it was; if even that fails,
-            // the old build is still beside it under `aside`, and the
-            // error says the update did not happen.
-            if let Err(back) = std::fs::rename(&aside, &self.path) {
-                tracing::error!(
-                    error = %crate::report::chain(&back),
-                    "the app could not be put back after a failed update"
+        let swaps = companions
+            .iter()
+            .map(|companion| {
+                (
+                    self.companion_path(companion.file_name),
+                    companion.staged.path(),
+                )
+            })
+            .chain(app.map(|staged| (self.path.clone(), staged.path())));
+        let mut placed: Vec<Placed> = Vec::new();
+        for (dest, staged) in swaps {
+            match place(dest, staged, running) {
+                Ok(done) => placed.push(done),
+                Err(error) => {
+                    roll_back(&placed);
+                    return Err(error);
+                }
+            }
+        }
+        // The whole set is in. On Unix the old files are links nothing
+        // needs (a running process keeps its own inode); on Windows they
+        // may still run, so the next start removes them.
+        #[cfg(unix)]
+        for done in &placed {
+            if let Some(aside) = &done.aside
+                && let Err(error) = std::fs::remove_file(aside)
+            {
+                tracing::warn!(
+                    aside = %crate::service::file_name(aside),
+                    error = %crate::report::chain(&error),
+                    "a replaced file stays for the next start's clean-up"
                 );
-            } else {
-                tracing::info!("the running executable is back in its place");
             }
-            return Err(InstallError::Replace(error));
         }
-        tracing::info!(
-            executable = %crate::service::file_name(&self.path),
-            "the new build is in place"
-        );
-        Ok(())
-    }
-
-    #[cfg(unix)]
-    fn replace_file(&self, staged: &Path, _running: &Label) -> Result<(), InstallError> {
-        use std::os::unix::fs::PermissionsExt as _;
-        std::fs::set_permissions(staged, std::fs::Permissions::from_mode(0o755))
-            .map_err(InstallError::Permissions)?;
-        std::fs::rename(staged, &self.path).map_err(InstallError::Replace)?;
-        tracing::info!(
-            executable = %crate::service::file_name(&self.path),
-            "the new build is in place"
-        );
+        #[cfg(windows)]
+        if let Some(staged) = app {
+            record_version(&self.path, staged.label());
+        }
+        if app.is_some() {
+            tracing::info!(
+                executable = %crate::service::file_name(&self.path),
+                companions = companions.len(),
+                "the new build is in place"
+            );
+        } else {
+            tracing::info!(
+                companions = companions.len(),
+                "the running build's companions are in place"
+            );
+        }
         Ok(())
     }
 
     /// Remove what earlier updates left beside the app: downloads cut
-    /// short, and on Windows the builds moved aside. A file still in use
-    /// (the build moved aside while it runs) stays until a later start.
+    /// short, and on Windows the builds moved aside (the app's and its
+    /// companions'). A file still in use (a build moved aside while it
+    /// runs) stays until a later start.
     ///
     /// Blocking file I/O: call it from a blocking thread.
     pub fn clean_leftovers(&self) {
@@ -255,11 +338,22 @@ impl Installation {
         };
         let mut aside_prefix = self.file_name();
         aside_prefix.push(".old-");
-        let aside_prefix = aside_prefix.to_string_lossy().into_owned();
+        let mut aside_prefixes = vec![aside_prefix.to_string_lossy().into_owned()];
+        if let Some(target) = Target::current() {
+            aside_prefixes.extend(
+                Role::KNOWN
+                    .iter()
+                    .filter_map(|role| role.file_name(target))
+                    .map(|name| format!("{name}.old-")),
+            );
+        }
         for entry in entries.take(MAX_CLEAN_SCAN).flatten() {
             let name = entry.file_name();
             let name = name.to_string_lossy();
-            let ours = name.starts_with(STAGING_PREFIX) || name.starts_with(&aside_prefix);
+            let ours = name.starts_with(STAGING_PREFIX)
+                || aside_prefixes
+                    .iter()
+                    .any(|prefix| name.starts_with(prefix.as_str()));
             let is_file = entry.file_type().is_ok_and(|kind| kind.is_file());
             if !(ours && is_file) {
                 continue;
@@ -273,6 +367,86 @@ impl Installation {
                 ),
             }
         }
+    }
+}
+
+/// The name a replaced file is kept under until its set is whole:
+/// `<name>.old-<running>`, the name the Windows swap always used.
+fn aside_of(dest: &Path, running: &Label) -> PathBuf {
+    let mut name = dest.file_name().map(OsString::from).unwrap_or_default();
+    name.push(format!(".old-{running}"));
+    dest.with_file_name(name)
+}
+
+/// Put the verified file `staged` at `dest`, keeping what was there aside.
+fn place(dest: PathBuf, staged: &Path, running: &Label) -> Result<Placed, InstallError> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt as _;
+        std::fs::set_permissions(staged, std::fs::Permissions::from_mode(0o755))
+            .map_err(InstallError::Permissions)?;
+    }
+    let aside = if std::fs::symlink_metadata(&dest).is_ok() {
+        let aside = aside_of(&dest, running);
+        // A leftover under the same name from an earlier attempt; if it
+        // cannot go (a Windows build still running), keeping it aside
+        // below fails and the update stops before changing anything.
+        let _gone = std::fs::remove_file(&aside).is_ok();
+        // Unix: a second name for the old file, so `dest` is never missing
+        // and the old file can be renamed back over the new one. Windows:
+        // the running executable may only be renamed.
+        #[cfg(unix)]
+        std::fs::hard_link(&dest, &aside).map_err(InstallError::MoveAside)?;
+        #[cfg(windows)]
+        std::fs::rename(&dest, &aside).map_err(InstallError::MoveAside)?;
+        Some(aside)
+    } else {
+        None
+    };
+    if let Err(error) = std::fs::rename(staged, &dest) {
+        // Nothing replaced `dest`. Unix: it is still the old file, so only
+        // the second name goes (renaming a link over its own file would do
+        // nothing and leave it). Windows: the old file comes back from
+        // aside.
+        #[cfg(unix)]
+        if let Some(aside) = &aside {
+            let _gone = std::fs::remove_file(aside).is_ok();
+        }
+        #[cfg(windows)]
+        put_back(&Placed { dest, aside });
+        return Err(InstallError::Replace(error));
+    }
+    Ok(Placed { dest, aside })
+}
+
+/// Undo [`place`] for one file: the old file back in its place, or the
+/// added file removed.
+fn put_back(placed: &Placed) {
+    let result = match &placed.aside {
+        Some(aside) => std::fs::rename(aside, &placed.dest),
+        None => match std::fs::remove_file(&placed.dest) {
+            // The rename that failed never created it.
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+            other => other,
+        },
+    };
+    match result {
+        Ok(()) => tracing::info!(
+            file = %crate::service::file_name(&placed.dest),
+            "the file is as it was before the update"
+        ),
+        Err(error) => tracing::error!(
+            file = %crate::service::file_name(&placed.dest),
+            error = %crate::report::chain(&error),
+            "a file could not be put back after a failed update"
+        ),
+    }
+}
+
+/// Undo every file of a set placed so far, the last first.
+fn roll_back(placed: &[Placed]) {
+    for done in placed.iter().rev() {
+        put_back(done);
     }
 }
 
@@ -400,6 +574,145 @@ mod tests {
             dir.path().join(".vessel-update-dir").exists(),
             "a directory was removed"
         );
+    }
+
+    #[test]
+    fn a_companions_aside_is_a_leftover_too() {
+        let dir = tempfile::tempdir().unwrap();
+        let node = Role::Node.file_name(Target::current().unwrap()).unwrap();
+        let aside = format!("{node}.old-0.0.0.0.19");
+        for name in ["vessel-app", node, aside.as_str()] {
+            std::fs::write(dir.path().join(name), b"x").unwrap();
+        }
+        let installation =
+            Installation::detect(Packaging::Executable, dir.path().join("vessel-app"), None)
+                .unwrap();
+
+        installation.clean_leftovers();
+
+        assert!(
+            dir.path().join(node).exists(),
+            "the node itself was removed"
+        );
+        assert!(!dir.path().join(&aside).exists(), "{aside} was left");
+    }
+
+    /// A staged companion of `file_name` holding `bytes`.
+    fn staged_companion(dir: &Path, file_name: &'static str, bytes: &[u8]) -> StagedCompanion {
+        let path = dir.join(format!("{STAGING_PREFIX}0.0.0.0.20.1.{file_name}.part"));
+        std::fs::write(&path, bytes).unwrap();
+        StagedCompanion {
+            file_name,
+            staged: Staged::for_test(path, label("0.0.0.0.20")),
+        }
+    }
+
+    #[test]
+    fn a_set_takes_the_place_of_the_old_files_together() {
+        let dir = tempfile::tempdir().unwrap();
+        let app = dir.path().join("vessel-app");
+        std::fs::write(&app, b"old app").unwrap();
+        std::fs::write(dir.path().join("vessel"), b"old cli").unwrap();
+        let installation = Installation::detect(Packaging::Executable, app.clone(), None).unwrap();
+        let app_staged = dir
+            .path()
+            .join(format!("{STAGING_PREFIX}0.0.0.0.20.1.part"));
+        std::fs::write(&app_staged, b"new app").unwrap();
+        let companions = [
+            staged_companion(dir.path(), "vessel", b"new cli"),
+            staged_companion(dir.path(), "vesseld", b"new node"),
+        ];
+
+        installation
+            .replace_set(
+                Some(&Staged::for_test(app_staged, label("0.0.0.0.20"))),
+                &companions,
+                &label("0.0.0.0.19"),
+            )
+            .unwrap();
+
+        assert_eq!(std::fs::read(&app).unwrap(), b"new app");
+        assert_eq!(
+            std::fs::read(dir.path().join("vessel")).unwrap(),
+            b"new cli"
+        );
+        assert_eq!(
+            std::fs::read(dir.path().join("vesseld")).unwrap(),
+            b"new node"
+        );
+        let mut names: Vec<_> = std::fs::read_dir(dir.path())
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+            .collect();
+        names.sort();
+        #[cfg(unix)]
+        assert_eq!(names, ["vessel", "vessel-app", "vesseld"]);
+    }
+
+    #[test]
+    fn a_failure_half_way_puts_every_placed_file_back() {
+        let dir = tempfile::tempdir().unwrap();
+        let app = dir.path().join("vessel-app");
+        std::fs::write(&app, b"old app").unwrap();
+        std::fs::write(dir.path().join("vessel"), b"old cli").unwrap();
+        let installation = Installation::detect(Packaging::Executable, app.clone(), None).unwrap();
+        // Both companions go in; the app's staged file is gone, so the
+        // last rename of the set fails.
+        let companions = [
+            staged_companion(dir.path(), "vessel", b"new cli"),
+            staged_companion(dir.path(), "vesseld", b"new node"),
+        ];
+        let missing = Staged::for_test(dir.path().join("not-there"), label("0.0.0.0.20"));
+
+        let result = installation.replace_set(Some(&missing), &companions, &label("0.0.0.0.19"));
+
+        // Unix stops at making the missing file executable, Windows at
+        // its rename; either way the set fails and is put back.
+        assert!(
+            matches!(
+                result,
+                Err(InstallError::Permissions(_) | InstallError::Replace(_))
+            ),
+            "{result:?}"
+        );
+        assert_eq!(std::fs::read(&app).unwrap(), b"old app");
+        assert_eq!(
+            std::fs::read(dir.path().join("vessel")).unwrap(),
+            b"old cli",
+            "the command line is put back"
+        );
+        assert!(
+            !dir.path().join("vesseld").exists(),
+            "the node the set added is removed"
+        );
+        let mut names: Vec<_> = std::fs::read_dir(dir.path())
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+            .collect();
+        names.sort();
+        assert_eq!(
+            names,
+            ["vessel", "vessel-app"],
+            "an aside or a half set remains"
+        );
+    }
+
+    #[test]
+    fn companions_beside_an_appimage_or_a_bundle_are_refused() {
+        let dir = tempfile::tempdir().unwrap();
+        let image = dir.path().join("Vessel.AppImage");
+        let installation = Installation::detect(
+            Packaging::Executable,
+            dir.path().join("mount/vessel-app"),
+            Some(image),
+        )
+        .unwrap();
+        let companions = [staged_companion(dir.path(), "vesseld", b"node")];
+        assert!(matches!(
+            installation.replace_set(None, &companions, &label("0.0.0.0.19")),
+            Err(InstallError::Unsupported(Packaging::AppImage))
+        ));
+        assert!(!dir.path().join("vesseld").exists());
     }
 
     #[test]

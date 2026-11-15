@@ -18,13 +18,13 @@ use tokio::sync::{mpsc, watch};
 use crate::{
     channel::Channel,
     feed::{FeedClient, FeedUrl, FetchError},
-    install::{InstallError, Installation},
+    install::{InstallError, Installation, StagedCompanion},
     key::PublicKey,
     label::Label,
-    manifest::{ByteCount, Manifest, Notes, OpenError},
+    manifest::{Artifact, ByteCount, Companion, MAX_ARTIFACT_BYTES, Manifest, Notes, OpenError},
     platform::{Packaging, Target},
     restart::{RestartError, relaunch},
-    stage::{self, StageError},
+    stage::{self, StageError, Staged},
 };
 
 /// How often the feed is read: Zed's hour.
@@ -340,7 +340,8 @@ impl Task {
     }
 
     /// One check, and if the feed has a newer build, its download and
-    /// install.
+    /// install; if the feed's build is this one, the companions missing
+    /// beside it (ADR 0094).
     async fn attempt(&self) -> Result<UpdateState, UpdateError> {
         let settings = &self.settings;
         let envelope = self
@@ -353,72 +354,245 @@ impl Task {
             latest = %manifest.label,
             "the manifest verifies"
         );
-        if manifest.label <= settings.running {
+        if manifest.label < settings.running {
             return Ok(UpdateState::UpToDate {
                 latest: manifest.label,
             });
         }
+        let newer = manifest.label > settings.running;
         let packaging = self.installation.packaging();
         let Some(artifact) = manifest.artifact(settings.target, packaging) else {
+            if !newer {
+                return Ok(UpdateState::UpToDate {
+                    latest: manifest.label,
+                });
+            }
             return Err(UpdateError::NoBuild {
                 latest: manifest.label,
                 target: settings.target,
                 packaging,
             });
         };
+        let companions = self.companions(artifact);
+        if !newer {
+            return self.repair(&manifest.label, companions).await;
+        }
         tracing::info!(
             label = %manifest.label,
             artifact = %artifact.path,
             bytes = artifact.size.get(),
+            companions = companions.len(),
             "downloading the update"
         );
-        let label = manifest.label.clone();
-        let total = artifact.size;
+        let (app, staged) = self
+            .download_set(&manifest.label, Some(artifact), &companions)
+            .await?;
+        self.install(app, staged).await?;
+        Ok(UpdateState::Ready {
+            label: manifest.label,
+            notes: manifest.notes,
+        })
+    }
+
+    /// The companions of `artifact` this build installs, with the file
+    /// each becomes. Only a copy that is a plain executable has a folder
+    /// to keep them in; roles a later build added are left out.
+    fn companions<'a>(&self, artifact: &'a Artifact) -> Vec<(&'static str, &'a Companion)> {
+        if self.installation.packaging() != Packaging::Executable {
+            return Vec::new();
+        }
+        artifact
+            .companions
+            .iter()
+            .filter_map(|companion| {
+                let name = companion.role.file_name(self.settings.target)?;
+                Some((name, companion))
+            })
+            .collect()
+    }
+
+    /// The bridge of ADR 0094: the feed's build is the one running, and
+    /// some of its companions are not beside it (the build was installed
+    /// by an app from before the set, which replaces its executable only,
+    /// or a companion was removed). Those are downloaded and put in place;
+    /// the app itself is not touched, so nothing waits for a restart.
+    ///
+    /// A companion is taken as present when a file of its name and size is
+    /// there: the check runs every hour and hashing tens of MiB each time
+    /// to find a hand-replaced file of the same size is not worth it.
+    async fn repair(
+        &self,
+        label: &Label,
+        companions: Vec<(&'static str, &Companion)>,
+    ) -> Result<UpdateState, UpdateError> {
+        let mut missing = Vec::new();
+        for (name, companion) in companions {
+            let present = tokio::fs::metadata(self.installation.companion_path(name))
+                .await
+                .is_ok_and(|meta| meta.is_file() && meta.len() == companion.size.get());
+            if !present {
+                missing.push((name, companion));
+            }
+        }
+        if missing.is_empty() {
+            return Ok(UpdateState::UpToDate {
+                latest: label.clone(),
+            });
+        }
+        tracing::info!(
+            missing = missing.len(),
+            "companions of the running build are not beside it: downloading them"
+        );
+        let (_app, staged) = self.download_set(label, None, &missing).await?;
+        self.install(None, staged).await?;
+        Ok(UpdateState::UpToDate {
+            latest: label.clone(),
+        })
+    }
+
+    /// Download and verify every file of a set beside the app, publishing
+    /// the progress over all of them. Nothing is put in place here; when
+    /// one file fails, the files already staged are removed.
+    async fn download_set(
+        &self,
+        label: &Label,
+        app: Option<&Artifact>,
+        companions: &[(&'static str, &Companion)],
+    ) -> Result<(Option<Staged>, Vec<StagedCompanion>), UpdateError> {
+        let sum = companions
+            .iter()
+            .map(|(_name, companion)| companion.size.get())
+            .chain(app.map(|artifact| artifact.size.get()))
+            .fold(0_u64, u64::saturating_add);
+        let total = ByteCount::try_from(sum.min(MAX_ARTIFACT_BYTES)).unwrap_or_default();
         let _previous = self.state.send_replace(UpdateState::Downloading {
             label: label.clone(),
             received: ByteCount::default(),
             total,
         });
-        let staged = stage::download(
-            &self.client,
-            &settings.feed,
-            artifact,
-            &label,
-            self.installation.staging_dir(),
-            |received| {
-                let _previous = self.state.send_replace(UpdateState::Downloading {
-                    label: label.clone(),
-                    received,
-                    total,
-                });
-            },
-        )
-        .await?;
+        let mut done: u64 = 0;
+        let mut staged = Vec::new();
+        let mut app_staged = None;
+        let files = companions
+            .iter()
+            .map(|(name, companion)| {
+                (
+                    Some(*name),
+                    stage::Wanted {
+                        path: &companion.path,
+                        size: companion.size,
+                        sha256: companion.sha256,
+                        tag: Some(companion.role.to_string()),
+                    },
+                )
+            })
+            .chain(app.map(|artifact| {
+                (
+                    None,
+                    stage::Wanted {
+                        path: &artifact.path,
+                        size: artifact.size,
+                        sha256: artifact.sha256,
+                        tag: None,
+                    },
+                )
+            }));
+        for (companion, wanted) in files {
+            let size = wanted.size.get();
+            let result = stage::download_file(
+                &self.client,
+                &self.settings.feed,
+                &wanted,
+                label,
+                self.installation.staging_dir(),
+                |received| {
+                    let so_far = done.saturating_add(received.get()).min(MAX_ARTIFACT_BYTES);
+                    let _previous = self.state.send_replace(UpdateState::Downloading {
+                        label: label.clone(),
+                        received: ByteCount::try_from(so_far).unwrap_or_default(),
+                        total,
+                    });
+                },
+            )
+            .await;
+            let file = match result {
+                Ok(file) => file,
+                Err(error) => {
+                    remove_staged(
+                        app_staged.iter().chain(
+                            staged
+                                .iter()
+                                .map(|companion: &StagedCompanion| &companion.staged),
+                        ),
+                    )
+                    .await;
+                    return Err(error.into());
+                }
+            };
+            done = done.saturating_add(size);
+            match companion {
+                Some(file_name) => staged.push(StagedCompanion {
+                    file_name,
+                    staged: file,
+                }),
+                None => app_staged = Some(file),
+            }
+        }
         tracing::info!(
-            staged = %file_name(staged.path()),
+            files = staged
+                .len()
+                .saturating_add(usize::from(app_staged.is_some())),
             "the download is complete, verified and on disk"
         );
+        Ok((app_staged, staged))
+    }
+
+    /// Put a staged set in place on a blocking thread; on failure, remove
+    /// whatever of it is still staged.
+    async fn install(
+        &self,
+        app: Option<Staged>,
+        companions: Vec<StagedCompanion>,
+    ) -> Result<(), UpdateError> {
         let installation = self.installation.clone();
-        let running = settings.running.clone();
+        let running = self.settings.running.clone();
         tokio::task::spawn_blocking(move || {
-            let installed = installation.replace_with(&staged, &running);
-            if installed.is_err()
-                && let Err(error) = std::fs::remove_file(staged.path())
-            {
-                tracing::warn!(
-                    error = %crate::report::chain(&error),
-                    staged = %file_name(staged.path()),
-                    "a staged update was left for the next start"
-                );
+            let installed = installation.replace_set(app.as_ref(), &companions, &running);
+            if installed.is_err() {
+                let left = app
+                    .iter()
+                    .chain(companions.iter().map(|companion| &companion.staged));
+                for staged in left {
+                    match std::fs::remove_file(staged.path()) {
+                        Ok(()) => {}
+                        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                        Err(error) => tracing::warn!(
+                            error = %crate::report::chain(&error),
+                            staged = %file_name(staged.path()),
+                            "a staged update was left for the next start"
+                        ),
+                    }
+                }
             }
             installed
         })
         .await
         .map_err(|_cancelled| UpdateError::Interrupted)??;
-        Ok(UpdateState::Ready {
-            label: manifest.label,
-            notes: manifest.notes,
-        })
+        Ok(())
+    }
+}
+
+/// Remove staged files of a set that will not be installed; a failure
+/// leaves them for the next start's clean-up.
+async fn remove_staged(staged: impl Iterator<Item = &Staged>) {
+    for file in staged {
+        if let Err(error) = tokio::fs::remove_file(file.path()).await {
+            tracing::warn!(
+                error = %crate::report::chain(&error),
+                staged = %file_name(file.path()),
+                "a staged update was left for the next start"
+            );
+        }
     }
 }
 

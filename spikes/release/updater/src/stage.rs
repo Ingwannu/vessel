@@ -19,8 +19,24 @@ use tokio::io::AsyncWriteExt as _;
 use crate::{
     feed::{FeedClient, FeedUrl, FetchError, READ_STALL},
     label::Label,
-    manifest::{Artifact, ByteCount, Sha256},
+    manifest::{Artifact, ArtifactPath, ByteCount, Sha256},
 };
+
+/// One file the signed manifest names: the app's executable or one of
+/// its companions (ADR 0094).
+#[derive(Debug)]
+pub(crate) struct Wanted<'a> {
+    /// Where it is under the feed.
+    pub(crate) path: &'a ArtifactPath,
+    /// Its exact size.
+    pub(crate) size: ByteCount,
+    /// Its SHA-256.
+    pub(crate) sha256: Sha256,
+    /// A companion's role, in its staging file's name so the files of one
+    /// set do not collide; `None` for the app, whose staging name stays
+    /// what it was before the set.
+    pub(crate) tag: Option<String>,
+}
 
 /// What every staging file's name starts with.
 pub(crate) const STAGING_PREFIX: &str = ".vessel-update-";
@@ -92,11 +108,34 @@ pub async fn download(
     dir: &Path,
     progress: impl FnMut(ByteCount),
 ) -> Result<Staged, StageError> {
-    let path = dir.join(format!(
-        "{STAGING_PREFIX}{label}.{}.part",
-        std::process::id()
-    ));
-    let written = write(client, feed, artifact, &path, progress).await;
+    let wanted = Wanted {
+        path: &artifact.path,
+        size: artifact.size,
+        sha256: artifact.sha256,
+        tag: None,
+    };
+    download_file(client, feed, &wanted, label, dir, progress).await
+}
+
+/// [`download`] for any file of a set.
+///
+/// # Errors
+/// As [`download`].
+pub(crate) async fn download_file(
+    client: &FeedClient,
+    feed: &FeedUrl,
+    wanted: &Wanted<'_>,
+    label: &Label,
+    dir: &Path,
+    progress: impl FnMut(ByteCount),
+) -> Result<Staged, StageError> {
+    let pid = std::process::id();
+    let name = match &wanted.tag {
+        None => format!("{STAGING_PREFIX}{label}.{pid}.part"),
+        Some(tag) => format!("{STAGING_PREFIX}{label}.{pid}.{tag}.part"),
+    };
+    let path = dir.join(name);
+    let written = write(client, feed, wanted, &path, progress).await;
     match written {
         Ok(()) => Ok(Staged {
             path,
@@ -120,7 +159,7 @@ pub async fn download(
 async fn write(
     client: &FeedClient,
     feed: &FeedUrl,
-    artifact: &Artifact,
+    artifact: &Wanted<'_>,
     path: &Path,
     mut progress: impl FnMut(ByteCount),
 ) -> Result<(), StageError> {
@@ -136,7 +175,7 @@ async fn write(
         "the staging file is created beside the app"
     );
     let mut response = client
-        .artifact(feed, &artifact.path)
+        .artifact(feed, artifact.path)
         .await
         .map_err(StageError::Fetch)?;
     tracing::info!(

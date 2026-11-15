@@ -23,6 +23,12 @@
 #                                       licenses/
 #   vessel-LABEL-linux-x64              the executable alone: the update
 #   SHA256SUMS (and SHA256SUMS.minisig when a signing key is given)
+# With VESSEL_PACKAGE_NODE=1 (ADR 0094), the command line and the node go
+# beside the app in the zip, the installer and the tarball (vessel-cli.exe
+# and vesseld.exe on Windows, vessel and vesseld on Linux), and each also
+# alone, as the update's companions:
+#   vessel-LABEL-windows-x64-vessel-cli.exe, vessel-LABEL-windows-x64-vesseld.exe
+#   vessel-LABEL-linux-x64-vessel, vessel-LABEL-linux-x64-vesseld
 #
 # Environment (no host names or paths live in this file):
 #   VESSEL_DIST_DIR        required: the dist root (the feed's base)
@@ -47,6 +53,10 @@
 #                          .debug are kept (vessel-app-symbols beside the
 #                          dist root)
 #   JOBS                   cargo's -j (6: /data is one spinning disk)
+#   VESSEL_PACKAGE_NODE    1: ship the command line and the node with the
+#                          app (ADR 0094); off until the app's local-node
+#                          controller is in a build (the coordinator's
+#                          word, 2026-11-15)
 #
 # Why one script for every target: the owner gets a new build after every
 # round of feedback, and each must carry the same label, the same update
@@ -82,6 +92,8 @@ app_pkg="${VESSEL_APP_PACKAGE:-vessel-app}"
 app_bin="${VESSEL_APP_BIN:-vessel-app}"
 channel="${VESSEL_UPDATE_CHANNEL:-preview}"
 jobs="${JOBS:-6}"
+package_node="${VESSEL_PACKAGE_NODE:-0}"
+[[ "$package_node" =~ ^[01]$ ]] || { echo "VESSEL_PACKAGE_NODE is 0 or 1" >&2; exit 2; }
 final="$VESSEL_DIST_DIR/$label"
 partial="$VESSEL_DIST_DIR/.$label.partial.$$"
 out="$partial"
@@ -137,6 +149,10 @@ else
     updates_ko="이 빌드는 스스로 업데이트하지 않습니다. 새 빌드는 새로 받아 같은 방법으로 설치하면 덮어씁니다."
     updates_en="This build does not update itself. Install a new build the same way; it replaces this one."
 fi
+if [ "$package_node" = 1 ]; then
+    updates_ko="$updates_ko 명령줄(vessel, Windows에서는 vessel-cli.exe)과 노드(vesseld)가 앱과 같은 폴더에 들어 있고, 앱과 함께 바뀝니다."
+    updates_en="$updates_en The command line (vessel; vessel-cli.exe on Windows) and the node (vesseld) are in the app's folder and change with it."
+fi
 
 # The licences of what the app embeds that is not Vessel's, one text per
 # file in licenses/:
@@ -184,18 +200,25 @@ dwmapi.dll dwrite.dll dxgi.dll gdi32.dll gdiplus.dll icuuc.dll imm32.dll kernel3
 oleaut32.dll secur32.dll shell32.dll shlwapi.dll uiautomationcore.dll user32.dll userenv.dll uxtheme.dll
 version.dll winmm.dll ws2_32.dll'
 
-check_imports() {
+# Every DLL `exe` imports must be one Windows ships (the list above).
+check_dlls() {
     local exe="$1" dll unknown=0 headers
     # Read once into a variable: `grep -q` on a pipe would close it early
     # and, under pipefail, fail the check of a good executable.
     headers="$(x86_64-w64-mingw32-objdump -p "$exe")"
     for dll in $(sed -n 's/^\s*DLL Name: //p' <<<"$headers" | tr 'A-Z' 'a-z' | sort -u); do
         if ! grep -qw -- "$dll" <<<"$windows_dlls"; then
-            echo "imports $dll, which is not on the list of DLLs Windows ships" >&2
+            echo "${exe##*/} imports $dll, which is not on the list of DLLs Windows ships" >&2
             unknown=1
         fi
     done
     [ "$unknown" = 0 ] || exit 1
+}
+
+check_imports() {
+    local exe="$1" headers
+    check_dlls "$exe"
+    headers="$(x86_64-w64-mingw32-objdump -p "$exe")"
     # The icon and the version block (build_windows links them) beside
     # GPUI's manifest: an exe without them shows a blank icon and its
     # binary's name in Task Manager.
@@ -206,6 +229,50 @@ check_imports() {
     done
     grep -q 'Subsystem.*(Windows GUI)' <<<"$headers" ||
         { echo "$exe is not a Windows GUI executable (a console would open behind it)" >&2; exit 1; }
+}
+
+# The command line and the node (ADR 0094), from the repository's own
+# workspace, with the page the node serves built into it as the preview
+# node is built (VESSEL_WEB_REQUIRE_BUNDLE: a node without the page fails
+# the build instead of serving nothing). The release profile is that
+# workspace's (fat LTO, symbols kept so a node's panic names its frames).
+web_built=0
+web_bundle() {
+    [ "$web_built" = 1 ] && return
+    (cd "$repo/web" && npm ci --silent && npm run build --silent)
+    web_built=1
+}
+
+root_target=""
+if [ "$package_node" = 1 ]; then
+    root_target="$(cd "$repo" && cargo metadata --format-version 1 --no-deps |
+        python3 -I -c 'import json, sys; print(json.load(sys.stdin)["target_directory"])')"
+fi
+
+# Linux: prints nothing; leaves vessel and vesseld in the root target.
+companions_linux() {
+    web_bundle
+    (cd "$repo" && VESSEL_WEB_REQUIRE_BUNDLE=1 cargo build --release --locked -p vessel-cli -p vessel-node --bins -j "$jobs")
+}
+
+# Windows: console programs, so neither the app's GUI subsystem nor its
+# resources (the flags are the app's alone; here only the static CRT).
+# The command line becomes vessel-cli.exe beside the app: Windows' file
+# names ignore case, and vessel.exe would be the app's Vessel.exe.
+companions_windows() {
+    local tools="$VESSEL_TOOLS_DIR" triple=x86_64-pc-windows-msvc
+    web_bundle
+    (
+        cd "$repo"
+        export XWIN_CACHE_DIR="$tools/xwin-cache"
+        export CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS="-C target-feature=+crt-static -C link-arg=/IGNORE:4099"
+        VESSEL_WEB_REQUIRE_BUNDLE=1 "$tools/bin/cargo-xwin" xwin build --release --locked --target "$triple" \
+            -p vessel-cli -p vessel-node --bins -j "$jobs"
+    )
+    local exe
+    for exe in vessel vesseld; do
+        check_dlls "$root_target/$triple/release/$exe.exe"
+    done
 }
 
 build_windows() {
@@ -233,17 +300,29 @@ build_windows() {
     (cd "$app_ws" && "$tools/bin/cargo-xwin" xwin build --release --locked --target "$triple" -p "$app_pkg" -j "$jobs")
     local exe="$target_dir/$triple/release/$app_bin.exe"
     check_imports "$exe"
+    local companions=()
+    if [ "$package_node" = 1 ]; then
+        companions_windows
+        companions=(-DCOMPANIONS=1)
+    fi
 
     rm -f "$out"/vessel-"$label"-windows-x64*
     local dir="$stage/windows/Vessel"
     mkdir -p "$dir"
     cp "$exe" "$dir/Vessel.exe"
+    if [ "$package_node" = 1 ]; then
+        local built="$root_target/$triple/release"
+        cp "$built/vessel.exe" "$dir/vessel-cli.exe"
+        cp "$built/vesseld.exe" "$dir/vesseld.exe"
+        cp "$built/vessel.exe" "$out/vessel-$label-windows-x64-vessel-cli.exe"
+        cp "$built/vesseld.exe" "$out/vessel-$label-windows-x64-vesseld.exe"
+    fi
     cp "$repo/LICENSE.md" "$dir/LICENSE.md"
     licenses "$dir"
     readme "$here/windows/README.txt" | sed 's/$/\r/' >"$dir/README.txt"
     (cd "$stage/windows" && TZ=UTC zip -q -X -r "$out/vessel-$label-windows-x64.zip" Vessel)
     cp "$exe" "$out/vessel-$label-windows-x64.exe"
-    makensis -V2 -DLABEL="$label" -DSTAGE="$dir" -DICONS="$icons" \
+    makensis -V2 -DLABEL="$label" -DSTAGE="$dir" -DICONS="$icons" "${companions[@]}" \
         -DOUTFILE="$out/vessel-$label-windows-x64-setup.exe" "$here/windows/installer.nsi"
     echo "windows-x64: $(du -h "$exe" | cut -f1) executable"
     keep_symbols "$exe"
@@ -288,14 +367,22 @@ split_debug() {
 
 build_linux() {
     (cd "$app_ws" && cargo build --release --locked -p "$app_pkg" -j "$jobs")
+    [ "$package_node" = 1 ] && companions_linux
     local name="vessel-$label-linux-x64"
-    rm -f "$out/$name" "$out/$name.tar.gz"
+    rm -f "$out/$name" "$out/$name.tar.gz" "$out/$name-vessel" "$out/$name-vesseld"
     local dir="$stage/linux/$name"
     mkdir -p "$dir"
     local bin="$stage/linux/$app_bin"
     split_debug "$target_dir/release/$app_bin" "$bin"
     # Not `vessel`: that is the command line's name.
     cp "$bin" "$dir/vessel-app"
+    if [ "$package_node" = 1 ]; then
+        local program
+        for program in vessel vesseld; do
+            install -m 0755 "$root_target/release/$program" "$dir/$program"
+            install -m 0755 "$root_target/release/$program" "$out/$name-$program"
+        done
+    fi
     cp "$repo/LICENSE.md" "$dir/LICENSE.md"
     licenses "$dir"
     readme "$here/linux/README.txt" >"$dir/README.txt"
@@ -355,6 +442,13 @@ if [ "$publish" = 1 ]; then
         artifacts+=(--artifact "windows-x86_64:executable:$label/vessel-$label-windows-x64.exe")
     [ -f "$out/vessel-$label-linux-x64" ] &&
         artifacts+=(--artifact "linux-x86_64:executable:$label/vessel-$label-linux-x64")
+    # ADR 0094: the companions present in the set travel with their app.
+    for companion in windows-x64-vessel-cli.exe:windows-x86_64:cli windows-x64-vesseld.exe:windows-x86_64:node \
+        linux-x64-vessel:linux-x86_64:cli linux-x64-vesseld:linux-x86_64:node; do
+        IFS=: read -r file target role <<<"$companion"
+        [ -f "$out/vessel-$label-$file" ] &&
+            artifacts+=(--companion "$target:executable:$role:$label/vessel-$label-$file")
+    done
     notes=()
     [ -f "$out/NOTES.txt" ] && notes=(--notes "$out/NOTES.txt")
     feed_tool publish --key "$VESSEL_UPDATE_SECRET" --feed "$VESSEL_DIST_DIR" --channel "$channel" \

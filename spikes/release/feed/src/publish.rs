@@ -16,8 +16,8 @@ use std::{
 
 use sha2::Digest as _;
 use vessel_app_updater::{
-    Artifact, ArtifactPath, ByteCount, Channel, Envelope, Manifest, Notes, PublicKey, Published,
-    SCHEMA, Sha256,
+    Artifact, ArtifactPath, ByteCount, Channel, Companion, Envelope, Manifest, Notes, PublicKey,
+    Published, SCHEMA, Sha256,
 };
 
 use crate::{FeedError, args::Publish, io, read_secret};
@@ -44,12 +44,26 @@ pub(crate) fn publish(publish: &Publish) -> Result<String, FeedError> {
         .iter()
         .map(|artifact| {
             let (size, sha256) = measure(&publish.feed, &artifact.path)?;
+            let companions = artifact
+                .companions
+                .iter()
+                .map(|companion| {
+                    let (size, sha256) = measure(&publish.feed, &companion.path)?;
+                    Ok(Companion {
+                        role: companion.role.clone(),
+                        path: companion.path.clone(),
+                        size,
+                        sha256,
+                    })
+                })
+                .collect::<Result<Vec<_>, FeedError>>()?;
             Ok(Artifact {
                 target: artifact.target,
                 packaging: artifact.packaging,
                 path: artifact.path.clone(),
                 size,
                 sha256,
+                companions,
             })
         })
         .collect::<Result<Vec<_>, FeedError>>()?;
@@ -138,6 +152,21 @@ pub(crate) fn check(feed: &Path, public: &str, channel: &Channel) -> Result<Stri
             artifact.path,
             size.get()
         ));
+        for companion in &artifact.companions {
+            let (size, sha256) = measure(feed, &companion.path)?;
+            if size != companion.size || sha256 != companion.sha256 {
+                return Err(FeedError::Check(format!(
+                    "{} is not the file the manifest names",
+                    companion.path
+                )));
+            }
+            lines.push(format!(
+                "    with {}: {} ({} bytes) ok",
+                companion.role,
+                companion.path,
+                size.get()
+            ));
+        }
     }
     Ok(lines.join("\n"))
 }
@@ -283,6 +312,7 @@ mod tests {
                 target: Target::WindowsX86_64,
                 packaging: Packaging::Executable,
                 path: "0.0.0.0.2/vessel.exe".parse().unwrap(),
+                companions: Vec::new(),
             }],
         };
 
@@ -294,6 +324,64 @@ mod tests {
         assert!(check(feed.path(), &public, &"stable".parse().unwrap()).is_err());
 
         std::fs::write(feed.path().join("0.0.0.0.2/vessel.exe"), b"other").unwrap();
+        assert!(matches!(
+            check(feed.path(), &public, &Channel::preview()),
+            Err(FeedError::Check(_))
+        ));
+    }
+
+    #[test]
+    fn companions_are_measured_signed_and_checked_with_their_artifact() {
+        let keys = tempfile::tempdir().unwrap();
+        crate::keygen(&keys.path().join("k")).unwrap();
+        let secret = keys.path().join("k").join(crate::SECRET_FILE);
+        let feed = tempfile::tempdir().unwrap();
+        std::fs::create_dir(feed.path().join("0.0.0.0.20")).unwrap();
+        for (name, bytes) in [
+            ("app", &b"app"[..]),
+            ("vessel", b"cli"),
+            ("vesseld", b"node"),
+        ] {
+            std::fs::write(feed.path().join("0.0.0.0.20").join(name), bytes).unwrap();
+        }
+        let request = Publish {
+            key: secret.clone(),
+            feed: feed.path().to_path_buf(),
+            channel: Channel::preview(),
+            label: "0.0.0.0.20".parse().unwrap(),
+            notes: None,
+            published: Some("2026-11-15T00:00:00Z".to_owned()),
+            artifacts: vec![ArtifactArg {
+                target: Target::LinuxX86_64,
+                packaging: Packaging::Executable,
+                path: "0.0.0.0.20/app".parse().unwrap(),
+                companions: vec![
+                    crate::args::CompanionArg {
+                        role: vessel_app_updater::Role::Cli,
+                        path: "0.0.0.0.20/vessel".parse().unwrap(),
+                    },
+                    crate::args::CompanionArg {
+                        role: vessel_app_updater::Role::Node,
+                        path: "0.0.0.0.20/vesseld".parse().unwrap(),
+                    },
+                ],
+            }],
+        };
+
+        let _line = publish(&request).unwrap();
+
+        let public = read_secret(&secret).unwrap().pk.to_base64();
+        let checked = check(feed.path(), &public, &Channel::preview()).unwrap();
+        assert!(
+            checked.contains("with cli: 0.0.0.0.20/vessel (3 bytes) ok"),
+            "{checked}"
+        );
+        assert!(
+            checked.contains("with node: 0.0.0.0.20/vesseld (4 bytes) ok"),
+            "{checked}"
+        );
+
+        std::fs::write(feed.path().join("0.0.0.0.20/vesseld"), b"NODE").unwrap();
         assert!(matches!(
             check(feed.path(), &public, &Channel::preview()),
             Err(FeedError::Check(_))
