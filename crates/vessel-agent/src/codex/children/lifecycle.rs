@@ -21,9 +21,11 @@ impl Children {
             Some(id)
         };
         match envelope.item {
-            wire::ChildItem::CollabAgentToolCall(call) => self.collab(root, parent, call, out),
+            wire::ChildItem::CollabAgentToolCall(call) => {
+                self.collab(root, parent.as_ref(), &call, out)
+            }
             wire::ChildItem::SubAgentActivity(activity) => {
-                self.activity(root, parent, activity, out)
+                self.activity(root, parent, &activity, out);
             }
             wire::ChildItem::Other => {}
         }
@@ -31,14 +33,14 @@ impl Children {
     fn collab(
         &mut self,
         root: &str,
-        parent: Option<ProviderChildId>,
-        call: wire::Collab,
+        parent: Option<&ProviderChildId>,
+        call: &wire::Collab,
         out: &mut Vec<AgentEvent>,
     ) {
         if call
             .sender_thread_id
             .as_deref()
-            .is_some_and(|sender| sender != parent.as_ref().map_or(root, ProviderChildId::as_str))
+            .is_some_and(|sender| sender != parent.map_or(root, ProviderChildId::as_str))
         {
             return;
         }
@@ -59,10 +61,10 @@ impl Children {
                 continue;
             }
             let mut descriptor = self.entries.get(&id).map_or_else(
-                || identity(id.clone(), parent.clone()),
+                || identity(id.clone(), parent.cloned()),
                 |row| row.descriptor.clone(),
             );
-            if descriptor.parent != parent && call.tool == wire::Tool::SpawnAgent {
+            if descriptor.parent.as_ref() != parent && call.tool == wire::Tool::SpawnAgent {
                 out.extend(self.gap(ChildGap::Nesting));
                 continue;
             }
@@ -99,7 +101,7 @@ impl Children {
         &mut self,
         root: &str,
         parent: Option<ProviderChildId>,
-        activity: wire::Activity,
+        activity: &wire::Activity,
         out: &mut Vec<AgentEvent>,
     ) {
         let Ok(id) = activity.agent_thread_id.parse::<ProviderChildId>() else {
