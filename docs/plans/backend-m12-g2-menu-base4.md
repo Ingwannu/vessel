@@ -60,3 +60,11 @@ Kit Clippy (fonts0/cargo101): the named placement value needed Copy, and the
 new regression's KeepOpen doc needed code formatting. No tests ran. Deriving
 Copy for its borrowed-state/Copy-anchor fields changes no behavior; the result
 is retained and a corrected-head narrow remains owed.
+
+A new opening after legacy state-only close starts a fresh shared ReturnFocus
+cycle. Without that reset, the helper correctly captured once but could retain
+the previous opener across a closed→new-open boundary and return to an older
+caller. A real-window regression keeps both callers alive and requires the new
+one after close. Reopening while already open still keeps its original cycle.
+No generic weak-focus policy is reimplemented; only control lifecycle owns the
+reset at its known closed boundary. Combobox follows the same integration.

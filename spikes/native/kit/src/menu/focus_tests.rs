@@ -150,3 +150,20 @@ fn closing_cannot_steal_new_focus_or_retain_a_removed_return_handle(cx: &mut Tes
         });
     });
 }
+
+#[gpui::test]
+fn state_only_close_then_new_open_captures_the_current_caller(cx: &mut TestAppContext) {
+    let (view, cx) = cx.add_window_view(|window, cx| Probe::new(Dismissal::Close, window, cx));
+    cx.run_until_parked();
+    cx.update(|window, cx| {
+        view.update(cx, |this, cx| {
+            this.menu.open(point(px(10.0), px(20.0)), window, cx);
+            this.menu.close();
+            let current = cx.focus_handle();
+            current.focus(window, cx);
+            this.menu.open(point(px(30.0), px(40.0)), window, cx);
+            this.menu.close_and_restore(window, cx);
+            assert!(current.is_focused(window));
+        });
+    });
+}
