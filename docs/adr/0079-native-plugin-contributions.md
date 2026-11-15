@@ -243,6 +243,13 @@ shared required_protocol accessor follow A6. No invented request is sent.
 Older peers get typed Unsupported; both client and server refuse unassigned
 calls. New reply/event fields are gated on every nested/forwarded path.
 
+Quality B subsequently landed at the reviewed node head 29eebb8b. Its
+`Method::since()`/`Call::since()` return Option and method shape comes from
+the single table. Pending registrations use `[Scope, (pending PLUGINS), unary]`;
+this supersedes the earlier accessor spelling without adding another mechanism.
+W11's V3-reviewed identity-only e45a5d89 supplies WorkspaceId for header/pill
+targets; its broader registry/store work remains a separate dependency.
+
 ## Differences and consequences
 
 | Difference from Paseo | Reason and effect |
@@ -257,6 +264,8 @@ calls. New reply/event fields are gated on every nested/forwarded path.
 | Bounded declarations, frames, schemas and queues | New format needs resource and cancellation guarantees |
 | Validated bounded theme/contribution identifiers and control-free names | Native retained identities must be safe keys; this is stricter than the theme parser's unconstrained id string |
 | Safe typed errors rather than helper exception text on scoped wire | Preserve retry class without leaking secrets or local paths |
+| Attachment context URLs require explicit HTTP(S) authority and no userinfo | Retained context links have predictable client opening semantics; registration never fetches them. Paseo's general URL schema also accepts other schemes |
+| Bounded attachment items/text/URLs and distinct bounded whole search lists | Bound retained draft/picker resources and avoid ambiguous selection; excessive results refuse rather than silently truncate |
 | Declarative cache instead of JS bundle cache | Same host/hash/offline ownership, no client execution |
 | Full plugin capability requires each owner integration | Do not silently ignore provider, tools, usage or client contributions |
 
@@ -274,3 +283,11 @@ those constants; tests derive boundary cases from them. Other declaration
 budgets land with their owning validation module rather than becoming a
 second table of copied limits here. These are additive value types only:
 `PLUGINS` remains None and no registered request or settings field exists.
+
+Attachment URLs use the existing `url` dependency's real parser, with
+additional scheme/authority/userinfo/control policies. Parser errors retain
+the concrete input-free ParseError, not the legacy fleet HttpUrl error that
+owns rejected text. Canary tests cover Display, Debug, serde errors and
+the complete source chain. Theme names reuse the existing JavaScript-edge
+`workspace::trim_project_text`, including BOM normalization, before their
+UTF-16 bound and the separately declared control refusal.

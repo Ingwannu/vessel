@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use super::{
     Caption, ContentText, ContributionAddress, ContributionId, ContributionKind, PluginId,
 };
-use crate::{HttpUrl, NodeId, key::serde_via_text};
+use crate::{NodeId, key::serde_via_text};
 
 const MAX_ITEM_ID_BYTES: usize = 256;
 const MAX_ITEM_URL_BYTES: usize = 4096;
@@ -17,13 +17,13 @@ pub const MAX_ATTACHMENT_ITEMS: usize = 100;
 /// A bounded context URL; its constructor rejects executable schemes and userinfo.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "string"))]
-pub struct AttachmentUrl(HttpUrl);
+pub struct AttachmentUrl(Arc<str>);
 
 impl AttachmentUrl {
     /// Context text only; opening still requires an explicit core action.
     #[must_use]
     pub fn as_str(&self) -> &str {
-        self.0.as_str()
+        &self.0
     }
 }
 
@@ -33,13 +33,37 @@ impl FromStr for AttachmentUrl {
         if raw.len() > MAX_ITEM_URL_BYTES {
             return Err(AttachmentError::UrlLength);
         }
-        raw.parse().map(Self).map_err(AttachmentError::Url)
+        if raw
+            .chars()
+            .any(|character| character.is_whitespace() || character.is_control())
+        {
+            return Err(AttachmentError::UrlText);
+        }
+        let parsed = url::Url::parse(raw).map_err(AttachmentError::Url)?;
+        if !matches!(parsed.scheme(), "http" | "https") {
+            return Err(AttachmentError::UrlScheme);
+        }
+        let (_, hierarchy) = raw.split_once(':').ok_or(AttachmentError::UrlAuthority)?;
+        let hierarchy = hierarchy
+            .strip_prefix("//")
+            .ok_or(AttachmentError::UrlAuthority)?;
+        let authority = hierarchy
+            .split(['/', '?', '#'])
+            .next()
+            .ok_or(AttachmentError::UrlAuthority)?;
+        if authority.contains('@') || !parsed.username().is_empty() || parsed.password().is_some() {
+            return Err(AttachmentError::UrlUserinfo);
+        }
+        if parsed.host().is_none() {
+            return Err(AttachmentError::UrlHost);
+        }
+        Ok(Self(Arc::from(raw)))
     }
 }
 
 impl fmt::Display for AttachmentUrl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.0.fmt(f)
+        f.write_str(&self.0)
     }
 }
 
@@ -169,7 +193,22 @@ impl ContextAttachment {
 pub enum AttachmentError {
     /// URL errors retain their concrete cause without echoing text in this message.
     #[error("plugin attachment URL is invalid")]
-    Url(#[source] crate::InvalidHttpUrl),
+    Url(#[source] url::ParseError),
+    /// Control/whitespace text must not be normalized away by the URL parser.
+    #[error("plugin attachment URLs cannot contain whitespace or control characters")]
+    UrlText,
+    /// URLs are inert context, but any later explicit opening retains safe schemes.
+    #[error("plugin attachment URLs require HTTP or HTTPS")]
+    UrlScheme,
+    /// Explicit authority keeps displayed context links unambiguous across clients.
+    #[error("plugin attachment URLs require an explicit HTTP(S) authority")]
+    UrlAuthority,
+    /// Userinfo is a credential-bearing URL component, never a context label.
+    #[error("plugin attachment URLs cannot contain userinfo")]
+    UrlUserinfo,
+    /// A parsed network URL must name a host, not an opaque path.
+    #[error("plugin attachment URLs require a host")]
+    UrlHost,
     /// Url's existing parser has no per-item allocation cap of its own.
     #[error("plugin attachment URL exceeds {MAX_ITEM_URL_BYTES} bytes")]
     UrlLength,
@@ -348,5 +387,47 @@ mod tests {
                 .len(),
             MAX_ATTACHMENT_ITEMS
         );
+    }
+    #[test]
+    fn malformed_authority_and_port_fail_both_direct_and_serde_validation() {
+        for input in [
+            "https://[bad]/item",
+            "http://:bad/item",
+            "https://example.invalid:bad/item",
+        ] {
+            assert!(input.parse::<AttachmentUrl>().is_err());
+            let encoded = serde_json::to_string(input).expect("encode fixture");
+            assert!(serde_json::from_str::<AttachmentUrl>(&encoded).is_err());
+        }
+    }
+
+    #[test]
+    fn url_refusals_cannot_repeat_input_in_any_diagnostic_path() {
+        use std::error::Error as _;
+        const CANARY: &str = "PRIVATE-SYNTHETIC-CANARY";
+        let inputs = [
+            format!("javascript:{CANARY}"),
+            format!("https://[bad]/{CANARY}"),
+            format!("https://{CANARY}:bad/item"),
+            format!("https://user:{CANARY}@example.invalid/item"),
+        ];
+        for input in inputs {
+            let error = input.parse::<AttachmentUrl>().expect_err("invalid fixture");
+            assert!(!format!("{error:?} {error}").contains(CANARY));
+            let mut source = error.source();
+            while let Some(cause) = source {
+                assert!(!format!("{cause:?} {cause}").contains(CANARY));
+                source = cause.source();
+            }
+            let encoded = serde_json::to_string(&input).expect("encode fixture");
+            let error =
+                serde_json::from_str::<AttachmentUrl>(&encoded).expect_err("invalid wire fixture");
+            assert!(!format!("{error:?} {error}").contains(CANARY));
+            let mut source = error.source();
+            while let Some(cause) = source {
+                assert!(!format!("{cause:?} {cause}").contains(CANARY));
+                source = cause.source();
+            }
+        }
     }
 }

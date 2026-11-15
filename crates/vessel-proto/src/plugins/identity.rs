@@ -123,7 +123,7 @@ fn caption(raw: &str) -> Option<&str> {
 }
 
 fn theme_name(raw: &str) -> Option<&str> {
-    let text = raw.trim();
+    let text = crate::workspace::trim_project_text(raw);
     (!text.is_empty()
         && !raw.chars().any(char::is_control)
         && text.encode_utf16().count() <= MAX_THEME_NAME_UNITS)
@@ -220,5 +220,27 @@ mod tests {
                 .parse::<FileExtension>()
                 .is_err()
         );
+    }
+    #[test]
+    fn theme_names_reuse_javascript_bom_trimming_before_utf16_validation() {
+        assert_eq!(
+            "\u{feff}".parse::<ThemeName>(),
+            Err(InvalidPluginValue::ThemeName)
+        );
+        let wrapped = "\u{feff} Theme \u{feff}"
+            .parse::<ThemeName>()
+            .expect("theme");
+        assert_eq!(wrapped.as_str(), "Theme");
+        assert_eq!(
+            serde_json::to_string(&wrapped).expect("encode"),
+            "\"Theme\""
+        );
+        let at_bound = format!("\u{feff}{}\u{feff}", "한".repeat(MAX_THEME_NAME_UNITS));
+        assert!(at_bound.parse::<ThemeName>().is_ok());
+        let over = format!(
+            "\u{feff}{}\u{feff}",
+            "한".repeat(MAX_THEME_NAME_UNITS.saturating_add(1))
+        );
+        assert!(over.parse::<ThemeName>().is_err());
     }
 }
