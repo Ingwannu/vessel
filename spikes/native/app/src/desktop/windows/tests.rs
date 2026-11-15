@@ -159,3 +159,50 @@ fn window_document_admission_defers_entity_reborrow_coalesces_and_keeps_refused_
         assert_eq!(cx.global::<QuitAttempts>().0, 0);
     });
 }
+
+#[gpui::test]
+fn two_window_close_requests_recheck_the_last_window_before_removal(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    cx.update(|cx| {
+        cx.set_global(QuitAttempts(0));
+        cx.set_global(AdmissionAttempts(0));
+        cx.set_global(test_desktop());
+        super::super::set_window_close_handler(allow_documents, cx);
+    });
+    let (first, cx) = cx.add_window_view(registered_probe);
+    let second = cx.update(|_window, cx| {
+        cx.open_window(gpui::WindowOptions::default(), |window, cx| {
+            cx.new(|cx| registered_probe(window, cx))
+        })
+        .unwrap()
+    });
+    cx.run_until_parked();
+    first.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |_shell, cx| {
+            request_close(window, cx);
+            second
+                .update(cx, |_view, window, cx| request_close(window, cx))
+                .unwrap();
+        });
+    });
+    cx.run_until_parked();
+    first.read_with(cx, |_probe, cx| {
+        assert_eq!(
+            cx.windows().len(),
+            1,
+            "the finalizer retains the last window"
+        );
+        assert_eq!(cx.global::<AdmissionAttempts>().0, 1);
+        assert_eq!(cx.global::<QuitAttempts>().0, 1);
+    });
+}
+
+fn registered_probe(window: &mut Window, cx: &mut Context<'_, GuardProbe>) -> GuardProbe {
+    let shell = cx.new(|cx| crate::shell::language_tests::shell_without_io(window, cx));
+    cx.global_mut::<Desktop>().records.push(WindowRecord {
+        window: window.window_handle(),
+        shell: shell.downgrade(),
+        close: WindowClose::Idle,
+    });
+    GuardProbe { shell }
+}
