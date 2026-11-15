@@ -1165,6 +1165,18 @@ push builder, while the protocol uses the workspace's existing URL parser.
 Inbox live-request reads recover one exact pending form from the session
 actor independently of event retention, capped at 15 MiB per reply. Default
 summary reads retain the bounded durable projection for background refresh.
+
+The web client's `data/usage` owns the typed accounting call, a single
+in-flight/latest-selection reader, and pure locale-aware facts. Its
+Settings Usage feature draws those facts with existing row controls;
+changing machine/period hides the previous identity before the effect
+starts, and unmounting discards queued or late observations. No browser
+provider access or price arithmetic is introduced. Missing optional
+counts retain field coverage; unsafe browser integers are labelled rather
+than presented as exact. Account limits remain a separate merged-contract
+dependency (ADR 0075).
+
+
 ## Native app localization (milestone 12, staged)
 
 The separate `spikes/native` workspace keeps UI and I/O out of
