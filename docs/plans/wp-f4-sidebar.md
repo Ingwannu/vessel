@@ -438,3 +438,41 @@ scopes and verifies that source spaces stay exact while dismissal spaces trim.
 The app's fixed static-id prototype was corrected before any checked adoption.
 A real nondismissible GPUI fixture also verifies that a provider's accidental
 raw dismiss callback cannot bypass the shared admission/persistence boundary.
+
+### Ordered menu hierarchy handoff (prepared, not installed)
+
+The coordinator assigns the existing shared menu engine to S2 only after G2
+checks and hands off its current trigger/modal delta (`d377`/`1bb` successors).
+No competing draw or item change is present in this tree. Read the complete
+source `ui/menu/menu-navigation.ts`, `menu-context.ts`, `menu-sub.tsx`,
+`menu-item.tsx`, `menu-surface.tsx`, `menu-overlay.tsx`, `menu-root.tsx` and
+the source path regressions. Prepare typed state/data outside the renderer.
+
+The engine keeps one outward page path for desktop flyouts and compact
+replace/back navigation. A sibling replaces its branch, a missing definition
+prunes descendants, and reopening returns to a newly anchored root. Existing
+flat MenuItem/handlers, menu_right, KeepOpen, G4 ReturnFocus/modal seam and
+QUICK remain delegates into one renderer. An additive entry wraps the legacy
+item with an action/check or submenu role and optional caller-prepared shared
+leading content; a submenu is navigation and cannot become a close-on-select
+application action. New callback addresses carry page/row; owners retain the
+authoritative captured action target instead of resolving a visible label.
+
+Source values to preserve: hover open 90 ms, close grace 260 ms, flyout overlap
+5, check rail 16, chevron 14, current-value gap 6 and indicator 6. An open
+hoverIntent:false page locks hover-close across the surface. Root widths are
+232 for Display and 260 for workspace actions. One outside check includes all
+visible surfaces, so entering or pressing a child cannot dismiss its parent.
+`menu-geometry.ts` now explicitly says 28 desktop/40 compact; the existing
+reviewed native flat engine uses 44 compact. Keep that legacy API/default
+while the same row renderer accepts the hierarchy's explicit source profile;
+there is no claim that 44 equals 40 and no area override. CompactMode defaults
+to Popover; Display explicitly chooses Sheet. The existing shared 60/90 sheet
+is not by itself evidence of source dynamic-content sizing up to 80% with
+0.45 backdrop. Reuse and minimally extend its common frame/gesture policy,
+without introducing menu-specific physics or a second scrolling engine.
+
+This remains preparation. Renderer installation, path/timer/keyboard/geometry
+regressions, actual flyout and compact Sidebar use, the final F4 gate and
+capture matrix are still owed. Source fill/text-form pages must remain an
+explicit separate capability until a shared typed content slot actually exists.
