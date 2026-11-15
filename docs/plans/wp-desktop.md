@@ -266,3 +266,9 @@ replaces only the callback and cannot reset an in-flight phase. This prevents a
 new edit after Ready from leaving unsaved work behind a node already stopped;
 the final guard remains necessary for other asynchronous owner changes. Local
 node policy/actions also disable while this same phase is active.
+
+The ca0f17957 native type check stopped at the pane base's new Ask::Layout arm.
+It now uses the ordinary client path alongside session/worktree operations;
+layout's existing handler checks its own captured NodeId. Onboarding's stricter
+control guard remains on project mutations and reused settings controls, and the
+generic pinned-alias replacement fence still applies to every client lookup.

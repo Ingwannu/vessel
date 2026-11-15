@@ -96,7 +96,8 @@ impl crate::State {
                 | ProjectAsk::Remove(_)
                 | ProjectAsk::Approve(_),
             ) => self.onboarding_client(machine),
-            Ask::Project(ProjectAsk::List | ProjectAsk::Commands(_))
+            Ask::Layout(_)
+            | Ask::Project(ProjectAsk::List | ProjectAsk::Commands(_))
             | Ask::Worktree(_)
             | Ask::Git(_)
             | Ask::File(_)
