@@ -186,3 +186,11 @@ usage-limit-reached = Vendor reports limit reached
 usage-yes = Yes
 # Explicit vendor account fact; absence is not false.
 usage-no = No
+# Usage modal heading, host picker or empty state.
+usage-title = Usage
+# Usage modal heading, host picker or empty state.
+usage-host = Host
+# Usage modal heading, host picker or empty state.
+usage-no-hosts = No connected hosts.
+# Settings opens the shared host-filtered usage modal.
+usage-open-modal = Open usage

@@ -186,3 +186,11 @@ usage-limit-reached = 제공업체 한도 도달 보고
 usage-yes = 예
 # Explicit vendor account fact; absence is not false.
 usage-no = 아니요
+# Usage modal heading, host picker or empty state.
+usage-title = 사용량
+# Usage modal heading, host picker or empty state.
+usage-host = 호스트
+# Usage modal heading, host picker or empty state.
+usage-no-hosts = 연결된 호스트가 없습니다.
+# Settings opens the shared host-filtered usage modal.
+usage-open-modal = 사용량 열기

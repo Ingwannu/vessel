@@ -15,12 +15,22 @@ use vessel_app_view::{
 use vessel_proto::limits::{ExternalLookup, LimitAccount};
 
 impl Shell {
+    pub(crate) fn usage_fleet(&mut self) {
+        self.areas.usage.hosts.retain(|host| {
+            self.fleet
+                .machines
+                .iter()
+                .any(|machine| machine.name == host.machine.as_str())
+        });
+    }
     pub(crate) fn settle_usage(&mut self, window: &Window) {
         self.settle_session_usage();
         let visible = self.route == Route::Settings
             && self.areas.settings.section == Section::Usage
             && (!vessel_app_kit::breakpoint::phone(window) || self.areas.settings.pushed);
-        let target = if !visible {
+        let target = if self.areas.usage.modal {
+            super::modal::target(self)
+        } else if !visible {
             Target::Hidden
         } else if !self.loaded {
             Target::Loading
@@ -53,10 +63,10 @@ impl Shell {
             machine,
             range: state.range,
         };
-        if state.ledger.selection() != Some(&selection) {
-            if let Some(request) = state.ledger.request(selection) {
-                self.command(Command::Usage(Ask::Ledger(request)));
-            }
+        if state.ledger.selection() != Some(&selection)
+            && let Some(request) = state.ledger.request(selection)
+        {
+            self.command(Command::Usage(Ask::Ledger(request)));
         }
     }
     pub(crate) fn usage_range(&mut self, range: Range) {
@@ -122,6 +132,28 @@ impl Shell {
     pub(crate) fn usage_answer(&mut self, answer: Answer, _cx: &mut Context<'_, Self>) {
         let state = &mut self.areas.usage;
         let next = match answer {
+            Answer::Connected { machine, node } => {
+                if let Some(host) = state.hosts.iter_mut().find(|host| host.machine == machine) {
+                    host.node = node;
+                } else {
+                    state.hosts.push(super::HostBinding {
+                        machine: machine.clone(),
+                        node,
+                    });
+                }
+                if state.inventory.selection() == Some(&machine) {
+                    state.inventory.close();
+                    state.ledger.close();
+                }
+                if state
+                    .session
+                    .selection()
+                    .is_some_and(|selected| selected.machine == machine)
+                {
+                    state.session.close();
+                }
+                return;
+            }
             Answer::Accounts { request, result } => state
                 .inventory
                 .answer(request.ticket, result)

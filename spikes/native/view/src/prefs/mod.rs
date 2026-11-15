@@ -26,6 +26,8 @@ mod change;
 mod keys;
 mod language;
 mod send;
+mod usage;
+pub use usage::UsagePreferences;
 
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
@@ -105,6 +107,9 @@ where
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Preferences {
+    /// Usage host and display choices, independent from sidebar visibility.
+    #[serde(deserialize_with = "lenient")]
+    pub usage: UsagePreferences,
     /// The app language, or the operating system when System.
     #[serde(deserialize_with = "lenient")]
     pub language: crate::localization::LanguagePreference,

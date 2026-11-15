@@ -5,8 +5,8 @@ use super::{
 };
 use crate::shell::Shell;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
+    AnyElement, Context, Div, FluentBuilder as _, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, breakpoint::TOUCH_TARGET, outline_button, settings, theme::spacing};
 use vessel_app_view::{
@@ -129,7 +129,7 @@ fn account_card(
                 reason.message(shell.words),
                 vessel_app_kit::alert::Variant::Error,
                 tokens,
-            ))
+            ));
         }
         Ok(limits) => {
             let view = limit_view(limits);

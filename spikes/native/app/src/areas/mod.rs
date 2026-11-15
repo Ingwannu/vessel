@@ -59,7 +59,7 @@ pub(crate) struct Areas {
 impl Areas {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         let mut areas = Self {
-            usage: usage::State::new(),
+            usage: usage::State::new(window, cx),
             about: about::AboutState::new(cx),
             draft: draft::Draft::new(window, cx),
             session: session::SessionView::new(window, cx),

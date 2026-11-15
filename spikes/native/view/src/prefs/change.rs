@@ -17,6 +17,10 @@ use super::{
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "set", content = "value", rename_all = "snake_case")]
 pub enum PreferenceChange {
+    /// Usage percentage presentation, shared by all usage surfaces.
+    UsageDisplay(crate::usage::DisplayAs),
+    /// Explicit usage host selected by handshake identity.
+    UsageHost(Option<NodeId>),
     /// The app language; applies at once on every screen.
     Language(crate::localization::LanguagePreference),
     /// The theme.
@@ -171,6 +175,8 @@ impl Preferences {
     /// Apply `change`, replacing only the setting it names.
     fn apply(&mut self, change: &PreferenceChange) {
         match change {
+            PreferenceChange::UsageDisplay(display) => self.usage.display = *display,
+            PreferenceChange::UsageHost(host) => self.usage.host = *host,
             PreferenceChange::Language(language) => self.language = *language,
             PreferenceChange::Theme(theme) => self.appearance.theme = *theme,
             PreferenceChange::InterfaceSize(size) => self.appearance.interface_size = *size,

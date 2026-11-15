@@ -41,6 +41,13 @@ pub enum Ask {
 /// Reply identity is preserved even when a queue or connection refuses the operation.
 #[derive(Debug)]
 pub enum Answer {
+    /// A real fresh connection invalidates prior publishing rights, even for the same node.
+    Connected {
+        /// Parsed destination book identity.
+        machine: MachineKey,
+        /// Handshake identity, never a display name.
+        node: vessel_proto::NodeId,
+    },
     /// Whole configured inventory; individual accounts may have failed independently.
     Accounts {
         /// Original machine and lifetime.

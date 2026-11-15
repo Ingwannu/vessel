@@ -5,8 +5,8 @@ use super::{
 };
 use crate::shell::Shell;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
+    AnyElement, Context, Div, FluentBuilder as _, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{
     Tokens,
@@ -95,7 +95,11 @@ fn controls(shell: &Shell, tokens: &Tokens, compact: bool, cx: &mut Context<'_, 
         .items_center()
         .gap(px(spacing::S2))
         .child(periods)
-        .child(refresh);
+        .child(refresh)
+        .child(
+            outline_button("usage-open-modal", text.open_modal(), true, tokens)
+                .on_click(cx.listener(|shell, _, window, cx| shell.open_usage(window, cx))),
+        );
     settings::card(tokens).child(settings::row_at(
         text.period(),
         None,
@@ -189,15 +193,18 @@ pub(super) fn display_controls(
             segment(
                 ("usage-display", index),
                 label,
-                shell.areas.usage.display == value,
+                shell.prefs.settings.usage.display == value,
                 true,
                 SegmentSize::Small,
                 tokens,
             )
             .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
-            .on_click(cx.listener(move |shell, _, _, cx| {
-                shell.areas.usage.display = value;
-                cx.notify();
+            .on_click(cx.listener(move |shell, _, window, cx| {
+                shell.prefer(
+                    &vessel_app_view::prefs::PreferenceChange::UsageDisplay(value),
+                    window,
+                    cx,
+                );
             })),
         );
     }

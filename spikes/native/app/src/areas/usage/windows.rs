@@ -13,12 +13,12 @@ pub(super) fn draw(shell: &Shell, window: &LimitWindow, tokens: &Tokens) -> Div 
     let text = shell.words.usage();
     let state = &shell.areas.usage;
     let used = window.used.and_then(|value| FiniteNumber::new(value.get()));
-    let value = used.map(|used| DisplayPercent::reported(used, state.display));
+    let value = used.map(|used| DisplayPercent::reported(used, shell.prefs.settings.usage.display));
     let label = value.map_or_else(
         || text.none().to_owned(),
         |percent| {
             let percent = percent.text();
-            match state.display {
+            match shell.prefs.settings.usage.display {
                 vessel_app_view::usage::DisplayAs::Used => {
                     text.value_used(&percent).unwrap_or(percent)
                 }

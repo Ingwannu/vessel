@@ -5,8 +5,8 @@ use super::{
 };
 use crate::{routes::Route, shell::Shell};
 use vessel_app_kit::ui::{
-    AnyElement, Context, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
+    AnyElement, Context, FluentBuilder as _, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, outline_button, theme::spacing};
 use vessel_app_link::{Command, usage::Ask};

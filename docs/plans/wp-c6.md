@@ -69,8 +69,10 @@ The shared area now owns Settings rendering and typed legacy ledger/account call
 The separate generic source/report family remains pending on the node line; no
 caller sends an invented method. Cards use the approved shared kit meter, and
 policy mutation closes the old reader before the acknowledgement is read back.
-Cached reads do not enable lookup or refresh vendors. Modal, sidebar, session
-quota/notice, persisted pins and additional sources remain in progress.
+Cached reads do not enable lookup or refresh vendors. The shared modal and session quota/notice are implemented and await narrow
+checks. Host selection persists NodeId; display mode persists separately from
+sidebar visibility. Shared connection-ready invalidates old reader publication
+even on a same-node reconnect. Sidebar pins and additional sources remain in progress.
 
 ## Verification and delivery
 
