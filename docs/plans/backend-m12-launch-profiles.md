@@ -14,13 +14,33 @@ values, and register no call. Decoder diagnostics redact untrusted input;
 canonical JSON is counted without allocating a serialized copy. The list
 budgets the maximum revision, including JSON escaping. No catalogue,
 method, store migration, CLI, MCP, runtime probe or UI is built. Narrow
-checks are pending; this is not package completion or runtime approval.
+checks have passed as recorded below; this is not package completion or
+runtime approval.
 
 The first selected Clippy check failed on a getter conflicting with TS's
 trait method and test-only lint findings. The getter is now `display_name`
 (the serialized field stays `name`); tests use checked division and a
 module-level unchecked fixture representation. That failed log is retained.
-Corrected-source Clippy and test execution remain pending at this commit.
+At source commit time, corrected-source checks were still pending; the
+following checkpoint records their actual executions.
+
+### Core-value narrow checks
+
+Source `9375732b` passed TS-enabled, all-target `vessel-proto` Clippy
+with warnings denied (`wiregaps-narrow-20261115T055731Z-9375732b`).
+Its `vessel-proto --features ts --lib` tests passed 275/0/0, including
+all nine new value cases (`wiregaps-narrow-20261115T060103Z-9375732b`).
+The latter runner also rebuilt the page and both nested binary prerequisites.
+Actual proto recompilation and all step return codes/digests were checked;
+nine selected changed Rust inputs equal the exact source commit. No full
+package gate or implementation review is claimed by those narrow checks.
+The source commit remains a WIP of the feature, rather than a callable API.
+
+The new A10 assignment expands this package to draft/live application and
+legacy favorite migration. The accepted contract's running-apply omission
+is historical scope, not completion of that expanded assignment. The
+survey's migration module/tests and picker/materializer paths are being
+read before a contract amendment and implementation of those behaviors.
 
 Quality B's announced pending row remains a wiring prerequisite; the
 integrator's row shape is `[Scope, (pending NAMED_LAUNCH_PROFILES), unary]`.

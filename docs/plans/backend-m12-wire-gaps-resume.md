@@ -1,5 +1,22 @@
 # N3 current checkpoint
 
+## Current: core-value narrow checks passed; A10 expansion next
+
+Core source `9375732b` passed TS-enabled proto all-target Clippy and all
+275 library tests, including nine new value cases. Exact remote runs are
+recorded in `backend-m12-launch-profiles.md`; actual compilation, step
+digests and nine changed Rust inputs were checked. The first selected
+Clippy exit 101 remains retained; it was fixed, not waived. No whole gate
+is repeated for this partial stage under the package rule.
+
+No catalogue/service, store migration, RPC, client/CLI/MCP, runtime apply
+or legacy migration is built. Feature Option None, no registered calls.
+The full new A10 node package now includes drafts, serialized partial live
+apply and legacy favorites; its plan must amend the prior CRUD-only
+contract before implementing those additional security behaviors. The
+actual source survey confirms local per-host completion markers and
+catalogue retries, rather than account/credential migration.
+
 ## Current: accepted contract, core values under narrow checks
 
 V3 passed ADR0076 contract `3f0ae46d`, documents only. The node integrator
