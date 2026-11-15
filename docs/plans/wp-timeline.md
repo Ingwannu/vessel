@@ -373,3 +373,13 @@ fallback remains explicitly unscoped until then.
 W23 also confirmed the compaction reducer rule: completion upgrades earliest
 outstanding loading, even nonadjacent; loading always creates a row. Its node
 comment is being corrected, not a new competing presentation union.
+
+### Context warning boundary
+
+W5 identified the context-ring threshold difference. Paseo
+`components/context-window-meter.tsx:63-69` uses danger strictly above90%,
+warning from70%. `timeline/meter.rs` now compares the original token ratio by
+u128 cross multiplication, leaving exact90% warning and detecting90.001% as
+danger even when the displayed whole percent still reads90. This reuses the
+existing context model; no quota meter or second store is added. Boundary tests
+cover70%, exact90%, just above90% and maximum-width token counts without floats.

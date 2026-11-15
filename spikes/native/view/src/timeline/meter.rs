@@ -6,6 +6,10 @@
 
 use vessel_proto::ContextUsage;
 
+const PERCENT_SCALE: u128 = 100;
+const WARNING_PERCENT: u128 = 70;
+const DANGER_PERCENT: u128 = 90;
+
 /// How full the context is, by agent-orchestrator's thresholds (70% and
 /// 90%).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -14,7 +18,7 @@ pub enum Fullness {
     Room,
     /// From 70%: amber.
     Low,
-    /// From 90%: red.
+    /// Strictly over 90%: red; exact 90% remains amber.
     Full,
 }
 
@@ -55,10 +59,15 @@ pub fn meter_of(usage: Option<&ContextUsage>) -> Option<Meter> {
     };
     let thousandths = ratio(1000);
     let percent = ratio(200).saturating_add(1).checked_div(2).unwrap_or(0);
-    let fullness = match thousandths {
-        900.. => Fullness::Full,
-        700..900 => Fullness::Low,
-        _ => Fullness::Room,
+    // Compare the original ratio: rounding to thousandths would miss 90.01%.
+    // u64 token counts widened to u128 leave room for the fixed scale.
+    let used_percent = u128::from(used).saturating_mul(PERCENT_SCALE);
+    let fullness = if used_percent > u128::from(size).saturating_mul(DANGER_PERCENT) {
+        Fullness::Full
+    } else if used_percent >= u128::from(size).saturating_mul(WARNING_PERCENT) {
+        Fullness::Low
+    } else {
+        Fullness::Room
     };
     Some(Meter {
         used,
@@ -67,4 +76,30 @@ pub fn meter_of(usage: Option<&ContextUsage>) -> Option<Meter> {
         arc: u16::try_from(thousandths.clamp(80, 1000)).unwrap_or(1000),
         fullness,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Fullness, meter_of};
+    use vessel_proto::{ContextUsage, TokenCount, UsageObservation};
+
+    #[test]
+    fn exact_ninety_is_warning_and_any_fraction_above_is_danger() {
+        for (used, size, expected) in [
+            (69_999, 100_000, Fullness::Room),
+            (70_000, 100_000, Fullness::Low),
+            (89_999, 100_000, Fullness::Low),
+            (90_000, 100_000, Fullness::Low),
+            (90_001, 100_000, Fullness::Full),
+            (u64::MAX, u64::MAX, Fullness::Full),
+        ] {
+            let context = ContextUsage {
+                used: TokenCount::new(used),
+                size: TokenCount::new(size),
+                observation: UsageObservation::Current,
+                cost: None,
+            };
+            assert_eq!(meter_of(Some(&context)).unwrap().fullness, expected);
+        }
+    }
 }
