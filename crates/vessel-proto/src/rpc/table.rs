@@ -378,6 +378,18 @@ macro_rules! method_table {
             RewindSession / rewind_session / "session.rewind" [Operate, 14, unary]: $crate::forking::RewindSession => $crate::SessionInfo;
             /// A page of an agent's own conversations, to import one (protocol 17, ADR 0053).
             GetAgentHistory / agent_history / "agent.history" [Operate, 17, unary]: $crate::history::GetAgentHistory => $crate::history::AgentHistoryPage;
+            /// Read an atomic independent-workspace registry snapshot.
+            GetRegistry / get_registry / "workspace.registry" [Read, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::GetRegistry => $crate::registry::RegistrySnapshot;
+            /// List active/archived workspace descriptors independently of sessions.
+            ListWorkspaces / list_workspaces / "workspace.list" [Read, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::ListWorkspaces => Vec<$crate::registry::WorkspaceDescriptor>;
+            /// Inspect one workspace including its archived lifecycle.
+            GetWorkspace / get_workspace / "workspace.get" [Read, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::GetWorkspace => $crate::registry::WorkspaceDescriptor;
+            /// Rename one active workspace without changing its filesystem placement.
+            RenameWorkspace / rename_workspace / "workspace.rename" [Operate, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::RenameWorkspace => $crate::registry::WorkspaceDescriptor;
+            /// Persist one workspace pin without changing client-local ordering.
+            PinWorkspace / pin_workspace / "workspace.pin" [Operate, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::PinWorkspace => $crate::registry::WorkspaceDescriptor;
+            /// Release automation for one explicitly inspected external source and revision.
+            ReleaseWorkspaceAutomation / release_workspace_automation / "workspace.release_automation" [Operate, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::ReleaseWorkspaceAutomation => $crate::registry::WorkspaceDescriptor;
         }
     };
 }
