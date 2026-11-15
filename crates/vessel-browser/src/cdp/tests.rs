@@ -10,35 +10,40 @@ use vessel_proto::browser::{BrowserEffect, InputText};
 
 use super::identity::{CommandId, TargetId};
 use super::requests::{Attach, InsertText, Version};
-use super::{Client, Endpoint, Error};
+use super::{CdpError, Client, Endpoint};
 
 const FIXTURE_DEADLINE: Duration = Duration::from_secs(20);
 const EXCESS_EVENT_COUNT: usize = 33;
+
+#[derive(Deserialize)]
+struct NumberResult {
+    value: u8,
+}
 
 #[test]
 fn sealed_request_shapes_match_the_foreign_protocol_and_bound_decoding() {
     use super::requests::*;
     use vessel_proto::browser::{RequiredInput, ViewportSide, ViewportSize};
-    fn method<R: Request>(request: R, expected: &str) {
+    fn method<R: Request>(request: &R, expected: &str) {
         assert_eq!(
             serde_json::to_string(&R::METHOD).unwrap(),
             format!("\"{expected}\"")
         );
-        assert!(serde_json::to_string(&request).is_ok());
+        assert!(serde_json::to_string(request).is_ok());
     }
-    method(CloseBrowser {}, "Browser.close");
-    method(EnablePage {}, "Page.enable");
-    method(EnableRuntime {}, "Runtime.enable");
-    method(EnableNetwork {}, "Network.enable");
-    method(Stop {}, "Page.stopLoading");
-    method(Reload {}, "Page.reload");
-    method(History {}, "Page.getNavigationHistory");
-    method(Capture {}, "Page.captureScreenshot");
-    method(ClearViewport {}, "Emulation.clearDeviceMetricsOverride");
+    method(&CloseBrowser {}, "Browser.close");
+    method(&EnablePage {}, "Page.enable");
+    method(&EnableRuntime {}, "Runtime.enable");
+    method(&EnableNetwork {}, "Network.enable");
+    method(&Stop {}, "Page.stopLoading");
+    method(&Reload {}, "Page.reload");
+    method(&History {}, "Page.getNavigationHistory");
+    method(&Capture {}, "Page.captureScreenshot");
+    method(&ClearViewport {}, "Emulation.clearDeviceMetricsOverride");
     let created: Created =
         serde_json::from_str(r#"{"targetId":"private-target-fixture"}"#).unwrap();
     method(
-        CloseTarget {
+        &CloseTarget {
             target_id: created.target_id,
         },
         "Target.closeTarget",
@@ -46,14 +51,14 @@ fn sealed_request_shapes_match_the_foreign_protocol_and_bound_decoding() {
     let closed: Closed = serde_json::from_str(r#"{"success":false}"#).unwrap();
     assert!(!closed.success);
     method(
-        CreateTarget {
+        &CreateTarget {
             url: "https://example.test/".parse().unwrap(),
             background: true,
         },
         "Target.createTarget",
     );
     method(
-        Navigate {
+        &Navigate {
             url: "https://example.test/path".parse().unwrap(),
         },
         "Page.navigate",
@@ -67,7 +72,7 @@ fn sealed_request_shapes_match_the_foreign_protocol_and_bound_decoding() {
     let entry = history.entries.into_iter().next().unwrap();
     assert_eq!(entry.url.as_str(), "about:blank");
     method(
-        NavigateHistory { entry_id: entry.id },
+        &NavigateHistory { entry_id: entry.id },
         "Page.navigateToHistoryEntry",
     );
     let negative: HistoryIndex = serde_json::from_str("-1").unwrap();
@@ -77,19 +82,15 @@ fn sealed_request_shapes_match_the_foreign_protocol_and_bound_decoding() {
         serde_json::to_value(&evaluate).unwrap(),
         serde_json::json!({"expression":"1+1","returnByValue":true,"awaitPromise":true,"userGesture":false})
     );
-    method(evaluate, "Runtime.evaluate");
+    method(&evaluate, "Runtime.evaluate");
     let evaluated: Evaluated = serde_json::from_str(r#"{"result":{"value":2}}"#).unwrap();
-    #[derive(Deserialize)]
-    struct NumberResult {
-        value: u8,
-    }
     assert_eq!(evaluated.remote_object::<NumberResult>().unwrap().value, 2);
     let exception: Evaluated =
         serde_json::from_str(r#"{"result":{},"exceptionDetails":{"text":"private exception"}}"#)
             .unwrap();
     assert!(matches!(
         exception.remote_object::<NumberResult>(),
-        Err(EvaluationError::Exception)
+        Err(EvaluationCdpError::Exception)
     ));
     assert!(!format!("{exception:?}").contains("private exception"));
     // Invalid bytes must fail before becoming any frame or image fixture.
@@ -106,7 +107,7 @@ fn sealed_request_shapes_match_the_foreign_protocol_and_bound_decoding() {
         serde_json::to_value(&viewport).unwrap(),
         serde_json::json!({"width":390,"height":844,"deviceScaleFactor":1,"mobile":false})
     );
-    method(viewport, "Emulation.setDeviceMetricsOverride");
+    method(&viewport, "Emulation.setDeviceMetricsOverride");
 }
 
 #[tokio::test]
@@ -216,7 +217,7 @@ async fn losing_a_reply_after_delivery_cannot_authorize_mutation_replay() {
             .unwrap_err();
         assert!(matches!(
             error,
-            Error::Disconnected {
+            CdpError::Disconnected {
                 effect: BrowserEffect::Uncertain
             }
         ));
@@ -246,7 +247,7 @@ async fn essential_signal_overflow_fails_the_connection_without_silently_skippin
         });
         let (client, _events) = Client::connect(&endpoint).await.unwrap();
         client.wait_closed().await;
-        assert!(matches!(client.shutdown().await, Err(Error::Busy)));
+        assert!(matches!(client.shutdown().await, Err(CdpError::Busy)));
         peer.await.unwrap();
     })
     .await

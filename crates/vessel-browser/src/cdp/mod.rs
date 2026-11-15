@@ -13,5 +13,5 @@ pub(crate) mod requests;
 mod tests;
 mod wire;
 
-pub(crate) use client::{Client, Error};
+pub(crate) use client::{CdpError, Client};
 pub(crate) use endpoint::Endpoint;

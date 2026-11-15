@@ -73,9 +73,13 @@ impl Preparation {
             if matches!(*registration, Admission::Closed) || self.is_cancelled() {
                 return Err(PreparationError::Closed);
             }
-            let permit = Arc::clone(&self.gate)
-                .try_acquire_owned()
-                .map_err(|_| PreparationError::Busy)?;
+            let permit =
+                Arc::clone(&self.gate)
+                    .try_acquire_owned()
+                    .map_err(|error| match error {
+                        tokio::sync::TryAcquireError::Closed => PreparationError::Closed,
+                        tokio::sync::TryAcquireError::NoPermits => PreparationError::Busy,
+                    })?;
             let cancel = self.cancel.clone();
             // The tracker token and permit live in the actual OS-work closure,
             // including when its caller drops the detached JoinHandle.

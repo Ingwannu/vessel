@@ -59,5 +59,5 @@ opaque_id!(
 );
 opaque_id!(
     SessionId,
-    "A flattened CDP session id, unrelated to a Vessel SessionId."
+    "A flattened CDP session id, unrelated to a Vessel `SessionId`."
 );

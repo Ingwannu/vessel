@@ -227,6 +227,12 @@ pub(super) fn incoming(text: &str) -> Result<Incoming, DecodeError> {
     }))
 }
 
+impl fmt::Debug for DecodeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "CdpDecodeError({self})")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -248,11 +254,5 @@ mod tests {
             incoming(r#"{"method":"Future.event","params":{"anything":true}}"#).unwrap(),
             Incoming::UnknownEvent
         ));
-    }
-}
-
-impl fmt::Debug for DecodeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "CdpDecodeError({self})")
     }
 }

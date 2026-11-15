@@ -32,7 +32,7 @@ type Socket = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
 /// Errors remain typed; Debug never prints a frame, endpoint or page exception.
 #[derive(thiserror::Error)]
-pub(crate) enum Error {
+pub(crate) enum CdpError {
     /// Connection establishment failed.
     #[error("CDP websocket operation failed")]
     Socket(#[source] tokio_tungstenite::tungstenite::Error),
@@ -41,7 +41,7 @@ pub(crate) enum Error {
     Decode(#[source] wire::DecodeError),
     /// Local typed parameters could not be encoded.
     #[error("CDP command encoding failed")]
-    Json(#[source] serde_json::Error),
+    Json(#[source] serde_json::CdpError),
     /// A known operation was refused by Chromium; its text is not a node diagnostic.
     #[error("CDP operation was refused by the browser")]
     Remote(#[source] wire::RemoteError),
@@ -76,7 +76,7 @@ pub(crate) enum Error {
     #[error("CDP driver task failed")]
     Task(#[source] tokio::task::JoinError),
 }
-impl std::fmt::Debug for Error {
+impl std::fmt::Debug for CdpError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "CdpError({self})")
     }
@@ -86,16 +86,16 @@ struct Command {
     id: CommandId,
     text: String,
     delivered: Arc<AtomicBool>,
-    answer: oneshot::Sender<Result<Payload, Error>>,
+    answer: oneshot::Sender<Result<Payload, CdpError>>,
 }
 struct Pending {
-    answer: oneshot::Sender<Result<Payload, Error>>,
+    answer: oneshot::Sender<Result<Payload, CdpError>>,
 }
 struct Shared {
     commands: mpsc::Sender<Command>,
     next: AtomicU64,
     cancel: CancellationToken,
-    driver: Mutex<Option<JoinHandle<Result<(), Error>>>>,
+    driver: Mutex<Option<JoinHandle<Result<(), CdpError>>>>,
 }
 impl Drop for Shared {
     fn drop(&mut self) {
@@ -132,7 +132,7 @@ impl Client {
     ///
     /// # Errors
     /// Socket/connect deadline failures refuse; no runtime is qualified here.
-    pub(crate) async fn connect(endpoint: &Endpoint) -> Result<(Self, Events), Error> {
+    pub(crate) async fn connect(endpoint: &Endpoint) -> Result<(Self, Events), CdpError> {
         let config = WebSocketConfig::default()
             .max_message_size(Some(wire::MAX_MESSAGE_BYTES))
             .max_frame_size(Some(wire::MAX_MESSAGE_BYTES));
@@ -141,11 +141,11 @@ impl Client {
             tokio_tungstenite::connect_async_with_config(endpoint.as_str(), Some(config), false),
         )
         .await
-        .map_err(|source| Error::TimedOut {
+        .map_err(|source| CdpError::TimedOut {
             effect: BrowserEffect::NotDelivered,
             source,
         })?
-        .map_err(Error::Socket)?;
+        .map_err(CdpError::Socket)?;
         let (commands, receive) = mpsc::channel(COMMAND_CAPACITY);
         let (events, event_receive) = mpsc::channel(EVENT_CAPACITY);
         let cancel = CancellationToken::new();
@@ -167,24 +167,24 @@ impl Client {
         &self,
         session: Option<SessionId>,
         request: R,
-    ) -> Result<R::Response, Error> {
+    ) -> Result<R::Response, CdpError> {
         let sequence = self
             .shared
             .next
             .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |next| {
                 next.checked_add(1)
             })
-            .map_err(|_| Error::Closed)?;
-        let id = CommandId::from_sequence(sequence).ok_or(Error::Closed)?;
+            .map_err(|_exhausted_sequence| CdpError::Closed)?;
+        let id = CommandId::from_sequence(sequence).ok_or(CdpError::Closed)?;
         let outgoing = Outgoing {
             id,
             method: R::METHOD,
-            params: Payload::encode(&request).map_err(Error::Json)?,
+            params: Payload::encode(&request).map_err(CdpError::Json)?,
             session_id: session,
         };
-        let text = serde_json::to_string(&outgoing).map_err(Error::Json)?;
+        let text = serde_json::to_string(&outgoing).map_err(CdpError::Json)?;
         if text.len() > MAX_OUTGOING_BYTES {
-            return Err(Error::Size);
+            return Err(CdpError::Size);
         }
         let delivered = Arc::new(AtomicBool::new(false));
         let (answer, result) = oneshot::channel();
@@ -197,45 +197,45 @@ impl Client {
                 answer,
             })
             .map_err(|error| match error {
-                mpsc::error::TrySendError::Full(_command) => Error::Busy,
-                mpsc::error::TrySendError::Closed(_command) => Error::Closed,
+                mpsc::error::TrySendError::Full(_command) => CdpError::Busy,
+                mpsc::error::TrySendError::Closed(_command) => CdpError::Closed,
             })?;
         let outcome = tokio::time::timeout(COMMAND_TIMEOUT, result)
             .await
-            .map_err(|source| Error::TimedOut {
+            .map_err(|source| CdpError::TimedOut {
                 effect: delivery(&delivered),
                 source,
             })?
-            .map_err(|_closed| Error::Disconnected {
+            .map_err(|_closed| CdpError::Disconnected {
                 effect: delivery(&delivered),
             })?;
         let reply = match outcome {
-            Err(Error::Closed) => {
-                return Err(Error::Disconnected {
+            Err(CdpError::Closed) => {
+                return Err(CdpError::Disconnected {
                     effect: delivery(&delivered),
                 });
             }
             result => result?,
         };
-        reply.decode().map_err(Error::Json)
+        reply.decode().map_err(CdpError::Json)
     }
 
     /// Close the connection before profile cleanup; joining retains the driver's original error.
     ///
     /// # Errors
     /// The engine sees socket/protocol/task failure, never an invented successful close.
-    pub(crate) async fn shutdown(self) -> Result<(), Error> {
+    pub(crate) async fn shutdown(self) -> Result<(), CdpError> {
         self.shared.cancel.cancel();
         let driver = self.shared.driver.lock().await.take();
         match driver {
             Some(mut driver) => match tokio::time::timeout(SHUTDOWN_TIMEOUT, &mut driver).await {
-                Ok(result) => result.map_err(Error::Task)?,
+                Ok(result) => result.map_err(CdpError::Task)?,
                 Err(source) => {
                     // This task owns only this CDP socket/pending map. Aborting
                     // it cannot signal any unrelated process or connection.
                     driver.abort();
                     let _stopped = driver.await;
-                    Err(Error::TimedOut {
+                    Err(CdpError::TimedOut {
                         effect: BrowserEffect::Uncertain,
                         source,
                     })
@@ -256,7 +256,7 @@ async fn run(
     mut commands: mpsc::Receiver<Command>,
     events: mpsc::Sender<Event>,
     cancel: CancellationToken,
-) -> Result<(), Error> {
+) -> Result<(), CdpError> {
     let mut pending: BTreeMap<CommandId, Pending> = BTreeMap::new();
     let result = loop {
         pending.retain(|_, waiting| !waiting.answer.is_closed());
@@ -265,11 +265,11 @@ async fn run(
             command=commands.recv()=> {
                 let Some(command)=command else {break Ok(())};
                 if command.answer.is_closed() {continue;}
-                if pending.len()>=PENDING_CAPACITY {let _gone=command.answer.send(Err(Error::Busy));continue;}
+                if pending.len()>=PENDING_CAPACITY {let _gone=command.answer.send(Err(CdpError::Busy));continue;}
                 let _old=pending.insert(command.id,Pending{answer:command.answer});
                 command.delivered.store(true,Ordering::Release);
                 match tokio::time::timeout(WRITE_TIMEOUT,socket.send(Message::Text(command.text.into()))).await {
-                    Ok(Ok(()))=>{},Ok(Err(error))=>break Err(Error::Socket(error)),Err(source)=>break Err(Error::TimedOut{effect:BrowserEffect::Uncertain,source}),
+                    Ok(Ok(()))=>{},Ok(Err(error))=>break Err(CdpError::Socket(error)),Err(source)=>break Err(CdpError::TimedOut{effect:BrowserEffect::Uncertain,source}),
                 }
             },
             message=socket.next()=> {
@@ -278,26 +278,26 @@ async fn run(
                     Some(Ok(Message::Ping(_)))=>{
                         match tokio::time::timeout(WRITE_TIMEOUT,socket.flush()).await {
                             Ok(Ok(()))=>continue,
-                            Ok(Err(error))=>break Err(Error::Socket(error)),
-                            Err(source)=>break Err(Error::TimedOut{effect:BrowserEffect::NotDelivered,source}),
+                            Ok(Err(error))=>break Err(CdpError::Socket(error)),
+                            Err(source)=>break Err(CdpError::TimedOut{effect:BrowserEffect::NotDelivered,source}),
                         }
                     },
                     Some(Ok(Message::Pong(_)))=>continue,
                     Some(Ok(Message::Close(_)))|None=>break Ok(()),
-                    Some(Ok(Message::Binary(_)|Message::Frame(_)))=>break Err(Error::Protocol),
-                    Some(Err(error))=>break Err(Error::Socket(error)),
+                    Some(Ok(Message::Binary(_)|Message::Frame(_)))=>break Err(CdpError::Protocol),
+                    Some(Err(error))=>break Err(CdpError::Socket(error)),
                 };
                 match wire::incoming(&text) {
-                    Ok(Incoming::Response{id,result})=>if let Some(waiting)=pending.remove(&id) {let _gone=waiting.answer.send(result.map_err(Error::Remote));},
-                    Ok(Incoming::Event(event))=>if events.try_send(event).is_err() {break Err(Error::Busy);},
+                    Ok(Incoming::Response{id,result})=>if let Some(waiting)=pending.remove(&id) {let _gone=waiting.answer.send(result.map_err(CdpError::Remote));},
+                    Ok(Incoming::Event(event))=>if events.try_send(event).is_err() {break Err(CdpError::Busy);},
                     Ok(Incoming::UnknownEvent)=>{},
-                    Err(error)=>break Err(Error::Decode(error)),
+                    Err(error)=>break Err(CdpError::Decode(error)),
                 }
             },
         }
     };
     for waiting in pending.into_values() {
-        let _gone = waiting.answer.send(Err(Error::Closed));
+        let _gone = waiting.answer.send(Err(CdpError::Closed));
     }
     // Dropping this owned TCP stream is the hard close; a blocked peer cannot
     // make shutdown wait for another application-level closing handshake.
