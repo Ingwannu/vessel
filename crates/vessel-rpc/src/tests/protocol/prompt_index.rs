@@ -1,12 +1,14 @@
 //! Raw callers cannot bypass pending admission, including fleet envelopes.
 use super::*;
-use vessel_proto::prompt_index::ListSessionPrompts;
+use vessel_proto::prompt_index::{ListSessionPrompts, PROMPT_INDEX_PROTOCOL};
 use vessel_proto::{Deliver, Forward, Origin, OriginBy, RelayCall};
 
 #[tokio::test]
 async fn pending_prompt_index_is_refused_before_dispatch_and_connection_survives() {
-    let (mut client, mut served, target) =
-        raw_client_with_node(vessel_proto::PROTOCOL_VERSION.get()).await;
+    let negotiated = PROMPT_INDEX_PROTOCOL.map_or(vessel_proto::PROTOCOL_VERSION, |version| {
+        ProtocolVersion::new(version.get().checked_sub(1).unwrap())
+    });
+    let (mut client, mut served, target) = raw_client_with_node(negotiated.get()).await;
     let request = ListSessionPrompts {
         session: session(1),
         after: None,
@@ -43,10 +45,13 @@ async fn pending_prompt_index_is_refused_before_dispatch_and_connection_survives
         let method = call.method();
         let error = refusal(&call_raw(&mut client, u64::try_from(index).unwrap(), call).await);
         assert_eq!(error.code, ErrorCode::Unsupported);
-        assert_eq!(
-            error.message,
-            CallError::UnassignedProtocol { method }.to_string()
-        );
+        match PROMPT_INDEX_PROTOCOL {
+            None => assert_eq!(
+                error.message,
+                CallError::UnassignedProtocol { method }.to_string()
+            ),
+            Some(needs) => assert!(error.message.contains(&format!("needs protocol {needs}"))),
+        }
     }
     let text = call_raw(&mut client, 5, GetNode.into_call()).await;
     assert!(text.contains(r#""outcome":{"ok""#));

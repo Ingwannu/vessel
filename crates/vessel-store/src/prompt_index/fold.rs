@@ -113,7 +113,7 @@ impl Index {
     pub(super) fn page(
         mut self,
         first: EventSeq,
-        request: ListSessionPrompts,
+        request: &ListSessionPrompts,
     ) -> Result<PromptIndexPage, StoreError> {
         self.flush()?;
         let epoch = PromptIndexEpoch::new(first, self.rewound)?;

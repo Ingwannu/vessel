@@ -16,7 +16,7 @@ pub(crate) const MAX_READS: usize = 2;
 impl Reader {
     pub(crate) fn prompt_index(
         &self,
-        request: ListSessionPrompts,
+        request: &ListSessionPrompts,
     ) -> Result<PromptIndexPage, StoreError> {
         self.with(|connection| {
             let transaction = connection.unchecked_transaction()?;

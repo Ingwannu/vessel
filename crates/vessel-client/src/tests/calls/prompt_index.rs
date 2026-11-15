@@ -1,11 +1,14 @@
 //! Pending prompt reads are refused before any direct or routed frame is sent.
 use super::*;
-use vessel_proto::prompt_index::ListSessionPrompts;
+use vessel_proto::prompt_index::{ListSessionPrompts, PROMPT_INDEX_PROTOCOL};
 use vessel_proto::{Deliver, Forward, Method, Origin, OriginBy, RelayCall, Request as _};
 use vessel_rpc::{CallError, UnaryCall};
 
 #[tokio::test]
 async fn pending_prompt_index_never_enters_a_direct_or_enveloped_transport() {
+    let negotiated = PROMPT_INDEX_PROTOCOL.map_or(vessel_proto::PROTOCOL_VERSION, |version| {
+        ProtocolVersion::new(version.get().checked_sub(1).unwrap())
+    });
     let hop = node();
     let target = hop.id;
     let (client_end, mut node_end) = vessel_rpc::memory::pair(NonZeroUsize::new(4).unwrap());
@@ -14,7 +17,7 @@ async fn pending_prompt_index_never_enters_a_direct_or_enveloped_transport() {
         node_end
             .send(
                 serde_json::to_string(&ServerFrame::Welcome(Welcome {
-                    protocol: vessel_proto::PROTOCOL_VERSION,
+                    protocol: negotiated,
                     node: hop,
                 }))
                 .unwrap(),
@@ -32,7 +35,7 @@ async fn pending_prompt_index_never_enters_a_direct_or_enveloped_transport() {
         epoch: None,
         limit: Default::default(),
     };
-    assert_eq!(ListSessionPrompts::METHOD.since(), None);
+    assert_eq!(ListSessionPrompts::METHOD.since(), PROMPT_INDEX_PROTOCOL);
     assert_eq!(
         ListSessionPrompts::METHOD.scope(),
         Some(vessel_proto::Scope::Read)
@@ -41,18 +44,16 @@ async fn pending_prompt_index_never_enters_a_direct_or_enveloped_transport() {
         ListSessionPrompts::METHOD.shape(),
         vessel_proto::MethodShape::Unary
     );
-    assert!(matches!(
-        client.call(request.clone()).await,
-        Err(CallError::UnassignedProtocol {
-            method: Method::ListSessionPrompts
-        })
-    ));
-    assert!(matches!(
-        client.call_on(target, request.clone()).await,
-        Err(CallError::UnassignedProtocol {
-            method: Method::Forward
-        })
-    ));
+    refused(
+        client.call(request.clone()).await.unwrap_err(),
+        Method::ListSessionPrompts,
+        negotiated,
+    );
+    refused(
+        client.call_on(target, request.clone()).await.unwrap_err(),
+        Method::Forward,
+        negotiated,
+    );
     let origin = Origin {
         node: target,
         by: OriginBy::Owner,
@@ -77,16 +78,32 @@ async fn pending_prompt_index_never_enters_a_direct_or_enveloped_transport() {
         .into_call(),
     ] {
         let expected = call.method();
-        assert_eq!(call.since(), None);
+        assert_eq!(call.since(), PROMPT_INDEX_PROTOCOL);
         let error = client
             .call_any(UnaryCall::try_from(call).unwrap())
             .await
             .unwrap_err();
-        assert!(matches!(error, CallError::UnassignedProtocol { method } if method == expected));
+        refused(error, expected, negotiated);
     }
     drop(client);
     assert!(
         task.await.unwrap().is_none(),
         "no request followed the welcome"
     );
+}
+
+// Assignment changes the assertion from pending refusal to old-peer refusal;
+// the same no-frame evidence remains required after the integrator assigns a number.
+fn refused(error: CallError, expected: Method, negotiated: ProtocolVersion) {
+    match PROMPT_INDEX_PROTOCOL {
+        None => assert_eq!(error, CallError::UnassignedProtocol { method: expected }),
+        Some(needs) => assert_eq!(
+            error,
+            CallError::NotInProtocol {
+                method: expected,
+                needs,
+                negotiated
+            }
+        ),
+    }
 }

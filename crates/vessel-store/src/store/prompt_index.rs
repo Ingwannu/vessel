@@ -14,7 +14,7 @@ impl Store {
         &self,
         request: ListSessionPrompts,
     ) -> Result<PromptIndexPage, StoreError> {
-        self.prompt_read(move |reader| reader.prompt_index(request))
+        self.prompt_read(move |reader| reader.prompt_index(&request))
             .await
     }
 

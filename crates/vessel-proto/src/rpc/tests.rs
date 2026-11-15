@@ -565,6 +565,7 @@ const FORWARDABLE: &[&str] = &[
     "prompt.update",
     "prompt.delete",
     "session.search",
+    "session.prompts",
     "session.park",
     "session.wake",
     "session.fork",

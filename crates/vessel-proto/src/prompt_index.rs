@@ -220,7 +220,7 @@ impl<'de> Deserialize<'de> for PromptIndexEpoch {
     }
 }
 
-/// Proposed Read request; registration waits for the shared pending table.
+/// Metadata-only Read request, admitted through the one shared method table.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ListSessionPrompts {

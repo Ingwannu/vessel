@@ -84,7 +84,7 @@ fn chunked_history_steering_and_rewind_produce_only_visible_prompts() {
     ] {
         index.take(&event).unwrap();
     }
-    let page = index.page(EventSeq::new(0), request()).unwrap();
+    let page = index.page(EventSeq::new(0), &request()).unwrap();
     assert_eq!(
         page.entries()
             .iter()
@@ -112,7 +112,7 @@ fn chunks_after_a_turn_start_extend_its_one_prompt_instead_of_duplicating_it() {
             },
         ))
         .unwrap();
-    let page = index.page(EventSeq::ZERO, request()).unwrap();
+    let page = index.page(EventSeq::ZERO, &request()).unwrap();
     assert_eq!(page.entries().len(), 1);
     assert_eq!(page.entries()[0].seq, EventSeq::ZERO);
     assert_eq!(page.entries()[0].preview.as_str(), "한글");
@@ -136,7 +136,7 @@ fn work_and_metadata_budgets_refuse_without_silently_omitting_prompts() {
         index.take(&entry).unwrap();
     }
     assert!(matches!(
-        index.page(EventSeq::ZERO, request()),
+        index.page(EventSeq::ZERO, &request()),
         Err(StoreError::PromptIndexPrompts)
     ));
 }
@@ -148,7 +148,7 @@ fn append_preserves_revision_and_cursor_while_rewind_or_retention_refuses_it() {
     first.take(&prompt(1, "second")).unwrap();
     let mut ask = request();
     ask.limit = PromptIndexLimit::new(1).unwrap();
-    let page = first.page(EventSeq::new(0), ask.clone()).unwrap();
+    let page = first.page(EventSeq::new(0), &ask).unwrap();
     assert_eq!(page.next(), Some(EventSeq::new(0)));
     ask.after = page.next();
     ask.epoch = Some(page.epoch());
@@ -159,11 +159,11 @@ fn append_preserves_revision_and_cursor_while_rewind_or_retention_refuses_it() {
         }
         index
     };
-    let continued = build().page(EventSeq::new(0), ask.clone()).unwrap();
+    let continued = build().page(EventSeq::new(0), &ask).unwrap();
     assert_eq!(continued.entries().first().unwrap().seq, EventSeq::new(1));
     assert_eq!(continued.epoch(), page.epoch());
     assert!(matches!(
-        build().page(EventSeq::new(1), ask.clone()),
+        build().page(EventSeq::new(1), &ask),
         Err(StoreError::PromptIndexChanged)
     ));
     let mut rewound = build();
@@ -178,7 +178,7 @@ fn append_preserves_revision_and_cursor_while_rewind_or_retention_refuses_it() {
         ))
         .unwrap();
     assert!(matches!(
-        rewound.page(EventSeq::new(0), ask),
+        rewound.page(EventSeq::new(0), &ask),
         Err(StoreError::PromptIndexChanged)
     ));
 }
