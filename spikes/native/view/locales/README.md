@@ -141,3 +141,24 @@ Plugin text belongs to the plugin's resolver/namespace. A contribution receives
 the validated active Locale (serialized to its tag only at the plugin boundary)
 and refreshes its own prepared labels at a language event;
 it never loads resources or arbitrary keys into the core Fluent registry.
+
+## Installation-owned resources
+
+These folders belong to the shipped core catalog. Plugin contributions keep
+separate bounded resources and use view's shared private Fluent configuration
+and pure AST contract; never load installation keys into the core Translator.
+The core's shipped English/Korean completeness gate stays mandatory. A plugin's
+English source is mandatory and its other translations may be partial, with
+per-message English fallback. Its owner refreshes prepared text on language or
+contribution changes and disposes installation caches/subscriptions together.
+
+`NUMBER` needs a typed number variable, bounded numeric literal or another
+`NUMBER` result; numeric strings are not parsed. A term parameter used as a
+number must be bound to a numeric literal. `DATETIME` always receives a typed
+caller date; a resource literal cannot supply a term's Date parameter or encode
+the runtime's private Date representation. Invalid operands/bindings fail the
+same AST gate used by generation and installation resources.
+
+Read a typed Date through `DATETIME($date)` each time it is used; direct
+`{ $date }` interpolation is rejected. A grammar function can consume the
+formatted result, for example `PARTICLE(DATETIME($date), "object")`.

@@ -36,14 +36,18 @@ mod formats;
 mod grammar;
 mod language;
 mod number;
+mod resolution;
+pub(crate) mod resources;
 mod runtime;
 
 use fluent_bundle::FluentArgs;
 
 pub use grammar::Particle;
 pub use language::{LanguagePreference, LanguageTag, Locale, resolve_language, resolve_languages};
-use runtime::{Bundle, Embedded, resolve};
-pub use runtime::{FormatError, InitError, Translator};
+use resolution::{Bundle, resolve};
+pub use resolution::{FormatError, InitError};
+use runtime::Embedded;
+pub use runtime::Translator;
 
 /// A checked numeric message argument. Counts are exact `u32`; decimal values
 /// use Fluent's floating-point representation and are not financial arithmetic.
@@ -79,7 +83,7 @@ impl Number {
         Ok(Self(value.into()))
     }
 
-    fn fluent(self) -> fluent_bundle::FluentValue<'static> {
+    pub(crate) fn fluent(self) -> fluent_bundle::FluentValue<'static> {
         self.0.into()
     }
 }
@@ -109,7 +113,7 @@ pub enum Date {
 }
 
 impl Date {
-    fn fluent(&self) -> Result<String, FormatError> {
+    pub(crate) fn fluent(&self) -> Result<String, FormatError> {
         serde_json::to_string(self)
             .map_err(|error| FormatError::DateEncoding(std::sync::Arc::new(error)))
     }

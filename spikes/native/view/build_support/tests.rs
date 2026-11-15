@@ -279,3 +279,37 @@ fn resources_must_be_regular_files() {
         Some("en: translation resources must be regular files, not links or directories")
     );
 }
+
+#[test]
+fn callback_operand_and_local_binding_failures_are_rejected_by_the_host_gate() {
+    let bad = language(
+        "en",
+        "# Own name.\nmeta-name = English\n# Bad operand.\nmeta-welcome = { NUMBER(\"text\") }",
+    )
+    .unwrap_err();
+    assert_eq!(
+        bad.to_string(),
+        "en/meta.ftl: NUMBER requires a numeric literal, typed number variable, or NUMBER result"
+    );
+    let ko = language("ko", "meta-name = 한국어\nmeta-welcome = 환영합니다.").unwrap();
+    for (term, call, expected) in [
+        (
+            "-bad = { NUMBER($count) }",
+            "{ -bad(count: \"text\") }",
+            "en: -bad has an incompatible local value for $count: Number",
+        ),
+        (
+            "-bad = { DATETIME($date) }",
+            "{ -bad(date: \"text\") }",
+            "en: -bad has an incompatible local value for $date: CallerDate",
+        ),
+    ] {
+        let en = language("en", &format!("# Own name.\nmeta-name = English\n# Bad bound argument.\nmeta-welcome = {call}\n{term}")).unwrap();
+        assert_eq!(
+            validate(&[en, ko.clone()]).unwrap_err().to_string(),
+            expected
+        );
+    }
+    let en = language("en", "# Own name.\nmeta-name = English\n# Valid numeric binding.\nmeta-welcome = { -count(count: 2) }\n-count = { NUMBER($count) }").unwrap();
+    assert!(validate(&[en, ko]).is_ok());
+}

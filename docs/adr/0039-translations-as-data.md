@@ -426,3 +426,26 @@ The final standalone `vessel-app-view` check for
 completed with exit zero, with frozen compiled-source hashes unchanged.
 This closes the pending-target checkpoint above; review of the model is
 still pending and no broader platform/runtime acceptance is inferred.
+
+
+### Installation-owned resource reuse (follow-on)
+
+The F6 boundary reuses crate-private generic concurrent bundles for owned or
+Arc-held resources and a pure AST/reference/variable contract source shared by
+host tooling and view tests. The static English-generated core API remains
+closed. Core English/Korean completeness remains host policy; installation
+English is mandatory with partial other-language fallback owned by its consumer.
+No dependency, I/O or locale RPC was added. Standard NUMBER/DATETIME/PARTICLE
+names and folder-owned formatting data remain the decision above.
+
+The source gate additionally checks callback operand kinds, named term bindings
+and Date reads through DATETIME: upstream callback Error alone does not produce
+a resolver diagnostic. Tests retain valid nested Date/particle composition and
+lexical text bindings. Exact `7f94630e1` passes view all-target Clippy and 924
+view/host tests; the generated API is independently byte-identical to the old
+host generator on the same corpus (98,908 bytes, SHA-256
+`5407f5c425d160b7b1125c4a4eaa97cd70e6e7fc51cd3788f4083d83c645744d`).
+This is narrow source/library evidence. The consumer's whole native gate,
+plugin cache/language-event/disposal behavior, current platform execution and
+new installed-size/startup measurements remain separate and unverified; the
+earlier release/wasm measurements are not re-labelled as current plugin proof.

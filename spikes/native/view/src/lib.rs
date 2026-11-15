@@ -26,6 +26,10 @@ pub mod effort;
 pub mod extras;
 pub mod files;
 pub mod fork;
+// Compile the pure host/target seam in view tests before its plugin consumer lands.
+#[cfg(test)]
+#[path = "../fluent_contract/mod.rs"]
+mod fluent_contract;
 pub mod idle_release;
 mod links;
 pub mod machine_book;

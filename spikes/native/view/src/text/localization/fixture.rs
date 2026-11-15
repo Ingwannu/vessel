@@ -1,6 +1,6 @@
 //! A partial language is test data, never a shipped chooser entry. Read the
 //! fixture root through the same resource constructor as the production path.
-use super::runtime::{self, Bundle};
+use super::{resolution::Bundle, runtime};
 
 pub(super) fn source(tag: &str) -> String {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/locales");

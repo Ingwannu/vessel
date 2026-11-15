@@ -100,7 +100,7 @@ fn validate_patterns(english: &Language) -> Result<(), BuildError> {
         ),
     ] {
         let shape = super::validate::expanded(english, key)?;
-        for (name, kind) in &shape.variables {
+        for (name, kind) in shape.variables() {
             let valid_type = match name.as_str() {
                 "zone" => *kind == Kind::Text,
                 "hour-cycle" | "period" => matches!(kind, Kind::Choice(_)),

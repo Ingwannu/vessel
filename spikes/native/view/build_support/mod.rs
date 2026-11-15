@@ -2,12 +2,13 @@
 //! coverage example. Only this layer reads files; none of it ships in view.
 
 mod catalog;
+#[path = "../fluent_contract/mod.rs"]
+mod contract;
 mod format_rules;
 mod generate;
-mod pattern;
 mod validate;
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use thiserror::Error;
 
@@ -36,29 +37,7 @@ fn source(file: impl Into<String>, detail: impl Into<String>) -> BuildError {
     }
 }
 
-/// An English argument's generated type; translations never define the API.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum Kind {
-    Text,
-    Number,
-    Date,
-    Choice(BTreeSet<String>),
-}
-
-/// A reference may bind a term's parameters locally.
-#[derive(Debug, Clone)]
-pub(crate) struct Reference {
-    pub(crate) key: String,
-    pub(crate) bound: BTreeSet<String>,
-}
-
-/// The transitive variable contract of one message or term.
-#[derive(Debug, Clone, Default)]
-pub(crate) struct Shape {
-    pub(crate) conflicts: BTreeSet<String>,
-    pub(crate) variables: BTreeMap<String, Kind>,
-    pub(crate) references: Vec<Reference>,
-}
+pub(crate) use contract::{Contract, Kind, Shape};
 
 /// One parsed, owned message; kept small so tests can construct bad catalogs.
 #[derive(Debug, Clone)]
