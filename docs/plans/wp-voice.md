@@ -482,3 +482,21 @@ and refuse its next block. New source and fakes have not executed yet.
 - Choice: generate three quiet sine notes with smooth envelopes at startup,24kHz PCM16 mono for exactly the existing duration, retaining one immutable Bytes buffer for repeated packets.
 - Why: independent synthesis needs no asset licence/download/decoder and travels through exactly the same playback cancellation/reference path as speech.
 - Difference: the melody/waveform is newly authored, while purpose, duration and wait/repeat policy match the reference. Perceptual loudness/taste and actual device quality remain unverified. No separate speaker/engine or cue timer is activated.
+
+### Reuse the GPUI power boundary at controller integration
+
+The repository had no voice keep-awake owner, but the already-selected
+gpui-pre0.3.10 has App::prevent_idle_sleep (app.rs1656) returning a drop-bound
+ActivityGuard and App::on_system_sleep (1680) with multiple subscriptions.
+The Linux platform uses the existing desktop portal Suspend inhibitor
+(platform.rs600/1663); Windows uses a retained PowerCreateRequest/SystemRequired
+request (platform.rs145/577). No new power crate, D-Bus client, unsafe code,
+command or global callback replacement is needed in Vessel.
+
+Controller integration must own both pending acquisition tasks and active
+guards: local Stop drops/cancels them before remote awaits; a delayed or stale
+acquisition releases its guard without restarting capture. Sleep notifications
+perform only immediate local fencing/cleanup and leave remote uncertainty
+visible. GPUI exposes fake idle-sleep delay/failure/count controls for these
+race tests. None of this is wired or verified on an OS yet, so keep-awake
+parity remains explicitly incomplete rather than an implied audio-engine feature.

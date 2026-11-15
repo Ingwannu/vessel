@@ -223,7 +223,7 @@ fn stopped_native_constructor_never_discovers_or_opens_a_physical_device() {
 }
 
 #[tokio::test]
-async fn generated_cue_uses_the_speech_callback_reference_and_physical_receipt_path() {
+async fn generated_cue_uses_the_speech_callback_reference_and_drain_receipt_path() {
     let mut fixture = setup();
     let cue = crate::audio::playback::cue::Cue::new().unwrap();
     let played = fixture.streams.submit(cue.packet().unwrap()).unwrap();
