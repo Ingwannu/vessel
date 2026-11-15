@@ -500,6 +500,17 @@ app_copy() {
     fi
 }
 
+# The modes the published sets have always had (dirs 0775, files 0664,
+# programs 0775), set here because the compile step's files come back with
+# whatever mode the transfer gave them (the remote gate's are 0500).
+stage_modes() {
+    local dir="$1"
+    shift
+    find "$dir" -type d -exec chmod 0775 {} +
+    find "$dir" -type f -exec chmod 0664 {} +
+    [ $# -eq 0 ] || chmod 0775 "$@"
+}
+
 # The symbols of a label, never in the dist folder: kept per label in the
 # symbols directory with the shipped executable's SHA-256 beside them.
 symbols_dir() {
@@ -524,7 +535,7 @@ package_windows() {
         for program in vessel vesseld; do
             check_dlls "$built/bin/$program.exe"
             cp "$built/bin/$program.exe" "$dir/bin/$program.exe"
-            cp "$built/bin/$program.exe" "$out/$name-$program.exe"
+            install -m 0775 "$built/bin/$program.exe" "$out/$name-$program.exe"
             gzip_copy "$out/$name-$program.exe"
         done
         companions=(-DCOMPANIONS=1)
@@ -532,8 +543,11 @@ package_windows() {
     cp "$repo/LICENSE.md" "$dir/LICENSE.md"
     cp -r "$from/licenses" "$dir/licenses"
     readme "$here/windows/README.txt" | sed 's/$/\r/' >"$dir/README.txt"
+    local programs=("$dir/Vessel.exe")
+    [ "$package_node" = 0 ] || programs+=("$dir/bin/vessel.exe" "$dir/bin/vesseld.exe")
+    stage_modes "$dir" "${programs[@]}"
     (cd "$stage/windows" && TZ=UTC zip -q -X -r "$out/$name.zip" Vessel)
-    cp "$exe" "$out/$name.exe"
+    install -m 0775 "$exe" "$out/$name.exe"
     gzip_copy "$out/$name.exe"
     makensis -V2 -DLABEL="$label" -DSTAGE="$dir" -DICONS="$from/icons" "${companions[@]}" \
         -DOUTFILE="$out/$name-setup.exe" "$here/windows/installer.nsi"
@@ -543,7 +557,7 @@ package_windows() {
     symbols="$(symbols_dir)"
     mkdir -p "$symbols"
     local pdb="${app_bin//-/_}.pdb"
-    cp "$built/$pdb" "$symbols/"
+    install -m 0664 "$built/$pdb" "$symbols/$pdb"
     (cd "$symbols" && sha256sum "$pdb" >SHA256SUMS)
     printf '%s  %s\n' "$(sha256sum <"$exe" | cut -d' ' -f1)" "$name.exe" >>"$symbols/SHA256SUMS"
     echo "windows-x64: $pdb kept in the symbols directory under $label"
@@ -580,6 +594,9 @@ package_linux() {
         cp "$from/icons/tile-$size.png" "$dir/icons/hicolor/${size}x${size}/apps/vessel-app.png"
     done
     cp "$here/linux/vessel-app.desktop.in" "$here/linux/install-desktop-entry.sh" "$dir/"
+    local programs=("$dir/vessel-app" "$dir/install-desktop-entry.sh")
+    [ "$package_node" = 0 ] || programs+=("$dir/bin/vessel" "$dir/bin/vesseld")
+    stage_modes "$dir" "${programs[@]}"
     tar --sort=name --owner=0 --group=0 --numeric-owner --mtime='@0' -C "$stage/linux" -czf "$out/$name.tar.gz" "$name"
     cp "$bin" "$out/$name"
     chmod 0755 "$out/$name"
@@ -589,7 +606,7 @@ package_linux() {
     local symbols
     symbols="$(symbols_dir)"
     mkdir -p "$symbols"
-    cp "$built/$app_bin.debug" "$symbols/"
+    install -m 0775 "$built/$app_bin.debug" "$symbols/$app_bin.debug"
     (cd "$symbols" && sha256sum "$app_bin.debug" >SHA256SUMS-linux)
     printf '%s  %s\n' "$(sha256sum <"$bin" | cut -d' ' -f1)" "$name" >>"$symbols/SHA256SUMS-linux"
     echo "linux-x64: $app_bin.debug kept in the symbols directory under $label"
