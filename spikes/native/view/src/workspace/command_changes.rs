@@ -26,12 +26,13 @@
 //! - Cost: a command moved within its list reads as removed and added,
 //!   which it is to the digest.
 
+use super::allocation_changes::{self, AllocationLine};
 use super::terminal_changes::{self, TerminalLine};
 use chrono::{DateTime, Utc};
 use vessel_proto::scripts::ScriptEntry;
 use vessel_proto::workspace::{
-    ApprovedCommands, CommandsDigest, FileTerminal, ProjectCommand, ProjectCommands, ServicePorts,
-    ServicePortsView,
+    ApprovedCommands, CommandSet, CommandsDigest, FileTerminal, ProjectCommand, ProjectCommands,
+    ServicePorts, ServicePortsView,
 };
 
 /// A set of commands as the node lists it, borrowed from its answer.
@@ -370,59 +371,76 @@ pub enum Compared {
         scripts: Vec<ScriptLine>,
         /// Automatic terminal definitions in executable file order.
         terminals: Vec<TerminalLine>,
-        /// Earlier executable fields this card cannot display completely.
+        /// Every allocation choice, including lower-precedence choices and removal.
+        allocation: AllocationLine,
+        /// Earlier executable fields whose approval is not enabled.
         unshown: Option<ApprovalRefusal>,
     },
     /// No approved set is known to compare with.
     None,
 }
 
-fn against(
-    asked: &Listed<'_>,
-    setup: &[ProjectCommand],
-    teardown: &[ProjectCommand],
-    scripts: &[ScriptEntry],
-    terminals: &[FileTerminal],
-    basis: ComparedWith,
+struct Basis<'a> {
+    source: ComparedWith,
+    setup: &'a [ProjectCommand],
+    teardown: &'a [ProjectCommand],
+    scripts: &'a [ScriptEntry],
+    terminals: &'a [FileTerminal],
+    allocation: Option<ServicePortsView<'a>>,
     unshown: Option<ApprovalRefusal>,
-) -> Compared {
+}
+
+fn against(asked: &Listed<'_>, before: Basis<'_>) -> Compared {
     Compared::Changed {
-        against: basis,
-        setup: compare_commands(setup, asked.setup),
-        teardown: compare_commands(teardown, asked.teardown),
-        scripts: compare_scripts(scripts, asked.scripts),
-        terminals: terminal_changes::compare(terminals, asked.terminals),
-        unshown,
+        against: before.source,
+        setup: compare_commands(before.setup, asked.setup),
+        teardown: compare_commands(before.teardown, asked.teardown),
+        scripts: compare_scripts(before.scripts, asked.scripts),
+        terminals: terminal_changes::compare(before.terminals, asked.terminals),
+        allocation: allocation_changes::compare(before.allocation, asked.service_ports),
+        unshown: before.unshown,
     }
 }
 
-/// The set `asked` compared with the set last approved, or, from a node
-/// that does not say, with the folder's (`folder`, `None` when it was not
-/// read or could not be).
+/// Compare every executable field with the last approval, or the approved folder
+/// on older nodes. A field added to CommandSet must break this projection.
 #[must_use]
 pub fn compare_approved(asked: &Listed<'_>, folder: Option<&ProjectCommands>) -> Compared {
     if let Some(last) = asked.last_approved {
+        let CommandSet {
+            setup,
+            teardown,
+            scripts,
+            terminals,
+            service_ports,
+        } = &last.commands;
         return against(
             asked,
-            &last.commands.setup,
-            &last.commands.teardown,
-            &last.commands.scripts,
-            &last.commands.terminals,
-            ComparedWith::LastApproved {
-                at: last.approved_at,
+            Basis {
+                source: ComparedWith::LastApproved {
+                    at: last.approved_at,
+                },
+                setup,
+                teardown,
+                scripts,
+                terminals,
+                allocation: service_ports.as_ref().map(allocation_view),
+                unshown: asked.approval().err(),
             },
-            asked.approval().err(),
         );
     }
     match folder.and_then(Listed::of) {
         Some(folder) if folder.approved && folder.digest != asked.digest => against(
             asked,
-            folder.setup,
-            folder.teardown,
-            folder.scripts,
-            folder.terminals,
-            ComparedWith::Folder,
-            folder.approval().err(),
+            Basis {
+                source: ComparedWith::Folder,
+                setup: folder.setup,
+                teardown: folder.teardown,
+                scripts: folder.scripts,
+                terminals: folder.terminals,
+                allocation: folder.service_ports,
+                unshown: folder.approval().err(),
+            },
         ),
         Some(_) | None => Compared::None,
     }

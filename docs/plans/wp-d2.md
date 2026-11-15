@@ -200,3 +200,25 @@ its revision, then proves the old callback is refused. This is a UI event fence;
 it does not turn the legacy cached port scan into a service lifetime attestation
 or authorize the isolated in-app Preview profile. The new node runtime's exact
 workspace/lifetime/scheme contract remains a separate dependency.
+
+## Allocation display and current public-exposure boundary
+
+Every present allocation block now renders its inclusive range and exact approved
+port-program path, with absent choices explicit. Current, previous, removed and
+approved-folder fallback values are retained even with zero services. The UI
+compares both choices independently of runtime precedence. Approval remains a typed
+refusal pending the complete feature's negotiated support; showing configuration
+does not allocate a port or establish a listener. No value is passed to an opener.
+
+Coordinator ruling relayed by the workspace runtime owner: service proxy defaults
+to loopback. External publication requires explicit per-service Admin opt-in and
+must warn, with the exact workspace/script, that anyone with the URL can access it
+without Vessel authentication. A wildcard node listen must never turn publication
+on automatically. The new node field/API is not ready, so the app adds no guessed
+exposure RPC, preference or optimistic public state. The private in-app Preview
+uses attested backend origin and remains separate from this proxy.
+
+App compilation follows the shared B0 line. The temporary own node runtime merge
+was reverted; the complete node implementation remains in its separate tree. A
+values-only carrier441f71013 is under V3 review and cannot be consumed before source
+pass and integrator adoption. The app's crate tree equals B0's approved root.

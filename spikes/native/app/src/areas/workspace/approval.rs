@@ -9,6 +9,7 @@
 //! Every script of the set is drawn, in full: a set is never offered for
 //! approval with any of it out of view.
 
+mod ports;
 mod terminals;
 
 use vessel_app_kit::theme::radius;
@@ -79,18 +80,20 @@ pub(super) fn render(
     } = *panel;
     let words = shell.words();
     let labels = words.labels();
-    let (setup, teardown, scripts, terminals) = match compared {
+    let (setup, teardown, scripts, terminals, allocation) = match compared {
         Compared::Changed {
             setup,
             teardown,
             scripts,
             terminals,
+            allocation,
             ..
         } => (
             setup.clone(),
             teardown.clone(),
             scripts.clone(),
             terminals.clone(),
+            allocation.clone(),
         ),
         Compared::None => (
             as_listed(asked.setup),
@@ -104,6 +107,10 @@ pub(super) fn render(
                 })
                 .collect(),
             vessel_app_view::workspace::terminal_changes::compare(asked.terminals, asked.terminals),
+            vessel_app_view::workspace::allocation_changes::compare(
+                asked.service_ports,
+                asked.service_ports,
+            ),
         ),
     };
     let mut card = div()
@@ -136,6 +143,7 @@ pub(super) fn render(
     if !terminals.is_empty() {
         card = card.child(terminals::render(shell.words, words, &terminals, tokens));
     }
+    card = card.child(ports::render(shell.words, words, &allocation, tokens));
     let approval = compared.approval(asked);
     if let Err(reason) = approval {
         let message = match reason {

@@ -1243,10 +1243,9 @@ GREEN_500 and existing CircleCheck own success ink/art; no second palette.
 ### Allocation block approval boundary (base 5 adapter)
 
 `command_changes::Listed` projects every `ServicePortsView` field explicitly.
-Until the approval card displays and compares the full allocation block, it
-refuses any current or last-approved block, even with zero named services or
-when the current set removes the old block. The approved-folder comparison
-fallback also retains that refusal. A typed refusal has separate EN/KO
-Fluent copy; it does not enable allocation, helpers or `PROJECT_FILE_KEYS`.
-This keeps an unseen setting out of an approval digest while the native display
-is implemented. Existing terminal refusal and head test cases remain intact.
+The card displays both allocation choices and their current, previous and removed
+values, even with zero named services. The approved-folder fallback preserves the
+same comparison. The typed refusal remains while negotiated approval support is
+pending; displaying declarations does not enable allocation, helpers or
+`PROJECT_FILE_KEYS`, and does not establish an observed listening service.
+Existing refusal cases remain intact.

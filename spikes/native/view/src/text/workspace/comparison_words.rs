@@ -2,6 +2,7 @@
 //! new executable fields acquire complete typed summaries.
 use super::{En, Ko, Local, WorkspaceWords, comparison_lists};
 use crate::localization::{ENGLISH, Locale, Translator};
+use crate::workspace::allocation_changes::AllocationLine;
 use crate::workspace::command_changes::{Compared, ComparedWith};
 use crate::workspace::terminal_changes::TerminalLine;
 
@@ -29,6 +30,7 @@ pub(super) fn en(words: &En, compared: &Compared, local: &Local) -> String {
         teardown,
         scripts,
         terminals,
+        allocation,
         unshown: _,
     } = compared
     else {
@@ -41,6 +43,7 @@ pub(super) fn en(words: &En, compared: &Compared, local: &Local) -> String {
     .into_iter()
     .chain(scripts.iter().map(|line| words.script_part(line)))
     .chain(terminal_part(crate::Lang::En, terminals).map(Some))
+    .chain(allocation_part(crate::Lang::En, allocation).map(Some))
     .flatten()
     .collect();
     let changed = if parts.is_empty() {
@@ -67,6 +70,7 @@ pub(super) fn ko(words: &Ko, compared: &Compared, local: &Local) -> String {
         teardown,
         scripts,
         terminals,
+        allocation,
         unshown: _,
     } = compared
     else {
@@ -80,6 +84,7 @@ pub(super) fn ko(words: &Ko, compared: &Compared, local: &Local) -> String {
     .into_iter()
     .chain(scripts.iter().map(|line| words.script_part(line)))
     .chain(terminal_part(crate::Lang::Ko, terminals).map(Some))
+    .chain(allocation_part(crate::Lang::Ko, allocation).map(Some))
     .flatten()
     .collect();
     let changed = if parts.is_empty() {
@@ -101,4 +106,21 @@ pub(super) fn ko(words: &Ko, compared: &Compared, local: &Local) -> String {
             "프로젝트 폴더에 승인된 세트와 비교(이 머신은 마지막으로 승인된 세트를 알려 주지 않습니다): {changed}."
         ),
     }
+}
+
+fn allocation_part(language: crate::Lang, allocation: &AllocationLine) -> Option<String> {
+    if !allocation.changed() {
+        return None;
+    }
+    let locale = match language {
+        crate::Lang::En => ENGLISH,
+        crate::Lang::Ko => Locale::from_tag("ko").unwrap_or(ENGLISH),
+    };
+    Some(Translator::get(locale).map_or_else(
+        |_invalid_catalog| match language {
+            crate::Lang::En => En.labels().approval_unseen.to_owned(),
+            crate::Lang::Ko => Ko.labels().approval_unseen.to_owned(),
+        },
+        |translator| translator.approval().allocation_changes().to_owned(),
+    ))
 }
