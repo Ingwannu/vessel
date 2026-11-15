@@ -65,6 +65,9 @@ The CLI also provides graceful `vessel node stop` (`node_ctl`, ADR 0064),
 using the existing Admin-scoped RPC, authenticated local identity binding
 (`node_ctl/observe`) and an OS-lock completion event (`lock_wait`) under a
 bounded command deadline.
+Service-file observations (`node_ctl/service_probe`) reuse the installer's
+bounded template decoder (`init/service/matching`); they supply warnings,
+never manager execution or authority inferred from editable file text.
 
 The dependency direction is fixed by ADR 0001; adding an edge means updating
 that ADR and this table, in the same commit. `scripts/check-boundaries.mjs`
@@ -1191,6 +1194,17 @@ dependency (ADR 0075).
 
 ## Native app localization (milestone 12, staged)
 
+### Plugin value boundary (ADR 0079, staged)
+
+`vessel-proto::plugins` owns validated plugin/contribution/method identities,
+captured node/runtime-generation addresses and the small semantic theme
+palette. Its constructors and serde boundary refuse malformed identifiers,
+resource paths masquerading as ids and executable paint content. These
+values do no I/O and add no dependency edge. `PLUGINS` remains unassigned;
+no plugin method is registered and no helper is started by these types.
+Later native registry and supervised node-runtime layers consume this one
+contract rather than defining their own plugin identities.
+
 The separate `spikes/native` workspace keeps UI and I/O out of
 `vessel-app-view`. Its localization build script reads the Fluent source
 catalog, validates translations and generates typed accessors; only embedded
@@ -1624,3 +1638,24 @@ transport closure as well. Dictation, spoken conversation and later resources
 consume that connection accessor rather than creating another ownership key.
 
 Composer catalogs (ADR 0085) use `vessel-proto::composer_commands` for typed draft configuration, command kind and pending protocol projection. Provider-edge conversion belongs to `vessel-agent`; the existing workspace root and option validation remain the node's authority boundary. This adds no crate dependency.
+### Process observation boundary
+
+ADR 0066 defines a runner-issued `ProcessLifetime`: Proc and PTY own its
+revocation; AgentProcess and session/terminal handles pass read-only
+observations to node consumers. A checked `ProcessId` is only an OS value.
+Neither PID equality nor the observation alone proves socket ownership or
+authorizes Preview. Fresh complete inspection and workspace/session policy
+remain at the node boundary. This carrier introduces no dependency
+edge or wire type.
+
+## Transient system-context launch boundary
+
+`vessel-agent::setup` owns AgentSetup separately from the ACP handshake state
+machine and re-exports preserve the existing public path. Its optional
+SystemPromptOverride is a bounded non-serializable instruction value.
+`vessel-harness::system_prompt` owns the transport capability beside launch
+policy; no transport currently advertises support. AgentProcess refuses an
+unsupported override before process spawn, with a typed Unsupported mapping.
+The field does not enter SessionSpec, user messages, argv or environment.
+Reload orchestration and actual native override/restore transports are separate
+work; see docs/plans/provider-transient-context.md. No dependency edge changes.
