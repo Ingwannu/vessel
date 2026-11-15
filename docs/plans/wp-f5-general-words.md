@@ -158,3 +158,20 @@ remote submission (verified command, UID, sleep state and no children); their
 metadata remains in the evidence folder. The already registered 008181b3 run
 keeps its place unchanged. Final component and package candidates include this
 binding correction; b060 is not mislabeled as the final checked source.
+
+## First component result and shared-caller correction
+
+The exact 0e9381266 component build failed before tests ran: Sidebar's
+`row_menu.rs:151` also uses SettingsText.path_copied. The initial call-site
+search was too narrow and deleting that shared field was incorrect. The field
+and its exact original English/Korean values are restored; Sidebar source is
+untouched and remains its owner's migration. General keeps its context-owned
+prepared catalog notice. The compiler's unnecessary qualification warning in
+the test-only second Areas constructor is corrected at the same time.
+
+The original log remains evidence of a real source compilation failure, not a
+passing test run. Its controller submitted no Clippy/wasm/whole gate afterward.
+The earlier 008181b3 run ended with signal 143 while queued; that separate
+infrastructure cancellation has no compiler/test result and is under tool-owner
+investigation. The corrected candidate must pass its own component suite before
+the one package gate and app export can start.

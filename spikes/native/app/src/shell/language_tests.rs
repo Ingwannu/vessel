@@ -50,7 +50,7 @@ impl Shell {
             route: Route::Draft,
             brand: crate::brand::Brand::default(),
             areas: Areas::new(
-                crate::areas::settings::PreparedGeneral::new(
+                areas::settings::PreparedGeneral::new(
                     Translator::get(ENGLISH).unwrap(),
                     &Prefs::default().kept,
                 ),
