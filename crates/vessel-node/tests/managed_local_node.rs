@@ -120,6 +120,47 @@ async fn owned_restart_waits_for_old_exit_and_keep_on_quit_releases_control() {
     }).await.unwrap();
 }
 
+#[tokio::test]
+async fn active_fake_session_is_protected_and_a_drain_deadline_retains_ownership() {
+    vessel_testkit::within(SAFETY_NET, async {
+        use vessel_proto::agents::{AddAgent, AgentDefinition, AgentToAdd};
+        use vessel_proto::{HarnessRef, SessionEvent, SessionMode, SessionSpec, SessionStatus};
+        let root = tempfile::tempdir().unwrap();
+        let mut local = LocalNode::start(launch(root.path(), Path::new(env!("CARGO_BIN_EXE_vesseld")))).await.unwrap();
+        let client = local.client().unwrap().clone();
+        let node = client.node().id;
+        let name = "lifecycle-fixture".parse().unwrap();
+        let _added = client.call(AddAgent {
+            name,
+            agent: AgentToAdd::Command { definition: AgentDefinition {
+                label: None,
+                program: vessel_testkit::Fake::Acp.path().unwrap().to_str().unwrap().parse().unwrap(),
+                args: Vec::new(), env: Vec::new(), inherit: Vec::new(), mcp: Vec::new(),
+            }},
+            replace: false,
+        }).await.unwrap();
+        let spec = SessionSpec::new(HarnessRef::Added("lifecycle-fixture".parse().unwrap()), SessionMode::Structured {
+            model: None, resume: None, options: Vec::new(),
+        }).with_cwd(root.path().to_owned());
+        let session = client.create_session(spec.clone()).await.unwrap();
+        let mut events = client.follow(session.id, vessel_proto::EventSeq::ZERO).await.unwrap();
+        while let Some(event) = events.next().await {
+            if matches!(event.unwrap().event, SessionEvent::Status {status: SessionStatus::Running}) { break; }
+        }
+        assert!(matches!(local.stop(StopPolicy::Protect).await, Err(Error::ActiveSessions(ids)) if ids.contains(&session.id)));
+        assert!(matches!(local.restart(StopPolicy::Protect).await, Err(Error::ActiveSessions(ids)) if ids.contains(&session.id)));
+        assert_eq!(client.node_info().await.unwrap().state, NodeState::Serving);
+        assert!(matches!(local.stop(StopPolicy::Drain).await, Err(Error::Deadline {operation: vessel_local_node::Operation::Stop, ..})));
+        assert_eq!(local.status(), LocalStatus::Owned(node));
+        assert_eq!(client.node_info().await.unwrap().state, NodeState::Draining);
+        assert!(client.session(session.id).await.unwrap().status.is_live());
+        assert!(matches!(client.create_session(spec).await, Err(vessel_client::CallError::Remote(error)) if error.code == vessel_proto::ErrorCode::Unavailable));
+        let exit = local.stop(StopPolicy::InterruptConfirmed).await.unwrap();
+        assert_eq!(exit.code(), Some(0));
+        assert_eq!(local.status(), LocalStatus::Exited(exit));
+    }).await.unwrap();
+}
+
 #[cfg(unix)]
 async fn stub_start(
     root: &Path,
