@@ -1,7 +1,7 @@
 //! Whole sentences keep a translation from becoming a collection of fragments.
 use super::StorageError;
 use crate::files::{FileFault, FileProblem};
-use crate::localization::{ENGLISH, Locale, Translator};
+use crate::localization::{ENGLISH, Locale, PSEUDO, Translator};
 use crate::prefs::{Kept, LaunchOnly};
 
 fn catalog(tag: &str) -> &'static Translator {
@@ -226,7 +226,12 @@ fn invalid_position_is_rejected_instead_of_silently_truncated() {
 #[test]
 fn pseudo_storage_keeps_paths_and_selected_recovery() {
     let kept = fault(FileProblem::NotJson, None, Some((12, 3)));
-    let pseudo = catalog("en-XA").general().storage(&kept).unwrap();
+    // Pseudo is checking-only; ordinary stored-language lookup excludes it.
+    let pseudo = Translator::get(PSEUDO)
+        .unwrap()
+        .general()
+        .storage(&kept)
+        .unwrap();
     assert_ne!(pseudo, catalog("en").general().storage(&kept).unwrap());
     assert!(pseudo.contains("prefs.json"));
     assert!(!pseudo.contains("NUMBER()"));

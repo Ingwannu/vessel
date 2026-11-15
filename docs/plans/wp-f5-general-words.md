@@ -195,3 +195,20 @@ as were both prepared-General constructor calls. Current whole-gate/export
 preparation waits for the lead's announced native lockfile correction; no
 --locked command is used against the known stale base-6 lock. A new merged-head
 component suite, then one whole package gate/export and captures remain owed.
+
+## Fixed lock and component execution
+
+The lead's fixed lock/menu head dd13ce37 was merged as 34dd9d0f. The announced
+incoming native result is 1408/0/2; this is not this package's gate. The merged
+component command used --locked and --no-fail-fast. All four native crates
+recompiled. App tests passed 86/0/2; view library tests passed 973 with one
+failure; the remaining view suites passed 22, 3, 117 and two compile-fail docs.
+The sole failure was the new pseudo test calling Locale::from_tag("en-XA"),
+which correctly excludes checking-only pseudo from ordinary stored languages.
+The test now uses the existing PSEUDO constant, preserving that boundary.
+
+Original failures/logs remain in the report evidence. Clippy, standalone wasm,
+the whole native gate/export and actual General captures still await this
+corrected candidate. Current noncompiling quality checks pass: 658 Rust files,
+the same 14 size exceptions, valid boundaries and no new token-list entry.
+All Rust compilation continues only through the build VM.
