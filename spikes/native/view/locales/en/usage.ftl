@@ -336,3 +336,7 @@ usage-no-source-reports = No accounts have been discovered. Enable a supported s
 
 # Source adapter availability, independent of its currently saved permission.
 usage-source-unsupported = This source is not available on this machine.
+
+# Source-reported risk timing; never infer it from account quota or reset.
+usage-runs-out-in = Source forecast: runs out in { $duration }
+usage-runs-out-now = Source forecast: runs out now

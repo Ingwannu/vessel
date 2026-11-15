@@ -12,9 +12,7 @@ use vessel_app_kit::{
         StatefulInteractiveElement as _, Styled as _, div, px,
     },
 };
-use vessel_app_view::usage::{
-    Phase, balance_facts, source_failure, source_problem, source_view, timestamp,
-};
+use vessel_app_view::usage::{Phase, source_failure, source_problem, source_view, timestamp};
 use vessel_proto::{
     limits::ExternalLookup,
     usage_reports::{
@@ -145,17 +143,20 @@ fn card(
         }
         for window in report.windows.as_slice() {
             body = body.child(super::source_windows::render(
-                shell, entry, window, tokens, cx,
+                shell,
+                entry,
+                window,
+                view.retained,
+                tokens,
+                cx,
             ));
         }
         for balance in report.balances.as_slice() {
-            body = body.child(settings::section(
-                balance.label.as_str().to_owned(),
-                draw::facts(
-                    balance_facts(balance, reports.cost_visibility, shell.words),
-                    density,
-                    tokens,
-                ),
+            body = body.child(super::source_balances::render(
+                shell,
+                balance,
+                reports.cost_visibility,
+                density,
                 tokens,
             ));
         }

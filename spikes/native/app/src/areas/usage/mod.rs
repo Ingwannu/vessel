@@ -11,6 +11,7 @@ mod modal;
 mod pins;
 mod rows;
 mod session;
+mod source_balances;
 mod source_controls;
 mod source_policy;
 mod source_reports;

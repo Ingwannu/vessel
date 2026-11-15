@@ -48,7 +48,11 @@ pub fn reset_label(
         }
     }
 }
-fn reset_duration(at: DateTime<Utc>, now: DateTime<Utc>, words: &'static Translator) -> String {
+pub(super) fn reset_duration(
+    at: DateTime<Utc>,
+    now: DateTime<Utc>,
+    words: &'static Translator,
+) -> String {
     const MINUTES_PER_HOUR: i64 = 60;
     const HOURS_PER_DAY: i64 = 24;
     let minutes = at.signed_duration_since(now).num_minutes().max(0);

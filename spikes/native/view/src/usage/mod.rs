@@ -38,7 +38,11 @@ mod quota;
 pub use quota::{quota_facts, reset_label, window_label};
 
 mod source_summary;
+mod source_values;
 mod sources;
+pub use source_values::{
+    SourceWindowTiming, balance_percent, source_risk_label, source_window_timing,
+};
 mod summary;
 pub use source_summary::{saved_source, source_mark, summary_candidates};
 pub use sources::{

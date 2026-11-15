@@ -336,3 +336,7 @@ usage-no-source-reports = 발견된 계정이 없습니다. 지원되는 소스�
 
 # Source adapter availability, independent of its currently saved permission.
 usage-source-unsupported = 이 머신에서 이 소스를 사용할 수 없습니다.
+
+# Source-reported risk timing; never infer it from account quota or reset.
+usage-runs-out-in = 소스 예측: { $duration } 후 소진
+usage-runs-out-now = 소스 예측: 지금 소진
