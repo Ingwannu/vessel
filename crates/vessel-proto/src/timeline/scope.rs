@@ -1,5 +1,5 @@
 //! Attribution is explicit because native tool ids may repeat in later turns.
-use super::ExternalTurnId;
+use super::{ExternalThreadId, ExternalTurnId};
 use crate::EventSeq;
 use serde::{Deserialize, Serialize};
 
@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 pub enum ToolCallScope {
     /// The provider supplied its actual turn identity, including on late updates.
     ProviderTurn {
+        /// Actual provider conversation; turn ids can repeat after a fresh launch.
+        thread: ExternalThreadId,
         /// Identity in this provider session.
         turn: ExternalTurnId,
     },

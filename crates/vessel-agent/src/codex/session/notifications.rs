@@ -86,8 +86,13 @@ impl Session {
 
     pub(super) async fn item(&mut self, started: bool, notification: ItemNotification) {
         let scope = notification
-            .turn_id
-            .map(|turn| Box::new(vessel_proto::timeline::ToolCallScope::ProviderTurn { turn }));
+            .thread_id
+            .parse()
+            .ok()
+            .zip(notification.turn_id)
+            .map(|(thread, turn)| {
+                Box::new(vessel_proto::timeline::ToolCallScope::ProviderTurn { thread, turn })
+            });
         let item = notification.item;
         match super::super::async_questions::question(&item) {
             Ok(Some(question)) => {
@@ -188,9 +193,17 @@ impl Session {
                 let input = serde_json::json!({ "command": asked.command, "cwd": asked.cwd });
                 let mut call =
                     asks::tool_call(&asked.item_id, title, ToolKind::Execute, Some(&input));
-                call.scope = asked.turn_id.clone().map(|turn| {
-                    Box::new(vessel_proto::timeline::ToolCallScope::ProviderTurn { turn })
-                });
+                call.scope =
+                    asked
+                        .thread_id
+                        .clone()
+                        .zip(asked.turn_id.clone())
+                        .map(|(thread, turn)| {
+                            Box::new(vessel_proto::timeline::ToolCallScope::ProviderTurn {
+                                thread,
+                                turn,
+                            })
+                        });
                 self.approval(id, call, Asking::command(&asked)).await;
             }
             "item/fileChange/requestApproval" => {
@@ -202,8 +215,8 @@ impl Session {
                 };
                 let title = asked.reason.unwrap_or_else(|| "Edit files".to_owned());
                 let mut call = asks::tool_call(&asked.item_id, title, ToolKind::Edit, None);
-                call.scope = asked.turn_id.map(|turn| {
-                    Box::new(vessel_proto::timeline::ToolCallScope::ProviderTurn { turn })
+                call.scope = asked.thread_id.zip(asked.turn_id).map(|(thread, turn)| {
+                    Box::new(vessel_proto::timeline::ToolCallScope::ProviderTurn { thread, turn })
                 });
                 self.approval(id, call, Asking::file_change()).await;
             }
@@ -224,9 +237,17 @@ impl Session {
                     ToolKind::Other,
                     Some(&asked.permissions),
                 );
-                call.scope = asked.turn_id.clone().map(|turn| {
-                    Box::new(vessel_proto::timeline::ToolCallScope::ProviderTurn { turn })
-                });
+                call.scope =
+                    asked
+                        .thread_id
+                        .clone()
+                        .zip(asked.turn_id.clone())
+                        .map(|(thread, turn)| {
+                            Box::new(vessel_proto::timeline::ToolCallScope::ProviderTurn {
+                                thread,
+                                turn,
+                            })
+                        });
                 self.approval(id, call, Asking::permissions(&asked)).await;
             }
             "item/tool/requestUserInput" => self.user_input(id, method, params).await,

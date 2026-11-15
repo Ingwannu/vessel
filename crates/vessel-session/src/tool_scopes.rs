@@ -14,7 +14,8 @@ const MAX_TOOL_ASSOCIATIONS: usize = 1024;
 const MAX_TOOL_ASSOCIATION_BYTES: usize = 1_048_576;
 // ToolCallId itself is legacy/unbounded. Charge its actual UTF-8 bytes plus
 // the largest validated scope identity and conservative map/enum overhead.
-const ASSOCIATION_OVERHEAD_BYTES: usize = vessel_proto::timeline::MAX_TIMELINE_IDENTITY_BYTES + 256;
+const ASSOCIATION_OVERHEAD_BYTES: usize =
+    vessel_proto::timeline::MAX_TIMELINE_IDENTITY_BYTES * 2 + 256;
 
 #[derive(Debug, Default)]
 pub(crate) struct ToolScopes {

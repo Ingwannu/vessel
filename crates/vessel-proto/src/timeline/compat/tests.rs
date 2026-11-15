@@ -19,7 +19,7 @@ use crate::{
 fn rich_tool() -> ToolCall {
     serde_json::from_value(
         json!({"id":"call","title":"run","kind":"execute","status":"canceled",
-        "scope":{"kind":"provider_turn","turn":"turn-1"},"detail":{"type":"shell","command":"echo ok"},"failure":{"message":"canceled"},
+        "scope":{"kind":"provider_turn","thread":"thread-1","turn":"turn-1"},"detail":{"type":"shell","command":"echo ok"},"failure":{"message":"canceled"},
         "agent_message":{"event":"message","sender":{"id":"source"},"text":"check"}}),
     )
     .unwrap()
@@ -28,6 +28,7 @@ fn rich_tool() -> ToolCall {
 fn permission() -> PermissionRequest {
     PermissionRequest {
         tool_scope: Some(Box::new(crate::timeline::ToolCallScope::ProviderTurn {
+            thread: "thread-1".parse().unwrap(),
             turn: "turn-1".parse().unwrap(),
         })),
         id: PermissionId::random(),

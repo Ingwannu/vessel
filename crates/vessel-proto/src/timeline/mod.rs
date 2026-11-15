@@ -16,9 +16,9 @@ mod scope;
 
 pub use detail::*;
 pub use identity::{
-    ClientMessageId, ExternalAgentId, ExternalHostId, ExternalTurnId, MAX_TIMELINE_IDENTITY_BYTES,
-    PluginItemId, PluginKind, TimelineIdentityError, TimelineName, TimelinePluginId,
-    TimelineTaskId,
+    ClientMessageId, ExternalAgentId, ExternalHostId, ExternalThreadId, ExternalTurnId,
+    MAX_TIMELINE_IDENTITY_BYTES, PluginItemId, PluginKind, TimelineIdentityError, TimelineName,
+    TimelinePluginId, TimelineTaskId,
 };
 pub use item::*;
 pub use measure::{DetailCount, DetailIndex, DetailOffset, ToolByteCount, ToolExitCode};

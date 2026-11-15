@@ -74,6 +74,10 @@ identity!(
     "A caller-retained identity for retrying one prompt without duplication."
 );
 identity!(
+    ExternalThreadId,
+    "A provider conversation identity used only to scope tool observations."
+);
+identity!(
     ExternalTurnId,
     "A provider turn identity used only to attribute tool observations."
 );

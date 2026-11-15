@@ -310,8 +310,8 @@ rendering and screenshots are separate consumer evidence, not node gate proof.
 ### Tool attribution when native ids repeat
 
 `ToolCall.scope` and `ToolCallUpdate.scope` pair `ToolCallId` with a typed
-`ToolCallScope`: `ProviderTurn { turn: ExternalTurnId }` when the native frame
-supplies its turn, `SessionTurn { started: EventSeq }` for an announcement the
+`ToolCallScope`: `ProviderTurn { thread: ExternalThreadId, turn: ExternalTurnId }` when the native frame
+supplies its conversation and turn (a new conversation may reuse a turn id), `SessionTurn { started: EventSeq }` for an announcement the
 actor observes inside a canonical turn, and `Record { seq: EventSeq }` for an
 unassociated observation. `PermissionRequest.tool_scope` identifies the exact
 snapshot proposed for approval. The inbox cache keys by session, id and scope.

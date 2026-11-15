@@ -400,6 +400,8 @@ pub(super) struct RequestResolved {
 #[serde(rename_all = "camelCase")]
 pub(super) struct CommandApproval {
     #[serde(default)]
+    pub(super) thread_id: Option<vessel_proto::timeline::ExternalThreadId>,
+    #[serde(default)]
     pub(super) turn_id: Option<vessel_proto::timeline::ExternalTurnId>,
     pub(super) item_id: String,
     #[serde(default)]
@@ -418,6 +420,8 @@ pub(super) struct CommandApproval {
 #[serde(rename_all = "camelCase")]
 pub(super) struct FileChangeApproval {
     #[serde(default)]
+    pub(super) thread_id: Option<vessel_proto::timeline::ExternalThreadId>,
+    #[serde(default)]
     pub(super) turn_id: Option<vessel_proto::timeline::ExternalTurnId>,
     pub(super) item_id: String,
     #[serde(default)]
@@ -428,6 +432,8 @@ pub(super) struct FileChangeApproval {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct PermissionsApproval {
+    #[serde(default)]
+    pub(super) thread_id: Option<vessel_proto::timeline::ExternalThreadId>,
     #[serde(default)]
     pub(super) turn_id: Option<vessel_proto::timeline::ExternalTurnId>,
     pub(super) item_id: String,

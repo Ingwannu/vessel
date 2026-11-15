@@ -83,9 +83,11 @@ fn late_updates_cannot_replace_another_turns_pending_permission_details() {
     let db = database();
     let session = session(&db);
     let first_scope = ToolCallScope::ProviderTurn {
+        thread: "thread-1".parse().unwrap(),
         turn: "turn-1".parse().unwrap(),
     };
     let second_scope = ToolCallScope::ProviderTurn {
+        thread: "thread-1".parse().unwrap(),
         turn: "turn-2".parse().unwrap(),
     };
     let mut first = tool();

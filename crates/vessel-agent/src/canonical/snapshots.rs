@@ -66,7 +66,9 @@ impl Snapshots {
             return;
         };
         let scope_bytes = call.scope.as_deref().map_or(0, |scope| match scope {
-            ToolCallScope::ProviderTurn { turn } => turn.as_str().len(),
+            ToolCallScope::ProviderTurn { thread, turn } => {
+                thread.as_str().len().saturating_add(turn.as_str().len())
+            }
             ToolCallScope::SessionTurn { .. } | ToolCallScope::Record { .. } => 0,
         });
         let Some(charge) = encoded

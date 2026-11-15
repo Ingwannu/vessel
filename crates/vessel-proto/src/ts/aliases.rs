@@ -147,6 +147,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("EverySeconds", Alias::Quantity),
     ("ExternalAgentId", Alias::Handle),
     ("ExternalHostId", Alias::Handle),
+    ("ExternalThreadId", Alias::Handle),
     ("ExternalTurnId", Alias::Handle),
     ("FetchStatusCode", Alias::Quantity),
     ("FieldName", Alias::Handle),
