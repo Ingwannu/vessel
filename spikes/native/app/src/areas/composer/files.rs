@@ -197,6 +197,15 @@ pub(crate) fn attach_button(
         .into_any_element()
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+const CHOICES: &[select::Acquire] = &[
+    select::Acquire::Image,
+    select::Acquire::ClipboardImage,
+    select::Acquire::File,
+];
+#[cfg(target_arch = "wasm32")]
+const CHOICES: &[select::Acquire] = &[select::Acquire::Image, select::Acquire::File];
+
 /// The attach menu, when open (Paseo's rows: an image, a file; the forge's
 /// issues and the plugins' rows are not Vessel's yet).
 fn attach_menu(
@@ -206,14 +215,6 @@ fn attach_menu(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let words = shell.words.composer();
-    #[cfg(not(target_arch = "wasm32"))]
-    const CHOICES: &[select::Acquire] = &[
-        select::Acquire::Image,
-        select::Acquire::ClipboardImage,
-        select::Acquire::File,
-    ];
-    #[cfg(target_arch = "wasm32")]
-    const CHOICES: &[select::Acquire] = &[select::Acquire::Image, select::Acquire::File];
     let items: Vec<_> = CHOICES
         .iter()
         .map(|choice| {

@@ -175,7 +175,7 @@ impl Shell {
                 ScrollDelta::Pixels(p) => f32::from(p.y),
                 ScrollDelta::Lines(p) => p.y.mul_add(vessel_app_kit::theme::spacing::S4, 0.0),
             };
-            viewport.wheel(-delta, at);
+            viewport.scroll(delta, at);
             cx.notify();
         }
         cx.stop_propagation();

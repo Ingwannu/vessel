@@ -69,10 +69,7 @@ pub(crate) fn render(
             }),
         )
         .on_mouse_move(cx.listener(|shell, event, _window, cx| shell.image_moved(event, cx)))
-        .on_mouse_up(
-            MouseButton::Left,
-            cx.listener(|shell, event, window, cx| shell.image_released(event, window, cx)),
-        )
+        .on_mouse_up(MouseButton::Left, cx.listener(Shell::image_released))
         .on_scroll(cx.listener(|shell, event, _window, cx| shell.image_scrolled(event, cx)))
         .on_pinch(cx.listener(|shell, event, _window, cx| shell.image_pinched(event, cx)))
         .child(content)

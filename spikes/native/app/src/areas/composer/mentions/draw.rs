@@ -25,64 +25,7 @@ pub(in crate::areas::composer) fn menu(
 ) -> Option<AnyElement> {
     shell.observe_file_menu(target, cx);
     let state = shell.file_menu(target).borrow();
-    let words = shell.words.composer();
-    let current = match state.model.phase() {
-        Phase::Hidden => {
-            let token = shell.active_file_token(target, cx);
-            if token.is_some() {
-                match &*shell.areas.composer.mention_root.borrow() {
-                    Root::Reading(ask) if matches!(target, DraftKey::Session { session } if session == ask.session) => {
-                        Some((
-                            Listing::Loading(words.files_loading().to_owned().into()),
-                            None,
-                        ))
-                    }
-                    Root::Ready(ask, Err(_)) if matches!(target, DraftKey::Session { session } if session == ask.session) => {
-                        Some((
-                            Listing::Failed(words.files_failed().to_owned().into()),
-                            None,
-                        ))
-                    }
-                    Root::Exhausted => Some((
-                        Listing::Failed(words.files_failed().to_owned().into()),
-                        None,
-                    )),
-                    Root::Missing | Root::Reading(_) | Root::Ready(_, _) => None,
-                }
-            } else {
-                None
-            }
-        }
-        Phase::Debouncing { .. } | Phase::Loading { .. } if state.model.rows().is_empty() => {
-            Some((
-                Listing::Loading(words.files_loading().to_owned().into()),
-                None,
-            ))
-        }
-        Phase::Empty(_) => Some((Listing::Empty(words.files_empty().to_owned().into()), None)),
-        Phase::Invalid(_) | Phase::Failed { .. } => Some((
-            Listing::Failed(words.files_failed().to_owned().into()),
-            None,
-        )),
-        Phase::Rows { .. } | Phase::Debouncing { .. } | Phase::Loading { .. } => {
-            let rows = state
-                .model
-                .rows()
-                .iter()
-                .rev()
-                .map(|row| AutocompleteRow {
-                    label: SharedString::from(row.path.as_str().to_owned()),
-                    detail: None,
-                    description: None,
-                    kind: match row.kind {
-                        SuggestionKind::File => RowKind::File,
-                        SuggestionKind::Directory => RowKind::Directory,
-                    },
-                })
-                .collect();
-            Some((Listing::Rows(rows), state.model.selected()))
-        }
-    };
+    let current = listing(shell, target, cx);
     let now = shell.areas.composer.now();
     let mut reveal = state.reveal.borrow_mut();
     reveal.follow(
@@ -156,4 +99,70 @@ pub(in crate::areas::composer) fn menu(
             .child(list)
             .into_any_element(),
     )
+}
+
+fn listing(
+    shell: &Shell,
+    target: DraftKey,
+    cx: &vessel_app_kit::ui::App,
+) -> Option<(Listing, Option<usize>)> {
+    let state = shell.file_menu(target).borrow();
+    let words = shell.words.composer();
+    match state.model.phase() {
+        Phase::Hidden => {
+            let token = shell.active_file_token(target, cx);
+            if token.is_some() {
+                match &*shell.areas.composer.mention_root.borrow() {
+                    Root::Reading(ask) if matches!(target, DraftKey::Session { session } if session == ask.session) => {
+                        Some((
+                            Listing::Loading(words.files_loading().to_owned().into()),
+                            None,
+                        ))
+                    }
+                    Root::Ready(ask, Err(_)) if matches!(target, DraftKey::Session { session } if session == ask.session) => {
+                        Some((
+                            Listing::Failed(words.files_failed().to_owned().into()),
+                            None,
+                        ))
+                    }
+                    Root::Exhausted => Some((
+                        Listing::Failed(words.files_failed().to_owned().into()),
+                        None,
+                    )),
+                    Root::Missing | Root::Reading(_) | Root::Ready(_, _) => None,
+                }
+            } else {
+                None
+            }
+        }
+        Phase::Debouncing { .. } | Phase::Loading { .. } if state.model.rows().is_empty() => {
+            Some((
+                Listing::Loading(words.files_loading().to_owned().into()),
+                None,
+            ))
+        }
+        Phase::Empty(_) => Some((Listing::Empty(words.files_empty().to_owned().into()), None)),
+        Phase::Invalid(_) | Phase::Failed { .. } => Some((
+            Listing::Failed(words.files_failed().to_owned().into()),
+            None,
+        )),
+        Phase::Rows { .. } | Phase::Debouncing { .. } | Phase::Loading { .. } => {
+            let rows = state
+                .model
+                .rows()
+                .iter()
+                .rev()
+                .map(|row| AutocompleteRow {
+                    label: SharedString::from(row.path.as_str().to_owned()),
+                    detail: None,
+                    description: None,
+                    kind: match row.kind {
+                        SuggestionKind::File => RowKind::File,
+                        SuggestionKind::Directory => RowKind::Directory,
+                    },
+                })
+                .collect();
+            Some((Listing::Rows(rows), state.model.selected()))
+        }
+    }
 }

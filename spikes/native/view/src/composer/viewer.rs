@@ -183,6 +183,11 @@ impl Viewport {
         }
     }
 
+    /// Translate physical scroll direction into the zoom wheel convention.
+    pub fn scroll(&mut self, delta: f32, focal: Position) {
+        self.wheel(-delta, focal);
+    }
+
     /// A drag moves content only as far as it still covers the canvas.
     pub fn drag(&mut self, from: Position, to: Position) {
         self.x += to.x - from.x;

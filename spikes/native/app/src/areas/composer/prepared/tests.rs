@@ -20,7 +20,7 @@ fn card(machine: &str) -> Card {
         phrase: Phrase::Starting,
         attention: Attention::AtRest,
         at: chrono::Utc::now(),
-        detail: Default::default(),
+        detail: vessel_app_view::CardDetail::default(),
     }
 }
 #[gpui::test]
@@ -144,9 +144,9 @@ fn background_completion_moves_only_captured_files_and_reads_its_own_capabilitie
         };
         let mut stale = ask.clone();
         stale.ticket = Ticket::new(99);
-        shell.composer_capabilities(stale, Ok(target), cx);
+        shell.composer_capabilities(&stale, Ok(target), cx);
         assert!(shell.areas.composer.capabilities.blocked(card.session));
-        shell.composer_capabilities(ask, Ok(target), cx);
+        shell.composer_capabilities(&ask, Ok(target), cx);
         assert!(!shell.areas.composer.capabilities.blocked(card.session));
         assert!(
             matches!(

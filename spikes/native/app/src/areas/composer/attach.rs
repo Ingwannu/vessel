@@ -35,7 +35,7 @@ pub(crate) struct Incoming {
 
 impl Incoming {
     /// Inspect on the background executor; a refusal stays visible to the user.
-    pub(crate) fn file(path: PathBuf) -> Result<Self, LocalFileProblem> {
+    pub(super) fn file(path: PathBuf) -> Result<Self, LocalFileProblem> {
         let metadata = std::fs::metadata(&path).map_err(LocalFileProblem::Read)?;
         if !metadata.is_file() {
             return Err(LocalFileProblem::NotFile);
