@@ -90,6 +90,7 @@ fn configured_dialog_uses_620_width_and_full_percent_heights_for_short_content(
 fn legacy_sizes_retain_natural_height_caps_and_invalid_width_is_refused() {
     for (size, width) in [(DialogSize::Normal, 520), (DialogSize::Wide, 640)] {
         let layout = size.layout();
+        assert_eq!(layout.body_spacing(), BodySpacing::Inset);
         assert_eq!(layout.width().get(), width);
         let DesktopHeight::AtMost(height) = layout.height() else {
             panic!("legacy fitting height");

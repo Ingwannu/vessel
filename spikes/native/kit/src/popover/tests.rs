@@ -65,6 +65,21 @@ fn anchor() -> Bounds<Pixels> {
     Bounds::new(point(px(600.0), px(100.0)), size(px(40.0), px(28.0)))
 }
 
+#[test]
+fn compact_default_uses_paseos_content_sized_eighty_percent_cap() {
+    let content = PopoverContent::new(
+        "options",
+        "Options",
+        div().into_any_element(),
+        Width::new(340).unwrap(),
+    );
+    let crate::dialog::CompactLayout::Fixed(cap) = content.compact else {
+        panic!("natural content default");
+    };
+    assert_eq!(cap.value(), 80);
+    assert!(Width::new(0).is_none());
+}
+
 fn mount(cx: &mut TestAppContext, narrow: bool) -> (Entity<Probe>, &mut VisualTestContext) {
     cx.update(|cx| {
         crate::init(cx, SchemeChoice::Fixed(Scheme::Dark)).unwrap();
@@ -134,15 +149,15 @@ fn arbitrary_field_keeps_input_and_escape_returns_to_the_actual_opener(cx: &mut 
 
 #[gpui::test]
 fn desktop_is_end_anchored_340_and_compact_reuses_the_existing_dialog(cx: &mut TestAppContext) {
-    for (narrow, expected_width) in [(false, 306.0), (true, 342.0)] {
+    for (narrow, expected_width) in [(false, 338.0), (true, 390.0)] {
         let (probe, cx) = mount(cx, narrow);
         probe.read_with(cx, |probe, _| {
             let measured = probe.body.borrow();
             let marker = measured.first().unwrap();
             assert_eq!(marker.size.width, px(expected_width));
             if !narrow {
-                assert_eq!(marker.origin.x, px(317.0));
-                assert_eq!(marker.origin.y, px(133.0));
+                assert_eq!(marker.origin.x, px(301.0));
+                assert_eq!(marker.origin.y, px(137.0));
             }
         });
     }

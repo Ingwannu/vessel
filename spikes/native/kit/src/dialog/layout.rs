@@ -50,12 +50,22 @@ pub enum DesktopHeight {
     Exact(Percentage),
 }
 
+/// Shared forms already own row insets; ordinary dialogs keep their body inset.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BodySpacing {
+    /// Preserve the existing 24px body inset.
+    Inset,
+    /// The caller body supplies its own horizontal and vertical spacing.
+    Caller,
+}
+
 /// Positive desktop maximum width and validated viewport-height limits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DialogLayout {
     width: DialogWidth,
     height: DesktopHeight,
     compact: CompactLayout,
+    body_spacing: BodySpacing,
 }
 
 impl DialogLayout {
@@ -68,6 +78,7 @@ impl DialogLayout {
                 width,
                 height,
                 compact,
+                body_spacing: BodySpacing::Inset,
             })
         } else {
             None
@@ -88,6 +99,19 @@ impl DialogLayout {
     #[must_use]
     pub const fn compact(self) -> CompactLayout {
         self.compact
+    }
+
+    /// Select caller-owned form spacing without another compact renderer.
+    #[must_use]
+    pub const fn with_body_spacing(self, body_spacing: BodySpacing) -> Self {
+        Self {
+            body_spacing,
+            ..self
+        }
+    }
+
+    pub(super) const fn body_spacing(self) -> BodySpacing {
+        self.body_spacing
     }
 }
 
@@ -119,5 +143,6 @@ const fn legacy(width: u16) -> DialogLayout {
         width,
         height: DesktopHeight::AtMost(height),
         compact: CompactLayout::Fixed(compact),
+        body_spacing: BodySpacing::Inset,
     }
 }

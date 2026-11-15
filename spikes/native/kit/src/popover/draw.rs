@@ -1,7 +1,9 @@
 //! Only desktop placement is new; compact content delegates to the one dialog.
 
 use super::{Alignment, Opening, PopoverHandlers, PopoverState, Width, dismiss};
-use crate::dialog::{CompactLayout, DesktopHeight, DialogContent, DialogLayout, DialogSize};
+use crate::dialog::{
+    BodySpacing, CompactLayout, DesktopHeight, DialogContent, DialogLayout, DialogSize,
+};
 use crate::popup::{self, Surfaces};
 use crate::sheet::snap::Percentage;
 use crate::{Tokens, dialog};
@@ -14,9 +16,9 @@ use std::rc::Rc;
 
 const OFFSET: f32 = 4.0;
 const MARGIN: f32 = 8.0;
-const HORIZONTAL_PADDING: f32 = 16.0;
+const PAGE_INSET: f32 = 4.0;
 const MIN_VISIBLE: f32 = 1.0;
-const COMPACT_CAP: u8 = 90;
+const COMPACT_CAP: u8 = 80;
 
 /// Caller-owned fields, authored desktop width and existing sheet configuration.
 pub struct PopoverContent {
@@ -33,7 +35,7 @@ pub struct PopoverContent {
 }
 
 impl PopoverContent {
-    /// Natural-height compact content, capped at the existing dialog's 90% limit.
+    /// Natural-height compact content, capped at Paseo's menu-sheet 80% limit.
     #[must_use]
     pub fn new(
         id: impl Into<ElementId>,
@@ -86,12 +88,16 @@ pub fn popover<V: 'static>(
             content.width.get(),
             DesktopHeight::AtMost(Percentage::FULL),
             content.compact,
-        )?;
+        )?
+        .with_body_spacing(BodySpacing::Caller);
         return Some(dialog(
             &state.dialog,
             DialogContent {
                 title: content.title,
-                body: content.body,
+                body: div()
+                    .py(px(PAGE_INSET))
+                    .child(content.body)
+                    .into_any_element(),
                 footer: Vec::new(),
                 size: DialogSize::Configured(layout),
             },
@@ -143,7 +149,7 @@ fn desktop<V: 'static>(
             .w(width)
             .max_h(height)
             .overflow_y_scroll()
-            .px(px(HORIZONTAL_PADDING))
+            .py(px(PAGE_INSET))
             .bg(surfaces.surface1)
             .border_1()
             .border_color(surfaces.border_accent)
