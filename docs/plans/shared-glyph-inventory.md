@@ -14,7 +14,8 @@
   exhaustive const path match. include! keeps their original module/API path.
   The drawing match remains separate and exhaustive, unchanged byte for byte.
 - Impact: add future variants and paths to that list, and the vector to the
-  existing drawing owner. Preserve order. No new glyph, vector, path, runtime
+  existing drawing owner. Append only: never insert within or reorder the
+  frozen prefix. Its snapshot remains immutable when new glyphs are added. No new glyph, vector, path, runtime
   lookup, fallback, renderer, dependency or lint exemption is introduced.
 
 This isolated producer starts from the announced e1b73c9e app line with 95
@@ -29,3 +30,8 @@ Before-source data and source hashes are retained in
 glyph-inventory-before-100. Format, size and boundary checks are performed
 locally without compilation; actual Kit strict Clippy and tests run only on
 the build VM. Until those logs exist, this remains source-only.
+
+Lead append-contract correction: the frozen95 snapshot checks a complete
+unchanged prefix and ALL length at least95; later appended glyphs are covered
+by the existing uniqueness/path-existence/raster tests. The snapshot is never
+regenerated just to admit additions. No production code changed.

@@ -106,7 +106,7 @@ const BEFORE: &[(Glyph, &str)] = &[
 
 #[test]
 fn glyph_inventory_preserves_every_prior_variant_path_and_iteration_position() {
-    assert_eq!(ALL.len(), BEFORE.len());
+    assert!(ALL.len() >= BEFORE.len());
     for (index, (glyph, path)) in BEFORE.iter().enumerate() {
         assert_eq!(ALL.get(index), Some(glyph), "variant at {index}");
         assert_eq!(glyph.path(), *path, "path at {index}");
