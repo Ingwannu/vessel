@@ -270,3 +270,8 @@ overall deadline. The UI preserves the session, explains the uncertain outcome
 in both languages and retains the detail, while refresh invalidates stale Fleet
 snapshots. An in-memory framed peer drops the transport after receiving the
 mutation; the regression verifies one call, no replay and projection invalidation.
+
+History rows without a rendered authenticated node do not install an open
+callback; they cannot ask a later Fleet snapshot to bless an originally unbound
+alias. This is only the legacy address pin. Canonical resident/lease admission
+must still precede resource switching in the coordinated product cutover.

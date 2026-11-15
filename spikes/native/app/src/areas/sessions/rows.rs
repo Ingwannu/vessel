@@ -98,10 +98,12 @@ fn row(shell: &Shell, card: &Card, tokens: &Tokens, cx: &mut Context<'_, Shell>)
                 .id(ElementId::Name(id.clone().into()))
                 .flex_1()
                 .min_w_0()
-                .cursor_pointer()
-                .on_click(cx.listener(move |shell, _, window, cx| {
-                    shell.open_session(open.clone(), window, cx);
-                }))
+                .when(open.binding.is_some(), |row| {
+                    row.cursor_pointer()
+                        .on_click(cx.listener(move |shell, _, window, cx| {
+                            shell.open_session(open.clone(), window, cx);
+                        }))
+                })
                 .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
                 .child(content(shell, card, tokens)),
         )
