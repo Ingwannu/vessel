@@ -14,12 +14,10 @@ pub(crate) fn section(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let words = shell.words.local_node();
-    let status = shell
-        .areas
-        .local_node
-        .snapshot
-        .as_ref()
-        .map_or(Status::Failed, |snapshot| snapshot.status);
+    let status = shell.areas.local_node.snapshot.as_ref().map_or_else(
+        || crate::local_node::unavailable_status(cx),
+        |snapshot| snapshot.status,
+    );
     let working = status == Status::Working || shell.areas.local_node.action_pending;
     let enabled = shell.prefs.local_node.management == Management::Enabled;
     let keep = shell.prefs.local_node.after_quit == AfterQuit::KeepRunning;
@@ -226,7 +224,7 @@ fn prompt_content(
         );
     }
     footer.push(
-        outline_button("local-confirm-cancel", words.cancel_quit(), true, tokens)
+        outline_button("local-confirm-cancel", words.cancel(), true, tokens)
             .on_click(cx.listener(|shell, _event, window, cx| {
                 shell.areas.local_node.prompt_dialog.dismissed(window, cx);
                 shell.areas.local_node.prompt = None;

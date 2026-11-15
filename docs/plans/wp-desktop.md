@@ -170,3 +170,7 @@ Compact setup renders the fixed opening's current/total step counter and the
 step descriptions in English and Korean. The wide modal still uses the shared
 kit header/footer with an 880×640 bound and 200-point rail; this renderer reuse
 is a deliberate native composition difference from Paseo's rail-only brand header.
+
+Unsupported companion bundle layouts (including the unpublished macOS layout)
+render the same ordinary Not installed state as an absent Linux/Windows daemon.
+Initialization errors remain Failed. No guessed macOS helper path is spawned.

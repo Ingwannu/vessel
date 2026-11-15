@@ -70,3 +70,6 @@ local-node-interrupt-stop = Interrupt sessions and stop
 
 # Explicit local-node confirmation action: interrupt-restart. Applies only to the captured owned child.
 local-node-interrupt-restart = Interrupt sessions and restart
+
+# Leave a local-node stop/restart/quit confirmation without changing the process.
+local-node-cancel = Cancel

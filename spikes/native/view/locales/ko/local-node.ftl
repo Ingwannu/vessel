@@ -70,3 +70,6 @@ local-node-interrupt-stop = 세션을 중단하고 중지
 
 # Explicit local-node confirmation action: interrupt-restart. Applies only to the captured owned child.
 local-node-interrupt-restart = 세션을 중단하고 다시 시작
+
+# Leave a local-node stop/restart/quit confirmation without changing the process.
+local-node-cancel = 취소

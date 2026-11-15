@@ -3,11 +3,12 @@
 use gpui::{App, Global};
 use std::rc::Rc;
 use vessel_app_link::local_node::{Configuration, Confirmation, Controller, ManagerError};
-use vessel_app_view::local_node::{AfterQuit, Management};
+use vessel_app_view::local_node::{AfterQuit, Management, Status};
 
 pub(crate) struct Managed {
     pub(crate) controller: Option<Rc<Controller>>,
     finalizing: bool,
+    unavailable: Status,
 }
 impl Global for Managed {}
 
@@ -15,11 +16,16 @@ pub(crate) fn ensure(prefs: &vessel_app_link::Prefs, cx: &mut App) {
     if cx.has_global::<Managed>() {
         return;
     }
-    let controller = match configure(prefs, cx).and_then(Controller::start) {
-        Ok(controller) => Some(Rc::new(controller)),
+    let (controller, unavailable) = match configure(prefs, cx).and_then(Controller::start) {
+        Ok(controller) => (Some(Rc::new(controller)), Status::Working),
         Err(error) => {
+            let status = if matches!(error, ManagerError::NotInstalled) {
+                Status::NotInstalled
+            } else {
+                Status::Failed
+            };
             tracing::warn!(%error, "managed local node could not initialize");
-            None
+            (None, status)
         }
     };
     if let Some(controller) = &controller {
@@ -37,6 +43,7 @@ pub(crate) fn ensure(prefs: &vessel_app_link::Prefs, cx: &mut App) {
     cx.set_global(Managed {
         controller,
         finalizing: false,
+        unavailable,
     });
     crate::desktop::set_quit_handler(request_quit, cx);
     // OS shutdown bypasses menu cancellation. Preserve active work by releasing
@@ -59,6 +66,12 @@ pub(crate) fn ensure(prefs: &vessel_app_link::Prefs, cx: &mut App) {
         }
     })
     .detach();
+}
+
+/// Unsupported/unpublished bundle layouts remain a normal distribution state.
+pub(crate) fn unavailable_status(cx: &App) -> Status {
+    cx.try_global::<Managed>()
+        .map_or(Status::Failed, |managed| managed.unavailable)
 }
 
 fn configure(prefs: &vessel_app_link::Prefs, cx: &App) -> Result<Configuration, ManagerError> {
