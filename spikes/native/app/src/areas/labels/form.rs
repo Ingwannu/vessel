@@ -18,7 +18,7 @@ pub(super) fn editor(
     shell: &Shell,
     host: &Host,
     draft: &Draft,
-    target: Target,
+    target: &Target,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
@@ -33,7 +33,7 @@ pub(super) fn editor(
         .child(super::colors::choices(
             shell,
             draft.color(),
-            &target,
+            target,
             tokens,
             cx,
         ))
@@ -59,7 +59,7 @@ pub(super) fn editor(
                 }))
             }),
         )
-        .child(actions(shell, host, &target, tokens, cx))
+        .child(actions(shell, host, target, tokens, cx))
 }
 
 fn actions(
@@ -88,9 +88,9 @@ fn actions(
                     tokens,
                 )
                 .when(can_save, |button| {
-                    let target = target.clone();
+                    let action = Action::Save(target.clone());
                     button.on_click(cx.listener(move |shell, _, _window, cx| {
-                        shell.label_action(Action::Save(target.clone()), cx);
+                        shell.label_action(&action, cx);
                     }))
                 }),
             )
@@ -103,9 +103,9 @@ fn actions(
                     tokens,
                 )
                 .when(can_delete, |button| {
-                    let target = target.clone();
+                    let action = Action::Inspect(target.clone());
                     button.on_click(cx.listener(move |shell, _, _window, cx| {
-                        shell.label_action(Action::Inspect(target.clone()), cx);
+                        shell.label_action(&action, cx);
                     }))
                 }),
             )
@@ -163,14 +163,9 @@ fn confirmation(
                 tokens,
             )
             .when(host.state.connected(), |button| {
+                let action = Action::Delete { target, inspection };
                 button.on_click(cx.listener(move |shell, _, _window, cx| {
-                    shell.label_action(
-                        Action::Delete {
-                            target: target.clone(),
-                            inspection,
-                        },
-                        cx,
-                    );
+                    shell.label_action(&action, cx);
                 }))
             }),
         )

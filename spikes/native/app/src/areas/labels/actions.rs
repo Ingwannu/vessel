@@ -65,7 +65,7 @@ impl Action {
 }
 
 impl Labels {
-    fn prepare(&mut self, action: Action) -> Result<(HostKey, Ticket, Command), Failure> {
+    fn prepare(&mut self, action: &Action) -> Result<(HostKey, Ticket, Command), Failure> {
         let host = self
             .manager
             .selected()
@@ -100,7 +100,7 @@ impl Labels {
 }
 
 impl Shell {
-    pub(super) fn label_action(&mut self, action: Action, cx: &mut Context<'_, Self>) {
+    pub(super) fn label_action(&mut self, action: &Action, cx: &mut Context<'_, Self>) {
         if !action.is_current(self.areas.labels.opening, &self.areas.labels.manager) {
             return;
         }

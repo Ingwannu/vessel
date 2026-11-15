@@ -87,7 +87,7 @@ fn body(
         | ManagerState::Deleting { draft, .. } => {
             let target =
                 super::actions::Target::new(opening, host.key, draft.original().name.clone());
-            body.child(super::form::editor(shell, host, draft, target, tokens, cx))
+            body.child(super::form::editor(shell, host, draft, &target, tokens, cx))
         }
     }
 }
@@ -107,10 +107,10 @@ fn list(
         .child(state.search.element(tokens, false, cx));
     let labels = state.manager.filtered(&host.catalog);
     if labels.is_empty() && host.state == HostState::Online {
-        body = body.child(if !state.manager.has_query() {
-            words.empty()
-        } else {
+        body = body.child(if state.manager.has_query() {
             words.no_matches()
+        } else {
+            words.empty()
         });
     }
     for label in labels {
