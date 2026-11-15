@@ -20,6 +20,8 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// Setup identity lookup or binding acknowledgement.
+    Onboarding(crate::onboarding::Answer),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.

@@ -23,6 +23,8 @@ use vessel_proto::{
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Bind setup controls to the authenticated node of a fixed visit.
+    Onboarding(crate::onboarding::Ask),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.

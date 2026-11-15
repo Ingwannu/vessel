@@ -96,6 +96,9 @@ impl Link {
                 ticket,
                 vessel_app_view::devices::Problem::Refused(vessel_proto::ErrorCode::Unsupported),
             ))),
+            Command::Onboarding(ask) => self.emit(Event::Onboarding(
+                ask.refused(vessel_app_view::onboarding::scope::Problem::Unavailable),
+            )),
             Command::Machines(ask) => self.emit(Event::Machines(
                 ask.refused(vessel_app_view::machine_book::Failure::Unavailable),
             )),

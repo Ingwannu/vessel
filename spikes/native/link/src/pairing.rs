@@ -19,7 +19,8 @@ pub(crate) fn problem(error: &LinkError) -> PairProblem {
         LinkError::NoHome | LinkError::Book(_) | LinkError::Credential(_) | LinkError::Io(_) => {
             PairProblem::Storage
         }
-        LinkError::NoToken
+        LinkError::Onboarding(_)
+        | LinkError::NoToken
         | LinkError::Token(_)
         | LinkError::NoCredential
         | LinkError::Connect(_)

@@ -6,7 +6,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::devices::MachineKey;
+pub mod scope;
+use scope::Target;
 
 pub mod orchestration;
 
@@ -83,7 +84,7 @@ pub enum SetupHost {
     /// Missing, offline or directory still loading.
     Waiting,
     /// Connected host whose hydrated directory has no project.
-    Empty(MachineKey),
+    Empty(Target),
     /// Connected host already has projects.
     Existing,
 }
@@ -95,7 +96,7 @@ pub struct Visit(u64);
 /// A visible walkthrough, scoped to the host chosen at its opening.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Open {
-    host: MachineKey,
+    host: Target,
     layout: Layout,
     step: Step,
     visit: Visit,
@@ -104,7 +105,7 @@ pub struct Open {
 impl Open {
     /// Stable host of this flow, regardless of settings selection afterwards.
     #[must_use]
-    pub const fn host(&self) -> &MachineKey {
+    pub const fn host(&self) -> &Target {
         &self.host
     }
     /// Ordered rail, fixed at opening.
@@ -199,7 +200,7 @@ impl Model {
     ///
     /// # Errors
     /// Visit identity space is exhausted.
-    pub fn reopen(&mut self, host: MachineKey, layout: Layout) -> Result<(), VisitExhausted> {
+    pub fn reopen(&mut self, host: Target, layout: Layout) -> Result<(), VisitExhausted> {
         let visit = self.next_visit()?;
         self.state = State::Open(Open {
             host,

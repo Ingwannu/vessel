@@ -16,6 +16,9 @@ use crate::Event;
 /// Something the link could not do.
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum LinkError {
+    /// A setup alias changed after its authenticated identity was captured.
+    #[error(transparent)]
+    Onboarding(vessel_app_view::onboarding::scope::Problem),
     /// No home or configuration directory.
     #[error("no configuration directory")]
     NoHome,

@@ -6,7 +6,9 @@ use vessel_app_kit::ui::{
     AnyElement, Context, Div, FluentBuilder as _, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
-use vessel_app_kit::{Tokens, button, outline_button, settings};
+use vessel_app_kit::{
+    ButtonKind, ButtonState, Tokens, button, button_with_kind, outline_button, settings,
+};
 use vessel_app_view::onboarding::{State, Step};
 
 use crate::shell::Shell;
@@ -78,9 +80,18 @@ pub(crate) fn dialog(
             })),
         );
     }
-    let body = div().flex().flex_col().gap(px(S4)).child(rail).child(
-        crate::areas::settings::onboarding::step(shell, step, tokens, compact, window, cx),
-    );
+    let ready = super::scope::actionable(shell);
+    let content = if ready {
+        crate::areas::settings::onboarding::step(shell, step, tokens, compact, window, cx)
+    } else {
+        div().child(super::scope::hint(shell)).into_any_element()
+    };
+    let body = div()
+        .flex()
+        .flex_col()
+        .gap(px(S4))
+        .child(rail)
+        .child(content);
     let last = open.steps().last() == Some(&step);
     let footer = vec![
         button("setup-skip", words.skip(), false, tokens)
@@ -91,15 +102,24 @@ pub(crate) fn dialog(
             .when(step == Step::Appearance, |button| button.invisible())
             .on_click(cx.listener(|shell, _event, window, cx| shell.setup_move(None, window, cx)))
             .into_any_element(),
-        button(
+        button_with_kind(
             "setup-next",
             if last { words.finish() } else { words.next() },
-            true,
+            ButtonKind::Primary,
+            if ready {
+                ButtonState::Enabled
+            } else {
+                ButtonState::Disabled
+            },
             tokens,
         )
-        .on_click(
-            cx.listener(move |shell, _event, window, cx| shell.setup_continue(visit, window, cx)),
-        )
+        .when(ready, |button| {
+            button.on_click(
+                cx.listener(move |shell, _event, window, cx| {
+                    shell.setup_continue(visit, window, cx)
+                }),
+            )
+        })
         .into_any_element(),
     ];
     Some(kit_dialog(

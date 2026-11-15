@@ -25,6 +25,12 @@ desktop-finish = Finish
 desktop-skip = Skip setup
 # First-run setup: connect. Keep concise for the compact dialog.
 desktop-connect = Connect a machine to start setup.
+# Setup controls stay disabled until the link acknowledges this authenticated host.
+desktop-binding = Connecting to the setup host…
+# A replaced book alias must never silently redirect the walkthrough.
+desktop-host-changed = The setup host changed. Close setup and open it again.
+# A client without authenticated native transport cannot act on these controls.
+desktop-binding-unavailable = This client cannot configure a native host.
 # First-run setup: wait project. Keep concise for the compact dialog.
 desktop-wait-project = Wait for the current project operation to finish.
 # First-run setup: setup failed. Keep concise for the compact dialog.

@@ -45,6 +45,9 @@ pub enum Answer {
 /// Failures stay typed until the screen presents them beside the action.
 #[derive(Debug, thiserror::Error)]
 pub enum AgentsError {
+    /// Setup may never redirect an action to a replaced node-book alias.
+    #[error(transparent)]
+    Setup(vessel_app_view::onboarding::scope::Problem),
     /// The selected node disconnected.
     #[error("the machine is not connected")]
     Disconnected,
@@ -74,6 +77,7 @@ impl Ask {
     pub fn operation(&self) -> vessel_app_view::agent_status::pages::Operation {
         use vessel_app_view::agent_status::pages::Operation;
         match self {
+            Self::Setup(_) => Problem::Call,
             Self::List => Operation::Discovery,
             Self::Check(agent) => Operation::Check(agent.clone()),
             Self::Install(install) => Operation::Install(*install),

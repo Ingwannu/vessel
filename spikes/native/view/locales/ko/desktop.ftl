@@ -25,6 +25,12 @@ desktop-finish = 완료
 desktop-skip = 설정 건너뛰기
 # First-run setup: connect. Keep concise for the compact dialog.
 desktop-connect = 머신을 연결하면 설정을 시작할 수 있습니다.
+# 인증된 호스트 바인딩 응답 전까지 설정 컨트롤을 비활성화합니다.
+desktop-binding = 설정 호스트에 연결하는 중…
+# 머신 별칭이 다른 노드를 가리키면 안내를 다시 열어야 합니다.
+desktop-host-changed = 설정 호스트가 변경되었습니다. 설정을 닫고 다시 여세요.
+# 인증된 네이티브 연결이 없는 클라이언트에서 표시합니다.
+desktop-binding-unavailable = 이 클라이언트에서는 네이티브 호스트를 설정할 수 없습니다.
 # First-run setup: wait project. Keep concise for the compact dialog.
 desktop-wait-project = 진행 중인 프로젝트 작업이 끝날 때까지 기다려 주세요.
 # First-run setup: setup failed. Keep concise for the compact dialog.

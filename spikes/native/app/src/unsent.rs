@@ -59,6 +59,9 @@ pub(crate) enum Settle {
 pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
     let said = || words.to_owned();
     let event = match *unsent.command {
+        Command::Onboarding(ask) => {
+            Event::Onboarding(ask.refused(vessel_app_view::onboarding::scope::Problem::Unsent))
+        }
         // As the devices page: a full queue is the page's own "busy, try
         // again", a stopped link the machine's lost connection.
         Command::Agents {

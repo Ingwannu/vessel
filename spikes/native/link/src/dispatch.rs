@@ -17,20 +17,13 @@ use vessel_proto::{PermissionOutcome, SessionInput};
 impl State {
     pub(super) async fn handle(&mut self, command: Command) {
         match command {
+            Command::Onboarding(ask) => self.onboarding(ask).await,
             Command::Reload => self.reload().await,
             Command::Agents {
                 machine,
                 request,
                 ask,
-            } => {
-                let client = self
-                    .clients
-                    .get(machine.as_str())
-                    .map(|connected| connected.client.clone());
-                self.agents
-                    .ask(client, machine, request, ask, self.events.clone())
-                    .await;
-            }
+            } => self.onboarding_agents(machine, request, ask).await,
 
             Command::Machines(ask) => self.machine_book(ask).await,
             Command::Sync { machine, ticket } => self.sync(&machine, ticket).await,

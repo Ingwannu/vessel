@@ -60,6 +60,7 @@ pub mod agents;
 mod demo;
 pub mod devices;
 pub mod node_settings;
+pub mod onboarding;
 pub mod search;
 pub mod sync;
 #[cfg(target_arch = "wasm32")]
@@ -188,6 +189,7 @@ impl Link {
             book_path: machines::BookPath::discover(),
             workspace: workspace::Hub::default(),
             agents: agents::Hub::default(),
+            onboarding_scope: vessel_app_view::onboarding::scope::Scope::default(),
 
             device_calls: devices::Hub::default(),
             sync_calls: sync::Hub::default(),
@@ -252,6 +254,7 @@ struct State {
     book_path: machines::BookPath,
     workspace: workspace::Hub,
     agents: agents::Hub,
+    onboarding_scope: vessel_app_view::onboarding::scope::Scope,
 
     device_calls: devices::Hub,
     sync_calls: sync::Hub,
@@ -309,10 +312,18 @@ impl State {
     }
 
     fn client(&self, machine: &str) -> Result<&NodeClient, LinkError> {
-        self.clients
+        let client = self
+            .clients
             .get(machine)
             .map(|connected| &connected.client)
-            .ok_or_else(|| LinkError::NotConnected(machine.to_owned()))
+            .ok_or_else(|| LinkError::NotConnected(machine.to_owned()))?;
+        self.onboarding_scope
+            .check(
+                &vessel_app_view::devices::MachineKey::from_book(machine),
+                client.node().id,
+            )
+            .map_err(LinkError::Onboarding)?;
+        Ok(client)
     }
 
     /// Follow `session` from its first record, replacing the one followed.

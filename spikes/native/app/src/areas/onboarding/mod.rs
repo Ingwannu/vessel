@@ -1,6 +1,7 @@
 //! Reuses settings screens; setup owns only the gate, visits and completion.
 
 mod render;
+mod scope;
 
 use vessel_app_kit::dialog::DialogState;
 use vessel_app_kit::ui::{Context, Window};
@@ -24,6 +25,7 @@ pub(crate) struct Onboarding {
     dialog: DialogState,
     shown: Option<Visit>,
     from: Option<Origin>,
+    scope: scope::ScopeState,
 }
 
 /// Setup temporarily borrows existing settings owners without changing the
@@ -41,6 +43,7 @@ impl Onboarding {
             dialog: DialogState::new(cx),
             shown: None,
             from: None,
+            scope: scope::ScopeState::default(),
         }
     }
 }
@@ -50,6 +53,7 @@ pub(crate) fn prepare(shell: &mut Shell, window: &mut Window, cx: &mut Context<'
     if cfg!(any(target_os = "android", target_os = "ios")) {
         return;
     }
+    scope::prepare(shell, cx);
     let completion = if shell.prefs.onboarding.is_some()
         || matches!(shell.prefs.kept, Kept::ThisLaunch { .. })
     {
@@ -83,7 +87,9 @@ fn setup_host(shell: &Shell) -> SetupHost {
     }
     match shell.areas.workspace.projects.get(&machine.name) {
         Some(ProjectsView::Ready(list)) if list.projects.is_empty() => {
-            SetupHost::Empty(MachineKey::from_book(&machine.name))
+            scope::target(shell, &machine.name)
+                .cloned()
+                .map_or(SetupHost::Waiting, SetupHost::Empty)
         }
         Some(ProjectsView::Ready(_)) => SetupHost::Existing,
         Some(ProjectsView::Loading | ProjectsView::Failed(_) | ProjectsView::Older) | None => {
@@ -117,7 +123,8 @@ fn enter_step(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell
     if shell.areas.onboarding.shown == Some(open.visit()) {
         return;
     }
-    let (visit, step, host) = (open.visit(), open.step(), open.host().as_str().to_owned());
+    let (visit, step, target) = (open.visit(), open.step(), open.host().clone());
+    let host = target.machine().as_str().to_owned();
     let area = &mut shell.areas.onboarding;
     if area.from.is_none() {
         area.from = Some(Origin {
@@ -136,25 +143,13 @@ fn enter_step(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell
     shell.areas.settings.machine = Some(host);
     shell.route = Route::Settings;
     shell.settings_section(section(step), cx);
+    scope::bind(shell, target, visit);
 }
 
 impl Shell {
     /// Explicit reopen keeps completed storage intact until setup closes again.
     pub(crate) fn reopen_setup(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
-        let Some(machine) = self.fleet.machines.first() else {
-            return;
-        };
-        let host = MachineKey::from_book(&machine.name);
-        if self
-            .areas
-            .onboarding
-            .model
-            .reopen(host, layout(window))
-            .is_err()
-        {
-            self.notice = Some(self.words.desktop().setup_failed().to_owned());
-        }
-        enter_step(self, window, cx);
+        scope::manual(self, window);
         cx.notify();
     }
 
@@ -171,8 +166,14 @@ impl Shell {
     }
 
     fn setup_continue(&mut self, visit: Visit, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if !scope::actionable(self) {
+            return;
+        }
         match self.areas.onboarding.model.next(visit) {
-            Ok(Effect::Complete) => self.setup_complete(window, cx),
+            Ok(Effect::Complete) => {
+                scope::release(self, visit);
+                self.setup_complete(window, cx);
+            }
             Ok(Effect::None) => enter_step(self, window, cx),
             Err(_exhausted) => self.notice = Some(self.words.desktop().setup_failed().to_owned()),
         }
@@ -180,6 +181,13 @@ impl Shell {
     }
 
     fn setup_complete(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        let visit = match self.areas.onboarding.model.state() {
+            State::Open(open) => Some(open.visit()),
+            State::Deciding | State::Hidden => None,
+        };
+        if let Some(visit) = visit {
+            scope::release(self, visit);
+        }
         let Effect::Complete = self.areas.onboarding.model.complete() else {
             return;
         };
