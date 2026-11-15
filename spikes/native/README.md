@@ -1265,6 +1265,17 @@ activity and exact revisions drive claims/clears. Unassigned or old peers remain
 unsupported rather than receiving a provisional method number. Direct terminal
 pane reveal and passive focused-terminal clearing await the checked C2/W12
 producer; the Inbox row remains the explicit fallback.
+
+`view::attention` owns pure aggregate urgency, workspace counts and independent
+icon facts. The canonical workspace owner supplies every eligible root and
+working descendant, exact membership and explicit coverage; a latest-root
+activity display is a separate projection and cannot select aggregate urgency.
+Unknown facts do not become empty/Done. Known uninstrumented shells are neutral
+only in workspace aggregation. The corrected shared producer still awaits its
+own checks/review; this is not a completed workspace or OS badge integration.
+Inbox's manual session-open control stays unavailable until the session owner
+provides a reviewed original-connection-bound opener; notification activation
+retains exact Inbox selection or its generic fallback.
 Shared typed button content/loading/sizing is documented in
 `docs/plans/backend-m12-g2-button-content.md`. Label/Icon/IconAndLabel share one
 renderer; ButtonIcon::muted keeps the explicit source icon tone. button_control
