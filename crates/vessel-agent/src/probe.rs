@@ -22,7 +22,7 @@
 use std::time::Duration;
 
 use vessel_proc::{CommandSpec, Signal};
-use vessel_proto::{AgentAbilities, AgentEvent, SessionOption};
+use vessel_proto::{AgentAbilities, AgentCommand, AgentEvent, SessionOption};
 
 use crate::drivers::Driver;
 use crate::error::{AgentError, Disconnect};
@@ -45,6 +45,18 @@ pub enum ProbeError {
     /// The agent could not be started.
     #[error("cannot start the agent")]
     Spawn(#[source] AgentError),
+    /// This driver has no prompt-free command discovery path.
+    #[error("the {driver} driver does not provide prompt-free command catalogs")]
+    CatalogUnsupported {
+        /// The selected existing protocol driver.
+        driver: Driver,
+    },
+    /// A ready provider did not report its catalog within the discovery budget.
+    #[error("the agent did not report commands within {} s", limit.as_secs())]
+    CatalogTimedOut {
+        /// The original shared handshake/discovery budget.
+        limit: Duration,
+    },
     /// The agent's connection ended before the handshake completed: it
     /// failed (for example not signed in), or the agent exited.
     #[error("{disconnect}{}", Said(log))]
@@ -86,6 +98,8 @@ pub struct Probed {
     pub abilities: AgentAbilities,
     /// What it said of itself in `initialize` (protocol 11).
     pub introduction: Introduction,
+    /// Commands observed during the handshake; None means not reported, not empty.
+    pub commands: Option<Vec<AgentCommand>>,
 }
 
 /// How the handshake ended, before the log is attached.
@@ -120,6 +134,40 @@ pub async fn probe_with(
     command: &CommandSpec,
     setup: AgentSetup,
 ) -> Result<Probed, ProbeError> {
+    probe_for(driver, command, setup, Purpose::Options).await
+}
+
+/// Discover commands without a prompt, waiting for both Ready and Commands in any order.
+///
+/// # Errors
+/// As [`probe_with`], or a typed unsupported/timeout when no catalog is available.
+pub async fn probe_catalog_with(
+    driver: Driver,
+    command: &CommandSpec,
+    setup: AgentSetup,
+) -> Result<Probed, ProbeError> {
+    match driver {
+        Driver::Acp | Driver::CodexAppServer => {
+            probe_for(driver, command, setup, Purpose::Catalog).await
+        }
+        Driver::ClaudeStream | Driver::OpencodeHttp => {
+            Err(ProbeError::CatalogUnsupported { driver })
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Purpose {
+    Options,
+    Catalog,
+}
+
+async fn probe_for(
+    driver: Driver,
+    command: &CommandSpec,
+    setup: AgentSetup,
+    purpose: Purpose,
+) -> Result<Probed, ProbeError> {
     // Never questions, whatever the caller set: nobody watches a probe,
     // and what the agent offers does not depend on it.
     let setup = AgentSetup {
@@ -131,6 +179,8 @@ pub async fn probe_with(
         AgentProcess::spawn_with(driver, command, setup).map_err(ProbeError::Spawn)?;
     let mut log: Vec<String> = Vec::new();
     let mut options = None;
+    let mut commands = None;
+    let mut ready = None;
     let mut introduction = Introduction::default();
     // The handshake has its own deadline (the same `limit`); this one only
     // covers an agent whose outputs stay open after a failure.
@@ -140,17 +190,24 @@ pub async fn probe_with(
                 AgentOutput::Options(listed) => options = Some(listed),
                 AgentOutput::Introduced(said) => introduction = *said,
                 AgentOutput::Event(AgentEvent::Ready { abilities, .. }) => {
-                    return Ok(Probed {
-                        options: options.take().unwrap_or_default(),
-                        abilities: abilities.unwrap_or_default(),
-                        introduction: std::mem::take(&mut introduction),
-                    });
+                    ready = Some(abilities.unwrap_or_default());
                 }
                 AgentOutput::Event(AgentEvent::HarnessLog { line }) => keep(&mut log, line),
-                AgentOutput::Event(_) | AgentOutput::Commands(_) | AgentOutput::Usage(_) => {}
+                AgentOutput::Commands(listed) => commands = Some(listed),
+                AgentOutput::Event(_) | AgentOutput::Usage(_) => {}
                 AgentOutput::Disconnected(disconnect) => {
                     return Err(Unready::Disconnected(disconnect));
                 }
+            }
+            if let Some(abilities) = ready
+                && (purpose == Purpose::Options || commands.is_some())
+            {
+                return Ok(Probed {
+                    options: options.take().unwrap_or_default(),
+                    abilities,
+                    introduction: std::mem::take(&mut introduction),
+                    commands: commands.take(),
+                });
             }
         }
         Err(Unready::Disconnected(Disconnect::Closed))
@@ -175,6 +232,9 @@ pub async fn probe_with(
     }
     outcome.map_err(|unready| match unready {
         Unready::Disconnected(disconnect) => ProbeError::Disconnected { disconnect, log },
+        Unready::TimedOut if purpose == Purpose::Catalog && ready.is_some() => {
+            ProbeError::CatalogTimedOut { limit }
+        }
         Unready::TimedOut => ProbeError::TimedOut { limit, log },
     })
 }

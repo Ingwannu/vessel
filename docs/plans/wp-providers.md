@@ -314,3 +314,17 @@ plugin session adapter, and persistent provider helper ledger. The ledger must
 consume nodectl's reviewed seeded identity producer and pidfd-only verified
 signal; ProcessLifetime is solely an in-process observer. Root verified signal
 is not checked process-group cleanup and cannot acknowledge whole-group reap.
+
+## Codex command-owner dependency preparation
+
+W12b supplied checked source bec742aa1 (strict five-crate Clippy0, command unit
+14/0, Codex/options fake integration29/0). Its skill discovery and typed command
+projection are consumed intact in an isolated preparation tree, while the main
+626f12f79 check remains frozen. No native model/config producer arm is removed.
+Merge conflicts preserve both codex catalogue/commands modules, both refusal
+classifications and fixtures, the head SessionEvent optional admission check
+plus W12 command projection, and both documentation appendices. The head's
+single table stays in rpc/table.rs; the W12 pending draft row moves to its end
+without a number. No source budget is raised or existing assertion edited by
+this merge. Combined compilation remains owed before this dependency reaches
+main or any consumer-ready claim.

@@ -1639,3 +1639,4 @@ replacement, rather than self-RPC or another collector. Missing native drivers,
 plugin session execution and atomic creation integration remain separate work. Existing ACP sessions and node
 settings retain their current behaviour. No crate edge or external dependency
 is added by this stage.
+Composer catalogs (ADR 0085) use `vessel-proto::composer_commands` for typed draft configuration, command kind and pending protocol projection. Provider-edge conversion belongs to `vessel-agent`; the existing workspace root and option validation remain the node's authority boundary. This adds no crate dependency.

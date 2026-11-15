@@ -20,6 +20,21 @@ use crate::moving::{Control, Launch, MoveError, MoveOrder, ProfileMove, Restart}
 use crate::parking::{Parking, Route};
 use crate::structured::{MoveState, StructuredActor};
 
+#[derive(Debug, Clone, Copy)]
+enum ProbePurpose {
+    Options,
+    Catalog,
+}
+
+/// Only model and options change a draft probe; it can never resume or send a turn.
+#[derive(Debug, Clone, Default)]
+pub struct ProbeChoices {
+    /// The requested provider model, validated by its handshake.
+    pub model: Option<vessel_proto::ModelId>,
+    /// Mode, effort and feature selections, applied before Ready.
+    pub options: Vec<vessel_proto::OptionChoice>,
+}
+
 /// A structured session's agent command and the directory ACP is given.
 pub(crate) struct AgentCommand {
     pub(crate) command: CommandSpec,
@@ -158,16 +173,53 @@ impl SessionRuntime {
         proxy: Option<ModelProxy>,
         cwd: PathBuf,
     ) -> Result<vessel_agent::Probed, SessionError> {
+        self.probe_selected(
+            harness,
+            profile,
+            proxy,
+            cwd,
+            ProbeChoices::default(),
+            ProbePurpose::Options,
+        )
+        .await
+    }
+
+    /// Probe exactly a draft's model and option choices without sending a prompt.
+    /// Directory authorization belongs to the node before it calls this low-level path.
+    ///
+    /// # Errors
+    /// As [`Self::probe`]; unsupported choices fail the prompt-free handshake.
+    pub async fn probe_with_choices(
+        &self,
+        harness: HarnessRef,
+        profile: Option<Profile>,
+        proxy: Option<ModelProxy>,
+        cwd: PathBuf,
+        choices: ProbeChoices,
+    ) -> Result<vessel_agent::Probed, SessionError> {
+        self.probe_selected(harness, profile, proxy, cwd, choices, ProbePurpose::Catalog)
+            .await
+    }
+
+    async fn probe_selected(
+        &self,
+        harness: HarnessRef,
+        profile: Option<Profile>,
+        proxy: Option<ModelProxy>,
+        cwd: PathBuf,
+        choices: ProbeChoices,
+        purpose: ProbePurpose,
+    ) -> Result<vessel_agent::Probed, SessionError> {
         if self.shutdown.is_cancelled() {
             return Err(SessionError::ShuttingDown);
         }
         let mode = SessionMode::Structured {
-            model: None,
+            model: choices.model.clone(),
             resume: None,
-            options: Vec::new(),
+            options: choices.options.clone(),
         };
         let profile = profile.map_or_else(|| Profile::default_of(&harness), Ok)?;
-        let mut spec = SessionSpec::new(harness, mode).with_cwd(cwd);
+        let mut spec = SessionSpec::new(harness.clone(), mode).with_cwd(cwd);
         if !profile.is_default() {
             spec = spec.with_profile(profile.name().clone());
         }
@@ -177,8 +229,19 @@ impl SessionRuntime {
             driver,
             ..
         } = self.agent_command(spec, profile, proxy).await?;
-        let setup = probe_setup(cwd, self.config.agent_handshake_timeout);
-        Ok(vessel_agent::probe_with(driver, &command, setup).await?)
+        let mut setup = probe_setup(cwd, self.config.agent_handshake_timeout);
+        setup.model = choices.model;
+        setup.options = choices.options;
+        let mut probed = match purpose {
+            ProbePurpose::Options => vessel_agent::probe_with(driver, &command, setup).await?,
+            ProbePurpose::Catalog => {
+                vessel_agent::probe_catalog_with(driver, &command, setup).await?
+            }
+        };
+        if let Some(commands) = probed.commands.as_mut() {
+            vessel_harness::classify_commands(&harness, commands);
+        }
+        Ok(probed)
     }
 
     /// A page of `harness`'s own conversations (protocol 17's

@@ -93,7 +93,7 @@ pub use input::{AgentInput, SteerOutcome};
 pub use introduction::{Introduction, Refusal, Refused, SPEAKS};
 pub use options::{KindName, OptionError};
 pub use output::{AgentOutput, AgentOutputs};
-pub use probe::{ProbeError, Probed, probe, probe_with};
+pub use probe::{ProbeError, Probed, probe, probe_catalog_with, probe_with};
 pub use process::AgentProcess;
 pub use provider_catalogue::{ProviderObservation, ProviderProbeError, probe_provider_with};
 /// The command [`AgentProcess::spawn`] runs, and the signals it takes;

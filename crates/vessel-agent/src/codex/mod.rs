@@ -26,6 +26,7 @@
 mod asks;
 pub(crate) mod catalogue;
 mod catalogue_data;
+mod commands;
 mod mapper;
 mod mode;
 mod protocol;

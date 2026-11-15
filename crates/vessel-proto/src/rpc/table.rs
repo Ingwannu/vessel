@@ -384,6 +384,8 @@ macro_rules! method_table {
             GetProviderDiagnostic / get_provider_diagnostic / "provider.diagnostic" [Read, (pending $crate::providers::PROVIDERS), unary]: $crate::providers::GetProviderDiagnostic => $crate::providers::ProviderDiagnostic;
             /// Change provider participation without disclosing its launch values.
             SetProviderEnabled / set_provider_enabled / "provider.set_enabled" [Admin, (pending $crate::providers::PROVIDERS), unary]: $crate::providers::SetProviderEnabled => $crate::providers::ProviderSnapshotEntry;
+            /// Prompt-free command discovery for a validated draft (ADR 0085).
+            GetDraftCommands / draft_commands / "agent.draft_commands" [Operate, (pending $crate::composer_commands::COMPOSER_COMMANDS), unary]: $crate::composer_commands::GetDraftCommands => $crate::composer_commands::CommandCatalog;
         }
     };
 }
