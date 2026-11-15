@@ -89,7 +89,10 @@ to the named palette builder. Read reference
 `workspace-labels/swatch.tsx:13–180` and `chip.tsx:1–135`.
 The foreground uses the source's light/dark contrast bands; tint retains
 exact alpha 0x1a. App label colors map to this generic hue at the drawing
-edge. Narrow kit checks and the package review are pending.
+edge. Narrow kit clippy first refused screen-local float arithmetic in tint alpha
+conversion; the token now composes exact RGBA bytes and delegates conversion
+to the existing color library. Tests also guard RGB24 rows. Narrow kit checks
+and the package review remain pending.
 
 ## Differences and limits
 

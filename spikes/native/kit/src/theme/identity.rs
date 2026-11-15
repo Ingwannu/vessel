@@ -12,7 +12,7 @@
 //! - Costs: contributed schemes keep these named identities and select the
 //!   matching light/dark foreground, without changing the palette builder.
 
-use gpui::{Hsla, rgb};
+use gpui::{Hsla, rgb, rgba};
 
 use super::Scheme;
 
@@ -134,9 +134,9 @@ pub fn foreground(hue: Hue, scheme: Scheme) -> Hsla {
 /// A stable translucent ground, independent of the active scheme.
 #[must_use]
 pub fn tint(hue: Hue) -> Hsla {
-    let mut color: Hsla = rgb(hue.tone().fill).into();
-    color.a = f32::from(TINT_ALPHA) / f32::from(u8::MAX);
-    color
+    // Rows are RGB24 (tested), so rotating one byte opens the alpha slot
+    // without truncating a channel or doing screen-local float arithmetic.
+    rgba(hue.tone().fill.rotate_left(u8::BITS) | u32::from(TINT_ALPHA)).into()
 }
 
 #[cfg(test)]
@@ -149,15 +149,14 @@ mod tests {
         let mut light = BTreeSet::new();
         let mut dark = BTreeSet::new();
         for hue in Hue::ALL {
+            assert!(hue.tone().fill.leading_zeros() >= u8::BITS);
             let light_ink = foreground(hue, Scheme::Light);
             let dark_ink = foreground(hue, Scheme::Dark);
             assert!(dark_ink.l > light_ink.l);
             assert_eq!(light_ink.a.to_bits(), 1_f32.to_bits());
             assert_eq!(dark_ink.a.to_bits(), 1_f32.to_bits());
-            assert_eq!(
-                tint(hue).a.to_bits(),
-                (f32::from(TINT_ALPHA) / f32::from(u8::MAX)).to_bits()
-            );
+            let alpha_reference: Hsla = rgba(u32::from(TINT_ALPHA)).into();
+            assert_eq!(tint(hue).a.to_bits(), alpha_reference.a.to_bits());
             assert!(light.insert((
                 light_ink.h.to_bits(),
                 light_ink.s.to_bits(),
