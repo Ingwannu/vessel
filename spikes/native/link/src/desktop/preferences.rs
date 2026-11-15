@@ -106,6 +106,7 @@ pub struct Coordinator {
 pub struct Client {
     commands: mpsc::SyncSender<Command>,
     baseline: RefCell<Arc<Prefs>>,
+    canonical: RefCell<Arc<Prefs>>,
     revision: std::cell::Cell<Revision>,
     sequence: std::cell::Cell<Sequence>,
     pending: RefCell<VecDeque<Pending>>,
@@ -156,6 +157,7 @@ impl Coordinator {
             Client {
                 commands: self.commands.clone(),
                 baseline: RefCell::new(snapshot.preferences()),
+                canonical: RefCell::new(snapshot.preferences()),
                 revision: std::cell::Cell::new(snapshot.revision()),
                 sequence: std::cell::Cell::new(Sequence::default()),
                 pending: RefCell::new(VecDeque::new()),
@@ -195,6 +197,12 @@ impl Coordinator {
 }
 
 impl Client {
+    /// The last observed canonical value excludes this window's optimistic edits.
+    #[must_use]
+    pub fn canonical_preferences(&self) -> Arc<Prefs> {
+        Arc::clone(&self.canonical.borrow())
+    }
+
     /// Publish only changes since this window's last observed/submitted snapshot.
     ///
     /// # Errors
@@ -240,6 +248,7 @@ impl Client {
             return Observation::Stale;
         }
         self.revision.set(snapshot.revision);
+        let _previous = self.canonical.replace(snapshot.preferences());
         let acknowledged = *self.acknowledgements.borrow();
         let mut pending = self.pending.borrow_mut();
         // A later acknowledgement may race an earlier watch delivery. Only a
@@ -328,9 +337,11 @@ mod tests {
         let initial = Prefs::default();
         let coordinator = Coordinator::start(initial.clone()).unwrap();
         let (client, _updates) = coordinator.client();
+        let original_canonical = client.canonical_preferences();
         let mut first = initial;
         first.settings.appearance.theme = Theme::Light;
         client.publish(&first).unwrap();
+        assert_eq!(*client.canonical_preferences(), *original_canonical);
         coordinator.flush().await.unwrap();
         let older = coordinator.snapshot();
         let mut next = first;
@@ -342,11 +353,13 @@ mod tests {
             panic!("valid projection");
         };
         assert_eq!(projected.settings.sidebar.group, Grouping::Status);
+        assert_eq!(*client.canonical_preferences(), *older.preferences());
         coordinator.flush().await.unwrap();
         let Observation::Applied(committed) = client.observe(&coordinator.snapshot()) else {
             panic!("current projection");
         };
         assert_eq!(committed.settings.sidebar.group, Grouping::Status);
+        assert_eq!(*client.canonical_preferences(), *coordinator.current());
         let mut old_failure = older;
         old_failure.outcome = Outcome::Failed(Arc::new(DesktopError::Closed));
         assert!(matches!(client.observe(&old_failure), Observation::Stale));

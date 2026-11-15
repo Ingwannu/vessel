@@ -392,3 +392,11 @@ and protocol remain identical, but these older binaries do not contain base5
 service-port/allocation approval, strict decode-failure handling, session.delete
 handover waits or pending-label admission. Captures must exclude those flows;
 they do not prove a same-commit root build. No root binaries are rebuilt here.
+
+Client::canonical_preferences retains the last nonstale observed canonical Arc
+separately from the optimistic publish/rebase baseline. Feature-owned caches can
+compare old/new canonical records before shell.prefs is replaced without treating
+pending local intent as an acknowledgment. Existing revision regression now
+checks that publish does not advance canonical context, observed snapshots do,
+and stale failure snapshots cannot replace newer canonical state. W12 consumes
+this timing for its owned layout cache hook; no second persistence owner is added.
