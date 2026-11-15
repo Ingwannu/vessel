@@ -86,15 +86,24 @@ macro_rules! setting_keys {
                 Ok(())
             }
 
-            /// Reuse the existing patch's field-version rules for reads.
+            /// Supply the existing field-version rule to shared read preflight.
+            /// This sparse patch is only inspected, never sent as a mutation.
+            ///
+            /// # Errors
+            /// A newer unknown field has no safe read requirement in this build.
+            pub fn read_requirement(self) -> Result<crate::Call, UnknownSettingKey> {
+                match self {
+                    $(Self::$variant => Ok(crate::Call::SetNodeSettings(SetNodeSettings {
+                        $field: Some($probe), ..SetNodeSettings::default()
+                    })),)+
+                    Self::Unknown => Err(UnknownSettingKey::Unknown),
+                }
+            }
+
+            /// Reuse the patch's field version without a second numeric table.
             #[must_use]
             pub fn required_protocol(self) -> Option<ProtocolVersion> {
-                match self {
-                    $(Self::$variant => crate::Call::SetNodeSettings(SetNodeSettings {
-                        $field: Some($probe), ..SetNodeSettings::default()
-                    }).since(),)+
-                    Self::Unknown => None,
-                }
+                self.read_requirement().ok()?.since()
             }
 
         }

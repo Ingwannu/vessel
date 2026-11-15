@@ -6,6 +6,15 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- Current config tree composes the designated process/carrier/preflight head
+  with the reviewed service observations. Document merge conflicts retained
+  both texts, and the CLI error merge retained both additive variant groups.
+- Selected-field reads now call NodeClient::check_call with a sparse typed
+  patch requirement. The local numeric comparison is removed. A real in-memory
+  handshake test replaces its earlier pure helper test and observes no request
+  frame after older/unassigned preflight. Narrow compilation, TS generation and
+  the final config package gate remain owed.
+
 - Merged the designated upstream auth-receipt test repair before the
   proof package's first executed whole gate. No product source or test
   expectation was edited locally for that base race.

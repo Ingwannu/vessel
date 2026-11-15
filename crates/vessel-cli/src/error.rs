@@ -26,7 +26,6 @@ pub(crate) enum CliError {
     #[error(transparent)]
     SettingKey(#[from] vessel_proto::settings::UnknownSettingKey),
 
-
     /// File observations refuse unsafe reads before a shutdown request.
     #[error(transparent)]
     ServiceFile(#[from] crate::init::ServiceFileError),
