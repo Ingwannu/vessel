@@ -904,3 +904,9 @@ The first source-export regression seeds durable labels and Background without
 a provider conversation. The exact typed protocol refusal must precede the
 otherwise-later missing-history error, and the stored metadata must remain
 unchanged. This test is committed before the guard; its red run is still owed.
+
+Before the export guard, the existing info/turn/terminal snapshot lookup moves
+unchanged into a private exporter method. This separate behavior-preserving
+extraction keeps export orchestration short and lets the peer guard validate
+the same snapshot placed in the manifest, rather than read/check then re-query.
+Existing fields, refusal ordering and test expectations are unchanged.

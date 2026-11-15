@@ -56,19 +56,7 @@ impl Exporter<'_> {
         holder: Holder,
         request: ExportSession,
     ) -> Result<TransferManifest, ServiceError> {
-        let info = match self.sessions.find(request.session).await? {
-            Found::Live { handle, .. } => {
-                let info = handle.info();
-                if matches!(info.spec.mode, SessionMode::Terminal { .. }) {
-                    return Err(TransferError::Terminal.into());
-                }
-                if info.status.is_live() && !request.force && handle.turn_running().await? {
-                    return Err(TransferError::TurnInProgress.into());
-                }
-                info
-            }
-            Found::Stored(info) => info,
-        };
+        let info = self.snapshot(&request).await?;
         if matches!(info.spec.mode, SessionMode::Terminal { .. }) {
             return Err(TransferError::Terminal.into());
         }
@@ -125,6 +113,25 @@ impl Exporter<'_> {
                 options,
             },
         })
+    }
+
+    /// Read the export snapshot once, retaining the existing turn/terminal checks.
+    /// A later peer guard can validate this exact snapshot without a second lookup.
+    async fn snapshot(&self, request: &ExportSession) -> Result<SessionInfo, ServiceError> {
+        let info = match self.sessions.find(request.session).await? {
+            Found::Live { handle, .. } => {
+                let info = handle.info();
+                if matches!(info.spec.mode, SessionMode::Terminal { .. }) {
+                    return Err(TransferError::Terminal.into());
+                }
+                if info.status.is_live() && !request.force && handle.turn_running().await? {
+                    return Err(TransferError::TurnInProgress.into());
+                }
+                info
+            }
+            Found::Stored(info) => info,
+        };
+        Ok(info)
     }
 
     /// `memory.export`.
