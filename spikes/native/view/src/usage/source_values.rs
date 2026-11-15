@@ -18,6 +18,7 @@ pub fn balance_percent(
     balance: &UsageBalance,
     visibility: CostVisibility,
 ) -> Option<DisplayPercent> {
+    const FULL_PERCENT: f64 = 100.0;
     if visibility == CostVisibility::Withheld {
         return None;
     }
@@ -29,7 +30,6 @@ pub fn balance_percent(
         .used
         .map(FiniteNumber::get)
         .or_else(|| balance.remaining.map(|remaining| limit - remaining.get()))?;
-    const FULL_PERCENT: f64 = 100.0;
     let percent = FiniteNumber::new(used / limit * FULL_PERCENT)?;
     Some(DisplayPercent::reported(percent, DisplayAs::Used))
 }

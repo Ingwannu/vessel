@@ -19,8 +19,7 @@ impl InventoryRefresh {
     #[must_use]
     pub fn includes(&self, account: &LimitAccount) -> bool {
         match self {
-            Self::Cached => false,
-            Self::Report(_) => false,
+            Self::Cached | Self::Report(_) => false,
             Self::Account(chosen) => chosen == account,
             Self::All => true,
         }

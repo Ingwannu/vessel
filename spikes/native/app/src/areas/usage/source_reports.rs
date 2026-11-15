@@ -86,12 +86,12 @@ pub(super) fn render(
         body = body.child(message(text.no_source_reports(), tokens));
     }
     for entry in reports.reports.as_slice() {
-        if !reports
+        if reports
             .sources
             .as_slice()
             .iter()
             .find(|source| &source.id == entry.source())
-            .is_some_and(|source| source.availability != UsageSourceAvailability::Enabled)
+            .is_none_or(|source| source.availability == UsageSourceAvailability::Enabled)
         {
             body = body.child(card(shell, reports, entry, density, tokens, cx));
         }

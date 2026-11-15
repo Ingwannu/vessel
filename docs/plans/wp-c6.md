@@ -213,3 +213,14 @@ The legacy account observation builder and the summary test's successful fixture
 are extracted before the strict consumer check to keep functions within the same
 size budget. The produced element tree, source values, test sequence and assertions
 are unchanged. No additional control, preference or transport call is introduced.
+
+Package base 8 (`91407173`, including the node's `82ae7c91`) is merged before the
+next native check; no node head is merged directly into the app. Narrow run
+`wp-usage-native-clock-20261115T131247Z-c9ff415f` reached the view crate and returned
+three diagnostics: two local style lints (identical false arms and a constant
+after statements) are corrected without changing behavior. Generated
+`PlainUsage::resolve` also grew to 132 lines. The shared localization owner is
+handling a bounded generator structure that preserves the typed getter API;
+neither generated-line packing nor a larger allowance is a valid correction.
+App rendering and later crates were not compiled by that failed run, so it is
+not consumer or package proof. The next changed-source check is still owed.
