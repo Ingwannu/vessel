@@ -4,9 +4,12 @@
 
 The previous shell worktree belongs to the continuing sidebar slice. This
 continuation uses a separate branch and local Cargo target directories; it
-does not modify that worktree. The next sidebar work waits for its explicit
-handoff note. Theme cycling also waits for the theme consumer's typed API
-and review disposition; it must use the existing action registry.
+does not modify that worktree. The sidebar handoff has now been read and
+its completed source integrated at `22025b12`. Width captures are complete,
+with the layout failures below retained. Next is theme cycling through the
+existing action registry, using the theme consumer's typed contract and
+waiting for its whole gate before submitting that integration. Machine
+filtering, notifications and message search follow afterwards.
 
 ## Paired-book fixture verification
 
@@ -71,3 +74,70 @@ fleet creation, not screen appearance. The native integration branch's
 whole gate on the implementation commit remains its owner's evidence;
 this continuation changes documentation only and runs the native fast
 format, size, boundary and token checks without repeating that whole gate.
+
+## Sidebar width evidence
+
+Completed source inherited, not redrawn: row menu `f7e91461`, ended-session
+default `8366a2b4`, projects unfolding `d33d1ba6`, token correction
+`4bcdc117`. The last source gate was native 998 passed, zero failed, one
+ignored. Integration `22025b12` combines this with `d30804b2`; its only
+manual conflict resolution preserves the removal of the three obsolete
+sidebar token exceptions. Its complete remote native gate passed every
+step: 1169 tests passed, zero failed and one ignored. The private run id is
+`shell2-20261115T034200Z-22025b12`; the source was not changed during it.
+
+The provided release executable was built from `d33d1ba6`, SHA-256
+`041c0ccc1723b7a1bd8438d656f34dd618b97f6364541585e45c736bdf0bd665`, build
+id `97f765a0b55549bbae7826fbe43621bdc16acb74`. The later token correction
+replaces equivalent numeric literals with constants and removes exceptions.
+These captures are evidence for that sidebar source, not a newly built
+integration executable or a whole application visual pass.
+
+The fresh disposable fleet completed the full startup checks with locally
+built binaries. Eight additional Git projects on the second node, added
+through the real CLI, join three on the first node. Thus the eleven-project
+count exercises both machines. No old fleet or capture driver's state was
+modified: the driver, preferences, per-run books, display cookies and output
+folders are separate copies.
+
+All 86 original screenshots were opened and inspected; the private manifest
+records each actual size and SHA-256. Coverage: stored sidebar widths 200
+and 600 at 1280×800, machine/status grouping, dark English; narrow sidebar
+in light Korean; both stored limits at 800×600; unfolding, refolding and
+the light Korean context menu at both limits. The remaining theme/language
+cross-product, phone, additional scales and 1024-wide captures were not
+rerun in this supplement. Earlier board-agreement evidence belongs to the
+original row-menu run and was not independently repeated here.
+
+Reference read: Paseo `components/sidebar/sidebar-workspace-menu.tsx`,
+including action order, hover trigger, context surface and its width and
+alignment. The existing native omissions and differences documented beside
+`sidebar/row_menu.rs` remain; this verification does not approve them away.
+
+Works in the captured states:
+- At the wide window both stored widths are drawn; machine names, row menu
+  dots and the final more row stay within the sidebar. Long titles use an
+  ellipsis. The ended group is visible with the preference field omitted.
+- All projects unfolds the eleven projects in place, including the other
+  machine's rows. Refolding restores the previous session list and foot.
+- The Korean menu's four items are readable, and Escape closes it.
+
+Does not work:
+- At 800×600, the first eight project rows already push sessions, Add machine
+  and the settings foot below the window. The scripted wheel actions do not
+  recover them. The requested width 600 is correctly constrained to 400 by
+  available room; the vertical failure occurs at either width.
+- At 1280×800, expanding all eleven projects also removes the session list
+  and settings foot from view. Show fewer is reachable and restores them,
+  but the expanded layout is not a passing state.
+- Status grouping at width 200 preserves the machine name at the cost of
+  leaving almost only an ellipsis for some titles. This is a readability
+  limitation even where elements do not overlap.
+
+The first capture batch was interrupted with exit 143 after two complete
+combinations; its cause was not established. Those originals and the failure
+record were retained. A detached driver completed only the remaining cases.
+The abandoned display PID was absent before its owned stale markers were
+removed. Later app/display processes ended normally. The disposable fleet
+is retained for the next shortcut integration check and must be stopped by
+its recorded, verified PIDs when that work ends.
