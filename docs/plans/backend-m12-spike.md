@@ -689,6 +689,11 @@ starts from, gated alone:
   merged into the app line only after the release worker had taken the
   0.0.0.0.20 commit, so the release does not carry crates it was not
   gated with.
+- `3cd0d3fc` (package base 4): from here the package base and the app
+  line are one line. The .19 and .20 merges had gone only into the app
+  line, so workers on base 3 lacked them (one was blocked on the Settings
+  Chat words). Every package merged for a build now lands on this line,
+  and the package base branch follows it by fast-forward.
 
 Root binaries for capture fleets are built once from that root
 (`fleet.sh` end to end), so the packages do not each build them.
