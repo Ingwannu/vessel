@@ -1,4 +1,4 @@
-//! MiniMax's explicit remaining percentage takes priority over counts for each model/period.
+//! `MiniMax`'s explicit remaining percentage takes priority over counts for each model/period.
 use super::{
     AccountUsageError, AccountUsageOutcome,
     common::{self, Number, Text},

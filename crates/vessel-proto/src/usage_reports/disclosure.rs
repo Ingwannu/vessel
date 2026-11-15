@@ -29,7 +29,7 @@ pub enum UsageCredentialStore {
     ClaudeCode,
     /// Codex's saved OAuth sign-in.
     Codex,
-    /// OpenCode's saved OpenAI OAuth sign-in.
+    /// `OpenCode`'s saved `OpenAI` OAuth sign-in.
     OpenCode,
     /// Copilot/GitHub environment credentials, then GitHub CLI sign-in.
     GitHubCopilot,
@@ -39,9 +39,9 @@ pub enum UsageCredentialStore {
     Grok,
     /// Kimi environment, then Kimi Code/Kimi saved credentials.
     Kimi,
-    /// MiniMax environment, then saved credentials/configuration; never refresh tokens.
+    /// `MiniMax` environment, then saved credentials/configuration; never refresh tokens.
     MiniMax,
-    /// OpenCode's saved Go API key.
+    /// `OpenCode`'s saved Go API key.
     OpenCodeGo,
     /// Z.ai/GLM environment API key.
     Zai,
@@ -53,7 +53,7 @@ pub enum UsageCredentialStore {
 pub enum UsageRecipient {
     /// Anthropic's fixed usage API.
     Anthropic,
-    /// OpenAI's fixed ChatGPT usage API.
+    /// `OpenAI`'s fixed `ChatGPT` usage API.
     OpenAi,
     /// GitHub's fixed Copilot API.
     GitHub,
@@ -63,9 +63,9 @@ pub enum UsageRecipient {
     Xai,
     /// Kimi's fixed coding API.
     Kimi,
-    /// Only MiniMax's global or China API, selected by local configuration.
+    /// Only `MiniMax`'s global or China API, selected by local configuration.
     MiniMaxGlobalOrChina,
-    /// OpenCode's fixed Go usage API.
+    /// `OpenCode`'s fixed Go usage API.
     OpenCode,
     /// Z.ai's fixed subscription API.
     Zai,

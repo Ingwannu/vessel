@@ -1,4 +1,4 @@
-//! OpenCode Go reports three independent periods; rolling deliberately has no short name.
+//! `OpenCode` Go reports three independent periods; rolling deliberately has no short name.
 use super::{AccountUsageError, AccountUsageOutcome, common};
 use chrono::{DateTime, Utc};
 use serde::Deserialize;

@@ -4,7 +4,7 @@ use rusqlite::{Connection, OpenFlags, OptionalExtension as _};
 use std::{io, path::Path};
 use zeroize::Zeroizing;
 const MAX_CURSOR_SIGN_IN_BYTES: usize = 65_536;
-/// Read only Cursor's known ItemTable keys; never create, migrate or modify the database.
+/// Read only Cursor's known `ItemTable` keys; never create, migrate or modify the database.
 ///
 /// Active WAL is refused because immutable read-only mode cannot safely see it. The source
 /// may try its separately disclosed headless store. No SQLite dependency crosses this seam.
