@@ -34,6 +34,8 @@ pub(super) enum Fault {
     Stage(Stage),
     #[error("wrong workspace identity")]
     Identity,
+    #[error("workspace archive is already claimed")]
+    Claimed,
 }
 pub(super) struct State {
     pub life: Life,
@@ -94,7 +96,8 @@ impl ArchiveBackend for Fake {
         let mut state = self.state();
         match state.life {
             Life::Archived => Ok(Claim::AlreadyArchived),
-            Life::Active | Life::Archiving => {
+            Life::Archiving => Err(Fault::Claimed),
+            Life::Active => {
                 state.life = Life::Archiving;
                 Ok(Claim::Acquired(workspace))
             }

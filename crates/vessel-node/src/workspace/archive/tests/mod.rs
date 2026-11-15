@@ -137,3 +137,32 @@ async fn archived_is_idempotent_and_wrong_identity_has_no_side_effect() {
     ));
     assert_eq!(fake.state().calls.as_slice(), [Stage::Claim]);
 }
+
+#[tokio::test]
+async fn concurrent_archive_cannot_reuse_an_active_drain_claim() {
+    let fake = Fake::new(Vec::new());
+    let _previous = fake.starts.send_replace(Starts::Pending);
+    let mut waiting = fake.waiting.subscribe();
+    let second = async {
+        let _ready = waiting
+            .wait_for(|state| *state == Starts::Pending)
+            .await
+            .unwrap();
+        let report = archive(&fake, fake.workspace).await;
+        assert!(
+            matches!(report.outcome, ArchiveOutcome::Incomplete(failures)
+            if matches!(failures.as_slice(), [Failure::At { stage: Stage::Claim, source: Fault::Claimed, .. }]))
+        );
+        let _previous = fake.starts.send_replace(Starts::Settled);
+    };
+    let (first, ()) = tokio::join!(archive(&fake, fake.workspace), second);
+    assert!(matches!(first.outcome, ArchiveOutcome::Archived { .. }));
+    assert_eq!(
+        fake.state()
+            .calls
+            .iter()
+            .filter(|stage| **stage == Stage::Backing)
+            .count(),
+        1
+    );
+}

@@ -53,7 +53,9 @@ pub(crate) enum ArchiveOutcome<E> {
 pub(crate) trait ArchiveBackend: Sync {
     type Claim: Send + Sync;
     type Error: Error + Send + Sync + 'static;
-    /// Persist the admission fence before any setup/resource is stopped.
+    /// Persist an exclusive admission fence before any setup/resource is stopped.
+    /// A concurrent caller cannot reuse an in-progress claim. Recovery of an
+    /// abandoned claim requires the adapter's authoritative reconciliation.
     fn claim(
         &self,
         workspace: WorkspaceId,
