@@ -74,6 +74,7 @@ fn machine(name: &str) -> Machine {
         agents: Vec::new(),
         protocol: Some(vessel_proto::PROTOCOL_VERSION),
         version: None,
+        node: None,
     }
 }
 
