@@ -43,13 +43,13 @@ impl Workspaces {
         }
         #[cfg(target_os = "linux")]
         let (directory, lease) = {
-            let opened = self.opened_admission(resolved.root.path()).await?;
+            let mut opened = self.opened_admission(resolved.root.path()).await?;
             let deadline = tokio::time::Instant::now()
                 .checked_add(ADMISSION_TIMEOUT)
                 .ok_or(RootRefusal::TimedOut)?;
             let lease = self
                 .exclusion
-                .claim_registered(opened.root, opened.worktrees, deadline)
+                .claim_registered(opened.root, std::mem::take(&mut opened.worktrees), deadline)
                 .await?;
             (opened, lease)
         };
