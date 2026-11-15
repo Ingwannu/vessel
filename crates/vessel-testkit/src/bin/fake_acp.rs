@@ -52,6 +52,9 @@
 //! - `session/list` (protocol 17; offered unless `FAKE_ACP_NO_LIST` is
 //!   set, "method not found" then): three earlier conversations over two
 //!   pages (`history` module); no session is started by it.
+//! - With `FAKE_ACP_LOAD_GATE` set to a loopback socket, `session/load`
+//!   reports its id there and waits for the test's one-byte acknowledgement.
+//!   It cannot load or accept a recovery prompt before that boundary.
 //! - `session/load`: replays the conversation as a user message chunk
 //!   `earlier question` (then, with `FAKE_ACP_REPLAY` set to a number,
 //!   that many agent message chunks `replayed line <n>`, a long
@@ -174,6 +177,8 @@ use tokio_util::sync::CancellationToken;
 mod ask;
 #[path = "fake_acp/describe.rs"]
 mod describe;
+#[path = "fake_acp/gate.rs"]
+mod gate;
 #[path = "fake_acp/history.rs"]
 mod history;
 #[path = "fake_acp/options.rs"]
@@ -517,6 +522,12 @@ async fn serve() -> ExitCode {
             {
                 let state = Arc::clone(&state);
                 async move |request: LoadSessionRequest, responder, cx| {
+                    if let Err(error) = gate::wait(&request.session_id.0).await {
+                        complain(&format!("fake-acp: its test load gate closed: {error}"));
+                        return responder.respond_with_error(
+                            Error::internal_error().data("the test load barrier closed"),
+                        );
+                    }
                     if load_fails {
                         return responder.respond_with_error(
                             Error::invalid_params()

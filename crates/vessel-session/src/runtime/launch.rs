@@ -209,7 +209,7 @@ impl SessionRuntime {
         // Counts as a running task, so a concurrent `shutdown` waits until
         // this session is either refused or tracked.
         let _in_flight = self.tasks.token();
-        if self.shutdown.is_cancelled() {
+        if self.is_shutting_down() {
             return Err(SessionError::ShuttingDown);
         }
         let LaunchOptions {
@@ -295,6 +295,7 @@ impl SessionRuntime {
     ) -> Result<Created, SessionError> {
         let lookup = self.config.harness_lookup.clone();
         let env = self.config.harness_env.clone();
+        let admission = self.admission.clone();
         let launch_spec = spec.clone();
         let window = WindowSize {
             cols: size.cols,
@@ -325,13 +326,16 @@ impl SessionRuntime {
                 .map(McpFile::write)
                 .transpose()
                 .map_err(SessionError::McpFile)?;
+            if admission.as_ref().is_some_and(tokio_util::sync::CancellationToken::is_cancelled) {
+                return Err(SessionError::ShuttingDown);
+            }
             let (pty, output) =
                 PtyProcess::spawn(&launch.command, window).map_err(SessionError::Spawn)?;
             Ok::<_, SessionError>((pty, output, mcp_file))
         })
         .await
         .map_err(SessionError::Internal)??;
-        if self.shutdown.is_cancelled() {
+        if self.is_shutting_down() {
             // Dropping the PTY kills its program.
             drop(pty);
             return Err(SessionError::ShuttingDown);

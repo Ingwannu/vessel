@@ -433,3 +433,6 @@ mod tests {
 
 /// Offline saved-sign-in limit response shapes shared by parsers and node fixtures.
 pub mod limits;
+
+/// Maximum provider conversation id bytes in the loopback load test protocol.
+pub const LOAD_GATE_SESSION_MAX_BYTES: usize = 4096;

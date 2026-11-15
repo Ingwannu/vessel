@@ -37,8 +37,8 @@ pub struct NodeSettings {
     /// absent when every agent runs over ACP.
     #[serde(default, skip_serializing_if = "AgentDrivers::all_acp")]
     pub drivers: AgentDrivers,
-    /// Startup policy, hidden until its protocol is assigned (ADR 0059).
-    /// This value-only field does not enable an engine or register input.
+    /// Startup policy, hidden until its protocol is assigned (ADR 0098).
+    /// An explicit settings read requests it; older replies omit it.
     #[serde(default, skip_serializing_if = "RestartRecovery::is_default")]
     pub restart_recovery: RestartRecovery,
 }
@@ -160,9 +160,13 @@ impl SetAgentDrivers {
 }
 
 /// `node.settings`: the node's settings in force. Needs `read`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-pub struct GetNodeSettings {}
+pub struct GetNodeSettings {
+    /// Explicit capability read; unavailable until recovery's protocol is assigned.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub include_restart_recovery: bool,
+}
 
 /// `node.set_settings`: change the settings it names; the others stay.
 /// Needs `admin`. Answers the settings in force.
@@ -173,7 +177,7 @@ pub struct GetNodeSettings {}
 /// build wrote must still parse after a downgrade, keeping what this build
 /// knows. vessel-store's `a_file_from_a_later_build_keeps_what_this_build_knows`
 /// holds the rule.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct SetNodeSettings {
     /// How long a structured session may stay idle before its agent is
@@ -185,6 +189,9 @@ pub struct SetNodeSettings {
     /// does not offer yet.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub drivers: Option<SetAgentDrivers>,
+    /// Startup policy patch. An absent patch preserves every saved choice.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub restart_recovery: Option<crate::restart::SetRestartRecovery>,
 }
 
 #[cfg(test)]

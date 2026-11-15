@@ -1,7 +1,7 @@
 # Startup recovery R1: values and settings reply projection
 
 R1 starts on the node line, independently of the unmerged recovery runtime.
-ADR 0059 records the reference, defaults and full recovery contract. This
+ADR 0098 records the reference, defaults and full recovery contract. This
 slice implements only the values and peer projection needed before wiring.
 
 Current verified source: `2890410c` on announced node `5ac9c991`. The author
