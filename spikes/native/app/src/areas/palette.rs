@@ -162,7 +162,7 @@ impl Shell {
             &self.fleet,
             selected.as_deref(),
             &sections,
-            Theme::ALL,
+            Theme::ALL.map(|theme| (theme, words.theme(theme))),
             self.t.lang,
         );
         if !settings::drawn(Section::Overview) {

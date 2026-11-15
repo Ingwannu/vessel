@@ -462,6 +462,38 @@ Enabled actions consume the left-button release after the generated caller
 click, without a capture handler. Later transparent sibling overlap remains
 an open kit hit-test policy; this is parent isolation, not global occlusion.
 
+### Theme cycling
+
+Settings > Shortcuts > General lists **Cycle theme**. Its default is
+Command+Option+T on Mac and Control+Alt+T elsewhere, through the same
+registry used for rebinding and conflicts. It calls `Theme::next` and the
+existing appearance preference setter. The command center suppresses this
+action, including a rebound key; character-preferred input and focused
+composition stand down before shortcut matching. Non-Mac terminal focus is
+excluded by policy, but its actual focus query awaits the terminal surface;
+this integration still has a placeholder there.
+
+### Named colour palettes (ADR 0070, staged)
+
+The kit can build `theme::Palette::{Light, Dark, Zinc, Midnight, Claude,
+Ghostty, PureBlack}` through `Tokens::palette`. `Scheme` still means only
+light or dark: status and syntax retain their existing scheme-specific
+sets. `Tokens::of(Scheme)` and both shipped token constructor bodies are
+unchanged. The new dark variants share one tint-to-token mapping; their
+authored values and deliberate brand-accent substitution are in ADR 0070.
+
+The existing stored `view::prefs::Theme` now includes all seven concrete
+palettes and System. Appearance keeps its existing tiles, with System
+first. One app adapter supplies both their previews and the applied tokens;
+it compares actual tokens so two dark palettes do not collapse to Dark.
+`set_palette` updates the component layer and refreshes the windows too.
+The run override still pins light/dark as before. The plan and current
+verification limits are in `docs/plans/app-themes.md` at the repository root.
+
+`theme::palette::GREEN_500` remains the fixed success colour used by the
+typed menu. It has one definition, shared with the named palette module;
+it is not replaced by the theme's accent or semantic status signal.
+
 ### Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its
@@ -824,10 +856,15 @@ borrow retained fields, while messages with values are formatted when those
 values change. The allocation-counting test covers warmed plain access.
 
 `LANGUAGES` exposes each embedded tag, own name and completeness; the
-checking locale `en-XA` is excluded. `resolve_language` applies an override,
-a typed preference, or the system tag, with exact/base/English fallback.
-The source API is English, Korean must be complete with the same variables,
-and a contributed folder may be partial. Run the shared validator/report:
+checking locale `en-XA` is excluded. `resolve_languages` applies the checking
+override, a typed preference, or the host provider's preferred system tags in
+order. Each tag tries exact then base; English is the final fallback after the
+list is exhausted. `resolve_language` remains the single-tag adapter. The app
+uses sys-locale's existing native/browser list at startup or preference events,
+with no locale I/O during drawing. English/Korean are the shipped languages;
+a partial candidate stays outside the shipped directory. The source API is
+English and Korean must be complete with the same variables. Run the shared
+validator/report:
 
 ```bash
 scripts/locale-coverage.sh
