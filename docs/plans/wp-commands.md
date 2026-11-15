@@ -166,3 +166,34 @@ S2's exact theme/input dependency eddce254 is now V1 PASS and remains in history
 The three GPUI guard regressions remain, with an explicit G S fixture for pending
 sequence setup. The announced next shared base is 6c782cb6; merge is pending this
 checkpoint. No tracker rows are passed and no whole package gate has run.
+
+## Source registration and shared bases (08:4x checkpoint)
+
+Shared bases 6c782cb6 and 3cd0d3fc are merged (e4c7d157 / f12d347b).
+Token/size conflicts retained the actual lower counts; no allowance was raised.
+The source registry now captures owner generations when presenting a result;
+resolve(id,owner) refuses replacement/removal before activation. The native
+adapter in palette/source.rs captures feature-owned typed values in an Rc
+callback rather than interpreting plugin RPC or filesystem strings in the UI.
+Feature sources use Shell::register_command_source/remove_command_source and
+Contribution<Command>; callback, shortcut and nested-page targets share the one
+existing palette renderer and keyboard cursor. Root static commands are projected
+through that registry, followed by existing session recency. Messages entry now
+comes from a contribution and retains W1's mode/dispatch/invalidation branch.
+This checkpoint has not passed app compilation or the package gate.
+
+C2 authorized the tiny terminal owner query in presentation.rs, committed alone
+as 8d4b75b38. It checks actual focus + a retained opening + Session route; it
+makes no inference from selection or phase. Its GPUI focus/route/closed fixture
+is written but not run. The central interceptor now calls that owner query.
+Browser focus is explicitly pending W14's actual renderer and resource revision.
+
+The first immutable canonical view test run 9013121a completed with 892 passing,
+16 failing. Fifteen legacy expectations and one new Alt+digit assumption needed
+updates: Alt+digit now addresses a tab, primary+digit a workspace; Mod+Shift+T
+now creates a terminal instead of being unbound; captures/index editing and the
+bounded edit transaction follow the new registry. The old editor helpers remain
+compatibility consumers, while Settings uses SequenceCapture/rebinding. The
+compatibility listing's explicit platform now selects the correct platform's
+canonical definitions, rather than displaying Linux keys in a Mac fixture.
+Follow-up tests are pending. No unrelated behavior test was removed.

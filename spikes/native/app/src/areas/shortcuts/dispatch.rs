@@ -133,7 +133,7 @@ impl Shell {
         self.areas.shortcuts.dispatch.remove(registration);
     }
 
-    pub(super) fn dispatch_shortcut_to_owners(
+    pub(crate) fn dispatch_shortcut_to_owners(
         &mut self,
         request: ShortcutRequest,
         window: &mut Window,

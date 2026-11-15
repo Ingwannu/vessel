@@ -170,3 +170,6 @@ shortcuts-conflict = { $key } is assigned to { $action }. Reassign it?
 
 # Recording exceeded the shared sequence bound; Backspace removes the last step.
 shortcuts-too-long = That shortcut is too long. Remove a step or cancel and try again.
+
+# A source was replaced or removed before its command could execute.
+shortcuts-command-unavailable = This command is no longer available.

@@ -97,8 +97,12 @@ impl Shell {
         help.search.clear(window, cx);
         if let Some(prior) = help.prior.take() {
             prior.focus(window, cx);
+            if !prior.is_focused(window) {
+                self.focus_composer(window, cx);
+            }
         } else {
             window.blur(cx);
+            self.focus_composer(window, cx);
         }
         cx.notify();
     }

@@ -170,3 +170,6 @@ shortcuts-conflict = { $key } 키는 { $action }에 지정되어 있습니다. �
 
 # Recording exceeded the shared sequence bound; Backspace removes the last step.
 shortcuts-too-long = 단축키가 너무 깁니다. 마지막 키를 지우거나 취소한 뒤 다시 시도하세요.
+
+# A source was replaced or removed before its command could execute.
+shortcuts-command-unavailable = 더 이상 사용할 수 없는 명령입니다.

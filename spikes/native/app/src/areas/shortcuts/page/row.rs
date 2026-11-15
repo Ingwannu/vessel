@@ -153,7 +153,28 @@ fn keys(shell: &Shell, definition: &Definition<Action>, tokens: &Tokens) -> Div 
                     .into_any_element()
             });
             or.into_iter().chain(std::iter::once(
-                caps(binding.keys.chords(), tokens).into_any_element(),
+                vessel_app_kit::command::key_badges(
+                    &vessel_app_view::shortcuts::help::display_caps(
+                        definition.action,
+                        &binding.keys,
+                        vessel_app_view::shortcuts::modified(
+                            definition.action,
+                            &shell.prefs.settings.shortcuts,
+                        ),
+                        Platform::native(),
+                    )
+                    .into_iter()
+                    .map(|caps| {
+                        SharedString::from(caps.join(if Platform::native() == Platform::Mac {
+                            ""
+                        } else {
+                            "+"
+                        }))
+                    })
+                    .collect::<Vec<_>>(),
+                    tokens,
+                )
+                .into_any_element(),
             ))
         }))
 }

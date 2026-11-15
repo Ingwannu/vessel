@@ -351,7 +351,15 @@ pub(super) fn enabled(action: Action, scope: ShortcutScope, platform: Platform) 
 /// default table. New multi-step screens use `effective_bindings` directly.
 #[must_use]
 pub fn bindings_of(action: Action, overrides: &BTreeMap<ActionId, Bindings>) -> Vec<Binding> {
-    effective_bindings(overrides, default_context(Platform::native()))
+    bindings_on(action, overrides, Platform::native())
+}
+
+pub(super) fn bindings_on(
+    action: Action,
+    overrides: &BTreeMap<ActionId, Bindings>,
+    platform: Platform,
+) -> Vec<Binding> {
+    effective_bindings(overrides, default_context(platform))
         .into_iter()
         .flatten()
         .filter(|binding| binding.action == action)

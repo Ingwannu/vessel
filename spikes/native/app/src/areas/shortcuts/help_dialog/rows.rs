@@ -11,8 +11,8 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_view::shortcuts::help::{HelpRow, HelpSection, filter_help};
 use vessel_app_view::shortcuts::{
-    Action, Platform, ShortcutGroup, action_label, binding_id, chord_caps, default_context,
-    effective_bindings, group_label,
+    Action, Platform, ShortcutGroup, action_label, binding_id, default_context, effective_bindings,
+    group_label,
 };
 
 pub(super) fn render(shell: &Shell, tokens: &Tokens) -> AnyElement {
@@ -63,16 +63,27 @@ pub(super) fn render(shell: &Shell, tokens: &Tokens) -> AnyElement {
                 .keys
                 .map(|sequence| {
                     div()
+                        .flex_wrap()
                         .flex()
                         .items_center()
                         .gap(px(spacing::S2))
-                        .children(sequence.chords().map(|chord| {
-                            let caps: Vec<SharedString> = chord_caps(chord, platform)
-                                .into_iter()
-                                .map(SharedString::from)
-                                .collect();
-                            key_badges(&caps, tokens).into_any_element()
-                        }))
+                        .children(
+                            vessel_app_view::shortcuts::help::display_caps(
+                                row.action,
+                                sequence,
+                                vessel_app_view::shortcuts::modified(
+                                    row.action,
+                                    &shell.prefs.settings.shortcuts,
+                                ),
+                                platform,
+                            )
+                            .into_iter()
+                            .map(|caps| {
+                                let caps: Vec<SharedString> =
+                                    caps.into_iter().map(SharedString::from).collect();
+                                key_badges(&caps, tokens).into_any_element()
+                            }),
+                        )
                         .into_any_element()
                 })
                 .unwrap_or_else(|| {

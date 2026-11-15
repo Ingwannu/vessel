@@ -5,6 +5,24 @@
 use super::sequence::KeySequence;
 use super::{Chord, Platform, ShortcutGroup, chord_caps};
 
+/// Display the source's default question mark as `?`. A user override retains
+/// its explicit modifiers; every other action uses the shared chord caps.
+#[must_use]
+pub fn display_caps(
+    action: super::Action,
+    sequence: &KeySequence,
+    overridden: bool,
+    platform: Platform,
+) -> Vec<Vec<String>> {
+    if action == super::Action::Help && !overridden {
+        return vec![vec!["?".to_owned()]];
+    }
+    sequence
+        .chords()
+        .map(|chord| chord_caps(chord, platform))
+        .collect()
+}
+
 /// Translated row presentation, prepared from one current registry snapshot.
 #[derive(Debug, Clone)]
 pub struct HelpRow<'a, A> {

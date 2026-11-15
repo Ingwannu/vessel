@@ -20,7 +20,7 @@ fn theme_cycle_uses_the_primary_modifier_and_alt_on_both_platforms() {
         );
         assert_eq!(
             matched(&chord("Mod+Shift+T"), None, &none, 0, platform),
-            Matched::None
+            run(Action::NewTerminal)
         );
     }
     let option = KeyPress {

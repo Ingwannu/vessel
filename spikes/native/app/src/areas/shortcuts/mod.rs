@@ -51,13 +51,6 @@ mod tests;
 use crate::routes::Route;
 use crate::shell::Shell;
 
-/// C2's T1 terminal surface is not integrated yet: the session area
-/// draws a placeholder, with no terminal that can hold focus. T1 will
-/// replace this seam with its actual focus query when the surface lands.
-fn terminal_focused(_shell: &Shell) -> bool {
-    false
-}
-
 /// What the listener keeps between presses.
 pub(crate) struct ShortcutListener {
     /// A sequence's first press (`G` of `G S`), until the next.
@@ -294,7 +287,7 @@ impl Shell {
         };
         context.focus = if self.areas.palette.is_open() {
             FocusScope::CommandCenter
-        } else if terminal_focused(self) {
+        } else if self.terminal_focused(window) {
             FocusScope::Terminal
         } else if composer_focused {
             FocusScope::MessageInput

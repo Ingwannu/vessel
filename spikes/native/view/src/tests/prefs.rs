@@ -271,12 +271,12 @@ fn changes_are_tagged_by_setting_with_their_value() {
             "{refused}"
         );
     }
-    let seventeen: Vec<String> = (0..17)
+    let too_many: Vec<String> = (0..=crate::prefs::MAX_EDITS)
         .map(|n| format!(r#"{{"action":"a{n}","to":{{"kind":"default"}}}}"#))
         .collect();
     let text = format!(
         r#"{{"set":"shortcuts","value":{{"edits":[{}]}}}}"#,
-        seventeen.join(",")
+        too_many.join(",")
     );
     assert!(serde_json::from_str::<PreferenceChange>(&text).is_err());
 }

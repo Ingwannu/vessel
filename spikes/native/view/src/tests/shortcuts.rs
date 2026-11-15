@@ -95,7 +95,6 @@ fn text_that_is_not_a_binding() {
     let refused = [
         "",
         "k",
-        "?",
         "Plus",
         "Shift+Mod+K",
         "Mod+",
@@ -213,20 +212,18 @@ fn a_chord_runs_its_action() {
         matched(&chord("Mod+K"), None, &none, 0, OTHER),
         run(Action::Palette)
     );
-    assert_eq!(
-        matched(&chord("/"), None, &none, 0, OTHER),
-        run(Action::Palette)
-    );
+    assert_eq!(matched(&chord("/"), None, &none, 0, OTHER), Matched::None);
 }
 
 #[test]
 fn a_sequence_waits_for_its_second_key_within_the_time() {
-    let none = Overrides::new();
+    // G S is an explicit multi-step fixture, no longer a shipped default.
+    let none = overrides(&[("go-board", &["G S"])]);
     let Matched::Wait(pending) = matched(&chord("G"), None, &none, 100, OTHER) else {
         panic!("G waits");
     };
     assert_eq!(
-        matched(&chord("S"), Some(&pending), &none, 100 + SEQUENCE_MS, OTHER),
+        matched(&chord("S"), Some(&pending), &none, 99 + SEQUENCE_MS, OTHER),
         run(Action::GoBoard)
     );
     assert_eq!(
@@ -236,17 +233,17 @@ fn a_sequence_waits_for_its_second_key_within_the_time() {
 }
 
 #[test]
-fn alt_and_a_digit_go_to_that_session() {
+fn primary_modifier_and_a_digit_go_to_that_workspace() {
     let none = Overrides::new();
     assert_eq!(
-        matched(&chord("Alt+3"), None, &none, 0, OTHER),
+        matched(&chord("Mod+3"), None, &none, 0, OTHER),
         Matched::Run {
             action: Action::JumpSession,
             index: Some(3),
         }
     );
     assert_eq!(
-        matched(&chord("Alt+0"), None, &none, 0, OTHER),
+        matched(&chord("Mod+0"), None, &none, 0, OTHER),
         Matched::None
     );
 }
@@ -288,9 +285,9 @@ fn clashes_with_another_action_with_a_fixed_one_with_itself() {
     let none = Overrides::new();
     let clash = |text: &str| clash_of(Action::Find, &binding(text), &none, OTHER);
     assert_eq!(clash("Mod+K"), Some(Clash::Taken(Action::Palette)));
-    assert_eq!(clash("Alt+4"), Some(Clash::Fixed(Action::JumpSession)));
+    assert_eq!(clash("Mod+4"), Some(Clash::Fixed(Action::JumpSession)));
     assert_eq!(clash("Mod+F"), Some(Clash::Same(Action::Find)));
-    assert_eq!(clash("G"), Some(Clash::Taken(Action::GoBoard)));
+    assert_eq!(clash("G"), None);
     assert_eq!(clash("Mod+J"), None);
 }
 
@@ -319,7 +316,7 @@ fn a_reassignment_moves_the_key_in_one_change() {
         edits,
         [
             edit(Action::Find, keys(&["Mod+K"])),
-            edit(Action::Palette, keys(&["/"])),
+            edit(Action::Palette, keys(&[])),
         ]
     );
 }
@@ -332,10 +329,10 @@ fn another_key_at_most_two_removing_one_the_defaults_again() {
         [edit(Action::Find, keys(&["Mod+F", "Mod+J"]))]
     );
     let palette = assign(Action::Palette, &binding("Mod+J"), &none, None, None, OTHER);
-    assert_eq!(palette[0].to, keys(&["/", "Mod+J"]));
+    assert_eq!(palette[0].to, keys(&["Ctrl+K", "Mod+J"]));
     assert_eq!(
         remove_key(Action::Palette, 0, &none),
-        [edit(Action::Palette, keys(&["/"]))]
+        [edit(Action::Palette, keys(&[]))]
     );
     assert_eq!(
         restore(Action::Find),
@@ -359,10 +356,10 @@ fn edits_kept_change_the_preferences_shortcuts() {
     );
     assert_eq!(
         moved.shortcuts,
-        overrides(&[("find", &["Mod+K"]), ("palette", &["/"])])
+        overrides(&[("find", &["Mod+K"]), ("palette", &[])])
     );
     let restored = kept(restore(Action::Find), &moved);
-    assert_eq!(restored.shortcuts, overrides(&[("palette", &["/"])]));
+    assert_eq!(restored.shortcuts, overrides(&[("palette", &[])]));
     assert_eq!(modified_count(&restored.shortcuts), 1);
 }
 
@@ -382,15 +379,15 @@ fn a_row_says_its_keys_as_the_platform_writes_them() {
     let words = Lang::En.shortcuts();
     assert_eq!(
         shortcut_row(Action::ToggleInspector, &none, MAC, words).words,
-        ["⇧⌘B"]
+        ["⌘E", "⌃`"]
     );
     assert_eq!(
         shortcut_row(Action::ToggleInspector, &none, OTHER, words).words,
-        ["Ctrl+Shift+B"]
+        ["Ctrl+E", "Ctrl+`"]
     );
     let jump = shortcut_row(Action::JumpSession, &none, OTHER, words);
-    assert!(jump.fixed);
-    assert_eq!(jump.words, ["Alt+1–9"]);
+    assert!(!jump.fixed);
+    assert_eq!(jump.words, ["Ctrl+1–9"]);
 }
 
 #[test]
@@ -485,7 +482,7 @@ fn reads_the_toolkits_key_names_as_positions() {
         ("f5", "F5"),
         ("f12", "F12"),
         ("f13", ""),
-        ("insert", ""),
+        ("insert", "Insert"),
         ("ㅏ", ""),
     ];
     for (key, code) in cases {

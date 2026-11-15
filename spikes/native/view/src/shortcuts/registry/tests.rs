@@ -37,9 +37,13 @@ fn shipped_defaults_use_paseo_keys_and_old_page_keys_are_unbound() {
     assert_eq!(PASEO_BINDING_COUNT, 76);
     let context = default_context(Platform::Other);
     let none = BTreeMap::new();
-    for keys in ["N", "/", "G", "Alt+3"] {
+    for keys in ["N", "/", "G"] {
         assert_eq!(resolve(keys, context, &none), Resolution::Pass, "{keys}");
     }
+    assert_eq!(
+        action(resolve("Alt+3", context, &none)),
+        Some(Action::JumpTab)
+    );
     assert_eq!(
         action(resolve("Ctrl+K", context, &none)),
         Some(Action::Palette)

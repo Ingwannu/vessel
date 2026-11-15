@@ -35,12 +35,7 @@ impl Shell {
             }
             Action::Settings => {
                 if self.route == Route::Settings {
-                    let route = if self.areas.session.open.is_some() {
-                        Route::Session
-                    } else {
-                        Route::Board
-                    };
-                    self.go(route, window, cx);
+                    self.settings_back(false, window, cx);
                 } else {
                     self.open_settings(None, window, cx);
                 }
@@ -124,7 +119,7 @@ impl Shell {
 
     /// Give the composer on screen the keys: the session's, or the new
     /// chat's; nothing on a page without one.
-    pub(super) fn focus_composer(&self, window: &mut Window, cx: &mut Context<'_, Self>) -> bool {
+    pub(crate) fn focus_composer(&self, window: &mut Window, cx: &mut Context<'_, Self>) -> bool {
         let composer = match self.route {
             Route::Session => &self.areas.session.composer,
             Route::Draft => &self.areas.draft.composer,

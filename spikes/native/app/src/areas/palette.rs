@@ -14,12 +14,14 @@ mod commands;
 mod entry;
 mod messages;
 mod rows;
+mod snapshot;
+pub(crate) mod source;
 #[cfg(test)]
 mod tests;
 
 pub(crate) use entry::{sidebar_row, title_trigger};
 
-use rows::{child_at, ids};
+use snapshot::Activate;
 
 use gpui::{FocusHandle, ScrollHandle};
 use vessel_app_kit::command::{
@@ -33,7 +35,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{TextField, Tokens};
 use vessel_app_view::palette::{
     Direction, MessageCursor, PaletteCursor, PaletteEntry, PaletteGroup, PaletteMode,
-    PaletteTarget, palette_entries, palette_groups,
+    PaletteTarget, palette_entries,
 };
 use vessel_app_view::prefs::{PreferenceChange, Theme};
 use vessel_app_view::settings::Section;
@@ -59,7 +61,10 @@ pub(crate) struct PaletteArea {
     query: String,
     /// The row the keyboard is on, by its entry's id; the first listed
     /// when `None` or no longer listed.
-    cursor: PaletteCursor,
+    cursor: PaletteCursor<snapshot::Identity>,
+    sources: vessel_app_view::palette::registration::Registry<source::Command>,
+    page: Option<vessel_app_view::palette::pages::ChoiceLocation>,
+    root_help: Option<vessel_app_view::palette::registration::Owner>,
     /// Message selection has record identity rather than a command id.
     messages: MessageCursor,
     /// Commands remain the normal entry; transcript search is explicit.
@@ -91,6 +96,9 @@ impl PaletteArea {
             ),
             query: String::new(),
             cursor: PaletteCursor::default(),
+            sources: vessel_app_view::palette::registration::Registry::default(),
+            page: None,
+            root_help: None,
             messages: MessageCursor::default(),
             mode: PaletteMode::default(),
             unavailable: None,
@@ -101,6 +109,14 @@ impl PaletteArea {
 }
 
 impl Shell {
+    pub(crate) fn refresh_command_sources(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        source::install_help(self, window, cx);
+    }
+
     /// The toggle uses the same focus-restoring close path as Escape.
     pub(crate) fn toggle_palette(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         if self.areas.palette.is_open() {
@@ -124,6 +140,7 @@ impl Shell {
             ));
             palette.query.clear();
             palette.cursor.reset();
+            palette.page = None;
             palette.messages.reset();
             palette.mode = PaletteMode::default();
             palette.unavailable = None;
@@ -131,16 +148,21 @@ impl Shell {
             palette.search.clear(window, cx);
         }
         palette.search.focus(window, cx);
+        source::install_help(self, window, cx);
         cx.notify();
     }
 
     /// Close the palette; the keys go back where they were.
     fn close_palette(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if let Some(owner) = self.areas.palette.root_help.take() {
+            self.remove_command_source(&owner, cx);
+        }
         let palette = &mut self.areas.palette;
         if !palette.motion.is_open() {
             return;
         }
         palette.motion.close();
+        palette.page = None;
         palette.query.clear();
         palette.search.clear(window, cx);
         palette.cursor.reset();
@@ -148,8 +170,12 @@ impl Shell {
         palette.unavailable = None;
         if let Some(prior) = palette.prior.take() {
             prior.focus(window, cx);
+            if !prior.is_focused(window) {
+                self.focus_composer(window, cx);
+            }
         } else {
             window.blur(cx);
+            self.focus_composer(window, cx);
         }
         self.message_search_query("", cx);
         cx.notify();
@@ -177,14 +203,12 @@ impl Shell {
         }
         // A query reveals its highest-ranked row once. Passive fleet
         // refreshes only resolve identity and never commandeer scrolling.
-        let all = self.palette_all();
+        let snapshot = snapshot::project(self);
         let palette = &mut self.areas.palette;
-        let groups = palette_groups(&all, &palette.query);
-        let ids = ids(&groups);
         if let Some(at) = palette
             .cursor
-            .resolved(&ids)
-            .and_then(|id| child_at(&groups, id))
+            .resolved_identity(&snapshot.ids())
+            .and_then(|id| snapshot.child_at(id))
         {
             palette.scroll.scroll_to_item(at);
         }
@@ -214,15 +238,7 @@ impl Shell {
         if !settings::drawn(Section::Overview) {
             all.retain(|entry| !matches!(entry.target, PaletteTarget::Machine(_)));
         }
-        all.push(PaletteEntry {
-            id: "search-messages".to_owned(),
-            label: self.words.message_search().open().to_owned(),
-            detail: None,
-            keywords: Some("messages search".to_owned()),
-            group: PaletteGroup::Actions,
-            target: PaletteTarget::Messages,
-            activity_at: None,
-        });
+
         all
     }
 
@@ -233,36 +249,139 @@ impl Shell {
         }
         match key {
             CommandKey::Up | CommandKey::Down => {
-                let all = self.palette_all();
+                let snapshot = snapshot::project(self);
                 let palette = &mut self.areas.palette;
-                let groups = palette_groups(&all, &palette.query);
-                let ids = ids(&groups);
                 let direction = if key == CommandKey::Down {
                     Direction::Next
                 } else {
                     Direction::Previous
                 };
-                let next = palette.cursor.advance(&ids, direction);
-                if let Some(at) = next.and_then(|id| child_at(&groups, id)) {
+                if let Some(at) = palette
+                    .cursor
+                    .advance_identity(&snapshot.ids(), direction)
+                    .and_then(|id| snapshot.child_at(id))
+                {
                     palette.scroll.scroll_to_item(at);
                 }
                 cx.notify();
             }
             CommandKey::Enter => {
-                let all = self.palette_all();
-                let palette = &self.areas.palette;
-                let groups = palette_groups(&all, &palette.query);
-                let ids = ids(&groups);
-                let active = palette.cursor.resolved(&ids);
+                let snapshot = snapshot::project(self);
+                let active = self.areas.palette.cursor.resolved_identity(&snapshot.ids());
                 let target = active
-                    .and_then(|id| all.iter().find(|entry| entry.id == id))
-                    .map(|entry| entry.target.clone());
+                    .and_then(|id| snapshot.row(id))
+                    .map(|row| row.activate.clone());
                 if let Some(target) = target {
-                    self.run_palette(target, window, cx);
+                    self.activate_command(target, window, cx);
                 }
             }
-            CommandKey::Escape => self.close_palette(window, cx),
+            CommandKey::Escape => {
+                if self.areas.palette.page.is_some() {
+                    self.palette_back(window, cx);
+                } else {
+                    self.close_palette(window, cx);
+                }
+            }
         }
+    }
+
+    fn palette_back(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        self.areas.palette.page = self
+            .areas
+            .palette
+            .page
+            .as_ref()
+            .and_then(vessel_app_view::palette::pages::ChoiceLocation::parent);
+        self.areas.palette.query.clear();
+        self.areas.palette.search.clear(window, cx);
+        self.areas.palette.cursor.reset();
+        self.areas.palette.search.focus(window, cx);
+        cx.notify();
+    }
+
+    fn activate_command(
+        &mut self,
+        target: Activate,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        match target {
+            Activate::Legacy(target) => self.run_palette(target, window, cx),
+            Activate::Page(page) => self.palette_page(page, window, cx),
+            Activate::Root(action) => self.run_command_action(action, window, cx),
+            Activate::Registered(id, owner) => {
+                let action = self
+                    .areas
+                    .palette
+                    .sources
+                    .resolve(&id, &owner)
+                    .map(|entry| entry.target.action.clone());
+                if let Some(action) = action {
+                    self.run_command_action(action, window, cx);
+                } else {
+                    self.command_unavailable(cx);
+                }
+            }
+        }
+    }
+
+    fn palette_page(
+        &mut self,
+        page: vessel_app_view::palette::pages::ChoiceLocation,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.areas.palette.page = Some(page);
+        self.areas.palette.query.clear();
+        self.areas.palette.search.clear(window, cx);
+        self.areas.palette.cursor.reset();
+        self.areas.palette.search.focus(window, cx);
+        cx.notify();
+    }
+
+    fn run_command_action(
+        &mut self,
+        action: source::CommandAction,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        match action {
+            source::CommandAction::Page(group) => self.palette_page(
+                vessel_app_view::palette::pages::ChoiceLocation::group(group),
+                window,
+                cx,
+            ),
+            source::CommandAction::Legacy(target) => self.run_palette(target, window, cx),
+            source::CommandAction::Shortcut(action) => {
+                self.close_palette(window, cx);
+                let request = crate::areas::shortcuts::dispatch::ShortcutRequest {
+                    action,
+                    scope: action.scope(),
+                    index: None,
+                    context: vessel_app_view::shortcuts::default_context(
+                        vessel_app_view::shortcuts::Platform::native(),
+                    ),
+                    repeat: vessel_app_view::shortcuts::engine::KeyRepeat::Initial,
+                };
+                if !self.dispatch_shortcut_to_owners(request, window, cx) {
+                    self.command_unavailable(cx);
+                }
+            }
+            source::CommandAction::Callback(run) => {
+                self.close_palette(window, cx);
+                if !run(self, window, cx) {
+                    self.command_unavailable(cx);
+                }
+            }
+        }
+    }
+
+    fn command_unavailable(&mut self, cx: &mut Context<'_, Self>) {
+        self.toast(
+            self.words.shortcuts().command_unavailable().to_owned(),
+            vessel_app_view::toasts::ToastTone::Error,
+            cx,
+        );
     }
 
     /// Close the palette and do what `target` says.

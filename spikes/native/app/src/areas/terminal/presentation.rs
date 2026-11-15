@@ -118,7 +118,8 @@ mod focus_tests {
         shell.update_in(cx, |shell, window, cx| {
             shell.route = Route::Session;
             shell.areas.terminal.shown = Some(TerminalOpening::new(
-                "fake".parse().unwrap(), SessionId::random(),
+                "fake".parse().unwrap(),
+                SessionId::random(),
             ));
             shell.areas.terminal.focus.focus(window, cx);
             assert!(shell.terminal_focused(window));

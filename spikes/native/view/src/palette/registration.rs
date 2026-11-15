@@ -185,14 +185,14 @@ pub enum RegistrationError {
     GenerationExhausted,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Registration<T> {
     generation: u64,
     contributions: Vec<Contribution<T>>,
 }
 
 /// Retained extension of the palette's entries, with atomic source replacement.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Registry<T> {
     next_generation: u64,
     sources: BTreeMap<SourceId, Registration<T>>,
@@ -208,6 +208,34 @@ impl<T> Default for Registry<T> {
 }
 
 impl<T> Registry<T> {
+    /// Capture the exact registration generation when presenting a result.
+    #[must_use]
+    pub fn owner_of(&self, id: &ResultId) -> Option<Owner> {
+        let registration = self.sources.get(&id.source)?;
+        registration
+            .contributions
+            .iter()
+            .find(|entry| entry.id == id.entry)?;
+        Some(Owner {
+            source: id.source.clone(),
+            generation: registration.generation,
+        })
+    }
+
+    /// Revalidate a captured row before dispatch. Replacement or removal makes
+    /// the old result unavailable rather than invoking a different contribution.
+    #[must_use]
+    pub fn resolve(&self, id: &ResultId, owner: &Owner) -> Option<&Contribution<T>> {
+        let registration = self.sources.get(&id.source)?;
+        if owner.source != id.source || owner.generation != registration.generation {
+            return None;
+        }
+        registration
+            .contributions
+            .iter()
+            .find(|entry| entry.id == id.entry)
+    }
+
     /// Replace one source atomically and return its cleanup token.
     ///
     /// # Errors

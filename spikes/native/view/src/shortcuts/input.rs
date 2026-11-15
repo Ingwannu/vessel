@@ -102,7 +102,16 @@ impl ShortcutInput {
     /// Unsupported layout characters use the validated physical fallback.
     #[must_use]
     pub fn recording_chord(&self) -> Option<Chord> {
-        self.logical.as_ref().or(self.physical.as_ref()).cloned()
+        let mut chord = self.logical.as_ref().or(self.physical.as_ref())?.clone();
+        // Persist the base sign with Shift, as KEY_MAP's first logical match
+        // does. Dvorak letters remain logical; Option keeps its code fallback.
+        if chord.shift
+            && let Some(key) = super::keys::logical_key(&chord.key)
+        {
+            let press = KeyPress::default();
+            chord.key = key.chord(&press, Platform::Other).key;
+        }
+        Some(chord)
     }
 
     pub(super) fn index(&self) -> Option<ShortcutIndex> {
