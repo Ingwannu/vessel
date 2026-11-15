@@ -8,8 +8,10 @@ use vessel_app_kit::ui::{
     StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, button};
-use vessel_app_link::workspace::{Ask, Form, ProjectAsk};
+use vessel_app_link::workspace::{Ask, Form, ProjectChange};
+use vessel_app_view::machine_book::Name;
 use vessel_app_view::workspace::problem::Problem;
+use vessel_app_view::workspace::projects::actions::ProjectAction;
 use vessel_app_view::workspace::projects::repository_name;
 use vessel_app_view::workspace::words::AddForm;
 use vessel_proto::workspace::{AddProject, CloneProject, InitProject, ProjectInfo};
@@ -33,8 +35,13 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        let host = self
+            .projects_machine()
+            .and_then(|host| Name::parse(&host).ok());
         let labels = self.words().labels();
         let page = &mut self.areas.workspace.page;
+        page.actions.cancel();
+        page.form_host = host;
         page.menu = false;
         page.adding = Some(form);
         page.error = None;
@@ -54,24 +61,34 @@ impl Shell {
     }
 
     fn submit_add(&mut self, cx: &mut Context<'_, Self>) {
-        let Some(machine) = self.projects_machine() else {
+        let Some(host) = self.areas.workspace.page.form_host.clone() else {
             return;
         };
+        if !self
+            .fleet
+            .online()
+            .any(|machine| machine.name == host.as_str())
+        {
+            self.areas.workspace.page.error =
+                Some(self.words.projects().host_unavailable().to_owned());
+            cx.notify();
+            return;
+        }
         let page = &self.areas.workspace.page;
         let Some(form) = page.adding else {
             return;
         };
         let path = page.path.text(cx).trim().to_owned();
         let url = page.url.text(cx).trim().to_owned();
-        if page.busy || path.is_empty() {
+        if page.actions.pending().is_some() || path.is_empty() {
             return;
         }
         let ask = match form {
-            AddForm::Folder => ProjectAsk::Add(AddProject {
+            AddForm::Folder => ProjectAction::Register(AddProject {
                 path: path.into(),
                 name: None,
             }),
-            AddForm::New => ProjectAsk::Init(InitProject {
+            AddForm::New => ProjectAction::Initialize(InitProject {
                 path: path.into(),
                 name: None,
             }),
@@ -80,7 +97,7 @@ impl Shell {
                     return;
                 }
                 match url.parse() {
-                    Ok(url) => ProjectAsk::Clone(CloneProject {
+                    Ok(url) => ProjectAction::Clone(CloneProject {
                         url,
                         parent: path.into(),
                         folder: None,
@@ -94,9 +111,19 @@ impl Shell {
                 }
             }
         };
-        self.ask(&machine, Ask::Project(ask));
+        let key = match self.areas.workspace.page.actions.begin(host.clone()) {
+            Ok(key) => key,
+            Err(error) => {
+                self.project_action_refused(error);
+                cx.notify();
+                return;
+            }
+        };
+        self.ask(
+            host.as_str(),
+            Ask::ProjectChange(ProjectChange { key, action: ask }),
+        );
         let page = &mut self.areas.workspace.page;
-        page.busy = true;
         page.error = None;
         cx.notify();
     }
@@ -110,10 +137,9 @@ impl Shell {
     ) {
         let words = self.words();
         let page = &mut self.areas.workspace.page;
-        page.busy = false;
+
         match result {
             Ok(project) => {
-                page.adding = None;
                 if let Some(view) = self.areas.workspace.projects.get_mut(machine) {
                     view.took(project);
                 }
@@ -172,7 +198,9 @@ pub(super) fn add_form(
     let target = name
         .filter(|_| !folder.is_empty())
         .map(|name| (folder, name));
-    let ready = !state.busy && !folder.is_empty() && (form != AddForm::Clone || name.is_some());
+    let ready = state.actions.pending().is_none()
+        && !folder.is_empty()
+        && (form != AddForm::Clone || name.is_some());
     let mut card = div()
         .flex()
         .flex_col()
@@ -194,7 +222,11 @@ pub(super) fn add_form(
             div()
                 .type_(Type::Meta)
                 .text_color(tokens.neutral.foreground_muted)
-                .child(words.add_hint(form, machine, target)),
+                .child(words.add_hint(
+                    form,
+                    state.form_host.as_ref().map_or(machine, Name::as_str),
+                    target,
+                )),
         );
     if let Some(error) = &state.error {
         card = card.child(
@@ -213,7 +245,10 @@ pub(super) fn add_form(
             .child(
                 button("add-cancel", labels.cancel, false, tokens).on_click(cx.listener(
                     |this, _event, _window, cx| {
-                        this.areas.workspace.page.adding = None;
+                        let page = &mut this.areas.workspace.page;
+                        page.adding = None;
+                        page.form_host = None;
+                        page.actions.cancel();
                         cx.notify();
                     },
                 )),

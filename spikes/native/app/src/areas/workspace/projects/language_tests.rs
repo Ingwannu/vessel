@@ -19,7 +19,7 @@ fn a_language_change_keeps_both_form_values_carets_selections_and_focus(
             target,
             |shell| {
                 assert_eq!(shell.areas.workspace.page.adding, Some(AddForm::Clone));
-                assert!(!shell.areas.workspace.page.busy);
+                assert!(shell.areas.workspace.page.actions.pending().is_none());
             },
         );
     }

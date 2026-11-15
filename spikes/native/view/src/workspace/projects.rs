@@ -17,6 +17,9 @@
 //!   cloning project in the link, which ends when the clone does.
 //! - Cost: a project added from the CLI shows when a screen reads again.
 
+/// Host-bound mutation correlation shared by registration and removal screens.
+pub mod actions;
+
 use std::path::Path;
 
 use vessel_proto::ProjectId;

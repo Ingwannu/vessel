@@ -38,7 +38,9 @@ pub(crate) struct Page {
     pub(super) path: TextField,
     pub(super) url: TextField,
     /// Whether the form's call is out.
-    pub(super) busy: bool,
+    pub(super) actions: vessel_app_view::workspace::projects::actions::ProjectActions,
+    pub(super) form_host: Option<vessel_app_view::machine_book::Name>,
+    pub(super) removing: Option<super::project_actions::Removing>,
     /// Why the form's last call failed.
     pub(super) error: Option<String>,
     /// A removal the node refused, until dismissed.
@@ -53,7 +55,9 @@ impl Page {
             adding: None,
             path: super::field(window, cx),
             url: super::field(window, cx),
-            busy: false,
+            actions: Default::default(),
+            form_host: None,
+            removing: None,
             error: None,
             failure: None,
         }
@@ -82,10 +86,7 @@ impl Shell {
     }
 
     pub(super) fn forget_project(&mut self, project: ProjectId, cx: &mut Context<'_, Self>) {
-        if let Some(machine) = self.projects_machine() {
-            self.ask(&machine, Ask::Project(ProjectAsk::Remove(project)));
-        }
-        cx.notify();
+        self.confirm_project_removal(project, cx);
     }
 
     /// The node answered a removal.
@@ -103,16 +104,18 @@ impl Shell {
             .get(machine)
             .and_then(|view| view.project(&project))
             .map_or_else(|| project.to_string(), |info| info.name.to_string());
+        let showing_host = self.projects_machine().as_deref() == Some(machine);
         match result {
             Ok(()) => {
                 if let Some(view) = self.areas.workspace.projects.get_mut(machine) {
                     view.forgot(&project);
                 }
                 let page = &mut self.areas.workspace.page;
-                if page
-                    .detail
-                    .as_ref()
-                    .is_some_and(|open| open.project == project)
+                if showing_host
+                    && page
+                        .detail
+                        .as_ref()
+                        .is_some_and(|open| open.project == project)
                 {
                     page.detail = None;
                 }
@@ -230,9 +233,23 @@ pub(crate) fn render(
         return column
             .child(back)
             .child(detail::render(shell, &machine, project, open, tokens, cx))
+            .children(super::project_actions::removal(shell, tokens, cx))
             .into_any_element();
     }
     let mut action = div().flex().flex_row().items_center().gap(px(8.0));
+    let refresh_host = machine.clone();
+    action = action.child(
+        button(
+            "projects-refresh",
+            shell.words.projects().refresh().to_owned(),
+            false,
+            tokens,
+        )
+        .on_click(cx.listener(move |this, _event, _window, cx| {
+            this.ask(&refresh_host, Ask::Project(ProjectAsk::List));
+            cx.notify();
+        })),
+    );
     if view.and_then(ProjectsView::list).is_some() {
         action = action.child(
             button("add-project", labels.add_project, false, tokens).on_click(cx.listener(
@@ -323,7 +340,7 @@ fn list_body(
             tokens,
         ));
     }
-    body
+    body.children(super::project_actions::removal(shell, tokens, cx))
 }
 
 fn project_row(

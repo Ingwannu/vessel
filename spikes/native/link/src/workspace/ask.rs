@@ -14,6 +14,8 @@ use super::StartAsk;
 /// What a workspace screen asks of a machine.
 #[derive(Debug)]
 pub enum Ask {
+    /// Host-bound project mutation with a unique draft ticket.
+    ProjectChange(super::ProjectChange),
     /// About its projects.
     Project(ProjectAsk),
     /// About worktrees and snapshots.

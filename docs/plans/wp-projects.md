@@ -107,3 +107,21 @@ or test expectation changes in this extraction. Moved pixel values reference
 existing exact-valued spacing tokens (the existing ten-point gap is six+four),
 so the new file introduces no style-ratchet entry. Command approval and script
 files remain outside this change.
+
+## Correlated existing project actions
+
+The supported legacy project mutations now carry a validated host alias and a
+checked monotonically unique form ticket. Cancelling/reopening does not claim a
+remote operation was rolled back; stale completions may reconcile the host cache
+but cannot close or fail the newer draft. The link bounds the mutation wait to
+the reference SDK's default and exposes timeout as an unknown outcome with a
+refresh instruction, never as proof of rollback. Queue refusal settles through
+the same ticket. Existing project registration still creates no session.
+
+Removal requires an explicit confirmation showing exact host/name/path. The
+current legacy node's refusal while occupied is explained honestly. Deliberate
+initial presentation difference: confirmation is inline in the settings content,
+rather than a modal; the node's removal semantics are unchanged. This is not the
+new workspace archive operation. Four pure transition regressions cover duplicate
+submission, cancellation/reopen, host change and counter exhaustion. Real link and
+rendered interaction checks remain pending.

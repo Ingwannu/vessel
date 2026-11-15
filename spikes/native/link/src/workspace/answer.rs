@@ -41,6 +41,16 @@ pub enum GitWritten {
 /// What the node answered a workspace ask, with what was asked.
 #[derive(Debug)]
 pub enum Answer {
+    /// Correlated project mutation; stale completions may refresh cache only.
+    ProjectChanged {
+        /// Host and draft identity supplied before dispatch.
+        key: vessel_app_view::workspace::projects::actions::ProjectActionKey,
+        /// A timeout remains distinct from a node refusal.
+        result: Result<
+            vessel_app_view::workspace::projects::actions::ProjectChanged,
+            super::ProjectFailure,
+        >,
+    },
     /// The machine's projects.
     Projects(Result<ProjectList, Problem>),
     /// A project as it is now (a clone's progress, or its end).
@@ -247,6 +257,10 @@ impl Ask {
 pub(super) fn refused(ask: Ask, problem: &Problem) -> Answer {
     match ask {
         Ask::Project(ask) => project_refused(ask, problem),
+        Ask::ProjectChange(change) => Answer::ProjectChanged {
+            key: change.key,
+            result: Err(super::ProjectFailure::Call(problem.clone())),
+        },
         Ask::Worktree(ask) => worktree_refused(ask, problem),
         Ask::Git(ask) => git_refused(ask, problem),
         Ask::File(ask) => file_refused(ask, problem),

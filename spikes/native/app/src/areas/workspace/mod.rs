@@ -14,6 +14,7 @@ mod code;
 mod detail;
 mod place;
 mod place_rows;
+mod project_actions;
 mod project_form;
 mod projects;
 mod remove;
@@ -125,6 +126,7 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) -> bool {
         match answer {
+            Answer::ProjectChanged { key, result } => self.project_changed(machine, key, result),
             Answer::Projects(result) => {
                 let _was = self
                     .areas

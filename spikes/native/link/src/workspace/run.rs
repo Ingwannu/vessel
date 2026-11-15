@@ -19,6 +19,7 @@ use super::{
 pub(super) async fn run(hub: &Hub, client: &NodeClient, reply: &Reply, ask: Ask) {
     let answer = match ask {
         Ask::Project(ask) => project(hub, client, reply, ask).await,
+        Ask::ProjectChange(change) => super::project_flow::run(hub, client, reply, change).await,
         Ask::Worktree(ask) => worktree(client, ask).await,
         Ask::Git(ask) => git_ask(client, ask).await,
         Ask::File(ask) => file(client, ask).await,
