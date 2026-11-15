@@ -908,3 +908,13 @@ existing settings-field contribution to since(), with GENERATED_NAMES unassigned
 Only the size-ratchet file conflicted: the head node reduction is retained,
 then the title client/proxy reductions are applied. Final generated declarations
 and narrow compatibility checks precede the one frozen package gate.
+
+
+Final preflight on the integrated body passes all-targets Clippy for the
+changed node, protocol, store, session, workspace and LLM crates. The four
+TypeScript tests pass and regeneration has no diff; no generated declaration
+is edited by hand. The package is ready for its one whole gate on a clean
+commit. Its shared bases stay frozen through review and handover. README now
+states that a typed rename wins, while parking and ending stop generation.
+Real providers, credentials, native execution and other platforms remain
+unverified. No branch, commit-message or pull-request generator is included.

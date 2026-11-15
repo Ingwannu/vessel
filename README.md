@@ -127,9 +127,9 @@ The title generator is connected behind its pending protocol assignment.
 `node.settings` exposes `metadata.providers` to supported peers; an empty
 list selects automatically and a nonempty list uses only its ordered routes.
 A metadata patch is strict, while later file keys leave known settings intact.
-Only fresh unnamed structured sessions can generate from their first text;
-a person's rename, parking or ending keeps the provisional title. Invalid
-configuration, unavailable routes or unusable replies keep that title too.
+Only fresh unnamed structured sessions can generate from their first text.
+A person's rename always wins; parking or ending stops generation. Invalid
+configuration, unavailable routes or unusable replies keep the given title.
 Provider attempts share the existing call limits and usage records. See
 [ADR 0062](docs/adr/0062-generated-names.md) for cost and compatibility rules.
 Until assignment, metadata patches are unsupported and no automatic call runs.
