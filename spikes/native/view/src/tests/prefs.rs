@@ -29,8 +29,8 @@ fn apply(prefs: &Preferences, json: &str) -> Preferences {
 #[test]
 fn defaults_are_the_contracts() {
     let values = Preferences::default();
-    // Keep the page/bridge fixture unchanged. The native document adds two
-    // explicit fields (the language, and Appearance's Animations, word 39)
+    // Keep the page/bridge fixture unchanged. The native document adds three
+    // explicit fields (language, Appearance's Animations and Chat outline)
     // and differs in one stated default: ended sessions are listed
     // (`SidebarView::default`, 2026-11-14; the page and the bridge still
     // write `"ended":false` until the node line's slice moves them, and
@@ -40,7 +40,7 @@ fn defaults_are_the_contracts() {
         .replacen('{', r#"{"language":"system","#, 1)
         .replacen(
             r#""conversation":"full""#,
-            r#""conversation":"full","animations":"on""#,
+            r#""conversation":"full","animations":"on","chat_outline":"on""#,
             1,
         )
         .replacen(r#""ended":false"#, r#""ended":true"#, 1);
@@ -448,4 +448,28 @@ fn animations_are_kept_changed_alone_and_lenient() {
     let unknown: Preferences =
         serde_json::from_str(r#"{"appearance":{"animations":"sometimes"}}"#).unwrap();
     assert_eq!(unknown.appearance.animations, Animations::On);
+}
+
+#[test]
+fn outline_is_on_by_default_and_survives_storage_or_unknown_values() {
+    use crate::prefs::ChatOutline;
+    let empty: Preferences = serde_json::from_str("{}").unwrap();
+    assert_eq!(empty.appearance.chat_outline, ChatOutline::On);
+    let off = empty
+        .changed(&PreferenceChange::ChatOutline(ChatOutline::Off))
+        .unwrap();
+    let stored = serde_json::to_string(&off).unwrap();
+    assert_eq!(serde_json::from_str::<Preferences>(&stored).unwrap(), off);
+    for value in [
+        r#"{"appearance":{"chat_outline":"future"}}"#,
+        r#"{"appearance":{"chat_outline":true}}"#,
+    ] {
+        assert_eq!(
+            serde_json::from_str::<Preferences>(value)
+                .unwrap()
+                .appearance
+                .chat_outline,
+            ChatOutline::On
+        );
+    }
 }

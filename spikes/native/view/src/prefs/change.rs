@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 use vessel_proto::{HarnessKind, NodeId, ProfileName};
 
 use super::{
-    ActionId, AgentDefaults, AgentKind, Alerts, Animations, Bindings, Choices, CodeSize,
-    ContentWidth, ConversationDisplay, Grouping, InterfaceSize, MAX_ACTIONS, MAX_EDITS,
+    ActionId, AgentDefaults, AgentKind, Alerts, Animations, Bindings, ChatOutline, Choices,
+    CodeSize, ContentWidth, ConversationDisplay, Grouping, InterfaceSize, MAX_ACTIONS, MAX_EDITS,
     MAX_MACHINES, MachineDefaults, Panel, Preferences, SendKey, SessionSort, Theme, TooMany,
     TurnDelivery,
 };
@@ -31,6 +31,8 @@ pub enum PreferenceChange {
     Conversation(ConversationDisplay),
     /// Whether the app moves.
     Animations(Animations),
+    /// Whether the prompt outline appears beside conversations.
+    ChatOutline(ChatOutline),
     /// Whether the sidebar shows.
     SidebarPanel(Panel),
     /// Whether the inspector shows.
@@ -178,6 +180,7 @@ impl Preferences {
             PreferenceChange::ContentWidth(width) => self.appearance.content_width = *width,
             PreferenceChange::Conversation(display) => self.appearance.conversation = *display,
             PreferenceChange::Animations(animations) => self.appearance.animations = *animations,
+            PreferenceChange::ChatOutline(outline) => self.appearance.chat_outline = *outline,
             PreferenceChange::SidebarPanel(panel) => self.layout.sidebar = *panel,
             PreferenceChange::InspectorPanel(panel) => self.layout.inspector = *panel,
             PreferenceChange::Send(send) => self.composer.send = *send,

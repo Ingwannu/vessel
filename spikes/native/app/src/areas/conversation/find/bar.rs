@@ -49,10 +49,10 @@ pub(crate) fn bar(
         .border_color(surfaces.border_accent)
         .rounded(px(popup::MENU_RADIUS))
         .shadow(popup::shadow_md(tokens))
-        .on_key_down(cx.listener(|shell, event: &KeyDownEvent, _window, cx| {
+        .on_key_down(cx.listener(|shell, event: &KeyDownEvent, window, cx| {
             match event.keystroke.key.as_str() {
                 "escape" => {
-                    shell.close_find(cx);
+                    shell.close_find(window, cx);
                     cx.stop_propagation();
                 }
                 "enter" if event.keystroke.modifiers.shift => {
@@ -123,8 +123,8 @@ fn buttons(
             },
         ),
         small_button("find-close", Glyph::Close, true, tokens, narrow).on_click(cx.listener(
-            |shell, _event, _window, cx| {
-                shell.close_find(cx);
+            |shell, _event, window, cx| {
+                shell.close_find(window, cx);
             },
         )),
     ]

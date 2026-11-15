@@ -103,6 +103,10 @@ owns merging; the palette area reuses `conversation::search` and `link::search`
 for debounce, node calls and reveal. The contract and reference differences are
 in `docs/plans/wp-a3.md`.
 
+Settings › Chat now keeps a typed Chat outline on/off preference (on by default).
+The outline rail and its switch share the existing preference/store path. Find
+uses the shared shortcut registry and restores prior focus on Escape.
+
 Git action preparation lives beside the code panel's existing models in
 `view::workspace::git`: commit scope and validated message, branch
 create/rename/switch, per-file index actions, discard decisions and stash

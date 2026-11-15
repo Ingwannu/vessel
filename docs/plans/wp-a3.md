@@ -116,3 +116,20 @@ No fictional call is registered.
 Current state: global Messages implementation and regressions drafted; narrow
 checks queued. Find/outline parity audit started; full-history prompt index
 boundary reported. Final captures and whole gate cover the expanded package.
+
+
+### Find/outline skeleton checkpoint
+
+The existing preference store now owns `Appearance.chat_outline` as typed
+`ChatOutline::{On,Off}`, default On with lenient field decoding. The existing
+Chat card appends the outline switch; the rail reads that same value. The switch
+uses the existing motion-aware kit control, with its own revision. The complete
+native-default fixture gains only this serialized field; the page fixture stays
+unchanged. E2 approved the seam and the localization owner approved the separate
+`chat-outline.ftl` labels.
+
+Find now uses the shared rebindable key listener alone; the old independent
+observer is removed. Its action respects route/overlays/IME, and Escape restores
+the opening surface's focus. New actual-input regressions cover this; they await
+narrow checks. The earlier Messages-only tests passed; this checkpoint is not a
+claim that the full expanded package has passed.

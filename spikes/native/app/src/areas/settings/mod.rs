@@ -101,6 +101,8 @@ pub(crate) struct SettingsState {
     pub(crate) sync: sync::SyncState,
     /// The Animations switch's changes (its thumb slides on each).
     pub(crate) animations_turns: u64,
+    /// The outline switch owns its animation identity independently of page changes.
+    outline_turn: chat::SwitchTurn,
 }
 
 impl SettingsState {
@@ -125,6 +127,7 @@ impl SettingsState {
             language: language::State::new(window, cx),
             sync: sync::SyncState::new(),
             animations_turns: 0,
+            outline_turn: chat::SwitchTurn::default(),
         }
     }
 

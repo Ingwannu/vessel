@@ -29,6 +29,28 @@ pub struct Appearance {
     /// Whether the app moves (Settings › Appearance › Animations).
     #[serde(deserialize_with = "lenient")]
     pub animations: Animations,
+    /// Whether the prompt outline is shown beside a conversation.
+    #[serde(deserialize_with = "lenient")]
+    pub chat_outline: ChatOutline,
+}
+
+/// The Chat page's outline preference, shared by its switch and rail.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ChatOutline {
+    /// Show the outline when the panel has room (Paseo's default).
+    #[default]
+    On,
+    /// Hide it without discarding the session's prompt index.
+    Off,
+}
+
+impl ChatOutline {
+    /// Visibility is explicit at the renderer, never inferred from index length.
+    #[must_use]
+    pub const fn on(self) -> bool {
+        matches!(self, Self::On)
+    }
 }
 
 /// Whether the app's changes move (the owner's word 39: every change a

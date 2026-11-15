@@ -22,9 +22,8 @@ impl Shell {
         &mut self,
         machine: &str,
         session: SessionId,
-        cx: &mut Context<'_, Self>,
+        _cx: &mut Context<'_, Self>,
     ) {
-        self.hear_find(cx);
         self.areas.conversation.open(machine, session);
         // Opened again: a fork's origin that could not be read is read.
         self.origin_read();

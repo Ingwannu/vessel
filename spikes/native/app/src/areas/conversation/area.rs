@@ -6,7 +6,7 @@
 use std::collections::HashSet;
 use std::rc::Rc;
 
-use vessel_app_kit::ui::{App, Subscription};
+use vessel_app_kit::ui::App;
 use vessel_app_kit::{DialogState, MenuState, Reveal, VirtualList};
 use vessel_app_link::ActKind;
 use vessel_app_view::prefs::ConversationDisplay;
@@ -164,8 +164,6 @@ pub(crate) struct ConversationArea {
     /// Each entry's folded text for find, kept between searches of the
     /// session shown.
     pub(crate) find_cache: FindCache,
-    /// Hears Mod+F (`find`); made once a session is first shown.
-    pub(super) keys: Option<Subscription>,
     /// The scrolling measurement, when it is on.
     pub(super) bench: bench::Bench,
 }
@@ -219,7 +217,6 @@ impl ConversationArea {
             outline_pointer: outline::Pointer::default(),
             find: None,
             find_cache: FindCache::default(),
-            keys: None,
             bench: bench::Bench::default(),
         }
     }

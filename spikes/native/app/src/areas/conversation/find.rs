@@ -19,12 +19,9 @@
 //!   a newer query bumps a generation and the older search stops at its
 //!   next step. The folded texts are cached across searches by entry and
 //!   revision (`FindCache`), so the second search is quick.
-//! - Shortcut: no element of the conversation holds the keys while the
-//!   composer does, so Mod+F is heard by a keystroke observer the area
-//!   keeps (`observe_keystrokes`), not by an action on an element. The
-//!   app's shortcuts (track S2's registry, rebindable) call
-//!   [`Shell::conversation_find`]; once they bind Find, the observer goes
-//!   (opening twice for one press does no harm meanwhile).
+//! - Shortcut: the shared rebindable shortcut registry owns Find. A legacy
+//!   observer would bypass IME, overlay and custom-key policy, so this area
+//!   only supplies the action and keeps focus for the bar's lifetime.
 //! - Marks: the matches are marked in a person's messages, in replies
 //!   and in an answered question's text (GOAT's yellow, the current one
 //!   amber, `Marking`); the search runs again as the session grows while
@@ -35,6 +32,7 @@
 use std::hash::{DefaultHasher, Hash as _, Hasher as _};
 use std::time::Duration;
 
+use gpui::FocusHandle;
 use vessel_app_kit::ui::{Context, Pixels, Window, px};
 use vessel_app_kit::{Reveal, TextField, VirtualList};
 use vessel_app_view::timeline::{Finder, MAX_QUERY, Match, start_at, step};
@@ -62,6 +60,8 @@ const BETWEEN_STEPS: Duration = Duration::from_millis(1);
 /// The find bar, while it is open.
 pub(crate) struct FindBar {
     field: TextField,
+    /// Closing returns the keys to the surface that opened find.
+    prior: Option<FocusHandle>,
     query: String,
     /// The search under way, if one is.
     finder: Option<Finder>,
@@ -141,26 +141,17 @@ impl std::fmt::Debug for FindBar {
 }
 
 impl Shell {
-    /// Start hearing Mod+F, once.
-    pub(super) fn hear_find(&mut self, cx: &mut Context<'_, Self>) {
-        if self.areas.conversation.keys.is_some() {
-            return;
-        }
-        let keys = cx.observe_keystrokes(|shell, event, window, cx| {
-            let stroke = &event.keystroke;
-            let modifiers = stroke.modifiers;
-            if stroke.key == "f" && modifiers.secondary(cx) && !modifiers.shift && !modifiers.alt {
-                shell.conversation_find(window, cx);
-            }
-        });
-        self.areas.conversation.keys = Some(keys);
-    }
-
     /// Find in the session shown (the shortcuts' Find, Mod+F by default):
     /// open the bar, or give its field the keys again; nothing when no
     /// session shows. Calling it twice for one press does no harm.
     pub(crate) fn conversation_find(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
-        if self.areas.conversation.shown.is_none() {
+        if self.route != crate::routes::Route::Session
+            || self.areas.palette.is_open()
+            || self.areas.conversation.confirm.is_some()
+            || self.areas.conversation.rename.is_some()
+            || TextField::focused_composing(window, cx)
+            || self.areas.conversation.shown.is_none()
+        {
             return;
         }
         self.open_find(window, cx);
@@ -180,6 +171,7 @@ impl Shell {
             bar.field.focus(window, cx);
             return;
         }
+        let prior = window.focused(cx);
         let words = self.t.lang.conversation();
         let field = TextField::with_change(
             words.find_in_session(),
@@ -191,6 +183,7 @@ impl Shell {
         field.focus(window, cx);
         self.areas.conversation.find = Some(FindBar {
             field,
+            prior,
             query: String::new(),
             finder: None,
             matches: Vec::new(),
@@ -225,8 +218,13 @@ impl Shell {
     }
 
     /// Close the bar.
-    pub(super) fn close_find(&mut self, cx: &mut Context<'_, Self>) {
-        if self.areas.conversation.find.take().is_some() {
+    pub(super) fn close_find(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if let Some(bar) = self.areas.conversation.find.take() {
+            if let Some(prior) = bar.prior {
+                prior.focus(window, cx);
+            } else {
+                window.blur(cx);
+            }
             cx.notify();
         }
     }

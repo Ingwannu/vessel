@@ -337,3 +337,17 @@ fn a_keyboard_command_enters_messages_with_an_empty_query(cx: &mut TestAppContex
     ready(cx);
     assert!(asks(&view, cx).is_empty());
 }
+
+#[gpui::test]
+fn find_does_not_bypass_the_open_palette(cx: &mut TestAppContext) {
+    let (view, cx) = harness(cx);
+    update(&view, cx, |shell, window, cx| {
+        shell.route = Route::Session;
+        shell.areas.conversation.open("one", SessionId::random());
+        shell.conversation_find(window, cx);
+        assert!(shell.areas.conversation.find.is_none());
+        shell.close_palette(window, cx);
+        shell.conversation_find(window, cx);
+        assert!(shell.areas.conversation.find.is_some());
+    });
+}

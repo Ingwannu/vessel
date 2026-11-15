@@ -58,7 +58,8 @@ impl Shell {
                         window.refresh();
                     }
                     // Read where they are drawn, on the next frame.
-                    PreferenceChange::SidebarPanel(_)
+                    PreferenceChange::ChatOutline(_)
+                    | PreferenceChange::SidebarPanel(_)
                     | PreferenceChange::InspectorPanel(_)
                     | PreferenceChange::Delivery(_)
                     | PreferenceChange::Alerts(_)

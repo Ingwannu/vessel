@@ -142,7 +142,10 @@ pub(super) fn rail(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let area = &shell.areas.conversation;
-    if area.outline.len() < 2 || area.list.width() < px(MIN_PANEL) {
+    if !shell.prefs.settings.appearance.chat_outline.on()
+        || area.outline.len() < vessel_app_view::timeline::OUTLINE_MIN
+        || area.list.width() < px(MIN_PANEL)
+    {
         return None;
     }
     let (top_row, _) = area.list.top();
