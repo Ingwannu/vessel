@@ -657,3 +657,13 @@ Schedules. The last-row disabled Down assertion now uses Schedules, not Search;
 the Search case retains actual visibility/hide/restore/opener checks. Runtime
 source is unchanged from the priority bd9 snapshot; ordinary tests use this
 corrected fixture head. No source/gate pass inferred from the pending check.
+
+
+Priority narrow bd9 returned101 before App. The previously staged hierarchy
+RowProfile had a duplicate derive attached above its documentation, leaving
+CompactMode without its intended derive; move that derive to CompactMode.
+The same run also found SavePrefs(Prefs) large_enum_variant after the added
+preference bands (472 vs249). No lint exemption or field boxing is installed;
+coordinator asked for the minimal boxed command-boundary seam across callers.
+The priority allowance was used once; subsequent tests/checks remain ordinary.
+No App adapter or full F4 pass is claimed from this run.

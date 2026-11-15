@@ -145,7 +145,6 @@ impl Page {
         self
     }
 }
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 /// Geometry is explicit so additive source parity cannot silently change the
 /// reviewed compact height of existing flat-menu callers.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -157,6 +156,7 @@ pub enum RowProfile {
     Reference,
 }
 /// Source compact-mode opt-in; wide surfaces always remain popovers.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum CompactMode {
     /// Legacy/source default: an anchored compact popover.
     #[default]
