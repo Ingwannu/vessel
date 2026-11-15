@@ -218,3 +218,12 @@ body would hide a changed/malformed request. The private index lives only for on
 read, with no persistence, subscriptions, capability or independent projection.
 A regression supplies two different current bodies under one id and requires
 refusal before any response work.
+
+The TOOL caption has a stated current display difference. Paseo uses its separate
+provider request name, while the minimal PermissionPresentation title is only a
+presentation title. W23 confirmed it is not a guaranteed operation name. A pruned
+or stored request need not retain a matching ToolCall record, so listing keeps a
+safe generic caption rather than guessing from labels or arbitrary provider JSON.
+The full producer may later retain optional bounded provider-name metadata; it is
+separate from the minimal typed body cut. This does not change request identity,
+selection, authority or acknowledgement requirements.
