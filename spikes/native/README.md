@@ -166,6 +166,26 @@ app/src/
     board.rs, archive.rs, sidebar.rs
 ```
 
+### Workspace panes and session resources
+
+`view::layout` owns typed targets and keys, validated split tree, placement,
+compact sheets, close plans and durable projection. `areas/layout` is the sole
+native frame/renderer registration point, reusing kit tabs, menus, buttons and
+resize gestures. Feature areas own their content and backend lifecycle. No
+feature creates a parallel pane manager. The native adapter currently retains
+an explicit session-route bridge until authoritative workspace resolution is
+available; equal paths never imply equal workspace identity.
+
+The reviewed session resident contract is in
+[`wp-layout-residents.md`](../../docs/plans/wp-layout-residents.md).
+`view::residents` defines the pure per-window admission/focus/lifetime table and
+per-attempt reply fences. It contains no GPUI state or connection identity cache.
+The current SessionView and ConversationArea globals remain the only live product
+owner while concrete owner adapters are prepared; the coordinated cutover must
+remove those globals and the single follow together. Pure core tests do not prove
+multiple agent panes work. Package details and evidence limits are in
+[`wp-layout.md`](../../docs/plans/wp-layout.md).
+
 ### Adding a screen (an area)
 
 1. Its meaning in `view` (a module of its own, ported from the page's
