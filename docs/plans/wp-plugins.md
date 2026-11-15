@@ -47,9 +47,10 @@ until its owner provides a reviewed hash. Do not copy those files.
 
 ## Current boundary
 
-The initial baseline 1d1f11df had no plugin RPC. The app tree now merged
-package base 4, 3cd0d3fc, under A8, including Quality B and the reviewed auth
-race correction c5da5305. The node tree has Quality B 29eebb8b. No feature is advertised
+The initial baseline 1d1f11df had no plugin RPC. The app tree now includes
+package base6 and the announced dd13ce37 lock fix under A8. The separate node
+tree includes the announced82ae7c91 head and portable b37 checked cleanup,
+without W15's desktop/release ancestry. No feature is advertised
 as complete until its real path works. The package is not a whole-package
 gate or runtime/capture proof merely because its declaration tests pass.
 
@@ -108,6 +109,47 @@ locations, literal file selectors, menu/popover recursion and whole-document
 budgets. A counting sink enforces the encoded cap even for typed in-process
 construction without allocating another encoded document. Unknown fields,
 unknown control kinds and oversized graphs refuse the whole replacement.
+
+## Retained native form and action state
+
+[Decision Log]
+- Purpose: native controls need retained edits and captured intentions without
+  granting callbacks merely because an old element is still on screen.
+- Existing asset: canonical ClientDocument/controls and exact-host Registry;
+  the renderer will use kit fields, choices, switches, buttons and menus.
+- Choice: SurfaceState privately captures one checked contribution surface and
+  stores typed Text/Choice/Toggle values. Every submit/activation re-resolves
+  the exact address and graph. A queued SurfaceRequest must be revalidated
+  before dispatch; node caller/context authorization is still separate.
+- Reason: labels and menu indices cannot identify controls, and an offline
+  retained declaration is display data rather than invocation authority.
+- Tradeoff: native author-port forms emit typed client intentions; their future
+  node wire adapter remains unimplemented. No new method or helper call exists.
+
+Controls inherit hidden/disabled menu and popover ancestry; traversing directly
+to a nested field cannot bypass it. Menu paths use declared identities and
+separators never dispatch. Choice edits refuse unknown options or value-kind
+mismatches; empty literal text is retained without command/JSON interpretation.
+All fields together share MAX_SURFACE_EDIT_BYTES, derived from the canonical
+document byte budget, so many individually bounded edits cannot multiply
+retention unchecked. A refused edit leaves the old complete draft unchanged.
+Private text/static payloads are excluded from intention diagnostics.
+Offline edits remain local, while submission and queued intentions refuse;
+generation replacement never falls back to another node with the same plugin.
+Tests cover these transitions against the existing in-memory registry. Actual
+GPUI rendering, async result correlation, node transport and UI error words are
+still required and no current test proves those paths.
+
+## Follow-on plugin usage adapter
+
+The coordinator assigned F6 the usage adapter after the current body work.
+It starts with a typed Ready/discover/fetch contract and versioned, bounded
+safe disclosure claims bound to exact plugin node/generation provenance, then
+V3 review and a real adapter into W5's single source actor. W5 owns report
+values/consent/refresh; F6 owns trusted plugin registration/helper supervision.
+Builtin store/recipient consent text cannot describe plugin claims. Until the
+reviewed executable handoff exists, plugin usage remains Unsupported; no second
+usage actor or speculative helper message is introduced here.
 
 Paseo references read for these details: `packages/app/src/plugins/evaluate.ts`
 89-92, 304-346, 391-413; `packages/plugin/src/client/buttons.ts` 6-55;

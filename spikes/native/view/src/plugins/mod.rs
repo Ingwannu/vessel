@@ -6,6 +6,7 @@
 
 mod placement;
 mod registry;
+mod surface;
 
 // Staged external-resource validation. Production registration follows the
 // typed catalog-resource DTO and sole app Hub publication/language lifecycle.
@@ -13,6 +14,9 @@ mod registry;
 mod translations;
 
 pub use placement::ResolvedPluginPanel;
+pub use surface::{
+    FieldValue, MAX_SURFACE_EDIT_BYTES, Submission, SurfaceProblem, SurfaceRequest, SurfaceState,
+};
 
 pub use registry::{
     CatalogBudget, CatalogTicket, HostSupport, Installation, Problem, Registry, SnapshotApplied,
