@@ -228,13 +228,17 @@ at the top and `Vessel patch` at the change.
 - Alternatives: a second diff text engine or selection controller (duplicates
   editing behaviour), a vendor fork (duplicates the pinned source), or a
   drawing-only optional provider in the existing vendored editor.
-- Choice/why: one optional InputEditorStyle line_presentation provider, with a
-  typed buffer-row index, measured widest-label sample and per-row number/ink/
-  background. Prepaint captures each visible row once for all paint passes.
+- Choice/why: one optional drawing provider on the existing shared highlight
+  resolver, with a default None accessor and a transparent style wrapper. The
+  InputEditorStyle public field set stays unchanged for gpui-component's complete
+  literal. The provider has a typed buffer-row index, measured widest-label
+  sample and per-row number/ink/background. Prepaint captures each visible row once for all paint passes.
   None retains the old number and painting branches. Editing, selection, copy,
   folding, display map, syntax engine and ordinary inputs are unchanged.
 - Cost: a seventh patch to carry at the GPUI pin; optional visible-row metadata
-  and an O(1) immutable provider. Unified uses one mapped gutter; split uses
+  and an O(1) immutable Send+Sync provider. The kit wraps a fresh base style once
+  per render; intentionally nested wrappers use the outer mapping, and None
+  clears it while preserving all delegated syntax lookups. Unified uses one mapped gutter; split uses
   independently mapped editors, as diff-document/paint.web.ts267–310 does.
   Native labels are measured with the real selected font rather than the web
   approximate digit-width formula. The initial kit profile retains the existing
@@ -242,8 +246,12 @@ at the top and `Vessel patch` at the change.
 - Changed: src/input/editor/highlighting.rs, src/input/base/element.rs and its
   additive tests/line_presentation.rs, src/input/mod.rs. File notices and every
   changed block are marked Vessel patch. No other vendored crate is changed.
-- Checked: source precheck of external revision3 passed; the installed source
-  adds named paint geometry plus actual-window tests for None invariance,
+- Checked: external revision3 drawing source precheck passed, then exact8a342503
+  remote compilation found gpui-component's exhaustive style literal (E0063;
+  fonts0/cargo101, no runtime proof). The revised optional resolver seam received
+  external revision4 source precheck and lead approval, avoiding another vendor
+  crate. Its installed source includes old-literal, nested/clear/transparency
+  regressions plus named paint geometry and actual-window tests for None invariance,
   mapped width/right alignment, one projection per visible row, wrapped tint,
   horizontal bounds/fixed scrolling gutter, selection/copy and read-only input.
   These tests and remote narrow checks have NOT yet run. A later result records

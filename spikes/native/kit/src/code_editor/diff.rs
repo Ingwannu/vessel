@@ -13,7 +13,6 @@
 //!   The engine's existing six-point gutter gap is retained in this first
 //!   control; consumer/reference geometry and border parity remain unverified.
 use std::num::NonZeroU32;
-use std::rc::Rc;
 use std::sync::Arc;
 
 use gpui::prelude::*;
@@ -146,13 +145,13 @@ impl DiffEditor {
         // independently of the ordinary source editor's neutral selection.
         let [_, _, _, _, blue, ..] = tokens.terminal.ansi;
         style.selection = gpui::rgb(blue).into();
-        style.line_presentation = Some(Rc::new(Presentation {
+        style = style.with_line_presentation(Some(Arc::new(Presentation {
             rows: Arc::clone(&self.rows),
             sample: self.sample.clone(),
             added: tokens.status.success.foreground,
             removed: tokens.status.error.foreground,
             muted: tokens.neutral.foreground_muted,
-        }));
+        })));
         self.editor
             .state
             .update(cx, |state, _cx| state.set_editor_style(style));

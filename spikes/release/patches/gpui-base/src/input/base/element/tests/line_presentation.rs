@@ -1,13 +1,15 @@
 // MODIFIED by Vessel (Team-WICKED), 2026-11-15: optional line presentation tests (spikes/release/patches/README.md, "gpui-base", change 7)
 // Vessel patch: these use the existing real editor harness and rendered scene.
 use super::*;
-use crate::input::{BufferRow, Copy, InputEditorStyle, InputLinePaint, InputLinePresentation};
-use std::cell::Cell;
-use std::rc::Rc;
+use crate::input::{BufferRow, Copy, InputLinePaint, InputLinePresentation};
+use std::sync::{
+    Arc,
+    atomic::{AtomicUsize, Ordering},
+};
 
 struct Mapping {
     sample: SharedString,
-    calls: Rc<Cell<usize>>,
+    calls: Arc<AtomicUsize>,
     colour: Hsla,
 }
 impl InputLinePresentation for Mapping {
@@ -15,7 +17,7 @@ impl InputLinePresentation for Mapping {
         self.sample.clone()
     }
     fn line(&self, row: BufferRow) -> InputLinePaint {
-        self.calls.set(self.calls.get() + 1);
+        let _prior = self.calls.fetch_add(1, Ordering::Relaxed);
         InputLinePaint {
             number: (row.index() == 0).then(|| "42".into()),
             number_color: None,
@@ -33,10 +35,7 @@ fn no_mapping_keeps_the_original_actual_window_gutter(cx: &mut TestAppContext) {
     });
     cx.update(|_, cx| {
         editor.update(cx, |state, _| {
-            let style = InputEditorStyle {
-                line_presentation: None,
-                ..state.editor_style.clone()
-            };
+            let style = state.editor_style.clone().with_line_presentation(None);
             state.set_editor_style(style);
         })
     });
@@ -66,24 +65,31 @@ fn no_mapping_keeps_the_original_actual_window_gutter(cx: &mut TestAppContext) {
 fn mapped_labels_use_actual_font_width_and_one_projection_per_visible_row(cx: &mut TestAppContext) {
     let (editor, window) = decoration_editor(cx, "one\ntwo\n", false);
     let mut cx = VisualTestContext::from_window(window.into(), cx);
-    let calls = Rc::new(Cell::new(0));
+    let calls = Arc::new(AtomicUsize::new(0));
     let sample: SharedString = "9999999".into();
-    let mapping = Rc::new(Mapping {
+    let mapping = Arc::new(Mapping {
         sample: sample.clone(),
         calls: calls.clone(),
         colour: gpui::hsla(0.23, 0.91, 0.42, 0.31),
     });
     cx.update(|_, cx| {
         editor.update(cx, |state, _| {
-            state.editor_style.line_presentation = Some(mapping.clone());
-            state.set_editor_style(state.editor_style.clone());
+            state.set_editor_style(
+                state
+                    .editor_style
+                    .clone()
+                    .with_line_presentation(Some(mapping.clone())),
+            );
         })
     });
-    calls.set(0);
+    calls.store(0, Ordering::Relaxed);
     let (_, paint) = cx.draw(point(px(0.), px(0.)), size(px(240.), px(140.)), |_, _| {
         TextElement::new(editor.clone())
     });
-    assert_eq!(calls.get(), paint.last_layout.visible_buffer_lines.len());
+    assert_eq!(
+        calls.load(Ordering::Relaxed),
+        paint.last_layout.visible_buffer_lines.len()
+    );
     cx.update(|window, _| {
         let style = window.text_style();
         let shaped = window.text_system().shape_line(
@@ -132,14 +138,14 @@ fn row_tints_cover_wraps_and_fixed_scrolled_gutters_inside_horizontal_bounds(
                 left: px(5.),
                 ..Edges::default()
             });
-            let style = InputEditorStyle {
-                line_presentation: Some(Rc::new(Mapping {
+            let style = state
+                .editor_style
+                .clone()
+                .with_line_presentation(Some(Arc::new(Mapping {
                     sample: "9999".into(),
-                    calls: Rc::new(Cell::new(0)),
+                    calls: Arc::new(AtomicUsize::new(0)),
                     colour,
-                })),
-                ..state.editor_style.clone()
-            };
+                })));
             state.set_editor_style(style);
             cx.notify();
         })
@@ -236,12 +242,13 @@ fn mapped_readonly_rows_keep_cross_row_selection_and_copy_without_numbers(cx: &m
         editor.update(cx, |state, cx| {
             state.set_readonly(true, cx);
             state.focus(window, cx);
-            state.editor_style.line_presentation = Some(Rc::new(Mapping {
-                sample: "99999".into(),
-                calls: Rc::new(Cell::new(0)),
-                colour: gpui::hsla(0.23, 0.91, 0.42, 0.31),
-            }));
-            state.set_editor_style(state.editor_style.clone());
+            state.set_editor_style(state.editor_style.clone().with_line_presentation(Some(
+                Arc::new(Mapping {
+                    sample: "99999".into(),
+                    calls: Arc::new(AtomicUsize::new(0)),
+                    colour: gpui::hsla(0.23, 0.91, 0.42, 0.31),
+                }),
+            )));
             state.select_all(window, cx);
             state.copy(&Copy, window, cx);
             assert_eq!(

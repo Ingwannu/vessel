@@ -1192,7 +1192,7 @@ impl<M: InputModeKind> TextElement<M> {
         // Vessel patch: measure a caller's mapped labels with the same font.
         // The ordinary path below stays unchanged when no mapping is installed.
         if state.mode.line_number() {
-            if let Some(presentation) = state.editor_style.line_presentation.as_ref() {
+            if let Some(presentation) = state.editor_style.line_presentation() {
                 let sample = presentation.gutter_sample();
                 let sample_len = sample.len();
                 let shaped = window.text_system().shape_line(
@@ -3149,17 +3149,13 @@ impl<M: InputModeKind> Element for TextElement<M> {
         let state = self.state.read(cx);
         // Vessel patch: one callback per visible row per frame, so number,
         // body tint and gutter tint are facts from the same projection.
-        let line_paints = state
-            .editor_style
-            .line_presentation
-            .as_ref()
-            .map(|mapping| {
-                last_layout
-                    .visible_buffer_lines
-                    .iter()
-                    .map(|&row| mapping.line(crate::input::BufferRow::new(row)))
-                    .collect::<Vec<_>>()
-            });
+        let line_paints = state.editor_style.line_presentation().map(|mapping| {
+            last_layout
+                .visible_buffer_lines
+                .iter()
+                .map(|&row| mapping.line(crate::input::BufferRow::new(row)))
+                .collect::<Vec<_>>()
+        });
         let line_numbers = if state.mode.line_number() {
             let mut line_numbers = Vec::with_capacity(last_layout.visible_buffer_lines.len());
             let other_line_runs = vec![TextRun {
@@ -3605,7 +3601,7 @@ impl<M: InputModeKind> Element for TextElement<M> {
                 for line in lines {
                     // Vessel patch: ordinary left-aligned numbers already
                     // contain padding; mapped labels use measured right alignment.
-                    let number_origin = if editor_style.line_presentation.is_some() {
+                    let number_origin = if editor_style.line_presentation().is_some() {
                         mapped_number_origin(
                             input_bounds.origin.x,
                             prepaint.last_layout.line_number_width,

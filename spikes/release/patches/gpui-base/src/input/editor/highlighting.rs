@@ -13,6 +13,11 @@ use crate::SemanticThemeTokens;
 /// applications can provide any resolver, independently of their parser.
 pub trait HighlightStyleResolver: Send + Sync {
     fn style(&self, name: &str) -> Option<HighlightStyle>;
+    // Vessel patch: default preserves every existing external resolver.
+    /// Optional drawing metadata, independent of syntax/highlight lookup.
+    fn line_presentation(&self) -> Option<&dyn InputLinePresentation> {
+        None
+    }
 }
 
 #[derive(Default)]
@@ -131,7 +136,7 @@ pub struct InputLinePaint {
 /// Pure, O(1), immutable mapping for a fixed buffer version. Unified has one
 /// mapped gutter, split has one
 /// independently mapped editor per side. Selection and copy stay in Base.
-pub trait InputLinePresentation {
+pub trait InputLinePresentation: Send + Sync {
     /// Widest label for measurement with the actual font, without scanning
     /// every row each frame. The kit includes its reference's minimum width.
     fn gutter_sample(&self) -> SharedString;
@@ -154,11 +159,27 @@ pub struct InputEditorStyle {
     pub editor_active_line: Option<Hsla>,
     pub editor_gutter_background: Option<Hsla>,
     pub fold_icon_renderer: Option<FoldIconRenderer>,
-    // Vessel patch: None retains the original number/paint path.
-    pub line_presentation: Option<Rc<dyn InputLinePresentation>>,
 }
 
 impl InputEditorStyle {
+    // Vessel patch: keep the public struct literal shape compatible with
+    // gpui-component. The wrapper delegates all existing syntax lookup.
+    /// Attach or clear immutable drawing facts without changing editor state.
+    /// Build once from a fresh projected base style per render. If deliberately
+    /// nested, the outer provider wins; None clears it while syntax delegates.
+    #[must_use]
+    pub fn with_line_presentation(mut self, lines: Option<Arc<dyn InputLinePresentation>>) -> Self {
+        self.highlight_styles = Arc::new(PresentedHighlights {
+            base: self.highlight_styles,
+            lines,
+        });
+        self
+    }
+    /// None retains the original automatic gutter and painting path.
+    pub fn line_presentation(&self) -> Option<&dyn InputLinePresentation> {
+        self.highlight_styles.line_presentation()
+    }
+
     /// Fills in every colour that was left unset, from the active palette.
     ///
     /// `Hsla::default()` is fully transparent, and every colour on `Default` is
@@ -196,6 +217,20 @@ impl InputEditorStyle {
     }
 }
 
+// Vessel patch: exactly one optional provider, no registry or syntax engine.
+struct PresentedHighlights {
+    base: SharedHighlightStyleResolver,
+    lines: Option<Arc<dyn InputLinePresentation>>,
+}
+impl HighlightStyleResolver for PresentedHighlights {
+    fn style(&self, name: &str) -> Option<HighlightStyle> {
+        self.base.style(name)
+    }
+    fn line_presentation(&self) -> Option<&dyn InputLinePresentation> {
+        self.lines.as_deref()
+    }
+}
+
 impl Default for InputEditorStyle {
     fn default() -> Self {
         Self {
@@ -211,7 +246,6 @@ impl Default for InputEditorStyle {
             editor_active_line: None,
             editor_gutter_background: None,
             fold_icon_renderer: None,
-            line_presentation: None, // Vessel patch: unchanged ordinary inputs/editors.
         }
     }
 }
@@ -293,3 +327,7 @@ mod tests {
         assert_eq!(second.foreground, light.colors.foreground);
     }
 }
+
+// Vessel patch: preserve complete external literals and transparent syntax lookup.
+#[cfg(test)]
+mod line_presentation_tests;

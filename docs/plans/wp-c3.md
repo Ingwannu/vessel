@@ -417,3 +417,27 @@ branch-mode ticket for commit panels. Commit comparisons retain no mutable base
 and map exactly to the existing Commit scope; empty branch-mode suggestions do
 not appear for them. This does not assign a new wire number or imply the pending
 committed-only RPC can already run on an old node.
+
+
+## Patch7 public-literal compatibility correction
+
+The exact8a342503 remote Kit/App check returned E0063 from the external
+component input.rs539: its complete InputEditorStyle literal cannot accept a
+new field. Original log diff-editor-clippy is retained (fonts0/cargo101), not
+counted as runtime evidence. After V1/lead external revision4 precheck, the
+public field set is restored. The existing shared HighlightStyleResolver gains
+a default-none accessor; with_line_presentation wraps/delegates it and retains
+one optional Send+Sync provider. No component registry file or new vendored
+component is edited. A fresh projected base style is wrapped once per render;
+intentional nested wrappers use the outer provider, and None clears mapping
+without changing syntax. Tests pin that full old literal, both lookup outcomes,
+nested override and clear, plus the same per-visible-row/prepaint geometry.
+Per-instance test counters use Arc atomics, never process-global preferences.
+These corrected tests and the changed-source remote check are still pending.
+
+The lead also ruled that split+wrap cannot change Base display_map in this C3
+package. The intended bounded departure is: split uses horizontal scrolling;
+turning wrapping on selects unified. A later separate immutable display-height
+proposal may restore split wrapping only with selection/copy invariance proof.
+This is not implemented or visually verified yet; no hidden split-wrap alignment
+or filler-newline copy workaround is claimed.
