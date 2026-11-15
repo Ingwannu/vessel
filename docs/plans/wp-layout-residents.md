@@ -15,6 +15,12 @@ metadata before returning resources to snapshot/cancel/drop. This foundation doe
 not authorize a transport or implement the production cutover. W1's window-global
 search extraction and scoped composer constructors are prerequisites; the legacy
 selected-session composer callback must never become a resident input callback.
+The claim key itself must match the expected node (workspace form) or session
+(older-session bridge) before allocation. This consistency check is additional
+to authoritative workspace membership and the live connection lease; the staged
+resource map alone grants neither. The final product admission caller must check
+the current layout's agent target and authoritative registry membership before
+claiming, and must release a claim on guarded retarget/close.
 
 ## Decision Log
 
