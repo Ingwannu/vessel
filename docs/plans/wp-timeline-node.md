@@ -458,3 +458,14 @@ closed provider-result patterns, borrowing classified errors exhaustively,
 using let-else before interruption, and extracting the unchanged live event
 publication branch out of the actor output dispatcher. No lint waiver or new
 provider capability is introduced.
+
+W4's exact-label audit found that the header codec trimmed before matching,
+which could select title A when the offered title was actually space-A-space.
+Matching now preserves raw offered values/titles before any normalization;
+only freeform/custom text is trimmed. Multi-select preserves raw component
+edges and refuses representations that would require guessing normalized labels
+or delimiter-bearing options. Canonical field-keyed answers remain exact. The
+older FEFF-wrapped non-offered label fixture now correctly becomes custom Left,
+while FEFF blank refusal and U+0085 custom content remain asserted. Two new
+raw-label/value/CSV regressions are authored; prior five-case and e98 strict
+passes do not prove this changed codec.
