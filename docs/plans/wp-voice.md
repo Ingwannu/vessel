@@ -225,3 +225,11 @@ metadata. A valid-looking model field can contain an accidentally pasted key;
 there is no diagnostic need to print it. A constructor-only loopback fixture
 uses that sensitive synthetic model and checks the full endpoint Debug remains
 redacted. This does not change persisted model values or the provider request.
+
+The staged detector input edge now carries exactly512 normalized samples across
+fixed16k client chunks using the shared aligned PCM view. It neither resamples
+nor infers speech; an actual reviewed Silero engine must consume each window.
+Chunk-partition invariance and cancellation fakes cover partial input and a
+stop raised by the first inference callback in a multi-window chunk. Stop/reset
+discards the incomplete window instead of padding a false speech observation.
+No model/native runtime is downloaded or loaded by this mechanism.
