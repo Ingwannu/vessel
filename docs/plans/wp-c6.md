@@ -295,3 +295,29 @@ preference or picker mutation. A table-like regression reorders equal-labelled
 hosts, disconnects the captured node, closes/reopens the modal and verifies that
 old receipts cannot select the replacement. This changes no shared picker engine
 or connection authority; the selected node's real context still admits usage RPCs.
+
+### Landed shared options popover
+The announced green base `2b806402` supplies W19's one adaptive popover. Usage now
+opens its cog with the shared typed icon button, a measured anchor, end alignment
+and width 340. Compact presentation delegates to that control's existing sheet.
+Global lookup, sidebar visibility and used/remaining controls reuse their existing
+writers; they are composed once inside options rather than duplicated inline.
+Global Off hides legacy external cards while the separate reported ledger/context
+remains visible. Source consent still has its own exact disclosure boundary.
+
+OptionsContext reuses ConnectionContext and the enclosing ModalCycle ticket. Each
+body action checks both, separately from the Kit lease; same-node reconnect,
+host change and parent close/reopen revoke old actions. Stale domain dismissal
+returns KeepOpen before any shared focus acknowledgment. Automatic retirement
+first removes the owner pair/body, then defer_in closes the captured lease, whose
+control check preserves a newer opening. An actual parent close retires its child
+before the shared dialog acknowledgment. Pure regressions cover domain changes;
+W19's control tests remain producer evidence only, with consumer compile/captures
+still owed. The header-actions and shared picker producers remain independent
+pending line handoffs; no area-owned header or overlay is introduced.
+
+Exact `1026f12e9` passed the batched app/view/link usage suite in
+`wp-usage-native-context-20261115T151531Z-1026f12e`: app 2, link 6, view 48,
+zero failures/ignored. This includes the modal/host-pick and whole-sentence wording
+regressions plus real compact-row geometry. It predates this base/popover delta;
+it is not strict Clippy, a whole native gate, captures or F3 acceptance.

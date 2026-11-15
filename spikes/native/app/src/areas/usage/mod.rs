@@ -8,6 +8,7 @@ pub(crate) use sidebar::sidebar_summary;
 mod draw;
 mod ledger;
 mod modal;
+mod options;
 mod pins;
 mod rows;
 mod session;
@@ -17,7 +18,7 @@ mod source_policy;
 mod source_reports;
 mod source_windows;
 mod windows;
-pub(crate) use modal::dialogs;
+pub(crate) use options::dialogs;
 pub(crate) use session::{limit_notice, session_card};
 
 use chrono::FixedOffset;
@@ -53,6 +54,9 @@ pub(super) struct SourcePending {
 #[derive(Debug)]
 pub(crate) struct State {
     pub(super) modal: vessel_app_view::usage::ModalCycle,
+    pub(super) options: vessel_app_kit::popover::PopoverState,
+    pub(super) options_open: Option<options::Opening>,
+    pub(super) options_anchor: vessel_app_kit::select::Anchor,
     pub(super) dialog: vessel_app_kit::DialogState,
     pub(super) host_list: vessel_app_kit::ComboboxState,
     pub(super) host_anchor: vessel_app_kit::select::Anchor,
@@ -81,6 +85,9 @@ impl State {
         clock::start(cx);
         Self {
             modal: vessel_app_view::usage::ModalCycle::default(),
+            options: vessel_app_kit::popover::PopoverState::new(cx),
+            options_open: None,
+            options_anchor: vessel_app_kit::select::Anchor::default(),
             dialog: vessel_app_kit::DialogState::new(cx),
             host_list: vessel_app_kit::ComboboxState::new(window, cx),
             host_anchor: vessel_app_kit::select::Anchor::default(),

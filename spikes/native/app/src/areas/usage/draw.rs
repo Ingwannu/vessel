@@ -96,6 +96,13 @@ fn controls(shell: &Shell, tokens: &Tokens, compact: bool, cx: &mut Context<'_, 
         .gap(px(spacing::S2))
         .child(periods)
         .child(refresh)
+        .children(super::options::trigger(
+            shell,
+            "usage-options-settings",
+            tokens,
+            compact,
+            cx,
+        ))
         .child(
             outline_button("usage-open-modal", text.open_modal(), true, tokens)
                 .on_click(cx.listener(|shell, _, window, cx| shell.open_usage(window, cx))),
@@ -178,6 +185,7 @@ pub(super) fn display_controls(
     shell: &Shell,
     tokens: &Tokens,
     compact: bool,
+    receipt: super::options::Opening,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let text = shell.words.usage();
@@ -189,6 +197,7 @@ pub(super) fn display_controls(
     .into_iter()
     .enumerate()
     {
+        let display_receipt = receipt.clone();
         choices = choices.child(
             segment(
                 ("usage-display", index),
@@ -200,6 +209,9 @@ pub(super) fn display_controls(
             )
             .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
             .on_click(cx.listener(move |shell, _, window, cx| {
+                if !super::options::admitted(shell, &display_receipt) {
+                    return;
+                }
                 shell.prefer(
                     &vessel_app_view::prefs::PreferenceChange::UsageDisplay(value),
                     window,
@@ -210,9 +222,11 @@ pub(super) fn display_controls(
     }
     let shown = super::sidebar::visible(shell);
     let visibility = settings::switch("usage-show-sidebar", shown, true, compact, 0, tokens)
-        .on_click(
-            cx.listener(move |shell, _, window, cx| shell.usage_show_sidebar(!shown, window, cx)),
-        );
+        .on_click(cx.listener(move |shell, _, window, cx| {
+            if super::options::admitted(shell, &receipt) {
+                shell.usage_show_sidebar(!shown, window, cx);
+            }
+        }));
     div()
         .child(settings::row_at(
             text.show_sidebar(),

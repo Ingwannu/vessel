@@ -1,0 +1,211 @@
+//! Domain admission surrounds the one shared desktop-popover/compact-sheet control.
+use super::{
+    accounts, modal,
+    rows::{Density, notice},
+};
+use crate::shell::Shell;
+use std::rc::Rc;
+use vessel_app_kit::{
+    ButtonConfig, ButtonContent, ButtonIcon, ButtonKind, ButtonState, ControlSizing, Tokens,
+    assets::Glyph,
+    button_control,
+    popover::{self, Alignment, Dismissal, Lease, PopoverContent, PopoverHandlers, Width},
+    ui::{AnyElement, Context, IntoElement as _, ParentElement as _, Styled as _, Window, div},
+};
+use vessel_app_view::{connection::ConnectionContext, devices::Ticket, usage::OptionsContext};
+
+const OPTIONS_WIDTH: f32 = 340.0;
+
+#[derive(Debug, Clone)]
+pub(super) struct Opening {
+    context: OptionsContext,
+    lease: Lease,
+}
+impl Opening {
+    fn current(&self, shell: &Shell) -> bool {
+        let state = &shell.areas.usage;
+        state.options_open.is_some()
+            && state.options.is_current(&self.lease)
+            && self
+                .context
+                .matches(state.connection.as_ref(), state.modal.current())
+            && shell.usage_connection_current(self.context.machine())
+    }
+}
+pub(super) fn admitted(shell: &Shell, receipt: &Opening) -> bool {
+    receipt.current(shell)
+}
+impl Shell {
+    fn usage_open_options(
+        &mut self,
+        machine: ConnectionContext,
+        parent: Option<Ticket>,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if !self.usage_connection_current(&machine)
+            || self.areas.usage.connection.as_ref() != Some(&machine)
+            || self.areas.usage.modal.current() != parent
+        {
+            return;
+        }
+        let state = &mut self.areas.usage;
+        let Some(anchor) = state.options_anchor.get() else {
+            return;
+        };
+        let lease = state.options.open(anchor, Alignment::End, window, cx);
+        state.options_open = Some(Opening {
+            context: OptionsContext::new(machine, parent),
+            lease,
+        });
+        cx.notify();
+    }
+    fn retire_usage_options(&mut self, window: &Window, cx: &mut Context<'_, Self>) {
+        if self
+            .areas
+            .usage
+            .options_open
+            .as_ref()
+            .is_none_or(|opening| opening.current(self))
+        {
+            return;
+        }
+        // Withhold the obsolete body/intents immediately; the shared lease
+        // checks again before its deferred actual-close focus acknowledgment.
+        if let Some(retired) = self.areas.usage.options_open.take() {
+            cx.defer_in(window, move |shell, window, cx| {
+                let _closed = shell.areas.usage.options.close(&retired.lease, window, cx);
+                cx.notify();
+            });
+        }
+    }
+    pub(super) fn close_usage_options_for_parent(
+        &mut self,
+        parent: Ticket,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if self
+            .areas
+            .usage
+            .options_open
+            .as_ref()
+            .is_some_and(|opening| opening.context.belongs_to(parent))
+            && let Some(opening) = self.areas.usage.options_open.take()
+        {
+            let _closed = self.areas.usage.options.close(&opening.lease, window, cx);
+        }
+    }
+}
+
+pub(super) fn trigger(
+    shell: &Shell,
+    id: &'static str,
+    tokens: &Tokens,
+    compact: bool,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    let machine = shell.areas.usage.connection.clone()?;
+    let parent = shell.areas.usage.modal.current();
+    let button = button_control(
+        id,
+        ButtonContent::Icon(ButtonIcon::muted(Glyph::Gear)),
+        ButtonConfig::new(
+            ButtonKind::Ghost,
+            ButtonState::Enabled,
+            ControlSizing::from_compact(compact),
+        ),
+        tokens,
+    )
+    .aria_label(shell.words.usage().options())
+    .on_click(cx.listener(move |shell, _, window, cx| {
+        shell.usage_open_options(machine.clone(), parent, window, cx);
+    }));
+    Some(
+        div()
+            .relative()
+            .child(vessel_app_kit::anchor_probe(
+                &shell.areas.usage.options_anchor,
+            ))
+            .child(button)
+            .into_any_element(),
+    )
+}
+
+pub(crate) fn dialogs(
+    shell: &mut Shell,
+    tokens: &Tokens,
+    window: &Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    shell.retire_usage_options(window, cx);
+    let modal = modal::dialogs(shell, tokens, window, cx);
+    let options = draw(shell, tokens, window, cx);
+    if modal.is_none() && options.is_none() {
+        return None;
+    }
+    Some(div().children(modal).children(options).into_any_element())
+}
+fn draw(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    let state = &shell.areas.usage;
+    let opening = state.options_open.as_ref()?.clone();
+    if !opening.current(shell) {
+        return None;
+    }
+    let compact = vessel_app_kit::breakpoint::phone(window);
+    let density = if compact {
+        Density::Compact
+    } else {
+        Density::Wide
+    };
+    let policy = state
+        .inventory
+        .phase()
+        .observation()
+        .and_then(vessel_app_view::usage::Inventory::policy);
+    let body = div()
+        .children(state.policy_error.map(|reason| {
+            notice(
+                reason.message(shell.words),
+                vessel_app_kit::alert::Variant::Error,
+                tokens,
+            )
+        }))
+        .child(accounts::policy_fields(
+            shell,
+            policy,
+            tokens,
+            density,
+            opening.clone(),
+            cx,
+        ));
+    let handlers = PopoverHandlers {
+        state: |shell: &mut Shell| &mut shell.areas.usage.options,
+        admit: Rc::new(move |shell: &mut Shell, lease, _, _| {
+            if !opening.current(shell) || !shell.areas.usage.options.is_current(lease) {
+                return Dismissal::KeepOpen;
+            }
+            shell.areas.usage.options_open = None;
+            Dismissal::Close
+        }),
+    };
+    popover::popover(
+        &state.options,
+        PopoverContent::new(
+            "usage-options-surface",
+            shell.words.usage().options(),
+            body.into_any_element(),
+            Width::new(OPTIONS_WIDTH)?,
+        ),
+        &handlers,
+        tokens,
+        window,
+        compact,
+        cx,
+    )
+}

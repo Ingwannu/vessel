@@ -49,12 +49,16 @@ pub(super) fn render(
             tokens,
         ));
     }
-    body = body.child(policy(shell, inventory.policy(), tokens, density, cx));
     if let Some(reports) = inventory.source_reports() {
         return body
             .child(super::source_reports::render(
                 shell, reports, density, tokens, cx,
             ))
+            .into_any_element();
+    }
+    if inventory.policy() == Some(ExternalLookup::Off) {
+        return body
+            .child(message(text.lookup_off(), tokens))
             .into_any_element();
     }
     if inventory.accounts().is_empty() {
@@ -83,11 +87,12 @@ pub(super) fn render(
     body.into_any_element()
 }
 
-fn policy(
+pub(super) fn policy_fields(
     shell: &Shell,
     policy: Option<ExternalLookup>,
     tokens: &Tokens,
     density: Density,
+    receipt: super::options::Opening,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let compact = matches!(density, Density::Compact);
@@ -95,6 +100,7 @@ fn policy(
     let state = &shell.areas.usage;
     let enabled = state.policy_pending.is_none();
     let machine = state.inventory.selection().cloned();
+    let policy_receipt = receipt.clone();
     let action = policy.map(|policy| {
         let (next, label) = match policy {
             ExternalLookup::Off => (ExternalLookup::On, text.enable_lookup()),
@@ -104,6 +110,9 @@ fn policy(
             .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
             .when(enabled, |button| {
                 button.on_click(cx.listener(move |shell, _, _, cx| {
+                    if !super::options::admitted(shell, &policy_receipt) {
+                        return;
+                    }
                     if let Some(machine) = &machine {
                         shell.usage_set_policy(machine.clone(), next);
                     }
@@ -112,7 +121,7 @@ fn policy(
             })
             .into_any_element()
     });
-    let card = settings::card(tokens)
+    settings::card(tokens)
         .child(settings::row_at(
             text.lookup(),
             Some(text.lookup_disclosure().into()),
@@ -122,8 +131,7 @@ fn policy(
             compact,
             tokens,
         ))
-        .child(draw::display_controls(shell, tokens, compact, cx));
-    settings::section(text.accounts(), card, tokens)
+        .child(draw::display_controls(shell, tokens, compact, receipt, cx))
 }
 
 fn account_card(

@@ -44,6 +44,8 @@ impl Shell {
         if !state.modal.dismiss(expected) {
             return;
         }
+        self.close_usage_options_for_parent(expected, window, cx);
+        let state = &mut self.areas.usage;
         state.host_list.close();
         state.dialog.dismissed(window, cx);
         cx.notify();
@@ -166,6 +168,13 @@ pub(crate) fn dialogs(
         Target::NoMachines => body.child(message(text.no_hosts(), tokens)),
         Target::Offline(_) => body.child(message(text.offline(), tokens)),
     };
+    body = body.children(super::options::trigger(
+        shell,
+        "usage-options-modal",
+        tokens,
+        compact,
+        cx,
+    ));
     let content = DialogContent {
         title: text.title().into(),
         body: body.into_any_element(),

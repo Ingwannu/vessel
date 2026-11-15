@@ -150,6 +150,8 @@ usage-rate-limited = The vendor requested a cooldown before checking again.
 usage-limit-notice = The saved account reports a usage limit. This does not prove why the turn stopped.
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-switch-model = Switch model
+# Title and accessible label for the shared usage options popover or compact sheet.
+usage-options = Usage options
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-wait = Wait for reset
 # Usage settings or limit notice; keep this whole label or explanation together.
