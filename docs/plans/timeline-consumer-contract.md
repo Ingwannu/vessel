@@ -50,3 +50,12 @@ Strict compilation, tests and V3 status must be supplied for this exact immutabl
 commit before consumer handover. Prepared tests and source review are not green
 execution evidence. Native renderers may be developed behind the inactive gate;
 actual provider/receipt/question behavior still belongs to the node package.
+
+V2 attachment keeps PermissionRequest.tool_call optional actual identity and adds
+plan_proposal plus PermissionDeliveryState. A bounded PermissionReference retains
+new approval actionability across inbox full-card degradation. Before old-client
+decoding, tool-less/tagged/admitted requests become an inert log, are omitted from
+snapshots, and become Unknown in full/pointer inbox entries. Ordinary tool Some
+serialization stays byte-identical. Only proto values/projection/tests and docs
+are included here; actor/store/provider and new command receipt attachment are
+excluded. This source remains staged until exact strict, TS, tests and V3 review.

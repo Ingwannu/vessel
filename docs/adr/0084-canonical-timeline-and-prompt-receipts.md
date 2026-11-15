@@ -415,4 +415,3 @@ client-supplied field creates a proposal or an action capability.
 This checkpoint attaches values, compatibility and constructor adaptations only;
 positive producer transport, actor decision lifetime, native follow-up acceptance
 and deterministic runtime proof remain pending. It does not enable plan approval.
-
