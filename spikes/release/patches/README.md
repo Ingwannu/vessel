@@ -164,3 +164,56 @@ change.
 - Wayland is not changed: the pinned crate's `zwp_text_input_v3` client
   composes in place (sway nested on Xvfb, fcitx5 over input-method-v2:
   한그 drawn with the syllable underlined, then 한글 committed).
+
+## `gpui-base` 0.8.1
+
+Upstream: gpui-kit's input base (`longbridge/gpui-kit`), Apache-2.0
+(`LICENSE-APACHE` beside it). The `.crate` it was taken from had SHA-256
+`d862bc8f2e27710039013d075ac4995892e9687ff207fa530f880cbcd513936f`
+(the checksum in `spikes/native/Cargo.lock`). Removed from the copy: its
+`Cargo.lock` (unused for a dependency). Only the app's workspace
+(`spikes/native`) uses it.
+
+Changed: `src/input/base/blink_cursor.rs`, marked `MODIFIED by Vessel`
+at the top and `Vessel patch` at the change.
+
+### 4. A steady caret while motion is held
+
+- Purpose: a focused text field costs nothing while nothing changes.
+  The caret's blink notified the field every 500 ms, and the shell is
+  one GPUI view, so each blink redrew the whole window: on 0.0.0.0.14 on
+  a software renderer about 31 % of a core at 1280 × 800 and 62 % at
+  1920 × 1200, the whole time a person is on the new-session screen
+  (the coordinator's measure, 2026-11-14). The owner's word 39 asks
+  that nothing animate continuously and that reduced motion, the app's
+  Animations setting off and a software renderer give the end state at
+  once.
+- Upstream's constraint: `BlinkCursor` is private to the crate
+  (`pub(crate)`) and reads no setting; every field's state starts it on
+  focus and on window activation and restarts it 300 ms after each key.
+  The app cannot stop it from outside.
+- Alternatives:
+  1. The app's own text fields. Months of work (gpui-base's input is
+     the editor: selection, IME, undo, wrapping).
+  2. Hiding the field's caret and drawing the app's own. The field
+     would still be notified every 500 ms, which is the cost.
+  3. Caching the composer's view so a blink redraws only it. GPUI still
+     presents the whole window each frame, and on a software renderer
+     presenting is the cost.
+  4. **This change**: `BlinkCursor::blink` reads GPUI's
+     `App::reduce_motion` and, when it is set, shows the caret and
+     schedules no next blink. The app already sets that one flag for
+     every reason motion is held (`spikes/native/app/src/motion.rs`).
+- Why 4: one condition in the one function that schedules blinks; no
+  new API to carry, and the caret follows the same flag as every other
+  motion in the app. When the flag clears, the next focus, key or window
+  activation blinks again.
+- Cost: a fourth change to carry at every gpui-kit pin (re-copy the new
+  version, re-apply the diff of the one file). The crate is 5 MB of
+  source in the repository.
+- Checked: the kit's test
+  `field::form_tests::the_caret_is_steady_while_motion_is_held` (a
+  focused composer in an active test window: notified at least three
+  times in 3 s with motion, never with motion held). The CPU measures
+  before and after are in `docs/plans/backend-m12-effort-slider.md`,
+  "Known costs".

@@ -22,7 +22,7 @@
 use std::time::Duration;
 
 use vessel_app_kit::ui::{
-    AnyElement, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
+    AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, Window, div, px, relative,
 };
 use vessel_app_kit::{Reveal, Tokens, Type, TypeExt as _, popup};
@@ -120,7 +120,7 @@ impl Shell {
             return;
         };
         if let Some(row) = area.rows.row_index(entry, area.folds.as_ref(), &area.logs) {
-            area.list.reveal(row, Reveal::Top);
+            area.list.reveal(area.at(row), Reveal::Top);
         }
         cx.notify();
     }
@@ -146,13 +146,13 @@ pub(super) fn rail(
         return None;
     }
     let (top_row, _) = area.list.top();
-    let lit = area
-        .rows
-        .entry(top_row)
+    // A row of the fork's origin lights nothing (the rail is the fork's).
+    let lit = top_row
+        .checked_sub(area.head())
+        .and_then(|own| area.rows.entry(own))
         .and_then(|top| lit(&area.outline, top));
     let attention = area.outline_pointer.attention;
     let neutral = tokens.neutral;
-    let shadow = popup::shadow_md(tokens);
     let slots = area.outline.iter().enumerate().map(|(index, item)| {
         let near = attention.map(|at| at.abs_diff(index));
         let is_lit = lit == Some(index);
@@ -171,33 +171,7 @@ pub(super) fn rail(
         } else {
             neutral.border_accent
         };
-        let card = (attention == Some(index)).then(|| {
-            div()
-                .absolute()
-                .left(px(CARD_LEFT))
-                .top(relative(0.5))
-                .mt(px(CARD_TOP))
-                .w(px(CARD_WIDTH))
-                .h(px(CARD_HEIGHT))
-                .flex()
-                .items_center()
-                .px(px(12.0))
-                .rounded(px(8.0))
-                .border_1()
-                .border_color(neutral.border)
-                .bg(neutral.surface2)
-                .shadow(shadow.clone())
-                .face(Type::Body)
-                .text_size(px(12.0))
-                .line_height(px(16.0))
-                .text_color(neutral.foreground)
-                .child(
-                    div()
-                        .line_clamp(2)
-                        .text_ellipsis()
-                        .child(item.prompt.clone()),
-                )
-        });
+        let card = (attention == Some(index)).then(|| preview(item.prompt.clone(), tokens));
         div()
             .id(("outline-slot", index))
             .relative()
@@ -239,6 +213,32 @@ pub(super) fn rail(
             .children(slots)
             .into_any_element(),
     )
+}
+
+/// The prompt under the pointer, in a card at the rail's right: two
+/// lines at most.
+fn preview(prompt: String, tokens: &Tokens) -> Div {
+    let neutral = tokens.neutral;
+    div()
+        .absolute()
+        .left(px(CARD_LEFT))
+        .top(relative(0.5))
+        .mt(px(CARD_TOP))
+        .w(px(CARD_WIDTH))
+        .h(px(CARD_HEIGHT))
+        .flex()
+        .items_center()
+        .px(px(12.0))
+        .rounded(px(8.0))
+        .border_1()
+        .border_color(neutral.border)
+        .bg(neutral.surface2)
+        .shadow(popup::shadow_md(tokens))
+        .face(Type::Body)
+        .text_size(px(12.0))
+        .line_height(px(16.0))
+        .text_color(neutral.foreground)
+        .child(div().line_clamp(2).text_ellipsis().child(prompt))
 }
 
 #[cfg(test)]
