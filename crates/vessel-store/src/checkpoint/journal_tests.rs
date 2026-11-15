@@ -46,13 +46,12 @@ fn fixture() -> (Connection, CaptureKey) {
 fn ready_plan(connection: &Connection, key: CaptureKey) -> Plan {
     let empty = FileImage::new(Vec::new()).unwrap();
     journal::keep_candidate(connection, key, &empty).unwrap();
-    // A fixture for the later node publication seam, not evidence of that seam.
-    let _changed = connection
-        .execute(
-            "UPDATE checkpoint_captures SET state='ready' WHERE id=?1",
-            [key.capture.to_string()],
-        )
-        .unwrap();
+    super::publication::activate(
+        connection,
+        key,
+        vessel_proto::checkpoint::CheckpointId::random(),
+    )
+    .unwrap();
     Plan {
         id: RestorePlanId::random(),
         key,
@@ -74,7 +73,7 @@ fn ready_plan(connection: &Connection, key: CaptureKey) -> Plan {
 #[test]
 fn expired_and_restarted_candidates_cannot_be_persisted_as_ready_images() {
     let (connection, key) = fixture();
-    journal::unavailable(&connection, key).unwrap();
+    journal::unavailable(&connection, key, CheckpointError::CaptureTimedOut).unwrap();
     assert!(matches!(
         journal::keep_candidate(&connection, key, &FileImage::new(Vec::new()).unwrap()),
         Err(Error::Refused(CheckpointError::StaleCapture))
@@ -242,7 +241,7 @@ fn restart_marks_pending_restores_recovery_without_discarding_before_images() {
 #[test]
 fn quota_counts_obsolete_candidates_until_physical_cleanup() {
     let (connection, key) = fixture();
-    journal::unavailable(&connection, key).unwrap();
+    journal::unavailable(&connection, key, CheckpointError::CaptureTimedOut).unwrap();
     let mut next = key;
     next.capture = CaptureId::random();
     assert!(matches!(
@@ -429,5 +428,52 @@ fn terminal_outcomes_require_the_complete_approved_path_journal() {
             Phase::Conflict
         ),
         Err(Error::Refused(CheckpointError::RestoreIdConflict))
+    ));
+}
+
+#[test]
+fn candidate_persistence_is_not_ready_and_activation_cannot_revive_expired_or_restarted_rows() {
+    use super::publication;
+    use vessel_proto::checkpoint::CheckpointId;
+    let (connection, key) = fixture();
+    let empty = FileImage::new(Vec::new()).unwrap();
+    assert!(matches!(
+        publication::activate(&connection, key, CheckpointId::random()),
+        Err(Error::Refused(CheckpointError::StaleCapture))
+    ));
+    journal::keep_candidate(&connection, key, &empty).unwrap();
+    let ready: bool = connection
+        .query_row(
+            "SELECT state='ready' FROM checkpoint_captures WHERE id=?1",
+            [key.capture.to_string()],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert!(!ready);
+    let mut wrong = key;
+    wrong.generation = wrong.generation.next().unwrap();
+    assert!(matches!(
+        publication::activate(&connection, wrong, CheckpointId::random()),
+        Err(Error::Refused(CheckpointError::StaleCapture))
+    ));
+    journal::unavailable(&connection, key, CheckpointError::CaptureTimedOut).unwrap();
+    assert!(matches!(
+        publication::activate(&connection, key, CheckpointId::random()),
+        Err(Error::Refused(CheckpointError::StaleCapture))
+    ));
+    let mut next = key;
+    next.capture = CaptureId::random();
+    journal::candidate(
+        &connection,
+        next,
+        crate::ByteCount::new(1),
+        DateTime::UNIX_EPOCH,
+    )
+    .unwrap();
+    journal::keep_candidate(&connection, next, &empty).unwrap();
+    journal::invalidate_candidates(&connection).unwrap();
+    assert!(matches!(
+        publication::activate(&connection, next, CheckpointId::random()),
+        Err(Error::Refused(CheckpointError::StaleCapture))
     ));
 }

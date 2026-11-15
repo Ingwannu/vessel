@@ -6,8 +6,12 @@ CREATE TABLE checkpoint_captures (
     boundary TEXT NOT NULL,
     state TEXT NOT NULL CHECK(state IN ('candidate','ready','unavailable')),
     image TEXT,
+    checkpoint TEXT UNIQUE,
+    reason TEXT,
     reserved_bytes INTEGER NOT NULL CHECK(reserved_bytes >= 0),
-    created_at INTEGER NOT NULL
+    created_at INTEGER NOT NULL,
+    CHECK(state != 'ready' OR (checkpoint IS NOT NULL AND image IS NOT NULL)),
+    CHECK(state != 'unavailable' OR reason IS NOT NULL)
 ) STRICT;
 CREATE INDEX checkpoint_session ON checkpoint_captures(session, created_at);
 CREATE TABLE checkpoint_plans (

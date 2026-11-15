@@ -40,10 +40,14 @@ pub(super) fn candidate(
     Ok(())
 }
 
-pub(super) fn unavailable(connection: &Connection, key: CaptureKey) -> Result<(), Error> {
-    let changed = connection.execute("UPDATE checkpoint_captures SET state='unavailable',image=NULL
+pub(super) fn unavailable(
+    connection: &Connection,
+    key: CaptureKey,
+    reason: CheckpointError,
+) -> Result<(), Error> {
+    let changed = connection.execute("UPDATE checkpoint_captures SET state='unavailable',image=NULL,reason=?6
         WHERE id=?1 AND session=?2 AND worktree=?3 AND generation=?4 AND boundary=?5 AND state='candidate'",
-        params![key.capture.to_string(),key.session.to_string(),key.worktree.to_string(),encode(&key.generation)?,encode(&key.boundary)?])?;
+        params![key.capture.to_string(),key.session.to_string(),key.worktree.to_string(),encode(&key.generation)?,encode(&key.boundary)?,encode(&reason)?])?;
     if changed != 1 {
         return Err(CheckpointError::StaleCapture.into());
     }
@@ -77,8 +81,8 @@ pub(super) fn keep_candidate(
 /// Startup never promotes candidates; reservations remain until filesystem cleanup.
 pub(super) fn invalidate_candidates(connection: &Connection) -> Result<(), Error> {
     let _changed = connection.execute(
-        "UPDATE checkpoint_captures SET state='unavailable',image=NULL WHERE state='candidate'",
-        [],
+        "UPDATE checkpoint_captures SET state='unavailable',image=NULL,reason=?1 WHERE state='candidate'",
+        [encode(&CheckpointError::StaleCapture)?],
     )?;
     Ok(())
 }

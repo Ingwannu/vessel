@@ -84,7 +84,7 @@ impl Captures {
         }
         Ok(())
     }
-    /// Called only after durable publication acknowledgement; rechecks the lease.
+    /// Durable candidate acceptance, not Ready activation; rechecks the lease.
     pub(super) fn published(
         &mut self,
         key: CaptureKey,
@@ -96,7 +96,10 @@ impl Captures {
             .get_mut(&key.capture)
             .ok_or(CheckpointError::StaleCapture)?;
         let reply = job.reply.take().ok_or(CheckpointError::StaleCapture)?;
-        let _closed = reply.send(Ok(key));
+        if reply.send(Ok(key)).is_err() {
+            job.cancel.cancel();
+            return Err(CheckpointError::StaleCapture);
+        }
         Ok(())
     }
     /// Workers signal this only after their staging/handles have been cleaned up.

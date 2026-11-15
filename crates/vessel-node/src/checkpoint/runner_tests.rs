@@ -1,7 +1,7 @@
 //! Barriers retain real blocking work while the coordinator acknowledges expiry.
 use super::{
     quota::ReservedBytes,
-    runner::{self, Disposition},
+    runner::{self, Disposition, Publication},
 };
 use std::sync::{
     Arc,
@@ -111,6 +111,96 @@ async fn held_publication_ack_cannot_revive_the_expired_lease() {
     tokio::time::advance(CHECKPOINT_CAPTURE_DEADLINE).await;
     assert_eq!(prompt.await.unwrap(), Err(CheckpointError::CaptureTimedOut));
     hold.send(()).unwrap();
+    finished.await.unwrap();
+    drop(client);
+    owner.await.unwrap();
+}
+
+#[tokio::test(start_paused = true)]
+async fn accepted_candidate_releases_actor_but_activation_retains_worker_and_root_guard() {
+    let (release, held) = oneshot::channel();
+    let held = std::sync::Mutex::new(Some(held));
+    let (entered, entry) = oneshot::channel();
+    let entered = std::sync::Mutex::new(Some(entered));
+    let ready = Arc::new(AtomicUsize::new(0));
+    let ready_write = Arc::clone(&ready);
+    let (cleaned, finished) = oneshot::channel();
+    let cleaned = std::sync::Mutex::new(Some(cleaned));
+    let (client, owner) = runner::start(
+        |_key, _cancel| FileImage::new(Vec::new()),
+        move |_key, phase| {
+            let held = match phase {
+                Publication::Candidate(image) => {
+                    assert!(image.entries().is_empty());
+                    None
+                }
+                Publication::Activate => {
+                    entered.lock().unwrap().take().unwrap().send(()).unwrap();
+                    Some(held.lock().unwrap().take().unwrap())
+                }
+            };
+            let ready = Arc::clone(&ready_write);
+            async move {
+                if let Some(held) = held {
+                    held.await.unwrap();
+                    let _previous = ready.fetch_add(1, Ordering::SeqCst);
+                }
+                Ok(())
+            }
+        },
+        move |_key, disposition| {
+            assert_eq!(disposition, Disposition::Keep);
+            cleaned.lock().unwrap().take().unwrap().send(()).unwrap();
+        },
+    );
+    let key = key();
+    assert_eq!(
+        client.capture(key, ReservedBytes::new(1).unwrap()).await,
+        Ok(key)
+    );
+    entry.await.unwrap();
+    tokio::time::advance(CHECKPOINT_CAPTURE_DEADLINE).await;
+    assert_eq!(
+        ready.load(Ordering::SeqCst),
+        0,
+        "a candidate acknowledgement is not user-visible Ready"
+    );
+    assert_eq!(
+        client.capture(key, ReservedBytes::new(1).unwrap()).await,
+        Err(CheckpointError::Busy)
+    );
+    release.send(()).unwrap();
+    finished.await.unwrap();
+    assert_eq!(ready.load(Ordering::SeqCst), 1);
+    drop(client);
+    owner.await.unwrap();
+}
+
+#[tokio::test]
+async fn uncertain_ready_activation_keeps_archive_for_reconciliation() {
+    let (cleaned, finished) = oneshot::channel();
+    let cleaned = std::sync::Mutex::new(Some(cleaned));
+    let (client, owner) = runner::start(
+        |_key, _cancel| FileImage::new(Vec::new()),
+        |_key, phase| async move {
+            match phase {
+                Publication::Candidate(image) => {
+                    assert!(image.entries().is_empty());
+                    Ok(())
+                }
+                Publication::Activate => Err(CheckpointError::FeatureUnavailable),
+            }
+        },
+        move |_key, disposition| {
+            assert_eq!(disposition, Disposition::Recovery);
+            cleaned.lock().unwrap().take().unwrap().send(()).unwrap();
+        },
+    );
+    let key = key();
+    assert_eq!(
+        client.capture(key, ReservedBytes::new(1).unwrap()).await,
+        Ok(key)
+    );
     finished.await.unwrap();
     drop(client);
     owner.await.unwrap();

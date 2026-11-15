@@ -16,6 +16,14 @@ use vessel_proto::checkpoint::{
 pub(super) enum Disposition {
     Keep,
     Discard,
+    /// Ready activation may have committed; keep bytes until reconciliation.
+    Recovery,
+}
+#[derive(Debug)]
+pub(super) enum Publication {
+    Candidate(FileImage),
+    /// Only sent after the coordinator accepted the durable candidate in time.
+    Activate,
 }
 #[derive(Debug)]
 struct Request {
@@ -51,19 +59,37 @@ impl Client {
         key: CaptureKey,
         bytes: ReservedBytes,
     ) -> Result<CaptureKey, CheckpointError> {
+        self.capture_by(
+            key,
+            bytes,
+            Instant::now()
+                .checked_add(CHECKPOINT_CAPTURE_DEADLINE)
+                .ok_or(CheckpointError::CaptureTimedOut)?,
+        )
+        .await
+    }
+    /// Bridges preserve the actor's original deadline across their own queues.
+    pub(super) async fn capture_by(
+        &self,
+        key: CaptureKey,
+        bytes: ReservedBytes,
+        deadline: Instant,
+    ) -> Result<CaptureKey, CheckpointError> {
+        if Instant::now() >= deadline {
+            return Err(CheckpointError::CaptureTimedOut);
+        }
         let (reply, received) = oneshot::channel();
         self.requests
             .try_send(Request {
                 key,
                 bytes,
-                deadline: Instant::now()
-                    .checked_add(CHECKPOINT_CAPTURE_DEADLINE)
-                    .ok_or(CheckpointError::CaptureTimedOut)?,
+                deadline,
                 reply,
             })
             .map_err(|_full_or_closed| CheckpointError::Busy)?;
-        received
+        tokio::time::timeout_at(deadline, received)
             .await
+            .map_err(|_deadline| CheckpointError::CaptureTimedOut)?
             .map_err(|_closed| CheckpointError::StaleCapture)?
     }
 }
@@ -79,7 +105,7 @@ where
         + Send
         + Sync
         + 'static,
-    Persist: Fn(CaptureKey, FileImage) -> Stored + Send + Sync + 'static,
+    Persist: Fn(CaptureKey, Publication) -> Stored + Send + Sync + 'static,
     Stored: Future<Output = Result<(), CheckpointError>> + Send + 'static,
     Cleanup: Fn(CaptureKey, Disposition) + Send + Sync + 'static,
 {
@@ -95,6 +121,10 @@ where
             tokio::select! {
                 request=receive.recv()=>{
                     let Some(request)=request else {break;};
+                    if Instant::now() >= request.deadline {
+                        let _closed=request.reply.send(Err(CheckpointError::CaptureTimedOut));
+                        continue;
+                    }
                     let key=request.key;
                     if captures.admit(key,request.deadline,request.bytes,request.reply).is_ok() {
                         let cancellation=captures.cancellation(key);
@@ -146,7 +176,7 @@ async fn work<Read, Persist, Cleanup, Stored>(
         + Send
         + Sync
         + 'static,
-    Persist: Fn(CaptureKey, FileImage) -> Stored + Send + Sync + 'static,
+    Persist: Fn(CaptureKey, Publication) -> Stored + Send + Sync + 'static,
     Stored: Future<Output = Result<(), CheckpointError>> + Send + 'static,
     Cleanup: Fn(CaptureKey, Disposition) + Send + Sync + 'static,
 {
@@ -181,7 +211,7 @@ async fn publish<Persist, Stored>(
     events: &mpsc::Sender<Event>,
 ) -> Disposition
 where
-    Persist: Fn(CaptureKey, FileImage) -> Stored + Send + Sync + 'static,
+    Persist: Fn(CaptureKey, Publication) -> Stored + Send + Sync + 'static,
     Stored: Future<Output = Result<(), CheckpointError>> + Send + 'static,
 {
     let (permit, allowed) = oneshot::channel();
@@ -191,7 +221,7 @@ where
     if !matches!(allowed.await, Ok(Ok(()))) {
         return Disposition::Discard;
     }
-    let result = persist(key, image).await;
+    let result = persist(key, Publication::Candidate(image)).await;
     let (accepted, outcome) = oneshot::channel();
     if events
         .send(Event::Published {
@@ -204,5 +234,12 @@ where
     {
         return Disposition::Discard;
     }
-    outcome.await.unwrap_or(Disposition::Discard)
+    match outcome.await.unwrap_or(Disposition::Discard) {
+        Disposition::Keep => match persist(key, Publication::Activate).await {
+            Ok(()) => Disposition::Keep,
+            Err(_uncertain) => Disposition::Recovery,
+        },
+        Disposition::Discard => Disposition::Discard,
+        Disposition::Recovery => Disposition::Recovery,
+    }
 }

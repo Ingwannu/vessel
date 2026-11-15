@@ -112,3 +112,28 @@ async fn stuck_workers_cannot_spawn_replacements_or_prematurely_return_quota() {
 fn held_filesystem_io_does_not_delay_prompt_after_capture_timeout() {
     // Proof obligation: implement held-I/O barrier fixture.
 }
+
+#[tokio::test]
+async fn an_abandoned_actor_cannot_authorize_later_ready_activation() {
+    let mut captures = Captures::default();
+    let key = key(WorktreeId::random());
+    let now = Instant::now();
+    let (reply, received) = oneshot::channel();
+    captures
+        .admit(
+            key,
+            now + CHECKPOINT_CAPTURE_DEADLINE,
+            ReservedBytes::new(1).unwrap(),
+            reply,
+        )
+        .unwrap();
+    drop(received);
+    assert_eq!(
+        captures.published(key, now),
+        Err(CheckpointError::StaleCapture)
+    );
+    assert!(captures.occupied(key.worktree));
+    assert_eq!(captures.reserved(), 1);
+    captures.cleaned(key).unwrap();
+    assert_eq!(captures.reserved(), 0);
+}

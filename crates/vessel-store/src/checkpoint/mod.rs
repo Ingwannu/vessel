@@ -8,6 +8,7 @@ mod journal;
 mod journal_tests;
 mod paths;
 mod plans;
+mod publication;
 mod records;
 mod recovery;
 

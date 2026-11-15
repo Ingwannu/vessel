@@ -30,7 +30,8 @@ staging. No provider SDK, tool-call-count inference or new crate edge.
 - node/checkpoint: test-only bounded capture owner, worker/root/quota leases and
   deadline fencing. Timeout acknowledges without joining blocked I/O; capacity
   remains occupied until actual cleanup. Candidate persistence and durable Ready
-  activation still need connecting. No real prompt/TurnEnded wiring yet.
+  activation are separate phases; uncertain activation retains the archive.
+  The real store/coordinator assembly still needs connecting. No real prompt/TurnEnded wiring yet.
 - node/service/checkpoints: registered methods explicitly refuse as unavailable.
   Guarded authorization and agent refusal remain in front of the seam. Ordinary
   human forwarding preserves destination checks. Pending calls refuse locally
@@ -65,7 +66,7 @@ unverified until their exact compiled run completes. No package gate, code
 review, permission/platform/crash recovery or native capture pass is claimed.
 
 Next: compile the new mechanisms, regenerate TypeScript, run real migration
-rollback tests, finish durable Ready activation and writer/coordinator assembly,
+rollback tests, finish writer/coordinator assembly and durable Ready reconciliation,
 then bounded authenticated preview pagination/quota/retention and real session/
 workspace exclusion. Replace ignored obligations only after implementation.
 After node completion: one whole node gate and V3 review; after consuming the

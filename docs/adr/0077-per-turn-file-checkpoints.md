@@ -500,3 +500,17 @@ xattr enumeration needed to refuse ACL metadata before replacing files. Only
 Linux is staged initially; other platform implementations remain unavailable
 until equivalent metadata/containment tests exist. No release dependency or
 advertised platform capability is enabled by this staged addition.
+
+### Candidate acknowledgement and Ready activation
+
+The staged runner explicitly separates durable candidate persistence from Ready
+activation. The coordinator's in-time acceptance can acknowledge the actor
+without waiting for activation I/O. Only that accepted path invokes activation;
+Ready remains a durable store state, never inferred from the internal actor
+acknowledgement. Expired/restarted rows fail the exact-key conditional update.
+An uncertain activation retains its archive for reconciliation because a lost
+storage acknowledgement cannot prove that Ready was not committed. The bounded
+worker/root reservation lasts through activation and actual cleanup. Requests
+carry the original deadline across the bridge, and the caller also bounds its
+wait including queue time. A dropped actor reply cannot authorize activation.
+These are staged mechanisms and tests, not proof of real runtime integration.
