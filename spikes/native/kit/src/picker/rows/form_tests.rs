@@ -6,8 +6,8 @@ use gpui::{Bounds, Pixels, Render, TestAppContext};
 use std::{cell::RefCell, rc::Rc};
 #[test]
 fn form_slot_is_opt_in_and_does_not_resize_legacy_leading() {
-    assert_eq!(FORM_ROW_EXTENT, 18.0);
-    assert_eq!(ROW_GLYPH, 16.0);
+    assert_eq!(FORM_ROW_EXTENT.to_bits(), 18.0_f32.to_bits());
+    assert_eq!(ROW_GLYPH.to_bits(), 16.0_f32.to_bits());
     assert_eq!(
         leading_width(&Leading::FormGlyph(Glyph::Folder)),
         Some(18.0)

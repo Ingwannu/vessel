@@ -1574,3 +1574,14 @@ one Update with the opened id/revision/definition and original connection,
 and a second press while pending must send nothing. This tests the UI dispatch
 boundary only: no actual RPC, node permission, native OS/IME or final UI proof
 is claimed. Both theme cases are authored and still unexecuted.
+
+
+### ce36 narrow diagnostic batch
+
+Exact schedules-20261115T162742Z-ce36c84f reached actual Kit Checking; fonts0,
+native-cargo101 (helper1). Complete batch: two missing semicolons on assignment
+match arms, redundant method closure in the new Retry test, and two direct float
+comparisons in the new FormGlyph test. Corrected together without suppressions
+or changed behavior: literal18/16 expectations now compare exact f32 bits. No
+Kit tests, View or App step ran in this failed suite. The actual outcome stays
+pinned to ce36; no later-source or final-package proof is inferred.

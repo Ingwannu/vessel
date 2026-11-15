@@ -60,7 +60,7 @@ pub(super) fn render<V: 'static>(
                     "model-browser-loading",
                     tokens.neutral.foreground_muted,
                 ))
-                .child(label.clone())
+                .child(label.clone());
         }
         Empty::NoMatches(label) => {
             body = body
@@ -69,7 +69,7 @@ pub(super) fn render<V: 'static>(
                     crate::theme::icon::MD,
                     tokens.neutral.foreground_muted,
                 ))
-                .child(label.clone())
+                .child(label.clone());
         }
         Empty::Failed { message, retry } => {
             body = body

@@ -152,7 +152,7 @@ fn old_retry_cannot_fire_or_refocus_b_and_current_retry_stays_open(cx: &mut Test
             let (view, cx) = cx.add_window_view(|window, cx| Probe::new(scheme, window, cx));
             cx.simulate_resize(size(px(width), px(800.0)));
             cx.run_until_parked();
-            view.update_in(cx, |owner, window, cx| owner.open(window, cx));
+            view.update_in(cx, Probe::open);
             cx.run_until_parked();
             let at = cx.debug_bounds("model-browser-retry");
             assert!(at.is_some());
