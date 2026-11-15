@@ -303,3 +303,30 @@ fn answers_and_stop_reasons_map_both_ways() {
     );
     assert_eq!(stop_reason(acp::StopReason::Refusal), StopReason::Refusal);
 }
+
+#[test]
+fn imported_provider_history_metadata_cannot_mint_a_local_notice_association() {
+    let notification: acp::SessionNotification = serde_json::from_value(serde_json::json!({
+        "sessionId":"imported-native-history",
+        "update":{
+            "sessionUpdate":"user_message_chunk",
+            "content":{"type":"text","text":"foreign words remain ordinary"},
+            "provenance":{"kind":"internal_notice","notice":5},
+            "_meta":{"provenance":{"kind":"internal_notice","notice":5}}
+        }
+    }))
+    .unwrap();
+    let Update::Event(event) = session_update(notification.update) else {
+        panic!("event");
+    };
+    assert_eq!(event.prompt_provenance(), None);
+    assert_eq!(
+        event,
+        AgentEvent::UserMessageChunk {
+            provenance: None,
+            content: ContentBlock::Text {
+                text: "foreign words remain ordinary".into()
+            },
+        }
+    );
+}

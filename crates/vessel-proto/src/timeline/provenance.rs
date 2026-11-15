@@ -2,7 +2,7 @@
 //! Producers attach it only after their one notice/queue/receipt transaction;
 //! external provider replay is scrubbed before the actor can interpret it.
 
-use crate::{AgentEvent, EventSeq};
+use crate::{AgentEvent, ContentBlock, EventSeq, QueuedPrompt};
 use serde::{Deserialize, Serialize};
 
 /// Why ordinary prompt words are represented by another canonical timeline item.
@@ -31,6 +31,22 @@ impl AgentEvent {
         }
     }
 
+    /// Hide duplicate ordinary input words while preserving the typed notice
+    /// link and the actual event/lifecycle. Reader adapters share this leaf;
+    /// it performs no recursive compatibility traversal and grants no authority.
+    pub fn clear_internal_notice_words(&mut self) {
+        if self.prompt_provenance().is_none() {
+            return;
+        }
+        if let Self::TurnStarted { content, .. } | Self::Steered { content, .. } = self {
+            content.clear();
+        } else if let Self::UserMessageChunk { content, .. } = self {
+            *content = ContentBlock::Text {
+                text: String::new(),
+            };
+        }
+    }
+
     /// Foreign provider/history input cannot suppress ordinary user words by
     /// supplying a serialized local association. Canonical retained reads do not
     /// call this: their association was created by the local persistence owner.
@@ -40,6 +56,16 @@ impl AgentEvent {
         | Self::UserMessageChunk { provenance, .. } = self
         {
             *provenance = None;
+        }
+    }
+}
+
+impl QueuedPrompt {
+    /// The shared reader leaf suppresses internal words without losing queue
+    /// identity, order, revision, creator or the canonical notice association.
+    pub fn clear_internal_notice_words(&mut self) {
+        if self.provenance.is_some() {
+            self.content.clear();
         }
     }
 }

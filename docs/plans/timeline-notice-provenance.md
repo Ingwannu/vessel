@@ -120,3 +120,19 @@ readers remain owed before positive private production. Their existing readers
 are not claimed qualified by outgoing wire masking. The execution/grant capsule
 and atomic notice/queue/receipt transaction also remain unavailable; private
 admission stays Unsupported. No second body id, method, number or store is added.
+
+The next source checkpoint supplies shared typed reader leaves:
+AgentEvent::clear_internal_notice_words and
+QueuedPrompt::clear_internal_notice_words. They preserve the modern association
+and identity while suppressing duplicate ordinary input words. The existing
+compatibility traversal uses these same leaves, then removes legacy metadata;
+there is no second recursive privacy walk. MCP's owning consumer may use these
+leaves on its existing typed results once the producer is qualified.
+
+CLI streaming ends a hidden input boundary without printing its body or a user
+prefix; queue previews retain the actual id/revision with a fixed internal-notice
+caption. The automatic first-input title branch refuses tagged input. A native
+ACP history fixture includes malicious direct and _meta associations and requires
+ordinary words with no local association. New typed-leaf/CLI/queue fixtures are
+authored; exact execution and generated-title/inbox/push/export/web/native reader
+qualification remain separate obligations before positive private production.

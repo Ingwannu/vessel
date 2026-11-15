@@ -141,9 +141,8 @@ pub(crate) fn queue(
     }
     let mut adapted = queue.clone();
     for entry in &mut adapted.entries {
-        if entry.provenance.take().is_some() {
-            entry.content.clear();
-        }
+        entry.clear_internal_notice_words();
+        entry.provenance = None;
         entry.client_message_id = None;
     }
     Some(adapted)
@@ -219,49 +218,38 @@ pub(crate) fn event_with_reference(
             AgentEvent::Plan { entries }
         }
         AgentEvent::TurnStarted {
-            content,
             client_message_id,
             provenance,
-        } => {
-            if client_message_id.is_none() && provenance.is_none() {
-                return None;
-            }
-            AgentEvent::TurnStarted {
-                content: if provenance.is_some() {
-                    Vec::new()
-                } else {
-                    content.clone()
-                },
-                client_message_id: None,
-                provenance: None,
-            }
+            ..
         }
-        AgentEvent::Steered {
-            content,
+        | AgentEvent::Steered {
             client_message_id,
             provenance,
+            ..
         } => {
             if client_message_id.is_none() && provenance.is_none() {
                 return None;
             }
-            AgentEvent::Steered {
-                content: if provenance.is_some() {
-                    Vec::new()
-                } else {
-                    content.clone()
-                },
-                client_message_id: None,
-                provenance: None,
+            let mut adapted = event.clone();
+            adapted.clear_internal_notice_words();
+            adapted.clear_foreign_prompt_provenance();
+            if let AgentEvent::TurnStarted {
+                client_message_id, ..
             }
+            | AgentEvent::Steered {
+                client_message_id, ..
+            } = &mut adapted
+            {
+                *client_message_id = None;
+            }
+            adapted
         }
         AgentEvent::UserMessageChunk { provenance, .. } => {
             let _local_association = provenance.as_ref()?;
-            AgentEvent::UserMessageChunk {
-                content: crate::ContentBlock::Text {
-                    text: String::new(),
-                },
-                provenance: None,
-            }
+            let mut adapted = event.clone();
+            adapted.clear_internal_notice_words();
+            adapted.clear_foreign_prompt_provenance();
+            adapted
         }
         AgentEvent::Ready { .. }
         | AgentEvent::MessageChunk { .. }

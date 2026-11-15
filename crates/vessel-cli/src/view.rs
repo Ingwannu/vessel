@@ -141,6 +141,10 @@ impl Conversation {
     }
 
     fn agent(&mut self, event: &AgentEvent) -> String {
+        if event.prompt_provenance().is_some() {
+            // A real hidden input boundary still ends a previous reply stream.
+            return self.finish_line().to_owned();
+        }
         match event {
             AgentEvent::Ready {
                 harness_session, ..
@@ -330,6 +334,30 @@ mod tests {
     use vessel_proto::{EventSeq, PermissionOption, PermissionOptionKind, ToolCallId};
 
     use super::*;
+
+    #[test]
+    fn an_internal_notice_input_keeps_a_stream_boundary_without_a_user_bubble() {
+        let mut shown = Conversation::default();
+        let _reply = shown.show(&agent(AgentEvent::MessageChunk {
+            content: ContentBlock::Text {
+                text: "previous".into(),
+            },
+        }));
+        let hidden: AgentEvent = serde_json::from_value(serde_json::json!({
+            "event":"turn_started", "content":[{"type":"text","text":"private notice"}],
+            "provenance":{"kind":"internal_notice","notice":5}
+        }))
+        .unwrap();
+        assert_eq!(shown.show(&agent(hidden)), "\n");
+        assert_eq!(
+            shown.show(&agent(AgentEvent::MessageChunk {
+                content: ContentBlock::Text {
+                    text: "next reply".into()
+                },
+            })),
+            "next reply"
+        );
+    }
 
     fn agent(event: AgentEvent) -> EventRecord {
         EventRecord {

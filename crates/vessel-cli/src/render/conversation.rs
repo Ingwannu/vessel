@@ -50,6 +50,9 @@ pub(crate) fn queue_entries(waiting: &PromptQueue) -> String {
 
 /// The start of a waiting prompt's text, and its attachments' count.
 fn prompt(entry: &QueuedPrompt) -> String {
+    if entry.provenance.is_some() {
+        return "[internal notice]".to_owned();
+    }
     let mut words = String::new();
     let mut files = 0_usize;
     for block in &entry.content {
@@ -232,6 +235,27 @@ mod tests {
 
             client_message_id: None,
         }
+    }
+
+    #[test]
+    fn internal_queue_words_do_not_appear_as_an_ordinary_prompt_preview() {
+        let mut item = entry(
+            vec![ContentBlock::Text {
+                text: "private notice".into(),
+            }],
+            Creator::Owner,
+        );
+        item.provenance = Some(vessel_proto::timeline::PromptProvenance::InternalNotice {
+            notice: vessel_proto::EventSeq::new(5),
+        });
+        let queue = PromptQueue {
+            entries: vec![item.clone()],
+            held: None,
+        };
+        let displayed = queue_entries(&queue);
+        assert!(displayed.contains(&item.id.to_string()));
+        assert!(displayed.contains("[internal notice]"));
+        assert!(!displayed.contains("private notice"));
     }
 
     #[test]

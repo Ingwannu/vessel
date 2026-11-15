@@ -350,7 +350,12 @@ impl StructuredActor {
         if !matches!(event, AgentEvent::HarnessLog { .. }) {
             self.parking.touch();
         }
-        let title = if let AgentEvent::TurnStarted { content, .. } = &event {
+        let title = if let AgentEvent::TurnStarted {
+            content,
+            provenance: None,
+            ..
+        } = &event
+        {
             self.life.title_from(content)
         } else {
             None

@@ -247,3 +247,46 @@ fn one_walk_masks_private_payloads_across_real_encoded_old_middle_hops() {
     let second = hop(first, Reply::Deliver, MODERN, Some(MODERN));
     assert_eq!(*second.reply, Reply::ReadEvents(original));
 }
+
+#[test]
+fn typed_reader_leaves_keep_the_link_and_identity_without_an_extra_privacy_walk() {
+    for mut event in events() {
+        let kind = std::mem::discriminant(&event);
+        event.clear_internal_notice_words();
+        assert_eq!(event.prompt_provenance(), association());
+        assert_eq!(std::mem::discriminant(&event), kind);
+        assert!(
+            !serde_json::to_string(&event)
+                .unwrap()
+                .contains("bounded private notice body")
+        );
+        let once = event.clone();
+        event.clear_internal_notice_words();
+        assert_eq!(event, once);
+    }
+    let mut entry = queue().entries.remove(0);
+    let original = entry.clone();
+    entry.clear_internal_notice_words();
+    assert!(entry.content.is_empty());
+    assert_eq!(
+        (
+            entry.id,
+            entry.revision,
+            entry.queued_at,
+            entry.by,
+            entry.provenance
+        ),
+        (
+            original.id,
+            original.revision,
+            original.queued_at,
+            original.by.clone(),
+            original.provenance
+        )
+    );
+    let mut ordinary = original;
+    ordinary.provenance = None;
+    let original = ordinary.clone();
+    ordinary.clear_internal_notice_words();
+    assert_eq!(ordinary, original);
+}
