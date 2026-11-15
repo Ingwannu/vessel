@@ -186,3 +186,6 @@ fn reported_admin_without_read_opens_management_and_refresh_removes_old_intent(
         refuse_management(shell, &context, id, old_intent, &mut commands, window, cx);
     });
 }
+
+#[cfg(not(target_arch = "wasm32"))]
+mod actor_cases;

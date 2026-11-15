@@ -115,7 +115,7 @@ vessel-app-updater = { path = "../release/updater" }
 vessel-app-log = { path = "../release/applog" }
 
 vessel-client = { path = "../../crates/vessel-client" }
-# Test-only direct access to the already linked RPC framing, for actor regressions.
+# Unit/explicit-testing access to the existing RPC framing, for actor regressions.
 vessel-rpc = { path = "../../crates/vessel-rpc" }
 vessel-proto = { path = "../../crates/vessel-proto" }
 

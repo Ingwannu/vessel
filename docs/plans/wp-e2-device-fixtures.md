@@ -1,7 +1,8 @@
 # E2 actual Devices delivery fixture boundary (proposal)
 
-Status: exact plan for owner/V1 confirmation, no fixture/Cargo implementation
-installed. The relay lifetime security package remains first. The native base
+Status: V1/lead plan boundary accepted; fixture/Cargo source preparation is
+installed, with compile/graph/runtime proof pending. Delivery export remains
+staged and the actual queued-install guard consumption is not implemented yet. The relay lifetime security package remains first. The native base
 is gated e1b73c9e; a later announced gated line replaces it before submission.
 This plan changes no root crate, SDK API, protocol, store or production route.
 
@@ -124,3 +125,33 @@ allowlisted read-only selection; do not SSH around it or start local Cargo.
 Feature-off compilation alone is not a resolved-graph export. Lock-zero and
 strict checks are required in addition to the graph records. V1 confirmation
 of this exact plan precedes source/Cargo installation.
+
+
+## Plan confirmation and proof qualifications
+
+The lead and V1 accepted this plan boundary at9dcba966, not source or runtime.
+Normal App binary/graph evidence is separate from all-target/test builds that
+activate App dev-dependencies. A wasm View check alone is insufficient: also
+check the actual Link target with testing plus its target-filtered graph where
+supported, or retain that Link isolation as unverified. The build-tool owner
+has now provided allowlisted VM tree/metadata commands; none run locally.
+The new facade's bounded blocking test operations borrow the original Link,
+so its one runtime stays alive during each phase; they are refused from a
+nested Tokio runtime. They never add a product UI blocking path.
+
+
+## Initial source checkpoint
+
+The optional dependency, single bounded framed core, unit assertion adapters
+and opaque scenario are now prepared. The inert detached runtime is not used
+to create leases: the facade constructs one I/O/time-enabled Link runtime and
+attaches the real State dispatcher there. Each synchronous test step borrows
+that exact Link and refuses nested Tokio execution. State retirement and peer
+close are distinct controls; no client or validity sender escapes.
+
+The frozen actor blob stays exact and has a real in-crate dispatch regression.
+An App regression now submits its actual authority/list commands through this
+framed actor and calls the production Devices answer handler. Those are source
+cases only, not executed proof. Legacy Answer has no queued DeliveryGuard yet;
+this fixture does not close that gap by itself. No runtime/feature-off/wasm or
+authority acceptance is claimed from static size/format/token checks.

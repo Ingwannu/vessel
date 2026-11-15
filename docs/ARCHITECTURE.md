@@ -1659,3 +1659,17 @@ unsupported override before process spawn, with a typed Unsupported mapping.
 The field does not enter SessionSpec, user messages, argv or environment.
 Reload orchestration and actual native override/restore transports are separate
 work; see docs/plans/provider-transient-context.md. No dependency edge changes.
+
+
+## Native Devices regression transport boundary
+
+The native Link's existing nondefault testing feature conditionally enables a
+direct RPC framing dependency, already used by its unit tests. One fallible
+framed peer and one private State/admission owner supply real RPC envelopes
+for App regressions; the facade exposes no client, State, allocator, lease or
+guard constructor. The App enables testing only as a dev-dependency. Normal
+RPC calls still go through vessel-client and wasm excludes this native fixture.
+The root crate graph is unchanged; the native crate map and feature/target
+proof contract are in its README and wp-e2-device-fixtures.md. DeliveryGuard
+export and real Devices queued-install consumption remain separate and
+incomplete. Source preparation is not a default-feature, wasm or runtime pass.

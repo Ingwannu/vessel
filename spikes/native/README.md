@@ -17,7 +17,7 @@ build it, and its tree (GPUI's) stays out of the main lock file.
 | Crate | Owns | Must not | Depends on |
 | --- | --- | --- | --- |
 | `view` (`vessel-app-view`) | what a screen means: the board's lanes and phrases, a conversation folded from its records, the permissions waiting; **the words** (`view/src/text/`, the legacy area tables; `view/locales/`, the staged Fluent catalog of ADR 0039) | use any UI toolkit; do I/O | `vessel-proto` |
-| `link` (`vessel-app-link`) | the nodes: the book, connecting, the session list, a session's stream, prompts, answers, pairing; the app's remembered choices (`prefs.rs`); a tokio runtime of its own, commands in and events out on bounded channels (a command the queue does not take comes back typed from `Link::submit`, and the app settles what waited on it in its own words: `app/src/unsent.rs`) | use any UI toolkit | `vessel-app-view`, `vessel-proto`, `vessel-client` |
+| `link` (`vessel-app-link`) | the nodes: the book, connecting, the session list, a session's stream, prompts, answers, pairing; the app's remembered choices (`prefs.rs`); a tokio runtime of its own, commands in and events out on bounded channels (a command the queue does not take comes back typed from `Link::submit`, and the app settles what waited on it in its own words: `app/src/unsent.rs`) | use any UI toolkit | `vessel-app-view`, `vessel-proto`, `vessel-client`, `vessel-rpc` |
 | `kit` (`vessel-app-kit`) | Vessel's kit: the design system's tokens in both themes, the type scale with the faces embedded, the controls (button, choice, text field, Markdown), the window's chrome (title bar, window controls, resize edges), its glyphs | know about nodes or sessions | - |
 | `app` (`vessel-app`) | the window, the routes, the areas (screens), the binary | name `gpui-platform` outside its entry points (`main.rs`; `web.rs` in a browser build); depend on `gpui-component` (the kit's); hold a sentence of its own (words come from `view::localization` or the remaining `view::Text` tables) | `vessel-app-kit`, `vessel-app-link`, `vessel-app-view`, `vessel-proto`, `vessel-app-log`, `vessel-app-updater` |
 
@@ -35,6 +35,14 @@ on `vessel-*` crates (in both directions), and holds the two tables below;
 it builds nothing (`cargo metadata --no-deps`). A new edge is a change of
 this table, with its reason in the same commit.
 
+The direct Link-to-RPC edge exists only for the nondefault `testing` feature
+(the App selects it only as a dev-dependency). Normal calls still go through
+`vessel-client`; `testing::Scenario` supplies a bounded actual framed actor,
+not a guard constructor or alternate production connection manager. Unit-only
+assertion adapters remain excluded from feature builds. The exact boundary,
+resolved-graph proof and lock invariance are in
+[Devices fixture plan](../../docs/plans/wp-e2-device-fixtures.md).
+
 ### External crates with one owner
 
 | Crate | Who may depend on it | Why |
@@ -51,6 +59,7 @@ this table, with its reason in the same commit.
 
 | Names | Crate | Where | Why |
 | --- | --- | --- | --- |
+| `vessel_rpc` | `vessel-app-link` | only `src/testing/peer.rs` | Explicit-testing framing belongs to the one fixture peer, never production device calls. |
 | `gpui_platform` | `vessel-app` | only `src/main.rs`, `src/web.rs` | The desktop's and the browser's entry points pick the platform; screens draw through GPUI and the kit. |
 | `std::fs`, `std::net`, `std::process`, `std::env`, `std::thread`, `tokio` | `vessel-app-view` | only `build.rs`, `build_support/` | What a screen means is computed, not fetched; the build script reads the catalogs at compile time. |
 
