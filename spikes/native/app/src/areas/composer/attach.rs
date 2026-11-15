@@ -14,11 +14,11 @@ use std::sync::Arc;
 
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::Command;
-use vessel_app_link::attachments::{Attach, Create, Files, Step, WithFiles};
+use vessel_app_link::attachments::{Attach, Files, Step, WithFiles};
 use vessel_app_view::Card;
 use vessel_app_view::composer::drafts::DraftKey;
 use vessel_app_view::composer::tray::{ItemKey, ItemState, Origin, Readiness, Target};
-use vessel_proto::{AttachmentLimits, Delivery, HarnessRef, OptionChoice, SessionId};
+use vessel_proto::{AttachmentLimits, Delivery, SessionId};
 
 use crate::shell::Shell;
 
@@ -277,44 +277,6 @@ impl Shell {
         cx.notify();
     }
 
-    /// The new chat's start, with its files: a start without its prompt
-    /// when the new chat holds files (the prompt follows them), the start
-    /// as it was otherwise.
-    pub(crate) fn with_draft_files(&self, start: Command) -> Command {
-        let Command::Start {
-            machine,
-            harness,
-            folder,
-            prompt,
-            options,
-        } = start
-        else {
-            return start;
-        };
-        if !self.composer_has_files(DraftKey::New) {
-            return Command::Start {
-                machine,
-                harness,
-                folder,
-                prompt,
-                options,
-            };
-        }
-        *self.areas.composer.starting.borrow_mut() = Some(Starting {
-            machine: machine.clone(),
-            text: prompt,
-            ticket: None,
-            files: self
-                .areas
-                .composer
-                .trays
-                .get(DraftKey::New)
-                .cloned()
-                .unwrap_or_default(),
-        });
-        files_start(machine, harness, folder, options)
-    }
-
     /// A session started from the app: opened as before (`started`), the
     /// new chat's draft made what its composer now holds (`new_chat_kept`),
     /// and when it was started for the new chat's files, the files become
@@ -447,19 +409,4 @@ impl Shell {
         }
         cx.notify();
     }
-}
-
-/// The new chat's start without its prompt.
-fn files_start(
-    machine: String,
-    harness: HarnessRef,
-    folder: Option<String>,
-    options: Vec<OptionChoice>,
-) -> Command {
-    Command::Files(Files::Create(Create {
-        machine,
-        harness,
-        folder,
-        options,
-    }))
 }
