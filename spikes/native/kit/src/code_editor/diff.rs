@@ -204,11 +204,7 @@ impl DiffEditor {
     /// Paint using the shared syntax projection and current semantic colours.
     pub fn element(&self, tokens: &Tokens, cx: &mut App) -> AnyElement {
         self.headers.apply(tokens.neutral.foreground_muted, cx);
-        let mut style = super::style(tokens);
-        // Paseo diff-document/palette.ts uses terminal.blue for selection,
-        // independently of the ordinary source editor's neutral selection.
-        let [_, _, _, _, blue, ..] = tokens.terminal.ansi;
-        style.selection = gpui::rgb(blue).into();
+        let mut style = style(tokens);
         style = style.with_line_presentation(Some(Arc::new(Presentation {
             rows: Arc::clone(&self.rows),
             sample: self.sample.clone(),
@@ -225,6 +221,16 @@ impl DiffEditor {
             .child(Editor::new(&self.editor.state))
             .into_any_element()
     }
+}
+
+// Keep the ordinary source editor's projected style intact. Paseo's palette
+// chooses terminal.blue, and paint.web.ts paintSelection applies alpha0.45 so
+// source glyphs remain readable beneath the same engine's selection path.
+fn style(tokens: &Tokens) -> gpui_base::input::InputEditorStyle {
+    let mut style = super::style(tokens);
+    let [_, _, _, _, blue, ..] = tokens.terminal.ansi;
+    style.selection = gpui::Hsla::from(gpui::rgb(blue)).opacity(0.45);
+    style
 }
 
 fn unchanged<V>(_owner: &mut V, _window: &mut Window, _cx: &mut Context<'_, V>) {}
