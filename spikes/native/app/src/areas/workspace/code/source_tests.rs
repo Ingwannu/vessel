@@ -88,14 +88,14 @@ fn root(scene: &mut Scenario, shell: &mut Shell, session: SessionId, project: Pr
         .unwrap();
     shell.code_source_answer(answer(scene, shell));
     assert!(
-        matches!(scene.request(shell.fixture_link()).unwrap(), Call::GetChanges(ask) if ask.root == WorkspaceRoot::Project { project })
+        matches!(scene.request(shell.fixture_link()).unwrap(), Call::GitChanges(ask) if ask.root == WorkspaceRoot::Project { project })
     );
 }
 fn ready(scene: &mut Scenario, shell: &mut Shell) {
     scene
         .reply(
             shell.fixture_link(),
-            Outcome::Ok(Reply::GetChanges(summary())),
+            Outcome::Ok(Reply::GitChanges(summary())),
         )
         .unwrap();
     shell.code_source_answer(answer(scene, shell));
@@ -120,7 +120,7 @@ fn queued_summary_cannot_install_after_original_retirement(cx: &mut TestAppConte
         scene
             .reply(
                 shell.fixture_link(),
-                Outcome::Ok(Reply::GetChanges(summary())),
+                Outcome::Ok(Reply::GitChanges(summary())),
             )
             .unwrap();
         let held = answer(&mut scene, shell);
@@ -163,17 +163,17 @@ fn refresh_and_comparison_aba_cannot_reuse_the_old_ready_stamp(cx: &mut TestAppC
         let old = shell.shown_changes_context().unwrap();
         shell.reread_changes();
         assert!(!shell.shown_changes_is_current(&old));
-        assert!(matches!(scene.request(shell.fixture_link()).unwrap(), Call::GetChanges(_)));
-        scene.reply(shell.fixture_link(), Outcome::Ok(Reply::GetChanges(summary()))).unwrap();
+        assert!(matches!(scene.request(shell.fixture_link()).unwrap(), Call::GitChanges(_)));
+        scene.reply(shell.fixture_link(), Outcome::Ok(Reply::GitChanges(summary()))).unwrap();
         let held = answer(&mut scene, shell);
         shell.areas.workspace.code.changes.scope = ScopeKind::Staged;
         shell.source_summary();
-        assert!(matches!(scene.request(shell.fixture_link()).unwrap(), Call::GetChanges(ask) if ask.scope == ScopeKind::Staged.scope()));
-        scene.reply(shell.fixture_link(), Outcome::Ok(Reply::GetChanges(summary()))).unwrap();
+        assert!(matches!(scene.request(shell.fixture_link()).unwrap(), Call::GitChanges(ask) if ask.scope == ScopeKind::Staged.scope()));
+        scene.reply(shell.fixture_link(), Outcome::Ok(Reply::GitChanges(summary()))).unwrap();
         let staged = answer(&mut scene, shell);
         shell.areas.workspace.code.changes.scope = ScopeKind::Uncommitted;
         shell.source_summary();
-        assert!(matches!(scene.request(shell.fixture_link()).unwrap(), Call::GetChanges(_)));
+        assert!(matches!(scene.request(shell.fixture_link()).unwrap(), Call::GitChanges(_)));
         shell.code_source_answer(held);
         shell.code_source_answer(staged);
         assert!(shell.shown_changes_context().is_none());
@@ -191,8 +191,8 @@ fn diff_and_legacy_answers_cannot_cross_the_parent_summary(cx: &mut TestAppConte
         ready(&mut scene, shell);
         let path = "a.rs".parse().unwrap();
         shell.read_diff(&path, None);
-        assert!(matches!(scene.request(shell.fixture_link()).unwrap(), Call::GetFileDiff(ask) if ask.path == path));
-        scene.reply(shell.fixture_link(), Outcome::Ok(Reply::GetFileDiff(FileDiff {
+        assert!(matches!(scene.request(shell.fixture_link()).unwrap(), Call::GitDiff(ask) if ask.path == path));
+        scene.reply(shell.fixture_link(), Outcome::Ok(Reply::GitDiff(FileDiff {
             path: path.clone(), old_path: None, status: ChangeStatus::Modified,
             mode: None, content: DiffContent::Unchanged, more_from: None }))).unwrap();
         let page = answer(&mut scene, shell);
@@ -208,7 +208,7 @@ fn diff_and_legacy_answers_cannot_cross_the_parent_summary(cx: &mut TestAppConte
         shell.diff_read(&ask, Ok(FileDiff { path: path.clone(), old_path: None, status: ChangeStatus::Modified,
             mode: None, content: DiffContent::Unchanged, more_from: None }));
         assert!(shell.shown_diff_context(&path).is_none());
-        assert!(matches!(scene.request(shell.fixture_link()).unwrap(), Call::GetChanges(_)));
+        assert!(matches!(scene.request(shell.fixture_link()).unwrap(), Call::GitChanges(_)));
         ready(&mut scene, shell);
         assert!(!shell.shown_diff_is_current(&shown));
         scene.close(shell.fixture_link()).unwrap();
@@ -235,7 +235,7 @@ fn actual_git_retirement_delegation_invalidates_without_another_owner(cx: &mut T
         ready(&mut scene, shell);
         let old = shell.shown_changes_context().unwrap();
         let key = LayoutKey::Session {
-            machine: context.machine().as_str().parse().unwrap(),
+            machine: vessel_app_view::layout::HostAlias::parse(context.machine().as_str()).unwrap(),
             session,
         };
         shell
@@ -319,12 +319,12 @@ fn same_alias_same_node_reconnect_does_not_restamp_the_old_summary(cx: &mut Test
         shell.reread_changes();
         assert!(matches!(
             scene.request(shell.fixture_link()).unwrap(),
-            Call::GetChanges(_)
+            Call::GitChanges(_)
         ));
         scene
             .reply(
                 shell.fixture_link(),
-                Outcome::Ok(Reply::GetChanges(summary())),
+                Outcome::Ok(Reply::GitChanges(summary())),
             )
             .unwrap();
         let held = answer(&mut scene, shell);
@@ -344,7 +344,7 @@ fn same_alias_same_node_reconnect_does_not_restamp_the_old_summary(cx: &mut Test
         scene
             .reply(
                 shell.fixture_link(),
-                Outcome::Ok(Reply::GetChanges(summary())),
+                Outcome::Ok(Reply::GitChanges(summary())),
             )
             .unwrap();
         shell.code_source_answer(answer(&mut scene, shell));

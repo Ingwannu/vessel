@@ -63,7 +63,7 @@ impl Shell {
     }
 
     /// Where a session runs arrived.
-    pub(super) fn code_session_read(
+    pub(in crate::areas::workspace) fn code_session_read(
         &mut self,
         session: SessionId,
         result: Result<Box<SessionInfo>, Problem>,

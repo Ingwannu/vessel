@@ -130,3 +130,14 @@ replaced once after terminal cancellation; no executed result is inferred.
 - Impact: this portable producer is deliberately conservative, not complete
   file-navigation parity. The real retained-file adapter replaces this hold
   when it joins the shared line. No general legacy autosave safety is claimed.
+
+## First executed compilation
+
+Run wp-files-shown-20261115T173821Z-75762e0f reached the real App target
+and failed before runtime: the replaced session-read helper was narrower than
+its existing workspace caller, test envelopes used request-type names instead
+of canonical GitChanges/GitDiff enum variants, and one fixture used FromStr
+where HostAlias exposes parse. The correction restores only the existing
+caller visibility and uses canonical enum/construction APIs; every correlation
+assertion remains. This failed run is retained. The newer base10 union and
+correction still require compilation and actual framed regression execution.
