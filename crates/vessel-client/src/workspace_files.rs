@@ -1,6 +1,7 @@
 //! File-panel calls use the same generated unary contract as every other
-//! request. Finite deadlines prevent a lost reply from pinning a panel;
-//! callers must refresh before retrying a timed-out mutation.
+//! request. A deadline bounds the local await, not the remote effect lifetime.
+//! A timed-out mutation needs original terminal evidence before retrying;
+//! refreshing alone cannot prove the old operation ended.
 
 use std::time::Duration;
 use vessel_proto::workspace::directory_metadata::{InspectDirectory, InspectedDirectory};
@@ -20,8 +21,8 @@ pub enum WorkspaceFileCallError {
     /// Authentication, admission, transport or remote filesystem refusal.
     #[error(transparent)]
     Call(#[from] CallError),
-    /// The remote operation may still finish; refresh before retrying writes.
-    #[error("the file operation timed out; it may still finish, so refresh before retrying")]
+    /// The remote operation may still finish; a new read does not prove it ended.
+    #[error("the file operation timed out; its remote completion is unknown")]
     Deadline,
 }
 

@@ -76,31 +76,56 @@ impl NodeClient {
         path: RelPath,
         make_sink: impl FnOnce(&FileRevision) -> io::Result<S> + Send + 'static,
     ) -> Result<FileRevision, WorkspaceFileFetchError> {
-        let first = self
-            .read_workspace_byte_page(ReadFileBytes {
-                root,
-                path: path.clone(),
-                offset: FileOffset::ZERO,
-                expected: None,
-            })
-            .await?;
-        let _validated = validate_page(&first, &first.revision, 0)?;
-        let creating = first.revision.clone();
-        let sink = tokio::task::spawn_blocking(move || make_sink(&creating))
-            .await
-            .map_err(|error| WorkspaceFileFetchError::Transfer(FetchError::Task(error)))?
-            .map_err(WorkspaceFileFetchError::Sink)?;
-        fetch_pages(first, sink, move |offset, expected| {
-            let request = ReadFileBytes {
-                root,
-                path: path.clone(),
-                offset,
-                expected: Some(expected),
-            };
-            self.read_workspace_byte_page(request)
-        })
+        fetch_workspace_file_with(
+            root,
+            path,
+            |request| self.read_workspace_byte_page(request),
+            make_sink,
+        )
         .await
     }
+}
+
+/// Fetch through the caller's original admitted reader, reusing the same
+/// validated transfer and sink loop. The caller enforces connection admission
+/// for every page; constructing this reader grants no filesystem authority.
+///
+/// # Errors
+/// As [`NodeClient::fetch_workspace_file`]. An admission refusal at any page
+/// drops unfinished output; initial refusal never constructs a sink.
+pub async fn fetch_workspace_file_with<S, R, F>(
+    root: WorkspaceRoot,
+    path: RelPath,
+    mut read: R,
+    make_sink: impl FnOnce(&FileRevision) -> io::Result<S> + Send + 'static,
+) -> Result<FileRevision, WorkspaceFileFetchError>
+where
+    S: ChunkSink,
+    R: FnMut(ReadFileBytes) -> F,
+    F: Future<Output = Result<FileBytePage, WorkspaceFileCallError>>,
+{
+    let first = read(ReadFileBytes {
+        root,
+        path: path.clone(),
+        offset: FileOffset::ZERO,
+        expected: None,
+    })
+    .await?;
+    let _validated = validate_page(&first, &first.revision, 0)?;
+    let creating = first.revision.clone();
+    let sink = tokio::task::spawn_blocking(move || make_sink(&creating))
+        .await
+        .map_err(|error| WorkspaceFileFetchError::Transfer(FetchError::Task(error)))?
+        .map_err(WorkspaceFileFetchError::Sink)?;
+    fetch_pages(first, sink, move |offset, expected| {
+        read(ReadFileBytes {
+            root,
+            path: path.clone(),
+            offset,
+            expected: Some(expected),
+        })
+    })
+    .await
 }
 
 fn validate_page(

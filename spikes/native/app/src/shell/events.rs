@@ -13,6 +13,7 @@ impl Shell {
     pub(super) fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
             Event::FileOperation(reply) => self.file_operation_answered(reply, cx),
+            Event::History(reply) => self.history_answer(reply, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::DeviceRetired(context) => {
                 if !self.devices_retired(&context) {

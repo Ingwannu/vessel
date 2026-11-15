@@ -387,8 +387,6 @@ async fn limits_policy_and_reads_send_no_frames_to_an_old_hop() {
 
 mod inbox;
 
-mod file_panels;
-
 /// Quality B pending calls are refused before a frame is sent, even to a
 /// current peer. This preserves older clients while the package is integrated.
 #[tokio::test]
@@ -436,3 +434,4 @@ async fn pending_git_comparison_never_reaches_the_peer() {
         "no pending request frame was sent"
     );
 }
+mod file_panels;

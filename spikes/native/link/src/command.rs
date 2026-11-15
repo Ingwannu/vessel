@@ -14,7 +14,6 @@
 use super::{
     Act, Offer, Prefs, agents, attachments, devices, machines, node_settings, search, workspace,
 };
-#[cfg(not(target_arch = "wasm32"))]
 use vessel_proto::Delivery;
 use vessel_proto::{
     AgentCommand, HarnessRef, OptionChoice, PermissionId, PermissionOptionId, SessionId,
@@ -25,6 +24,8 @@ use vessel_proto::{
 pub enum Command {
     /// C5 request retains its original admitted connection and file root.
     FileOperation(workspace::scoped::Request),
+    /// Scoped own-history discovery and import.
+    History(crate::history::Ask),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.

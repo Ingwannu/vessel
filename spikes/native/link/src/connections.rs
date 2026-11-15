@@ -98,7 +98,7 @@ impl Connected {
 mod edits;
 mod selected;
 mod snapshots;
-pub(crate) use selected::{RequestFailure, SelectedConnection, SelectedLease};
+pub(crate) use selected::{RequestFailure, SelectedConnection, SelectedLease, SendFailure};
 
 impl State {
     pub(crate) async fn closed_connection(

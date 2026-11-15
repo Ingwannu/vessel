@@ -139,3 +139,69 @@ async fn an_empty_file_finishes_without_asking_for_another_page() {
     assert_eq!(result.unwrap(), empty);
     assert!(kept.load(Ordering::SeqCst));
 }
+
+#[tokio::test]
+async fn admitted_reader_is_checked_for_each_original_page_and_never_replayed() {
+    use crate::CallError;
+    use std::sync::Mutex;
+    let root = WorkspaceRoot::Project {
+        project: vessel_proto::ProjectId::random(),
+    };
+    let path: RelPath = "original.bin".parse().unwrap();
+    let revision = revision(4);
+    let calls = Arc::new(Mutex::new(Vec::new()));
+    let admitted = Arc::new(AtomicBool::new(true));
+    let (sink, kept) = sink(b"abcd");
+    let read = {
+        let calls = Arc::clone(&calls);
+        let admitted = Arc::clone(&admitted);
+        let revision = revision.clone();
+        move |ask: ReadFileBytes| {
+            calls.lock().unwrap().push(ask.clone());
+            if admitted.load(Ordering::SeqCst) {
+                ready(Ok(page(&revision, 0, b"ab", Some(2))))
+            } else {
+                ready(Err(WorkspaceFileCallError::Call(CallError::Disconnected)))
+            }
+        }
+    };
+    let result = fetch_workspace_file_with(root, path.clone(), read, move |_| {
+        admitted.store(false, Ordering::SeqCst);
+        Ok(sink)
+    })
+    .await;
+    assert!(matches!(
+        result,
+        Err(WorkspaceFileFetchError::Transfer(FetchError::Read(
+            WorkspaceFilePageError::Call(WorkspaceFileCallError::Call(CallError::Disconnected))
+        )))
+    ));
+    assert!(!kept.load(Ordering::SeqCst));
+    let calls = calls.lock().unwrap();
+    assert_eq!(calls.len(), 2);
+    assert!(calls.iter().all(|ask| ask.root == root && ask.path == path));
+    assert_eq!(calls[0].offset, FileOffset::ZERO);
+    assert_eq!(calls[0].expected, None);
+    assert_eq!(calls[1].offset.get(), 2);
+    assert_eq!(calls[1].expected, Some(revision));
+}
+
+#[tokio::test]
+async fn initial_admission_refusal_does_not_construct_output() {
+    use crate::CallError;
+    let result = fetch_workspace_file_with::<Sink, _, _>(
+        WorkspaceRoot::Project {
+            project: vessel_proto::ProjectId::random(),
+        },
+        "refused.bin".parse().unwrap(),
+        |_| ready(Err(WorkspaceFileCallError::Call(CallError::Disconnected))),
+        |_| panic!("no output before an admitted valid first page"),
+    )
+    .await;
+    assert!(matches!(
+        result,
+        Err(WorkspaceFileFetchError::Read(WorkspaceFileCallError::Call(
+            CallError::Disconnected
+        )))
+    ));
+}
