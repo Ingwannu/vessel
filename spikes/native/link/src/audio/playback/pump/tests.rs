@@ -43,7 +43,13 @@ fn preparation_callback_reference_and_dac_drain_are_distinct_steps() {
     let handle = pump.submit(packet(2)).unwrap();
     pump.prepare(&mut processor, &ports.blocks).unwrap();
     assert_eq!(*handle.status().borrow(), State::Rendering);
-    assert_eq!(ports.blocks.len(), 2);
+    assert_eq!(
+        ports
+            .blocks
+            .max_capacity()
+            .saturating_sub(ports.blocks.capacity()),
+        2
+    );
     assert!(ports.references.try_recv().is_err());
     assert!(ports.completions.try_recv().is_err());
     callback.render(&mut [0_i16; 1_920], &info());

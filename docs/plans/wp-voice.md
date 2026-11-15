@@ -433,3 +433,15 @@ checks have not executed yet. No Shell voice route, actual backend callback,
 physical microphone, native capture or OS accessibility claim is added. Final
 W19 Mic/MicOff2.5 and filled Square artwork/notice review, inspected captures,
 combined gates and real controller integration remain owed.
+
+### Native runtime compilation feedback
+
+Run wp-voice-narrow-20261115T121847Z-3f04d305 reached compilation but
+returned101: the pump test used an unavailable Sender::len method; cue tests
+also discarded twelve state/action results. No runtime pass is claimed. The
+queue assertion now uses bounded sender capacity, and cue tests assert the
+expected transition/action. The receipt child probe explicitly consumes its
+read count and attempts cleanup even if its initial wait-status check errors.
+These are corrections to existing fakes, without a second queue or device
+implementation. A new combined App/Link/Kit/View strict check includes the
+previously unchecked shared Circle composition and Fluent overlay labels.

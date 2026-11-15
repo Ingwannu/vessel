@@ -15,7 +15,7 @@ const MAX_HARNESS_OUTPUT: u64 = 4_096;
 struct Probe(Child);
 impl Drop for Probe {
     fn drop(&mut self) {
-        if matches!(self.0.try_wait(), Ok(None)) {
+        if !matches!(self.0.try_wait(), Ok(Some(_))) {
             let _kill = self.0.kill();
             let _reaped = self.0.wait();
         }
@@ -45,7 +45,7 @@ fn receipt_updates_do_not_reenter_their_watch_write_lock() {
                 "receipt transition child failed: {status}"
             );
             let mut output = String::new();
-            child
+            let _read = child
                 .0
                 .stdout
                 .take()
