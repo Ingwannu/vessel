@@ -197,7 +197,7 @@ resource/revision tables. Project presentation storage is deferred to the later
 project package's append; no unused project-metadata table is reserved here.
 
 
-Registry dependency checkpoint: current local Store suite 96 passed/0 failed,
+Earlier registry dependency checkpoint: local Store suite 96 passed/0 failed,
 node registry provisioning 5/0, TypeScript generation 4/0. Strict all-target
 Clippy then found explicit pin defaults, a borrowed error adapter, one oversized
 existing worktree function after fixed-id admission, and an unused test result.
@@ -206,3 +206,21 @@ restart now has a distinct exact-predecessor lease API and two new adversarial
 cases plus at-capacity restart coverage; current checks and A12 remain owed.
 Existing Ready admission is not process-exit proof. Its consumer must join the
 old run before restarting; no signal/lifetime heuristic is substituted here.
+
+## Dependency whole-gate findings and correction
+
+The frozen registry dependency at 1958fd7b passed strict root/TS/forge Clippy,
+wire generation and build checks. Its whole Rust run had 2304 passed, 8 failed,
+12 ignored: the explicit forwardable-method expectation lacked the six new
+registry methods; seven legacy migration fixtures left the registry append in
+place before rewinding user_version. The registry admission/restart/watch tests
+passed in that run. Web unit tests passed 449 and forge tests 4; browser e2e
+passed 65 with one unresolved command-list Escape/filter failure at
+conversation.spec.ts:258. This is a failed gate, not acceptance or parity proof.
+
+The correction adds the six methods to the explicit expected set and removes
+only the new registry tables in rollback fixtures. The title-origin fixture now
+targets its preexisting schema checkpoint instead of newest-minus-one, so a
+later append cannot change which migration it tests. Production migration SQL,
+authorization, method scopes and assertions remain intact. Targeted reruns and a
+new whole gate remain owed; the unrelated browser failure must also be checked.

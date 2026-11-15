@@ -675,6 +675,7 @@ async fn sessions_from_schema_3_have_no_origin() {
     connection
         .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
         .unwrap();
+    fixtures::undo_registry_schema(&connection);
     connection.execute_batch(UNDO_SCHEMAS_7_TO_16).unwrap();
     connection
         .execute_batch(
@@ -708,6 +709,7 @@ async fn sessions_from_schema_2_read_as_the_owners_on_the_default() {
     connection
         .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
         .unwrap();
+    fixtures::undo_registry_schema(&connection);
     connection.execute_batch(UNDO_SCHEMAS_7_TO_16).unwrap();
     connection
         .execute_batch(
@@ -753,6 +755,7 @@ async fn a_sessions_model_is_stored_and_older_ones_have_none() {
     connection
         .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
         .unwrap();
+    fixtures::undo_registry_schema(&connection);
     connection.execute_batch(UNDO_SCHEMAS_7_TO_16).unwrap();
     connection
         .execute_batch(

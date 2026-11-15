@@ -238,6 +238,7 @@ async fn a_version_1_database_gains_the_devices_table() {
     connection
         .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
         .unwrap();
+    fixtures::undo_registry_schema(&connection);
     connection.execute_batch(UNDO_SCHEMAS_7_TO_16).unwrap();
     // Back to schema 1: without the devices table (2), the sessions'
     // profile and creator columns (3), where they came from (4) and their

@@ -65,3 +65,16 @@ pub(crate) fn plain(records: &[Arc<EventRecord>]) -> Vec<EventRecord> {
 pub(crate) async fn open(dir: &DataDir, config: StoreConfig) -> Store {
     Store::open(dir, config).await.unwrap().store
 }
+
+/// Migration fixtures rewind older databases only after removing the later registry append.
+/// Production migrations remain forward-only; these tables must really exist in the fixture.
+pub(crate) fn undo_registry_schema(connection: &rusqlite::Connection) {
+    connection
+        .execute_batch(
+            "DROP TABLE workspace_registry_resources;
+         DROP TABLE workspace_registry_reservations;
+         DROP TABLE workspace_registry_meta;
+         DROP TABLE workspace_registry;",
+        )
+        .unwrap();
+}
