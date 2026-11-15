@@ -170,6 +170,23 @@ fn scoped_submit_survives_moves_and_refuses_hidden_or_released_claims(cx: &mut T
             "draft A",
             "constructor never clears on submit"
         );
+        let shell = harness.shell.read(cx);
+        let current = shell
+            .areas
+            .session_residents
+            .context(harness.a, &harness.claim_a)
+            .unwrap();
+        assert_eq!(
+            shell
+                .areas
+                .session_residents
+                .resources(&current)
+                .unwrap()
+                .session
+                .composer_retention
+                .surface,
+            vessel_app_view::composer_shell::surface::Surface::default()
+        );
     });
     window.simulate_keystrokes("left shift-left");
     window.run_until_parked();

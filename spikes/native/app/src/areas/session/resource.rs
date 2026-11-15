@@ -16,6 +16,8 @@ pub(crate) struct SessionView {
     pub(crate) conversation: Conversation,
     pub(crate) entries: ListState,
     pub(crate) composer: TextField,
+    #[cfg(test)]
+    pub(crate) composer_retention: crate::areas::composer_shell::ResidentComposer,
 }
 impl SessionView {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
@@ -37,6 +39,8 @@ impl SessionView {
             conversation: Conversation::default(),
             entries: ListState::new(0, ListAlignment::Bottom, px(800.0)),
             composer,
+            #[cfg(test)]
+            composer_retention: crate::areas::composer_shell::ResidentComposer::default(),
         }
     }
 

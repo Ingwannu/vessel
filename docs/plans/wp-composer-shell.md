@@ -213,3 +213,17 @@ reply. A real GPUI harness draws that retained field and tests hidden/released
 Enter refusal, move refresh, independent other draft, and unchanged field/selection.
 W12 exact1d93 staged registry is adopted with W1's checked global-search prerequisite;
 its literal cfg(test) boundaries remain intact. No live cutover/admission claim.
+
+The staged SessionView bundle now owns ResidentComposer policy/effect retention,
+not another registry. It tracks only W12-issued binding/ticket pairs (canonical
+64-operation bound), and W6 retains message ids/payload/optimistic ownership.
+Retirement changes only matching composer effects toUncertain; settlement must
+run inside the sole registry's ticket consumption and cannot clear retired state.
+No input mutation or retry occurs here. Typed clean snapshots refuse pending or
+unknown outcomes, IME, active focus, audio/fullscreen overlay, whitespace/text and
+nonempty selection. Only an empty inactive editor may transfer its Surface policy;
+clean empty editor undo history is not serialized. Unknown-effect recovery still
+needs W23/W6 canonical reconciliation; no manual resend or second pipeline added.
+All of this remains literal cfg(test), including its SessionView field, until W12
+coordinates product cutover. Canonical-ticket and real-field fixtures are prepared
+not passed. IME constructor/retirement/real-wire integration remains unverified.

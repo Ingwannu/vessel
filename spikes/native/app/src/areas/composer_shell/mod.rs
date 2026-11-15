@@ -7,8 +7,12 @@ use vessel_app_view::composer::drafts::DraftKey;
 use vessel_app_view::composer_shell::surface::Surface;
 
 mod fullscreen;
+#[cfg(test)]
+pub(crate) mod retained;
 mod target;
 pub(crate) use fullscreen::render as fullscreen;
+#[cfg(test)]
+pub(crate) use retained::ResidentComposer;
 
 /// State survives presentation remounts without copying or replacing editor text.
 #[derive(Debug, Default)]

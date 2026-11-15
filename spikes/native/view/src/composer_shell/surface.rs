@@ -135,6 +135,12 @@ impl Surface {
         self.extent
     }
 
+    /// Resource transfer waits until an audio surface releases the editor.
+    #[must_use]
+    pub const fn overlay(self) -> Overlay {
+        self.overlay
+    }
+
     /// A submit leaves fullscreen before any preparation or network wait begins.
     pub fn set_submission(&mut self, submission: Submission) {
         self.submission = submission;
