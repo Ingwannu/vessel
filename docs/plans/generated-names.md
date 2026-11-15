@@ -474,3 +474,11 @@ this extraction. No new library or wire surface is needed. This contract
 precedes the extraction; complete request bounds and Node wiring remain
 next. The complete reply Beta gate is running on its separate committed
 line; actor source and gate are passed.
+
+Shared option extraction checkpoint: Provider now owns its flag assembly;
+the proxy delegates to the same three typed encoders through upstream
+Options. A byte-parity test covers both recorded front requests and all
+combinations of Chat flags, plus both Responses sampling and Anthropic
+thinking choices. Narrow node all-targets Clippy passes and the LLM library
+has 103 passing tests. No existing test expectation changes. The proxy
+ratchet falls from 1592 to 1556. Whole-commit validation remains next.

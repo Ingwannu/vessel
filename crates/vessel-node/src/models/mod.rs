@@ -34,6 +34,7 @@ pub(crate) mod proxy;
 #[cfg(test)]
 mod tests;
 pub(crate) mod token;
+mod upstream_options;
 
 use std::collections::HashMap;
 use std::net::SocketAddr;
