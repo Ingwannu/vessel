@@ -131,7 +131,7 @@ mod support {
                     report @ (AgentOutput::Commands(_) | AgentOutput::Usage(_)) => {
                         self.reports.push(report);
                     }
-                    AgentOutput::Introduced(_) => {}
+                    AgentOutput::Introduced(_) | AgentOutput::PlanProposal(_) => {}
                     AgentOutput::Event(event) => {
                         self.events.push(event.clone());
                         return Some(event);
@@ -173,7 +173,7 @@ mod support {
                     report @ (AgentOutput::Commands(_) | AgentOutput::Usage(_)) => {
                         self.reports.push(report);
                     }
-                    AgentOutput::Introduced(_) => {}
+                    AgentOutput::Introduced(_) | AgentOutput::PlanProposal(_) => {}
                     AgentOutput::Event(event) => self.events.push(event),
                     AgentOutput::Disconnected(disconnect) => {
                         self.disconnect = Some(disconnect.clone());

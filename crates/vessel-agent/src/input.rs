@@ -3,6 +3,7 @@
 mod identified;
 pub(crate) mod native_command;
 mod permission;
+pub(crate) mod plan;
 pub use native_command::NativeCommandDispatch;
 pub use permission::PermissionDispatch;
 
@@ -37,6 +38,10 @@ pub enum SteerOutcome {
 /// A command for the driver, answered once it has been applied.
 #[derive(Debug)]
 pub(crate) enum Command {
+    DecidePlan {
+        request: vessel_proto::timeline::DecidePlan,
+        reply: plan::PlanReply,
+    },
     NativeCommand {
         intent: vessel_proto::native_commands::NativeCommandIntent,
         reply: native_command::NativeCommandReply,

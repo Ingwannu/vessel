@@ -178,7 +178,8 @@ impl Running {
                 AgentOutput::Options(_)
                 | AgentOutput::Commands(_)
                 | AgentOutput::Usage(_)
-                | AgentOutput::Introduced(_) => {}
+                | AgentOutput::Introduced(_)
+                | AgentOutput::PlanProposal(_) => {}
             }
         }
     }

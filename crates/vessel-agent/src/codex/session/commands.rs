@@ -9,6 +9,9 @@ use super::{
 impl Session {
     pub(super) async fn command(&mut self, command: Command) {
         match command {
+            Command::DecidePlan { request, reply } => {
+                crate::input::plan::unsupported(request, reply)
+            }
             Command::NativeCommand { intent, reply } => {
                 crate::input::native_command::unsupported(intent, reply)
             }

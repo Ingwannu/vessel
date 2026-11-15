@@ -9,6 +9,9 @@ use crate::introduction::Introduction;
 /// One output of an agent session.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AgentOutput {
+    /// A provider-owned, bounded plan proposal, distinct from a tool label.
+    /// Only its owning session actor may offer correlated human decisions.
+    PlanProposal(Box<vessel_proto::timeline::PlanProposal>),
     /// A timeline event. `AgentEvent::Ready` marks the end of the
     /// handshake; prompts are accepted from then on.
     Event(AgentEvent),

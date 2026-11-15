@@ -119,7 +119,8 @@ mod support {
                     AgentOutput::Event(AgentEvent::HarnessLog { .. })
                     | AgentOutput::Commands(_)
                     | AgentOutput::Usage(_)
-                    | AgentOutput::Introduced(_) => continue,
+                    | AgentOutput::Introduced(_)
+                    | AgentOutput::PlanProposal(_) => continue,
                     AgentOutput::Event(event) => Seen::Event(event),
                     AgentOutput::Options(options) => Seen::Options(options),
                     AgentOutput::Disconnected(disconnect) => {
