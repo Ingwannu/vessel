@@ -43,3 +43,16 @@ fn duplicate_restore_id_returns_durable_outcome_without_reapplying_paths() {
 fn expired_candidate_is_never_promoted_by_restart_or_late_storage_completion() {
     // Proof obligation: implement publication recovery.
 }
+
+pub(super) fn evidence() -> vessel_proto::checkpoint::SnapshotEvidence {
+    use vessel_proto::{
+        BlobHash,
+        checkpoint::{IgnoreFingerprint, RootFingerprint, SnapshotEvidence},
+    };
+    SnapshotEvidence::new(
+        RootFingerprint::new(BlobHash::from_bytes([1; 32])),
+        IgnoreFingerprint::new(BlobHash::from_bytes([2; 32])),
+        Vec::new(),
+    )
+    .unwrap()
+}

@@ -7,6 +7,9 @@ use vessel_proto::checkpoint::CheckpointError;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct MountId(u64);
 impl MountId {
+    pub(super) const fn get(self) -> u64 {
+        self.0
+    }
     pub(super) fn of(file: &File) -> Result<Self, Error> {
         let found = rustix::fs::statx(file, "", AtFlags::EMPTY_PATH, StatxFlags::MNT_ID)
             .map_err(std::io::Error::from)?;

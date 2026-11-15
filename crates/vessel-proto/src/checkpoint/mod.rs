@@ -5,6 +5,7 @@
 
 mod bounds;
 mod changes;
+mod evidence;
 mod image;
 mod metadata;
 mod owner;
@@ -22,6 +23,10 @@ pub use bounds::{
     FileBytes, ImageBytes, PathCount,
 };
 pub use changes::{Change, ChangeKind};
+pub use evidence::{
+    FileFingerprint, IgnoreFingerprint, ObjectFingerprint, ObservedEntry, ObservedPresence,
+    ObservedSnapshot, RootFingerprint, SnapshotEvidence,
+};
 pub use image::{EffectiveDesiredImage, Entry, FileImage, FileState};
 pub use metadata::{FileMetadata, GroupId, OrdinaryMode, OwnerId};
 pub use owner::{CheckpointHumanOrigin, CheckpointOwner};

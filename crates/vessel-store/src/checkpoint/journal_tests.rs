@@ -58,6 +58,7 @@ fn ready_plan(connection: &Connection, key: CaptureKey) -> Plan {
         owner: CheckpointOwner::Device {
             device: vessel_proto::DeviceId::random(),
         },
+        evidence: super::tests::evidence(),
         current: empty.clone(),
         desired: empty
             .effective(
@@ -799,4 +800,52 @@ fn active_preview_and_recovery_data_prevent_session_retirement() {
     journal::outcome(&connection, &operation, &RestoreOutcome::Unchanged).unwrap();
     super::garbage::retire_session(&connection, key.session, plan.expires).unwrap();
     assert_eq!(super::garbage::pending(&connection).unwrap().len(), 1);
+}
+
+#[test]
+fn equal_contents_cannot_hide_a_changed_root_or_ignore_observation() {
+    use vessel_proto::{
+        BlobHash,
+        checkpoint::{IgnoreFingerprint, RootFingerprint, SnapshotEvidence},
+    };
+    let (connection, key) = fixture();
+    let plan = ready_plan(&connection, key);
+    journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
+    for evidence in [
+        SnapshotEvidence::new(
+            RootFingerprint::new(BlobHash::from_bytes([3; 32])),
+            plan.evidence.ignore(),
+            Vec::new(),
+        )
+        .unwrap(),
+        SnapshotEvidence::new(
+            plan.evidence.root(),
+            IgnoreFingerprint::new(BlobHash::from_bytes([4; 32])),
+            Vec::new(),
+        )
+        .unwrap(),
+    ] {
+        let mut changed = plan.clone();
+        changed.evidence = evidence;
+        assert!(matches!(
+            journal::admit(
+                &connection,
+                &changed,
+                RestoreId::random(),
+                DateTime::UNIX_EPOCH
+            ),
+            Err(Error::Refused(CheckpointError::StalePreview))
+        ));
+    }
+    assert!(matches!(
+        journal::admit(
+            &connection,
+            &plan,
+            RestoreId::random(),
+            DateTime::UNIX_EPOCH
+        )
+        .unwrap()
+        .outcome,
+        RestoreOutcome::InProgress { .. }
+    ));
 }

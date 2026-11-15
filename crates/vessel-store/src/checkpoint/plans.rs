@@ -13,6 +13,7 @@ struct Stored {
     boundary: String,
     owner: String,
     current: String,
+    evidence: String,
     desired: String,
     expires: i64,
     consumed: Option<String>,
@@ -28,11 +29,11 @@ pub(super) fn owned(
     owner: CheckpointOwner,
 ) -> Result<(Plan, Option<RestoreId>), Error> {
     let raw = connection.query_row(
-        "SELECT c.id,c.session,c.worktree,c.generation,c.boundary,p.owner,p.current_image,p.desired_image,p.expires_at,p.consumed_by
+        "SELECT c.id,c.session,c.worktree,c.generation,c.boundary,p.owner,p.current_image,p.current_evidence,p.desired_image,p.expires_at,p.consumed_by
          FROM checkpoint_plans p JOIN checkpoint_captures c ON c.id=p.capture WHERE p.id=?1 AND c.state='ready'",
         [plan.to_string()],
         |row| Ok(Stored {capture:row.get(0)?,session:row.get(1)?,worktree:row.get(2)?,generation:row.get(3)?,boundary:row.get(4)?,
-            owner:row.get(5)?,current:row.get(6)?,desired:row.get(7)?,expires:row.get(8)?,consumed:row.get(9)?}),
+            owner:row.get(5)?,current:row.get(6)?,evidence:row.get(7)?,desired:row.get(8)?,expires:row.get(9)?,consumed:row.get(10)?}),
     ).optional()?.ok_or(CheckpointError::NotFound)?;
     if serde_json::from_str::<CheckpointOwner>(&raw.owner)? != owner {
         return Err(CheckpointError::Forbidden.into());
@@ -54,6 +55,7 @@ pub(super) fn owned(
                 boundary: serde_json::from_str(&raw.boundary)?,
             },
             current: serde_json::from_str(&raw.current)?,
+            evidence: serde_json::from_str(&raw.evidence)?,
             desired: serde_json::from_str(&raw.desired)?,
             expires,
         },

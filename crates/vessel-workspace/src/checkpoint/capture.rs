@@ -7,7 +7,8 @@ use super::{
 use tokio_util::sync::CancellationToken;
 use vessel_proto::checkpoint::{
     CHECKPOINT_FILE_BYTES, CHECKPOINT_IMAGE_BYTES, CheckpointError, CheckpointPath, Entry,
-    FileBytes, FileImage, FileState,
+    FileBytes, FileImage, FileState, IgnoreFingerprint, ObservedEntry, ObservedSnapshot,
+    SnapshotEvidence,
 };
 
 pub(super) fn image(
@@ -70,4 +71,31 @@ pub(super) fn image(
     }
     root.revalidate()?;
     Ok(FileImage::new(entries)?)
+}
+
+/// Keep physical evidence from the same file reads, never a later best-effort scan.
+pub(super) fn observed(
+    root: &Root,
+    archive: &Archive,
+    paths: &[CheckpointPath],
+    ignore: IgnoreFingerprint,
+    cancellation: &CancellationToken,
+) -> Result<ObservedSnapshot, Error> {
+    let before = paths
+        .iter()
+        .map(|path| {
+            Ok(ObservedEntry {
+                path: path.clone(),
+                presence: root.observe(path)?,
+            })
+        })
+        .collect::<Result<Vec<_>, Error>>()?;
+    let image = image(root, archive, paths, cancellation)?;
+    for entry in &before {
+        if root.observe(&entry.path)? != entry.presence {
+            return Err(CheckpointError::CaptureUnstable.into());
+        }
+    }
+    let evidence = SnapshotEvidence::new(root.fingerprint(), ignore, before)?;
+    Ok(ObservedSnapshot::new(image, evidence)?)
 }

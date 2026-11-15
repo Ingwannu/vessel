@@ -24,6 +24,7 @@ CREATE TABLE checkpoint_plans (
     capture TEXT NOT NULL REFERENCES checkpoint_captures(id) ON DELETE RESTRICT,
     owner TEXT NOT NULL,
     current_image TEXT NOT NULL,
+    current_evidence TEXT NOT NULL,
     desired_image TEXT NOT NULL,
     expires_at INTEGER NOT NULL,
     consumed_by TEXT

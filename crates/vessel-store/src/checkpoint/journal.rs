@@ -92,6 +92,10 @@ pub(super) fn put_plan(
     plan: &Plan,
     at: DateTime<Utc>,
 ) -> Result<(), Error> {
+    let _validated = vessel_proto::checkpoint::ObservedSnapshot::new(
+        plan.current.clone(),
+        plan.evidence.clone(),
+    )?;
     let lifetime =
         chrono::TimeDelta::from_std(vessel_proto::checkpoint::CHECKPOINT_PREVIEW_LIFETIME)?;
     let maximum = at
@@ -118,13 +122,14 @@ pub(super) fn put_plan(
         return Err(CheckpointError::NotFound.into());
     }
     let _changed = connection.execute(
-        "INSERT INTO checkpoint_plans(id,capture,owner,current_image,desired_image,expires_at)
-        VALUES (?1,?2,?3,?4,?5,?6)",
+        "INSERT INTO checkpoint_plans(id,capture,owner,current_image,current_evidence,desired_image,expires_at)
+        VALUES (?1,?2,?3,?4,?5,?6,?7)",
         params![
             plan.id.to_string(),
             plan.key.capture.to_string(),
             encode(&plan.owner)?,
             encode(&plan.current)?,
+            encode(&plan.evidence)?,
             encode(&plan.desired)?,
             plan.expires.timestamp_millis()
         ],
@@ -193,6 +198,7 @@ pub(super) fn admit(
     if stored.expires <= at
         || consumed.is_some()
         || stored.key != plan.key
+        || stored.evidence != plan.evidence
         || stored.current != plan.current
         || stored.desired != plan.desired
         || stored.expires.timestamp_millis() != plan.expires.timestamp_millis()

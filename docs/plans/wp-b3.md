@@ -110,3 +110,11 @@ scoped clippy exposed only that unused receiver; its correction is not yet
 verified. The separate TypeScript registry check reached its short-lane limit
 while compiling; it is not a passing result. Capture evidence, physical quota,
 production assembly and recovery remain the next implementation work.
+
+Physical observations now have validating persistent types distinct from content
+and desired metadata. A preview stores root, ignore-policy and per-path full/stat
+and stable object fingerprints; admission compares that exact evidence. The
+filesystem capture samples observations around its content reads. Equal-byte
+inode replacement therefore changes evidence without changing the content image.
+Ignore-policy discovery and crash-journal staging identities still need wiring;
+the supplied policy digest is not yet evidence of automatic discovery.

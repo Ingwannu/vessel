@@ -60,6 +60,7 @@ fn plan(session: SessionId) -> Plan {
         id: RestorePlanId::random(),
         key,
         owner: CheckpointOwner::LocalOwner,
+        evidence: super::tests::evidence(),
         current,
         desired,
         expires: DateTime::UNIX_EPOCH

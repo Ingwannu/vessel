@@ -9,6 +9,43 @@ mod linux {
     };
     use vessel_proto::checkpoint::{CheckpointError, FileState};
 
+    #[tokio::test]
+    async fn observations_detect_equal_content_replacement_between_preview_and_admission() {
+        use vessel_proto::{BlobHash, checkpoint::IgnoreFingerprint};
+        let sandbox = Sandbox::new();
+        let dir = sandbox.repo("project");
+        let git = sandbox.git().await;
+        let paths = enumeration::paths(&git, &dir).await.unwrap();
+        let archive = archive(&sandbox);
+        let cancel = tokio_util::sync::CancellationToken::new();
+        let policy = IgnoreFingerprint::new(BlobHash::from_bytes([1; 32]));
+        let first = capture::observed(
+            &Root::open(&dir).unwrap(),
+            &archive,
+            &paths,
+            policy,
+            &cancel,
+        )
+        .unwrap();
+        let root_fingerprint = first.evidence().root();
+        fs::write(
+            dir.join("replacement"),
+            fs::read(dir.join("README.md")).unwrap(),
+        )
+        .unwrap();
+        fs::rename(dir.join("replacement"), dir.join("README.md")).unwrap();
+        let second = capture::observed(
+            &Root::open(&dir).unwrap(),
+            &archive,
+            &paths,
+            policy,
+            &cancel,
+        )
+        .unwrap();
+        assert_eq!(first.image(), second.image());
+        assert_eq!(root_fingerprint, second.evidence().root());
+        assert_ne!(first.evidence(), second.evidence());
+    }
     fn archive(sandbox: &Sandbox) -> Archive {
         let path = sandbox.path().join("archive");
         fs::create_dir(&path).unwrap();

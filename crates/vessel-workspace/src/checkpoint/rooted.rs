@@ -2,6 +2,7 @@
 
 mod mount;
 pub(super) mod mutation;
+mod observation;
 
 use super::Error;
 use mount::MountId;
