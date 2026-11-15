@@ -183,6 +183,16 @@ impl Core {
         if self.client.is_none() || id.get() > self.high {
             return Err(ProtocolViolation::UnissuedRequest.into());
         }
+        // A ready pipe and deadline may both be selected in the same turn.
+        // Arbitration must not turn a late callback into successful work or
+        // release its admission before the supervisor retires that helper.
+        if self
+            .pending
+            .get(&id)
+            .is_some_and(|pending| pending.deadline <= tokio::time::Instant::now())
+        {
+            return Err(RuntimeError::CallTimeout);
+        }
         if let Some(mut pending) = self.pending.remove(&id) {
             if pending.state == PendingState::Active && !pending.cancel.is_cancelled() {
                 if let Some(reply) = pending.reply.take() {
@@ -250,8 +260,9 @@ fn cancel_pending(
             .map_err(|_full_or_closed| ProtocolViolation::ControlQueueFull)?;
         pending.state = PendingState::Cancelling;
     }
-    // Keep count/byte admission until a reply settles it or group retirement
-    // proves the callback cannot continue. Cancellation alone is not settlement.
+    // Keep admission until an actual reply or permanent retirement of this
+    // actor. A cleanup request receipt alone does not prove descendant death;
+    // the node must refuse replacement while cleanup remains uncertain.
     Ok(())
 }
 
