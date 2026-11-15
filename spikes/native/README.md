@@ -227,11 +227,6 @@ filled kinds set no hover override. Pressed is 85% and disabled 50%.
 Disabled callers attach no handler. The existing bool `button` delegates
 and stays until the lead retires it after moving its callers.
 
-**Integration checkpoint:** the lead's legacy single menu renderer is split
-into item/state/drawing modules; typed extensions have not yet been reapplied.
-The extended menu APIs in the following G2 notes are temporarily unavailable
-at this checkpoint; their prior immutable commits/evidence remain historical.
-
 `kit::menu` keeps its existing entry and constructors. Items can carry a
 14-point leading glyph or typed pending label/spinner; pending is blocked
 for pointer and keyboard, including a stale highlight. `menu_with(Content)`

@@ -95,10 +95,10 @@ fn merge_item(shell: &Shell, method: MergeMethod) -> MenuItem {
         Some(_) | None => merge_label(method, shell.words),
     };
     MenuItem {
-        label: label.into(),
         tone: vessel_app_kit::menu::Tone::Plain,
         disabled: shell.areas.git.writing.busy() || merging.is_some(),
         starts_group: false,
+        ..MenuItem::new(label)
     }
 }
 
