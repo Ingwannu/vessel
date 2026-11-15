@@ -2,7 +2,10 @@
 //! Only a committed fresh reservation can authorize one dispatch.
 
 use super::{Found, Sessions};
-use crate::error::ServiceError;
+use crate::{error::ServiceError, persist};
+use std::time::Duration;
+
+const RECEIPT_QUEUE_COMMIT_TIMEOUT: Duration = Duration::from_secs(30);
 use vessel_proto::{
     Creator,
     timeline::{SubmitPrompt, SubmitPromptReply},
@@ -34,7 +37,11 @@ impl Sessions {
         {
             return Ok(reply);
         }
-        let Found::Live { handle, .. } = found else {
+        let Found::Live {
+            handle,
+            mut durability,
+        } = found
+        else {
             return Err(ServiceError::Ended(request.session));
         };
         if handle.info().spec.side_question_of.is_some() {
@@ -59,6 +66,20 @@ impl Sessions {
                 return Ok(SubmitPromptReply::OutcomeUnknown { message });
             }
         };
+        if matches!(delivered, vessel_proto::Delivered::Queued { .. }) {
+            // QueueChanged is published before the actor acknowledges delivery, but
+            // its independent persist task may not have committed it yet. Never
+            // retain an Accepted receipt for a queue entry that can disappear.
+            let through = handle.info().next_seq;
+            let persisted = tokio::time::timeout(
+                RECEIPT_QUEUE_COMMIT_TIMEOUT,
+                persist::wait_until(request.session, &mut durability, through),
+            )
+            .await;
+            if !matches!(persisted, Ok(Ok(()))) {
+                return Ok(SubmitPromptReply::OutcomeUnknown { message });
+            }
+        }
         match self.store.accept_prompt(token, delivered).await {
             Ok(receipt) => Ok(SubmitPromptReply::Accepted { receipt }),
             Err(error) => {

@@ -358,3 +358,10 @@ and durably acknowledge permission resolution. Plan requests outlive their sourc
 turn, while loss of their live provider owner cannot leave an actionable card.
 This source contract does not claim that the driver or actor implementation has
 passed; their scoped tests and combined V3 review remain required.
+
+A queued prompt's `Accepted` receipt also waits for the actor's already-published
+queue change to reach the durable watermark before acceptance is stored. The
+receipt writer and event persist task are independent: an actor acknowledgement
+alone cannot prove that a queue entry survives a crash. A persistence failure or
+bounded wait expiry leaves the committed Pending receipt uncertain, with its
+reservation and replay protection intact. It cannot authorize another send.

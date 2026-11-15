@@ -340,3 +340,48 @@ async fn a_lost_provider_answer_ack_stays_uncertain_after_the_process_ends() {
     )));
     fixture.stop().await;
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn accepted_queued_receipts_have_a_committed_queue_and_keep_the_exact_entry_on_replay() {
+    let fixture = Fixture::new().await;
+    let id = create(&fixture).await;
+    let first = fixture
+        .sessions
+        .submit_prompt(prompt(id, "wait"), Creator::Owner)
+        .await
+        .unwrap();
+    assert!(matches!(first, SubmitPromptReply::Accepted { .. }));
+    let _turn = until(&fixture, id, |event| {
+        matches!(event, AgentEvent::TurnStarted { .. })
+    })
+    .await;
+    let mut queued = prompt(id, "queued follow-up");
+    queued.delivery = Delivery::Queue;
+    let accepted = fixture
+        .sessions
+        .submit_prompt(queued.clone(), Creator::Owner)
+        .await
+        .unwrap();
+    let SubmitPromptReply::Accepted { receipt } = &accepted else {
+        panic!("accepted queue")
+    };
+    let vessel_proto::Delivered::Queued { entry } = receipt.delivered else {
+        panic!("queued")
+    };
+    let committed = fixture.store.conversation(id).await.unwrap().unwrap();
+    assert_eq!(committed.queue.entries.len(), 1);
+    assert_eq!(committed.queue.entries[0].id, entry);
+    assert_eq!(
+        committed.queue.entries[0].client_message_id,
+        Some(queued.message.clone())
+    );
+    assert_eq!(
+        fixture
+            .sessions
+            .submit_prompt(queued, Creator::Owner)
+            .await
+            .unwrap(),
+        accepted
+    );
+    fixture.stop().await;
+}
