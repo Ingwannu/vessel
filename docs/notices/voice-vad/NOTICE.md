@@ -42,3 +42,9 @@ normalization matches both source texts. Raw and normalized digests are in
 `../../evidence/voice-vad-phase-a/windows-notice-reconciliation.json`; do not
 call the Windows originals byte-identical. This does not change any terms or
 approve the rejected links/debug assets, an installation layout or distribution.
+
+The next proposed private file list is
+`../../evidence/voice-vad-phase-b-layout.json`; it is not an installed or shipped
+inventory. It retains both original platform archive notices and this complete
+source notice collection. No Phase B extraction, manifest or loading permission
+is implied by the file list.

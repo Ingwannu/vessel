@@ -86,3 +86,14 @@ synthetic guard cases passed; source/output hashes are retained privately.
 The initial refusal stays authoritative for the first policy/run. This
 continuation does not approve extraction into product, dependency manifests,
 native/model loading, inference, final file layout/distribution or activation.
+
+## Next proposed gate: positive private layout
+
+ADR0080's Phase B proposal and `voice-vad-phase-b-layout.json` select only
+regular runtime candidates, the common opaque model and complete notices/
+metadata with exact member hashes. It requests private extraction/static import
+inspection plus a fixed node dev-dependency build proof on the VM, **no native
+or model loading**. No part has run. The fixture handoff into build labels
+also needs an agreed owner path because the gate has no general external
+binary fixture import API. No runtime/distribution permission is inferred
+from completed Phase A evidence or this proposed file list.

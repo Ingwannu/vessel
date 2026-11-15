@@ -557,3 +557,125 @@ hasher/CRC, changed PDB size, different PDB name, declared-total cap before
 entry materialization and central-directory byte cap. These are parser tests,
 not inference or physical-device evidence. The initial enforced Windows refusal
 and all original limits/results remain preserved alongside this continuation.
+
+## Proposed Phase B: fixed private layout and dependency build proof
+
+Status: **PROPOSAL ONLY**, after row221 closed the Phase A inventory and
+notice correspondence. No Phase B extraction, dependency/lock change, Cargo
+build script, static native inspection, model/native load or distribution has
+been performed. This is a bounded next gate; it does not change the closed
+Phase A policy, its preserved refusal or skipped PDB evidence.
+
+[Decision Log]
+- Purpose: select the exact regular files needed to develop the required VAD,
+  while leaving runtime/model execution and product activation behind later
+  reviewed source and compatibility checks.
+- Existing assets: Phase A verified every selected file's full archive/member
+  size and SHA; Windows notices have a completed full CRLF-only comparison.
+  The approved Rust candidate closure and retained licence files already exist.
+- Alternatives: a system ORT search, wrapper auto-download, whole-archive
+  deployment, recreating upstream links or importing a Sherpa ASR/TTS bundle
+  would widen trust, files and licence scope without helping this detector.
+- Choice: one fixed, private component root and explicit platform subdirectory,
+  a positive regular-file manifest, fixed Rust features and build-VM-only proof.
+- Why: absolute versioned-file loading needs no unversioned Linux alias;
+  development must not accidentally admit the large PDB or crate test DLLs.
+- Impact: CPU x86_64 candidates only; unavailable system ABI prerequisites,
+  feature drift, unexpected imports or notice mismatch block the next stage.
+  Product runtime support, downloads and local ASR/TTS remain absent.
+
+### Exact layout candidate and notice correspondence
+
+The machine-readable [positive file manifest](../evidence/voice-vad-phase-b-layout.json)
+is derived only from the committed completed inventories. Each source member,
+relative destination, exact byte count, SHA and role is explicit. The model
+stays opaque at `model/silero-v4.onnx`. Each target directory contains two
+regular native candidates under `lib/`, original LICENSE/ThirdPartyNotices/
+Privacy text, VERSION_NUMBER and GIT_COMMIT_ID. The Linux entry is the actual
+`libonnxruntime.so.1.28.2`, not a recreated `.so`/`.so.1` symlink. The Windows
+entry is `onnxruntime.dll`; its providers-shared DLL is co-located, as is the
+Linux providers-shared library. Co-location is a candidate dependency layout,
+not proof of which libraries are loaded or whether their imports resolve.
+
+The selected native payload is24291672B on Linux or15839856B on Windows;
+model bytes643854 are common to either choice. These are file sizes, not
+resident/linked size or installer overhead. No debug symbols, headers, import
+libraries, static archives, test DLL, GPU/provider library, alias or unlisted
+file is loadable under this manifest. All PDBs are excluded regardless of
+whether their payload was normally hashed or explicitly skipped in Phase A.
+
+Retain the platform archive's original notices byte-exact, including Windows
+CRLF, alongside the Vessel-side source notices and NOTICE attribution. No
+notice is removed because its component seems optional. Full source-wide
+ORT third-party text remains distinct from binary component correspondence;
+the matching archive text is not a per-object licence/ABI attestation. Preserve
+Silero MIT and the k2-fsa conversion attribution plus Apache2, both wrapper
+licences, libloading ISC and existing transitive notices. The positive manifest
+pins each unique source notice once and points to the Vessel attribution file;
+that file must accompany the complete component in any later reviewed package.
+This proposal contains no Kokoro/Kitten/Piper/espeak data or local ASR/TTS.
+
+### Requested private preparation only
+
+Request authorization for ONLY the following next phase; until accepted,
+execute none of it:
+
+1. Re-verify the same approved archives and opaque model. Stream only the
+   positive native/notice/metadata members into a fresh task-owned private
+   directory outside product trees. Reuse the bounded parsers and original
+   member/count/path/CRC/digest rules; do not create aliases or traverse links.
+   Files become0400, directories0700, owned by the task UID/GID. Temporary
+   files are accepted by exact size+SHA before atomic rename; on mismatch no
+   candidate final file is retained. Preserve original archives and first
+   refusal. No new artifact URL or fallback download is introduced.
+2. Perform **non-executing** static ELF/PE import/architecture inspection of
+   those exact extracted native candidates, and read only bounded version/git/
+   privacy metadata. Record the imported system ABI libraries, relative/dynamic
+   dependencies and any additional terms. Never use ldd or a loader as an
+   import inspector. Unknown non-system dependencies or changed source/version
+   identity block adoption; do not fetch/install missing libraries.
+3. Add the exact previously inventoried ort2.0.0-rc.15 candidate to the root
+   workspace as a **node dev dependency only**, defaults off, solely std,
+   load-dynamic and api-28. This keeps the existing outer test-only detector
+   implementation staged and adds no product runtime availability. Resolve
+   on the build VM and retain the full lock/feature tree; the allowed new
+   product closure is only ort, ort-sys, libloading and the already inventoried
+   smallvec/cfg-if/windows-link versions and features above. Any additional
+   dependency, runtime download or feature activation is a stop condition.
+   Normal exact-checksummed Cargo registry source unpacking is distinct from
+   the positive native fixture layout: libloading's test DLLs may exist only
+   as inactive source-cache fixtures, never in that layout or loader search.
+4. Review ort-sys's pinned disable-linking build branch before permitting its
+   build script to run, then compile the staged wrapper only on the build VM.
+   No build-time runtime/model fetch, installer, pkg-config, native link search
+   or environment-derived provider settings are allowed. Reconcile the actual
+   feature closure with the locked proposal and retain actual crate Checking/
+   Compiling evidence. Dependency compilation alone must not call an ORT API.
+
+No model or native library may be loaded during this preparation. No setup
+script or upstream executable/test binary is run. No product-tree extraction,
+service/system library write, permission/account change, installer, automatic
+model download, native distribution, runtime advertisement or voice activation
+is authorized by the requested phase. Final release packaging is a separate
+review after runtime/source/platform proof.
+
+### Subsequent detector/loader checkpoint remains mandatory
+
+After preparation, return the exact extracted-file hashes/modes/ownership,
+static imports and metadata, actual Cargo closure and compiler receipt to V3.
+Submit loader/detector source before any native constructor or model session
+runs. It must enforce explicit verified absolute path initialization before
+all ort APIs, CPU-only environment, disabled telemetry and a foreign logger
+that retains no message/text/audio. Its recurrent input/output schema, reset,
+finite probability, per-lease resource bounds, full-queue Stop and inference
+failure/cancellation handling require separate tests. Generic ort fallback or
+panic paths cannot become the error policy.
+
+There is currently no supported gate API to inject private external binary
+fixtures into a VM label. A named, digest/size/ownership-preserving fixture
+handoff must be agreed with the build owner/coordinator before any transfer;
+never commit binary/model files into Git or substitute arbitrary SSH builds.
+Both-platform offline/log privacy, ABI and reference probability/boundary
+compatibility, native allocation/latency/loaded size and hardware quality are
+still owed. This phase cannot establish a hard native heap bound or unblocked
+native cancellation. W22/lifecycle/MCP prerequisites remain independent.

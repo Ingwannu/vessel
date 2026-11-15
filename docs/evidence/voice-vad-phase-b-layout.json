@@ -1,0 +1,189 @@
+{
+  "status": "proposal_only_not_extracted_or_load_approved",
+  "component": "silero-v4-ort-1.28.2-cpu",
+  "model": {
+    "source_asset": "silero-v4.onnx",
+    "relative_destination": "model/silero-v4.onnx",
+    "bytes": 643854,
+    "sha256": "9e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6",
+    "role": "opaque_model_candidate"
+  },
+  "platforms": [
+    {
+      "target": "linux-x86_64",
+      "files": [
+        {
+          "archive_member": "onnxruntime-linux-x64-1.28.2/Privacy.md",
+          "relative_destination": "linux-x86_64/Privacy.md",
+          "bytes": 2469,
+          "sha256": "9a15f9fd9d4c7b6dfc35f237f461863f84f8f73cf6189e330818a674d3828871",
+          "role": "upstream_notice_or_metadata"
+        },
+        {
+          "archive_member": "onnxruntime-linux-x64-1.28.2/VERSION_NUMBER",
+          "relative_destination": "linux-x86_64/VERSION_NUMBER",
+          "bytes": 7,
+          "sha256": "2bde8d4531ecc681097f1e355cdfa8790c0dabb3c62d2ab54083d94f8629f2c1",
+          "role": "upstream_notice_or_metadata"
+        },
+        {
+          "archive_member": "onnxruntime-linux-x64-1.28.2/LICENSE",
+          "relative_destination": "linux-x86_64/LICENSE",
+          "bytes": 1073,
+          "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c",
+          "role": "upstream_notice_or_metadata"
+        },
+        {
+          "archive_member": "onnxruntime-linux-x64-1.28.2/GIT_COMMIT_ID",
+          "relative_destination": "linux-x86_64/GIT_COMMIT_ID",
+          "bytes": 41,
+          "sha256": "ef2aff9f0f5296a8ccb99cb86285a3ce258f5c2eda83da5f63ba69f98ee724f3",
+          "role": "upstream_notice_or_metadata"
+        },
+        {
+          "archive_member": "onnxruntime-linux-x64-1.28.2/lib/libonnxruntime.so.1.28.2",
+          "relative_destination": "linux-x86_64/lib/libonnxruntime.so.1.28.2",
+          "bytes": 24277040,
+          "sha256": "088f24b1fc56714d3efaaeb3ac2ee486a5d7b50ccfbb3dd26fd1a612534a05fb",
+          "role": "native_candidate"
+        },
+        {
+          "archive_member": "onnxruntime-linux-x64-1.28.2/lib/libonnxruntime_providers_shared.so",
+          "relative_destination": "linux-x86_64/lib/libonnxruntime_providers_shared.so",
+          "bytes": 14632,
+          "sha256": "086ec1d5388f64153d9c63470d126693db9a182c8ce236d3a1119068471b8a0d",
+          "role": "native_candidate"
+        },
+        {
+          "archive_member": "onnxruntime-linux-x64-1.28.2/ThirdPartyNotices.txt",
+          "relative_destination": "linux-x86_64/ThirdPartyNotices.txt",
+          "bytes": 325054,
+          "sha256": "0e07b95f3a8d6230037707c5c4a2b554d12c4cb67369669ac255635528ffcee2",
+          "role": "upstream_notice_or_metadata"
+        }
+      ]
+    },
+    {
+      "target": "windows-x86_64",
+      "files": [
+        {
+          "archive_member": "onnxruntime-win-x64-1.28.2/GIT_COMMIT_ID",
+          "relative_destination": "windows-x86_64/GIT_COMMIT_ID",
+          "bytes": 43,
+          "sha256": "db6a9b7ff8688aff316b5a01af2473b3ed6c010ebebbf34f78e0ffb245393a90",
+          "role": "upstream_notice_or_metadata"
+        },
+        {
+          "archive_member": "onnxruntime-win-x64-1.28.2/lib/onnxruntime.dll",
+          "relative_destination": "windows-x86_64/lib/onnxruntime.dll",
+          "bytes": 15818040,
+          "sha256": "1becbd71adbf49609d33195e29c9214969db3c3de69c81425bebe5a4b69aef97",
+          "role": "native_candidate"
+        },
+        {
+          "archive_member": "onnxruntime-win-x64-1.28.2/lib/onnxruntime_providers_shared.dll",
+          "relative_destination": "windows-x86_64/lib/onnxruntime_providers_shared.dll",
+          "bytes": 21816,
+          "sha256": "2e3a2a3903f1d4b1b15cd6887593ed2f269cd2b24e3d729fead45406ec9a25ac",
+          "role": "native_candidate"
+        },
+        {
+          "archive_member": "onnxruntime-win-x64-1.28.2/LICENSE",
+          "relative_destination": "windows-x86_64/LICENSE",
+          "bytes": 1094,
+          "sha256": "c250d6278f0b47a6439fb7592b08b58a55eb9f535aa49a1db63211c3f982b674",
+          "role": "upstream_notice_or_metadata"
+        },
+        {
+          "archive_member": "onnxruntime-win-x64-1.28.2/Privacy.md",
+          "relative_destination": "windows-x86_64/Privacy.md",
+          "bytes": 2490,
+          "sha256": "bfb7712b075f3f07e3ebee5dc2a296d1de32dbf71ad28663f73d1538cb6c3b08",
+          "role": "upstream_notice_or_metadata"
+        },
+        {
+          "archive_member": "onnxruntime-win-x64-1.28.2/ThirdPartyNotices.txt",
+          "relative_destination": "windows-x86_64/ThirdPartyNotices.txt",
+          "bytes": 331175,
+          "sha256": "fb0af774b4d7cffc5b9d046f2aaeade2f37df2f80abf8033c95dfffcc77a8866",
+          "role": "upstream_notice_or_metadata"
+        },
+        {
+          "archive_member": "onnxruntime-win-x64-1.28.2/VERSION_NUMBER",
+          "relative_destination": "windows-x86_64/VERSION_NUMBER",
+          "bytes": 8,
+          "sha256": "ec9fca2b7825a8e33f38111208aea305b6227250c328e689319b31ab81b822b2",
+          "role": "upstream_notice_or_metadata"
+        }
+      ]
+    }
+  ],
+  "vessel_notice_files": [
+    {
+      "repository_source": "docs/notices/voice-vad/ONNXRuntime-MIT.txt",
+      "relative_destination": "notices/ONNXRuntime-MIT.txt",
+      "bytes": 1073,
+      "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c"
+    },
+    {
+      "repository_source": "docs/notices/voice-vad/ONNXRuntime-ThirdPartyNotices.txt",
+      "relative_destination": "notices/ONNXRuntime-ThirdPartyNotices.txt",
+      "bytes": 325054,
+      "sha256": "0e07b95f3a8d6230037707c5c4a2b554d12c4cb67369669ac255635528ffcee2"
+    },
+    {
+      "repository_source": "docs/notices/voice-vad/Silero-v4-MIT.txt",
+      "relative_destination": "notices/Silero-v4-MIT.txt",
+      "bytes": 1075,
+      "sha256": "2e63e9a38b6e8fc0c7bc37ce174caca1862870856c6daf5697cfb785e925520b"
+    },
+    {
+      "repository_source": "docs/notices/voice-vad/ort-MIT.txt",
+      "relative_destination": "notices/ort-MIT.txt",
+      "bytes": 1107,
+      "sha256": "6bba08de46289c40986a2e6b310e2da61fcea33b3c112c8320f6093f8f9cb71b"
+    },
+    {
+      "repository_source": "docs/notices/voice-vad/Apache-2.0.txt",
+      "relative_destination": "notices/Apache-2.0.txt",
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "repository_source": "docs/notices/voice-vad/libloading-ISC.txt",
+      "relative_destination": "notices/libloading-ISC.txt",
+      "bytes": 736,
+      "sha256": "b29f8b01452350c20dd1af16ef83b598fea3053578ccc1c7a0ef40e57be2620f"
+    },
+    {
+      "repository_source": "docs/notices/voice-vad/smallvec-MIT.txt",
+      "relative_destination": "notices/smallvec-MIT.txt",
+      "bytes": 1072,
+      "sha256": "0b28172679e0009b655da42797c03fd163a3379d5cfa67ba1f1655e974a2a1a9"
+    },
+    {
+      "repository_source": "docs/notices/voice-vad/cfg-if-MIT.txt",
+      "relative_destination": "notices/cfg-if-MIT.txt",
+      "bytes": 1057,
+      "sha256": "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397"
+    },
+    {
+      "repository_source": "docs/notices/voice-vad/windows-link-MIT.txt",
+      "relative_destination": "notices/windows-link-MIT.txt",
+      "bytes": 1141,
+      "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+    }
+  ],
+  "mandatory_attribution": "docs/notices/voice-vad/NOTICE.md",
+  "excluded": [
+    "all archive links",
+    "all PDBs including the payload-skipped onnxruntime.pdb",
+    "libloading test DLLs",
+    "native import/static libraries",
+    "headers and upstream build targets",
+    "all unlisted runtime files",
+    "all local ASR/TTS models and espeak-ng data"
+  ],
+  "source_inventory": "voice-vad-phase-a/inventory.json",
+  "windows_inventory": "voice-vad-phase-a/windows-continuation.json"
+}
