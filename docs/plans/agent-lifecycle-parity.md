@@ -990,3 +990,14 @@ New retained-cleanup tests use the existing testkit safety net for channel and
 filesystem waits. The virtual-time case separately bounds its join after advancing
 the production idle deadline; an absent timeout fails instead of hanging forever.
 This changes no existing deadline or assertion.
+
+A new private node-unit fixture also builds a temporary home/member fleet and a
+loopback relay. The member advertises no own routes; the ordinary authenticated
+grant establishes its callback as a handshake barrier. The fixture owns that
+connection: it cancels the existing membership epoch before joining, avoiding
+a second automatic grant producer without adding a product test control. Synthetic returned
+metadata references real holder-bound transfers; cleanup runs through home
+forwarding and member Relay back to callback Deliver, checking exact settlement
+and wrong-holder refusal. This is actual callback transport with synthetic
+metadata, not an assigned three-node export. No new product control or real
+harness is introduced; execution remains owed.

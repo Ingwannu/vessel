@@ -23,3 +23,6 @@ impl NodeService {
             .map_err(|error| error.to_wire())
     }
 }
+
+#[cfg(test)]
+mod runtime_tests;

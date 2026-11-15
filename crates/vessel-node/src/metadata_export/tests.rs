@@ -7,7 +7,7 @@ use vessel_proto::{
     TransferManifest,
 };
 
-pub(super) fn info() -> SessionInfo {
+pub(crate) fn info() -> SessionInfo {
     SessionInfo::new(
         SessionId::random(),
         SessionSpec::new(
@@ -86,7 +86,7 @@ fn current_labels_and_background_share_the_projection_visibility_rule() {
     }
 }
 
-pub(super) fn exported(info: SessionInfo) -> Forwarded {
+pub(crate) fn exported(info: SessionInfo) -> Forwarded {
     Forwarded {
         reply: Box::new(Reply::ExportSession(TransferManifest {
             transfer: TransferId::random(),
