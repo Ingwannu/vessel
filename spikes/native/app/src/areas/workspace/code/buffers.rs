@@ -75,13 +75,7 @@ impl Shell {
                     .retained
                     .iter()
                     .find_map(|(key, viewer)| {
-                        let idle = viewer.reading.is_none()
-                            && viewer.edit.as_ref().is_none_or(|editing| {
-                                !editing.model.modified()
-                                    && editing.reading.is_none()
-                                    && editing.writing.is_none()
-                                    && editing.model.writing().is_none()
-                            });
+                        let idle = viewer.can_evict();
                         idle.then(|| key.clone())
                     });
             let Some(disposable) = disposable else {

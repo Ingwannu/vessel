@@ -17,7 +17,7 @@ use crate::shell::Shell;
 
 pub(super) struct PendingMutation {
     pub(super) scope: FileScope,
-    uncertain: bool,
+    pub(super) uncertain: bool,
     ticket: FileTicket,
     change: PathChange,
 }
@@ -45,10 +45,7 @@ fn affected(key: &FileKey, node: NodeId, change: &PathChange) -> bool {
 }
 
 fn busy(viewer: &Viewer) -> bool {
-    viewer.reading.is_some()
-        || viewer.edit.as_ref().is_some_and(|editing| {
-            editing.model.modified() || editing.reading.is_some() || editing.writing.is_some()
-        })
+    !viewer.can_evict()
 }
 
 impl CodePanel {

@@ -22,6 +22,7 @@ pub mod composer_shell;
 pub mod connection;
 pub mod connections;
 mod conversation;
+pub mod desktop;
 pub mod devices;
 pub mod diagnostics;
 pub mod effort;

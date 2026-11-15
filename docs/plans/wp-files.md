@@ -444,3 +444,24 @@ Deep directory rename rewrites now join each already-validated suffix component 
 - Editor fallback: a first editor read that discovers larger paged text retires editing and reacquires the complete readonly source with a new original owner ticket. Binary/oversize needs no second acquisition. An older reply cannot install into this acquisition. Complete Markdown uses the same existing bounded preview renderer and parser.
 - Limits/tradeoff: first-page classification may be read twice when an editor becomes readonly. Existing32-buffer retention bounds owner count, not total process heap; readonly source/line storage may retain more bytes than editable buffers. This remains a resource/capture validation item. Legacy file.read hashes/version and content are acquired separately on the node; matching page versions do not prove an immutable snapshot or whole-file digest agreement. The stronger ADR0083 binary-page transfer/sink contract is separate and not claimed by this helper.
 - Validation: source tests pin UTF-8 byte boundaries, original scope, changed version/refused continuation, malformed EOF/zero progress, finite page count, binary/oversize/empty behavior. GPUI source regressions pin complete readonly fallback and explicit oversize with no extra acquisition. Fast size/boundaries/tokens pass. New-source strict/tests/real UI observations remain owed.
+
+## Document readiness producer before desktop finalization
+
+The canonical14-line `view::desktop::quit::DocumentReadiness` is copied unchanged
+from W15's immutable853893652 control packet; its producer's strict run remains
+pending. No provisional E3/controller/App quit implementation is adopted.
+C5 now uses one per-viewer readiness predicate for cache eviction and path
+mutation admission. It checks both original owner write tickets and model write
+obligations before text dirtiness: uncertain is Failed, any original pending
+attempt is Pending, modified error/conflict is Failed, other modifications are
+Dirty. Readonly/read-only acquisition without writes grants no save authority.
+
+The all-retained aggregation adapter `lifecycle::check_documents` remains literal
+cfg(test) staging until W15's checked control and real finalizer registration.
+It includes active/retained resources and path mutations without another owner
+map; Failed takes precedence over Pending and Dirty. Its GPUI regression keeps
+an uncertain write protected after undo and after a clean different active file.
+This is not ordinary-quit integration: registration, finalizing-phase control
+read-only and queued mutator/new-write refusal still need the canonical live
+consumer. Forced exit has no journal or recovery guarantee. New tests are not
+executed yet; fast checks are bounded source checks only.

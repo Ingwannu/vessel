@@ -49,6 +49,7 @@ mod intelligence_view;
 #[cfg(test)]
 mod io_tests;
 mod layout_adapter;
+mod lifecycle;
 mod line_syntax;
 mod listing_search;
 mod markdown;
