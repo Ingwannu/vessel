@@ -173,6 +173,10 @@ impl Default for GridSize {
 /// Why a terminal value was refused.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum TerminalError {
+    /// A complete input packet would exceed the existing node byte budget.
+    #[error("terminal input exceeds the node byte budget")]
+    InputTooLarge,
+
     /// A column or row count was zero.
     #[error("a terminal needs at least one column and one row")]
     Empty,

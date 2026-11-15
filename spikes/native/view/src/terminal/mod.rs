@@ -10,6 +10,8 @@ pub mod grid;
 mod model;
 pub mod paint;
 pub mod parse;
+mod paste;
+pub use paste::prepare_paste;
 mod reply;
 #[cfg(test)]
 mod scrollback_tests;

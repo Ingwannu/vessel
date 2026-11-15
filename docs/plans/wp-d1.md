@@ -156,3 +156,15 @@ it never restores evicted output. Zero removes history and follows live output.
 The UI-independent settings module is `cfg(test)` staged under A10 until
 E2 preference wiring removes that attribute in its consumer commit; it is not yet proof that the actual Settings page changes a live terminal.
 The shared engine migration must preserve these same retention tests/contracts.
+
+
+## T2 paste preparation
+
+The pure native paste preparation uses the read Paseo runtime
+`terminal-paste.ts` 26–34: raw text without bracketed mode, otherwise wrap once
+and remove ESC from every embedded end marker. Clipboard-empty skips sending.
+Unicode and newline bytes are preserved. One complete packet is checked against
+`SendTerminal::MAX_BYTES` before allocation/queueing, including marker overhead;
+this additional refusal prevents a truncated bracket sequence and multi-byte
+text bypassing a character-count queue. No clipboard access or runtime input
+handler is claimed yet. The single ordered sender remains the delivery owner.
