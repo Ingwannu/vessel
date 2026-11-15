@@ -1,6 +1,6 @@
 //! Typed plugin catalog seam while node methods remain unassigned (ADR 0079).
 //!
-//! The real adapter replaces UnavailableNode only after the node service and
+//! The real adapter replaces `UnavailableNode` only after the node service and
 //! one shared pending method table exist. No invented RPC is sent here.
 
 use std::future::Future;
@@ -24,8 +24,11 @@ pub trait CatalogSource {
 pub struct UnavailableNode;
 
 impl CatalogSource for UnavailableNode {
-    async fn catalog(&self, _node: NodeId) -> Result<Vec<Installation>, Problem> {
-        Err(Problem::Unsupported)
+    fn catalog(
+        &self,
+        _node: NodeId,
+    ) -> impl Future<Output = Result<Vec<Installation>, Problem>> + Send {
+        std::future::ready(Err(Problem::Unsupported))
     }
 }
 
@@ -88,11 +91,13 @@ mod native {
 
         struct InMemory;
         impl CatalogSource for InMemory {
-            async fn catalog(
+            fn catalog(
                 &self,
                 _node: NodeId,
-            ) -> Result<Vec<vessel_app_view::plugins::Installation>, Problem> {
-                Ok(vec![])
+            ) -> impl std::future::Future<
+                Output = Result<Vec<vessel_app_view::plugins::Installation>, Problem>,
+            > + Send {
+                std::future::ready(Ok(vec![]))
             }
         }
 
