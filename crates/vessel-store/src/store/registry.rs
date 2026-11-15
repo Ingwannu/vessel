@@ -10,6 +10,40 @@ use vessel_proto::WorkspaceId;
 use vessel_proto::registry::{RegistryRevision, WorkspaceResource};
 
 impl Store {
+    /// Admit a next run for the same actor only after its supervisor proves the previous run joined.
+    /// The exact predecessor must still be Ready; this check is not itself proof of process exit.
+    ///
+    /// # Errors
+    /// Foreign/stale/unsettled predecessor, non-Active/stale workspace, or persistence failure.
+    pub async fn claim_registry_restart(
+        &self,
+        previous: crate::WorkspaceStartLease,
+        expected: RegistryRevision,
+    ) -> Result<crate::WorkspaceStartLease, StoreError> {
+        let next = expected
+            .next()
+            .ok_or(StoreError::RegistryRevisionExhausted)?;
+        let lease =
+            crate::WorkspaceStartLease::new(previous.workspace(), previous.resource(), next);
+        self.registry_write(RegistryWrite::Restart { previous, expected })
+            .await?;
+        Ok(lease)
+    }
+
+    /// Recover exact retained admission metadata without inferring process state or new ownership.
+    ///
+    /// # Errors
+    /// Database or typed stored-state decode failure.
+    pub async fn registry_resource_run(
+        &self,
+        resource: WorkspaceResource,
+    ) -> Result<Option<crate::RegistryResourceRun>, StoreError> {
+        self.read(move |reader| {
+            reader.with(|connection| registry::resource_run(connection, resource))
+        })
+        .await
+    }
+
     /// Release only the exact retained source/version after explicit person authorization.
     /// This does not approve a digest, run setup or retry earlier work.
     ///

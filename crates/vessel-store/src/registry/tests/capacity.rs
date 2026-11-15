@@ -85,6 +85,18 @@ fn resource_capacity_never_evicts_ended_owners_and_existing_lease_still_settles(
     )
     .unwrap();
     assert_eq!(resource_owner(&db, resource).unwrap(), Some(id));
+    let previous = resource_run(&db, resource).unwrap().unwrap();
+    assert_eq!(previous.readiness, RegistryResourceReadiness::Ready);
+    let expected = workspace(&db, id).unwrap().unwrap().descriptor.revision;
+    apply(
+        &mut db,
+        &RegistryWrite::Restart {
+            previous: previous.lease,
+            expected,
+        },
+    )
+    .unwrap();
+    assert_eq!(load(&db).unwrap().memberships.len(), MAX_RESOURCES);
 }
 
 #[test]

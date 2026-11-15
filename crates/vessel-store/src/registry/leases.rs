@@ -53,3 +53,27 @@ pub(super) fn settle(
     // Archiving admits no new starts, but already-admitted starts must be able to settle.
     write::put(connection, &record, Some(expected))
 }
+
+/// A stable terminal may admit its next run only from its exact settled predecessor.
+pub(super) fn restart(
+    connection: &Connection,
+    previous: &WorkspaceStartLease,
+    expected: RegistryRevision,
+) -> Result<(), StoreError> {
+    write::require_active(connection, previous.workspace)?;
+    let mut record =
+        read::workspace(connection, previous.workspace)?.ok_or(StoreError::RegistryConflict)?;
+    if record.descriptor.revision != expected {
+        return Err(StoreError::RegistryConflict);
+    }
+    let next = expected
+        .next()
+        .ok_or(StoreError::RegistryRevisionExhausted)?;
+    let (kind, id) = resource_key(previous.resource);
+    let changed=connection.execute("UPDATE workspace_registry_resources SET stage='pending',lease_revision=?4 WHERE kind=?1 AND resource=?2 AND workspace=?3 AND stage='ready' AND lease_revision=?5",params![kind,id,previous.workspace.to_string(),write::revision(next)?,write::revision(previous.revision)?])?;
+    if changed == 0 {
+        return Err(StoreError::RegistryConflict);
+    }
+    record.descriptor.revision = next;
+    write::put(connection, &record, Some(expected))
+}
