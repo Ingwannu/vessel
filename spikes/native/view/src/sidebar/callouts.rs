@@ -99,7 +99,7 @@ impl Priority {
         Self(value)
     }
 }
-/// Replacing a registration invalidates its prior cleanup token.
+/// Replacing a registration invalidates its prior cleanup and input token.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Token(u64);
 /// The only failures refuse mutation, retaining the preceding state.
@@ -129,6 +129,11 @@ impl<I, C> Entry<I, C> {
     #[must_use]
     pub const fn id(&self) -> &I {
         &self.id
+    }
+    /// Capture this registration when rendering an input or cleanup callback.
+    #[must_use]
+    pub const fn token(&self) -> Token {
+        self.token
     }
     /// Borrow the payload selected by priority, without cloning state per frame.
     #[must_use]
@@ -161,7 +166,8 @@ impl<I, C> Default for State<I, C> {
     }
 }
 impl<I: PartialEq, C> State<I, C> {
-    /// Complete the existing preference read once, retaining each logical key.
+    /// Apply the current canonical preference band, retaining each logical key.
+    /// Reconciliation changes admission only; registered payloads stay intact.
     /// # Errors
     /// Refuses too many stored keys; no partial load or false Ready state.
     pub fn load_dismissed(&mut self, keys: &[DismissalKey]) -> Result<(), Problem> {
@@ -231,10 +237,19 @@ impl<I: PartialEq, C> State<I, C> {
         chosen
     }
     /// Remove one notice and retain its key for the existing preference writer.
+    /// Only the active captured registration can act; stale input is a no-op.
     /// The returned payload lets its provider run its own dismissal callback.
     /// # Errors
     /// If a durable key cannot be retained, the callout stays registered.
-    pub fn dismiss(&mut self, id: &I) -> Result<Option<C>, Problem> {
+    pub fn dismiss(&mut self, id: &I, token: Token) -> Result<Option<C>, Problem> {
+        // A retained frame must not dismiss a replacement or a notice hidden
+        // by a newer provider/preference projection before the next redraw.
+        if self
+            .active()
+            .is_none_or(|entry| &entry.id != id || entry.token != token)
+        {
+            return Ok(None);
+        }
         let Some(index) = self.entries.iter().position(|entry| &entry.id == id) else {
             return Ok(None);
         };

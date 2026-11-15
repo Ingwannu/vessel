@@ -5,7 +5,7 @@ fn key(raw: &str) -> DismissalKey {
 #[test]
 fn durable_notices_wait_for_storage_but_ephemeral_notices_and_priority_still_work() {
     let mut state = State::default();
-    let _token = state
+    let token = state
         .register(
             "setup",
             Priority::new(100),
@@ -19,7 +19,7 @@ fn durable_notices_wait_for_storage_but_ephemeral_notices_and_priority_still_wor
     assert_eq!(state.active().unwrap().id(), &"update");
     state.load_dismissed(&[]).unwrap();
     assert_eq!(state.active().unwrap().content(), &"Setup");
-    assert_eq!(state.dismiss(&"setup").unwrap(), Some("Setup"));
+    assert_eq!(state.dismiss(&"setup", token).unwrap(), Some("Setup"));
     assert_eq!(state.active().unwrap().content(), &"Update");
     assert_eq!(state.dismissed(), &[key("setup:one")]);
     let _token = state
@@ -103,10 +103,10 @@ fn malformed_and_oversized_dismissals_are_refused_without_dropping_existing_keys
         .collect::<Vec<_>>();
     let mut state = State::default();
     state.load_dismissed(&keys).unwrap();
-    let _token = state
+    let token = state
         .register(1, Priority::default(), Some(key("new-project")), "Keep me")
         .unwrap();
-    assert_eq!(state.dismiss(&1), Err(Problem::DismissalsFull));
+    assert_eq!(state.dismiss(&1, token), Err(Problem::DismissalsFull));
     assert_eq!(state.active().unwrap().content(), &"Keep me");
     assert_eq!(state.dismissed(), keys);
     let too_many = vec![key("duplicate"); MAX_DISMISSALS + 1];
@@ -202,4 +202,25 @@ fn sidebar_callout_source_identity_keeps_exact_scoped_names_separate_from_dismis
         SourceId::try_from("bad\nsource".to_owned()),
         Err(InvalidKey)
     );
+}
+
+#[test]
+fn sidebar_callout_input_requires_the_active_registration_after_replace_or_reconcile() {
+    let mut state = State::default();
+    state.load_dismissed(&[]).unwrap();
+    let old = state.register(1, Priority::default(), None, "Old").unwrap();
+    let current = state
+        .register(1, Priority::default(), Some(key("new")), "New")
+        .unwrap();
+    assert_eq!(state.active().unwrap().token(), current);
+    assert_eq!(state.dismiss(&1, old), Ok(None));
+    assert!(state.dismissed().is_empty());
+    state.load_dismissed(&[key("new")]).unwrap();
+    assert_eq!(state.dismiss(&1, current), Ok(None));
+    state.load_dismissed(&[]).unwrap();
+    let higher = state.register(2, Priority::new(1), None, "Higher").unwrap();
+    assert_eq!(state.dismiss(&1, current), Ok(None));
+    assert_eq!(state.dismiss(&2, higher), Ok(Some("Higher")));
+    assert_eq!(state.dismiss(&1, current), Ok(Some("New")));
+    assert_eq!(state.dismissed(), &[key("new")]);
 }

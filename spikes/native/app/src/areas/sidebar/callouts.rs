@@ -51,9 +51,33 @@ impl Callouts {
     }
 }
 
+/// Reconcile after the sole canonical preference owner applies or rolls back
+/// its projected document. This boundary neither saves nor recreates providers.
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "desktop preference owner wires the checked producer"
+    )
+)]
+pub(crate) fn preferences_changed(shell: &mut Shell, cx: &mut Context<'_, Shell>) {
+    let callouts = &mut shell.areas.sidebar.callouts;
+    match callouts
+        .admission
+        .load_dismissed(shell.prefs.settings.sidebar_callout_dismissals.keys())
+    {
+        Ok(()) => {
+            callouts.loaded = true;
+            cx.notify();
+        }
+        Err(error) => tracing::warn!(%error, "canonical sidebar dismissals refused"),
+    }
+}
+
 pub(super) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Option<Div> {
     let active = shell.areas.sidebar.callouts.admission.active()?;
     let source = active.id().clone();
+    let token = active.token();
     let body = active.content();
     let mut presentation = (body.draw)(shell, tokens);
     // All dismissals go through the single admission/persistence boundary;
@@ -61,7 +85,7 @@ pub(super) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
     let dismissed_source = source.clone();
     presentation.content.dismiss = body.dismissible.then(|| Dismiss {
         press: Rc::new(move |shell: &mut Shell, window, cx| {
-            shell.sidebar_callout_dismiss(&dismissed_source, window, cx);
+            shell.sidebar_callout_dismiss(&dismissed_source, token, window, cx);
         }),
     });
     Some(strip::sidebar_callout(
@@ -131,11 +155,12 @@ impl Shell {
     fn sidebar_callout_dismiss(
         &mut self,
         source: &SourceId,
+        token: Token,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
         let state = &mut self.areas.sidebar.callouts.admission;
-        let body = match state.dismiss(source) {
+        let body = match state.dismiss(source, token) {
             Ok(Some(body)) => body,
             Ok(None) => return,
             Err(error) => {

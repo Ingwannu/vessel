@@ -690,3 +690,38 @@ current F4 strict finishes. One measured GPUI child, pure captured-trigger /
 child-size / viewport flip-clamp, Start/End and Top/Bottom, caller offset4/edge8;
 no state/focus/lease/action/physics. G1 and W19b notified; no implementation or
 checked API yet. Their point/snap paths are not claimed as measured flip parity.
+
+## Canonical dismissal reconciliation and retained input
+
+[Decision Log]
+- Purpose: canonical preference apply and disk-failure rollback must update the
+  existing callout admission immediately, without another preference reader or
+  writer. A callback retained from an older registration must not dismiss its
+  replacement before redraw.
+- Existing assets: the bounded pure store already retains provider payloads,
+  registration tokens and validated dismissal keys. Its load operation can
+  atomically replace the canonical keys; GPUI owns actual pointer dispatch.
+- Alternatives: a second watcher/cache or provider re-registration would
+  duplicate preference ownership or fabricate provider facts. A new global
+  input counter is unnecessary.
+- Choice: add the owner hook
+  areas::sidebar::callouts::preferences_changed(&mut Shell, &mut Context<Shell>).
+  W19's sole desktop/preferences.rs consumer will call it after replacing the
+  projected canonical document, including rollback. The hook reads that current
+  validated band, reconciles this same store and notifies; it never saves,
+  dismisses or recreates a provider.
+- Retained input uses the existing exact registration Token as well as SourceId.
+  Pure dismissal admits only the currently active matching registration before
+  touching keys, removing payloads, invoking callbacks or saving. Token
+  exhaustion refuses; provider clear never resets the counter.
+- Tradeoff: removing a dismissal key can reveal a still-registered payload;
+  a payload explicitly removed by local dismissal is not invented on rollback.
+  Its real provider must register again if its facts still warrant a notice.
+
+New actual GPUI tests retain A's rendered pointer handlers, replace registration
+B before redraw, assert unchanged render count, B/prefs/callback preservation,
+then exercise current B (dismissible and fixed). A second test applies and rolls
+back the canonical band, preserving payload/token and avoiding callbacks. Pure
+tests also cover priority replacement and canonical suppression. Tests are
+installed but not executed; the current ordinary strict run still checks033,
+not this later source. W19's actual consumer is not installed in this tree.
