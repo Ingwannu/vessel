@@ -121,7 +121,9 @@ impl Shell {
                         })
                         .collect();
                 }
-                self.command(vessel_app_link::Command::SavePrefs(self.prefs.clone()));
+                self.command(vessel_app_link::Command::SavePrefs(Box::new(
+                    self.prefs.clone(),
+                )));
             }
             Err(LayoutError::Modified) => {
                 self.notice = Some(self.words.layout().modified().to_owned());
