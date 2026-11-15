@@ -7,7 +7,7 @@
 use vessel_proto::voice::{SpeechText, VoiceDecodeError};
 use vessel_proto::workspace::trim_project_text;
 
-const MAX_SEGMENT_UNITS: usize = 260;
+pub(super) const MAX_SEGMENT_UNITS: usize = 260;
 const MIN_WORD_BREAK_UNITS: usize = 130;
 
 pub(super) fn split(text: &SpeechText) -> Result<Vec<SpeechText>, VoiceDecodeError> {

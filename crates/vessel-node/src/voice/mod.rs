@@ -10,3 +10,4 @@ mod prompt;
 mod receipts;
 mod segments;
 mod transcript;
+mod tts_endpoint;
