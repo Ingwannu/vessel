@@ -332,3 +332,12 @@ UI tickets. Query edits invalidate old results before dispatch; A→B→A and
 close→reopen cannot revive old callbacks. It is not a connection lease or a
 workspace resolver. Native file scope getter/opener integration is still held
 for W13's checked owner packet; no duplicate I/O or legacy opener is added.
+
+
+The d8cb9f67 remote all-target suite compiled changed View/Kit/Link and reached
+App, then failed one unchecked Duration subtraction in a badge regression and
+one mutability mismatch: the kit's authoritative focused-composing query needs
+mutable Window/App to inspect its text engine. The badge visibility helper now
+accepts those references, preserving the actual IME query without a second
+composition cache. No new kit or field API is introduced. This remains failed
+suite evidence until the next source passes; no app-green claim follows.

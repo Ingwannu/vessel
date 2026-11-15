@@ -165,7 +165,7 @@ mod tests {
         else {
             panic!("new hold")
         };
-        assert!(!reveal.reveal(old, REVEAL_DELAY - Duration::from_millis(1)));
+        assert!(!reveal.reveal(old, REVEAL_DELAY.saturating_sub(Duration::from_millis(1))));
         assert_eq!(
             reveal.update(
                 Some(Modifier::Control),

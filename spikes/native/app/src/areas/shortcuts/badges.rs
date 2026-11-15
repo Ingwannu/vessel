@@ -23,7 +23,7 @@ fn context(shell: &Shell, window: &Window) -> ShortcutContext {
     }
     context
 }
-fn eligible(shell: &Shell, window: &Window, cx: &App) -> bool {
+fn eligible(shell: &Shell, window: &mut Window, cx: &mut App) -> bool {
     super::available(window)
         && window.is_visible()
         && window.is_window_active()
@@ -43,7 +43,7 @@ fn has_target_owner(shell: &Shell, window: &Window, cx: &App) -> bool {
     };
     shell.shortcut_handler_available(&request, window, cx)
 }
-fn required(shell: &mut Shell, window: &Window, cx: &App) -> Option<(Modifier, When)> {
+fn required(shell: &mut Shell, window: &mut Window, cx: &mut App) -> Option<(Modifier, When)> {
     if !eligible(shell, window, cx) || !has_target_owner(shell, window, cx) {
         return None;
     }
@@ -77,7 +77,7 @@ fn required(shell: &mut Shell, window: &Window, cx: &App) -> Option<(Modifier, W
 }
 impl Shell {
     /// Source-owned sidebar rows ask this; no targets or defaults are duplicated.
-    pub(crate) fn shortcut_badges_visible(&self, window: &Window, cx: &App) -> bool {
+    pub(crate) fn shortcut_badges_visible(&self, window: &mut Window, cx: &mut App) -> bool {
         self.areas.shortcuts.badge_reveal.visible()
             && eligible(self, window, cx)
             && has_target_owner(self, window, cx)
