@@ -322,3 +322,11 @@ authorization, workspace membership or this stable placement key.
 The announced shared pane line was merged, retaining both layout and project
 action registration arms. Fast root size/boundary and whitespace checks passed;
 new merged-head native compilation and this runtime projection remain owed.
+
+
+The first combined strict native check after the pane-base merge stopped in the
+new navigation test module: thirteen setup transitions discarded their typed
+navigation result under unused-results. Those setup results are now explicitly
+bound; the existing state, draft, capacity and refusal assertions are unchanged.
+The checked run did not reach a successful app/link result or runtime tests.
+A corrected immutable-head strict check remains required before consumer handoff.

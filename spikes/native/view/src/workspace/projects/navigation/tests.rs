@@ -93,17 +93,17 @@ fn back_restores_search_and_parent_specific_name_drafts_and_then_closes() {
     let hosts = [a.clone(), host("b")];
     let mut flow = ProjectNavigationModel::open(&hosts, None);
     flow.set_input("find host".to_owned()).unwrap();
-    flow.choose_host(&a.target, &hosts).unwrap();
-    flow.choose_method(AddMethod::NewDirectory, &hosts).unwrap();
-    flow.choose_parent(PathBuf::from("/remote/parent-a"))
+    let _navigation = flow.choose_host(&a.target, &hosts).unwrap();
+    let _navigation = flow.choose_method(AddMethod::NewDirectory, &hosts).unwrap();
+    let _navigation = flow.choose_parent(PathBuf::from("/remote/parent-a"))
         .unwrap();
     flow.set_input("retained name".to_owned()).unwrap();
     assert_eq!(flow.back(), ProjectNavigation::PageChanged);
-    flow.choose_parent(PathBuf::from("/remote/parent-b"))
+    let _navigation = flow.choose_parent(PathBuf::from("/remote/parent-b"))
         .unwrap();
     assert_eq!(flow.input(), Some(""));
     assert_eq!(flow.back(), ProjectNavigation::PageChanged);
-    flow.choose_parent(PathBuf::from("/remote/parent-a"))
+    let _navigation = flow.choose_parent(PathBuf::from("/remote/parent-a"))
         .unwrap();
     assert_eq!(flow.input(), Some("retained name"));
     assert_eq!(flow.back(), ProjectNavigation::PageChanged);
@@ -120,16 +120,16 @@ fn clone_location_is_per_exact_target_and_remote_and_survives_back() {
     let a = host("a");
     let hosts = [a];
     let mut flow = ProjectNavigationModel::open(&hosts, None);
-    flow.choose_method(AddMethod::Github, &hosts).unwrap();
+    let _navigation = flow.choose_method(AddMethod::Github, &hosts).unwrap();
     let first: CloneUrl = "https://example.invalid/first.git".parse().unwrap();
     let other: CloneUrl = "https://example.invalid/other.git".parse().unwrap();
-    flow.choose_repository(first.clone()).unwrap();
+    let _navigation = flow.choose_repository(first.clone()).unwrap();
     flow.set_input("/node/source".to_owned()).unwrap();
     assert_eq!(flow.back(), ProjectNavigation::PageChanged);
-    flow.choose_repository(other).unwrap();
+    let _navigation = flow.choose_repository(other).unwrap();
     assert_eq!(flow.input(), Some(""));
     assert_eq!(flow.back(), ProjectNavigation::PageChanged);
-    flow.choose_repository(first).unwrap();
+    let _navigation = flow.choose_repository(first).unwrap();
     assert_eq!(flow.input(), Some("/node/source"));
 }
 
@@ -137,20 +137,20 @@ fn clone_location_is_per_exact_target_and_remote_and_survives_back() {
 fn draft_capacity_never_evicts_existing_input_and_updates_still_work_when_full() {
     let hosts = [host("a")];
     let mut flow = ProjectNavigationModel::open(&hosts, None);
-    flow.choose_method(AddMethod::NewDirectory, &hosts).unwrap();
+    let _navigation = flow.choose_method(AddMethod::NewDirectory, &hosts).unwrap();
     for i in 0..MAX_FLOW_DRAFTS {
-        flow.choose_parent(PathBuf::from(format!("/node/parent-{i}")))
+        let _navigation = flow.choose_parent(PathBuf::from(format!("/node/parent-{i}")))
             .unwrap();
         flow.set_input(format!("name-{i}")).unwrap();
         assert_eq!(flow.back(), ProjectNavigation::PageChanged);
     }
-    flow.choose_parent(PathBuf::from("/node/extra")).unwrap();
+    let _navigation = flow.choose_parent(PathBuf::from("/node/extra")).unwrap();
     assert_eq!(
         flow.set_input("extra".to_owned()),
         Err(NavigationRefusal::DraftLimit)
     );
     assert_eq!(flow.back(), ProjectNavigation::PageChanged);
-    flow.choose_parent(PathBuf::from("/node/parent-0")).unwrap();
+    let _navigation = flow.choose_parent(PathBuf::from("/node/parent-0")).unwrap();
     assert_eq!(flow.input(), Some("name-0"));
     flow.set_input("changed".to_owned()).unwrap();
     assert_eq!(flow.input(), Some("changed"));
