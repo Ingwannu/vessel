@@ -5,7 +5,15 @@ use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
 use tokio::net::TcpStream;
 
 pub(super) async fn wait(session: &str) -> io::Result<()> {
-    let Some(address) = std::env::var_os("FAKE_ACP_LOAD_GATE") else {
+    wait_for("FAKE_ACP_LOAD_GATE", session).await
+}
+
+pub(super) async fn prompt(session: &str) -> io::Result<()> {
+    wait_for("FAKE_ACP_PROMPT_GATE", session).await
+}
+
+async fn wait_for(variable: &str, session: &str) -> io::Result<()> {
+    let Some(address) = std::env::var_os(variable) else {
         return Ok(());
     };
     let address: SocketAddr = address

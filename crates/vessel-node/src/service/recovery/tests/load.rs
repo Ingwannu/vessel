@@ -6,8 +6,15 @@ pub(super) struct LoadGate {
 }
 impl LoadGate {
     pub(super) async fn install(f: &Fixture) -> Self {
+        Self::install_env(f, "FAKE_ACP_LOAD_GATE").await
+    }
+    pub(super) async fn install_prompt(f: &Fixture) -> Self {
+        Self::install_env(f, "FAKE_ACP_PROMPT_GATE").await
+    }
+    async fn install_env(f: &Fixture, variable: &str) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-        f.profile(Some(listener.local_addr().unwrap()));
+        let address = listener.local_addr().unwrap();
+        f.profile_env(&format!("env = {{ {variable} = \"{address}\" }}\n"));
         Self { listener }
     }
     pub(super) async fn arrive(&self) -> (String, TcpStream) {

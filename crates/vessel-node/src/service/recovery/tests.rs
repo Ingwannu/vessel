@@ -70,6 +70,9 @@ impl Fixture {
         let env = gate
             .map(|address| format!("env = {{ FAKE_ACP_LOAD_GATE = \"{address}\" }}\n"))
             .unwrap_or_default();
+        self.profile_env(&env);
+    }
+    fn profile_env(&self, env: &str) {
         std::fs::write(
             self.data.profiles_path(),
             format!("[profiles.recovery]\nharness = \"claude\"\n{env}"),
@@ -417,3 +420,5 @@ use load::LoadGate;
 mod order;
 
 mod after_admission;
+
+mod held_reply;

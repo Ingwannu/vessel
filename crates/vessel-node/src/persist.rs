@@ -14,6 +14,9 @@
 //! The task reports how it ended ([`Persisted`]); `sessions` then hands the
 //! session over to the store and removes it from the runtime.
 
+#[cfg(test)]
+pub(crate) mod reply_gate;
+
 use std::sync::Arc;
 
 use tokio::sync::oneshot;
@@ -81,6 +84,11 @@ pub(crate) async fn run(
                     durability.send_modify(|state| *state = Durability::Through(next));
                 }
                 if let Some((_change, reply)) = batch.barrier {
+                    #[cfg(test)]
+                    let reply = match reply_gate::hold(session, _change, reply, changed) {
+                        Ok(()) => continue,
+                        Err(reply) => reply,
+                    };
                     drop(reply.send(Ok(changed)));
                 }
             }

@@ -243,3 +243,21 @@ UnassignedProtocol. Integration owns assignment and the combined-line gate.
 The node implementation remains built and awaiting source review; the app
 facet remains with its owner. No live service, permission or deployment was
 changed, and no repository push was made.
+
+## Review finding: admitted prompt and a person's kill
+
+Independent source review identified a stop-admission defect after the green
+execution: the recovery arbiter cancels an attempt but waits for its delivery
+reply before allowing an ordinary KillSession through. That reply can still
+be unresolved after actual prompt enqueue. Keeping its owner and capacity is
+necessary; delaying the person's durable stop until its reply is not.
+
+The forcing regression holds the fake provider's actual prompt response and,
+separately, the real committed Arm acknowledgement. ACP accepts at send rather
+than at provider completion, so holding the latter is necessary to retain the
+actual session delivery reply. The writer remains free to commit suppression;
+the observer forwards only the actual commit result and releases it on drop.
+The test uses authenticated KillSession, checks retained attempt capacity and
+no third launch until real settlement, then checks replacement survival and no
+reconstructed restart intent. It is prepared for execution against the
+unchanged recovery admission before the repair; no reproduction is claimed yet.

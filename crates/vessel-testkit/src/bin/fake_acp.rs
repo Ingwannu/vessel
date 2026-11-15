@@ -69,6 +69,8 @@
 //! - `session/set_config_option`: sets an option to a value it offers
 //!   (`mode` never to `locked`), rejects anything else; `session/set_mode`
 //!   the same for the older modes.
+//! - `FAKE_ACP_PROMPT_GATE` holds the actual prompt response on the same
+//!   framed loopback barrier as the load gate, after the fake handles the turn.
 //! - `session/prompt`, by prompt text:
 //!   - `plain`: one message chunk `echo: plain` with a message id
 //!     (`msg-<n>`, new each time), then `end_turn`;
@@ -760,6 +762,9 @@ async fn serve() -> ExitCode {
                                 (&turn, &finish),
                             )
                             .await?;
+                            gate::prompt(&request.session_id.0)
+                                .await
+                                .map_err(|error| Error::internal_error().data(error.to_string()))?;
                             lock(&state).steerable = None;
                             responder.respond(PromptResponse::new(reason))
                         }
