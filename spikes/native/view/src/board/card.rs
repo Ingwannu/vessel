@@ -4,8 +4,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use vessel_proto::{
-    Creator, DisplayStatus, HarnessRef, KanbanColumn, SessionInfo, SessionMarks, SessionMode,
-    SessionStatus,
+    Creator, DisplayStatus, EventSeq, HarnessRef, KanbanColumn, SessionInfo, SessionMarks,
+    SessionMode, SessionStatus,
 };
 
 use super::{Attention, Card, Lane, Phrase, agent_name};
@@ -15,7 +15,7 @@ use crate::session::{can_start_again, folder_name};
 /// and what the sidebar sorts and marks by (`data/sidebar.ts`). Its own
 /// struct, with a default, so a card made by hand (the browser's demo)
 /// names only what it needs.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct CardDetail {
     /// Which agent runs it, as the node names it (its mark's letter);
     /// `None` on a card made by hand.
@@ -43,11 +43,21 @@ pub struct CardDetail {
     /// Its process's state, whatever the node's phrase (the palette's
     /// detail: the page's `statusWord`).
     pub process: Phrase,
+    /// Its pull request as the node watches it (protocol 11): whether
+    /// the node can see it and the last one read. Track G1b's.
+    #[serde(default)]
+    pub pull_request: Option<Box<vessel_proto::forge::SessionPullRequest>>,
     /// When it was created (the sidebar's default order).
     pub created_at: DateTime<Utc>,
     /// When it last did something, by the node's clock where it says, else
     /// its end, else its start (the sidebar's "Last activity").
     pub active_at: DateTime<Utc>,
+    /// The record its log will give next (the node's `next_seq`): what the
+    /// sidebar's "Mark as read" marks read through, the person saying they
+    /// have seen it all without opening it. `None` on a card kept before
+    /// this was (the menu then offers no "Mark as read").
+    #[serde(default)]
+    pub next_seq: Option<EventSeq>,
 }
 
 impl Card {
@@ -116,13 +126,15 @@ impl Card {
             marks: session.marks,
             can_start_again: can_start_again(session),
             failure: match &session.status {
-                SessionStatus::Failed { message } => Some(message.clone()),
+                SessionStatus::Failed { message, .. } => Some(message.clone()),
                 SessionStatus::Starting
                 | SessionStatus::Running
                 | SessionStatus::Exited { .. }
                 | SessionStatus::Interrupted => None,
             },
             process: phrase_of_status(&session.status),
+            pull_request: session.pull_request.clone(),
+            next_seq: Some(session.next_seq),
             created_at: session.created_at,
             active_at: session
                 .board
@@ -199,7 +211,7 @@ const fn phrase_of_status(status: &SessionStatus) -> Phrase {
     match status {
         SessionStatus::Starting => Phrase::Starting,
         SessionStatus::Running => Phrase::Running,
-        SessionStatus::Exited { code } => Phrase::Exited(*code),
+        SessionStatus::Exited { code, .. } => Phrase::Exited(*code),
         SessionStatus::Failed { .. } => Phrase::Failed,
         SessionStatus::Interrupted => Phrase::Interrupted,
     }
