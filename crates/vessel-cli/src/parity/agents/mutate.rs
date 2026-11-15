@@ -170,11 +170,7 @@ pub(super) async fn mode(
             let choice = choice(&options, OptionCategory::Mode, &mode)?;
             let option_id = choice.id.clone();
             let options = client.set_option(info.id, choice).await?;
-            if !options.iter().any(|option| option.id == option_id && matches!(&option.kind, OptionKind::Select { current, .. } if current == &mode)) {
-                return Err(CliError::ParityInvalidReceipt(
-                    "mode acknowledgement did not report the requested selection",
-                ));
-            }
+            confirmed(&options, &option_id, &mode)?;
             let result = ModeSet {
                 agent_id: super::row::ShortId::new(info.id),
                 mode,
@@ -204,7 +200,9 @@ pub(super) async fn update(
     if let Some(thinking) = thinking {
         let options = client.session_options(info.id).await?;
         let choice = choice(&options, OptionCategory::ThoughtLevel, &thinking)?;
-        let _options = client.set_option(info.id, choice).await?;
+        let option_id = choice.id.clone();
+        let options = client.set_option(info.id, choice).await?;
+        confirmed(&options, &option_id, &thinking)?;
     }
     let info = if let Some(name) = name {
         client.rename(info.id, name).await?
@@ -212,6 +210,23 @@ pub(super) async fn update(
         client.session(info.id).await?
     };
     output::single(presentation, &info.id.to_string(), &info).await
+}
+
+/// Success describes the exact setting acknowledged, not merely a returned list.
+fn confirmed(
+    options: &[vessel_proto::SessionOption],
+    id: &vessel_proto::OptionId,
+    wanted: &OptionValueId,
+) -> Result<(), CliError> {
+    if options.iter().any(|option| {
+        &option.id == id
+            && matches!(&option.kind, OptionKind::Select { current, .. } if current == wanted)
+    }) {
+        return Ok(());
+    }
+    Err(CliError::ParityInvalidReceipt(
+        "setting acknowledgement did not report the requested selection",
+    ))
 }
 
 pub(super) fn choice(
@@ -338,6 +353,34 @@ mod tests {
                 &options,
                 OptionCategory::Mode,
                 &OptionValueId::new("unknown")
+            )
+            .is_err()
+        );
+    }
+    #[test]
+    fn setting_success_requires_the_same_option_and_requested_value() {
+        let options = [offered("actual", "new")];
+        assert!(
+            confirmed(
+                &options,
+                &vessel_proto::OptionId::new("actual"),
+                &OptionValueId::new("new")
+            )
+            .is_ok()
+        );
+        assert!(
+            confirmed(
+                &options,
+                &vessel_proto::OptionId::new("other"),
+                &OptionValueId::new("new")
+            )
+            .is_err()
+        );
+        assert!(
+            confirmed(
+                &options,
+                &vessel_proto::OptionId::new("actual"),
+                &OptionValueId::new("old")
             )
             .is_err()
         );

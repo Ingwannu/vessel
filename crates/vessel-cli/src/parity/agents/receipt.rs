@@ -93,6 +93,13 @@ pub(super) async fn run_started(
     };
     emit(presentation, &RunReceipt::new(info, status)).await
 }
+/// Import creates an idle session without acknowledging a new prompt turn.
+pub(super) async fn imported(
+    presentation: Presentation,
+    info: &SessionInfo,
+) -> Result<(), CliError> {
+    emit(presentation, &RunReceipt::new(info, RunStatus::Created)).await
+}
 pub(super) async fn run_finished(
     presentation: Presentation,
     info: &SessionInfo,

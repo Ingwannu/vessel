@@ -1,7 +1,7 @@
 //! Prompt creation/delivery keeps unsupported launch settings ahead of all effects.
 
 use super::{labels, receipt, structured};
-use crate::parity::{observe, output};
+use crate::parity::observe;
 use crate::{
     args::{
         Target,
@@ -160,5 +160,5 @@ pub(super) async fn import(
     .with_labels(labels);
     let client = connect(target).await?.client;
     let info = client.create_session(spec).await?;
-    output::single(presentation, &info.id.to_string(), &info).await
+    receipt::imported(presentation, &info).await
 }

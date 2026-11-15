@@ -583,3 +583,10 @@ $schema declaration gate, and format annotations disabled (no ajv-formats in
 reference). Added tuple-items/dialect/format fixtures; not executed yet. OpenAPI
 nullable and other Ajv extensions remain an explicit runtime-promotion debt, not
 a claim of complete validator equivalence.
+
+Import now reuses the run-receipt schema (reference import.ts toImportResult),
+reporting created from the acknowledged import without claiming a new turn. Mode
+and thinking updates share exact option-ID/value acknowledgement verification; a
+returned list that omits the requested selection is an invalid receipt, never
+success. Added stale/wrong-setting acknowledgement fixtures. Update's full result
+projection and provider notices remain pending; no latest execution claim.
