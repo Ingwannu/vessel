@@ -56,6 +56,13 @@ impl Shell {
                 sequence,
             } => {
                 let Some(ticket) = self.next_file_ticket() else {
+                    let sentence = self.words().labels().editor_save_failed.to_owned();
+                    if let Some(editing) = self.editing_for(key) {
+                        let _settled = editing.model.saved(
+                            sequence,
+                            vessel_app_view::workspace::editor::Written::Failed(sentence),
+                        );
+                    }
                     return;
                 };
                 let Some(scope) = self

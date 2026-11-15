@@ -73,6 +73,7 @@ impl Shell {
                                 !editing.model.modified()
                                     && editing.reading.is_none()
                                     && editing.writing.is_none()
+                                    && editing.model.writing().is_none()
                             });
                         idle.then(|| key.clone())
                     });
