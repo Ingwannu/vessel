@@ -1,0 +1,88 @@
+## Git 비교 화면. 오류의 기술적인 세부 내용은 별도의 코드 영역에 표시합니다.
+
+# Title of the Changes pane. Keep short.
+git-panel-title = 변경 사항
+# Accessible label of the comparison mode picker. Keep short.
+git-panel-mode = Diff 모드
+# Comparison choice: merge base against working files, including new files. Keep short.
+git-panel-mode-all = 모든 변경 사항
+# Comparison choice: HEAD against working files. Keep short.
+git-panel-mode-uncommitted = 커밋되지 않음
+# Comparison choice: merge base against HEAD only. Keep short.
+git-panel-mode-committed = 커밋됨
+# Tooltip and accessible name of the diff options trigger. Keep short.
+git-panel-options = Diff 옵션
+# Menu choice that shows diff bodies directly inside Changes. Keep short.
+git-panel-inline = 인라인 Diff
+# Layout choice for one column with both sides of a change. Keep short.
+git-panel-unified = 통합 diff
+# Layout choice for old and new text in two columns. Keep short.
+git-panel-split = 나란히 보기 diff
+# Menu action enabling source-line wrapping. Keep short.
+git-panel-wrap = 긴 줄 줄바꿈
+# Menu action disabling wrapping and restoring horizontal scrolling. Keep short.
+git-panel-no-wrap = 긴 줄 스크롤
+# Menu action that omits whitespace-only changes. Keep short.
+git-panel-hide-whitespace = 공백 숨기기
+# Menu action that restores whitespace-only changes. Keep short.
+git-panel-show-whitespace = 공백 표시
+# Menu action expanding every file body. Keep short.
+git-panel-expand-files = 모든 파일 확장
+# Menu action folding every file body. Keep short.
+git-panel-collapse-files = 모든 파일 축소
+# Menu action expanding every changed-file folder. Keep short.
+git-panel-expand-folders = 모든 폴더 확장
+# Menu action folding every changed-file folder. Keep short.
+git-panel-collapse-folders = 모든 폴더 축소
+# Button label for rereading git facts; it does not fetch remotes. Keep short.
+git-panel-refresh = 새로고침
+# Refresh button label while rereading facts. Keep short.
+git-panel-refreshing = 새로고침 중
+# Title of the compact sheet that chooses a file to scroll to. Keep short.
+git-panel-jump = 파일로 이동
+# Status while the first repository status read is pending.
+git-panel-checking = 저장소 확인 중...
+# Empty state only when authoritative project facts say this is not a repository.
+git-panel-not-repository = Git 저장소가 아닙니다
+# Empty state after a complete comparison contains no changed files.
+git-panel-empty = 표시할 변경 사항이 없습니다
+# Empty-state action switching from Committed to Uncommitted. Keep short.
+git-panel-see-uncommitted = 커밋되지 않은 변경 사항 보기
+# Empty-state action switching from Uncommitted to Committed. Keep short.
+git-panel-see-committed = 커밋된 변경 사항 보기
+# Heading when the bounded diff document cannot be previewed.
+git-panel-too-large-title = Diff가 너무 커서 미리 볼 수 없습니다
+# Next step beneath the too-large preview heading.
+git-panel-too-large-description = 여기에서 미리 보려면 비교 범위를 좁히세요.
+# Placeholder for a binary file body. Keep short.
+git-panel-binary = 바이너리 파일
+# Heading of the collapsible branch commit section. Keep short.
+git-panel-commits = 커밋
+# Accessible description of the history loading skeleton.
+git-panel-commits-loading = 커밋 로드 중…
+# Empty state for a complete empty commit listing.
+git-panel-commits-empty = 아직 커밋이 없습니다.
+# 오류의 원인과 다음 행동을 하나의 문장으로 유지합니다.
+# Complete recovery after the app could not enqueue a read; nothing reached the machine.
+git-panel-problem-unsent = 보내지 못했습니다. 다시 시도하세요.
+# Complete recovery after losing the machine connection.
+git-panel-problem-connection = 머신의 연결이 끊겼습니다. 다시 연결하고 변경 사항을 새로고침하세요.
+# Complete recovery after a read grant was refused.
+git-panel-problem-access = 이 기기에서 머신의 변경 사항을 읽을 수 없습니다. 접근 권한을 확인하세요.
+# Complete recovery for an older or unassigned protocol method.
+git-panel-problem-version = 변경 사항을 보려면 이 기기와 머신의 Vessel을 업데이트하세요.
+# Complete recovery when the registered folder no longer exists.
+git-panel-problem-missing = 이 폴더를 더 이상 사용할 수 없습니다. 다른 워크스페이스를 여세요.
+# Complete recovery for a transient read refusal or timeout.
+git-panel-problem-unavailable = 지금은 머신에서 변경 사항을 읽을 수 없습니다. 새로고침하고 다시 시도하세요.
+# Complete recovery for an otherwise unclassified read failure; diagnostic is separate.
+git-panel-problem-failed = 머신에서 변경 사항을 읽지 못했습니다. 새로고침하고 다시 시도하세요.
+# Complete recovery when the machine cannot provide this read; this does not say the folder lacks git.
+git-panel-problem-unsupported = 이 머신에서 변경 사항을 제공할 수 없습니다. 머신의 Git과 Vessel을 확인하고 새로고침하세요.
+# Alert heading for a failed status or comparison read; recovery and git output follow separately.
+git-panel-failed-title = 변경 사항을 읽지 못했습니다
+
+# Complete recovery when the selected authenticated connection changed; never choose another alias.
+git-panel-problem-destination = 연결이 변경되었습니다. 이 워크스페이스를 다시 열고 변경 사항을 새로고침하세요.
+# Complete recovery when a file body names a different path; never install it under the requested file.
+git-panel-problem-file = 머신에서 다른 파일의 변경 사항을 보냈습니다. 새로고침하고 다시 시도하세요.

@@ -9,6 +9,8 @@
 //! - Alternatives: match only the root, or cancel the network task.
 //! - Choice: app-side monotonic keys, separate from disposable state.
 //! - Why: a root may reopen, and cancellation cannot undo a git write.
+//! - Extension: keep the original `Reading<T>` alias while allowing the same
+//!   state machine to settle typed local route/reply validation failures.
 //! - Cost: exhausted keys refuse new actions instead of wrapping; the
 //!   link must echo the key without changing the node's wire.
 
@@ -41,7 +43,7 @@ impl RequestKeys {
 /// A read's current state. Old content survives a refresh, but a failed
 /// read remains visibly failed rather than making old facts look fresh.
 #[derive(Debug, Default)]
-pub enum Reading<T> {
+pub enum ReadState<T, E> {
     /// Nothing asked yet.
     #[default]
     Empty,
@@ -55,10 +57,15 @@ pub enum Reading<T> {
     /// The newest request answered.
     Ready(T),
     /// The newest request failed; old content is not actionable.
-    Failed(Problem),
+    Failed(E),
 }
 
-impl<T> Reading<T> {
+/// Existing git callers retain their fixed wire-problem error type and
+/// constructor inference. New correlated readers may use typed local failures
+/// without manufacturing a node error or duplicating this state machine.
+pub type Reading<T> = ReadState<T, Problem>;
+
+impl<T, E> ReadState<T, E> {
     /// Start a newer read, retaining content during loading only.
     pub fn start(&mut self, key: RequestKey) {
         let previous = match std::mem::take(self) {
@@ -71,7 +78,7 @@ impl<T> Reading<T> {
 
     /// Accept only the newest outstanding read. Returns whether the
     /// screen should apply the result; a late or duplicate reply is inert.
-    pub fn accept(&mut self, key: RequestKey, result: Result<T, Problem>) -> bool {
+    pub fn accept(&mut self, key: RequestKey, result: Result<T, E>) -> bool {
         if !matches!(self, Self::Loading { key: pending, .. } if *pending == key) {
             return false;
         }

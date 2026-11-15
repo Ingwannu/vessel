@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use gpui::AnimationExt as _;
 use vessel_app_kit::split_button::{
-    MenuPhase, PrimaryState, SplitContent, SplitHandlers, split_button,
+    Content, Density, MenuPhase, PrimaryState, SplitContent, SplitHandlers, split_button,
 };
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::toolbar_label::{LabelLayout, State, trigger};
@@ -16,7 +16,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, breakpoint};
 use vessel_app_view::workspace::git::{
-    PanelWidth, PrimaryControl, Reading, head_activity, primary_control,
+    ControlDensity, PanelWidth, PrimaryControl, Reading, head_activity, primary_control,
 };
 use vessel_proto::workspace::WorkspaceRoot;
 
@@ -214,30 +214,48 @@ fn actions(
 ) -> AnyElement {
     let git = &shell.areas.git;
     let lang = shell.t.lang;
-    let chosen = control.action;
+    let commands = shell.git_command_entries();
+    let chosen = commands.as_ref().and_then(|commands| commands.primary);
+    let captured = commands.and_then(|commands| {
+        let entry = commands.entries.into_iter().find(|entry| {
+            matches!(entry, vessel_app_view::workspace::pull::MenuEntry::Git(row) if Some(row.action) == chosen)
+        })?;
+        Some((commands.target, entry))
+    });
     let state = if control.running {
         PrimaryState::Busy
     } else {
         PrimaryState::Ready
     };
     let label = match chosen {
-        Some(action) if control.labelled => lang.git_primary_label(action, status),
-        Some(_) | None => "",
+        Some(action) => lang.git_primary_label(action, status),
+        None => "",
     };
-    let content = SplitContent {
-        label: label.into(),
-        icon: Some(chosen.map_or(vessel_app_kit::assets::Glyph::Branch, menu::glyph)),
-        state,
-        menu: if git.menu.is_open() {
-            MenuPhase::Open
-        } else {
-            MenuPhase::Closed
-        },
+    let phase = if git.menu.is_open() {
+        MenuPhase::Open
+    } else {
+        MenuPhase::Closed
+    };
+    let content = match chosen {
+        Some(action) => Content::Split(SplitContent {
+            label: label.into(),
+            icon: super::glyph(action),
+            density: match control.density {
+                ControlDensity::Labelled => Density::Labelled,
+                ControlDensity::IconOnly => Density::IconOnly,
+            },
+            state,
+            menu: phase,
+        }),
+        None => Content::MenuOnly(phase),
     };
     let handlers = SplitHandlers {
-        primary: Rc::new(move |shell: &mut Shell, window, cx| match chosen {
-            Some(action) => shell.git_choose(action, window, cx),
-            None => shell.git_open_menu_at_trigger(window, cx),
+        primary: Rc::new(move |shell: &mut Shell, window, cx| {
+            if let Some((target, entry)) = &captured {
+                let _dispatched = shell.run_git_command(target, entry, window, cx);
+            } else if chosen.is_none() {
+                shell.git_open_menu_at_trigger(window, cx);
+            }
         }),
         menu: Rc::new(|shell: &mut Shell, at, window, cx| {
             shell.git_open_menu(at, window, cx);
@@ -246,12 +264,14 @@ fn actions(
     // Without room for its words, the primary half's action is named by
     // its tooltip (Paseo's `hideLabels` keeps it in the accessibility label).
     let tip = match chosen {
-        Some(action) if !control.labelled => lang.git_primary_label(action, status),
+        Some(action) if control.density == ControlDensity::IconOnly => {
+            lang.git_primary_label(action, status)
+        }
         Some(_) | None => lang.git_labels().options_tip,
     };
     git.tips
         .on(
-            split_button("git-actions", content, &handlers, tokens, touch, cx),
+            split_button("git-actions", &content, &handlers, tokens, touch, cx),
             &git.actions_tip,
             tip,
             touch,

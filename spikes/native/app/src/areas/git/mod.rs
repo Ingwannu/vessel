@@ -29,6 +29,7 @@
 
 mod answers;
 mod branch;
+pub(crate) mod commands;
 mod commit;
 mod commit_scope;
 mod head;
@@ -49,7 +50,7 @@ use vessel_proto::workspace::{BranchList, CommitStage, GitStatus, StashList, Wor
 use crate::shell::Shell;
 
 pub(crate) use head::slot;
-pub(crate) use menu::failure_body;
+pub(crate) use menu::{failure_body, glyph};
 
 /// The repository the area follows: the one the Changes tab shows.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -73,6 +74,7 @@ pub(crate) enum Open {
 pub(crate) struct GitArea {
     pub(crate) target: Option<Target>,
     keys: RequestKeys,
+    commands_generation: Option<RequestKey>,
     pub(crate) status: Reading<GitStatus>,
     pub(crate) branches: Reading<BranchList>,
     pub(crate) stashes: Reading<StashList>,
@@ -121,6 +123,7 @@ impl GitArea {
         Self {
             target: None,
             keys: RequestKeys::default(),
+            commands_generation: None,
             status: Reading::Empty,
             branches: Reading::Empty,
             stashes: Reading::Empty,
@@ -178,6 +181,13 @@ impl Shell {
         git.writing = Writing::default();
         git.pending = None;
         git.issue = None;
+        git.commands_generation = match git.keys.issue() {
+            Ok(key) => Some(key),
+            Err(_exhausted) => {
+                git.issue = Some(Issue::Keys);
+                None
+            }
+        };
         git.open = None;
         git.dropping = None;
         git.confirm_switch = None;

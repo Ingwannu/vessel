@@ -284,7 +284,11 @@ Labels remain whole and explanations belong below their row.
 `kit/split_button.rs` supplies Paseo's joined primary action and caret:
 26-point pointer / 44-point touch geometry, shared busy spinner, disabled
 primary, and `menu_right` for the menu aligned to the caret's right edge.
-The caller owns its actions, labels and menu state.
+`Content::MenuOnly` draws the branch/caret shape without a primary action;
+`Density::{Labelled,IconOnly}` keeps labels on one line and lets the caller
+reserve width. Busy uses the shared ActivityIndicator (16 ink in20 layout).
+Touch's44 target deliberately exceeds the current reference's28 compact height.
+The caller owns its actions, labels, density and menu state.
 
 Picker rows retain `Leading::Glyph` at 16 points; `Leading::SmallGlyph`
 is the explicit 14-point slot used by Paseo’s branch switcher.
@@ -1174,6 +1178,17 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+### Shared ActivityIndicator
+
+`loading::activity_indicator(id, Size, colour)` is the source activity profile:
+Small20, Large36 or Numeric(Points); TEN/SIXTEEN are validated numeric constants.
+Opaque32-unit track/arc masks retain the source radius14/stroke4/arc20 geometry.
+The track takes20% element opacity after GPUI's mask gamma correction; the
+foreground shares the existing750ms linear rotation path and App motion flag.
+Legacy slider::spinner retains its vector/API/800ms through the same rotation
+helper. Combined ActivityIndicator asset stays registered for compatibility.
+See docs/plans/backend-m12-g2-loading-019-producer.md for source/gate/UI scope.
 
 Settings Overview keeps its page and book-edit commands in
 `app/src/areas/settings/overview.rs`; `overview/dialogs.rs` only renders
