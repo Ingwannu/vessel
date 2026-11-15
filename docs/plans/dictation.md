@@ -414,3 +414,19 @@ Complete existing settings literals only in the optional-field commit, without
 changing any old value or assertion. Do not split the shared guard. The CLI
 file client follows the service and still needs its file contract amendment.
 Local engines and microphone capture remain deferred.
+
+## Input ordering implementation
+
+Decision: a new pure input owner, reusing DictationPcm, SampleRate and ChunkSeq.
+The existing resampler and transport frame queue cannot own application-level
+gaps, tail placement or distinct accepted/forwarded cursors. No new wire DTO or
+dependency is needed: acknowledgement remains Option<ChunkSeq> internally.
+One parent chunk-duration constant supplies accepted byte counts and the existing
+segment headroom; total duration derives from the sequence cap.
+
+Half-done: staged input source and eleven tests cover held-tail acknowledgement,
+matching finish, gap unlocking one chunk at a time, duplicate/overflow priority,
+unchanged state on bad shape, count/byte reorder bounds, current-chunk admission
+with full holds, duration, finish without audio and filling gaps after finish.
+Narrow clippy and all eleven input tests pass; this commit's whole gate remains
+owed. The pure owner does not test canceled RPC replies or provider backpressure; those remain actor tests.

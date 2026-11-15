@@ -18,7 +18,7 @@ const PCM_FORMAT: u16 = 1;
 const MONO_CHANNELS: u16 = 1;
 const COMMIT_SECONDS: usize = 15;
 // Commit after appending a whole second-sized input chunk, as Paseo does.
-const MAX_SEGMENT_SECONDS: usize = COMMIT_SECONDS + 1;
+const MAX_SEGMENT_SECONDS: usize = COMMIT_SECONDS + super::MAX_CHUNK_SECONDS;
 const SILENCE_PEAK: u16 = 300;
 
 /// Preserve numeric causes without retaining any audio in an error.

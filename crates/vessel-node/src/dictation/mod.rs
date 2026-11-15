@@ -4,11 +4,15 @@
 //! removes the outer test gate. These helpers do not start a live service;
 //! tests exercise the real audio/identity code without widening its API.
 
+// One-second input chunks define both accepted duration and segment headroom.
+const MAX_CHUNK_SECONDS: usize = 1;
+
 // Idle pooling must not retain more connections than the stream commit budget.
 const MAX_IN_FLIGHT_COMMITS: usize = 2;
 
 mod audio;
 mod endpoint;
+mod input;
 mod multipart;
 mod owner;
 mod provider_json;
