@@ -1,6 +1,7 @@
 # ADR 0095: one maintained terminal screen engine
 
-Status: source reviewed; whole package gate owed.
+Status: prerequisite source/partial-gate accepted; full consumer gate open.
+D1 follow-up amendments below remain proposed and independently unreviewed.
 Separate prerequisite package before the terminal UI.
 
 ## Decision log
@@ -108,6 +109,35 @@ is reconstructed from a pruned event ring. The native parser stays only until
 D1 switches to the passed engine; this prerequisite does not claim retirement,
 full D1 UI, physical input, platform runtime or renderer parity.
 
+## Verification record and limits
+
+Exact pre-format e792 passes strict changed-package checking and11 tests,
+including31 raw-cell checkpoints and7 server-handler query cases. Independent
+review audited the expected artifacts and the formatting-only0d7 extension.
+The first whole run failed formatting; the pinned official configuration fixed
+that without behavioral or expected-value changes.
+
+The corrected whole0d7 run is RED only at the named LimitPercent base alias
+classification defect, fixed separately by9dfdf0a1. Seven actual whole steps
+passed, including all three Clippy variants; protocol TS tests3/0 and web TS
+1/1 stopped execution. Ten remaining planned whole steps did not run. The
+explicit gate exception accepts this named base defect; it does not turn
+unexecuted tests into evidence or justify another unchanged whole run.
+
+No native gate is owed before a native dependency exists. Node actor ordering,
+transport, native parser retirement/rendering, actual input, UI captures and OS
+runtime remain outside this prerequisite. Upstream Cell has finite22-byte
+content; the bounded corpus is not arbitrary-grapheme losslessness proof.
+
+## Full consumer qualification remains open
+
+Bounded source and partial-gate adoption is accepted with the named base
+defect; this is not consumer-ready. Before ANY consumer-ready claim or
+activation, this engine must pass one FULL whole on a base carrying the
+gate49 alias fix. The ten unexecuted steps remain unverified until then.
+No third unchanged worker gate is requested; consumer integration must
+satisfy this enclosing qualification before shipping or activation.
+
 ## D1 follow-up: decoder metadata and multiplexed presentation
 
 The same transitive VTE 0.15 decoder may be vendored with exact checksum,
@@ -126,15 +156,6 @@ attach. NodeAuthority stays off until the compatibility path lands and passes.
 Current authoritative frame consumers use one revision/anchor/mode contract;
 they do not restore mutable parsers from visible cells. The CLI ANSI renderer
 is a display backend, not ANSI state replay into a parser.
-
-## Verification owed (prerequisite)
-
-Golden fixture checkpoints execute actual recorded output, independently
-captured raw cell hashes and text/cursor/history expectations. Add primary
-shrink/grow/soft-wrap/CJK, capacity change/eviction, query and final-snapshot
-cases; strict changed-crate checks; one whole root gate; V3 prerequisite
-review. No whole native gate is owed by this root-only package before a
-native dependency edge exists. Actual D1 captures remain its later package.
 
 ## Presentation overlap exception
 
