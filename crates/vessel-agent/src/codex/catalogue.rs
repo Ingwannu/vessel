@@ -128,6 +128,7 @@ impl Transaction {
         }
         let version = initialized.user_agent.as_deref().and_then(version);
         let mut native = Vec::new();
+        let mut budget = catalogue_data::MetadataBudget::default();
         let mut cursor: Option<String> = None;
         for _page in 0..MAX_PAGES {
             let params = serde_json::json!({ "cursor": cursor });
@@ -135,6 +136,7 @@ impl Transaction {
             if native.len().saturating_add(page.data.len()) > MAX_CATALOGUE_ENTRIES {
                 return Err(CatalogueProbeError::Invalid);
             }
+            budget.admit(&page)?;
             native.extend(page.data);
             match page.next_cursor {
                 None => {
