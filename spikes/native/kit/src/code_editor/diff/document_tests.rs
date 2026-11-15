@@ -1,4 +1,4 @@
-//! The real outer VirtualList follows keyboard selection on the same engine.
+//! The real outer `VirtualList` follows keyboard selection on the same engine.
 use super::*;
 use crate::VirtualList;
 use crate::code_editor::diff::tests::Plain;

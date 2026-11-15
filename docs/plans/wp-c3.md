@@ -668,3 +668,13 @@ The empty-navigation callback's production guard now has direct fixtures for
 no/current/replaced admission, another root, another full comparison and an
 immutable commit target. The captured action carries the original context and
 repository; it never recaptures a replacement route when activated.
+
+## Approved queued-run replacement
+
+The coordinator authorized cancel-queued for exactly four obsolete checks.
+The 5ac consumer had already taken a slot, so it was left untouched. The88e
+editor-test/Kit-Clippy runs and762 public-port test became terminal cancelled143;
+this is an approved queue cancellation, not a compiler result. Their evidence
+is retained. One latest union App/Kit source batch follows rustfmt, file budget,
+boundary/token checks and import/doc-markdown inspection. Values194, nodee103
+and fa1 Clippy remain untouched. No whole package pass or capture is implied.
