@@ -98,3 +98,20 @@ source only and does not deploy to a running service.
   captures and native gate when the package is reviewable.
 - Blocked: full workspace lifecycle, project revision editor and metadata
   mutations await node contracts. No gate, capture or parity claim yet.
+
+## Final ownership correction
+
+The canonical plan assigns this package project UI plus registry/status/rename/pin
+and ADR 0082 node identity. Create-flow UI/receipts and terminal profiles belong
+to the create package; archive/restore UI belongs to lifecycle. They consume the
+shared registry rather than re-declaring ids. Setup progress UI belongs to scripts.
+Project settings and editor targets remain this package. The registry's first
+staged contract is `vessel_proto::WorkspaceId` and `vessel_proto::registry`,
+including an atomic `RegistrySnapshot { node, revision, workspaces, memberships }`.
+Session/terminal ownership is explicit via WorkspaceResource; no old SessionInfo
+field or cwd-based ownership is introduced. Protocol remains unassigned.
+
+Narrow validation: local proto test cancelled while still queued (no compiler
+ran) to move the dependency-critical contract check to the build machine.
+The contract is staged until its narrow test and Clippy complete; no native or
+root whole-gate/capture/consumer-ready claim yet.

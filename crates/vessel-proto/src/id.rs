@@ -131,6 +131,16 @@ macro_rules! counter_id {
 }
 
 uuid_id! {
+    /// Independent workspace identity; shared cwd never implies shared ownership.
+    WorkspaceId
+}
+
+uuid_id! {
+    /// Caller-minted receipt identity for retry-safe workspace creation.
+    WorkspaceOperationId
+}
+
+uuid_id! {
     /// Identity of a Vessel node; one per machine, stable across restarts.
     NodeId
 }
