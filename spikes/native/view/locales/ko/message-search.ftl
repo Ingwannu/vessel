@@ -15,4 +15,5 @@ message-search-open = 메시지 검색
 # Per-machine palette search recovery. The existing note supplies the source name.
 # Whole sentences without variables; never display peer-provided error text.
 message-search-timeout = 검색 제한 시간을 초과했습니다. 다시 시도해 주세요.
+# Per-machine palette search failure below its source machine name; no variables.
 message-search-failed = 이 머신의 메시지를 검색하지 못했습니다. 다시 시도해 주세요.

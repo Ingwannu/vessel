@@ -15,4 +15,5 @@ message-search-open = Search messages
 # Per-machine palette search recovery. The existing note supplies the source name.
 # Whole sentences without variables; never display peer-provided error text.
 message-search-timeout = Search timed out. Try again.
+# Per-machine palette search failure below its source machine name; no variables.
 message-search-failed = This machine could not search its messages. Try again.
