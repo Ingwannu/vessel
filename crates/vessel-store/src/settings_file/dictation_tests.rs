@@ -33,12 +33,13 @@ fn a_later_dictation_file_keeps_every_known_value_and_is_copied_before_rewrite()
             dictation: Some(dictation),
         };
         let mut future = serde_json::to_value(&expected).unwrap();
-        future
+        let previous = future
             .get_mut("dictation")
             .unwrap()
             .as_object_mut()
             .unwrap()
             .insert("future".to_owned(), serde_json::json!({"nested":true}));
+        assert!(previous.is_none());
         let original = serde_json::to_vec(&future).unwrap();
         std::fs::write(data.settings_path(), &original).unwrap();
         let saved = data.read_settings().unwrap().unwrap();
