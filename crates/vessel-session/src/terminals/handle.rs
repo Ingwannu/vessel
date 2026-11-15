@@ -5,6 +5,7 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use tokio::sync::{mpsc, watch};
 use tokio_util::sync::CancellationToken;
+use vessel_proc::ProcessLifetime;
 use vessel_proto::terminals::TerminalInfo;
 use vessel_proto::{EventRecord, EventSeq, SessionTitle, TerminalId, TerminalInput};
 use vessel_pty::{PtyInput, WindowSize};
@@ -25,6 +26,8 @@ pub(crate) struct Shared {
     /// The running process's id, 0 when none: the root of its tree for a
     /// port scan.
     pub(crate) pid: AtomicU32,
+    /// The real runner's observation; no handle owns revocation authority.
+    pub(crate) process: Mutex<Option<ProcessLifetime>>,
 }
 
 impl Shared {
@@ -110,6 +113,18 @@ impl TerminalHandle {
             0 => None,
             pid => Some(pid),
         }
+    }
+
+    /// Observe the current run rather than inferring ownership from a PID snapshot.
+    #[must_use]
+    pub fn process_lifetime(&self) -> Option<ProcessLifetime> {
+        self.0
+            .process
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .as_ref()
+            .filter(|process| process.is_live())
+            .cloned()
     }
 
     /// Kept records from `from` (from the oldest kept one when `from` is
