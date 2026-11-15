@@ -63,7 +63,8 @@ The assigned areas/update.rs path does not exist; app/src/update.rs is canonical
 | link::desktop::environment | Bounded shell capture into child-only CommandSpec overrides. |
 | link::desktop::cli/bundle | Explicit companion locations, exact install ownership and user PATH policy. |
 | link::desktop::preferences | One canonical actor, typed structural deltas, revision-aware optimistic rebase and exact write receipts. |
-| app::desktop | Process globals, window registry, startup, callback admission and native preference broadcasts. |
+| app::desktop | Desktop persistence/startup, callback admission and native preference broadcasts. |
+| app::host_windows | The sole process window records, shared with host callbacks and lifecycle readers. |
 | app::areas::desktop | Shared popup/native menu vocabulary, keyboard adapter, help routing and CLI controls. |
 | app::areas::about::changelog | Bundled/signed-note history through the existing configured dialog. |
 | app::update | App Global Rc owner of the existing updater; windows follow independent watch receivers. |

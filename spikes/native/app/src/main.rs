@@ -21,6 +21,8 @@ mod brand;
 mod chrome;
 #[cfg(not(target_arch = "wasm32"))]
 mod desktop;
+#[cfg(not(target_arch = "wasm32"))]
+mod host_windows;
 mod language;
 #[cfg(not(target_arch = "wasm32"))]
 mod motion;

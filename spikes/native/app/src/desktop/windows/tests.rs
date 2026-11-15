@@ -113,7 +113,7 @@ fn window_document_admission_defers_entity_reborrow_coalesces_and_keeps_refused_
     });
     let (view, cx) = cx.add_window_view(|window, cx| {
         let shell = cx.new(|cx| crate::shell::language_tests::shell_without_io(window, cx));
-        cx.global_mut::<Desktop>().records.push(WindowRecord {
+        cx.default_global::<Registry>().records.push(WindowRecord {
             window: window.window_handle(),
             shell: shell.downgrade(),
             close: WindowClose::Idle,
@@ -192,7 +192,7 @@ fn two_window_close_requests_recheck_the_last_window_before_removal(cx: &mut Tes
 
 fn registered_probe(window: &mut Window, cx: &mut Context<'_, GuardProbe>) -> GuardProbe {
     let shell = cx.new(|cx| crate::shell::language_tests::shell_without_io(window, cx));
-    cx.global_mut::<Desktop>().records.push(WindowRecord {
+    cx.default_global::<Registry>().records.push(WindowRecord {
         window: window.window_handle(),
         shell: shell.downgrade(),
         close: WindowClose::Idle,

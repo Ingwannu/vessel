@@ -46,11 +46,13 @@ fn app_fence_rejects_late_geometry_and_unreconciled_preference_edits(cx: &mut Te
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, crate::desktop::preferences::start);
     cx.update(|window, cx| {
-        cx.global_mut::<Desktop>().records.push(WindowRecord {
-            window: window.window_handle(),
-            shell: shell.downgrade(),
-            close: WindowClose::Idle,
-        });
+        cx.default_global::<crate::host_windows::Registry>()
+            .records
+            .push(WindowRecord {
+                window: window.window_handle(),
+                shell: shell.downgrade(),
+                close: WindowClose::Idle,
+            });
     });
     cx.run_until_parked();
     let flushing = cx.update(|_, cx| flush_state(cx));

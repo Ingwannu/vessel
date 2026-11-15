@@ -105,9 +105,10 @@ pub(crate) fn flush_current(receipt: &StateReceipt, cx: &App) -> StateReadiness 
         return StateReadiness::Changed;
     }
     let live = cx.windows();
-    for record in desktop
-        .records
-        .iter()
+    for record in cx
+        .try_global::<crate::host_windows::Registry>()
+        .into_iter()
+        .flat_map(|registry| registry.records.iter())
         .filter(|record| live.contains(&record.window))
     {
         if let Some(shell) = record.shell.upgrade()

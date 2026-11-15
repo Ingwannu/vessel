@@ -8,8 +8,9 @@ mod startup_error;
 mod testing;
 mod windows;
 
+use crate::host_windows::{Registry, WindowClose, WindowRecord};
 use crate::shell::Shell;
-use gpui::{AnyWindowHandle, App, Global, WeakEntity};
+use gpui::{App, Global, WeakEntity};
 use std::sync::Arc;
 use vessel_app_link::desktop::{
     environment::ShellEnvironment, preferences::Coordinator, store::Store,
@@ -21,25 +22,11 @@ pub(crate) use persistence::{StateReadiness, StateReceipt, flush_current, flush_
 pub(crate) use startup::run;
 pub(crate) use windows::open_additional;
 
-#[derive(Clone)]
-struct WindowRecord {
-    window: AnyWindowHandle,
-    shell: WeakEntity<Shell>,
-    close: WindowClose,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum WindowClose {
-    Idle,
-    Checking,
-}
-
 pub(crate) type EnvironmentBroadcast = fn() -> Result<(), std::io::Error>;
 
 type WindowCloseHandler = fn(&mut Shell, &mut gpui::Context<'_, Shell>) -> bool;
 
 pub(crate) struct Desktop {
-    records: Vec<WindowRecord>,
     saved: Option<WindowState>,
     latest: WindowState,
     geometry_publication: Arc<()>,
@@ -80,7 +67,6 @@ impl Desktop {
             None
         };
         Ok(Self {
-            records: Vec::new(),
             saved,
             latest: saved.unwrap_or_default(),
             geometry_publication: Arc::new(()),
@@ -211,6 +197,7 @@ fn install(
     cx: &mut App,
 ) -> Result<(), vessel_app_link::desktop::DesktopError> {
     cx.set_global(Desktop::new(store, environment, environment_broadcast)?);
+    let _registry = cx.default_global::<Registry>();
     // Keep the latest OS session intent queued until the session owner supplies
     // its current-context/retirement-safe product adapter. NodeId alone does
     // not admit a result from an earlier connection to that same node.
@@ -222,7 +209,7 @@ fn install(
     vessel_app_kit::chrome::set_close_handler(windows::request_close, cx);
     crate::areas::desktop::listen(cx);
     cx.on_window_closed(|cx, closed| {
-        cx.global_mut::<Desktop>()
+        cx.default_global::<Registry>()
             .records
             .retain(|record| record.window.window_id() != closed);
         if !cfg!(target_os = "macos") && cx.windows().is_empty() {
@@ -286,11 +273,11 @@ pub(crate) fn with_focused_shell(
 /// Quit admission reads document owners through the existing window registry.
 /// Closed windows and expired entities grant no retained document target.
 pub(crate) fn shells(cx: &App) -> Vec<WeakEntity<Shell>> {
-    let Some(desktop) = cx.try_global::<Desktop>() else {
+    let Some(registry) = cx.try_global::<Registry>() else {
         return Vec::new();
     };
     let windows = cx.windows();
-    desktop
+    registry
         .records
         .iter()
         .filter(|record| windows.contains(&record.window))
@@ -303,7 +290,7 @@ fn target_window(cx: &mut App) -> Option<WindowRecord> {
     let active = cx.active_window();
     let live = cx.windows();
     let records: Vec<_> = cx
-        .try_global::<Desktop>()?
+        .try_global::<Registry>()?
         .records
         .iter()
         .filter(|record| live.contains(&record.window) && record.shell.upgrade().is_some())

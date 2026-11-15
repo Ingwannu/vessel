@@ -1,6 +1,7 @@
 //! The first window restores state; additional windows have independent placement.
 
 use super::{Desktop, WindowClose, WindowRecord};
+use crate::host_windows::Registry;
 use crate::shell::Shell;
 use gpui::{App, AppContext as _, Bounds, Context, Pixels, Window, WindowBounds, point, size};
 use vessel_app_link::desktop::instance::Launch;
@@ -47,8 +48,8 @@ fn guarded_close(window: &Window, cx: &mut App) -> bool {
     else {
         return true;
     };
-    let desktop = cx.global_mut::<Desktop>();
-    let Some(record) = desktop
+    let registry = cx.default_global::<Registry>();
+    let Some(record) = registry
         .records
         .iter_mut()
         .find(|record| record.window == window.window_handle())
@@ -91,7 +92,7 @@ fn guarded_close(window: &Window, cx: &mut App) -> bool {
 
 fn reset_close(record: &WindowRecord, cx: &mut App) {
     if let Some(retained) = cx
-        .global_mut::<Desktop>()
+        .default_global::<Registry>()
         .records
         .iter_mut()
         .find(|retained| retained.window == record.window)
@@ -156,7 +157,7 @@ fn open(placement: Placement, launch: Option<Launch>, cx: &mut App) {
         window.on_window_should_close(cx, may_close);
         crate::motion::note_renderer(window, cx);
         let shell = cx.new(|cx| Shell::new(prefs, language, words, window, cx));
-        cx.global_mut::<Desktop>().records.push(WindowRecord {
+        cx.default_global::<Registry>().records.push(WindowRecord {
             window: window.window_handle(),
             shell: shell.downgrade(),
             close: WindowClose::Idle,
