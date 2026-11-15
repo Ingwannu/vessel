@@ -84,12 +84,28 @@ pub enum Observation {
     },
 }
 
+/// One accepted write retains its exact outcome even if watch updates coalesce.
+#[derive(Debug)]
+pub struct Receipt(oneshot::Receiver<Snapshot>);
+
+impl Receipt {
+    /// Await this request, not an unrelated later write. Observe this snapshot
+    /// through Client before applying; a newer revision still wins.
+    ///
+    /// # Errors
+    /// A stopped writer cannot acknowledge an accepted request.
+    pub async fn completed(self) -> Result<Snapshot, DesktopError> {
+        self.0.await.map_err(|_closed| DesktopError::Closed)
+    }
+}
+
 enum Command {
     Change {
         before: Arc<Prefs>,
         after: Arc<Prefs>,
         sequence: Sequence,
         acknowledged: watch::Sender<Acknowledged>,
+        receipt: Option<oneshot::Sender<Snapshot>>,
     },
     Flush(oneshot::Sender<()>),
 }
@@ -208,6 +224,24 @@ impl Client {
     /// # Errors
     /// A full or closed queue leaves the baseline unchanged for an explicit retry.
     pub fn publish(&self, prefs: &Prefs) -> Result<(), crate::Rejected> {
+        self.enqueue(prefs, None)
+    }
+
+    /// The same writer and merge path, with an exact per-request acknowledgment.
+    ///
+    /// # Errors
+    /// Queue refusal leaves the optimistic baseline unchanged.
+    pub fn publish_with_receipt(&self, prefs: &Prefs) -> Result<Receipt, crate::Rejected> {
+        let (done, receipt) = oneshot::channel();
+        self.enqueue(prefs, Some(done))?;
+        Ok(Receipt(receipt))
+    }
+
+    fn enqueue(
+        &self,
+        prefs: &Prefs,
+        receipt: Option<oneshot::Sender<Snapshot>>,
+    ) -> Result<(), crate::Rejected> {
         if self.pending.borrow().len() >= QUEUE_CAPACITY {
             return Err(crate::Rejected::Full);
         }
@@ -226,6 +260,7 @@ impl Client {
                 after: Arc::clone(&after),
                 sequence,
                 acknowledged: self.acknowledged.clone(),
+                receipt,
             })
             .map_err(|error| match error {
                 mpsc::TrySendError::Full(_) => crate::Rejected::Full,
@@ -287,6 +322,7 @@ fn run(
                 after,
                 sequence,
                 acknowledged,
+                receipt,
             } => {
                 let Some(revision) = snapshot.revision.0.checked_add(1) else {
                     snapshot.outcome = Outcome::Failed(Arc::new(DesktopError::Closed));
@@ -294,6 +330,9 @@ fn run(
                         sequence,
                         revision: snapshot.revision,
                     });
+                    if let Some(done) = receipt {
+                        drop(done.send(snapshot.clone()));
+                    }
                     let _previous = published.send_replace(snapshot);
                     break;
                 };
@@ -322,6 +361,9 @@ fn run(
                     revision: snapshot.revision,
                 });
                 let _previous = published.send_replace(snapshot.clone());
+                if let Some(done) = receipt {
+                    drop(done.send(snapshot.clone()));
+                }
             }
         }
     }
@@ -331,6 +373,46 @@ fn run(
 mod tests {
     use super::*;
     use vessel_app_view::prefs::{Grouping, Theme};
+
+    #[tokio::test]
+    async fn exact_receipt_keeps_its_failed_outcome_after_a_later_successful_write() {
+        let root = std::env::temp_dir().join(format!(
+            "vessel-pref-receipt-{}",
+            vessel_proto::SessionId::random()
+        ));
+        let path = root.join("prefs.json");
+        std::fs::create_dir_all(&path).unwrap();
+        let initial = Prefs {
+            kept: Kept::File {
+                path: path.display().to_string(),
+            },
+            ..Prefs::default()
+        };
+        let coordinator = Coordinator::start(initial.clone()).unwrap();
+        let (first, _first_updates) = coordinator.client();
+        let (second, _second_updates) = coordinator.client();
+        let mut rejected = initial.clone();
+        rejected.settings.appearance.theme = Theme::Light;
+        let failure = first.publish_with_receipt(&rejected).unwrap();
+        coordinator.flush().await.unwrap();
+        std::fs::remove_dir(&path).unwrap();
+        let mut accepted = initial;
+        accepted.settings.sidebar.group = Grouping::Status;
+        let success = second.publish_with_receipt(&accepted).unwrap();
+        coordinator.flush().await.unwrap();
+        let newer = success.completed().await.unwrap();
+        let older = failure.completed().await.unwrap();
+        assert!(matches!(newer.outcome(), Outcome::Saved));
+        assert!(matches!(older.outcome(), Outcome::Failed(_)));
+        assert!(older.revision() < newer.revision());
+        assert_eq!(newer.preferences().settings.sidebar.group, Grouping::Status);
+        let Observation::Applied(projected) = first.observe(&newer) else {
+            panic!("canonical projection");
+        };
+        assert_eq!(projected, newer.preferences());
+        assert!(matches!(first.observe(&older), Observation::Stale));
+        std::fs::remove_dir_all(root).unwrap();
+    }
 
     #[tokio::test]
     async fn older_ack_keeps_pending_intent_and_old_failure_cannot_roll_back_newer_commit() {

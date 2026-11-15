@@ -418,3 +418,14 @@ save/discard policy. A real GPUI regression requests close from inside the same
 Shell update twice, asserts one refusal/no removal, then permits only that window
 without quitting the remaining one. Execution and W15 callback registration remain
 pending the combined native check.
+
+Optional per-write receipts now flow through the same canonical actor. A
+Receipt retains the exact Snapshot/Outcome for its own accepted write even when
+watch deliveries coalesce; the regression observes a failed write after a later
+success and refuses stale rollback. The app wrapper calls existing Settings
+prefer exactly once and captures that command’s bounded queue result, never a
+second command or a second validator. Model refusal/no native writer gives no
+receipt. Shared preference failure notice remains the only generic error
+presentation; feature owners generation-guard receipt UI and distinguish Saved
+from LaunchOnly. Canonical/rebased shortcut-cache invalidation awaits W22’s
+checked producer hook. Receipt and guard code are still unverified source.

@@ -3,8 +3,45 @@
 use super::Desktop;
 use crate::shell::Shell;
 use gpui::{Context, Window};
+use std::rc::Rc;
+use vessel_app_link::desktop::preferences::Receipt;
 use vessel_app_link::desktop::preferences::{Observation, Outcome, Snapshot};
 use vessel_app_link::{Command, Prefs};
+
+/// One synchronous model edit captures only its own existing SavePrefs attempt.
+#[derive(Default)]
+pub(crate) struct ReceiptCapture {
+    cycle: Rc<()>,
+    latest: Option<Result<Receipt, vessel_app_link::Rejected>>,
+}
+
+/// Reuses Settings' validator/live application; never publishes a second command.
+/// None means the model refused the edit or this shell has no native writer.
+pub(crate) fn prefer_with_receipt(
+    shell: &mut Shell,
+    change: &vessel_app_view::prefs::PreferenceChange,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<Result<Receipt, vessel_app_link::Rejected>> {
+    let cycle = Rc::clone(&shell.areas.desktop.receipts.borrow().cycle);
+    shell.prefer(change, window, cx);
+    let mut capture = shell.areas.desktop.receipts.borrow_mut();
+    if Rc::ptr_eq(&cycle, &capture.cycle) {
+        None
+    } else {
+        capture.latest.take()
+    }
+}
+
+/// Exact acknowledgments use the same revision-safe apply path as watch delivery.
+pub(crate) fn acknowledge(
+    shell: &mut Shell,
+    snapshot: &Snapshot,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) {
+    apply(shell, snapshot, window, cx);
+}
 
 pub(crate) fn start(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
     let Some(desktop) = cx.try_global::<Desktop>() else {
@@ -34,10 +71,17 @@ pub(crate) fn submit(
         return Ok(Some(command));
     };
     match command {
-        Command::SavePrefs(prefs) => match client.publish(&prefs) {
-            Ok(()) => Ok(None),
-            Err(why) => Err(vessel_app_link::Unsent::new(why, Command::SavePrefs(prefs))),
-        },
+        Command::SavePrefs(prefs) => {
+            let receipt = client.publish_with_receipt(&prefs);
+            let refused = receipt.as_ref().err().copied();
+            let mut capture = shell.areas.desktop.receipts.borrow_mut();
+            capture.cycle = Rc::new(());
+            capture.latest = Some(receipt);
+            match refused {
+                None => Ok(None),
+                Some(why) => Err(vessel_app_link::Unsent::new(why, Command::SavePrefs(prefs))),
+            }
+        }
         forward @ (Command::Agents { .. }
         | Command::SessionAccess(_)
         | Command::Sessions(_)

@@ -35,6 +35,8 @@ pub(crate) struct DesktopArea {
     #[cfg(not(target_arch = "wasm32"))]
     pub(crate) preferences: Option<vessel_app_link::desktop::preferences::Client>,
     #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) receipts: std::cell::RefCell<crate::desktop::preferences::ReceiptCapture>,
+    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) rollback: Option<vessel_app_link::Prefs>,
     #[cfg(not(target_arch = "wasm32"))]
     cli: cli::CliPanel,
@@ -59,6 +61,8 @@ impl DesktopArea {
             zoom: actions::Zoom::default(),
             #[cfg(not(target_arch = "wasm32"))]
             preferences: None,
+            #[cfg(not(target_arch = "wasm32"))]
+            receipts: std::cell::RefCell::default(),
             #[cfg(not(target_arch = "wasm32"))]
             rollback: None,
             #[cfg(not(target_arch = "wasm32"))]
