@@ -204,16 +204,7 @@ pub(crate) fn with_focused_shell(
     cx: &mut App,
     run: impl FnOnce(&mut Shell, &mut gpui::Window, &mut gpui::Context<'_, Shell>),
 ) {
-    let active = cx.active_window();
-    let Some(desktop) = cx.try_global::<Desktop>() else {
-        return;
-    };
-    let record = desktop
-        .records
-        .iter()
-        .find(|record| Some(record.window) == active)
-        .or_else(|| desktop.records.first())
-        .cloned();
+    let record = target_window(cx);
     if let Some(record) = record {
         let result = record.window.update(cx, |_root, window, cx| {
             if let Some(shell) = record.shell.upgrade() {
@@ -239,4 +230,30 @@ pub(crate) fn shells(cx: &App) -> Vec<WeakEntity<Shell>> {
         .filter(|record| windows.contains(&record.window))
         .filter_map(|record| record.shell.upgrade().map(|shell| shell.downgrade()))
         .collect()
+}
+
+/// Routing prefers the active or visible live window before a hidden first one.
+fn target_window(cx: &mut App) -> Option<WindowRecord> {
+    let active = cx.active_window();
+    let live = cx.windows();
+    let records: Vec<_> = cx
+        .try_global::<Desktop>()?
+        .records
+        .iter()
+        .filter(|record| live.contains(&record.window) && record.shell.upgrade().is_some())
+        .cloned()
+        .collect();
+    records
+        .iter()
+        .find(|record| Some(record.window) == active)
+        .or_else(|| {
+            records.iter().find(|record| {
+                record
+                    .window
+                    .update(cx, |_root, window, _cx| window.is_visible())
+                    .unwrap_or(false)
+            })
+        })
+        .or_else(|| records.first())
+        .cloned()
 }

@@ -367,3 +367,9 @@ session cannot erase a project waiting for exact managed-local identity, and an
 unavailable project adapter cannot hide the session owner's bounded unknown-host
 refusal. Only the installed owner consumes its intent; no directory is trusted or
 registered automatically. Regression exercises replacement and independent drains.
+
+Window routing now filters closed windows and expired Shell entities before
+choosing the active window, a visible window, then the first live window. Visibility
+is read from GPUI rather than cached in a second registry. Menus and incoming
+session navigation use this same selector; with no live target a session launch
+opens a primary window. Multiwindow screen/runtime evidence remains pending.

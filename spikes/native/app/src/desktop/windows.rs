@@ -137,14 +137,7 @@ pub(super) fn deliver(launch: Launch, cx: &mut App) {
             open(Placement::Additional, Some(Launch::Project(directory)), cx);
         }
         session @ Launch::Session(_) => {
-            let active = cx.active_window();
-            let desktop = cx.global::<Desktop>();
-            let target = desktop
-                .records
-                .iter()
-                .find(|record| Some(record.window) == active)
-                .or_else(|| desktop.records.first())
-                .cloned();
+            let target = super::target_window(cx);
             if let Some(record) = target {
                 let result = record.window.update(cx, |_root, window, cx| {
                     window.activate_window();
