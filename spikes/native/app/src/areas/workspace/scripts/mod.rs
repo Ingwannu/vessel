@@ -192,26 +192,12 @@ impl Shell {
                 target,
                 key,
                 result,
-            } => {
-                let commands = result
-                    .as_ref()
-                    .ok()
-                    .map(|snapshot| snapshot.scripts.commands.clone());
-                let accepted = self
-                    .areas
-                    .workspace
-                    .scripts
-                    .model
-                    .accept_read(&target, key, result);
-                if accepted
-                    && self.scripts_visible()
-                    && let Some(commands) = commands
-                    && let vessel_proto::scripts::ScriptPlace::Project { project } = target.place
-                {
-                    self.project_commands(target.machine(), project, None, Ok(commands));
-                }
-                accepted
-            }
+            } => self
+                .areas
+                .workspace
+                .scripts
+                .model
+                .accept_read(&target, key, result),
             ScriptAnswer::Written {
                 target,
                 key,

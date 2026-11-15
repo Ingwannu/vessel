@@ -12,17 +12,15 @@ use vessel_app_kit::ui::{
     px,
 };
 use vessel_app_kit::{Tokens, button};
-use vessel_app_link::workspace::{Ask, ProjectAsk, WorktreeAsk};
-use vessel_app_view::workspace::command_changes::{Listed, compare_approved};
+use vessel_app_link::workspace::{Ask, WorktreeAsk};
 use vessel_app_view::workspace::problem::Problem;
 use vessel_proto::workspace::{
-    ApproveCommands, CommandsDigest, DropSnapshot, GetProjectCommands, IfLost, ListWorktrees,
-    ProjectCommands, ProjectInfo, RemoveWorktree, RemoveWorktreeOutcome, SetupState, Snapshot,
-    SnapshotList, WorktreeInfo, WorktreeList,
+    DropSnapshot, IfLost, ListWorktrees, ProjectInfo, RemoveWorktree, RemoveWorktreeOutcome,
+    SetupState, Snapshot, SnapshotList, WorktreeInfo, WorktreeList,
 };
 use vessel_proto::{ProjectId, WorktreeId};
 
-use super::approval::{self, Actions, Panel};
+use super::approval;
 use super::remove::{self, Removing, branch_name};
 use super::widgets::{Tone, badge, banner, divided, empty, fact, row, rows, section, title};
 use crate::shell::Shell;
@@ -31,13 +29,10 @@ use crate::shell::Shell;
 pub(crate) struct Detail {
     /// Which project.
     pub(crate) project: ProjectId,
-    commands: Option<Result<ProjectCommands, Problem>>,
     worktrees: Vec<WorktreeInfo>,
     snapshots: Vec<Snapshot>,
     /// Whether the approval is open.
-    reviewing: bool,
-    /// Whether an approval or a withdrawal is out.
-    approving: bool,
+    pub(super) reviewing: bool,
     /// A removal the node answered `kept`.
     pub(super) removing: Option<Removing>,
     /// The snapshot whose Drop was pressed once.
@@ -52,11 +47,9 @@ impl Detail {
     pub(crate) const fn new(project: ProjectId) -> Self {
         Self {
             project,
-            commands: None,
             worktrees: Vec::new(),
             snapshots: Vec::new(),
             reviewing: false,
-            approving: false,
             removing: None,
             armed: None,
             dropping: None,
@@ -85,43 +78,6 @@ impl Shell {
                     .as_ref()
                     .is_some_and(|removing| removing.worktree.id == worktree)
         })
-    }
-
-    pub(super) fn project_commands(
-        &mut self,
-        machine: &str,
-        project: ProjectId,
-        approved: Option<(CommandsDigest, bool)>,
-        result: Result<ProjectCommands, Problem>,
-    ) {
-        let words = self.words();
-        let reload = approved.is_some() && result.is_err();
-        let Some(detail) = self.detail_of(project) else {
-            return;
-        };
-        match approved {
-            None => detail.commands = Some(result),
-            Some((_digest, approving)) => {
-                detail.approving = false;
-                detail.reviewing = false;
-                match result {
-                    Ok(commands) => detail.commands = Some(Ok(commands)),
-                    Err(problem) => {
-                        detail.failure =
-                            Some(words.commands_not(approving, &words.problem(&problem)));
-                    }
-                }
-            }
-        }
-        if reload {
-            self.ask(
-                machine,
-                Ask::Project(ProjectAsk::Commands(GetProjectCommands {
-                    project,
-                    base: None,
-                })),
-            );
-        }
     }
 
     pub(super) fn project_worktrees(
@@ -280,34 +236,6 @@ impl Shell {
         self.ask(machine, Ask::Worktree(WorktreeAsk::Snapshots(project)));
     }
 
-    fn approve_commands(
-        &mut self,
-        digest: CommandsDigest,
-        approved: bool,
-        cx: &mut Context<'_, Self>,
-    ) {
-        let Some(machine) = self.projects_machine() else {
-            return;
-        };
-        let Some(detail) = self.areas.workspace.page.detail.as_mut() else {
-            return;
-        };
-        if detail.approving {
-            return;
-        }
-        detail.approving = true;
-        let project = detail.project;
-        self.ask(
-            &machine,
-            Ask::Project(ProjectAsk::Approve(ApproveCommands {
-                project,
-                digest,
-                approved,
-            })),
-        );
-        cx.notify();
-    }
-
     fn worktree_action(&mut self, ask: WorktreeAsk, cx: &mut Context<'_, Self>) {
         if let Some(machine) = self.projects_machine() {
             self.ask(&machine, Ask::Worktree(ask));
@@ -408,7 +336,7 @@ pub(super) fn render(
     column = column.child(section(
         labels.commands,
         None,
-        commands(shell, machine, project, detail, tokens, cx),
+        super::detail_commands::render(shell, machine, project, detail, tokens, cx),
         tokens,
     ));
     column = column.child(super::scripts::render(
@@ -428,113 +356,6 @@ pub(super) fn render(
             None,
             snapshots(shell, project.id, detail, tokens, cx),
             tokens,
-        ));
-    }
-    column
-}
-
-fn commands(
-    shell: &Shell,
-    machine: &str,
-    project: &ProjectInfo,
-    detail: &Detail,
-    tokens: &Tokens,
-    cx: &mut Context<'_, Shell>,
-) -> Div {
-    let words = shell.words();
-    let labels = words.labels();
-    let commands = match &detail.commands {
-        None => return empty(labels.reading_file, tokens),
-        Some(Err(problem)) => return empty(words.problem(problem), tokens),
-        Some(Ok(ProjectCommands::None)) => return empty(labels.no_commands, tokens),
-        Some(Ok(ProjectCommands::Invalid { message })) => {
-            return empty(words.invalid_commands(message), tokens);
-        }
-        Some(Ok(commands)) => commands,
-    };
-    let Some(listed) = Listed::of(commands) else {
-        return empty(labels.no_commands, tokens);
-    };
-    let facts: Vec<String> = listed
-        .setup
-        .iter()
-        .chain(listed.teardown)
-        .map(ToString::to_string)
-        .chain(
-            listed
-                .scripts
-                .iter()
-                .map(|script| script.name.as_str().to_owned()),
-        )
-        .take(4)
-        .collect();
-    let digest = listed.digest.clone();
-    let controls = if listed.approved {
-        div().child(badge(labels.approved, Tone::Ok, tokens)).child(
-            button("commands-withdraw", labels.withdraw, false, tokens).on_click(cx.listener(
-                move |this, _event, _window, cx| {
-                    this.approve_commands(digest.clone(), false, cx);
-                },
-            )),
-        )
-    } else {
-        div()
-            .child(badge(labels.not_approved, Tone::Warn, tokens))
-            .child(
-                button("commands-review", labels.review, false, tokens).on_click(cx.listener(
-                    |this, _event, _window, cx| {
-                        if let Some(detail) = this.areas.workspace.page.detail.as_mut() {
-                            detail.reviewing = !detail.reviewing;
-                        }
-                        cx.notify();
-                    },
-                )),
-            )
-    };
-    let mut column = div()
-        .flex()
-        .flex_col()
-        .gap(px(10.0))
-        .child(rows(tokens).child(row(
-            title(
-                words.commands_title(
-                    listed.setup.len(),
-                    listed.teardown.len(),
-                    listed.scripts.len(),
-                ),
-                tokens,
-            ),
-            &facts,
-            Some(controls),
-            tokens,
-        )));
-    if detail.reviewing && !listed.approved {
-        let digest = listed.digest.clone();
-        let place = words.approval_place(project.name.as_str(), machine, true);
-        let compared = compare_approved(&listed, None);
-        column = column.child(approval::render(
-            shell,
-            &Panel {
-                id: "settings-approval",
-                asked: &listed,
-                compared: &compared,
-                place: &place,
-                busy: detail.approving,
-            },
-            Actions {
-                approve: Box::new(move |this, _window, cx| {
-                    this.approve_commands(digest.clone(), true, cx);
-                }),
-                skip: None,
-                cancel: Box::new(|this, _window, cx| {
-                    if let Some(detail) = this.areas.workspace.page.detail.as_mut() {
-                        detail.reviewing = false;
-                    }
-                    cx.notify();
-                }),
-            },
-            tokens,
-            cx,
         ));
     }
     column

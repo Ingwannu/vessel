@@ -11,6 +11,7 @@
 pub mod allocation_changes;
 pub mod branch_name;
 pub mod changes;
+pub mod command_access;
 pub mod command_changes;
 pub mod diff_rows;
 pub mod editor;

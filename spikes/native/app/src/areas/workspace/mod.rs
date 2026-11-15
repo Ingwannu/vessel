@@ -11,7 +11,9 @@
 mod approval;
 mod book;
 mod code;
+mod command_access;
 mod detail;
+mod detail_commands;
 mod detail_load;
 mod place;
 mod place_rows;
@@ -47,6 +49,8 @@ use crate::shell::Shell;
 pub(crate) struct Workspace {
     /// Supervised per-project scripts, with lifetime-long request correlation.
     scripts: scripts::Scripts,
+    /// Original-admission command read/confirmation correlation.
+    command_access: vessel_app_view::workspace::command_access::Model,
     /// Each machine's projects as last read, by machine.
     pub(crate) projects: HashMap<String, ProjectsView>,
     /// Settings > Projects.
@@ -69,6 +73,7 @@ impl Workspace {
         Self {
             projects: HashMap::new(),
             scripts: scripts::Scripts::new(window, cx),
+            command_access: vessel_app_view::workspace::command_access::Model::default(),
             page: projects::Page::new(window, cx),
             place: place::DraftPlace::new(window, cx),
             start: None,
@@ -130,6 +135,7 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) -> bool {
         match answer {
+            Answer::CommandAccess(answer) => self.command_access_answer(answer, cx),
             Answer::Scripts(answer) => self.scripts_answer(answer, cx),
             Answer::Layout(answer) => self.layout_renamed(answer, cx),
             Answer::Projects(result) => {
@@ -150,7 +156,10 @@ impl Shell {
                 project,
                 approved,
                 result,
-            } => self.project_commands(machine, project, approved, result),
+            } => {
+                let _uncorrelated = (project, approved, result);
+                tracing::debug!("ignored a retired uncorrelated command-set receipt");
+            }
             Answer::Worktrees { project, result } => {
                 self.project_worktrees(machine, project, result);
             }

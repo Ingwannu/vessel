@@ -94,3 +94,42 @@ pub(in crate::workspace) async fn connect(
         task,
     }
 }
+
+impl Peer {
+    /// Reuse the canonical actor admission factory, never a feature epoch cache.
+    pub(in crate::workspace) fn selected(
+        &self,
+        name: &str,
+    ) -> (
+        crate::connections::SelectedConnection,
+        crate::connections::Connected,
+        vessel_app_view::connection::ConnectionContext,
+    ) {
+        let home = crate::testing::Home::new();
+        let (mut actor, _events) = crate::testing::state(&home);
+        let context = actor
+            .admissions
+            .admit(
+                vessel_app_view::connection::MachineKey::from_book(name),
+                self.client.node().id,
+            )
+            .unwrap();
+        let connected = crate::connections::Connected::new(
+            self.client.clone(),
+            vec![],
+            vessel_client::book::BookEntry {
+                address: "ws://127.0.0.1:0/rpc".parse().unwrap(),
+                token: None,
+                credential: None,
+                id: None,
+            },
+            context.clone(),
+        );
+        let _old = actor.clients.insert(name.to_owned(), connected.clone());
+        (
+            actor.selected_connection(&context).unwrap(),
+            connected,
+            context,
+        )
+    }
+}

@@ -14,6 +14,8 @@ use super::StartAsk;
 /// What a workspace screen asks of a machine.
 #[derive(Debug)]
 pub enum Ask {
+    /// Complete command-set reads and grants on the original admission.
+    CommandAccess(super::command_access::Ask),
     /// A project's supervised scripts and discovered ports.
     Scripts(super::ScriptAsk),
     /// Correlated backing-entity actions from workspace tabs.

@@ -5,6 +5,10 @@ use crate::State;
 use vessel_app_view::workspace::problem::Problem;
 impl State {
     pub(crate) fn workspace(&self, machine: String, ask: Ask) {
+        if let Ask::CommandAccess(ask) = ask {
+            self.workspace_commands(machine, ask);
+            return;
+        }
         let events = self.events.clone();
         if let Ask::Scripts(ask) = ask {
             // Actor admission precedes spawning; SelectedConnection fences the
@@ -13,7 +17,7 @@ impl State {
                 .then(|| self.selected_connection(&ask.target().context));
             let client = match selected {
                 Some(Ok(client)) => client,
-                Some(Err(_changed)) | None => {
+                Some(Err(_)) | None => {
                     Hub::refuse(
                         machine,
                         Ask::Scripts(ask),

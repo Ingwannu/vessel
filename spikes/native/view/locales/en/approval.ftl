@@ -27,3 +27,6 @@ approval-allocation-declaration = These declarations do not confirm an allocated
 
 # Comparison summary for a block-only or lower-precedence choice edit.
 approval-allocation-changes = Service port allocation changes are shown below
+
+# An earlier admitted connection cannot authorize a later confirmation.
+approval-connection-changed = Refresh commands on the current connection before reviewing or approving them.

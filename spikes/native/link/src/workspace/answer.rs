@@ -41,6 +41,8 @@ pub enum GitWritten {
 /// What the node answered a workspace ask, with what was asked.
 #[derive(Debug)]
 pub enum Answer {
+    /// Correlated command-set result on its original admission.
+    CommandAccess(super::command_access::Answer),
     /// A correlated script read or lifecycle receipt.
     Scripts(super::ScriptAnswer),
     /// Correlated backing-entity action result.
@@ -250,6 +252,7 @@ impl Ask {
 /// The answer an ask gets when it could not be sent at all.
 pub(super) fn refused(ask: Ask, problem: &Problem) -> Answer {
     match ask {
+        Ask::CommandAccess(ask) => Answer::CommandAccess(ask.refused(problem)),
         Ask::Scripts(ask) => Answer::Scripts(super::scripts::refused(ask, problem)),
         Ask::Layout(ask) => Answer::Layout(ask.refused(match problem {
             Problem::Unsent => vessel_app_view::layout::RenameProblem::Busy,

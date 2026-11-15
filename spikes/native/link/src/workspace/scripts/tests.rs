@@ -2,7 +2,6 @@
 use super::peer;
 use super::*;
 use crate::connections::{Connected, SelectedConnection};
-use crate::testing::{Home, state};
 use vessel_app_view::connection::{ConnectionEpochs, MachineKey};
 use vessel_app_view::workspace::git::RequestKeys;
 use vessel_app_view::workspace::scripts::Surface;
@@ -25,27 +24,9 @@ fn target() -> Target {
     }
 }
 fn selected(peer: &peer::Peer) -> (SelectedConnection, Connected, Target) {
-    let home = Home::new();
-    let (mut actor, _events) = state(&home);
-    let context = actor
-        .admissions
-        .admit(MachineKey::from_book("laptop"), peer.client.node().id)
-        .unwrap();
-    let connected = Connected::new(
-        peer.client.clone(),
-        vec![],
-        vessel_client::book::BookEntry {
-            address: "ws://127.0.0.1:0/rpc".parse().unwrap(),
-            token: None,
-            credential: None,
-            id: None,
-        },
-        context.clone(),
-    );
-    let _prior = actor.clients.insert("laptop".into(), connected.clone());
-    let selected = actor.selected_connection(&context).unwrap();
+    let (client, connected, context) = peer.selected("laptop");
     (
-        selected,
+        client,
         connected,
         Target {
             context,
@@ -56,6 +37,7 @@ fn selected(peer: &peer::Peer) -> (SelectedConnection, Connected, Target) {
         },
     )
 }
+
 fn empty() -> ScriptList {
     ScriptList {
         root: "/project".into(),

@@ -2,19 +2,20 @@
 use super::detail::Detail;
 use crate::shell::Shell;
 use vessel_app_kit::ui::{Context, Window};
-use vessel_app_link::workspace::{Ask, ProjectAsk, WorktreeAsk};
-use vessel_proto::workspace::{GetProjectCommands, ListWorktrees, ProjectInfo};
+use vessel_app_link::workspace::{Ask, WorktreeAsk};
+use vessel_proto::workspace::{ListWorktrees, ProjectInfo};
 
 impl Shell {
     /// Read the project's commands, worktrees and snapshots.
-    pub(super) fn load_detail(&self, machine: &str, project: &ProjectInfo) {
-        self.ask(
-            machine,
-            Ask::Project(ProjectAsk::Commands(GetProjectCommands {
-                project: project.id,
-                base: None,
-            })),
-        );
+    pub(super) fn load_detail(
+        &mut self,
+        machine: &str,
+        project: &ProjectInfo,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.read_project_commands(machine, project.id, true);
+        self.open_scripts(machine, project.id, window, cx);
         self.ask(
             machine,
             Ask::Worktree(WorktreeAsk::List(ListWorktrees {
@@ -42,8 +43,7 @@ impl Shell {
         } else {
             page.detail = Some(Detail::new(project.id));
             if let Some(machine) = self.projects_machine() {
-                self.load_detail(&machine, project);
-                self.open_scripts(&machine, project.id, window, cx);
+                self.load_detail(&machine, project, window, cx);
             }
         }
         cx.notify();

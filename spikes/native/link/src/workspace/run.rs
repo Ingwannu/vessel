@@ -18,6 +18,7 @@ use super::{
 /// Run one ask to its answer.
 pub(super) async fn run(hub: &Hub, client: &NodeClient, reply: &Reply, ask: Ask) {
     let answer = match ask {
+        Ask::CommandAccess(ask) => Answer::CommandAccess(ask.refused(&Problem::Unsent)),
         // Script operations require the actor's SelectedConnection preflight.
         // A raw-client Hub route must never bypass that admission boundary.
         Ask::Scripts(ask) => Answer::Scripts(super::scripts::refused(ask, &Problem::Unsent)),
@@ -62,12 +63,12 @@ async fn project(hub: &Hub, client: &NodeClient, reply: &Reply, ask: ProjectAsk)
         ProjectAsk::Commands(ask) => Answer::Commands {
             project: ask.project,
             approved: None,
-            result: call(client, ask).await,
+            result: Err(Problem::Unsent),
         },
         ProjectAsk::Approve(ask) => Answer::Commands {
             project: ask.project,
             approved: Some((ask.digest.clone(), ask.approved)),
-            result: call(client, ask).await,
+            result: Err(Problem::Unsent),
         },
     }
 }

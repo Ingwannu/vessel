@@ -331,3 +331,36 @@ These are corrected without assertion/lint exceptions. The Step boxes its
 comparison payload to keep additive declaration fields from growing every
 setup event. The old raw-client scripts Hub branch now refuses explicitly;
 only actor SelectedConnection preflight may dispatch script RPCs.
+
+## Command reads and approval admission
+
+[Decision Log]
+- Purpose: a project confirmation must retain the connection and complete digest
+  originally read, even if its saved alias is rebound before dispatch.
+- Existing assets: G4 ConnectionContext/SelectedConnection, Reading/RequestKeys,
+  the existing protocol-10 GetProjectCommands/ApproveCommands and full approval
+  projection. No new wire method or version is needed.
+- Alternatives: take the later Settings selection or a logical ProjectReadKey as
+  authority; make approval depend on newer script.list support. Both lose a
+  required boundary or older-node compatibility.
+- Choice: a dedicated area-lived command read/confirmation model shares the same
+  actor admission guard and bounded typed call helper as Scripts. Tickets retain
+  original context/project/digest/snapshot. Explicit reads can choose a new
+  admission; confirmations never retarget or replay.
+- Effects: commands remain readable on protocol-10 nodes without script.list.
+  Review refreshes the complete set before offering confirmation. Read/loading/
+  failure/duplicate/stale callbacks cannot approve. Withdrawal removes only the
+  inspected grant. Unsupported executable fields still refuse new approval.
+
+Raw ProjectAsk::Commands/Approve routes now return unsent without polling a
+client; uncorrelated legacy command receipts cannot hydrate the detail. Scoped
+command replies alone update the new model. Script discovery no longer writes
+that independent approval cache. Unknown mutation results require explicit read.
+
+Detail's command renderer moved into detail_commands.rs, shrinking its inherited
+size record. Detail::new(ProjectId) is unchanged. load_detail now takes mutable
+Shell, Window and Context so every settings entry starts both independently scoped
+command and script reads. Worktree/snapshot/remove methods remain unchanged.
+Tests use the canonical test actor admission factory and in-memory framed peer,
+covering exact digest/owner receipts, retired-before-poll zero frames, stale read/
+confirmation refusal, unknown-write reconciliation and raw peer message redaction.

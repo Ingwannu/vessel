@@ -1,14 +1,21 @@
 //! Existing protocol-11 calls for the native project script surface.
 //! No local shell or automatic write retry lives in the client. Every call
 //! has a deadline; a timed-out write is uncertain and requires a fresh read.
+#[cfg(not(target_arch = "wasm32"))]
 use crate::connections::{RequestFailure, SelectedConnection};
+#[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
 use vessel_app_view::workspace::git::RequestKey;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::scripts::{Action, Snapshot, Target};
+#[cfg(not(target_arch = "wasm32"))]
 use vessel_client::{CallError, Unary};
+#[cfg(not(target_arch = "wasm32"))]
 use vessel_proto::ports::ListPorts;
-use vessel_proto::scripts::{ListScripts, RestartScript, RunScript, ScriptRunOutcome};
+use vessel_proto::scripts::ScriptRunOutcome;
+#[cfg(not(target_arch = "wasm32"))]
+use vessel_proto::scripts::{ListScripts, RestartScript, RunScript};
+#[cfg(not(target_arch = "wasm32"))]
 use vessel_proto::terminals::KillTerminal;
 
 /// A complete discovery read or one checked lifecycle intention.
@@ -54,8 +61,10 @@ pub enum ScriptAnswer {
     },
 }
 /// Bound a hung peer without repeating a possibly-applied mutation.
+#[cfg(not(target_arch = "wasm32"))]
 const CALL_DEADLINE: Duration = Duration::from_secs(15);
 
+#[cfg(not(target_arch = "wasm32"))]
 pub(super) async fn run(client: &SelectedConnection, ask: ScriptAsk) -> ScriptAnswer {
     match ask {
         ScriptAsk::Read { target, key } => {
@@ -110,7 +119,8 @@ pub(super) async fn run(client: &SelectedConnection, ask: ScriptAsk) -> ScriptAn
     }
 }
 
-async fn bounded<R: Unary>(
+#[cfg(not(target_arch = "wasm32"))]
+pub(super) async fn bounded<R: Unary>(
     client: &SelectedConnection,
     request: R,
 ) -> Result<R::Response, Problem> {
@@ -123,6 +133,7 @@ async fn bounded<R: Unary>(
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn problem(failure: RequestFailure) -> Problem {
     match failure {
         RequestFailure::Refused(_) => Problem::Gone(String::new()),
@@ -141,6 +152,7 @@ fn problem(failure: RequestFailure) -> Problem {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl ScriptAsk {
     pub(super) fn target(&self) -> &Target {
         match self {

@@ -11,7 +11,7 @@ spikes/native/app/src/areas/draft/effort_card.rs 806
 spikes/native/app/src/areas/draft/mod.rs 581
 spikes/native/app/src/areas/draft/pickers.rs 1190
 spikes/native/app/src/areas/session.rs 720
-spikes/native/app/src/areas/workspace/detail.rs 701
+spikes/native/app/src/areas/workspace/detail.rs 522
 spikes/native/app/src/areas/workspace/projects.rs 593
 spikes/native/kit/src/field.rs 635
 spikes/native/kit/src/picker.rs 829

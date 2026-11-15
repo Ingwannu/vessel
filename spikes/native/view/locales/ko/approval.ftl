@@ -27,3 +27,6 @@ approval-allocation-declaration = 이 선언은 포트가 실제로 할당되었
 
 # Comparison summary for a block-only or lower-precedence choice edit.
 approval-allocation-changes = 서비스 포트 할당 변경 사항은 아래에 표시됩니다
+
+# An earlier admitted connection cannot authorize a later confirmation.
+approval-connection-changed = 현재 연결에서 명령을 새로 읽은 뒤 검토하거나 승인하세요.

@@ -34,6 +34,7 @@ mod actor;
 mod answer;
 mod ask;
 mod calls;
+pub mod command_access;
 mod follow;
 pub mod layout;
 mod pulls;
