@@ -1051,3 +1051,14 @@ Its one TS run is queued; no generated artifact or freshness is claimed yet.
   per-page and combined budgets, complete EN/KO recovery, and a real framed
   original-client nonzero offset with echoed failure. They are UNEXECUTED until
   the next meaningful changed-source batch; no queued480 outcome covers them.
+
+### Actual480 lint return retained
+
+The480 strict run reaches View and Kit, then returns101 before App: the
+question_mark lint prefers ? to the explicit readiness predicate, while a bare
+borrowed result previously triggered unused-results. Bind the successful
+borrow as _ready_status rather than discard it or suppress either lint.
+The complete-sentence recovery fixture reached102 lines after Owner was added;
+move the unchanged cases into a module constant, retaining every whole-sentence
+assertion. No test input/output is weakened. The480 ordinary runtime remains
+queued and prior source; the new page source borrows no unexecuted result.

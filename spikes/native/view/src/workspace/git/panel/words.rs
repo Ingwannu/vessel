@@ -242,6 +242,99 @@ mod tests {
     use super::*;
     use crate::localization::{ENGLISH, LanguagePreference, resolve_language};
 
+    const RECOVERY_CASES: &[(ReadIssue, &str, &str)] = &[
+        (
+            ReadIssue::Owner,
+            "This view cannot follow repository changes safely. Restart Vessel and reopen the workspace.",
+            "이 화면에서 저장소 변경을 안전하게 추적할 수 없습니다. Vessel을 다시 시작하고 워크스페이스를 다시 여세요.",
+        ),
+        (
+            ReadIssue::TooLarge,
+            "This comparison is too large to preview. Narrow the comparison and try again.",
+            "비교 결과가 너무 커서 미리 볼 수 없습니다. 비교 범위를 줄인 뒤 다시 시도하세요.",
+        ),
+        (
+            ReadIssue::NoBase,
+            "No base branch is available. Choose a base branch before comparing.",
+            "비교할 기준 브랜치가 없습니다. 기준 브랜치를 선택한 뒤 다시 비교하세요.",
+        ),
+        (
+            ReadIssue::Workspace,
+            "Workspace repository information is unavailable. Open a registered workspace and try again.",
+            "워크스페이스의 저장소 정보를 사용할 수 없습니다. 등록된 워크스페이스를 열고 다시 시도하세요.",
+        ),
+        (
+            ReadIssue::Keys,
+            "No more requests can be identified safely. Restart Vessel and try again.",
+            "요청을 안전하게 구분할 수 없습니다. Vessel을 다시 시작하고 시도하세요.",
+        ),
+        (
+            ReadIssue::Capacity,
+            "Too many changes are being read at once. Try again.",
+            "한 번에 너무 많은 변경을 읽고 있습니다. 다시 시도하세요.",
+        ),
+        (
+            ReadIssue::TimedOut,
+            "This read did not finish in time. Try again.",
+            "읽기를 제시간에 마치지 못했습니다. 다시 시도하세요.",
+        ),
+        (
+            ReadIssue::Unsent,
+            "Could not send. Try again.",
+            "보내지 못했습니다. 다시 시도하세요.",
+        ),
+        (
+            ReadIssue::Connection,
+            "The machine is disconnected. Reconnect and refresh the changes.",
+            "머신의 연결이 끊겼습니다. 다시 연결하고 변경 사항을 새로고침하세요.",
+        ),
+        (
+            ReadIssue::Access,
+            "This device cannot read changes on this machine. Check its access.",
+            "이 기기에서 머신의 변경 사항을 읽을 수 없습니다. 접근 권한을 확인하세요.",
+        ),
+        (
+            ReadIssue::Version,
+            "Update Vessel on this device and the machine to view these changes.",
+            "변경 사항을 보려면 이 기기와 머신의 Vessel을 업데이트하세요.",
+        ),
+        (
+            ReadIssue::Unsupported,
+            "This machine cannot provide these changes. Check Git and Vessel on the machine, then refresh.",
+            "이 머신에서 변경 사항을 제공할 수 없습니다. 머신의 Git과 Vessel을 확인하고 새로고침하세요.",
+        ),
+        (
+            ReadIssue::Missing,
+            "This folder is no longer available. Open another workspace.",
+            "이 폴더를 더 이상 사용할 수 없습니다. 다른 워크스페이스를 여세요.",
+        ),
+        (
+            ReadIssue::Unavailable,
+            "The machine cannot read these changes right now. Refresh and try again.",
+            "지금은 머신에서 변경 사항을 읽을 수 없습니다. 새로고침하고 다시 시도하세요.",
+        ),
+        (
+            ReadIssue::DestinationChanged,
+            "The connection changed. Reopen this workspace and refresh the changes.",
+            "연결이 변경되었습니다. 이 워크스페이스를 다시 열고 변경 사항을 새로고침하세요.",
+        ),
+        (
+            ReadIssue::UnexpectedFile,
+            "The machine returned another file’s changes. Refresh and try again.",
+            "머신에서 다른 파일의 변경 사항을 보냈습니다. 새로고침하고 다시 시도하세요.",
+        ),
+        (
+            ReadIssue::BaseMismatch,
+            "The stored and requested base branches differ. Check both branches and choose the comparison again.",
+            "저장된 기준 브랜치와 요청한 기준 브랜치가 다릅니다. 두 브랜치를 확인하고 비교 기준을 다시 선택하세요.",
+        ),
+        (
+            ReadIssue::Failed,
+            "The machine could not read these changes. Refresh and try again.",
+            "머신에서 변경 사항을 읽지 못했습니다. 새로고침하고 다시 시도하세요.",
+        ),
+    ];
+
     #[test]
     fn every_recovery_is_a_complete_sentence_in_english_and_korean() {
         let en = Translator::get(ENGLISH).unwrap();
@@ -251,98 +344,7 @@ mod tests {
             None,
         ))
         .unwrap();
-        for (issue, english, korean) in [
-            (
-                ReadIssue::Owner,
-                "This view cannot follow repository changes safely. Restart Vessel and reopen the workspace.",
-                "이 화면에서 저장소 변경을 안전하게 추적할 수 없습니다. Vessel을 다시 시작하고 워크스페이스를 다시 여세요.",
-            ),
-            (
-                ReadIssue::TooLarge,
-                "This comparison is too large to preview. Narrow the comparison and try again.",
-                "비교 결과가 너무 커서 미리 볼 수 없습니다. 비교 범위를 줄인 뒤 다시 시도하세요.",
-            ),
-            (
-                ReadIssue::NoBase,
-                "No base branch is available. Choose a base branch before comparing.",
-                "비교할 기준 브랜치가 없습니다. 기준 브랜치를 선택한 뒤 다시 비교하세요.",
-            ),
-            (
-                ReadIssue::Workspace,
-                "Workspace repository information is unavailable. Open a registered workspace and try again.",
-                "워크스페이스의 저장소 정보를 사용할 수 없습니다. 등록된 워크스페이스를 열고 다시 시도하세요.",
-            ),
-            (
-                ReadIssue::Keys,
-                "No more requests can be identified safely. Restart Vessel and try again.",
-                "요청을 안전하게 구분할 수 없습니다. Vessel을 다시 시작하고 시도하세요.",
-            ),
-            (
-                ReadIssue::Capacity,
-                "Too many changes are being read at once. Try again.",
-                "한 번에 너무 많은 변경을 읽고 있습니다. 다시 시도하세요.",
-            ),
-            (
-                ReadIssue::TimedOut,
-                "This read did not finish in time. Try again.",
-                "읽기를 제시간에 마치지 못했습니다. 다시 시도하세요.",
-            ),
-            (
-                ReadIssue::Unsent,
-                "Could not send. Try again.",
-                "보내지 못했습니다. 다시 시도하세요.",
-            ),
-            (
-                ReadIssue::Connection,
-                "The machine is disconnected. Reconnect and refresh the changes.",
-                "머신의 연결이 끊겼습니다. 다시 연결하고 변경 사항을 새로고침하세요.",
-            ),
-            (
-                ReadIssue::Access,
-                "This device cannot read changes on this machine. Check its access.",
-                "이 기기에서 머신의 변경 사항을 읽을 수 없습니다. 접근 권한을 확인하세요.",
-            ),
-            (
-                ReadIssue::Version,
-                "Update Vessel on this device and the machine to view these changes.",
-                "변경 사항을 보려면 이 기기와 머신의 Vessel을 업데이트하세요.",
-            ),
-            (
-                ReadIssue::Unsupported,
-                "This machine cannot provide these changes. Check Git and Vessel on the machine, then refresh.",
-                "이 머신에서 변경 사항을 제공할 수 없습니다. 머신의 Git과 Vessel을 확인하고 새로고침하세요.",
-            ),
-            (
-                ReadIssue::Missing,
-                "This folder is no longer available. Open another workspace.",
-                "이 폴더를 더 이상 사용할 수 없습니다. 다른 워크스페이스를 여세요.",
-            ),
-            (
-                ReadIssue::Unavailable,
-                "The machine cannot read these changes right now. Refresh and try again.",
-                "지금은 머신에서 변경 사항을 읽을 수 없습니다. 새로고침하고 다시 시도하세요.",
-            ),
-            (
-                ReadIssue::DestinationChanged,
-                "The connection changed. Reopen this workspace and refresh the changes.",
-                "연결이 변경되었습니다. 이 워크스페이스를 다시 열고 변경 사항을 새로고침하세요.",
-            ),
-            (
-                ReadIssue::UnexpectedFile,
-                "The machine returned another file’s changes. Refresh and try again.",
-                "머신에서 다른 파일의 변경 사항을 보냈습니다. 새로고침하고 다시 시도하세요.",
-            ),
-            (
-                ReadIssue::BaseMismatch,
-                "The stored and requested base branches differ. Check both branches and choose the comparison again.",
-                "저장된 기준 브랜치와 요청한 기준 브랜치가 다릅니다. 두 브랜치를 확인하고 비교 기준을 다시 선택하세요.",
-            ),
-            (
-                ReadIssue::Failed,
-                "The machine could not read these changes. Refresh and try again.",
-                "머신에서 변경 사항을 읽지 못했습니다. 새로고침하고 다시 시도하세요.",
-            ),
-        ] {
+        for &(issue, english, korean) in RECOVERY_CASES {
             assert_eq!(issue.words(en), english);
             assert_eq!(issue.words(ko), korean);
         }

@@ -338,9 +338,7 @@ impl PanelReads {
     /// or a promise of an atomic filesystem snapshot across paged reads.
     #[must_use]
     pub fn file_target(&self, path: &RelPath) -> Option<FileReadTarget> {
-        if self.status.ready().is_none() {
-            return None;
-        }
+        let _ready_status = self.status.ready()?;
         let summary = self.summary.ready()?;
         let ticket = self.accepted_summary.as_ref()?;
         if !summary.files.iter().any(|file| file.path == *path) {
