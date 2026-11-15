@@ -41,7 +41,7 @@ pub(crate) fn apply(
 ) -> Result<RegistryChange, StoreError> {
     match mutation {
         RegistryWrite::Restart { previous, expected } => {
-            super::leases::restart(connection, previous, *expected)?
+            super::leases::restart(connection, previous, *expected)?;
         }
         RegistryWrite::Release(request) => super::automation::release(connection, request)?,
         RegistryWrite::Claim {
