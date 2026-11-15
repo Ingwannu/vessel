@@ -684,6 +684,11 @@ starts from, gated alone:
   name (a name can be renamed or reused, so a queued request checks the
   node, not the name), and the kit field's events and `Editability` (W4),
   one shared editor policy instead of three copies.
+- `6c782cb6` (B0, package base 3): `6036eeb8` with the node line's
+  Quality B and a receipt fix. The native sources are unchanged; it was
+  merged into the app line only after the release worker had taken the
+  0.0.0.0.20 commit, so the release does not carry crates it was not
+  gated with.
 
 Root binaries for capture fleets are built once from that root
 (`fleet.sh` end to end), so the packages do not each build them.
