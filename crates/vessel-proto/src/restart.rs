@@ -5,11 +5,11 @@ use std::fmt;
 
 /// Unassigned until the CLI and native/web host-settings surfaces can show,
 /// change and acknowledge the startup policy, and every client/dispatch hop
-/// uses the shared `required_protocol` admission boundary (ADR 0059).
+/// uses the shared `required_protocol` admission boundary (ADR 0098).
 /// Only integration assigns the feature after those consumers are present.
 pub const RESTART_RECOVERY_PROTOCOL: Option<crate::ProtocolVersion> = None;
 
-/// Node-level startup continuation policy (ADR 0059).
+/// Node-level startup continuation policy (ADR 0098).
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct RestartRecovery {
