@@ -214,3 +214,29 @@ filtered-copy parity, fake-node C3 mount, authority, UI or OS pass is claimed.
 
 The lead requested this correction in its own commit, separate from wheel
 routing. Both enter one changed-source narrow batch; no unchanged whole gate.
+
+## Exact413 changed-source results, review pending
+
+Kit all-target strict Clippy0, native-fonts0/native-cargo0/no skips, actual Base
+and Kit Checking, run wp-git-kit-narrow-20261115T161114Z-4133964f. The exact public
+diff selection wp-git-consumer-tests-20261115T161114Z-4133964f compiles Base/Kit
+and executes19 passed/0 failed/0 ignored. Includes original keyboard/mapped/
+empty/cached2500/readonly-copy cases, the same wheel assertion, horizontal-owner
+routing, ordinaryNone/vertical-overflow route and both-theme alpha policy.
+
+Before-fix25951c813 preserves0813 production bytes and adds failure context
+only. Its native test0/1 identifies Scroll,x=-0.5, inner(-0.5px,0px), input
+1915x50000 and outer(0,0). This pins the cause, rather than guessing from the
+original unnamed15/1 loop. The old red result stays red. Complete source/ref/log
+SHA manifests are in the track's external control-producer-413 packet.
+
+The ordinary existing code_editor::syntax::tests case was not included in the19
+filter. Its separate exact413 selection163829 is queued; no already executed
+fixture is rerun and no whole gate is added. Until its result, do not claim all
+legacy editor regressions. The isolated source still has no C3 View/Link/app or
+node runtime. App15a full4crate Clippy is separately RED on own fixture/import/
+semicolon/collapsible-if issues, so this is not App integration acceptance.
+
+V1 source/narrow adoption remains pending. Real header alignment/selection path
+visibility/touch/OS and actual C3 fake-fleet first-use captures remain owed; the
+audit example is unbuilt/unrun and the split full-width-header/copy gap remains.
