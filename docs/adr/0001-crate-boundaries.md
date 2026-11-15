@@ -185,15 +185,6 @@ shell and the ports its trees listen on (`vessel_proc::listening`). Both
 are mechanism the crates already used through others; the node still
 decides who may open a terminal and where.
 
-## Native attachment diagnostics
-
-The native link also names `vessel-rpc` directly for `CallError` when an
-attachment read or resume fails. `vessel-client` already uses and returns
-this type; preserving it avoids replacing the source with a string. The
-edge adds no external crate, protocol operation, or runtime subsystem.
-Its authoritative workspace table is `spikes/native/README.md`; ADR 0025
-and `docs/plans/wp-a8.md` describe the preview contract.
-
 Milestone 12 (recorded 2026-11-14, when `scripts/check-boundaries.mjs`
 began comparing `docs/ARCHITECTURE.md`'s table with the manifests; the
 first two edges had been in the manifests without this record):
@@ -354,3 +345,24 @@ held-file fixture in proc; store keeps its data-directory, owner-byte and
 damaged-record assertions. That fixture uses standard-library exclusive
 creation, adding no external dependency. No signal, descriptor/generation
 verification or CLI edge is introduced. Those remain separate phases.
+
+## Local client-book shared values
+
+The coordinator approved BookRouteId and the existing pure appearance
+values in proto as local values, not new wire fields. Client and native
+view can share invariants without depending on each other's I/O/UI layer.
+There is no new crate edge or runtime. Locality policy and colors' paint
+tokens stay outside proto.
+
+## Checked owned process cleanup (W16 shared prerequisite)
+
+The additive proc-owned Child::wait_checked retains the first group/job sweep
+result while legacy wait keeps its leader-status behavior. It returns a private
+OwnedGroupExit receipt or concrete typed wait/first signal cause; no delayed
+numeric group-id retry is introduced. SignalError privately shares its original
+io::Error so the existing signal API and a retained failure share one concrete
+cause without string conversion. The receipt is leader reap plus accepted
+cleanup request, not observed death of every descendant or account process.
+ProcessLifetime revocation and durable PID identity do not mint it. No crate
+edge, dependency, wire field or management caller is added by this mechanism.
+The source/validation record is docs/plans/checked-process-cleanup.md.

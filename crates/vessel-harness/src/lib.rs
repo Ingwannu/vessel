@@ -51,7 +51,6 @@
 //! [`CommandSpec`]: vessel_proc::CommandSpec
 
 mod added;
-mod commands;
 mod direct;
 mod discover;
 mod env;
@@ -82,9 +81,8 @@ pub use added::{
     PASSED_ON, add_agent, command as added_command, installer, parse_agents, passed_on,
     remove_agent,
 };
-pub use commands::classify_commands;
 pub use direct::{Direct, DirectProtocol, Version, VersionFit, direct, version_check};
-pub use discover::{discover, discover_added};
+pub use discover::{AgentMetadata, added_metadata, builtin_metadata, discover, discover_added};
 pub use env::HarnessEnv;
 pub use error::HarnessError;
 pub use home::{home, login_check};

@@ -187,9 +187,6 @@ impl SessionEvent {
     /// can read this event as it is.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
-        if let Some(projected) = self.composer_commands_for_protocol(protocol) {
-            return Some(projected);
-        }
         // An assigned enclosing variant can still contain optional fields
         // introduced later. Always let the inner event mask those fields.
         if let Self::Agent { event } = self {

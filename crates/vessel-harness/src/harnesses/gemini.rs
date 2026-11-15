@@ -14,7 +14,6 @@ use super::{Descriptor, Home, Structured};
 use crate::layout::HarnessLayout;
 
 pub(super) const DESCRIPTOR: Descriptor = Descriptor {
-    command_kind: None,
     binary: "gemini",
     profile: "gemini",
     structured: Structured::Native {

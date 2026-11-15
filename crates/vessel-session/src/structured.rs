@@ -251,11 +251,7 @@ impl StructuredActor {
             }
             // Protocol 10: the driver reports each only when it differs
             // from its last, so each is one record per change.
-            AgentOutput::Commands(mut commands) => {
-                vessel_harness::classify_commands(
-                    &self.life.out.current().spec.harness,
-                    &mut commands,
-                );
+            AgentOutput::Commands(commands) => {
                 self.life
                     .publish(&mut self.agent, SessionEvent::CommandsChanged { commands })
                     .await;
