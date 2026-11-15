@@ -1219,6 +1219,11 @@ where the code stands against them, and
 
 ## Development
 
+ADR 0061 adds a provider-level repository-page read. Its node cache/service
+is staged under `cfg(test)` until protocol and client/CLI wiring are ready;
+`pr.list` still reports watched sessions, and there is no project-listing
+command yet. See the ADR for credential/cache and cancellation boundaries.
+
 ```bash
 cargo fmt --all
 node scripts/gate.mjs
@@ -1245,6 +1250,12 @@ On Unix, the generated-service plist regression test also uses `python3`
 with its standard-library XML/plist parser. It runs in isolated, no-site
 mode and reads only synthetic test data from stdin; Python is not used by
 the installed service or product binary.
+
+Named launch profiles have bounded values and pending typed calls
+([ADR 0076](docs/adr/0076-named-launch-profiles.md)); no assigned launch-profile
+RPC or screen is available yet. Storage, client and CLI source are under
+verification, separate from the account profiles described above. The package
+is tracked in [the package plan](docs/plans/backend-m12-launch-profiles.md).
 
 ## License
 
@@ -1441,3 +1452,19 @@ offline synthetic fixtures.
 Startup continuation is being prepared in separate slices (ADR 0059). Its
 policy values and settings reply projection exist, with an unassigned protocol;
 there is no new startup setting or automatic resume behavior in this slice.
+
+Named launch profiles are being implemented under ADR 0076. The current
+working package extends the existing store CAS/commit boundary and the
+agent's shared configuration lane. No launch-profile RPC is available
+until the reviewed pending feature receives an assigned protocol number;
+see `docs/plans/wp-a10-node.md` for its exact implementation status.
+
+The pending ADR 0076 CLI adapter uses explicit bounded JSON files:
+`vessel launch-profiles list`, `replace REQUEST.json` (whole `expected` /
+`profiles`), `options REQUEST.json` (`selection`), `applicable SESSION_UUID`,
+and `apply REQUEST.json` (`session` / ordered `options`). Responses are typed
+JSON. Replacement never retries a conflict or lost acknowledgement; apply
+prints the actual prefix/refusal and exits unsuccessfully on partial failure.
+All five methods still refuse as unsupported until the protocol assignment
+and integration gate. These commands do not read another app's preferences
+or launch a real agent during fixture tests.

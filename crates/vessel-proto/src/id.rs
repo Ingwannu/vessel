@@ -9,6 +9,11 @@
 //!   opaque strings, compared but never parsed;
 //! - per-connection or per-session counters (`RequestId`, `SubscriptionId`,
 //!   `EventSeq`): `u64`, advanced only through checked methods.
+//!
+//! Named-profile migration metadata also has a dedicated deterministic
+//! `UUIDv5` namespace; no authentication/session id uses that constructor.
+
+mod launch_profile;
 
 use std::fmt;
 use std::str::FromStr;
@@ -225,6 +230,12 @@ uuid_id! {
 uuid_id! {
     /// A saved prompt (protocol 11, ADR 0033).
     SavedPromptId
+}
+
+uuid_id! {
+    /// A named launch bundle, separate from an account name (ADR 0076).
+    /// It stays stable when the bundle is replaced or reordered.
+    LaunchProfileId
 }
 
 uuid_id! {

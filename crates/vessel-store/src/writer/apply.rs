@@ -107,6 +107,16 @@ pub(super) fn apply(
         Write::Forge { write, done } => write_answer(transaction, done, |connection| {
             crate::forge::apply(connection, &write)
         }),
+        Write::LaunchProfiles {
+            expected,
+            profiles,
+            done,
+        } => {
+            let applied = isolated(transaction, |connection| {
+                crate::launch_profiles::replace(connection, expected, &profiles)
+            });
+            Answer::LaunchProfiles(done, applied)
+        }
         Write::Automation { writes, done } => {
             let applied = isolated(transaction, |connection| {
                 writes

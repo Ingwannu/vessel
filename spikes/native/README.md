@@ -1035,3 +1035,10 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+The wire-gap fleet check also carries ADR 0076's shared testkit launch
+profile JSON inputs. While NAMED_LAUNCH_PROFILES is unassigned, all five
+CLI operations must refuse explicitly; this is not a populated profile
+screen or authority test. Numbered positive fleet checks are an integration
+obligation when that feature is assigned. The fixture never reads actual
+app preferences or credential directories.

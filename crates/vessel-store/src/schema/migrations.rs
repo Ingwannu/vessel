@@ -461,9 +461,20 @@ const TITLE_ORIGIN_SCHEMA: usize = LABELS_SCHEMA.saturating_add(1);
 /// NULL preserves unknown provenance on rows written before this addition.
 const TITLE_ORIGIN: &str = "ALTER TABLE sessions ADD COLUMN title_origin TEXT;";
 
+/// Assigned after title origin; one predecessor-relative line to renumber.
+const LAUNCH_PROFILES_SCHEMA: usize = TITLE_ORIGIN_SCHEMA.saturating_add(1);
+
+/// One initialized whole-list row; account credentials never enter this body.
+const LAUNCH_PROFILES: &str = "CREATE TABLE launch_profiles (
+    id INTEGER PRIMARY KEY CHECK(id = 1),
+    revision INTEGER NOT NULL,
+    profiles TEXT NOT NULL
+);
+INSERT INTO launch_profiles (id, revision, profiles) VALUES (1, 0, '[]');";
+
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-pub(super) const MIGRATIONS: &[&str; TITLE_ORIGIN_SCHEMA] = &[
+pub(super) const MIGRATIONS: &[&str; LAUNCH_PROFILES_SCHEMA] = &[
     V1,
     V2,
     V3,
@@ -482,4 +493,5 @@ pub(super) const MIGRATIONS: &[&str; TITLE_ORIGIN_SCHEMA] = &[
     INBOX,
     LABELS,
     TITLE_ORIGIN,
+    LAUNCH_PROFILES,
 ];

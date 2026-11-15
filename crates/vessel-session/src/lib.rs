@@ -153,9 +153,9 @@ pub use ring::{Follow, FollowError};
 pub use runtime::{Created, ForkStart, LaunchOptions, SessionRuntime};
 /// Suggested [`RuntimeConfig::agent_handshake_timeout`].
 pub use vessel_agent::DEFAULT_HANDSHAKE_TIMEOUT;
-/// What `SessionRuntime::probe` learned (re-exported so the node needs no
-/// edge to `vessel-agent`).
-pub use vessel_agent::Probed;
 /// What a loader answers with (`LoadAttachments`), re-exported for the
 /// same reason.
 pub use vessel_agent::{AttachmentBody, Attachments};
+/// What `SessionRuntime::probe` learned (re-exported so the node needs no
+/// edge to `vessel-agent`).
+pub use vessel_agent::{ConfigurationOutcome, Probed};

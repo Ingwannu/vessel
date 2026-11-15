@@ -288,6 +288,11 @@ impl Method {
             | Self::KillSession
             | Self::ReadEvents
             | Self::MoveProfile
+            | Self::ListLaunchProfiles
+            | Self::ReplaceLaunchProfiles
+            | Self::GetLaunchProfileOptions
+            | Self::GetApplicableLaunchProfiles
+            | Self::ApplySessionOptions
             | Self::ListProfiles
             | Self::ExportSession
             | Self::ImportSession

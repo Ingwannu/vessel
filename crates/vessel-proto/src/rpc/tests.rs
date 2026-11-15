@@ -634,6 +634,11 @@ const FORWARDABLE: &[&str] = &[
     "session.fork",
     "session.rewind",
     "agent.history",
+    "launch_profile.list",
+    "launch_profile.replace",
+    "launch_profile.options",
+    "launch_profile.applicable",
+    "session.apply_options",
 ];
 
 #[test]

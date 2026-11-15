@@ -345,3 +345,11 @@ held-file fixture in proc; store keeps its data-directory, owner-byte and
 damaged-record assertions. That fixture uses standard-library exclusive
 creation, adding no external dependency. No signal, descriptor/generation
 verification or CLI edge is introduced. Those remain separate phases.
+
+Named launch-profile migration (ADR 0076) enables the existing workspace
+`uuid` dependency's `v5` feature in addition to `v4` and serde. Its small
+transitive hash implementation replaces hand-written deterministic-id
+encoding/hashing. Only a dedicated metadata namespace and canonical typed
+provider/model pair use it; random identifiers and bearer credentials are
+unchanged. No workspace crate dependency edge is added. The manifest and
+lockfile change belongs to the package's implementation review.

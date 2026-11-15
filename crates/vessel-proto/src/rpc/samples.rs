@@ -44,7 +44,11 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::GetPullRequest
         | Method::ParkSession
         | Method::WakeSession
+        | Method::GetApplicableLaunchProfiles
         | Method::ForkSession => json!({"session": id}),
+        Method::ReplaceLaunchProfiles => json!({"expected":0,"profiles":[]}),
+        Method::GetLaunchProfileOptions => json!({"selection":{"harness":"codex","options":[]}}),
+        Method::ApplySessionOptions => json!({"session":id,"options":[]}),
         Method::CreateSession => json!({"spec":{"harness":"codex","mode":"structured"}}),
         Method::PromptSideQuestion => json!({"session":id,"question":"sample"}),
         Method::ResetSideQuestion => json!({"session":id,"side":id}),
@@ -55,6 +59,7 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         Method::StopNode => json!({"when":"now"}),
         Method::InviteDevice => json!({"ttl_secs":1}),
         Method::GetDeviceSelf
+        | Method::ListLaunchProfiles
         | Method::ListProfiles
         | Method::LeaveFleet
         | Method::SyncFleet

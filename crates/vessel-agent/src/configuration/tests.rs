@@ -1,0 +1,280 @@
+//! Completion barriers prove the shared owner rather than provider timing.
+
+use super::*;
+use crate::AgentInput;
+use std::{future::Future, time::Duration};
+use vessel_proto::{ChoiceValue, OptionId};
+
+const LIMIT: Duration = Duration::from_secs(5);
+const SAFETY: Duration = Duration::from_secs(15);
+
+async fn phase<T>(name: &str, future: impl Future<Output = T>) -> T {
+    tokio::time::timeout(LIMIT, future)
+        .await
+        .unwrap_or_else(|_| panic!("phase timed out: {name}"))
+}
+
+fn choice(id: &str) -> OptionChoice {
+    OptionChoice {
+        id: OptionId::new(id),
+        value: ChoiceValue::Toggle { on: true },
+    }
+}
+fn choices(ids: &[&str]) -> LaunchChoices {
+    ids.iter()
+        .map(|id| LaunchChoice::try_from(choice(id)).unwrap())
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap()
+}
+async fn setter(receive: &mut mpsc::Receiver<Command>, id: &str) -> crate::input::OptionsReply {
+    let Command::SetOption { choice, reply } = phase("next actual driver setter", receive.recv())
+        .await
+        .unwrap()
+    else {
+        panic!("not a setter")
+    };
+    assert_eq!(choice.id.as_str(), id);
+    reply
+}
+fn completed(notice: Option<&str>) -> Configured {
+    Configured {
+        options: Vec::new(),
+        notice: notice.map(|value| value.parse().unwrap()),
+    }
+}
+
+#[tokio::test]
+async fn bundle_waits_for_each_completion_and_keeps_first_notice_and_prefix() {
+    vessel_testkit::within(
+        SAFETY,
+        Box::pin(async {
+            let (send, mut receive) = mpsc::channel(crate::process::COMMANDS);
+            let input = AgentInput::new(send);
+            let bundle_input = input.clone();
+            let bundle = tokio::spawn(async move {
+                bundle_input
+                    .apply_options(choices(&["a", "b", "c", "never"]))
+                    .await
+                    .unwrap()
+            });
+            let first = setter(&mut receive, "a").await;
+            let single_input = input.clone();
+            let single =
+                tokio::spawn(async move { single_input.set_option(choice("outside")).await });
+            // The driver loop is free, yet neither the next bundle step nor
+            // the old setter may run before the actual provider answer.
+            assert!(matches!(
+                receive.try_recv(),
+                Err(mpsc::error::TryRecvError::Empty)
+            ));
+            first.send(Ok(completed(Some("first notice")))).unwrap();
+            setter(&mut receive, "b")
+                .await
+                .send(Ok(completed(Some("later notice"))))
+                .unwrap();
+            setter(&mut receive, "c")
+                .await
+                .send(Err(InputError::Closed))
+                .unwrap();
+            let result = phase("bundle result", bundle).await.unwrap();
+            assert_eq!(
+                result
+                    .applied()
+                    .iter()
+                    .map(|value| value.as_choice().id.as_str())
+                    .collect::<Vec<_>>(),
+                ["a", "b"]
+            );
+            assert_eq!(result.notice().unwrap().as_str(), "first notice");
+            assert_eq!(
+                result.failure().unwrap().choice().as_choice().id.as_str(),
+                "c"
+            );
+            assert!(matches!(
+                result.failure().unwrap().error(),
+                InputError::Closed
+            ));
+            setter(&mut receive, "outside")
+                .await
+                .send(Ok(completed(None)))
+                .unwrap();
+            assert!(
+                phase("old single setter result", single)
+                    .await
+                    .unwrap()
+                    .is_ok()
+            );
+            assert!(matches!(
+                receive.try_recv(),
+                Err(mpsc::error::TryRecvError::Empty)
+            ));
+            drop(input);
+        }),
+    )
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn cancelled_caller_does_not_release_the_real_mutation_fence() {
+    vessel_testkit::within(
+        SAFETY,
+        Box::pin(async {
+            let (send, mut receive) = mpsc::channel(crate::process::COMMANDS);
+            let input = AgentInput::new(send);
+            let pending_input = input.clone();
+            let pending =
+                tokio::spawn(
+                    async move { pending_input.apply_options(choices(&["a", "b"])).await },
+                );
+            let first = setter(&mut receive, "a").await;
+            pending.abort();
+            assert!(
+                phase("cancelled caller joined", pending)
+                    .await
+                    .unwrap_err()
+                    .is_cancelled()
+            );
+            let single_input = input.clone();
+            let single =
+                tokio::spawn(async move { single_input.set_option(choice("after")).await });
+            assert!(matches!(
+                receive.try_recv(),
+                Err(mpsc::error::TryRecvError::Empty)
+            ));
+            first.send(Ok(completed(None))).unwrap();
+            setter(&mut receive, "b")
+                .await
+                .send(Ok(completed(None)))
+                .unwrap();
+            setter(&mut receive, "after")
+                .await
+                .send(Ok(completed(None)))
+                .unwrap();
+            assert!(phase("following setter", single).await.unwrap().is_ok());
+            drop(input);
+        }),
+    )
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn driver_closure_ends_owner_even_with_external_handles_and_unanswered_reply() {
+    vessel_testkit::within(
+        SAFETY,
+        Box::pin(async {
+            let (send, mut receive) = mpsc::channel(crate::process::COMMANDS);
+            let input = Configuration::spawn(send);
+            let pending_input = input.clone();
+            let pending =
+                tokio::spawn(
+                    async move { pending_input.bundle(choices(&["a", "b"])).await.unwrap() },
+                );
+            let unanswered = setter(&mut receive, "a").await;
+            drop(receive);
+            let result = phase("driver closure result", pending).await.unwrap();
+            assert!(result.applied().is_empty());
+            assert!(matches!(
+                result.failure().unwrap().error(),
+                InputError::Closed
+            ));
+            phase("configuration owner exits", input.0.closed()).await;
+            assert!(matches!(
+                input.single(choice("later")).await,
+                Err(InputError::Closed)
+            ));
+            // Retain both sender and handle until after the owner demonstrably exits.
+            drop(unanswered);
+            drop(input);
+        }),
+    )
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn mutation_queue_reuses_the_process_budget_and_closure_drains_waiters() {
+    vessel_testkit::within(
+        SAFETY,
+        Box::pin(async {
+            let (send, mut receive) = mpsc::channel(crate::process::COMMANDS);
+            let lane = Configuration::spawn(send);
+            let running_lane = lane.clone();
+            let running = tokio::spawn(async move { running_lane.single(choice("running")).await });
+            let held = setter(&mut receive, "running").await;
+            let mut queued = Vec::new();
+            for n in 0..crate::process::COMMANDS {
+                let (reply, answer) = oneshot::channel();
+                lane.0
+                    .try_send(Mutation::Single {
+                        choice: choice(&format!("queued-{n}")),
+                        reply,
+                    })
+                    .unwrap();
+                queued.push(answer);
+            }
+            assert_eq!(lane.0.capacity(), 0);
+            let (reply, _answer) = oneshot::channel();
+            assert!(matches!(
+                lane.0.try_send(Mutation::Single {
+                    choice: choice("overflow"),
+                    reply
+                }),
+                Err(mpsc::error::TrySendError::Full(_))
+            ));
+            drop(receive);
+            assert!(matches!(
+                phase("active setter closes", running).await.unwrap(),
+                Err(InputError::Closed)
+            ));
+            phase("owner closes bounded queue", lane.0.closed()).await;
+            for answer in queued {
+                assert!(phase("queued reply drains", answer).await.is_err());
+            }
+            drop(held);
+            drop(lane);
+        }),
+    )
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn an_available_provider_ack_is_preserved_when_the_driver_also_closes() {
+    vessel_testkit::within(
+        SAFETY,
+        Box::pin(async {
+            let (send, mut receive) = mpsc::channel(crate::process::COMMANDS);
+            let input = AgentInput::new(send);
+            let pending_input = input.clone();
+            let pending = tokio::spawn(async move {
+                pending_input
+                    .apply_options(choices(&["acknowledged", "not-sent"]))
+                    .await
+                    .unwrap()
+            });
+            let reply = setter(&mut receive, "acknowledged").await;
+            // On this current-thread runtime the owner cannot poll between these
+            // synchronous operations: both completion and closure are ready.
+            reply
+                .send(Ok(completed(Some("acknowledged notice"))))
+                .unwrap();
+            drop(receive);
+            let result = phase("ack and close outcome", pending).await.unwrap();
+            assert_eq!(result.applied(), choices(&["acknowledged"]).as_slice());
+            assert_eq!(result.notice().unwrap().as_str(), "acknowledged notice");
+            assert_eq!(
+                result.failure().unwrap().choice().as_choice().id.as_str(),
+                "not-sent"
+            );
+            assert!(matches!(
+                result.failure().unwrap().error(),
+                InputError::Closed
+            ));
+        }),
+    )
+    .await
+    .unwrap();
+}

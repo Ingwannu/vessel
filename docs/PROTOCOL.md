@@ -1884,3 +1884,25 @@ slots with the canonical range and approved literal program. A current or
 prior block is invalid on every approval reply while unassigned. CLI shows
 both choices; web refuses current, prior and approved-folder blocks until
 it can display them completely. No allocator or process runs in this stage.
+
+## Pending named launch profiles (ADR 0076)
+
+`NAMED_LAUNCH_PROFILES` remains unassigned. The one method table contains
+pending unary rows for `launch_profile.list` (Read),
+`launch_profile.replace` (Admin), `launch_profile.options` (Read),
+`launch_profile.applicable` (Read), and `session.apply_options` (Operate).
+The shared optional requirement propagates through Forward, Relay and
+Deliver; no transport may dispatch a pending call or publish its new reply.
+This does not change the current or minimum protocol constant.
+
+Host replacement is whole-list CAS with `expected`; successful replies
+carry committed `revision`. Editor probes echo `selection` and return
+bounded current controls plus the canonical public account name/kind.
+Agents may read profile notes but cannot replace or run editor probes;
+delegated origins meet that restriction independently of scope. Live
+application retains the existing session ownership rule and returns its
+actual completed prefix, first notice and first refusal. No account,
+credential, provider-process override or stored profile id is accepted by
+the apply request. Internal fenced options reads add no wire method or
+synthetic revision. Pending refusal and assigned happy-path integration
+remain separate evidence obligations.

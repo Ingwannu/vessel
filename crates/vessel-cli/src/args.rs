@@ -16,6 +16,7 @@ mod fleet;
 mod forge;
 mod history;
 mod inbox;
+mod launch_profiles;
 mod log;
 mod node;
 mod nodes;
@@ -32,6 +33,7 @@ pub(crate) use fleet::{FleetCommand, MemoryCommand, SecretCommand};
 pub(crate) use forge::{Method, PrCommand, Switch};
 pub(crate) use history::History;
 pub(crate) use inbox::InboxCommand;
+pub(crate) use launch_profiles::LaunchProfilesCommand;
 pub(crate) use log::{Log, LogMode};
 pub(crate) use node::{DevicesCommand, Install, NodeCommand, Source, Update};
 pub(crate) use nodes::{FromStdin, NodesCommand};
@@ -78,6 +80,11 @@ pub(crate) struct Target {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
+    /// Ordered named launch presets, separate from harness account profiles.
+    LaunchProfiles {
+        #[command(subcommand)]
+        command: LaunchProfilesCommand,
+    },
     /// List and answer attention across sessions on the selected node.
     Inbox {
         #[command(subcommand)]

@@ -135,6 +135,19 @@ pub enum StoreError {
         /// Newest version this build knows.
         supported: i64,
     },
+    /// The singleton launch snapshot has an invalid structure.
+    #[error("stored launch profile snapshot is invalid: {0:?}")]
+    LaunchSnapshot(crate::LaunchSnapshotProblem),
+    /// Stored launch JSON failed its strict typed decoder.
+    #[error("stored launch profiles are invalid")]
+    LaunchDecode(#[source] serde_json::Error),
+    /// A stored launch revision does not fit its bounded domain.
+    #[error("stored launch revision is outside its supported range")]
+    LaunchRevision {
+        /// Conversion failure, without the stored value.
+        #[source]
+        source: std::num::TryFromIntError,
+    },
     /// `SQLite` failed.
     #[error("database error")]
     Sqlite(#[from] rusqlite::Error),
@@ -288,6 +301,9 @@ impl StoreError {
             | Self::InvalidToken { .. }
             | Self::InvalidNodeKey { .. }
             | Self::NewerSchema { .. }
+            | Self::LaunchSnapshot(_)
+            | Self::LaunchDecode(_)
+            | Self::LaunchRevision { .. }
             | Self::Sqlite(_)
             | Self::Commit(_)
             | Self::Corrupt { .. }

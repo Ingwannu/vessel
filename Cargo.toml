@@ -248,7 +248,7 @@ ts-rs = { version = "12", default-features = false, features = ["serde-compat", 
 # one file there. The unicode-rs crate (`idna` used it for years); its
 # tables and `tinyvec` are all it brings.
 unicode-normalization = "0.1"
-uuid = { version = "1", features = ["v4", "serde"] }
+uuid = { version = "1", features = ["v4", "v5", "serde"] }
 # LSP file URIs, including platform drive letters and percent encoding (ADR 0016).
 url = "2.5"
 # Native saved-file change notifications; replaces polling (ADR 0016).

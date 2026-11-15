@@ -378,6 +378,16 @@ macro_rules! method_table {
             RewindSession / rewind_session / "session.rewind" [Operate, 14, unary]: $crate::forking::RewindSession => $crate::SessionInfo;
             /// A page of an agent's own conversations, to import one (protocol 17, ADR 0053).
             GetAgentHistory / agent_history / "agent.history" [Operate, 17, unary]: $crate::history::GetAgentHistory => $crate::history::AgentHistoryPage;
+            /// Read the complete ordered host launch presets.
+            ListLaunchProfiles / list_launch_profiles / "launch_profile.list" [Read, (pending $crate::launch_profiles::NAMED_LAUNCH_PROFILES), unary]: $crate::launch_profiles::ListLaunchProfiles => $crate::launch_profiles::LaunchProfilesSnapshot;
+            /// Replace host launch presets with a whole-list revision CAS.
+            ReplaceLaunchProfiles / replace_launch_profiles / "launch_profile.replace" [Admin, (pending $crate::launch_profiles::NAMED_LAUNCH_PROFILES), unary]: $crate::launch_profiles::ReplaceLaunchProfiles => $crate::launch_profiles::LaunchProfilesSnapshot;
+            /// Probe an editor selection without sending a prompt.
+            GetLaunchProfileOptions / launch_profile_options / "launch_profile.options" [Read, (pending $crate::launch_profiles::NAMED_LAUNCH_PROFILES), unary]: $crate::launch_profiles::GetLaunchProfileOptions => $crate::launch_profiles::LaunchCatalogue;
+            /// Read presets filtered by a session's actual harness/account.
+            GetApplicableLaunchProfiles / applicable_launch_profiles / "launch_profile.applicable" [Read, (pending $crate::launch_profiles::NAMED_LAUNCH_PROFILES), unary]: $crate::launch_profiles::GetApplicableLaunchProfiles => $crate::launch_profiles::ApplicableLaunchProfiles;
+            /// Apply concrete choices through one process mutation owner.
+            ApplySessionOptions / apply_session_options / "session.apply_options" [Operate, (pending $crate::launch_profiles::NAMED_LAUNCH_PROFILES), unary]: $crate::launch_profiles::ApplySessionOptions => $crate::launch_profiles::ApplySessionOptionsResult;
         }
     };
 }

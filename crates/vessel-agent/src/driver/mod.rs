@@ -302,7 +302,9 @@ impl Driver {
                     Ok(applied) => {
                         self.options.apply(applied);
                         self.report_options().await;
-                        Ok(self.options.listed())
+                        Ok(crate::configuration::Configured::without_notice(
+                            self.options.listed(),
+                        ))
                     }
                     Err(error) => Err(crate::error::InputError::Refused {
                         id,

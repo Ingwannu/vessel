@@ -1645,3 +1645,66 @@ unsupported override before process spawn, with a typed Unsupported mapping.
 The field does not enter SessionSpec, user messages, argv or environment.
 Reload orchestration and actual native override/restore transports are separate
 work; see docs/plans/provider-transient-context.md. No dependency edge changes.
+
+## Named launch profile values (ADR 0076, transport pending)
+
+`vessel-proto::launch_profiles` holds validated core values: an immutable,
+ordered whole list of stable-id presets, separate from account profiles.
+A preset contains a `HarnessRef`, optional account name and bounded
+existing agent choices, plus validated public appearance/text metadata.
+Shared arrays and strings avoid copying whole lists for snapshots. No
+credential value or execution authority is represented.
+
+Construction and strict decoding enforce the same id/count/text rules.
+A counting serializer checks canonical escaped JSON without building a
+serialized copy. Every accepted list budgets the maximum exact revision,
+so a later increment cannot overflow the response budget. Invalid later
+entries, duplicates and unknown fields fail the whole snapshot; decoder
+errors and Debug do not echo submitted public guidance.
+
+The feature's protocol remains unassigned. Five pending rows in the one
+method table cover list, CAS replacement, editor options, applicable presets
+and a session bundle. Every transport must refuse them while the feature
+constant is None; their presence is not an available feature. Existing
+reply/event fields remain unchanged. Typed client calls and the separate
+`launch-profiles` CLI use the same requests; the MCP facade remains its
+consumer owner's work. The service now routes to retained metadata/probe and apply jobs,
+with separate finite admissions drained by the existing node task tracker.
+Editor probes use one retained account snapshot, actual selected handshake
+choices and real process cleanup, then check configuration identity before
+publishing. Their new selected compile/runtime checks remain in progress.
+The working package adds one SQLite singleton and CAS through the existing
+writer; its acknowledgement follows the outer commit. The bounded reader
+selects revision and body together and never substitutes empty data for a
+corrupt row. The appended schema follows title origin by one relative
+constant. Migration fixtures remove this append before their older rollback.
+
+`vessel-agent::configuration` owns the shared per-process setter lane. Old
+single setters and bounded bundles use the same queue and wait for actual
+driver completion. A dropped caller does not release that fence. Driver
+receiver closure ends the owner even while input handles survive. Notices
+are explicit typed driver completions, never inferred from logs; the
+existing drivers report none. `SessionHandle::apply_options` wakes once and
+captures one process handle, so a concurrent move cannot redirect later
+steps. These additions are under implementation and require the package's
+runtime checks and whole gate before a callable feature is reported.
+
+The client copies presets into ordinary session specs or prepared live
+choices, without a persistent preset-id binding. Its compatibility helper
+accepts only validated caller-supplied legacy favorites and reported
+provider catalogues tagged by NodeId. It builds append-only CAS updates,
+reconciles uncertain writes by reading, and returns a receipt only after
+confirmation. The app owns preference files, per-node markers and in-flight
+state; remembered account choices are not favorites. Testkit
+`FAKE_ACP_START_GATE` is a bounded loopback barrier in the fake binary only,
+used to prove real probe reload/cancellation ordering without timing sleeps.
+
+The configuration owner also admits an explicit `options_fenced` read. It
+issues the driver's ordinary current-options command only after preceding
+singles/bundles finish, rather than returning the last setter reply. A
+cancelled read retains its fence through actual response or driver closure.
+The session handle wrapper captures one current input and never wakes a
+parked run. This is not a SessionInfo/account/run snapshot or synthetic
+revision; authenticated parent inheritance belongs to the session actor and
+must independently bind and recheck the actual run/lifetime. Existing
+unfenced options reads keep their scheduling.

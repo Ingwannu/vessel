@@ -188,6 +188,8 @@ mod plans;
 mod real;
 #[path = "fake_acp/shapes.rs"]
 mod shapes;
+#[path = "fake_acp/start_gate.rs"]
+mod start_gate;
 
 fn main() -> ExitCode {
     if std::env::args().nth(1).as_deref() == Some("--version") {
@@ -216,6 +218,10 @@ fn main() -> ExitCode {
             ));
             return ExitCode::FAILURE;
         }
+    }
+    if let Err(error) = start_gate::wait() {
+        complain(&format!("fake-acp: startup gate: {error}"));
+        return ExitCode::FAILURE;
     }
     let runtime = match tokio::runtime::Builder::new_current_thread()
         .enable_all()

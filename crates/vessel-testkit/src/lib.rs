@@ -98,6 +98,8 @@ use tokio::time::error::Elapsed;
 #[cfg(feature = "authority-fixtures")]
 pub mod device_fixtures;
 pub mod fleet_fixtures;
+#[cfg(feature = "authority-fixtures")]
+pub mod launch_profile_fixtures;
 pub mod model;
 #[cfg(feature = "relay")]
 pub mod relay;

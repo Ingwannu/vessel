@@ -218,6 +218,11 @@ const fn refused(method: Method) -> bool {
         | Method::InviteDevice
         | Method::ListDevices
         | Method::RevokeDevice
+        | Method::ListLaunchProfiles
+        | Method::ReplaceLaunchProfiles
+        | Method::GetLaunchProfileOptions
+        | Method::GetApplicableLaunchProfiles
+        | Method::ApplySessionOptions
         | Method::ListProfiles
         | Method::ReloadProfiles
         // `agent.add` and `agent.remove` refuse every agent themselves

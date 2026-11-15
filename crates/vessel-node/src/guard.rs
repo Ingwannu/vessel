@@ -159,6 +159,7 @@ targets!(
     MoveProfile,
     ExportSession,
     SetSessionOption,
+    vessel_proto::launch_profiles::ApplySessionOptions,
     RenameSession,
     vessel_proto::conversation::PromptSession,
     vessel_proto::conversation::ChangeQueue,
@@ -181,6 +182,10 @@ targets!(
 // scheduler's rule (ADR 0033), and a run is checked as its definer.
 // Saved prompts name none either: agents may only read them.
 untargeted!(
+    vessel_proto::launch_profiles::ListLaunchProfiles,
+    vessel_proto::launch_profiles::ReplaceLaunchProfiles,
+    vessel_proto::launch_profiles::GetLaunchProfileOptions,
+    vessel_proto::launch_profiles::GetApplicableLaunchProfiles,
     vessel_proto::GetDeviceSelf,
     vessel_proto::usage::QueryUsage,
     vessel_proto::inbox::ListInbox,

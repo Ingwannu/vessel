@@ -25,6 +25,8 @@ mod inbox;
 #[cfg(test)]
 mod init;
 #[cfg(test)]
+mod launch_profiles;
+#[cfg(test)]
 mod logs;
 #[cfg(test)]
 mod mcp;

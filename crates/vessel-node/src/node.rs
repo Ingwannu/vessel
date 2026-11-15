@@ -1,5 +1,9 @@
 //! Starting a node and stopping it.
 
+mod lsp;
+
+use self::lsp::config as lsp_config;
+
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -294,19 +298,6 @@ struct Core {
     relays: Arc<Relays>,
 }
 
-/// The LSP manager's configuration with the operator's roots filled in:
-/// executables and toolchains inside any configured root are not trusted
-/// for conservative analysis, so the registry needs the full list.
-fn lsp_config(config: &Config) -> vessel_lsp::Config {
-    let mut lsp = config.lsp.clone();
-    lsp.registry.configured_roots = config
-        .lsp_roots
-        .iter()
-        .map(|root| root.path.clone())
-        .collect();
-    lsp
-}
-
 /// Build the session runtime, the lifecycle, the devices and the service.
 #[expect(
     clippy::too_many_lines,
@@ -476,6 +467,10 @@ async fn core(
         lsp,
         lsp_roots: config.lsp_roots.clone(),
         lifecycle: lifecycle.clone(),
+        launch_profiles: crate::launch_profiles::LaunchProfileJobs::new(
+            tasks.clone(),
+            stop.clone(),
+        ),
         lookup: config.harness_lookup.clone(),
         sessions,
         devices: Arc::clone(&devices),

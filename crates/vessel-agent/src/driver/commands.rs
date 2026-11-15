@@ -66,7 +66,9 @@ impl Driver {
         let change = match self.options.change(&choice) {
             Ok(Some(change)) => change,
             Ok(None) => {
-                let _gone = reply.send(Ok(self.options.listed()));
+                let _gone = reply.send(Ok(crate::configuration::Configured::without_notice(
+                    self.options.listed(),
+                )));
                 return;
             }
             Err(error) => {

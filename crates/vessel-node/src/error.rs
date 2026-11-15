@@ -1,11 +1,13 @@
 //! Errors: why a node could not start ([`NodeError`]), and why a call
 //! failed (`ServiceError`, mapped to the wire in one place).
 
+mod wire;
+
 use std::net::SocketAddr;
 
 use vessel_proto::{
-    AgentName, DeviceInviteError, ErrorCode, ErrorDetail, EventSeq, HarnessKind, HarnessRef,
-    ModelRouteName, ProfileName, SecretName, SessionId, WireError,
+    AgentName, EventSeq, HarnessKind, HarnessRef, ModelRouteName, ProfileName, SecretName,
+    SessionId,
 };
 use vessel_rpc::OutboundError;
 use vessel_session::SessionError;
@@ -109,6 +111,34 @@ pub enum NodeError {
 /// [`ServiceError::to_wire`].
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum ServiceError {
+    /// Finite launch metadata/probe or apply admission is full.
+    #[error("launch profile operations are busy; try again shortly")]
+    LaunchBusy(#[source] tokio::sync::TryAcquireError),
+    /// A retained operation ended without an acknowledgement.
+    #[error("the launch profile worker ended; reread state before retrying")]
+    LaunchWorker(#[source] tokio::sync::oneshot::error::RecvError),
+    /// A reported catalogue/result failed its bounded whole-body contract.
+    #[error("the agent's launch configuration result is invalid or too large")]
+    LaunchValues(#[source] vessel_proto::launch_profiles::InvalidLaunchValue),
+    /// The selected account configuration changed during a real probe.
+    #[error("account or agent configuration changed; request the options again")]
+    LaunchChanged,
+    /// A CAS edit cannot overwrite a newer committed list.
+    #[error("launch profiles changed; reread before saving again")]
+    LaunchStale(vessel_proto::launch_profiles::LaunchProfileRevision),
+    /// Revisions never wrap.
+    #[error("launch profile revision is exhausted; this list cannot be changed")]
+    LaunchExhausted,
+    /// Scope alone cannot authorize an agent to edit/probe host presets.
+    #[error("launch profile editing and editor probes require a person")]
+    LaunchAgentOrigin,
+    /// A default harness was removed; never guess another account.
+    #[error("this launch harness is no longer configured")]
+    LaunchHarnessGone,
+    /// A successful empty catalogue is distinct from no structured driver.
+    #[error("this agent has no available structured driver for a launch-profile probe")]
+    LaunchStructuredUnavailable(#[source] Box<ServiceError>),
+
     /// No session with this id, live or stored.
     #[error("no session {0}")]
     NotFound(SessionId),
@@ -385,91 +415,4 @@ fn route_text(route: Option<&ModelRouteName>) -> String {
         || "its harness's own provider".to_owned(),
         |route| format!("route `{route}`"),
     )
-}
-
-impl ServiceError {
-    /// The error as the client sees it: a code to branch on and the full
-    /// chain of causes as text (none of which contains secrets).
-    pub(crate) fn to_wire(&self) -> WireError {
-        let code = match self {
-            Self::NotFound(_) | Self::UnknownAgent(_) | Self::NoRecord { .. } => {
-                ErrorCode::NotFound
-            }
-            // `Profiles(Parse)`: the call is fine; the node's file is not
-            // (and stays unused).
-            Self::Ended(_)
-            | Self::Profiles(
-                ProfilesFileError::Parse(_)
-                | ProfilesFileError::ParseAgents(_)
-                | ProfilesFileError::ReadAgents(vessel_store::AgentsFileError::Unsafe { .. }),
-            )
-            | Self::ProfileGone(_)
-            | Self::HomeUnknown(_)
-            | Self::NotLoggedIn(_)
-            | Self::AgentGone(_)
-            | Self::MoveRunning(_)
-            | Self::ForkRunning(_)
-            | Self::Live(_)
-            | Self::LogWriting(_)
-            | Self::AlreadyLive(_)
-            | Self::StartingAgain(_)
-            | Self::FolderGone { .. }
-            | Self::WorktreeBusy(_)
-            | Self::AgentSecret { .. }
-            | Self::Installing(_)
-            | Self::Models(_)
-            | Self::NoPairingRoutes => ErrorCode::Conflict,
-            Self::AgentDepth { .. }
-            | Self::AgentLimit { .. }
-            | Self::NotOwned(_)
-            | Self::AgentMarksRead => ErrorCode::Forbidden,
-            Self::Draining | Self::TooManyInvitations => ErrorCode::Unavailable,
-            Self::Ahead { .. }
-            | Self::ReadAhead { .. }
-            | Self::InvalidTtl
-            | Self::SideCreationLabels
-            | Self::NoScopes
-            | Self::UnknownProfile(_)
-            | Self::ProfileRemoved { .. }
-            | Self::UnknownRoute { .. }
-            | Self::ProfileHarness { .. } => ErrorCode::InvalidRequest,
-            Self::DidNotStart { .. } => ErrorCode::SpawnFailed,
-            Self::MoveRoute { .. } | Self::NotAPoint { .. } | Self::LabelsUnassigned => {
-                ErrorCode::Unsupported
-            }
-            Self::SideQuestion(error) => error.code(),
-            Self::Session(error) => error.code(),
-            Self::Transfer(error) => error.code(),
-            Self::Upload(error) => error.code(),
-            Self::Store(error)
-            | Self::Profiles(
-                ProfilesFileError::Read(error)
-                | ProfilesFileError::ReadAgents(vessel_store::AgentsFileError::Read(error)),
-            ) => error.code(),
-            Self::Added(error) => error.code(),
-            Self::Outbound(error) => error.code(),
-            Self::Unpersisted(_)
-            | Self::Task(_)
-            | Self::Random(_)
-            | Self::Link(_)
-            | Self::AgentTools(_)
-            | Self::AgentToolsPath
-            | Self::Unrouted(_)
-            | Self::ModelProxyDown => ErrorCode::Internal,
-        };
-        let mut message = self.to_string();
-        let mut source = std::error::Error::source(self);
-        while let Some(cause) = source {
-            message.push_str(": ");
-            message.push_str(&cause.to_string());
-            source = cause.source();
-        }
-        let mut error = WireError::new(code, message);
-        if matches!(self, Self::NoPairingRoutes) {
-            error.detail = Some(ErrorDetail::DeviceInvite {
-                reason: DeviceInviteError::NoRoutes,
-            });
-        }
-        error
-    }
 }
