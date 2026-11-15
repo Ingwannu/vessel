@@ -40,6 +40,17 @@ pub enum Operation {
     Remove,
 }
 
+/// A completed status read or mutation, shared by Settings and deferred onboarding.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Snapshot {
+    /// Missing companions must not be offered as an onboarding choice.
+    pub availability: Availability,
+    /// Installation owns only the exact app-provided destination.
+    pub status: Status,
+    /// A successful mutation can still require manual terminal configuration.
+    pub path: PathStatus,
+}
+
 /// The screen retains honest I/O progress and exposes no placeholder actions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum State {
@@ -59,6 +70,16 @@ pub enum State {
     Working(Operation),
     /// A typed I/O refusal can be retried by refreshing status.
     Failed,
+}
+
+impl From<Snapshot> for State {
+    fn from(snapshot: Snapshot) -> Self {
+        Self::Ready {
+            availability: snapshot.availability,
+            status: snapshot.status,
+            path: snapshot.path,
+        }
+    }
 }
 
 impl State {

@@ -132,3 +132,15 @@ explicit returned-value handling, borrowed worker state and documented public
 fields. The public error type is `DesktopError` to identify its boundary.
 Bundle-path tests cover both tools on Linux/Windows, relative-path refusal and
 unassigned macOS layout; no test executes a companion or assumes it exists.
+
+## Deferred CLI setup consumer
+
+Onboarding and Settings share `areas::desktop::cli::snapshot` and
+`set_installed(Operation, cx)`, both returning background tasks with typed
+`view::desktop::cli::Snapshot` acknowledgements. The read-only query checks the
+bundled file, exact shim ownership and current PATH/known shell rc; it never
+creates or edits the rc. Only an explicit install calls `PathSetup::ensure`.
+An installed CLI with an uneditable/unknown rc returns the manual PATH hint,
+while a foreign destination remains a typed refusal. Removal preserves the rc
+and reports its remaining configuration honestly. The existing ownership writer
+is reused rather than adding onboarding-specific filesystem policy.

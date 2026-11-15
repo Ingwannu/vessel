@@ -78,11 +78,11 @@ impl PathSetup {
         })
     }
 
-    /// Append once, leaving an existing file's ownership/mode and symlink semantics intact.
+    /// Read current PATH/known rc configuration without creating or editing a file.
     ///
     /// # Errors
-    /// Bounded read, UTF-8, append and permission failures are explicit.
-    pub fn ensure(&self) -> Result<PathStatus, DesktopError> {
+    /// Bounded read, UTF-8 and permission failures retain their source.
+    pub fn status(&self) -> Result<PathStatus, DesktopError> {
         if std::env::split_paths(&self.path)
             .any(|path| path == self.local_bin || path == Path::new("~/.local/bin"))
         {
@@ -108,6 +108,21 @@ impl PathSetup {
         if content.lines().any(|existing| existing.trim() == *line) {
             return Ok(PathStatus::Configured);
         }
+        Ok(PathStatus::Manual)
+    }
+
+    /// Append once, leaving existing ownership/mode and symlink semantics intact.
+    ///
+    /// # Errors
+    /// Bounded reads, append and permission failures are explicit.
+    pub fn ensure(&self) -> Result<PathStatus, DesktopError> {
+        let status = self.status()?;
+        if status != PathStatus::Manual {
+            return Ok(status);
+        }
+        let Some((rc, line)) = &self.rc else {
+            return Ok(PathStatus::Manual);
+        };
         if let Some(parent) = rc.parent() {
             std::fs::create_dir_all(parent)?;
         }
@@ -136,7 +151,13 @@ mod tests {
             OsString::new(),
         )
         .unwrap();
+        assert_eq!(plan.status().unwrap(), PathStatus::Manual);
+        assert_eq!(
+            std::fs::read_to_string(home.join(".bashrc")).unwrap(),
+            "# My settings\n"
+        );
         assert_eq!(plan.ensure().unwrap(), PathStatus::Configured);
+        assert_eq!(plan.status().unwrap(), PathStatus::Configured);
         let first = std::fs::read(home.join(".bashrc")).unwrap();
         assert_eq!(plan.ensure().unwrap(), PathStatus::Configured);
         assert_eq!(std::fs::read(home.join(".bashrc")).unwrap(), first);
