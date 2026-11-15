@@ -255,8 +255,7 @@ impl Live<'_> {
                 },
                 message = self.messages.recv() => {
                     let message = message.flatten().ok_or(RuntimeError::EndOfStream)?;
-                    self.logs.helper_diagnostic(&message)?;
-                    self.core.receive(message)?;
+                    accept_message(self.core, self.logs, message, ready_by)?;
                 },
                 completed = self.workers.join_next() => match completed {
                     Some(Ok(Ok(WorkerExit::Reader | WorkerExit::Stderr))) => {},
@@ -270,6 +269,21 @@ impl Live<'_> {
             }
         }
     }
+}
+
+fn accept_message(
+    core: &mut Core,
+    logs: &SharedLogs,
+    message: vessel_proto::plugins::HelperToNode,
+    ready_by: tokio::time::Instant,
+) -> Result<(), RuntimeError> {
+    // An elapsed timer and a completed pipe can be ready in the same select
+    // turn. Initial capability must never publish merely because the pipe won.
+    if !core.is_ready() && tokio::time::Instant::now() >= ready_by {
+        return Err(RuntimeError::ReadyTimeout);
+    }
+    logs.helper_diagnostic(&message)?;
+    core.receive(message)
 }
 
 async fn sleep_until(deadline: Option<tokio::time::Instant>) {
@@ -287,3 +301,7 @@ impl Drop for WithdrawOnDrop {
         drop(self.0.send_replace(RuntimeState::Stopped));
     }
 }
+
+#[cfg(test)]
+#[path = "supervisor_tests.rs"]
+mod tests;

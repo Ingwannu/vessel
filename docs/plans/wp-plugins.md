@@ -322,3 +322,12 @@ malformed/binary/oversized data, changed bytes and diagnostic canaries. These
 new filesystem cases have not yet executed; pending earlier narrow jobs do not
 cover them. Full artifact pinning and a cancellation-safe installer remain
 required before activation.
+
+Initialization uses the same deadline recheck rule as callback settlement. A
+ready frame and its elapsed timer can both be selectable; accepting the frame
+must not publish capability after the outer30s budget. The owning receive
+transition now checks time before diagnostics or graph publication. Paused-time
+regressions cover refusal exactly at the deadline and timely initialization
+followed by later registration updates. Only the existing Tokio test-util
+feature is added for deterministic tests; no production timer/budget changes.
+This correction is not covered by earlier queued source hashes.
