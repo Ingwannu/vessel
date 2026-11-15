@@ -121,24 +121,54 @@ async fn real_preference_file_is_committed_before_the_original_create_frame() {
     within(async {
         let home = Home::new();
         let (mut state, mut events) = state(&home);
-        let mut peer = phase("controlled saved preference peer", peer::controlled("laptop")).await;
+        let mut peer = phase(
+            "controlled saved preference peer",
+            peer::controlled("laptop"),
+        )
+        .await;
         let context = super::admission::insert(&mut state, "laptop", &mut peer);
         let request = request(context, &mut Tickets::default(), target());
         let path = home.0.join("settings").join("prefs.json");
         let prefs = prefs(&path);
         let save_path = path.clone();
-        phase("save file then schedule", state.schedule_remembered(state.selected_connection(request.connection()).map_err(ScheduleError::NotSelected), request.clone(), ordered_preferences(move || prefs.save_at_for_test(&save_path)))).await;
-        let frame = phase("create after file commit", peer.requests.as_mut().unwrap().recv()).await.unwrap();
-        let vessel_proto::Call::CreateSchedule(sent) = &frame.call else { panic!("wrong RPC"); };
-        assert!(matches!(request.operation(), io::Operation::Save(save) if **save == Save::Create(sent.clone())));
+        let selected = state
+            .selected_connection(request.connection())
+            .map_err(ScheduleError::NotSelected);
+        let persisted = ordered_preferences(move || prefs.save_at_for_test(&save_path));
+        phase(
+            "save file then schedule",
+            state.schedule_remembered(selected, request.clone(), persisted),
+        )
+        .await;
+        let frame = phase(
+            "create after file commit",
+            peer.requests.as_mut().unwrap().recv(),
+        )
+        .await
+        .unwrap();
+        let vessel_proto::Call::CreateSchedule(sent) = &frame.call else {
+            panic!("wrong RPC");
+        };
+        assert!(matches!(request.operation(), io::Operation::Save(save)
+            if **save == Save::Create(sent.clone())));
         let saved: crate::Prefs = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-        assert_eq!(saved.choices("laptop", &"claude-code".parse().unwrap()), Some([choice()].as_slice()));
+        assert_eq!(
+            saved.choices("laptop", &"claude-code".parse().unwrap()),
+            Some([choice()].as_slice())
+        );
         assert_private(&path);
-        frame.answer.send(vessel_proto::Outcome::Err(WireError::new(ErrorCode::Unsupported, "synthetic preference-order refusal"))).unwrap();
+        frame
+            .answer
+            .send(vessel_proto::Outcome::Err(WireError::new(
+                ErrorCode::Unsupported,
+                "synthetic preference-order refusal",
+            )))
+            .unwrap();
         let answer = answer(&mut events).await;
         assert_eq!(answer.request, request);
         assert!(matches!(answer.result, Err(ScheduleError::Call(_))));
-    }).await;
+    })
+    .await;
 }
 #[tokio::test]
 async fn heartbeat_or_retired_admission_cannot_poll_the_preference_writer() {
