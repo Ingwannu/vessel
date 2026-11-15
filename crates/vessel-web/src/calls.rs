@@ -131,6 +131,7 @@ const fn forwardable(method: Method) -> bool {
         | Method::GetConversation
         | Method::ResumeSession
         | Method::MarkSession
+        | Method::ArchiveSession
         | Method::DeleteSession
         | Method::BeginUpload
         | Method::WriteUpload

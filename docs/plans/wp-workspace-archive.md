@@ -99,3 +99,30 @@ of the later wiring commit, not evidence supplied by DTO roundtrips.
 Narrow evidence: staged node workflow 12 passed/0 failed at afdcb766; node
 all-target clippy passed at the same source. These do not cover a real registry,
 filesystem/process shutdown or registered workspace RPC.
+
+
+## Atomic session archive admission (CLI consumer)
+
+W17 identified a separate A2 node gap: a CLI snapshot preflight cannot safely
+implement archive-without-force, because a prompt can be admitted before the stop.
+`session_archive::ArchiveSession { session, condition: IfIdle | Force }` therefore
+has a pending unary Operate row under the same A2 threshold. It rejects missing
+or unknown conditions rather than defaulting to Force. The node returns only its
+acknowledged SessionId and committed archived_at; the client supplies no timestamp.
+Agents cannot call this new person-facing archive action, while paired/delegated
+Operate clients can forward it through the existing envelope policy.
+
+Existing actor assets are reused: the structured control mailbox already orders
+prompts and queue changes, and Stopper already owns graceful escalation. Archive
+IfIdle checks readiness/active turn at that actor boundary. Acceptance closes
+control intake and marks the input route Moving before acknowledging; the stop
+token also prevents automatic queue advance. Force deliberately cancels an active
+turn. A TUI cannot prove an idle turn, so IfIdle is Unsupported there. Ended
+stored sessions are eligible; an already committed archive is an explicit Conflict.
+
+The node holds the existing marking/resume/detach mutex across actor admission,
+end and store mark in a tracked task, avoiding both a second parent/admission lock
+and cancellation between stop and persistence. Conditional descendant cascade
+still awaits reviewed W2 parentage; this pending call must not be assigned a
+protocol or advertised as parity before that integration and its root gate.
+No registry/schema migration is needed for this actor admission.

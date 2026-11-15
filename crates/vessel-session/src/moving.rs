@@ -140,6 +140,8 @@ pub(crate) enum Control {
     Park(ParkOrder),
     /// Take the conversation back to a turn's end (protocol 14, ADR 0052).
     Rewind(crate::forking::RewindOrder),
+    /// Conditionally stop accepting turns and archive (A2 lifecycle).
+    Archive(crate::archiving::ArchiveOrder),
     /// The private directory the actor's current launch carries (tests:
     /// every launch site gives the node's, `RuntimeConfig::private_dir`).
     #[cfg(test)]

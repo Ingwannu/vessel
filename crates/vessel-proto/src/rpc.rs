@@ -264,6 +264,8 @@ macro_rules! method_table {
             ResumeSession / resume_session / "session.resume" [Operate, 10, unary]: $crate::conversation::ResumeSession => $crate::SessionInfo;
             /// Pin, archive or mark a session read (protocol 10).
             MarkSession / mark_session / "session.mark" [Operate, 10, unary]: $crate::conversation::MarkSession => $crate::SessionInfo;
+            /// Archive with actor-admitted idle/force condition (A2, pending).
+            ArchiveSession / archive_session / "session.archive" [Operate, (pending $crate::workspace::WORKSPACE_LIFECYCLE), unary]: $crate::session_archive::ArchiveSession => $crate::session_archive::ArchivedSession;
             /// Remove an ended session and everything kept with it (protocol 10).
             DeleteSession / delete_session / "session.delete" [Operate, 10, unary]: $crate::conversation::DeleteSession => $crate::conversation::SessionDeleted;
             /// Declare a file to upload to a session (protocol 10).

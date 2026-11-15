@@ -53,6 +53,7 @@ pub mod scripts;
 pub mod search;
 mod secret;
 mod session;
+pub mod session_archive;
 pub mod settings;
 pub mod side_questions;
 mod terminal;

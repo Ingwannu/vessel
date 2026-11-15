@@ -59,6 +59,7 @@ mod push;
 mod resume;
 mod schedules;
 pub mod secure;
+mod session_archive;
 mod side_questions;
 mod stream;
 #[cfg(test)]

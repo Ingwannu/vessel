@@ -114,6 +114,7 @@
 
 mod activity;
 mod again;
+mod archiving;
 mod attachments;
 pub mod board;
 mod config;
@@ -122,6 +123,7 @@ mod delivery;
 mod error;
 mod forge;
 mod forking;
+pub use archiving::ArchiveRefusal;
 mod handle;
 mod lifecycle;
 mod limits;

@@ -40,6 +40,10 @@ pub(crate) enum Step {
 }
 
 impl Stopper {
+    /// Actor-admitted archive uses the ordinary graceful stop escalation.
+    pub(crate) fn request(&self) {
+        self.kill.cancel();
+    }
     /// `kill` stops this session; `shutdown` is the runtime's token (an
     /// ancestor of `kill`), consulted to tell a node shutdown from a kill.
     pub(crate) const fn new(kill: CancellationToken, shutdown: CancellationToken) -> Self {

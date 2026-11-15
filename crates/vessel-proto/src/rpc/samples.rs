@@ -118,6 +118,7 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         Method::PromptSession => json!({"session":id,"content":[],"delivery":"start"}),
         Method::ChangeQueue => json!({"session":id,"change":"hold"}),
         Method::MarkSession => json!({"session":id,"mark":"pin"}),
+        Method::ArchiveSession => json!({"session":id,"condition":"if_idle"}),
         Method::BeginUpload => {
             json!({"session":id,"name":"sample.txt","mime":"text/plain","size":1})
         }

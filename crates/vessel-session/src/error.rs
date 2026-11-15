@@ -99,6 +99,9 @@ pub enum SessionError {
     /// The session cannot be rewound now (protocol 14, ADR 0052).
     #[error("the session cannot be rewound now: {0}")]
     NotRewound(#[from] RewindRefusal),
+    /// The archive condition was refused before stopping the actor.
+    #[error("the session was not archived: {0}")]
+    NotArchived(#[from] crate::archiving::ArchiveRefusal),
     /// The agent cannot fork its conversation there (protocol 14): it does
     /// not offer `session/fork`, or it did not fork at the point.
     #[error("{}", fork_refusal(*.0))]
@@ -250,6 +253,7 @@ impl SessionError {
             | Self::NotResumable(_)
             | Self::NotParked(ParkRefusal::Terminal | ParkRefusal::CannotResume)
             | Self::NotRewound(RewindRefusal::Terminal)
+            | Self::NotArchived(crate::archiving::ArchiveRefusal::Terminal)
             | Self::ForkRefused(_)
             | Self::History(vessel_agent::HistoryError::CannotList)
             | Self::Attachment(AttachmentError::NoLoader)
@@ -305,6 +309,9 @@ impl SessionError {
             | Self::NotFound(_)
             | Self::Queue(QueueError::NoEntry) => ErrorCode::NotFound,
             Self::Ended
+            | Self::NotArchived(crate::archiving::ArchiveRefusal::NotReady
+                | crate::archiving::ArchiveRefusal::TurnRunning
+                | crate::archiving::ArchiveRefusal::AlreadyArchived)
             // A secret an added agent names is not set on the node: the
             // node's state, which `secret.set` changes.
             | Self::Launch(HarnessError::SecretMissing { .. })

@@ -3,7 +3,7 @@
 use crate::{ProtocolVersion, WireError, WorkspaceId};
 use serde::{Deserialize, Serialize};
 
-/// One merge-assigned feature threshold covers workspace lifecycle calls.
+/// One merge-assigned A2 threshold covers session and workspace lifecycle calls.
 pub const WORKSPACE_LIFECYCLE: Option<ProtocolVersion> = None;
 
 /// Inspect an exact archived workspace; callers never infer recovery from a path.

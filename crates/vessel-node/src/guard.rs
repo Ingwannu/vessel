@@ -164,6 +164,7 @@ targets!(
     vessel_proto::conversation::ChangeQueue,
     vessel_proto::conversation::ResumeSession,
     vessel_proto::conversation::MarkSession,
+    vessel_proto::session_archive::ArchiveSession,
     vessel_proto::conversation::DeleteSession,
     vessel_proto::conversation::BeginUpload,
     // Protocol 11: opening, merging and the feedback switch act on a

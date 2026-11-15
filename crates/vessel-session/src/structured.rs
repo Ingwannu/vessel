@@ -129,6 +129,15 @@ impl StructuredActor {
                         Some(Control::Cancel(order)) => self.cancel(order).await,
                         Some(Control::Park(order)) => self.park_order(order).await,
                         Some(Control::Rewind(order)) => self.rewind(order).await,
+                        Some(Control::Archive(order)) => {
+                            match self.archive_order(order) {
+                                crate::archiving::ArchiveAdmission::Stopping => {
+                                    control_open = false;
+                                    if self.parking.parked.is_some() { break None; }
+                                }
+                                crate::archiving::ArchiveAdmission::Refused => {},
+                            }
+                        }
                         #[cfg(test)]
                         Some(Control::PrivateDir(reply)) => {
                             drop(reply.send(self.launch.setup.private_dir.clone()));

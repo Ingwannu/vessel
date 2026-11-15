@@ -206,6 +206,7 @@ impl Reply {
             | Self::PromptSession(_)
             | Self::ChangeQueue(_)
             | Self::DeleteSession(_)
+            | Self::ArchiveSession(_)
             | Self::BeginUpload(_)
             | Self::WriteUpload(_)
             | Self::FinishUpload(_)

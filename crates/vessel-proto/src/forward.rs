@@ -317,6 +317,7 @@ impl Method {
             | Self::GetConversation
             | Self::ResumeSession
             | Self::MarkSession
+            | Self::ArchiveSession
             | Self::DeleteSession
             | Self::BeginUpload
             | Self::WriteUpload

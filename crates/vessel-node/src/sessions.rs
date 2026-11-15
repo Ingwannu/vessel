@@ -488,6 +488,7 @@ impl Sessions {
 // Protocol 10's marks and deletion, and starting an ended session again;
 // the conversation's input; reading the log.
 pub(crate) mod again;
+mod archive;
 mod conversation;
 mod marks;
 mod read;

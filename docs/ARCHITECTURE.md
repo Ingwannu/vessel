@@ -1560,3 +1560,12 @@ threshold and keep authoritative inspection/restore outcomes separate from
 transport failures. They carry exact WorkspaceId identity and explicit future
 Unknown values. No method/client is registered until the registry-backed node
 workflow is wired; DTO roundtrips alone do not advertise recovery capability.
+
+
+`session.archive` is a pending A2 unary Operate action, with an explicit actor
+admission condition and acknowledged store timestamp (`session_archive`). The
+session actor serializes IfIdle/Force with prompt intake and fences later queue
+advances once a stop is admitted. The node keeps its existing marking/resume lock
+through stop and persistence on a tracked task; the typed client cannot preflight
+idle state itself. Agents are refused. The feature threshold remains None until
+complete A2 lifecycle wiring is reviewed and integration assigns it.

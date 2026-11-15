@@ -167,6 +167,7 @@ impl Call {
             | Self::GetConversation(_)
             | Self::ResumeSession(_)
             | Self::MarkSession(_)
+            | Self::ArchiveSession(_)
             | Self::DeleteSession(_)
             | Self::BeginUpload(_)
             | Self::WriteUpload(_)
