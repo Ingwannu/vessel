@@ -53,6 +53,8 @@ impl Observed {
                 AgentEvent::TurnStarted { .. } => {
                     self.turn = Some(record.seq);
                     self.failure = None;
+                    self.permissions.clear();
+                    self.questions.clear();
                 }
                 AgentEvent::TurnEnded { .. } => {
                     self.turn = None;
@@ -92,6 +94,9 @@ impl Observed {
             match status {
                 SessionStatus::Starting => {
                     self.failure = None;
+                    self.turn = None;
+                    self.permissions.clear();
+                    self.questions.clear();
                 }
                 SessionStatus::Running => {}
                 SessionStatus::Failed { message, .. } => {
@@ -182,4 +187,97 @@ pub(super) async fn wait(
         }
         .to_owned(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn record(seq: u64, event: SessionEvent) -> EventRecord {
+        EventRecord {
+            seq: EventSeq::new(seq),
+            at: chrono::Utc::now(),
+            event,
+        }
+    }
+    fn agent(seq: u64, event: AgentEvent) -> EventRecord {
+        record(seq, SessionEvent::Agent { event })
+    }
+    #[test]
+    fn process_running_is_idle_and_a_new_turn_does_not_inherit_old_permissions() {
+        let mut observed = Observed::default();
+        observed.event(&record(
+            0,
+            SessionEvent::Status {
+                status: SessionStatus::Running,
+            },
+        ));
+        assert_eq!(observed.state(), State::Idle);
+        observed.event(&agent(
+            1,
+            AgentEvent::TurnStarted {
+                content: Vec::new(),
+            },
+        ));
+        observed.event(&agent(
+            2,
+            AgentEvent::PermissionRequested(vessel_proto::PermissionRequest {
+                id: PermissionId::random(),
+                tool_call: vessel_proto::ToolCallId::new("tool"),
+                options: Vec::new(),
+            }),
+        ));
+        assert_eq!(observed.state(), State::Permission);
+        observed.event(&agent(
+            3,
+            AgentEvent::TurnStarted {
+                content: Vec::new(),
+            },
+        ));
+        assert_eq!(observed.state(), State::Running);
+        assert_eq!(observed.turn, Some(EventSeq::new(3)));
+        observed.event(&agent(
+            4,
+            AgentEvent::TurnEnded {
+                reason: vessel_proto::StopReason::EndTurn,
+                usage: None,
+                point: None,
+            },
+        ));
+        assert_eq!(observed.state(), State::Idle);
+    }
+    #[test]
+    fn reported_options_survive_process_exit_and_failure_is_reset_on_restart() {
+        let mut observed = Observed::default();
+        let option = vessel_proto::SessionOption {
+            id: vessel_proto::OptionId::new("effort"),
+            name: "Effort".to_owned(),
+            description: None,
+            category: vessel_proto::OptionCategory::ThoughtLevel,
+            kind: vessel_proto::OptionKind::Select {
+                current: vessel_proto::OptionValueId::new("high"),
+                values: Vec::new(),
+            },
+        };
+        observed.event(&record(
+            0,
+            SessionEvent::OptionsChanged {
+                options: vec![option.clone()],
+            },
+        ));
+        observed.event(&record(
+            1,
+            SessionEvent::Status {
+                status: SessionStatus::Exited { code: Some(1) },
+            },
+        ));
+        assert_eq!(observed.state(), State::Error);
+        assert_eq!(observed.options, [option]);
+        observed.event(&record(
+            2,
+            SessionEvent::Status {
+                status: SessionStatus::Starting,
+            },
+        ));
+        assert_eq!(observed.state(), State::Idle);
+    }
 }

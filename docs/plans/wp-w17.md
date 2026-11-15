@@ -357,3 +357,11 @@ with no stdin read or connection. A configured target currently returns Unsuppor
 reading a token value or payload. W7 confirmed it owns hook ingestion in addition to normal
 authenticated terminal.activity; no duplicate endpoint is introduced here. This configured
 unsupported exit1 is a stated temporary difference from Paseo's best-effort hook exit0.
+
+The schedule process test now checks the requested cron/UTC and typed row/delete receipts
+rather than asserting the superseded elapsed-interval text. It still creates, lists, runs,
+reads the recorded Asked trigger, updates, keeps the existing session spec, pauses, deletes
+and checks invalid timezone refusal against the fake-only node. Three further narrow lint
+findings (borrowed registry error, optional boot admission and a test Ack qualification)
+were corrected without changing registry behavior. Input tests cover bounded UTF-8 files
+and logged option snapshots after process exit.

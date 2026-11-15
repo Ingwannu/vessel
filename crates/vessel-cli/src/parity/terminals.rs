@@ -140,12 +140,7 @@ pub(super) async fn run(
                 } else {
                     KeyMode::Tokens
                 },
-            );
-            if input.len() > SendTerminal::MAX_BYTES {
-                return Err(CliError::Usage(
-                    "terminal input exceeds the existing terminal.send byte budget",
-                ));
-            }
+            )?;
             let keys_sent = KeyCount(input.encode_utf16().count());
             let client = connect(target).await?.client;
             let terminal = resolve(&client, &id).await?;
@@ -237,7 +232,7 @@ enum KeyMode {
     Literal,
     Tokens,
 }
-fn encode_keys(keys: &[String], mode: KeyMode) -> String {
+fn encode_keys(keys: &[String], mode: KeyMode) -> Result<String, CliError> {
     let mut input = String::new();
     for key in keys {
         let text = match mode {
@@ -257,9 +252,18 @@ fn encode_keys(keys: &[String], mode: KeyMode) -> String {
                 other => other,
             },
         };
+        if input
+            .len()
+            .checked_add(text.len())
+            .is_none_or(|bytes| bytes > SendTerminal::MAX_BYTES)
+        {
+            return Err(CliError::Usage(
+                "terminal input exceeds the existing terminal.send byte budget",
+            ));
+        }
         input.push_str(text);
     }
-    input
+    Ok(input)
 }
 #[cfg(test)]
 mod tests {
@@ -272,8 +276,14 @@ mod tests {
             "C-c".to_owned(),
             "enter".to_owned(),
         ];
-        assert_eq!(encode_keys(&keys, KeyMode::Tokens), "한😀\r\u{3}enter");
-        assert_eq!(encode_keys(&keys, KeyMode::Literal), "한😀EnterC-center");
+        assert_eq!(
+            encode_keys(&keys, KeyMode::Tokens).unwrap(),
+            "한😀\r\u{3}enter"
+        );
+        assert_eq!(
+            encode_keys(&keys, KeyMode::Literal).unwrap(),
+            "한😀EnterC-center"
+        );
     }
 }
 

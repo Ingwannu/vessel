@@ -22,3 +22,23 @@ pub(crate) async fn file(path: &Path) -> Result<String, CliError> {
     .await
     .map_err(CliError::ParityPromptReadTimeout)?
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn a_file_cannot_bypass_the_positional_prompt_budget_or_utf8_contract() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("prompt");
+        tokio::fs::write(&path, "a".repeat(MAX_BYTES))
+            .await
+            .unwrap();
+        assert_eq!(file(&path).await.unwrap().len(), MAX_BYTES);
+        tokio::fs::write(&path, "a".repeat(MAX_BYTES.checked_add(1).unwrap()))
+            .await
+            .unwrap();
+        assert!(matches!(file(&path).await, Err(CliError::Usage(_))));
+        tokio::fs::write(&path, [0xff]).await.unwrap();
+        assert!(file(&path).await.is_err());
+    }
+}

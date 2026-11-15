@@ -19,7 +19,11 @@ impl NodeService {
         _request: ListHostRegistrations,
     ) -> Result<HostDirectory, WireError> {
         let source = source(connection.principal())?;
-        let entries = self.host_registry()?.list(source).await.map_err(wire)?;
+        let entries = self
+            .host_registry()?
+            .list(source)
+            .await
+            .map_err(|error| wire(&error))?;
         let destinations = self.list_nodes(connection, ListNodes).await;
         let hosts = entries
             .into_iter()
@@ -39,7 +43,7 @@ impl NodeService {
         self.host_registry()?
             .add(source, request, self.trusted_hosts(connection).await?)
             .await
-            .map_err(wire)
+            .map_err(|error| wire(&error))
     }
     pub(crate) async fn update_host_registration(
         &self,
@@ -50,7 +54,7 @@ impl NodeService {
         self.host_registry()?
             .update(source, request, self.trusted_hosts(connection).await?)
             .await
-            .map_err(wire)
+            .map_err(|error| wire(&error))
     }
     pub(crate) async fn remove_host_registration(
         &self,
@@ -62,7 +66,7 @@ impl NodeService {
             .remove(source, request)
             .await
             .map(|()| Ack)
-            .map_err(wire)
+            .map_err(|error| wire(&error))
     }
     fn host_registry(&self) -> Result<&HostRegistry, WireError> {
         self.host_registry.as_ref().ok_or_else(|| {
@@ -154,8 +158,8 @@ fn summary(
         error,
     }
 }
-fn wire(error: RegistryError) -> WireError {
-    let code = match &error {
+fn wire(error: &RegistryError) -> WireError {
+    let code = match error {
         RegistryError::NotFound => ErrorCode::NotFound,
         RegistryError::Forbidden => ErrorCode::Forbidden,
         RegistryError::Untrusted => ErrorCode::InvalidRequest,

@@ -7,6 +7,20 @@
 //! move; nothing here waits for a due time.
 
 use crate::support::{Fixture, Ran, within};
+use serde::Deserialize;
+
+#[derive(Debug, Deserialize)]
+struct ScheduleRow {
+    id: vessel_proto::ScheduleId,
+    name: Option<String>,
+    cadence: String,
+    status: String,
+}
+#[derive(Deserialize)]
+struct Deleted {
+    id: vessel_proto::ScheduleId,
+    deleted: bool,
+}
 
 fn ok(ran: &Ran) -> &str {
     assert!(ran.ok, "stdout: {}\nstderr: {}", ran.stdout, ran.stderr);
@@ -30,29 +44,44 @@ async fn a_schedule_is_made_run_changed_and_removed_by_its_name() {
                     "claude",
                     "--prompt",
                     "plain",
+                    "--json",
                 ],
                 b"",
             )
             .await;
-        let line = ok(&made);
-        assert!(
-            line.contains("nightly") && line.contains("every 3600s"),
-            "{line}"
-        );
+        let made: ScheduleRow = serde_json::from_str(ok(&made)).unwrap();
+        assert_eq!(made.name.as_deref(), Some("nightly"));
+        assert_eq!(made.cadence, "cron:0 * * * * (UTC)");
 
-        let listed = fixture.vessel(&["schedule", "list"], b"").await;
-        assert_eq!(ok(&listed).lines().count(), 1, "{}", listed.stdout);
+        let listed = fixture.vessel(&["schedule", "ls", "--json"], b"").await;
+        let rows: Vec<ScheduleRow> = serde_json::from_str(ok(&listed)).unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].id, made.id);
 
-        let run = fixture.vessel(&["schedule", "run", "nightly"], b"").await;
-        let run = ok(&run);
-        assert!(run.starts_with("#1 ") && run.contains("started"), "{run}");
-        let runs = fixture.vessel(&["schedule", "runs", "nightly"], b"").await;
-        assert!(ok(&runs).contains("asked by Owner"), "{}", runs.stdout);
+        let run = fixture
+            .vessel(&["schedule", "run-once", "nightly", "--json"], b"")
+            .await;
+        let run: ScheduleRow = serde_json::from_str(ok(&run)).unwrap();
+        assert_eq!(run.id, made.id);
+        let runs = fixture
+            .vessel(&["schedule", "logs", "nightly", "--json"], b"")
+            .await;
+        let runs: Vec<vessel_proto::automation::ScheduleRun> =
+            serde_json::from_str(ok(&runs)).unwrap();
+        assert_eq!(runs.len(), 1);
+        assert!(matches!(
+            runs[0].trigger,
+            vessel_proto::automation::RunTrigger::Asked { .. }
+        ));
 
         let edited = fixture
-            .vessel(&["schedule", "edit", "nightly", "--every", "2h"], b"")
+            .vessel(
+                &["schedule", "update", "nightly", "--every", "2h", "--json"],
+                b"",
+            )
             .await;
-        assert!(ok(&edited).contains("every 7200s"), "{}", edited.stdout);
+        let edited: ScheduleRow = serde_json::from_str(ok(&edited)).unwrap();
+        assert_eq!(edited.cadence, "cron:0 */2 * * * (UTC)");
         let shown = fixture.vessel(&["schedule", "show", "nightly"], b"").await;
         let shown = ok(&shown);
         assert!(
@@ -69,12 +98,17 @@ async fn a_schedule_is_made_run_changed_and_removed_by_its_name() {
         let shown = ok(&shown);
         assert!(shown.contains("session each run (kept)"), "{shown}");
 
-        let paused = fixture.vessel(&["schedule", "pause", "nightly"], b"").await;
-        assert!(ok(&paused).contains("paused since"), "{}", paused.stdout);
-        let deleted = fixture
-            .vessel(&["schedule", "delete", "nightly"], b"")
+        let paused = fixture
+            .vessel(&["schedule", "pause", "nightly", "--json"], b"")
             .await;
-        assert!(ok(&deleted).starts_with("deleted "), "{}", deleted.stdout);
+        let paused: ScheduleRow = serde_json::from_str(ok(&paused)).unwrap();
+        assert_eq!(paused.status, "paused");
+        let deleted = fixture
+            .vessel(&["schedule", "delete", "nightly", "--json"], b"")
+            .await;
+        let deleted: Deleted = serde_json::from_str(ok(&deleted)).unwrap();
+        assert_eq!(deleted.id, made.id);
+        assert!(deleted.deleted);
         let gone = fixture.vessel(&["schedule", "show", "nightly"], b"").await;
         assert!(!gone.ok && gone.stderr.contains("no schedule matches"));
 
