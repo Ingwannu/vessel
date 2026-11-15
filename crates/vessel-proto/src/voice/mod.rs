@@ -5,6 +5,7 @@
 
 mod audio;
 mod messages;
+mod settings;
 mod text;
 
 pub use crate::id::{PlaybackId, SpeechGroupId, VoiceEpoch, VoiceId, VoiceSeq};
@@ -13,6 +14,10 @@ pub use messages::{
     AbortVoice, AgentTurn, CaptureAck, CaptureVoice, Confidence, InputSpeech, NextVoice, Playback,
     PlaybackOutcome, PlayedVoice, ReadyVoice, SpeakVoice, StartVoice, StopVoice, StopVoiceResult,
     VoiceFailure, VoiceLease, VoiceStopTarget, VoiceTranscript, VoiceUpdate,
+};
+pub use settings::{
+    LocalTtsModelId, SetVoice, SetVoiceStt, SetVoiceTts, TtsModel, TtsVoice, UnknownTtsModelId,
+    VoiceSettings, VoiceSettingsError, VoiceSttSettings, VoiceTtsSettings,
 };
 pub use text::SpeechText;
 

@@ -10,8 +10,8 @@ use reqwest::header;
 use serde::Serialize;
 use tokio_util::sync::CancellationToken;
 use vessel_proto::ResolvedValue;
-use vessel_proto::dictation::{EndpointBase, EndpointModel, Pcm16Mono};
-use vessel_proto::voice::{MAX_PLAYBACK_BYTES, PlaybackPcm, SpeechText};
+use vessel_proto::dictation::{EndpointBase, Pcm16Mono};
+use vessel_proto::voice::{MAX_PLAYBACK_BYTES, PlaybackPcm, SpeechText, TtsModel, TtsVoice};
 
 use super::segments::MAX_SEGMENT_UNITS;
 
@@ -21,8 +21,8 @@ pub(super) use super::http::EndpointError as TtsError;
 
 pub(super) struct Endpoint {
     http: http::Endpoint,
-    model: Option<EndpointModel>,
-    voice: Option<EndpointModel>,
+    model: TtsModel,
+    voice: TtsVoice,
 }
 
 impl fmt::Debug for Endpoint {
@@ -39,9 +39,9 @@ pub(super) struct Synthesized {
 
 #[derive(Serialize)]
 struct Request<'a> {
-    model: &'a str,
+    model: &'a TtsModel,
     input: &'a str,
-    voice: &'a str,
+    voice: &'a TtsVoice,
     response_format: ResponseFormat,
 }
 
@@ -54,12 +54,16 @@ enum ResponseFormat {
 impl Endpoint {
     pub(super) async fn connect(
         base: &EndpointBase,
-        model: Option<EndpointModel>,
-        voice: Option<EndpointModel>,
+        model: Option<TtsModel>,
+        voice: Option<TtsVoice>,
         key: &ResolvedValue,
     ) -> Result<Self, TtsError> {
         let http = http::Endpoint::connect(base, Operation::Synthesize, key).await?;
-        Ok(Self { http, model, voice })
+        Ok(Self {
+            http,
+            model: model.unwrap_or_default(),
+            voice: voice.unwrap_or_default(),
+        })
     }
 
     pub(super) async fn synthesize(
@@ -74,9 +78,9 @@ impl Endpoint {
             return Err(TtsError::Segment);
         }
         let body = serde_json::to_vec(&Request {
-            model: self.model.as_ref().map_or("tts-1", EndpointModel::as_str),
+            model: &self.model,
             input: segment.as_str(),
-            voice: self.voice.as_ref().map_or("alloy", EndpointModel::as_str),
+            voice: &self.voice,
             response_format: ResponseFormat::Pcm,
         })
         .map_err(|_private| TtsError::Configuration)?;

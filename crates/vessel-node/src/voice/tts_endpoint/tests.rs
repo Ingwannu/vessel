@@ -196,3 +196,19 @@ async fn bad_credentials_and_oversized_segments_refuse_before_network_work() {
     assert_eq!(requests.load(Ordering::Acquire), 0);
     server.finish().await;
 }
+
+#[test]
+fn custom_model_and_voice_remain_distinct_at_the_request_edge() {
+    let model = "custom-synthesis".parse::<TtsModel>().unwrap();
+    let voice = "custom-speaker".parse::<TtsVoice>().unwrap();
+    let request = Request {
+        model: &model,
+        voice: &voice,
+        input: "synthetic fixture",
+        response_format: ResponseFormat::Pcm,
+    };
+    let wire = serde_json::to_string(&request).unwrap();
+    assert!(wire.contains("\"model\":\"custom-synthesis\""));
+    assert!(wire.contains("\"voice\":\"custom-speaker\""));
+    assert!(!format!("{model:?} {voice:?}").contains("custom-"));
+}

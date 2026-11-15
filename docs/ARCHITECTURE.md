@@ -1632,6 +1632,16 @@ owners. Typed fake adapters exercise these staged boundaries; they do not
 establish a product actor, actual VAD, reload transport or MCP speak support.
 No dependency edge or persistence schema is added.
 
+The pure `voice::settings` DTOs share dictation's present/null patch visitor,
+secret reference and validated metadata. A switch-free STT projection delegates
+to the existing STT provider/default rules; the independent TTS site owns its
+provider-specific fields and distinct model/voice types. Voice defaults Off,
+both providers Local. Read DTOs expose credential presence only, while the
+existing secret owner alone consumes selected names. Catalogue entries remain
+metadata, not model download/load approval. These types are not yet wired into
+NodeSettings or settings.json persistence; the existing writer's unknown-field
+set-aside remains required. They introduce no store, call, number or crate edge.
+
 The first process-mechanism edge of ADR 0001 is active: store delegates its
 selected-file kernel query to proc through `lock/query`. Its public
 `NodeLock` API and snapshot re-export remain unchanged. The name rule keeps

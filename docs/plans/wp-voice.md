@@ -437,3 +437,34 @@ as skipped/unhashed/CRC-unverified. Full Windows notice comparison proves
 CRLF-only differences, not raw-byte equality. The source LF notices and all
 first-refusal evidence remain intact. Final runtime file/layout/manifest/load
 and real model/device tests are still unapproved and unperformed.
+
+### Typed voice settings before the existing settings-writer integration
+
+[Decision Log]
+- Existing assets: checked1f805 shared present/null visitor, redacted SecretReference and DictationChange; Dictation's validated endpoint/language/STT catalogue and SetDictation.over own STT site rules. The dictation owner and coordinator delegated exactly value/overlay pub(crate) visibility, with bodies unchanged.
+- External alternative: new ad-hoc JSON/settings store or a second secret decoder is unnecessary; serde and existing validators suffice.
+- Choice: project a switch-free STT patch through existing SetDictation.over/resolve (its independent switch field is absent from the voice shape), reuse shared patch/null operations, and add typed TTS-site values/metadata plus root voice switch defaultOff. STT/TTS sites change independently; changing/resetting a provider clears its old inactive fields, while an unchanged provider preserves selected fields.
+- Why: retain omission/reset semantics and credential redaction without duplicating policy. TTS model and voice identifiers are distinct types, both bounded through the existing endpoint metadata validator. Local TTS catalogue IDs are metadata only; none grants a model download/load or readiness.
+- Impact: values/patch tests only, no optional NodeSettings field/Copy conversion/persistence yet. Existing unknown-field set-aside/read-preservation stays the settings owner's obligation at wiring. No new call, protocol/schema number, secret reader, model runtime or UI route. A switch-only change may retain untouched future site choices, while editing an unknown site requires selecting/resetting a known provider.
+
+Reference: voice-page.tsx43–165 (switches and independent sites), voice-settings.ts
+(provider/model defaults and custom selections), speech-config-resolver.ts39–49
+(Local/defaultOff), providers/openai/config.ts8/25–65, and local model-catalog.ts
+358–462 (TTS metadata only). Existing secret references replace inline API-key
+values; local ASR/TTS remains LocalNotBuilt and automatic model download is absent
+until its separate reviewed distribution slice.
+
+The STT read projection copies only bounded settings metadata into the existing
+default resolver because that API accepts an owned SetDictation shape. It is
+not an audio/hot-path copy; preserving one provider/default rule is preferred
+to a second implementation. Consuming patch overlays move those fields.
+
+The endpoint TTS adapter consumes distinct TtsModel/TtsVoice values and uses
+their centralized defaults. New tests cover deep independent-site edits,
+omission/null/provider resets, future-value retention on an unrelated disable,
+inactive-field refusal, key-presence reads/redaction, bounded identifiers and
+metadata-only role separation. Feature-ts tests exercise nullable patches and
+the new classified named aliases. These DTOs do not enter the existing
+NodeSettings wire graph yet; generated declarations are unchanged for now.
+Runtime/strict results for this slice remain owed; the previous189e2cc0 strict
+pass predates it.
