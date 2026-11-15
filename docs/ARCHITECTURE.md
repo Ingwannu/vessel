@@ -1738,3 +1738,13 @@ confirmation. The app owns preference files, per-node markers and in-flight
 state; remembered account choices are not favorites. Testkit
 `FAKE_ACP_START_GATE` is a bounded loopback barrier in the fake binary only,
 used to prove real probe reload/cancellation ordering without timing sleeps.
+
+The configuration owner also admits an explicit `options_fenced` read. It
+issues the driver's ordinary current-options command only after preceding
+singles/bundles finish, rather than returning the last setter reply. A
+cancelled read retains its fence through actual response or driver closure.
+The session handle wrapper captures one current input and never wakes a
+parked run. This is not a SessionInfo/account/run snapshot or synthetic
+revision; authenticated parent inheritance belongs to the session actor and
+must independently bind and recheck the actual run/lifetime. Existing
+unfenced options reads keep their scheduling.

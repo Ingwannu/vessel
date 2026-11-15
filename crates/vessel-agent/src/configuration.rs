@@ -104,6 +104,9 @@ impl From<Vec<SessionOption>> for Configured {
 
 #[derive(Debug)]
 enum Mutation {
+    Read {
+        reply: oneshot::Sender<Result<Vec<SessionOption>, InputError>>,
+    },
     Single {
         choice: OptionChoice,
         reply: oneshot::Sender<Result<Vec<SessionOption>, InputError>>,
@@ -123,6 +126,15 @@ impl Configuration {
         let (send, receive) = mpsc::channel(crate::process::COMMANDS);
         drop(tokio::spawn(run(commands, receive)));
         Self(send)
+    }
+
+    pub(crate) async fn read(&self) -> Result<Vec<SessionOption>, InputError> {
+        let (reply, result) = oneshot::channel();
+        self.0
+            .send(Mutation::Read { reply })
+            .await
+            .map_err(|_closed| InputError::Closed)?;
+        result.await.unwrap_or(Err(InputError::Closed))
     }
 
     pub(crate) async fn single(
@@ -160,6 +172,10 @@ async fn run(commands: mpsc::Sender<Command>, mut receive: mpsc::Receiver<Mutati
             mutation = receive.recv() => match mutation { Some(value) => value, None => return },
         };
         match mutation {
+            Mutation::Read { reply } => {
+                let result = read(&commands).await;
+                let _gone = reply.send(result);
+            }
             Mutation::Single { choice, reply } => {
                 let result = step(&commands, choice).await.map(|done| done.options);
                 let _gone = reply.send(result);
@@ -169,6 +185,19 @@ async fn run(commands: mpsc::Sender<Command>, mut receive: mpsc::Receiver<Mutati
                 let _gone = reply.send(result);
             }
         }
+    }
+}
+
+async fn read(commands: &mpsc::Sender<Command>) -> Result<Vec<SessionOption>, InputError> {
+    let (reply, result) = oneshot::channel();
+    commands
+        .send(Command::Options { reply })
+        .await
+        .map_err(|_closed| InputError::Closed)?;
+    tokio::select! {
+        biased;
+        () = commands.closed() => Err(InputError::Closed),
+        result = result => result.map_err(|_closed| InputError::Closed),
     }
 }
 
@@ -218,5 +247,7 @@ async fn bundle(commands: &mpsc::Sender<Command>, choices: LaunchChoices) -> Con
     outcome
 }
 
+#[cfg(test)]
+mod read_tests;
 #[cfg(test)]
 mod tests;

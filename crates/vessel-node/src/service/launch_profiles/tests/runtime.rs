@@ -150,7 +150,7 @@ async fn selected_probe_and_live_bundle_use_actual_acp_choices_and_refusals() {
                 "mode"
             );
             assert_eq!(result.failure().unwrap().error.code, ErrorCode::Conflict);
-            let options = phase("read actual process options", handle.options())
+            let options = phase("read actual process options", handle.options_fenced())
                 .await
                 .unwrap();
             assert!(options.iter().any(|option| option.id.as_str() == "model"

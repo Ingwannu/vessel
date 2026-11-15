@@ -267,6 +267,18 @@ impl AgentInput {
         result.await.map_err(|_closed| InputError::Closed)
     }
 
+    /// Read the actual driver's current options after earlier admitted singles
+    /// and bundles finish. This shares their bounded owner and never starts a
+    /// process. Caller cancellation keeps the fence until the real answer or
+    /// closure; this is not an atomic session/account/lifetime snapshot.
+    /// Existing [`Self::options`] keeps its independent scheduling.
+    ///
+    /// # Errors
+    /// [`InputError::Closed`] when the same driver's channel closes.
+    pub async fn options_fenced(&self) -> Result<Vec<SessionOption>, InputError> {
+        self.configuration.read().await
+    }
+
     /// Change one option (protocol 9), between turns or during one, as the
     /// agent allows. Returns every option once the agent has answered; a
     /// value already in effect sends nothing and returns them at once.

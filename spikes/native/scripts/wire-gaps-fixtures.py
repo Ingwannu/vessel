@@ -8,6 +8,15 @@ import time
 
 
 def prepare(root: Path, _target: Path) -> None:
+    # Shared typed inputs; no app preferences, account files or credentials.
+    fixture_dir = root / "launch-profile-fixtures"
+    fixture_dir.mkdir(mode=0o700, exist_ok=True)
+    source = Path(__file__).resolve().parents[3] / "crates/vessel-testkit/fixtures"
+    for stem in ["replace", "options"]:
+        (fixture_dir / f"{stem}.json").write_text(
+            (source / f"launch-profiles-{stem}.json").read_text())
+    (fixture_dir / "apply.json").write_text(
+        '{"session":"131d469e-0b08-4596-bb5a-93b5c0ce9cc0","options":[]}')
     # Existing Settings sources make laptop the home. Only disposable
     # harness homes are materialized; never the operator's real profiles.
     for name in ["laptop", "build-server"]:
@@ -23,6 +32,19 @@ def check(root: Path, target: Path) -> None:
         return subprocess.run([str(target / "vessel"), "--node", node, *args],
                               env=readonly_env if readonly else env, input=data, capture_output=True, text=True,
                               timeout=30, check=False)
+    # Pending is not an empty host list or permission proof. After assignment,
+    # integration replaces this negative fixture with numbered positive calls.
+    pending = root / "launch-profile-fixtures"
+    for args, method in [
+        (["list"], "launch_profile.list"),
+        (["replace", str(pending / "replace.json")], "launch_profile.replace"),
+        (["options", str(pending / "options.json")], "launch_profile.options"),
+        (["applicable", "131d469e-0b08-4596-bb5a-93b5c0ce9cc0"], "launch_profile.applicable"),
+        (["apply", str(pending / "apply.json")], "session.apply_options"),
+    ]:
+        result = call("launch-profiles", *args)
+        assert result.returncode != 0 and not result.stdout, "pending launch call appeared successful"
+        assert method in result.stderr and "not assigned" in result.stderr, "pending launch call refusal missing"
     status = call("status")
     assert status.returncode == 0, "fake node status refused"
     assert "timezone  Asia/Seoul\n" in status.stdout, "node time zone shape missing"
@@ -84,6 +106,7 @@ def check(root: Path, target: Path) -> None:
     assert call("fleet", "sync", readonly=True).returncode != 0, "read-only sync was permitted"
     assert call("fleet", "leave", readonly=True).returncode != 0, "read-only leave was permitted"
     (root / "wire-gap-shapes.txt").write_text(
+        "named launch calls: five pending refusals checked; no positive/permission claim\n"
         "timezone, ten runs, CLI zone, impossible expression: checked\n"
         "fleet home/member/standalone, join/leave/sync, applied reports, read-only refusal: checked\n")
 

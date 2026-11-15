@@ -517,3 +517,16 @@ through real work. This closes the admission-to-spawn gap: teardown cannot
 observe no work between a successful preflight and its owned task starting.
 The semaphore remains retained separately through queued completion, so a
 slow caller cannot create unlimited completed result storage.
+
+### Ordered internal configuration reads
+
+Consumers that capture parent configuration use an explicit internal
+`options_fenced` request through the same process configuration mailbox. It
+waits behind all earlier admitted singles/bundles and asks the actual driver
+for its current options. It does not reuse the last setter response, spawn
+a process, wake a parked session, or fabricate a revision. Cancellation
+retains the read fence until its real answer or driver closure. Existing
+options reads retain their scheduling. This fence does not atomically bind
+session metadata/account/run identity; the authenticated session-actor
+consumer owns that capture and same-run checks before and after the read.
+No additional wire call, provider mapping or setter owner is introduced.

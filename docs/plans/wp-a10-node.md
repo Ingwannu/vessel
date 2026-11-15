@@ -239,3 +239,21 @@ caller to poll before considering actual work drained. The next baseline
 merge retains ProcessLifetime and transient SystemPromptOverride with None
 in ordinary probe setups. Shared JSON fixtures use canonical wire harness
 names rather than CLI aliases.
+
+The common owner now also implements the coordinated internal read fence
+requested by the provider-create consumer. AgentInput::options_fenced and
+SessionHandle::options_fenced issue a real Command::Options after earlier
+admitted mutations; normal options scheduling remains unchanged. Barrier
+fixtures distinguish the real read answer from empty setter replies and
+cover cancellation/driver closure. The session-actor consumer separately
+owns authenticated parent context/lifetime binding; no atomic session
+snapshot, revision or inheritance authorization is claimed here.
+
+The fake-fleet helper copies the same two testkit JSON inputs into its
+private scratch fixture directory and checks all five pending CLI refusals.
+It labels this as negative availability proof only, with no populated UI,
+numbered happy-path or permission claim. At assignment those negative
+expectations must be replaced by integrated positive fixtures, alongside
+the pending-only Rust/CLI tests. Shared native changes are confined to the
+existing wire-gap fixture helper and its README explanation, with no screen
+or app-control source changes.
