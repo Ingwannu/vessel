@@ -1201,3 +1201,17 @@ input audit of the shared rename action: ordinary, disabled, adjacent
 button and clipped-parent cases. Counters distinguish the action, its
 parent's mouse-down/release and the neighbour. It starts no node and adds no app
 route. The fixed grid is an audit fixture; the action itself is unchanged.
+
+Shared typed button content/loading/sizing is documented in
+`docs/plans/backend-m12-g2-button-content.md`. Label/Icon/IconAndLabel share one
+renderer; ButtonIcon::muted keeps the explicit source icon tone. button_control
+adds guarded disabled/loading callbacks and Small28/px12 in both layouts with
+Small20 ActivityIndicator. Medium is Pointer32/px16 or Touch44/px24; legacy
+no-Window signatures remain Pointer. The published outline glyph API retains
+its explicit tone and immediate-child geometry in the same shared renderer.
+
+Action menus retain one published renderer (menu_right/TopRight, QUICK appear,
+fill_in) and add typed leading14/16, Pending/Success, selectable Muted, KeepOpen,
+measured open_end and caller width. See docs/plans/backend-m12-g2-menu-base4.md
+for exact source, focus limits and consumer integration. The canonical palette
+GREEN_500 and existing CircleCheck own success ink/art; no second palette.
