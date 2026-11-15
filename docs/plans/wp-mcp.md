@@ -1,7 +1,7 @@
 # Agent tools and orchestration skills
 
 Contract: ADR 0065, extending ADR 0013. Status: implementation in progress.
-Baseline: announced gate-52 node head `1c762ccf`, with the shared pending method table. This package selects no protocol or schema number.
+Baseline: announced gate-53 node head `93970acb`, with the shared pending method table. This package selects no protocol or schema number.
 Browser tools belong to the browser package; voice output belongs to voice.
 
 ## Reference and reuse decision
@@ -709,3 +709,27 @@ Negotiated-version, unchanged text and structured equality/absence assertions
 remain; no validation is relaxed. The known compile-red queued MCP suite was
 superseded only after terminal cancellation, and its failed strict log is kept.
 Corrected strict and the full actual MCP suite remain owed.
+
+
+## Gate-53 lifecycle join
+
+The announced green `93970acb` is merged without conflicts. Its typed listing
+request replaces the old unit type. Both the ordinary list adapter and the
+permission aggregate now use `ListSessions::default()`, preserving the legacy
+null/full-list behavior rather than silently selecting a new visibility filter.
+Explicit listing/label metadata still uses the shared unassigned-protocol
+refusal; no SetLabels call or schema is invented here. Listing schema 21 is
+the lifecycle owner's assignment; MCP_PARITY remains None.
+
+The response compatibility strict run on `31c8d7e3` failed only on two missing
+semicolons in the new matrix's unit-valued block arms. Those are corrected
+without changing the matrix, product adapter or assertions. The actual MCP
+suite on that pre-merge source is retained as meaningful compatibility
+execution; its result cannot attest this new lifecycle union. New merged-head
+strict is required. Failed logs remain retained.
+
+The earlier gate-50 settings correction has actual execution: seven-crate
+strict `wp-mcp-runtime-narrow-20261115T165218Z-6e558f13` passed, and the matching
+Settings run passed all four tests, including the canonical held writer and
+outer operation tracker join. These scoped results do not close the full
+package, current lifecycle union, crash or cross-node obligations.

@@ -61,10 +61,10 @@ mod tests {
                 match shape {
                     Shape::Text => assert!(result.structured_content.is_none()),
                     Shape::Object if !value.is_object() => {
-                        assert!(result.structured_content.is_none())
+                        assert!(result.structured_content.is_none());
                     }
                     Shape::Object | Shape::Any => {
-                        assert_eq!(result.structured_content, Some(value))
+                        assert_eq!(result.structured_content, Some(value));
                     }
                 }
             }

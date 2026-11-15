@@ -16,7 +16,7 @@ impl VesselTools {
         args: &JsonObject,
     ) -> Result<PendingPermissions, ToolError> {
         let node = self.target(args).await?;
-        let sessions = self.on(node, ListSessions).await?;
+        let sessions = self.on(node, ListSessions::default()).await?;
         if sessions.len() > MAX_PERMISSION_SESSIONS {
             return Err(ToolError::PermissionInventory);
         }
