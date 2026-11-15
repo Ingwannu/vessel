@@ -1324,6 +1324,9 @@ pane callbacks additionally capture its LayoutActionContext and use the owner
 run_at adapter; G1 callbacks use its exact target/menu/activation projection.
 Local palette keys precede global overrides. Palette/help actual close reuses
 kit::focus::ReturnFocus instead of retaining a strong opener.
+Missing/dead openers stay blurred; canonical composer focus has no route-level
+fallback until the admitted composer owner is available. Retained-but-hidden
+opener visibility is not established by weak liveness and remains unverified.
 
 Pure file-search presentation owns debounce and UI request lifetime only. Its
 All-vs-Matching distinction cannot weaken nonblank wire FindQuery; canonical

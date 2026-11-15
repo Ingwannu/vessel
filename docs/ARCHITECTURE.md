@@ -1677,6 +1677,10 @@ ordered, generation-owned callbacks delegate effects to feature controllers.
 Native admission checks actual input preference, shared kit composition and
 popup context before recording/matching. Code editors register in the same weak
 composition registry as other fields; there is no second focus/IME cache.
+The sole interceptor routes empty-scope palette Back before the toolkit's input
+Backspace action; compact windows keep that local navigation while global
+shortcuts remain unavailable. Canonical composer focus requires its admitted
+owner and never resolves a global composer from route or target metadata.
 
 Palette source tokens reject stale presented entries; captured pane commands
 also use W12's LayoutActionContext fence. These are presentation guards, not
@@ -1685,3 +1689,6 @@ admission and dispatch paths. Shared preference receipt/rollback belongs to the
 desktop coordinator, with shortcut cache invalidation on effective deltas.
 The current package is still in progress; docs/plans/wp-commands.md distinguishes
 written source, executed checks and required owner integrations.
+Modal close uses shared weak ReturnFocus ownership; missing/dead openers remain
+blurred. Weak liveness alone does not establish retained-opener visibility or
+Visible/Focused resource admission; that owner integration remains unverified.

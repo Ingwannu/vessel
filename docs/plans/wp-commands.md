@@ -411,11 +411,12 @@ Clippy and View tests each have one replacement; old143 logs remain retained.
 Palette/help now reuse kit::focus::ReturnFocus, already introduced and reviewed
 for shared overlays. Each open cycle captures a weak opener once; actual close
 restores only while the overlay's search owns focus. A removed opener cannot be
-kept alive by the modal; missing focus falls back to the existing composer entry.
-A newer focused field is preserved. This replaces duplicated strong-handle
-restoration, without changing kit internals or creating a focus registry. The
-new actual GPUI regression covers removed openers and newer focus for both
-surfaces. It is written, not yet executed.
+kept alive by the modal. A missing/dead opener stays blurred; a newer focused
+field is preserved. This replaces duplicated strong-handle restoration without
+changing kit internals or creating a focus registry. The earlier a675 checkpoint
+used a route-level composer fallback; B2's later policy explicitly withdrew it.
+The updated actual-close regression is queued. Weak liveness does not establish
+visibility of a retained-but-hidden opener; that case still needs domain admission.
 
 
 The root projection now uses stable canonical new-workspace and settings ids,
