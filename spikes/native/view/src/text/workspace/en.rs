@@ -78,9 +78,6 @@ fn config_lines(key: Option<&ConfigKey>, reason: RepositoryConfigReason) -> (Str
     }
 }
 
-/// "setup commands: 1 added and 1 changed", or `None` when the list is the
-/// same.
-
 impl En {
     /// "script lint added", "service web changed (its command)".
     fn script_part(self, line: &ScriptLine) -> Option<String> {
