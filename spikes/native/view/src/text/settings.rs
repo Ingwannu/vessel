@@ -398,6 +398,7 @@ impl SettingsText {
             ContentWidth::Comfortable => self.comfortable,
             ContentWidth::Wide => self.wide,
             ContentWidth::Full => self.full,
+            ContentWidth::Pixels(_) => self.content_width,
         }
     }
 

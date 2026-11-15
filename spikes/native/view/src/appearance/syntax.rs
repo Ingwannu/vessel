@@ -26,6 +26,12 @@ pub enum SyntaxTheme {
 }
 
 impl SyntaxTheme {
+    /// Omit the default from legacy preference documents.
+    #[must_use]
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+
     /// The selector order from the reference catalogue.
     pub const ALL: [Self; 8] = [
         Self::Github,

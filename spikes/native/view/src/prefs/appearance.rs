@@ -1,14 +1,15 @@
-//! How the app looks: its theme, its two text sizes, the conversation's
-//! width and display.
+//! The stored Appearance choices: palette, independent text axes and
+//! safe family stacks, syntax, conversation width and display.
 
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
 use super::lenient;
+use crate::appearance::{ContentPixels, FontFamily, SyntaxTheme};
 
 /// How the app looks.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Appearance {
     /// A named palette, or the system's light/dark choice.
@@ -20,6 +21,30 @@ pub struct Appearance {
     /// Code's text size.
     #[serde(deserialize_with = "lenient")]
     pub code_size: CodeSize,
+    /// Chat content's absolute size, independent of the UI scale.
+    #[serde(
+        deserialize_with = "lenient",
+        skip_serializing_if = "ContentSize::is_default"
+    )]
+    pub content_size: ContentSize,
+    /// Interface stack; empty follows the embedded default.
+    #[serde(
+        deserialize_with = "lenient",
+        skip_serializing_if = "FontFamily::is_default"
+    )]
+    pub interface_family: FontFamily,
+    /// Code and terminal stack; empty follows the embedded mono default.
+    #[serde(
+        deserialize_with = "lenient",
+        skip_serializing_if = "FontFamily::is_default"
+    )]
+    pub mono_family: FontFamily,
+    /// Code's colour palette, independent of the app palette.
+    #[serde(
+        deserialize_with = "lenient",
+        skip_serializing_if = "SyntaxTheme::is_default"
+    )]
+    pub syntax_theme: SyntaxTheme,
     /// How wide the conversation is.
     #[serde(deserialize_with = "lenient")]
     pub content_width: ContentWidth,
@@ -108,6 +133,8 @@ impl Theme {
 }
 
 #[cfg(test)]
+mod override_tests;
+#[cfg(test)]
 mod theme_tests;
 
 macro_rules! text_size {
@@ -128,6 +155,10 @@ macro_rules! text_size {
             pub const fn get(self) -> u8 {
                 self.0
             }
+
+            /// Omit an unchanged default from legacy documents.
+            #[must_use]
+            pub fn is_default(&self) -> bool { *self == Self::default() }
 
             /// Every size, smallest first.
             #[must_use]
@@ -202,16 +233,34 @@ impl fmt::Display for OutOfRange {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ContentWidth {
-    /// 768 points.
+    /// Follow the current default content maximum.
     #[default]
     Comfortable,
     /// 1152 points.
     Wide,
-    /// The window's width.
+    /// The window's width, retained for existing preferences.
     Full,
+    /// A validated numeric override; the default remains a following choice.
+    Pixels(ContentPixels),
 }
 
 impl ContentWidth {
+    /// Preserve following/legacy intent when the effective value is unchanged.
+    #[must_use]
+    pub fn commit(self, next: ContentPixels) -> Self {
+        if self.points() == Some(next.get()) {
+            self
+        } else {
+            Self::Pixels(next)
+        }
+    }
+
+    /// Whether reset would remove an explicit or legacy override.
+    #[must_use]
+    pub const fn resettable(self) -> bool {
+        !matches!(self, Self::Comfortable)
+    }
+
     /// Every width, narrowest first.
     pub const ALL: [Self; 3] = [Self::Comfortable, Self::Wide, Self::Full];
 
@@ -219,9 +268,10 @@ impl ContentWidth {
     #[must_use]
     pub const fn points(self) -> Option<u16> {
         match self {
-            Self::Comfortable => Some(768),
+            Self::Comfortable => Some(ContentPixels::DEFAULT.get()),
             Self::Wide => Some(1152),
             Self::Full => None,
+            Self::Pixels(value) => Some(value.get()),
         }
     }
 }

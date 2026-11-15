@@ -51,6 +51,12 @@ impl FontFamily {
         Ok(Self(text.to_owned()))
     }
 
+    /// Whether the embedded default stack is selected; omit it from old files.
+    #[must_use]
+    pub fn is_default(&self) -> bool {
+        self.0.is_empty()
+    }
+
     /// The retained trimmed value; empty uses the normal default stack.
     #[must_use]
     pub fn as_str(&self) -> &str {

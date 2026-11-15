@@ -328,7 +328,7 @@ pub(crate) fn start(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_,
     apply_theme(shell, window, cx);
     apply_text_sizes(shell, cx);
     apply_composer(shell, window, cx);
-    let appearance = shell.prefs.settings.appearance;
+    let appearance = &shell.prefs.settings.appearance;
     crate::areas::session::set_content_width(appearance.content_width);
     shell.conversation_display(appearance.conversation);
     cx.observe_window_appearance(window, |shell, window, cx| {

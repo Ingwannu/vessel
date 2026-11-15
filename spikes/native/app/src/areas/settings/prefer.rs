@@ -42,7 +42,12 @@ impl Shell {
                     }
                     PreferenceChange::Theme(_) => apply_theme(self, window, cx),
                     PreferenceChange::Send(_) => apply_composer(self, window, cx),
-                    PreferenceChange::InterfaceSize(_) | PreferenceChange::CodeSize(_) => {
+                    PreferenceChange::InterfaceSize(_)
+                    | PreferenceChange::CodeSize(_)
+                    | PreferenceChange::ContentSize(_)
+                    | PreferenceChange::InterfaceFamily(_)
+                    | PreferenceChange::MonoFamily(_)
+                    | PreferenceChange::SyntaxTheme(_) => {
                         apply_text_sizes(self, cx);
                     }
                     PreferenceChange::ContentWidth(width) => {

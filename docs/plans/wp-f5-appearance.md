@@ -1,6 +1,7 @@
 # F5 Appearance package
 
-Status: audited; skeleton next. The existing eight-choice palette package is
+Status: typed preparation and shared-tile consumer committed; compile and
+full screen skeleton remain pending. The existing eight-choice palette package is
 reviewed separately through executable source `fb711444` and its bounded
 visual disposition. This package adds the remaining Appearance contract;
 it does not reinterpret that earlier approval as complete F5 parity.
@@ -89,8 +90,12 @@ font assets and other owners' pending changes are preserved.
   bounded-visual passed; actual F5 survey and reference assets audited.
 - Missing: the remaining family/content/code/width/syntax draft controls,
   preview and plugin contribution consumer.
-- Next: confirm the shared-control and plugin contracts, write the typed
-  skeleton and narrow checks, then integrate the announced validated base.
+- Prepared: token-only tile `d266db93`, pure draft/type preparation
+  `4884b549`, new range-edge regression `589c56e4`, breakpoint `3e47b364`
+  and the single tile consumer `cc43236c`. Package base `8d5513e4` is merged
+  at `f556e55c`, without a conflict. These are not compile/runtime approvals.
+- Next: narrow checks, complete the field hooks after the shared field
+  owner's validated split, and compose all remaining rows and preview.
 - Not claimed: complete F5 parity, plugin runtime connectivity, IME/AltGr,
   hardware GPU or mobile system-bar support.
 
@@ -110,3 +115,35 @@ hooks rather than racing a second implementation. Its one later addition
 is generic blur notification through the existing engine subscription;
 existing constructors keep their no-extra-callback behaviour. No field
 source is changed before the split's validated handoff.
+
+## Preference preparation and differences
+
+The existing Appearance preference gains independent content size, interface
+and mono families, and a syntax id; unchanged new defaults are omitted so
+the existing document remains byte-compatible. Numeric width extends the
+same `content_width` enum, not a second preference field. Existing
+Comfortable/Wide/Full files retain their intent. Comfortable follows the
+single default bound, custom Pixels carries a validated width, and reset
+returns Comfortable. Unlike Paseo's nullable number format, the native file
+retains its existing enum spelling and writes a tagged numeric variant;
+the following/reset behaviour is the same, and a null reads as following.
+Legacy Wide/Full remain readable until explicitly changed or reset.
+
+The old area-local tile and its Body14 departure are removed. The shared
+tile uses small12 and the source's viewport breakpoint of 600, independently
+of Settings navigation's compact breakpoint. Family placeholder/hints say
+default font rather than system default because native retains the owner's
+embedded Geist/Pretendard default. No extra content-family preference is
+introduced; content follows the interface family, with its independent size.
+
+Range references: `hooks/use-settings/storage.ts:62–73`. Approval to change
+the two inherited refused inputs (UI21→22, code9→8) was obtained; all other
+inherited cases remain unchanged, with positive endpoint regressions added.
+
+Validation status: two local checks expired in the build queue before
+compiling. Remote focused kit test preparation is waiting in submit (no run
+id yet); it pins `f556e55c`, before the later breakpoint/consumer changes.
+Neither is a compile result for current source. The new preference changes
+are preparation only: their renderer and typography/syntax application are
+not complete. Plugin scalar staging and the shared field split are likewise
+not imported before their owners send narrow-green handoffs.

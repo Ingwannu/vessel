@@ -641,12 +641,9 @@ fn first_line(prompt: &str) -> String {
 }
 
 /// Paseo's chat column (`agent-stream/view.tsx`, `composer/dock`): the
-/// conversation and the composer share one column, at most 820 wide in
-/// the middle, 16 from the window's edges, so the composer's card and the
-/// messages start at the same left edge (the owner, on 0.0.0.0.5: the card
-/// was narrower than the conversation and did not line up with it).
-const COLUMN_WIDTH: f32 = 820.0;
-
+/// conversation and composer share one centred column. Its following
+/// maximum is owned by view::appearance::ContentPixels, not copied here.
+///
 /// The column's distance from the window's edges.
 const COLUMN_INSET: f32 = 16.0;
 
@@ -667,18 +664,12 @@ thread_local! {
     /// - Difference: "Comfortable" is Paseo's chat column, 820, where the
     ///   page takes agent-orchestrator's 768 (the owner's rule: Paseo's
     ///   app); "Wide" is GOAT's 1152 as the page's, "Full" the window's.
-    static CONTENT_WIDTH: Cell<Option<f32>> = const { Cell::new(Some(COLUMN_WIDTH)) };
+    static CONTENT_WIDTH: Cell<Option<f32>> = Cell::new(ContentWidth::default().points().map(f32::from));
 }
 
 /// The chat column grows to `width` (the next frame draws it).
 pub(crate) fn set_content_width(width: ContentWidth) {
-    // The native default follows Paseo's 820-point column. Every explicit
-    // width uses its validated points, including future custom widths.
-    let points = if width == ContentWidth::Comfortable {
-        Some(COLUMN_WIDTH)
-    } else {
-        width.points().map(f32::from)
-    };
+    let points = width.points().map(f32::from);
     CONTENT_WIDTH.set(points);
 }
 

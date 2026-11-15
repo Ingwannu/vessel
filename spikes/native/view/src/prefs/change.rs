@@ -3,14 +3,15 @@
 //! value, so two surfaces changing different settings never undo each
 //! other.
 
+use crate::appearance::{FontFamily, SyntaxTheme};
 use serde::{Deserialize, Serialize};
 use vessel_proto::{HarnessKind, NodeId, ProfileName};
 
 use super::{
     ActionId, AgentDefaults, AgentKind, Alerts, Animations, Bindings, Choices, CodeSize,
-    ContentWidth, ConversationDisplay, Grouping, InterfaceSize, MAX_ACTIONS, MAX_EDITS,
-    MAX_MACHINES, MachineDefaults, Panel, Preferences, SendKey, SessionSort, Theme, TooMany,
-    TurnDelivery,
+    ContentSize, ContentWidth, ConversationDisplay, Grouping, InterfaceSize, MAX_ACTIONS,
+    MAX_EDITS, MAX_MACHINES, MachineDefaults, Panel, Preferences, SendKey, SessionSort, Theme,
+    TooMany, TurnDelivery,
 };
 
 /// One change: the setting it names, and its value.
@@ -25,6 +26,14 @@ pub enum PreferenceChange {
     InterfaceSize(InterfaceSize),
     /// Code's text size.
     CodeSize(CodeSize),
+    /// The independent conversation/Markdown text size.
+    ContentSize(ContentSize),
+    /// Interface font stack.
+    InterfaceFamily(FontFamily),
+    /// Code/terminal font stack.
+    MonoFamily(FontFamily),
+    /// Code's highlight palette.
+    SyntaxTheme(SyntaxTheme),
     /// The conversation's width.
     ContentWidth(ContentWidth),
     /// How a conversation shows tool calls.
@@ -175,6 +184,12 @@ impl Preferences {
             PreferenceChange::Theme(theme) => self.appearance.theme = *theme,
             PreferenceChange::InterfaceSize(size) => self.appearance.interface_size = *size,
             PreferenceChange::CodeSize(size) => self.appearance.code_size = *size,
+            PreferenceChange::ContentSize(size) => self.appearance.content_size = *size,
+            PreferenceChange::InterfaceFamily(family) => {
+                self.appearance.interface_family = family.clone()
+            }
+            PreferenceChange::MonoFamily(family) => self.appearance.mono_family = family.clone(),
+            PreferenceChange::SyntaxTheme(theme) => self.appearance.syntax_theme = *theme,
             PreferenceChange::ContentWidth(width) => self.appearance.content_width = *width,
             PreferenceChange::Conversation(display) => self.appearance.conversation = *display,
             PreferenceChange::Animations(animations) => self.appearance.animations = *animations,
