@@ -275,3 +275,13 @@ multi-select values refuse rather than guessing; callers retain the canonical
 field-keyed QuestionAnswer route for those cases. No provider JSON decoding or
 fabricated prompt message is added to clients. Public-store restart/claim tests
 and pure Codex async parser fixtures are written; actual execution remains owed.
+
+Blocking Codex user-input forms now preserve options when isOther/allowOther is
+present, instead of replacing the choice with plain text. One validated optional
+text companion represents custom input. Preview, placeholder, explicit empty
+policy, multi-select and dismiss label are typed at this provider edge. Responses
+remove companion keys and encode custom/selected values under the original
+provider question id; custom-only answers cannot become a spurious extra provider
+field. Secret forms and unrepresentable complete forms still refuse before being
+shown. The existing wire-response regression is updated to prove that behavior;
+no passing provider/runtime test result is claimed yet.

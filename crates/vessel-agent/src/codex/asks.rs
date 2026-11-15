@@ -38,6 +38,7 @@ use crate::MAX_WAITING;
 use crate::error::InputError;
 use crate::recent::Recent;
 
+mod form;
 mod questions;
 pub(super) use questions::{Opened, Questions, elicitation_response, no_answers};
 
@@ -427,21 +428,27 @@ mod tests {
             header: "Header".to_owned(),
             question: format!("{id}?"),
             is_other,
+            allow_other: false,
+            multi_select: false,
+            allow_empty: false,
+            placeholder: None,
+            dismiss_label: None,
             is_secret: false,
             options: options.map(|labels| {
                 labels
                     .into_iter()
                     .map(|label| UserInputOption {
                         label: label.to_owned(),
-                        description: String::new(),
+                        description: None,
+                        preview: None,
                     })
                     .collect()
             }),
         }
     }
 
-    /// Options make a choice, none (or free text too) a text; the answer
-    /// goes back under each question's id.
+    /// Choices remain choices when custom text is allowed; only the provider's
+    /// original parent id receives the normalized answer.
     #[test]
     fn codexs_questions_become_one_form() {
         let mut questions = Questions::default();
@@ -456,15 +463,22 @@ mod tests {
             .iter()
             .map(|field| matches!(field.kind, FieldKind::Choice { .. }))
             .collect();
-        assert_eq!(kinds, [true, false, false]);
-        let values: BTreeMap<FieldName, AnswerValue> = [
+        assert_eq!(kinds, [true, false, true, false]);
+        let companion = question.fields[2]
+            .presentation
+            .as_ref()
+            .unwrap()
+            .custom_answer
+            .clone()
+            .unwrap();
+        let mut values: BTreeMap<FieldName, AnswerValue> = [
             ("pick", AnswerValue::Choice("b".to_owned())),
             ("free", AnswerValue::Text("words".to_owned())),
-            ("either", AnswerValue::Text("c".to_owned())),
         ]
         .into_iter()
         .map(|(name, value)| (name.parse().unwrap(), value))
         .collect();
+        let _previous = values.insert(companion, AnswerValue::Text("c".to_owned()));
         let (outcome, settled) = questions
             .answer(question.id, QuestionAnswer::Accept { values })
             .unwrap();

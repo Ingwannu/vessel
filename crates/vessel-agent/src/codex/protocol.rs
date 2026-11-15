@@ -444,6 +444,16 @@ pub(super) struct UserInputQuestion {
     pub(super) question: String,
     #[serde(default)]
     pub(super) is_other: bool,
+    #[serde(default)]
+    pub(super) allow_other: bool,
+    #[serde(default)]
+    pub(super) multi_select: bool,
+    #[serde(default)]
+    pub(super) allow_empty: bool,
+    #[serde(default)]
+    pub(super) placeholder: Option<String>,
+    #[serde(default)]
+    pub(super) dismiss_label: Option<String>,
     /// Never shown: an answer is kept in the session's timeline.
     #[serde(default)]
     pub(super) is_secret: bool,
@@ -455,5 +465,8 @@ pub(super) struct UserInputQuestion {
 #[derive(Debug, Deserialize)]
 pub(super) struct UserInputOption {
     pub(super) label: String,
-    pub(super) description: String,
+    #[serde(default)]
+    pub(super) description: Option<String>,
+    #[serde(default)]
+    pub(super) preview: Option<String>,
 }

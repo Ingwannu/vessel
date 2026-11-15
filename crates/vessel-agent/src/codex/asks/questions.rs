@@ -1,12 +1,12 @@
 //! Codex blocking question responders and their typed form conversion.
 //! Durable nonblocking records belong to the session persistence path instead.
 
-use super::Settled;
+use super::{Settled, form::user_input_question};
 use crate::codex::protocol::UserInputRequest;
 use crate::{MAX_WAITING, error::InputError, mapper, recent::Recent};
 use serde_json::{Value, json};
-use vessel_proto::conversation::{AnswerValue, ChoiceOption, FieldKind, FieldName, QuestionField};
-use vessel_proto::{Question, QuestionAnswer, QuestionId, QuestionOutcome, ToolCallId};
+use vessel_proto::conversation::AnswerValue;
+use vessel_proto::{Question, QuestionAnswer, QuestionId, QuestionOutcome};
 
 /// How a question's answer goes back to Codex.
 #[derive(Debug, Clone, Copy)]
@@ -115,7 +115,7 @@ impl Questions {
         let _new = self.settled.insert(id);
         let settled = Settled {
             request: asked.request,
-            response: response(asked.form, &outcome),
+            response: response_for(asked.form, &outcome, Some(&asked.question)),
         };
         Ok((outcome, settled))
     }
@@ -165,11 +165,26 @@ pub(in crate::codex) fn elicitation_response(outcome: &QuestionOutcome) -> Value
 
 /// Codex's response to a question settled as `outcome`.
 fn response(form: Form, outcome: &QuestionOutcome) -> Value {
+    response_for(form, outcome, None)
+}
+
+fn response_for(form: Form, outcome: &QuestionOutcome, question: Option<&Question>) -> Value {
     match form {
         Form::UserInput => {
             let answers: serde_json::Map<String, Value> = match outcome {
                 QuestionOutcome::Answered { values } => values
                     .iter()
+                    .filter(|(name, _value)| {
+                        question.is_none_or(|question| {
+                            !question.fields.iter().any(|field| {
+                                field
+                                    .presentation
+                                    .as_ref()
+                                    .and_then(|shown| shown.custom_answer.as_ref())
+                                    == Some(*name)
+                            })
+                        })
+                    })
                     .map(|(name, value)| {
                         let given = match value {
                             AnswerValue::Text(text) | AnswerValue::Choice(text) => {
@@ -180,91 +195,30 @@ fn response(form: Form, outcome: &QuestionOutcome) -> Value {
                             AnswerValue::Integer(number) => vec![number.to_string()],
                             AnswerValue::Boolean(yes) => vec![yes.to_string()],
                         };
+                        let given = custom_values(question, name, given, values);
                         (name.as_str().to_owned(), json!({ "answers": given }))
                     })
                     .collect(),
                 QuestionOutcome::Declined | QuestionOutcome::Cancelled => serde_json::Map::new(),
             };
+            let mut answers = answers;
+            if let (Some(question), QuestionOutcome::Answered { values }) = (question, outcome) {
+                for field in &question.fields {
+                    if answers.contains_key(field.name.as_str()) {
+                        continue;
+                    }
+                    let given = custom_values(Some(question), &field.name, Vec::new(), values);
+                    if !given.is_empty() {
+                        let _previous = answers
+                            .insert(field.name.as_str().to_owned(), json!({ "answers": given }));
+                    }
+                }
+            }
             json!({ "answers": answers })
         }
         Form::Elicitation => serde_json::to_value(mapper::elicitation_response(outcome))
             .unwrap_or_else(|_unwritable| json!({ "action": "cancel" })),
     }
-}
-
-/// Codex's questions as one form; `Err` with why it cannot be shown.
-fn user_input_question(asked: &UserInputRequest) -> Result<Question, &'static str> {
-    if asked.questions.is_empty() {
-        return Err("it asks nothing");
-    }
-    if asked.questions.len() > Question::MAX_FIELDS {
-        return Err("it asks more than a question keeps");
-    }
-    if asked.questions.iter().any(|question| question.is_secret) {
-        return Err("it asks for a secret, which the session's timeline must not keep");
-    }
-    let mut fields = Vec::with_capacity(asked.questions.len());
-    for question in &asked.questions {
-        let name: FieldName = question
-            .id
-            .parse()
-            .map_err(|_unfit| "a question's id cannot name a field")?;
-        let options = question.options.as_deref().unwrap_or_default();
-        let choice = !options.is_empty() && !question.is_other;
-        if options.len() > Question::MAX_OPTIONS {
-            return Err("a question offers more options than a question keeps");
-        }
-        let kind = if choice {
-            FieldKind::Choice {
-                options: options
-                    .iter()
-                    .map(|option| ChoiceOption {
-                        value: option.label.clone(),
-                        title: cut(option.label.clone(), Question::MAX_LABEL),
-                        description: Some(cut(option.description.clone(), Question::MAX_LABEL)),
-
-                        preview: None,
-                    })
-                    .collect(),
-                multiple: false,
-                min_items: None,
-                max_items: None,
-                default: Vec::new(),
-            }
-        } else {
-            FieldKind::Text {
-                min_length: None,
-                max_length: None,
-                format: None,
-                pattern: None,
-                default: None,
-            }
-        };
-        fields.push(QuestionField {
-            name,
-            title: Some(cut(question.header.clone(), Question::MAX_LABEL)),
-            description: Some(cut(question.question.clone(), Question::MAX_LABEL)),
-            required: true,
-            kind,
-
-            presentation: None,
-        });
-    }
-    let message = asked
-        .questions
-        .iter()
-        .map(|question| question.question.as_str())
-        .collect::<Vec<_>>()
-        .join("\n");
-    Ok(Question {
-        id: QuestionId::random(),
-        message: cut(message, Question::MAX_MESSAGE),
-        tool_call: Some(ToolCallId::new(asked.item_id.as_str())),
-        fields,
-
-        lifetime: vessel_proto::timeline::QuestionLifetime::Turn,
-        delivery_state: vessel_proto::timeline::QuestionDeliveryState::Pending,
-    })
 }
 
 /// A tool server's form read as ACP's `elicitation/create` on `thread`.
@@ -282,14 +236,41 @@ fn elicitation_question(thread: &str, params: &Value) -> Result<Question, String
     })
 }
 
-/// `text` cut to at most `bytes`, at a character's edge.
-fn cut(mut text: String, bytes: usize) -> String {
-    if text.len() > bytes {
-        let mut at = bytes;
-        while !text.is_char_boundary(at) {
-            at = at.saturating_sub(1);
-        }
-        text.truncate(at);
+fn custom_values(
+    question: Option<&Question>,
+    name: &vessel_proto::conversation::FieldName,
+    mut selected: Vec<String>,
+    values: &std::collections::BTreeMap<vessel_proto::conversation::FieldName, AnswerValue>,
+) -> Vec<String> {
+    let Some(field) =
+        question.and_then(|question| question.fields.iter().find(|field| &field.name == name))
+    else {
+        return selected;
+    };
+    let Some(custom) = field
+        .presentation
+        .as_ref()
+        .and_then(|shown| shown.custom_answer.as_ref())
+        .and_then(|companion| values.get(companion))
+    else {
+        return selected;
+    };
+    let AnswerValue::Text(text) = custom else {
+        return selected;
+    };
+    if text.trim().is_empty()
+        && field.presentation.as_ref().is_none_or(|shown| {
+            shown.empty != vessel_proto::timeline::EmptyAnswerPolicy::AllowEmpty
+        })
+    {
+        return selected;
     }
-    text
+    if !matches!(
+        field.kind,
+        vessel_proto::conversation::FieldKind::Choice { multiple: true, .. }
+    ) {
+        selected.clear();
+    }
+    selected.push(text.trim().to_owned());
+    selected
 }
