@@ -469,5 +469,6 @@ async fn terminal_attention_uses_the_same_encrypted_generic_delivery_after_assig
             receiver.close().await;
         },
     ))
-    .await;
+    .await
+    .unwrap();
 }

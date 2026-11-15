@@ -153,3 +153,12 @@ staged, not compile/runtime reviewed yet. Node bootstrap passes the existing
 terminal registry via node/setup::push; measured node.rs drops688→686 (ratchet
 lowered, not raised). Positive assigned terminal delivery and preparation-time
 cancellation/restart source fixtures remain integration obligations.
+
+## Unified source fixture correction
+
+The push completion observer now returns the canonical NotificationSource enum,
+so the existing second-session/restart fixtures explicitly require its Session
+variant before asserting the original key. The terminal fake-node fixture also
+propagates its outer deadline failure; timing out can no longer pass silently.
+These are assertion adaptations to the unified worker, with no delivery-policy
+change. They remain changed-source obligations until the next VM check executes.

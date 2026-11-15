@@ -208,7 +208,12 @@ async fn still_sends_second(action: FirstGone) {
         .unwrap()
         .unwrap();
     assert_eq!(
-        admitted.key, second_key,
+        match admitted {
+            vessel_proto::notifications::NotificationSource::Session { key, .. } => key,
+            vessel_proto::notifications::NotificationSource::Terminal { .. } =>
+                panic!("expected session admission"),
+        },
+        second_key,
         "first attempt must admit B, not a later outcome of A"
     );
     let message = step("second source HTTP request arrived", receiver.inbox.recv())
