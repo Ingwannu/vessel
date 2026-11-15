@@ -30,6 +30,40 @@ rows use the pending named feature; its protocol remains None until the
 integrator assigns it. Pending refusal and assigned happy-wire evidence
 are deliberately separate obligations.
 
+## Pending consumer contract
+
+All types below live in `vessel_proto::launch_profiles`; methods live on
+`vessel_client::NodeClient`. The single feature remains None, so every call
+currently refuses locally and on the server. This table describes source
+shape, not assigned availability or runtime approval.
+
+| Call | Request | Result | Scope / additional authority | Client method |
+| --- | --- | --- | --- | --- |
+| `launch_profile.list` | `ListLaunchProfiles {}` | `LaunchProfilesSnapshot` | Read; public notes are readable by agents | `launch_profiles()` |
+| `launch_profile.replace` | `ReplaceLaunchProfiles { expected, profiles }` | `LaunchProfilesSnapshot` | Admin and human origin, independently | `replace_launch_profiles(expected, profiles)` |
+| `launch_profile.options` | `GetLaunchProfileOptions { selection }` | `LaunchCatalogue` | Read and human origin, independently | `launch_profile_options(selection)` |
+| `launch_profile.applicable` | `GetApplicableLaunchProfiles { session }` | `ApplicableLaunchProfiles` | Read; filtered metadata grants no write/apply authority | `applicable_launch_profiles(session)` |
+| `session.apply_options` | `ApplySessionOptions { session, options }` | `ApplySessionOptionsResult` | Operate and normal session ownership | `apply_session_options(session, options)` |
+
+Snapshots carry `revision` and ordered `profiles`. Replacement is whole-list
+CAS; omission clears optional record fields, and stale revision is checked
+before identical-content no-op. A catalogue echoes the full `selection`
+key and reports canonical public `account`, current `options` and
+`probed_at`; it contains no credential values. Consumers discard stale keys.
+Live results carry `applied`, optional first `notice` and optional first
+`failure { choice, error }`. Caller timeout or disconnect never establishes
+rollback or permits blind replay. Typed launch refusal details use
+`ErrorDetail::LaunchProfile { problem }`; ordinary scope/ownership and
+provider failures retain their existing codes and causes.
+
+The internal `AgentInput::options_fenced()` and
+`SessionHandle::options_fenced()` APIs order a native current-options read
+after prior mutations. They add no RPC and do not provide an atomic
+session/account/run snapshot. Consumers must independently bind the actual
+process lifetime before and after the fence. The app owns migration marker
+persistence; the MCP package owns its facade. Neither may substitute the
+existing account-profile calls for these named launch presets.
+
 ## Existing owners and structure
 
 | Owner | Reuse/extension |
