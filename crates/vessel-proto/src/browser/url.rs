@@ -85,8 +85,9 @@ impl BrowserUrl {
         }
         let local = Self::from_tool(text)?;
         match local.0.host() {
-            Some(url::Host::Ipv4(_) | url::Host::Ipv6(_)) => Ok(local),
-            Some(url::Host::Domain("localhost")) => Ok(local),
+            Some(url::Host::Ipv4(_) | url::Host::Ipv6(_) | url::Host::Domain("localhost")) => {
+                Ok(local)
+            }
             Some(url::Host::Domain(_)) => format!("https://{text}").parse(),
             None => Err(InvalidBrowserUrl::Parse(url::ParseError::EmptyHost)),
         }

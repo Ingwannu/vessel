@@ -6,6 +6,7 @@
 
 mod arguments;
 mod bounds;
+mod content;
 mod failure;
 mod identity;
 mod input;
@@ -23,10 +24,14 @@ pub use bounds::{
     MAX_LOG_ENTRIES, MAX_VIEWPORT_SIDE, MAX_WAIT_MS, ViewportSide, ViewportSize, WaitBudget,
     WaitTimeout,
 };
+pub use content::{
+    CappedText, InvalidBrowserContent, MAX_PAGE_TEXT_BYTES, MAX_SCREENSHOT_BYTES, PageText,
+    ScreenshotPng, TextCompleteness,
+};
 pub use failure::{BrowserEffect, BrowserFailure, HistoryDirection};
 pub use identity::{BrowserId, ElementRef, InvalidBrowserIdentity};
 pub use input::{EmptyBrowserInput, InputText, RequiredInput, WaitFor};
-pub use tools::{BROWSER_TOOLS, BrowserTool};
+pub use tools::{BROWSER_TOOLS, BrowserCommand, BrowserTool};
 pub use upload::{InvalidUpload, UploadArgs, UploadFiles, UploadPath};
 pub use url::{BrowserUrl, InvalidBrowserUrl};
 

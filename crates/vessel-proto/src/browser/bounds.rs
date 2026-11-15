@@ -5,7 +5,7 @@ use std::time::Duration;
 
 /// Prevent an agent from allocating an unbounded browser surface.
 pub const MAX_VIEWPORT_SIDE: u32 = 8192;
-/// Paseo's browser_wait maximum (tools.ts).
+/// Paseo's `browser_wait` maximum (tools.ts).
 pub const MAX_WAIT_MS: u32 = 30_000;
 /// Paseo's host default wait (service.ts).
 pub const DEFAULT_WAIT_MS: u32 = 5_000;
