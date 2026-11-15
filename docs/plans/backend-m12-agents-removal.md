@@ -87,8 +87,8 @@ with no skips, 1059 runtime passes plus two document passes, zero failures
 and the existing ignored private browser capture. All nine RPC, three
 uncertainty and one new alert cases passed. Changed crates actually compiled.
 Queue wait was 808 seconds; execution took 62 seconds, load 8.17 to 8.35.
-The preceding native all-target Clippy run also passed. V1 source review
-remains pending; the results documentation does not rerun an unchanged gate.
+The preceding native all-target Clippy run also passed. V1 later returned only new-test liveness, as recorded below; that old
+execution is retained without rerunning its unchanged source.
 
 These tests simulate typed authorization/conflict replies; they do not prove
 real node administration policy or persisted file mutation. No real agent,
@@ -96,3 +96,44 @@ installation, preview node or production configuration was used. There are
 no new UI captures for this call-only slice and no claimed removal-screen
 approval. The earlier 40-image normal/list/detail packet has its own scoped
 V1 visual pass; it is not evidence for this new call path.
+
+## Review correction: finite test phases
+
+V1 returned `7a2c7eb2` for new-test liveness only, with no additional product
+blocker. Its successful execution remains evidence for that old source;
+the returned source is not marked accepted. The correction adds a named
+finite budget to handshake, peer reads/writes, ordered barriers, hub delivery,
+observation, event receipt and task completion, plus an outer safety net.
+The original assertions, ordering, product deadline and explicit virtual-time
+advance stay intact. The peer's intentional idle budget and outer budget
+include the product-time advance, so neither changes that case into an early
+disconnect. Abort guards are retained before setup awaits and around the
+spawned call, ensuring that phase or outer failure cannot detach those tasks.
+
+Only tests and these notes change. A changed-source A13 run is required;
+the previous green gate is not reused as proof of the correction. Models
+implementation is parked separately until this return is addressed.
+
+[Decision Log]
+- Purpose: make a broken fixture or event path fail with its phase name,
+  and release spawned work when a test exits early.
+- Constraint: this separate native workspace uses only memory transport;
+  the root testkit's `within` always prepares process fakes with a nested
+  root build, which is inapplicable here.
+- Alternatives: add that root dependency merely for its helper name, or
+  rely only on the product deadline. Neither bounds this suite correctly.
+- Choice: use the existing Tokio dev dependency for a test-local outer
+  safety net and named phases. The outer/peer-idle budget includes the
+  product deadline; ordinary phases retain one five-second constant.
+- Why: no fake process, new dependency or product behavior is needed.
+- Costs and effects: timeout panics identify the phase and limit. The
+  paused case finishes the observation phase before its thirty-second
+  advance and starts its join phase afterward; no short phase spans it.
+  Its later barrier also proves the peer survived the intentional wait.
+
+The correction's local narrow Clippy passed, and all nine removal tests
+passed, including the paused-time case. Both changed native crates were
+actually compiled. A comparison retained all 34 original assertions in
+order after removing only timeout wrappers; the product source and explicit
+virtual advance were unchanged. Formatting and compile-free quality checks
+precede the immutable correction commit; A13 and V1 disposition follow.

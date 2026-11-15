@@ -2,6 +2,21 @@
 
 ## Latest checkpoint
 
+V1 returned `7a2c7eb2` for test liveness: finite named phases and an outer
+safety net are required around every new await that can hang. No additional
+product blocker was found. The test-only correction retains the original
+assertions, event ordering, read barrier and explicit product-time advance;
+it awaits new changed-source checks/review. The earlier green run is not a
+source pass for the correction.
+
+Coordinator order is Models, then registry/Add with the one shared title
+comparator; Remove waits for the reviewed common trigger. Models scope was
+documented in `2b8e01d3`. Its uncompiled working changes are parked outside
+the repository as a patch and hash manifest, to fix the returned slice
+first. The N3 handoff for named launch-profile CRUD was sent once with
+exact references/fields/semantics; build nothing on it before its number is
+assigned. The Models loader's integrated handoff is also pending.
+
 `69cef4f1` records the fresh 40-image packet. V1 opened every final image,
 matched all image hashes and passed the submitted normal/list/detail and
 four returned-fix matrix (EN/KO, dark/light, 1280/390). This does not approve
@@ -10,12 +25,12 @@ intermediate widths/scales, actual IME, other operating systems or Light300
 font selection. The capture app, fleet children and authenticated Xvfb were
 stopped by verified UID/executable/arguments and PID.
 
-The next slice wires confirmed removal through the existing link. Its final
+The removal slice wired confirmation through the existing link. Its final
 local narrow checks passed (link Clippy, nine RPC cases, 41 view cases).
 Implementation `7a2c7eb2` passed exact-commit A13 native verification:
 run `agents-20261115T032805Z-7a2c7eb2`, six steps zero, 1061 passes
 (1059 runtime plus two document tests), zero failures, one existing ignored
-private capture. V1 source review is pending; details in
+private capture. V1 returned test liveness only; correction details in
 `backend-m12-agents-removal.md`. Do not draw a duplicate Remove trigger.
 The coordinator's one-file fixture fix `d30804b2` was cherry-picked at the
 clean boundary as `9037d62c`, with an identical source blob. The actual G3

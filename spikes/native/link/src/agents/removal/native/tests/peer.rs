@@ -1,4 +1,5 @@
 //! Existing RPC memory transport, with real client handshake/cancellation.
+use super::budget::{AbortOnDrop, PEER_IDLE_BUDGET, phase, within};
 use std::future::poll_fn;
 use std::num::NonZeroUsize;
 use std::pin::Pin;
@@ -25,25 +26,35 @@ pub(super) struct Peer {
     pub(super) client: NodeClient,
     pub(super) seen: mpsc::Receiver<Call>,
     calls: Arc<Mutex<Vec<Call>>>,
-    task: tokio::task::JoinHandle<()>,
+    _task: AbortOnDrop,
 }
 
 async fn read<T: FrameTransport>(transport: &mut T) -> Option<ClientFrame> {
-    poll_fn(|cx| Pin::new(&mut *transport).poll_next(cx))
-        .await
-        .map(|frame| serde_json::from_str(&frame.unwrap()).unwrap())
+    within(
+        "peer frame read",
+        PEER_IDLE_BUDGET,
+        poll_fn(|cx| Pin::new(&mut *transport).poll_next(cx)),
+    )
+    .await
+    .map(|frame| serde_json::from_str(&frame.unwrap()).unwrap())
 }
 
 async fn write<T: FrameTransport>(transport: &mut T, frame: ServerFrame) {
-    poll_fn(|cx| Pin::new(&mut *transport).poll_ready(cx))
-        .await
-        .unwrap();
+    phase(
+        "peer frame send readiness",
+        poll_fn(|cx| Pin::new(&mut *transport).poll_ready(cx)),
+    )
+    .await
+    .unwrap();
     Pin::new(&mut *transport)
         .start_send(serde_json::to_string(&frame).unwrap())
         .unwrap();
-    poll_fn(|cx| Pin::new(&mut *transport).poll_flush(cx))
-        .await
-        .unwrap();
+    phase(
+        "peer frame flush",
+        poll_fn(|cx| Pin::new(&mut *transport).poll_flush(cx)),
+    )
+    .await
+    .unwrap();
 }
 
 impl Peer {
@@ -83,7 +94,9 @@ impl Peer {
                     continue;
                 };
                 recording.lock().unwrap().push(call.clone());
-                send.send(call.clone()).await.unwrap();
+                phase("peer observation delivery", send.send(call.clone()))
+                    .await
+                    .unwrap();
                 let outcome = if matches!(call, Call::RemoveAgent(_)) {
                     match response {
                         Response::Ack => Outcome::Ok(Reply::RemoveAgent(Ack {})),
@@ -102,13 +115,18 @@ impl Peer {
                 write(&mut remote, ServerFrame::Response { id, outcome }).await;
             }
         });
-        let client = NodeClient::over(
-            local,
-            ClientInfo {
-                name: "removal-tests".into(),
-                version: "0".into(),
-            },
-            &ClientConfig::default(),
+        let cleanup = AbortOnDrop::new(&task);
+        drop(task);
+        let client = phase(
+            "client handshake",
+            NodeClient::over(
+                local,
+                ClientInfo {
+                    name: "removal-tests".into(),
+                    version: "0".into(),
+                },
+                &ClientConfig::default(),
+            ),
         )
         .await
         .unwrap();
@@ -116,13 +134,15 @@ impl Peer {
             client,
             seen,
             calls,
-            task,
+            _task: cleanup,
         }
     }
 
     /// A read ordered after the tested action lets the peer drain prior writes.
     pub(super) async fn barrier(&self) {
-        let _info = self.client.call(GetNode {}).await.unwrap();
+        let _info = phase("ordered post-call barrier", self.client.call(GetNode {}))
+            .await
+            .unwrap();
     }
 
     pub(super) fn removals(&self) -> Vec<vessel_proto::agents::AgentName> {
@@ -138,11 +158,5 @@ impl Peer {
                 }
             })
             .collect()
-    }
-}
-
-impl Drop for Peer {
-    fn drop(&mut self) {
-        self.task.abort();
     }
 }
