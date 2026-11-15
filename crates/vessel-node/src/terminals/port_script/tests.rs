@@ -12,6 +12,7 @@ use super::*;
 struct Sandbox {
     temp: tempfile::TempDir,
     root: ScriptRoot,
+    workspace: WorkspaceId,
 }
 
 impl Sandbox {
@@ -23,6 +24,7 @@ impl Sandbox {
         std::fs::create_dir(&root).unwrap();
         Self {
             temp,
+            workspace: WorkspaceId::random(),
             root: ScriptRoot {
                 project: ProjectId::random(),
                 project_root,
@@ -52,6 +54,7 @@ async fn literal_arguments_match_the_environment_and_credentials_are_removed() {
     let name: ScriptName = "web-app".parse().unwrap();
     let config = crate::TerminalsConfig::default();
     let spec = prepare(
+        sandbox.workspace,
         &sandbox.root,
         &name,
         &"port-tool".parse().unwrap(),
@@ -64,10 +67,7 @@ async fn literal_arguments_match_the_environment_and_credentials_are_removed() {
     assert_eq!(spec.cwd, Some(folder.clone()));
     let values = [
         ("VESSEL_SCRIPT_NAME", OsString::from(name.as_str())),
-        (
-            "VESSEL_PLACE_ID",
-            sandbox.root.worktree.unwrap().to_string().into(),
-        ),
+        ("VESSEL_WORKSPACE_ID", sandbox.workspace.to_string().into()),
         (
             "VESSEL_BRANCH",
             sandbox.root.branch.as_ref().unwrap().as_str().into(),
@@ -96,12 +96,18 @@ async fn literal_arguments_match_the_environment_and_credentials_are_removed() {
     let mut project = sandbox.root.clone();
     project.worktree = None;
     project.branch = None;
-    let spec = prepare(&project, &name, &"port-tool".parse().unwrap(), &[])
-        .await
-        .unwrap();
+    let spec = prepare(
+        sandbox.workspace,
+        &project,
+        &name,
+        &"port-tool".parse().unwrap(),
+        &[],
+    )
+    .await
+    .unwrap();
     assert_eq!(
         spec.args.get(1),
-        Some(&OsString::from(project.project.to_string()))
+        Some(&OsString::from(sandbox.workspace.to_string()))
     );
     assert_eq!(spec.args.get(2), Some(&OsString::new()));
 }
@@ -112,12 +118,25 @@ async fn directories_missing_files_and_foreign_grammars_are_typed_refusals() {
     let name = "web".parse().unwrap();
     std::fs::create_dir(sandbox.root.root.join("folder")).unwrap();
     assert!(matches!(
-        prepare(&sandbox.root, &name, &"folder".parse().unwrap(), &[]).await,
+        prepare(
+            sandbox.workspace,
+            &sandbox.root,
+            &name,
+            &"folder".parse().unwrap(),
+            &[]
+        )
+        .await,
         Err(PortScriptError::NotFile)
     ));
-    let missing = prepare(&sandbox.root, &name, &"missing".parse().unwrap(), &[])
-        .await
-        .unwrap_err();
+    let missing = prepare(
+        sandbox.workspace,
+        &sandbox.root,
+        &name,
+        &"missing".parse().unwrap(),
+        &[],
+    )
+    .await
+    .unwrap_err();
     assert!(matches!(
         missing,
         PortScriptError::Path(PathError::NotFound(_))
@@ -129,7 +148,14 @@ async fn directories_missing_files_and_foreign_grammars_are_typed_refusals() {
         r"C:\foreign\port.exe"
     };
     assert!(matches!(
-        prepare(&sandbox.root, &name, &foreign.parse().unwrap(), &[]).await,
+        prepare(
+            sandbox.workspace,
+            &sandbox.root,
+            &name,
+            &foreign.parse().unwrap(),
+            &[]
+        )
+        .await,
         Err(PortScriptError::Platform)
     ));
 }
@@ -184,6 +210,7 @@ async fn relative_symlinks_cannot_escape_the_checkout() {
     std::fs::write(&outside, "not executed").unwrap();
     std::os::unix::fs::symlink(&outside, sandbox.root.root.join("port-tool")).unwrap();
     let error = prepare(
+        sandbox.workspace,
         &sandbox.root,
         &"web".parse().unwrap(),
         &"port-tool".parse().unwrap(),
@@ -203,6 +230,7 @@ async fn windows_command_scripts_are_refused_before_spawn() {
     let sandbox = Sandbox::new();
     for text in ["port.CmD", "port.bAt. "] {
         let error = prepare(
+            sandbox.workspace,
             &sandbox.root,
             &"web".parse().unwrap(),
             &text.parse().unwrap(),
@@ -216,6 +244,7 @@ async fn windows_command_scripts_are_refused_before_spawn() {
     let batch = sandbox.root.root.join("port.CmD");
     std::fs::write(&batch, "@echo off\r\necho unsafe>started\r\n").unwrap();
     let error = prepare(
+        sandbox.workspace,
         &sandbox.root,
         &"web".parse().unwrap(),
         &batch.to_str().unwrap().parse().unwrap(),
@@ -318,7 +347,7 @@ async fn bare_port_script_is_resolved_under_the_approved_root() {
     );
     let name = "web".parse().unwrap();
     let program = "port-tool".parse().unwrap();
-    let spec = prepare(&sandbox.root, &name, &program, &[])
+    let spec = prepare(sandbox.workspace, &sandbox.root, &name, &program, &[])
         .await
         .unwrap()
         .env_clear()
@@ -334,7 +363,7 @@ async fn bare_port_script_is_resolved_under_the_approved_root() {
     let mut project = sandbox.root.clone();
     project.root = project.project_root.clone();
     project.worktree = None;
-    let spec = prepare(&project, &name, &program, &[])
+    let spec = prepare(sandbox.workspace, &project, &name, &program, &[])
         .await
         .unwrap()
         .env_clear()
@@ -359,7 +388,7 @@ async fn direct_invocation_preserves_metacharacters_and_matching_argument_enviro
 IFS= read -r unexpected && exit 6
 [ "$#" = 4 ] || exit 7
 [ "$1" = "$VESSEL_SCRIPT_NAME" ] || exit 8
-[ "$2" = "$VESSEL_PLACE_ID" ] || exit 9
+[ "$2" = "$VESSEL_WORKSPACE_ID" ] || exit 9
 [ "$3" = "$VESSEL_BRANCH" ] || exit 11
 [ "$4" = "$VESSEL_WORKTREE" ] || exit 12
 [ "$PWD" = "$4" ] || exit 13
@@ -368,6 +397,7 @@ printf '\357\273\2773210\n'
 "#,
     );
     let port = invoke(
+        sandbox.workspace,
         &sandbox.root,
         &"web".parse().unwrap(),
         &"port-tool".parse().unwrap(),
@@ -424,6 +454,7 @@ async fn unsuccessful_exit_and_overflow_are_refused_without_output_in_diagnostic
     ] {
         Sandbox::executable(&sandbox.root.root.join(name), &script);
         let result = invoke(
+            sandbox.workspace,
             &sandbox.root,
             &"web".parse().unwrap(),
             &name.parse().unwrap(),
@@ -455,6 +486,7 @@ async fn cancellation_before_resolution_never_starts_a_child() {
     let cancel = CancellationToken::new();
     cancel.cancel();
     let result = invoke(
+        sandbox.workspace,
         &sandbox.root,
         &"web".parse().unwrap(),
         &"absent".parse().unwrap(),
@@ -474,6 +506,7 @@ async fn a_helper_that_never_exits_is_bounded_by_the_named_deadline() {
         &format!("#!/bin/sh\nexec /bin/sleep {}\n", TIMEOUT.as_secs() + 1),
     );
     let result = invoke(
+        sandbox.workspace,
         &sandbox.root,
         &"web".parse().unwrap(),
         &"port-tool".parse().unwrap(),
@@ -581,5 +614,39 @@ fn windows_command_scripts_are_refused_before_spawn() {
     assert_eq!(
         sandbox.root.branch.as_ref().unwrap().as_str(),
         "topic/$(untrusted)&branch"
+    );
+}
+
+#[tokio::test]
+async fn identical_checkouts_do_not_collapse_distinct_workspace_arguments() {
+    let sandbox = Sandbox::new();
+    let _program_file = sandbox.file("port-tool");
+    let name = "web".parse().unwrap();
+    let program = "port-tool".parse().unwrap();
+    let first = prepare(sandbox.workspace, &sandbox.root, &name, &program, &[])
+        .await
+        .unwrap();
+    let different = WorkspaceId::random();
+    let second = prepare(different, &sandbox.root, &name, &program, &[])
+        .await
+        .unwrap();
+    assert_eq!(first.cwd, second.cwd);
+    assert_eq!(first.program, second.program);
+    assert_eq!(
+        first.args.get(1),
+        Some(&OsString::from(sandbox.workspace.to_string()))
+    );
+    assert_eq!(
+        second.args.get(1),
+        Some(&OsString::from(different.to_string()))
+    );
+    assert_ne!(first.args.get(1), second.args.get(1));
+    assert_eq!(
+        first.env_change("VESSEL_WORKSPACE_ID"),
+        Some(&EnvValue::Set(sandbox.workspace.to_string().into()))
+    );
+    assert_eq!(
+        second.env_change("VESSEL_WORKSPACE_ID"),
+        Some(&EnvValue::Set(different.to_string().into()))
     );
 }

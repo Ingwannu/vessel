@@ -503,3 +503,12 @@ caller. This does not adopt the unreviewed registry or establish permission:
 its checked start/restart/root boundary remains a caller prerequisite.
 Resume: contract first, then input plumbing and same-checkout/different-id
 regressions; narrow checks owed.
+
+
+The staged invocation and allocation request now require the explicit
+WorkspaceId value. Literal argv and VESSEL_WORKSPACE_ID match for local and
+worktree placements; an additional same-checkout/different-workspace test
+would catch the removed legacy fallback. No registry or process admission
+is inferred from this value. Helper and allocator remain test-only. Resume:
+source committed, joined focused checks still owed; earlier remote queued
+attempts were cancelled by build-machine maintenance before any check ran.

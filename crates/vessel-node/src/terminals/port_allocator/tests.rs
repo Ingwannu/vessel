@@ -104,6 +104,7 @@ async fn explicit_ports_precede_both_choices_and_global_dynamic_ports_do_not_ove
     let dynamic = HashSet::from([port]);
     let cancel = CancellationToken::new();
     let request = || Allocation {
+        workspace: WorkspaceId::random(),
         root: &root,
         entry: &entry,
         options: Some(&options),
@@ -134,6 +135,7 @@ async fn a_missing_helper_does_not_fall_back_to_the_range() {
     let empty = HashSet::new();
     let cancel = CancellationToken::new();
     let result = allocate(Allocation {
+        workspace: WorkspaceId::random(),
         root: &root,
         entry: &entry,
         options: Some(&options),
@@ -158,6 +160,7 @@ async fn no_block_allocates_a_nonzero_kernel_port_and_plain_scripts_never_alloca
     let empty = HashSet::new();
     let cancel = CancellationToken::new();
     let mut request = Allocation {
+        workspace: WorkspaceId::random(),
         root: &root,
         entry: &service,
         options: None,
@@ -181,6 +184,7 @@ async fn no_block_allocates_a_nonzero_kernel_port_and_plain_scripts_never_alloca
         Err(AllocationError::NotService)
     ));
     let port = allocate(Allocation {
+        workspace: WorkspaceId::random(),
         root: &root,
         entry: &service,
         options: None,
@@ -195,6 +199,7 @@ async fn no_block_allocates_a_nonzero_kernel_port_and_plain_scripts_never_alloca
     assert!((ServicePort::MIN..=ServicePort::MAX).contains(&port));
     cancel.cancel();
     let result = allocate(Allocation {
+        workspace: WorkspaceId::random(),
         root: &root,
         entry: &service,
         options: None,
@@ -240,6 +245,7 @@ async fn the_helper_wins_over_range_is_not_availability_probed_and_cannot_return
     let occupied = HashSet::from([port]);
     let cancel = CancellationToken::new();
     let request = || Allocation {
+        workspace: WorkspaceId::random(),
         root: &root,
         entry: &entry,
         options: Some(&options),

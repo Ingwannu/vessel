@@ -12,6 +12,7 @@ use std::time::Duration;
 use tokio_util::sync::CancellationToken;
 
 use vessel_proc::CommandSpec;
+use vessel_proto::WorkspaceId;
 use vessel_proto::scripts::ScriptName;
 use vessel_proto::workspace::{InvalidServicePort, PortScript, ServicePort};
 use vessel_workspace::paths::PathError;
@@ -72,6 +73,7 @@ pub(super) enum PortScriptError {
 
 /// Execute one owner selected by an approval-checked caller, without a shell.
 pub(super) async fn invoke(
+    workspace: WorkspaceId,
     root: &ScriptRoot,
     name: &ScriptName,
     program: &PortScript,
@@ -79,7 +81,7 @@ pub(super) async fn invoke(
     cancel: &CancellationToken,
 ) -> Result<ServicePort, PortScriptError> {
     let work = async {
-        let spec = prepare(root, name, program, removed).await?;
+        let spec = prepare(workspace, root, name, program, removed).await?;
         // A cancellation during blocking path resolution must not start a child.
         if cancel.is_cancelled() {
             return Err(PortScriptError::Cancelled);
@@ -106,6 +108,7 @@ async fn bounded(
 
 /// Build the literal argument/env boundary from the node's typed placement.
 async fn prepare(
+    workspace: WorkspaceId,
     root: &ScriptRoot,
     name: &ScriptName,
     program: &PortScript,
@@ -117,14 +120,10 @@ async fn prepare(
         tokio::task::spawn_blocking(move || program::resolve(&folder, &program))
             .await
             .map_err(PortScriptError::Join)??;
-    let place = match root.worktree {
-        Some(id) => id.to_string(),
-        None => root.project.to_string(),
-    };
     let branch = root.branch.as_ref().map_or("", |branch| branch.as_str());
     let values = [
         ("VESSEL_SCRIPT_NAME", OsString::from(name.as_str())),
-        ("VESSEL_PLACE_ID", OsString::from(place)),
+        ("VESSEL_WORKSPACE_ID", OsString::from(workspace.to_string())),
         ("VESSEL_BRANCH", OsString::from(branch)),
         ("VESSEL_WORKTREE", folder.clone().into_os_string()),
     ];

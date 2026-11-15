@@ -8,6 +8,7 @@ use std::net::Ipv4Addr;
 
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
+use vessel_proto::WorkspaceId;
 use vessel_proto::scripts::{ScriptEntry, ScriptKind};
 use vessel_proto::workspace::{InvalidServicePort, PortRange, ServicePort, ServicePorts};
 
@@ -27,6 +28,8 @@ impl RangeOffset {
 
 /// Borrow the approved declaration and allocation choices from the same parse.
 pub(super) struct Allocation<'a> {
+    /// Exact logical owner supplied by the checked registry caller, never inferred.
+    pub(super) workspace: WorkspaceId,
     /// The approved checkout supplied by the workspace registry.
     pub(super) root: &'a ScriptRoot,
     /// The service owner, including its validated optional explicit port.
@@ -95,6 +98,7 @@ async fn choose(request: &Allocation<'_>) -> Result<ServicePort, AllocationError
     let unavailable: HashSet<_> = request.reserved.union(request.dynamic).copied().collect();
     if let Some(program) = request.options.and_then(ServicePorts::port_script) {
         let port = port_script::invoke(
+            request.workspace,
             request.root,
             &request.entry.name,
             program,
