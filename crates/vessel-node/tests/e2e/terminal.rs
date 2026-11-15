@@ -184,10 +184,12 @@ async fn killed_sessions_end_and_errors_carry_their_codes() {
         );
         // Subscribing past the end is an invalid request.
         let past = ended.next_seq.next().unwrap();
-        assert_eq!(
-            client.follow(info.id, past).await.unwrap_err().code(),
-            Some(ErrorCode::InvalidRequest)
-        );
+        let vessel_client::StreamError::Call(error) =
+            client.follow(info.id, past).await.unwrap_err()
+        else {
+            panic!("expected the original invalid-request RPC error");
+        };
+        assert_eq!(error.code(), Some(ErrorCode::InvalidRequest));
 
         let missing = client
             .create_session(terminal_spec(&fixture, HarnessKind::Codex))
@@ -198,10 +200,15 @@ async fn killed_sessions_end_and_errors_carry_their_codes() {
         for error in [
             client.session(unknown).await.unwrap_err(),
             client.read(unknown, EventSeq::ZERO, 10).await.unwrap_err(),
-            client.follow(unknown, EventSeq::ZERO).await.unwrap_err(),
         ] {
             assert_eq!(error.code(), Some(ErrorCode::NotFound), "{error}");
         }
+        let vessel_client::StreamError::Call(error) =
+            client.follow(unknown, EventSeq::ZERO).await.unwrap_err()
+        else {
+            panic!("expected the original not-found RPC error");
+        };
+        assert_eq!(error.code(), Some(ErrorCode::NotFound), "{error}");
         node.stop().await.unwrap();
     })
     .await;
