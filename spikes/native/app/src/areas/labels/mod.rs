@@ -4,6 +4,7 @@
 mod actions;
 mod colors;
 mod draw;
+mod form;
 mod hosts;
 
 use vessel_app_kit::ui::{Context, IntoElement as _, Window};

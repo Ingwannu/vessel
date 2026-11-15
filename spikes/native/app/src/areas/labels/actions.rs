@@ -54,7 +54,7 @@ impl Shell {
     pub(super) fn label_action(&mut self, action: Action, cx: &mut Context<'_, Self>) {
         match self.areas.labels.prepare(action) {
             Ok((host, ticket, ask)) => {
-                self.command(vessel_app_link::Command::Labels { host, ticket, ask })
+                self.command(vessel_app_link::Command::Labels { host, ticket, ask });
             }
             Err(failure) => self.areas.labels.error = Some(failure),
         }

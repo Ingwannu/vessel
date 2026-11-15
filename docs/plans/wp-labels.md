@@ -138,6 +138,10 @@ confirmation cancellation and deletion keep their host/ticket ownership.
 Back preserves search and refuses abandoning pending work. Pending phases
 retain the same readonly field/color controls so selection/copy remains
 available. The affected count is a whole Fluent sentence with a numeric count.
+Disabled controls attach no click handler, and intent preparation still
+rechecks availability/current catalog at dispatch time. The destructive paint
+is used only on the final confirmation. Form drawing is a child module so the
+manager phase renderer remains within the strict function budget.
 Native and browser transport currently answer Unsupported, with no node I/O
 or simulated success, until the pending node contract is available.
 
@@ -160,3 +164,10 @@ production registry. Its store adapter, writer/actor and pending RPC rows still
 await the reviewed registry dependency. Native picker entry/create UI,
 background observation, registry label projection and complete peer gates
 remain owed. No full gate, capture, review or production flow is claimed.
+
+Entry coordination: S2 owns the single sidebar workspace row/menu caller;
+W12 owns the workspace header and takes its canonical
+`LayoutKey::Workspace { node, workspace }` / `PanelContext.workspace`. Neither
+has announced a checked authoritative row/header adapter yet. Both will pass
+registry identity/lifecycle plus this owner's ordered assignments; layout does
+not store labels or introduce a label pane. No second frame is introduced.

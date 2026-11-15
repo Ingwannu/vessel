@@ -7,8 +7,8 @@ use vessel_app_kit::theme::{
     spacing::S2,
 };
 use vessel_app_kit::ui::{
-    Context, Div, ElementId, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
-    Styled as _, div, px,
+    Context, Div, ElementId, FluentBuilder as _, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, button_with_kind, dot};
 use vessel_app_view::labels::{Color, EditAccess, HostState};
@@ -65,19 +65,21 @@ pub(super) fn choices(
             })
             .gap(px(S2))
             .child(mark(color, tokens))
-            .on_click(cx.listener(move |shell, _, _window, cx| {
-                if access(shell) == EditAccess::ReadOnly {
-                    return;
-                }
-                let state = &mut shell.areas.labels;
-                if let Some(draft) = state.manager.draft_mut()
-                    && draft.color() != color
-                {
-                    draft.set_color(color);
-                    state.color_turn.advance();
-                    cx.notify();
-                }
-            }));
+            .when(access(shell) == EditAccess::Editable, |button| {
+                button.on_click(cx.listener(move |shell, _, _window, cx| {
+                    if access(shell) == EditAccess::ReadOnly {
+                        return;
+                    }
+                    let state = &mut shell.areas.labels;
+                    if let Some(draft) = state.manager.draft_mut()
+                        && draft.color() != color
+                    {
+                        draft.set_color(color);
+                        state.color_turn.advance();
+                        cx.notify();
+                    }
+                }))
+            });
             if color == selected {
                 button
                     .with_animation(
