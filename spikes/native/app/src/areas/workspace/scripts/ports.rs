@@ -1,4 +1,5 @@
 //! Observed ports are separate from declarations and from service health.
+use super::draw::Card;
 use crate::shell::Shell;
 use vessel_app_kit::ui::{
     Context, Div, ElementId, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
@@ -23,9 +24,10 @@ pub(super) fn notice(text: &str, tokens: &Tokens) -> Div {
         tokens,
     )
 }
-pub(super) fn scan(shell: &Shell, tokens: &Tokens) -> Div {
+pub(super) fn scan(card: &Card<'_>, tokens: &Tokens) -> Div {
+    let shell = card.shell;
     let words = shell.words.scripts();
-    let Some(snapshot) = shell.areas.workspace.scripts.model.shown() else {
+    let Some(snapshot) = card.model.shown() else {
         return div();
     };
     let ports = match &snapshot.ports {
@@ -46,13 +48,14 @@ pub(super) fn scan(shell: &Shell, tokens: &Tokens) -> Div {
     column
 }
 pub(super) fn for_run(
-    shell: &Shell,
+    card: &Card<'_>,
     run: Option<&TerminalInfo>,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
+    let shell = card.shell;
     let words = shell.words.scripts();
-    let model = &shell.areas.workspace.scripts.model;
+    let model = card.model;
     let Some(snapshot) = model.shown() else {
         return div();
     };
@@ -80,14 +83,9 @@ pub(super) fn for_run(
         let target = model.target.clone();
         let destination = target
             .as_ref()
-            .filter(|target| shell.scripts_target_is_current(target))
+            .filter(|target| shell.script_card_is_current(target))
             .ok_or(vessel_app_view::workspace::scripts::PreviewProblem::Stale)
-            .and_then(|_| {
-                model.preview_url(
-                    &preview_request,
-                    &shell.areas.workspace.scripts.host.text(cx),
-                )
-            });
+            .and_then(|_| model.preview_url(&preview_request, &card.host.text(cx)));
         let mut preview = button_with_kind(
             ElementId::Name(format!("script-preview-{}-{index}", port.port).into()),
             words.preview(),
@@ -101,9 +99,9 @@ pub(super) fn for_run(
         )
         .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET));
         if destination.is_ok() {
-            preview = preview.on_click(cx.listener(move |shell, _event, _window, cx| {
+            preview = preview.on_click(cx.listener(move |shell, _event, window, cx| {
                 if let Some(target) = &target {
-                    shell.script_preview(target, &preview_request, cx);
+                    shell.script_preview_for(target, &preview_request, window, cx);
                 }
             }));
         }

@@ -8,7 +8,7 @@ use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::scripts::{Action, Snapshot, Target};
 use vessel_client::{CallError, Unary};
 use vessel_proto::ports::ListPorts;
-use vessel_proto::scripts::{ListScripts, RestartScript, RunScript, ScriptPlace, ScriptRunOutcome};
+use vessel_proto::scripts::{ListScripts, RestartScript, RunScript, ScriptRunOutcome};
 use vessel_proto::terminals::KillTerminal;
 
 /// A complete discovery read or one checked lifecycle intention.
@@ -63,21 +63,20 @@ pub(super) async fn run(client: &SelectedConnection, ask: ScriptAsk) -> ScriptAn
                 bounded(
                     client,
                     ListScripts {
-                        place: ScriptPlace::Project {
-                            project: target.project
-                        }
+                        place: target.place
                     }
                 ),
                 bounded(client, ListPorts { changed_from: None })
             );
+            let result = scripts.map(|scripts| Snapshot {
+                scripts,
+                ports,
+                host: None,
+            });
             ScriptAnswer::Read {
                 target,
                 key,
-                result: scripts.map(|scripts| Snapshot {
-                    scripts,
-                    ports,
-                    host: None,
-                }),
+                result,
             }
         }
         ScriptAsk::Write {
@@ -89,9 +88,7 @@ pub(super) async fn run(client: &SelectedConnection, ask: ScriptAsk) -> ScriptAn
                 Action::Run(script) => bounded(
                     client,
                     RunScript {
-                        place: ScriptPlace::Project {
-                            project: target.project,
-                        },
+                        place: target.place,
                         script,
                     },
                 )

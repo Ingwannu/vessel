@@ -53,6 +53,7 @@ pub(super) fn render(
         {
             agent.take().unwrap_or_else(div).into_any_element()
         }
+        Target::Scripts => crate::areas::workspace::scripts_panel(shell, panel, tokens, window, cx),
         Target::NewTab => super::draw::launcher(shell, tokens, window, cx).into_any_element(),
         Target::Agent(_)
         | Target::Draft(_)
@@ -61,7 +62,6 @@ pub(super) fn render(
         | Target::Browser(_)
         | Target::Changes
         | Target::Files
-        | Target::Scripts
         | Target::PullRequest
         | Target::File { .. }
         | Target::WorkingDiff

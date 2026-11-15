@@ -1,10 +1,12 @@
 //! Project script controls reuse the workspace channel and approval card.
 //! The node owns all processes; leaving this screen never stops a service.
 mod draw;
+mod panel;
 mod ports;
 use crate::routes::Route;
 use crate::shell::Shell;
 pub(super) use draw::render;
+pub(crate) use panel::render as render_panel;
 use vessel_app_kit::{
     TextField,
     ui::{Context, Window},
@@ -12,7 +14,9 @@ use vessel_app_kit::{
 use vessel_app_link::workspace::{Ask, ScriptAnswer, ScriptAsk};
 use vessel_app_view::machine_book::Name;
 use vessel_app_view::settings::Section;
-use vessel_app_view::workspace::scripts::{Action, Issue, Model, Preview, REFRESH_EVERY, Target};
+use vessel_app_view::workspace::scripts::{
+    Action, ActionTicket, Issue, Model, Preview, REFRESH_EVERY, Surface, Target,
+};
 use vessel_proto::ProjectId;
 
 /// Controls survive a detail refresh, while model keys survive every reopen.
@@ -20,6 +24,16 @@ pub(super) struct Scripts {
     pub(super) model: Model,
     pub(super) host: TextField,
     polling: bool,
+    panel_keys: std::cell::RefCell<vessel_app_view::workspace::git::RequestKeys>,
+    panels: std::cell::RefCell<
+        std::collections::BTreeMap<
+            (
+                vessel_app_view::layout::LayoutKey,
+                vessel_app_view::layout::TabId,
+            ),
+            panel::Controls,
+        >,
+    >,
     // Navigation intent only. This pair grants no RPC admission.
     selection: Option<(Name, ProjectId)>,
 }
@@ -34,6 +48,8 @@ impl Scripts {
                 cx,
             ),
             polling: false,
+            panel_keys: std::cell::RefCell::default(),
+            panels: std::cell::RefCell::default(),
             selection: None,
         }
     }
@@ -94,7 +110,8 @@ impl Shell {
             .connection_context()?;
         Some(Target {
             context,
-            project: *project,
+            place: vessel_proto::scripts::ScriptPlace::Project { project: *project },
+            surface: Surface::Project,
         })
     }
     fn scripts_target_is_current(&self, expected: &Target) -> bool {
@@ -144,6 +161,10 @@ impl Shell {
         let returned = match &answer {
             ScriptAnswer::Read { target, .. } | ScriptAnswer::Written { target, .. } => target,
         };
+        if matches!(returned.surface, Surface::Panel { .. }) {
+            self.script_panel_answer(answer, cx);
+            return;
+        }
         if !self.scripts_target_is_current(returned) {
             return;
         }
@@ -166,8 +187,9 @@ impl Shell {
                 if accepted
                     && self.scripts_visible()
                     && let Some(commands) = commands
+                    && let vessel_proto::scripts::ScriptPlace::Project { project } = target.place
                 {
-                    self.project_commands(target.machine(), target.project, None, Ok(commands));
+                    self.project_commands(target.machine(), project, None, Ok(commands));
                 }
                 (accepted, false)
             }
@@ -186,21 +208,19 @@ impl Shell {
             }
         };
         if accepted {
-            if written {
-                if self.scripts_visible() {
-                    self.read_scripts();
-                }
+            if written && self.scripts_visible() {
+                self.read_scripts();
             }
             cx.notify();
         }
     }
     pub(super) fn script_action(
         &mut self,
-        expected: &Target,
+        ticket: &ActionTicket,
         action: Action,
         cx: &mut Context<'_, Self>,
     ) {
-        if !self.scripts_target_is_current(expected) {
+        if !self.scripts_target_is_current(&ticket.target) {
             tracing::debug!("script action ignored after its view changed");
             return;
         }
@@ -208,7 +228,7 @@ impl Shell {
         let Some(target) = model.target.clone() else {
             return;
         };
-        let Some(key) = model.begin_write(action.clone()) else {
+        let Some(key) = model.begin_write_at(ticket, action.clone()) else {
             tracing::debug!("script action requires fresh current state");
             return;
         };
@@ -254,6 +274,51 @@ impl Shell {
         if self.scripts_visible() && &self.areas.workspace.scripts.model.target == expected {
             self.read_scripts();
             cx.notify();
+        }
+    }
+}
+
+impl Shell {
+    fn script_card_is_current(&self, target: &Target) -> bool {
+        match target.surface {
+            Surface::Project => self.scripts_target_is_current(target),
+            Surface::Panel { .. } => self.script_panel_is_current(target),
+        }
+    }
+    fn script_action_for(
+        &mut self,
+        ticket: &ActionTicket,
+        action: Action,
+        window: &Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        match ticket.target.surface {
+            Surface::Project => self.script_action(ticket, action, cx),
+            Surface::Panel { .. } => self.script_panel_action(ticket, action, window, cx),
+        }
+    }
+    fn script_preview_for(
+        &mut self,
+        target: &Target,
+        preview: &Preview,
+        window: &Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        match target.surface {
+            Surface::Project => self.script_preview(target, preview, cx),
+            Surface::Panel { .. } => self.script_panel_preview(target, preview, window, cx),
+        }
+    }
+    fn refresh_scripts_for(
+        &mut self,
+        surface: &Surface,
+        target: &Option<Target>,
+        window: &Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        match surface {
+            Surface::Project => self.refresh_scripts(target, cx),
+            Surface::Panel { .. } => self.refresh_script_panel(surface, target, window, cx),
         }
     }
 }

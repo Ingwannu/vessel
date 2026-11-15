@@ -1,23 +1,63 @@
 //! One visible project's state. Keys survive screen reopen; no write is retried.
 use super::{PreviewHost, PreviewProblem, PreviewUrl, latest_run};
 use crate::connection::ConnectionContext;
+use crate::layout::{LayoutKey, TabId};
 use crate::workspace::command_changes::Listed;
 use crate::workspace::git::{Reading, RequestKey, RequestKeys};
 use crate::workspace::problem::Problem;
+use vessel_proto::TerminalId;
 use vessel_proto::ports::PortList;
-use vessel_proto::scripts::{ScriptList, ScriptName, ScriptRefusal, ScriptRunOutcome};
-use vessel_proto::{ProjectId, TerminalId};
+use vessel_proto::scripts::{ScriptList, ScriptName, ScriptPlace, ScriptRefusal, ScriptRunOutcome};
 
-/// A displayed project's identity, never just a mutable selection index.
+/// Presentation routing, independent of the node resource or its admission.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Surface {
+    /// The project settings card.
+    Project,
+    /// Owner state follows the tab across pane moves.
+    Panel {
+        /// Exact layout owner; a tab id alone is not globally unique.
+        workspace: LayoutKey,
+        /// Presentation identity, never process ownership.
+        tab: TabId,
+        /// App-only owner incarnation, preventing a forgotten layout's reused
+        /// tab number from accepting an earlier panel's asynchronous receipt.
+        instance: RequestKey,
+    },
+}
+
+/// A displayed resource's identity, never just a mutable selection index.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Target {
     /// Exact authenticated alias, node and admission captured by the screen.
     pub context: ConnectionContext,
-    /// Project whose folder runs these commands.
-    pub project: ProjectId,
+    /// Existing node API resource; no cwd-based ownership inference.
+    pub place: ScriptPlace,
+    /// App-only destination for correlated replies.
+    pub surface: Surface,
 }
 
 impl Target {
+    /// Bridge only an explicit legacy session layout. Registry workspaces need
+    /// their reviewed service contract; they never fall back to selected cwd.
+    #[must_use]
+    pub fn legacy_panel(context: ConnectionContext, surface: Surface) -> Option<Self> {
+        let Surface::Panel {
+            workspace: LayoutKey::Session { machine, session },
+            ..
+        } = &surface
+        else {
+            return None;
+        };
+        if machine.as_str() != context.machine().as_str() {
+            return None;
+        }
+        Some(Self {
+            context,
+            place: ScriptPlace::Session { session: *session },
+            surface,
+        })
+    }
     /// Original alias; it never resolves a replacement admission.
     #[must_use]
     pub fn machine(&self) -> &str {
@@ -74,6 +114,15 @@ pub enum Action {
     Stop(TerminalId),
 }
 
+/// A drawn action is tied to the exact successful read as well as its owner.
+/// This local correlation ticket grants no node/workspace authority.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActionTicket {
+    /// Captured original admission, place and presentation.
+    pub target: Target,
+    read: RequestKey,
+}
+
 /// Persistent, typed explanation shown until the next explicit intention.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Issue {
@@ -95,6 +144,7 @@ pub struct Model {
     keys: RequestKeys,
     // Display-only after a write: Ready remains the sole action authority.
     retained: Option<Snapshot>,
+    visible_key: Option<RequestKey>,
     /// Which detail owns these facts.
     pub target: Option<Target>,
     /// A failed or loading read cannot authorize a new write.
@@ -111,6 +161,7 @@ impl Model {
         self.target = target;
         self.read = Reading::Empty;
         self.retained = None;
+        self.visible_key = None;
         self.writing = None;
         self.issue = None;
     }
@@ -133,9 +184,19 @@ impl Model {
         if self.target.as_ref() != Some(target) {
             return false;
         }
+        let result = result.map(|mut snapshot| {
+            if let ScriptPlace::Session { session } = target.place {
+                snapshot
+                    .scripts
+                    .runs
+                    .retain(|run| run.place.session() == Some(session));
+            }
+            snapshot
+        });
         let accepted = self.read.accept(key, result);
         if accepted && self.read.ready().is_some() {
             self.retained = None;
+            self.visible_key = Some(key);
         }
         accepted
     }
@@ -171,6 +232,25 @@ impl Model {
                     })
             }),
         }
+    }
+    /// Capture only a successful, settled display, never retained/loading facts.
+    #[must_use]
+    pub fn action_ticket(&self) -> Option<ActionTicket> {
+        self.read.ready()?;
+        if self.writing.is_some() {
+            return None;
+        }
+        Some(ActionTicket {
+            target: self.target.clone()?,
+            read: self.visible_key?,
+        })
+    }
+    /// A refreshed command with the same name must not inherit an old button.
+    pub fn begin_write_at(&mut self, ticket: &ActionTicket, action: Action) -> Option<RequestKey> {
+        if self.target.as_ref() != Some(&ticket.target) || self.visible_key != Some(ticket.read) {
+            return None;
+        }
+        self.begin_write(action)
     }
     /// Mark pending only after validation, so duplicate presses send nothing.
     pub fn begin_write(&mut self, action: Action) -> Option<RequestKey> {

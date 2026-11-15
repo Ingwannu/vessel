@@ -153,3 +153,6 @@ scripts-terminal-name-absent = Unnamed terminal
 scripts-terminal-changes = Automatic terminal changes are shown below
 # Approval: complete terminal inspection does not enable pending approval support.
 scripts-terminal-approval-pending = These terminal definitions are shown for inspection. Approval support for this configuration is not enabled yet.
+
+# Passive reveal of this exact script TerminalId in the same workspace layout.
+scripts-open-terminal = Open terminal

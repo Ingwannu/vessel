@@ -8,7 +8,7 @@ mod state;
 pub mod words;
 pub use preview::{PreviewHost, PreviewProblem, PreviewUrl};
 pub use rows::{Entry, RunState, latest_run, listeners, retained_runs, run_state};
-pub use state::{Action, Issue, Model, Preview, Snapshot, Target};
+pub use state::{Action, ActionTicket, Issue, Model, Preview, Snapshot, Surface, Target};
 
 /// Refresh only a visible project; background projects need no polling.
 pub const REFRESH_EVERY: std::time::Duration = std::time::Duration::from_secs(2);

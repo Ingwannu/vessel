@@ -363,8 +363,8 @@ fn tab_label(shell: &Shell, target: &Target) -> String {
         Target::Draft(id) => id.to_string(),
         Target::Changes => shell.words.layout().changes().to_owned(),
         Target::Files => shell.words.layout().files().to_owned(),
-        Target::Scripts
-        | Target::PullRequest
+        Target::Scripts => shell.words.scripts().title().to_owned(),
+        Target::PullRequest
         | Target::WorkingDiff
         | Target::ProviderSubagent { .. }
         | Target::Plugin { .. }
@@ -404,6 +404,24 @@ pub(super) fn launcher(
                 shell.go(crate::routes::Route::Draft, window, cx);
             })),
         )
+        .children(super::key(shell).ok().map(|workspace| {
+            button(
+                "layout-launch-scripts",
+                shell.words.scripts().title().to_owned(),
+                false,
+                tokens,
+            )
+            .on_click(cx.listener(move |shell, _event, window, cx| {
+                let _opened = shell.layout_open_target(
+                    &workspace,
+                    Target::Scripts,
+                    vessel_app_view::layout::OpenIntent::Reveal,
+                    vessel_app_view::layout::Placement::Focused,
+                    window,
+                    cx,
+                );
+            }))
+        }))
 }
 
 fn drop_preview(shell: &Shell, pane: PaneId, tokens: &Tokens) -> Option<Div> {

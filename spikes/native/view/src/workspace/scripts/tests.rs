@@ -3,7 +3,7 @@ use super::*;
 use crate::connection::{ConnectionEpochs, MachineKey};
 use chrono::{TimeZone as _, Utc};
 use vessel_proto::ports::{ListeningPort, PortList, PortOwner, PortScan};
-use vessel_proto::scripts::{ScriptEntry, ScriptKind, ScriptList};
+use vessel_proto::scripts::{ScriptEntry, ScriptKind, ScriptList, ScriptPlace};
 use vessel_proto::terminals::{ServiceState, TerminalInfo, TerminalKind, TerminalPlace};
 use vessel_proto::workspace::ProjectCommands;
 use vessel_proto::{ProjectId, SessionId, TerminalId};
@@ -16,14 +16,20 @@ fn target() -> Target {
                 vessel_proto::NodeId::random(),
             )
             .unwrap(),
-        project: ProjectId::random(),
+        place: ScriptPlace::Project {
+            project: ProjectId::random(),
+        },
+        surface: Surface::Project,
     }
 }
 fn run(target: &Target) -> TerminalInfo {
     TerminalInfo::new(
         TerminalId::random(),
         TerminalPlace::Project {
-            project: target.project,
+            project: match target.place {
+                ScriptPlace::Project { project } => project,
+                ScriptPlace::Session { .. } => panic!("project fixture"),
+            },
             dir: None,
         },
         "/project".into(),
@@ -86,7 +92,9 @@ fn older_opens_and_other_machines_cannot_replace_a_snapshot() {
     let current = model.begin_read().unwrap();
     assert!(!model.accept_read(&target, old, Ok(snapshot(&target))));
     let mut other = target.clone();
-    other.machine = Name::parse("server").unwrap();
+    other.context = ConnectionEpochs::default()
+        .admit(MachineKey::from_book("server"), target.context.node())
+        .unwrap();
     assert!(!model.accept_read(&other, current, Ok(snapshot(&target))));
     assert!(model.accept_read(&target, current, Ok(snapshot(&target))));
     assert!(!model.accept_read(&target, current, Ok(snapshot(&target))));
@@ -149,7 +157,10 @@ fn retained_rows_survive_reconciliation_without_authorizing_actions_or_other_own
     assert!(model.permits(&action));
     model.select(Some(Target {
         context: target.context,
-        project: ProjectId::random(),
+        place: ScriptPlace::Project {
+            project: ProjectId::random(),
+        },
+        surface: Surface::Project,
     }));
     assert!(model.shown().is_none());
     assert!(!model.permits(&action));
@@ -366,14 +377,18 @@ fn reconnecting_the_same_node_never_accepts_a_previous_admission_reply() {
     let node = vessel_proto::NodeId::random();
     let old = Target {
         context: epochs.admit(MachineKey::from_book("laptop"), node).unwrap(),
-        project: ProjectId::random(),
+        place: ScriptPlace::Project {
+            project: ProjectId::random(),
+        },
+        surface: Surface::Project,
     };
     let mut model = Model::default();
     model.select(Some(old.clone()));
     let old_key = model.begin_read().unwrap();
     let fresh = Target {
         context: epochs.admit(MachineKey::from_book("laptop"), node).unwrap(),
-        project: old.project,
+        place: old.place,
+        surface: Surface::Project,
     };
     model.select(Some(fresh.clone()));
     let fresh_key = model.begin_read().unwrap();
@@ -381,3 +396,6 @@ fn reconnecting_the_same_node_never_accepts_a_previous_admission_reply() {
     assert!(model.read.ready().is_none());
     assert!(model.accept_read(&fresh, fresh_key, Ok(snapshot(&fresh))));
 }
+
+#[path = "tests/panels.rs"]
+mod panels;

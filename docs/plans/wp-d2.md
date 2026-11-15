@@ -249,3 +249,29 @@ They exercise retirement after capture before first poll (zero script frames),
 all existing lifecycle IDs/refusals, and same-node reconnect rejecting an old
 read receipt. These checks do not establish canonical WorkspaceId service
 authority, which remains the separate node runtime dependency.
+
+## Scripts panel boundary
+
+The existing W12 registry hosts the same script rows in a passive Scripts tab.
+A launcher button opens it with the captured LayoutKey, and exact TerminalId
+reveal uses W12's canonical open boundary. C2 owns the terminal renderer; its
+pending resident renderer is not supplied by this package.
+
+Owner state is keyed by (LayoutKey, TabId). An app-only monotonic presentation
+instance additionally correlates replies when a forgotten layout reuses a tab
+number; it grants no workspace admission or process authority. Closed tabs drop
+only display state. Polls require the canonical panel-visibility query and an
+active OS window. Hidden receipts settle state without starting another read.
+Legacy Session keys map only to their exact ScriptPlace::Session; root-wide
+legacy results are filtered to TerminalPlace::Session with that exact id before
+display/action admission. Canonical Workspace keys show unavailable until W11
+and D2 provide the reviewed runtime contract. No selected-session/cwd fallback
+is used for them.
+
+The renderer shares lifecycle/status/listener/host controls with project settings.
+Drawn mutations capture both original admission/owner and the successful read
+identity. A refreshed approved command with the same name cannot inherit an old
+Run button. Preview still checks the current publication/socket at opening and
+does not become in-app Preview authority. Regressions cover repeated tab/read
+numbers across panel recreation, canonical-key refusal, explicit-session mapping,
+shared-root foreign-run exclusion and stale drawn actions after refresh.

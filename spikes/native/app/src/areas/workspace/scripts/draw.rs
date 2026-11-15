@@ -25,9 +25,7 @@ pub(in crate::areas::workspace) fn render(
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
-    let words = shell.words.scripts();
     let scripts = &shell.areas.workspace.scripts;
-    let model = &scripts.model;
     if !scripts
         .selection
         .as_ref()
@@ -35,6 +33,30 @@ pub(in crate::areas::workspace) fn render(
     {
         return div();
     }
+    content(
+        &Card {
+            shell,
+            model: &scripts.model,
+            host: &scripts.host,
+            surface: &vessel_app_view::workspace::scripts::Surface::Project,
+        },
+        tokens,
+        cx,
+    )
+}
+
+/// Borrow owner-local controls while sharing one renderer across settings/tabs.
+pub(super) struct Card<'a> {
+    pub(super) shell: &'a Shell,
+    pub(super) model: &'a vessel_app_view::workspace::scripts::Model,
+    pub(super) host: &'a vessel_app_kit::TextField,
+    pub(super) surface: &'a vessel_app_view::workspace::scripts::Surface,
+}
+
+pub(super) fn content(card: &Card<'_>, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
+    let shell = card.shell;
+    let words = shell.words.scripts();
+    let model = card.model;
     let busy = model.read.outstanding().is_some() || model.writing.is_some();
     let mut refresh = button_with_kind(
         "scripts-refresh",
@@ -50,9 +72,10 @@ pub(in crate::areas::workspace) fn render(
     .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET));
     if !busy {
         let expected = model.target.clone();
-        refresh = refresh.on_click(
-            cx.listener(move |shell, _event, _window, cx| shell.refresh_scripts(&expected, cx)),
-        );
+        let surface = card.surface.clone();
+        refresh = refresh.on_click(cx.listener(move |shell, _event, window, cx| {
+            shell.refresh_scripts_for(&surface, &expected, window, cx)
+        }));
     }
     let mut body = div().flex().flex_col().gap(px(spacing::S3));
     if model.target.is_none() {
@@ -73,13 +96,13 @@ pub(in crate::areas::workspace) fn render(
     }
     if let Some(snapshot) = model.shown() {
         body = body
-            .child(configured(shell, snapshot, tokens, cx))
-            .child(retained(shell, snapshot, tokens, cx));
-        body = body.child(ports::scan(shell, tokens));
+            .child(configured(card, snapshot, tokens, cx))
+            .child(retained(card, snapshot, tokens, cx));
+        body = body.child(ports::scan(card, tokens));
     }
     body = body
         .child(div().type_(Type::Body).child(words.host()))
-        .child(scripts.host.element(tokens, true, cx))
+        .child(card.host.element(tokens, true, cx))
         .child(
             div()
                 .type_(Type::Meta)
@@ -90,11 +113,12 @@ pub(in crate::areas::workspace) fn render(
 }
 
 fn configured(
-    shell: &Shell,
+    card: &Card<'_>,
     snapshot: &vessel_app_view::workspace::scripts::Snapshot,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
+    let shell = card.shell;
     let words = shell.words.scripts();
     let Some(listed) = Listed::of(&snapshot.scripts.commands) else {
         return match &snapshot.scripts.commands {
@@ -114,47 +138,49 @@ fn configured(
     if listed.scripts.is_empty() {
         return body.child(empty(words.empty(), tokens));
     }
-    let mut card = rows(tokens);
+    let mut table = rows(tokens);
     for (index, entry) in listed.scripts.iter().map(Entry::of).enumerate() {
         let run = latest_run(entry.name, &snapshot.scripts.runs);
-        card = card.child(divided(
-            script_row(shell, entry, run, tokens, cx),
+        table = table.child(divided(
+            script_row(card, entry, run, tokens, cx),
             index,
             tokens,
         ));
     }
-    body.child(card)
+    body.child(table)
 }
 fn retained(
-    shell: &Shell,
+    card: &Card<'_>,
     snapshot: &vessel_app_view::workspace::scripts::Snapshot,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
+    let shell = card.shell;
     let runs = retained_runs(&snapshot.scripts);
     if runs.is_empty() {
         return div();
     }
-    let mut card = rows(tokens);
+    let mut table = rows(tokens);
     for (index, run) in runs.into_iter().enumerate() {
         if let Some(entry) = Entry::retained(run) {
-            card = card.child(divided(
-                script_row(shell, entry, Some(run), tokens, cx),
+            table = table.child(divided(
+                script_row(card, entry, Some(run), tokens, cx),
                 index,
                 tokens,
             ));
         }
     }
-    section(shell.words.scripts().retained(), None, card, tokens)
+    section(shell.words.scripts().retained(), None, table, tokens)
 }
 
 fn script_row(
-    shell: &Shell,
+    card: &Card<'_>,
     entry: Entry<'_>,
     run: Option<&TerminalInfo>,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
+    let shell = card.shell;
     let words = shell.words.scripts();
     let Entry {
         name,
@@ -163,9 +189,9 @@ fn script_row(
         dir,
         port,
     } = entry;
-    let model = &shell.areas.workspace.scripts.model;
+    let model = card.model;
     let state = run_state(run);
-    let actions = row_actions(shell, name, run, tokens, cx);
+    let actions = row_actions(card, name, run, tokens, cx);
     let pending = model
         .writing
         .as_ref()
@@ -228,21 +254,44 @@ fn script_row(
                 .child(dir.map_or_else(|| words.root().to_owned(), ToString::to_string)),
         )
         .child(actions)
-        .child(ports::for_run(shell, run, tokens, cx))
+        .child(ports::for_run(card, run, tokens, cx))
 }
 fn row_actions(
-    shell: &Shell,
+    card: &Card<'_>,
     name: &vessel_proto::scripts::ScriptName,
     run: Option<&TerminalInfo>,
     tokens: &Tokens,
     cx: &Context<'_, Shell>,
 ) -> Div {
+    let shell = card.shell;
     let words = shell.words.scripts();
     let mut actions = div().flex().flex_wrap().gap(px(spacing::S1_5));
+    if let Some(run) = run
+        && let Some(ticket) = card.model.action_ticket()
+        && matches!(
+            ticket.target.surface,
+            vessel_app_view::workspace::scripts::Surface::Panel { .. }
+        )
+    {
+        let terminal = run.id;
+        actions = actions.child(
+            button_with_kind(
+                ElementId::Name(format!("script-terminal-{terminal}").into()),
+                words.open_terminal(),
+                ButtonKind::Secondary,
+                ButtonState::Enabled,
+                tokens,
+            )
+            .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
+            .on_click(cx.listener(move |shell, _event, window, cx| {
+                shell.script_panel_reveal(&ticket, terminal, window, cx);
+            })),
+        );
+    }
     if let Some(run) = run.filter(|run| run.status.is_live()) {
         actions = actions
             .child(action(
-                shell,
+                card,
                 Action::Restart(run.id),
                 words.restart(),
                 format!("script-restart-{name}"),
@@ -250,7 +299,7 @@ fn row_actions(
                 cx,
             ))
             .child(action(
-                shell,
+                card,
                 Action::Stop(run.id),
                 words.stop(),
                 format!("script-stop-{name}"),
@@ -259,7 +308,7 @@ fn row_actions(
             ));
     } else {
         actions = actions.child(action(
-            shell,
+            card,
             Action::Run(name.clone()),
             words.run(),
             format!("script-run-{name}"),
@@ -271,18 +320,19 @@ fn row_actions(
 }
 
 fn action(
-    shell: &Shell,
+    card: &Card<'_>,
     action: Action,
     label: &str,
     id: String,
     tokens: &Tokens,
     cx: &Context<'_, Shell>,
 ) -> Div {
-    let target = shell.areas.workspace.scripts.model.target.clone();
-    let enabled = target
+    let shell = card.shell;
+    let ticket = card.model.action_ticket();
+    let enabled = ticket
         .as_ref()
-        .is_some_and(|target| shell.scripts_target_is_current(target))
-        && shell.areas.workspace.scripts.model.permits(&action);
+        .is_some_and(|ticket| shell.script_card_is_current(&ticket.target))
+        && card.model.permits(&action);
     let control = button_with_kind(
         ElementId::Name(id.into()),
         label.to_owned(),
@@ -296,9 +346,9 @@ fn action(
     )
     .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET));
     div().child(if enabled {
-        control.on_click(cx.listener(move |shell, _event, _window, cx| {
-            if let Some(target) = &target {
-                shell.script_action(target, action.clone(), cx);
+        control.on_click(cx.listener(move |shell, _event, window, cx| {
+            if let Some(ticket) = &ticket {
+                shell.script_action_for(ticket, action.clone(), window, cx);
             }
         }))
     } else {

@@ -5,8 +5,9 @@ use crate::connections::{Connected, SelectedConnection};
 use crate::testing::{Home, state};
 use vessel_app_view::connection::{ConnectionEpochs, MachineKey};
 use vessel_app_view::workspace::git::RequestKeys;
+use vessel_app_view::workspace::scripts::Surface;
 use vessel_proto::ports::{PortList, PortScan};
-use vessel_proto::scripts::{ScriptList, ScriptRefusal};
+use vessel_proto::scripts::{ScriptList, ScriptPlace, ScriptRefusal};
 use vessel_proto::workspace::ProjectCommands;
 use vessel_proto::{Ack, Call, ErrorCode, ProjectId, Reply, TerminalId, WireError};
 fn target() -> Target {
@@ -17,7 +18,10 @@ fn target() -> Target {
                 vessel_proto::NodeId::random(),
             )
             .unwrap(),
-        project: ProjectId::random(),
+        place: ScriptPlace::Project {
+            project: ProjectId::random(),
+        },
+        surface: Surface::Project,
     }
 }
 fn selected(peer: &peer::Peer) -> (SelectedConnection, Connected, Target) {
@@ -45,7 +49,10 @@ fn selected(peer: &peer::Peer) -> (SelectedConnection, Connected, Target) {
         connected,
         Target {
             context,
-            project: ProjectId::random(),
+            place: ScriptPlace::Project {
+                project: ProjectId::random(),
+            },
+            surface: Surface::Project,
         },
     )
 }
@@ -96,7 +103,11 @@ async fn discovery_uses_only_existing_script_and_port_calls_and_keeps_partial_er
     assert!(snapshot.ports.is_err());
     let calls = peer.calls.lock().unwrap();
     assert_eq!(calls.len(), 2);
-    assert!(calls.iter().any(|call|matches!(call,Call::ListScripts(ask) if ask.place==ScriptPlace::Project { project:target.project })));
+    assert!(
+        calls
+            .iter()
+            .any(|call| matches!(call,Call::ListScripts(ask) if ask.place==target.place))
+    );
     assert!(
         calls
             .iter()
@@ -155,7 +166,7 @@ async fn run_restart_stop_preserve_exact_ids_and_do_not_retry_a_refusal() {
     let calls = peer.calls.lock().unwrap();
     assert_eq!(calls.len(), 3);
     assert!(
-        matches!(calls.first(),Some(Call::RunScript(ask)) if ask.script.as_str()=="dev" && ask.place==ScriptPlace::Project { project:target.project })
+        matches!(calls.first(),Some(Call::RunScript(ask)) if ask.script.as_str()=="dev" && ask.place==target.place)
     );
     assert!(
         calls
