@@ -2,6 +2,7 @@
 //! method-table head removes cfg(test) in lib.rs. No product RPC reaches it yet.
 
 mod cache;
+mod configuration;
 mod owner;
 
 #[cfg(test)]

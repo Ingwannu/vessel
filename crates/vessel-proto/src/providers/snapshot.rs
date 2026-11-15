@@ -243,4 +243,18 @@ mod tests {
         );
         assert_eq!(super::super::PROVIDERS, None);
     }
+
+    #[cfg(feature = "ts")]
+    #[test]
+    fn generated_catalogue_shape_never_exports_its_private_thinking_index() {
+        let mut declarations = crate::ts::Declarations::new();
+        declarations.add::<ProviderDiagnostic>().unwrap();
+        declarations.add::<GetProviders>().unwrap();
+        let generated = declarations.render(None);
+        assert!(generated.contains("ProviderThinkingChoice"));
+        assert!(!generated.contains("ThinkingSet"));
+        assert!(!generated.contains("ids:"));
+        assert!(generated.contains("ProviderCatalogue"));
+        assert!(generated.contains("CatalogueScope"));
+    }
 }

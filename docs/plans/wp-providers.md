@@ -188,3 +188,21 @@ subscriber rereads its own scope. Full execution capacity refuses only new
 work; disabled, ready and coalesced callers still receive the corresponding
 cached observation, with no transient loading slot left after refusal. Tests
 cover those states and configuration changes after passive subscription.
+
+## Configuration owner
+
+One bounded edit mailbox owns the full saved generation and plugin registration
+set. It validates the next registry before writing, saves through the existing
+provider file helper, then publishes the new cache generation. Dropping a caller
+after admission does not cancel that sequence. Concurrent enable edits merge
+against the latest committed map; invalid registry or file failure retains the
+previous runtime generation. Plugin reload uses this same serialization point
+and never writes an inert plugin contribution into the owner's configuration.
+The startup constructor creates both owners from the same validated file and
+returns both tasks for node lifecycle tracking. At this stage a malformed file
+refuses startup; the store's explicit replacement operation can preserve it as
+unreadable before a repair. No silent configuration reset is introduced.
+
+Synthetic tests cover concurrent changes, reopen, abandoned waiters, invalid
+generation, a nonregular file target and plugin collision. Execution is pending;
+node service wiring and its authorization checks remain separate unfinished work.
