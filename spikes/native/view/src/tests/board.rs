@@ -191,6 +191,7 @@ fn deals_rows_into_lanes_the_waiting_first_then_the_most_recent() {
     let fleet = Fleet {
         machines: vec![Machine {
             node: None,
+            connection_epoch: None,
             name: "laptop".to_owned(),
             reach: Reach::Online,
             sessions,
@@ -313,6 +314,7 @@ fn reads_a_machines_protocol_only_while_it_is_connected() {
     use vessel_proto::ProtocolVersion;
     let machine = |name: &str, protocol| Machine {
         node: None,
+        connection_epoch: None,
         name: name.to_owned(),
         reach: Reach::Online,
         sessions: Vec::new(),
@@ -340,6 +342,7 @@ fn puts_an_answer_in_place_of_its_card_and_drops_a_deleted_one() {
     let mut fleet = Fleet {
         machines: vec![Machine {
             node: None,
+            connection_epoch: None,
             name: "laptop".to_owned(),
             reach: Reach::Online,
             sessions: vec![listed, other.clone()],
@@ -382,6 +385,7 @@ fn a_fork_is_listed_on_its_machine_at_once_and_only_once() {
     let mut fleet = Fleet {
         machines: vec![Machine {
             node: None,
+            connection_epoch: None,
             name: "laptop".to_owned(),
             reach: Reach::Online,
             sessions: vec![listed.clone()],
