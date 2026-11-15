@@ -252,7 +252,8 @@ async fn essential_signal_overflow_fails_the_connection_without_silently_skippin
         });
         let (client, _events) = Client::connect(&endpoint).await.unwrap();
         client.wait_closed().await;
-        assert!(matches!(client.shutdown().await, Err(CdpError::Busy)));
+        assert!(matches!(client.shutdown().await,
+            Err(CdpError::Cleanup(source)) if matches!(source.as_ref(), CdpError::Busy)));
         peer.await.unwrap();
     })
     .await
@@ -290,7 +291,8 @@ async fn a_reply_from_another_flattened_session_fails_closed() {
             )
             .await;
         assert!(matches!(result, Err(CdpError::Protocol)));
-        assert!(matches!(client.shutdown().await, Err(CdpError::Protocol)));
+        assert!(matches!(client.shutdown().await,
+            Err(CdpError::Cleanup(source)) if matches!(source.as_ref(), CdpError::Protocol)));
         peer.await.unwrap();
     })
     .await

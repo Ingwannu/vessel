@@ -910,3 +910,7 @@ request vocabulary or selecting a different ordinary command deadline.
 - Impact: controlled task and held-write fixtures exercise cancellation, repeated
   failure/success and delivered-request uncertainty. These are staged transport
   ownership fixtures, not process/profile/Preview cleanup or engine qualification.
+
+Existing overflow/wrong-session shutdown assertions now inspect the retained
+Cleanup source and still require the original Busy/Protocol failure respectively;
+no failure is weakened to generic is_err or an accepted successful close.
