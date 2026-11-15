@@ -637,3 +637,8 @@ explicit native navigation policy; OS IME behavior is unverified. The new source
 regression captures a previous-step FieldId, navigates, sends stale Change/Enter,
 and requires unchanged replacement drafts/no submission before restoring the
 original page's draft. Runtime execution and native IME evidence remain owed.
+
+Cursor also includes the actual FieldId alongside request and step. Returning
+from step A to B to A must not reactivate clicks captured by A's previous render;
+the reopened input supplies a new source identity without a parallel visit counter.
+The same regression verifies that the old cursor remains stale after return.

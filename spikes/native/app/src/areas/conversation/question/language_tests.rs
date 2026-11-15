@@ -287,6 +287,7 @@ fn a_previous_step_source_cannot_type_or_submit_the_replacement_step(
         let form = shell.areas.conversation.answering.as_ref().unwrap();
         let id = form.id;
         let previous = form.field.id();
+        let previous_cursor = form.cursor();
         shell.question_typed::<SessionPlace>(previous, "previous page draft".into(), cx);
         shell.question_show_at::<SessionPlace>(id, 2, window, cx);
         let current = shell
@@ -319,6 +320,18 @@ fn a_previous_step_source_cannot_type_or_submit_the_replacement_step(
         assert_eq!(form.drafts, drafts);
         assert_eq!(form.sending, None);
         shell.question_show_at::<SessionPlace>(id, 1, window, cx);
+        assert!(!shell.question_cursor::<SessionPlace>(previous_cursor));
+        assert_ne!(
+            shell
+                .areas
+                .conversation
+                .answering
+                .get(id)
+                .unwrap()
+                .field
+                .id(),
+            previous
+        );
         assert_eq!(
             shell
                 .areas

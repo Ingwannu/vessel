@@ -29,6 +29,8 @@ impl Answering {
 pub(super) struct Cursor {
     pub(super) id: QuestionId,
     pub(super) step: usize,
+    /// Same step reopened later is a different displayed input visit.
+    pub(super) source: FieldId,
 }
 
 impl Answering {
@@ -36,6 +38,7 @@ impl Answering {
         Cursor {
             id: self.id,
             step: self.step,
+            source: self.field.id(),
         }
     }
 }
