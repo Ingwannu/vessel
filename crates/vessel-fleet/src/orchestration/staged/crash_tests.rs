@@ -161,22 +161,7 @@ fn killed_skill_save_recovers_updates_and_deletions_on_both_preference_edges() {
         for edge in [Edge::BeforePreference, Edge::AfterPreference] {
             let temp = tempfile::tempdir().unwrap();
             let root = temp.path();
-            let mut initial = service(root, catalogue("one", Some(("old.md", b"old"))));
-            let _installed = initial.reconcile(&SkillSelection::All).unwrap();
-            for home in ["agents/skills", "claude/skills"] {
-                std::fs::write(root.join(home).join("vessel/user.md"), b"user").unwrap();
-                std::fs::create_dir(root.join(home).join("unrelated")).unwrap();
-                std::fs::write(root.join(home).join("unrelated/keep.md"), b"keep").unwrap();
-                #[cfg(unix)]
-                {
-                    use std::os::unix::fs::PermissionsExt as _;
-                    std::fs::set_permissions(
-                        root.join(home).join("vessel/SKILL.md"),
-                        std::fs::Permissions::from_mode(0o750),
-                    )
-                    .unwrap();
-                }
-            }
+            prepare(root);
             kill_at_boundary(root, operation, edge);
             let durable = match edge {
                 Edge::BeforePreference => {
@@ -205,6 +190,66 @@ fn killed_skill_save_recovers_updates_and_deletions_on_both_preference_edges() {
             verify_files(root, operation, edge);
         }
     }
+}
+
+fn prepare(root: &Path) {
+    let mut initial = service(root, catalogue("one", Some(("old.md", b"old"))));
+    let _installed = initial.reconcile(&SkillSelection::All).unwrap();
+    for home in ["agents/skills", "claude/skills"] {
+        std::fs::write(root.join(home).join("vessel/user.md"), b"user").unwrap();
+        std::fs::create_dir(root.join(home).join("unrelated")).unwrap();
+        std::fs::write(root.join(home).join("unrelated/keep.md"), b"keep").unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt as _;
+            std::fs::set_permissions(
+                root.join(home).join("vessel/SKILL.md"),
+                std::fs::Permissions::from_mode(0o750),
+            )
+            .unwrap();
+        }
+    }
+}
+
+#[test]
+fn a_post_kill_edit_retains_its_content_and_backups_until_explicit_repair() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path();
+    prepare(root);
+    kill_at_boundary(root, Operation::Update, Edge::BeforePreference);
+    let live = root.join("agents/skills/vessel/SKILL.md");
+    let applied = std::fs::read(&live).unwrap();
+    let edit = b"post-crash user edit";
+    std::fs::write(&live, edit).unwrap();
+    let journals = root.join("transactions");
+    let journal = std::fs::read_dir(&journals)
+        .unwrap()
+        .next()
+        .unwrap()
+        .unwrap()
+        .path();
+    assert_eq!(std::fs::read_dir(&journals).unwrap().count(), 1);
+    let mut reopened = manager(root, Operation::Update);
+    for _attempt in 0..2 {
+        assert!(matches!(
+            reopened.status(None),
+            Err(crate::orchestration::SkillError::RecoveryConflict)
+        ));
+        assert_eq!(std::fs::read(&live).unwrap(), edit);
+        assert!(journal.join("transaction.json").is_file());
+        assert!(
+            std::fs::read_dir(journal.join("backups"))
+                .unwrap()
+                .next()
+                .is_some()
+        );
+    }
+    // This explicit test-side repair restores the captured applied bytes; the
+    // owner never overwrites the external edit or silently declares success.
+    std::fs::write(&live, applied).unwrap();
+    let _recovered = reopened.status(None).unwrap();
+    assert_eq!(std::fs::read_dir(&journals).unwrap().count(), 0);
+    verify_files(root, Operation::Update, Edge::BeforePreference);
 }
 
 fn verify_files(root: &Path, operation: Operation, edge: Edge) {

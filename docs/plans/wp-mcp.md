@@ -772,8 +772,8 @@ include this naming correction rather than submitting another duplicate suite.
   actual Store callback, a power-failure/fsync proof, every journal write edge
   or row618 durable queue/receipt recovery. It activates no feature or RPC.
 
-The tests are authored only; changed fleet strict and actual child execution
-remain owed. This slice also includes the unchanged notification fixture budget
+The first four-boundary source passed exact fleet strict; its actual child
+execution remains pending. The additional post-kill edit case is authored only. This slice also includes the unchanged notification fixture budget
 name. Earlier source/check receipts are retained with their exact limits.
 
 
@@ -781,3 +781,14 @@ The crash fixture's expected-entry table spells out both closed Edge variants
 for Update instead of a wildcard, preserving the same four expected outcomes
 while making future checkpoint additions require an explicit test decision.
 This test-pattern-only correction does not broaden prior-source execution.
+
+
+The same actual-kill mechanism now has a separate post-kill external-edit case.
+Before reopening, the parent edits an applied file. Recovery must return typed
+RecoveryConflict repeatedly, preserve that exact edit, and keep its journal and
+backups. Only an explicit fixture-side restoration of the captured applied
+bytes permits the original rollback and cleanup. This adds no automatic repair
+or retry to the product and does not prove arbitrary concurrent-writer races.
+The shared old-install preparation is reused. The prior four-boundary suite
+continues on its original immutable source; this new case remains unexecuted
+until the next changed-source batch.
