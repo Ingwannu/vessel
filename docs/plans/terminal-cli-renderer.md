@@ -87,3 +87,29 @@ implicit blanks. Its old tests read only the first glyph and did not catch this.
 The strict d7dd check separately rejected the fixture's println macro; the
 stdout-only data export now writes through a locked stdout handle. No fixture
 expectation is removed and no terminal-parity result is inferred.
+
+## Next display metadata contract
+
+Reuse the existing engine's cursor presentation and physical row wrap flags;
+do not infer them from text or replay control strings. A readonly frame will
+carry typed optional program cursor shape/blink overrides, with unset values
+resolved by each renderer's configured defaults. Physical row ending is typed
+Hard/Soft, meaning continuation onto the NEXT row, independent of the first
+retained row's unavailable predecessor. No authority, route or revision is
+inferred from either property.
+
+References read: server terminal/terminal-serializer.ts25-41 preserves explicit
+cursor overrides and leaves unset presentation to renderer defaults;
+terminal/test-utils/terminal-state.ts37 maps next-row isWrapped to outgoing
+wrap flags. Native renderer terminal-selection.ts333-365 joins soft-wrapped
+rows rather than inventing line breaks. The pinned headless InputHandler
+source map implements DECSCUSR at2858 and soft reset at2817; these must be
+measured, including reset/invalid parameters, rather than guessed from a generic
+terminal specification. DEC12 blink changes require its optional compatibility
+quirk in this reference; the normal factory does not enable that quirk.
+
+Decision: extend the existing pure facade and the one display serializer.
+The engine is the only owner of interpreted presentation; a new scanner,
+synthetic restoration or per-consumer cursor/wrap tracker is rejected. Keep
+the engine extension whole frozen in its own tree. These additions remain
+staged until their independent oracle, narrow checks and consumer integration.
