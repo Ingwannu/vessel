@@ -6,9 +6,19 @@ use clap::{
 };
 use vessel_proto::EventSeq;
 
-use crate::log::select::{Filter, Mode, Selection, Since};
+use crate::log::select::{Filter, Selection, Since};
 use crate::log::tail::Tail;
 use crate::selector::SessionSelector;
+
+/// How history ends: a snapshot, or a continuing subscription.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum LogMode {
+    /// End at the history snapshot.
+    #[default]
+    Once,
+    /// Continue through the current session run.
+    Follow,
+}
 
 /// History selection followed optionally by the existing live stream.
 #[derive(Debug, Args)]
@@ -20,8 +30,8 @@ pub(crate) struct Log {
     pub(crate) from: EventSeq,
     /// Continue with future matching records until the session ends or Ctrl-C.
     #[arg(long = "follow", short = 'f', action = clap::ArgAction::SetTrue,
-        value_parser = BoolishValueParser::new().map(|enabled| if enabled { Mode::Follow } else { Mode::Once }))]
-    pub(crate) mode: Mode,
+        value_parser = BoolishValueParser::new().map(|enabled| if enabled { LogMode::Follow } else { LogMode::Once }))]
+    pub(crate) mode: LogMode,
     /// Last N matching history records; zero prints no history. Follow uses its default history window.
     #[arg(long, help = format!("Last N matching history records; zero prints no history. Follow defaults to {}.", Tail::FOLLOW_DEFAULT))]
     pub(crate) tail: Option<Tail>,
@@ -47,8 +57,8 @@ impl Log {
     #[must_use]
     pub(crate) fn history_tail(&self) -> Option<Tail> {
         self.tail.or(match self.mode {
-            Mode::Once => None,
-            Mode::Follow => Some(Tail::FOLLOW_DEFAULT),
+            LogMode::Once => None,
+            LogMode::Follow => Some(Tail::FOLLOW_DEFAULT),
         })
     }
 }
@@ -75,11 +85,11 @@ mod tests {
     #[test]
     fn plain_history_has_no_tail_and_follow_uses_its_single_default() {
         let once = parse(&[]);
-        assert_eq!(once.mode, Mode::Once);
+        assert_eq!(once.mode, LogMode::Once);
         assert_eq!(once.history_tail(), None);
         for flag in ["-f", "--follow"] {
             let following = parse(&[flag]);
-            assert_eq!(following.mode, Mode::Follow);
+            assert_eq!(following.mode, LogMode::Follow);
             assert_eq!(following.history_tail(), Some(Tail::FOLLOW_DEFAULT));
         }
         assert_eq!(

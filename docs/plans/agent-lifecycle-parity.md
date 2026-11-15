@@ -327,7 +327,11 @@ No row of the crate table changes.
   event budget; their expected records and output remain unchanged.
 - Implementation slice 5c, verification pending: follow reuses these predicates,
   the tail window and the raw history cursor. Its omitted history count has
-  one constant, also used by the CLI help. EOF, interruption and stream notices
+  one constant, also used by the CLI help. The CLI edge owns the execution
+  mode; the selector module only owns predicates. Follow test turn cursors
+  are explicitly ignored, without changing its output assertions. The ADR
+  names the raw record cursor rather than the last visible match.
+  EOF, interruption and stream notices
   finish an open text line; terminal bytes stay untouched. The event-driven
   history-to-live test and follow parser tests have not run yet. Selection's
   complete gate is queued; follow still owes narrow and complete checks.

@@ -5,16 +5,6 @@ use std::str::FromStr;
 use chrono::{DateTime, Utc};
 use vessel_proto::{AgentEvent, EventRecord, SessionEvent, SessionStatus};
 
-/// How history ends: a snapshot, or a continuing subscription.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Mode {
-    /// End at the history snapshot.
-    #[default]
-    Once,
-    /// Continue through the current session run.
-    Follow,
-}
-
 /// An explicit timestamp avoids the machine's locale or timezone changing a query.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct Since(DateTime<Utc>);

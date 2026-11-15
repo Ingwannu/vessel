@@ -7,10 +7,10 @@
 use vessel_client::NodeClient;
 use vessel_proto::{EventRecord, EventSeq, SessionId, SessionInfo};
 
-use super::select::{Mode, Selection};
+use super::select::Selection;
 use super::tail::{Tail, Window};
 use super::{Run, Stream, Timeline, pruned, render};
-use crate::args::Log;
+use crate::args::{Log, LogMode};
 use crate::error::CliError;
 use crate::io;
 
@@ -41,8 +41,8 @@ pub(crate) async fn print(
         .await?
     };
     match options.mode {
-        Mode::Once => Ok(()),
-        Mode::Follow => follow(client, info.id, next, selection, &mut timeline).await,
+        LogMode::Once => Ok(()),
+        LogMode::Follow => follow(client, info.id, next, selection, &mut timeline).await,
     }
 }
 

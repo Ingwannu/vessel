@@ -235,7 +235,9 @@ person reloads. There is no MCP tool for it.
   record) or the person interrupts. No sleep.
 
 Order: `--from`, then `--since`, then `--filter`, then `--tail`. Follow
-continues after the last record it printed. Rendering stays the view
+continues after the last raw record examined, including records hidden by
+a predicate or the tail. Keeping the raw cursor avoids replaying history at
+the subscription boundary. Rendering stays the view
 that already joins chunks. A terminal session has no agent events of
 those four kinds, so a filter prints nothing of its bytes.
 
