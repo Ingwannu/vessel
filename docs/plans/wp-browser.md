@@ -606,3 +606,13 @@ contained the previous snapshot's ref. Service UID/GID1000, normal close0, priva
 profile/files and the same script hash are recorded under
 /tmp/work/wp-browser/own-dom-boundaries-diagnostic. This is additional script-only
 boundary evidence, not a changed Rust test receipt or product engine qualification.
+
+Exact68c1 strict run completed red at13:03 UTC:10 launch/profile lint diagnostics
+(unnecessary test qualifications/index idioms, unused execute predicate, two
+unused-self methods,64KiB stack buffer and SingletonSocket docs). No compiler/type
+or functional result is inferred from that run. The execute check was already
+fixed3744; remaining corrections now retain the candidate digest as inspected
+instance data, make its fixed path accessor associated, put the bounded read
+buffer on heap and correct tests/docs. Candidate::FIXTURE is explicitly test-only
+launch data and cannot grant runtime qualification. New snapshot+union strict
+must execute on the changed head; source-fast checks only are complete here.

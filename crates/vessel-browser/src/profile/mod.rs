@@ -8,7 +8,7 @@ use std::fs::{self, DirBuilder, File, OpenOptions, TryLockError};
 use std::os::unix::fs::{DirBuilderExt as _, MetadataExt as _, OpenOptionsExt as _};
 use std::path::{Path, PathBuf};
 
-/// Chrome149 adds its own temporary SingletonSocket suffix. Leave margin below
+/// Chrome149 adds its own temporary `SingletonSocket` suffix. Leave margin below
 /// Linux's Unix-domain socket path limit rather than aborting inside Chromium.
 const MAX_RUNTIME_TEMP_PATH_BYTES: usize = 48;
 const PRIVATE_DIRECTORY_MODE: u32 = 0o700;

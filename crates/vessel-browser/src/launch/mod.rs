@@ -73,7 +73,7 @@ impl Plan {
         let command = CommandSpec::new(FIXED_SHELL)
             .env_clear()
             .cwd(profile.root())
-            .args(["-c", FIXED_SOURCE, INERT_LABEL, identity.browser_path()])
+            .args(["-c", FIXED_SOURCE, INERT_LABEL, Candidate::browser_path()])
             .args(FLAGS.iter().copied())
             .arg(format!("--proxy-server=http://{}", proxy.0))
             .arg(directory)

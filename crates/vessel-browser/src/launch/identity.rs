@@ -36,7 +36,9 @@ pub(crate) enum LaunchError {
     Account,
 }
 /// Hashes alone never become a `QualifiedRuntime` token.
-pub(super) struct Candidate;
+pub(super) struct Candidate {
+    browser_digest: [u8; 32],
+}
 impl Candidate {
     pub(super) fn inspect() -> Result<Self, LaunchError> {
         if nix::unistd::geteuid().is_root() {
@@ -44,9 +46,15 @@ impl Candidate {
         }
         verify(Path::new(BROWSER), &BROWSER_DIGEST)?;
         verify(Path::new(super::FIXED_SHELL), &SHELL_DIGEST)?;
-        Ok(Self)
+        Ok(Self {
+            browser_digest: BROWSER_DIGEST,
+        })
     }
-    pub(super) const fn browser_path(&self) -> &'static str {
+    #[cfg(test)]
+    pub(super) const FIXTURE: Self = Self {
+        browser_digest: BROWSER_DIGEST,
+    };
+    pub(super) const fn browser_path() -> &'static str {
         BROWSER
     }
     pub(super) fn verify_started(&self, child: &Child) -> Result<(), LaunchError> {
@@ -56,7 +64,7 @@ impl Candidate {
         // Borrowing the actual Child excludes this owner reaping it concurrently.
         // The debugger pipes must also belong to this same supervised child.
         let executable = format!("/proc/{}/exe", child.pid());
-        verify(Path::new(&executable), &BROWSER_DIGEST)
+        verify(Path::new(&executable), &self.browser_digest)
     }
 }
 fn verify(path: &Path, expected: &[u8; 32]) -> Result<(), LaunchError> {
@@ -89,7 +97,7 @@ fn verify(path: &Path, expected: &[u8; 32]) -> Result<(), LaunchError> {
 }
 fn digest(reader: &mut impl std::io::Read) -> Result<[u8; 32], LaunchError> {
     let mut hash = Sha256::new();
-    let mut buffer = [0_u8; FILE_READ_BYTES];
+    let mut buffer = vec![0_u8; FILE_READ_BYTES].into_boxed_slice();
     let mut remaining = MAX_EXECUTABLE_BYTES;
     loop {
         let count = reader.read(&mut buffer).map_err(LaunchError::Io)?;

@@ -9,14 +9,14 @@ fn candidate_argv_never_interpolates_page_data_and_only_explicit_environment_sur
         Profile::prepare(&parent.path().join("profile"), &parent.path().join("tmp")).unwrap();
     let proxy = ProxyEndpoint::try_from("127.0.0.1:8123".parse::<SocketAddr>().unwrap()).unwrap();
     // Private value constructor is test-only data, not a runtime qualification.
-    let plan = Plan::build(profile, proxy, identity::Candidate);
+    let plan = Plan::build(profile, proxy, Candidate::FIXTURE);
     assert!(!format!("{plan:?}").contains(parent.path().to_str().unwrap()));
     let (command, profile) = plan.into_supervised_parts();
     assert_eq!(command.environment, Environment::Clear);
     assert_eq!(command.program, PathBuf::from(FIXED_SHELL));
     assert_eq!(command.args.first().unwrap(), "-c");
-    assert_eq!(command.args.get(1).unwrap(), FIXED_SOURCE);
-    assert_eq!(command.args.get(2).unwrap(), INERT_LABEL);
+    assert_eq!(command.args[1], FIXED_SOURCE);
+    assert_eq!(command.args[2], INERT_LABEL);
     assert!(!command.args.iter().any(|arg| arg == "--no-sandbox"));
     assert!(
         command
@@ -64,7 +64,7 @@ async fn a_different_actual_owned_child_cannot_inherit_the_browser_candidate_ide
             Profile::prepare(&parent.path().join("profile"), &parent.path().join("tmp")).unwrap();
         let proxy =
             ProxyEndpoint::try_from("127.0.0.1:8123".parse::<SocketAddr>().unwrap()).unwrap();
-        let plan = Plan::build(profile, proxy, identity::Candidate);
+        let plan = Plan::build(profile, proxy, Candidate::FIXTURE);
         let helper = CommandSpec::new(FIXED_SHELL)
             .env_clear()
             .arg("-c")
@@ -72,7 +72,7 @@ async fn a_different_actual_owned_child_cannot_inherit_the_browser_candidate_ide
         let mut spawned = vessel_proc::spawn(&helper).unwrap();
         assert!(matches!(
             plan.verify_started(&spawned.child),
-            Err(identity::LaunchError::Identity)
+            Err(LaunchError::Identity)
         ));
         drop(spawned.stdin);
         let _exited = spawned.child.wait().await.unwrap();
