@@ -244,9 +244,9 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("TransferId", Alias::Handle),
     ("UploadId", Alias::Handle),
     ("WorkspaceId", Alias::Handle),
-    ("WorktreeId", Alias::Handle),
     ("WorkspaceLabelGeneration", Alias::Handle),
     ("WorkspaceLabelSeq", Alias::Quantity),
+    ("WorktreeId", Alias::Handle),
 ];
 
 /// What the alias `name` is, if it is classified.
