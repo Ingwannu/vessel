@@ -1709,3 +1709,10 @@ for verified durable completion. The family is pending and all current peers get
 harmless log projections. Metadata consumers explicitly preserve conversation,
 attention and cost state; actual actor hooks/controller publication and generated
 TypeScript/native integration remain required before activation.
+
+`CheckpointHooks` is a bounded session-to-node request/receipt bridge. It preserves
+the original actor deadline through queueing, validates session/boundary receipt
+association and distinguishes prompt sent/refused from after-turn completion.
+The node retains physical/storage ownership; a lost receipt is uncertain, never
+a successful advance. Actual actor producers and node capture assembly remain
+separate work; the prior private acknowledgement prototype was removed.

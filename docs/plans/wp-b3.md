@@ -350,3 +350,18 @@ Conversation, attention, cost, search and CLI/MCP projections now explicitly
 handle this event family. Regression fixtures preserve conversation identity,
 the retained plan and existing inbox branch attention, including reopen. These
 new fixtures, TypeScript regeneration and native consumers are not yet verified.
+
+### Bounded actor-to-node hook bridge
+
+The public session bridge now carries only session, immutable Boundary and the
+original acknowledgement deadline. The node assigns worktree/generation and
+must reject abandoned requests before reserving resources. A typed receipt
+validates session/boundary correlation and reports prompt sent/refused or the
+after-turn boundary's completion; lost receipts never become a success. Queue
+and acknowledgement time share one deadline, and a completion-time clock check
+prevents an already-ready reply winning against an expired timer. This replaces
+the earlier private acknowledgement prototype. It is not connected to actual
+actor delivery yet; that explicit ignored proof obligation remains. Three bridge
+fixtures cover unavailable capture with normal delivery, held acknowledgement
+expiry/late reply, and wrong association/lost delivery receipt. Remote execution
+is still owed, and no node filesystem capability is activated by this bridge.

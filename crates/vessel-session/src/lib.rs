@@ -118,7 +118,9 @@ mod attachments;
 pub mod board;
 mod checkpoint;
 mod config;
-pub use checkpoint::CheckpointPause;
+pub use checkpoint::{
+    CheckpointAdvance, CheckpointHooks, CheckpointPause, CheckpointReceipt, CheckpointRequest,
+};
 mod conversation;
 mod delivery;
 mod error;
