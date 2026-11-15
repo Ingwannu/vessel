@@ -5,6 +5,7 @@ mod images;
 use crate::shell::Shell;
 use gpui::PathPromptOptions;
 use vessel_app_kit::field::composer_hooks::{KeyAnswer, Pasted};
+use vessel_app_kit::image_input::ImageProblem;
 use vessel_app_kit::ui::{Context, SharedString, Window};
 use vessel_app_view::composer::drafts::DraftKey;
 use vessel_app_view::toasts::ToastTone;
@@ -185,9 +186,14 @@ impl Shell {
                     Err(problem) => {
                         tracing::info!(?problem, "image intake refused before preview");
                         let message = match problem {
-                            LocalFileProblem::Image(_) => {
-                                shell.words.composer().image_format_unsupported()
+                            LocalFileProblem::Image(ImageProblem::Size) => {
+                                shell.words.composer().file_too_large()
                             }
+                            LocalFileProblem::Image(
+                                ImageProblem::Format
+                                | ImageProblem::Inspect(_)
+                                | ImageProblem::Codec(_),
+                            ) => shell.words.composer().image_format_unsupported(),
                             LocalFileProblem::Read(_)
                             | LocalFileProblem::NoName
                             | LocalFileProblem::NotFile => shell.words.composer().file_unreadable(),
@@ -275,7 +281,8 @@ impl Shell {
                             let words = shell.words.composer();
                             let message = match &why {
                                 LocalFileProblem::Read(_) | LocalFileProblem::NoName | LocalFileProblem::NotFile => words.file_unreadable(),
-                                LocalFileProblem::Image(_) => words.image_format_unsupported(),
+                                LocalFileProblem::Image(ImageProblem::Size) => words.file_too_large(),
+                                LocalFileProblem::Image(ImageProblem::Format | ImageProblem::Inspect(_) | ImageProblem::Codec(_)) => words.image_format_unsupported(),
                                 #[cfg(not(target_arch = "wasm32"))]
                                 LocalFileProblem::Storage(problem) => {
                                     tracing::info!(%problem, "attached bytes could not be retained locally");
