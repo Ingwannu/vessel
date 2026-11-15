@@ -332,3 +332,19 @@ regressions cover stale menu/Delete/Enter/Cancel and a valid current opening.
 These tests are source-only until the next combined narrow suite. Book Name
 still needs G4's canonical live epoch admission; this patch does not claim to
 solve alias reuse or the pending B1 composer-destination integration.
+
+### Shared submit capture
+
+The first real form regression build found that TextField submit accepted only
+a function pointer; a request-scoped closure could not compile. The existing
+one-line/multiline/composer constructors now accept an immutable captured Fn,
+retained in the same field event subscription. Existing function items still
+fit; edit/IME/Enter ordering and the input engine stay unchanged. This extends
+the existing kit control instead of adding a second form controller. The real
+input regression retains the original captured identity after owner state changes.
+
+The first size check caught the callback signatures adding two product lines
+above field.rs's existing 635-line record. The original one-line/multiline
+construction moved to field/construct.rs, leaving the public constructors in
+place and using the same event subscription. The listed budget is not raised;
+this separation keeps construction and input event delivery in their own modules.

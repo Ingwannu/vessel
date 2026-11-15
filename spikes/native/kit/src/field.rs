@@ -150,6 +150,7 @@ pub struct TextField {
     send: Rc<Cell<SendOn>>,
 }
 
+mod construct;
 mod events;
 use events::{Handlers, listen};
 mod editability;
@@ -157,25 +158,26 @@ pub use editability::Editability;
 
 impl TextField {
     /// A form field showing `placeholder` while empty. Enter in it calls
-    /// `on_submit` on its owner with the text it holds.
+    /// `on_submit` on its owner with the text it holds. The callback may capture
+    /// a request/decision identity; it never needs to re-read a mutable UI slot.
     pub fn new<V: 'static>(
         placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
-        Self::line(placeholder, on_submit, None, window, cx)
+        construct::line(placeholder, on_submit, None, window, cx)
     }
     /// The same, also calling `on_change` with the text after every edit
     /// (to say what is wrong with it beside the field as it is typed).
     pub fn with_change<V: 'static>(
         placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
         on_change: fn(&mut V, String, &mut Context<'_, V>),
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
-        Self::line(placeholder, on_submit, Some(on_change), window, cx)
+        construct::line(placeholder, on_submit, Some(on_change), window, cx)
     }
     /// A composer's text: lines that grow; the press [`SendOn`] names
     /// (Enter unless [`Self::set_send_on`] says otherwise) calls
@@ -188,11 +190,11 @@ impl TextField {
     /// sending).
     pub fn composer<V: 'static>(
         placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
-        Self::multiline(MultilineStyle::Composer, placeholder, on_submit, window, cx)
+        construct::multiline(MultilineStyle::Composer, placeholder, on_submit, window, cx)
     }
 
     /// A multiline form field on the one-line form field's surface.
@@ -201,98 +203,17 @@ impl TextField {
     /// textarea supplies the 68 / 80-point minimum and 256-point cap.
     pub fn form_multiline<V: 'static>(
         placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
-        Self::multiline(MultilineStyle::Form, placeholder, on_submit, window, cx)
-    }
-
-    fn multiline<V: 'static>(
-        style: MultilineStyle,
-        placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
-        window: &mut Window,
-        cx: &mut Context<'_, V>,
-    ) -> Self {
-        let placeholder = placeholder.to_owned();
-        let minimum = match style {
-            MultilineStyle::Composer => 1,
-            MultilineStyle::Form => FORM_MIN_LINES,
-        };
-        let maximum = match style {
-            MultilineStyle::Composer => COMPOSER_LINES,
-            MultilineStyle::Form => FORM_LINES,
-        };
-        let state = cx.new(|cx| {
-            TextareaState::new(window, cx)
-                .auto_grow(minimum, maximum)
-                .submit_on_enter(true)
-                .placeholder(placeholder)
-        });
-        let focused = Rc::new(Cell::new(false));
-        let shortcut = match style {
-            MultilineStyle::Composer => SendOn::Enter,
-            MultilineStyle::Form => SendOn::ModEnter,
-        };
-        let send = Rc::new(Cell::new(shortcut));
-        listen(
-            &state,
-            Handlers {
-                on_submit,
-                // A growing form changes the surrounding dialog's layout
-                // and submit availability; its owner must see each edit.
-                on_change: match style {
-                    MultilineStyle::Composer => None,
-                    MultilineStyle::Form => Some(|_, _, cx| cx.notify()),
-                },
-                focused: Rc::clone(&focused),
-                send: Some(Rc::clone(&send)),
-            },
-            window,
-            cx,
-        );
-        register(Known::Lines(state.downgrade()));
-        Self {
-            kind: Kind::Lines(state, style),
-            focused,
-            send,
-        }
+        construct::multiline(MultilineStyle::Form, placeholder, on_submit, window, cx)
     }
 
     /// Which press sends a composer's text (a form field ignores it).
     pub fn set_send_on(&self, send: SendOn) {
         if matches!(self.kind, Kind::Lines(_, MultilineStyle::Composer)) {
             self.send.set(send);
-        }
-    }
-
-    fn line<V: 'static>(
-        placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
-        on_change: Option<fn(&mut V, String, &mut Context<'_, V>)>,
-        window: &mut Window,
-        cx: &mut Context<'_, V>,
-    ) -> Self {
-        let placeholder = placeholder.to_owned();
-        let state = cx.new(|cx| InputState::new(window, cx).placeholder(placeholder));
-        let focused = Rc::new(Cell::new(false));
-        listen(
-            &state,
-            Handlers {
-                on_submit,
-                on_change,
-                focused: Rc::clone(&focused),
-                send: None,
-            },
-            window,
-            cx,
-        );
-        register(Known::Line(state.downgrade()));
-        Self {
-            kind: Kind::Line(state),
-            focused,
-            send: Rc::new(Cell::new(SendOn::Enter)),
         }
     }
 
@@ -741,3 +662,6 @@ mod composing_tests {
 
 #[cfg(test)]
 mod form_tests;
+
+#[cfg(test)]
+mod submit_tests;
