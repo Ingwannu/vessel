@@ -2,7 +2,8 @@
 use super::{Text, count, section};
 use std::fmt::{self, Write as _};
 use vessel_proto::diagnostics::{
-    DiagnosticAgentId, DiagnosticProcessId, DiagnosticReport, DiagnosticReportFields, DiagnosticVersion,
+    DiagnosticAgentId, DiagnosticProcessId, DiagnosticReport, DiagnosticReportFields,
+    DiagnosticVersion,
 };
 
 pub(super) fn report(report: &DiagnosticReport) -> Result<String, fmt::Error> {
