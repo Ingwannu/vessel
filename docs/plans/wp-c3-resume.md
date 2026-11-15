@@ -7,7 +7,7 @@ limits. No current C3 capture or final whole-package gate/review exists.
 ## Source
 
 - App work: `backend/wp-c3-git`, announced line e1b73c9e merged as b95213aaf.
-  Own code through bc8c9bd8c: fa1 token/import correction;762+ae7 move private
+  Own code through b0110b040: fa1 token/import correction;762+ae7 move private
   vendor tests to public kit windows; b18+177 pure body projection and original
   empty-action context/root guard;0b69 complete mismatch details in EN/KO;86e1
   old reply cannot retire a replacement admission;4328 honest paint assertions;
@@ -16,32 +16,51 @@ limits. No current C3 capture or final whole-package gate/review exists.
 - Node work: `backend/wp-c3-git-node`, e103946f merges announced82ae7c91.
   dfc3d5f41 corrects test safety-net API usage. c840 writer reservations and21ea
   queued-root Snapshot revalidation have not yet passed their changed-source
-  checks. The earlier exact860e28cc library result is796/0/1 (four crates),
+  checks. Laterff6 cache keys retain same-snapshot ProjectId and invalidate
+  shared-ref sibling worktrees;af78 corrects actual e103 fixture Clippy findings.
+  The earlier exact860e28cc library result is796/0/1 (four crates),
   and does **not** validate these later changes.
 - Values leaf: `backend/wp-c3-git-values`, exact19460b8c4a4702f4c30de88a8250bac9c2676de6
   on82ae7c91. Its14 owned paths contain canonical comparison values, staged
   Read/unary/None rows, tests, exactly two existing node-policy deny registrations
   and notes. No handler, guard target, runtime or assigned number. V3 row196
-  returned the old family-exception entries; those are removed. Changed-source
-  checks and same-row review remain pending. The app has the shared staged-row
-  prerequisite through its announced base but has **not** adopted this leaf.
+  corrected scoped prerequisite PASS at14:08 UTC: exact194 Clippy Proto/Client/Node
+  all-target0 and actual Client80+Proto322=402/0/0. The old family exception is
+  absent; staged/None and exactly two policy deny lines satisfy shared registration.
+  Markdown-only3fde is the handoff head. Integrator merged batch12 a1add2e8 and
+  owns missing TS generation before its announced gate49 head. The app merged
+  ONLY this reviewed leaf asfa2dffdf under the explicit values-only exception.
+  b011 maps canonical queries/outcomes/reasons; GIT_PANEL remainsNone and client
+  refuses All/Committed before any peer frame. No runtime admission/parity pass.
 
-## Checks as of 13:48 UTC, 2026-11-15
+## Checks as of 14:28 UTC, 2026-11-15
 
-Only the VM compiles Rust. All listed runs preserve their immutable commit;
-queue submission and source review are never execution passes.
+Only the VM compiles Rust. Runs preserve immutable source; a queue receipt or
+source precheck is never a test pass. External evidence is retained under the
+track's named evidence folders, without internal infrastructure in this repo.
 
-- `wp-git-values-narrow-20261115T131237Z-19460b8c`: queued, Proto/Client/Node Clippy.
-- `wp-git-values-tests-20261115T131237Z-19460b8c`: queued, Proto/Client libraries
-  with nested root prerequisites. Packet: `staged-values-producer-194` in the
-  track's external evidence folder; old2fc packet remains prior-source.
-- `wp-git-writes-narrow-20261115T131237Z-e103946f`: queued, latest node Clippy.
-- `wp-git-root-fence-tests-20261115T133413Z-e103946f`: queued, node workspace tests.
-- `wp-git-narrow-20261115T132414Z-fa1f815b`: queued, four native crates Clippy.
-- `wp-git-view-tests-20261115T132414Z-fa1f815b`: queued, View panel tests.
-- `wp-git-kit-narrow-20261115T133642Z-0af5d42e`: queued, latest approved App/Kit
-  source batch (four native crates all-target Clippy). It excludes later0b69,
-  86e1,4328,14cb,b709 andbc8; those still need exact changed-source evidence.
+- values194 Clippy: **0**, Proto/Client/Node all-target strict,153s.
+- values194 tests: all4 prerequisite stages0/no skips; actual Client80 and
+  Proto322 = **402 passed/0 failed/0 ignored**. V3 independently checked14 blobs,
+  all hashes/spec/logs. Corrected source review PASS is bounded to staged values.
+- fa1 View tests: **45 passed/0 failed/0 ignored**,952 filtered, actual View
+  compilation. This is PRIOR-source and excludes later delivery/body/refresh and
+  canonical bridge fixtures; it is not current b011 proof.
+- `wp-git-root-fence-tests-20261115T133413Z-e103946f`: running, Node workspace
+  selection. Excludes laterff6 project-scope cache correction andaf78 test lints.
+- `wp-git-writes-narrow-20261115T135839Z-af78f4ae`: queued, exact current Node
+  plus Proto/Client/Workspace strict all-target Clippy.
+- `wp-git-narrow-20261115T141435Z-b0110b04`: queued, exact current App four-crate
+  strict all-target Clippy, short/no priority. Meaningful canonical bridge union.
+- `wp-git-consumer-tests-20261115T141431Z-27194df2`: queued, isolated control's
+  public `code_editor::diff` Kit tests, short/no priority on terminal5ac label's
+  warm target. Source27194 includes real fa1 API corrections; not yet executed.
+
+The isolated control is now `backend/wp-c3-diff-control` on announcede1b73c9e;
+9664 source +27194 corrections. A later ownfb8 header-foreground correction
+reuses existing TextDecorationCollection rather than adding vendor/syntax APIs;
+its UTF-8/theme-notification tests are **newer and unexecuted**, and not present
+in queued27194 or b011. Prepared control is not a checked consumer handoff.
 
 Actual failures retained:
 
@@ -60,7 +79,10 @@ Actual failures retained:
 Approved cancellations: only the88e editor-tests,88e Kit-Clippy and762 public
 kit-test runs were still queued and became terminal cancelled143. The coordinator
 specified these;5ac had taken a slot and was not cancelled. No values/root/fa1
-run was cancelled. Keep all original logs. Do not restart a queued/running run.
+run was cancelled. At14:13 the coordinator separately approved cancelling queued
+0af Kit-Clippy (terminal143, evidence retained), then exactly one b011 App Clippy
+and one isolated27194 Kit test selection, short/no priority. These replaced no
+running job; all later findings retain their original source assignments. Keep all original logs. Do not restart a queued/running run.
 
 Non-cargo checks on the new source: rustfmt check of changed files, native file
 budget675 files/14 listed, boundary4 crates/7 external owners, token ratchet no
@@ -68,10 +90,10 @@ new entries. These checks do not establish Rust compilation or UI behavior.
 
 ## Next work
 
-1. Attach the existing runs; fix actual errors and verify changed crates really
-   compiled. For values194, finish the immutable manifest/log digests and send
-   the corrected same-row V3 packet. Only after review may the app provisionally
-   adopt that exact leaf. Never merge the moving node branch into the app.
+1. Attach existing b011/27194/af78/e103 runs; fix actual errors and verify changed
+   crates really compiled. Values194 is reviewed and provisionally adopted.
+   Frozen packet staged-values-producer-194 remains immutable; integrator owns
+   its TS join. Never merge the moving node runtime branch into the app.
 2. Execute the public mapped editor/control tests at their corrected source.
    Production patch7 is the optional same-engine drawing/viewport/coordinate
    hook; ordinary None paths remain unchanged. No second engine/fork. The lead
