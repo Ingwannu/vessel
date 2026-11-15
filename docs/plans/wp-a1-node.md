@@ -210,6 +210,12 @@ conflict, fixed backing identity with bootstrap skipped, and uncertain recovery
 without replay. No compile or execution evidence exists for this new adapter
 yet. The provider's physical-root/config/approval limits remain intact.
 
+The internal refused outcome carries the canonical creation Certainty value
+explicitly. Generic backing refusals currently retain Uncertain reservations
+and return Unknown, so a future caller cannot mistake the typed refusal reason
+alone for a proven no-effect retry. Narrower Known cases require source proof
+and tests before relaxing this conservative development behavior.
+
 The exact5bc four-library run executed 750 passing tests and one failed fixture:
 the completed-resource deletion test set SessionInfo.status before Store create,
 but Store intentionally starts a live log. The fixture now appends the actual

@@ -55,7 +55,9 @@ fn ready(result: Provisioned) -> vessel_proto::registry::WorkspaceDescriptor {
     match result {
         Provisioned::Ready(descriptor) => *descriptor,
         Provisioned::NeedsApproval(commands) => panic!("unexpected approval: {commands:?}"),
-        Provisioned::Refused(reason) => panic!("unexpected refusal: {reason:?}"),
+        Provisioned::Refused { reason, certainty } => {
+            panic!("unexpected refusal: {reason:?} ({certainty:?})")
+        }
         Provisioned::InProgress(id) | Provisioned::Uncertain(id) => {
             panic!("unsettled backing: {id}")
         }

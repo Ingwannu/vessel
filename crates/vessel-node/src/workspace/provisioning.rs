@@ -5,7 +5,7 @@ mod backing;
 
 use super::{WorkspaceError, Workspaces, projects::admission::ProjectAdmission};
 use std::sync::Arc;
-use vessel_proto::creation::{Stage, WorkspaceClaim};
+use vessel_proto::creation::{Certainty, Stage, WorkspaceClaim};
 use vessel_proto::registry::{WorkspaceDescriptor, WorkspaceIsolation, WorkspaceLifecycle};
 use vessel_proto::workspace::{ProjectCommands, WorktreeRefusal};
 use vessel_proto::{Creator, WorkspaceId, WorkspaceOperationId, WorktreeId};
@@ -16,7 +16,10 @@ use vessel_store::{RegistryReservation, ReservationStage, StoreError, WorkspaceP
 pub(crate) enum Provisioned {
     Ready(Box<WorkspaceDescriptor>),
     NeedsApproval(Box<ProjectCommands>),
-    Refused(WorktreeRefusal),
+    Refused {
+        reason: WorktreeRefusal,
+        certainty: Certainty,
+    },
     InProgress(WorkspaceId),
     Uncertain(WorkspaceId),
 }
@@ -140,7 +143,10 @@ impl Workspaces {
                     )
                     .await?;
                 match result {
-                    Ok(backing::Made::Refused(reason)) => Ok(Provisioned::Refused(reason)),
+                    Ok(backing::Made::Refused(reason)) => Ok(Provisioned::Refused {
+                        reason,
+                        certainty: Certainty::Unknown,
+                    }),
                     Err(error) => Err(error),
                     Ok(backing::Made::Ready(_) | backing::Made::Approval(_)) => Err(
                         WorkspaceError::Conflict("workspace result changed".to_owned()),
