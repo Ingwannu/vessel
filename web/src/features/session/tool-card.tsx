@@ -5,6 +5,7 @@
 // browser's disclosure triangle is not drawn.
 
 import "./tool-card.css";
+import { CanonicalToolDetail } from "./canonical-tool-detail";
 
 import { toolTone } from "../../data/format";
 import { blockText, type ToolState } from "../../data/timeline-model";
@@ -63,7 +64,21 @@ export function ToolCard({ tool }: { tool: ToolState }) {
         </span>
       </summary>
       <div className="body">
-        {tool.input === null ? null : (
+        {tool.agentMessage === undefined ||
+        tool.agentMessage === null ? null : (
+          <blockquote>
+            <strong>{tool.agentMessage.sender.id}</strong>
+            <p>{tool.agentMessage.text}</p>
+          </blockquote>
+        )}
+        {tool.failure === undefined || tool.failure === null ? null : (
+          <p className="error">{tool.failure.message}</p>
+        )}
+        {tool.detail === undefined || tool.detail === null ? null : (
+          <CanonicalToolDetail detail={tool.detail} />
+        )}
+        {tool.detail !== undefined &&
+        tool.detail !== null ? null : tool.input === null ? null : (
           <>
             <div className="io-label">Input</div>
             <pre>{json(tool.input)}</pre>
@@ -103,7 +118,8 @@ export function ToolCard({ tool }: { tool: ToolState }) {
             </div>
           ),
         )}
-        {tool.output === null ? null : (
+        {tool.detail !== undefined &&
+        tool.detail !== null ? null : tool.output === null ? null : (
           <>
             <div className="io-label">Output</div>
             <pre>{json(tool.output)}</pre>

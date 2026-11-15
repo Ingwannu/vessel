@@ -57,6 +57,10 @@ export function searchable(entry: Entry): string | null {
     case "permission":
     case "turn_ended":
     case "turn_failed":
+    case "notification":
+    case "compaction":
+    case "plugin":
+    case "error":
     case "log":
     case "status":
     case "profile":

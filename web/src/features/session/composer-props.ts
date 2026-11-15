@@ -27,6 +27,7 @@
 //   added here, or it is drawn late; `composer-props.test.ts` lists what
 //   is compared.
 
+import { toolKey } from "../../data/timeline-tool";
 import { sentPrompts } from "../../data/recall";
 import type { Entry, Timeline } from "../../data/timeline-model";
 import type { NodeKey } from "../../wire/bridge";
@@ -65,7 +66,9 @@ export function pendingTool(timeline: Timeline): Entry | undefined {
     ? undefined
     : timeline.entries.find(
         (entry) =>
-          entry.kind === "tool" && entry.tool.id === pending.request.tool_call,
+          entry.kind === "tool" &&
+          toolKey(entry.tool.id, entry.tool.scope) ===
+            toolKey(pending.request.tool_call, pending.request.tool_scope),
       );
 }
 

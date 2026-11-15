@@ -29,7 +29,13 @@ function Control({
           options={field.options.map((option) => ({
             value: option.value,
             label: option.title,
-            description: option.description ?? null,
+            description:
+              [option.description, option.preview]
+                .filter(
+                  (value) =>
+                    value !== undefined && value !== null && value !== "",
+                )
+                .join("\n") || null,
           }))}
           picked={draft?.kind === "picked" ? draft.values : []}
           multiple={field.multiple}
@@ -57,7 +63,9 @@ function Control({
           aria-label={field.title ?? label}
           placeholder={
             field.kind === "text"
-              ? (field.description ?? "Your answer")
+              ? (field.presentation?.placeholder ??
+                field.description ??
+                "Your answer")
               : field.kind === "integer"
                 ? "A whole number"
                 : "A number"

@@ -52,12 +52,19 @@ function claudeNumber(name: string): number | null {
 
 /** `question`'s steps, in the order the dock shows them. */
 export function stepsOf(question: Question): Step[] {
+  const declared = question.fields.some(
+    (field) => field.presentation !== undefined && field.presentation !== null,
+  );
   const companionOf = (field: QuestionField): QuestionField | null =>
-    claudeNumber(field.name) === null
-      ? null
-      : (question.fields.find(
-          (candidate) => candidate.name === `${field.name}_custom`,
-        ) ?? null);
+    declared
+      ? (question.fields.find(
+          (candidate) => candidate.name === field.presentation?.custom_answer,
+        ) ?? null)
+      : claudeNumber(field.name) === null
+        ? null
+        : (question.fields.find(
+            (candidate) => candidate.name === `${field.name}_custom`,
+          ) ?? null);
   const companions = new Set<string>();
   for (const field of question.fields) {
     const other = companionOf(field);
@@ -68,6 +75,7 @@ export function stepsOf(question: Question): Step[] {
   const steps = question.fields
     .filter((field) => !companions.has(field.name))
     .map((field): Step => ({ field, other: companionOf(field) }));
+  if (declared) return steps;
   // Claude's numbered questions by their number; anything else keeps the
   // node's place (a stable sort over numbered steps only).
   const numbered = steps
@@ -134,7 +142,11 @@ export function readField(
       return { kind: "wrong", why: "This can't be answered here" };
     case "text": {
       const text = draft?.kind === "text" ? draft.text : "";
-      if (text === "") {
+      const blank =
+        field.presentation === undefined || field.presentation === null
+          ? text === ""
+          : text.trim() === "";
+      if (blank && field.presentation?.empty !== "allow_empty") {
         return { kind: "empty" };
       }
       const length = Array.from(text).length;
@@ -280,5 +292,9 @@ export function refusedField(
 
 /** Whether a question can be answered here at all. */
 export function answerable(question: Question): boolean {
-  return question.fields.every((field) => field.kind !== "unknown");
+  return (
+    (question.delivery_state === undefined ||
+      question.delivery_state === "pending") &&
+    question.fields.every((field) => field.kind !== "unknown")
+  );
 }

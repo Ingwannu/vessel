@@ -47,6 +47,16 @@ export function spoken(entry: Entry): string {
         : `Turn ended · ${entry.reason.replace("_", " ")} · ${turnTokens(entry.usage)}`;
     case "turn_failed":
       return `Turn failed · ${entry.message}`;
+    case "notification":
+      return `${entry.item.level}: ${entry.item.message}`;
+    case "error":
+      return entry.message;
+    case "compaction":
+      return entry.item.status === "loading"
+        ? "Compacting context"
+        : "Context compacted";
+    case "plugin":
+      return `${entry.item.plugin} · ${entry.item.kind}`;
     case "log":
       return entry.line;
     case "status":

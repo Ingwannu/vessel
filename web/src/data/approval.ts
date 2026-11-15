@@ -39,15 +39,23 @@ function allows(kind: PermissionOptionKind): boolean {
   }
 }
 
+function permits(option: PermissionOption): boolean {
+  return option.action === undefined || option.action === null
+    ? allows(option.kind)
+    : option.action.behavior === "allow";
+}
+
 /** `options` split into Approve, Decline and the rest. */
 export function answersOf(options: readonly PermissionOption[]): Answers {
   const approve =
-    options.find((option) => option.kind === "allow_once") ??
-    options.find((option) => allows(option.kind)) ??
+    options.find((option) => option.kind === "allow_once" && permits(option)) ??
+    options.find(permits) ??
     null;
   const decline =
-    options.find((option) => option.kind === "reject_once") ??
-    options.find((option) => !allows(option.kind)) ??
+    options.find(
+      (option) => option.kind === "reject_once" && !permits(option),
+    ) ??
+    options.find((option) => !permits(option)) ??
     null;
   return {
     approve,
@@ -61,7 +69,8 @@ export type Settled =
   | { state: "pending" }
   | { state: "allowed"; option: string }
   | { state: "declined"; option: string }
-  | { state: "cancelled" };
+  | { state: "cancelled" }
+  | { state: "unknown"; option: string };
 
 /** `outcome` of a request offering `options`. */
 export function settled(
@@ -77,9 +86,9 @@ export function settled(
     case "selected": {
       const chosen = options.find((option) => option.id === outcome.option);
       if (chosen === undefined) {
-        return { state: "allowed", option: outcome.option };
+        return { state: "unknown", option: outcome.option };
       }
-      return allows(chosen.kind)
+      return permits(chosen)
         ? { state: "allowed", option: chosen.name }
         : { state: "declined", option: chosen.name };
     }
@@ -96,6 +105,8 @@ export function settledLine(what: string, state: Settled): string {
       return `Allowed · ${what} · ${state.option}`;
     case "declined":
       return `Declined · ${what} · ${state.option}`;
+    case "unknown":
+      return `Permission outcome unavailable · ${what}`;
     case "cancelled":
       return `Permission cancelled · ${what}`;
   }

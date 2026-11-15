@@ -3,7 +3,7 @@
 // to it). Protocol 10 adds a prompt's files, messages steered into a
 // turn, questions and a turn's tokens.
 
-import type { AgentEvent, PlanEntry } from "../wire/proto";
+import type { AgentEvent, PlanEntry, ToolCallScope } from "../wire/proto";
 import * as conversation from "./conversation";
 import {
   type Base,
@@ -28,7 +28,10 @@ export interface AgentWork {
   readonly permissions: Map<string, number>;
   readonly questions: Map<string, number>;
   merge: (base: Base, kind: TextKind, text: string) => void;
-  findTool: (id: string) => Extract<Entry, { kind: "tool" }> | undefined;
+  findTool: (
+    id: string,
+    scope?: ToolCallScope | null,
+  ) => Extract<Entry, { kind: "tool" }> | undefined;
   tool: (base: Base, tool: ToolState) => void;
   update: (base: Base, update: ToolUpdate) => void;
 }
@@ -86,18 +89,14 @@ export function applyAgent(
       work.entries.push({ ...base, kind: "plan", entries: event.entries });
       return;
     case "permission_requested": {
-      const call = work.findTool(event.tool_call);
+      const call = work.findTool(event.tool_call, event.tool_scope);
       work.permissions.set(event.id, work.entries.length);
       work.attention = base.seq;
       work.entries.push({
         ...base,
         key: `p${event.id}`,
         kind: "permission",
-        request: {
-          id: event.id,
-          tool_call: event.tool_call,
-          options: event.options,
-        },
+        request: event,
         title: call?.tool.title ?? "A tool call",
         outcome: null,
       });
@@ -132,6 +131,46 @@ export function applyAgent(
         message: event.message,
       });
       return;
+    case "notification":
+      work.entries.push({ ...base, kind: "notification", item: event });
+      return;
+    case "error":
+      work.entries.push({ ...base, kind: "error", message: event.message });
+      return;
+    case "compaction": {
+      const index =
+        event.status === "completed"
+          ? work.entries.findIndex(
+              (entry) =>
+                entry.kind === "compaction" && entry.item.status === "loading",
+            )
+          : -1;
+      const existing = work.entries[index];
+      if (existing?.kind === "compaction") {
+        work.entries[index] = {
+          ...existing,
+          item: {
+            ...event,
+            trigger: event.trigger ?? existing.item.trigger ?? null,
+            pre_tokens: event.pre_tokens ?? existing.item.pre_tokens ?? null,
+          },
+        };
+      } else work.entries.push({ ...base, kind: "compaction", item: event });
+      return;
+    }
+    case "plugin": {
+      const index = work.entries.findIndex(
+        (entry) =>
+          entry.kind === "plugin" &&
+          entry.item.plugin === event.plugin &&
+          entry.item.id === event.id,
+      );
+      const existing = work.entries[index];
+      if (existing?.kind === "plugin")
+        work.entries[index] = { ...existing, item: event };
+      else work.entries.push({ ...base, kind: "plugin", item: event });
+      return;
+    }
     case "harness_log":
       work.entries.push({ ...base, kind: "log", line: event.line });
       return;
@@ -150,24 +189,29 @@ function conversationEntry(
       work.entries.push({ ...base, kind: "steer", text, attachments });
       return;
     }
-    case "question_asked":
+    case "question_asked": {
+      const index = work.questions.get(event.id);
+      const existing = entryAt(work.entries, index);
+      if (index !== undefined && existing?.kind === "question") {
+        if (existing.outcome === null)
+          work.entries[index] = { ...existing, question: event };
+        return;
+      }
       work.questions.set(event.id, work.entries.length);
-      work.attention = base.seq;
+      if (
+        event.delivery_state === undefined ||
+        event.delivery_state === "pending"
+      )
+        work.attention = base.seq;
       work.entries.push({
         ...base,
         key: `q${event.id}`,
         kind: "question",
-        question: {
-          id: event.id,
-          message: event.message,
-          ...(event.tool_call === undefined
-            ? {}
-            : { tool_call: event.tool_call }),
-          fields: event.fields,
-        },
+        question: event,
         outcome: null,
       });
       return;
+    }
     case "question_resolved": {
       const index = work.questions.get(event.id);
       const entry = entryAt(work.entries, index);

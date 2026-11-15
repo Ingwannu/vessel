@@ -15,26 +15,14 @@ import type {
   SessionOption,
   SessionStatus,
   StopReason,
-  ToolCallContent,
-  ToolCallStatus,
-  ToolKind,
-  ToolLocation,
   TurnUsage,
 } from "../wire/proto";
 import { type Conversation, EMPTY_CONVERSATION } from "./conversation";
 import type { Usage } from "./models";
 
-/** A tool call as it stands after its updates. */
-export interface ToolState {
-  id: string;
-  title: string;
-  kind: ToolKind;
-  status: ToolCallStatus;
-  content: ToolCallContent[];
-  locations: ToolLocation[];
-  input: unknown;
-  output: unknown;
-}
+export { toolOf, toolAfter } from "./timeline-tool";
+export type { ToolState, ToolUpdate } from "./timeline-tool";
+import type { ToolState } from "./timeline-tool";
 
 /** What every entry has: a stable key, its record, its time. */
 export interface Base {
@@ -87,6 +75,16 @@ export type Entry =
     })
   | (Base & { kind: "turn_failed"; message: string })
   | (Base & { kind: "log"; line: string })
+  | (Base & {
+      kind: "notification";
+      item: Extract<AgentEvent, { event: "notification" }>;
+    })
+  | (Base & {
+      kind: "compaction";
+      item: Extract<AgentEvent, { event: "compaction" }>;
+    })
+  | (Base & { kind: "plugin"; item: Extract<AgentEvent, { event: "plugin" }> })
+  | (Base & { kind: "error"; message: string })
   | (Base & { kind: "status"; status: SessionStatus })
   | (Base & { kind: "profile"; from: string | null; to: string | null })
   | (Base & { kind: "model"; call: ModelCall });
@@ -187,43 +185,6 @@ export function promptParts(content: readonly ContentBlock[]): {
     }
   }
   return { text, attachments };
-}
-
-/** A tool call as the agent announced it. */
-export function toolOf(
-  call: Extract<AgentEvent, { event: "tool_call" }>,
-): ToolState {
-  return {
-    id: call.id,
-    title: call.title,
-    kind: call.kind,
-    status: call.status,
-    content: call.content,
-    locations: call.locations,
-    input: call.raw_input ?? null,
-    output: null,
-  };
-}
-
-/** An update to a tool call, as the agent reports it. */
-export type ToolUpdate = Extract<AgentEvent, { event: "tool_call_update" }>;
-
-/** The tool call `existing` (absent when the update came first) with
- * `update` applied: each field the update names replaces the old one. */
-export function toolAfter(
-  existing: ToolState | undefined,
-  update: ToolUpdate,
-): ToolState {
-  return {
-    id: update.id,
-    title: update.title ?? existing?.title ?? "Tool call",
-    kind: update.kind ?? existing?.kind ?? "other",
-    status: update.status ?? existing?.status ?? "pending",
-    content: update.content ?? existing?.content ?? [],
-    locations: update.locations ?? existing?.locations ?? [],
-    input: update.raw_input ?? existing?.input ?? null,
-    output: update.raw_output ?? existing?.output ?? null,
-  };
 }
 
 /** The kinds of entry that grow by chunks of text. */

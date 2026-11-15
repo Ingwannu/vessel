@@ -7,6 +7,7 @@
 
 import "./permission-dock.css";
 
+import { Markdown } from "../../data/markdown";
 import { useFleet } from "../../context";
 import { answersOf } from "../../data/approval";
 import { answerPermission } from "../../data/calls";
@@ -58,7 +59,19 @@ export function PermissionDock({
       </span>
       <span className="permission-what">
         <span className="permission-kind">Approval needed</span>
-        <code className="permission-detail">{entry.title}</code>
+        <code className="permission-detail">
+          {entry.request.presentation?.title ?? entry.title}
+        </code>
+        {entry.request.presentation?.description === undefined ||
+        entry.request.presentation.description === null ? null : (
+          <span>{entry.request.presentation.description}</span>
+        )}
+        {entry.request.presentation?.plan_text === undefined ||
+        entry.request.presentation.plan_text === null ? null : (
+          <div className="md">
+            <Markdown>{entry.request.presentation.plan_text}</Markdown>
+          </div>
+        )}
         {location === null ? null : (
           <span className="permission-where">{location}</span>
         )}

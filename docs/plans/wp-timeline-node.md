@@ -1,6 +1,6 @@
 # Canonical conversation protocol package
 
-Updated: 2026-11-15. Status: contract accepted; standalone value skeleton prepared, runtime not wired.
+Updated: 2026-11-15. Status: original contract accepted; pending runtime/consumer source and shared amendments are in progress. Exact runtime gates, final review and activation remain owed.
 ADR: [0084](../adr/0084-canonical-timeline-and-prompt-receipts.md).
 
 ## Assets, reuse and alternatives
@@ -358,3 +358,25 @@ Prepared fixtures cover both channel orders, child exclusion, owned terminal
 closure and saturation; actual execution remains owed. Primary reference:
 Codex provider compaction handling:5790-5829,6280-6349,6408-6425 and native
 schema ContextCompactionItem (`app-server.json` followed by this driver).
+
+
+### Web consumer source checkpoint (not activated or tested)
+
+The web fold now retains canonical scoped tool evidence, question presentation and
+lifetime, explicit notice/error/compaction/plugin entries and stable task metadata.
+Tool identity is a structural tagged tuple so native id text cannot collide with a
+scoped map key. Known detail survives absent/opaque updates. Compaction completion
+upgrades the earliest outstanding loading row without moving its record position.
+Duplicate question state reports update one card; uncertain answers stay disabled.
+
+Semantic tool bodies have one exhaustive renderer; plugin data is a bounded opaque
+inspection fallback, never plugin execution. Generic declared custom pairing/order,
+preview/placeholder/empty/dismiss semantics precede legacy form compatibility.
+Permission outcomes absent from actual options display unknown, not allowed. The
+existing display/update object sharing remains, with tool state extracted into a
+small module to keep the web300-line budget. No new dependency or frontend queue.
+
+These changes are source only until the VM-generated declarations land and the
+web gate runs. New typed response calls, authoritative snapshot-through recovery
+and keyed prepared-submission integration still need wiring; no old fire-and-forget
+reply is treated as a durable receipt. Pending protocol None prevents activation.

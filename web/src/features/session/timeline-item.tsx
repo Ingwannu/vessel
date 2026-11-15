@@ -125,6 +125,16 @@ function Item({ entry }: { entry: Entry }) {
           <p className="t-meta">
             Plan · {done} of {entry.entries.length} done
           </p>
+          <ul>
+            {entry.entries.map((item, index) => (
+              <li key={item.id ?? index}>
+                {item.status === "in_progress"
+                  ? (item.active_form ?? item.content)
+                  : item.content}{" "}
+                · {item.status.replaceAll("_", " ")}
+              </li>
+            ))}
+          </ul>
         </Meta>
       );
     }
@@ -151,6 +161,50 @@ function Item({ entry }: { entry: Entry }) {
       return (
         <Meta>
           <p className="t-meta error">Turn failed · {entry.message}</p>
+        </Meta>
+      );
+    case "notification":
+      return (
+        <Meta>
+          <p
+            className={`t-meta ${entry.item.level === "error" ? "error" : ""}`}
+          >
+            {entry.item.message}
+          </p>
+        </Meta>
+      );
+    case "error":
+      return (
+        <Meta>
+          <p className="t-meta error">{entry.message}</p>
+        </Meta>
+      );
+    case "compaction":
+      return (
+        <Meta>
+          <p className="t-meta">
+            {entry.item.status === "loading"
+              ? "Compacting context…"
+              : "Context compacted"}
+            {entry.item.trigger === undefined || entry.item.trigger === null
+              ? ""
+              : ` · ${entry.item.trigger}`}
+            {entry.item.pre_tokens === undefined ||
+            entry.item.pre_tokens === null
+              ? ""
+              : ` · ${String(entry.item.pre_tokens)} tokens before`}
+          </p>
+        </Meta>
+      );
+    case "plugin":
+      return (
+        <Meta>
+          <details>
+            <summary>
+              {entry.item.plugin} · {entry.item.kind} · v{entry.item.version}
+            </summary>
+            <pre>{JSON.stringify(entry.item.data, null, 2)}</pre>
+          </details>
         </Meta>
       );
     case "log":

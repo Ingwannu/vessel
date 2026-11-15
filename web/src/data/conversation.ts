@@ -170,20 +170,22 @@ function turn(
         ],
       };
     case "question_asked": {
-      const question: Question = {
-        id: event.id,
-        message: event.message,
-        ...(event.tool_call === undefined
-          ? {}
-          : { tool_call: event.tool_call }),
-        fields: event.fields,
-      };
+      const question: Question = event;
+      const known = conversation.questions.some(
+        (asked) => asked.question.id === question.id,
+      );
       return {
         ...conversation,
-        questions: [
-          ...conversation.questions,
-          { seq: record.seq, question, outcome: null },
-        ],
+        questions: known
+          ? conversation.questions.map((asked) =>
+              asked.question.id === question.id && asked.outcome === null
+                ? { ...asked, question }
+                : asked,
+            )
+          : [
+              ...conversation.questions,
+              { seq: record.seq, question, outcome: null },
+            ],
       };
     }
     case "question_resolved":

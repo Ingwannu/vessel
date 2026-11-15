@@ -57,6 +57,11 @@ export function QuestionDock({
     setDrafts((current) => ({ ...current, [name]: draft }));
   };
   const send = (answer: "accept" | "decline") => {
+    if (
+      question.delivery_state !== undefined &&
+      question.delivery_state !== "pending"
+    )
+      return;
     setSending(true);
     void answerQuestion(
       fleet,
@@ -148,6 +153,14 @@ export function QuestionDock({
           setDraft={setDraft}
         />
       )}
+      {question.delivery_state === undefined ||
+      question.delivery_state === "pending" ? null : (
+        <p className="question-note">
+          {question.delivery_state === "answering"
+            ? "An answer is being delivered."
+            : "The answer outcome is uncertain. Reconcile before trying again."}
+        </p>
+      )}
       {problem === null ? null : (
         <p className="question-problem" role="alert">
           {problem}
@@ -184,12 +197,16 @@ export function QuestionDock({
           <Button
             size="xs"
             variant="ghost"
-            disabled={sending}
+            disabled={
+              sending ||
+              (question.delivery_state !== undefined &&
+                question.delivery_state !== "pending")
+            }
             onClick={() => {
               send("decline");
             }}
           >
-            Skip
+            {step?.field.presentation?.dismiss_label ?? "Skip"}
           </Button>
           <Button
             size="xs"

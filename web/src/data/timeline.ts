@@ -25,9 +25,11 @@ import type {
   SessionOption,
   SessionStatus,
   ToolLocation,
+  ToolCallScope,
 } from "../wire/proto";
 import * as conversation from "./conversation";
 import { addCall, type Usage } from "./models";
+import { toolKey } from "./timeline-tool";
 import { applyAgent } from "./timeline-agent";
 import {
   appendText,
@@ -188,25 +190,36 @@ class Work {
     appendText(this.entries, base, kind, text, this.turns);
   }
 
-  findTool(id: string): Extract<Entry, { kind: "tool" }> | undefined {
-    const entry = entryAt(this.entries, this.tools.get(id));
+  findTool(
+    id: string,
+    scope?: ToolCallScope | null,
+  ): Extract<Entry, { kind: "tool" }> | undefined {
+    const entry = entryAt(this.entries, this.tools.get(toolKey(id, scope)));
     return entry?.kind === "tool" ? entry : undefined;
   }
 
   tool(base: Base, tool: ToolState): void {
     this.touch(tool.locations);
-    const index = this.tools.get(tool.id);
+    const index = this.tools.get(toolKey(tool.id, tool.scope));
     const existing = entryAt(this.entries, index);
     if (index !== undefined && existing?.kind === "tool") {
       this.entries[index] = { ...existing, tool };
       return;
     }
-    this.tools.set(tool.id, this.entries.length);
-    this.entries.push({ ...base, key: `t${tool.id}`, kind: "tool", tool });
+    this.tools.set(toolKey(tool.id, tool.scope), this.entries.length);
+    this.entries.push({
+      ...base,
+      key: toolKey(tool.id, tool.scope),
+      kind: "tool",
+      tool,
+    });
   }
 
   update(base: Base, update: ToolUpdate): void {
-    this.tool(base, toolAfter(this.findTool(update.id)?.tool, update));
+    this.tool(
+      base,
+      toolAfter(this.findTool(update.id, update.scope)?.tool, update),
+    );
   }
 
   touch(locations: readonly ToolLocation[]): void {
