@@ -7,6 +7,12 @@
 //! The checks here are the shape only (the parsers live in `src/` and are
 //! not reachable from a build script without copying them); the app's
 //! parsers are the authority.
+//!
+//! `VESSEL_UPDATE_FEED`, which compiled the feed's address in until
+//! 2026-11-15, is refused outright: the address carries a token, the
+//! machine that compiles a release holds no secret, and the address is
+//! written into the built executable instead (ADR 0099, `src/config.rs`).
+//! A build given it fails, so the token cannot reach a compiler by habit.
 
 /// A check of one setting's text.
 type Check = fn(&str) -> bool;
@@ -20,9 +26,15 @@ fn main() {
     ] {
         println!("cargo::rerun-if-env-changed={name}");
     }
-    let checks: [(&str, Check); 4] = [
+    if std::env::var_os("VESSEL_UPDATE_FEED").is_some() {
+        // Not printed either way: it would be the token.
+        println!(
+            "cargo::error=VESSEL_UPDATE_FEED is no longer compiled in (ADR 0099): \
+             build.sh writes the feed's address into the built app (tools/patch-feed.py)"
+        );
+    }
+    let checks: [(&str, Check); 3] = [
         ("VESSEL_BUILD_LABEL", label),
-        ("VESSEL_UPDATE_FEED", feed),
         ("VESSEL_UPDATE_KEY", key),
         ("VESSEL_UPDATE_CHANNEL", channel),
     ];
@@ -44,11 +56,6 @@ fn label(text: &str) -> bool {
         && text
             .split('.')
             .all(|part| !part.is_empty() && part.bytes().all(|byte| byte.is_ascii_digit()))
-}
-
-fn feed(text: &str) -> bool {
-    let local = ["http://127.0.0.1", "http://localhost", "http://[::1]"];
-    text.starts_with("https://") || local.iter().any(|prefix| text.starts_with(prefix))
 }
 
 fn key(text: &str) -> bool {
