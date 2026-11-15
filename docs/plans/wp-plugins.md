@@ -152,7 +152,10 @@ V4 row232 source-reviewed the correction; changed-source execution remains
 required. Regressions transfer request A into newly constructed state B after an
 empty catalog and control removal, disabled ancestry or method replacement.
 Equivalent unchanged graph reconstruction remains valid and retains the captured
-literal even after later edits. These new cases are not covered by prior28 tests.
+literal even after later edits. Exact30bc now has30 passed/0 failed/0 ignored,
+including both origin regressions. Its strict check found an unused withdrawal
+receipt in the test; the097 correction asserts Applied rather than discarding
+it. Current strict and actual App/Kit renderer execution remain separate debt.
 
 ## Staged GPUI contribution renderer
 
