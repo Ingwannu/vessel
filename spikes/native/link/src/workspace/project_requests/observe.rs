@@ -27,7 +27,38 @@ pub(super) fn start(
         } if is_cloning(project) => {
             observe(calls, selected, context, project, events);
         }
-        _ => {}
+        Answer::Projects { result: Err(_), .. }
+        | Answer::ProjectChanged {
+            result: Ok(ProjectChanged::Registered(_) | ProjectChanged::Removed(_)) | Err(_),
+            ..
+        }
+        | Answer::Layout(_)
+        | Answer::Project { .. }
+        | Answer::Took { .. }
+        | Answer::Forgot { .. }
+        | Answer::Commands { .. }
+        | Answer::Worktrees { .. }
+        | Answer::Snapshots { .. }
+        | Answer::Dropped { .. }
+        | Answer::SetupStarted { .. }
+        | Answer::Removed { .. }
+        | Answer::Status { .. }
+        | Answer::Changes { .. }
+        | Answer::Diff { .. }
+        | Answer::Branches { .. }
+        | Answer::Log { .. }
+        | Answer::Stashes { .. }
+        | Answer::Git { .. }
+        | Answer::Listed { .. }
+        | Answer::Read { .. }
+        | Answer::Saved { .. }
+        | Answer::Found { .. }
+        | Answer::Grepped { .. }
+        | Answer::PathChanged { .. }
+        | Answer::Start { .. }
+        | Answer::StartEnded { .. }
+        | Answer::Session { .. }
+        | Answer::Pull(_) => {}
     }
 }
 

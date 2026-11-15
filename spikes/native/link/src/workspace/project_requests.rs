@@ -233,5 +233,6 @@ fn read_failure(failure: RequestFailure) -> Problem {
 #[cfg(not(target_arch = "wasm32"))]
 mod observe;
 
-#[cfg(all(test, not(target_arch = "wasm32")))]
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
 mod tests;

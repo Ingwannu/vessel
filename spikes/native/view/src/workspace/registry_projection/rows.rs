@@ -1,4 +1,4 @@
-//! One borrowed row and the sole W12 lookup implementation, without route guessing.
+//! Borrowed rows and canonical pane ownership lookup, without route guessing.
 use super::{Entry, RegistryData, RegistryPhase, RegistryProjection};
 use crate::{
     connection::ConnectionContext,

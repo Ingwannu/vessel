@@ -100,7 +100,7 @@ impl Hub {
     }
 
     /// Rebinding a route cannot retain an old peer through clone-follow clients.
-    pub(super) fn select_project_peer(&self, machine: &str, node: vessel_proto::NodeId) {
+    pub(super) fn select_project_peer(&self, machine: &str, node: NodeId) {
         let Ok(mut following) = self.following.lock() else {
             return;
         };

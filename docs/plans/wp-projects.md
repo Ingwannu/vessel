@@ -510,3 +510,15 @@ managed backing also requires a Ready Git project in the catalog. Missing or
 contradictory catalogs and unsupported nested placement remain unavailable. This
 is metadata from the node's record, not a filesystem inspection or physical-root
 continuity claim. The new pure regression remains uncompiled with the skeleton.
+
+
+The earlier native strict run on `236d6258` stopped in link: a redundant NodeId
+qualification, the clone observer's wildcard over Answer, four helper unwraps
+whose combined cfg expression hid the test-module context from lint recognition,
+and the shared dispatch function reaching101 lines after project registration.
+The source correction uses the imported type, explicitly classifies the observer's
+unrelated answers and splits the logically identical test/target cfg attributes.
+The dispatch start arm drops a redundant block/statement without changing its
+call, order or result; only the added project arm is new behavior. No size/lint
+allowance is raised. These changes still require current-head checks. The queued
+older native tests remain their original source evidence, not projection proof.
