@@ -145,3 +145,23 @@ A replaced/disconnected destination keeps the result uncertain in the UI and
 cannot receive the old session projection. This complements the pre-send link
 identity guard; the resident cutover still needs the shared connection lease and
 FollowBinding so same-node transport retirement also fences stale replies.
+
+
+## Snapshot publication ordering
+
+Existing periodic fleet reads can overlap an asynchronous archive/delete result.
+Reusing their arrival order alone would let a response built before archive undo
+the acknowledged row. `link::sessions::Projection` therefore stores one checked
+local revision, advanced after session mutations (including uncertain results).
+A fleet read captures it before querying. The final check and synchronous bounded
+channel enqueue share the revision write lock, after channel capacity has been
+reserved; there is no await under the lock. This closes the check/enqueue race
+without an unbounded snapshot queue. Superseded reads are retried by the existing
+periodic tick. Passive reads never advance it; exhaustion permanently disables
+publication until link restart instead of recycling a revision. The counter is
+projection ordering, not a second session/connection identity registry.
+
+The existing per-machine refresh body moves into `read_machine` to keep the
+new publication boundary short. It still uses the same connection, list, failure
+and authenticated Machine.node projection. Deterministic tests cover a full UI
+channel during archive acknowledgement so a queued stale snapshot cannot follow it.

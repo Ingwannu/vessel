@@ -37,6 +37,7 @@ mod native {
                 .get(request.target.host.as_str())
                 .map(|connected| connected.client.clone());
             let events = self.events.clone();
+            let projection = self.session_projection.clone();
             let ticket = request.ticket;
             let session = request.target.session;
             let action = request.action;
@@ -56,12 +57,13 @@ mod native {
                             LifecycleAction::Resume => Act::StartAgain,
                             LifecycleAction::Delete => Act::Delete,
                         };
-                        match tokio::time::timeout(
+                        let result = tokio::time::timeout(
                             ACTION_DEADLINE,
                             crate::session::run(&client, session, act),
                         )
-                        .await
-                        {
+                        .await;
+                        projection.changed();
+                        match result {
                             Ok(result) => result.map_err(Failure::Refused),
                             Err(_) => Err(Failure::Uncertain),
                         }

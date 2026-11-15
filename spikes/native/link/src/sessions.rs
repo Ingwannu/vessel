@@ -66,6 +66,10 @@ impl Ask {
 mod navigation;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use navigation::Hub;
+#[cfg(not(target_arch = "wasm32"))]
+mod projection;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) use projection::Projection;
 
 #[cfg(test)]
 #[cfg(not(target_arch = "wasm32"))]

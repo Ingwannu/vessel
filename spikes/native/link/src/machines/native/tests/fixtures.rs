@@ -51,6 +51,7 @@ pub(super) fn state(home: &Home) -> (State, mpsc::Receiver<Event>) {
             device_calls: crate::devices::Hub::default(),
             sync_calls: crate::sync::Hub::default(),
             session_navigation: crate::sessions::Hub::default(),
+            session_projection: crate::sessions::Projection::default(),
             offers: std::sync::Arc::default(),
         },
         receiving,

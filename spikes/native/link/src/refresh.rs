@@ -33,51 +33,68 @@ impl State {
             }
         };
         let mut machines = Vec::with_capacity(book.len());
+        let projection = self.session_projection.capture();
         for (name, entry) in book {
-            let name = name.as_str().to_owned();
-            let reach = if let Some(connected) = self.clients.get(&name) {
-                Ok(connected.clone())
-            } else {
-                let reach = self.connect(&entry).await;
-                if let Ok(connected) = &reach {
-                    self.hand_kept(&name, &connected.client).await;
-                }
-                reach
-            };
-            let machine = match reach {
-                Ok(connected) => match connected.client.sessions().await {
-                    Ok(sessions) => {
-                        let machine = Machine {
-                            sessions: sessions
-                                .iter()
-                                .map(|session| Card::from_session(&name, session))
-                                .collect(),
-                            agents: connected.agents.clone(),
-                            protocol: Some(connected.client.protocol()),
-                            version: Some(NodeVersion::new(&connected.client.node().version)),
-                            name: name.clone(),
-                            reach: Reach::Online,
-                            node: Some(connected.client.node().id),
-                        };
-                        let _earlier = self.clients.insert(name, connected);
-                        machine
-                    }
-                    Err(error) => {
-                        // A dropped connection: dial again next time.
-                        let _gone = self.clients.remove(&name);
-                        Machine::unreachable(name, &error.to_string())
-                    }
-                },
-                Err(error) => Machine::unreachable(name, &error.to_string()),
-            };
-            machines.push(machine);
+            machines.push(self.read_machine(name, &entry).await);
         }
         self.session_connections_changed();
-        self.emit(Event::Fleet(Fleet {
-            machines,
-            read_at: Some(Utc::now()),
-        }))
-        .await;
+        if !self.session_projection.accepts(projection) {
+            // The next regular tick rereads after this acknowledged mutation.
+            return;
+        }
+        self.session_projection
+            .publish(
+                projection,
+                &self.events,
+                Fleet {
+                    machines,
+                    read_at: Some(Utc::now()),
+                },
+            )
+            .await;
+    }
+
+    async fn read_machine(
+        &mut self,
+        name: vessel_app_view::machine_book::Name,
+        entry: &vessel_client::book::BookEntry,
+    ) -> Machine {
+        let name = name.as_str().to_owned();
+        let reach = if let Some(connected) = self.clients.get(&name) {
+            Ok(connected.clone())
+        } else {
+            let reach = self.connect(entry).await;
+            if let Ok(connected) = &reach {
+                self.hand_kept(&name, &connected.client).await;
+            }
+            reach
+        };
+        match reach {
+            Ok(connected) => match connected.client.sessions().await {
+                Ok(sessions) => {
+                    let machine = Machine {
+                        sessions: sessions
+                            .iter()
+                            .map(|session| Card::from_session(&name, session))
+                            .collect(),
+                        agents: connected.agents.clone(),
+                        protocol: Some(connected.client.protocol()),
+                        version: Some(NodeVersion::new(&connected.client.node().version)),
+                        name: name.clone(),
+                        reach: Reach::Online,
+                        node: Some(connected.client.node().id),
+                    };
+                    let _earlier = self.clients.insert(name, connected);
+                    machine
+                }
+                Err(error) => {
+                    // A dropped connection: dial again next time.
+                    let _gone = self.clients.remove(&name);
+                    Machine::unreachable(name, &error.to_string())
+                }
+            },
+            Err(error) => Machine::unreachable(name, &error.to_string()),
+        }
     }
 
     pub(super) async fn connect(

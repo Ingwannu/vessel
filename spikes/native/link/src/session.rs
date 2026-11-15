@@ -210,6 +210,7 @@ impl State {
     pub(crate) fn act(&self, machine: &str, session: SessionId, act: Act) {
         let kind = act.kind();
         let events = self.events.clone();
+        let projection = self.session_projection.clone();
         let machine = machine.to_owned();
         let client = self
             .clients
@@ -217,7 +218,11 @@ impl State {
             .map(|connected| connected.client.clone());
         drop(tokio::spawn(async move {
             let result = match client {
-                Some(client) => run(&client, session, act).await,
+                Some(client) => {
+                    let result = run(&client, session, act).await;
+                    projection.after(kind);
+                    result
+                }
                 None => Err(ActFailed {
                     code: None,
                     message: LinkError::NotConnected(machine.clone()).to_string(),
