@@ -15,8 +15,18 @@
 //!   the missing palette blue 300 and amber 500 are added to status tokens.
 //! - Cost: callers supply localized content and a working action; the kit
 //!   supplies presentation only. Glyphs are the kit's own vector drawings.
+//!
+//! [Decision Log: host errors]
+//! - Purpose: Paseo's schedules partial-load banner is a notice with its
+//!   own geometry, not the Error variant with an icon removed by a caller.
+//! - Constraint: ordinary alerts keep their defaults and render tree.
+//! - Alternatives: screen-local paint or an arbitrary style escape hatch.
+//! - Choice: one typed `HostErrors` presentation of this same frame, with
+//!   sibling messages, neutral border and the existing palette red 300.
+//! - Why: the kit owns padding, stack gap and text, including wrapping.
+//! - Cost: a narrow messages-only entry; visibility and words stay in view.
 
-use crate::{Tokens, Type, TypeExt as _, assets::Glyph};
+use crate::{Tokens, Type, TypeExt as _, assets::Glyph, theme::radius, theme::spacing};
 use gpui::{AnyElement, Div, FontWeight, Hsla, SharedString, div, prelude::*, px, svg};
 
 /// The reference's five notice meanings, independent of the view crate.
@@ -79,9 +89,9 @@ impl std::fmt::Debug for Content {
 /// has the interaction its caller explicitly wires.
 #[must_use]
 pub fn alert(mut content: Content, variant: Variant, size: Size, tokens: &Tokens) -> Div {
-    let geometry = geometry(size);
-    let look = look(variant, tokens);
-    let step = size.step();
+    let profile = profile(Presentation::Notice { variant, size }, tokens);
+    let geometry = profile.geometry;
+    let look = profile.look;
     let lead = match content.title {
         Some(title) => div()
             .font_weight(FontWeight::MEDIUM)
@@ -109,21 +119,7 @@ pub fn alert(mut content: Content, variant: Variant, size: Size, tokens: &Tokens
         );
     }
     lead_row = lead_row.child(div().flex_1().min_w_0().child(lead));
-    let mut notice = div()
-        .flex()
-        .flex_col()
-        .min_w_0()
-        .w_full()
-        .border_1()
-        .border_color(look.border)
-        .rounded(px(geometry.radius))
-        .px(px(geometry.horizontal))
-        .py(px(geometry.vertical))
-        .gap(px(geometry.text_gap))
-        .type_(step)
-        .text_color(tokens.neutral.foreground_muted)
-        .whitespace_normal()
-        .child(lead_row);
+    let mut notice = frame(profile).child(lead_row);
     if content.description.is_some() || content.action.is_some() {
         let mut below = div()
             .flex()
@@ -144,6 +140,79 @@ pub fn alert(mut content: Content, variant: Variant, size: Size, tokens: &Tokens
         notice = notice.child(below);
     }
     notice
+}
+
+/// Paseo's partial-host-error banner: one wrapping localized message per
+/// host, without a title, icon or action. The caller shows it only when
+/// there are errors; ordinary initial-load failures keep their own surface.
+#[must_use]
+pub fn host_errors(messages: impl IntoIterator<Item = SharedString>, tokens: &Tokens) -> Div {
+    frame(profile(Presentation::HostErrors, tokens)).children(
+        messages
+            .into_iter()
+            .map(|message| div().min_w_0().child(message)),
+    )
+}
+
+/// Both entry points share the frame; a profile cannot add interaction,
+/// truncation or a focus ring to this non-interactive container.
+fn frame(profile: Profile) -> Div {
+    let geometry = profile.geometry;
+    div()
+        .flex()
+        .flex_col()
+        .min_w_0()
+        .w_full()
+        .border_1()
+        .border_color(profile.look.border)
+        .rounded(px(geometry.radius))
+        .px(px(geometry.horizontal))
+        .py(px(geometry.vertical))
+        .gap(px(geometry.text_gap))
+        .type_(profile.step)
+        .text_color(profile.text)
+        .whitespace_normal()
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Presentation {
+    Notice { variant: Variant, size: Size },
+    HostErrors,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Profile {
+    geometry: Geometry,
+    look: Look,
+    step: Type,
+    text: Hsla,
+}
+
+fn profile(presentation: Presentation, tokens: &Tokens) -> Profile {
+    match presentation {
+        Presentation::Notice { variant, size } => Profile {
+            geometry: geometry(size),
+            look: look(variant, tokens),
+            step: size.step(),
+            text: tokens.neutral.foreground_muted,
+        },
+        Presentation::HostErrors => Profile {
+            geometry: Geometry {
+                horizontal: spacing::S3,
+                vertical: spacing::S3,
+                radius: radius::R5,
+                text_gap: spacing::S1,
+                ..geometry(Size::ExtraSmall)
+            },
+            look: Look {
+                accent: None,
+                border: tokens.neutral.border,
+                icon: None,
+            },
+            step: Type::Meta,
+            text: tokens.status().red_300,
+        },
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -238,6 +307,53 @@ const fn geometry(size: Size) -> Geometry {
 mod tests {
     use super::*;
     use crate::Scheme;
+
+    #[test]
+    fn partial_host_errors_use_the_reference_frame_and_normal_red_text_in_both_themes() {
+        // schedules-screen.tsx:400–417, not Alert's semantic Error profile.
+        for scheme in [Scheme::Light, Scheme::Dark] {
+            let tokens = Tokens::of(scheme);
+            let actual = profile(Presentation::HostErrors, &tokens);
+            assert_eq!(actual.geometry.horizontal.to_bits(), 12.0_f32.to_bits());
+            assert_eq!(actual.geometry.vertical.to_bits(), 12.0_f32.to_bits());
+            assert_eq!(actual.geometry.radius.to_bits(), 12.0_f32.to_bits());
+            assert_eq!(actual.geometry.text_gap.to_bits(), 4.0_f32.to_bits());
+            assert_eq!(actual.look.border, tokens.neutral.border);
+            assert_eq!(actual.look.icon, None);
+            assert_eq!(actual.look.accent, None);
+            assert_eq!(actual.text, gpui::rgb(0x00fc_a5a5).into());
+            assert_eq!(actual.step, Type::Meta);
+            let (size, _, weight) = actual.step.metrics();
+            assert_eq!(size.to_bits(), 12.0_f32.to_bits());
+            assert_eq!(weight, FontWeight::NORMAL);
+        }
+    }
+
+    #[test]
+    fn every_ordinary_notice_keeps_its_geometry_type_look_and_muted_description() {
+        for scheme in [Scheme::Light, Scheme::Dark] {
+            let tokens = Tokens::of(scheme);
+            for size in [Size::ExtraSmall, Size::Small, Size::Medium, Size::Large] {
+                for variant in [
+                    Variant::Default,
+                    Variant::Info,
+                    Variant::Success,
+                    Variant::Warning,
+                    Variant::Error,
+                ] {
+                    assert_eq!(
+                        profile(Presentation::Notice { variant, size }, &tokens),
+                        Profile {
+                            geometry: geometry(size),
+                            look: look(variant, &tokens),
+                            step: size.step(),
+                            text: tokens.neutral.foreground_muted,
+                        }
+                    );
+                }
+            }
+        }
+    }
 
     #[test]
     fn every_variant_maps_to_the_reference_accent_border_and_icon_in_both_themes() {

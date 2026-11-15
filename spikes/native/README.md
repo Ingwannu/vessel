@@ -314,6 +314,11 @@ existing semantic/neutral colours and palette blue 300 / amber 500 in
 `theme/status.rs`; a notice has no focus or click behaviour. Pure logic
 returns `view::alert::Variant`, mapped once by `app::badge::alert_variant`.
 Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
+`alert::host_errors` is the same frame's named partial-host-error
+presentation, after Paseo's schedules screen: one wrapping message per
+host, neutral border, palette red 300, 12-point type and padding, 4-point
+stack gap, and no icon. The caller supplies localized messages and decides
+visibility; existing Alert variants and sizes keep their defaults.
 
 The typed button also has `button_with_kind_at(..., ControlSizing, ...)`:
 MD pointer minimum32/padding16, touch minimum44/padding24. Legacy entries
