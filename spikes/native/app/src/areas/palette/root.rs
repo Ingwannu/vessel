@@ -8,87 +8,126 @@ use vessel_app_view::palette::registration::{
 use vessel_app_view::palette::{PaletteGroup, PaletteTarget};
 use vessel_app_view::shortcuts::Action;
 
+struct Policy {
+    id: String,
+    group: PaletteGroup,
+    rank: i16,
+    visibility: Visibility,
+}
+
 pub(super) fn build(shell: &Shell, all: &[super::Entry]) -> Vec<Contribution<Command>> {
-    let mut entries = Vec::new();
-    for (at, entry) in all
+    let mut entries: Vec<_> = all
         .iter()
-        .filter(|entry| entry.group != PaletteGroup::Sessions)
         .enumerate()
-    {
-        let (Ok(id), Ok(group)) = (
-            entry.id.parse(),
-            format!("native-{:?}", entry.group).parse(),
-        ) else {
-            continue;
-        };
-        let Ok(rank) = i16::try_from(at) else {
-            continue;
-        };
-        let presentation = match entry.target {
-            PaletteTarget::Theme(theme) => {
-                let Ok(path) = ChoicePath::new(
-                    shell.t.lang.palette().group(entry.group).to_owned(),
-                    vec![entry.label.clone()],
-                ) else {
-                    continue;
-                };
-                Presentation::Choice {
-                    path,
-                    selection: if theme == shell.prefs.settings.appearance.theme {
-                        Selection::Selected
-                    } else {
-                        Selection::Unselected
-                    },
-                }
-            }
-            PaletteTarget::Messages
-            | PaletteTarget::NewSession(_)
-            | PaletteTarget::AddMachine
-            | PaletteTarget::Board
-            | PaletteTarget::Settings(_)
-            | PaletteTarget::Machine(_)
-            | PaletteTarget::Session { .. } => Presentation::Action {
-                title: if matches!(entry.target, PaletteTarget::NewSession(_)) {
-                    vessel_app_view::shortcuts::action_label(Action::NewSession, shell.words)
-                        .to_owned()
-                } else {
-                    entry.label.clone()
-                },
-                subtitle: entry
-                    .detail
-                    .as_ref()
-                    .map(|detail| detail.search_text().into_owned()),
-            },
-        };
-        entries.push(Contribution {
-            id,
-            group,
-            group_rank: Rank::new(rank_of(entry.group)),
-            section_title: Some(shell.t.lang.palette().group(entry.group).to_owned()),
-            rank: Rank::new(rank),
-            keywords: entry.keywords.iter().cloned().collect(),
-            visibility: if entry.group == PaletteGroup::Theme {
-                Visibility::Query
+        .filter_map(|(at, entry)| contribution(shell, entry, at))
+        .collect();
+    entries.extend(extra(shell));
+    entries
+}
+
+fn policy(entry: &super::Entry, at: usize) -> Option<Policy> {
+    if entry.group == PaletteGroup::Sessions {
+        return None;
+    }
+    let (id, group, rank, visibility) = match entry.target {
+        PaletteTarget::NewSession(_) => (
+            "new-workspace".to_owned(),
+            PaletteGroup::Actions,
+            1,
+            Visibility::Always,
+        ),
+        PaletteTarget::Settings(vessel_app_view::settings::Section::General) => (
+            "settings".to_owned(),
+            PaletteGroup::Actions,
+            6,
+            Visibility::Always,
+        ),
+        // Legacy destinations remain searchable extensions. Their existence
+        // never manufactures the still-unready Home/History/Schedules routes.
+        PaletteTarget::Messages
+        | PaletteTarget::AddMachine
+        | PaletteTarget::Board
+        | PaletteTarget::Settings(_)
+        | PaletteTarget::Machine(_)
+        | PaletteTarget::Session { .. }
+        | PaletteTarget::Theme(_) => (
+            entry.id.clone(),
+            entry.group,
+            i16::try_from(at).ok()?,
+            Visibility::Query,
+        ),
+    };
+    Some(Policy {
+        id,
+        group,
+        rank,
+        visibility,
+    })
+}
+
+fn presentation(shell: &Shell, entry: &super::Entry) -> Option<Presentation> {
+    if let PaletteTarget::Theme(theme) = entry.target {
+        return Some(Presentation::Choice {
+            path: ChoicePath::new(
+                shell.t.lang.palette().group(entry.group).to_owned(),
+                vec![entry.label.clone()],
+            )
+            .ok()?,
+            selection: if theme == shell.prefs.settings.appearance.theme {
+                Selection::Selected
             } else {
-                Visibility::Always
-            },
-            presentation,
-            target: if matches!(entry.target, PaletteTarget::NewSession(_)) {
-                Command::shortcut(
-                    Action::NewSession,
-                    Some(super::rows::glyph_of(&entry.target)),
-                )
-            } else {
-                Command {
-                    glyph: Some(super::rows::glyph_of(&entry.target)),
-                    shortcut: super::rows::action_of(&entry.target),
-                    action: CommandAction::Legacy(entry.target.clone()),
-                }
+                Selection::Unselected
             },
         });
     }
-    entries.extend(extra(shell));
-    entries
+    let title = match entry.target {
+        PaletteTarget::NewSession(_) => {
+            vessel_app_view::shortcuts::action_label(Action::NewSession, shell.words).to_owned()
+        }
+        PaletteTarget::Settings(vessel_app_view::settings::Section::General) => {
+            vessel_app_view::shortcuts::action_label(Action::Settings, shell.words).to_owned()
+        }
+        PaletteTarget::Messages
+        | PaletteTarget::AddMachine
+        | PaletteTarget::Board
+        | PaletteTarget::Settings(_)
+        | PaletteTarget::Machine(_)
+        | PaletteTarget::Session { .. }
+        | PaletteTarget::Theme(_) => entry.label.clone(),
+    };
+    Some(Presentation::Action {
+        title,
+        subtitle: entry
+            .detail
+            .as_ref()
+            .map(|detail| detail.search_text().into_owned()),
+    })
+}
+
+fn contribution(shell: &Shell, entry: &super::Entry, at: usize) -> Option<Contribution<Command>> {
+    let policy = policy(entry, at)?;
+    Some(Contribution {
+        id: policy.id.parse().ok()?,
+        group: format!("native-{:?}", policy.group).parse().ok()?,
+        group_rank: Rank::new(rank_of(policy.group)),
+        section_title: Some(shell.t.lang.palette().group(policy.group).to_owned()),
+        rank: Rank::new(policy.rank),
+        keywords: entry.keywords.iter().cloned().collect(),
+        visibility: policy.visibility,
+        presentation: presentation(shell, entry)?,
+        target: if matches!(entry.target, PaletteTarget::NewSession(_)) {
+            Command::shortcut(
+                Action::NewSession,
+                Some(super::rows::glyph_of(&entry.target)),
+            )
+        } else {
+            Command {
+                glyph: Some(super::rows::glyph_of(&entry.target)),
+                shortcut: super::rows::action_of(&entry.target),
+                action: CommandAction::Legacy(entry.target.clone()),
+            }
+        },
+    })
 }
 
 fn extra(shell: &Shell) -> Vec<Contribution<Command>> {

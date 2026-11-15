@@ -410,3 +410,53 @@ fn replacement_refuses_the_old_projected_callback_and_fresh_enter_runs_once(
         assert!(!shell.areas.palette.is_open());
     });
 }
+
+#[gpui::test]
+fn root_defaults_keep_canonical_settings_and_search_only_legacy_destinations(
+    cx: &mut TestAppContext,
+) {
+    use vessel_app_view::palette::registration::Visibility;
+    let (view, cx) = harness(cx);
+    update(&view, cx, |shell, _, cx| {
+        let entries = root::build(shell, &shell.palette_all());
+        let default_ids: Vec<_> = entries
+            .iter()
+            .filter(|entry| entry.visibility == Visibility::Always)
+            .map(|entry| entry.id.as_str())
+            .collect();
+        assert_eq!(
+            default_ids,
+            [
+                "new-workspace",
+                "settings",
+                "search-messages",
+                "theme-choices"
+            ]
+        );
+        let settings = entries
+            .iter()
+            .find(|entry| entry.id.as_str() == "settings")
+            .unwrap();
+        assert_eq!(
+            settings.rank,
+            vessel_app_view::palette::registration::Rank::new(6)
+        );
+        assert!(entries.iter().any(|entry| matches!(
+            entry.target.action,
+            source::CommandAction::Legacy(PaletteTarget::Settings(Section::Appearance))
+        ) && entry.visibility == Visibility::Query));
+        shell.palette_searched("appearance".to_owned(), cx);
+        assert!(
+            snapshot::project(shell)
+                .sections
+                .iter()
+                .flat_map(|section| &section.rows)
+                .any(|row| matches!(
+                    row.activate,
+                    snapshot::Activate::Root(source::CommandAction::Legacy(
+                        PaletteTarget::Settings(Section::Appearance)
+                    ))
+                ))
+        );
+    });
+}

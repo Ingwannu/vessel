@@ -411,3 +411,11 @@ A newer focused field is preserved. This replaces duplicated strong-handle
 restoration, without changing kit internals or creating a focus registry. The
 new actual GPUI regression covers removed openers and newer focus for both
 surfaces. It is written, not yet executed.
+
+
+The root projection now uses stable canonical new-workspace and settings ids,
+with reference ranks1/6 in Actions. Settings subpages and old host/board/add-host
+destinations remain query-only extensions; they no longer fill the empty list.
+Their presence does not stand in for unready Home/History/Schedules owner routes.
+Messages and Theme remain explicit existing extensions. A native projection
+regression checks the empty defaults, Settings rank and searchable Appearance.
