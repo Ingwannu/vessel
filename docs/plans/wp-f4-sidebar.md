@@ -103,3 +103,23 @@ Current: navigation preference model and regression tests are installed as
 the first skeleton step; narrow compilation remains pending. No complete
 sidebar parity pass is claimed. The earlier height package has only bounded
 source/gate/inspected-height approval; theme and OS input evidence are separate.
+
+### Shared row checkpoint
+
+The coordinator approved `kit::sidebar_header_row::SidebarHeaderRow` because the
+existing private sidebar row had no shared density, hint or leading-slot
+contract. Its Header/Compact/Inline variants use one renderer; wrappers are
+36/56 with a separator, inset 8 without one, or full width respectively.
+Rows are 28/36 high, rounded 8, with 4/8 inner padding and gap 8. Icon slots
+are Header 16/20, other variants 14/18, including a null icon. The existing
+14/20 Label metrics use normal weight for the reference's body 14, preserving
+the tight row height without changing the shared font inventory. Selection
+and hover share the reference sidebar fill; pressed surface2 wins. Persistent
+trailing content overrides the hover-only shortcut. Activation is supplied by
+one callback; optional focus tracking does not claim keyboard activation.
+Actual GPUI bounds/press and palette-token regressions are installed but not
+yet compiled while the preceding package's whole gate remains queued.
+
+V1 reserved additional shared glyphs History, ArrowDown, Blocks, FolderPlus,
+CircleHelp for this package. Gauge remains its existing G2 producer; no local
+fallback or second spelling is added. Final glyph first-use captures are owed.
