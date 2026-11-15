@@ -105,6 +105,8 @@ mod terminals;
 mod tidying;
 mod transfers;
 mod transport;
+#[cfg(test)]
+mod voice;
 mod waits;
 mod workspace;
 

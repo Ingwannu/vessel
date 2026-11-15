@@ -105,13 +105,23 @@ reference survey/source read; ADR 0067 owner consulted; coordinator gave
 both-side ownership; integrator asked once for pending feature/version.
 Direct candidate archives measured; no manifest or product code changed.
 
-Current: ADR 0080 initially returned for ordinary Stop ordering. Corrected:
+Current: initial ADR 0080 accepted after ordinary Stop ordering correction:
 local generation fence/upload gate/queued PCM discard/playback and capture
 release precede every remote await; uncertain remote cleanup is independent.
-Resubmitted to V3 before any node product code or dependency change. Local native inference distribution
+Device ownership releases only after streams actually stop/drop, not after
+queueing a stop request. Engine/distribution and method registration remain
+unapproved prerequisites. Dictation's app consumer agreed to one shared
+link::audio owner and purpose lease, including fenced events and typed frames.
+
+Draft node skeleton: voice request/update values with SINCE None, separate
+capture/playback PCM bounds, redacted speech, low-confidence branch without
+text; existing base64 decoder extended with opt-in preallocation bounds.
+No methods or settings fields registered. Staged detector boundary consumes
+Silero observations on a deterministic sample clock; it is not an inference
+engine. Tests/narrow compile evidence must complete before its commit. Local native inference distribution
 and transitive audio dependency inventory remain explicit prerequisites.
 
-Next: obtain V3 architecture verdict; implement node and app skeletons
+Next: finish narrow skeleton checks; implement node and app skeletons
 against a fake adapter without sending missing calls; amend dependency
 measurements before adding crates. App-base and Quality B announcement
 must precede wire registration. No gates/captures/runtime proof yet.

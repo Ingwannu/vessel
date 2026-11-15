@@ -14,10 +14,23 @@ pub(crate) fn serialize<S: Serializer>(bytes: &Bytes, serializer: S) -> Result<S
 }
 
 pub(crate) fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Bytes, D::Error> {
-    deserializer.deserialize_str(Base64Visitor)
+    deserializer.deserialize_str(Base64Visitor {
+        decoded_limit: None,
+    })
 }
 
-struct Base64Visitor;
+/// Bound audio before allocating its decoded payload; existing opaque bytes stay unchanged.
+pub(crate) fn deserialize_bounded<'de, D: Deserializer<'de>, const MAX: usize>(
+    deserializer: D,
+) -> Result<Bytes, D::Error> {
+    deserializer.deserialize_str(Base64Visitor {
+        decoded_limit: Some(MAX),
+    })
+}
+
+struct Base64Visitor {
+    decoded_limit: Option<usize>,
+}
 
 impl Visitor<'_> for Base64Visitor {
     type Value = Bytes;
@@ -27,6 +40,17 @@ impl Visitor<'_> for Base64Visitor {
     }
 
     fn visit_str<E: de::Error>(self, text: &str) -> Result<Self::Value, E> {
-        STANDARD.decode(text).map(Bytes::from).map_err(E::custom)
+        if let Some(limit) = self.decoded_limit {
+            // Encoded ceiling includes padding; never decode an attacker-sized allocation.
+            let encoded_limit = limit.div_ceil(3).saturating_mul(4);
+            if text.len() > encoded_limit {
+                return Err(E::custom("base64 payload exceeds its byte limit"));
+            }
+        }
+        let bytes = STANDARD.decode(text).map(Bytes::from).map_err(E::custom)?;
+        if self.decoded_limit.is_some_and(|limit| bytes.len() > limit) {
+            return Err(E::custom("base64 payload exceeds its byte limit"));
+        }
+        Ok(bytes)
     }
 }

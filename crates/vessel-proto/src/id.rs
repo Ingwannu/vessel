@@ -288,6 +288,31 @@ counter_id! {
     EventSeq
 }
 
+uuid_id! {
+    /// A person's transient spoken-conversation lease (ADR 0080).
+    VoiceId
+}
+
+uuid_id! {
+    /// A node-minted generation; replacing a lease never reuses authority.
+    VoiceEpoch
+}
+
+uuid_id! {
+    /// A physical playback receipt, separate from its speech group.
+    PlaybackId
+}
+
+uuid_id! {
+    /// One ordered spoken utterance, without persisting its PCM.
+    SpeechGroupId
+}
+
+counter_id! {
+    /// Contiguous microphone input order, never a session event sequence.
+    VoiceSeq
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
