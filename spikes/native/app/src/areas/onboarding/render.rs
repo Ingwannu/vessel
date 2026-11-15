@@ -90,7 +90,7 @@ pub(crate) fn dialog(
         .steps()
         .iter()
         .position(|item| *item == step)
-        .map_or(1, |index| index + 1);
+        .map_or(1, |index| index.saturating_add(1));
     let counter = words
         .step_counter(&current.to_string(), &open.steps().len().to_string())
         .unwrap_or_else(|_format| words.setup().to_owned());
