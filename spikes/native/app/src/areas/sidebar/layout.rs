@@ -14,7 +14,7 @@ use vessel_app_kit::{ScrollState, ScrollViewport};
 pub(super) struct Layout {
     /// Measurements and offset of the sole scrolling body.
     pub(super) scroll: ScrollState,
-    /// The existing new-conversation navigation row.
+    /// The existing new-workspace navigation row.
     pub(super) navigation: FocusHandle,
     end: FocusHandle,
     /// The existing Settings button outside the body.
