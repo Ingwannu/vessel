@@ -28,6 +28,8 @@ mod dispatch;
 mod error;
 mod event;
 pub mod machines;
+#[cfg(all(test, any(target_os = "linux", target_os = "windows")))]
+mod audio;
 #[cfg(not(target_arch = "wasm32"))]
 mod nodes;
 #[cfg(all(test, not(target_arch = "wasm32")))]

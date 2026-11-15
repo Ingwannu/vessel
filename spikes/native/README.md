@@ -46,6 +46,8 @@ this table, with its reason in the same commit.
 | `fluent-bundle` | only `vessel-app-view` | The words live in `view` (ADR 0039); the app holds no sentence. |
 | `vte` | only `vessel-app-view` | The terminal parser (ADR 0073). Only the grid decodes PTY bytes; the kit draws cells it is given. |
 | `tokio` | never `vessel-app-view`, `vessel-app-kit` | `view` does no I/O and `kit` draws; the runtime is `link`'s (and the app's entry). |
+| `cpal` | only `vessel-app-link` | One desktop device owner shares capture/playback between dictation and voice (ADR 0080). |
+| `sonora` | only `vessel-app-link` | The audio owner supplies AEC, noise suppression and gain control through the same reverse stream (ADR 0080). |
 
 ### Names only some files may use
 

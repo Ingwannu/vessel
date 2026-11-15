@@ -281,3 +281,15 @@ than ad-hoc push, bounded resources, explicit reconnect rather than implicit
 resync, secret references rather than raw config keys, no env overrides or
 audio debug dumps, and readiness refusal until real local inference ships.
 These decisions do not establish whole-package parity by themselves.
+
+
+## Desktop audio dependency inventory amendment
+
+The Linux/Windows metadata-only candidate closure, exact archive/source
+sizes and retained source notices are recorded in
+[the audio dependency inventory](../plans/wp-voice-audio-dependencies.md).
+The inspected CPAL/Sonora versions are selected for the device/DSP
+implementation, with no ASIO/JACK/examples/FFI features. This amendment
+fulfills the pre-manifest inventory; runtime, linked-size, actual device
+and AEC-quality evidence are still owed. It selects no inference library
+or model and does not advertise any audio capability by itself.
