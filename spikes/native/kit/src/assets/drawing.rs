@@ -10,6 +10,10 @@ use super::{Glyph, MARK};
 /// A line glyph on Lucide's grid (24 units, a stroke of 1.5, round ends),
 /// as Paseo's icons are drawn. Original kit paths use this directly; the
 /// four attributed Lucide paths below retain their licence in SVG metadata.
+/// as Paseo's icons are drawn. Canonical panel paths retain the upstream
+/// Lucide/Feather notice in docs/design/brand/lucide-LICENSE.txt; older
+/// original drawings keep their existing vectors.
+
 macro_rules! line_glyph {
     ($body:expr) => {
         concat!(
@@ -332,6 +336,21 @@ impl Glyph {
             Self::Scissors => lucide_glyph!(
                 r#"<circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/>"#
             ),
+            // Canonical Lucide1.50 panel roles; effective provider stroke is
+            // already supplied by line_glyph, not the vendor default2.
+            Self::Columns2 => line_glyph!(
+                r#"<rect width="18" height="18" x="3" y="3" rx="2" /><path d="M12 3v18" />"#
+            ),
+            Self::Rows2 => line_glyph!(
+                r#"<rect width="18" height="18" x="3" y="3" rx="2" /><path d="M3 12h18" />"#
+            ),
+            Self::PanelMaximize => line_glyph!(
+                r#"<path d="M8 3H5a2 2 0 0 0-2 2v3" /><path d="M21 8V5a2 2 0 0 0-2-2h-3" /><path d="M3 16v3a2 2 0 0 0 2 2h3" /><path d="M16 21h3a2 2 0 0 0 2-2v-3" />"#
+            ),
+            Self::PanelMinimize => line_glyph!(
+                r#"<path d="M8 3v3a2 2 0 0 1-2 2H3" /><path d="M21 8h-3a2 2 0 0 1-2-2V3" /><path d="M3 16h3a2 2 0 0 1 2 2v3" /><path d="M16 21v-3a2 2 0 0 1 2-2h3" />"#
+            ),
+            Self::X => line_glyph!(r#"<path d="M18 6 6 18" /><path d="m6 6 12 12" />"#),
         }
     }
 }

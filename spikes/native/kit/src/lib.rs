@@ -72,6 +72,7 @@ pub mod terminal_grid;
 mod text_ranges;
 pub mod theme;
 pub mod toast;
+pub mod toolbar_button;
 pub mod toolbar_label;
 pub mod tooltip;
 pub mod vector;
@@ -234,3 +235,6 @@ pub fn root<V: 'static + gpui::Render>(
 ) -> gpui::Entity<gpui_component::Root> {
     cx.new(|cx| gpui_component::Root::new(view, window, cx))
 }
+
+mod root_owner;
+pub use root_owner::root_contains_view;

@@ -203,6 +203,16 @@ glyph_inventory! {
     Gauge => "kit/gauge.svg",
     /// A catalog package with its add action.
     PackagePlus => "kit/package-plus.svg",
+    /// Two workspace pane columns, independent of session forking.
+    Columns2 => "kit/columns-2.svg",
+    /// Two workspace pane rows, independent of session forking.
+    Rows2 => "kit/rows-2.svg",
+    /// Panel maximize corners; distinct from the window's square control.
+    PanelMaximize => "kit/panel-maximize.svg",
+    /// Panel restore's inward corners; distinct from window minimize/restore.
+    PanelMinimize => "kit/panel-minimize.svg",
+    /// A 24-grid UI close X; the window Close keeps its 10-grid chrome shape.
+    X => "kit/x.svg",
     /// A tool's generic activity (Lucide's `Wrench`).
     Wrench => "kit/wrench.svg",
     /// Reading a file (Lucide's `Eye`).
