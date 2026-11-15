@@ -286,3 +286,10 @@ Resolved read-only profiles remain terminal mode. The renderer consumes this
 same getter; missing node/workspace/draft identity yields None without a
 global selected-agent fallback. This is presentation policy, not a root/config
 or connection authority snapshot. B2's remaining controls use this seam.
+
+The attachment pipeline now receives the same captured ConnectionContext as
+the creation ask via prepare_draft_input_on; it does not resolve the host again
+between payload preparation and child registration. W6 retains this context
+through capability reads, upload/resume and first-input delivery, using the
+same selected-connection guard. The caller keeps one canonical message id and
+one payload ticket; no additional identity cache or allocator is introduced.
