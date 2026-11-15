@@ -1,6 +1,8 @@
 //! One managed-child index for session-tree order, the child track and session keyboard jumps.
 //! Relation is hydrated current state, never reconstructed from Creator or cwd.
 
+mod archive_finished;
+pub use archive_finished::{ArchiveFinished, FinishRead, FinishStatus};
 mod managed;
 mod pane;
 mod requests;

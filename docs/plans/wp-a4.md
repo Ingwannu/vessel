@@ -213,3 +213,20 @@ both known equal workspaces is Child, known unequal is Root; missing ownership o
 unknown relation remains Unknown. W11 supplies both memberships by full SessionRef
 and owns newest-root activity selection. This advisory policy does not change the
 node's global delegated boundary or authorize cached lifecycle mutations.
+
+## Conditional archive-finished progress skeleton
+
+The pure ArchiveFinished controller snapshots canonical A2-supplied finished
+eligibility, hides terminal provider rows locally first, and emits one captured
+managed FinishRead at a time. It rechecks the latest track before each dispatch,
+rejects old-ticket/changed-admission replies, retains typed failure attribution,
+and retries only failures that remain eligible; successful steps are not repeated.
+Archived and conditional Skipped both finish a progress step. The app keeps A2's
+canonical receipt; this view state defines no wire method or replacement outcome
+DTO. Node parent/idle/archive recheck remains A2's atomic lock/actor boundary.
+
+The controller and in-memory transition tests are staged independently while
+W21's actual session.archive_child/predicate source awaits checks/V3 and the app
+base route. It is not yet activated by the product Archive finished action; that
+still performs provider-local hide only. Wire adapter/progress/retry UI remain
+required before this row can be accepted as full parity.
