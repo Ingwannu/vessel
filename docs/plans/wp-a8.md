@@ -689,3 +689,19 @@ The private helper now accepts the exact existing Box<Prefs> and moves that same
 box into the existing blocking save closure. No unboxing/extra allocation, save
 ordering, path or failure behavior changes. The original test run has no runtime
 counts or pass claim; its compile failure requires a corrected-head test run.
+
+## Actual narrow native runtime proof
+
+Exact730e2db5, run wp-side-narrow-20261115T155809Z-730e2db5: actual fonts
+and native cargo rc0,1492 passed/0 failed/2 existing ignored. All four crates
+were compiled; App binary tests were included (no --lib). Logs confirm actual
+multi-field keyboard/Enter targeting, Markdown label-versus-description clicks,
+stale step source/cursor refusal, retained uncertainty, staged source-node checks
+and exact-record retirement recovery, plus selected-connection before/after-send
+fences. Evidence packet: a8-native-730-evidence.json in the worker handoff bundle.
+
+The two existing ignored cases require private capture fixtures (pairing browser
+words and terminal states); they are not new A8 exclusions. This is a narrow
+runtime suite, including baseline tests, not a whole gate or review. It proves
+neither full rich receipt/provider activation nor live resident/lease ingress,
+OS IME, visual captures or private CLI behavior. Those remain incomplete.
