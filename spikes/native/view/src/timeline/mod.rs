@@ -78,7 +78,10 @@ mod bounds_tests;
 pub use agent_message::agent_message_display;
 pub use approval::{AnswerWords, Answers, Settled, allows, answer_words, answers_of, settled};
 pub use compaction::{CompactionCaption, CompactionThousands, merge_compaction};
-pub use diff::{DiffLine, MAX_LINES, Side, diff_lines, json_text, unified_lines};
+pub use diff::{
+    DiffLine, MAX_LINES, Side, WordHighlights, diff_lines, json_text, unified_lines,
+    word_highlights,
+};
 pub use disclosures::Disclosures;
 pub use entry::{
     Entry, EntryKey, EntryKind, ParkingChange, Permission, Prompt, ToolView, block_text,

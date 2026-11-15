@@ -1048,3 +1048,23 @@ this is neither the later app API source nor a whole/native/capture/V4 pass.
   adapter consumption remains pending K's checked source; no duplicate seven-arm
   mapping/color table is added. This section records the design, not implemented
   or tested intraline/syntax parity.
+
+Intraline implementation source now uses the source's adjacent removed/added pair
+and ASCII word/nonword runs with the same LCS deletion tie-break. It emits changed
+UTF-8 ranges without rebuilding text. Guards are 16,384 bytes / 256 tokens per
+line pair and 1,048,576 LCS cells across one diff; exhaustion keeps whole-line tones.
+Unified patches retain their existing source behavior (no synthesized word pairs).
+
+Kit output retains Line/Lines and old lines_box/output_box/diff_line signatures.
+The opt-in AnnotatedLines/annotated_lines_box adds ranges over that same cached
+virtual list, scroll handle, row painter and copy payload. Invalid/partial Unicode
+ranges are sanitized by the existing command-range validator, moved once to a
+shared private text_ranges module with the old path reexported. No validator,
+selection manager, language catalog or output controller is duplicated. The
+existing diff wash is layered on changed word ranges, without new theme colors.
+Syntax color remains pending K's checked adapter/resolver packet.
+
+Staged source regressions cover reference word grouping/tie-break, Korean/emoji
+byte boundaries, exact adjacent-pair behavior, insertion/deletion, shared work
+exhaustion and malformed/stale cache ranges preserving text/copy. These new tests
+have not executed yet; the preceding 1153-view pass predates this implementation.

@@ -4,15 +4,15 @@
 //! the output (the page's `features/session/tool-card.tsx`). Ordinary calls
 //! start closed as Paseo's `ToolCall` does; explicit choices survive updates.
 
-use vessel_app_kit::output::{Line, Lines, Tone};
+use vessel_app_kit::output::{AnnotatedLines, Line, Lines, Tone, annotated_lines_box};
 use vessel_app_kit::ui::FluentBuilder as _;
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, IntoElement as _, ParentElement as _, Styled as _, Window,
     div, px,
 };
-use vessel_app_kit::{Start, Type, TypeExt as _, lines_box, output_box, version_of};
+use vessel_app_kit::{Start, Type, TypeExt as _, output_box, version_of};
 use vessel_app_view::timeline::{
-    MAX_LINES, Side, ToolDetailSource, ToolView, block_text, diff_lines, json_text,
+    MAX_LINES, Side, ToolDetailSource, ToolView, block_text, diff_lines, json_text, word_highlights,
 };
 use vessel_proto::{ToolCallContent, ToolCallStatus};
 
@@ -248,25 +248,34 @@ pub(super) fn diff(
     // either splits the diff again (their lengths alone kept a first diff
     // on screen after a second of the same lengths).
     let version = version_of(old.unwrap_or("")).rotate_left(1) ^ version_of(new);
-    let lines = lines_box(
+    let lines = annotated_lines_box(
         id,
         version,
         || {
             let (lines, _) = diff_lines(old, new);
-            Lines {
-                lines: lines
-                    .into_iter()
-                    .map(|line| Line {
-                        text: line.text.to_owned().into(),
-                        tone: match line.side {
-                            Side::Removed => Tone::Removed,
-                            Side::Added => Tone::Added,
-                            Side::Context | Side::Header => Tone::Plain,
-                        },
-                        number: line.number,
-                    })
-                    .collect(),
-                copy: None,
+            let highlights = word_highlights(&lines);
+            let emphasis = lines
+                .iter()
+                .enumerate()
+                .map(|(index, _)| highlights.for_line(index).to_vec())
+                .collect();
+            AnnotatedLines {
+                lines: Lines {
+                    lines: lines
+                        .into_iter()
+                        .map(|line| Line {
+                            text: line.text.to_owned().into(),
+                            tone: match line.side {
+                                Side::Removed => Tone::Removed,
+                                Side::Added => Tone::Added,
+                                Side::Context | Side::Header => Tone::Plain,
+                            },
+                            number: line.number,
+                        })
+                        .collect(),
+                    copy: None,
+                },
+                emphasis,
             }
         },
         Start::Top,

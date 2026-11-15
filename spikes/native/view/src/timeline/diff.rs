@@ -6,6 +6,8 @@ use vessel_proto::RawJson;
 
 mod patch;
 pub use patch::unified_lines;
+mod words;
+pub use words::{WordHighlights, word_highlights};
 
 /// Which side a diff's line is on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
