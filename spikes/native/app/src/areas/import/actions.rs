@@ -1,7 +1,6 @@
 //! User actions retain the scope before sending any request.
 
 use super::Picker;
-use crate::areas::session::Open;
 use crate::shell::Shell;
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::Command;
@@ -12,6 +11,9 @@ use vessel_proto::HarnessSessionId;
 impl Shell {
     pub(crate) fn open_import(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let area = &mut self.areas.import;
+        if !area.advance_visit() {
+            return;
+        }
         area.open = true;
         area.prior = window.focused(cx);
         area.failure = None;
@@ -73,6 +75,7 @@ impl Shell {
     pub(super) fn close_import(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let area = &mut self.areas.import;
         area.open = false;
+        area.visit = None;
         area.picker.close();
         area.choosing = None;
         area.profile_request = None;
@@ -129,7 +132,10 @@ impl Shell {
         answer: vessel_app_link::history::Answer,
         cx: &mut Context<'_, Self>,
     ) {
-        let reply = answer.into_reply();
+        self.history_apply_reply(answer.into_reply(), cx);
+    }
+
+    pub(super) fn history_apply_reply(&mut self, reply: Reply, cx: &mut Context<'_, Self>) {
         if let Reply::Profiles {
             scope,
             ticket,
@@ -139,72 +145,17 @@ impl Shell {
             if self.areas.import.profile_request.as_ref() == Some(&(scope, ticket)) {
                 self.areas.import.profiles = result;
                 self.areas.import.profile_request = None;
+                self.areas.import.advance_visit();
             }
             return;
         }
-        let source = match &reply {
-            Reply::Imported { scope, .. } => Some(scope.machine.clone()),
-            Reply::Listed { .. } | Reply::Profiles { .. } => None,
-        };
         if self.areas.import.model.answer(reply) {
+            self.areas.import.advance_visit();
             self.areas.import.reproject();
-            if let Some(source) = source {
-                let open = self.history_receipt_open(&source);
-                if self
-                    .areas
-                    .import
-                    .model
-                    .outcomes()
-                    .iter()
-                    .any(|outcome| outcome.result.is_ok())
-                {
-                    self.command(Command::Reload);
-                }
-                match open {
-                    Ok(Some(open)) if self.areas.import.open => {
-                        self.areas.import.open = false;
-                        self.areas.import.pending_open = Some(open);
-                    }
-                    Ok(Some(_) | None) => {}
-                    Err(problem) => self.areas.import.failure = Some(problem),
-                }
-            }
         }
+        // Receipt installation never navigates or reloads an alias. A later
+        // guarded resident opener must own that effect through its final admission.
         cx.notify();
-    }
-
-    fn history_receipt_open(&self, source: &MachineKey) -> Result<Option<Open>, Problem> {
-        let outcomes = self.areas.import.model.outcomes();
-        if outcomes.is_empty() || outcomes.iter().any(|outcome| outcome.result.is_err()) {
-            return Ok(None);
-        }
-        let scope = self
-            .areas
-            .import
-            .model
-            .scope()
-            .ok_or(Problem::IdentityChanged)?;
-        let context = self
-            .fleet
-            .machines
-            .iter()
-            .find(|machine| machine.name == source.as_str())
-            .and_then(vessel_app_view::Machine::connection_context)
-            .ok_or(Problem::Offline)?;
-        if context != scope.context || Some(context.node()) != self.areas.import.model.listed_node()
-        {
-            return Err(Problem::IdentityChanged);
-        }
-        Ok(outcomes
-            .last()
-            .and_then(|outcome| outcome.result.as_ref().ok())
-            .map(|info| Open::of(&vessel_app_view::Card::from_session(source.as_str(), info))))
-    }
-
-    pub(super) fn history_open_pending(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
-        if let Some(open) = self.areas.import.pending_open.take() {
-            self.open_session(open, window, cx);
-        }
     }
 
     pub(super) fn history_row(
@@ -224,6 +175,7 @@ impl Shell {
             }
             Selection::Available | Selection::Selected => {
                 self.areas.import.model.toggle(id);
+                self.areas.import.advance_visit();
                 cx.notify();
             }
         }

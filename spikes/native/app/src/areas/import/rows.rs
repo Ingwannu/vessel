@@ -20,6 +20,7 @@ pub(super) fn list(
     window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
+    let capture = super::intent::Capture::of(shell);
     let height = f32::from(window.viewport_size().height).mul_add(VIEWPORT_SHARE, 0.0);
     div()
         .h(px(height))
@@ -28,7 +29,10 @@ pub(super) fn list(
         .min_w_0()
         .overflow_hidden()
         .child(shell.areas.import.list.element(cx.processor(
-            |shell: &mut Shell, index: usize, _window, cx| {
+            move |shell: &mut Shell, index: usize, _window, cx| {
+                if !capture.accepts(shell) {
+                    return div().into_any_element();
+                }
                 let tokens = vessel_app_kit::tokens(cx);
                 let area = &shell.areas.import;
                 let Some(id) = area.visible.get(index) else {
@@ -51,7 +55,13 @@ fn row(shell: &Shell, entry: &Entry, tokens: &Tokens, cx: &mut Context<'_, Shell
         Selection::Available => (Glyph::Circle, words.select()),
         Selection::Existing(_) => (Glyph::ChevronRight, words.open()),
     };
-    let id = entry.id.clone();
+    let listener = super::intent::listener(
+        shell,
+        super::intent::Action::Row {
+            id: entry.id.clone(),
+            selection: selected,
+        },
+    );
     div()
         .id(ElementId::Name(
             format!("history-row-{}", entry.id.as_str()).into(),
@@ -84,7 +94,7 @@ fn row(shell: &Shell, entry: &Entry, tokens: &Tokens, cx: &mut Context<'_, Shell
                 .text_color(tokens.neutral.foreground_muted)
                 .child(action),
         )
-        .on_click(cx.listener(move |shell, _, window, cx| shell.history_row(&id, window, cx)))
+        .on_click(cx.listener(move |shell, _, window, cx| listener(shell, window, cx)))
         .into_any_element()
 }
 
