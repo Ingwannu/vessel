@@ -648,3 +648,14 @@ canonical real-writer fixture's ten-second budget or change any assertion.
 The skills/remote sealed diagnostic causes do not prove privacy of the inherited
 common SettingsError::Lost source edge; that owner's later task-error/private
 settings join remains separate.
+
+
+The gate-50 strict run `wp-mcp-runtime-narrow-20261115T162546Z-2839abcc`
+returned two concrete merge issues: the same byte-identical `lsp_config` helper
+had been inserted twice automatically, and the inherited writer fixture's fully
+qualified CancellationToken became unnecessary after its MCP lifetime adapter
+import. One identical helper is retained and the fixture uses the in-scope name.
+No check, assertion, timeout, effect ordering or lint rule changes. The queued
+Settings test on the known compile-red union was superseded only after terminal
+cancellation; the failed strict log is retained. Exact corrected seven-crate
+strict and Settings execution remain owed.

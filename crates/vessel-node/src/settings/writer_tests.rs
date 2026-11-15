@@ -51,7 +51,7 @@ fn settings(root: &std::path::Path) -> Arc<Settings> {
             park_after: ParkAfter::DEFAULT.duration(),
             private_dir: None,
         },
-        tokio_util::sync::CancellationToken::new(),
+        CancellationToken::new(),
     );
     Arc::new(Settings::open(
         DataDir::new(root),

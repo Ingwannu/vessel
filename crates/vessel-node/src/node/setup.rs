@@ -138,19 +138,6 @@ pub(super) fn model_client() -> Result<vessel_llm::client::Client, NodeError> {
         .map_err(NodeError::ModelClient)
 }
 
-/// The LSP manager's configuration with the operator's roots filled in:
-/// executables and toolchains inside any configured root are not trusted
-/// for conservative analysis, so the registry needs the full list.
-pub(super) fn lsp_config(config: &Config) -> vessel_lsp::Config {
-    let mut lsp = config.lsp.clone();
-    lsp.registry.configured_roots = config
-        .lsp_roots
-        .iter()
-        .map(|root| root.path.clone())
-        .collect();
-    lsp
-}
-
 /// Say where the node listens.
 pub(super) fn listening(id: NodeId, address: Option<std::net::SocketAddr>, local: &Endpoint) {
     tracing::info!(
