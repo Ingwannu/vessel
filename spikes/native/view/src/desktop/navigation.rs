@@ -2,6 +2,9 @@
 
 use vessel_proto::{NodeId, SessionId};
 
+/// The supported UUID route is short; reject oversized OS input before splitting.
+const MAX_LINK_BYTES: usize = 256;
+
 /// A destination shared by clipboard generation and OS link delivery.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NavigationTarget {
@@ -17,6 +20,9 @@ pub enum NavigationTarget {
 /// Refusals never retain external URL text, which may contain a credential.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum NavigationError {
+    /// Bound work at the OS/clipboard edge before allocating or parsing identifiers.
+    #[error("desktop link exceeds {MAX_LINK_BYTES} bytes")]
+    TooLong,
     /// Scheme, authority or path does not name a supported route.
     #[error("unsupported desktop link")]
     Route,
@@ -34,15 +40,18 @@ impl NavigationTarget {
     /// # Errors
     /// Rejects every component that is not a validated destination identifier.
     pub fn parse(text: &str) -> Result<Self, NavigationError> {
+        if text.len() > MAX_LINK_BYTES {
+            return Err(NavigationError::TooLong);
+        }
         if text.contains(['?', '#', '@', '%', '\\']) || text.chars().any(char::is_whitespace) {
             return Err(NavigationError::Extra);
         }
         let path = text
             .strip_prefix("vessel://h/")
             .ok_or(NavigationError::Route)?;
-        let parts: Vec<_> = path.split('/').collect();
-        match parts.as_slice() {
-            [node, "session", session] => Ok(Self::Session {
+        let mut parts = path.split('/');
+        match (parts.next(), parts.next(), parts.next(), parts.next()) {
+            (Some(node), Some("session"), Some(session), None) => Ok(Self::Session {
                 node: node
                     .parse()
                     .map_err(|_invalid| NavigationError::Identifier)?,

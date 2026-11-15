@@ -14,6 +14,7 @@ pub(crate) mod board;
 pub(crate) mod common;
 pub(crate) mod composer;
 pub(crate) mod conversation;
+pub(crate) mod desktop;
 pub(crate) mod draft;
 pub(crate) mod edge;
 pub(crate) mod git;
@@ -36,6 +37,7 @@ use crate::shell::Shell;
 pub(crate) struct Areas {
     pub(crate) onboarding: onboarding::Onboarding,
     pub(crate) about: about::AboutState,
+    pub(crate) desktop: desktop::DesktopArea,
     pub(crate) draft: draft::Draft,
     pub(crate) session: session::SessionView,
     pub(crate) pair: pair::Pairing,
@@ -61,6 +63,7 @@ impl Areas {
         let mut areas = Self {
             onboarding: onboarding::Onboarding::new(cx),
             about: about::AboutState::new(cx),
+            desktop: desktop::DesktopArea::new(cx),
             draft: draft::Draft::new(window, cx),
             session: session::SessionView::new(window, cx),
             pair: pair::Pairing::new(window, cx),

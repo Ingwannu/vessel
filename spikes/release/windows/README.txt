@@ -46,3 +46,11 @@ Vessel {LABEL} — Windows 10 (1703 이후) / 11, x64
 Vessel is source-available under PolyForm Strict 1.0.0 (LICENSE.md).
 Embedded fonts: Geist and Geist Mono (Vercel), Pretendard; SIL Open Font
 License 1.1, texts in licenses\.
+
+Session links / 세션 링크
+- vessel:// session links navigate only to an existing session on an authenticated host.
+- Linux: run install-desktop-entry.sh to register the link handler for this user.
+- Windows: the per-user installer registers the handler; the portable ZIP does not.
+- Bare tarballs and portable ZIPs do not register a URL handler by themselves.
+- 링크는 인증된 호스트의 기존 세션으로 이동합니다. 메시지를 보내거나 세션을 만들지 않습니다.
+- Linux는 데스크톱 등록 스크립트, Windows는 사용자 설치 프로그램을 실행해야 링크가 연결됩니다.

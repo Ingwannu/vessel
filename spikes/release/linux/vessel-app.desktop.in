@@ -2,7 +2,8 @@
 Type=Application
 Name=Vessel
 Comment=Machines, sessions and agents, from one window
-Exec="{EXEC}"
+Exec="{EXEC}" %u
 Icon=vessel-app
 Terminal=false
 Categories=Development;
+MimeType=x-scheme-handler/vessel;

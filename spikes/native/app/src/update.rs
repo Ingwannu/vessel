@@ -37,6 +37,10 @@ use vessel_app_updater::{ApplyError, Installation, Settings, Updater, settings_f
 
 use crate::shell::Shell;
 
+/// The app owns the updater even after its first window is closed.
+struct SharedUpdates(Option<std::rc::Rc<Updates>>);
+impl gpui::Global for SharedUpdates {}
+
 /// The updater and what it runs on, owned by the shell.
 pub(crate) struct Updates {
     /// Dropped before the runtime (its task runs there).
@@ -133,7 +137,17 @@ impl Updates {
 
 /// Start updates for this build, and follow them into the shell.
 pub(crate) fn start(shell: &mut Shell, cx: &mut Context<'_, Shell>) {
-    let Some(updates) = Updates::start(!shell.prefs.manual_updates) else {
+    if !cx.has_global::<SharedUpdates>() {
+        cx.set_global(SharedUpdates(
+            Updates::start(!shell.prefs.manual_updates).map(std::rc::Rc::new),
+        ));
+    }
+    let Some(updates) = cx
+        .global::<SharedUpdates>()
+        .0
+        .as_ref()
+        .map(std::rc::Rc::clone)
+    else {
         return;
     };
     shell.updates.runtime = Some(updates);
@@ -176,6 +190,17 @@ async fn follow(
 }
 
 impl Shell {
+    /// Canonical preference broadcasts change the shared timer without another save.
+    pub(crate) fn sync_update_automatically(&self) {
+        if let Some(updater) = self
+            .updates
+            .runtime
+            .as_ref()
+            .and_then(|updates| updates.updater.as_ref())
+        {
+            updater.set_automatic(!self.prefs.manual_updates);
+        }
+    }
     /// The followed updater's state changed.
     fn update_changed(&mut self, generation: u64, state: UpdateState, cx: &mut Context<'_, Self>) {
         let Some(updates) = &self.updates.runtime else {

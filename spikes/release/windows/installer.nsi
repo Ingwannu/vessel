@@ -45,9 +45,12 @@ ManifestDPIAware true
   !error "ICONS is required (the directory tools/make-icons.py wrote)"
 !endif
 
+!define URL_KEY "Software\Classes\vessel"
+
 !define NAME "Vessel"
 !define PUBLISHER "Team-WICKED"
 !define EXE "Vessel.exe"
+!define URL_COMMAND '"$INSTDIR\${EXE}" "%1"'
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\Vessel"
 
 Name "${NAME} ${LABEL}"
@@ -114,9 +117,20 @@ Section "Vessel"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "QuietUninstallString" '"$INSTDIR\uninstall.exe" /S'
   WriteRegDWORD HKCU "${UNINSTALL_KEY}" "NoModify" 1
   WriteRegDWORD HKCU "${UNINSTALL_KEY}" "NoRepair" 1
+
+  ; OS links carry only a destination; validation and authenticated lookup
+  ; happen in the app, never in this registry command.
+  WriteRegStr HKCU "${URL_KEY}" "" "URL:Vessel session link"
+  WriteRegStr HKCU "${URL_KEY}" "URL Protocol" ""
+  WriteRegStr HKCU "${URL_KEY}\shell\open\command" "" '${URL_COMMAND}'
 SectionEnd
 
 Section "Uninstall"
+  ; A later installation or a user-customized handler is not ours to remove.
+  ReadRegStr $0 HKCU "${URL_KEY}\shell\open\command" ""
+  StrCmp $0 '${URL_COMMAND}' 0 url_handler_not_owned
+  DeleteRegKey HKCU "${URL_KEY}"
+  url_handler_not_owned:
   Delete "$SMPROGRAMS\${NAME}.lnk"
   Delete "$INSTDIR\${EXE}"
   Delete "$INSTDIR\LICENSE.md"

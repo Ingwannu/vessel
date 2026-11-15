@@ -17,7 +17,7 @@ build it, and its tree (GPUI's) stays out of the main lock file.
 | Crate | Owns | Must not | Depends on |
 | --- | --- | --- | --- |
 | `view` (`vessel-app-view`) | what a screen means: the board's lanes and phrases, a conversation folded from its records, the permissions waiting; **the words** (`view/src/text/`, the legacy area tables; `view/locales/`, the staged Fluent catalog of ADR 0039) | use any UI toolkit; do I/O | `vessel-proto` |
-| `link` (`vessel-app-link`) | the nodes: the book, connecting, the session list, a session's stream, prompts, answers, pairing; the app's remembered choices (`prefs.rs`); a tokio runtime of its own, commands in and events out on bounded channels (a command the queue does not take comes back typed from `Link::submit`, and the app settles what waited on it in its own words: `app/src/unsent.rs`) | use any UI toolkit | `vessel-app-view`, `vessel-proto`, `vessel-client` |
+| `link` (`vessel-app-link`) | the nodes: the book, connecting, the session list, a session's stream, prompts, answers, pairing; the app's remembered choices (`prefs.rs`); a tokio runtime of its own, commands in and events out on bounded channels (a command the queue does not take comes back typed from `Link::submit`, and the app settles what waited on it in its own words: `app/src/unsent.rs`) | use any UI toolkit | `vessel-app-view`, `vessel-proto`, `vessel-client`, `vessel-proc` |
 | `kit` (`vessel-app-kit`) | Vessel's kit: the design system's tokens in both themes, the type scale with the faces embedded, the controls (button, choice, text field, Markdown), the window's chrome (title bar, window controls, resize edges), its glyphs | know about nodes or sessions | - |
 | `app` (`vessel-app`) | the window, the routes, the areas (screens), the binary | name `gpui-platform` outside its entry points (`main.rs`; `web.rs` in a browser build); depend on `gpui-component` (the kit's); hold a sentence of its own (words come from `view::localization` or the remaining `view::Text` tables) | `vessel-app-kit`, `vessel-app-link`, `vessel-app-view`, `vessel-proto`, `vessel-app-log`, `vessel-app-updater` |
 
@@ -1035,3 +1035,50 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+Desktop launch I/O lives in `link::desktop`; login environment resolution uses
+`vessel-proc` for process-group ownership and bounded pipes. Captured variables
+are applied only to explicitly owned children; Rust process globals are never
+mutated after threads start. This edge reuses the existing process abstraction
+instead of duplicating unsafe platform job/signal code (ADR 0035 extension).
+
+
+### Desktop shell ownership
+
+`view::desktop` owns bounded session-link parsing, restoration geometry, CLI
+control admission and structural changelog parsing. `link::desktop` owns private
+local IPC, installation/PATH file operations, the serialized window writer, the
+canonical preference coordinator and login-shell capture. `app::desktop` owns
+window registration and host startup; `areas::desktop` draws kit menus and CLI
+settings; `areas::about::changelog` draws release history. The native updater
+remains in `app::update` and is shared through an App Global.
+
+A GUI launch is parsed before CLI passthrough. The single-instance lock and a
+private Unix socket (Windows: local named pipe) deliver bounded, acknowledged
+requests. An OS link contains only validated host/session identity. After book
+hydration it enters the session area's authenticated lookup; a project directory
+enters the project area's registration draft. Neither path creates a session,
+sends a prompt or releases project trust. Owning areas register the typed host
+callbacks, rather than duplicating identity lookup in the window manager.
+
+Only the primary window contributes restored bounds. One serial writer coalesces
+changes and acknowledges a final save after earlier writes. Invalid/newer window
+state is preserved. Multiple windows publish deltas against their own last
+snapshot; the canonical preference actor merges those deltas, uses the existing
+private Prefs writer, then broadcasts success or refusal. A corrupt/unreadable
+preferences file stays launch-only and is never replaced.
+
+Login-shell capture has a finite deadline, bounded output and no value logging.
+It uses vessel-proc process groups/jobs and supplies redacted environment data to
+explicitly owned children; process-global environment mutation is unnecessary.
+Windows keeps its inherited environment. `VESSEL_APP_NO_SHELL_ENV` disables the
+capture for an isolated fixture run. `VESSEL_APP_SIZE` remains a geometry override
+for capture runs; it is never persisted as a user preference.
+
+The release contains one compiled signed update channel, so no runtime channel
+selector is offered. An update relaunch uses the updater's existing marker to
+wait for the old instance lock instead of forwarding back into a quitting app.
+The CLI must be bundled separately: `vessel-cli.exe` beside `Vessel.exe` on
+Windows, `vessel` beside `vessel-app` on Unix. A build without it shows an explicit
+unavailable state. User-local installation refuses unrelated files and preserves
+shell rc contents; removal leaves PATH configuration for other local tools.

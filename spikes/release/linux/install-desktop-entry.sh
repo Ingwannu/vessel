@@ -22,4 +22,5 @@ done
 mkdir -p "$data/applications"
 sed "s|{EXEC}|$here/vessel-app|" "$here/vessel-app.desktop.in" >"$entry"
 command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$data/applications" || true
+command -v xdg-mime >/dev/null 2>&1 && xdg-mime default vessel-app.desktop x-scheme-handler/vessel || true
 echo "added $entry"
