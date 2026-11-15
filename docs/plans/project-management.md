@@ -253,3 +253,24 @@ was verified, and all three generated declaration byte streams were installed
 unchanged. No TypeScript was hand-edited. Later directory/config admission changes
 have no wire delta. Freshness and changed-head C1 checks remain owed; this is not
 feature activation, schema assignment or full C1 acceptance.
+
+## Configuration error cause boundary (source only)
+
+[Decision Log]
+- Purpose: outer safe Display/Debug is insufficient if Error::source exposes a
+  parser error containing TOML or a JoinError containing a panic payload.
+- Existing constraint: this lower workspace crate cannot import the node's
+  retained project-task wrapper; callers still need the typed outer error class.
+- Alternatives: dropping causes loses ownership, exposing raw causes leaks source,
+  or importing node code creates a dependency cycle.
+- Choice: a private cause representation retained by ConfigCause; its public
+  Debug/Display/source boundary reveals fixed file/cancelled/panicked classes.
+- Impact: Read/Invalid/Task remain distinct outer variants with the same wire
+  classifications; the original concrete file/task errors remain owned privately.
+  No claim is made about global panic-hook sanitization or unrelated error paths.
+
+Authored regressions cover an actual invalid write with a content canary through
+its complete enclosing Error chain, privately retained file cause, actual static
+and owned panic payloads and actual cancellation. VM execution is owed. This
+changes no file budget, schema, request/response or command approval. Physical
+exclusion, provisioning and full C1 still remain independent incomplete work.

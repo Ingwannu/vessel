@@ -5,6 +5,9 @@
 //! edits without mtime precision; like ordinary file.write, external processes can still
 //! race between comparison and rename. The node serializes its own config writes.
 
+mod cause;
+pub use cause::ConfigCause;
+
 use sha2::{Digest as _, Sha256};
 use std::{
     fmt,
@@ -19,7 +22,7 @@ use vessel_proto::{
 use crate::{
     files,
     paths::{PathError, Root},
-    project_file::{self, ProjectFile, ProjectFileError},
+    project_file::{self, ProjectFile},
 };
 
 /// Failures intentionally do not format source bytes or parser diagnostics into messages.
@@ -30,7 +33,7 @@ pub enum ConfigEditError {
     Root(#[source] PathError),
     /// The existing bounded regular-file reader refused the source.
     #[error("the project configuration cannot be read")]
-    Read(#[source] ProjectFileError),
+    Read(#[source] ConfigCause),
     /// Binary documents cannot be edited as TOML source.
     #[error("the project configuration is not UTF-8 text")]
     NotText(#[source] str::Utf8Error),
@@ -39,7 +42,7 @@ pub enum ConfigEditError {
     Text(#[source] ConfigTextError),
     /// Validation fails before writing; parser source is not echoed.
     #[error("the project configuration does not match the vessel.toml schema")]
-    Invalid(#[source] ProjectFileError),
+    Invalid(#[source] ConfigCause),
     /// Ordinary atomic-file replacement or its content precondition failed.
     #[error("the project configuration could not be saved")]
     Write(#[source] files::FileError),
@@ -48,10 +51,10 @@ pub enum ConfigEditError {
     Name(#[source] InvalidRelPath),
     /// Runtime shutdown/panic is not a successful read or write.
     #[error("the project configuration task stopped")]
-    Task(#[source] tokio::task::JoinError),
+    Task(#[source] ConfigCause),
 }
 
-// Parser causes remain typed for callers, while Debug must never echo TOML source.
+// Source-bearing causes are sealed; outer Debug remains fixed and input-free.
 impl fmt::Debug for ConfigEditError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ConfigEditError")
@@ -67,12 +70,13 @@ impl fmt::Debug for ConfigEditError {
 pub async fn read(folder: PathBuf) -> Result<ConfigDocument, ConfigEditError> {
     tokio::task::spawn_blocking(move || read_now(&folder))
         .await
-        .map_err(ConfigEditError::Task)?
+        .map_err(|cause| ConfigEditError::Task(ConfigCause::task(cause)))?
 }
 
 fn read_now(folder: &Path) -> Result<ConfigDocument, ConfigEditError> {
     let root = Root::open(folder).map_err(ConfigEditError::Root)?;
-    let bytes = project_file::read_bytes(root.path()).map_err(ConfigEditError::Read)?;
+    let bytes = project_file::read_bytes(root.path())
+        .map_err(|cause| ConfigEditError::Read(ConfigCause::file(cause)))?;
     let Some(bytes) = bytes else {
         return Ok(ConfigDocument {
             text: ConfigText::parse("").map_err(ConfigEditError::Text)?,
@@ -103,11 +107,11 @@ pub async fn write(
     expected: ConfigRevision,
     text: ConfigText,
 ) -> Result<ConfigDocument, ConfigEditError> {
-    let _validated =
-        ProjectFile::parse(text.as_str().as_bytes()).map_err(ConfigEditError::Invalid)?;
+    let _validated = ProjectFile::parse(text.as_str().as_bytes())
+        .map_err(|cause| ConfigEditError::Invalid(ConfigCause::file(cause)))?;
     let root = tokio::task::spawn_blocking(move || Root::open(&folder))
         .await
-        .map_err(ConfigEditError::Task)?
+        .map_err(|cause| ConfigEditError::Task(ConfigCause::task(cause)))?
         .map_err(ConfigEditError::Root)?;
     let path: RelPath = project_file::FILE_NAME
         .parse()

@@ -40,7 +40,7 @@ async fn malformed_source_can_be_repaired_but_an_invalid_save_changes_nothing() 
     std::fs::write(&path, "[worktree\nsetup = 'broken'").unwrap();
     let invalid = read(root.clone()).await.unwrap();
     assert_eq!(invalid.validity, ConfigValidity::Invalid);
-    let rejected_source = "[worktree\n";
+    let rejected_source = "[worktree]\nsetup = 'PRIVATE_CONFIG_CONTENT_CANARY\n";
     let error = write(
         root.clone(),
         invalid.revision.clone(),
@@ -52,10 +52,15 @@ async fn malformed_source_can_be_repaired_but_an_invalid_save_changes_nothing() 
     assert!(
         std::error::Error::source(&error)
             .unwrap()
-            .is::<ProjectFileError>()
+            .is::<ConfigCause>()
     );
     assert!(!format!("{error:?}").contains(rejected_source));
     assert!(!error.to_string().contains(rejected_source));
+    let mut cause = std::error::Error::source(&error);
+    while let Some(current) = cause {
+        assert!(!format!("{current:?} {current}").contains("PRIVATE_CONFIG_CONTENT_CANARY"));
+        cause = current.source();
+    }
     assert_eq!(
         std::fs::read_to_string(&path).unwrap(),
         invalid.text.as_str()
@@ -81,7 +86,7 @@ async fn reads_share_the_existing_bound_and_refuse_binary_and_missing_roots() {
     std::fs::write(&path, vec![b'#'; project_file::MAX_BYTES + 1]).unwrap();
     assert!(matches!(
         read(root.clone()).await,
-        Err(ConfigEditError::Read(ProjectFileError::TooLarge))
+        Err(ConfigEditError::Read(_))
     ));
     std::fs::write(&path, [0xff]).unwrap();
     assert!(matches!(
