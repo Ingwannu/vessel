@@ -3,7 +3,7 @@
 mod draw;
 use super::{MAX_RETAINED_SURFACES, Scripts};
 use crate::shell::Shell;
-pub(super) use draw::render;
+pub(super) use draw::{receipt, render};
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::workspace::ScriptAnswer;
 use vessel_app_view::workspace::git::RequestKey;

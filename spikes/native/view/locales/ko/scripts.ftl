@@ -176,3 +176,15 @@ scripts-open-terminal = 터미널 열기
 scripts-observed-run = 기록된 실행 명령 및 디렉터리
 # Existing script.restart repeats its captured run plan, even if the file changed.
 scripts-restart-uses-run = 재시작은 이 실행에 저장된 명령과 작업 디렉터리를 다시 사용합니다.
+
+# Original operation receipt only; never current process or health authority.
+scripts-receipt-pending = 원래 요청의 응답을 기다리는 중입니다.
+
+# Original operation receipt only; never current process or health authority.
+scripts-receipt-uncertain = 요청이 실패했습니다. 원격 실행 결과는 아직 알 수 없을 수 있습니다.
+
+# Original operation receipt only; never current process or health authority.
+scripts-receipt-acknowledged = 노드가 이 요청을 확인했습니다. 다음 동작 전에 현재 상태를 새로고침하세요.
+
+# Original operation receipt only; never current process or health authority.
+scripts-receipt-started = 노드가 실행 시작을 보고했습니다. 이 응답은 현재 상태나 서비스 정상 여부를 나타내지 않습니다. 새로고침하세요.

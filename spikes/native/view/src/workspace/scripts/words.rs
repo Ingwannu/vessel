@@ -45,3 +45,20 @@ pub fn issue<'a>(words: &'a Translator, issue: &Issue) -> &'a str {
         },
     }
 }
+
+/// A retained receipt reports only that operation's answer, never current health.
+#[must_use]
+pub fn receipt<'a>(words: &'a Translator, write: &super::RetiredWrite) -> &'a str {
+    use vessel_proto::scripts::ScriptRunOutcome;
+    let labels = words.scripts();
+    match write.receipt() {
+        None => labels.receipt_pending(),
+        Some(Err(_problem)) => labels.receipt_uncertain(),
+        Some(Ok(None)) => labels.receipt_acknowledged(),
+        Some(Ok(Some(ScriptRunOutcome::Started { .. }))) => labels.receipt_started(),
+        Some(Ok(Some(ScriptRunOutcome::NeedsApproval { .. }))) => labels.approval(),
+        Some(Ok(Some(ScriptRunOutcome::Refused { reason }))) => {
+            issue(words, &Issue::Refused(reason.clone()))
+        }
+    }
+}

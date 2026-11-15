@@ -121,6 +121,12 @@ pub(super) fn draw_retired(
             .flex()
             .flex_col()
             .child(super::super::ports::notice(words.retired(), tokens))
+            .children(
+                controls
+                    .last_write
+                    .as_ref()
+                    .map(|write| super::super::history::receipt(shell, write)),
+            )
             .child(reload)
             .into_any_element(),
     )

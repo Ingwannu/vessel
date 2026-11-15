@@ -460,3 +460,10 @@ stopping remote work. Pending and later unseen responses survive a stale
 acknowledgement. Acknowledging a retired panel's received record can release its
 UI slot; an active successor keeps its model and tickets. An error receipt still
 has an unknown remote outcome and never supplies process or bootstrap authority.
+
+
+Retained-result cards show the original host/resource and Run/Stop/Restart
+intention with a safe typed receipt label before acknowledgement. Raw error
+messages and returned configuration never become notice text. A returned error
+is still uncertainty, Started describes only the original node reply, and no
+receipt substitutes for a fresh current status or a health observation.

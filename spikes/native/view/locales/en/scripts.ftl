@@ -176,3 +176,15 @@ scripts-open-terminal = Open terminal
 scripts-observed-run = Recorded run command and directory
 # Existing script.restart repeats its captured run plan, even if the file changed.
 scripts-restart-uses-run = Restart repeats this run's command and working directory.
+
+# Original operation receipt only; never current process or health authority.
+scripts-receipt-pending = Waiting for the original request to return.
+
+# Original operation receipt only; never current process or health authority.
+scripts-receipt-uncertain = The request failed; its remote outcome may still be unknown.
+
+# Original operation receipt only; never current process or health authority.
+scripts-receipt-acknowledged = The node acknowledged this request. Refresh current status before another action.
+
+# Original operation receipt only; never current process or health authority.
+scripts-receipt-started = The node reported a started run. Refresh current status; this receipt does not show current health.
