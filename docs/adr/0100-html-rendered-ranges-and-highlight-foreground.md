@@ -66,3 +66,13 @@ Write behavior assertions first and preserve them through implementation. Baseli
 ## Qualification and ownership
 
 V1 direction comes before implementation. Then run the failing-first actual engine fixtures, implement only the approved seam, update the vendored patch list with its Why, and run exact Kit strict/engine tests on the final producer. The clean producer has no A7 timeline/host/root-opening change. A7 wires its one prompt caller only after the checked hash and performs its own consumer/selection/find validation. No capture, UI approval or full B2/A7 acceptance is inferred from contract or engine tests.
+
+## V1 direction incorporated before source
+
+Direction on exact66e6e2ad clears this same-engine contract only. HTML key identity is a separate domain scoped to the exact parsed document/committed revision; the same key/traversal must reach index, ordinary paint, reveal and selection. It cannot survive a reparse as authority even when text length and leaf ordinal repeat. Preserve the existing asynchronous commit fence, including A→B→A; invalidate at accepted replacement and commit.
+
+Color-only updates invalidate the same retained StyledText/TextRun cache entry without changing metrics, fonts, underline/link/code styling, fade semantics, background order or selection overlay. Last overlapping Some foreground wins; None never erases an earlier supplied foreground.
+
+Applied kit marks must match the actual retained owner and committed rendered revision as well as request key, relevant palette and current-match ordinal. Equal external keys after a reparse cannot suppress reapplication. Only an accepted complete set is cached; invalid UTF-8/reversed/OOB sets preserve prior paint, empty accepted sets clear, and reveal acceptance remains separate from real scrolling.
+
+The approved failing-first strategy uses existing APIs: HTML assertions fail on Unsupported and Markdown actual-drawn TextRun assertions fail on missing ink. Later fixture helpers add only explicit opt-in/foreground calls; assertions remain. Final qualification also includes both themes, overlap/update/clear, actual partial/multiblock Plain selection and list reveal, reparse/A→B→A stale-work rejection, default HTML Unsupported, unchanged Markdown/source behavior and rejected-mark retry. This is not source/runtime/UI or caller adoption.
