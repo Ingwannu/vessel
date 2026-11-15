@@ -90,7 +90,9 @@ pub(crate) trait Place: 'static {
     /// it. An area holding a request without its session's log (the
     /// inbox) gives the call it keeps, never a record made up for it.
     fn tool<'a>(shell: &'a Shell, id: &ToolCallId) -> Option<&'a ToolView> {
-        (Self::SEAT.get)(shell).and_then(|area| area.timeline.tool_call(id))
+        Self::SEAT
+            .get(shell)
+            .and_then(|area| area.timeline.tool_call(id))
     }
 }
 
