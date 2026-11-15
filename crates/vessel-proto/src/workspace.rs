@@ -74,7 +74,8 @@ pub use worktree::{
 };
 
 pub use setup_progress::{
-    CancelSetup, CancelSetupOutcome, InvalidSetupCommandIndex, ReadSetupProgress,
-    SetupCommandIndex, SetupCommandProgress, SetupCommandResult, SetupCommandState, SetupCursor,
-    SetupProgress, SetupProgressReply, SetupRunState, WORKTREE_SETUP_OBSERVATION,
+    CancelSetup, CancelSetupOutcome, InvalidSetupCommandIndex, InvalidSetupProgress,
+    MAX_SETUP_COMMAND_OUTPUT_BYTES, MAX_SETUP_OUTPUT_BYTES, ReadSetupProgress, SetupCommandIndex,
+    SetupCommandProgress, SetupCommandResult, SetupCommandState, SetupCursor, SetupProgress,
+    SetupProgressReply, SetupRunState, WORKTREE_SETUP_OBSERVATION,
 };

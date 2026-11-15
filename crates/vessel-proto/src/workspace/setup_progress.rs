@@ -5,6 +5,9 @@ use std::num::NonZeroU32;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+mod limits;
+pub use limits::{InvalidSetupProgress, MAX_SETUP_COMMAND_OUTPUT_BYTES, MAX_SETUP_OUTPUT_BYTES};
+
 use super::{MAX_PROJECT_COMMANDS, ProjectCommand};
 use crate::{DurationMs, ProtocolVersion, SetupRevision, SetupRunId, TerminalBytes, WorktreeId};
 
@@ -151,8 +154,9 @@ pub struct SetupProgress {
     pub state: SetupRunState,
     /// Wall-clock start for display.
     pub started_at: DateTime<Utc>,
-    /// Approved-order rows. A later producer/decoder must validate count, order,
-    /// unique ordinals and output budgets; this public vector is not validated.
+    /// Decoding checks count, ordered ordinals and per-command/aggregate output.
+    /// Locally constructed DTOs must call `validate` before renderer admission.
+    #[serde(deserialize_with = "limits::decode_commands")]
     pub commands: Vec<SetupCommandProgress>,
 }
 

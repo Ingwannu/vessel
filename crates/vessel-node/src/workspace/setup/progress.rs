@@ -5,14 +5,13 @@
 
 use chrono::Utc;
 use vessel_proto::workspace::{
-    MAX_PROJECT_COMMANDS, ProjectCommand, SetupCommandIndex, SetupCommandProgress,
-    SetupCommandResult, SetupCommandState, SetupCursor, SetupProgress, SetupRunState,
+    MAX_PROJECT_COMMANDS, MAX_SETUP_COMMAND_OUTPUT_BYTES as MAX_COMMAND_OUTPUT, ProjectCommand,
+    SetupCommandIndex, SetupCommandProgress, SetupCommandResult, SetupCommandState, SetupCursor,
+    SetupProgress, SetupRunState,
 };
 use vessel_proto::{DurationMs, SetupRevision, SetupRunId, TerminalBytes, WorktreeId};
 use vessel_workspace::commands::{CommandEvent, CommandOutcome};
 
-/// Paseo keeps at most 64 KiB of a command's output, preserving head and tail.
-const MAX_COMMAND_OUTPUT: usize = 64 * 1024;
 const MIDDLE_MARKER: &[u8] = b"\n...<output truncated in the middle>...\n";
 const CONTENT_BUDGET: usize = MAX_COMMAND_OUTPUT.saturating_sub(MIDDLE_MARKER.len());
 const HEAD_BUDGET: usize = CONTENT_BUDGET.div_ceil(2);

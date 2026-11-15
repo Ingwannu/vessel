@@ -168,3 +168,26 @@ the empty-setup branch; explicit Skip records Skipped. This closes the planning
 bypass without enabling automatic terminal creation. Approved terminal-only
 plans still do not spawn anything until the reviewed registry backend and
 post-setup hook are integrated. The plan regression tests only that boundary.
+
+## Snapshot admission after the scalar carrier
+
+[Decision Log]
+- Purpose: keep structured setup responses bounded when decoded from a peer,
+  rather than trusting the public DTO vector or generic terminal byte wrapper.
+- Constraint: the reviewed scalar carrier deliberately did not validate complete
+  snapshots; direct Rust construction remains possible for producer and fixtures.
+- Alternatives: comments alone cannot reject malformed peer snapshots; a second
+  renderer-side limit could drift from the actual truncation accumulator.
+- Choice: the proto owner defines the per-command output budget once, derives
+  the aggregate from the canonical project command count, and checks contiguous
+  one-based ordinals, count and output budgets while collecting decoded rows.
+  The runner imports that same budget. Local DTO users call `validate` explicitly.
+- Tradeoff: row decoding still uses the existing generic terminal byte decoder,
+  within the transport's independent frame limit; this is not a streaming byte
+  parser. A bad row is rejected before insertion into the admitted row vector.
+  It grants no workspace, process or Preview authority.
+
+Boundary regressions admit the full command count with every output exactly at
+its cap, reject one extra output byte, excess rows, duplicate ordinals and
+reordering through both local validation and actual serde decoding. These are
+later decoder/runtime changes, not retroactive evidence for the scalar carrier.
