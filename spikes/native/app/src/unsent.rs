@@ -120,6 +120,7 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             kind: act.kind(),
             result: Err(ActFailed {
                 code: Some(ErrorCode::Unavailable),
+                message: said(),
             }),
         }),
         Command::Pair { .. } => Event::PairFailed(vessel_app_view::pairing::PairProblem::Unsent),

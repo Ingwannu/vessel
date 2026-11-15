@@ -376,3 +376,10 @@ and a separate native-target condition, matching the existing prompt-index test
 registration and allowing Clippy to recognize these helpers as test code. No lint
 expectation, production behavior or assertion is weakened. Both red receipts
 remain evidence; the corrected source still requires its changed-source check.
+
+The third wider strict check (75ea9d765) reached App and exposed an A3 editing
+error: removing peer message text from search failures had also removed the
+unrelated ActFailed queue-refusal message. That field is restored byte-for-byte
+from the announced base. Only search failures use A3's safe typed facts; ordinary
+session act failures keep their existing contract. This is an owned correction,
+not a base defect, and the red receipt is retained.
