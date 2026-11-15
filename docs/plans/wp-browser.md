@@ -503,3 +503,23 @@ scope. Ends are Closed/Revoked/Lagged/typedFailure, with no fake durable resume
 cursor. Slow watches must reopen. These are value types only: no new ServerFrame,
 RPC producer/client route or successful frame fixture is registered. Pending
 browser.watch remains NoEngine until the real scoped stream/engine wiring.
+
+
+## MCP result projection (staged)
+
+The output edge verifies the returned operation kind and target before emitting
+content. An inconsistent reply produces a fixed uncertain-effect refusal, never
+a mutation-retry instruction or another tab's image. Screenshot data appears
+only once as an MCP image block; text and structured metadata include dimensions
+and identity without base64. Tab favicons are omitted from agent metadata as UI
+content, preventing large image duplication in tab inventories. Non-image results
+retain typed result metadata. The structural screenshot regression uses a real
+PNG of our own synthetic private-pipe canary, with provenance and scope notice;
+it does not advertise a browser implementation/qualified engine or visible frame.
+No dispatcher, tool list or policy lease is enabled by this test-staged encoder.
+
+Latest strict68 stopped on nine style/test diagnostics (docs, pointer enum prefix,
+helper value ownership, moved DTO declaration and consumed read counts). They
+are corrected without changing domain behavior; exact00ae functional suite
+completed493/0/0 before the later launcher/watch/output additions. Current
+changed-source strict/functional evidence remains owed.

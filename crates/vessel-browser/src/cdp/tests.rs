@@ -16,6 +16,11 @@ const FIXTURE_DEADLINE: Duration = Duration::from_secs(20);
 const EXCESS_EVENT_COUNT: usize = 33;
 
 #[derive(Deserialize)]
+struct CommandIdentity {
+    id: CommandId,
+}
+
+#[derive(Deserialize)]
 struct NumberResult {
     value: u8,
 }
@@ -262,11 +267,7 @@ async fn a_reply_from_another_flattened_session_fails_closed() {
             let (socket, _) = listener.accept().await.unwrap();
             let mut socket = tokio_tungstenite::accept_async(socket).await.unwrap();
             let frame = socket.next().await.unwrap().unwrap();
-            #[derive(Deserialize)]
-            struct Identity {
-                id: CommandId,
-            }
-            let call: Identity = serde_json::from_str(frame.to_text().unwrap()).unwrap();
+            let call: CommandIdentity = serde_json::from_str(frame.to_text().unwrap()).unwrap();
             let reply = serde_json::json!({"id":call.id,"sessionId":"another-target","result":{}});
             socket
                 .send(Message::Text(reply.to_string().into()))

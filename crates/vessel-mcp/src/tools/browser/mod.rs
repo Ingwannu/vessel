@@ -1,10 +1,11 @@
 //! MCP's browser JSON edge, staged until shared policy and qualified node wiring.
 //!
 //! Removal of outer cfg(test): `browser: wire the qualified node browser actor`,
-//! together with W18 ToolId::Browser admission. This module does not register or
+//! together with W18 `ToolId::Browser` admission. This module does not register or
 //! advertise tools. Names come only from `BrowserTool`; JSON is inspected only at
 //! this foreign edge, then converted into the node's closed command vocabulary.
 
+mod output;
 mod schema;
 
 use rmcp::model::JsonObject;

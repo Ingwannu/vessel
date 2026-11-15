@@ -8,10 +8,14 @@ use vessel_proto::browser::{
 #[derive(Debug, Clone, Copy, Serialize)]
 #[serde(rename_all = "camelCase")]
 enum Kind {
-    MouseMoved,
-    MousePressed,
-    MouseReleased,
-    MouseWheel,
+    #[serde(rename = "mouseMoved")]
+    Move,
+    #[serde(rename = "mousePressed")]
+    Press,
+    #[serde(rename = "mouseReleased")]
+    Release,
+    #[serde(rename = "mouseWheel")]
+    Wheel,
 }
 #[derive(Debug, Clone, Copy, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -144,14 +148,14 @@ impl MouseEvent {
         state: &mut PointerState,
     ) -> Self {
         let (kind, button, clicks) = match action {
-            PointerAction::Move => (Kind::MouseMoved, Button::None, Clicks(0)),
+            PointerAction::Move => (Kind::Move, Button::None, Clicks(0)),
             PointerAction::Press(button) => {
                 state.set(button, Held::Pressed);
-                (Kind::MousePressed, Button::from(button), Clicks(1))
+                (Kind::Press, Button::from(button), Clicks(1))
             }
             PointerAction::Release(button) => {
                 state.set(button, Held::Released);
-                (Kind::MouseReleased, Button::from(button), Clicks(1))
+                (Kind::Release, Button::from(button), Clicks(1))
             }
         };
         Self {
@@ -174,7 +178,7 @@ impl MouseEvent {
         state: &PointerState,
     ) -> Self {
         Self {
-            kind: Kind::MouseWheel,
+            kind: Kind::Wheel,
             x: point.x,
             y: point.y,
             button: Button::None,

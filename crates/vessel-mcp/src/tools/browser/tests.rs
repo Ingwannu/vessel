@@ -8,7 +8,10 @@ use vessel_proto::browser::{
 const ID: &str = "00000000-0000-4000-8000-000000000001";
 
 fn args(value: Value) -> JsonObject {
-    value.as_object().unwrap().clone()
+    let Value::Object(value) = value else {
+        panic!("fixture must be an object")
+    };
+    value
 }
 fn fixture(tool: BrowserTool) -> JsonObject {
     let mut input = args(

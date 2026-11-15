@@ -1,6 +1,6 @@
 //! Private debugger I/O. Raw bytes here are framing buffers, never domain payloads.
 //!
-//! Pipe reads retain their buffer in the owner across cancelled next() futures.
+//! Pipe reads retain their buffer in the owner across cancelled `next()` futures.
 //! No EOF, malformed stdout or failed pipe can select a WebSocket fallback.
 use super::client::{CdpError, WRITE_TIMEOUT};
 use super::wire::MAX_MESSAGE_BYTES;
@@ -138,7 +138,7 @@ mod tests {
             assert_eq!(pipe.next().await.unwrap().unwrap(),"{\"id\":1}");
             assert_eq!(pipe.next().await.unwrap().unwrap(),"{\"id\":2}");
             pipe.send("{\"id\":3}".to_owned()).await.unwrap();
-            let mut answer=[0;9];peer.read_exact(&mut answer).await.unwrap();
+            let mut answer=[0;9];let _read = peer.read_exact(&mut answer).await.unwrap();
             assert_eq!(&answer,b"{\"id\":3}\0");
             peer.write_all(b"unterminated").await.unwrap();peer.shutdown().await.unwrap();
             assert!(matches!(pipe.next().await,Err(CdpError::Protocol)));

@@ -11,7 +11,7 @@ async fn typed_driver_uses_the_owned_nul_pipe_without_discovering_a_socket() {
         let (client,_events)=Client::start(transport::Pipe::new(read,write));
         let peer=tokio::spawn(async move {
             let mut peer=BufReader::new(peer);
-            let mut request=Vec::new();peer.read_until(0,&mut request).await.unwrap();
+            let mut request=Vec::new();let _read = peer.read_until(0,&mut request).await.unwrap();
             assert_eq!(request.pop(),Some(0));
             let request:serde_json::Value=serde_json::from_slice(&request).unwrap();
             assert_eq!(request["method"],"Browser.getVersion");

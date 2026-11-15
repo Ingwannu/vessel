@@ -2,7 +2,7 @@
 //!
 //! These values are staged before stream transport/engine wiring. A PNG payload
 //! or descriptor is not runtime/paint qualification. Frames and direct human
-//! input must never enter EventRecord, session history, diagnostics or layout.
+//! input must never enter `EventRecord`, session history, diagnostics or layout.
 use super::{BrowserFailure, BrowserId, BrowserRevision, BrowserTab, ScreenshotPng, ViewportSize};
 use crate::WorkspaceId;
 use serde::{Deserialize, Serialize};
@@ -63,7 +63,7 @@ pub enum BrowserWatchEnd {
         failure: BrowserFailure,
     },
 }
-/// One ordered content/state/end channel, never a SessionEvent wrapper.
+/// One ordered content/state/end channel, never a `SessionEvent` wrapper.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct BrowserUpdate {

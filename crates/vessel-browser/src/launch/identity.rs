@@ -35,7 +35,7 @@ pub(crate) enum LaunchError {
     #[error("browser execution requires a non-root service account")]
     Account,
 }
-/// Hashes alone never become a QualifiedRuntime token.
+/// Hashes alone never become a `QualifiedRuntime` token.
 pub(super) struct Candidate;
 impl Candidate {
     pub(super) fn inspect() -> Result<Self, LaunchError> {

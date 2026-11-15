@@ -1,0 +1,189 @@
+//! MCP output encoding edge. JSON values exist only for this foreign protocol.
+//!
+//! A screenshot is one image block plus image-free metadata. Tab favicons are
+//! UI data and are omitted from agent metadata; no remote icon URL is fetched.
+use rmcp::model::{CallToolResult, ContentBlock};
+use serde_json::{Value, json};
+use vessel_proto::browser::{BrowserCommand, BrowserId, BrowserResult, BrowserTab, BrowserTool};
+
+pub(super) fn render(
+    command: &BrowserCommand,
+    result: BrowserResult,
+) -> Result<CallToolResult, serde_json::Error> {
+    if !accepts(command.tool(), &result)
+        || command
+            .target()
+            .is_some_and(|expected| target(&result) != Some(expected))
+    {
+        return Ok(CallToolResult::error(vec![ContentBlock::text(
+            "Browser result did not match the requested operation or target. Its effects are uncertain.",
+        )]));
+    }
+    let tool = command.tool();
+    let Some(name) = tool.name().strip_prefix("browser_") else {
+        return Ok(CallToolResult::error(vec![ContentBlock::text(
+            "Browser result could not be identified.",
+        )]));
+    };
+    let (mut metadata, image) = match result {
+        BrowserResult::Screenshot { browser_id, image } => {
+            let size = image.size();
+            let meta = json!({"browserId":browser_id,"width":size.width().get(),"height":size.height().get(),"mimeType":"image/png"});
+            let encoded: String = image.into();
+            (meta, Some(ContentBlock::image(encoded, "image/png")))
+        }
+        BrowserResult::Tab { tab } => (json!({"tab":tab_metadata(&tab)?}), None),
+        BrowserResult::Tabs { tabs } => {
+            let tabs = tabs
+                .as_slice()
+                .iter()
+                .map(tab_metadata)
+                .collect::<Result<Vec<_>, _>>()?;
+            (json!({"tabs":tabs}), None)
+        }
+        other @ (BrowserResult::Applied { .. }
+        | BrowserResult::Snapshot { .. }
+        | BrowserResult::Evaluation { .. }
+        | BrowserResult::Logs { .. }
+        | BrowserResult::Matched { .. }
+        | BrowserResult::Closed { .. }) => (serde_json::to_value(other)?, None),
+    };
+    let Some(fields) = metadata.as_object_mut() else {
+        return Ok(CallToolResult::error(vec![ContentBlock::text(
+            "Browser result metadata could not be encoded.",
+        )]));
+    };
+    let _kind = fields.remove("kind");
+    let _old = fields.insert("command".into(), json!(name));
+    if let Some(id) = fields.remove("browser_id") {
+        let _old = fields.insert("browserId".into(), id);
+    }
+    let structured = json!({"ok":true,"result":metadata});
+    let text = serde_json::to_string(&structured)?;
+    let mut content = vec![ContentBlock::text(text)];
+    if let Some(image) = image {
+        content.push(image);
+    }
+    let mut reply = CallToolResult::success(content);
+    reply.structured_content = Some(structured);
+    Ok(reply)
+}
+fn tab_metadata(tab: &BrowserTab) -> Result<Value, serde_json::Error> {
+    let mut value = serde_json::to_value(tab)?;
+    if let Some(fields) = value.as_object_mut() {
+        let _icon = fields.remove("icon");
+    }
+    Ok(value)
+}
+fn target(result: &BrowserResult) -> Option<&BrowserId> {
+    match result {
+        BrowserResult::Tabs { .. } => None,
+        BrowserResult::Tab { tab } => Some(&tab.browser_id),
+        BrowserResult::Applied { browser_id }
+        | BrowserResult::Snapshot { browser_id, .. }
+        | BrowserResult::Screenshot { browser_id, .. }
+        | BrowserResult::Evaluation { browser_id, .. }
+        | BrowserResult::Logs { browser_id, .. }
+        | BrowserResult::Matched { browser_id }
+        | BrowserResult::Closed { browser_id } => Some(browser_id),
+    }
+}
+fn accepts(tool: BrowserTool, result: &BrowserResult) -> bool {
+    use BrowserTool as T;
+    match tool {
+        T::ListTabs => matches!(result, BrowserResult::Tabs { .. }),
+        T::NewTab | T::Navigate | T::Back | T::Forward | T::Reload | T::Resize => {
+            matches!(result, BrowserResult::Tab { .. })
+        }
+        T::Snapshot => matches!(result, BrowserResult::Snapshot { .. }),
+        T::Click
+        | T::Fill
+        | T::Type
+        | T::Keypress
+        | T::Upload
+        | T::Select
+        | T::Hover
+        | T::Drag
+        | T::Scroll => matches!(result, BrowserResult::Applied { .. }),
+        T::Wait => matches!(result, BrowserResult::Matched { .. }),
+        T::Screenshot => matches!(result, BrowserResult::Screenshot { .. }),
+        T::Logs => matches!(result, BrowserResult::Logs { .. }),
+        T::Evaluate => matches!(result, BrowserResult::Evaluation { .. }),
+        T::CloseTab => matches!(result, BrowserResult::Closed { .. }),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use vessel_proto::browser::{NoBrowserArgs, ScreenshotArgs, ScreenshotPng};
+    fn id(last: char) -> BrowserId {
+        format!("00000000-0000-4000-8000-00000000000{last}")
+            .parse()
+            .unwrap()
+    }
+    fn screenshot() -> ScreenshotPng {
+        ScreenshotPng::from_png(bytes::Bytes::from_static(include_bytes!(
+            "fixtures/pipe-canary.png"
+        )))
+        .unwrap()
+    }
+    #[test]
+    fn image_is_present_once_and_never_duplicated_in_structured_or_text_metadata() {
+        let image = screenshot();
+        let encoded = String::from(image.clone());
+        let command = BrowserCommand::Screenshot(ScreenshotArgs {
+            browser_id: id('1'),
+            extent: Default::default(),
+        });
+        let result = render(
+            &command,
+            BrowserResult::Screenshot {
+                browser_id: id('1'),
+                image,
+            },
+        )
+        .unwrap();
+        let images = result
+            .content
+            .iter()
+            .filter_map(ContentBlock::as_image)
+            .collect::<Vec<_>>();
+        assert_eq!(images.len(), 1);
+        assert_eq!(images.first().unwrap().data, encoded);
+        let metadata = serde_json::to_string(&result.structured_content).unwrap();
+        assert!(!metadata.contains(&encoded));
+        for text in result.content.iter().filter_map(ContentBlock::as_text) {
+            assert!(!text.text.contains(&encoded));
+        }
+        assert_eq!(
+            result.structured_content.unwrap()["result"]["width"],
+            json!(390)
+        );
+    }
+    #[test]
+    fn mismatched_target_or_operation_refuses_before_exposing_a_result() {
+        let command = BrowserCommand::Screenshot(ScreenshotArgs {
+            browser_id: id('1'),
+            extent: Default::default(),
+        });
+        let result = render(
+            &command,
+            BrowserResult::Screenshot {
+                browser_id: id('2'),
+                image: screenshot(),
+            },
+        )
+        .unwrap();
+        assert_eq!(result.is_error, Some(true));
+        assert!(result.content.iter().all(|item| item.as_image().is_none()));
+        let result = render(
+            &BrowserCommand::ListTabs(NoBrowserArgs {}),
+            BrowserResult::Applied {
+                browser_id: id('1'),
+            },
+        )
+        .unwrap();
+        assert_eq!(result.is_error, Some(true));
+    }
+}
