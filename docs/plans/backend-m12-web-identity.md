@@ -87,3 +87,25 @@ only test layout and fixture construction change. Original head assertions
 are unchanged except the previously authorized silent-expiry expectation;
 one child-test registration is added after them. Subsequent checks use the
 ordinary lane, as the one-priority-run ruling requires.
+
+## Validation checkpoint
+
+The corrected source is `7535d60cdace478b183b49287f851e559f96ef18`.
+Its ordinary strict run, `webparity-20261115T174436Z-7535d60c`, passes
+`clippy --locked -p vessel-web --all-targets -- -D warnings` in 115 seconds.
+The raw log records a fresh `vessel-web` compilation. Source review accepts
+the production correction and the private-fixture test correction separately;
+it is not final runtime approval.
+
+The real-server test run, `webparity-20261115T185321Z-7535d60c`, is still
+queued in the ordinary lane. Its plan includes the web bundle and both fake
+and daemon prebuilds before `test --locked -p vessel-web --all-targets`.
+Neither new Rust regression has an executed result at this checkpoint.
+The exact corrected format check, generated TypeScript verification and one
+owning root/web gate remain unverified. The earlier compile failure and
+queued cancellation remain adverse history, not passing tests.
+
+The continuation is recorded in `backend-m12-web-identity-resume.md`.
+This checkpoint changes documentation only; the queued test continues to
+select its original immutable source. No new authentication, timeout,
+assertion, wire or dependency change accompanies these status notes.
