@@ -65,7 +65,7 @@ fn identified_multiline_plain_enter_and_mod_submit_report_the_actual_engine_sour
         cx.simulate_keystrokes(submit);
         cx.run_until_parked();
         view.read_with(cx, |this, _| {
-            assert_eq!(this.submitted, [(this.field.id(), "first\n둘째".into())])
+            assert_eq!(this.submitted, [(this.field.id(), "first\n둘째".into())]);
         });
     }
 }

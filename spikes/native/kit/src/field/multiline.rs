@@ -1,12 +1,12 @@
-//! One multiline input factory; Plain and Identified share TextareaState/listen.
+//! One multiline input factory; `Plain` and `Identified` share `TextareaState`/`listen`.
 //!
 //! [Decision Log]
 //! - Purpose: scheduled prompts need their actual input source, as lines do.
-//! - Existing assets: the checked FieldId and Plain/Identified callback enum.
+//! - Existing assets: the checked `FieldId` and `Plain`/`Identified` callback enum.
 //! - Choice: feed that enum into the SAME multiline factory, preserving all
-//!   old engines/Enter/growth/Editability/FormMinimum defaults and signatures.
+//!   old engines/Enter/growth/`Editability`/`FormMinimum` defaults and signatures.
 //! - Why/cost: no second subscription/textarea or visit counter; moving the
-//!   constructors and SendOn together keeps registration headroom in the root.
+//!   constructors and `SendOn` together keeps registration headroom in the root.
 use super::{
     Callbacks, FormMinimum, Handlers, Kind, Known, MultilineStyle, TextField, TextareaState,
     listen, register,

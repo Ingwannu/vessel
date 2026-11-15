@@ -2,11 +2,11 @@
 //!
 //! [Decision Log]
 //! - Purpose: schedule-form-sheet.tsx1040 explicitly sets minHeight96.
-//! - Constraints: same TextareaState, callbacks, Editability and256 cap; no area
-//!   .min_h override or parallel editor. W4 confirmed no concurrent root edit.
+//! - Constraints: same `TextareaState`, callbacks, `Editability` and existing cap; no area
+//!   `.min_h` override or parallel editor; construction stays in its engine.
 //! - Choice: a closed typed minimum supplied only by a multiline-form constructor.
 //! - Why/cost: no arbitrary/nonfinite dimension, no option silently ignored on a
-//!   composer/line. The old form_shell moves here unchanged to lower the ratchet.
+//!   composer/line. The old `form_shell` moves here unchanged to lower the ratchet.
 use super::{FORM_MIN, FORM_MIN_TOUCH, TextField};
 use crate::{Tokens, Type, TypeExt as _};
 use gpui::prelude::*;
@@ -146,7 +146,7 @@ mod tests {
                             .field
                             .set_text(&vec!["line"; 30].join("\n"), window, cx);
                         cx.notify();
-                    })
+                    });
                 });
                 cx.run_until_parked();
                 let height = seen.borrow()[0].size.height;
