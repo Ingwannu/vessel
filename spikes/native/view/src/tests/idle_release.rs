@@ -12,6 +12,7 @@ use crate::idle_release::{Card, Page, Problem, Switch};
 
 fn idle(minutes: u16) -> NodeSettings {
     NodeSettings {
+        dictation: None,
         restart_recovery: RestartRecovery::default(),
         drivers: AgentDrivers {
             claude_code: AgentDriver::Acp,
@@ -26,6 +27,7 @@ fn idle(minutes: u16) -> NodeSettings {
 
 fn never() -> NodeSettings {
     NodeSettings {
+        dictation: None,
         restart_recovery: RestartRecovery::default(),
         drivers: AgentDrivers::default(),
         park_after: ParkAfter::Never,
@@ -138,6 +140,7 @@ fn has_nothing_to_switch_on_an_older_node_or_a_value_it_does_not_know() {
         &laptop,
         read,
         Ok(NodeSettings {
+            dictation: None,
             restart_recovery: RestartRecovery::default(),
             drivers: AgentDrivers {
                 claude_code: AgentDriver::Acp,
