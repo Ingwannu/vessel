@@ -31,7 +31,7 @@ async fn exchange(
                 cwd.map(|p| p.to_string_lossy())
                     .map_or(Value::Null, |p| json!(p))
             );
-            let id = u64::try_from(index).unwrap() + 2;
+            let id = u64::try_from(index).unwrap().checked_add(2).unwrap();
             responses
                 .send(Ok(Incoming::Response { id, result: page }))
                 .await
@@ -57,11 +57,8 @@ async fn actual_native_metadata_and_empty_filter_paging_are_preserved() {
         page.entries.first().unwrap().updated_at,
         Some(HistoryTimestamp::UnixSeconds(123))
     );
-    assert_eq!(page.entries.get(1).unwrap().updated_at, None);
-    assert_eq!(
-        page.entries.get(1).unwrap().title.as_deref(),
-        Some("preview")
-    );
+    assert_eq!(page.entries[1].updated_at, None);
+    assert_eq!(page.entries[1].title.as_deref(), Some("preview"));
     assert_eq!(page.next, None);
 }
 #[tokio::test]
