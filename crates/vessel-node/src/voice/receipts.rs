@@ -72,7 +72,7 @@ impl Receipts {
             return Err(ReceiptError::Capacity);
         }
         let samples = u64::try_from(playback.pcm.as_slice().len().div_euclid(SAMPLES_PER_PCM16))
-            .map_err(|_| ReceiptError::Capacity)?;
+            .map_err(|_private| ReceiptError::Capacity)?;
         let nanos = samples
             .checked_mul(NANOS_PER_SECOND)
             .ok_or(ReceiptError::Capacity)?

@@ -57,10 +57,10 @@ fn boundaries<'a>(text: &'a str, punctuation: &[char]) -> Vec<&'a str> {
         }
         previous = Some(character);
     }
-    if let Some(last) = text.get(start..) {
-        if !last.is_empty() {
-            parts.push(last);
-        }
+    if let Some(last) = text.get(start..)
+        && !last.is_empty()
+    {
+        parts.push(last);
     }
     parts
 }

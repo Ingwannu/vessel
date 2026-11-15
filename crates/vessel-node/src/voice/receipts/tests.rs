@@ -101,8 +101,11 @@ fn timeout_pruning_and_tombstone_count_bound_do_not_accumulate_or_accept_foreign
     for _ in 0..MAX_CLOSED.saturating_add(3) {
         let audio = playback();
         book.open(&audio, gone).unwrap();
-        book.complete(receipt(own, audio.id, PlaybackOutcome::Played), gone)
-            .unwrap();
+        assert_eq!(
+            book.complete(receipt(own, audio.id, PlaybackOutcome::Played), gone)
+                .unwrap(),
+            Completion::Settled(PlaybackOutcome::Played)
+        );
     }
     assert_eq!(book.closed.len(), MAX_CLOSED);
 }

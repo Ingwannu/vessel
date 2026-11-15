@@ -1,4 +1,4 @@
-//! Pending call values; the single method table supplies Request impls only at wiring.
+//! Pending call values; the single method table owns Request impls and admission stays unassigned.
 
 use serde::{Deserialize, Serialize};
 

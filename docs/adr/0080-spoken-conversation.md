@@ -286,3 +286,17 @@ than ad-hoc push, bounded resources, explicit reconnect rather than implicit
 resync, secret references rather than raw config keys, no env overrides or
 audio debug dumps, and readiness refusal until real local inference ships.
 These decisions do not establish whole-package parity by themselves.
+
+## Turn-buffer resource amendment (2026-11-15 08:28 UTC, staged)
+
+Paseo voice-turn-controller.ts500–538 appends detector/STT data while listening,
+before confirmation. Its endpoint STT buffer can therefore accumulate idle audio.
+Vessel's staged input buffer keeps only the latest two seconds (64000 PCM16 bytes
+at16kHz) while unconfirmed, preserving the800ms confirmation plus detector/chunk
+latency without retaining endless silence. After the confirmed edge it retains
+at most1920000 bytes, sixty seconds including that pre-roll and ending silence.
+Overflow refuses before mutation and retires the turn/lease in its eventual
+actor; it never truncates confirmed speech. A Stop/abort discards both prefix and
+current utterance without STT commit. This is a deliberate resource difference,
+not proof that a two-second prefix covers physical/network conditions; detector
+and codec integration plus waveform validation remain owed.

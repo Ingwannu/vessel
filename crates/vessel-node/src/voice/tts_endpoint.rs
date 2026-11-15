@@ -153,11 +153,14 @@ impl Endpoint {
 }
 
 fn transport(error: reqwest::Error) -> TtsError {
-    if error.is_timeout() {
+    let kind = if error.is_timeout() {
         TtsError::TimedOut
     } else {
         TtsError::Transport
-    }
+    };
+    // The foreign cause is intentionally destroyed at this privacy boundary.
+    drop(error);
+    kind
 }
 
 async fn collect(mut response: reqwest::Response) -> Result<Vec<u8>, TtsError> {

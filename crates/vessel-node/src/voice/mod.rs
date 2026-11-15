@@ -5,6 +5,7 @@
 //! boundaries with deterministic detector/provider inputs, never a microphone.
 
 mod boundary;
+mod input_buffer;
 
 mod prompt;
 mod receipts;

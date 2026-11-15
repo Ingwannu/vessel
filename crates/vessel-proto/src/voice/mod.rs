@@ -1,7 +1,7 @@
 //! Transient spoken-conversation contract (ADR 0080), without I/O or providers.
 //!
-//! Values exist before method registration. The integrator assigns [`SINCE`]
-//! only with node wiring; no peer may infer support from these definitions.
+//! Methods have pending rows. The integrator assigns [`SINCE`] only with
+//! node wiring; no peer may infer support from these definitions.
 
 mod audio;
 mod messages;

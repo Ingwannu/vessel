@@ -41,7 +41,7 @@ pub(super) fn decode(body: &[u8], scores: Scores) -> Result<VoiceTranscript, Tra
     if body.len() > MAX_RESPONSE_BYTES {
         return Err(TranscriptError::TooLarge);
     }
-    let value: Value = serde_json::from_slice(body).map_err(|_| TranscriptError::Invalid)?;
+    let value: Value = serde_json::from_slice(body).map_err(|_private| TranscriptError::Invalid)?;
     let text = value
         .get("text")
         .and_then(Value::as_str)
@@ -56,7 +56,7 @@ pub(super) fn decode(body: &[u8], scores: Scores) -> Result<VoiceTranscript, Tra
     if mean.is_some_and(|mean| mean < LOW_CONFIDENCE_THRESHOLD) {
         return Ok(VoiceTranscript::Rejected);
     }
-    let text = SpeechText::try_from(text.to_owned()).map_err(|_| TranscriptError::Text)?;
+    let text = SpeechText::try_from(text.to_owned()).map_err(|_private| TranscriptError::Text)?;
     Ok(VoiceTranscript::Accepted {
         text,
         confidence: mean.map_or(Confidence::Unspecified, |_| Confidence::Accepted),
