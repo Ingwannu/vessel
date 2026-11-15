@@ -1,9 +1,9 @@
-//! Shared local client-book appearance values, never RPC or wire fields.
+//! Shared local client-book values, never RPC or wire fields.
 //!
 //! [Decision Log]
 //! - Purpose: the client file owner and native view need the same validated
-//!   Unicode label and closed appearance choices without depending on each
-//!   other's I/O or UI layer.
+//!   Unicode label, appearance choices and managed alias syntax without each
+//!   depending on the other's I/O or UI layer.
 //! - Choice: move the existing pure values here, retaining native old-path
 //!   re-exports and tests. No paint tokens, locality inference, persistence,
 //!   transport, method, version or TypeScript registration belongs here.
