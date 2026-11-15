@@ -3,6 +3,7 @@
 
 mod contract;
 mod restore;
+mod terminals;
 #[cfg(test)]
 mod tests;
 

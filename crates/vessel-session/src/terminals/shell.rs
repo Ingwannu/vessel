@@ -12,6 +12,7 @@ use vessel_proto::SessionStatus;
 use vessel_proto::terminals::TerminalInfo;
 use vessel_pty::{PtyOutput, PtyProcess, WindowSize};
 
+use super::cleanup::{self, Facts};
 use super::handle::{Shared, TerminalHandle};
 use super::log::TermLog;
 use super::{Scrollback, TerminalError};
@@ -66,9 +67,11 @@ pub async fn start_shell(start: ShellStart) -> Result<TerminalHandle, TerminalEr
         .map_err(TerminalError::Spawn)?;
     info.size = Some(size);
     let id = info.id;
+    let (completion, cleanup) = cleanup::begin(id);
     let ring = Ring::bounded(scrollback.records, scrollback.bytes, info.next_seq);
     let kill = shutdown.child_token();
     let shared = Arc::new(Shared {
+        cleanup,
         info: watch::Sender::new(info),
         ring: Mutex::new(ring),
         input: Some(pty.input()),
@@ -85,9 +88,10 @@ pub async fn start_shell(start: ShellStart) -> Result<TerminalHandle, TerminalEr
     };
     drop(
         tasks.spawn(
-            actor
-                .run()
-                .instrument(tracing::info_span!("terminal", terminal = %id)),
+            async move {
+                completion.finish(actor.run().await);
+            }
+            .instrument(tracing::info_span!("terminal", terminal = %id)),
         ),
     );
     Ok(TerminalHandle(shared))
@@ -102,7 +106,7 @@ struct ShellActor {
 }
 
 impl ShellActor {
-    async fn run(mut self) {
+    async fn run(mut self) -> Facts {
         self.log.status(SessionStatus::Starting);
         self.log.status(SessionStatus::Running);
         let session = self.pty.pid();
@@ -134,6 +138,12 @@ impl ShellActor {
             SessionStatus::Exited { code }
         };
         self.log.status(status);
+        // Legacy wait conflates a signalled exit and a missing waiter; sweeps
+        // and bounded output drain likewise do not certify physical cleanup.
+        // Preserve those unknowns until their actual owners expose proof.
+        let mut facts = Facts::unconfirmed();
+        facts.auxiliary = super::CleanupFact::Confirmed;
+        facts
     }
 
     /// What the PTY still holds after the exit, for a bounded time.

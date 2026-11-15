@@ -107,6 +107,14 @@ set up a state through another crate's format, as `vessel-node`'s e2e
 
 ## Data flow
 
+Terminal lifecycle has separate observations for logical ended status, process
+authority revocation and actual actor cleanup. `vessel-session::terminals::cleanup`
+is issued by the original actor after its owned future returns; reports retain
+unconfirmed process/descendant/I/O/auxiliary postconditions. It is necessary member
+evidence, not a workspace or physical-root mutation grant. The staged workspace
+archive consumer refuses timeout, abandonment or unconfirmed cleanup; legacy
+terminal close behavior is unchanged. See `plans/wp-workspace-archive.md`.
+
 1. A client opens a connection and presents who it is: the bearer token on
    `/rpc` or as the local socket's first frame (the owner, ADR 0005), a
    paired device's credential inside the Noise channel (ADR 0010), or a

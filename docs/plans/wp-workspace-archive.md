@@ -231,7 +231,7 @@ is implemented here; the production adapter waits for the reviewed producer.
   merely because a close RPC returned or a terminal status became ended.
 - Existing assets and constraints: TerminalHandle::ended observes metadata.
   Shell output drain has a deadline, session/group sweeps log failures, script
-  pumps are aborted without joining, and a command-file removal follows final
+  pumps previously aborted without joining, and a command-file removal follows final
   status publication. ProcessLifetime revocation is explicitly not cleanup proof.
 - Alternatives: reuse legacy close/ended, infer exit from a PID, or add a second
   terminal registry. Each loses actual runner postconditions or ownership.
@@ -248,4 +248,31 @@ is implemented here; the production adapter waits for the reviewed producer.
   Physical deletion remains unavailable whenever any required cleanup fact is
   unproved. In particular, a signal sent to descendants or a revoked process
   observation alone cannot certify their exit. This is a planned extension;
-  no new completion API or deletion authority is implemented by this paragraph.
+  deletion authority still requires every actual postcondition below.
+
+The first source implementation adds `TerminalHandle::cleanup()`, separate from
+ended() and ProcessLifetime. The actual actor alone owns the completion sender;
+return publishes immutable process/descendants/I/O/auxiliary facts, and sender
+loss is Abandoned. Final status keeps its legacy ordering. In particular a
+script's command-file cleanup now completes before the new report, even though
+the status was already final. No registry or wire method is added.
+
+The strict workspace helper is still inside the test-only archive module. It
+checks the original admitted TerminalId, requests stop on that exact retained
+handle, and waits under the existing close deadline. It never forgets a handle
+on timeout, abandonment or unconfirmed facts. The outer workflow retains its
+durable claim and cannot use such a result to delete backing.
+
+This is deliberately incomplete for spawned processes: existing group sweeps and
+PTY cleanup do not expose enough proof, so those facts stay Unconfirmed. Script
+pipe workers now have one owned Pumps guard; normal completion joins actual EOF,
+and deadline/owner loss aborts them. Deadline cancellation is joined before the
+run proceeds but remains incomplete. Read failure, receiver loss or join failure
+cannot certify drained output; wait errors remain unconfirmed process exit.
+Facts accumulate across service attempts, so a later clean attempt cannot erase
+earlier uncertainty. A completed actor alone does not certify cleanup. A run
+that never successfully spawned can certify no child/I/O only after auxiliary
+cleanup also succeeds. Real descendant and I/O acknowledgements remain required
+before normal terminal-backed workspace deletion can be connected. New component
+and actual-runner regressions are written, not executed; no safety acceptance or
+consumer-ready producer is claimed.
