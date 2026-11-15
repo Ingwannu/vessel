@@ -62,6 +62,11 @@ pub(crate) fn init(cx: &mut TestAppContext) {
     });
 }
 
+/// Desktop behavior fixtures reuse the same shell without starting I/O owners.
+pub(crate) fn shell_without_io(window: &mut Window, cx: &mut Context<'_, Shell>) -> Shell {
+    Shell::without_io(window, cx)
+}
+
 /// Uses the actual language-change dispatch and real toolkit key handling.
 /// `check` also verifies the area's retained query, step or form state.
 pub(crate) fn preserves(cx: &mut TestAppContext, setup: Setup, field: Field, check: fn(&Shell)) {

@@ -1,0 +1,68 @@
+//! Real menu keys dispatch into the original input after popup focus is restored.
+
+use super::*;
+use gpui::{AppContext as _, Entity, Render, TestAppContext};
+use vessel_app_kit::{Scheme, TextField};
+use vessel_app_view::desktop::CopyState;
+
+struct Probe {
+    shell: Entity<Shell>,
+    field: TextField,
+}
+
+impl Render for Probe {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+        let tokens = Tokens::of(Scheme::Dark);
+        let field = self.field.element(&tokens, false, cx);
+        self.shell.update(cx, |shell, cx| {
+            div()
+                .size_full()
+                .child(field)
+                .children(render(shell, &tokens, window, cx))
+        })
+    }
+}
+
+#[gpui::test]
+fn context_menu_restores_input_focus_and_disabled_copy_is_skipped(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    for copy in [CopyState::Available, CopyState::Unavailable] {
+        let (view, cx) = cx.add_window_view(|window, cx| Probe {
+            shell: cx.new(|cx| crate::shell::language_tests::shell_without_io(window, cx)),
+            field: TextField::new("", |_probe, _text, _window, _cx| {}, window, cx),
+        });
+        cx.run_until_parked();
+        view.update_in(cx, |probe, window, cx| {
+            window.activate_window();
+            probe.field.set_text("selected", window, cx);
+            probe.field.focus(window, cx);
+            cx.write_to_clipboard(gpui::ClipboardItem::new_string("replacement".to_owned()));
+        });
+        cx.run_until_parked();
+        cx.simulate_keystrokes("ctrl-a");
+        view.update_in(cx, |probe, window, cx| {
+            probe.shell.update(cx, |shell, cx| {
+                assert!(crate::areas::desktop::open_edit_context(
+                    shell,
+                    gpui::point(px(20.0), px(40.0)),
+                    copy,
+                    window,
+                    cx
+                ));
+            });
+        });
+        cx.run_until_parked();
+        // The real menu's keyboard navigation must skip disabled Copy and choose
+        // Paste. With a selection, the same first-row press must copy instead.
+        cx.simulate_keystrokes("down enter");
+        cx.run_until_parked();
+        view.update_in(cx, |probe, window, cx| {
+            assert!(probe.field.focus_handle(cx).is_focused(window));
+            let clipboard = cx.read_from_clipboard().unwrap().text().unwrap();
+            match copy {
+                CopyState::Available => assert_eq!(clipboard, "selected"),
+                CopyState::Unavailable => assert_eq!(probe.field.text(cx), "replacement"),
+            }
+        });
+    }
+}

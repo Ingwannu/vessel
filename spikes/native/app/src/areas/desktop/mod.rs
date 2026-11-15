@@ -27,6 +27,8 @@ pub(crate) struct DesktopArea {
     #[cfg(not(target_arch = "wasm32"))]
     group: menus::Group,
     #[cfg(not(target_arch = "wasm32"))]
+    copy: vessel_app_view::desktop::CopyState,
+    #[cfg(not(target_arch = "wasm32"))]
     focus: Option<gpui::FocusHandle>,
     #[cfg(not(target_arch = "wasm32"))]
     zoom: actions::Zoom,
@@ -48,6 +50,8 @@ impl DesktopArea {
             #[cfg(not(target_arch = "wasm32"))]
             group: menus::Group::File,
             #[cfg(not(target_arch = "wasm32"))]
+            copy: vessel_app_view::desktop::CopyState::default(),
+            #[cfg(not(target_arch = "wasm32"))]
             focus: None,
             #[cfg(not(target_arch = "wasm32"))]
             zoom: actions::Zoom::default(),
@@ -67,6 +71,26 @@ pub(crate) fn pending(shell: &mut Shell, window: &mut Window, cx: &mut Context<'
     crate::desktop::drain_pending(shell, window, cx);
     #[cfg(target_arch = "wasm32")]
     let _browser = (shell, window, cx);
+}
+
+/// The selection owner admits the popup; clipboard semantics stay with its focus.
+pub(crate) fn open_edit_context(
+    shell: &mut Shell,
+    position: gpui::Point<gpui::Pixels>,
+    copy: vessel_app_view::desktop::CopyState,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> bool {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        menus::open_context(shell, position, copy, window, cx);
+        true
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        let _browser = (shell, position, copy, window, cx);
+        false
+    }
 }
 
 #[cfg(target_arch = "wasm32")]

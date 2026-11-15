@@ -325,7 +325,15 @@ mod tests {
 
     #[test]
     fn normal_second_launch_forwards_and_relaunch_waits_for_the_old_guard() {
-        let root = std::env::temp_dir().join(format!("vessel-instance-{}", SessionId::random()));
+        // A runner may supply a long per-job TMPDIR. Unix socket addresses have
+        // a small OS byte limit; this fixture must reach the IPC behavior rather
+        // than fail while constructing its endpoint. Every file stays inside
+        // this test's unique directory and is removed below.
+        #[cfg(unix)]
+        let temporary = Path::new("/tmp").to_path_buf();
+        #[cfg(windows)]
+        let temporary = std::env::temp_dir();
+        let root = temporary.join(format!("vessel-instance-{}", SessionId::random()));
         let Instance::Primary {
             guard,
             mut launches,

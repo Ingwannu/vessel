@@ -148,3 +148,26 @@ A deterministic kernel-lock test waits for the failed-acquisition signal before
 releasing the old primary lock; no scheduling sleep is used. An oversized-link
 regression tests the named byte boundary before route/identifier parsing.
 These additions await the current narrow compile/test runs.
+
+## Authenticated navigation integration and context menus
+
+Merged W21's narrow-green 963ca595 provisionally (whole package review pending),
+keeping this package's bounded shared URL parser when resolving add/add history.
+Desktop startup registers `Shell::open_session_address`; after book hydration it
+passes the latest target once. W21 owns the single connection/reconnect deadline,
+identity resolution and passive session reads. Desktop adds no second host wait.
+
+The existing TextField input engine already supplies selection-aware editing
+context menus. Terminal selection and clipboard actions remain C2's; a typed
+`CopyState` and `areas::desktop::open_edit_context` adapt its admission to the
+existing application-menu state and kit renderer. The popup restores the original
+focus before dispatching toolkit actions. Its real-input test checks disabled
+Copy navigation and copy/paste behavior; C2's actual terminal consumer is pending.
+G4's reviewed return-focus primitive is awaited for dismissal restoration.
+
+Link narrow tests at 88fc1df9: 16 passed, one fixture failed before IPC startup
+because the remote runner's TMPDIR made its Unix socket address exceed SUN_LEN.
+The lock-waiter test itself passed. The IPC fixture now uses a short unique Unix
+/tmp directory, preserving its real forward/restart assertions and exact cleanup.
+Product Unix IPC still reports the original OS error for an overlong configured
+socket location; this is an OS pathname limit, not silent forwarding or fallback.

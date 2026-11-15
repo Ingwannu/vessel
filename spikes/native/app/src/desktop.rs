@@ -154,6 +154,7 @@ fn install(
     cx: &mut App,
 ) -> Result<(), vessel_app_link::desktop::DesktopError> {
     cx.set_global(Desktop::new(store, environment)?);
+    set_session_handler(Shell::open_session_address, cx);
     crate::update::install(
         !cx.global::<Desktop>().preferences.current().manual_updates,
         cx,

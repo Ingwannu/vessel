@@ -8,11 +8,7 @@ use vessel_app_link::{
 use vessel_app_view::sessions::{NavigationPurpose, NavigationTarget, SessionAddress};
 use vessel_proto::{NodeId, SessionId};
 impl Shell {
-    /// The desktop OS delivery queue calls this after its host readiness boundary.
-    #[expect(
-        dead_code,
-        reason = "desktop delivery registers this typed session entry in its package"
-    )]
+    /// Desktop delivery invokes once after book hydration; the link owns readiness.
     pub(crate) fn open_session_address(
         &mut self,
         node: NodeId,

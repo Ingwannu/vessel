@@ -39,6 +39,9 @@ pub(crate) fn submit(
             Err(why) => Err(vessel_app_link::Unsent::new(why, Command::SavePrefs(prefs))),
         },
         forward @ (Command::Agents { .. }
+        | Command::SessionAccess(_)
+        | Command::Sessions(_)
+        | Command::SessionLifecycle(_)
         | Command::Machines(_)
         | Command::Reload
         | Command::Devices { .. }

@@ -12,6 +12,9 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, button_with_kind};
 use vessel_app_view::shortcuts::desktop::DesktopAction;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug, Clone, Copy)]
 pub(super) enum Group {
     All,
@@ -19,6 +22,7 @@ pub(super) enum Group {
     Edit,
     View,
     Window,
+    Context,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -46,6 +50,21 @@ pub(super) enum Item {
 struct Row {
     item: Item,
     view: MenuItem,
+}
+
+pub(super) fn open_context(
+    shell: &mut Shell,
+    position: gpui::Point<gpui::Pixels>,
+    copy: vessel_app_view::desktop::CopyState,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) {
+    let area = &mut shell.areas.desktop;
+    area.focus = window.focused(cx);
+    area.group = Group::Context;
+    area.copy = copy;
+    area.menu.open(position, window, cx);
+    cx.notify();
 }
 
 pub(crate) fn trigger(
@@ -105,6 +124,25 @@ pub(crate) fn trigger(
 
 fn rows(shell: &Shell, group: Group) -> Vec<Row> {
     let w = shell.words.desktop_shell();
+    if matches!(group, Group::Context) {
+        return [
+            (Edit::Copy, w.copy()),
+            (Edit::Paste, w.paste()),
+            (Edit::SelectAll, w.select_all()),
+        ]
+        .into_iter()
+        .map(|(edit, label)| {
+            let mut view = MenuItem::new(label.to_owned());
+            view.disabled = matches!(edit, Edit::Copy)
+                && shell.areas.desktop.copy == vessel_app_view::desktop::CopyState::Unavailable;
+            view.starts_group = matches!(edit, Edit::SelectAll);
+            Row {
+                item: Item::Edit(edit),
+                view,
+            }
+        })
+        .collect();
+    }
     let mut rows = Vec::new();
     let mut push = |item, label: &str, starts_group| {
         let mut view = MenuItem::new(label.to_owned());
