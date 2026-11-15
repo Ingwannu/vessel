@@ -40,6 +40,8 @@ use crate::shell::Shell;
 /// How a command the link did not take settles.
 #[derive(Debug)]
 pub(crate) enum Settle {
+    /// Actor bookkeeping has no UI request or result to fabricate.
+    Ignore,
     /// The answer a refusal would bring: what waits on it settles as it
     /// does for that.
     Answer(Box<Event>),
@@ -59,6 +61,7 @@ pub(crate) enum Settle {
 pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
     let said = || words.to_owned();
     let event = match *unsent.command {
+        Command::RetireConnection(_tag) => return Settle::Ignore,
         // As the devices page: a full queue is the page's own "busy, try
         // again", a stopped link the machine's lost connection.
         Command::Agents {
@@ -76,9 +79,14 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             ticket,
             result: Err(vessel_app_link::sync::rejected(unsent.why)),
         }),
-        Command::Devices { ticket, ask, .. } => {
-            Event::Devices(ask.refused(ticket, devices::rejected(unsent.why)))
-        }
+        Command::Devices {
+            context,
+            ticket,
+            ask,
+        } => Event::Devices(devices::Answer {
+            context,
+            outcome: ask.refused(ticket, devices::rejected(unsent.why)),
+        }),
         Command::NodeSettings(ask) => Event::NodeSettings(ask.refused(match unsent.why {
             Rejected::Full => idle_release::Problem::Refused(ErrorCode::Unavailable),
             Rejected::Closed => idle_release::Problem::Offline,
@@ -98,6 +106,7 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             session,
             act,
         } => Event::Acted(ActAnswer {
+            terminal: act.terminal_opening().cloned(),
             machine,
             session,
             kind: act.kind(),
@@ -237,6 +246,51 @@ mod tests {
         let failed = answer.result.expect_err("refused");
         assert_eq!(failed.code, Some(ErrorCode::Unavailable));
         assert_eq!(failed.message, WORDS);
+    }
+
+    /// A terminal read retains ownership even before a node can receive it.
+    #[test]
+    fn terminal_history_queue_refusal_keeps_its_opening_identity() {
+        let (link, inbox) = Link::detached(1).expect("a runtime");
+        drop(inbox);
+        let session = SessionId::random();
+        let opening = vessel_app_link::TerminalOpening::new("laptop".parse().unwrap(), session);
+        let act = Act::TerminalLog {
+            opening: opening.clone(),
+            until: vessel_app_view::timeline::Until::Time(chrono::DateTime::UNIX_EPOCH),
+        };
+        let unsent = link
+            .submit(Command::Act {
+                machine: "laptop".into(),
+                session,
+                act,
+            })
+            .unwrap_err();
+        let Settle::Answer(event) = settle(unsent, WORDS) else {
+            panic!("an act receipt");
+        };
+        let Event::Acted(answer) = *event else {
+            panic!("an act receipt");
+        };
+        assert_eq!(answer.terminal, Some(opening));
+        assert!(answer.result.is_err());
+    }
+
+    #[test]
+    fn internal_retirement_never_fabricates_an_answer_or_user_notice() {
+        const COMMAND_CAPACITY: usize = 1;
+        let (link, inbox) = Link::detached(COMMAND_CAPACITY).unwrap();
+        drop(inbox);
+        let context = vessel_app_view::connection::ConnectionEpochs::default()
+            .admit(
+                vessel_app_view::connection::MachineKey::from_book("laptop"),
+                vessel_proto::NodeId::random(),
+            )
+            .unwrap();
+        let unsent = link
+            .submit(Command::RetireConnection(context.tag()))
+            .unwrap_err();
+        assert!(matches!(settle(unsent, WORDS), Settle::Ignore));
     }
 
     /// A prompt keeps its text; a command nothing waits on is said.

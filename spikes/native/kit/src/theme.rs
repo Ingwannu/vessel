@@ -1,13 +1,16 @@
 //! The design system's tokens (`docs/design/web-ui/DESIGN.md` section 4,
-//! `web/src/ui/tokens.css`), by the page's names, in both themes.
+//! `web/src/ui/tokens.css`), with named Paseo palettes in [`Palette`].
 //!
-//! The values are the page's, one for one, so the app and the page are
-//! the same product to look at; a token changed there is changed here in
-//! the same change (the real kit generates both from one table).
+//! The two shipped page token sets stay unchanged. Additional dark tints
+//! map Paseo's authored colours to these names (ADR 0070), without a second
+//! set of controls or a dependency on the view's stored theme preference.
 //! Overlays (hover, hairlines) keep their alpha, as the page's
 //! `rgb(... / 4%)` do, so one value is right on every surface.
 
+pub mod palette;
 pub mod spacing;
+pub mod terminal;
+pub use palette::Palette;
 
 /// The desktop command panel's scrim: black at 50 % (track S3's, after
 /// Paseo's command center), as `rgba` takes it.
@@ -44,7 +47,7 @@ pub enum Scheme {
 ///   Pretendard (the owner's type rule), not the system's.
 /// - The page's tokens beside them (`bg_*`, `text_*`) stay until each
 ///   screen is moved; a new control uses these.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Neutrals {
     /// `surface0`: the background; a combobox, a dialog, a sheet.
     pub surface0: Hsla,
@@ -78,8 +81,8 @@ pub struct Neutrals {
     pub destructive: Hsla,
     /// `destructiveForeground`: white in both reference themes.
     pub destructive_foreground: Hsla,
-    /// The accent: Vessel's brand colour (Paseo's is its green): the send
-    /// button.
+    /// The send button's accent: Vessel's brand where Paseo uses its green;
+    /// otherwise the named palette's authored accent (ADR 0070).
     pub accent: Hsla,
     /// What is drawn on the accent.
     pub accent_foreground: Hsla,
@@ -134,7 +137,7 @@ impl Neutrals {
 }
 
 /// Every colour token the app's screens draw with.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Tokens {
     /// Which theme these are.
     pub scheme: Scheme,
@@ -192,6 +195,8 @@ pub struct Tokens {
     pub btn_secondary_bg: Hsla,
     /// `--btn-secondary-bg-hover`.
     pub btn_secondary_bg_hover: Hsla,
+    /// The terminal's palette (Paseo's, ADR 0073).
+    pub terminal: terminal::TerminalColors,
 }
 
 impl Tokens {
@@ -242,6 +247,7 @@ impl Tokens {
             btn_primary_fg: rgb(0x00ff_ffff).into(),
             btn_secondary_bg: rgb(0x00f0_f0f0).into(),
             btn_secondary_bg_hover: rgb(0x00e4_e4e4).into(),
+            terminal: terminal::TerminalColors::light(),
         }
     }
 
@@ -276,6 +282,7 @@ impl Tokens {
             btn_primary_fg: rgb(0x0018_1818).into(),
             btn_secondary_bg: rgb(0x002c_2c2c).into(),
             btn_secondary_bg_hover: rgb(0x0036_3636).into(),
+            terminal: terminal::TerminalColors::dark(),
         }
     }
 }
@@ -299,4 +306,6 @@ pub mod radius {
 pub mod icon {
     /// `ICON_SIZE.sm`: an icon-only action's glyph.
     pub const SM: f32 = 14.0;
+    /// `ICON_SIZE.lg`: source circular action and schedule line-box glyph.
+    pub const LG: f32 = 20.0;
 }

@@ -13,6 +13,11 @@ impl Shell {
     pub(super) fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
             Event::Devices(answer) => self.devices_answer(answer, cx),
+            Event::DeviceRetired(context) => {
+                if !self.devices_retired(&context) {
+                    return;
+                }
+            }
             Event::Machines(answer) => self.machines_answer(answer, cx),
             Event::Sync(answer) => self.sync_answer(answer),
             Event::NodeSettings(answer) => self.node_settings_answer(answer),
@@ -28,6 +33,7 @@ impl Shell {
                     return;
                 }
                 let earlier = std::mem::replace(&mut self.fleet, fleet);
+                self.devices_fleet();
                 self.offers_fleet(&earlier);
                 if !self.loaded {
                     self.loaded = true;
@@ -52,10 +58,9 @@ impl Shell {
                 answer,
             } => self.agents_answer(&machine, request, answer, cx),
             Event::Records { session, records } => {
-                self.records(&session, &records, cx);
-                // Track P: a session's reported `/` commands kept for its agent.
-                self.offers_commands_seen();
-                self.composer_files_seen(cx);
+                if self.link_records(&session, &records, cx) == crate::areas::Redraw::GridAlone {
+                    return;
+                }
             }
             Event::Started(card) => self.started_with_files(&card, cx),
             Event::Sent { .. } => {}

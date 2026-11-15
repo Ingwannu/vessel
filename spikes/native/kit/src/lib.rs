@@ -35,14 +35,19 @@ pub mod chrome;
 pub mod code;
 pub mod code_editor;
 pub mod command;
+pub mod control_sizing;
 pub mod copy;
 pub mod dialog;
+pub mod drag;
+pub mod external_link;
 pub mod field;
+pub mod focus;
 pub mod fonts;
 pub mod form_summary;
 pub mod frame;
 pub mod frame_log;
 pub mod host_rename;
+pub mod loading;
 pub mod menu;
 pub mod motion;
 pub mod output;
@@ -52,6 +57,7 @@ pub mod qr;
 pub mod resize;
 
 pub mod screen_header;
+pub mod scroll_viewport;
 pub mod segmented;
 pub mod select;
 pub mod settings;
@@ -60,6 +66,7 @@ pub mod skeleton;
 pub mod slider;
 pub mod split_button;
 pub mod tabs;
+pub mod terminal_grid;
 pub mod theme;
 pub mod toast;
 pub mod toolbar_label;
@@ -75,6 +82,7 @@ pub use assets::Assets;
 pub use card_button::{CardLook, CardState, card_button};
 pub use chat_markdown::{FindMarks, FindPalette, chat_markdown};
 pub use code::CodeTokens;
+pub use control_sizing::ControlSizing;
 pub use copy::{CopyLook, copy_button};
 pub use dialog::{DialogContent, DialogSize, DialogState, dialog};
 pub use field::{Editability, SendOn, TextField, composer_card};
@@ -89,8 +97,9 @@ pub use picker::{
     anchor_probe, combobox, glyph, initial_of, initial_tile, pill, pill_parts, send_button,
 };
 pub use screen_header::{compact_header, screen_header};
+pub use scroll_viewport::{ScrollState, ScrollViewport, SectionIndex};
 pub use sheet::{Edge, sheet};
-pub use theme::{Scheme, Tokens};
+pub use theme::{Palette, Scheme, Tokens};
 pub use toast::{
     ToastContent, ToastDismiss, ToastHandlers, ToastHover, ToastHovered, ToastLook, toast,
     toast_with, toasts,
@@ -98,8 +107,10 @@ pub use toast::{
 pub use tooltip::Tooltips;
 pub use virtual_list::{Reveal, VirtualList};
 pub use widgets::{
-    ButtonKind, ButtonState, TypeExt, button, button_with_kind, choice, dot, kicker, mark,
-    mark_mono, markdown, outline_button,
+    Button, ButtonConfig, ButtonContent, ButtonDesign, ButtonIcon, ButtonKind, ButtonSize,
+    ButtonState, CircleConfig, CircleTone, TypeExt, button, button_control, button_with_content,
+    button_with_design, button_with_kind, button_with_kind_at, choice, dot, kicker, mark,
+    mark_mono, markdown, outline_button, outline_button_with_glyph,
 };
 
 /// What a screen needs of GPUI's layout and view types, re-exported so
@@ -115,7 +126,7 @@ pub mod ui {
     };
 }
 
-/// The theme in use: the tokens of one scheme.
+/// The palette in use, shared by every control and the component layer.
 #[derive(Debug, Clone, Copy)]
 pub struct Theme {
     /// The tokens.
@@ -197,7 +208,13 @@ pub fn set_text_sizes(cx: &mut App, interface: u8, code: u8) {
 
 /// Switch the theme, and the component layer's colours with it.
 pub fn set_scheme(cx: &mut App, scheme: Scheme) {
-    let tokens = Tokens::of(scheme);
+    set_palette(cx, Palette::from(scheme));
+}
+
+/// Apply one concrete palette to controls and the component layer together,
+/// refreshing every window even when the light/dark scheme is unchanged.
+pub fn set_palette(cx: &mut App, palette: Palette) {
+    let tokens = Tokens::palette(palette);
     cx.set_global(Theme { tokens });
     field::apply_tokens(cx, &tokens);
     cx.refresh_windows();

@@ -33,6 +33,9 @@ use vessel_proto::{
 };
 
 use crate::{Event, LinkError, State};
+mod terminal_opening;
+pub use terminal_opening::TerminalOpening;
+pub use vessel_client::book::NodeName;
 
 /// An act on one session.
 #[derive(Debug)]
@@ -89,6 +92,13 @@ pub enum Act {
     /// Read its log from the start up to `Until` (`session.read`, page by
     /// page): a fork's origin, for what the fork carries over (F1b).
     Log(Until),
+    /// An app terminal's history, owned by one particular opening.
+    TerminalLog {
+        /// Echoed unchanged on success and refusal, including a closed link.
+        opening: TerminalOpening,
+        /// The same cutoff as an ordinary log read.
+        until: Until,
+    },
 }
 
 /// Which act an answer is for.
@@ -131,6 +141,31 @@ pub enum ActKind {
 }
 
 impl Act {
+    /// Ownership to echo even when the call is refused before reaching a node.
+    #[must_use]
+    pub fn terminal_opening(&self) -> Option<&TerminalOpening> {
+        match self {
+            Self::TerminalLog { opening, .. } => Some(opening),
+            Self::Info
+            | Self::Rename(_)
+            | Self::Mark(_)
+            | Self::StartAgain
+            | Self::Delete
+            | Self::Kill
+            | Self::MoveProfile(_)
+            | Self::Terminal(_)
+            | Self::Queue(_)
+            | Self::Answer(..)
+            | Self::Permit(..)
+            | Self::Conversation
+            | Self::SetOption(_)
+            | Self::Wake
+            | Self::Rewind(_)
+            | Self::Fork(_)
+            | Self::Log(_) => None,
+        }
+    }
+
     /// Which act this is.
     #[must_use]
     pub const fn kind(&self) -> ActKind {
@@ -151,7 +186,7 @@ impl Act {
             Self::Wake => ActKind::Wake,
             Self::Rewind(_) => ActKind::Rewind,
             Self::Fork(_) => ActKind::Fork,
-            Self::Log(_) => ActKind::Log,
+            Self::Log(_) | Self::TerminalLog { .. } => ActKind::Log,
         }
     }
 }
@@ -189,6 +224,8 @@ pub struct ActFailed {
 /// The answer to one act.
 #[derive(Debug)]
 pub struct ActAnswer {
+    /// Terminal history ownership; absent for ordinary conversation acts.
+    pub terminal: Option<TerminalOpening>,
     /// The machine.
     pub machine: String,
     /// The session.
@@ -204,6 +241,7 @@ impl State {
     /// `Event::Acted`.
     pub(crate) fn act(&self, machine: &str, session: SessionId, act: Act) {
         let kind = act.kind();
+        let terminal = act.terminal_opening().cloned();
         let events = self.events.clone();
         let machine = machine.to_owned();
         let client = self
@@ -221,6 +259,7 @@ impl State {
             answer(
                 &events,
                 ActAnswer {
+                    terminal,
                     machine,
                     session,
                     kind,
@@ -285,7 +324,9 @@ async fn run(client: &NodeClient, session: SessionId, act: Act) -> Result<Acted,
             .call(vessel_proto::forking::ForkSession { session, after })
             .await
             .map(|info| Acted::Forked(Box::new(info))),
-        Act::Log(until) => read_until(client, session, until).await.map(Acted::Log),
+        Act::Log(until) | Act::TerminalLog { until, .. } => {
+            read_until(client, session, until).await.map(Acted::Log)
+        }
         Act::Delete => client.delete_session(session).await.map(Acted::Deleted),
         Act::Kill => client.kill(session).await.map(|()| Acted::Done),
         // The options as they now stand also arrive as the session's own

@@ -25,6 +25,26 @@ fn phone() -> DeviceInfo {
     .unwrap()
 }
 
+fn selected(device: DeviceInfo, tickets: &mut crate::devices::Tickets) -> crate::devices::Revoking {
+    use crate::devices::{ConnectionEpochs, Listing, MachineKey, Page, Target};
+    let mut epochs = ConnectionEpochs::default();
+    let context = epochs
+        .admit(
+            MachineKey::from_book("fixture"),
+            "00000000-0000-4000-8000-000000000099".parse().unwrap(),
+        )
+        .unwrap();
+    let mut page = Page::default();
+    page.tickets = std::mem::take(tickets);
+    page.target(Target::Online(context.machine().clone()));
+    let _change = page.bind(Some(context.clone()));
+    let id = device.id;
+    page.listing = Listing::Ready(vec![device]);
+    page.choose_bound(&context, id).unwrap();
+    *tickets = std::mem::take(&mut page.tickets);
+    page.revoking
+}
+
 #[test]
 fn says_what_a_device_may_do_and_when_it_was_seen_and_paired() {
     let now = at("2026-11-11T07:00:00Z");
@@ -157,25 +177,31 @@ fn revocation_requires_confirmation_and_accepts_only_its_own_answer() {
     let mut tickets = Tickets::default();
     let old = tickets.next_ticket().unwrap();
     let ticket = tickets.next_ticket().unwrap();
+    let chosen = selected(phone(), &mut tickets);
+    let context = chosen.context().unwrap().clone();
+    let intent = chosen.intent().unwrap();
     let mut revoking = Revoking::Empty;
-    assert_eq!(revoking.confirm(ticket), None);
-    revoking = Revoking::Confirm(phone());
+    assert_eq!(revoking.confirm(&context, intent, ticket), None);
+    revoking = chosen;
     assert_eq!(
         revoking.confirmation().map(|device| device.label.as_str()),
         Some("phone")
     );
-    assert_eq!(revoking.confirm(ticket), Some(phone().id));
+    assert_eq!(revoking.confirm(&context, intent, ticket), Some(phone().id));
     assert_eq!(
         revoking.confirmation().map(|device| device.label.as_str()),
         Some("phone")
     );
-    assert_eq!(revoking.confirm(ticket), None);
+    assert_eq!(revoking.confirm(&context, intent, ticket), None);
     assert!(!revoking.answer(old, Ok(())));
     assert!(revoking.answer(ticket, Err(Problem::Offline)));
     assert!(matches!(revoking, Revoking::Failed(Problem::Offline)));
-    revoking = Revoking::Confirm(phone());
-    assert_eq!(revoking.confirm(ticket), Some(phone().id));
-    assert!(revoking.answer(ticket, Ok(())));
+    revoking = selected(phone(), &mut tickets);
+    let intent = revoking.intent().unwrap();
+    let next = tickets.next_ticket().unwrap();
+    assert_eq!(revoking.confirm(&context, intent, next), Some(phone().id));
+    assert!(!revoking.answer(ticket, Ok(())));
+    assert!(revoking.answer(next, Ok(())));
     assert!(matches!(revoking, Revoking::Empty));
     assert!(revoking.confirmation().is_none());
 }
@@ -189,7 +215,7 @@ fn changing_machine_or_leaving_page_drops_all_credentials_and_pending_work() {
     let old = page.tickets.next_ticket().unwrap();
     page.listing = Listing::Loading(old);
     page.inviting = Inviting::Ready(pairing(at("2026-11-11T08:00:00Z")));
-    page.revoking = Revoking::Confirm(phone());
+    page.revoking = selected(phone(), &mut page.tickets);
     // Same target preserves state; another connection or leaving drops it.
     page.target(a.clone());
     assert!(matches!(page.inviting, Inviting::Ready(_)));

@@ -151,7 +151,7 @@ impl Shell {
         let sections: Vec<(Section, &str)> = Section::ALL
             .into_iter()
             .filter(|section| settings::drawn(*section))
-            .map(|section| (section, words.section(section)))
+            .map(|section| (section, words.section(section, self.words)))
             .collect();
         let selected = if self.route == Route::Draft {
             self.areas.draft.machine.clone()
@@ -162,7 +162,7 @@ impl Shell {
             &self.fleet,
             selected.as_deref(),
             &sections,
-            Theme::ALL,
+            Theme::ALL.map(|theme| (theme, words.theme(theme))),
             self.t.lang,
         );
         if !settings::drawn(Section::Overview) {

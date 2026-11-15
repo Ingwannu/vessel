@@ -492,11 +492,13 @@ Left out, nothing behind them yet: Paseo's colour and sidebar-badge rows
 (the app keeps no machine appearance), "Restart daemon" and "Update
 daemon" (the node-control track brings the calls). Stand-ins until the
 shared controls land: the pencil is a plain glyph button (G2's
-`host_rename_button` is not on the lead's branch), Remove has no Trash2
-before its label (the kit's button has no leading content yet), the
-name is not selected when the dialog opens (no select-all in the kit's
-field yet). The badges are the kit's (pills on `surface3`, where Paseo's
-are bare outlines).
+`host_rename_button` is taken once it passes review; the call site then
+changes), the name is not selected when the dialog opens (no select-all
+in the kit's field yet; it waits on `kit/src/field.rs` being split in the
+quality audit). The badges are the kit's (pills on `surface3`, where
+Paseo's are bare outlines). Remove now has Paseo's Trash2 before its
+words (`kit::outline_button_with_glyph`, 14 square, 8 to the words, both
+in the destructive colour; the lead's decision for 0.0.0.0.18).
 
 ### Slice 5: the machine's Connections
 
@@ -531,3 +533,248 @@ confirm: the book's actor edits a machine (rename, default, forget),
 never one of its routes, so a route cannot be removed here; removing
 the machine is Overview's "Danger zone", and a paired machine gets a
 new set of routes by pairing it again through the CLI.
+
+## Overview module boundary and native quality (2026-11-15)
+
+[Decision Log]
+- Purpose: restore the native size gate without changing a screen or the
+  browser demo's results.
+- Existing assets and constraints: Overview already separates book-edit
+  rules (`view::overview`) from drawing, but its page and dialogs share a
+  file. The browser demo similarly mixes its catalog with its log actor.
+- Alternatives: a larger allowance would preserve both mixed
+  responsibilities; a new implementation would risk changing behaviour.
+- Choice (modify): move Overview's dialog drawing into `overview/dialogs.rs`
+  and the demo's agent/options catalog into `demo/catalog.rs`. Keep the
+  same functions, expressions, callbacks and visibility at existing callers.
+  Neither responsibility needs an external library.
+- Consequences: existing tests remain unchanged. The modules become small
+  enough to inspect independently; the demo's old size allowance shrinks
+  or disappears, and the link entry's allowance records its current size.
+- Reference: this is a structural change only; the Overview reference
+  remains `screens/settings/host-page.tsx` and
+  `screens/settings/host-appearance-section.tsx` listed in slice 4.
+
+### Resume point
+
+- Saved baseline: Connections and the shared outline-with-glyph Remove
+  control are committed; their inherited captures have not been re-reviewed.
+- Done: extracted Overview dialog drawing and the browser demo catalog;
+  the demo allowance shrank from 591 to 528 and the link entry records 1082.
+- Next: run the complete native gate on this committed tree. After that,
+  consume the shared rename control and verify its actual input bounds.
+  No select-all change is included.
+
+The size check previously stopped before the token check. Its next check
+exposed seven existing `px` literals in Overview, host Agents and Diagnostics.
+They now use the existing equal-valued spacing tokens, including the
+negative info-tip inset; no measurement or behaviour changes.
+
+### Integration resume point
+
+The native line already extracted the same Overview dialogs. The merge
+keeps that implementation and its `dialogs` entry; the existing Remove
+leading-glyph call remains. Host Agents keeps the native line's named
+negative inset. The size list takes the lower measured counts: link entry
+988, demo 523 after combining the native line with the catalog extraction.
+Conflicts were limited to these equivalent extractions, imports, equal-valued
+geometry tokens and shrinking allowance records. No rule or test expectation
+was changed. Next: gate this integration, then replace the temporary pencil
+with the shared host rename action now present in the native line.
+
+The extraction's first narrow Clippy found a missing test-only
+`OptionCategory` import. The existing test now imports it directly; its
+inputs and expectations are unchanged. The superseded whole-gate request
+was cancelled while queued. Resume: finish the corrected narrow check,
+commit, then submit the complete native gate before the rename consumer.
+
+### Quality result and shared rename consumer (2026-11-15)
+
+`caa0f632` passed the complete native gate: fonts, formatting, size,
+boundaries, tokens, whole Clippy, normal app build and tests; 1,169 passed,
+none failed, one ignored. The build and test logs both recompiled link,
+kit and app. A missing test-only import found by the first narrow check
+was repaired before that gate; no existing expectation changed. The
+original entry file budgets now measure link 988 and demo 523.
+
+[Decision Log]
+- Purpose: replace Overview's temporary pencil with the existing shared
+  host rename action, preserving the editor and book-edit rules.
+- Reference: `screens/settings/host-appearance-section.tsx:31-71,310-318`
+  uses the static Pencil action with eight points of hit slop; the name
+  row is at 279-288. `components/rename-modal.tsx` owns the editor.
+- Existing assets: the native line already contains `host_rename_button`
+  and its token geometry (`d103ab39`); another area-owned action or a new
+  dependency would duplicate it.
+- Choice (modify): call the shared action unchanged. Attach the editor
+  callback only to its enabled state. Invalid book names retain the
+  existing absence of an edit action. Do not add hover/pressed paint.
+- Verification: actual Overview input at and outside the visual frame;
+  a separate kit audit of disabled cursor/handler refusal, neighbouring
+  controls, parent propagation and overflow clipping. The audit must call
+  the real shared control, not recreate its geometry or hit handling.
+- Scope: no editor engine or select-all change. The shared action's
+  accessibility and keyboard limitations remain as documented by its owner.
+
+### Resume point
+
+- Quality repair committed and gated; review requested before proceeding.
+- Next: install the shared-action consumer and isolated input audit, gate
+  them, capture both schemes/languages and layouts, and report measured
+  bounds separately from screenshots and reviewer approval.
+- Select-all remains waiting for the field module split; do not enlarge
+  that file for this consumer change.
+
+The shared-action consumer and audit are now installed. The baseline
+Overview action's actual pointer hit measured 22 points on each axis. An
+initial probe used display coordinates and therefore sampled outside the
+centred window; it is invalid evidence. The corrected probe uses the
+window belonging to the capture process. Next: finish the narrow check,
+commit and run the native gate while collecting the new action's bounds
+and the isolated audit's results. No editor rule changed.
+
+### Structural repair review and exact gate evidence
+
+The structural repair through `caa0f632` passed independent source and
+native-gate review. Exact run: `settings2-20261115T034150Z-caa0f632`;
+all six steps ran with exit zero and none skipped. Tests: 1,169 passed,
+zero failed, one ignored. The step log's SHA-256 is
+`694679fcbb2430907123bdace632b81ede53703117c0e29d1756f3b87ffd7f67`.
+
+That disposition covers the equivalent module extraction, lower measured
+budgets and test-only import repair. It does not newly approve the inherited
+outline-with-glyph implementation, rename input bounds, disabled/adjacent/
+clipped states, select-all or the inherited capture set. Only the baseline
+Overview capture was opened during that review. The shared rename consumer
+and its first-use evidence remain a separate slice.
+
+Current resume: the shared rename consumer and input audit are committed
+as `ae6ba8f6`; their native gate is queued. Local normal app build and new
+captures are in progress. No editor engine or select-all change is included.
+
+### Long name and release isolation follow-ups
+
+The shared-action consumer `ae6ba8f6` passed its complete native gate
+(run `settings2-20261115T040434Z-ae6ba8f6`, all six steps zero, 1,169 passed,
+zero failed, one ignored). Desktop and compact input probes measured the
+same 38-point hit and passed nine edge/inside/outside cases each. The
+74-image matrix covers both schemes and languages, four widths and the
+requested larger scales. The original scale-two display clipped two
+physical pixels; those six images were excluded and recaptured on a
+larger virtual display with the same requested application dimensions.
+
+A supported maximum-length book name exposed a separate layout defect:
+the trailing value squeezed the title into a letter per line. The name
+was saved successfully; the first file check raced its asynchronous
+completion. The capture harness now waits for the saved-name condition.
+Choice (modify): use the existing custom-content row frame, keep the
+name title nonshrinking and one line, and let the right-aligned value
+share the remaining width and ellipsize. The reference's name row
+(`host-appearance-section.tsx:279-288`) stays on one line in both layouts;
+its shared frame is reused rather than copied.
+
+The sibling-overlap audit remains an open finding: a later transparent
+neighbour and rename can both receive the same press. The expected
+neighbour-only result is retained, not changed to pass. At native line
+`1d1f11df` there is no product call to this shared action; Overview's
+existing name value has no clickable neighbour. A global button hit-test
+occlusion policy requires its own kit decision. It is outside this
+follow-up. The separately assigned rename-control repair will isolate
+its bubble-phase release from a parent while preserving its caller's
+click; it must not stop capture phase or add a second click callback.
+
+Current resume: first fix and capture the long-name row; then add a
+failing parent-release event regression and the small shared-control
+repair. Select-all follows those changes and the field module split.
+
+### Parent-release control decision
+
+[Decision Log]
+- Purpose: an enabled rename action consumes its left-button release as
+  well as its press, so a parent's mouse-up action does not also run.
+- Existing implementation: the shared action stops mouse-down only. Its
+  caller still owns the editor callback; disabled callers attach none.
+- Source: pinned `gpui-pre` 0.3.10, `elements/div.rs` registers custom
+  mouse-up listeners before its generated click listener (2848 and
+  3143); `window.rs:5992-6008` dispatches capture forward and bubble in
+  reverse. The generated caller click therefore runs before a custom
+  bubble mouse-up listener on the same element.
+- Alternatives: capture-phase suppression can prevent the caller's
+  generated click; another click callback would obscure callback order;
+  global button occlusion is a separate kit policy.
+- Choice: add a left-button bubble mouse-up stop only for Enabled, after
+  the existing mouse-down wiring. Keep the API, geometry and paint.
+- Validation: a real GPUI event test first demonstrates the leaked parent
+  release, then verifies caller-once, no parent release, Disabled with no
+  handler, and a neighbour outside the rename hit remaining reachable.
+- Limit: the later-sibling overlap case keeps its neighbour-only
+  expectation and remains an open finding pending the global kit policy.
+
+The long-name fix is `ad2d4ef3`. Its local app build passed; four
+scheme/language/layout cases show the maximum-length name with its label
+and action preserved. The temporary book rename was restored byte for
+byte, with mode 0600, as the development account. Its complete native
+gate remains queued; no gate pass is claimed for it yet.
+
+The new parent-release regression reproduced the leak (caller one, parent
+one, expected zero) before the control change. With the enabled root's
+bubble mouse-up stop, the same test passed, including Disabled and a
+reachable neighbour outside the hit. The live audit now displays a
+separate parent-release counter. It retains the later-sibling case and
+its neighbour-only expectation as an open kit-policy finding.
+
+Resume: finish narrow Clippy, commit the control-only change, run the
+native gate and inspect the new live counter captures. The long-name
+commit's complete gate has now passed: run
+`settings2-20261115T050249Z-ad2d4ef3`, all six steps zero, 1,169 passed,
+zero failed, one ignored. No unchanged native gate was rerun.
+
+The corrected event regression passed (one test, both enabled/disabled
+branches); the control's caller still runs once and an outside neighbour
+still receives its click. The final kit all-targets narrow Clippy passed
+after splitting the audit parent wrapper from its row composition. Next:
+complete native gate and fresh live parent-release captures.
+
+### Rename package: completed source and gate evidence (2026-11-15)
+
+The preceding queued/resume statements are historical. The parent-release
+control is committed as `990da6dc` and passed independent V1 source/gate
+review. Run `settings2-20261115T052611Z-990da6dc` ran all six native steps
+without a skip, all exit zero: 1,170 passed, zero failed, one ignored.
+The step log SHA-256 is
+`a79854cc5735ec197af1da4ea732a9f37c9bf3593bb1d1624e1f38edb6c70ecf`.
+The actual before-change regression failed with caller one and parent
+release one; after the change it passes with caller one and parent zero.
+Disabled retains no handler and the outside neighbour remains reachable.
+
+Fresh release captures use the completed normal build of `990da6dc`, not
+the earlier executable. The `rename-release` set has 74 images: four
+window sizes, English/Korean, dark/light, plus the requested 1.25/1.5/2
+scales. All physical dimensions match; every idle/hover pair is equal.
+One English dialog title was missed by OCR; the retained original was
+opened and its title, input and footer are visible. The parent-release
+audit's two theme sets agree with the event regression. These captures
+and the long-name consumer evidence are submitted for visual review;
+the source/gate disposition alone does not approve them.
+
+The deliberately overlapping later sibling still receives a click along
+with rename in both theme audits. Its neighbour-only expectation remains
+failed. No product layout at the checked release head puts a clickable
+sibling beneath this control. This is the coordinator's deferred global
+button occlusion policy, not a claimed fix or a removed test. Select-all
+and the inherited Remove-with-glyph implementation remain outside this
+parent-isolation approval.
+
+Next: wait for the native lead's validated package base before changing
+field source. Then split field presentation and colour projection from
+state/registration/events without changing behaviour; commit the move
+separately before adding select-all. The new A14 package rule applies:
+small commits receive narrow checks, one full gate and capture submission
+at the end of the user-visible package.
+
+Diagnostics remains explicitly local app facts. N1 has approved bounded
+value types, but no public request, client call or assigned protocol yet.
+Do not register a stub or duplicate the node collector. Wire it only after
+the actual producer handoff, using the existing admitted identity and
+request-generation mechanisms. Node update awaits nodectl's ADR/call;
+Plugins belongs to its separate package owner.

@@ -191,7 +191,7 @@ fn section_row(
     item(
         ElementId::Name(format!("settings-{}", section.slug()).into()),
         glyph(section_glyph(section), icon_size(compact), color),
-        words.section(section),
+        words.section(section, shell.words),
         shown.then_some(state.turn),
         compact,
         tokens,

@@ -7,7 +7,7 @@
 //! holds because no system face is ever asked for: both faces ship in the
 //! binary and every style names them. Embedded rather than read from
 //! files beside the binary: one file to install, nothing to find at
-//! start, at about 6.7 MB (Pretendard's four weights are most of it; the
+//! start, at about 7.5 MB (Pretendard's four weights are most of it; the
 //! real build subsets them, as the page does).
 //!
 //! [Decision Log: form paths]
@@ -38,12 +38,23 @@ pub const HANGUL: &str = "Pretendard";
 /// synthesized). The 300 pair costs 1,725,412 bytes (Geist Light 125,444,
 /// Pretendard Light 1,599,968), from the same packages (`scripts/fonts.sh`)
 /// under the same licences.
-static FACES: [&[u8]; 9] = [
+///
+/// The code face also comes in bold, italic and bold italic, for the
+/// terminal (ADR 0073): a program's SGR 1 and 3 are drawn in those faces
+/// (xterm.js draws them in the face's bold and italic; GPUI does not
+/// synthesize either, so without the files they were drawn upright and
+/// regular). 461,016 bytes (bold 150,492, italic 154,508, bold italic
+/// 157,016), from the same `geist` 1.9.2 package as the regular face, which
+/// is byte-identical to that release's, so the four share their metrics.
+static FACES: [&[u8]; 12] = [
     include_bytes!("../../assets/fonts/Geist-Light.ttf"),
     include_bytes!("../../assets/fonts/Geist-Regular.ttf"),
     include_bytes!("../../assets/fonts/Geist-Medium.ttf"),
     include_bytes!("../../assets/fonts/Geist-SemiBold.ttf"),
     include_bytes!("../../assets/fonts/GeistMono-Regular.ttf"),
+    include_bytes!("../../assets/fonts/GeistMono-Bold.ttf"),
+    include_bytes!("../../assets/fonts/GeistMono-Italic.ttf"),
+    include_bytes!("../../assets/fonts/GeistMono-BoldItalic.ttf"),
     include_bytes!("../../assets/fonts/Pretendard-Light.otf"),
     include_bytes!("../../assets/fonts/Pretendard-Regular.otf"),
     include_bytes!("../../assets/fonts/Pretendard-Medium.otf"),

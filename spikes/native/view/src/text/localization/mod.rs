@@ -41,7 +41,7 @@ mod runtime;
 use fluent_bundle::FluentArgs;
 
 pub use grammar::Particle;
-pub use language::{LanguagePreference, LanguageTag, Locale, resolve_language};
+pub use language::{LanguagePreference, LanguageTag, Locale, resolve_language, resolve_languages};
 use runtime::{Bundle, Embedded, resolve};
 pub use runtime::{FormatError, InitError, Translator};
 

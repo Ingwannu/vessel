@@ -125,21 +125,24 @@ impl Shell {
             .set_placeholder(&placeholder, window, cx);
         if takes_prompts {
             self.areas.session.composer.focus(window, cx);
+        } else {
+            self.focus_terminal(window, cx);
         }
     }
 
     /// Show a session's conversation, following it.
     fn follow(&mut self, open: Open, cx: &mut Context<'_, Self>) {
-        self.conversation_opened(&open.machine, open.session, cx);
+        self.conversation_opened(&open, cx);
         let view = &mut self.areas.session;
         view.conversation = Conversation::default();
         view.entries.reset(0);
-        if open.structured {
-            self.command(Command::Open {
-                machine: open.machine.clone(),
-                session: open.session,
-            });
+        if !self.terminal_follow(&open, cx) {
+            return;
         }
+        self.command(Command::Open {
+            machine: open.machine.clone(),
+            session: open.session,
+        });
         self.areas.session.open = Some(open);
         self.route = Route::Session;
         cx.notify();
@@ -260,6 +263,7 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         self.conversation_records(session, records, cx);
+        self.terminal_records(session, records, cx);
         let view = &mut self.areas.session;
         if view
             .open
@@ -440,13 +444,7 @@ pub(crate) fn render(
     let body: AnyElement = if open.structured {
         crate::region::timeline(shell, tokens, window, cx)
     } else {
-        div()
-            .flex_1()
-            .p(px(24.0))
-            .type_(Type::Body)
-            .text_color(tokens.text_secondary)
-            .child(t.terminal_not_yet)
-            .into_any_element()
+        crate::areas::terminal::body(shell, tokens, window, cx)
     };
     let working = view.conversation.turn_running();
     let screen = div()
@@ -486,7 +484,7 @@ pub(crate) fn render(
         })
         .children(super::conversation::overlays(shell, tokens, window, cx));
     // Track F's slot: the screen, with the code panel beside it when out.
-    crate::areas::workspace::code_beside(shell, screen, tokens, window, cx)
+    crate::areas::layout::frame(shell, screen, tokens, window, cx)
 }
 
 /// Under an ended session's conversation: why it could not be started

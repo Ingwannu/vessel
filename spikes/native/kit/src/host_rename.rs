@@ -55,6 +55,8 @@ fn geometry() -> Geometry {
 }
 
 /// Static Pencil action; the caller wires the editor only when enabled.
+/// An enabled action consumes left-button down and release in bubble phase;
+/// the generated caller click runs before release is stopped.
 #[must_use]
 pub fn host_rename_button(
     id: impl Into<ElementId>,
@@ -86,6 +88,12 @@ pub fn host_rename_button(
             button
                 .cursor_pointer()
                 .on_mouse_down(MouseButton::Left, |_event, _window, cx| {
+                    cx.stop_propagation();
+                })
+                // GPUI's reverse bubble order runs the generated caller click
+                // before this custom release listener. Capture must stay open
+                // so pending press state is cleared even when bubble stops.
+                .on_mouse_up(MouseButton::Left, |_event, _window, cx| {
                     cx.stop_propagation();
                 })
         })
@@ -131,3 +139,6 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+mod events;

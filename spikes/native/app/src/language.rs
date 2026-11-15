@@ -12,12 +12,13 @@
 
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_view::Lang;
-use vessel_app_view::localization::{InitError, LanguagePreference, Translator, resolve_language};
+use vessel_app_view::localization::{InitError, LanguagePreference, Translator, resolve_languages};
 
 use crate::shell::Shell;
 
-/// The checking override is captured at startup. The current system tag is
-/// read at selection events, never in Render; sys-locale uses navigator on web.
+/// The checking override is captured at startup. Preferred system tags are
+/// read at selection events, never in Render; sys-locale uses navigator's full
+/// language list on web, matching the native providers' preference order.
 pub(crate) struct Language {
     checking: Option<String>,
 }
@@ -33,10 +34,9 @@ impl Language {
         &self,
         preference: LanguagePreference,
     ) -> Result<&'static Translator, InitError> {
-        let system = sys_locale::get_locale();
-        Translator::get(resolve_language(
+        Translator::get(resolve_languages(
             preference,
-            system.as_deref(),
+            sys_locale::get_locales(),
             self.checking.as_deref(),
         ))
     }
@@ -84,6 +84,7 @@ impl Shell {
         self.updates.translate(self.words, &mut self.notice);
         self.translate_rewind_notice();
         self.translate_fork_words();
+        self.translate_diagnostic_notice();
         self.areas
             .conversation
             .list

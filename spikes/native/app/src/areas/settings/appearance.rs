@@ -13,8 +13,8 @@
 //!   then a title line, two muted lines and the accent's bubble at the
 //!   bottom right. System's picture is light on the left and dark on the
 //!   right.
-//! - Differences: three themes of Paseo's eight (System, Light, Dark;
-//!   more are another track's); no font family, content size or syntax
+//! - Differences: the existing default Body14 label stays (Paseo uses
+//!   small12); no new tile or layout control. No font family, content size or syntax
 //!   theme rows (nothing in the app draws from them yet); the sizes and
 //!   the width are selects over the model's closed ranges (Paseo types a
 //!   number of pixels, 10 to 21, 9 to 22, 600 to 4000), so a choice
@@ -106,10 +106,9 @@ fn tile(
 ) -> Div {
     let neutral = tokens.neutral;
     let chosen = shell.prefs.settings.appearance.theme == theme;
-    let picture = match theme {
-        Theme::System => system_picture(),
-        Theme::Light => picture(&Tokens::of(Scheme::Light)),
-        Theme::Dark => picture(&Tokens::of(Scheme::Dark)),
+    let picture = match super::theme::fixed(theme) {
+        None => system_picture(),
+        Some(palette) => picture(&Tokens::palette(palette)),
     };
     div()
         .w(relative(if compact { 0.5 } else { 0.25 }))

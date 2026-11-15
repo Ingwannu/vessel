@@ -60,6 +60,7 @@ pub(crate) fn timeline(
         .face(Type::Body)
         .relative()
         .child(list)
+        .child(super::outline::width_probe(shell, cx))
         .children(super::outline::rail(shell, tokens, window, cx))
         .children(bar)
         .into_any_element()

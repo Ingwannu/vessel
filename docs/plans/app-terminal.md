@@ -333,6 +333,18 @@ grid, and that an unchanged generation draws nothing), not described.
   6.1.0-beta.336's order (`addon-webgl/src/TextureAtlas.ts` 519–526
   swaps, then 355 and 364–366 brighten; `DomRendererRowFactory.ts`
   347–355, then 437–438).
+- The code face is the app's own Geist Mono (regular, bold, italic,
+  bold italic, embedded), then Pretendard for Hangul; Paseo's stack
+  starts with JetBrains Mono (`terminal-font.ts` 3–21). One code face
+  across the app, and TYPE-07 (a real code face before any fallback)
+  holds without a system lookup. Hangul glyphs, narrower than two of
+  its cells, are drawn from the pair's left edge, leaving a gap inside
+  the pair; how xterm.js places a wide fallback glyph was not read.
+- Double, dotted and dashed underlines are drawn as one straight line,
+  curly as a wave; xterm.js draws each style. The grid draws through
+  GPUI's text runs, which have only those two.
+- Under reduced motion the cursor does not blink (the app's motion
+  rule); whether Paseo stops it then was not read.
 - No inline images, no mouse reports, no saved shell profiles, no
   terminal-activity hooks.
 - A file that is not already on the node is not uploaded. There is no
@@ -353,6 +365,180 @@ Each a few hundred lines with tests, captures (1280×800, 1024×700,
 | T5 | Switching one session between conversation and terminal: no call does it, so not offered. | none |
 
 ## Resume point
+
+### T1 review repair contract
+
+V3 row 104 accepted the ownership, appearance, motion, scheduling, notice
+and inspected visual evidence, but returned two dynamic scroll defects.
+The next repair modifies the existing viewport and history, rather than
+adding a second scroll controller. A typed history row address must pin
+the inspected output as live output grows or evicts older rows. The live
+position still follows output. The viewport retains the last presented
+history range so pointer and touch intent can update it while the executor
+owns the model; the current opening alone can apply the returned model.
+An alternate screen has no scrollback and must preserve the primary anchor.
+
+Reference reread for this repair: Paseo's runtime construction at
+`terminal-emulator-runtime.ts` 557–574 and app `package.json` 81; the exact
+installed `@xterm/xterm` 6.1.0-beta.336 at
+`/home/dev/paseo/node_modules/@xterm/xterm/src/common/services/BufferService.ts`
+99–110, 121–124 and 137–149. While user-scrolling, xterm leaves the display
+line still, adjusts for evictions, and resumes following at the bottom.
+Fail-first cases cover growth before the history cap, eviction at the cap,
+alternate-screen output, and pointer/touch gestures in both directions
+inside an outstanding live replay. The unchanged static capture matrix and
+the prior native gate remain valid for their recorded sources; changed
+behavior needs its own narrow checks and final package gate.
+
+Dynamic repair `df9a934e` pins history and retains in-flight input; test-only
+`84b96489` makes the new assertions exhaustive under the strict lint set.
+Before repair, `scroll-anchor-red.log` has two actual failures (expected
+row 2, got 3/5), and `scroll-intent-red.log` fails to show requested row 000
+after live replay. After repair, view's terminal tests pass 94 plus eight
+page cases; app's terminal tests pass all 15, including both input sources,
+return-to-live and opening replacement. The exact final source's strict
+clippy passed, then whole native run
+`appconv-20261115T060251Z-84b96489` passed all six steps: 1,155 passed,
+zero failed, two ignored. Logs: `/tmp/work/m12-conv-c2/rgate/dynamic-scroll/`;
+start/end load 11.35/14.87. V3 re-review is still required. The accepted
+static matrix remains at its recorded source; no layout, palette or grid
+renderer changed in this dynamic repair, and no new capture is claimed.
+
+The address is a physical row, not a durable logical-cell marker. Width
+reflow still resolves that index in the reflowed history and clamps it;
+it does not adjust the viewport around inserted/deleted reflow rows as
+xterm does (`Buffer.ts` 346–365, 460–485 and 530–539, read). This remains a
+stated difference: the scalar grid's reflow currently returns only the
+cursor mapping, with no persistent line/cell marker mapping. Extending that
+mapping belongs with the resize behavior rather than assuming a physical
+row identifies a logical cell after reflow. The guarantee here covers live output,
+eviction and alternate-screen switching at the existing geometry. A clear
+or RIS invalidates the old history epoch rather than pinning unrelated rows.
+
+The first screen review returned lifecycle, appearance, motion, scrolling,
+scheduling and notice defects. T1 remains unaccepted until these repairs,
+the native gate and the complete visual matrix are reviewed.
+
+[Decision Log]
+- Purpose and intent: one opening owns its read and replay, a quiet screen
+  follows appearance immediately, and queued output never monopolizes input.
+- Existing implementation and constraints: keep the existing parser, grid,
+  log fold, app area and the single kit renderer; asynchronous reads outlive
+  navigation and one link update may contain many small records.
+- Alternatives considered: cancellation alone (cannot reject an already
+  delivered result), per-event byte limits (do not bound an update), and an
+  area-local notice or second renderer (duplicate shared controls).
+- Choice: modify the existing assets. A typed opening identity accompanies
+  the history request, its refusal and both replay completions. Compare the
+  owning typed book name and opening before moving any retained state.
+  Replay all output on the background executor, in order, with one model
+  owner. UI updates collect pending bytes and paint completed models only.
+  There is no inline parse budget to accidentally reset per record.
+- Why: no dependency or wire change is needed; standard ownership and the
+  existing executor remove the unbounded UI parsing path altogether.
+- Advantages, costs and effects: a small echo requires an executor handover;
+  queued output has zero parsing work on the UI thread. A typed bounded
+  viewport exposes history by wheel/touch scrolling. Appearance identity
+  includes scheme and font metrics; changes rebuild without output. Cursor
+  timers exist only while presented, focused and motion is allowed, and
+  cancellation restores a steady visible cursor. Failed history is one
+  shared error alert while live output continues.
+
+Reference reread: `components/terminal-emulator.tsx` 313–317 and
+`terminal/runtime/terminal-emulator-runtime.ts` 980–994 invalidate theme
+and refresh visible rows; 555–575 configure a blinking bar, line height
+and scrollbar. The scheduling difference is deliberate: Vessel parses
+on its executor, not Paseo's client xterm event loop. Reduced motion
+continues to hold the cursor steady. The original font/cluster/underline
+differences above remain. No new wire, protocol assignment or dependency.
+
+The opening identity is an `Arc` ownership token alongside the existing
+`NodeName` and `SessionId`, echoed by `Act::TerminalLog` and `ActAnswer`,
+including link-queue refusal. It is process-local and adds no wire field.
+An old token is rejected before touching model, log cursor, held output
+or pending bytes. Terminal receipts are consumed before conversation
+failure handling, so one failed history read has one shared error alert.
+
+Further reference reread: `terminal/runtime/terminal-emulator-runtime.ts`
+1031–1043 delegates focus and blur to xterm. Vessel ties blink work to
+window presentation and terminal focus; the explicit no-blink motion
+policy remains its stated difference. Wheel and recognized touch pans
+use the existing snapshot viewport through a bounded `Viewport`; only
+visible rows are converted and painted. A fractional gesture accumulates
+until it crosses a complete cell row. A quiet appearance change checks
+scheme, code size and measured cell metrics before the equal-size path.
+
+The ignored Linux `terminal_states_capture` test uses the real shell,
+link and a verified disposable fake fleet. Ready state is an ordinary
+history read. Loading holds that read's completion; Unread supplies its
+typed refusal to the actual handler while the real follow continues.
+Those two images prove application rendering, not transport failure.
+No fixture override exists in an installed build.
+
+Repair resume: six old-code behaviour regressions failed as expected;
+13 repaired terminal tests now pass, including completion order and
+motion lifetime. The queue-refusal regression has also been added.
+One unnecessary qualification in that new test was corrected after the
+first source commit. The completion-order test now delivers both the old
+history replay and old output replay on each side of the new history
+handover, and verifies the log cursor too. Product code is unchanged by
+this extra coverage. The queued gate was cancelled before execution so
+the next whole gate includes the strengthened test.
+Private captures have been inspected; the final whole native gate passed.
+The burst regression now sends real ordered records through the terminal
+record handler, with each payload smaller than the parser feed budget and
+their aggregate larger than it. Its final screen and log cursor are checked.
+The quiet-theme regression explicitly retains equal measured cell geometry.
+
+### T1 repair evidence (2026-11-15)
+
+The product at `2ce9d83b` is unchanged through `f7f51e06` by the subsequent
+test-only strengthening. Native run `appconv-20261115T041605Z-92be8aa6` passed
+all six steps: 1,150 passed, zero failed, two ignored (the explicit Linux
+display fixtures). The final geometry/burst assertions also pass their
+13-test area run and strict all-target app clippy. Their exact whole gate,
+`appconv-20261115T045213Z-f7f51e06`, passed all six steps on `f7f51e06`:
+1,150 passed, zero failed, two ignored. Logs are retained under
+`/tmp/work/m12-conv-c2/rgate/repair-3/`; start/end loads were 9.90/19.21.
+The earlier narrow app/link/view terminal run was 114/0/1.
+
+The inspected matrix has 33 images: every combination of 1280×800,
+1024×700, 800×600 and 390×844 with EN/KO and light/dark; 800×600 glyphs
+at 1, 1.25, 1.5 and 2 in both themes (including minimum-window 1.5);
+loading in wide English/dark and narrow Korean/light; four unread states
+including narrow Korean; two scrolled states; and motion enabled. Eight
+additional glyph crops preserve source pixels without resampling. Every
+image and crop was opened for inspection. The matrix test executable's
+SHA-256 is `783c5ab3dd5a628e37c685927f9744034ed5f7e5672f747245db277cbfb108cc`,
+from `2ce9d83b`; per-image manifests retain source, binary and image hashes.
+
+The error alert remains readable at 390 in Korean, with actual followed
+output visible below and no duplicate conversation/foot error. Scrolling
+shows early records rather than the styled live tail; the bar is outside
+that viewport. Scale crops retain baseline separation, the four mono
+styles, fills and wide Hangul pairs. The reference comparison uses Paseo's
+`assets/store-screenshots/raw/iphone/terminal.png` plus the cited source:
+edge-to-edge console, bar and terminal palette; Geist Mono/fallback gap is
+already a stated difference. This is a structural comparison, not pixel
+parity between different contents/chrome. The reference phone key toolbar
+belongs to input, outside read-only T1.
+
+An extra real Settings sequence retained one quiet opening through
+Light → Dark → Light with motion held and no terminal output added.
+Cells, background and cursor recoloured on Back to that retained route.
+The test binary at `92be8aa6` has SHA-256
+`238759e195901469d8ee25099489225c572bd77e4074b6a5e2c6e0af2b2bdb57`.
+The disposable preference was restored afterwards.
+
+A normal release app (no fixture overrides), at the same product source,
+was also opened on the private fake terminal. Binary SHA-256:
+`e17f14e177d4be79c97cd4bbb838c0e6804feee6bc566c5f7c466655410313c6`.
+Held motion, 1280×800, Mesa lavapipe: 30.00095 s, process ticks
+472 → 489 at 100 Hz (0.57% of one core), draw markers 13 → 13. The debug
+display test's separate 10 s sample was 2.10%, draw 4 → 4; those profiles
+are not interchangeable. No hardware-GPU, physical-touch, real-agent or
+owner-platform result is claimed. Painted-row reuse and T2 have not begun;
+T1 still awaits the final exact-commit gate and review acceptance.
 
 - Done: ADR 0073 (status proposed) and this contract. `replay` never
   answers. Path quoting is stated for both node platforms. Scrollback
@@ -423,9 +609,49 @@ Each a few hundred lines with tests, captures (1280×800, 1024×700,
   leaving one; a 16 KiB call of line feeds at 1,024 columns is about
   320 MiB of allocation and fill. Measure one worst-case `feed` before
   choosing the thread live bytes are applied on.
-- Next: T1's
-  screen with the kit control (agreed with the lead: a control-only
-  commit, the palette in `kit/src/theme/terminal.rs` as
-  `tokens.terminal`, the grid view reading only its own frame, the
-  cursor blinking at 500 ms and still under reduced motion, measured
-  by `VESSEL_APP_FRAME_LOG`'s draw lines and the process's CPU).
+- T1, the screen (2026-11-15): the palette as `tokens.terminal`
+  (`kit/src/theme/terminal.rs`, d004dfe4), the grid control
+  (`kit/src/terminal_grid.rs`, 923add77: runs shaped with every glyph
+  forced to the cell's width, a wide scalar a run of its own, fills
+  under them, the bar cursor), the painted rows in `view`
+  (`paint/rows.rs`, 6bb89631) and the app's screen
+  (`app/src/areas/terminal/`). The log is read whole and replayed on
+  the background executor; the follow's records are held meanwhile and
+  applied after through `TerminalLog`. The original per-event inline
+  cutoff was returned in review; all live bytes now replay on the
+  background executor. The earlier measurements which motivated that
+  original cutoff (release, a scratch bench with a full history) were:
+  text costs about 3 ms per 64 KiB, line feeds a row each (16 KiB:
+  6.2 ms at 80 columns, 11.8 ms at 200, 51 ms at 1,024; 64 KiB at 200:
+  47 ms), so the line is drawn by line feeds, not bytes. The screen's
+  box is measured on the frame after it is drawn, while the log is
+  read too, so the history is replayed at its drawn width; a later
+  size waits 100 ms and reflows once (a full 10,000-line history:
+  5.8 ms from 80 to 200 columns, 16–17 ms from 200 to 120 or 80, on
+  the UI thread). Text at the code size, as Paseo's pane passes it.
+- Found by T1's first captures and fixed: GPUI's descent is negative
+  (rows were four pixels short); an unlined blank took the underline of
+  the word before it; a terminal session asked the node for its
+  conversation and showed the refusal; only Geist Mono Regular was
+  embedded, so bold and italic were drawn regular (three faces added,
+  461 KB, `scripts/fonts.sh`).
+- T1 measured (2026-11-15, release, Mesa lavapipe on Xvfb, a 1740×900
+  window, the grid about 200×51; `VESSEL_APP_FRAME_LOG`'s draw lines
+  and the process's CPU ticks): on the software renderer the app holds
+  motion still, so the cursor does not blink: idle 30 s, 14 ticks
+  (0.5% of a core) and no frame (an unchanged generation draws
+  nothing); `flood 4000 200` (800 KB), 20 s, 207 ticks and 5 frames,
+  draw 6.8 ms median. With `VESSEL_APP_REDUCE_MOTION=0`: the blink
+  draws 2 frames a second, draw 3.5 ms median (p90 4.9, max 7.9) for
+  the whole window with the grid rebuilt; the process's 71% of a core
+  is mostly lavapipe rasterising the window (it grows with the
+  pixels, frame_log's note); the flood drew 146 frames, 2.9 ms median
+  (p90 4.0, max 9.2). Output no longer draws the shell (c55cd2ea).
+- Captures (release): 1280×800 en dark and ko light, 1024×700 en light
+  and ko dark, 800×600 en dark and ko light, 390×844 en dark and ko
+  light, the sample session's colours, attributes, Hangul and cursor;
+  narrower windows reflow the history, nothing cut.
+- Next: a blink rebuilds every row (3.5 ms a frame above); keep the
+  painted rows (`Rc`) while the generation and scheme hold and change
+  only the cursor, then measure again. Then T2 (input, paste, resize,
+  the query duty), T3, T4.

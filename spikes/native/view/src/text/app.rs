@@ -51,7 +51,11 @@ pub struct Text {
     pub in_review: &'static str,
     pub ready: &'static str,
     // A session.
-    pub terminal_not_yet: &'static str,
+    /// A terminal session's screen while its earlier output is read.
+    pub terminal_loading: &'static str,
+    /// A terminal session's screen when its earlier output could not be
+    /// read (what comes next is still drawn).
+    pub terminal_unread: &'static str,
     pub send: &'static str,
     pub queue: &'static str,
     pub stop: &'static str,
@@ -314,7 +318,8 @@ const EN: Text = Text {
     validating: "Validating",
     in_review: "In review",
     ready: "Ready",
-    terminal_not_yet: "A terminal session. Terminals are not in this build yet.",
+    terminal_loading: "Reading the terminal's output…",
+    terminal_unread: "The terminal's earlier output could not be read.",
     welcome: "What do you want to work on?",
     suggestions: [
         "Fix a failing test in this project",
@@ -372,7 +377,8 @@ const KO: Text = Text {
     validating: "검증 중",
     in_review: "리뷰 중",
     ready: "준비됨",
-    terminal_not_yet: "터미널 세션입니다. 이 빌드에는 아직 터미널이 없습니다.",
+    terminal_loading: "터미널 출력을 읽는 중…",
+    terminal_unread: "터미널의 이전 출력을 읽지 못했습니다.",
     welcome: "어떤 작업을 할까요?",
     suggestions: [
         "이 프로젝트에서 실패하는 테스트를 고쳐 줘",

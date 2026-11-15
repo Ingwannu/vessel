@@ -2,6 +2,7 @@
 //! Pure state and credential policy live in `view::devices`; this area
 //! holds field/focus handles and wires their actions to `link::devices`.
 
+mod inspection;
 mod invitation;
 mod revoke;
 mod row;
@@ -10,9 +11,11 @@ mod rows;
 use std::{cell::Cell, collections::HashMap, rc::Rc};
 use vessel_app_kit::ui::{AnyElement, Context, Window};
 use vessel_app_kit::{DialogState, TextField, Tooltips};
-use vessel_app_link::devices::{Answer, Ask};
-use vessel_app_view::devices::{Listing, MachineKey, Page, Target};
-use vessel_app_view::{Reach, settings::Section};
+use vessel_app_link::devices::{Answer, Ask, Outcome};
+use vessel_app_view::devices::{
+    ConnectionContext, IdentityChange, Listing, MachineKey, Page, Target,
+};
+use vessel_app_view::settings::Section;
 use vessel_proto::DeviceId;
 
 use crate::{routes::Route, shell::Shell};
@@ -41,9 +44,84 @@ impl Devices {
             places: HashMap::new(),
         }
     }
+    fn bind(&mut self, context: Option<ConnectionContext>) {
+        if self.page.bind(context) == IdentityChange::Replaced {
+            self.copied = None;
+            self.places.clear();
+            self.tips = Tooltips::new();
+        }
+    }
 }
 
 impl Shell {
+    /// Checked device dispatch keeps a refused queue from leaving its page pending.
+    pub(crate) fn devices_send(
+        &self,
+        context: ConnectionContext,
+        ticket: vessel_app_view::devices::Ticket,
+        ask: Ask,
+    ) -> Result<(), vessel_app_view::devices::Problem> {
+        if self.route != Route::Settings
+            || self.areas.settings.section != Section::Devices
+            || super::choices::chosen_machine(self)
+                .is_none_or(|machine| machine.name != context.machine().as_str())
+            || self
+                .areas
+                .settings
+                .devices
+                .page
+                .check_context(&context)
+                .is_err()
+        {
+            return Err(vessel_app_view::devices::Problem::TargetChanged);
+        }
+        self.devices_dispatch(context, ticket, ask)
+    }
+
+    /// A single Machine snapshot supplies both welcome identity and epoch.
+    pub(crate) fn devices_fleet(&mut self) {
+        let context = super::choices::chosen_machine(self)
+            .and_then(vessel_app_view::Machine::connection_context);
+        self.areas.settings.devices.bind(context);
+    }
+
+    /// Reconcile navigation as well as authenticated events before a callback,
+    /// including a press delivered before the next frame has been drawn.
+    pub(super) fn devices_press(&mut self, context: &ConnectionContext, window: &Window) -> bool {
+        self.settle_devices(window);
+        self.areas
+            .settings
+            .devices
+            .page
+            .check_context(context)
+            .is_ok()
+    }
+
+    pub(crate) fn devices_retired(
+        &mut self,
+        tag: &vessel_app_view::connection::ConnectionTag,
+    ) -> bool {
+        let mut changed = false;
+        for machine in &mut self.fleet.machines {
+            if machine.name == tag.machine().as_str()
+                && machine.connection_epoch == Some(tag.epoch())
+            {
+                machine.connection_epoch = None;
+                changed = true;
+            }
+        }
+        let state = &mut self.areas.settings.devices;
+        if state
+            .page
+            .context()
+            .is_some_and(|context| context.tag() == *tag)
+        {
+            state.bind(None);
+            changed = true;
+        }
+        changed
+    }
+
     /// Reconcile the selected machine before drawing, including navigation
     /// made outside Settings. A departing credential is dropped immediately.
     pub(crate) fn settle_devices(&mut self, window: &Window) {
@@ -59,13 +137,16 @@ impl Shell {
                 None => Target::NoMachines,
                 Some(machine) => {
                     let key = MachineKey::from_book(&machine.name);
-                    match machine.reach {
-                        Reach::Online => Target::Online(key),
-                        Reach::Unreachable(_) => Target::Offline(key),
+                    if machine.connection_context().is_some() {
+                        Target::Online(key)
+                    } else {
+                        Target::Offline(key)
                     }
                 }
             }
         };
+        let context = super::choices::chosen_machine(self)
+            .and_then(vessel_app_view::Machine::connection_context);
         let state = &mut self.areas.settings.devices;
         if state.page.target != target {
             state.copied = None;
@@ -73,6 +154,7 @@ impl Shell {
             state.tips = Tooltips::new();
         }
         state.page.target(target);
+        state.bind(context);
         if matches!(state.page.target, Target::Online(_))
             && matches!(state.page.listing, Listing::Empty)
         {
@@ -82,7 +164,7 @@ impl Shell {
 
     pub(super) fn devices_list(&mut self) {
         let state = &mut self.areas.settings.devices;
-        let Target::Online(machine) = &state.page.target else {
+        let Some(context) = state.page.context().cloned() else {
             return;
         };
         let ticket = match state.page.tickets.next_ticket() {
@@ -93,8 +175,7 @@ impl Shell {
             }
         };
         state.page.listing = Listing::Loading(ticket);
-        let machine = machine.clone();
-        if let Err(why) = self.devices_send(machine, ticket, Ask::List) {
+        if let Err(why) = self.devices_send(context, ticket, Ask::List) {
             self.areas
                 .settings
                 .devices
@@ -106,9 +187,14 @@ impl Shell {
 
     pub(crate) fn devices_answer(&mut self, answer: Answer, cx: &mut Context<'_, Self>) {
         let state = &mut self.areas.settings.devices;
-        match answer {
-            Answer::Listed(ticket, result) => {
-                state.page.listing.answer(ticket, result);
+        if state.page.check_context(&answer.context).is_err() {
+            return;
+        }
+        match answer.outcome {
+            Outcome::Listed(ticket, result) => {
+                if !state.page.listed(&answer.context, ticket, result) {
+                    return;
+                }
                 if let Listing::Ready(devices) = &state.page.listing {
                     state.places.retain(|id, _place| {
                         devices
@@ -124,8 +210,8 @@ impl Shell {
                     state.tips = Tooltips::new();
                 }
             }
-            Answer::Invited(ticket, result) => {
-                if state.page.inviting.answer(ticket, result) {
+            Outcome::Invited(ticket, result) => {
+                if state.page.invited(&answer.context, ticket, result) {
                     if let vessel_app_view::devices::Inviting::Ready(pairing) = &state.page.inviting
                     {
                         invitation::clock(pairing.expires(), cx);
@@ -133,8 +219,8 @@ impl Shell {
                     self.devices_list();
                 }
             }
-            Answer::Revoked(ticket, result) => {
-                if state.page.revoking.answer(ticket, result) {
+            Outcome::Revoked(ticket, result) => {
+                if state.page.revoked(&answer.context, ticket, result) {
                     self.devices_list();
                 }
             }
@@ -158,6 +244,7 @@ pub(super) fn dialogs(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     revoke::dialog(shell, tokens, window, cx)
+        .or_else(|| inspection::dialog(shell, tokens, window, cx))
 }
 
 pub(super) fn start(shell: &Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {

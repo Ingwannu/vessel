@@ -13,6 +13,7 @@ fn a_refusal_changes_language_without_showing_the_diagnostic_or_losing_input(
         cx,
         |shell, _window, _cx| {
             shell.rewind_answered(&ActAnswer {
+                terminal: None,
                 machine: "isolated".to_owned(),
                 session: "00000000-0000-0000-0000-000000000001".parse().unwrap(),
                 kind: ActKind::Rewind,

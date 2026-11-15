@@ -78,31 +78,64 @@ impl DevicesWords {
     }
     /// Failed reads have their own place and action context.
     #[must_use]
-    pub fn list_problem(&self, problem: Problem) -> String {
+    pub fn list_problem(
+        &self,
+        problem: Problem,
+        translations: &crate::localization::Translator,
+    ) -> String {
+        if problem == Problem::TargetChanged {
+            return translations.device_target().list_changed().to_owned();
+        }
         match self.lang {
-            Lang::En => format!("Could not list devices. {}", self.problem(problem)),
-            Lang::Ko => format!("기기를 불러오지 못했습니다. {}", self.problem(problem)),
+            Lang::En => format!(
+                "Could not list devices. {}",
+                self.problem(problem, translations)
+            ),
+            Lang::Ko => format!(
+                "기기를 불러오지 못했습니다. {}",
+                self.problem(problem, translations)
+            ),
         }
     }
     /// A failed invitation never uses the credential in its explanation.
     #[must_use]
-    pub fn invite_problem(&self, problem: Problem) -> String {
+    pub fn invite_problem(
+        &self,
+        problem: Problem,
+        translations: &crate::localization::Translator,
+    ) -> String {
+        if problem == Problem::TargetChanged {
+            return translations.device_target().invite_changed().to_owned();
+        }
         match self.lang {
-            Lang::En => format!("Could not make a pairing link. {}", self.problem(problem)),
-            Lang::Ko => format!("페어링 링크를 만들지 못했습니다. {}", self.problem(problem)),
+            Lang::En => format!(
+                "Could not make a pairing link. {}",
+                self.problem(problem, translations)
+            ),
+            Lang::Ko => format!(
+                "페어링 링크를 만들지 못했습니다. {}",
+                self.problem(problem, translations)
+            ),
         }
     }
     /// A lost response cannot prove the revoke did not take effect.
     #[must_use]
-    pub fn revoke_problem(&self, problem: Problem) -> String {
+    pub fn revoke_problem(
+        &self,
+        problem: Problem,
+        translations: &crate::localization::Translator,
+    ) -> String {
+        if problem == Problem::TargetChanged {
+            return translations.device_target().revoke_changed().to_owned();
+        }
         match self.lang {
             Lang::En => format!(
                 "Could not confirm access was revoked. {}",
-                self.problem(problem)
+                self.problem(problem, translations)
             ),
             Lang::Ko => format!(
                 "접근 해제 결과를 확인하지 못했습니다. {}",
-                self.problem(problem)
+                self.problem(problem, translations)
             ),
         }
     }

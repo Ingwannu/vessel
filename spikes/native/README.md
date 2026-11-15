@@ -135,6 +135,9 @@ app/src/
                    features as controls or as Paseo's features sheet (features.rs)
     session.rs     a session: the conversation and the composer in Paseo's one chat
                    column (at most 820 wide, 16 from the edges), permissions, stop
+    terminal/      terminal-session lifecycle, background replay, appearance and
+                   cursor presentation, and the bounded scroll viewport; adapts
+                   view's parser/grid to the kit's single terminal_grid renderer
     composer/      what the composers share: an agent's lists kept and refreshed
                    (offers.rs), a running session's controls (running.rs, modes.rs),
                    the `/` menu (slash.rs), drafts and recall (drafts.rs)
@@ -145,6 +148,26 @@ app/src/
                    confirmation, over the new chat
     board.rs, archive.rs, sidebar.rs
 ```
+
+### Workspace panes and session resources
+
+`view::layout` owns typed targets and keys, validated split tree, placement,
+compact sheets, close plans and durable projection. `areas/layout` is the sole
+native frame/renderer registration point, reusing kit tabs, menus, buttons and
+resize gestures. Feature areas own their content and backend lifecycle. No
+feature creates a parallel pane manager. The native adapter currently retains
+an explicit session-route bridge until authoritative workspace resolution is
+available; equal paths never imply equal workspace identity.
+
+The reviewed session resident contract is in
+[`wp-layout-residents.md`](../../docs/plans/wp-layout-residents.md).
+`view::residents` defines the pure per-window admission/focus/lifetime table and
+per-attempt reply fences. It contains no GPUI state or connection identity cache.
+The current SessionView and ConversationArea globals remain the only live product
+owner while concrete owner adapters are prepared; the coordinated cutover must
+remove those globals and the single follow together. Pure core tests do not prove
+multiple agent panes work. Package details and evidence limits are in
+[`wp-layout.md`](../../docs/plans/wp-layout.md).
 
 ### Adding a screen (an area)
 
@@ -184,7 +207,21 @@ explicit reveal projects it for up to thirty seconds or until expiry,
 whichever comes first. Copy, focus loss and navigation mask it. Its pure
 state and stale-response tests live in `view/src/devices/`. Device rows
 have one access/last-use hint; exact pairing/last-use dates and all scopes
-stay in their tooltip. Ordinary paired rows have no repeated state badge.
+stay in their tooltip and in the read-only details opened by the row, so
+touch does not depend on hover. Details and revoke use one view selection
+rule and never open a revoked/missing row or replace a pending confirmation.
+Ordinary paired rows have no repeated state badge.
+Devices binds its public data and callbacks to the authenticated NodeId and
+an actor-lifetime admission generation. The existing connection registry in
+`link/src/connections.rs` owns parsed book bindings and retirement; it is
+independent of whether reading sessions succeeds. A reload, observed binding
+replacement, successful rename/forget or transport loss retires old work.
+Confirmations additionally carry a distinct, non-reused intent. Requests and
+replies keep the same context; neither an alias lookup nor a late reply can
+retarget an operation. The contract and explicit observation limits are in
+`docs/plans/backend-m12-device-targets.md`. Effective scopes remain
+unknown until Devices queries the existing device.self call; a failed session
+read is no substitute.
 The area's `devices/row.rs` composes the shared row/button so a wrapped
 badge/action group retains its trailing edge; its bounds cases live beside
 it (verification status is in the G4 notes).
@@ -254,6 +291,12 @@ with the ordinary line grid at action 16/menu 14; legacy ArrowUp/Update stay.
 Shared action glyphs also include `Trash2`, `ArchiveRestore`, `Minus`,
 `GitBranchPlus`, `Commit` and `Undo2`; existing `Pencil`/`Archive` stay.
 Each is registered once in `assets.rs` on the same 24-unit line grid.
+`Gauge` is the shared Usage navigation dial (16/20); `PackagePlus` is the
+catalog fallback (20). Both are original24-grid/1.5-stroke drawings, appended
+without replacing older vectors or adding aliases.
+`outline_button_with_glyph` puts one before an outline button's words
+(Paseo's `leftIcon`: 14 square, the button's 8 gap, glyph and words in one
+tone), as Settings › Overview's Remove draws its Trash2.
 
 `kit/badge.rs` supplies Paseo's StatusBadge for every area: typed success,
 warning, error and muted variants; small and extra-small sizes; optional
@@ -264,6 +307,10 @@ Labels remain whole and explanations belong below their row.
 26-point pointer / 44-point touch geometry, shared busy spinner, disabled
 primary, and `menu_right` for the menu aligned to the caret's right edge.
 The caller owns its actions, labels and menu state.
+Each explicit menu opening has a private render lease: callbacks retained from
+a prior opening or replaced state stand down before state, focus or action
+changes. See `../../docs/plans/backend-m12-menu-render-lease.md` for the lifecycle
+and headless GPUI proof boundary.
 
 Picker rows retain `Leading::Glyph` at 16 points; `Leading::SmallGlyph`
 is the explicit 14-point slot used by Paseo’s branch switcher.
@@ -283,6 +330,16 @@ existing semantic/neutral colours and palette blue 300 / amber 500 in
 returns `view::alert::Variant`, mapped once by `app::badge::alert_variant`.
 Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
 
+
+
+`kit/dialog.rs` accepts a clonable close closure so Escape, the scrim and
+the close glyph retain the caller's decision identity. Function-item callers
+keep their existing behavior; stale-decision policy stays with the feature.
+
+`kit/focus.rs` provides one weak, once-per-open return policy for controls.
+`DialogState::dismissed` acknowledges an actual close after the feature's
+pending/stale guards; it preserves a newer focus and clears the old cycle.
+Unadopted unit-close callers keep their prior behavior until they call it.
 
 `kit/dialog.rs` keeps a fitting dialog at its natural size. When its
 content exceeds the card's existing height limit, only the body scrolls;
@@ -449,6 +506,41 @@ Paseo's pencil: `theme::icon::SM`, padding `spacing::S1`, `theme::radius::MD`,
 static muted ink, a frame and a hit (slop `spacing::S2`) computed from those;
 its caller owns the callback and pending state, with no extra paint. Unlike
 Paseo's it has no accessible name (the kit has no accessibility tree yet).
+Enabled actions consume the left-button release after the generated caller
+click, without a capture handler. Later transparent sibling overlap remains
+an open kit hit-test policy; this is parent isolation, not global occlusion.
+
+### Theme cycling
+
+Settings > Shortcuts > General lists **Cycle theme**. Its default is
+Command+Option+T on Mac and Control+Alt+T elsewhere, through the same
+registry used for rebinding and conflicts. It calls `Theme::next` and the
+existing appearance preference setter. The command center suppresses this
+action, including a rebound key; character-preferred input and focused
+composition stand down before shortcut matching. Non-Mac terminal focus is
+excluded by policy, but its actual focus query awaits the terminal surface;
+this integration still has a placeholder there.
+
+### Named colour palettes (ADR 0070, staged)
+
+The kit can build `theme::Palette::{Light, Dark, Zinc, Midnight, Claude,
+Ghostty, PureBlack}` through `Tokens::palette`. `Scheme` still means only
+light or dark: status and syntax retain their existing scheme-specific
+sets. `Tokens::of(Scheme)` and both shipped token constructor bodies are
+unchanged. The new dark variants share one tint-to-token mapping; their
+authored values and deliberate brand-accent substitution are in ADR 0070.
+
+The existing stored `view::prefs::Theme` now includes all seven concrete
+palettes and System. Appearance keeps its existing tiles, with System
+first. One app adapter supplies both their previews and the applied tokens;
+it compares actual tokens so two dark palettes do not collapse to Dark.
+`set_palette` updates the component layer and refreshes the windows too.
+The run override still pins light/dark as before. The plan and current
+verification limits are in `docs/plans/app-themes.md` at the repository root.
+
+`theme::palette::GREEN_500` remains the fixed success colour used by the
+typed menu. It has one definition, shared with the named palette module;
+it is not replaced by the theme's accent or semantic status signal.
 
 ### Rules every screen follows
 
@@ -508,6 +600,13 @@ Its exact-value test keeps every step comparable with `styles/theme.ts`.
   leave the region showing old content. Measured on 2026-11-14 (release,
   composer focused on an open session, the caret blinking): the app's
   own work per blink fell from 7.1 to 2.1 ms (the draw probe below).
+  A region is drawn again when its size changes, but layout comes after
+  drawing: a decision taken from a size measured at the last layout (a
+  list's viewport width) is a frame late, and with nothing else marking
+  the region it stays late. Such a decision checks itself with a canvas
+  that measures this frame and marks the region dirty only when the
+  answer changes (`conversation::outline::width_probe`, the chat outline
+  rail that stayed at 800 x 600 in 0.0.0.0.19).
 
 ### The brand's drawing (ADR 0059)
 
@@ -575,6 +674,28 @@ scripts/fonts.sh                  # the faces into assets/fonts (not committed)
 cargo run -p vessel-app
 ```
 
+When the kit's list of faces grows, run `scripts/fonts.sh` again in every
+worktree: the build embeds each listed file and fails on a missing one
+(2026-11-15: Geist Mono's bold, italic and bold italic, for the
+terminal's SGR 1 and 3; CI runs the script on every gate).
+
+Terminal history reads carry a process-local opening identity through the
+link, including refused commands. Reopening the same machine/session cannot
+take an earlier read or replay completion. Live bytes also replay on the
+background executor, so a burst of small records never resets a UI parsing
+budget. The retained frame includes appearance, measured metrics and viewport;
+a quiet terminal follows theme/code-size changes even with motion held.
+Wheel and recognized touch pans expose view's bounded history. Cursor work
+stops on blur, navigation, hidden presentation and held motion.
+
+Linux's ignored `terminal_states_capture` test draws the real shell against
+a disposable fleet with `VESSEL_CONFIG_DIR`, `VESSEL_TEST_TERMINAL_SESSION`
+and `VESSEL_TEST_TERMINAL_STATE=ready|loading|unread`. Ready reads normally;
+Loading holds a receipt and Unread passes a typed failure while the real
+follow continues. These two fixtures prove display states, not transport
+failure. They cannot be enabled in an installed build. Use a private display
+and the fake-fleet procedure below, and inspect each resulting image.
+
 A `.cargo/config.toml` beside this file (untracked, one per worktree)
 sends build output to a directory of your own on the data disk with six
 jobs; one build at a time.
@@ -637,6 +758,20 @@ Environment:
   the sidebar's foot, `dev` without it. With `VESSEL_UPDATE_FEED` and
   `VESSEL_UPDATE_KEY` too (track R's `build.sh` sets them), the build
   updates itself; without them it never does.
+
+## Composed sections in one bounded viewport
+
+`kit::ScrollViewport` is the shared scrolling body for already rendered
+sections. Keep its `ScrollState` across renders and add sections in order;
+they retain natural heights while the viewport fills only available flex
+space with a zero minimum height. Keep fixed header/footer siblings outside
+it. `SectionIndex` queries measured section bounds before the body's own
+scroll offset; `bounds` and `offset` report the viewport and current position.
+The state also supplies a minimal focus/reveal wrapper for an existing focus
+target. It provides no button activation or complete row accessibility.
+Wheel handling and clamping remain GPUI's, with no new scrolling physics.
+`VirtualList` remains for indexed, virtualized row delegates. Existing dialog
+and autocomplete internals are not migrated by this control-only change.
 
 ## Trying it against fake nodes, and capturing a screen
 
@@ -727,20 +862,44 @@ the node’s ordinary public catalogue fetch; all other fixture traffic is
 local. The current SDK cannot exercise older/newer-agent readiness over
 the wire; see `docs/plans/backend-m12-agents.md` for the source boundary.
 
-On a machine without a display: an Xvfb of your own on a free display
-number, Mesa's software Vulkan, and ImageMagick's `import`:
+On a machine without a display, use an Xvfb of your own on a free display
+number (`ls /tmp/.X11-unix`), a fresh private authority file, Mesa's software
+Vulkan, and ImageMagick's `import`. Run the app and fixture CLI as the same
+development account, with the **same HOME and config root**: stored device
+credential paths are relative to that home. A different app HOME can make a
+correctly paired fixture appear unreachable.
 
 ```bash
-Xvfb :140 -screen 0 1280x800x24 -nolisten tcp &
-DISPLAY=:140 VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
-  VESSEL_CONFIG_DIR=/tmp/fleet/config VESSEL_APP_THEME=light <target>/debug/vessel-app &
-sleep 15; DISPLAY=:140 xdotool mousemove 390 380 click 1   # drive it
-DISPLAY=:140 import -window root shot.png
+umask 077
+fleet_root=/tmp/work/vessel-fleet
+capture_root=$(mktemp -d /tmp/work/vessel-capture.XXXXXX)
+export DISPLAY=:140 XAUTHORITY="$capture_root/authority" # choose a free display
+python3 - "$XAUTHORITY" "$DISPLAY" <<'PYAUTH'
+import pathlib, secrets, subprocess, sys
+path = pathlib.Path(sys.argv[1])
+path.touch(mode=0o600)
+subprocess.run(["xauth", "-f", str(path)],
+               input=f"add {sys.argv[2]} . {secrets.token_hex(16)}\n",
+               text=True, check=True, stdout=subprocess.DEVNULL)
+PYAUTH
+Xvfb "$DISPLAY" -screen 0 2880x1800x24 -auth "$XAUTHORITY" -nolisten tcp &
+xvfb_pid=$!
+HOME="$fleet_root" VESSEL_CONFIG_DIR="$fleet_root/config" \
+  VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
+  VESSEL_APP_THEME=light VESSEL_APP_SIZE=390x844 <target>/debug/vessel-app &
+app_pid=$!
+# Wait for the intended screen to appear before taking its capture.
+# Drive the normal app with xdotool; use --window coordinates after mapping.
+import -window <app-window-id> "$capture_root/shot.png"
 ```
 
-Pick a display nobody uses (`ls /tmp/.X11-unix`), stop what you started
-by its PID. A phone-sized capture: `VESSEL_APP_SIZE=390x844` and an Xvfb
-screen of that size.
+Record the app source/binary hashes, PIDs, viewport, theme, language and UI
+scale beside captures. Inspect every image: a mapped window or a successful
+capture command does not prove navigation reached the intended screen.
+For extra glyph scales set `GPUI_X11_SCALE_FACTOR` to 1.25, 1.5 or 2 at app
+startup; the physical window grows with that scale. Before stopping an owned
+process by PID, verify its executable under `/proc/<pid>/exe`. Stop your app,
+fake fleet and display when finished; keep the authority cookie private.
 
 ## Translation files (ADR 0039)
 
@@ -752,10 +911,15 @@ borrow retained fields, while messages with values are formatted when those
 values change. The allocation-counting test covers warmed plain access.
 
 `LANGUAGES` exposes each embedded tag, own name and completeness; the
-checking locale `en-XA` is excluded. `resolve_language` applies an override,
-a typed preference, or the system tag, with exact/base/English fallback.
-The source API is English, Korean must be complete with the same variables,
-and a contributed folder may be partial. Run the shared validator/report:
+checking locale `en-XA` is excluded. `resolve_languages` applies the checking
+override, a typed preference, or the host provider's preferred system tags in
+order. Each tag tries exact then base; English is the final fallback after the
+list is exhausted. `resolve_language` remains the single-tag adapter. The app
+uses sys-locale's existing native/browser list at startup or preference events,
+with no locale I/O during drawing. English/Korean are the shipped languages;
+a partial candidate stays outside the shipped directory. The source API is
+English and Korean must be complete with the same variables. Run the shared
+validator/report:
 
 ```bash
 scripts/locale-coverage.sh
@@ -809,6 +973,15 @@ the answer boundary for live retranslation. Typed fork/origin-read failures and
 unknown empty-fork reasons choose whole recovery sentences; original diagnostics
 remain in logs/session state. An uncertain fork asks to check the session list
 before retrying.
+Settings Chat uses `chat.ftl` for its section title, display row and choices;
+the typed adapter borrows prepared labels. A live language change rewords the
+existing picker while preserving its selected preference. Content-width labels
+remain in their Appearance area until that area moves.
+
+Settings Diagnostics controls use `diagnostics.ftl`. Its copied notice rewords
+on a language change while the collected report and clipboard data stay fixed.
+The technical report keeps its stable English schema and existing redaction,
+as in the reference; collecting/refreshing remains an explicit action.
 General's Language row uses System first, then each embedded language's own
 name. Its typed preference goes through `Prefs::prefer`; labels, retained
 field placeholders and pairing outcomes update at once, without restarting
@@ -868,10 +1041,12 @@ transport runs. It is compiled only into tests; the installed app has no
 preview option or event override. The ordinary gate reports this explicit
 display test as ignored.
 
-On your private Xvfb, prepare a protected file containing only the pairing
-link line from your private fleet (`pair.sh` output), set
-`VESSEL_TEST_PAIR_LINK_FILE` to it and `VESSEL_CONFIG_DIR` to an isolated,
-empty capture config, then run from this workspace:
+On your private authenticated Xvfb, create a FIFO in a private capture
+directory (`mkfifo -m 600 "$capture_root/offer.pipe"`). Pipe your private
+fleet's `pair.sh` stdout directly into that FIFO from a background writer;
+never print the link or keep it in a regular file. Set
+`VESSEL_TEST_PAIR_LINK_FILE` to the FIFO and `VESSEL_CONFIG_DIR` to an
+isolated empty capture config, then run from this workspace:
 
 ```bash
 VESSEL_APP_NO_UPDATE=1 VESSEL_APP_LANG=ko VESSEL_APP_THEME=dark \
@@ -880,8 +1055,8 @@ VESSEL_APP_NO_UPDATE=1 VESSEL_APP_LANG=ko VESSEL_APP_THEME=dark \
 ```
 
 Dismiss the pairing dialog with Escape, then close the window to finish the
-test. Remove the protected
-link file and stop your private display/fleet by their PIDs. Connection,
+test. Remove the FIFO and stop your verified owned writer/display/fleet
+processes by their PIDs. Connection,
 storage and name-error captures use the normal app and real isolated failure
 paths, without this harness.
 
@@ -1035,3 +1210,72 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+Settings Overview keeps its page and book-edit commands in
+`app/src/areas/settings/overview.rs`; `overview/dialogs.rs` only renders
+rename/removal dialogs and delegates actions to that parent. The browser
+demo's fixed agent and ACP-option catalog is `link/src/demo/catalog.rs`;
+`demo.rs` retains session state and event generation. These boundaries do
+not add another edit rule or another node implementation.
+
+`cargo run -p vessel-app-kit --example host_rename_audit` opens an isolated
+input audit of the shared rename action: ordinary, disabled, adjacent
+button and clipped-parent cases. Counters distinguish the action, its
+parent's mouse-down/release and the neighbour. It starts no node and adds no app
+route. The fixed grid is an audit fixture; the action itself is unchanged.
+
+Shared typed button content/loading/sizing is documented in
+`docs/plans/backend-m12-g2-button-content.md`. Label/Icon/IconAndLabel share one
+renderer; ButtonIcon::muted keeps the explicit source icon tone. button_control
+adds guarded disabled/loading callbacks and Small28/px12 in both layouts with
+Small20 ActivityIndicator. Medium is Pointer32/px16 or Touch44/px24; legacy
+no-Window signatures remain Pointer. The published outline glyph API retains
+its explicit tone and immediate-child geometry in the same shared renderer.
+
+Action menus retain one published renderer (menu_right/TopRight, QUICK appear,
+fill_in) and add typed leading14/16, Pending/Success, selectable Muted, KeepOpen,
+measured open_end and caller width. See docs/plans/backend-m12-g2-menu-base4.md
+for exact source, focus limits and consumer integration. The canonical palette
+GREEN_500 and existing CircleCheck own success ink/art; no second palette.
+
+The shared trigger adds ProviderRow (More14, visual32/r8/hit48, open/hover
+surface2+foreground, pressed surface3 background only) through one frame.
+trigger_presented takes typed Closed/Open with ButtonState. Existing entries
+keep Schedule/Git defaults. trigger_visual_size/trigger_space derive the same
+visual footprint; passive size has no identity, input, glyph or anchor.
+See docs/plans/backend-m12-g2-trigger-profiles.md for source and pending proof.
+
+Menu Content's typed Layer keeps Screen/priority1 as default and offers
+AboveDialog/priority3 through the same renderer. Its transparent viewport
+input boundary consumes only the nested menu's outside press, preserving
+its host dialog; no second scrim or area popup is drawn. See
+`docs/plans/backend-m12-g2-modal-menu.md` for source and pending proof.
+
+### Allocation block approval boundary (base 5 adapter)
+
+`command_changes::Listed` projects every `ServicePortsView` field explicitly.
+Until the approval card displays and compares the full allocation block, it
+refuses any current or last-approved block, even with zero named services or
+when the current set removes the old block. The approved-folder comparison
+fallback also retains that refusal. A typed refusal has separate EN/KO
+Fluent copy; it does not enable allocation, helpers or `PROJECT_FILE_KEYS`.
+This keeps an unseen setting out of an approval digest while the native display
+is implemented. Existing terminal refusal and head test cases remain intact.
+
+`kit::external_link::external_link(id, Option<SharedString>, &tokens)` draws
+Paseo's inline external link (label12, ArrowUpRight12, gap4, hitSlop8;
+muted text and SVG both become foreground on hover). It receives no URL and
+performs no OS action: callers keep their typed URL and opener. Use existing
+Tooltips only when the source consumer needs a hint. `None` is arrow-only.
+It has no button fill or private target override. Native Type::Meta supplies
+12/16 regular metrics where Paseo leaves line height platform-defined;
+accessibility/keyboard semantics remain the existing kit-wide gap.
+
+button_with_design accepts ButtonDesign::Regular(ButtonConfig) or the typed
+CircleConfig family through the same button body/input guard. CircleConfig
+has no density/regular-size/kind fields: it is44 square, round, icon20, with
+Surface (surface0/neutral border/foreground) or Danger (fixed palette red600,
+red800,white), no hover or pressed override. Loading uses shared Small20 and
+refuses clicks. Existing button_control and every legacy signature stay intact.
+Button::aria_label forwards an explicit role/name without creating a keymap;
+consumer accessibility/OS/first-use evidence remains unverified.

@@ -15,6 +15,7 @@ use crate::shortcuts::{
 };
 
 mod capture;
+mod theme;
 
 type Overrides = BTreeMap<ActionId, Bindings>;
 

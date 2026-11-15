@@ -98,6 +98,22 @@ pub fn resolve_language(
     system_tag: Option<&str>,
     override_tag: Option<&str>,
 ) -> Locale {
+    resolve_languages(preference, system_tag, override_tag)
+}
+
+/// Choose from the system's preferred tags in order, after the checking
+/// override and explicit preference. Unsupported tags do not hide a later
+/// supported language; English is used only once the list is exhausted.
+///
+/// The host supplies its existing locale provider's iterator, so view performs
+/// no I/O and browser/native hosts share the same selection rule. As with the
+/// single-tag adapter, call this at selection events, never while drawing.
+#[must_use]
+pub fn resolve_languages(
+    preference: LanguagePreference,
+    system_tags: impl IntoIterator<Item = impl AsRef<str>>,
+    override_tag: Option<&str>,
+) -> Locale {
     if let Some(tag) = override_tag {
         if normalize(tag).eq_ignore_ascii_case(PSEUDO.tag) {
             return PSEUDO;
@@ -105,8 +121,9 @@ pub fn resolve_language(
         return match_tag(tag, LANGUAGES).unwrap_or(ENGLISH);
     }
     match preference {
-        LanguagePreference::System => system_tag
-            .and_then(|tag| match_tag(tag, LANGUAGES))
+        LanguagePreference::System => system_tags
+            .into_iter()
+            .find_map(|tag| match_tag(tag.as_ref(), LANGUAGES))
             .unwrap_or(ENGLISH),
         LanguagePreference::Language(LanguageTag(locale)) => locale,
     }
@@ -153,5 +170,55 @@ mod tests {
         assert_eq!(match_tag("pt_PT.UTF-8", &languages), Some(portuguese));
         assert_eq!(match_tag("pt-br", &languages), Some(brazilian));
         assert_eq!(match_tag("de-DE", &languages), None);
+    }
+}
+
+#[cfg(test)]
+mod preferred_tests {
+    use super::*;
+
+    #[test]
+    fn system_uses_the_first_supported_tag_not_just_the_first_tag() {
+        let cases: &[(&[&str], &str)] = &[
+            (&[], "en"),
+            (&["zz-ZZ", "ko-KR", "en-US"], "ko"),
+            (&["zz-ZZ", "en-US", "ko-KR"], "en"),
+            (&["ko-KR", "en-US"], "ko"),
+            (&["en-US", "ko-KR"], "en"),
+            (&["zz-ZZ", "KO_kr.UTF-8"], "ko"),
+            (&["zz-ZZ", "missing"], "en"),
+        ];
+        for (tags, expected) in cases {
+            assert_eq!(
+                resolve_languages(LanguagePreference::System, tags.iter(), None).tag(),
+                *expected,
+                "system tags {tags:?}"
+            );
+        }
+        // The host provider yields owned strings; neither a collected list nor
+        // an additional parser is needed at the app/view boundary.
+        let host_tags = [String::from("zz-ZZ"), String::from("ko-KR")];
+        assert_eq!(
+            resolve_languages(LanguagePreference::System, host_tags, None).tag(),
+            "ko"
+        );
+    }
+
+    #[test]
+    fn override_and_preference_keep_priority_over_the_ordered_system_list() {
+        let ko = Locale::from_tag("ko").unwrap();
+        let cases = [
+            (LanguagePreference::from_tag("ko"), None, ko),
+            (LanguagePreference::from_tag("ko"), Some("en"), ENGLISH),
+            (LanguagePreference::from_tag("ko"), Some("unknown"), ENGLISH),
+            (LanguagePreference::from_tag("en"), Some("en-XA"), PSEUDO),
+            (LanguagePreference::from_tag("removed"), None, ko),
+        ];
+        for (preference, checking, expected) in cases {
+            assert_eq!(
+                resolve_languages(preference, ["zz-ZZ", "ko-KR"], checking),
+                expected
+            );
+        }
     }
 }

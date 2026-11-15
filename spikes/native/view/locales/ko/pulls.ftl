@@ -18,7 +18,7 @@ pulls-limit = 이 머신이 지켜볼 수 있는 풀 리퀘스트 수가 다 차
 pulls-ended = 이 세션이 끝나서 PR 생성을 사용할 수 없습니다
 pulls-unavailable = 지금은 PR 생성을 사용할 수 없습니다
 
-pulls-form-title = 풀 리퀘스트 생성
+pulls-form-title = PR 생성
 pulls-field-title = 제목
 pulls-field-body = 설명
 pulls-field-base = 기준 브랜치

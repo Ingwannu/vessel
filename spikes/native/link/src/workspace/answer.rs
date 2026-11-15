@@ -41,6 +41,8 @@ pub enum GitWritten {
 /// What the node answered a workspace ask, with what was asked.
 #[derive(Debug)]
 pub enum Answer {
+    /// Correlated backing-entity action result.
+    Layout(super::layout::Answer),
     /// The machine's projects.
     Projects(Result<ProjectList, Problem>),
     /// A project as it is now (a clone's progress, or its end).
@@ -246,6 +248,14 @@ impl Ask {
 /// The answer an ask gets when it could not be sent at all.
 pub(super) fn refused(ask: Ask, problem: &Problem) -> Answer {
     match ask {
+        Ask::Layout(ask) => Answer::Layout(ask.refused(match problem {
+            Problem::Unsent => vessel_app_view::layout::RenameProblem::Busy,
+            Problem::Node { code, .. } => vessel_app_view::layout::RenameProblem::Node(*code),
+            Problem::Older => {
+                vessel_app_view::layout::RenameProblem::Node(vessel_proto::ErrorCode::Unsupported)
+            }
+            Problem::Gone(_) => vessel_app_view::layout::RenameProblem::Offline,
+        })),
         Ask::Project(ask) => project_refused(ask, problem),
         Ask::Worktree(ask) => worktree_refused(ask, problem),
         Ask::Git(ask) => git_refused(ask, problem),

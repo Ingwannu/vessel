@@ -37,6 +37,16 @@ enum Theme {
 
 type Entry = PaletteEntry<usize, Theme>;
 
+// Keep this generic builder fixture's original choices and labels. The
+// production preference registry is checked independently below.
+fn named_themes() -> [(Theme, &'static str); 3] {
+    [
+        (Theme::System, "system"),
+        (Theme::Light, "light"),
+        (Theme::Dark, "dark"),
+    ]
+}
+
 fn laptop_sessions() -> Vec<SessionInfo> {
     vec![
         in_folder(
@@ -60,13 +70,7 @@ fn laptop_sessions() -> Vec<SessionInfo> {
 
 fn entries(selected: Option<&str>) -> Vec<Entry> {
     let book = fleet(vec![machine("laptop", true, &laptop_sessions())]);
-    palette_entries(
-        &book,
-        selected,
-        &SECTIONS,
-        [Theme::System, Theme::Light, Theme::Dark],
-        Lang::En,
-    )
+    palette_entries(&book, selected, &SECTIONS, named_themes(), Lang::En)
 }
 
 fn in_group(entries: &[Entry], group: PaletteGroup) -> Vec<&Entry> {
@@ -200,6 +204,28 @@ fn switches_the_theme_three_ways() {
             ("Theme: dark", PaletteTarget::Theme(Theme::Dark)),
         ]
     );
+}
+
+#[test]
+fn the_real_registry_lists_every_named_theme_in_both_languages() {
+    use crate::prefs::Theme as PreferenceTheme;
+    for lang in [Lang::En, Lang::Ko] {
+        let choices = PreferenceTheme::ALL.map(|theme| (theme, lang.settings().theme(theme)));
+        let all: Vec<PaletteEntry<(), PreferenceTheme>> =
+            palette_entries(&fleet(Vec::new()), None, &[], choices, lang);
+        let themes: Vec<_> = all
+            .iter()
+            .filter(|entry| entry.group == PaletteGroup::Theme)
+            .collect();
+        assert_eq!(themes.len(), PreferenceTheme::ALL.len());
+        for (entry, theme) in themes.into_iter().zip(PreferenceTheme::ALL) {
+            assert_eq!(entry.target, PaletteTarget::Theme(theme));
+            assert_eq!(
+                entry.label,
+                lang.palette().theme(lang.settings().theme(theme))
+            );
+        }
+    }
 }
 
 /// The kit's palette: typing filters over the label, the detail and the

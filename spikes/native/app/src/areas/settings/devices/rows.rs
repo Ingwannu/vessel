@@ -54,16 +54,22 @@ fn listed(shell: &Shell, tokens: &Tokens, compact: bool, cx: &mut Context<'_, Sh
     match &state.page.listing {
         Listing::Empty | Listing::Loading(_) => return loading(shell, tokens),
         Listing::Failed(why) => {
-            body = body.child(div().p(px(spacing::S4)).child(vessel_app_kit::alert::alert(
-                vessel_app_kit::alert::Content {
-                    title: Some(words.list_error_title.into()),
-                    description: Some(div().child(words.list_problem(*why)).into_any_element()),
-                    action: Some(refresh(words.retry, tokens, compact, cx)),
-                },
-                crate::badge::alert_variant(why.notice()),
-                vessel_app_kit::alert::Size::Small,
-                tokens,
-            )));
+            body = body.child(
+                div().p(px(spacing::S4)).child(vessel_app_kit::alert::alert(
+                    vessel_app_kit::alert::Content {
+                        title: Some(words.list_error_title.into()),
+                        description: Some(
+                            div()
+                                .child(words.list_problem(*why, shell.words))
+                                .into_any_element(),
+                        ),
+                        action: Some(refresh(shell, words.retry, tokens, compact, cx)),
+                    },
+                    crate::badge::alert_variant(why.notice()),
+                    vessel_app_kit::alert::Size::Small,
+                    tokens,
+                )),
+            );
         }
         Listing::Ready(devices) => {
             let active = paired_devices(devices);
@@ -77,7 +83,7 @@ fn listed(shell: &Shell, tokens: &Tokens, compact: bool, cx: &mut Context<'_, Sh
                 words.list_controls,
                 None,
                 None,
-                Some(refresh(words.refresh, tokens, compact, cx)),
+                Some(refresh(shell, words.refresh, tokens, compact, cx)),
                 false,
                 compact,
                 tokens,
@@ -85,35 +91,58 @@ fn listed(shell: &Shell, tokens: &Tokens, compact: bool, cx: &mut Context<'_, Sh
         }
     }
     match state.page.revoking {
-        Revoking::Failed(why) => {
-            body.child(div().p(px(spacing::S4)).child(vessel_app_kit::alert::alert(
+        Revoking::Failed(why) => body.child(
+            div().p(px(spacing::S4)).child(vessel_app_kit::alert::alert(
                 vessel_app_kit::alert::Content {
                     title: None,
-                    description: Some(div().child(words.revoke_problem(why)).into_any_element()),
+                    description: Some(
+                        div()
+                            .child(words.revoke_problem(why, shell.words))
+                            .into_any_element(),
+                    ),
                     action: None,
                 },
                 crate::badge::alert_variant(why.notice()),
                 vessel_app_kit::alert::Size::Small,
                 tokens,
-            )))
-        }
+            )),
+        ),
         Revoking::Empty | Revoking::Confirm(_) | Revoking::Sending { .. } => body,
     }
 }
 
 fn refresh(
+    shell: &Shell,
     label: &'static str,
     tokens: &Tokens,
     compact: bool,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    outline_button("devices-refresh", label, true, tokens)
-        .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
-        .on_click(cx.listener(|shell, _event, _window, cx| {
-            shell.devices_list();
-            cx.notify();
-        }))
-        .into_any_element()
+    let Some(context) = shell.areas.settings.devices.page.context().cloned() else {
+        return div().into_any_element();
+    };
+    outline_button(
+        format!("devices-refresh-{}", context.epoch()),
+        label,
+        true,
+        tokens,
+    )
+    .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
+    .on_click(cx.listener(move |shell, _event, _window, cx| {
+        if shell
+            .areas
+            .settings
+            .devices
+            .page
+            .check_context(&context)
+            .is_err()
+        {
+            return;
+        }
+        shell.devices_list();
+        cx.notify();
+    }))
+    .into_any_element()
 }
 
 pub(super) fn message(text: impl Into<gpui::SharedString>, tokens: &Tokens) -> Div {
@@ -126,21 +155,12 @@ pub(super) fn message(text: impl Into<gpui::SharedString>, tokens: &Tokens) -> D
 
 fn loading(shell: &Shell, tokens: &Tokens) -> Div {
     let words = shell.t.lang.devices();
-    div()
-        .p(px(spacing::S4))
-        .child(busy(
-            "devices-listing",
-            words.loading_badge,
-            shell.areas.settings.devices.page.listing.variant(),
-            tokens,
-        ))
-        .child(
-            div()
-                .mt(px(spacing::S1))
-                .type_(Type::Meta)
-                .text_color(tokens.neutral.foreground_muted)
-                .child(words.loading),
-        )
+    div().p(px(spacing::S4)).child(busy(
+        "devices-listing",
+        words.loading_badge,
+        shell.areas.settings.devices.page.listing.variant(),
+        tokens,
+    ))
 }
 
 fn device_row(
@@ -154,17 +174,24 @@ fn device_row(
     let words = shell.t.lang.devices();
     let state = &shell.areas.settings.devices;
     let id = device.id;
+    let Some(context) = state.page.context().cloned() else {
+        return div().into_any_element();
+    };
+    let revoke_context = context.clone();
     let pending = matches!(state.page.revoking, Revoking::Sending { .. });
     // Keep the row's geometry while its confirmation is open above it.
     let action = outline_button(
-        format!("device-revoke-{id}"),
+        format!("device-revoke-{}-{id}", context.epoch()),
         words.revoke,
         !pending,
         tokens,
     )
     .when(!pending, |button| {
         button.on_click(cx.listener(move |shell, _event, window, cx| {
-            shell.devices_choose_revoke(id, window, cx);
+            // Revoke opens its confirmation only, never the enclosing
+            // row's read-only details on the same bubbling click.
+            cx.stop_propagation();
+            shell.devices_choose_revoke(&revoke_context, id, window, cx);
         }))
     });
     // A caller's identity is not yet supplied by this connection. Never
@@ -187,7 +214,13 @@ fn device_row(
         compact,
         tokens,
     )
-    .id(format!("device-row-{id}"));
+    .id(format!("device-row-{}-{id}", context.epoch()))
+    .when(!pending, |row| {
+        row.cursor_pointer()
+            .on_click(cx.listener(move |shell, _event, window, cx| {
+                shell.devices_inspect(&context, id, window, cx);
+            }))
+    });
     let row = match state.places.get(&id) {
         Some(place) => state.tips.on(
             row,

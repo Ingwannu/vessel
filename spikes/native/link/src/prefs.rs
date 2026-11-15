@@ -75,6 +75,9 @@ pub struct Prefs {
     /// The person's settings.
     #[serde(default)]
     pub settings: Preferences,
+    /// Client-local workspace layouts; resource buffers remain feature-owned.
+    #[serde(default, deserialize_with = "vessel_app_view::layout::decode_layouts")]
+    pub layouts: Vec<vessel_app_view::layout::RememberedLayout>,
     /// Where all of this is kept (not in the file: found when it is read).
     #[serde(skip)]
     pub kept: prefs::Kept,
@@ -363,6 +366,21 @@ mod tests {
         std::fs::write(&path, r#"{"machine":"laptop"}"#).unwrap();
         assert_eq!(Prefs::load_at(&path).settings, Preferences::default());
         drop(std::fs::remove_dir_all(path.parent().unwrap()));
+    }
+
+    #[test]
+    fn every_named_theme_survives_the_real_atomic_file_round_trip() {
+        let path = scratch("named-themes").unwrap();
+        let mut kept = Prefs::load_at(&path);
+        kept.last_label = Some("theme-fixture".to_owned());
+        for theme in prefs::Theme::ALL {
+            kept.prefer(&PreferenceChange::Theme(theme)).unwrap();
+            kept.save_at(&path).unwrap();
+            let reloaded = Prefs::load_at(&path);
+            assert_eq!(reloaded.settings.appearance.theme, theme);
+            assert_eq!(reloaded, kept);
+        }
+        std::fs::remove_dir_all(path.parent().unwrap()).unwrap();
     }
 
     #[test]

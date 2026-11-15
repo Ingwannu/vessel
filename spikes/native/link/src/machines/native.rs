@@ -76,28 +76,7 @@ impl State {
         // Track F's follows of a renamed or forgotten machine end here,
         // after the book file was written (the seam agreed with E2).
         self.workspace.book_applied(&edit);
-        match edit {
-            Edit::Rename { from, to } => {
-                if self.follow_machine.as_deref() == Some(from.as_str()) {
-                    self.follow_machine = Some(to.as_str().to_owned());
-                }
-                if let Some(connected) = self.clients.remove(from.as_str()) {
-                    let _old = self.clients.insert(to.as_str().to_owned(), connected);
-                }
-            }
-            Edit::Forget(name) => {
-                let _removed = self.clients.remove(name.as_str());
-                // A watched conversation owns another client clone. Only
-                // the app's stream is cancelled; no remote mutation is sent.
-                if self.follow_machine.as_deref() == Some(name.as_str()) {
-                    if let Some(follow) = self.follow.take() {
-                        follow.abort();
-                    }
-                    self.follow_machine = None;
-                }
-            }
-            Edit::MakeDefault(_) => {}
-        }
+        self.book_connections_applied(edit).await;
         Ok(())
     }
 }

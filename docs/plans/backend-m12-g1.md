@@ -1018,3 +1018,144 @@ the menu's read and the form's send, which the fixture cannot stage.
   scripted clicks below Fetch must use the row positions of the session
   driven (a click meant for "Stashes…" stashed the fixture once; it was
   restored from that entry).
+
+### PR closeout: review wording and the small facts window (2026-11-15)
+
+- Existing assets and decision: modify the existing `ReviewPills` projection,
+  shared facts dialog and Fluent catalogue; no new control, dependency or wire
+  call. The standard library and the current typed projection suffice.
+- Reference: Paseo `git/pull-request-panel/pane.tsx:259–267, 575–604`
+  counts approvals and requested changes once in Activity's summary. Vessel
+  receives review standing rather than that timeline. Keep its existing
+  documented summary, but suppress a verdict only when the matching standing
+  pill already says it. A differing verdict (including review required) stays;
+  hiding every verdict would discard a fact the forge supplied.
+- Tests cover all five verdicts against all four approval/change-request pill
+  combinations, plus whole English/Korean labels and the form title.
+- Translation review settled the Korean form title as `PR 생성`, matching the
+  menu action. English retains the reference's contextual distinction between
+  `Create PR` and `Create pull request`. Only the Korean title key changes.
+- Resume point: the inherited source passed its native gate. This closeout's
+  remote gate and fresh executable captures are pending. Retake ready/failing
+  facts at 800×600 after the existing code-panel occlusion seam, then exercise
+  Create PR and squash merge against the disposable file-seeded forge, and
+  inspect the board. No real forge or agent is used.
+
+#### A finding from the final squash-merge run
+
+The real UI write completed: its toast said `PR merged`, the header's glyph
+changed, the refreshed facts said `Merged`, and merge rows disappeared. However,
+the fixture's summary retained `mergeable`, so Activity still said `Ready to
+merge` beneath `Merged`. That is historical data, not current readiness. The
+facts projection offers readiness only for a non-draft open request.
+Draft, closed, merged and unknown requests omit it; their state remains in
+the header. All six mergeability values are tested across those states and both
+open/draft forms. Review pills and a distinct review verdict remain unchanged.
+This follows Paseo's state header and Activity summary (the pane has no extra
+readiness line); Vessel's additional readiness fact remains for open requests.
+The previous closeout gate passed 1139 tests with none failed and one ignored;
+this changed tree needs its own gate and merged-facts retake.
+
+### PR closeout result and resume point (2026-11-15)
+
+- Code: `175491aa` removes matching review-verdict repetition and unifies the
+  Korean form title; `d230934a` removes historical readiness from non-open
+  facts. Both extend existing view rules and the existing facts drawing.
+  There is no node, wire, dependency or shared-control change. The only
+  translation edit is the agreed Korean title key.
+- Native gates: all six steps (fonts, fmt, quality, clippy with warnings
+  denied, app build, tests) passed on each code commit. `175491aa`: 1139
+  passed, none failed, one ignored. `d230934a`: 1140 passed, none failed,
+  one ignored. Each changed crate actually recompiled. The narrow clippy
+  checks passed too. Root source is unchanged; no root compile gate was run.
+- The final capture set has 41 individually inspected images. It includes
+  ready/failing facts at 800×600 in all four theme/language combinations,
+  forms and facts at 390×844, 800×600 at scale 1.5, successful creation and
+  squash merge at 1280×800, their board card lines, and merged facts at
+  1280, 800 and 390 in dark English and light Korean. Scrolled failing
+  facts demonstrate footer and feedback access. The manifest pins actual
+  pixel dimensions, image hashes, source commits and fresh executable hashes.
+  Thirty-three captures use `175491aa`; eight terminal/scrolled retakes use
+  `d230934a`. One obsolete contradictory merged-facts capture is separate
+  failure evidence, excluded from the final set.
+- The adapted final-forge script ran once on a fresh disposable fleet. UI
+  creation made request #311; UI squash merged #301. An independent
+  `pr.show --refresh` confirmed both outcomes and local-only push targets.
+  The header, menu and board updated. Fixture initialization checked the
+  other seeded states and read-only refusals before these writes.
+- The fixture completed writes before the first shot: those captures are
+  named for their success toast, not claimed as pending-state evidence.
+  Not verified: real forge accounts, browser opening, Windows, the
+  `OpenOutcome::Exists` race, write-pending visuals, or closed/unknown
+  pull-state UI (the latter states have pure rule coverage). This closeout
+  does not implement the project-wide pull request page.
+- The old WIP/resume entries above are historical. Current committed code
+  and its gates supersede them; the inherited `54b8aaa1` gate passed 1137
+  tests with none failed and one ignored. The original checkout was left
+  untouched; finishing used a separate checkout and build target.
+- All disposable nodes, the app and its authenticated virtual display were
+  stopped by verified process identity. No production permissions changed.
+  Artifact locations and run identifiers are in the private review report.
+- Next: source and visual review, then native-lead integration for build
+  0.0.0.0.19. No push or release was performed by this slice.
+
+
+### Draft-readiness source review correction (2026-11-15)
+
+The review returned one source finding: state, draft and mergeability are
+independent wire fields. An open draft can report `Mergeable` or `Unstable`;
+the previous test incorrectly required every draft to expose that reading.
+`Merge::for_open` now returns no current readiness for any draft. The Draft
+header, checks and review facts remain; it neither invents a Blocked response
+nor changes merge permissions. Paseo `git/policy.ts:560–591` and the existing
+`merge_methods` already refuse drafts. Explicit expected results for all six
+non-draft open outcomes remain; terminal/unknown states are tested with both
+draft flags for all six values. This is a wording projection correction,
+not a node or transport change.
+
+The previous 41 captures and their source assignments remain unchanged.
+The reviewer checked each original image, dimension and hash, with no
+additional visual return. A fresh independent Draft+Mergeable/Unstable seed
+and changed-tree native gate are the remaining verification for this fix.
+No old screenshot or old passing gate is claimed as proof of this correction.
+
+
+#### Draft correction verification result
+
+`6406211c` passed one changed-tree whole native gate: fonts, fmt, quality,
+clippy, build and tests all exit zero; 1140 passed, none failed, one ignored.
+The changed crates actually recompiled and the corrected regression ran.
+The narrow clippy check and fresh local debug build also passed.
+
+The copied complete fake-forge seed independently admits Open+Draft with
+Mergeable (#301) and Unstable (#306), verified through `pr.show --refresh`.
+Sixteen additional original captures were individually inspected: facts and
+complete menus for both shapes at 800×600 and 390×844 in dark English and
+light Korean. They retain Draft/check/review facts without current readiness
+or merge rows. Their manifest pins source, executable and image hashes.
+The old 41 images, their source assignments and their gate logs are intact.
+They were neither redone nor presented as proof of the draft correction.
+
+An initial title-query capture did not identify the intended PR and opened
+a branch chooser; it is excluded diagnostic evidence, with cause undetermined.
+The retake selected the session by its stable ID and verified the PR number.
+A restart blocked by an owned stale display lock was also stopped safely;
+cleanup followed dead-process and refused-socket checks. Neither diagnostic
+was addressed by changing product code or weakening an assertion.
+
+The disposable fleet, app and display have stopped. No node/wire/shared-control
+or other-area source changed. The same real-forge/OS/Exists/pending/closed-state
+UI limits remain. Bounded source, gate and inspected-visual review passed
+for exact code `6406211c` and documentation `ea26773b`; the sole draft-readiness
+return is closed. The review independently checked all 16 new originals,
+their dimensions and hashes, both raw node replies and the six gate results.
+All old 41 originals and their 33-at-`175491aa`/8-at-`d230934a` assignments
+remain intact; they are not relabelled as observations of `6406211c`.
+
+This is a bounded lead candidate, not approval of real forge accounts, OS or
+browser behaviour, Exists/pending/closed-or-unknown UI, the older 167-image
+set, the project-wide PR page, or a later combined tree. Nine diagnostic
+images remain excluded and their initial mismatch has no proven cause.
+The selected own code commits and documentation go to native integration;
+they do not replace the lead's whole branch. No unchanged gate was rerun,
+and no release or push was performed.

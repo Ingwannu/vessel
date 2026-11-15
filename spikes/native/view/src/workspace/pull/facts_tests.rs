@@ -104,3 +104,66 @@ fn the_verdict_mergeability_and_pills_follow_the_forge() {
         }
     );
 }
+
+#[test]
+fn review_pills_remove_only_the_same_verdict_and_preserve_different_facts() {
+    for approved in [false, true] {
+        for changes_requested in [false, true] {
+            let pills = ReviewPills {
+                approved,
+                changes_requested,
+                unresolved: 2,
+            };
+            for (decision, expected) in [
+                (
+                    ReviewDecision::Approved,
+                    if approved {
+                        Verdict::None
+                    } else {
+                        Verdict::Approved
+                    },
+                ),
+                (
+                    ReviewDecision::ChangesRequested,
+                    if changes_requested {
+                        Verdict::None
+                    } else {
+                        Verdict::ChangesRequested
+                    },
+                ),
+                (ReviewDecision::ReviewRequired, Verdict::ReviewRequired),
+                (ReviewDecision::None, Verdict::None),
+                (ReviewDecision::Unknown, Verdict::Unknown),
+            ] {
+                assert_eq!(pills.remaining_verdict(decision), expected);
+            }
+        }
+    }
+}
+
+#[test]
+fn a_draft_or_nonopen_request_never_claims_current_merge_readiness() {
+    for (mergeable, expected) in [
+        (Mergeable::Mergeable, Merge::Ready),
+        (Mergeable::Conflicting, Merge::Conflicts),
+        (Mergeable::Blocked, Merge::Blocked),
+        (Mergeable::Unstable, Merge::Unstable),
+        (Mergeable::Behind, Merge::Behind),
+        (Mergeable::Unknown, Merge::Unknown),
+    ] {
+        for state in [PullState::Merged, PullState::Closed, PullState::Unknown] {
+            for draft in [false, true] {
+                let mut pull = summary(state, draft);
+                pull.mergeable = mergeable;
+                assert_eq!(Merge::for_open(&pull), None);
+            }
+        }
+        let mut open = summary(PullState::Open, false);
+        open.mergeable = mergeable;
+        assert_eq!(Merge::for_open(&open), Some(expected));
+
+        let mut draft = summary(PullState::Open, true);
+        draft.mergeable = mergeable;
+        assert_eq!(Merge::for_open(&draft), None);
+    }
+}

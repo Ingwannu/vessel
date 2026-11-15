@@ -13,7 +13,7 @@ use vessel_proto::workspace::{
 use super::{AddForm, Labels, Local, WorkspaceWords, labels, lines};
 use crate::workspace::branch_name::BranchNameProblem;
 use crate::workspace::changes::ScopeKind;
-use crate::workspace::command_changes::{Change, CommandLine, Compared, ComparedWith, ScriptLine};
+use crate::workspace::command_changes::{Change, Compared, ComparedWith, ScriptLine};
 use crate::workspace::git_quick::{Blocked, GitAction};
 use crate::workspace::place::PlaceProblem;
 use crate::workspace::problem::Problem;
@@ -59,28 +59,6 @@ fn config_lines(key: Option<&ConfigKey>, reason: RepositoryConfigReason) -> (Str
             "읽으려면 이 앱의 Vessel을 업데이트하세요.",
         ),
     }
-}
-
-fn list_part(name: &str, list: &[CommandLine]) -> Option<String> {
-    let mut added = 0_usize;
-    let mut changed = 0_usize;
-    let mut removed = 0_usize;
-    for line in list {
-        match line {
-            CommandLine::Line(line) => match line.change {
-                Change::Added => added = added.saturating_add(1),
-                Change::Removed => removed = removed.saturating_add(1),
-                Change::Same => {}
-            },
-            CommandLine::Changed { .. } => changed = changed.saturating_add(1),
-        }
-    }
-    let said: Vec<String> = [(added, "추가"), (changed, "변경"), (removed, "삭제")]
-        .into_iter()
-        .filter(|(count, _)| *count > 0)
-        .map(|(count, word)| format!("{count}개 {word}"))
-        .collect();
-    (!said.is_empty()).then(|| format!("{name} 명령 {}", said.join(", ")))
 }
 
 impl Ko {
@@ -424,15 +402,19 @@ impl WorkspaceWords for Ko {
             setup,
             teardown,
             scripts,
+            unshown: _,
         } = compared
         else {
             return "이 프로젝트의 명령을 승인한 기록이 없어서 모든 명령을 있는 그대로 보여 줍니다.".to_owned();
         };
-        let parts: Vec<String> = [list_part("셋업", setup), list_part("정리", teardown)]
-            .into_iter()
-            .chain(scripts.iter().map(|line| self.script_part(line)))
-            .flatten()
-            .collect();
+        let parts: Vec<String> = [
+            super::comparison_lists::ko("셋업", setup),
+            super::comparison_lists::ko("정리", teardown),
+        ]
+        .into_iter()
+        .chain(scripts.iter().map(|line| self.script_part(line)))
+        .flatten()
+        .collect();
         let changed = if parts.is_empty() {
             "실행되는 것 중 달라진 것은 없습니다".to_owned()
         } else {

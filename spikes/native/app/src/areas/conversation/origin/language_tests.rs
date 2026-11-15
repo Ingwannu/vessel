@@ -38,6 +38,7 @@ fn an_origin_read_refusal_rewords_without_retrying_or_losing_input(cx: &mut gpui
             };
             shell.origin_answered(
                 &ActAnswer {
+                    terminal: None,
                     machine: "isolated".to_owned(),
                     session: source(),
                     kind: ActKind::Log,

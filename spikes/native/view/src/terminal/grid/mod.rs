@@ -38,6 +38,7 @@ mod tests;
 
 pub use cell::{Cell, Glyph, Line, Wrap};
 pub use history::CELL_LIMIT;
+pub(crate) use history::HistoryRow;
 pub use modes::{Bracketed, CursorKeys, Shown, Visibility};
 pub use pen::{Colour, Concealment, Pen, Polarity, Rgb, Slant, Strike, Underline, Weight};
 
@@ -183,6 +184,11 @@ impl Grid {
     #[must_use]
     pub fn history_len(&self) -> usize {
         self.history.len()
+    }
+
+    /// Address of the oldest retained physical row, including evictions.
+    pub(crate) const fn history_first(&self) -> HistoryRow {
+        self.history.first()
     }
 
     /// History line `index`, oldest first (no trailing blank cells).

@@ -23,11 +23,46 @@
 
 use std::collections::VecDeque;
 
-use super::cell::Line;
+use super::{Generation, Scroll, cell::Line};
 use crate::terminal::size::ScrollbackLines;
 
 /// The most cells history holds, across all its lines.
 pub const CELL_LIMIT: usize = 4 * 1024 * 1024;
+
+/// A physical history row's address survives front eviction. A clear
+/// changes the epoch so an old anchor cannot attach to unrelated output.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct HistoryRow {
+    epoch: Generation,
+    line: u64,
+}
+
+impl HistoryRow {
+    pub(crate) fn after(self, rows: Scroll) -> Self {
+        Self {
+            line: self.line.saturating_add(u64::from(rows.0)),
+            ..self
+        }
+    }
+
+    pub(crate) fn before(self, rows: Scroll) -> Self {
+        Self {
+            line: self.line.saturating_sub(u64::from(rows.0)),
+            ..self
+        }
+    }
+
+    pub(crate) fn distance(self, earlier: Self) -> Scroll {
+        Scroll(u32::try_from(self.line.saturating_sub(earlier.line)).unwrap_or(u32::MAX))
+    }
+
+    pub(crate) fn within(self, first: Self, end: Self) -> Option<Self> {
+        (self.epoch == first.epoch).then(|| Self {
+            line: self.line.clamp(first.line, end.line),
+            ..self
+        })
+    }
+}
 
 /// History, oldest first.
 #[derive(Debug)]
@@ -36,6 +71,7 @@ pub(super) struct History {
     /// Cells held, the sum of every line's width.
     cells: usize,
     limit: ScrollbackLines,
+    first: HistoryRow,
 }
 
 impl History {
@@ -44,6 +80,10 @@ impl History {
             lines: VecDeque::new(),
             cells: 0,
             limit,
+            first: HistoryRow {
+                epoch: Generation(0),
+                line: 0,
+            },
         }
     }
 
@@ -55,6 +95,10 @@ impl History {
     /// Lines held.
     pub(super) fn len(&self) -> usize {
         self.lines.len()
+    }
+
+    pub(super) const fn first(&self) -> HistoryRow {
+        self.first
     }
 
     /// Line `index` from the oldest.
@@ -88,6 +132,15 @@ impl History {
         self.lines.clear();
         self.lines.shrink_to_fit();
         self.cells = 0;
+        self.reset_after(self.first);
+    }
+
+    /// A new buffer must not reuse an older buffer's row addresses.
+    pub(super) fn reset_after(&mut self, previous: HistoryRow) {
+        self.first = HistoryRow {
+            epoch: previous.epoch.next(),
+            line: 0,
+        };
     }
 
     fn bound(&mut self) {
@@ -97,6 +150,7 @@ impl History {
                 break;
             };
             self.cells = self.cells.saturating_sub(oldest.cells().len());
+            self.first = self.first.after(Scroll(1));
         }
     }
 

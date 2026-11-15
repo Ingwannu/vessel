@@ -246,7 +246,9 @@ impl Grid {
     fn reset(&mut self) {
         let generation = self.generation;
         let scrollback = self.history.limit();
+        let history_first = self.history.first();
         *self = Self::new(self.size, scrollback);
+        self.history.reset_after(history_first);
         self.generation = generation;
     }
 }

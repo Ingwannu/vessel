@@ -4,12 +4,12 @@
 //!
 //! [Decision Log] Settings' sections and the theme's choices come from the
 //! caller
-//! - Purpose: the palette lists each section of Settings and the three
-//!   themes, but the sections are the settings frame's and the theme's
-//!   choice is the kit's; a second list here would drift from theirs.
+//! - Purpose: the palette lists Settings sections and theme choices, but
+//!   their identities and names belong to their registries; a second
+//!   indexed name table here would drift from them.
 //! - Choice: the entries are generic over the section (`S`) and the
 //!   theme's choice (`T`); the app passes the frame's sections with their
-//!   names and the kit's three choices (system, light, dark), and acts on
+//!   names and the preference's named choices, and acts on
 //!   the target it gets back.
 
 mod cursor;
@@ -41,7 +41,7 @@ pub enum PaletteGroup {
     Machines,
     /// Each session, live first.
     Sessions,
-    /// The theme's three choices.
+    /// The theme's named choices.
     Theme,
 }
 
@@ -134,15 +134,15 @@ impl<S, T> PaletteEntry<S, T> {
 
 /// Everything the palette lists for `fleet`, `selected` being the machine
 /// a new session starts on; `sections` Settings' sections with their
-/// names, `themes` the theme's choices as system, light and dark. Live
+/// names, `themes` the typed choices paired with their localized names. Live
 /// sessions come before ended ones, each newest first, so the one being
 /// worked on is near the top.
 #[must_use]
-pub fn palette_entries<S: Copy, T: Copy>(
+pub fn palette_entries<S: Copy, T: Copy, const N: usize>(
     fleet: &Fleet,
     selected: Option<&str>,
     sections: &[(S, &str)],
-    themes: [T; 3],
+    themes: [(T, &str); N],
     lang: Lang,
 ) -> Vec<PaletteEntry<S, T>> {
     let words = lang.palette();
@@ -217,10 +217,10 @@ pub fn palette_entries<S: Copy, T: Copy>(
             },
         )
     });
-    let themes = themes.into_iter().enumerate().map(|(at, theme)| {
+    let themes = themes.into_iter().enumerate().map(|(at, (theme, name))| {
         PaletteEntry::new(
             format!("theme-{at}"),
-            words.theme(at),
+            words.theme(name),
             PaletteGroup::Theme,
             PaletteTarget::Theme(theme),
         )

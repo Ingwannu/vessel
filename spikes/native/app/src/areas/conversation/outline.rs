@@ -134,6 +134,52 @@ fn lit(outline: &[OutlineItem], top_entry: usize) -> Option<usize> {
         .checked_sub(1)
 }
 
+/// Whether the rail fits the conversation's width this frame, measured
+/// where the list is drawn.
+///
+/// [Decision Log]
+/// - Purpose: [`rail`] decides from the list's width at its last layout,
+///   and the timeline is a cached region: after the window narrowed past
+///   918 the region was not drawn again, so a rail Paseo would hide stayed
+///   in the gutter (the coordinator's 0.0.0.0.19 smoke at 800x600).
+/// - Choice: a canvas over the list reads the list's width once this
+///   frame laid it out (the same width [`rail`] reads) and, only when it
+///   falls on the other side of 918 from the decision the rail was drawn
+///   with, marks the timeline region dirty: one more frame on the
+///   crossing, nothing on an ordinary frame.
+/// - Constraint: GPUI drops a view's notification made while the window
+///   draws (`WindowInvalidator::invalidate_view` leaves the window clean
+///   outside `DrawPhase::None`, and `Window::draw` then clears the dirty
+///   views), so the probe defers it to the effects that run after the
+///   frame. The 0.0.0.0.20 probe notified from paint directly and was
+///   lost: a resize from 1280 to 800 kept the rail, and a session opened
+///   at 1280 never showed it (the first layout's width is zero).
+/// - Alternatives: drawing the region on every resize (loses the cache),
+///   or the window's width less the panels (repeats the frame's layout);
+///   the canvas's own box would be a second measure that could fall on
+///   the other side of 918 from the list's and notify every frame.
+pub(super) fn width_probe(shell: &Shell, cx: &Context<'_, Shell>) -> AnyElement {
+    let list = shell.areas.conversation.list.clone();
+    let drawn = list.width() >= px(MIN_PANEL);
+    let target = shell
+        .areas
+        .regions
+        .timeline
+        .as_ref()
+        .map_or_else(|| cx.entity_id(), gpui::Entity::entity_id);
+    gpui::canvas(
+        |_, _, _| (),
+        move |_bounds, (), _window, cx| {
+            if (list.width() >= px(MIN_PANEL)) != drawn {
+                cx.defer(move |cx| cx.notify(target));
+            }
+        },
+    )
+    .absolute()
+    .inset_0()
+    .into_any_element()
+}
+
 /// The rail, when the conversation has two prompts and room for it.
 pub(super) fn rail(
     shell: &Shell,
@@ -197,6 +243,7 @@ pub(super) fn rail(
     Some(
         div()
             .id("outline-rail")
+            .debug_selector(|| "outline-rail".to_owned())
             .absolute()
             .left(px(RAIL_LEFT))
             .top(relative(0.1))
@@ -240,6 +287,9 @@ fn preview(prompt: String, tokens: &Tokens) -> Div {
         .text_color(neutral.foreground)
         .child(div().line_clamp(2).text_ellipsis().child(prompt))
 }
+
+#[cfg(test)]
+mod resize_tests;
 
 #[cfg(test)]
 mod tests {

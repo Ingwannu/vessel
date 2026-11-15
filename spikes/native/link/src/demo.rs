@@ -21,18 +21,22 @@
 //!   board phrase is written, not derived. It is compiled for wasm32 and
 //!   for tests only.
 
+mod catalog;
+
+use catalog::agents;
+pub(crate) use catalog::options;
+
 use std::collections::HashMap;
 use std::str::FromStr as _;
 
 use chrono::{DateTime, Duration, Utc};
 use vessel_app_view::board::CardDetail;
-use vessel_app_view::{Agent, Attention, Card, Fleet, Lane, Machine, Phrase, Reach, agent_name};
+use vessel_app_view::{Attention, Card, Fleet, Lane, Machine, Phrase, Reach, agent_name};
 use vessel_proto::{
     AgentEvent, ContentBlock, DisplayStatus, EventRecord, EventSeq, HarnessKind, HarnessRef,
-    OptionCategory, OptionId, OptionKind, OptionValue, OptionValueId, PROTOCOL_VERSION,
-    PermissionId, PermissionOption, PermissionOptionId, PermissionOptionKind, PermissionOutcome,
-    PermissionRequest, SessionEvent, SessionId, SessionOption, StopReason, ToolCall, ToolCallId,
-    ToolCallStatus, ToolCallUpdate, ToolKind,
+    PROTOCOL_VERSION, PermissionId, PermissionOption, PermissionOptionId, PermissionOptionKind,
+    PermissionOutcome, PermissionRequest, SessionEvent, SessionId, StopReason, ToolCall,
+    ToolCallId, ToolCallStatus, ToolCallUpdate, ToolKind,
 };
 
 /// The demo's sessions, each with its log.
@@ -178,13 +182,11 @@ impl Demo {
         };
         // The two reachable machines differ only by name.
         let online = |name: &str| Machine {
-            node: None,
-            name: name.to_owned(),
             reach: Reach::Online,
             sessions: on(name),
             agents: agents(),
             protocol: Some(PROTOCOL_VERSION),
-            version: None,
+            ..Machine::unreachable(name.to_owned(), "")
         };
         Fleet {
             machines: vec![
@@ -317,76 +319,6 @@ impl Demo {
 }
 
 const TEST_CALL: &str = "call-test";
-
-/// What every demo agent offers before a session: a model, an effort and
-/// a permission mode (the new chat's pickers), as an ACP agent lists them.
-pub(crate) fn options() -> Vec<SessionOption> {
-    let select =
-        |id: &str, name: &str, category, current: &str, values: &[(&str, &str)]| SessionOption {
-            id: OptionId::new(id),
-            name: name.to_owned(),
-            description: None,
-            category,
-            kind: OptionKind::Select {
-                current: OptionValueId::new(current),
-                values: values
-                    .iter()
-                    .map(|(value, words)| OptionValue {
-                        id: OptionValueId::new(*value),
-                        name: (*words).to_owned(),
-                        description: None,
-                        group: None,
-                    })
-                    .collect(),
-            },
-        };
-    vec![
-        select(
-            "model",
-            "Model",
-            OptionCategory::Model,
-            "opus",
-            &[
-                ("opus", "Opus 5.5"),
-                ("sonnet", "Sonnet 5.5"),
-                ("haiku", "Haiku 5.5"),
-            ],
-        ),
-        select(
-            "effort",
-            "Effort",
-            OptionCategory::ThoughtLevel,
-            "high",
-            &[("low", "Low"), ("medium", "Medium"), ("high", "High")],
-        ),
-        select(
-            "mode",
-            "Permissions",
-            OptionCategory::Mode,
-            "default",
-            &[
-                ("default", "Ask"),
-                ("acceptEdits", "Accept edits"),
-                ("plan", "Plan"),
-            ],
-        ),
-    ]
-}
-
-fn agents() -> Vec<Agent> {
-    [HarnessKind::ClaudeCode, HarnessKind::Codex]
-        .into_iter()
-        .map(|kind| {
-            let harness = HarnessRef::Known(kind);
-            Agent {
-                name: agent_name(&harness),
-                harness,
-                unavailable: None,
-                not_installed: false,
-            }
-        })
-        .collect()
-}
 
 fn card(
     machine: &str,
@@ -585,6 +517,7 @@ fn long_conversation(now: DateTime<Utc>) -> Vec<EventRecord> {
 mod tests {
     use super::*;
     use vessel_app_view::Conversation;
+    use vessel_proto::OptionCategory;
 
     fn fold(records: &[EventRecord]) -> Conversation {
         let mut conversation = Conversation::default();

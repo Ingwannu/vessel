@@ -27,15 +27,15 @@ pub(crate) fn render(
     compact: bool,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let words = shell.t.lang.settings();
+    let words = shell.words.chat();
     let detail = settings::card(tokens).child(settings::row_at(
-        words.chat_display,
-        Some(words.chat_display_note.into()),
+        words.display(),
+        Some(words.description().into()),
         None,
         Some(select_for(List::Display, shell, compact, tokens, cx)),
         true,
         compact,
         tokens,
     ));
-    settings::section(words.detail_level, detail, tokens).into_any_element()
+    settings::section(words.detail_level(), detail, tokens).into_any_element()
 }

@@ -18,14 +18,15 @@
 
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    Context, Div, ElementId, InteractiveElement as _, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, div, px,
+    AnyElement, Context, Div, ElementId, InteractiveElement as _, IntoElement as _,
+    ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, dot, kicker};
 use vessel_app_view::Reach;
 use vessel_app_view::prefs::SidebarView;
 use vessel_app_view::sidebar::SidebarMachine;
 
+use super::layout::EndTarget;
 use super::{INSET, more_row};
 use crate::routes::Route;
 use crate::shell::Shell;
@@ -39,11 +40,19 @@ pub(super) fn groups(
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let mut list = div().flex().flex_col().gap(px(spacing::S3_5));
-    for machine in shell
+    let machines = shell
         .fleet
-        .sidebar_machines(view, vessel_app_view::sidebar::SIDEBAR_SESSIONS)
-    {
-        list = list.child(group(&machine, shell, tokens, touch, cx));
+        .sidebar_machines(view, vessel_app_view::sidebar::SIDEBAR_SESSIONS);
+    let final_machine = machines.len().checked_sub(1);
+    for (index, machine) in machines.iter().enumerate() {
+        list = list.child(group(
+            machine,
+            EndTarget::at(index, final_machine),
+            shell,
+            tokens,
+            touch,
+            cx,
+        ));
     }
     list
 }
@@ -51,11 +60,50 @@ pub(super) fn groups(
 /// A machine's name, its state, and its listed sessions.
 fn group(
     listed: &SidebarMachine<'_>,
+    end: EndTarget,
     shell: &Shell,
     tokens: &Tokens,
     touch: bool,
     cx: &mut Context<'_, Shell>,
-) -> Div {
+) -> AnyElement {
+    let mut rows = header(listed, shell, tokens, touch);
+    let machine = listed.machine;
+    let final_session = listed.sessions.len().checked_sub(1);
+    for (index, card) in listed.sessions.iter().enumerate() {
+        let row = super::session_row::session_row(card, None, shell, tokens, touch, cx);
+        let target = if listed.more == 0 {
+            end.and(EndTarget::at(index, final_session))
+        } else {
+            EndTarget::Earlier
+        };
+        rows = rows.child(target.wrap(row, &shell.areas.sidebar.layout));
+    }
+    if listed.more > 0 {
+        let name = machine.name.clone();
+        rows = rows.child(
+            end.wrap(
+                more_row(
+                    ElementId::Name(format!("more-{}", machine.name).into()),
+                    listed.more,
+                    shell,
+                    tokens,
+                )
+                .on_click(cx.listener(move |this, _event, window, cx| {
+                    this.scope_board(Some(name.clone()), cx);
+                    this.go(Route::Board, window, cx);
+                })),
+                &shell.areas.sidebar.layout,
+            ),
+        );
+    }
+    if listed.sessions.is_empty() {
+        return end.wrap(rows, &shell.areas.sidebar.layout);
+    }
+    rows.into_any_element()
+}
+
+/// Keeps the existing state/tooltip renderer independent of list reach.
+fn header(listed: &SidebarMachine<'_>, shell: &Shell, tokens: &Tokens, touch: bool) -> Div {
     let t = shell.t;
     let machine = listed.machine;
     let (state, color) = match &machine.reach {
@@ -93,26 +141,6 @@ fn group(
             state
                 .tips
                 .on(line, &state.place(&machine.name), why.clone(), touch),
-        );
-    }
-    for card in &listed.sessions {
-        rows = rows.child(super::session_row::session_row(
-            card, None, shell, tokens, touch, cx,
-        ));
-    }
-    if listed.more > 0 {
-        let name = machine.name.clone();
-        rows = rows.child(
-            more_row(
-                ElementId::Name(format!("more-{}", machine.name).into()),
-                listed.more,
-                shell,
-                tokens,
-            )
-            .on_click(cx.listener(move |this, _event, window, cx| {
-                this.scope_board(Some(name.clone()), cx);
-                this.go(Route::Board, window, cx);
-            })),
         );
     }
     rows

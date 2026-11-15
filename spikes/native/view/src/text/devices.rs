@@ -31,6 +31,16 @@ pub struct DevicesWords {
     pub list_controls: &'static str,
     /// A failed list row label.
     pub list_error_title: &'static str,
+    /// Read-only details row: exact pairing time in the viewer's zone.
+    pub paired_at_label: &'static str,
+    /// Read-only details row: exact last authentication time, or its absence.
+    pub last_seen_label: &'static str,
+    /// Read-only details row: every independent grant, not the primary summary.
+    pub access_label: &'static str,
+    /// Details value when the node has no last-seen timestamp.
+    pub never_connected: &'static str,
+    /// Close the read-only details; this does not cancel a revoke.
+    pub close_details: &'static str,
     /// Invitation section.
     pub pair_another: &'static str,
     /// Device name label.
@@ -41,8 +51,6 @@ pub struct DevicesWords {
     pub new_link: &'static str,
     /// Busy invitation label.
     pub creating: &'static str,
-    /// Loading list.
-    pub loading: &'static str,
     /// Retrying a failed read.
     pub retry: &'static str,
     /// Refreshing a ready list.
@@ -87,12 +95,16 @@ const EN: DevicesWords = DevicesWords {
     paired: "Paired devices",
     list_controls: "Device list",
     list_error_title: "Devices unavailable",
+    paired_at_label: "Paired",
+    last_seen_label: "Last seen",
+    access_label: "Access",
+    never_connected: "No connection recorded",
+    close_details: "Close",
     pair_another: "Pair another device",
     name: "Device name",
     phone: "phone",
     new_link: "New link",
     creating: "Creating link",
-    loading: "Loading devices",
     retry: "Try again",
     refresh: "Refresh",
     empty: "No devices yet. One paired with a link below shows up here.",
@@ -117,12 +129,16 @@ const KO: DevicesWords = DevicesWords {
     paired: "페어링된 기기",
     list_controls: "기기 목록",
     list_error_title: "기기를 불러올 수 없음",
+    paired_at_label: "페어링",
+    last_seen_label: "마지막 접속",
+    access_label: "권한",
+    never_connected: "접속 기록 없음",
+    close_details: "닫기",
     pair_another: "다른 기기 페어링",
     name: "기기 이름",
     phone: "휴대폰",
     new_link: "새 링크",
     creating: "링크 만드는 중",
-    loading: "기기 불러오는 중",
     retry: "다시 시도",
     refresh: "새로고침",
     empty: "아직 기기가 없습니다. 아래 링크로 페어링하면 여기에 나타납니다.",
@@ -203,8 +219,13 @@ impl DevicesWords {
     }
     /// A failure without ever forwarding a peer's credential-bearing text.
     #[must_use]
-    pub const fn problem(&self, problem: Problem) -> &'static str {
+    pub fn problem<'a>(
+        &self,
+        problem: Problem,
+        translations: &'a crate::localization::Translator,
+    ) -> &'a str {
         match (self.lang, problem) {
+            (Lang::En | Lang::Ko, Problem::TargetChanged) => translations.device_target().changed(),
             (Lang::En, Problem::Offline) => {
                 "The machine is not connected. Reconnect the machine. Then try again."
             }

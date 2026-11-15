@@ -24,20 +24,31 @@
 
 use std::time::Instant;
 
-use gpui::KeystrokeEvent;
+use gpui::{InputPreference, KeystrokeEvent};
 use vessel_app_kit::TextField;
 use vessel_app_kit::ui::{App, Context, Subscription, Window};
+use vessel_app_view::prefs::PreferenceChange;
 use vessel_app_view::settings::Section;
 use vessel_app_view::shortcuts::{
-    Action, Held, KeyPress, Matched, Pending, Platform, chord_of, code_of, commanding, matched,
+    Action, Held, KeyPress, Matched, Pending, Platform, ShortcutScope, chord_of, code_of,
+    commanding, matched,
 };
 use vessel_app_view::sidebar::{Step, step_session};
 
 pub(crate) mod page;
+#[cfg(test)]
+mod tests;
 
 use super::session::Open;
 use crate::routes::Route;
 use crate::shell::Shell;
+
+/// C2's T1 terminal surface is not integrated yet: the session area
+/// draws a placeholder, with no terminal that can hold focus. T1 will
+/// replace this seam with its actual focus query when the surface lands.
+fn terminal_focused(_shell: &Shell) -> bool {
+    false
+}
 
 /// What the listener keeps between presses.
 pub(crate) struct ShortcutListener {
@@ -110,7 +121,12 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        if TextField::focused_composing(window, cx) {
+        // The toolkit still calls interceptors for AltGr/text-preferred
+        // input. In particular Ctrl+Alt+T must not steal that text.
+        if matches!(event.input_preference, InputPreference::CharacterInput)
+            || TextField::focused_composing(window, cx)
+        {
+            self.areas.shortcuts.pending = None;
             return;
         }
         let platform = Platform::native();
@@ -148,15 +164,29 @@ impl Shell {
             Matched::Wait(pending) => self.areas.shortcuts.pending = Some(pending),
             Matched::None => {}
             Matched::Run { action, index } => {
-                if self.run_shortcut(action, index, repeat, window, cx) {
+                if action.enabled(self.shortcut_scope(), platform)
+                    && self.run_shortcut(action, index, repeat, window, cx)
+                {
                     cx.stop_propagation();
                 }
             }
         }
     }
 
+    /// The palette's lifetime wins over retained terminal focus.
+    fn shortcut_scope(&self) -> ShortcutScope {
+        if self.areas.palette.is_open() {
+            ShortcutScope::CommandCenter
+        } else if terminal_focused(self) {
+            ShortcutScope::Terminal
+        } else {
+            ShortcutScope::Elsewhere
+        }
+    }
+
     /// Do what `action` says; whether it did anything (else the key goes
-    /// on to the field and the controls).
+    /// on to the field and the controls). The exhaustive dispatch stays
+    /// in one table so adding an action cannot leave a handler implicit.
     fn run_shortcut(
         &mut self,
         action: Action,
@@ -175,6 +205,10 @@ impl Shell {
                 }
             }
             Action::Settings => self.open_settings(None, window, cx),
+            Action::CycleTheme => {
+                let next = self.prefs.settings.appearance.theme.next();
+                self.prefer(&PreferenceChange::Theme(next), window, cx);
+            }
             Action::GoBoard => self.go(Route::Board, window, cx),
             Action::GoMachines => self.open_settings(Some(Section::Overview), window, cx),
             Action::GoSync => self.open_settings(Some(Section::Sync), window, cx),
