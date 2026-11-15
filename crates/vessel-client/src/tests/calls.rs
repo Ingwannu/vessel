@@ -528,3 +528,5 @@ async fn cli_host_and_capture_calls_refuse_locally_until_assigned() {
         "pending methods transmitted no request"
     );
 }
+
+mod file_panels;
