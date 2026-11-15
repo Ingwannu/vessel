@@ -1387,3 +1387,21 @@ No known-failing compiler run is requested to prove this count. The queued66735
 source predates this correction/Code/Search; its records remain exact prior
 source. Standing own-queued-run supersession may move the meaningful Kit suite
 to the corrected head only if cancellation is atomically accepted.
+
+
+### L's large generated-cache fix, selected Shape compatibility only
+
+L handed exact123e60a00 producer green (raw1452/0/2 with synthetic132/4097
+keys/132areas). That producer uses Contract while this announced-base F1
+generator is byte-identical to base8's Shape generator (SHA03e2e7869e...).
+The supplied five-file base8-compatible.patch (SHA703e4f8f...) applies unchanged;
+all resulting five manifest hashes match L's compatibility manifest. The old
+Shape and dynamic emitters/getters/locale files remain intact; schedules.ftl
+is not moved or reduced. No General/F6/moving L branch is taken.
+L explicitly marks this Shape adaptation SOURCE-checked, not separately compiled:
+this combined F1's actual remote compiler/gate still owes that evidence.
+
+The obsolete66735 Kit suite was cancelled while queued under WORKER standing
+own-run supersession (cancelled143; no compilation/tests). Its immutable logs
+are retained. It predates Code/Search and the combobox105-line repair; a new
+ordinary short suite on the corrected coherent checkpoint replaces it once.
