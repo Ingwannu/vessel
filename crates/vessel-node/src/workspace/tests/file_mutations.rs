@@ -44,7 +44,7 @@ async fn legacy_file_mutations_invalidate_the_actual_cached_working_tree() {
         assert!(changed(&fixture, query.clone()).await.is_empty());
         let old: RelPath = "before.txt".parse().unwrap();
         let new: RelPath = "after.txt".parse().unwrap();
-        fixture
+        let written = fixture
             .workspaces
             .write_file(
                 query.root,
@@ -54,6 +54,15 @@ async fn legacy_file_mutations_invalidate_the_actual_cached_working_tree() {
             )
             .await
             .unwrap();
+        assert_eq!(
+            written,
+            fixture
+                .workspaces
+                .read_file(query.root, &old, 0, None)
+                .await
+                .unwrap()
+                .version
+        );
         assert_eq!(fixture.workspaces.comparisons.cached_payloads_for_test(), 0);
         assert_eq!(
             changed(&fixture, query.clone()).await,
@@ -223,11 +232,20 @@ async fn ordinary_non_git_files_remain_writable_while_the_git_wrapper_still_refu
         let folder: RelPath = "folder".parse().unwrap();
         let path: RelPath = "folder/file.txt".parse().unwrap();
         fixture.workspaces.create_dir(root, &folder).await.unwrap();
-        fixture
+        let written = fixture
             .workspaces
             .write_file(root, &path, "plain file".to_owned(), WriteExpect::Absent)
             .await
             .unwrap();
+        assert_eq!(
+            written,
+            fixture
+                .workspaces
+                .read_file(root, &path, 0, None)
+                .await
+                .unwrap()
+                .version
+        );
         assert_eq!(
             std::fs::read_to_string(directory.join(path.as_str())).unwrap(),
             "plain file"

@@ -673,3 +673,14 @@ changed Node compilation and current-union generation remain owed.
   wrappers, common private root factor and C5 run_file_work visibility/call.
   Caller scopes/handlers/method numbers, ordinary read paths and all lower file
   implementations are unchanged. All exact union checks remain pending.
+
+## File-owner first strict return
+
+Exact a2697362 four-crate all-target Clippy reached the changed Node library and
+test source, then returned 101 solely on two unused FileVersion results in the
+new mutation fixtures. Keep that failed evidence. Both tests now compare the
+returned version with an actual read from the same protected root and path;
+production code is unchanged. The exact a269 workspace tests and TS generation
+remain their original queued runs. Their outcomes are not inferred from Clippy.
+The corrected fixture source still needs its own strict check; no root runtime,
+cache producer review or complete C3 gate is claimed by this correction.
