@@ -535,3 +535,66 @@ uses a safe generic category when no actual retained operation name is supplied;
 it must not reconstruct that name from a display label, pruned tool record or
 opaque JSON. This display difference does not delay the minimal body vocabulary
 and adds no new response authority or RPC.
+
+### Read-only recovery amendment (contract review before implementation)
+
+The coordinator approved this recovery amendment separately from the local web
+preflight: the latter still adds no node RPC. SubmitPrompt remains read-or-admit
+and is never named or used as read-only observation. There is one additional
+ObservePromptReceipt method, staged under the existing TIMELINE_PARITY None, with
+a deny policy line until reviewed wiring/number assignment at integration.
+
+The proposed public request is ObservePromptReceipt { request: SubmitPrompt }.
+The complete original request is fingerprinted with the authenticated Creator;
+clients cannot supply Creator or select an internal receipt namespace. An
+ordinary authorized session lookup precedes the same owner's read-only lookup.
+Attachment references are not reloaded or normalized for observation, and a
+stored/archived session is not restarted. No record, budget reservation, queue
+entry, provider work or watcher is created by observation, including when full.
+
+ObservePromptReceiptReply is a closed status union:
+- Unobserved { message }: no matching row was found. This is not proof of no
+  effects, and never authorizes resend, a new id or legacy fallback.
+- OutcomeUnknown { message }: a retained Pending/uncertain key remains protected.
+- KeyConflict { message }: the original fingerprint/Creator does not match.
+- Refused { message, reason: SubmissionRefusal }: the same retained no-effect
+  refusal, unchanged by later capabilities.
+- Accepted { receipt: PromptReceipt, binding: PromptReceiptBinding }: the original
+  immutable acceptance plus a separately retained authoritative target binding.
+
+PromptReceiptBinding is a closed union: Unobserved; Queued { entry: QueueEntryId };
+Turn { started: EventSeq }; Withdrawn { entry: QueueEntryId }; and
+Command { echo: EventSeq }. Queued names the exact accepted entry; it is not a
+claim that no provider work has happened or permission to resend it. Unobserved
+means no exact target is proved. Withdrawn requires an explicit owning-actor
+no-send removal, never absence from a later queue snapshot or a dropped ticket.
+A command binds its actual canonical echo and never a model turn.
+
+Direct/joined/replacement acceptance obtains its actual start sequence through
+the existing actor TurnTicket observation. Fast completion must not erase that
+binding. Queued acceptance keeps the exact entry immediately and uses the same
+actor ticket when that entry actually starts or joins a turn. No turn is inferred
+from counters, identical content, a guessed next event, provider labels or a
+prunable history scan. An unrelated later turn cannot replace an earlier binding.
+The initial accepted receipt remains immutable even when a queued target's
+separate binding later becomes Turn or Withdrawn.
+
+The existing single store writer owns the additional bounded binding metadata.
+Canonical publication/persistence and its binding must commit together (or leave
+an explicit Unobserved/uncertain target); a crash must not fabricate a bound turn.
+Only trusted live actor correlation may advance it. Imported/replayed display
+records and client-supplied ids do not create such a correlation. Exact duplicate
+binding writes are idempotent; a different target for a settled binding refuses
+rather than overwrites. Log pruning cannot erase retained replay/binding state.
+Authorized whole-session deletion remains the sole accounting-release path.
+The existing receipt reservation must cover the worst-case binding envelope;
+startup verifies it rather than dropping old keys to repair accounting.
+
+Implementation owes missing-row no-effects, same-key query while saturated,
+original Creator/fingerprint conflict, pruned attachment/history, fast-turn,
+queue-overtake/removal, stale callback, restart/fault and old-peer tests. The
+observer never turns an uncertain external operation into claimed exactly-once
+execution. Current source does not yet implement this amendment. Public/internal
+notice separation approved for ADR0033 remains a distinct joint contract: W18
+first supplies the exact bounded NoticeKey and captured parent/grant. No internal
+namespace field or new TimelineNotification body id is introduced here.

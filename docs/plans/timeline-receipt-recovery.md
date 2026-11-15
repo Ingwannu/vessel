@@ -53,3 +53,9 @@ therefore asks for an explicit disposition of the recovery need instead of
 silently extending that preflight. W18 and W23 must agree the shared contract and
 V3 must review it before implementation. Existing typed-grant checks, ADR0033
 self-queue policy and the one node queue remain binding.
+
+Coordinator disposition: approved. The no-new-RPC ruling applies only to local
+web preflight. The recovery method is one staged row under TIMELINE_PARITY None
+with a deny policy line and merge-assigned number. The concrete observation and
+separate binding unions are now specified in ADR0084 for V3 contract review
+before implementation. The exact W18 NoticeKey/grant packet is still separate.
