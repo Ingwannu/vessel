@@ -18,11 +18,26 @@ pub struct GetNode;
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ListHarnesses;
 
-/// `session.list`: every session the node knows, newest first, including
-/// ended sessions restored from disk.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// `session.list`: preserve the legacy full collection unless a caller
+/// explicitly supplies the versioned discovery selection.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-pub struct ListSessions;
+#[serde(transparent)]
+pub struct ListSessions(Option<crate::SessionSelection>);
+
+impl ListSessions {
+    /// A present selection must pass shared admission; it never becomes null.
+    #[must_use]
+    pub fn selected(selection: crate::SessionSelection) -> Self {
+        Self(Some(selection))
+    }
+
+    /// None is the original full-list wire contract, not implicit discovery.
+    #[must_use]
+    pub const fn selection(&self) -> Option<&crate::SessionSelection> {
+        self.0.as_ref()
+    }
+}
 
 /// `session.get`: one session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

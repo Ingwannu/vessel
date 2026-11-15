@@ -346,7 +346,13 @@ async fn a_member_moving_homes_drops_the_old_homes_relay() {
         }
         // The first home's relay is not needed any more.
         first_relay.stop().await;
-        assert!(second.owner.call_on(id, ListSessions).await.is_ok());
+        assert!(
+            second
+                .owner
+                .call_on(id, ListSessions::default())
+                .await
+                .is_ok()
+        );
         member.stop().await.unwrap();
         first.node.stop().await.unwrap();
         second.node.stop().await.unwrap();

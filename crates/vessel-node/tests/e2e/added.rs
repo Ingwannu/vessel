@@ -338,7 +338,7 @@ async fn an_older_client_is_never_handed_an_added_agent() {
             &fixture,
             &node,
             vec![
-                ListSessions.into_call(),
+                ListSessions::default().into_call(),
                 ListHarnesses.into_call(),
                 vessel_proto::GetSession { session: added.id }.into_call(),
                 KillSession { session: added.id }.into_call(),

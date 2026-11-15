@@ -89,10 +89,10 @@ async fn waits_leave_room(caller: &Member, target: &Member) {
     }
 
     // Room for everything else, on the same connection and another.
-    let listed = waiter.call_on(node, ListSessions).await;
+    let listed = waiter.call_on(node, ListSessions::default()).await;
     assert!(listed.is_ok(), "{listed:?}");
     let other = caller.fixture.connect(&caller.node).await;
-    assert!(other.call_on(node, ListSessions).await.is_ok());
+    assert!(other.call_on(node, ListSessions::default()).await.is_ok());
 
     // The ones waiting wake when records land.
     let _sent = target
@@ -223,7 +223,12 @@ async fn origins_a_relaying_device_names_share_one_share() {
             "answered at once, after {:?}",
             asked.elapsed()
         );
-        assert!(home.owner.call_on(target.id(), ListSessions).await.is_ok());
+        assert!(
+            home.owner
+                .call_on(target.id(), ListSessions::default())
+                .await
+                .is_ok()
+        );
         for read in forged {
             read.abort();
         }

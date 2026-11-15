@@ -1,8 +1,8 @@
 //! Discovery values for background sessions (ADR 0063).
 //!
 //! These values do not change a session's durability or exact-id operations.
-//! Request and storage fields are a later slice: creation must retain an
-//! optional override so omission can inherit the caller's listing.
+//! The request distinguishes legacy full reads from explicit discovery.
+//! Creation retains an optional override so omission can inherit its caller.
 
 use serde::{Deserialize, Serialize};
 
@@ -39,6 +39,45 @@ impl ListingScope {
             | (Self::All, SessionListing::Background) => true,
             (Self::Shown, SessionListing::Background) => false,
         }
+    }
+}
+
+/// Scope and an AND predicate on current labels. Scope is required on the
+/// wire so an empty object cannot silently choose a discovery policy.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct SessionSelection {
+    /// Background inclusion is separate from permission to access an id.
+    pub scope: ListingScope,
+    /// Every requested key and value must match; empty adds no predicate.
+    #[serde(default)]
+    pub labels: crate::SessionLabels,
+}
+
+impl SessionSelection {
+    /// Normal discovery, with no label predicate.
+    #[must_use]
+    pub fn shown() -> Self {
+        Self {
+            scope: ListingScope::Shown,
+            labels: crate::SessionLabels::default(),
+        }
+    }
+
+    /// Inclusive discovery, with no label predicate.
+    #[must_use]
+    pub fn all() -> Self {
+        Self {
+            scope: ListingScope::All,
+            labels: crate::SessionLabels::default(),
+        }
+    }
+
+    /// Preserve the chosen scope while adding a validated current-label predicate.
+    #[must_use]
+    pub fn with_labels(mut self, labels: crate::SessionLabels) -> Self {
+        self.labels = labels;
+        self
     }
 }
 
@@ -101,3 +140,6 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+mod selection_tests;

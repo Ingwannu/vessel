@@ -70,6 +70,10 @@ impl Call {
                 // cannot decode it.
                 fields.max(added(Some(&spec.harness)))
             }
+            Self::ListSessions(request) => match request.selection() {
+                Some(_) => Some(crate::lifecycle_version::SINCE?.get()),
+                None => None,
+            },
             Self::HarnessOptions(request) => added(Some(&request.harness)),
             Self::ListProfiles(request) => added(request.harness.as_ref()),
             // `scopes` came in 5; a scope newer than that needs its own
@@ -115,7 +119,6 @@ impl Call {
             | Self::ResetSideQuestion(_)
             | Self::NodeInfo(_)
             | Self::ListHarnesses(_)
-            | Self::ListSessions(_)
             | Self::GetSession(_)
             | Self::KillSession(_)
             | Self::Subscribe(_)

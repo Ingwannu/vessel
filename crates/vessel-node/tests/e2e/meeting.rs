@@ -195,7 +195,7 @@ async fn archiving_ends_the_watch_the_service_and_the_shell() {
             shell,
         } = watched(&owner, &fixture, &forge).await;
 
-        let listed = owner.call(ListSessions {}).await.unwrap();
+        let listed = owner.call(ListSessions::default()).await.unwrap();
         let shown = listed.iter().find(|info| info.id == session).unwrap();
         assert!(shown.pull_request.is_some(), "the list carries it");
         let pinned = owner

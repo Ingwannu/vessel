@@ -199,8 +199,8 @@ This compatibility difference is necessary because an older peer cannot supply
 listing metadata. Explicit background inclusion or label predicates never
 fall back: unsupported or unassigned requests are refused. The exact nullable
 request shape and compatibility table are in the plan. The protocol owner
-accepted the required-scope form; implementation still awaits the named
-method-table integration head.
+accepted the required-scope form. Its optional field requirement uses the
+integrated method-table head; storage and discovery wiring remain in progress.
 
 `session.get`, attach, log, send, kill, rename, labels and reload do
 not care about the listing. A background session is still there.

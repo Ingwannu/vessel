@@ -245,7 +245,7 @@ async fn listed_for_version_9(fixture: &Fixture, node: &Node) -> Vec<SessionInfo
         hello,
         ClientFrame::Request {
             id: RequestId::new(1),
-            call: ListSessions.into_call(),
+            call: ListSessions::default().into_call(),
         },
     ] {
         socket

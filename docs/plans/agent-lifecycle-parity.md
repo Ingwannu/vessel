@@ -409,9 +409,9 @@ spaces, commas and equals signs. This accessor does not add the pending
 ## Proposed session discovery request contract
 
 The protocol owner accepted this existing-wire-type change with required wire
-scope and named Rust constructors. It still awaits the named method-table
-integration head before wiring. This is the revised contract; no request
-conversion is implemented by this document.
+scope and named Rust constructors. The method-table integration head is now merged. The request conversion and
+its optional field rule are implemented; storage, inheritance and discovery
+service/CLI wiring are still in progress.
 
 ```rust
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -507,8 +507,14 @@ The legacy labels migration test already follows the table's latest version.
 Current package boundary: the legacy interrupt repair and existing label
 admission passed review and their whole gates. Event availability plus stop
 refusal passed the complete gate and review too. Earlier per-commit "owed"
-notes below record those checkpoints. Background values are merged into this
-package; request/storage/discovery/inheritance and CLI remain next.
+notes below record those checkpoints. Background values and the nullable request are merged into this package;
+storage/discovery/inheritance and CLI remain next. Existing unit-value callers
+use only `ListSessions::default()` with their assertions unchanged. The saved
+SDK `sessions()` still requests the legacy full collection. Selection serde
+checks distinguish null from the required-scope object. The existing RPC
+admission scenarios now also cover shown, all and labelled discovery directly,
+in each fleet envelope and in mixed nesting; no pending request reaches the
+writer or handler. These checks still need execution on this new code.
 
 
 - Reviewed: slice 1 contract and slice 2a validating types. Bounds,
