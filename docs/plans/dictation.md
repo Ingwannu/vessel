@@ -738,3 +738,9 @@ checks pass; compilation and test execution remain owed on the build machine.
 The lock change only adds the already locked path-tracker to the store dependency
 list. Submit the exact commit and narrow evidence for security review before
 merging it into the feature package.
+
+The first executed narrow Clippy stopped on unwrap_in_result in the test log
+writer; no product code failed. The writer now recovers its own capture mutex
+through PoisonError::into_inner, as existing internal tables do. Test inputs,
+marker assertions and recovery branches are unchanged. The first failed log is
+retained; strict and runtime checks on this correction remain owed.
