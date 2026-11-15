@@ -1,7 +1,9 @@
 # A8 CLI permit
 
 Status: staged parser, typed selection, complete read-only collection/preflight,
-question-input decoding and exact-outcome confirmation. Product registration
+question-input decoding and exact-outcome confirmation. Executable eb6341db7
+passed CLI all-target strict and 25 private permit unit cases. This successor
+changes documentation only; product registration
 waits for the reviewed ADR0084 response contract; the reviewed W17 output seam
 is now adopted from announced node82ae7c91.
 W4 owns these CLI files; W23 owns permission/question proto and node runtime.
@@ -293,3 +295,31 @@ needed. The existing archived-session fixture now also has Background listing,
 so accidentally filtering that independent classification fails the same
 listing regression. This remains a fake-source test, not live node authority
 or rich-response activation. Fresh strict and actual permit tests remain owed.
+
+## Current private-module verification
+
+Exact executable eb6341db72c55b2e8b4e7d54f64574ffaebb01c3, on announced93970acb:
+
+- wp-side-node-narrow-20261115T181506Z-eb6341db: CLI all-target Clippy with
+  warnings denied, cargo0, actual Client/CLI Checking. It replaces the earlier
+  negative d4e run only for corrected current-source evidence; that failure is
+  retained.
+- wp-side-node-narrow-20261115T183325Z-eb6341db: binary unit-test target vessel,
+  permit:: filter, test-threads1, 25passed/0failed/0ignored/111filtered. Actual
+  Client/CLI compilation and test execution, not an empty or library-only run.
+  Standard tool prerequisites web-ci/nested-fakes/nested-vesseld also returned0.
+  No pure-bin exception or helper bypass was used.
+
+The cases cover asymmetric allow/deny scope, explicit-all precedence, opaque
+input and private diagnostics, strict canonical/header envelopes, archived
+background listing, terminal exclusion, complete-result/error bounds, deadline,
+exact-session fresh preflight, duplicates/mismatched scope, shared output
+formatting and exact-outcome confirmation. Sources are in-memory fixtures; no
+real node, agent or public CLI permit handler was exercised. These results do
+not prove durable provider response delivery or public command registration.
+
+The selected tool graph is not a whole root gate or web/e2e test pass. Full rich
+contracts, actual allow/deny adapters, final root/package checks and review are
+still owed. main.rs retains literal cfg(test) on mod permit. All Rust, manifest
+and lock bytes in this documentation-only successor remain executable-source
+identical.
