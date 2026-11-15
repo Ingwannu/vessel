@@ -114,16 +114,14 @@ impl Comparison {
         self.whitespace
     }
 
-    /// Adapt only modes the legacy node actually implements. None means
-    /// Committed needs ADR 0087, never that All may be substituted for it.
+    /// Adapt only exact legacy meanings. All needs ADR 0087's private-index
+    /// read (legacy Base can omit restored untracked paths); Committed also
+    /// needs that contract. Neither is approximated by a different scope.
     #[must_use]
     pub fn legacy_scope(&self) -> Option<DiffScope> {
         match &self.kind {
             ComparisonKind::Branch(ComparisonMode::Uncommitted) => Some(DiffScope::Uncommitted),
-            ComparisonKind::Branch(ComparisonMode::All) => Some(DiffScope::Base {
-                base: self.base.clone(),
-            }),
-            ComparisonKind::Branch(ComparisonMode::Committed) => None,
+            ComparisonKind::Branch(ComparisonMode::All | ComparisonMode::Committed) => None,
             ComparisonKind::Commit(id) => Some(DiffScope::Commit { id: id.clone() }),
         }
     }

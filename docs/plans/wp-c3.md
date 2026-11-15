@@ -482,3 +482,11 @@ After the announced base6 18eed merge, pane discovery checks the sole owner's
 actual layout_panel_visible query before issuing requests. A closed tab's answer
 is dropped and its entry removed using layout_tab_exists; neither query creates
 a layout. These are source additions, not executed visibility/runtime proof.
+
+The newly scoped reader now refuses BOTH All and Committed on the legacy RPC
+compatibility boundary. Legacy Base can omit a path restored from the index
+that is now untracked, so it is not exact All. Uncommitted and immutable Commit
+remain exact supported reads. Until canonical pending git.compare values and
+its assigned handler land, the default All pane shows a capability recovery
+rather than a success-shaped approximate diff. Old toolbar consumers are not
+rewritten by this correction. New regression expectations remain unexecuted.

@@ -8,7 +8,8 @@
 //! - Effect: closed/full/admission/timeout failures settle the exact request.
 //!   Commit/branch identities remain in the immutable comparison ticket.
 //! - Compatibility: until the new canonical pending values are admitted, only
-//!   legacy scopes they represent can be requested. Committed is never All.
+//!   exact Uncommitted/Commit scopes can be requested. Neither All nor Committed
+//!   is approximated by legacy Base.
 #[cfg(not(target_arch = "wasm32"))]
 mod calls;
 
