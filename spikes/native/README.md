@@ -199,8 +199,9 @@ replacement, successful rename/forget or transport loss retires old work.
 Confirmations additionally carry a distinct, non-reused intent. Requests and
 replies keep the same context; neither an alias lookup nor a late reply can
 retarget an operation. The contract and explicit observation limits are in
-`docs/plans/backend-m12-device-targets.md`. Node-reported scopes remain
-unknown until the lead integrates the new call; a failed read is no substitute.
+`docs/plans/backend-m12-device-targets.md`. Effective scopes remain
+unknown until Devices queries the existing device.self call; a failed session
+read is no substitute.
 The area's `devices/row.rs` composes the shared row/button so a wrapped
 badge/action group retains its trailing edge; its bounds cases live beside
 it (verification status is in the G4 notes).
