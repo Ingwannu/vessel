@@ -8,6 +8,8 @@ use vessel_app_link::desktop::preferences::Receipt;
 use vessel_app_link::desktop::preferences::{Observation, Outcome, Snapshot};
 use vessel_app_link::{Command, Prefs};
 
+const RECENT_FAILURE_CAPACITY: usize = 64;
+
 #[cfg(test)]
 mod tests;
 
@@ -16,7 +18,7 @@ mod tests;
 pub(crate) struct ReceiptCapture {
     cycle: Rc<()>,
     latest: Option<Result<Receipt, vessel_app_link::Rejected>>,
-    reported_failure: Option<vessel_app_link::desktop::preferences::Revision>,
+    reported_failures: std::collections::VecDeque<vessel_app_link::desktop::preferences::Revision>,
 }
 
 /// Reuses Settings' validator/live application; never publishes a second command.
@@ -165,13 +167,13 @@ fn report_failure(shell: &mut Shell, snapshot: &Snapshot) {
         return;
     };
     let mut capture = shell.areas.desktop.receipts.borrow_mut();
-    if capture
-        .reported_failure
-        .is_some_and(|reported| reported >= snapshot.revision())
-    {
+    if capture.reported_failures.contains(&snapshot.revision()) {
         return;
     }
-    capture.reported_failure = Some(snapshot.revision());
+    if capture.reported_failures.len() >= RECENT_FAILURE_CAPACITY {
+        let _oldest = capture.reported_failures.pop_front();
+    }
+    capture.reported_failures.push_back(snapshot.revision());
     drop(capture);
     tracing::warn!(%error,"preferences change was refused");
     shell.notice = Some(shell.words.desktop_shell().preferences_failed().to_owned());

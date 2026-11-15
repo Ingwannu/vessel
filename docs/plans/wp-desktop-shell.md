@@ -231,9 +231,10 @@ from the reconciled canonical projection; its new-head execution is pending.
 Exact receipt admission is separate from canonical application: after its owner
 checks the current UI attempt, acknowledge reports an unseen failure even when a
 newer successful snapshot already won. It never reapplies the old preferences.
-Per-window failure revisions prevent a repeated receipt/watch delivery from
-redisplaying the same warning. An actual Shell regression exercises failed write,
-newer unrelated success and duplicate receipt; its new-head run is pending.
+A bounded64-entry per-window failure history deduplicates recent receipt/watch
+delivery without treating a different newer failure as this receipt's outcome.
+An actual Shell regression exercises failed write, newer unrelated success,
+out-of-order distinct failures and duplicate receipt; its new-head run is pending.
 
 Each workspace layout merges by LayoutKey; its validated pane tree stays atomic
 so allocator/reference invariants cannot be corrupted. W12 owns the UI-book cache

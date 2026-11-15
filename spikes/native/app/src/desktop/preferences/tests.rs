@@ -55,11 +55,22 @@ fn exact_failed_receipt_reports_once_after_a_newer_success_without_rolling_it_ba
     let newer = coordinator.snapshot();
     let older = futures_lite::future::block_on(receipt.completed()).unwrap();
     assert!(older.revision() < newer.revision());
+    std::fs::remove_file(&path).unwrap();
+    std::fs::create_dir(&path).unwrap();
+    let mut failed_again = accepted;
+    failed_again.settings.appearance.theme = Theme::Light;
+    let later_failure = second.publish_with_receipt(&failed_again).unwrap();
+    futures_lite::future::block_on(coordinator.flush()).unwrap();
+    let later_failure = futures_lite::future::block_on(later_failure.completed()).unwrap();
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, window, cx| {
         shell.areas.desktop.preferences = Some(first);
         apply(shell, &newer, window, cx);
         assert!(shell.notice.is_none());
+        acknowledge(shell, &later_failure, window, cx);
+        assert!(shell.notice.is_some());
+        shell.notice = None;
+        // A different newer failure cannot stand in for this exact receipt.
         acknowledge(shell, &older, window, cx);
         assert_eq!(shell.prefs, *newer.preferences());
         assert_eq!(
