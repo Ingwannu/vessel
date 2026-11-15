@@ -423,6 +423,29 @@ mode on its own test context; receipts and the non-pumping std waiter still orde
 the observation boundary. No production scheduler, lint, timeout or assertion is
 relaxed. Link141/0, Kit193/0 and the App receipt/cache/menu regressions passed on
 that older source; the newer writer fix and corrected case still need execution.
+Windows run wp-desktop-shell-win-check-20261115T151309Z-b0cef8c4 completed
+fonts0 and MSVC all-target App check0 on exactb0cef8c4. This compiled the UTF-16
+registry bridge and cross-platform test waiter. The normal/test binaries still
+reported20/14 warnings, mostly pending real owner consumers; this is a typecheck,
+not strict Clippy, Windows runtime or root-crate cross-check evidence. It predates
+the newer serial-writer fix and the package-base2b806402 merge. Current unit20
+tests that merged source separately; no result is inferred before completion.
+
+[Decision Log]
+- Purpose: an already open edit popup must not redirect Copy/Paste into a newer
+  focused field when focus changes during the retained key dispatch.
+- Constraint: the shared MenuState correctly preserves newer focus on close;
+  native edit actions intentionally dispatch to the current focused recipient.
+- Alternatives: force focus back, duplicate the shared return-focus owner, or
+  retain only a weak original recipient for this popup's edit admission.
+- Choice: capture a weak input recipient at opening and require it to be focused
+  after the shared close path, before this popup dispatches an edit action.
+- Why: the same menu retains sole focus restoration; a changed or dead recipient
+  refuses this older popup action without moving focus or keeping input alive.
+- Cost: a new input needs a fresh popup. Native menu edits retain their ordinary
+  current-focus semantics. The actual retained-key regression covers both Copy
+  and Paste with an interceptor moving focus after event-path capture; execution
+  remains pending. This identity is UI input authority, not host/session authority.
 The new control producer uses the clean dd13 base separately.
 Current source-size checks passed708 files/14 existing exceptions; no allowance
 increased. Direct rustfmt checks the Rust files changed from dd13ce37; this

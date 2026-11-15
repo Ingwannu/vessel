@@ -12,6 +12,8 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, button_with_kind};
 use vessel_app_view::shortcuts::desktop::DesktopAction;
 
+#[cfg(test)]
+mod recipient_tests;
 mod rows;
 #[cfg(test)]
 mod tests;
@@ -68,6 +70,7 @@ pub(super) fn open_context(
     let area = &mut shell.areas.desktop;
     area.menu.close_and_restore(window, cx);
     area.menu_cycle = Rc::new(());
+    area.edit_recipient = window.focused(cx).map(|focus| focus.downgrade());
     area.group = Group::Context;
     area.edit = edit;
     area.menu.open(position, window, cx);
@@ -124,6 +127,8 @@ pub(crate) fn trigger(
                                 let area = &mut shell.areas.desktop;
                                 area.menu.close_and_restore(window, cx);
                                 area.menu_cycle = Rc::new(());
+                                area.edit_recipient =
+                                    window.focused(cx).map(|focus| focus.downgrade());
                                 area.group = if crate::areas::draft::compact(window) {
                                     Group::All
                                 } else {
@@ -150,6 +155,7 @@ pub(crate) fn render(
         return None;
     }
     let cycle = Rc::clone(&shell.areas.desktop.menu_cycle);
+    let recipient = shell.areas.desktop.edit_recipient.clone();
     let rows = rows(shell, shell.areas.desktop.group);
     let items: Vec<_> = rows.iter().map(|row| row.view.clone()).collect();
     menu(
@@ -163,6 +169,17 @@ pub(crate) fn render(
                     return;
                 }
                 if let Some(row) = rows.get(index) {
+                    // The shared menu alone owns return-focus. If a newer input
+                    // won that race, its preserved focus must not redirect an
+                    // older popup's edit operation into a different recipient.
+                    if matches!(row.item, Item::Edit(_))
+                        && !recipient
+                            .as_ref()
+                            .and_then(gpui::WeakFocusHandle::upgrade)
+                            .is_some_and(|focus| focus.is_focused(window))
+                    {
+                        return;
+                    }
                     invoke(shell, row.item, window, cx);
                 }
             }),

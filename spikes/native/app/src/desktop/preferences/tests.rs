@@ -125,7 +125,7 @@ fn canonical_apply_preserves_another_windows_layout_in_the_next_local_save(
     let snapshot = coordinator.snapshot();
     shell.update_in(cx, |shell, window, cx| {
         apply(shell, &snapshot, window, cx);
-        shell
+        let _opened = shell
             .update_layout(
                 &a,
                 |layout| {
