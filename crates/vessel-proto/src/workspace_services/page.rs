@@ -56,11 +56,11 @@ impl ServiceConfiguration {
             Self::Current {
                 digest: _,
                 approval: _,
-            } => (!PROJECT_FILE_KEYS.is_some_and(|since| protocol >= since)).then_some(
-                Self::Unavailable {
+            } => PROJECT_FILE_KEYS
+                .is_none_or(|since| protocol < since)
+                .then_some(Self::Unavailable {
                     reason: ServiceUnavailable::ApprovalRequired,
-                },
-            ),
+                }),
             Self::None | Self::Invalid | Self::Unavailable { reason: _ } | Self::Unknown => None,
         }
     }
@@ -140,9 +140,9 @@ impl ServicePage {
         }
         if let Some(cursor) = &next
             && (cursor.snapshot != snapshot
-                || !rows
+                || rows
                     .last()
-                    .is_some_and(|row| row.view().definition.name == cursor.after))
+                    .is_none_or(|row| row.view().definition.name != cursor.after))
         {
             return Err(InvalidServicePage::Cursor);
         }

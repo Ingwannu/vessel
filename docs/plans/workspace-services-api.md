@@ -444,3 +444,11 @@ head. Its assigned constants and schema remain unchanged, while the service
 feature stays unassigned. The canonical physical-incarnation and connected
 peer/scheme producers are still absent; neither this merge nor an etag grants
 runtime authority.
+
+The next strict check reached the remaining value fixtures: the empty Admin
+request now shares the existing empty-object sample arm; optional-value refusal
+conditions use the equivalent positive `is_none_or` form. The environment test
+constructs its known-valid selected target separately from the fallible plan
+constructor, so the latter returns only the rule's validation result. No input
+set, assertion, expected error or deadline changes. This failed compile/lint
+receipt also remains recorded and ran no tests.

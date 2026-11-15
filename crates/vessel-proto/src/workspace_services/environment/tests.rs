@@ -7,12 +7,16 @@ fn peer(name: &str) -> ServiceEnvPeer {
     ServiceEnvPeer::new(name.parse().unwrap(), ServicePort::MIN, None)
 }
 
+fn selected_service() -> WorkspaceScriptRef {
+    WorkspaceScriptRef {
+        workspace: WorkspaceId::random(),
+        script: "web-0".parse().unwrap(),
+    }
+}
+
 fn ready(peers: Vec<ServiceEnvPeer>) -> Result<ReadyServiceEnv, InvalidReadyServiceEnv> {
     ReadyServiceEnv::new(
-        WorkspaceScriptRef {
-            workspace: WorkspaceId::random(),
-            script: "web-0".parse().unwrap(),
-        },
+        selected_service(),
         ServiceSnapshotId::random(),
         ServiceBindHost::Ipv4Loopback,
         ServicePort::MIN,

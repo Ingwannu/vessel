@@ -28,7 +28,6 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         Method::StopWorkspaceScript | Method::GetWorkspaceServiceEnv => {
             json!({"target":{"workspace":crate::WorkspaceId::random(),"script":"sample"},"snapshot":crate::workspace_services::ServiceSnapshotId::random()})
         }
-        Method::GetServiceSettings => json!({}),
         Method::SetServiceGateway => json!({"expected":null,"gateway":{"kind":"local_only"}}),
         Method::SetServiceExposure => {
             json!({"target":{"workspace":crate::WorkspaceId::random(),"script":"sample"},"expected":null,"change":{"kind":"private"}})
@@ -70,6 +69,7 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         Method::StopNode => json!({"when":"now"}),
         Method::InviteDevice => json!({"ttl_secs":1}),
         Method::GetDeviceSelf
+        | Method::GetServiceSettings
         | Method::ListProfiles
         | Method::LeaveFleet
         | Method::SyncFleet
