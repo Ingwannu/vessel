@@ -10,6 +10,7 @@
 mod key;
 #[cfg(test)]
 mod tests;
+mod words;
 
 use serde::{Deserialize, Serialize};
 
@@ -87,7 +88,9 @@ impl From<Entries> for Vec<Item> {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Navigation {
+    #[serde(deserialize_with = "crate::prefs::lenient")]
     header: Entries,
+    #[serde(deserialize_with = "crate::prefs::lenient")]
     footer: Entries,
 }
 impl Navigation {

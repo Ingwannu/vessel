@@ -75,7 +75,7 @@ impl<T> Maybe<T> {
 
 /// `T` as the input says, or its default when the input says something
 /// else (a value a newer Vessel wrote, a size out of range).
-fn lenient<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+pub(crate) fn lenient<'de, D, T>(deserializer: D) -> Result<T, D::Error>
 where
     D: Deserializer<'de>,
     T: Deserialize<'de> + Default,

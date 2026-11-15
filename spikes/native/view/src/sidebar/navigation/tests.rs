@@ -188,3 +188,35 @@ fn persisted_input_and_growth_are_bounded_without_dropping_old_choices() {
     );
     assert_eq!(full.items().len(), MAX_ENTRIES);
 }
+
+#[test]
+fn settings_and_navigation_share_complete_prepared_en_ko_labels() {
+    use crate::localization::{ENGLISH, Locale, Translator};
+    let en = Translator::get(ENGLISH).unwrap().sidebar();
+    let ko = Translator::get(Locale::from_tag("ko").unwrap())
+        .unwrap()
+        .sidebar();
+    assert_eq!(
+        Builtin::ALL.map(|item| en.builtin(item)),
+        ["New workspace", "Sessions", "Search", "Schedules", "Usage"]
+    );
+    assert_eq!(
+        Builtin::ALL.map(|item| ko.builtin(item)),
+        ["새 작업 공간", "세션", "검색", "일정", "사용량"]
+    );
+    for words in [en, ko] {
+        for section in [Section::Header, Section::Footer] {
+            assert!(!words.band_title(section).is_empty());
+            assert!(!words.band_description(section).is_empty());
+        }
+        assert!(!words.navigation_limit().is_empty());
+    }
+}
+
+
+#[test]
+fn malformed_band_does_not_erase_the_other_band() {
+    let prefs:Preferences=serde_json::from_str(r#"{"sidebar_navigation":{"header":[{"key":"","visible":true}],"footer":[{"key":"usage","visible":true}]}}"#).unwrap();
+    assert!(prefs.sidebar_navigation.entries(Section::Header).items().is_empty());
+    assert_eq!(prefs.sidebar_navigation.entries(Section::Footer).items(),[item("usage",true)]);
+}

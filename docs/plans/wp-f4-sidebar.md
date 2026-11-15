@@ -130,3 +130,10 @@ shared stroke remains Paseo's explicit 1.5 rather than upstream's default 2.
 The upstream license is retained with the design assets. Inventory uniqueness,
 view box, stroke and actual asset loading have regression tests. No existing
 vector, alias or Gauge producer is replaced; first-use runtime proof is pending.
+
+`sidebar.ftl` supplies the shared builtin labels, both settings card headings
+and tooltip descriptions, reorder labels and explicit body states in English
+and Korean. The closed builtin/section mappings borrow the generated prepared
+catalog; no screen string table or runtime formatting is added. The new
+catalog/state vocabulary is a skeleton, not proof that registry loading or
+all named actions are integrated yet.
