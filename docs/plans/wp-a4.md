@@ -4,6 +4,29 @@ PLAN section7 assigns W2 the complete package. WP-A2 documents the import
 source reads, reuse analysis, native module flow and deliberate differences.
 ADR0090 in the separate node tree owns subagent parentage/provider projection.
 
+## Current source disposition
+
+This broader native branch is prototype integration source, not an adoptable
+package. Its earlier all-target test count1257/0 and Link120/0 are scoped
+predecessor evidence. They do not cover the subsequent import receipt/listener
+corrections or current resident ownership. Do not merge this branch wholesale
+to obtain the minimum import adapter or provisional root contracts.
+
+The independent root-free minimum import packet is031f6021 on e1b73c9e.
+V1 R223 cleared its bounded source corrections, with actual strict/App binary
+results still pending. Automatic receipt navigation is removed and scope popup
+first-use is parked there. The older import implementation in this broader
+branch has not received that packet's corrections; its source is not promoted
+by that review. Shared delivery/selected registration remains with the lead's
+single-writer slot, and receiving-line integration is still required.
+
+The provider-child carrier remains window-owned preparation. The coordinated
+cutover must move ONE SubagentArea into the parent's SessionResources, consume
+the checked A7 Area snapshot API, and provide an independent concrete Subagents
+Hold/snapshot vote. Original binding, opaque operation ticket, weak delivery
+guard and installed projection revision must all validate before mutation.
+No live resident or authority cutover is claimed from the staged envelope.
+
 ## Responsibilities and data flow
 
 - view::history owns scope/ticket/node identity, cursor pages, row selection,
@@ -12,7 +35,7 @@ ADR0090 in the separate node tree owns subagent parentage/provider projection.
   and session.get/session.resume; it retains its authenticated client across
   navigation and never retries a possibly committed mutation automatically.
 - app::areas::import composes shared kit controls and local Fluent words.
-- Planned view/link/app subagents modules consume the reviewed node contract;
+- Staged view/link/app subagents modules consume the node contract;
   managed SessionRef identities remain separate from provider-native child ids.
 - The node owns durable detach authorization, commit and publication. A local UI
   hide never grants or revokes authority. Provider projection reads actual
@@ -33,9 +56,13 @@ workspace draft identity, and W6 owns composer::context::ChatHistory(Payload).
 W2 owns transcript selection/truncation and wrapper production; it will reuse
 those reviewed typed APIs rather than create another draft/context store.
 
-Files/both rewind is W9's checkpoint contract; W2 retains the current
-conversation rewind while checking its capability/menu registration against
-that owner. Provider-child rows never acquire managed detach/archive/stop rights.
+Files restoration uses W9's independent checkpoint contract; a combined
+conversation-and-files operation is not claimed. W2 retains current conversation
+rewind. Future file actions must use exact accepted prompt/turn/checkpoint phase
+references and scoped context, independently of conversation rewind capability.
+They must not send Act::Rewind or alter composer/history. A7 owns the eventual
+small user/turn/footer registration; no reviewed generic action API is available
+yet. Provider-child rows never acquire managed detach/archive/stop rights.
 
 ## Evidence boundaries
 
