@@ -1,14 +1,17 @@
 //! [`spawn`] and [`Child`]: a piped child that is stopped as a group.
 
+use std::num::NonZeroU32;
 use std::process::Stdio;
 
 use tokio::process::{ChildStderr, ChildStdin, ChildStdout};
 
+use crate::checked::{CheckedWaitError, FirstSweep, OwnedGroupExit};
 use crate::error::{SignalError, SpawnError, Stream, WaitError};
 #[cfg(unix)]
 use crate::group::ProcessGroup;
 use crate::signal::Signal;
 use crate::spec::CommandSpec;
+use crate::{ProcessId, ProcessLifetime, ProcessLifetimeGuard};
 
 /// How often a refused signal looks again whether the leader has exited
 /// (`Child::reaped_within`).
@@ -35,49 +38,103 @@ pub struct Spawned {
 /// Fails if the program cannot be started (on Windows also if its job
 /// object cannot be set up).
 pub fn spawn(spec: &CommandSpec) -> Result<Spawned, SpawnError> {
+    spawn_with(spec, Lifetime::Bound)
+}
+
+/// Start an owned child whose cleanup authority can later be explicitly released.
+/// Until detach, dropping the returned Child still kills its whole group/job.
+/// On Windows its job deliberately lacks kill-on-close, so the child may survive
+/// abrupt launcher exit. Ordinary spawn retains the previous kill-on-close policy.
+///
+/// # Errors
+/// The same launch and pipe failures as spawn.
+pub fn spawn_releasable(spec: &CommandSpec) -> Result<Spawned, SpawnError> {
+    spawn_with(spec, Lifetime::Releasable)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Lifetime {
+    Bound,
+    Releasable,
+}
+
+fn spawn_with(spec: &CommandSpec, lifetime: Lifetime) -> Result<Spawned, SpawnError> {
+    let reaper =
+        tokio::runtime::Handle::try_current().map_err(|source| SpawnError::Runtime { source })?;
     let mut command = tokio::process::Command::from(spec.to_command());
     let _ = command
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        // Backstop for paths that drop a `Child` without waiting.
-        .kill_on_drop(true);
+        // Cleanup is owned by Child, not the platform wrapper: consuming
+        // detach must be able to release the same job without killing it.
+        .kill_on_drop(false);
 
     let program = || spec.program.clone();
-    let mut inner = os::spawn(command).map_err(|source| SpawnError::Start {
+    let inner = os::spawn(command, lifetime).map_err(|source| SpawnError::Start {
         program: program(),
         source,
     })?;
+    let Some(pid) = inner.id().and_then(NonZeroU32::new) else {
+        discard_start(inner, &reaper);
+        return Err(SpawnError::NoPid { program: program() });
+    };
+    let observation = ProcessLifetimeGuard::begin(ProcessId::from(pid));
+    let pid = pid.get();
+    #[cfg(unix)]
+    let group = match ProcessGroup::of_leader(pid) {
+        Ok(group) => group,
+        Err(source) => {
+            discard_start(inner, &reaper);
+            return Err(SpawnError::NotLeader {
+                program: program(),
+                source,
+            });
+        }
+    };
+    let mut child = Child {
+        inner: Some(inner),
+        pid,
+        observation,
+        #[cfg(unix)]
+        group,
+        state: State::Running,
+        first_sweep: FirstSweep::default(),
+        reaper,
+        lifetime,
+        started: std::time::Instant::now(),
+    };
+    let (stdin, stdout, stderr) = match child.inner.as_mut() {
+        Some(inner) => os::pipes(inner),
+        None => (None, None, None),
+    };
     let missing = |stream| SpawnError::MissingPipe {
         program: program(),
         stream,
     };
-    let (stdin, stdout, stderr) = os::pipes(&mut inner);
     let stdin = stdin.ok_or_else(|| missing(Stream::Stdin))?;
     let stdout = stdout.ok_or_else(|| missing(Stream::Stdout))?;
     let stderr = stderr.ok_or_else(|| missing(Stream::Stderr))?;
-    let pid = inner
-        .id()
-        .ok_or_else(|| SpawnError::NoPid { program: program() })?;
-    #[cfg(unix)]
-    let group = ProcessGroup::of_leader(pid).map_err(|source| SpawnError::NotLeader {
-        program: program(),
-        source,
-    })?;
     tracing::debug!(pid, program = %spec.program.display(), "spawned");
 
     Ok(Spawned {
-        child: Child {
-            inner,
-            pid,
-            #[cfg(unix)]
-            group,
-            state: State::Running,
-        },
+        child,
         stdin,
         stdout,
         stderr,
     })
+}
+
+/// The direct OS handle is retained even if group identity could not be built.
+fn discard_start(mut inner: os::Inner, reaper: &tokio::runtime::Handle) {
+    if let Err(error) = inner.start_kill() {
+        tracing::warn!(%error, "cannot stop a failed process launch");
+    }
+    drop(reaper.spawn(async move {
+        if let Err(error) = os::wait_for_leader(&mut inner).await {
+            tracing::warn!(%error, "cannot reap a failed process launch");
+        }
+    }));
 }
 
 /// A running child that leads its own process group (on Windows: the first
@@ -88,11 +145,26 @@ pub fn spawn(spec: &CommandSpec) -> Result<Spawned, SpawnError> {
 /// dropping it closes the job, which kills every process in it.
 #[derive(Debug)]
 pub struct Child {
-    inner: os::Inner,
+    inner: Option<os::Inner>,
     pid: u32,
+    observation: ProcessLifetimeGuard,
     #[cfg(unix)]
     group: ProcessGroup,
     state: State,
+    first_sweep: FirstSweep,
+    reaper: tokio::runtime::Handle,
+    lifetime: Lifetime,
+    started: std::time::Instant,
+}
+
+/// Minted only from the OS handle of this module's newly spawned child.
+#[derive(Clone, Copy)]
+pub(crate) struct ChildPid(u32);
+
+impl std::fmt::Debug for ChildPid {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("ChildPid").field(&self.0).finish()
+    }
 }
 
 /// Whether the child has been reaped.
@@ -101,13 +173,44 @@ enum State {
     Running,
     /// Reaped with this exit code (`None` when ended by a signal).
     Reaped(Option<i32>),
+    /// Cleanup authority was consumed into an observation-only reaper.
+    Released,
 }
 
 impl Child {
+    /// Release cleanup authority while retaining observation and direct-child reaping.
+    ///
+    /// The original Tokio runtime must live until this child exits or the
+    /// launcher process ends. The returned handle never signals or sweeps a group.
+    ///
+    /// # Errors
+    /// A child started without release capability is returned still owned.
+    pub fn detach(mut self) -> Result<crate::Detached, crate::DetachRefused> {
+        if self.lifetime == Lifetime::Bound {
+            return Err(crate::DetachRefused::new(self));
+        }
+        self.observation.revoke();
+        self.state = State::Released;
+        Ok(crate::detached::start(
+            self.inner.take(),
+            ChildPid(self.pid),
+            self.started,
+            #[cfg(unix)]
+            self.group,
+            &self.reaper,
+        ))
+    }
+
     /// The child's process id (also its group id on Unix).
     #[must_use]
     pub const fn pid(&self) -> u32 {
         self.pid
+    }
+
+    /// Observe this actual run without gaining signalling or revocation authority.
+    #[must_use]
+    pub fn lifetime(&self) -> ProcessLifetime {
+        self.observation.observer()
     }
 
     /// Ask the child's process group to stop.
@@ -122,18 +225,30 @@ impl Child {
     /// # Errors
     /// Fails if the OS refuses to deliver the signal.
     pub fn signal(&mut self, signal: Signal) -> Result<(), SignalError> {
-        if let State::Reaped(_) = self.state {
-            return Ok(());
+        self.observation.revoke();
+        match self.state {
+            State::Running => {}
+            State::Reaped(_) | State::Released => return Ok(()),
         }
         #[cfg(unix)]
         {
             let group = self.group;
-            group.signal_with_leader(signal, |grace| self.reaped_within(grace))
+            let result = group.signal_with_leader(signal, |grace| self.reaped_within(grace));
+            if matches!(self.state, State::Reaped(_)) {
+                // The refusal path already performed the first post-reap sweep.
+                // Cache it now; wait_checked must not signal a potentially reused
+                // numeric group id later merely to manufacture a receipt.
+                let _first = self.first_sweep.record(|| result.clone());
+            }
+            result
         }
         #[cfg(windows)]
         {
             let _ = signal;
-            self.inner.start_kill().map_err(SignalError::from)
+            match self.inner.as_mut() {
+                Some(inner) => inner.start_kill().map_err(SignalError::from),
+                None => Ok(()),
+            }
         }
     }
 
@@ -147,7 +262,10 @@ impl Child {
     fn reaped_within(&mut self, grace: std::time::Duration) -> bool {
         let deadline = std::time::Instant::now().checked_add(grace);
         loop {
-            match self.inner.try_wait() {
+            let Some(inner) = self.inner.as_mut() else {
+                return false;
+            };
+            match inner.try_wait() {
                 Ok(Some(status)) => {
                     self.state = State::Reaped(status.code());
                     return true;
@@ -172,23 +290,61 @@ impl Child {
     /// # Errors
     /// Fails if the OS cannot report the child's status.
     pub async fn wait(&mut self) -> Result<Option<i32>, WaitError> {
-        if let State::Reaped(code) = self.state {
-            return Ok(code);
+        match self.state {
+            State::Reaped(code) => return Ok(code),
+            State::Running => {}
+            State::Released => {
+                return Err(WaitError::from(std::io::Error::other(
+                    "child ownership released",
+                )));
+            }
         }
-        let status = os::wait_for_leader(&mut self.inner).await?;
+        let Some(inner) = self.inner.as_mut() else {
+            self.observation.revoke();
+            return Err(WaitError::from(std::io::Error::other(
+                "child handle absent",
+            )));
+        };
+        let status = match os::wait_for_leader(inner).await {
+            Ok(status) => status,
+            Err(error) => {
+                self.observation.revoke();
+                return Err(error.into());
+            }
+        };
+        self.observation.revoke();
         let code = status.code();
         self.state = State::Reaped(code);
         self.sweep();
         Ok(code)
     }
 
+    /// Reap the owned leader and report the original group/job cleanup outcome.
+    /// Legacy wait callers keep their existing leader-status behavior. A prior
+    /// wait or signal-triggered reap reuses its first recorded outcome without
+    /// signalling a delayed numeric group id. Cancellation preserves ownership.
+    ///
+    /// The receipt means leader reaped plus an accepted cleanup request (or an
+    /// already absent group/job), not every descendant's observed OS death.
+    ///
+    /// # Errors
+    /// Preserves the concrete wait failure or first sweep failure; never turns
+    /// missing cleanup evidence into success or retries a possibly reused group.
+    pub async fn wait_checked(&mut self) -> Result<OwnedGroupExit, CheckedWaitError> {
+        let code = self.wait().await.map_err(CheckedWaitError::Wait)?;
+        self.first_sweep.receipt(code, self.lifetime())
+    }
+
     /// Kill leftovers of the group after the leader exited, so a harness's
     /// own children (MCP servers, shells) never outlive it.
     fn sweep(&mut self) {
         #[cfg(unix)]
-        let swept = self.group.signal(Signal::Kill);
+        let swept = self.first_sweep.record(|| self.group.signal(Signal::Kill));
         #[cfg(windows)]
-        let swept = self.inner.start_kill().map_err(SignalError::from);
+        let swept = self.first_sweep.record(|| match self.inner.as_mut() {
+            Some(inner) => inner.start_kill().map_err(SignalError::from),
+            None => Ok(()),
+        });
         if let Err(error) = swept {
             tracing::warn!(pid = self.pid, %error, "cannot sweep process group");
         }
@@ -197,20 +353,32 @@ impl Child {
 
 /// Unix: kill the whole group of a child dropped before it was reaped; the
 /// runtime's orphan queue then reaps the leader. (On Windows dropping the
-/// job handle does the same: the job is kill-on-close.)
-#[cfg(unix)]
+/// job handle also kills a normally bound child. A releasable job receives
+/// the explicit owned-handle stop before its handle closes.)
 impl Drop for Child {
     fn drop(&mut self) {
+        self.observation.revoke();
         if self.state == State::Running {
-            let group = self.group;
-            if let Err(error) =
+            #[cfg(unix)]
+            let stopped = {
+                let group = self.group;
                 group.signal_with_leader(Signal::Kill, |grace| self.reaped_within(grace))
-            {
+            };
+            #[cfg(windows)]
+            let stopped = match self.inner.as_mut() {
+                Some(inner) => inner.start_kill().map_err(SignalError::from),
+                None => Ok(()),
+            };
+            if let Err(error) = stopped {
                 tracing::warn!(pid = self.pid, %error, "cannot kill dropped process group");
             }
         }
     }
 }
+
+#[cfg(test)]
+#[path = "child/checked_tests.rs"]
+mod checked_tests;
 
 /// What differs between Unix process groups and Windows job objects.
 ///
@@ -232,12 +400,15 @@ impl Drop for Child {
 ///   [`wait_for_leader`] waits for the child itself, as on Unix, and
 ///   [`Child::sweep`] then terminates the job.
 #[cfg(unix)]
-mod os {
+pub(crate) mod os {
     use tokio::process::{ChildStderr, ChildStdin, ChildStdout};
 
-    pub(super) type Inner = tokio::process::Child;
+    pub(crate) type Inner = tokio::process::Child;
 
-    pub(super) fn spawn(mut command: tokio::process::Command) -> std::io::Result<Inner> {
+    pub(super) fn spawn(
+        mut command: tokio::process::Command,
+        _lifetime: super::Lifetime,
+    ) -> std::io::Result<Inner> {
         let _ = command.process_group(0);
         command.spawn()
     }
@@ -248,7 +419,7 @@ mod os {
         (inner.stdin.take(), inner.stdout.take(), inner.stderr.take())
     }
 
-    pub(super) async fn wait_for_leader(
+    pub(crate) async fn wait_for_leader(
         inner: &mut Inner,
     ) -> std::io::Result<std::process::ExitStatus> {
         inner.wait().await
@@ -257,15 +428,24 @@ mod os {
 
 /// See the Unix `os` module for the Decision Log.
 #[cfg(windows)]
-mod os {
+pub(crate) mod os {
     use process_wrap::tokio::{ChildWrapper, CommandWrap, JobObject, KillOnDrop};
     use tokio::process::{ChildStderr, ChildStdin, ChildStdout};
 
-    pub(super) type Inner = Box<dyn ChildWrapper>;
+    pub(crate) type Inner = Box<dyn ChildWrapper>;
 
-    pub(super) fn spawn(command: tokio::process::Command) -> std::io::Result<Inner> {
+    pub(super) fn spawn(
+        command: tokio::process::Command,
+        lifetime: super::Lifetime,
+    ) -> std::io::Result<Inner> {
         let mut wrapped = CommandWrap::from(command);
-        let _ = wrapped.wrap(JobObject).wrap(KillOnDrop);
+        let _ = wrapped.wrap(JobObject);
+        match lifetime {
+            super::Lifetime::Bound => {
+                let _wrapped = wrapped.wrap(KillOnDrop);
+            }
+            super::Lifetime::Releasable => {}
+        }
         wrapped.spawn()
     }
 
@@ -282,7 +462,7 @@ mod os {
     /// The child itself, not the whole job: `JobObject` wraps the plain
     /// child directly (`KillOnDrop` only sets a flag), so its inner wrapper
     /// is the process we started.
-    pub(super) async fn wait_for_leader(
+    pub(crate) async fn wait_for_leader(
         inner: &mut Inner,
     ) -> std::io::Result<std::process::ExitStatus> {
         inner.inner_mut().wait().await

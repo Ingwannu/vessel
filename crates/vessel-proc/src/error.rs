@@ -2,6 +2,7 @@
 
 use std::fmt;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 /// One of a child's standard streams.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -27,6 +28,13 @@ impl fmt::Display for Stream {
 /// A command could not be started.
 #[derive(Debug, thiserror::Error)]
 pub enum SpawnError {
+    /// Spawning needs a live runtime which will also reap released children.
+    #[error("process launch requires a Tokio runtime")]
+    Runtime {
+        /// The caller did not enter its launch runtime.
+        #[source]
+        source: tokio::runtime::TryCurrentError,
+    },
     /// The OS refused to start the program.
     #[error("cannot start {}", program.display())]
     Start {
@@ -62,9 +70,26 @@ pub enum SpawnError {
 }
 
 /// A stop signal could not be delivered.
-#[derive(Debug, thiserror::Error)]
-#[error("cannot signal process group")]
-pub struct SignalError(#[from] std::io::Error);
+#[derive(Debug, Clone)]
+pub struct SignalError(Arc<std::io::Error>);
+
+impl From<std::io::Error> for SignalError {
+    fn from(cause: std::io::Error) -> Self {
+        Self(Arc::new(cause))
+    }
+}
+
+impl fmt::Display for SignalError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("cannot signal process group")
+    }
+}
+
+impl std::error::Error for SignalError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(self.0.as_ref())
+    }
+}
 
 impl SignalError {
     /// The OS refused (`EPERM`): a member runs as another user, or (macOS)
