@@ -115,10 +115,13 @@ pub(crate) fn render(
     let inserted = {
         let mut states = shell.areas.workspace.scripts.panels.borrow_mut();
         let scripts = &shell.areas.workspace.scripts;
-        let held = states.len()
-            + scripts.retired_projects.len()
-            + usize::from(scripts.model.writing.is_some());
-        if !states.contains_key(&address) && held >= super::MAX_RETAINED_SURFACES {
+        let held = states
+            .len()
+            .checked_add(scripts.retired_projects.len())
+            .and_then(|count| count.checked_add(usize::from(scripts.model.writing.is_some())));
+        if !states.contains_key(&address)
+            && held.is_none_or(|count| count >= super::MAX_RETAINED_SURFACES)
+        {
             return super::ports::notice(shell.words.scripts().retained_limit(), tokens)
                 .into_any_element();
         }
