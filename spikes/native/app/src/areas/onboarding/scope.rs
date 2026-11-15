@@ -7,7 +7,8 @@ use vessel_app_link::{
     onboarding::{Answer, Ask},
 };
 use vessel_app_view::Reach;
-use vessel_app_view::devices::{MachineKey, Ticket, Tickets};
+use vessel_app_view::connection::ConnectionContext;
+use vessel_app_view::devices::{Ticket, Tickets};
 use vessel_app_view::onboarding::{
     Layout, State as ModelState, Visit,
     scope::{Problem, Target},
@@ -75,9 +76,11 @@ pub(super) fn prepare(shell: &mut Shell) {
         return;
     }
     let request = match &shell.areas.onboarding.scope.resolution {
-        Resolution::Idle => Some(MachineKey::from_book(&machine.name)),
-        Resolution::Ready(target) if target.machine().as_str() != machine.name => {
-            Some(MachineKey::from_book(&machine.name))
+        Resolution::Idle => machine.connection_context(),
+        Resolution::Ready(target)
+            if Some(target.context()) != machine.connection_context().as_ref() =>
+        {
+            machine.connection_context()
         }
         Resolution::Ready(_) | Resolution::Pending { .. } | Resolution::Failed => None,
     };
@@ -88,7 +91,14 @@ pub(super) fn prepare(shell: &mut Shell) {
 
 pub(super) fn target<'a>(shell: &'a Shell, machine: &str) -> Option<&'a Target> {
     match &shell.areas.onboarding.scope.resolution {
-        Resolution::Ready(target) if target.machine().as_str() == machine => Some(target),
+        Resolution::Ready(target)
+            if target.machine().as_str() == machine
+                && shell.fleet.machines.iter().any(|current| {
+                    current.connection_context().as_ref() == Some(target.context())
+                }) =>
+        {
+            Some(target)
+        }
         Resolution::Idle
         | Resolution::Pending { .. }
         | Resolution::Ready(_)
@@ -99,7 +109,7 @@ pub(super) fn target<'a>(shell: &'a Shell, machine: &str) -> Option<&'a Target> 
 pub(super) fn manual(shell: &mut Shell, window: &Window) {
     let machine = super::selected_host(shell)
         .filter(|machine| machine.reach == Reach::Online)
-        .map(|machine| MachineKey::from_book(&machine.name));
+        .and_then(vessel_app_view::Machine::connection_context);
     if let Some(machine) = machine {
         resolve(shell, machine, Intent::Manual(super::layout(window)));
     } else {
@@ -107,13 +117,13 @@ pub(super) fn manual(shell: &mut Shell, window: &Window) {
     }
 }
 
-fn resolve(shell: &mut Shell, machine: MachineKey, intent: Intent) {
+fn resolve(shell: &mut Shell, context: ConnectionContext, intent: Intent) {
     let Ok(ticket) = shell.areas.onboarding.scope.tickets.next_ticket() else {
         shell.notice = Some(shell.words.desktop().setup_failed().to_owned());
         return;
     };
     shell.areas.onboarding.scope.resolution = Resolution::Pending { ticket, intent };
-    shell.command(Command::Onboarding(Ask::Resolve { machine, ticket }));
+    shell.command(Command::Onboarding(Ask::Resolve { context, ticket }));
 }
 
 pub(super) fn bind(shell: &mut Shell, target: Target, visit: Visit) {
@@ -134,7 +144,7 @@ pub(super) fn actionable(shell: &Shell) -> bool {
         && shell.fleet.machines.iter().any(|machine| {
             machine.name == open.host().machine().as_str()
                 && machine.reach == Reach::Online
-                && machine.node == Some(open.host().node())
+                && machine.connection_context().as_ref() == Some(open.host().context())
         })
 }
 
@@ -185,6 +195,12 @@ impl Shell {
                 }
                 match result {
                     Ok(target) => {
+                        if !self.fleet.machines.iter().any(|machine| {
+                            machine.connection_context().as_ref() == Some(target.context())
+                        }) {
+                            self.areas.onboarding.scope.resolution = Resolution::Failed;
+                            return;
+                        }
                         if let Intent::Manual(layout) = intent {
                             self.areas.onboarding.scope.reopen = Some((target.clone(), layout));
                         }
@@ -207,6 +223,16 @@ impl Shell {
                 if open.visit() != visit || open.host() != &target {
                     return;
                 }
+                let result = result.and_then(|()| {
+                    self.fleet
+                        .machines
+                        .iter()
+                        .any(|machine| {
+                            machine.connection_context().as_ref() == Some(target.context())
+                        })
+                        .then_some(())
+                        .ok_or(Problem::Changed)
+                });
                 self.areas.onboarding.scope.binding = match result {
                     Ok(()) => Binding::Ready(visit),
                     Err(problem) => Binding::Failed { visit, problem },

@@ -1,6 +1,7 @@
 //! Bind setup to live authenticated clients before reusing their controls.
 
-use vessel_app_view::devices::{MachineKey, Ticket};
+use vessel_app_view::connection::ConnectionContext;
+use vessel_app_view::devices::Ticket;
 use vessel_app_view::onboarding::{
     Visit,
     scope::{Problem, Target},
@@ -12,7 +13,7 @@ pub enum Ask {
     /// Resolve an alias using the current authenticated connection.
     Resolve {
         /// Already parsed book key.
-        machine: MachineKey,
+        context: ConnectionContext,
         /// Identity retained through the UI queue.
         ticket: Ticket,
     },
@@ -75,11 +76,14 @@ impl crate::State {
         &self,
         machine: &str,
     ) -> Result<&vessel_client::NodeClient, crate::LinkError> {
-        let client = self.client(machine)?;
+        let connected = self
+            .clients
+            .get(machine)
+            .ok_or_else(|| crate::LinkError::NotConnected(machine.to_owned()))?;
         self.onboarding_scope
-            .check_control(&MachineKey::from_book(machine), client.node().id)
+            .check_control(&connected.context)
             .map_err(crate::LinkError::Onboarding)?;
-        Ok(client)
+        Ok(&connected.client)
     }
 
     pub(crate) fn onboarding_project_client(
@@ -113,14 +117,9 @@ impl crate::State {
         request: vessel_proto::RequestId,
         ask: crate::agents::Ask,
     ) {
-        let client = self
-            .clients
-            .get(machine.as_str())
-            .map(|connected| connected.client.clone());
-        if let Some(client) = &client
-            && let Err(problem) = self
-                .onboarding_scope
-                .check_control(&MachineKey::from_book(machine.as_str()), client.node().id)
+        let connected = self.clients.get(machine.as_str());
+        if let Some(connected) = connected
+            && let Err(problem) = self.onboarding_scope.check_control(&connected.context)
         {
             if let Some((target, visit)) = self.onboarding_scope.binding() {
                 self.emit(crate::Event::Onboarding(Answer::Bound {
@@ -139,32 +138,30 @@ impl crate::State {
             return;
         }
         self.agents
-            .ask(client, machine, request, ask, self.events.clone())
+            .ask(
+                connected.map(|connected| connected.client.clone()),
+                machine,
+                request,
+                ask,
+                self.events.clone(),
+            )
             .await;
     }
 
     pub(crate) async fn onboarding(&mut self, ask: Ask) {
         let answer = match ask {
-            Ask::Resolve { machine, ticket } => {
+            Ask::Resolve { context, ticket } => {
                 let result = self
-                    .clients
-                    .get(machine.as_str())
-                    .map(|connected| Target::authenticated(machine, connected.client.node().id))
-                    .ok_or(Problem::Offline);
+                    .selected_connection(&context)
+                    .map(|_selected| Target::authenticated(context))
+                    .map_err(|_refusal| Problem::Changed);
                 Answer::Resolved { ticket, result }
             }
             Ask::Bind { target, visit } => {
                 let result = self
-                    .clients
-                    .get(target.machine().as_str())
-                    .ok_or(Problem::Offline)
-                    .and_then(|connected| {
-                        if connected.client.node().id == target.node() {
-                            Ok(())
-                        } else {
-                            Err(Problem::Changed)
-                        }
-                    });
+                    .selected_connection(target.context())
+                    .map(|_selected| ())
+                    .map_err(|_refusal| Problem::Changed);
                 // Even a refused binding owns this visit's protective fence.
                 // Otherwise closing a failed new visit would leave the old
                 // visit's guard installed, because stale release is refused.

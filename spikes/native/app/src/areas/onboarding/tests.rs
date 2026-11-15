@@ -15,8 +15,12 @@ fn finish_records_completion_after_the_model_has_already_hidden(cx: &mut TestApp
         let mut machine = vessel_app_view::Machine::unreachable("laptop".to_owned(), "fixture");
         machine.reach = Reach::Online;
         machine.node = Some(node);
+        let context = vessel_app_view::connection::ConnectionEpochs::default()
+            .admit(MachineKey::from_book("laptop"), node)
+            .unwrap();
+        machine.connection_epoch = Some(context.epoch());
         shell.fleet.machines = vec![machine];
-        let target = Target::authenticated(MachineKey::from_book("laptop"), node);
+        let target = Target::authenticated(context);
         shell
             .areas
             .onboarding
@@ -58,7 +62,11 @@ fn stale_close_and_rail_actions_cannot_change_a_reopened_visit(cx: &mut TestAppC
     crate::shell::language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, window, cx| {
-        let target = Target::authenticated(MachineKey::from_book("fixture"), NodeId::random());
+        let target = Target::authenticated(
+            vessel_app_view::connection::ConnectionEpochs::default()
+                .admit(MachineKey::from_book("fixture"), NodeId::random())
+                .unwrap(),
+        );
         let model = &mut shell.areas.onboarding.model;
         model.reopen(target.clone(), Layout::Wide).unwrap();
         let old = match model.state() {

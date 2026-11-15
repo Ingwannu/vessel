@@ -295,3 +295,17 @@ lifecycle operations and the shared finalization phase refuse new node actions o
 policy edits before any preference mutation/actor enqueue. Missing-bundle manage
 activation is likewise refused. A GPUI regression captures a queued policy edit
 after begin and requires the original preferences to remain unchanged.
+
+### Canonical connection adoption (2026-11-15)
+
+The base-6 merge supplies the single link admission allocator. Setup Target now
+wraps that canonical ConnectionContext; Resolve captures it from the Fleet rather
+than resolving a queued alias anew. Bind and reused-control guards compare the
+whole context, including a same-node reconnect epoch. Failed binding still owns
+its Visit fence. UI installation also checks the exact current Fleet context.
+W12's opaque queued-delivery capability remains a required subsequent integration;
+these checks do not claim to close the actor-to-UI queue retirement interval.
+The managed-local registry port remains reserved third after W2 and W12 land;
+its pre-base-6 adapter is not a compiling handoff. The exact generated-name helper
+uses native View's existing machine_book::Name, not root client's Book Name; no
+crate edge or second parser is added. E2 converts at its existing native edge.

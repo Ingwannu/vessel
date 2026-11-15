@@ -24,9 +24,9 @@
 
 mod command;
 #[cfg(not(target_arch = "wasm32"))]
-pub mod desktop;
-#[cfg(not(target_arch = "wasm32"))]
 mod connections;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod desktop;
 #[cfg(not(target_arch = "wasm32"))]
 use connections::Connected;
 #[cfg(not(target_arch = "wasm32"))]
@@ -315,18 +315,17 @@ impl State {
     }
 
     fn client(&self, machine: &str) -> Result<&NodeClient, LinkError> {
-        let client = self
+        let connected = self
             .clients
             .get(machine)
-            .map(|connected| &connected.client)
             .ok_or_else(|| LinkError::NotConnected(machine.to_owned()))?;
         self.onboarding_scope
             .check(
                 &vessel_app_view::devices::MachineKey::from_book(machine),
-                client.node().id,
+                &connected.context,
             )
             .map_err(LinkError::Onboarding)?;
-        Ok(client)
+        Ok(&connected.client)
     }
 
     /// Follow `session` from its first record, replacing the one followed.

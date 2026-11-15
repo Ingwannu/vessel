@@ -165,11 +165,15 @@ impl Default for Hub {
 #[cfg(not(target_arch = "wasm32"))]
 impl crate::State {
     pub(crate) async fn devices(&self, context: &ConnectionContext, ticket: Ticket, ask: Ask) {
-        if self.onboarding_scope.check_control(context.machine(), context.node()).is_err() {
+        if self.onboarding_scope.check_control(&context).is_err() {
             self.emit(crate::Event::Devices(Answer {
                 context: context.clone(),
-                outcome: ask.refused(ticket, selected_problem(vessel_app_view::connection::Refusal::Changed.into())),
-            })).await;
+                outcome: ask.refused(
+                    ticket,
+                    selected_problem(vessel_app_view::connection::Refusal::Changed.into()),
+                ),
+            }))
+            .await;
             return;
         }
         let connected = match self.selected_connection(context) {

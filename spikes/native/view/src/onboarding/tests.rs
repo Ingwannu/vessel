@@ -1,10 +1,13 @@
 use super::*;
 
 fn host() -> Target {
-    Target::authenticated(
-        crate::devices::MachineKey::from_book("test-node"),
-        vessel_proto::NodeId::random(),
-    )
+    let context = crate::connection::ConnectionEpochs::default()
+        .admit(
+            crate::devices::MachineKey::from_book("test-node"),
+            vessel_proto::NodeId::random(),
+        )
+        .unwrap();
+    Target::authenticated(context)
 }
 fn open(model: &Model) -> &Open {
     let State::Open(open) = model.state() else {

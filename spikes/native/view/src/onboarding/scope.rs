@@ -1,31 +1,33 @@
 //! Setup is fixed to the authenticated node, never just its book alias.
 
 use super::Visit;
-use crate::devices::MachineKey;
+use crate::connection::{ConnectionContext, MachineKey};
 use vessel_proto::NodeId;
 
 /// Captured by the authenticated link before setup controls become actionable.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Target {
-    machine: MachineKey,
-    node: NodeId,
-}
+pub struct Target(ConnectionContext);
 
 impl Target {
     /// Carry live authenticated connection facts across the UI boundary.
     #[must_use]
-    pub const fn authenticated(machine: MachineKey, node: NodeId) -> Self {
-        Self { machine, node }
+    pub const fn authenticated(context: ConnectionContext) -> Self {
+        Self(context)
+    }
+    /// The canonical admission, including same-node reconnect identity.
+    #[must_use]
+    pub const fn context(&self) -> &ConnectionContext {
+        &self.0
     }
     /// Book key used after the link checks its current node identity.
     #[must_use]
     pub const fn machine(&self) -> &MachineKey {
-        &self.machine
+        self.0.machine()
     }
     /// Expected identity; an alias replacement cannot change it.
     #[must_use]
     pub const fn node(&self) -> NodeId {
-        self.node
+        self.0.node()
     }
 }
 
@@ -76,9 +78,9 @@ impl Scope {
     ///
     /// # Errors
     /// A settings control tried another alias or another authenticated identity.
-    pub fn check_control(&self, machine: &MachineKey, node: NodeId) -> Result<(), Problem> {
+    pub fn check_control(&self, context: &ConnectionContext) -> Result<(), Problem> {
         if let Some((target, _)) = &self.0
-            && (target.machine() != machine || target.node() != node)
+            && target.context() != context
         {
             return Err(Problem::Changed);
         }
@@ -88,10 +90,10 @@ impl Scope {
     ///
     /// # Errors
     /// The protected alias was replaced by a different authenticated node.
-    pub fn check(&self, machine: &MachineKey, node: NodeId) -> Result<(), Problem> {
+    pub fn check(&self, machine: &MachineKey, context: &ConnectionContext) -> Result<(), Problem> {
         if let Some((target, _)) = &self.0
             && target.machine() == machine
-            && target.node() != node
+            && target.context() != context
         {
             return Err(Problem::Changed);
         }
@@ -102,26 +104,28 @@ impl Scope {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::connection::ConnectionEpochs;
 
     #[test]
-    fn alias_replacement_and_stale_release_cannot_redirect_setup() {
+    fn same_node_reconnect_and_stale_release_cannot_redirect_setup() {
         let name = MachineKey::from_book("test-node");
         let node = NodeId::random();
+        let mut admissions = ConnectionEpochs::default();
+        let original = admissions.admit(name.clone(), node).unwrap();
+        let reconnected = admissions.admit(name.clone(), node).unwrap();
+        let other = admissions
+            .admit(MachineKey::from_book("other-node"), NodeId::random())
+            .unwrap();
         let mut scope = Scope::default();
-        scope.bind(Target::authenticated(name.clone(), node), Visit(2));
+        scope.bind(Target::authenticated(original.clone()), Visit(2));
         scope.release(Visit(1));
-        assert_eq!(scope.check(&name, NodeId::random()), Err(Problem::Changed));
-        assert_eq!(scope.check(&name, node), Ok(()));
-        assert_eq!(
-            scope.check(&MachineKey::from_book("other-node"), NodeId::random()),
-            Ok(())
-        );
-        assert_eq!(
-            scope.check_control(&MachineKey::from_book("other-node"), NodeId::random()),
-            Err(Problem::Changed)
-        );
-        assert_eq!(scope.check_control(&name, node), Ok(()));
+        assert_eq!(scope.check(&name, &reconnected), Err(Problem::Changed));
+        assert_eq!(scope.check(&name, &original), Ok(()));
+        assert_eq!(scope.check(other.machine(), &other), Ok(()));
+        assert_eq!(scope.check_control(&other), Err(Problem::Changed));
+        assert_eq!(scope.check_control(&reconnected), Err(Problem::Changed));
+        assert_eq!(scope.check_control(&original), Ok(()));
         scope.release(Visit(2));
-        assert_eq!(scope.check(&name, NodeId::random()), Ok(()));
+        assert_eq!(scope.check(&name, &reconnected), Ok(()));
     }
 }
