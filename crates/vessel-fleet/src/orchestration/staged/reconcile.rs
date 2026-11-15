@@ -1,23 +1,30 @@
-//! Non-destructive maintenance repairs selected files without deleting a skill.
+//! Non-destructive maintenance applies only a frozen plan's selected additions/updates.
 
-use super::{SkillService, filesystem, manifest, status};
+use super::{SkillService, filesystem, manifest};
 use crate::dir::{Dir, Entry};
 use crate::orchestration::{SkillBundle, SkillError};
-use vessel_proto::skills::{SkillName, SkillSelection, SkillsSnapshot, SkillsState};
+use vessel_proto::skills::{
+    SkillName, SkillOperation, SkillSelection, SkillsSnapshot, SkillsState,
+};
 
 impl SkillService {
     pub(super) fn reconcile(
-        &self,
+        &mut self,
         selection: &SkillSelection,
     ) -> Result<SkillsSnapshot, SkillError> {
-        self.validate_selection(selection)?;
-        let names = self.bundles.names()?;
-        if !names
-            .as_slice()
-            .iter()
-            .any(|name| status::desired(selection, name))
-        {
-            return self.status(selection);
+        let plan = self.status(selection)?;
+        self.apply_updates(&plan)?;
+        self.status(selection)
+    }
+
+    /// A save transaction captures this exact plan, so no rescan may widen writes.
+    pub(super) fn apply_updates(&mut self, plan: &SkillsSnapshot) -> Result<(), SkillError> {
+        let names = plan.ops.iter().filter_map(update_name).collect::<Vec<_>>();
+        if names.is_empty() {
+            return Ok(());
+        }
+        for name in &names {
+            let _bundle = self.bundles.get(name).ok_or(SkillError::UnknownSkill)?;
         }
         let mut roots = Vec::new();
         for home in self.homes.roots().into_iter().take(super::ACTIVE_TARGETS) {
@@ -25,48 +32,47 @@ impl SkillService {
             if roots.iter().any(|known: &Dir| known.path() == root.path()) {
                 continue;
             }
-            for name in names
-                .as_slice()
-                .iter()
-                .filter(|name| status::desired(selection, name))
-            {
+            for name in &names {
                 let bundle = self.bundles.get(name).ok_or(SkillError::UnknownSkill)?;
                 sync(&root, bundle)?;
             }
             roots.push(root);
         }
-        self.retire_legacy(selection, &roots)?;
-        self.status(selection)
+        self.retire_legacy(&names, &roots)
     }
 
     pub(super) fn maintain(
-        &self,
+        &mut self,
         selection: &SkillSelection,
     ) -> Result<SkillsSnapshot, SkillError> {
-        let status = self.status(selection)?;
-        match status.state {
-            SkillsState::NotInstalled | SkillsState::UpToDate => Ok(status),
-            SkillsState::Drift => self.reconcile(selection),
+        let plan = self.status(selection)?;
+        match plan.state {
+            SkillsState::NotInstalled | SkillsState::UpToDate => Ok(plan),
+            SkillsState::Drift => {
+                self.apply_updates(&plan)?;
+                self.status(selection)
+            }
         }
     }
 
-    fn retire_legacy(&self, selection: &SkillSelection, main: &[Dir]) -> Result<(), SkillError> {
+    fn retire_legacy(&self, names: &[&SkillName], main: &[Dir]) -> Result<(), SkillError> {
         let Some(legacy) = self.homes.legacy_codex.read()? else {
             return Ok(());
         };
         if main.iter().any(|root| root.path() == legacy.path()) {
             return Ok(());
         }
-        for name in self
-            .bundles
-            .names()?
-            .as_slice()
-            .iter()
-            .filter(|name| status::desired(selection, name))
-        {
+        for name in names {
             retire(&legacy, name)?;
         }
         Ok(())
+    }
+}
+
+pub(super) fn update_name(operation: &SkillOperation) -> Option<&SkillName> {
+    match operation {
+        SkillOperation::Add { name } | SkillOperation::Update { name } => Some(name),
+        SkillOperation::Delete { .. } => None,
     }
 }
 
@@ -77,7 +83,6 @@ fn sync(root: &Dir, bundle: &SkillBundle) -> Result<(), SkillError> {
         Entry::File | Entry::Symlink | Entry::Other => return Err(SkillError::Blocked),
     };
     let previous = manifest::read(&dir)?.unwrap_or_default();
-    // Preflight every managed path before the first write, including removals.
     for path in previous.keys() {
         let _contents = filesystem::read(&dir, path)?;
     }
@@ -111,7 +116,6 @@ fn retire(root: &Dir, name: &SkillName) -> Result<(), SkillError> {
     if let Some(bytes) = filesystem::read(&dir, &manifest::path()?)? {
         filesystem::remove_unchanged(&dir, &manifest::path()?, filesystem::hash(&bytes))?;
     }
-    // An unmodified empty legacy directory is retired, while extra files stay.
     let mut any = false;
     dir.each_name(|_name| {
         any = true;

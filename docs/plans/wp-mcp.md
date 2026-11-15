@@ -228,3 +228,8 @@ voice-only attachment once that producer is integrated. Browser policy will
 use `ToolId::Browser(BrowserTool)` when the browser contract is ready, reusing
 its one name table; browser enable/qualified-engine/Operate/lease checks stay
 with the browser producer. These are consumer seams, not runtime proof.
+
+Reconciliation now applies only the additions/updates in its frozen status plan.
+It does not rescan after a transaction captured paths, and it does not rewrite
+selected directories outside that plan. Mutations borrow the service mutably
+to express the single-writer requirement before node actor serialization.

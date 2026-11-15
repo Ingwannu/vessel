@@ -96,7 +96,7 @@ fn catalogue(version: &str, extra: Option<(&str, &[u8])>) -> SkillBundles {
 fn startup_does_not_install_but_explicit_reconcile_installs_selected_files() {
     use vessel_proto::skills::{SkillSelection, SkillsState};
     let home = tempfile::tempdir().unwrap();
-    let service = service(home.path(), catalogue("one", None));
+    let mut service = service(home.path(), catalogue("one", None));
     let fresh = service.maintain(&SkillSelection::All).unwrap();
     assert_eq!(fresh.state, SkillsState::NotInstalled);
     assert_eq!(std::fs::read_dir(home.path()).unwrap().count(), 0);
@@ -112,12 +112,12 @@ fn startup_does_not_install_but_explicit_reconcile_installs_selected_files() {
 fn updates_keep_user_files_and_modified_obsolete_managed_files() {
     use vessel_proto::skills::{SkillNames, SkillSelection, SkillsState};
     let home = tempfile::tempdir().unwrap();
-    let initial = service(home.path(), catalogue("one", Some(("old.md", b"owned"))));
+    let mut initial = service(home.path(), catalogue("one", Some(("old.md", b"owned"))));
     initial.reconcile(&SkillSelection::All).unwrap();
     let shared = home.path().join("agents/skills/vessel");
     std::fs::write(shared.join("old.md"), b"user edit").unwrap();
     std::fs::write(shared.join("notes.md"), b"user extra").unwrap();
-    let updated = service(home.path(), catalogue("two", None));
+    let mut updated = service(home.path(), catalogue("two", None));
     assert_eq!(
         updated.maintain(&SkillSelection::All).unwrap().state,
         SkillsState::UpToDate
@@ -147,7 +147,7 @@ fn updates_keep_user_files_and_modified_obsolete_managed_files() {
 fn unknown_selection_is_refused_before_creating_homes() {
     use vessel_proto::skills::{SkillNames, SkillSelection};
     let home = tempfile::tempdir().unwrap();
-    let service = service(home.path(), catalogue("one", None));
+    let mut service = service(home.path(), catalogue("one", None));
     let selection = SkillSelection::Custom {
         skills: SkillNames::new(vec!["unknown".parse().unwrap()]).unwrap(),
     };
@@ -164,12 +164,12 @@ fn update_preflights_every_asset_before_replacing_a_declaration() {
     use vessel_proto::skills::SkillSelection;
     let home = tempfile::tempdir().unwrap();
     let outside = tempfile::tempdir().unwrap();
-    let initial = service(home.path(), catalogue("one", None));
+    let mut initial = service(home.path(), catalogue("one", None));
     initial.reconcile(&SkillSelection::All).unwrap();
     let shared = home.path().join("agents/skills/vessel");
     let original = std::fs::read(shared.join("SKILL.md")).unwrap();
     std::os::unix::fs::symlink(outside.path(), shared.join("sub")).unwrap();
-    let updated = service(home.path(), catalogue("two", Some(("sub/file.md", b"new"))));
+    let mut updated = service(home.path(), catalogue("two", Some(("sub/file.md", b"new"))));
     assert!(updated.reconcile(&SkillSelection::All).is_err());
     assert_eq!(std::fs::read(shared.join("SKILL.md")).unwrap(), original);
     assert!(!outside.path().join("file.md").exists());

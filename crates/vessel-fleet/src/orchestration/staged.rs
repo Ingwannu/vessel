@@ -18,7 +18,8 @@ use crate::dir::Dir;
 struct SkillRoot(PathBuf);
 impl SkillRoot {
     fn new(path: PathBuf) -> Result<Self, SkillError> {
-        if !path.is_absolute()
+        if path.file_name().is_none()
+            || !path.is_absolute()
             || path
                 .components()
                 .any(|part| matches!(part, Component::CurDir | Component::ParentDir))
