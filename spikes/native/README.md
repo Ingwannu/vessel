@@ -1275,8 +1275,8 @@ its host dialog; no second scrim or area popup is drawn. See
 
 ### Adaptive caller-content popover
 
-`kit::popover` is the shared control for arbitrary settings bodies: measured
-start/end anchoring on desktop and the existing dialog/snap renderer on compact
+`kit::popover` is the shared control for arbitrary settings bodies: captured
+start/end anchor points on desktop and the existing dialog/snap renderer on compact
 layouts. `PopoverState::open` returns an opaque lease; `PopoverHandlers::admit`
 must accept that opening before any close or ReturnFocus acknowledgment. The
 control rechecks after admission, so retained old input cannot close a newer
@@ -1287,6 +1287,15 @@ and optional existing CompactLayout. DialogLayout's typed BodySpacing::Caller
 avoids adding a second inset around forms; legacy dialogs keep Inset24 and all
 existing geometry defaults. See `docs/plans/wp-adaptive-popover.md` for exact
 Paseo references, API, pending remote tests and V1/lead handoff requirements.
+
+### Caller-owned dialog title actions
+
+`DialogContent::with_header_actions(controls)` adds an optional trailing element
+before the existing close button, through the same `dialog` renderer. Plain
+struct literals still convert without actions; their geometry/defaults stay the
+same. The title yields to controls on the shared24/16/8 inset/gap rails. Callers
+retain and check their action context/ticket; the slot grants no host authority.
+See `docs/plans/wp-dialog-header-actions.md` for references and current evidence.
 
 ### Allocation block approval boundary (base 5 adapter)
 
@@ -1335,3 +1344,20 @@ family; field.rs now fits the ordinary size budget. Caller still checks original
 form visit, current source id, connection and authority; FieldId alone is none
 of those capabilities. New keyboard/Unicode/readonly/minimum cases are source
 only at this checkpoint; narrow/source review and consumer proof remain owed.
+
+`kit::SearchField` is the shared standalone filter profile over TextField's
+one-line engine and bare renderer. It owns Search14/X14, the source420-point
+maximum,34-point shell and focus palette; areas provide only localized placeholder
+and the existing change callback. Its X uses the ordinary replacement event/undo
+path and retains focus; navigation clear remains programmatic. Do not add search
+chrome or another editor in an area. See docs/plans/shared-search-field.md for
+the source values and unverified keyboard/accessibility/first-use boundaries. Exact corrected13c46693
+Kit all-target Clippy and its two focused tests completed0; this is not a full
+Kit suite, consumer UI or whole A9 gate. Selected-producer review remains distinct
+from area first-use evidence.
+
+Glyph declarations live once in kit/src/assets/inventory.rs; one macro
+generates the existing Glyph, ALL and const path match in their original
+module. Append future declarations there and keep the separate exhaustive
+drawing match. The frozen pre-refactor order/path snapshot guards this
+mechanical registry change; it does not approve new glyphs or consumer ink.
