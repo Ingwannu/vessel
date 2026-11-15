@@ -1806,3 +1806,10 @@ Toasts retain the existing host and lifetime rules. The viewport sits below
 the header and centres existing cards, with responsive width and a bounded
 scrolling stack. It no longer occupies the lower composer/dock region.
 The layer's tokens, status roles, colors and dismiss actions are unchanged.
+
+The web socket's authentication close path distinguishes a missed hello
+budget from invalid proof. Budget expiry remains a retryable transport close;
+only a refusal discards the tab's credential. Admission, mutual proof and
+single-use redemption remain owned by the same server and browser modules.
+ADR 0017 records why an absent proof at a resource deadline is insufficient
+to refuse identity; `docs/plans/backend-m12-web-identity.md` records verification.
