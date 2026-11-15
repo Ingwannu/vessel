@@ -47,6 +47,10 @@ pub struct NodeSettings {
     pub dictation: Option<crate::dictation::DictationSettings>,
 }
 
+#[expect(
+    clippy::ref_option,
+    reason = "serde passes a shared reference to the stored optional field"
+)]
 fn dictation_is_default(value: &Option<crate::dictation::DictationSettings>) -> bool {
     value
         .as_ref()

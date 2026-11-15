@@ -255,9 +255,10 @@ finish-budget decoding refuses values over five minutes.
 
 ## Review correction: authoritative versions and bounds
 
-Decision: modify existing types. `SINCE` uses `ProtocolVersion` and aliases
-`PROTOCOL_VERSION` until the integrator assigns its permanent version. No
-second numeric protocol value can drift from the base. The input bounds
+Historical value-only correction: `SINCE` used a typed `ProtocolVersion` alias
+of the base version instead of a second bare number. The pending-wire contract
+superseded that choice: the current `SINCE` is `Option<ProtocolVersion>::None`
+until assignment. No second numeric protocol value can drift from the base. The input bounds
 have one definition shared by validation and error formatting; byte-to-KiB
 conversion also has one definition. The refusal text and accepted inputs
 stay the same. No new dependency or wire method is added.
@@ -1029,3 +1030,14 @@ no number. The architecture conflict retains the head's page feedback paragraph
 unchanged, followed by the owned dictation product-path paragraph. Existing
 immutable focused runs remain scoped to their earlier snapshots; current narrow
 checks and the final package gate must cover this combined tree.
+
+### Optional-view serialization callback
+
+The default-omission predicate has serde's fixed callback signature: the derive
+passes a shared reference to the optional stored field. An Option of a borrowed
+value cannot replace that argument. A single function-level ref_option lint
+expectation states this external API constraint; it changes no validator,
+serialization rule or assertion. Replacing the entire derived serializer merely
+to adapt this argument would duplicate the other settings fields. The retained
+strict failure identifies this lint; the ensuing check covers the corrected
+callback without changing the running focused test's behavior.
