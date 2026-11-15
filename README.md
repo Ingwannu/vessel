@@ -1367,7 +1367,10 @@ read scope; cost in these queries additionally needs operate scope.
 
 The web client also shows machine accounting in **Settings → Usage**.
 Choose a machine and the past 24 hours or seven days, then Refresh for a
-new observation. Reasoning and cache counts keep their reported-turn
+new observation. Agent/profile choices use names from the last All agents
+report; each choice reads its totals from the node. All profiles includes
+reports without a recorded profile name, rather than guessing the current
+default login. Reasoning and cache counts keep their reported-turn
 coverage, and cost stays separated by unit or explicitly hidden by access.
 Offline machines and failed reads show guidance instead of zero totals.
 This page does not yet show account limits or individual session reports.
