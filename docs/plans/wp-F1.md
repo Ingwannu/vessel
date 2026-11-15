@@ -8,10 +8,13 @@ node schedule/store/CLI contract remains the base; a catalog entry is not a clai
 that its native screen is built. Native View decides, Link calls, App draws, and
 Kit owns shared controls. The screen must never contain fixture schedules.
 
-Assigned app base8d5513e4 is merged at3b00f225. Separate node work starts from
-announced Quality B29eebb8b (protocol23/store18); it is not yet merged into the
-app line. The independent pending field uses one Option<ProtocolVersion> constant
-set to None until the integrator assigns its number, not a capability RPC.
+Current announced app line074ade16 is merged at800aa1a91, following package
+base4 (3cd0d3fc) and its Quality B/root race-fix ancestry. The complete reviewed
+G4 dialog captured-close/weak-focus prerequisite is present. Separate node work
+is on announced gate40 ba45a6e3 (protocol23/store18). No later unannounced app
+head or moving producer branch is assumed. The independent isolation field
+will use one Option<ProtocolVersion> constant set to None until the integrator
+assigns its number, not a capability RPC. It is not implemented by this note.
 
 The list uses the existing pure Page model and correlated, bounded Link hub.
 PreparedRow/Clock format authoritative node facts outside painting. UI state
@@ -59,9 +62,11 @@ an explicitly assigned extension changes them.
   identity/provision and W21 archive contracts. App option is hidden until that
   node implementation exists. Quality B's field requirement gates it with one
   pending feature constant; old edits may not erase newer stored isolation.
-- Shared pending: corrected HostErrors radius8 producer; HostFilter presentation
-  and content-sized picker are committed6b431470 but narrow/runtime checks are
-  still owed; menu close focus restoration remains open. Existing status
+- Shared status: corrected HostErrors radius8 is consumed (exact producer
+  source/narrow, final F1 use still owed). HostFilter presentation/content-sized
+  picker and its return-focus lifecycle remain unverified in the F1 integration.
+  The isolated menu producer now has source/Kit/App narrow proof; historical
+  actual Linux F5 and final feature focus evidence remain open. Existing status
   dot6 is the explicitly allowed temporary value in a14-point slot pending E2.
 - Saved prompts and webhooks are not part of this parity package.
 
@@ -243,3 +248,33 @@ Prepared form source outside the repository is uninstalled and unverified.
 Follow-up: the sidebar slot now actually wraps the unconditional area adapter
 in Some, keeping its existing optional-slot signature; the first replacement
 matched a different qualification and left that one-line caller unchanged.
+
+## Shared producer handover boundary
+
+The blocking shared controls were isolated from F1 before handing them over.
+Button82584106 has V1 SOURCE/exact Kit narrow (135/0), docs30d9c165. Menu8158be6d
+has V1 SOURCE/exact Kit narrow (160/0) and exact App all-target Clippy0, docs
+470deac6. Both preserve the published APIs/defaults and single renderer. These
+are not a full F1 compile/test, native UI or final package pass. W19 desktop
+shell reported adoption through103a042ac, removing its independent strong
+opener restoration; its combined actual-field evidence remains the consumer's.
+
+The next source checkpoints are distinct and not approved: Gauge/PackagePlus
+isolated5ecd9f10 (ordinary remote narrow queued), source-circle button5f71409d
+(short remote narrow queued), ProviderRow/passive triggerd3773498, and modal
+layer1bb1842a following that trigger. They are minimal producer branches, never
+permission to merge the full F1 tree. No old passing source result covers them.
+The circle adds canonical fixed reds with palette-owner agreement; existing
+Palette/Tint/GREEN_500 values remain unchanged. No duplicate glyph producer is
+introduced for W19's Mic/MicOff/filled-square assets.
+
+The actor binding blocker is unchanged: request tickets alone do not bind the
+physical client. G4 reports an isolated exact-alias/nonreused-epoch preflight
+producer with a test-liveness return still under correction. Its intended
+Machine.connection_context / State.selected_connection API is not yet a
+reviewed consumer dependency. F1 must echo that original context beside its
+own request ticket, use the shared immutable selected client's pre-effect and
+post-await fence, and retire cached/current requests on connection changes.
+No local alias scan, second connection registry or guessed epoch is added.
+Actual schedule writes/captures stay held until that shared security seam is
+reviewed and integrated. Prepared editor sources are still uninstalled.
