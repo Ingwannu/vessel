@@ -18,6 +18,7 @@ impl State {
     pub(super) async fn handle(&mut self, command: Command) {
         match command {
             Command::Reload => self.reload().await,
+            Command::RetireConnection(tag) => self.closed_connection(&tag).await,
             Command::Agents {
                 machine,
                 request,
@@ -36,10 +37,10 @@ impl State {
             Command::Sync { machine, ticket } => self.sync(&machine, ticket).await,
             Command::NodeSettings(ask) => self.node_settings(ask).await,
             Command::Devices {
-                machine,
+                context,
                 ticket,
                 ask,
-            } => self.devices(&machine, ticket, ask).await,
+            } => self.devices(&context, ticket, ask).await,
             Command::Open { machine, session } => self.open(&machine, session),
             Command::Prompt {
                 machine,
