@@ -240,3 +240,41 @@ async fn mutation_queue_reuses_the_process_budget_and_closure_drains_waiters() {
     .await
     .unwrap();
 }
+
+#[tokio::test]
+async fn an_available_provider_ack_is_preserved_when_the_driver_also_closes() {
+    vessel_testkit::within(
+        SAFETY,
+        Box::pin(async {
+            let (send, mut receive) = mpsc::channel(crate::process::COMMANDS);
+            let input = AgentInput::new(send);
+            let pending_input = input.clone();
+            let pending = tokio::spawn(async move {
+                pending_input
+                    .apply_options(choices(&["acknowledged", "not-sent"]))
+                    .await
+                    .unwrap()
+            });
+            let reply = setter(&mut receive, "acknowledged").await;
+            // On this current-thread runtime the owner cannot poll between these
+            // synchronous operations: both completion and closure are ready.
+            reply
+                .send(Ok(completed(Some("acknowledged notice"))))
+                .unwrap();
+            drop(receive);
+            let result = phase("ack and close outcome", pending).await.unwrap();
+            assert_eq!(result.applied(), choices(&["acknowledged"]).as_slice());
+            assert_eq!(result.notice().unwrap().as_str(), "acknowledged notice");
+            assert_eq!(
+                result.failure().unwrap().choice().as_choice().id.as_str(),
+                "not-sent"
+            );
+            assert!(matches!(
+                result.failure().unwrap().error(),
+                InputError::Closed
+            ));
+        }),
+    )
+    .await
+    .unwrap();
+}

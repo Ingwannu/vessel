@@ -530,3 +530,10 @@ options reads retain their scheduling. This fence does not atomically bind
 session metadata/account/run identity; the authenticated session-actor
 consumer owns that capture and same-run checks before and after the read.
 No additional wire call, provider mapping or setter owner is introduced.
+
+When a real provider completion and driver-channel closure are both ready,
+the owner preserves the completion first. A previously acknowledged step
+must not disappear from the returned prefix merely because shutdown was
+observed in the same poll. Further steps still refuse on closure. The same
+rule preserves an already delivered fenced-read answer; its session-actor
+consumer must still perform the independent same-run/lifetime check.

@@ -268,3 +268,9 @@ The raw admission fixture now sends a nonempty shared CAS payload, then
 checks the actual store remains at revision zero. An accidentally dispatched
 write cannot pass merely because reply adaptation also refuses it. This
 strengthens the pre-dispatch assertion without changing any deadline.
+
+Current-thread barrier regressions also fix ready-ack versus driver-close
+ordering. An available setter completion/first notice remains in the
+prefix, the next step refuses Closed, and a ready native read is consumed
+before concomitant closure. No acknowledgement is fabricated or work
+rolled back; unanswered replies still close and drain as before.

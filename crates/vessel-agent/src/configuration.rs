@@ -196,8 +196,8 @@ async fn read(commands: &mpsc::Sender<Command>) -> Result<Vec<SessionOption>, In
         .map_err(|_closed| InputError::Closed)?;
     tokio::select! {
         biased;
-        () = commands.closed() => Err(InputError::Closed),
         result = result => result.map_err(|_closed| InputError::Closed),
+        () = commands.closed() => Err(InputError::Closed),
     }
 }
 
@@ -210,12 +210,14 @@ async fn step(
         .send(Command::SetOption { choice, reply })
         .await
         .map_err(|_closed| InputError::Closed)?;
+    // An already available completion is a fact even if the driver closes
+    // in the same poll. Preserve that prefix/refusal before observing closure.
     // Closure, unlike a caller timeout, proves that the old process can no
     // longer apply changes. A hung live provider retains its own fence.
     tokio::select! {
         biased;
-        () = commands.closed() => Err(InputError::Closed),
         result = result => result.unwrap_or(Err(InputError::Closed)),
+        () = commands.closed() => Err(InputError::Closed),
     }
 }
 

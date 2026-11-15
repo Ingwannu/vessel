@@ -142,3 +142,32 @@ async fn cancelled_read_keeps_the_fence_until_actual_reply_and_driver_close_rele
     .await
     .unwrap();
 }
+
+#[tokio::test]
+async fn an_available_native_read_is_preserved_before_simultaneous_closure() {
+    vessel_testkit::within(
+        Duration::from_secs(15),
+        Box::pin(async {
+            let (commands, mut receive) = mpsc::channel(crate::process::COMMANDS);
+            let input = AgentInput::new(commands);
+            let reader = input.clone();
+            let pending = tokio::spawn(async move { reader.options_fenced().await });
+            let reply = read(&mut receive).await;
+            reply.send(native()).unwrap();
+            drop(receive);
+            assert_eq!(
+                phase("native answer and close outcome", pending)
+                    .await
+                    .unwrap()
+                    .unwrap(),
+                native()
+            );
+            assert!(matches!(
+                phase("later read is closed", input.options_fenced()).await,
+                Err(InputError::Closed)
+            ));
+        }),
+    )
+    .await
+    .unwrap();
+}
