@@ -42,7 +42,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{Tokens, Type, TypeExt as _, breakpoint, glyph, popup};
 use vessel_app_view::panels::{CODE_PANEL, Placement, SIDEBAR, code_placement, over_width};
 
-use super::{Place, Tab};
+use super::Tab;
 use crate::areas::edge::Panel;
 use crate::shell::Shell;
 
@@ -228,7 +228,14 @@ fn code_panel(
                 None,
                 tokens,
             )
-            .on_click(cx.listener(|this, _event, _window, cx| this.code_tab(Tab::Changes, cx))),
+            .on_click(cx.listener(|this, _event, window, cx| {
+                crate::areas::workspace::show_layout_explorer(
+                    this,
+                    crate::areas::workspace::ExplorerKind::Changes,
+                    window,
+                    cx,
+                )
+            })),
         )
         .child(
             tab(
@@ -238,7 +245,14 @@ fn code_panel(
                 None,
                 tokens,
             )
-            .on_click(cx.listener(|this, _event, _window, cx| this.code_tab(Tab::Files, cx))),
+            .on_click(cx.listener(|this, _event, window, cx| {
+                crate::areas::workspace::show_layout_explorer(
+                    this,
+                    crate::areas::workspace::ExplorerKind::Files,
+                    window,
+                    cx,
+                )
+            })),
         );
     let close = div().child(
         div()
@@ -253,15 +267,7 @@ fn code_panel(
             .child(glyph(Glyph::Close, 14.0, neutral.foreground_muted))
             .on_click(cx.listener(|this, _event, window, cx| this.toggle_code(window, cx))),
     );
-    let body: AnyElement = match panel.target.as_ref().map(|target| &target.place) {
-        None | Some(Place::Reading) => note(labels.loading, tokens).into_any_element(),
-        Some(Place::Outside) => note(labels.not_in_project, tokens).into_any_element(),
-        Some(Place::Failed(why)) => note(why.clone(), tokens).into_any_element(),
-        Some(Place::Root(_)) => match panel.tab {
-            Tab::Changes => super::changes::render(shell, tokens, window, cx),
-            Tab::Files => super::files::render(shell, tokens, window, cx),
-        },
-    };
+    let body = crate::areas::workspace::render_explorer(shell, tokens, window, cx);
     let frame = div()
         .flex()
         .flex_col()
@@ -328,12 +334,4 @@ pub(super) fn note(text: impl Into<vessel_app_kit::ui::SharedString>, tokens: &T
         .type_(Type::Body)
         .text_color(tokens.neutral.foreground_muted)
         .child(text.into())
-}
-
-impl Shell {
-    fn code_tab(&mut self, tab: Tab, cx: &mut Context<'_, Self>) {
-        self.areas.workspace.code.tab = tab;
-        self.code_read_tab();
-        cx.notify();
-    }
 }

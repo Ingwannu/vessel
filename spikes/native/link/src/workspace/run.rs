@@ -136,6 +136,11 @@ async fn file(client: &NodeClient, ask: FileAsk) -> Answer {
             result: call(client, ask.clone()).await,
             ask,
         },
+        FileAsk::EditorRead { ask, ticket } => Answer::EditorRead {
+            result: call(client, ask.clone()).await,
+            ask,
+            ticket,
+        },
         FileAsk::Save(save) => saved(client, save).await,
         FileAsk::Find(ask) => Answer::Found {
             result: call(client, ask.clone()).await,
@@ -182,6 +187,7 @@ async fn saved(client: &NodeClient, save: Save) -> Answer {
     )
     .await;
     Answer::Saved {
+        ticket: save.ticket,
         root: save.root,
         path: save.path,
         saved,

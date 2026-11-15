@@ -4,6 +4,10 @@ use super::labels::Labels;
 
 /// Korean.
 pub const KO: Labels = Labels {
+    file_sort_size: "크기",
+    hide_hidden_files: "숨김 파일 감추기",
+    show_hidden_files: "숨김 파일 표시",
+    editor_buffers_full: "다른 파일을 열기 전에 열린 파일을 저장하거나 닫아 주세요.",
     projects: "프로젝트",
     projects_lead: "머신이 작업하는 폴더입니다. 세션은 프로젝트 폴더에서 그대로 실행되거나, 새 브랜치의 자체 워크트리에서 실행됩니다.",
     add_project: "프로젝트 추가",

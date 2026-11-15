@@ -1,6 +1,7 @@
 //! What a workspace screen asks: one enum per subject, each variant
 //! holding the wire's own request.
 
+use vessel_app_view::workspace::file_ticket::FileTicket;
 use vessel_proto::workspace::{
     AddProject, ApproveCommands, CloneProject, CreateDir, DeletePath, Discard, DropSnapshot, Fetch,
     FileVersion, FindFiles, GetChanges, GetFileDiff, GetProjectCommands, InitProject, ListDir,
@@ -90,6 +91,13 @@ pub enum FileAsk {
     List(ListDir),
     /// `file.read`.
     Read(ReadFile),
+    /// A whole editor read whose response echoes a unique request identity.
+    EditorRead {
+        /// The bounded wire read.
+        ask: ReadFile,
+        /// Correlation independent of file/model lifetime.
+        ticket: FileTicket,
+    },
     /// A guarded save (`file.write`, then `file.read` once on a conflict).
     Save(Save),
     /// `file.find`.
@@ -147,6 +155,8 @@ impl GitWrite {
 /// A save of an edited file.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Save {
+    /// Echoed unchanged, so a late save cannot settle a newer operation.
+    pub ticket: FileTicket,
     /// The root.
     pub root: WorkspaceRoot,
     /// The file.

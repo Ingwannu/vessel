@@ -26,18 +26,22 @@
 mod actions;
 mod actions_view;
 mod appear;
+mod buffers;
 mod change_rows;
 mod changes;
 mod editing;
 mod editing_view;
+mod editor_io;
 mod editor_status;
 mod elsewhere;
 mod files;
 mod found;
 mod frame;
+mod layout_adapter;
 mod line_syntax;
 mod search;
 mod tree;
+mod tree_toolbar;
 mod viewer;
 
 use std::collections::{HashMap, HashSet};
@@ -45,7 +49,7 @@ use std::collections::{HashMap, HashSet};
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_kit::{ComboboxState, VirtualList};
 use vessel_app_view::workspace::changes::{ChangeRow, FileState, ScopeKind, change_rows};
-use vessel_app_view::workspace::file_tree::{Listing, TreeRow, tree_rows};
+use vessel_app_view::workspace::file_tree::{Listing, TreeRow};
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::root::session_root;
 use vessel_proto::workspace::{DiffSummary, RelPath, WorkspaceRoot};
@@ -53,6 +57,7 @@ use vessel_proto::{SessionId, SessionInfo};
 
 pub(crate) use elsewhere::FindRefused;
 pub(crate) use frame::{code_beside, code_toggle, frame_row};
+pub(crate) use layout_adapter::{ExplorerKind, render_explorer, show_layout_explorer};
 
 use crate::shell::Shell;
 use vessel_app_link::workspace::Ask;
@@ -133,6 +138,8 @@ enum Shown {
 
 /// The Files tab.
 struct Files {
+    options: vessel_app_view::workspace::explorer::ExplorerOptions,
+    retained: HashMap<buffers::FileKey, Viewer>,
     listings: HashMap<RelPath, Listing>,
     open: HashSet<RelPath>,
     rows: Vec<TreeRow>,
@@ -153,6 +160,7 @@ pub(crate) struct CodePanel {
     target: Option<Target>,
     changes: Changes,
     files: Files,
+    tickets: vessel_app_view::workspace::file_ticket::FileTickets,
     /// Its left edge, dragged to resize it (`frame::PANEL`).
     edge: crate::areas::edge::PanelEdge,
     /// The width of the row of conversation and panel, last frame.
@@ -187,6 +195,8 @@ impl CodePanel {
                 picker: ComboboxState::new(window, cx),
             },
             files: Files {
+                options: vessel_app_view::workspace::explorer::ExplorerOptions::default(),
+                retained: HashMap::new(),
                 listings: HashMap::new(),
                 open: HashSet::new(),
                 rows: Vec::new(),
@@ -196,6 +206,7 @@ impl CodePanel {
                 actions: actions::Actions::new(cx),
                 narrow: std::cell::Cell::new(false),
             },
+            tickets: vessel_app_view::workspace::file_ticket::FileTickets::default(),
             edge: crate::areas::edge::PanelEdge::new(),
             row: std::rc::Rc::new(std::cell::Cell::new(None)),
             stale: Stale::default(),
@@ -253,45 +264,6 @@ impl Changes {
             Summary::Loading | Summary::Failed(_) => Vec::new(),
         };
         self.list.reset(self.rows.len());
-    }
-}
-
-impl Files {
-    fn relist(&mut self) {
-        self.rows = tree_rows(&self.listings, &self.open);
-        self.list.reset(self.row_count());
-    }
-
-    /// The list's rows: the tree's, and the row a name is typed in.
-    fn row_count(&self) -> usize {
-        let extra = self
-            .actions
-            .editing
-            .as_ref()
-            .and_then(|editing| actions::edit_slot(&self.rows, &editing.kind))
-            .is_some_and(|(_, replaces)| !replaces);
-        self.rows.len().saturating_add(usize::from(extra))
-    }
-
-    /// What list row `index` draws: the typed name's row (at its depth),
-    /// or the tree's row at an index.
-    fn slot(&self, index: usize) -> Slot {
-        let Some((at, replaces)) = self
-            .actions
-            .editing
-            .as_ref()
-            .and_then(|editing| actions::edit_slot(&self.rows, &editing.kind))
-        else {
-            return Slot::Row(index);
-        };
-        if index == at {
-            let depth = self.rows.get(at).map_or(0, TreeRow::depth);
-            return Slot::Edit(depth);
-        }
-        if index > at && !replaces {
-            return Slot::Row(index.saturating_sub(1));
-        }
-        Slot::Row(index)
     }
 }
 
@@ -365,6 +337,9 @@ impl Shell {
         // The file edited in the session left is written first (Paseo
         // flushes an editor when its panel goes).
         self.flush_file();
+        if !self.park_file() {
+            return;
+        }
         let panel = &mut self.areas.workspace.code;
         panel.target = Some(Target {
             machine: machine.clone(),
@@ -372,6 +347,7 @@ impl Shell {
             place: Place::Reading,
             cwd: None,
         });
+        panel.files.options = self.prefs.explorer;
         // A new session is read whole: nothing it shows is stale.
         panel.stale = Stale::default();
         panel.changes.summary = Summary::Loading;

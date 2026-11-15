@@ -17,15 +17,13 @@
 //! - Cost: the toolbar's line count walks the text on each frame the panel
 //!   draws (a 1 MiB file: well under a millisecond).
 
-use std::time::Duration;
-
 use vessel_app_kit::code_editor::CodeEditor;
 use vessel_app_kit::dialog::DialogState;
 use vessel_app_kit::ui::{Context, Window};
-use vessel_app_link::workspace::{Ask, FileAsk, Save};
 use vessel_app_view::workspace::editor::{
-    AUTOSAVE_MS, EditorModel, MAX_EDITABLE_BYTES, Read, Step, Written, wraps,
+    EditorModel, MAX_EDITABLE_BYTES, Read, Step, Written, wraps,
 };
+use vessel_app_view::workspace::file_ticket::FileTicket;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::save::Saved;
 use vessel_app_view::workspace::syntax::language_of;
@@ -45,9 +43,12 @@ pub(super) struct Editing {
     /// The model's text is newer than the control's (a reload).
     pub(super) stale: bool,
     /// Bumped by every autosave set or stopped; a timer checks it.
-    autosave: u64,
+    pub(super) autosave: u64,
     /// Reload's question, made when first asked.
     pub(super) reload: Option<DialogState>,
+    /// Link correlation and the model sequence captured when sent.
+    pub(super) reading: Option<(FileTicket, u64)>,
+    pub(super) writing: Option<(FileTicket, u64)>,
 }
 
 impl Editing {
@@ -59,6 +60,8 @@ impl Editing {
             stale: false,
             autosave: 0,
             reload: None,
+            reading: None,
+            writing: None,
         }
     }
 }
@@ -86,84 +89,6 @@ impl Shell {
             .as_mut()
     }
 
-    /// Carry out what the model asked.
-    fn run_step(&mut self, step: Step, cx: &mut Context<'_, Self>) {
-        match step {
-            Step::None => {}
-            Step::Write { .. } | Step::Read { .. } => self.send_step(step),
-            Step::Autosave => self.set_autosave(cx),
-            Step::StopAutosave => {
-                if let Some(editing) = self.editing() {
-                    editing.autosave = editing.autosave.wrapping_add(1);
-                }
-            }
-        }
-        cx.notify();
-    }
-
-    /// Send a write or a read the model asked for (no frame is needed).
-    fn send_step(&mut self, step: Step) {
-        let panel = &self.areas.workspace.code;
-        let Some((machine, root)) = panel
-            .root()
-            .map(|(machine, root)| (machine.to_owned(), *root))
-        else {
-            return;
-        };
-        let Some(path) = panel
-            .files
-            .viewer
-            .as_ref()
-            .map(|viewer| viewer.path.clone())
-        else {
-            return;
-        };
-        let ask = match step {
-            Step::Write { text, base, .. } => FileAsk::Save(Save {
-                root,
-                path,
-                text,
-                base,
-            }),
-            Step::Read { .. } => FileAsk::Read(whole_read(root, path)),
-            Step::None | Step::Autosave | Step::StopAutosave => return,
-        };
-        self.ask(&machine, Ask::File(ask));
-    }
-
-    /// A modified buffer written before its file is left (guarded; its
-    /// answer finds no editor and is dropped). Paseo's
-    /// `dispose({ flush: true })`.
-    pub(super) fn flush_file(&mut self) {
-        let Some(editing) = self.editing() else {
-            return;
-        };
-        let step = editing.model.flush();
-        self.send_step(step);
-    }
-
-    fn set_autosave(&mut self, cx: &mut Context<'_, Self>) {
-        let Some(editing) = self.editing() else {
-            return;
-        };
-        editing.autosave = editing.autosave.wrapping_add(1);
-        let wait = editing.autosave;
-        cx.spawn(async move |this, cx| {
-            cx.background_executor()
-                .timer(Duration::from_millis(AUTOSAVE_MS))
-                .await;
-            let _gone = this.update(cx, |shell, cx| {
-                let Some(editing) = shell.editing().filter(|editing| editing.autosave == wait)
-                else {
-                    return;
-                };
-                let step = editing.model.save();
-                shell.run_step(step, cx);
-            });
-        })
-        .detach();
-    }
-
     /// The person typed in the editor.
     pub(super) fn editor_changed(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
         let Some(editing) = self.editing() else {
@@ -179,14 +104,19 @@ impl Shell {
     /// A read of the file being edited came back. `false` when the file
     /// cannot be edited (binary, or larger than a page): the caller shows
     /// it read-only.
-    pub(in crate::areas::workspace) fn editing_read(
+    pub(super) fn editing_read(
         &mut self,
+        key: &super::buffers::FileKey,
+        ticket: FileTicket,
         result: &Result<FileRead, Problem>,
         cx: &mut Context<'_, Self>,
     ) -> bool {
         let words = self.words();
-        let Some(editing) = self.editing() else {
+        let Some(editing) = self.editing_for(key) else {
             return false;
+        };
+        let Some((_, sequence)) = editing.reading.take_if(|(at, _)| *at == ticket) else {
+            return true;
         };
         let first = editing.editor.is_none();
         let read = match result {
@@ -207,36 +137,32 @@ impl Shell {
             Err(problem) => Read::Failed(words.problem(problem)),
         };
         let before = editing.model.content().to_owned();
-        let sequence = editing.model.reading();
         let step = editing.model.read(sequence, read);
         editing.stale = editing.editor.is_some() && editing.model.content() != before;
-        self.run_step(step, cx);
+        self.run_step_for(key.clone(), step, cx);
         true
     }
 
     /// The node answered a save of `path`.
     pub(in crate::areas::workspace) fn editor_saved(
         &mut self,
+        machine: &str,
+        ticket: FileTicket,
         root: &WorkspaceRoot,
         path: &RelPath,
         saved: Saved,
         cx: &mut Context<'_, Self>,
     ) {
         let words = self.words();
-        let panel = &self.areas.workspace.code;
-        let ours = panel.root().is_some_and(|(_, at)| at == root)
-            && panel
-                .files
-                .viewer
-                .as_ref()
-                .is_some_and(|viewer| &viewer.path == path);
-        if !ours {
-            return;
-        }
-        let Some(editing) = self.editing() else {
+        let key = super::buffers::FileKey {
+            machine: machine.to_owned(),
+            root: *root,
+            path: path.clone(),
+        };
+        let Some(editing) = self.editing_for(&key) else {
             return;
         };
-        let Some(sequence) = editing.model.writing() else {
+        let Some((_, sequence)) = editing.writing.take_if(|(at, _)| *at == ticket) else {
             return;
         };
         let written = match saved {
@@ -246,7 +172,7 @@ impl Shell {
             Saved::Failed(failure) => Written::Failed(words.save_failure(&failure)),
         };
         let step = editing.model.saved(sequence, written);
-        self.run_step(step, cx);
+        self.run_step_for(key, step, cx);
     }
 
     /// Overwrite the file that changed on disk with the buffer.
@@ -290,7 +216,7 @@ impl Shell {
     /// The file is left (Back, another file): flushed, then closed.
     pub(super) fn leave_file(&mut self, cx: &mut Context<'_, Self>) {
         self.flush_file();
-        self.areas.workspace.code.files.viewer = None;
+        let _parked = self.park_file();
         cx.notify();
     }
 

@@ -4,6 +4,10 @@ use super::labels::Labels;
 
 /// English (the page's words).
 pub const EN: Labels = Labels {
+    file_sort_size: "Size",
+    hide_hidden_files: "Hide hidden files",
+    show_hidden_files: "Show hidden files",
+    editor_buffers_full: "Save or close an open file before opening another.",
     projects: "Projects",
     projects_lead: "The folders a machine works in. A session runs in a project's folder as it is, or in a worktree of its own on a new branch.",
     add_project: "Add project",

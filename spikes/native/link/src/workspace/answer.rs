@@ -1,6 +1,7 @@
 //! What the node answered a workspace ask, with what was asked, and the
 //! answer an ask gets when it could not be sent at all.
 
+use vessel_app_view::workspace::file_ticket::FileTicket;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::save::{SaveFailure, Saved};
 use vessel_proto::workspace::{
@@ -167,7 +168,18 @@ pub enum Answer {
         result: Result<FileRead, Problem>,
     },
     /// A save's outcome.
+    EditorRead {
+        /// Requested source and byte budget.
+        ask: ReadFile,
+        /// The request identity; never inferred from current UI state.
+        ticket: FileTicket,
+        /// Exact read result.
+        result: Result<FileRead, Problem>,
+    },
+    /// A save's outcome.
     Saved {
+        /// The request identity.
+        ticket: FileTicket,
         /// The root.
         root: WorkspaceRoot,
         /// The file.
@@ -353,7 +365,13 @@ fn file_refused(ask: FileAsk, problem: &Problem) -> Answer {
             ask,
             result: no(problem),
         },
+        FileAsk::EditorRead { ask, ticket } => Answer::EditorRead {
+            ask,
+            ticket,
+            result: no(problem),
+        },
         FileAsk::Save(save) => Answer::Saved {
+            ticket: save.ticket,
             root: save.root,
             path: save.path,
             saved: Saved::Failed(SaveFailure::Call(problem.clone())),

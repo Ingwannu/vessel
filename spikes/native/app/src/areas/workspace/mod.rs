@@ -32,6 +32,7 @@ use vessel_app_view::workspace::words::WorkspaceWords;
 
 #[expect(unused_imports, reason = "track P's seam: its first user is P's `@`")]
 pub(crate) use code::FindRefused;
+pub(crate) use code::{ExplorerKind, render_explorer, show_layout_explorer};
 pub(crate) use code::{code_beside, code_toggle, frame_row};
 pub(crate) use place::{PlacePick, Rows as PlaceRows};
 pub(crate) use projects::render as projects_content;
@@ -164,7 +165,12 @@ impl Shell {
             Answer::Changes { ask, result } => self.changes_read(&ask, result),
             Answer::Diff { ask, result } => self.diff_read(&ask, result),
             Answer::Listed { ask, result } => self.folder_read(&ask, result),
-            Answer::Read { ask, result } => self.file_read(&ask, result, cx),
+            Answer::Read { ask, result } => self.file_read(machine, &ask, result, cx),
+            Answer::EditorRead {
+                ask,
+                ticket,
+                result,
+            } => self.editor_read_answered(machine, ticket, &ask, result, cx),
             Answer::Found { ask, result } => self.files_found(&ask, result),
             Answer::Grepped { ask, result } => self.files_grepped(&ask, result),
             Answer::PathChanged { change, result } => self.path_changed(&change, result),
@@ -181,7 +187,12 @@ impl Shell {
             // Track G1b's: the pull request form's defaults and its calls.
             Answer::Log { ask, result } => self.pulls_log_read(machine, &ask, result),
             Answer::Pull(answer) => self.pulls_answered(machine, answer, cx),
-            Answer::Saved { root, path, saved } => self.editor_saved(&root, &path, saved, cx),
+            Answer::Saved {
+                root,
+                path,
+                ticket,
+                saved,
+            } => self.editor_saved(machine, ticket, &root, &path, saved, cx),
         }
         cx.notify();
         true

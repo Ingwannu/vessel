@@ -53,6 +53,24 @@ fn loads_the_file_clean() {
 }
 
 #[test]
+fn in_flight_write_cannot_be_replaced_by_autosave_or_flush_after_edit() {
+    let mut model = loaded("a");
+    let _step = model.edit("first");
+    let (first, _, _) = write_of(&model.save());
+    assert_eq!(model.edit("second"), Step::Autosave);
+    assert_eq!(model.save(), Step::None);
+    assert_eq!(model.flush(), Step::None);
+    assert_eq!(model.writing(), Some(first));
+    assert_eq!(
+        model.saved(first, Written::Saved(version(5))),
+        Step::Autosave
+    );
+    let (second, text, _) = write_of(&model.save());
+    assert_ne!(first, second);
+    assert_eq!(text, "second");
+}
+
+#[test]
 fn reports_a_file_it_cannot_read() {
     let mut model = EditorModel::new();
     let first = model.first_read();

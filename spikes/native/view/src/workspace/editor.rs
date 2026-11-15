@@ -211,8 +211,8 @@ impl EditorModel {
         self.writing.as_ref().map(|(sequence, _)| *sequence)
     }
 
-    /// The read last asked for, by number (an answer to an older one is
-    /// taken for it: reads of one file come back in order).
+    /// The read last asked for; the caller must echo this number with
+    /// the response because concurrent reads can finish out of order.
     #[must_use]
     pub const fn reading(&self) -> u64 {
         self.read_sequence
@@ -255,7 +255,9 @@ impl EditorModel {
 
     /// The autosave came due, or the person saved.
     pub fn save(&mut self) -> Step {
-        if !matches!(self.status, EditorStatus::Dirty | EditorStatus::Error) {
+        if self.writing.is_some()
+            || !matches!(self.status, EditorStatus::Dirty | EditorStatus::Error)
+        {
             return Step::None;
         }
         self.write(self.version.clone())
@@ -296,7 +298,11 @@ impl EditorModel {
     /// Leaving the file: a modified buffer not in conflict is written
     /// first, guarded (Paseo's `dispose({ flush: true })`).
     pub fn flush(&mut self) -> Step {
-        if self.modified() && self.loaded() && self.status != EditorStatus::Conflict {
+        if self.writing.is_none()
+            && self.modified()
+            && self.loaded()
+            && self.status != EditorStatus::Conflict
+        {
             self.write(self.version.clone())
         } else {
             Step::None

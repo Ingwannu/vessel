@@ -7,6 +7,12 @@
 #[derive(Debug)]
 #[expect(missing_docs, reason = "each field is named for the words it holds")]
 pub struct Labels {
+    /// Retained dirty/pending buffers cannot be discarded for a new file.
+    pub editor_buffers_full: &'static str,
+    /// File sort and visibility actions.
+    pub file_sort_size: &'static str,
+    pub hide_hidden_files: &'static str,
+    pub show_hidden_files: &'static str,
     pub projects: &'static str,
     pub projects_lead: &'static str,
     pub add_project: &'static str,

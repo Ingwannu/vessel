@@ -102,6 +102,19 @@ and node review. No live preview or real harness is used.
 
 Done: reference/source and existing-asset survey; own isolated app and node
 trees; missing node contracts reported and assigned to this package.
-Next: tree parity and safe retained buffers; node ADR 0083 and typed file
-operations; wire registration on the announced common base; LSP, document
-rendering, captures and final gates. Nothing is claimed complete yet.
+In progress: correlated editor read/write tickets, serialized saves after
+typing during an in-flight write, root/path-owned retained buffers with a
+dirty-buffer eviction refusal; name/size sorting and persisted hidden-file
+choices; root create controls and portable one-segment name validation.
+The layout adapter exports `ExplorerKind`, `show_layout_explorer` and
+`render_explorer`, used by the existing panel as well. Native fast checks
+(format, size, boundaries and tokens) pass. Narrow compile is still pending.
+
+The companion node core has bounded binary pages, exclusive sibling
+duplication, parent-directory observation, directory suggestions and rich
+directory metadata; its narrow workspace clippy passed. It is not yet a
+registered API or a consumer-ready commit. Next: narrow tests and app
+compile; finish persisted expansions, modified ordering, retained I/O
+routing and pane rendering; integrate the common node base, then LSP,
+document rendering, captures and the final gates. Nothing is claimed
+complete yet.
