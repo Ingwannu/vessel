@@ -84,7 +84,7 @@ impl State {
             });
         self.session_navigation.publish(snapshot);
     }
-    /// Match NodeId only; a deep link never falls back to a similarly named host.
+    /// Match `NodeId` only; a deep link never falls back to a similarly named host.
     pub(crate) fn session_navigation(&mut self, ask: Ask) {
         self.session_connections_changed();
         self.session_navigation.request(ask, self.events.clone());

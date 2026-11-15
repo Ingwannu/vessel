@@ -167,13 +167,14 @@ async fn same_request_waits_for_matching_connection_ready_without_provider_actio
         target: NavigationTarget::Address(SessionAddress { node, session }),
     });
     assert!(events.try_recv().is_err());
-    state.clients.insert(
+    let previous = state.clients.insert(
         "reconnected".to_owned(),
         Connected {
             client: peer.client.clone(),
             agents: Vec::new(),
         },
     );
+    assert!(previous.is_none());
     state.session_connections_changed();
     let Event::Sessions(answer) = next(&mut events).await else {
         panic!("wrong event")
