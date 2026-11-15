@@ -41,7 +41,6 @@ impl ConversationArea {
     #[cfg(test)]
     pub(crate) fn navigation_held(&self) -> bool {
         self.find.is_some()
-            || self.search.view.active()
             || self.prompts.jump.is_some()
             || matches!(
                 self.prompts.index.phase(),

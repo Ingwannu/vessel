@@ -352,3 +352,33 @@ fn find_does_not_bypass_the_open_palette(cx: &mut TestAppContext) {
         assert!(shell.areas.conversation.find.is_some());
     });
 }
+
+#[gpui::test]
+fn global_messages_survive_replacing_a_conversation_resident(cx: &mut TestAppContext) {
+    let (view, cx) = harness(cx);
+    update(&view, cx, |shell, window, cx| {
+        enter_messages(shell, window, cx);
+        shell.message_search_query("needle", cx);
+    });
+    ready(cx);
+    let pending = asks(&view, cx);
+    assert_eq!(pending.len(), 2);
+    update(&view, cx, |shell, _window, cx| {
+        shell.message_searched(answer(&pending[0], SessionId::random(), 1), cx);
+        assert_eq!(shell.message_search_rows().len(), 1);
+        let replacement = crate::areas::conversation::ConversationArea::new(cx);
+        let previous = std::mem::replace(&mut shell.areas.conversation, replacement);
+        assert_eq!(
+            shell.message_search_rows().len(),
+            1,
+            "the window owns results, not the resident"
+        );
+        shell.message_searched(answer(&pending[1], SessionId::random(), 1), cx);
+        assert_eq!(
+            shell.message_search_rows().len(),
+            2,
+            "the outstanding ticket still belongs to the window"
+        );
+        drop(previous);
+    });
+}

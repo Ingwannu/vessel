@@ -197,3 +197,15 @@ hidden composer. Editing a pending query cancels only the reveal address owned
 by that find target. The link also refuses an unknown welcome identity until
 the shared fleet projection supplies one, so a reused book name alone is never
 read authority for metadata.
+
+### Resident integration
+
+The existing `Searching` object now belongs to `PaletteArea.messages_search`,
+once per window, instead of the resident conversation area. All existing Shell
+search methods and the single Messages renderer remain the boundary. Replacing
+a conversation resident therefore cannot clear or multiply the global search.
+Destination selection still goes through the existing `open_session` and
+message reveal/find path, so W12 owns its registry cutover once. A regression
+replaces the complete conversation area between two machine replies and checks
+that the same window query and rows remain live. Per-resident hold excludes this
+window-global controller and preserves only local find/index/jump/hover work.

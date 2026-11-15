@@ -60,6 +60,8 @@ pub(crate) struct PaletteArea {
     /// The row the keyboard is on, by its entry's id; the first listed
     /// when `None` or no longer listed.
     cursor: PaletteCursor,
+    /// One window-owned message search survives resident/session changes.
+    pub(crate) messages_search: crate::areas::conversation::search::Searching,
     /// Message selection has record identity rather than a command id.
     messages: MessageCursor,
     /// Commands remain the normal entry; transcript search is explicit.
@@ -91,6 +93,7 @@ impl PaletteArea {
             ),
             query: String::new(),
             cursor: PaletteCursor::default(),
+            messages_search: crate::areas::conversation::search::Searching::default(),
             messages: MessageCursor::default(),
             mode: PaletteMode::default(),
             unavailable: None,

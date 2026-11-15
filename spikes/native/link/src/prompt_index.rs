@@ -92,6 +92,18 @@ mod native {
         }
     }
 
+    impl crate::State {
+        pub(crate) async fn prompt_index(&self, ask: IndexAsk) {
+            let client = self
+                .clients
+                .get(ask.target.machine.as_str())
+                .map(|connected| connected.client.clone());
+            self.prompt_calls
+                .ask(client, ask, self.events.clone())
+                .await;
+        }
+    }
+
     fn problem(error: &CallError) -> IndexProblem {
         if matches!(
             error,
