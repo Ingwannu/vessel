@@ -15,17 +15,25 @@ use super::{Connection, NodeService};
 use crate::principal::Principal;
 
 impl NodeService {
+    #[expect(
+        clippy::unused_async,
+        reason = "the generated guard requires the uniform async handler shape"
+    )]
     pub(crate) async fn browser_call(
         &self,
         connection: &Connection,
         _: BrowserCall,
     ) -> Result<BrowserResult, WireError> {
-        local_agent(connection.principal(), self.lifecycle.info().id)?;
+        let _session = local_agent(connection.principal(), self.lifecycle.info().id)?;
         // No browser setting or session-start offer exists in this staged
         // implementation, so guessing the pending method cannot enable it.
         Err(wire(BrowserFailure::Disabled))
     }
 
+    #[expect(
+        clippy::unused_async,
+        reason = "the generated guard requires the uniform async handler shape"
+    )]
     pub(crate) async fn browser_control(
         &self,
         connection: &Connection,
@@ -35,6 +43,10 @@ impl NodeService {
         Err(wire(BrowserFailure::NoEngine))
     }
 
+    #[expect(
+        clippy::unused_async,
+        reason = "the generated guard requires the uniform async handler shape"
+    )]
     pub(crate) async fn watch_browser(
         &self,
         connection: &Connection,
@@ -44,6 +56,10 @@ impl NodeService {
         Err(wire(BrowserFailure::NoEngine))
     }
 
+    #[expect(
+        clippy::unused_async,
+        reason = "the generated guard requires the uniform async handler shape"
+    )]
     pub(crate) async fn clear_browser_profile(
         &self,
         connection: &Connection,

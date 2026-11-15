@@ -361,3 +361,17 @@ MCP names. It describes both wait branches with an exclusive oneOf, numeric
 limits from proto constants and optional defaults. JSON Schema maxLength counts
 characters; decoding still enforces UTF-8 byte caps. Building these values does
 not offer tools or bypass W18's shared ToolId policy/session-start admission.
+
+
+## First combined execution evidence and correction
+
+Exact f79633464 remote run wp-browser-execution-tests-20261115T103851Z-f7963346
+executed browser23/0, MCP14/0, proto316/1. The one failure was the explicit Admin
+method inventory missing the newly registered browser.clear_profile. That entry
+is now added without changing its Admin scope or weakening the equality check.
+Exact strict run exposed the shared client fake's missing four Handler methods,
+empty sample-arm duplication, uniform-async refusal handlers and unused ACK
+values. Both explicit client/RPC fake inventories now refuse those four methods;
+they cannot synthesize a browser. Compiler warnings from the executed suite are
+also corrected (ACK/result ownership and schema insert results). Changed-source
+strict/tests are owed; the partial green suites are not an engine/whole gate.

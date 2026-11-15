@@ -424,6 +424,10 @@ impl Handler for FakeNode {
     }
 
     unserved! {
+        browser_call: vessel_proto::browser::BrowserCall => vessel_proto::browser::BrowserResult;
+        browser_control: vessel_proto::browser::BrowserControl => vessel_proto::browser::BrowserResult;
+        watch_browser: vessel_proto::browser::WatchBrowser => vessel_proto::browser::BrowserWatched;
+        clear_browser_profile: vessel_proto::browser::ClearBrowserProfile => vessel_proto::Ack;
         open_side_question: vessel_proto::side_questions::OpenSideQuestion => SessionInfo;
         prompt_side_question: vessel_proto::side_questions::PromptSideQuestion => vessel_proto::Delivered;
         reset_side_question: vessel_proto::side_questions::ResetSideQuestion => SessionInfo;

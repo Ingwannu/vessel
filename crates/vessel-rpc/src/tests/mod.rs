@@ -504,6 +504,10 @@ impl Handler for Fake {
     }
 
     unserved! {
+        browser_call: vessel_proto::browser::BrowserCall => vessel_proto::browser::BrowserResult;
+        browser_control: vessel_proto::browser::BrowserControl => vessel_proto::browser::BrowserResult;
+        watch_browser: vessel_proto::browser::WatchBrowser => vessel_proto::browser::BrowserWatched;
+        clear_browser_profile: vessel_proto::browser::ClearBrowserProfile => vessel_proto::Ack;
         forward: vessel_proto::Forward => vessel_proto::Forwarded;
         relay: vessel_proto::RelayCall => vessel_proto::Forwarded;
         deliver: vessel_proto::Deliver => vessel_proto::Forwarded;

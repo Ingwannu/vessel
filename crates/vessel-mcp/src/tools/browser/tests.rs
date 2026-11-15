@@ -15,7 +15,7 @@ fn fixture(tool: BrowserTool) -> JsonObject {
         json!({"browserId":ID,"ref":"@e01","text":"typed","key":"Enter","value":"","function":"()=>2","sourceRef":"@e1","targetRef":"@e2","filePaths":["relative.txt"],"deltaX":0.5,"deltaY":-12,"width":390,"height":844}),
     );
     if !matches!(tool, BrowserTool::Wait) {
-        input.insert("url".into(), json!(" example.test/path "));
+        let _replaced = input.insert("url".into(), json!(" example.test/path "));
     }
     input
 }
@@ -47,7 +47,7 @@ fn omitted_defaults_remain_distinct_from_explicit_wait_and_empty_text_is_valid()
     let mut input = args(json!({"browserId":ID,"url":"partial-location"}));
     let omitted = decode(BrowserTool::Wait, &input).unwrap();
     assert_eq!(omitted.command_timeout(), COMMAND_TIMEOUT);
-    input.insert("timeoutMs".into(), json!(MAX_WAIT_MS));
+    let _replaced = input.insert("timeoutMs".into(), json!(MAX_WAIT_MS));
     let explicit = decode(BrowserTool::Wait, &input).unwrap();
     assert_eq!(
         explicit.command_timeout(),
@@ -120,13 +120,13 @@ fn bad_fields_never_echo_secrets_or_create_caller_controlled_scope() {
 #[test]
 fn schemas_use_the_catalogue_and_express_the_wait_exclusion_without_offering_tools() {
     for tool in BROWSER_TOOLS {
-        let built = super::schema::schema(*tool);
+        let built = schema::schema(*tool);
         assert_eq!(built.name.as_ref(), tool.name());
         assert_eq!(built.input_schema.get("type"), Some(&json!("object")));
     }
-    let wait = super::schema::schema(BrowserTool::Wait);
+    let wait = schema::schema(BrowserTool::Wait);
     assert!(wait.input_schema.contains_key("oneOf"));
-    let resize = super::schema::schema(BrowserTool::Resize);
+    let resize = schema::schema(BrowserTool::Resize);
     assert_eq!(
         resize.input_schema["properties"]["width"]["maximum"],
         json!(MAX_VIEWPORT_SIDE)

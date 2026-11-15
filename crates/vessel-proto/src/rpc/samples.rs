@@ -74,13 +74,13 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::ListPrompts
         | Method::GetNodeSettings
         | Method::SetNodeSettings
-        | Method::ListInbox => json!({}),
+        | Method::ListInbox
+        | Method::ClearBrowserProfile => json!({}),
         Method::BrowserCall => json!({"command":{"command":"list_tabs","args":{}}}),
         Method::BrowserControl => {
             json!({"workspace":id,"command":{"kind":"drive","args":{"command":"list_tabs","args":{}}}})
         }
         Method::WatchBrowser => json!({"workspace":id,"browser_id":"1700000000000-a"}),
-        Method::ClearBrowserProfile => json!({}),
         Method::RevokeDevice => json!({"device":id}),
         Method::ReadBlob => json!({"hash":hash}),
         Method::WatchFleet => json!({"after":0}),

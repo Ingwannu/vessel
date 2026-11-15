@@ -9,7 +9,7 @@ pub(super) fn schema(tool: BrowserTool) -> Tool {
     let mut properties = JsonObject::new();
     let mut required = Vec::new();
     if !matches!(tool, BrowserTool::ListTabs | BrowserTool::NewTab) {
-        properties.insert("browserId".into(),json!({"type":"string","description":"Use the exact browserId returned for this workspace. This is not a CDP target id."}));
+        let _replaced = properties.insert("browserId".into(),json!({"type":"string","description":"Use the exact browserId returned for this workspace. This is not a CDP target id."}));
         required.push("browserId");
     }
     fields(tool, &mut properties, &mut required);
@@ -31,81 +31,81 @@ fn fields(tool: BrowserTool, p: &mut JsonObject, required: &mut Vec<&'static str
     match tool {
         T::ListTabs | T::Snapshot | T::Back | T::Forward | T::Reload | T::CloseTab => {}
         T::NewTab => {
-            p.insert("url".into(), url());
+            let _replaced = p.insert("url".into(), url());
         }
         T::Navigate => {
-            p.insert("url".into(), url());
+            let _replaced = p.insert("url".into(), url());
             required.push("url");
         }
         T::Click => {
             reference(p, required);
-            p.insert(
+            let _replaced = p.insert(
                 "button".into(),
                 json!({"type":"string","enum":["left","right","middle"],"default":"left"}),
             );
-            p.insert(
+            let _replaced = p.insert(
                 "doubleClick".into(),
                 json!({"type":"boolean","default":false}),
             );
-            p.insert("modifiers".into(),json!({"type":"array","items":{"type":"string","enum":["Alt","Control","Meta","Shift"]},"default":[]}));
+            let _replaced = p.insert("modifiers".into(),json!({"type":"array","items":{"type":"string","enum":["Alt","Control","Meta","Shift"]},"default":[]}));
         }
         T::Fill | T::Select => {
             reference(p, required);
-            p.insert("value".into(), text());
+            let _replaced = p.insert("value".into(), text());
             required.push("value");
         }
         T::Hover => reference(p, required),
         T::Wait => {
-            p.insert("text".into(), nonempty());
-            p.insert("url".into(), nonempty());
-            p.insert(
+            let _replaced = p.insert("text".into(), nonempty());
+            let _replaced = p.insert("url".into(), nonempty());
+            let _replaced = p.insert(
                 "timeoutMs".into(),
                 json!({"type":"integer","minimum":1,"maximum":MAX_WAIT_MS}),
             );
         }
         T::Type => {
             optional_ref(p);
-            p.insert("text".into(), text());
+            let _replaced = p.insert("text".into(), text());
             required.push("text");
         }
         T::Keypress => {
             optional_ref(p);
-            p.insert("key".into(), nonempty());
+            let _replaced = p.insert("key".into(), nonempty());
             required.push("key");
         }
         T::Screenshot => {
-            p.insert("fullPage".into(), json!({"type":"boolean","default":false}));
+            let _replaced = p.insert("fullPage".into(), json!({"type":"boolean","default":false}));
         }
         T::Upload => {
             reference(p, required);
-            p.insert("filePaths".into(),json!({"type":"array","minItems":1,"items":{"type":"string","minLength":1},"description":"Untrusted workspace file paths; the node must confine and stage every regular file before attachment."}));
+            let _replaced = p.insert("filePaths".into(),json!({"type":"array","minItems":1,"items":{"type":"string","minLength":1},"description":"Untrusted workspace file paths; the node must confine and stage every regular file before attachment."}));
             required.push("filePaths");
         }
         T::Drag => {
-            p.insert("sourceRef".into(), reference_schema());
-            p.insert("targetRef".into(), reference_schema());
+            let _replaced = p.insert("sourceRef".into(), reference_schema());
+            let _replaced = p.insert("targetRef".into(), reference_schema());
             required.extend(["sourceRef", "targetRef"]);
         }
         T::Logs => {
-            p.insert(
+            let _replaced = p.insert(
                 "maxEntries".into(),
                 json!({"type":"integer","minimum":1,"maximum":MAX_LOG_ENTRIES}),
             );
         }
         T::Evaluate => {
             optional_ref(p);
-            p.insert("function".into(), nonempty());
+            let _replaced = p.insert("function".into(), nonempty());
             required.push("function");
         }
         T::Scroll => {
             optional_ref(p);
-            p.insert("deltaX".into(), json!({"type":"number"}));
-            p.insert("deltaY".into(), json!({"type":"number"}));
+            let _replaced = p.insert("deltaX".into(), json!({"type":"number"}));
+            let _replaced = p.insert("deltaY".into(), json!({"type":"number"}));
             required.extend(["deltaX", "deltaY"]);
         }
         T::Resize => {
             for key in ["width", "height"] {
-                p.insert(
+                let _replaced = p.insert(
                     key.into(),
                     json!({"type":"integer","minimum":1,"maximum":MAX_VIEWPORT_SIDE}),
                 );
@@ -129,7 +129,7 @@ fn reference_schema() -> Value {
     json!({"type":"string","pattern":"^@e[0-9]+$","description":"A current reference from a snapshot of the same tab; navigation invalidates it."})
 }
 fn optional_ref(p: &mut JsonObject) {
-    p.insert("ref".into(), reference_schema());
+    let _replaced = p.insert("ref".into(), reference_schema());
 }
 fn reference(p: &mut JsonObject, required: &mut Vec<&'static str>) {
     optional_ref(p);

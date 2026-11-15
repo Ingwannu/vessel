@@ -75,22 +75,22 @@ impl Page {
             let attached = client
                 .execute(None, requests::Attach::new(created.target_id.clone()))
                 .await?;
-            client
+            let _enabled_page = client
                 .execute(Some(attached.session_id.clone()), requests::EnablePage {})
                 .await?;
-            client
+            let _enabled_runtime = client
                 .execute(
                     Some(attached.session_id.clone()),
                     requests::EnableRuntime {},
                 )
                 .await?;
-            client
+            let _enabled_network = client
                 .execute(
                     Some(attached.session_id.clone()),
                     requests::EnableNetwork {},
                 )
                 .await?;
-            client
+            let _viewport = client
                 .execute(
                     Some(attached.session_id.clone()),
                     requests::SetViewport::new(viewport),
