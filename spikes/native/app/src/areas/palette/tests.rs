@@ -418,7 +418,12 @@ fn root_defaults_keep_canonical_settings_and_search_only_legacy_destinations(
     use vessel_app_view::palette::registration::Visibility;
     let (view, cx) = harness(cx);
     update(&view, cx, |shell, _, cx| {
-        let entries = root::build(shell, &shell.palette_all());
+        let all = shell.palette_all();
+        assert!(
+            all.iter()
+                .any(|entry| matches!(entry.target, PaletteTarget::NewSession(_)))
+        );
+        let entries = root::build(shell, &all);
         let default_ids: Vec<_> = entries
             .iter()
             .filter(|entry| entry.visibility == Visibility::Always)
@@ -426,12 +431,12 @@ fn root_defaults_keep_canonical_settings_and_search_only_legacy_destinations(
             .collect();
         assert_eq!(
             default_ids,
-            [
-                "new-workspace",
-                "settings",
-                "search-messages",
-                "theme-choices"
-            ]
+            ["settings", "search-messages", "theme-choices"]
+        );
+        assert!(
+            entries
+                .iter()
+                .all(|entry| entry.id.as_str() != "new-workspace")
         );
         let settings = entries
             .iter()
@@ -458,6 +463,28 @@ fn root_defaults_keep_canonical_settings_and_search_only_legacy_destinations(
                     )))
                 ))
         );
+    });
+}
+
+#[gpui::test]
+fn first_root_enter_opens_settings_without_an_unowned_creation_row(cx: &mut TestAppContext) {
+    let (view, cx) = harness(cx);
+    update(&view, cx, |shell, window, cx| {
+        shell.route = Route::Draft;
+        shell
+            .areas
+            .draft
+            .composer
+            .set_text("unsent draft", window, cx);
+    });
+    cx.run_until_parked();
+    cx.simulate_keystrokes("enter");
+    cx.run_until_parked();
+    update(&view, cx, |shell, _window, cx| {
+        assert!(!shell.areas.palette.is_open());
+        assert_eq!(shell.route, Route::Settings);
+        assert_eq!(shell.areas.settings.section, Section::General);
+        assert_eq!(shell.areas.draft.composer.text(cx), "unsent draft");
     });
 }
 

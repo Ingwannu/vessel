@@ -30,12 +30,9 @@ fn policy(entry: &super::Entry, at: usize) -> Option<Policy> {
         return None;
     }
     let (id, group, rank, visibility) = match entry.target {
-        PaletteTarget::NewSession(_) => (
-            "new-workspace".to_owned(),
-            PaletteGroup::Actions,
-            1,
-            Visibility::Always,
-        ),
+        // A1 contributes its admitted opener. A legacy per-machine creation
+        // row cannot stand in for the canonical workspace destination.
+        PaletteTarget::NewSession(_) => return None,
         PaletteTarget::Settings(vessel_app_view::settings::Section::General) => (
             "settings".to_owned(),
             PaletteGroup::Actions,
@@ -81,9 +78,7 @@ fn presentation(shell: &Shell, entry: &super::Entry) -> Option<Presentation> {
         });
     }
     let title = match entry.target {
-        PaletteTarget::NewSession(_) => {
-            vessel_app_view::shortcuts::action_label(Action::NewSession, shell.words).to_owned()
-        }
+        PaletteTarget::NewSession(_) => return None,
         PaletteTarget::Settings(vessel_app_view::settings::Section::General) => {
             vessel_app_view::shortcuts::action_label(Action::Settings, shell.words).to_owned()
         }
@@ -115,17 +110,10 @@ fn contribution(shell: &Shell, entry: &super::Entry, at: usize) -> Option<Contri
         keywords: entry.keywords.iter().cloned().collect(),
         visibility: policy.visibility,
         presentation: presentation(shell, entry)?,
-        target: if matches!(entry.target, PaletteTarget::NewSession(_)) {
-            Command::shortcut(
-                Action::NewSession,
-                Some(super::rows::glyph_of(&entry.target)),
-            )
-        } else {
-            Command {
-                glyph: Some(super::rows::glyph_of(&entry.target)),
-                shortcut: super::rows::action_of(&entry.target),
-                action: CommandAction::Legacy(entry.target.clone()),
-            }
+        target: Command {
+            glyph: Some(super::rows::glyph_of(&entry.target)),
+            shortcut: super::rows::action_of(&entry.target),
+            action: CommandAction::Legacy(entry.target.clone()),
         },
     })
 }

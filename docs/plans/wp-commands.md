@@ -419,8 +419,8 @@ The updated actual-close regression is queued. Weak liveness does not establish
 visibility of a retained-but-hidden opener; that case still needs domain admission.
 
 
-The root projection now uses stable canonical new-workspace and settings ids,
-with reference ranks1/6 in Actions. Settings subpages and old host/board/add-host
+The root projection reserves canonical new-workspace rank1 for A1 and uses
+canonical settings rank6 in Actions; the unready legacy creation row is omitted. Settings subpages and old host/board/add-host
 destinations remain query-only extensions; they no longer fill the empty list.
 Their presence does not stand in for unready Home/History/Schedules owner routes.
 Messages and Theme remain explicit existing extensions. A native projection
@@ -893,3 +893,22 @@ name/id joins are neither session report nor admission. Plan/Fast are reserved
 group ranks, not static invented choices. B2 target/options effect adapter still
 waits on the sole W12 resource cutover/live effect lease. F4 retains its one
 source registry and ChoiceLocation controller; no second selector is added.
+
+[Decision Log: do not project an unowned creation action]
+- Purpose: an empty command center must not offer a first row that closes into
+  an unavailable no-op while canonical workspace creation is unready.
+- Existing assets/constraint: legacy palette_entries still supplies per-machine
+  NewSession rows; W3 explicitly has no checked admitted canonical opener.
+- Alternatives: dispatch the old global Draft route; keep the clickable no-op;
+  or wait to publish the real source-owned contribution.
+- Choice/why: omit only legacy NewSession from native-root; A1 will publish its
+  admitted NewWorkspace callback through the existing registry, using the
+  reserved canonical label/id/rank1. Mod+N and the76 default variants are unchanged.
+- Effect: Settings is the first actual default root action. Removed the now
+  unconsumed shortcut-command wrapper path; typed Command::callback and its
+  owner revalidation contract are unchanged. A real Enter regression checks
+  Settings opens and the unsent draft remains intact.
+Superseded queued R11 exact062a was verified by its exact ticket/local PID2560684,
+canceled queued-only and observed terminal cancelled143 before replacement.
+Its old source would not test this projection correction. No failed build or
+passing test is inferred from that cancellation; no extra whole gate begins.

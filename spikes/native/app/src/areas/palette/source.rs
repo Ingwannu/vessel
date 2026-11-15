@@ -16,7 +16,6 @@ type Run = dyn Fn(&mut Shell, &mut Window, &mut Context<'_, Shell>) -> bool;
 
 #[derive(Clone)]
 pub(crate) enum CommandAction {
-    Shortcut(Action),
     Callback(Rc<Run>),
     Page(GroupId),
     Legacy(Target),
@@ -42,13 +41,6 @@ impl Command {
             action: CommandAction::Callback(Rc::new(run)),
             glyph,
             shortcut,
-        }
-    }
-    pub(crate) const fn shortcut(action: Action, glyph: Option<Glyph>) -> Self {
-        Self {
-            action: CommandAction::Shortcut(action),
-            glyph,
-            shortcut: Some(action),
         }
     }
     pub(crate) const fn page(group: GroupId) -> Self {

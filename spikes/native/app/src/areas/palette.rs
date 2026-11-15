@@ -360,21 +360,6 @@ impl Shell {
                 cx,
             ),
             source::CommandAction::Legacy(target) => self.run_palette(target, window, cx),
-            source::CommandAction::Shortcut(action) => {
-                self.close_palette(window, cx);
-                let request = crate::areas::shortcuts::dispatch::ShortcutRequest {
-                    action,
-                    scope: action.scope(),
-                    index: None,
-                    context: vessel_app_view::shortcuts::default_context(
-                        vessel_app_view::shortcuts::Platform::native(),
-                    ),
-                    repeat: vessel_app_view::shortcuts::engine::KeyRepeat::Initial,
-                };
-                if !self.dispatch_shortcut_to_owners(request, window, cx) {
-                    self.command_unavailable(cx);
-                }
-            }
             source::CommandAction::Callback(run) => {
                 self.close_palette(window, cx);
                 if !run(self, window, cx) {
