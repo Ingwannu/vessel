@@ -49,7 +49,7 @@ pub const MIN_SPLIT_SIZE: f32 = 0.1;
 pub const MAX_TITLE_CHARS: usize = vessel_proto::SessionTitle::MAX_CHARS;
 
 /// Typed refusals let screens show an actionable failure without guessing.
-#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum LayoutError {
     /// Persisted or user-entered identity was not meaningful.
     #[error(
