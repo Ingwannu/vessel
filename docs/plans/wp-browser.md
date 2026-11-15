@@ -733,3 +733,22 @@ passed its actual149 expanded semantic fixture: inherited fieldset disabling,
 exact contenteditable whitespace fingerprints, prior same/cross-origin/hidden/
 main-prototype canaries and exact big refs. UID/GID1000, sandbox on, exit0 and
 private inspected entries. Rust path and product qualification still separate.
+
+## Staged client watch cursor, transport not yet wired
+
+[Decision Log]
+- Purpose: a browser frame/state must never silently retarget another node,
+  subscription, workspace, tab/profile or document/viewport context.
+- Existing assets: BrowserWatched/BrowserUpdate and the canonical typed metadata
+  already exist; their per-watch sequence is distinct from BrowserRevision.
+  The generic EventRecord/log cursor is unsuitable: it persists/resumes content.
+- Choice: a client-owned ephemeral cursor validates immutable scope, exact sequence,
+  monotonic announced contexts and matching frame CSS viewport before any owner or
+  image decoder sees the update. Any mismatch poisons the watch; no gap skipping.
+- Reason: metadata is not authority or paint proof, but an actual transport owner
+  must prevent cross-resource/stale deliveries before rendering. A new connection
+  gets a new cursor; it cannot retarget, resume a durable log or reuse a closed one.
+- Impact: outer cfg(test) model until qualified browser-watch transport wiring.
+  No ServerFrame, RPC sink/client subscription, node producer or visible frame is
+  added here. Tests use real PNG bytes of our own synthetic canary solely for
+  metadata admission; no engine/codec/paint/security qualification is inferred.

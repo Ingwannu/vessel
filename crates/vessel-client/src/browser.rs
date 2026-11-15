@@ -3,6 +3,9 @@
 //! These methods preserve the node's typed refusal. They never turn a pending
 //! protocol, missing engine or disabled session into a successful fixture result.
 
+#[cfg(test)]
+mod watch;
+
 use vessel_proto::browser::{BrowserCall, BrowserControl, BrowserResult, ClearBrowserProfile};
 
 use crate::{CallError, NodeClient};
