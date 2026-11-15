@@ -274,7 +274,7 @@ mod tests {
             title: "My title".parse().unwrap(),
             origin: TitleOrigin::Generated,
         };
-        assert_eq!(event.since(), ProtocolVersion::new(9));
+        assert_eq!(event.required_protocol(), Some(ProtocolVersion::new(9)));
         assert_eq!(
             event.origin_for_protocol(ProtocolVersion::new(9), Some(ProtocolVersion::new(10))),
             Some(read.clone())
