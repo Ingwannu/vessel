@@ -117,3 +117,8 @@ proof, not a corrected-head gate. The new source removes invented vertical
 padding from typed content, keeps the legacy filled-label inset through an
 explicit compatibility presentation, and tests real two-line Medium42/Small34
 versus legacy50 bounds in both themes. Corrected-head narrow remains owed.
+
+Exactef93023a: Kit Clippy0, tests134/1/0. The120-wide fixture wrapped the longer
+second line again under the test font, measuring62 instead of its intended42.
+The repair uses short A/B lines so the fixture has exactly two lines. Production
+bytes and literal42/34/50 expectations are unchanged; corrected narrow owed.
