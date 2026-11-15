@@ -24,7 +24,7 @@ use super::backoff::{Backoff, Retry};
 use super::cleanup::{self, Facts};
 use super::handle::{Shared, TerminalHandle};
 use super::log::TermLog;
-use super::{Leftover, SCRIPT_GRACE, Scrollback};
+use super::{CleanupFact, Leftover, SCRIPT_GRACE, Scrollback};
 use crate::ring::Ring;
 use crate::stop::{Step, Stopper};
 
@@ -100,8 +100,8 @@ where
         approved,
         restarting,
         spawned: false,
-        process_confirmed: true,
-        io_confirmed: true,
+        process_cleanup: CleanupFact::Confirmed,
+        io_cleanup: CleanupFact::Confirmed,
     };
     drop(
         tasks.spawn(
@@ -125,8 +125,8 @@ struct ScriptActor<A> {
     restarting: mpsc::Receiver<()>,
     /// Once a process existed, status alone cannot prove descendant/I/O cleanup.
     spawned: bool,
-    process_confirmed: bool,
-    io_confirmed: bool,
+    process_cleanup: CleanupFact,
+    io_cleanup: CleanupFact,
 }
 
 /// How one process's run ended.
@@ -221,29 +221,21 @@ impl<A: Fn() -> bool> ScriptActor<A> {
         self.log.status(status);
         let auxiliary = match self.leftover.0.take() {
             Some(path) => match tokio::fs::remove_file(&path).await {
-                Ok(()) => super::CleanupFact::Confirmed,
+                Ok(()) => CleanupFact::Confirmed,
                 Err(error) => {
                     tracing::debug!(%error, "could not remove a run's command file");
-                    super::CleanupFact::Unconfirmed
+                    CleanupFact::Unconfirmed
                 }
             },
-            None => super::CleanupFact::Confirmed,
+            None => CleanupFact::Confirmed,
         };
         let mut facts = if self.spawned {
             Facts::unconfirmed()
         } else {
             Facts::not_started()
         };
-        facts.process = if self.process_confirmed {
-            super::CleanupFact::Confirmed
-        } else {
-            super::CleanupFact::Unconfirmed
-        };
-        facts.io = if self.io_confirmed {
-            super::CleanupFact::Confirmed
-        } else {
-            super::CleanupFact::Unconfirmed
-        };
+        facts.process = self.process_cleanup;
+        facts.io = self.io_cleanup;
         facts.auxiliary = auxiliary;
         facts
     }
@@ -322,7 +314,7 @@ impl<A: Fn() -> bool> ScriptActor<A> {
                     force_at = Some(Instant::now().checked_add(SCRIPT_GRACE).unwrap_or_else(Instant::now));
                 }
                 code = child.wait() => {
-                    self.process_confirmed &= code.is_ok();
+                    if code.is_err() { self.process_cleanup = CleanupFact::Unconfirmed; }
                     break code.ok().flatten();
                 },
                 chunk = output.recv(), if output_open => match chunk {
@@ -336,8 +328,9 @@ impl<A: Fn() -> bool> ScriptActor<A> {
             }
         };
         self.log.running(None);
-        self.io_confirmed &=
-            pumps.finish(&mut self.log, &mut output, output_open).await == Drained::Complete;
+        if pumps.finish(&mut self.log, &mut output, output_open).await == Drained::Incomplete {
+            self.io_cleanup = CleanupFact::Unconfirmed;
+        }
         if !self.stop.is_idle() {
             Ended::Stopped(code)
         } else if restart {
