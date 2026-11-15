@@ -20,6 +20,8 @@ async fn cached_manager_and_trusted_reads_never_discover_and_handles_end_with_th
     let manager = Providers {
         cache: started.cache,
         configuration: started.configuration,
+        // This standalone owner test stops configuration explicitly below.
+        _lifetime: Arc::new(CancellationToken::new().drop_guard()),
     };
     let registrations = manager.registrations();
     let id: ProviderId = "codex".parse().unwrap();
@@ -103,48 +105,64 @@ async fn cached_manager_and_trusted_reads_never_discover_and_handles_end_with_th
 
 #[tokio::test]
 async fn prepared_product_owners_stop_under_the_node_task_tracker_with_retained_handles() {
-    let root = tempfile::tempdir().unwrap();
-    let directory = DataDir::new(root.path().join("data"));
-    let home = root.path().join("isolated-home");
-    let mut config = Config::new(
-        directory.clone(),
-        vessel_harness::HarnessEnv::from_vars(home, |_| None),
-    );
-    config.harness_lookup = vessel_harness::Lookup::new([root.path().join("no-tools")]);
-    let prepared = PreparedProviders::read(directory).unwrap();
-    let tasks = TaskTracker::new();
-    let stop = CancellationToken::new();
-    let manager = prepared.start(
-        &config,
-        root.path().join("probe"),
-        Arc::new(crate::profiles::launch::NoMcpServers),
-        &tasks,
-        stop.clone(),
-    );
-    let registrations = manager.registrations();
-    let id: ProviderId = "claude".parse().unwrap();
-    assert!(matches!(
-        registrations
-            .cached(id.clone(), CatalogueScope::Global)
-            .await
-            .unwrap()
-            .entry
-            .state,
-        ProviderState::Unavailable {
-            reason: UnavailableReason::NotChecked
+    for close_by_drop in [false, true] {
+        let root = tempfile::tempdir().unwrap();
+        let directory = DataDir::new(root.path().join("data"));
+        let home = root.path().join("isolated-home");
+        let mut config = Config::new(
+            directory.clone(),
+            vessel_harness::HarnessEnv::from_vars(home, |_| None),
+        );
+        config.harness_lookup = vessel_harness::Lookup::new([root.path().join("no-tools")]);
+        let prepared = PreparedProviders::read(directory).unwrap();
+        let tasks = TaskTracker::new();
+        let stop = CancellationToken::new();
+        let manager = prepared.start(
+            &config,
+            root.path().join("probe"),
+            Arc::new(crate::profiles::launch::NoMcpServers),
+            &tasks,
+            stop.clone(),
+        );
+        let registrations = manager.registrations();
+        let id: ProviderId = "claude".parse().unwrap();
+        assert!(matches!(
+            registrations
+                .cached(id.clone(), CatalogueScope::Global)
+                .await
+                .unwrap()
+                .entry
+                .state,
+            ProviderState::Unavailable {
+                reason: UnavailableReason::NotChecked
+            }
+        ));
+        if close_by_drop {
+            let survivor = manager.clone();
+            drop(manager);
+            assert!(
+                registrations
+                    .cached(id.clone(), CatalogueScope::Global)
+                    .await
+                    .is_ok()
+            );
+            drop(survivor);
+            assert!(!stop.is_cancelled());
+        } else {
+            stop.cancel();
+            drop(manager);
         }
-    ));
-    stop.cancel();
-    let _first_close = tasks.close();
-    tokio::time::timeout(std::time::Duration::from_secs(2), tasks.wait())
-        .await
-        .unwrap();
-    assert!(matches!(
-        registrations.cached(id, CatalogueScope::Global).await,
-        Err(OwnerError::Stopped)
-    ));
-    assert!(matches!(
-        registrations.replace_plugins(vec![]).await,
-        Err(ConfigurationFailure::Stopped)
-    ));
+        let _first_close = tasks.close();
+        tokio::time::timeout(std::time::Duration::from_secs(2), tasks.wait())
+            .await
+            .unwrap();
+        assert!(matches!(
+            registrations.cached(id, CatalogueScope::Global).await,
+            Err(OwnerError::Stopped)
+        ));
+        assert!(matches!(
+            registrations.replace_plugins(vec![]).await,
+            Err(ConfigurationFailure::Stopped)
+        ));
+    }
 }

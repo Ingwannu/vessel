@@ -10,7 +10,10 @@ use super::{
 use crate::{config::Config, profiles::launch::McpSource};
 use futures_util::{StreamExt as _, stream};
 use std::{path::PathBuf, sync::Arc};
-use tokio_util::{sync::CancellationToken, task::TaskTracker};
+use tokio_util::{
+    sync::{CancellationToken, DropGuard},
+    task::TaskTracker,
+};
 #[cfg(test)]
 use vessel_harness::providers::PluginDefinition;
 use vessel_proto::providers::{
@@ -104,9 +107,13 @@ impl PreparedProviders {
                 super::failure::report_owner(&error.into());
             }
         }));
+        // Closing must not keep its own mailbox alive after bootstrap failure
+        // drops the last real service. Cancelling the child never stops peers.
+        let closing_stop = stop.child_token();
+        let lifetime = Arc::new(closing_stop.clone().drop_guard());
         let closing = configuration.clone();
         drop(tasks.spawn(async move {
-            stop.cancelled().await;
+            closing_stop.cancelled().await;
             if let Err(_stopped) = closing.stop().await {
                 tracing::debug!("provider owners were already stopped");
             }
@@ -114,6 +121,7 @@ impl PreparedProviders {
         Providers {
             cache,
             configuration,
+            _lifetime: lifetime,
         }
     }
 }
@@ -122,6 +130,7 @@ impl PreparedProviders {
 pub(crate) struct Providers {
     cache: Owner,
     configuration: Configuration,
+    _lifetime: Arc<DropGuard>,
 }
 
 impl Providers {

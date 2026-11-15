@@ -672,3 +672,15 @@ reaper/ProcessLifetime-as-death claim is introduced.
   owner logging callsites have canary regression source. Original files remain
   preserved on recovery. These tests are drafted, not executed; the process-wide
   panic hook is explicitly outside this diagnostic boundary claim.
+
+## Owner lifetime on bootstrap failure
+
+The real service's last Providers handle now cancels a dedicated child token.
+The closing task previously retained Configuration's sender while waiting only
+for node stop; a later bind/bootstrap refusal could drop the service without
+requesting that stop, leaving the owners waiting on their own retained channel.
+An Arc-shared CancellationToken DropGuard breaks that cycle without cancelling
+other node subsystems. Existing explicit node stop still cancels the same child.
+The product-manager regression now checks both explicit stop and last-handle
+drop, including a surviving clone and retained test-staged facade handles. It is
+new source only; no bootstrap/runtime proof is claimed before execution.
