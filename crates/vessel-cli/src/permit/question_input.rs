@@ -31,14 +31,19 @@ pub(crate) enum InputError {
     Decline,
 }
 
-/// Retain the parser cause without including answer data in routine Debug output.
+/// Keep the original typed parser failure behind an opaque diagnostic boundary.
+/// Its source chain must stop here: serde may put an answer inside an unknown-
+/// variant message, and the CLI prints every automatically exposed cause.
 #[derive(thiserror::Error)]
 #[error("the question input does not match the answer schema")]
-pub(crate) struct DecodeFailure(#[source] serde_json::Error);
+pub(crate) struct DecodeFailure(serde_json::Error);
 
 impl fmt::Debug for DecodeFailure {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("DecodeFailure([redacted])")
+        formatter
+            .debug_tuple("DecodeFailure")
+            .field(&self.0.classify())
+            .finish()
     }
 }
 
@@ -161,12 +166,26 @@ mod tests {
     }
 
     #[test]
-    fn schema_failure_keeps_its_source_without_debugging_the_answer_payload() {
+    fn schema_failure_retains_the_parser_without_printing_answers_in_any_cause() {
         let input: ModifiedInput = r#"{"answer":"synthetic-private-invalid-answer","values":{}}"#
             .parse()
             .unwrap();
         let error = input.question().unwrap_err();
+        let InputError::Decode(failure) = &error else {
+            panic!("retained parser failure")
+        };
+        assert_eq!(failure.0.classify(), serde_json::error::Category::Data);
         assert!(std::error::Error::source(&error).is_some());
         assert!(!format!("{error:?}").contains("synthetic-private-invalid-answer"));
+        let mut cause: Option<&dyn std::error::Error> = Some(&error);
+        while let Some(current) = cause {
+            assert!(
+                !current
+                    .to_string()
+                    .contains("synthetic-private-invalid-answer")
+            );
+            assert!(!format!("{current:?}").contains("synthetic-private-invalid-answer"));
+            cause = current.source();
+        }
     }
 }

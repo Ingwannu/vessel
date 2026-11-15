@@ -122,3 +122,16 @@ on a test-local Expected enum declared after statements. The enum is moved to
 the function's item section without changing the fixture cases. This is not a
 passing CLI result; the latest null/source-privacy change is newer than that run
 and still needs strict compilation and execution.
+
+
+Question-input diagnostic privacy must cover main's complete error chain, not
+only the top-level Debug. serde's unknown-variant cause may echo answer content.
+DecodeFailure retains the original serde_json::Error privately, reports only its
+safe category in Debug, and deliberately stops automatic source traversal at its
+opaque boundary. InputError still carries that typed boundary as its cause. This
+follows the shared selected-connection error boundary's treatment of untrusted
+peer detail; no parser cause is discarded. The regression verifies retained Data
+category and walks every printable cause with a synthetic private-answer canary.
+It would expose that answer through the previous inner #[source] annotation.
+The CLI module remains test-only pending checked DTO/output integration; execution
+of this new regression is still owed on the build VM.
