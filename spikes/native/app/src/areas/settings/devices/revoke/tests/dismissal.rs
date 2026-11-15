@@ -34,7 +34,11 @@ enum Replacement {
     Connection,
 }
 
-fn click_without_a_frame(cx: &mut gpui::VisualTestContext, at: Point<gpui::Pixels>) {
+fn click_without_a_frame(
+    cx: &mut gpui::VisualTestContext,
+    at: Point<gpui::Pixels>,
+    renders: &Cell<usize>,
+) -> usize {
     // Keep down/up on the same rendered tree. Running the executor between
     // them would legitimately render the replacement and test its new glyph.
     cx.update(|window, cx| {
@@ -59,7 +63,8 @@ fn click_without_a_frame(cx: &mut gpui::VisualTestContext, at: Point<gpui::Pixel
             .to_platform_input(),
             cx,
         );
-    });
+        renders.get()
+    })
 }
 
 #[gpui::test]
@@ -121,7 +126,7 @@ fn old_escape_scrim_and_glyph_cannot_dismiss_another_intent_or_connection(cx: &m
                 })
             });
             assert_eq!(renders.get(), drawn, "the replacement has not been drawn");
-            match path {
+            let handled_frame = match path {
                 Dismissal::Escape => cx.update(|window, cx| {
                     let _escape = window.dispatch_event(
                         KeyDownEvent {
@@ -132,11 +137,16 @@ fn old_escape_scrim_and_glyph_cannot_dismiss_another_intent_or_connection(cx: &m
                         .to_platform_input(),
                         cx,
                     );
+                    renders.get()
                 }),
-                Dismissal::Scrim => click_without_a_frame(cx, point(px(0.0), px(0.0))),
-                Dismissal::Glyph => click_without_a_frame(cx, glyph),
-            }
-            assert_eq!(renders.get(), drawn, "the old tree handled the input");
+                Dismissal::Scrim => {
+                    click_without_a_frame(cx, point(px(0.0), px(0.0)), renders.as_ref())
+                }
+                Dismissal::Glyph => click_without_a_frame(cx, glyph, renders.as_ref()),
+            };
+            // cx.update may flush a normal redraw after the input callback.
+            // Count inside dispatch, while retaining the actual old tree.
+            assert_eq!(handled_frame, drawn, "{replacement:?}/{path:?}: input tree");
             probe.read_with(cx, |probe, cx| {
                 probe.shell.read_with(cx, |shell, _cx| {
                     let page = &shell.areas.settings.devices.page;
