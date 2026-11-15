@@ -11,7 +11,8 @@ Its generic connector can use PreviewConnection as its associated owned
 AsyncRead + AsyncWrite + Unpin + Send stream with typed error projection.
 
 - PreviewContext: canonical WorkspaceId, opening SessionId, ConnectionLife
-  owner/close observers. No lifetime guard, authority decoder or default id.
+  owner/close observers plus actual transport close. No lifetime guard,
+  authority decoder, second connection identity or default id.
 - PreviewOrigin: exact HTTP/HTTPS scheme and validated literal loopback
   socket address; public matcher metadata, never a capability.
 - PreviewService::admit(context, origin): opaque PreviewLease or refusal.

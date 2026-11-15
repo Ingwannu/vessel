@@ -1041,6 +1041,9 @@ No helper is launched and no registry API is adopted by this contract change.
   adapter, not decoded as client authority. Real handler wiring must check
   protocol and Principal scope/session ownership first, derive these values
   from authoritative context, and reuse the shared ConnectionLife accessor.
+  Bind Outbound::closed as well: an in-flight RPC retaining a context must
+  not delay revocation until its lifetime guard finally drops. The API
+  receives this additional close observer explicitly, not a second identity.
   No new connection id, default workspace or cwd/PID ownership inference.
 - Admission: `PreviewService::admit(context, origin)` returns an opaque lease
   only after the trusted backend validates canonical active workspace and
