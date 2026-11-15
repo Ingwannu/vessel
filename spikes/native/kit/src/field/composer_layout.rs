@@ -98,7 +98,7 @@ impl ComposerLayout {
     }
 
     pub(super) fn legacy(send: SendOn) -> Self {
-        let count = u16::try_from(super::COMPOSER_LINES).unwrap_or(MAX_ROWS);
+        let count = u16::try_from(super::multiline::COMPOSER_LINES).unwrap_or(MAX_ROWS);
         Self {
             height: px(f32::from(count).mul_add(fonts::ui(CONTENT_LINE), 0.0)),
             mode: HeightMode::Grow,
