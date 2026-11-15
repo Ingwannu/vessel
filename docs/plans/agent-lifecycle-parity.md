@@ -173,6 +173,10 @@ Read first, and reproduced except for the differences ADR 0063 lists.
   Vessel's existing renderer emits only selected records and real retention
   notices. A filter with no match is quiet, preserving stdout capture rather
   than synthesizing an activity banner. A CLI case checks both streams.
+- Paseo's follow-start banner is also omitted: its history/live boundary
+  writes the tail label and Ctrl-C hint to stdout (`logs.ts:362-363,402`).
+  Vessel emits no boundary banner on either stream, so stdout capture stays
+  session output and stderr stays status and genuine stream notices.
 - Paseo waits for an explicit stop even after timeline activity ends
   (`logs.ts:401-407`). Vessel follows through the current session run,
   ending at the stream's final status or Ctrl-C. This preserves the existing
@@ -375,7 +379,6 @@ No row of the crate table changes.
   TS freshness tests. Both prebuilds and all applicable checks passed; no
   waiver or rerun was needed. Forge checks were skipped because this base
   has no forge-fixture feature. The wire and page are unchanged.
-- The time/kind selector and its timestamp-unit correction are reviewed.
 - Review correction: the timestamp floor's raw-record unit, midpoint effect
   and history/live consistency are now explicit in the ADR, plan and help.
   This changes documentation only; the complete code gate remains valid.
@@ -387,10 +390,17 @@ No row of the crate table changes.
   banner is fabricated.
   The inherited stream-end wait and the new turn-end wait share one named
   event budget; their expected records and output remain unchanged.
-- Follow slice 5c passed its complete Rust gate: 1991 passed, none failed,
-  12 ignored, with two TS freshness tests and all applicable checks passing.
-  Both prebuilds ran; forge checks were explicitly skipped because the base
-  lacks that feature. No waiver or rerun was needed. Follow reuses these predicates,
+- Follow review found that recreating a Ctrl-C future for each iteration
+  drops its receiver during output. The corrective slice first shares the
+  test child/capture setup without changing any expectation; it will then
+  retain one interrupt future across writes. The interrupt branch is polled
+  first so its listener exists before the first live write. A Linux CLI case
+  verifies the owned child executable before SIGINT, successful exit and the
+  still-live fake session. It cannot force the signal-during-write interleaving.
+  Corrective clippy and all four log CLI cases passed, including actual
+  SIGINT, successful CLI exit and the still-live fake session. The new
+  complete gate remains owed.
+- Implementation slice 5c, verification pending: follow reuses these predicates,
   the tail window and the raw history cursor. Its omitted history count has
   one constant, also used by the CLI help. The CLI edge owns the execution
   mode; the selector module only owns predicates. Follow test turn cursors
@@ -399,8 +409,8 @@ No row of the crate table changes.
   EOF, interruption and stream notices finish an open text line; terminal
   bytes stay untouched. Follow passed narrow clippy, eleven log units and
   three fake-node CLI cases, including history-to-live output exactly once
-  and EOF. The later timestamp-contract merge changes only documentation and
-  the requested help sentence; its fast checks passed separately.
+  and EOF. The prior complete gate passed 1991/0/12, but the listener fix and
+  signal case passed their narrow checks and need a new complete gate.
 - The contract's follow bullet and EOF explanation now name the same end.
   Parser and command-level checks are documented together: an invalid tail
   is refused by both products, with earlier validation in Vessel.
@@ -408,18 +418,18 @@ No row of the crate table changes.
   step and left conflict markers in an unverified follow commit. A new
   follow-up repaired both owned files with every prior scenario retained.
   That intermediate commit was never compiled or used as gate evidence.
-- Background value slice 3a passed narrow TypeScript-enabled clippy and three
-  listing/default/serde tests. Its complete TS/web gate is queued. It adds no
-  request field, store column or actual discovery filtering yet.
-- The staged label service's first narrow clippy refused two unchecked
-  timestamp subtractions in fixture setup. They now use checked subtraction;
-  no expected value or service logic changed. The corrective clippy and both
-  real-store/fake-runtime cases passed. Its complete staged-code gate is owed.
-- Label discovery service 2c passed narrow checks, still staged: its private test-only
-  entry point reuses the existing list and AND predicate; real fixture tests
-  cover current stored metadata, live visibility, order and exact lookup.
-- Next: finish the queued TS/web gate for background values, then the
-  separate complete Rust gate for the staged label discovery service while
+- Background value slice 3a passed TypeScript-enabled narrow clippy and three
+  listing/default/serde tests. Its separate complete TS/web gate remains owed
+  after the follow correction. No request field, storage or discovery path is
+  added by these values.
+- Staged label discovery service 2c passed corrective clippy and both real
+  store/fake runtime cases. Its first fixture arithmetic lint failure is kept;
+  checked subtraction fixed it without changing assertions or time budgets.
+  The private `cfg(test)` service still owes its complete gate and actual call
+  wiring; it is not part of the product build yet.
+- Next: finish the corrected follow slice 5c's complete gate, then gate the
+  background values with TypeScript and web checks, then the staged label
+  service's complete Rust gate while
   label call wiring awaits the shared accessor. No new wire call or dependency
   is added by log options. All slices include the caller-to-projection
   citations and retain the raw-chunk test; the selection render context changes
