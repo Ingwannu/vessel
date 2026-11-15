@@ -392,3 +392,16 @@ closes, rejects any extra request, and closes early only for the explicit
 disconnect scenario. Product liveness checks, retry assertions and the hard
 test deadline are unchanged. The failed execution remains evidence; the new
 fixture and receiving-base union require their own check.
+
+### Announced package base 9 union
+
+The announced db42d9c5 line is merged. Shared PreparedGeneral is passed through
+both real area construction and the decoded-draft test constructor; restoring
+local attachment state remains confined to the real startup path. The test
+constructor continues to receive empty decoded drafts instead of reading user
+state. Canonical terminal-profile name lint annotation is retained from the
+line, and canonical identity exports are combined with this private tree's
+additional unactivated timeline values. No pending feature is activated by this
+merge. Prior74 strict/App118/Link117 evidence remains predecessor scope; a fresh
+receiving-union check is required. The line's generated wire whitespace is kept
+byte-for-byte rather than manually editing generated declarations.
