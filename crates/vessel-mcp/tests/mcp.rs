@@ -284,6 +284,7 @@ async fn real_rust_analyzer_context_through_agent_mcp() {
     }).await;
 }
 
+#[cfg(test)]
 async fn provider_discovery(mcp: &mut McpClient) {
     let (failed, harnesses) = mcp.call("list_harnesses", json!({})).await;
     assert!(!failed, "{harnesses}");
@@ -316,6 +317,7 @@ async fn provider_discovery(mcp: &mut McpClient) {
     assert!(options.get("probed_at").is_some(), "{options}");
 }
 
+#[cfg(test)]
 async fn drive_session_and_check_ownership(
     mcp: &mut McpClient,
     session: &serde_json::Value,

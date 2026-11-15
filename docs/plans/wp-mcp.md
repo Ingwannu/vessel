@@ -448,3 +448,9 @@ unknown catalogue names refuse without persisting; explicit empty custom imports
 acknowledge Imported without installing; a restarted worker acknowledges
 AlreadySet and retains that choice when All is imported later. This new fixture
 is not covered by the older queued 1b32 batch; its latest-head run is owed.
+
+The exact 1b32 strict batch completed with eight further lints, all in the two
+new MCP integration helpers provider_discovery and drive_session_and_check_ownership.
+They now carry explicit cfg(test), preserving every shape and ownership assertion.
+Earlier seven-helper errors no longer appear. This failed run does not establish
+an overall strict PASS; latest union/flags/import checks remain owed.
