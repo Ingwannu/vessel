@@ -150,6 +150,8 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ForgeLogin", Alias::Named),
     ("ForgeUrl", Alias::Named),
     ("Generation", Alias::Quantity),
+    // A hunk continuation is a count/offset, never a byte offset or id.
+    ("GitHunkOffset", Alias::Quantity),
     ("GrepQuery", Alias::Named),
     ("HarnessSessionId", Alias::Handle),
     ("HeaderName", Alias::Named),
