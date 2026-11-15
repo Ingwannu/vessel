@@ -176,15 +176,17 @@ impl Shell {
         };
         picker.error = None;
         match picker.model.begin(availability, &label.name, ticket) {
-            Ok(()) => self.command(vessel_app_link::Command::Labels {
-                context,
-                ticket,
-                ask: Command::Assign {
-                    workspace,
-                    label: label.clone(),
-                    assignment,
+            Ok(()) => self.command(vessel_app_link::Command::Labels(
+                vessel_app_link::labels::Request {
+                    context,
+                    ticket,
+                    ask: Command::Assign {
+                        workspace,
+                        label: label.clone(),
+                        assignment,
+                    },
                 },
-            }),
+            )),
             Err(Failure::Pending) => {}
             Err(failure) => picker.error = Some(failure),
         }
@@ -251,7 +253,7 @@ pub(super) fn overlay(
     {
         let opening = picker.opening;
         cx.defer_in(window, move |shell, window, cx| {
-            shell.labels_picker_back(opening, window, cx)
+            shell.labels_picker_back(opening, window, cx);
         });
     }
     draw::overlay(shell, tokens, window, cx)

@@ -66,7 +66,7 @@ pub(super) fn overlay(
         )
         .when(!pending, |button| {
             button.on_click(cx.listener(move |shell, _, window, cx| {
-                shell.labels_picker_back(opening, window, cx)
+                shell.labels_picker_back(opening, window, cx);
             }))
         })
         .into_any_element(),
@@ -152,15 +152,17 @@ impl Shell {
         match picker.page.submit(availability, ticket) {
             Ok(label) => {
                 picker.error = None;
-                self.command(vessel_app_link::Command::Labels {
-                    context,
-                    ticket,
-                    ask: Command::Assign {
-                        workspace,
-                        label,
-                        assignment: Assignment::Assigned,
+                self.command(vessel_app_link::Command::Labels(
+                    vessel_app_link::labels::Request {
+                        context,
+                        ticket,
+                        ask: Command::Assign {
+                            workspace,
+                            label,
+                            assignment: Assignment::Assigned,
+                        },
                     },
-                });
+                ));
             }
             Err(failure) => picker.error = Some(failure),
         }

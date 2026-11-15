@@ -61,18 +61,10 @@ pub(crate) enum Settle {
 pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
     let said = || words.to_owned();
     let event = match *unsent.command {
-        Command::Labels {
-            context,
-            ticket,
-            ask,
-        } => Event::Labels(vessel_app_link::labels::Event {
-            context,
-            ticket,
-            answer: ask.refused(match unsent.why {
-                Rejected::Full => vessel_app_view::labels::Failure::Update,
-                Rejected::Closed => vessel_app_view::labels::Failure::Offline,
-            }),
-        }),
+        Command::Labels(request) => Event::Labels(request.refused(match unsent.why {
+            Rejected::Full => vessel_app_view::labels::Failure::Update,
+            Rejected::Closed => vessel_app_view::labels::Failure::Offline,
+        })),
         Command::RetireConnection(_tag) => return Settle::Ignore,
         // As the devices page: a full queue is the page's own "busy, try
         // again", a stopped link the machine's lost connection.
@@ -209,11 +201,11 @@ mod tests {
         let Settle::Answer(event) = settle(
             vessel_app_link::Unsent::new(
                 Rejected::Closed,
-                Command::Labels {
+                Command::Labels(vessel_app_link::labels::Request {
                     context: context.clone(),
                     ticket,
                     ask,
-                },
+                }),
             ),
             WORDS,
         ) else {

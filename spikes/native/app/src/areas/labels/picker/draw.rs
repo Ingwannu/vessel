@@ -76,7 +76,7 @@ pub(super) fn overlay(
             };
             match choice {
                 Choice::Toggle(label, assignment) => {
-                    shell.labels_picker_toggle(opening, label, *assignment, cx)
+                    shell.labels_picker_toggle(opening, label, *assignment, cx);
                 }
                 Choice::Create => shell.labels_picker_create(opening, window, cx),
             }

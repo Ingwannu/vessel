@@ -30,6 +30,29 @@ pub enum Command {
     Delete(Name),
 }
 
+/// One immutable UI request, keeping global dispatch a registration only.
+#[derive(Debug, Clone)]
+pub struct Request {
+    /// Exact authenticated admission, never an alias lookup by node id.
+    pub context: vessel_app_view::connection::ConnectionContext,
+    /// Window-owned operation identity.
+    pub ticket: Ticket,
+    /// Validated semantic operation.
+    pub ask: Command,
+}
+
+impl Request {
+    /// Local refusals retain the same target, ticket and answer kind everywhere.
+    #[must_use]
+    pub fn refused(self, failure: Failure) -> Event {
+        Event {
+            context: self.context,
+            ticket: self.ticket,
+            answer: self.ask.refused(failure),
+        }
+    }
+}
+
 /// Answers retain host and ticket even on a local refusal.
 #[derive(Debug, Clone)]
 pub struct Event {
@@ -85,24 +108,15 @@ impl Command {
 
 #[cfg(not(target_arch = "wasm32"))]
 impl crate::State {
-    pub(super) async fn labels(
-        &self,
-        context: vessel_app_view::connection::ConnectionContext,
-        ticket: Ticket,
-        ask: Command,
-    ) {
+    pub(super) async fn labels(&self, request: Request) {
         // Even the pending-contract refusal retains exact admission semantics.
-        let failure = match self.selected_connection(&context) {
+        let failure = match self.selected_connection(&request.context) {
             Ok(_original_connection) => Failure::Unsupported,
             Err(vessel_app_view::connection::Refusal::Changed) => Failure::Changed,
             Err(vessel_app_view::connection::Refusal::Closed) => Failure::Offline,
         };
-        self.emit(crate::Event::Labels(Event {
-            context,
-            ticket,
-            answer: ask.refused(failure),
-        }))
-        .await;
+        self.emit(crate::Event::Labels(request.refused(failure)))
+            .await;
     }
 }
 

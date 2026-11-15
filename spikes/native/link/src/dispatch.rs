@@ -17,11 +17,7 @@ use vessel_proto::{PermissionOutcome, SessionInput};
 impl State {
     pub(super) async fn handle(&mut self, command: Command) {
         match command {
-            Command::Labels {
-                context,
-                ticket,
-                ask,
-            } => self.labels(context, ticket, ask).await,
+            Command::Labels(request) => self.labels(request).await,
             Command::Reload => self.reload().await,
             Command::RetireConnection(tag) => self.closed_connection(&tag).await,
             Command::Agents {

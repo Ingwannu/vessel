@@ -63,7 +63,7 @@ fn labels_workspace_picker_stays_open_and_waits_for_registry_assignment_projecti
             .is_some()
         );
         shell.labels_picker_toggle(opening, &label(), Assignment::Unassigned, cx);
-        let vessel_app_link::Command::Labels {
+        let vessel_app_link::Command::Labels(vessel_app_link::labels::Request {
             context,
             ticket,
             ask:
@@ -72,7 +72,7 @@ fn labels_workspace_picker_stays_open_and_waits_for_registry_assignment_projecti
                     assignment,
                     ..
                 },
-        } = commands.try_recv().unwrap()
+        }) = commands.try_recv().unwrap()
         else {
             panic!("one explicit assignment");
         };
@@ -135,7 +135,7 @@ fn labels_workspace_create_is_atomic_and_retains_failed_text_and_color(cx: &mut 
             .is_some()
         );
         shell.labels_picker_submit(opening, cx);
-        let vessel_app_link::Command::Labels {
+        let vessel_app_link::Command::Labels(vessel_app_link::labels::Request {
             context,
             ticket,
             ask:
@@ -144,7 +144,7 @@ fn labels_workspace_create_is_atomic_and_retains_failed_text_and_color(cx: &mut 
                     label,
                     assignment,
                 },
-        } = commands.try_recv().unwrap()
+        }) = commands.try_recv().unwrap()
         else {
             panic!("one atomic create-and-assign");
         };
@@ -208,13 +208,13 @@ fn labels_workspace_create_success_reopens_list_without_claiming_assignment_stat
             .unwrap()
             .set_text("New");
         shell.labels_picker_submit(opening, cx);
-        let vessel_app_link::Command::Labels {
+        let vessel_app_link::Command::Labels(vessel_app_link::labels::Request {
             context,
             ticket,
             ask: Command::Assign {
                 workspace, label, ..
             },
-        } = commands.try_recv().unwrap()
+        }) = commands.try_recv().unwrap()
         else {
             panic!("create and assignment share one operation");
         };

@@ -24,14 +24,7 @@ use vessel_proto::{
 #[derive(Debug)]
 pub enum Command {
     /// Host-local workspace catalog operation; identity survives alias changes.
-    Labels {
-        /// Exact selected authenticated admission; never resolved by node id.
-        context: vessel_app_view::connection::ConnectionContext,
-        /// Window operation identity.
-        ticket: vessel_app_view::labels::Ticket,
-        /// Validated operation.
-        ask: super::labels::Command,
-    },
+    Labels(super::labels::Request),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.

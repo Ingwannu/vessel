@@ -2,7 +2,7 @@
 //! No draft or catalog changes optimistically; results retain host and ticket.
 
 use vessel_app_kit::ui::Context;
-use vessel_app_link::labels::{Answer, Command, Event};
+use vessel_app_link::labels::{Answer, Command, Event, Request};
 use vessel_app_view::connection::ConnectionContext;
 use vessel_app_view::labels::{Failure, HostKey, Manager, ManagerState, Name, Ticket};
 
@@ -80,10 +80,7 @@ impl Action {
 }
 
 impl Labels {
-    fn prepare(
-        &mut self,
-        action: &Action,
-    ) -> Result<(ConnectionContext, Ticket, Command), Failure> {
+    fn prepare(&mut self, action: &Action) -> Result<Request, Failure> {
         let host = self.selected_host().ok_or(Failure::Offline)?;
         let context = host.connection.clone().ok_or(Failure::Changed)?;
         let state = host.state;
@@ -113,7 +110,11 @@ impl Labels {
         };
         self.error = None;
         self.pending = Some((context.clone(), ticket));
-        Ok((context, ticket, ask))
+        Ok(Request {
+            context,
+            ticket,
+            ask,
+        })
     }
 }
 
@@ -130,12 +131,18 @@ impl Shell {
             return;
         }
         match self.areas.labels.prepare(action) {
-            Ok((context, ticket, ask)) => {
-                self.command(vessel_app_link::Command::Labels {
-                    context,
-                    ticket,
-                    ask,
-                });
+            Ok(Request {
+                context,
+                ticket,
+                ask,
+            }) => {
+                self.command(vessel_app_link::Command::Labels(
+                    vessel_app_link::labels::Request {
+                        context,
+                        ticket,
+                        ask,
+                    },
+                ));
             }
             Err(failure) => self.areas.labels.error = Some(failure),
         }

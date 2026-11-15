@@ -350,3 +350,11 @@ The native create form uses the existing adaptive Dialog because typed combobox
 rows cannot embed the persistent name field; Back and async success return to
 the original picker. This deliberate presentation difference avoids a second
 menu/input renderer while retaining the reference workflow.
+
+Latest 5584 native alltarget clippy reached link and stopped only at the shared
+handle function's 105/100-line bound, before checking app. A6's labels arm is
+now a single typed Request envelope; its target/ticket/ask stay in labels.rs,
+and the shared dispatcher has one registration line. Request::refused centralizes
+native/browser/queue local refusal into the original Event shape. No allowance
+or shared behavior was changed. The initial failure log is retained; current
+app compilation and added GPUI execution are still owed.
