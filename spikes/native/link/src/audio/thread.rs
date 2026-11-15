@@ -1,0 +1,101 @@
+//! An owner guard is retired only after its stream bundle has been destroyed.
+//!
+//! Stop uses the atomic callback fence, not this thread's data queue. A stuck
+//! driver can retain ownership but cannot authorize another acquisition.
+
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+use std::time::Duration;
+
+use tokio::sync::mpsc;
+use vessel_app_view::audio::CaptureLease;
+
+use super::device::{CaptureDevice, Native};
+use super::dsp::Captured;
+use super::owner::{DeviceFailure, Owner};
+
+const NORMALIZED_QUEUE_BLOCKS: usize = 100;
+const DEVICE_POLL: Duration = Duration::from_millis(5);
+
+#[derive(Debug)]
+pub(super) struct Frame {
+    lease: CaptureLease,
+    audio: Captured,
+}
+
+impl Frame {
+    pub(super) const fn lease(&self) -> CaptureLease {
+        self.lease
+    }
+    pub(super) fn pcm(&self) -> &[u8] {
+        self.audio.pcm()
+    }
+}
+
+pub(super) fn start(owner: Owner) -> Result<mpsc::Receiver<Frame>, DeviceFailure> {
+    let (sender, receiver) = mpsc::channel(NORMALIZED_QUEUE_BLOCKS);
+    let _thread = std::thread::Builder::new()
+        .name("vessel-audio".to_owned())
+        .spawn(move || run(owner, sender, Native::open))
+        .map_err(|_| DeviceFailure::Thread)?;
+    Ok(receiver)
+}
+
+fn run<D: CaptureDevice>(
+    mut owner: Owner,
+    sender: mpsc::Sender<Frame>,
+    open: impl FnOnce(Arc<AtomicBool>) -> Result<D, DeviceFailure>,
+) {
+    if owner.stopped() {
+        return;
+    }
+    match open(owner.fence()) {
+        Ok(mut device) => {
+            let result = capture(&owner, &sender, &mut device);
+            if let Err(failure) = result {
+                owner.fail(failure);
+            } else if let Some(failure) = device.failure() {
+                owner.fail(failure);
+            }
+            // A slow destructor keeps the global slot held. Never publish a
+            // release just because the actor has exited its capture loop.
+            drop(device);
+        }
+        Err(failure) => owner.fail(failure),
+    }
+    drop(owner);
+}
+
+fn capture(
+    owner: &Owner,
+    sender: &mpsc::Sender<Frame>,
+    device: &mut impl CaptureDevice,
+) -> Result<(), DeviceFailure> {
+    if owner.stopped() {
+        return Ok(());
+    }
+    device.start()?;
+    if owner.started().is_err() {
+        return Ok(());
+    }
+    while !owner.stopped() {
+        match device.receive()? {
+            Some(audio) => {
+                if owner.stopped() {
+                    break;
+                }
+                sender
+                    .try_send(Frame {
+                        lease: owner.lease(),
+                        audio,
+                    })
+                    .map_err(|_| DeviceFailure::Overrun)?;
+            }
+            None => std::thread::sleep(DEVICE_POLL),
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests;

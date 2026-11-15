@@ -150,3 +150,16 @@ lockfile's inactive-target dependencies are stated in the inventory.
 The app consumed the second shared package base (machine welcome identity
 and kit editability seams) after its preceding narrow run ended. No whole
 package gate has been run or claimed.
+
+## Capture owner/thread source slice (2026-11-15 07:52 UTC)
+
+[Decision Log]
+- Purpose: dictation and conversation across multiple windows must not open parallel microphones.
+- Existing constraints: view::audio holds pure lease transitions; CPAL streams cannot be moved to GPUI/network workers; immediate Stop must bypass full queues.
+- Alternatives: one engine per Link/window would violate exclusivity; releasing on a queued Stop would permit overlap during driver teardown.
+- Choice: a process singleton reserves synchronously, the device thread retains a private owner guard, and Handle::stop closes an independent atomic callback fence. The stream is dropped before the guard publishes release. A poisoned owner remains unavailable.
+- Consequences: a stuck driver can keep the slot busy, while upload/callback permission remains fenced. No silent replacement/restart. Callbacks accumulate one 10 ms partial block and use a bounded nonblocking queue; overflow stops. Native errors discard foreign diagnostic text. Tests use fake devices, including a held destructor, and an already-stopped native startup that must open no device.
+
+The physical capture source is staged behind the existing outer cfg(test); no UI invokes it. It currently contains the input stream only. Conversation playback/AEC reverse-stream timing, physical device behavior, permissions, Linux non-root and Windows remain unverified and must be completed before removing staging. CPAL's default device/config is used without logging its name. No audio file or secret is read/written. [CPAL 0.16 DeviceTrait](https://docs.rs/cpal/0.16.0/cpal/traits/trait.DeviceTrait.html) defines the typed build callbacks and fallible device/config access used here.
+
+Remote link clippy c34b4173 did not reach our crate: alsa-sys could not find ALSA development metadata. Build VM owner B2 installed libasound2-dev1.2.11 and checked pkg-config as build account; the next admitted build is still owed. Local link narrow is queued; no duplicate remote retry while the submit-lock repair is pending.
