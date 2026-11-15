@@ -10,7 +10,7 @@ read, and `components/provider-catalog-list.tsx:81–88` first consumer. Label12
 arrow12, gap4, hitSlop8 in both input layouts, transparent background and
 muted→foreground for both label and actual SVG mask. No pressed wash, disabled
 state or responsive32/44 pill is invented. The arrow is an original24-grid
-stroke2 line drawing (Lucide's source default); every old glyph/vector remains
+stroke1.5 line drawing (the app-wide LucideProvider value); every old glyph/vector remains
 unchanged and the canonical inventory grows92→93. The caller retains its typed
 URL and opener; kit imports no proto/View/browser/OS dependency. Existing
 Tooltips supplies the optional hint at the consumer.
@@ -55,3 +55,13 @@ keeps every measured assertion and click coordinate, expressing their same
 values through the existing checked-coordinate/mul_add convention. No allow,
 expect, weakened assertion, geometry or callback change was introduced. The
 separate red run remains external-link-fix-20261115T105358Z; tests did not run.
+
+
+V1's complete039c source return found the sole P2: the component does not
+specify stroke width, but `_layout.tsx:926` wraps AppShell in LucideProvider
+with `styles/theme.ts:602` ICON_STROKE_WIDTH1.5. The earlier package-default2
+claim was wrong. Reuse the unchanged canonical1.5 line-glyph renderer for this
+new arrow, and pin its entire loaded SVG string, including literal1.5 stroke,
+in the raster test. Every other vector and the95-entry consumer inventory stay
+unchanged; no per-area adjustment. Exact corrected narrow is pending. The039c
+queued narrow is old-source evidence only and cannot close this source return.

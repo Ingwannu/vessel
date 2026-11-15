@@ -38,6 +38,14 @@ fn source_geometry_and_own_hover_ink_have_literal_values_in_both_themes() {
 fn arrow_is_one_registered_unclipped_original_twelve_pixel_mask() {
     assert_eq!(Glyph::ArrowUpRight.path(), "kit/arrow-up-right.svg");
     let bytes = Assets.load(Glyph::ArrowUpRight.path()).unwrap().unwrap();
+    assert_eq!(
+        std::str::from_utf8(&bytes).unwrap(),
+        concat!(
+            r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">"#,
+            r#"<path d="M7 17 17 7M7 7h10v10"/>"#,
+            "</svg>"
+        )
+    );
     let tree = resvg::usvg::Tree::from_data(&bytes, &resvg::usvg::Options::default()).unwrap();
     assert_eq!(px(tree.size().width()), px(24.0));
     assert_eq!(px(tree.size().height()), px(24.0));
