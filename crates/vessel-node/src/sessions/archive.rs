@@ -46,7 +46,7 @@ impl Sessions {
             .await
             .map_err(ServiceError::Task)?
     }
-    /// Only archive_requested calls this, while holding this node's marking lock.
+    /// Only `archive_requested` calls this, while holding this node's marking lock.
     async fn archive_locked(
         &self,
         session: SessionId,

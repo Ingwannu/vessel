@@ -150,3 +150,22 @@ admission, then physical cleanup/restore and verified postconditions. A guard
 belongs to actual I/O until it settles, including after caller timeout; partial
 outcomes leave the durable non-active claim. This seam is planned, with no
 production adapter or root-exclusion implementation adopted in this package yet.
+
+## Conditional finished-child contract (staged value types only)
+
+Paseo `subagents/archive-finished.ts:38-52,167-199` selects managed idle/error,
+not archived and still attached to the expected parent; `select.ts:74-99`
+includes managed sessions across all servers. ArchiveChildSession therefore
+retains full parent/child SessionRef, routes to child.node and compares current
+parent locally under Sessions.marking. No distributed parent lock is claimed.
+Its outcome distinguishes committed node timestamp from ParentChanged,
+AlreadyArchived and NotFinished skips. Future outcomes/skips remain Unknown.
+The shared snapshot predicate uses runtime Activity::Idle or Failed status,
+not a PR display phrase; absent activity and Starting/Exited/Interrupted are
+not proof of a managed idle/error row. Final live actor IfIdle admission still
+fences a prompt racing the snapshot. A live TUI cannot prove a turn boundary
+and will retain the existing explicit Unsupported refusal rather than force.
+
+These are DTOs and a pure predicate only, with no Request/table/client/handler
+for conditional children until reviewed W2 current parentage is adopted. The
+ordinary explicit ArchiveSession remains the path for ended stored sessions.

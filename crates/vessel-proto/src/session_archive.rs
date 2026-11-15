@@ -2,6 +2,10 @@
 use crate::SessionId;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+mod child;
+pub use child::{
+    ArchiveChildSession, ChildArchiveOutcome, ChildArchiveSkip, finished_child_candidate,
+};
 
 /// The actor checks this condition before it stops accepting new turns.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
