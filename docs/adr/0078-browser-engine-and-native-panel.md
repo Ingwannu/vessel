@@ -747,27 +747,32 @@ There is no generic public pipe constructor, raw CDP tool or new MCP permission.
 The whole supported feature remains hidden until the complete first-engine gate,
 including Preview authority, passes; this proposal is not an exception.
 
-## Proposed reference DOM snapshot adapter (review before implementation)
+## Proposed independently implemented DOM snapshot (review before implementation)
 
 [Decision Log]
-- Purpose: preserve Paseo's actual ARIA snapshot names, state attributes, form
-  fingerprint rules and actionability instead of approximating them with a new
-  translation of Chromium's native AX roles.
-- Existing asset: Paseo desktop aria-snapshot-script.ts (Apache-2.0, adapted from
-  Playwright with Microsoft's notice), snapshot-engine.ts and actionability.ts.
-  Their static algorithm can execute through the sealed CDP subset already
-  chosen here; it requires no page-to-node bridge or additional network reach.
-- Alternatives: implement a second native AX role/name/state formatter, or run
-  the reference static DOM algorithm behind typed CDP and Rust decoding.
-- Choice: reuse/adapt the reference DOM algorithm, with source pin/Apache license
-  and copyright notices retained in the repository, a typed decoded graph and
-  Rust renderer/reference ownership. Vendor assets keep their original license;
-  this is not Chromium runtime redistribution or an installation.
-- Reason: its element labeling, input-value fingerprints and same-origin iframe
-  behavior are directly specified and covered by Paseo's tests. A native AX
-  approximation would introduce many extra behavior differences.
-- Tradeoffs: a private isolated realm and script result parser are required;
-  they do not replace actual engine, frame, actionability or isolation tests.
+- Purpose: preserve the observed snapshot output, element names, state attributes,
+  form fingerprints and actionability required by the behavior specification.
+- Existing assets: Vessel's sealed CDP requests, bounded values and monotonic
+  reference owner can be extended. Paseo's snapshot inputs, output shape and edge
+  cases are behavioral references only; its source is not an implementation asset.
+- Alternatives: translate Chromium native AX roles/names/states, or write our own
+  bounded DOM traversal, labeling and fingerprint implementation from the behavior
+  description, using standard browser DOM APIs and typed CDP requests.
+- Choice: independently implement the DOM traversal and typed graph producer in
+  Vessel, with Rust decoding, rendering and reference ownership. No reference
+  JavaScript or other reference code/assets may be copied, vendored or adapted;
+  license notices do not provide an exception to this project rule.
+- Reason: a DOM-based implementation can represent the required form fingerprints
+  and same-origin iframe behavior directly, without adding an AX translation.
+  Behavior fixtures are independently authored from input/output requirements.
+- Tradeoffs: independent labeling and edge-case coverage require dedicated tests;
+  a private isolated realm and script result parser remain necessary. These tests
+  do not replace actual engine, frame, actionability or isolation qualification.
+
+The earlier reuse/vendor proposal was returned in V3 row206 and withdrawn under
+its coordinator ruling. No script or vendor asset was copied into either tree.
+This replacement proposes our own implementation only; it grants no engine or
+runtime readiness and does not reopen the project reference-code boundary.
 
 The script executes only in a node-created isolated world of the admitted
 page/frame. No universal-access grant, host object, node filesystem, credential
