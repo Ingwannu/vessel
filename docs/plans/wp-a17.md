@@ -284,3 +284,11 @@ view build script and failed on an own duplicate inbox-combined locale key.
 Both EN/KO now retain only the later in-app coalescing message. A static key
 check found unique identical key sets in those two files; this does not replace
 the Rust Fluent parser/build check. The failed immutable evidence is retained.
+
+Sidebar group display order is distinct from aggregate urgency. Actual Paseo
+app utils/sidebar-agent-state.ts:36-42 puts review before running, consumed by
+hooks/sidebar-status-view-model.ts:43-50; aggregate priority still ranks running
+before review (protocol agent-state-bucket.ts:13-19). Inbox's groups now use
+explicit GROUP_ORDER input/failed/review/working/done, and drawing plus numbered
+shortcuts share it. The own added complete-group assertion names that explicit
+reference order. This changes no shared-head assertion or badge aggregation.

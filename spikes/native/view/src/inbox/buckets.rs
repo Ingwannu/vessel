@@ -31,6 +31,17 @@ impl Bucket {
         }
     }
 }
+/// Display groups differ from aggregate urgency: actionable review precedes
+/// still-running work (Paseo sidebar-agent-state.ts:36-42). Shortcuts walk the
+/// resulting groups, so their numbers retain the same order as the screen.
+pub const GROUP_ORDER: [Bucket; 5] = [
+    Bucket::NeedsInput,
+    Bucket::Failed,
+    Bucket::Review,
+    Bucket::Working,
+    Bucket::Done,
+];
+
 /// One display group, borrowing the fleet's cards rather than cloning them.
 #[derive(Debug)]
 pub struct Group<'a> {
@@ -64,7 +75,7 @@ pub fn groups<'a>(
             .then(a.title.cmp(&b.title))
             .then(a.session.cmp(&b.session))
     });
-    Bucket::ALL
+    GROUP_ORDER
         .into_iter()
         .filter_map(|bucket| {
             let rows: Vec<_> = cards
@@ -178,7 +189,13 @@ mod tests {
         );
         assert_eq!(
             groups.iter().map(|group| group.bucket).collect::<Vec<_>>(),
-            Bucket::ALL
+            [
+                Bucket::NeedsInput,
+                Bucket::Failed,
+                Bucket::Review,
+                Bucket::Working,
+                Bucket::Done
+            ]
         );
         assert_eq!(groups[0].sessions.len(), 1);
         assert_eq!(groups[0].more, 1);
