@@ -120,3 +120,9 @@ through vessel-session; Rust intentionally does not expose that transitive crate
 for constructing the concrete Thread case. A test-only direct edge now names the
 already-present workspace crate. No production crate edge, package/version,
 error mapping or assertion changes; the manifest/lock addition is test wiring.
+
+The current isolated strict run reached the Node test and returned one
+needless_pass_by_value lint in the public-edge assertion helper. The helper
+now borrows the same ServiceError; its formatting, source traversal, wire and
+JSON assertions are unchanged. This is a test-only correction, not a privacy
+or execution-policy change. Current corrected strict validation remains owed.
