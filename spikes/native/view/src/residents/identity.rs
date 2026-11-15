@@ -131,7 +131,8 @@ pub enum ResourceOwner {
     Lifecycle,
 }
 impl ResourceOwner {
-    pub(super) const ALL: [Self; 5] = [
+    /// Every concrete owner must transfer a clean snapshot before retirement.
+    pub const ALL: [Self; 5] = [
         Self::Timeline,
         Self::Composer,
         Self::Attachments,
