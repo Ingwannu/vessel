@@ -84,7 +84,7 @@ pub enum SidebarLayout {
     Sheet,
     /// Desktop preference is hidden or the workspace cannot share the row.
     Hidden,
-    /// Docked width and the real budget result (Settings may be TooNarrow).
+    /// Docked width and the real budget result (Settings may be `TooNarrow`).
     Docked {
         /// Whole logical points after native frame insets and clamping.
         width: f32,

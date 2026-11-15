@@ -202,7 +202,7 @@ impl Entries {
                 },
             })
             .collect();
-        self.rewrite(items)
+        self.rewrite(&items)
     }
 
     /// Move one current row. Moving the first up or the last down is a no-op.
@@ -219,10 +219,10 @@ impl Entries {
                 next.swap(from, to);
             }
         }
-        self.rewrite(next)
+        self.rewrite(&next)
     }
 
-    fn rewrite(&self, items: Vec<Item>) -> Result<Self, TooMany> {
+    fn rewrite(&self, items: &[Item]) -> Result<Self, TooMany> {
         let mut remaining = items.iter();
         let mut kept = Vec::new();
         let mut seen = Vec::new();
