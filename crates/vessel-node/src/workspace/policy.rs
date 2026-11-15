@@ -101,7 +101,8 @@ const fn refused(method: Method) -> bool {
         // The workspace but orchestration: an agent uses its own file and
         // git tools in its folder.
         Method::ReleaseWorkspaceAutomation | Method::GetRegistry | Method::ListWorkspaces | Method::GetWorkspace | Method::RenameWorkspace | Method::PinWorkspace
-        // Staged receipt recovery has no serving owner yet, even for agents.
+        // Public agent recovery remains denied; trusted internal recovery needs
+        // its captured execution/parent/grant fence separately from this method.
         | Method::ObservePromptReceipt
         | Method::AddProject
         | Method::CloneProject
