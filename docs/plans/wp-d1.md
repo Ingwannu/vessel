@@ -163,3 +163,11 @@ family/fallback stack and stable identity after a second unchanged presentation.
 Text/colors/cursor are preserved. Font state is restored even on assertion
 unwind. This is a deterministic GPUI cache regression; it does not claim that
 two physical fonts have identical measured metrics or that a new capture passed.
+
+The row/draw identity now retains the complete typed FontStack snapshot;
+cursor phase still shares the same Rc rows. Only a stack change, not a blink,
+invalidates painted rows. The kit producer's four redundant stack::active
+qualifications are changed to its existing re-export, matching the producer's
+published qualification-only cleanup; unrelated size ratios are untouched.
+The fail-first fixture remains on immutableeed7e854. Runtime performance,
+physical font transitions and new captures remain unverified.

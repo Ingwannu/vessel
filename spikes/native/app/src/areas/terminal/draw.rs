@@ -4,6 +4,7 @@ use std::rc::Rc;
 use vessel_app_kit::ui::{Context, Pixels};
 use vessel_app_kit::{
     Scheme,
+    fonts::{FontStack, Typeface, active},
     terminal_grid::{CellSize, GridCursor, GridFrame},
 };
 use vessel_app_view::terminal::{
@@ -16,17 +17,18 @@ use super::{Blink, SETTLE, convert, font_size, replay::refit};
 use crate::shell::Shell;
 
 /// Appearance and viewport inputs that can change painted text or backgrounds.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 struct RowsKey {
     generation: Generation,
     scheme: Scheme,
     font: Pixels,
+    stack: FontStack,
     cell: CellSize,
     scroll: Scroll,
 }
 
 /// Cursor phase is deliberately separate from immutable row identity.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub(super) struct DrawKey {
     rows: RowsKey,
     blink: Blink,
@@ -46,6 +48,7 @@ impl Painted {
     ) -> Self {
         let palette = convert::palette(&tokens.terminal);
         let snapshot = model.snapshot(key.scroll);
+        let font_size = key.font;
         Self {
             key,
             frame: GridFrame {
@@ -56,7 +59,7 @@ impl Painted {
                     color: convert::hsla(palette.cursor),
                 }),
                 background: convert::hsla(palette.background),
-                font_size: key.font,
+                font_size,
             },
         }
     }
@@ -83,19 +86,20 @@ impl Shell {
             generation: model.grid().generation(),
             scheme: tokens.scheme,
             font: font_size(),
+            stack: active(Typeface::Code),
             cell: area.grid.read(cx).cell,
             scroll: area.viewport.offset(model.grid()),
         };
         let now = DrawKey {
-            rows: key,
+            rows: key.clone(),
             blink: area.blink,
         };
-        if area.drawn == Some(now) {
+        if area.drawn.as_ref() == Some(&now) {
             return;
         }
         let painted = area
             .painted
-            .get_or_insert_with(|| Painted::new(key, model, &tokens));
+            .get_or_insert_with(|| Painted::new(key.clone(), model, &tokens));
         if painted.key != key {
             *painted = Painted::new(key, model, &tokens);
         }

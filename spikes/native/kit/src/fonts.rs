@@ -83,7 +83,7 @@ pub struct FontError(String);
 /// The fallback list every style carries: Pretendard after Geist.
 #[must_use]
 pub fn fallbacks() -> FontFallbacks {
-    stack::active(Typeface::Interface).fallbacks()
+    active(Typeface::Interface).fallbacks()
 }
 
 /// The interface's text size the scale is drawn at (Settings ›
@@ -218,21 +218,21 @@ impl Type {
             | Self::Card
             | Self::Tiny => Typeface::Interface,
         };
-        stack::active(role).fallbacks()
+        active(role).fallbacks()
     }
 
     /// The family.
     #[must_use]
     pub fn family(self) -> SharedString {
         match self {
-            Self::Mono | Self::MonoBody => stack::active(Typeface::Code).family(),
+            Self::Mono | Self::MonoBody => active(Typeface::Code).family(),
             Self::Title
             | Self::Body
             | Self::Label
             | Self::Meta
             | Self::Kicker
             | Self::Card
-            | Self::Tiny => stack::active(Typeface::Interface).family(),
+            | Self::Tiny => active(Typeface::Interface).family(),
         }
     }
 }
