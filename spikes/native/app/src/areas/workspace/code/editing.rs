@@ -143,9 +143,11 @@ impl Shell {
         if editing.stale || editing.model.content() == text {
             return;
         }
-        let step = match editing.model.edit(&text) {
-            Step::Autosave if held => Step::StopAutosave,
-            step => step,
+        let step = editing.model.edit(&text);
+        let step = if held && matches!(&step, Step::Autosave) {
+            Step::StopAutosave
+        } else {
+            step
         };
         if let Some(viewer) = self.areas.workspace.code.viewer_for(key) {
             viewer.intelligence = super::intelligence::State::Idle;

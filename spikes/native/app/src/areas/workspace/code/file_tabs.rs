@@ -6,7 +6,7 @@ use crate::{areas::layout::registry::PanelContext, shell::Shell};
 use std::collections::BTreeMap;
 use vessel_app_kit::{
     Tokens,
-    ui::{AnyElement, Context, IntoElement as _, Window},
+    ui::{AnyElement, Context, IntoElement as _, ParentElement as _, Styled as _, Window, div},
 };
 use vessel_app_view::layout::{LayoutKey, Modified, TabId, Target};
 
@@ -125,7 +125,6 @@ pub(crate) fn render_file_panel(
     if viewer.scope != *binding.origin.scope() {
         return unavailable();
     }
-    use vessel_app_kit::ui::{ParentElement as _, Styled as _, div};
     div()
         .size_full()
         .flex()
