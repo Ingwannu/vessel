@@ -794,3 +794,9 @@ the unused trait and separate the same six literal geometry cases from their
 shared actual-render/input runner. Every old numeric expectation is retained;
 the inferred after-row tail is now explicit in each golden case. No production
 geometry or action policy changed. No strict/test pass inferred from this run.
+
+Portable policy c8dbce21 compiled product View/Kit/Link/App, then strict test
+compilation returned101 on five closure-style diagnostics in policy_tests.
+The owning correction adds unit semicolons and uses the existing method
+pointer; the same test-only correction is kept in this union. No assertion,
+policy or test deadline changes. Its isolated successor check remains pending.
