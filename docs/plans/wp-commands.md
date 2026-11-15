@@ -699,7 +699,7 @@ hint producer. NewWorkspace/NewSession and command-center/Palette typed variant
 identities stay stable across the eventual adapter change.
 
 Follow-up source audit found the same trim difference in help search and exact
-PR/MR promotion: shortcut-help-search.ts67 and workspace-search.ts11-21 use
+PR/MR promotion: shortcut-help-search.ts68 and workspace-search.ts11-21 use
 ECMAScript trim/whitespace. Adopted ONLY B2's agreed0e78261de matcher change
 fn whitespace→pub(crate) fn whitespace; body, default Query, scoring and marks
 are byte-for-byte unchanged. Both consumers now trim with that one predicate.
