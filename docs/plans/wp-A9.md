@@ -162,3 +162,9 @@ actual callback, disk persistence and captures still owe execution; no
 writer fix, saved-success acknowledgement or storage-contract change is
 claimed. This explicit refusal is a safety difference from the old silent
 filtering path, not a claim of larger model-id persistence support.
+
+The first defaults Clippy run returned documentation-markup and explicit
+test-constructor lints. The correction quotes the existing type path and
+names SignInHelp directly, without weakening the lint or changing product
+decisions. That red run is kept separate from runtime results on the
+earlier Models/catalog source.

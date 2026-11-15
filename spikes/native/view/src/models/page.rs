@@ -292,7 +292,7 @@ impl<E> State<E> {
     }
 }
 /// A selected book entry and the shared Fleet's optional welcome identity.
-/// No selected entry is represented by Option<Selection>, not a loose node id.
+/// No selected entry is represented by `Option<Selection>`, not a loose node id.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Selection {
     /// The existing validated machine-book route.

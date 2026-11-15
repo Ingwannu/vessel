@@ -163,7 +163,7 @@ fn recorded_status_uses_registry_id_not_name_version_or_program_similarity() {
         agent: HarnessRef::Known(HarnessKind::Codex),
         detail: AgentDetail::Known {
             installs: vec![],
-            sign_in: Default::default(),
+                sign_in: vessel_proto::agents::SignInHelp::default(),
         },
     }];
     assert_eq!(offer(entry, &known), Offer::Add(Runner::Found));
