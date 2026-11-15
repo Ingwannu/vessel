@@ -104,8 +104,9 @@ pub(crate) fn flush_current(receipt: &StateReceipt, cx: &mut App) -> StateReadin
     {
         return StateReadiness::Changed;
     }
-    let crate::host_windows::LiveShells::Available(shells) = super::shells(cx) else {
-        return StateReadiness::Changed;
+    let shells = match super::shells(cx) {
+        crate::host_windows::LiveShells::Available(shells) => shells,
+        crate::host_windows::LiveShells::Unavailable => return StateReadiness::Changed,
     };
     for weak in shells {
         let Some(shell) = weak.upgrade() else {

@@ -29,13 +29,19 @@ their authenticated owner adapters; desktop never substitutes a book alias.
 ## Current status
 
 Implementation is source under integration, not a completed parity claim. The
-latest application base is package line `3e7820e3` (base10, native1535/0/2),
-merged at `616c6bf9`. Earlier immutable runs retain the base9/header union. It contains the reviewed shared popover,
+latest application base is package line `bb5e5541` (base11, native1600/0/2),
+merged at `0d4eca5f`. Earlier immutable runs retain their base9/base10 unions.
+It contains the reviewed shared popover,
 title actions, pane/query seams, attention
 values and picker admission. The link's existing SavePrefs fallback was extracted
 by its owner; desktop native interception still owns its sole canonical writer.
 No node head was merged directly into this application tree. Existing
 immutable narrow/Windows runs retain their selected older commits.
+Base11 registration conflicts retain both history/import and the provisional
+session command/event arms, with History forwarded through native preferences
+without modification. Session stream/run keep native-only guards; OS session
+handler registration remains absent. The new base's staged guards and owner
+resources are not promoted by this mechanical merge.
 There is no final whole native gate, inspected capture set or V4 package verdict.
 Shared producer review and narrow checks do not substitute for those proofs.
 
