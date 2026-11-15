@@ -220,3 +220,8 @@ The bound-history changed-package strict check caught `get_unwrap` in the
 keyboard oracle test, before a green report. Direct test indexing replaces
 that spelling; fixture values and every assertion remain unchanged. The
 failed log is preserved and a changed-source check is still owed.
+
+The next strict check reached the app and caught a missing statement semicolon
+in the bound opening arm. The spelling is corrected; admission, navigation and
+the retained binding do not change. This source remains isolated until the
+shared connection/projection adaptation lands on the package line.

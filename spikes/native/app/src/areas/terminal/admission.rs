@@ -57,7 +57,7 @@ impl Shell {
         match admission.0 {
             Projection::Structured => self.terminal_closed(),
             Projection::Terminal { binding, machine } => {
-                self.terminal_opened_bound(machine, binding, TerminalSize::default(), cx)
+                self.terminal_opened_bound(machine, binding, TerminalSize::default(), cx);
             }
         }
     }
