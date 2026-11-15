@@ -22,7 +22,7 @@ impl CreateDraft {
     }
     /// Name input remains a draft until `label` validates it.
     pub fn set_text(&mut self, text: &str) {
-        self.text = text.to_owned();
+        text.clone_into(&mut self.text);
     }
     /// Choosing a swatch is separate from create-and-assign.
     pub const fn set_color(&mut self, color: Color) {

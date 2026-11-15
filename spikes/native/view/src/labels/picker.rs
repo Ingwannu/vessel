@@ -53,7 +53,7 @@ impl Picker {
             return Err(Failure::Pending);
         }
         self.error = None;
-        self.pending.insert(key, ticket);
+        let _previous_ticket = self.pending.insert(key, ticket);
         Ok(())
     }
 
@@ -64,7 +64,7 @@ impl Picker {
         if self.pending.get(&key) != Some(&ticket) {
             return false;
         }
-        self.pending.remove(&key);
+        let _settled_ticket = self.pending.remove(&key);
         self.error = result.err();
         true
     }

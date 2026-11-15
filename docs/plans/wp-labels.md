@@ -101,7 +101,9 @@ Fast checks: native size, boundaries and token ratchets pass. The first local
 view test could not compile because the new Fluent keys lacked per-key
 translator context comments; comments were added. Remote narrow view test run on `befc083a` passed 10 tests, 0 failed
 (run `wp-labels-narrow-20261115T062329Z-befc083a`). The manager surface is
-not yet compile-verified; local app clippy is still building dependencies.
+not yet compile-verified. Local app clippy found 9 warnings promoted to
+errors in the new view code (clone assignment and intentionally superseded
+collection entries); those were corrected without suppressing lints.
 The follow-up preserves behavior while typing private catalog identities
 and splitting list drawing out of the manager phase renderer.
 

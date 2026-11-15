@@ -35,14 +35,14 @@ impl Catalog {
     /// Apply a committed catalog change. Call only after the node acknowledges.
     pub fn upsert(&mut self, previous: Option<&Name>, label: Label) {
         if let Some(previous) = previous {
-            self.0.remove(&previous.key());
+            let _previous_definition = self.0.remove(&previous.key());
         }
-        self.0.insert(label.name.key(), label);
+        let _replaced_definition = self.0.insert(label.name.key(), label);
     }
 
     /// Apply a committed deletion without creating an unknown definition.
     pub fn remove(&mut self, name: &Name) {
-        self.0.remove(&name.key());
+        let _removed_definition = self.0.remove(&name.key());
     }
 }
 
@@ -105,7 +105,7 @@ pub fn project(hosts: &[Host], target: Option<&HostKey>) -> Vec<Label> {
     let mut labels = BTreeMap::new();
     for host in ordered {
         for label in host.catalog.labels() {
-            labels
+            let _winning_definition = labels
                 .entry(label.name.key())
                 .or_insert_with(|| label.clone());
         }

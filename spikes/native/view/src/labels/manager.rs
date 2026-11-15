@@ -41,7 +41,7 @@ impl Draft {
 
     /// Keep draft input without claiming it is a valid label.
     pub fn set_text(&mut self, text: &str) {
-        self.text = text.to_owned();
+        text.clone_into(&mut self.text);
     }
 
     /// Choosing a swatch does not save the form.
@@ -160,7 +160,7 @@ impl Manager {
     }
     /// Search changes presentation, never catalog membership.
     pub fn search(&mut self, query: &str) {
-        self.query = query.to_owned();
+        query.clone_into(&mut self.query);
     }
 
     /// Switch to a host and discard the old draft only while idle.
