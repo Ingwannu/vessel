@@ -175,6 +175,7 @@ fn rewind_withdraws_old_completion_and_tools_without_deleting_the_log() {
 fn migrate_again_without_inbox(db: &mut Connection) {
     db.execute_batch("DROP TABLE terminal_profile_settings; DROP TABLE creation_claims; DROP TABLE creation_receipts;")
         .unwrap();
+    db.execute_batch("DROP TABLE workspace_registry_resources; DROP TABLE workspace_registry_reservations; DROP TABLE workspace_registry; DROP TABLE workspace_registry_meta;").unwrap();
     db.execute_batch("ALTER TABLE sessions DROP COLUMN title_origin;")
         .unwrap();
     db.execute_batch("ALTER TABLE sessions DROP COLUMN labels; DROP TABLE inbox_tools; DROP TABLE inbox; DROP TABLE inbox_meta; DROP TABLE push_subscriptions;")

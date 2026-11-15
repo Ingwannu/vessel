@@ -8,6 +8,7 @@ mod creation;
 mod forge;
 mod inbox;
 mod push;
+mod registry;
 mod search;
 mod terminal_profiles;
 mod usage;
@@ -49,6 +50,7 @@ pub struct Store {
     pruned: watch::Receiver<u64>,
     inbox: watch::Receiver<()>,
     creation: watch::Receiver<()>,
+    registry: watch::Receiver<()>,
     /// Whether some session's messages are not in the search index yet
     /// (protocol 12, [`Store::indexed`]).
     indexing: watch::Receiver<bool>,
@@ -106,6 +108,7 @@ impl Store {
         let (pruned, pruned_count) = watch::channel(0);
         let (inbox, inbox_changes) = watch::channel(());
         let (creation, creation_changes) = watch::channel(());
+        let (registry, registry_changes) = watch::channel(());
         let (indexing_sender, indexing) = watch::channel(true);
         let setup = Setup {
             retention,
@@ -113,6 +116,7 @@ impl Store {
             pruned,
             inbox,
             creation,
+            registry,
             indexing: indexing_sender,
         };
         writer::spawn(connection, ops, setup)?;
@@ -124,6 +128,7 @@ impl Store {
             pruned: pruned_count,
             inbox: inbox_changes,
             creation: creation_changes,
+            registry: registry_changes,
             indexing,
         };
         Ok(Opened { store, interrupted })

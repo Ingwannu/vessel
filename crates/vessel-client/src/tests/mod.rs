@@ -429,6 +429,12 @@ impl Handler for FakeNode {
         set_terminal_profiles: vessel_proto::terminal_profiles::SetTerminalProfiles => vessel_proto::terminal_profiles::ProfileSettings;
         observe_creation: vessel_proto::creation::ObserveCreation => Option<vessel_proto::creation::Snapshot>;
         subscribe_creation: vessel_proto::creation::SubscribeCreation => Option<vessel_proto::creation::Snapshot>;
+        get_registry: vessel_proto::registry::GetRegistry => vessel_proto::registry::RegistrySnapshot;
+        list_workspaces: vessel_proto::registry::ListWorkspaces => Vec<vessel_proto::registry::WorkspaceDescriptor>;
+        get_workspace: vessel_proto::registry::GetWorkspace => vessel_proto::registry::WorkspaceDescriptor;
+        rename_workspace: vessel_proto::registry::RenameWorkspace => vessel_proto::registry::WorkspaceDescriptor;
+        pin_workspace: vessel_proto::registry::PinWorkspace => vessel_proto::registry::WorkspaceDescriptor;
+        release_workspace_automation: vessel_proto::registry::ReleaseWorkspaceAutomation => vessel_proto::registry::WorkspaceDescriptor;
         open_side_question: vessel_proto::side_questions::OpenSideQuestion => SessionInfo;
         prompt_side_question: vessel_proto::side_questions::PromptSideQuestion => vessel_proto::Delivered;
         reset_side_question: vessel_proto::side_questions::ResetSideQuestion => SessionInfo;

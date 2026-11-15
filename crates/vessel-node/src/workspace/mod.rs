@@ -225,6 +225,7 @@ impl Workspaces {
         .await;
         tracing::info!(git = ?found.support, "workspace calls ready");
         let stored = store.workspace().await?;
+        store.recover_registry_reservations().await?;
         let workspaces = Arc::new(Self {
             git: found.git,
             support: found.support,

@@ -10,6 +10,7 @@ mod creation;
 #[cfg(test)]
 mod labels;
 mod migrations;
+mod workspace_registry;
 
 use rusqlite::Connection;
 

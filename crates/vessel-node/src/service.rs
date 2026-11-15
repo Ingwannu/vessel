@@ -54,6 +54,7 @@ mod status;
 mod files;
 mod git;
 mod projects;
+mod registry;
 mod worktrees;
 // Protocol 11's calls: pull requests (`forge`, ADR 0029).
 mod forge;

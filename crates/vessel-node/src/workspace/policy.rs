@@ -101,6 +101,7 @@ const fn refused(method: Method) -> bool {
         Method::ListTerminalProfiles
         | Method::GetTerminalProfiles
         | Method::SetTerminalProfiles
+        | Method::ReleaseWorkspaceAutomation | Method::GetRegistry | Method::ListWorkspaces | Method::GetWorkspace | Method::RenameWorkspace | Method::PinWorkspace
         | Method::AddProject
         | Method::CloneProject
         | Method::InitProject
@@ -411,6 +412,29 @@ mod tests {
             assert!(!error.message.contains("  "), "{}", error.message);
         }
         assert!(refuse_agents(&Principal::Owner, Method::ApproveCommands).is_ok());
+    }
+
+    #[test]
+    fn registry_visibility_and_mutation_remain_person_only() {
+        let agent = Principal::Agent {
+            node: NodeId::random(),
+            session: SessionId::random(),
+            scopes: vec![Scope::Read, Scope::Operate],
+        };
+        for method in [
+            Method::ReleaseWorkspaceAutomation,
+            Method::GetRegistry,
+            Method::ListWorkspaces,
+            Method::GetWorkspace,
+            Method::RenameWorkspace,
+            Method::PinWorkspace,
+        ] {
+            assert_eq!(
+                refuse_agents(&agent, method).unwrap_err().code,
+                ErrorCode::Forbidden
+            );
+            assert!(refuse_agents(&Principal::Owner, method).is_ok());
+        }
     }
 
     #[test]
