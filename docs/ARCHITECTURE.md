@@ -1721,3 +1721,14 @@ exclusive persisted claim before backing recovery. Filesystem provisioning remai
 create driver wires it; no unwired node service ships in this dependency. Project config,
 icons, editor integration and automatic archive remain separate incomplete work.
 No protocol number or full package acceptance follows from this architecture.
+
+
+## Retained project metadata admission
+
+The node's workspace projects own an opaque asynchronous admission hold shared
+by registration/removal and backing creation. Its semaphore bounds holders and
+waiters; the provisioner retains a clone through descriptor finalization.
+The existing worktree creator accepts the caller's reserved identity only through
+the admitted Skip path, with in-flight duplicate exclusion. This adds no crate
+edge, wire call or second registry. It does not attest config approval, physical
+root continuity or process lifetime; see `docs/plans/project-admission.md`.
