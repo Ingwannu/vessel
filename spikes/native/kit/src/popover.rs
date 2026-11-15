@@ -5,7 +5,7 @@
 //! - Constraints: one sheet/snap renderer and G4's actual-close focus policy.
 //! - Alternatives: area-owned overlays or encoding controls as menu rows.
 //! - Choice: an anchored popup plus the existing configured dialog; both share
-//!   one DialogState and an opaque open lease checked before dismissal admission.
+//!   one `DialogState` and an opaque open lease checked before dismissal admission.
 //! - Why: stale callbacks cannot acknowledge a newer surface, and arbitrary
 //!   fields keep their own editing behavior without a second sheet engine.
 //! - Cost: domain owners retain their context and explicitly admit dismissal.

@@ -9,7 +9,7 @@ use crate::sheet::snap::Percentage;
 use crate::{Tokens, dialog};
 use gpui::prelude::*;
 use gpui::{
-    Anchor, AnyElement, Context, ElementId, KeyDownEvent, MouseButton, SharedString, Window,
+    Anchor, AnyElement, Context, ElementId, KeyDownEvent, MouseButton, Pixels, SharedString, Window,
 };
 use gpui::{anchored, deferred, div, point, px};
 use std::rc::Rc;
@@ -127,11 +127,8 @@ fn desktop<V: 'static>(
     let id = content.id;
     let surfaces = Surfaces::of(tokens);
     let viewport = window.viewport_size();
-    let width = content
-        .width
-        .pixels()
-        .min((viewport.width - px(MARGIN) - px(MARGIN)).max(px(MIN_VISIBLE)));
-    let height = (viewport.height - px(MARGIN) - px(MARGIN)).max(px(MIN_VISIBLE));
+    let width = content.width.pixels().min(available(viewport.width));
+    let height = available(viewport.height);
     let escape = close.clone();
     let card = popup::layer(
         div()
@@ -183,4 +180,11 @@ fn desktop<V: 'static>(
     deferred(anchored().position(point(px(0.0), px(0.0))).child(overlay))
         .with_priority(2)
         .into_any_element()
+}
+
+fn available(length: Pixels) -> Pixels {
+    px(f32::from(length)
+        .mul_add(1.0, -MARGIN)
+        .mul_add(1.0, -MARGIN)
+        .max(MIN_VISIBLE))
 }

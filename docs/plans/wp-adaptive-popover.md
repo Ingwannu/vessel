@@ -58,7 +58,11 @@ Tests use actual TextField bodies, measured desktop340/end alignment, compact
 dialog bounds, Escape/outside/header focus return, pending refusal, retained A-to-B
 rendered callbacks and newer-focus preservation. Formatting and file budgets are
 local source checks only. Compilation, Clippy and test execution run remotely.
-No runtime, V1 or consumer-ready claim exists until their exact results land.
+Initial isolated2a all-target Kit Clippy reached the source and reported one test
+callback type-inference error, a similar-name test binding, missing doc backticks
+and viewport arithmetic lints. The corrected source uses explicit callback type,
+distinct names and fused finite layout arithmetic, with no allowances. Tests have
+not run yet. No runtime, V1 or consumer-ready claim exists until exact results land.
 
 The control producer is isolated on the reviewed dd13 package line with only the
 typed dialog/snap prerequisite and this control. V1 reviews it, the lead lands it,
