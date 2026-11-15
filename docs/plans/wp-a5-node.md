@@ -330,3 +330,16 @@ Native opportunity/current-projection gates now drop Failed without removing its
 Inbox entry/read state/badge. Server claim eligibility is unchanged. The old
 worker local-error test expectations were incomplete server-only inference;
 updated native regressions and their changed-source checks are required.
+
+
+## Announced package base11 receiving union
+
+Merged greenbb5e5541 (1600/0/2) including the exact reviewed host slice and
+canonical node275 contracts. All shared History/import registrations remain;
+Inbox adds its own typed command/event/hub alongside them. The five owned
+pending rows stay last after skills.import_selection. Own forwarding test names
+are moved to that same table order, preserving the canonical list; earlier APP
+root Node309 did not execute this Proto-only assertion. Claim append22 follows
+listing21, with both rollback drops preserved. No method number or size budget
+is raised. The previous native1361 tests remain exact36 prior-source evidence;
+merged-root/native strict and tests are owed. There is no owning whole freeze.

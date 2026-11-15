@@ -56,7 +56,12 @@ fn every_method_declares_authority_and_admin_is_rare() {
             "agent.install",
             "agent.install_output",
             "usage.lookup",
-            "node.set_settings"
+            "node.set_settings",
+            "skills.status",
+            "skills.reconcile",
+            "skills.uninstall",
+            "skills.save_selection",
+            "skills.import_selection",
         ]
     );
     assert_eq!(
@@ -439,6 +444,33 @@ fn protocol_seventeen_methods_know_their_version_and_scope() {
     assert_eq!(seventeen, PROTOCOL_SEVENTEEN);
 }
 
+/// Protocol 25's methods (ADR 0082): the workspace registry's six metadata
+/// calls, each unary. Creation, archive and restore have no row.
+const PROTOCOL_TWENTY_FIVE: &[(&str, Scope)] = &[
+    ("workspace.registry", Scope::Read),
+    ("workspace.list", Scope::Read),
+    ("workspace.get", Scope::Read),
+    ("workspace.rename", Scope::Operate),
+    ("workspace.pin", Scope::Operate),
+    ("workspace.release_automation", Scope::Operate),
+];
+
+#[test]
+fn protocol_twenty_five_methods_know_their_version_scope_and_shape() {
+    let twenty_five: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == Some(ProtocolVersion::new(25)))
+        .inspect(|method| assert_eq!(method.shape(), MethodShape::Unary, "{method:?}"))
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
+        .collect();
+    assert_eq!(twenty_five, PROTOCOL_TWENTY_FIVE);
+}
+
 #[test]
 fn every_hop_of_the_envelope_has_its_own_scope() {
     // What a member holds on its home: `sync` for the bundle, `relay` only
@@ -608,9 +640,6 @@ const FORWARDABLE: &[&str] = &[
     "agent.list",
     "agent.status",
     "usage.query",
-    // Semantic terminal state can forward; local connection claims cannot.
-    "terminal.attention_clear",
-    "terminal.activity",
     // The inbox reads/marks forward; device-scoped push calls never do.
     "inbox.list",
     "inbox.get",
@@ -646,6 +675,14 @@ const FORWARDABLE: &[&str] = &[
     "workspace.release_automation",
     "git.compare",
     "git.compare_file",
+    "file.inspect",
+    "file.read_bytes",
+    "file.duplicate",
+    "file.observe",
+    "file.suggest",
+    // Semantic terminal state can forward; local connection claims cannot.
+    "terminal.attention_clear",
+    "terminal.activity",
 ];
 
 #[test]

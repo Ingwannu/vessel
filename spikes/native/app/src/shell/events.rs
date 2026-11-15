@@ -12,6 +12,7 @@ use super::{Context, Event, Route, Shell};
 impl Shell {
     pub(super) fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
+            Event::History(reply) => self.history_answer(reply, cx),
             Event::Inbox(answer) => {
                 if !self.inbox_answer(answer, cx) {
                     return;

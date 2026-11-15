@@ -20,6 +20,8 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// An original-admission guarded history result or correlated refusal.
+    History(crate::history::Answer),
     /// Durable attention results.
     Inbox(crate::inbox::Answer),
     /// An Agents response, including background install progress.
