@@ -58,7 +58,7 @@ pub use requests::{
 pub use shape::MethodShape;
 
 mod request;
-pub use request::{Request,UnexpectedReply};
+pub use request::{Request, UnexpectedReply};
 
 #[macro_use]
 mod methods;
