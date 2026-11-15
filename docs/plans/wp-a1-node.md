@@ -138,3 +138,11 @@ live/visible rows. Sessions::hand_over retires the old Agents entry before
 forgetting the visible runtime row. Thus a valid legacy resume reaches a
 vacant count entry; the new same-lock duplicate refusal protects held/restored
 ids without replacing that resume admission path or its grants.
+
+Stored profile/receipt decoding errors now cross the owned node boundary with
+their typed code and safe outer diagnostic only. The shared service formatter
+otherwise appends serde source chains, which may quote administrator argv or
+receipt ownership values even on a read-scope metadata/observation call.
+Changing the common formatter would affect unrelated error contracts, so this
+policy stays in the creation/profile handlers. Synthetic malformed-value tests
+require omission of that value and preservation of known Conflict refusals.

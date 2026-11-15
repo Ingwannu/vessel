@@ -2,8 +2,11 @@
 
 #[cfg(test)]
 mod driver;
+mod failure;
 
-use super::{Connection, NodeService, wire};
+pub(super) use failure::stored as stored_creation_error;
+
+use super::{Connection, NodeService};
 use crate::{principal::Principal, waits::Waiter};
 use std::time::Duration;
 use vessel_proto::creation::{Kind, ObserveCreation, Snapshot, SubscribeCreation};
@@ -67,7 +70,7 @@ impl NodeService {
             .creation(identity)
             .await
             .map(|receipt| receipt.map(|receipt| receipt.snapshot().clone()))
-            .map_err(|error| wire(&error.into()))
+            .map_err(stored_creation_error)
     }
 }
 

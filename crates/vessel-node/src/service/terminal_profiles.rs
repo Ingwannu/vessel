@@ -1,6 +1,6 @@
 //! Profile metadata and administrator configuration use separate scoped calls.
 
-use super::{Connection, NodeService, wire};
+use super::{Connection, NodeService, creation::stored_creation_error};
 use vessel_proto::terminal_profiles::{
     GetTerminalProfiles, ListTerminalProfiles, ProfileSettings, ProfileSummary, SetTerminalProfiles,
 };
@@ -18,7 +18,7 @@ impl NodeService {
             .terminal_profiles()
             .await
             .map(|settings| settings.summaries())
-            .map_err(|error| wire(&error.into()))
+            .map_err(stored_creation_error)
     }
     pub(crate) async fn get_terminal_profiles(
         &self,
@@ -30,7 +30,7 @@ impl NodeService {
             .store()
             .terminal_profiles()
             .await
-            .map_err(|error| wire(&error.into()))
+            .map_err(stored_creation_error)
     }
     pub(crate) async fn set_terminal_profiles(
         &self,
@@ -42,7 +42,7 @@ impl NodeService {
             .store()
             .set_terminal_profiles(request)
             .await
-            .map_err(|error| wire(&error.into()))
+            .map_err(stored_creation_error)
     }
 }
 
