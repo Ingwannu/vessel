@@ -223,3 +223,10 @@ wire, permissions or UI. One corrected Link narrow batch and same-row V1
 closure are required before broadcasting any consumer hash. Whole gates and
 captures are not repeated for this correction. Remote numeric UID/GID and
 live service flows remain explicitly unverified.
+
+The first liveness correction f4aef56e stopped in Link Clippy before tests:
+composed timeout/join futures exceeded the stack-size lint (up to104792
+bytes). The test-only timeout helpers now return statically typed pinned
+boxed futures, with no trait object or lint allowance. This does not spawn
+a task, change a phase budget or change assertion/ordering semantics. The
+red log remains `preflight-liveness-clippy-01`; no pass is inferred from it.
