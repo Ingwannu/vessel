@@ -343,3 +343,13 @@ root Node309 did not execute this Proto-only assertion. Claim append22 follows
 listing21, with both rollback drops preserved. No method number or size budget
 is raised. The previous native1361 tests remain exact36 prior-source evidence;
 merged-root/native strict and tests are owed. There is no owning whole freeze.
+
+
+The remote node-contract generator on exactde524128 passed its five actual TS
+classification/declaration tests and reported only the owned tracked proto.ts
+delta. Its unchanged verified artifact is applied here too: generator/aliases,
+web bridge/call source and all Proto declaration fields match. Remaining Proto
+source differences are only a test comment and TerminalInfo::new runtime state
+initialization, which do not define TS declarations. This is generated-artifact
+reuse, not an APP generation run or whole freshness claim; the receiving root
+whole gate must still verify the final union. No generated string was spliced.
