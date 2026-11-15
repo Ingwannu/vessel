@@ -175,8 +175,9 @@ shown and a partial comparison cannot claim the commands are unchanged.
 - Implemented: slice 2a's terminal decoder, approval fields, digest vectors,
   compatibility and CLI rendering. The slice's validation results belong in
   its review report; no runtime behaviour is implied by parsing these keys.
-- Half-done: automatic terminal execution is absent; port keys remain ignored
-  as before. `paseo.json` is not read.
+- Half-done: automatic terminal execution and port allocation are absent;
+  only declared service ports are parsed into approval data. The allocation
+  block remains ignored. `paseo.json` is not read.
 - Next: keep `PROJECT_FILE_KEYS` unassigned until the web approval dialog
   displays terminals, web `command-changes` compares them, and the native
   approval card displays them. The current web refusal is a deliberate

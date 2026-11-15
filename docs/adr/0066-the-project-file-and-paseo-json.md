@@ -115,7 +115,8 @@ Same meaning: the behaviour already matches, under the differences ADR
 refused rather than dropped, `VESSEL_PROJECT_ROOT`, `VESSEL_WORKTREE`
 and `VESSEL_BRANCH` rather than Paseo's `PASEO_*` names). Renamed: the
 fact exists under another name. Missing: runtime parity is not implemented. The terminal decoder and approval
-contract are staged in slice 2a; the remaining keys still are not parsed.
+contract are staged in slice 2a; service ports are also parsed into approved
+snapshots. The allocation block is not parsed and no new runtime is connected.
 Ignored: kept by Paseo, not a command, not approved, not implemented.
 
 | `paseo.json` | What Paseo does | `vessel.toml` | Class |
@@ -362,7 +363,8 @@ does not add a filesystem probe to either decoding or hashing.
   web command-changes and native card must display all approved terminal
   and port data before it is assigned. The declaration boundary now implements
   the constructor, serde, digest slot, reply gates and client refusal before
-  file parsing or execution can produce or honor the new field. Native
+  the file parser began producing the new field. The parser now reads it;
+  allocation and execution still do not honor it. Native
   constructor/getter/card adaptation remains an integration prerequisite.
 
 Relative program resolution is a deliberate difference from Paseo. Its
