@@ -988,3 +988,14 @@ admission; B2's real scoped composer constructor remains a separate prerequisite
   UI transitions, child field move and product rendering remain coordinated
   dependencies. All new owner/Seat/snapshot/factory APIs stay literal cfg(test)
   until actual callers and product storage/follow land together.
+
+Readonly projection/find cutover limit: retaining the Area object is not enough
+to rebase a live FindBar's numeric matches or incremental cursor. The current
+install helper resets FindCache but does not own W1's live search generation.
+W2 must hold protected navigation during replacement or consume W1's scoped
+projection-refresh hook preserving its field/query/focus identity. A deferred or
+refused install must not expose the pane's newly accepted revision over the old
+installed Area. Both owners have been informed; the temporary child frame has
+no scoped find, and the final keyed finder/installation handshake is still owed.
+No global find_grew fallback, dropped input or default-recreated controller is
+claimed as that migration.
