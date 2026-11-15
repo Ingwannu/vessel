@@ -3,8 +3,11 @@
 //! ADR 0080 keeps a single app capture owner and fences late completions:
 //! changing a route must never send old audio to a different session.
 
+mod cue;
 mod meter;
 mod state;
+
+pub use cue::{Cue, CueAction, CueError, CuePlayback, THINKING_CUE_DURATION};
 
 pub use meter::{DisplayMeter, InvalidLevel, Level, SpeechActivity, Telemetry};
 

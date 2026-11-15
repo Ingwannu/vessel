@@ -286,7 +286,7 @@ impl State {
         }
     }
 
-    const fn generation(&self) -> Option<Generation> {
+    pub(super) const fn generation(&self) -> Option<Generation> {
         match self.mode {
             Mode::Disabled => None,
             Mode::Starting { generation, .. }

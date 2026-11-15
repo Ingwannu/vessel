@@ -373,3 +373,21 @@ reader is skipped within the two-reservation bound; it does not turn a normal
 barge-in into a global device failure. A queued-cancel/new-segment fake covers
 that interleaving. This follow-up is newer than the accae1d3 test snapshot and
 will need its own subsequent batched native narrow evidence.
+
+### Waiting cue timing policy
+
+The pure view cue scheduler follows voice-runtime.ts435–489: wait1500ms
+in the exact active generation's Waiting phase, cancel on real speech/output
+or Stop, and schedule another cue only after its own play promise settles,
+then cue duration+350ms. The reference cue duration is2980ms; this reserves
+that duration for an independently generated Vessel cue rather than copying
+Paseo's embedded PCM. Mute clears the reference's speaking telemetry and does
+not itself suppress a wait cue. The policy consequently ignores stale speaking
+telemetry while the active state is muted. Old generations/old cue completions
+cannot schedule new audio. It produces one-shot actions only, not idle motion.
+
+Source tests cover sub1500ms speech-segment gaps, held cue playback, duplicate
+completion, Stop/speech/output cancellation, mute, stale generations and invalid
+clock input. Tests are new and remote execution remains owed. This is policy,
+not an audio asset or running timer; generated cue PCM, shared duplex rendering
+and its actual AEC reference/receipt integration remain unfinished.
