@@ -1536,3 +1536,11 @@ name `vessel_proc` in store to `src/lock/`, which delegates the lock query
 only. The real CLI caller restricts proc's signal entry point to the force
 module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
+
+The staged node `speech_audio` module is shared by dictation and spoken
+conversation (ADR 0067 / ADR 0080). It owns a borrowed aligned PCM16 view,
+fixed-provider-rate conversion and checked in-memory WAV framing. Recording
+budgets, silence, segmentation, prompts and multipart fields stay with callers.
+It adds no crate edge or dependency; consumers remove its test gate when wiring
+real product callers. Payload-bearing Debug is redacted and no audio file is
+created by the codec.
