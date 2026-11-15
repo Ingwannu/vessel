@@ -230,3 +230,22 @@ bytes). The test-only timeout helpers now return statically typed pinned
 boxed futures, with no trait object or lint allowance. This does not spawn
 a task, change a phase budget or change assertion/ordering semantics. The
 red log remains `preflight-liveness-clippy-01`; no pass is inferred from it.
+
+
+### Corrected Link narrow result
+
+Exact test-correction source `95c256bcea1c8ff96f1372f48516575dfbccf83c`
+passed Link all-target Clippy and Link tests78/0/0:
+`devices-narrow-20261115T101832Z-95c256bc` and
+`devices-narrow-20261115T101934Z-95c256bc`. Both fonts/cargo steps are zero
+with no skip; changed Link compilation/check is in the retained logs.
+Evidence is `preflight-liveness-{clippy,test}-02`, independently summed in
+`preflight-liveness-evidence.json`. `preflight-source-95c2.json` pins2399
+tracked source files, including the new test-only deadline helper.
+
+The correction changes only six cfg(test) support/regression paths plus
+this document against3f4f. All product files, App/View and their prior exact
+evidence remain unchanged; no fresh App/View/whole gate is claimed. V1's
+same-row P2 closure and SOURCE adoption remain pending. No consumer hash
+is broadcast before closure, and no live-stream/permission/UI approval is
+claimed. Remote numeric UID/GID and service-account flows remain unverified.
