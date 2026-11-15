@@ -42,3 +42,9 @@ with the canonical settings startup/apply/rollback caller and actual union
 checks. No dead-code exemption or fake product caller is used. The owner may
 remove that exact guard as part of the coordinated consumer cutover; the
 producer alone is not a live settings UI or all-resident retention proof.
+
+A further regression is written before its repair: shrinking to zero then
+increasing while the executor owns the model must still discard the old history.
+Keeping only the final desired capacity loses the intermediate trim intent.
+The new test requires zero old history after return, then future output may grow
+under the final capacity. It has not been executed on the old prototype yet.
