@@ -368,3 +368,17 @@ rule test keeps parked/imported sessions and permits a fresh Remote create;
 manual rename is unchanged. Narrow all-targets Clippy and all session
 library/fake generated-title tests pass. No node task is armed yet and the
 actor slice still owes its exact-commit whole gate before port/report.
+
+### Bounded complete-response contract and resume point
+
+Decision: modify existing model API assets, not add a provider SDK or a
+second HTTP stack. Whole Anthropic/Responses replies already have typed
+wire models; Chat needs its whole reply/message fields in that same owner.
+The complete-response decoder is separate because the proxy's permissive
+stream endings cannot establish metadata finality. It will retain usage,
+reject tools/refusals/unknown endings and check credential echoes without
+changing proxy stream semantics. Bounded buffering replaces an unnecessary
+metadata stream. The node will still own selection, permission, request
+budgets, semantic JSON and title application. Tests use recorded API shapes
+and real parsers, never a live provider. Contract first; implementation and
+its narrow checks are next. No model request is wired by this library slice.

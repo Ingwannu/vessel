@@ -209,6 +209,36 @@ Paseo's manual candidate without a model uses the default or first model
 (`selectDefaultModel`, 262–264); its automatic path uses the model that
 matched the substring, not a separate small-model field.
 
+### Strict complete-response decoding
+
+The model API crate owns response grammar. It will reuse its existing
+Anthropic Message and Responses Response types and add the missing whole
+Chat completion shape beside that API's existing wire types. A bounded
+complete-response decoder returns text, reported usage and a known stop;
+the node alone interprets the returned text as the generated-name JSON.
+No provider response structs or string-based API parsing live in the node.
+
+The existing streaming decoders deliberately tolerate missing or unknown
+end reasons for proxy compatibility. They cannot alone prove that a
+structured metadata answer completed normally. Changing their policy would
+change unrelated harness traffic; parsing all streamed events a second time
+would add another state machine. Instead, metadata uses the existing typed
+request encoders with streaming off and buffers one small, bounded reply.
+There is no metadata token stream shown to a person, so this loses no
+visible progress. Existing proxy decoder behavior remains unchanged.
+
+`MAX_COMPLETION_BYTES` is the one response-byte bound, shared with the
+caller's HTTP limit. A normal explicit end/status is required; missing,
+unknown or incomplete endings, declared errors, tool/refusal content,
+non-text output and multiple Chat choices are unusable. Reported usage and
+known stop reasons survive output refusal rather than being fabricated as
+an end turn. Credentials are checked on both the raw envelope and decoded
+text with the existing Redactor; node schema decoding checks the final
+value too. Completion text and errors have safe Debug output. JSON causes
+stay typed behind a safe diagnostic wrapper because serde messages may
+quote provider content; only category, never quoted text, crosses it.
+This decoder reads no file, opens no socket and adds no dependency.
+
 ### Settings
 
 `NodeSettings.metadata` and `SetNodeSettings.metadata`:
