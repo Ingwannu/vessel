@@ -337,6 +337,7 @@ fn kind(event: &AgentEvent) -> &'static str {
         AgentEvent::Steered { .. } => "steered",
         AgentEvent::QuestionAsked(_) => "question_asked",
         AgentEvent::QuestionResolved { .. } => "question_resolved",
+        AgentEvent::ProviderChild(_) => "provider_child",
     }
 }
 

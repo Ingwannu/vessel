@@ -44,7 +44,9 @@ impl NodeService {
             .child_reads
             .try_acquire()
             .map_err(|_error| unavailable())?;
-        let deadline = tokio::time::Instant::now() + bounds::READ_DEADLINE;
+        let deadline = tokio::time::Instant::now()
+            .checked_add(bounds::READ_DEADLINE)
+            .ok_or_else(unavailable)?;
         let info = tokio::time::timeout_at(deadline, self.sessions.get(session))
             .await
             .map_err(|_error| unavailable())?

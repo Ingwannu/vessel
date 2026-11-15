@@ -97,7 +97,7 @@ impl Projection {
         match ChildDescriptors::try_from(proposed) {
             Ok(rows) => self.descriptors = rows.as_slice().to_vec(),
             Err(vessel_proto::subagents::InvalidChildCollection::Identity) => {
-                self.gap = Some(ChildGap::Nesting)
+                self.gap = Some(ChildGap::Nesting);
             }
             Err(
                 vessel_proto::subagents::InvalidChildCollection::Count

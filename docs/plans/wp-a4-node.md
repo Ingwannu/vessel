@@ -147,3 +147,13 @@ alias inventory before generation, identifying three unclassified values.
   discarded deque/first-boundary return values only correct strict warnings.
 - Impact: generated declarations still require the normal TS step and freshness
   evidence. No wire feature number or runtime/provider readiness is assigned.
+
+The subsequent exactbdbd7581 five-crate all-target strict run returned at the
+agent integration test's exhaustive diagnostic event-name match and two node
+strict warnings. The diagnostic now labels ProviderChild explicitly without
+flattening child content. The scan deadline uses checked_add, refusing with the
+same bounded-read Unavailable outcome if the clock cannot represent the budget;
+the existing test deadline uses the checked operation as well. The remaining
+assignment block ends with a semicolon. An exhaustive consumer scan found the
+CLI/session/store/conversation masks already handle ProviderChild; no wildcard
+or lint allowance was added. Corrected-source strict remains owed.

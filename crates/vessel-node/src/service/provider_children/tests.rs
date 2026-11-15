@@ -33,7 +33,9 @@ fn an_oversized_first_record_is_partial_at_the_actual_decoded_parent_sequence() 
             &mut ChildScanBudget::default(),
             vec![record(43, "x".repeat(bounds::MAX_SCAN_BYTES))],
             EventSeq::new(50),
-            tokio::time::Instant::now() + bounds::READ_DEADLINE
+            tokio::time::Instant::now()
+                .checked_add(bounds::READ_DEADLINE)
+                .unwrap()
         )
         .unwrap()
     );
