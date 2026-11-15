@@ -160,6 +160,15 @@ impl Surface {
         }
     }
 
+    /// A chat menu cannot cover terminal input, a voice surface or fullscreen text.
+    #[must_use]
+    pub fn autocomplete(self) -> bool {
+        self.mode == Mode::Chat
+            && self.extent == Extent::Inline
+            && self.overlay == Overlay::None
+            && self.access() == Access::Editable
+    }
+
     /// Only compact editable surfaces with multiple rendered lines expand.
     #[must_use]
     pub fn can_expand(self, layout: Layout, lines: RenderedLines) -> bool {

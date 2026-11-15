@@ -63,3 +63,5 @@ Next: native input integration, command source APIs and exact submit interceptio
 - Native clipboard currently exposes plain text only: source Markdown and code-aware text are planned; the reference web clipboard's HTML flavor is not exposed by the platform API.
 
 Messaging identity is owned by the timeline protocol package (ADR 0084). Attachment submit ingress allocates its canonical client id once after client-command dispatch and before optimistic presentation or preparation. The shell retains that id; it does not create an independent receipt or message queue.
+
+App state skeleton now registers `areas::composer_shell` by existing DraftKey and gates the existing slash menu through its surface policy. No alternate submit listener, fullscreen button or node RPC has been exposed yet. The editor split and lifecycle callbacks remain pending. Markdown callback/copy adapter remains unverified until its narrow kit check.

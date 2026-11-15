@@ -44,6 +44,7 @@ use vessel_app_kit::ui::{
     Pixels, SharedString, Styled, Window, div, px,
 };
 use vessel_app_kit::{TextField, Tokens, anchor_probe, chrome, motion};
+use vessel_app_view::composer::drafts::DraftKey;
 use vessel_app_view::composer::reveal::Reveal;
 use vessel_app_view::composer::slash::{Chosen, Menu, SlashRange, Step, apply};
 use vessel_app_view::offers::OfferKey;
@@ -173,6 +174,15 @@ impl Shell {
 
     /// The `/` menu over `over`, when its caret is in a command's name.
     fn slash_menu(&self, over: Over, cx: &App) -> Option<Menu<'_>> {
+        let target = match over {
+            Over::Draft => DraftKey::New,
+            Over::Session => DraftKey::Session {
+                session: self.areas.session.open.as_ref()?.session,
+            },
+        };
+        if !self.areas.composer_shell.permits_menu(target) {
+            return None;
+        }
         let listed = self.slash_listed(over)?;
         let field = self.slash_field(over);
         let text = field.text(cx);

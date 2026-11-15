@@ -13,6 +13,7 @@ pub(crate) mod archive;
 pub(crate) mod board;
 pub(crate) mod common;
 pub(crate) mod composer;
+pub(crate) mod composer_shell;
 pub(crate) mod conversation;
 pub(crate) mod draft;
 pub(crate) mod edge;
@@ -50,6 +51,8 @@ pub(crate) struct Areas {
     pub(crate) toasts: vessel_app_view::toasts::Toasts,
     /// Track P's: a running session's option changes in flight.
     pub(crate) composer: composer::ComposerArea,
+    /// Editor-independent surface policy for each existing draft owner.
+    pub(crate) composer_shell: composer_shell::ComposerShellArea,
     /// The parts drawn as views of their own (`crate::region`).
     pub(crate) regions: crate::region::Regions,
 }
@@ -72,6 +75,7 @@ impl Areas {
             sidebar: sidebar::SidebarState::new(window, cx),
             toasts: vessel_app_view::toasts::Toasts::default(),
             composer: composer::ComposerArea::new(cx),
+            composer_shell: composer_shell::ComposerShellArea::default(),
             regions: crate::region::Regions::default(),
         };
         // Track P: the composers' drafts read back, and kept as typed.
