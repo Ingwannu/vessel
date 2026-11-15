@@ -9,7 +9,7 @@ use std::fmt;
 use vessel_proto::voice::CapturePcm;
 
 const PRE_ROLL_BYTES: usize = 64_000;
-const MAX_UTTERANCE_BYTES: usize = 1_920_000;
+pub(super) const MAX_UTTERANCE_BYTES: usize = 1_920_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub(super) enum BufferError {

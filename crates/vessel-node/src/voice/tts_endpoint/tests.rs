@@ -9,35 +9,10 @@ use axum::{
 };
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use tokio::net::TcpListener;
-use tokio::task::JoinHandle;
-use tokio_util::sync::CancellationToken;
 
-const SYNTHETIC_KEY: &str = "voice-fixture-credential";
+use crate::voice::fixture::{SYNTHETIC_KEY, Server};
 
-struct Server {
-    base: EndpointBase,
-    stop: CancellationToken,
-    task: Option<JoinHandle<()>>,
-}
 impl Server {
-    async fn start(router: Router) -> Self {
-        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let address = listener.local_addr().unwrap();
-        let stop = CancellationToken::new();
-        let closing = stop.clone();
-        let task = tokio::spawn(async move {
-            axum::serve(listener, router)
-                .with_graceful_shutdown(closing.cancelled_owned())
-                .await
-                .unwrap();
-        });
-        Self {
-            base: format!("http://{address}/v1").parse().unwrap(),
-            stop,
-            task: Some(task),
-        }
-    }
     async fn endpoint(&self) -> Endpoint {
         Endpoint::connect(
             &self.base,
@@ -48,19 +23,8 @@ impl Server {
         .await
         .unwrap()
     }
-    async fn finish(mut self) {
-        self.stop.cancel();
-        self.task.take().unwrap().await.unwrap();
-    }
 }
-impl Drop for Server {
-    fn drop(&mut self) {
-        self.stop.cancel();
-        if let Some(task) = self.task.take() {
-            task.abort();
-        }
-    }
-}
+
 fn text() -> SpeechText {
     SpeechText::try_from("fixture utterance".to_owned()).unwrap()
 }
@@ -190,7 +154,7 @@ async fn malformed_and_oversized_response_bodies_cannot_become_playback() {
 
 #[tokio::test]
 async fn bad_credentials_and_oversized_segments_refuse_before_network_work() {
-    for key in ["", "\r\ninvalid-private"] {
+    for key in ["", "invalid\r\nprivate"] {
         assert_eq!(
             Endpoint::connect(
                 &EndpointBase::openai(),

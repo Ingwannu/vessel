@@ -54,6 +54,14 @@ pub(super) enum PromptError {
     Boundary,
 }
 
+/// The lifecycle caller must positively know the Vessel supplemental layer.
+/// Unavailable is deliberately not an input: it must refuse before composition.
+#[derive(Debug, Clone, Copy)]
+pub(super) enum Base<'a> {
+    KnownAbsent,
+    Known(&'a Prompt),
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum ReloadOutcome {
     Applied,
@@ -90,13 +98,17 @@ impl Policy {
     pub(super) fn enable(
         &mut self,
         epoch: VoiceEpoch,
-        existing: Option<&Prompt>,
+        existing: Base<'_>,
     ) -> Result<Prompt, PromptError> {
         if !matches!(self.0, Phase::Inactive) {
             return Err(PromptError::Busy);
         }
         // Prepare both bounded values before recording a reload or changing ownership.
-        let base = strip(existing.map_or("", Prompt::as_str))?;
+        let text = match existing {
+            Base::KnownAbsent => "",
+            Base::Known(prompt) => prompt.as_str(),
+        };
+        let base = strip(text)?;
         let enabled = overlay(&base, ENABLED)?;
         let restore = overlay(&base, DISABLED)?;
         self.0 = Phase::Enabling { epoch, restore };
@@ -242,14 +254,17 @@ mod tests {
         ))
         .unwrap();
         let mut policy = Policy::default();
-        let enabled = policy.enable(epoch, Some(&base)).unwrap();
+        let enabled = policy.enable(epoch, Base::Known(&base)).unwrap();
         assert_eq!(enabled.as_str().matches(BLOCK_START).count(), 1);
         assert!(enabled.as_str().starts_with("base  retained"));
         assert_eq!(
             policy.enabled(other, ReloadOutcome::Applied),
             Ok(Applied::Stale)
         );
-        assert_eq!(policy.enable(other, None), Err(PromptError::Busy));
+        assert_eq!(
+            policy.enable(other, Base::KnownAbsent),
+            Err(PromptError::Busy)
+        );
         assert_eq!(
             policy.enabled(epoch, ReloadOutcome::Applied),
             Ok(Applied::Current)
@@ -265,13 +280,16 @@ mod tests {
             policy.restored(epoch, ReloadOutcome::Uncertain),
             Ok(Applied::Current)
         );
-        assert_eq!(policy.enable(other, None), Err(PromptError::Busy));
+        assert_eq!(
+            policy.enable(other, Base::KnownAbsent),
+            Err(PromptError::Busy)
+        );
         assert_eq!(policy.restore(epoch).unwrap(), restore);
         assert_eq!(
             policy.restored(epoch, ReloadOutcome::Applied),
             Ok(Applied::Current)
         );
-        assert!(policy.enable(other, None).is_ok());
+        assert!(policy.enable(other, Base::KnownAbsent).is_ok());
     }
 
     #[test]
@@ -279,15 +297,22 @@ mod tests {
         let epoch = VoiceEpoch::random();
         let mut policy = Policy::default();
         let full = Prompt::new(&"x".repeat(MAX_PROMPT_BYTES)).unwrap();
-        assert_eq!(policy.enable(epoch, Some(&full)), Err(PromptError::TooLong));
+        assert_eq!(
+            policy.enable(epoch, Base::Known(&full)),
+            Err(PromptError::TooLong)
+        );
         let private = Prompt::new("private-system-policy").unwrap();
         assert!(!format!("{private:?}").contains("private-system-policy"));
-        assert!(policy.enable(epoch, Some(&private)).is_ok());
+        assert!(policy.enable(epoch, Base::Known(&private)).is_ok());
         assert_eq!(
             policy.enabled(epoch, ReloadOutcome::Refused),
             Ok(Applied::Current)
         );
-        assert!(policy.enable(VoiceEpoch::random(), None).is_ok());
+        assert!(
+            policy
+                .enable(VoiceEpoch::random(), Base::KnownAbsent)
+                .is_ok()
+        );
     }
 
     #[test]
@@ -298,7 +323,7 @@ mod tests {
         );
         let mut policy = Policy::default();
         let epoch = VoiceEpoch::random();
-        assert!(policy.enable(epoch, None).is_ok());
+        assert!(policy.enable(epoch, Base::KnownAbsent).is_ok());
         assert_eq!(
             policy.enabled(epoch, ReloadOutcome::Uncertain),
             Ok(Applied::Current)
@@ -309,7 +334,7 @@ mod tests {
             Ok(Applied::Current)
         );
         assert_eq!(
-            policy.enable(VoiceEpoch::random(), None),
+            policy.enable(VoiceEpoch::random(), Base::KnownAbsent),
             Err(PromptError::Busy)
         );
     }

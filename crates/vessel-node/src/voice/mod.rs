@@ -5,10 +5,15 @@
 //! boundaries with deterministic detector/provider inputs, never a microphone.
 
 mod boundary;
+#[cfg(test)]
+mod fixture;
+mod http;
 mod input_buffer;
 
 mod prompt;
 mod receipts;
 mod segments;
+mod stt_endpoint;
+mod stt_form;
 mod transcript;
 mod tts_endpoint;
