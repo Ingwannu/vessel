@@ -1,7 +1,8 @@
 //! Repeated queries and stale scopes must not consume the current picker.
 
 use gpui::TestAppContext;
-use vessel_proto::ProjectId;
+use vessel_app_view::connection::{ConnectionEpochs, MachineKey};
+use vessel_proto::{NodeId, ProjectId, workspace::WorkspaceRoot};
 
 use super::*;
 
@@ -15,10 +16,14 @@ fn receive(
 
 fn request(key: SearchKey) -> FileSearchRequest {
     FileSearchRequest {
-        machine: Name::parse("node").unwrap(),
-        root: WorkspaceRoot::Project {
-            project: ProjectId::random(),
-        },
+        scope: FileScope::new(
+            ConnectionEpochs::default()
+                .admit(MachineKey::from_book("node"), NodeId::random())
+                .unwrap(),
+            WorkspaceRoot::Project {
+                project: ProjectId::random(),
+            },
+        ),
         query: "alpha".parse().unwrap(),
         key,
         limit: NonZeroU32::new(30).unwrap(),
@@ -27,7 +32,7 @@ fn request(key: SearchKey) -> FileSearchRequest {
 
 fn ask(request: &FileSearchRequest) -> FindFiles {
     FindFiles {
-        root: request.root,
+        root: request.scope.root(),
         query: request.query.clone(),
         key: Some(request.key),
         limit: Some(request.limit.get()),
@@ -56,12 +61,12 @@ fn repeated_query_keeps_new_generation_after_old_reply(cx: &mut TestAppContext) 
         assert_ne!(old_ticket, current);
         assert!(
             shell
-                .take_file_search("node", &ask(&first), old_ticket)
+                .take_file_search(&first.scope, &ask(&first), old_ticket)
                 .is_none()
         );
         assert!(
             shell
-                .take_file_search("other", &ask(&first), current)
+                .take_file_search(&request(key).scope, &ask(&first), current)
                 .is_none()
         );
         let mut wrong_root = ask(&first);
@@ -70,19 +75,19 @@ fn repeated_query_keeps_new_generation_after_old_reply(cx: &mut TestAppContext) 
         };
         assert!(
             shell
-                .take_file_search("node", &wrong_root, current)
+                .take_file_search(&first.scope, &wrong_root, current)
                 .is_none()
         );
         assert_eq!(
             shell
-                .take_file_search("node", &ask(&first), current)
+                .take_file_search(&first.scope, &ask(&first), current)
                 .unwrap()
                 .0,
             first
         );
         assert!(
             shell
-                .take_file_search("node", &ask(&first), current)
+                .take_file_search(&first.scope, &ask(&first), current)
                 .is_none()
         );
     });
@@ -118,7 +123,7 @@ fn cancellation_and_capacity_preserve_other_fields(cx: &mut TestAppContext) {
         shell.cancel_file_search(key);
         assert!(
             shell
-                .take_file_search("node", &ask(&extra), ticket)
+                .take_file_search(&extra.scope, &ask(&extra), ticket)
                 .is_none()
         );
         let mut huge = extra;

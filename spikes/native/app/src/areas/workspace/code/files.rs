@@ -18,16 +18,16 @@ use vessel_proto::workspace::{
 
 use super::{Shown, Viewer};
 use crate::shell::Shell;
-use vessel_app_link::workspace::{Ask, FileAsk};
+use vessel_app_link::workspace::FileAsk;
 
 impl Shell {
     /// List `dir`, unless it is listed or being listed.
     pub(super) fn read_folder(&mut self, dir: &RelPath) {
+        let Some(scope) = self.areas.workspace.code.scope() else {
+            return;
+        };
         let panel = &mut self.areas.workspace.code;
-        let Some((machine, root)) = panel
-            .root()
-            .map(|(machine, root)| (machine.to_owned(), *root))
-        else {
+        let Some(root) = panel.root().map(|(_, root)| *root) else {
             return;
         };
         if matches!(
@@ -38,19 +38,22 @@ impl Shell {
         }
         let _was = panel.files.listings.insert(dir.clone(), Listing::Loading);
         panel.files.relist();
-        self.ask(
-            &machine,
-            Ask::File(FileAsk::List(ListDir {
+        self.send_file_scope(
+            scope,
+            FileAsk::List(ListDir {
                 root,
                 dir: dir.clone(),
                 ignored: true,
-            })),
+            }),
         );
     }
 
     /// Ask again for every folder listed and the file shown, what is shown
     /// kept until each answers (`code_git_changed`).
     pub(super) fn reread_files(&mut self) {
+        let Some(scope) = self.areas.workspace.code.scope() else {
+            return;
+        };
         let panel = &mut self.areas.workspace.code;
         let Some((machine, root)) = panel
             .root()
@@ -65,13 +68,13 @@ impl Shell {
             .as_ref()
             .map(|viewer| viewer.path.clone());
         for dir in folders {
-            self.ask(
-                &machine,
-                Ask::File(FileAsk::List(ListDir {
+            self.send_file_scope(
+                scope.clone(),
+                FileAsk::List(ListDir {
                     root,
                     dir,
                     ignored: true,
-                })),
+                }),
             );
         }
         if self
@@ -198,7 +201,12 @@ impl Shell {
         else {
             return;
         };
-        if super::buffers::FileKey::from_book(&machine, root, path.clone())
+        if self
+            .areas
+            .workspace
+            .code
+            .scope()
+            .map(|scope| super::buffers::FileKey::new(&scope, path.clone()))
             .is_some_and(|key| self.areas.workspace.code.file_mutating(&key))
         {
             self.areas.workspace.code.files.actions.refused =
@@ -230,10 +238,13 @@ impl Shell {
             .code
             .cwd()
             .map(std::path::Path::to_path_buf);
-        let files = &mut self.areas.workspace.code.files;
-        let Some(key) = super::buffers::FileKey::from_book(machine, root, path.clone()) else {
+        let Some(scope) = self.areas.workspace.code.scope().filter(|scope| {
+            scope.connection().machine().as_str() == machine && scope.root() == root
+        }) else {
             return;
         };
+        let key = super::buffers::FileKey::new(&scope, path.clone());
+        let files = &mut self.areas.workspace.code.files;
         if let Some(mut viewer) = files.retained.remove(&key) {
             if location.is_some() {
                 viewer.goto = location;
@@ -241,11 +252,54 @@ impl Shell {
                     preview.reveal_source();
                 }
             }
+            let rebound = viewer.scope != scope;
+            if rebound {
+                viewer.scope = scope;
+                viewer.reading = None;
+                viewer.intelligence = super::intelligence::State::Idle;
+                if let Some(editing) = &mut viewer.edit {
+                    editing.reading = None;
+                    editing.autosave = editing.autosave.wrapping_add(1);
+                    editing.model.retire_observations();
+                }
+            }
             files.viewer = Some(viewer);
+            if rebound {
+                let step = files
+                    .viewer
+                    .as_mut()
+                    .and_then(|viewer| viewer.edit.as_mut())
+                    .map(|editing| {
+                        let step = editing.model.reconcile();
+                        if matches!(step, vessel_app_view::workspace::editor::Step::None)
+                            && editing.editor.is_none()
+                        {
+                            vessel_app_view::workspace::editor::Step::Read {
+                                sequence: editing.model.reading(),
+                            }
+                        } else {
+                            step
+                        }
+                    });
+                if let Some(step) = step {
+                    self.send_step_for(&key, step);
+                } else {
+                    self.read_viewer(
+                        machine,
+                        ReadFile {
+                            root,
+                            path,
+                            offset: 0,
+                            limit: None,
+                        },
+                    );
+                }
+            }
             return;
         }
         let editable = !files.narrow.get();
         files.viewer = Some(Viewer {
+            scope,
             markdown: super::markdown::Preview::for_path(&path, location),
             reading: None,
             workspace_dir,
@@ -277,8 +331,13 @@ impl Shell {
         self.read_viewer(machine, read);
     }
 
-    fn read_viewer(&mut self, machine: &str, ask: ReadFile) {
-        let Some(key) = super::buffers::FileKey::from_book(machine, ask.root, ask.path.clone())
+    fn read_viewer(&mut self, _machine: &str, ask: ReadFile) {
+        let Some(key) = self
+            .areas
+            .workspace
+            .code
+            .file_key()
+            .filter(|key| key.root == ask.root && key.path == ask.path)
         else {
             return;
         };
@@ -289,22 +348,18 @@ impl Shell {
             return;
         };
         viewer.reading = Some(ticket);
-        self.ask(machine, Ask::File(FileAsk::Read { ask, ticket }));
+        self.send_file_for(&key, FileAsk::Read { ask, ticket });
     }
 
-    pub(in crate::areas::workspace) fn file_read_answered(
+    pub(super) fn file_read_answered_for(
         &mut self,
-        machine: &str,
+        key: &super::buffers::FileKey,
         ask: &ReadFile,
         ticket: vessel_app_view::workspace::file_ticket::FileTicket,
         result: Result<FileRead, Problem>,
         cx: &mut Context<'_, Self>,
     ) {
-        let Some(key) = super::buffers::FileKey::from_book(machine, ask.root, ask.path.clone())
-        else {
-            return;
-        };
-        let Some(viewer) = self.areas.workspace.code.viewer_for(&key) else {
+        let Some(viewer) = self.areas.workspace.code.viewer_for(key) else {
             return;
         };
         if viewer
@@ -314,23 +369,19 @@ impl Shell {
         {
             return;
         }
-        self.file_read(machine, ask, result, cx);
+        self.file_read_for(key, ask, result, cx);
     }
 
     /// A file's first page arrived.
-    pub(super) fn file_read(
+    pub(super) fn file_read_for(
         &mut self,
-        machine: &str,
+        key: &super::buffers::FileKey,
         ask: &ReadFile,
         result: Result<FileRead, Problem>,
         _cx: &mut Context<'_, Self>,
     ) {
         let words = self.words();
-        let Some(key) = super::buffers::FileKey::from_book(machine, ask.root, ask.path.clone())
-        else {
-            return;
-        };
-        let Some(viewer) = self.areas.workspace.code.viewer_for(&key) else {
+        let Some(viewer) = self.areas.workspace.code.viewer_for(key) else {
             return;
         };
         if let Some(preview) = &mut viewer.markdown {
@@ -383,25 +434,21 @@ impl Shell {
 
 impl Shell {
     /// An editor response belongs to its original node, file and ticket.
-    pub(in crate::areas::workspace) fn editor_read_answered(
+    pub(super) fn editor_read_answered_for(
         &mut self,
-        machine: &str,
+        key: &super::buffers::FileKey,
         ticket: vessel_app_view::workspace::file_ticket::FileTicket,
         ask: &ReadFile,
         result: Result<FileRead, Problem>,
         cx: &mut Context<'_, Self>,
     ) {
-        let Some(key) = super::buffers::FileKey::from_book(machine, ask.root, ask.path.clone())
-        else {
-            return;
-        };
-        if self.editing_read(&key, ticket, &result, cx) {
+        if self.editing_read(key, ticket, &result, cx) {
             return;
         }
-        if let Some(viewer) = self.areas.workspace.code.viewer_for(&key) {
+        if let Some(viewer) = self.areas.workspace.code.viewer_for(key) {
             viewer.edit = None;
         }
-        self.file_read(machine, ask, result, cx);
+        self.file_read_for(key, ask, result, cx);
     }
 }
 

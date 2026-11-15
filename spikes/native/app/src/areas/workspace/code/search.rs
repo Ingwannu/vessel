@@ -22,7 +22,7 @@ use vessel_app_kit::ui::{
     Context, Div, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Reveal, TextField, Tokens, VirtualList, glyph};
-use vessel_app_link::workspace::{Ask, FileAsk};
+use vessel_app_link::workspace::FileAsk;
 use vessel_app_view::workspace::find::FILE_SEARCH_LIMIT;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::reference::{file_reference, with_reference};
@@ -136,6 +136,9 @@ impl Shell {
         else {
             return;
         };
+        let Some(scope) = self.areas.workspace.code.scope() else {
+            return;
+        };
         let mode = self.areas.workspace.code.files.search.mode;
         let sent = match mode {
             Mode::Name => text.trim(),
@@ -148,17 +151,14 @@ impl Shell {
                     None => self.file_search_key(),
                 };
                 self.areas.workspace.code.files.search.key = Some(key);
-                let (Ok(query), Ok(machine), Some(limit)) = (
-                    sent.parse(),
-                    vessel_app_view::machine_book::Name::parse(&machine),
-                    std::num::NonZeroU32::new(FIND_LIMIT),
-                ) else {
+                let (Ok(query), Some(limit)) =
+                    (sent.parse(), std::num::NonZeroU32::new(FIND_LIMIT))
+                else {
                     self.refuse_search();
                     return;
                 };
                 SearchDispatch::Find(crate::areas::workspace::FileSearchRequest {
-                    machine,
-                    root,
+                    scope: scope.clone(),
                     query,
                     key,
                     limit,
@@ -190,7 +190,7 @@ impl Shell {
                         Results::Failed(error.to_string());
                 }
             }
-            SearchDispatch::Grep(ask) => self.ask(&machine, Ask::File(FileAsk::Grep(ask))),
+            SearchDispatch::Grep(ask) => self.send_file_scope(scope, FileAsk::Grep(ask)),
         }
     }
 
@@ -465,7 +465,7 @@ fn search_received(
     result: Result<FoundFiles, Problem>,
     _cx: &mut Context<'_, Shell>,
 ) {
-    if shell.areas.workspace.code.root() != Some((request.machine.as_str(), &request.root)) {
+    if shell.areas.workspace.code.scope().as_ref() != Some(&request.scope) {
         return;
     }
     let words = shell.words();

@@ -78,7 +78,7 @@ impl Shell {
             cx.notify();
             return;
         };
-        let root = opening.root;
+        let root = opening.scope.root();
         let change = match kind {
             EditKind::NewFile(_) => PathChange::CreateFile { root, path: target },
             EditKind::NewFolder(_) => PathChange::CreateDir(CreateDir { root, path: target }),
@@ -88,7 +88,7 @@ impl Shell {
                 to: target,
             }),
         };
-        self.begin_file_mutation(opening.machine.as_str(), change, cx);
+        self.begin_file_mutation_for(opening.scope, change, cx);
         cx.notify();
     }
 
@@ -133,10 +133,10 @@ impl Shell {
             cx.notify();
             return;
         }
-        self.begin_file_mutation(
-            prompt.opening.machine.as_str(),
+        self.begin_file_mutation_for(
+            prompt.opening.scope.clone(),
             PathChange::Delete(DeletePath {
-                root: prompt.opening.root,
+                root: prompt.opening.scope.root(),
                 path: prompt.path,
                 recursive: matches!(prompt.depth, RemovalDepth::DirectoryTree),
             }),

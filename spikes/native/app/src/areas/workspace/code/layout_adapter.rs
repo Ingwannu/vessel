@@ -34,7 +34,7 @@ impl Shell {
         if target.machine != machine.as_str() || target.session != session {
             return None;
         }
-        panel.root().map(|(_, root)| *root)
+        self.file_admitted_scope().map(|scope| scope.root())
     }
 }
 

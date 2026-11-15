@@ -5,7 +5,7 @@
 use std::num::NonZeroU32;
 
 use vessel_app_kit::ui::{Context, Window};
-use vessel_app_link::workspace::{Ask, FileAsk, IntelligenceAsk, IntelligenceResult};
+use vessel_app_link::workspace::{FileAsk, IntelligenceAsk, IntelligenceResult};
 use vessel_app_view::workspace::intelligence::{IntelligenceAction, language_for};
 use vessel_proto::lsp::{AtPosition, FilePath, Offset, PageRequest, Position, Workspace};
 
@@ -113,19 +113,16 @@ impl Shell {
         if let Some(viewer) = self.areas.workspace.code.viewer_for(key) {
             viewer.intelligence = State::Loading(ask.clone());
         }
-        self.ask(key.machine.as_str(), Ask::File(FileAsk::Intelligence(ask)));
+        self.send_file_for(key, FileAsk::Intelligence(ask));
     }
 
     pub(in crate::areas::workspace) fn language_answered(
         &mut self,
-        machine: &str,
+        key: &FileKey,
         ask: IntelligenceAsk,
         result: IntelligenceResult,
     ) {
-        let Some(key) = FileKey::from_book(machine, ask.root, ask.path.clone()) else {
-            return;
-        };
-        let Some(viewer) = self.areas.workspace.code.viewer_for(&key) else {
+        let Some(viewer) = self.areas.workspace.code.viewer_for(key) else {
             return;
         };
         if matches!(&viewer.intelligence, State::Loading(pending) if pending.ticket == ask.ticket) {

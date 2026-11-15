@@ -90,7 +90,10 @@ fn old_menu_and_delete_answers_cannot_consume_the_new_opening(cx: &mut TestAppCo
         shell.confirm_delete(current, cx);
         assert!(shell.areas.workspace.code.mutation.is_some());
         let key = |root| {
-            super::buffers::FileKey::from_book("node", root, "victim".parse().unwrap()).unwrap()
+            super::buffers::FileKey::new(
+                &shell.areas.workspace.code.scope().unwrap(),
+                "victim".parse().unwrap(),
+            )
         };
         assert!(shell.areas.workspace.code.file_mutating(&key(b)));
         assert!(!shell.areas.workspace.code.file_mutating(&key(a)));

@@ -1,44 +1,44 @@
-//! One file effect implementation, shared by legacy callers and admitted C5 calls.
+//! One admitted file effect implementation for every C5 owner.
 //! Keeping save_text here preserves its exactly-one-write rule during cutover.
-use super::{Answer, FileAsk, PathChange, Save, file_call::Client};
+use super::{FileAnswer, FileAsk, PathChange, Save, file_call::Client};
 use vessel_app_view::workspace::{problem::Problem, save::save_text};
 use vessel_proto::workspace::{ReadFile, WriteExpect, WriteFile};
 
-pub(super) async fn run(client: &Client<'_>, ask: FileAsk) -> Answer {
+pub(super) async fn run(client: &Client<'_>, ask: FileAsk) -> FileAnswer {
     match ask {
-        FileAsk::Intelligence(ask) => Answer::Intelligence {
+        FileAsk::Intelligence(ask) => FileAnswer::Intelligence {
             result: super::intelligence::run(client, &ask).await,
             ask,
         },
-        FileAsk::List(ask) => Answer::Listed {
+        FileAsk::List(ask) => FileAnswer::Listed {
             result: client.call(ask.clone()).await,
             ask,
         },
-        FileAsk::Read { ask, ticket } => Answer::Read {
+        FileAsk::Read { ask, ticket } => FileAnswer::Read {
             result: client.call(ask.clone()).await,
             ask,
             ticket,
         },
-        FileAsk::EditorRead { ask, ticket } => Answer::EditorRead {
+        FileAsk::EditorRead { ask, ticket } => FileAnswer::EditorRead {
             result: client.call(ask.clone()).await,
             ask,
             ticket,
         },
         FileAsk::Save(save) => saved(client, save).await,
-        FileAsk::Find(ask) => Answer::Found {
+        FileAsk::Find(ask) => FileAnswer::Found {
             result: client.call(ask.clone()).await,
             ask,
         },
-        FileAsk::TrackedFind { ask, ticket } => Answer::TrackedFound {
+        FileAsk::TrackedFind { ask, ticket } => FileAnswer::TrackedFound {
             result: client.call(ask.clone()).await,
             ask,
             ticket,
         },
-        FileAsk::Grep(ask) => Answer::Grepped {
+        FileAsk::Grep(ask) => FileAnswer::Grepped {
             result: client.call(ask.clone()).await,
             ask,
         },
-        FileAsk::Path { change, ticket } => Answer::PathChanged {
+        FileAsk::Path { change, ticket } => FileAnswer::PathChanged {
             result: path_change(client, change.clone()).await,
             change,
             ticket,
@@ -47,7 +47,7 @@ pub(super) async fn run(client: &Client<'_>, ask: FileAsk) -> Answer {
 }
 
 /// A guarded save, at most one write.
-async fn saved(client: &Client<'_>, save: Save) -> Answer {
+async fn saved(client: &Client<'_>, save: Save) -> FileAnswer {
     let saved = save_text(
         |expect, text| {
             client.call(WriteFile {
@@ -69,7 +69,7 @@ async fn saved(client: &Client<'_>, save: Save) -> Answer {
         save.base.as_ref(),
     )
     .await;
-    Answer::Saved {
+    FileAnswer::Saved {
         ticket: save.ticket,
         root: save.root,
         path: save.path,

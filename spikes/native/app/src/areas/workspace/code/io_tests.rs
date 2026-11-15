@@ -15,7 +15,15 @@ pub(super) fn root() -> WorkspaceRoot {
 
 pub(super) fn target(shell: &mut Shell, root: WorkspaceRoot) {
     shell.areas.workspace.code.target = Some(Target {
-        admission: None,
+        admission: Some(super::scope::Acquisition {
+            context: vessel_app_view::connection::ConnectionEpochs::default()
+                .admit(
+                    vessel_app_view::connection::MachineKey::from_book("node"),
+                    "00000000-0000-4000-8000-000000000001".parse().unwrap(),
+                )
+                .unwrap(),
+            ticket: shell.next_file_ticket().unwrap(),
+        }),
         machine: "node".to_owned(),
         session: SessionId::random(),
         place: Place::Root(root),
@@ -190,12 +198,24 @@ fn uncertain_original_write_is_retained_after_local_undo(cx: &mut TestAppContext
             cx,
         );
         let writing = shell.next_file_ticket().unwrap();
+        let scope = shell
+            .areas
+            .workspace
+            .code
+            .viewer_for(&key)
+            .unwrap()
+            .scope
+            .clone();
         let editing = shell.editing_for(&key).unwrap();
         let _step = editing.model.edit("b");
         let Step::Write { sequence, .. } = editing.model.save() else {
             panic!("write")
         };
-        editing.writing = Some((writing, sequence));
+        editing.writing = Some(editing::WriteTicket {
+            ticket: writing,
+            sequence,
+            scope,
+        });
         shell.editor_saved(
             "node",
             writing,
@@ -205,7 +225,13 @@ fn uncertain_original_write_is_retained_after_local_undo(cx: &mut TestAppContext
             cx,
         );
         let editing = shell.editing_for(&key).unwrap();
-        assert_eq!(editing.writing, Some((writing, sequence)));
+        assert_eq!(
+            editing
+                .writing
+                .as_ref()
+                .map(|attempt| (attempt.ticket, attempt.sequence)),
+            Some((writing, sequence))
+        );
         let _step = editing.model.edit("a");
         assert!(!editing.model.modified());
         assert_eq!(editing.model.write_state(), Some(WriteState::Uncertain));
@@ -214,8 +240,117 @@ fn uncertain_original_write_is_retained_after_local_undo(cx: &mut TestAppContext
         shell.open_file_at("next.txt".parse().unwrap(), None, cx);
         assert!(shell.areas.workspace.code.files.retained.contains_key(&key));
         assert_eq!(
-            shell.editing_for(&key).unwrap().writing,
+            shell
+                .editing_for(&key)
+                .unwrap()
+                .writing
+                .as_ref()
+                .map(|attempt| (attempt.ticket, attempt.sequence)),
             Some((writing, sequence))
         );
     });
+}
+
+// Compatibility helpers are confined to isolated tests. Product dispatch receives
+// original FileScope+ticket and never reconstructs an identity from an alias.
+impl Shell {
+    fn fixture_key(
+        &self,
+        machine: &str,
+        root: WorkspaceRoot,
+        path: &vessel_proto::workspace::RelPath,
+    ) -> Option<buffers::FileKey> {
+        let files = &self.areas.workspace.code.files;
+        files
+            .viewer
+            .iter()
+            .chain(files.retained.values())
+            .find(|viewer| {
+                viewer.scope.connection().machine().as_str() == machine
+                    && viewer.scope.root() == root
+                    && viewer.path == *path
+            })
+            .map(|viewer| buffers::FileKey::new(&viewer.scope, path.clone()))
+    }
+    pub(super) fn file_read_answered(
+        &mut self,
+        machine: &str,
+        ask: &ReadFile,
+        ticket: vessel_app_view::workspace::file_ticket::FileTicket,
+        result: Result<FileRead, Problem>,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if let Some(key) = self.fixture_key(machine, ask.root, &ask.path) {
+            self.file_read_answered_for(&key, ask, ticket, result, cx);
+        }
+    }
+    pub(super) fn editor_read_answered(
+        &mut self,
+        machine: &str,
+        ticket: vessel_app_view::workspace::file_ticket::FileTicket,
+        ask: &ReadFile,
+        result: Result<FileRead, Problem>,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if let Some(key) = self.fixture_key(machine, ask.root, &ask.path) {
+            self.editor_read_answered_for(&key, ticket, ask, result, cx);
+        }
+    }
+    pub(super) fn editor_saved(
+        &mut self,
+        machine: &str,
+        ticket: vessel_app_view::workspace::file_ticket::FileTicket,
+        root: &WorkspaceRoot,
+        path: &vessel_proto::workspace::RelPath,
+        saved: vessel_app_view::workspace::save::Saved,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if let Some(key) = self.fixture_key(machine, *root, path) {
+            let scope = self
+                .areas
+                .workspace
+                .code
+                .viewer_for(&key)
+                .unwrap()
+                .scope
+                .clone();
+            self.editor_saved_for(&key, &scope, ticket, true, saved, cx);
+        }
+    }
+    pub(super) fn begin_file_mutation(
+        &mut self,
+        machine: &str,
+        change: vessel_app_link::workspace::PathChange,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if let Some(scope) = self
+            .areas
+            .workspace
+            .code
+            .scope()
+            .filter(|scope| scope.connection().machine().as_str() == machine)
+        {
+            self.begin_file_mutation_for(scope, change, cx);
+        }
+    }
+    pub(super) fn file_mutation_answered(
+        &mut self,
+        machine: &str,
+        change: &vessel_app_link::workspace::PathChange,
+        ticket: vessel_app_view::workspace::file_ticket::FileTicket,
+        result: Result<(), Problem>,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let scope = self
+            .areas
+            .workspace
+            .code
+            .mutation
+            .as_ref()
+            .filter(|pending| pending.scope.connection().machine().as_str() == machine)
+            .map(|pending| pending.scope.clone());
+        if let Some(scope) = scope {
+            self.file_mutation_answered_for(&scope, change, ticket, result, true, cx);
+        }
+    }
 }

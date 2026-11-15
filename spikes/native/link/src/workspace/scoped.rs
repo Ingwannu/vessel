@@ -5,7 +5,7 @@
 //! - Constraint: session metadata is the existing root source; no cwd fallback.
 //! - Choice: G4 admits once and fences every typed call; replies keep its context.
 //! - Cost: retirement refuses old work, including reads; it never retries writes.
-use super::{Answer, Ask, FileAsk, file_call::Client};
+use super::{FileAnswer, FileAsk, file_call::Client};
 use std::sync::Arc;
 use tokio::sync::Semaphore;
 use vessel_app_view::connection::ConnectionContext;
@@ -65,8 +65,9 @@ impl Request {
                 result: Err(problem.clone()),
             },
             Work::File { scope, ask } => Outcome::File(FileReply {
+                dispatched: false,
                 scope,
-                answer: Ask::File(ask).refused(problem),
+                answer: ask.refused(problem),
             }),
         };
         Reply {
@@ -83,14 +84,15 @@ pub struct ScopeMismatch;
 /// Closed owner receipt. Private fields prevent unrelated workspace answers.
 #[derive(Debug)]
 pub struct FileReply {
+    dispatched: bool,
     scope: FileScope,
-    answer: Answer,
+    answer: FileAnswer,
 }
 impl FileReply {
     /// Existing file reducer can be reused after checking the original scope.
     #[must_use]
-    pub fn into_parts(self) -> (FileScope, Answer) {
-        (self.scope, self.answer)
+    pub fn into_parts(self) -> (FileScope, FileAnswer, bool) {
+        (self.scope, self.answer, self.dispatched)
     }
 }
 /// Exact operation result; correlation is not a permission to install stale data.
@@ -141,7 +143,7 @@ impl crate::State {
         drop(tokio::spawn(async move {
             let reply = match (selected, slot) {
                 (Ok(selected), Ok(_slot)) => {
-                    let client = Client::Selected(&selected);
+                    let client = Client(&selected);
                     let outcome = match request.work {
                         Work::Root { session, ticket } => Outcome::Root {
                             session,
@@ -152,6 +154,7 @@ impl crate::State {
                                 .map(Box::new),
                         },
                         Work::File { scope, ask } => Outcome::File(FileReply {
+                            dispatched: true,
                             scope,
                             answer: super::file_run::run(&client, ask).await,
                         }),

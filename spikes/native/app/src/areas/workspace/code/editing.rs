@@ -49,7 +49,15 @@ pub(super) struct Editing {
     pub(super) reload: Option<ReloadPrompt>,
     /// Link correlation and the model sequence captured when sent.
     pub(super) reading: Option<(FileTicket, u64)>,
-    pub(super) writing: Option<(FileTicket, u64)>,
+    pub(super) writing: Option<WriteTicket>,
+}
+
+/// Original attempted write survives lease changes and ambiguous completion.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct WriteTicket {
+    pub(super) ticket: FileTicket,
+    pub(super) sequence: u64,
+    pub(super) scope: vessel_app_view::workspace::file_scope::FileScope,
 }
 
 /// An answer must belong to the exact opening, even at the same file path.
@@ -181,37 +189,42 @@ impl Shell {
     }
 
     /// The node answered a save of `path`.
-    pub(in crate::areas::workspace) fn editor_saved(
+    pub(super) fn editor_saved_for(
         &mut self,
-        machine: &str,
+        key: &super::buffers::FileKey,
+        scope: &vessel_app_view::workspace::file_scope::FileScope,
         ticket: FileTicket,
-        root: &WorkspaceRoot,
-        path: &RelPath,
+        current: bool,
         saved: Saved,
         cx: &mut Context<'_, Self>,
     ) {
         let words = self.words();
-        let Some(key) = super::buffers::FileKey::from_book(machine, *root, path.clone()) else {
+        let Some(editing) = self.editing_for(key) else {
             return;
         };
-        let Some(editing) = self.editing_for(&key) else {
+        let Some(attempt) = editing
+            .writing
+            .as_ref()
+            .filter(|attempt| attempt.ticket == ticket && attempt.scope == *scope)
+        else {
             return;
         };
-        let Some((_, sequence)) = editing.writing.filter(|(at, _)| *at == ticket) else {
-            return;
-        };
+        let sequence = attempt.sequence;
+        if !current {
+            editing.model.retire_observations();
+        }
         if !matches!(saved, Saved::Uncertain(_)) {
             editing.writing = None;
         }
         let written = match saved {
             Saved::Uncertain(problem) => Written::Uncertain(words.problem(&problem)),
-            Saved::Saved(version) => Written::Saved(version),
-            Saved::Conflict { disk: Some(_), .. } => Written::Changed,
-            Saved::Conflict { disk: None, .. } => Written::Changed,
+            Saved::Saved(version) if current => Written::Saved(version),
+            Saved::Saved(_) => Written::Changed,
+            Saved::Conflict { .. } => Written::Changed,
             Saved::Failed(failure) => Written::Failed(words.save_failure(&failure)),
         };
         let step = editing.model.saved(sequence, written);
-        self.run_step_for(key, step, cx);
+        self.run_step_for(key.clone(), step, cx);
     }
 
     /// Conflict actions keep the originating buffer rather than looking up a

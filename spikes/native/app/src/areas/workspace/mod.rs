@@ -126,7 +126,6 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) -> bool {
         match answer {
-            Answer::Intelligence { ask, result } => self.language_answered(machine, ask, result),
             Answer::Layout(answer) => self.layout_renamed(answer, cx),
             Answer::Projects(result) => {
                 let _was = self
@@ -167,29 +166,6 @@ impl Shell {
             Answer::Session { session, result } => self.code_session_read(session, result),
             Answer::Changes { ask, result } => self.changes_read(&ask, result),
             Answer::Diff { ask, result } => self.diff_read(&ask, result),
-            Answer::Listed { ask, result } => self.folder_read(machine, &ask, result),
-            Answer::Read {
-                ask,
-                ticket,
-                result,
-            } => self.file_read_answered(machine, &ask, ticket, result, cx),
-            Answer::EditorRead {
-                ask,
-                ticket,
-                result,
-            } => self.editor_read_answered(machine, ticket, &ask, result, cx),
-            Answer::Found { ask, result } => self.files_found(machine, &ask, result, cx),
-            Answer::TrackedFound {
-                ask,
-                ticket,
-                result,
-            } => self.file_search_answered(machine, &ask, ticket, result, cx),
-            Answer::Grepped { ask, result } => self.files_grepped(machine, &ask, result),
-            Answer::PathChanged {
-                change,
-                ticket,
-                result,
-            } => self.file_mutation_answered(machine, &change, ticket, result, cx),
             // Track G1's: the git toolbar's reads and writes.
             Answer::Status { root, result } => {
                 // An unchanged status asks for no frame (track G1's
@@ -203,12 +179,6 @@ impl Shell {
             // Track G1b's: the pull request form's defaults and its calls.
             Answer::Log { ask, result } => self.pulls_log_read(machine, &ask, result),
             Answer::Pull(answer) => self.pulls_answered(machine, answer, cx),
-            Answer::Saved {
-                root,
-                path,
-                ticket,
-                saved,
-            } => self.editor_saved(machine, ticket, &root, &path, saved, cx),
         }
         cx.notify();
         true

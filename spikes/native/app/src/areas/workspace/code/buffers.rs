@@ -1,7 +1,8 @@
 //! File resources belong to node/root/path, independently of pane or
 //! renderer. Leaving a tab retains its outstanding I/O and dirty buffer.
 
-use vessel_app_view::machine_book::Name;
+use vessel_app_view::workspace::file_scope::FileScope;
+use vessel_proto::NodeId;
 use vessel_proto::workspace::{RelPath, WorkspaceRoot};
 
 use super::{CodePanel, Files, Slot, Viewer, actions};
@@ -13,28 +14,35 @@ const MAX_RETAINED_FILES: usize = 32;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(super) struct FileKey {
-    pub(super) machine: Name,
+    pub(super) node: NodeId,
     pub(super) root: WorkspaceRoot,
     pub(super) path: RelPath,
 }
 
 impl FileKey {
-    /// Legacy book callbacks provide text; retain only validated identities.
-    pub(super) fn from_book(machine: &str, root: WorkspaceRoot, path: RelPath) -> Option<Self> {
-        Some(Self {
-            machine: Name::parse(machine).ok()?,
-            root,
+    pub(super) fn new(scope: &FileScope, path: RelPath) -> Self {
+        Self {
+            node: scope.node(),
+            root: scope.root(),
             path,
-        })
+        }
     }
 }
-
 impl CodePanel {
     pub(super) fn file_key(&self) -> Option<FileKey> {
-        let (machine, root) = self.root()?;
-        FileKey::from_book(machine, *root, self.files.viewer.as_ref()?.path.clone())
+        let viewer = self.files.viewer.as_ref()?;
+        Some(FileKey::new(&viewer.scope, viewer.path.clone()))
     }
-
+    /// Root facts were obtained by this exact metadata acquisition. A scope
+    /// carries no authority; G4 still admits each effect independently.
+    pub(super) fn scope(&self) -> Option<FileScope> {
+        let target = self.target.as_ref()?;
+        let (_, root) = self.root()?;
+        Some(FileScope::new(
+            target.admission.as_ref()?.context.clone(),
+            *root,
+        ))
+    }
     pub(super) fn viewer_for(&mut self, key: &FileKey) -> Option<&mut Viewer> {
         if self.file_key().as_ref() == Some(key) {
             self.files.viewer.as_mut()

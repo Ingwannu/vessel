@@ -15,7 +15,7 @@ pub(super) struct Acquisition {
     pub(super) ticket: FileTicket,
 }
 impl Shell {
-    fn file_connection(&self, machine: &str) -> Option<ConnectionContext> {
+    pub(super) fn file_connection(&self, machine: &str) -> Option<ConnectionContext> {
         self.fleet
             .machines
             .iter()
@@ -31,6 +31,7 @@ impl Shell {
                 ticket,
                 result,
             } => {
+                self.finder_scoped_root(&context, session, ticket, &result, current);
                 let owns = self
                     .areas
                     .workspace
@@ -54,12 +55,8 @@ impl Shell {
                 self.install_code_session_read(session, result);
             }
             Outcome::File(reply) => {
-                let (scope, answer) = reply.into_parts();
-                // Canonical buffer-key settlement is the next owner cutover;
-                // this bridge never installs a retired context into current UI.
-                if current && self.file_admitted_scope().as_ref() == Some(&scope) {
-                    let _changed = self.workspace_answer(context.machine().as_str(), answer, cx);
-                }
+                let (scope, answer, dispatched) = reply.into_parts();
+                self.file_scoped_answer(&scope, answer, current, dispatched, cx);
             }
         }
     }
@@ -163,7 +160,6 @@ impl Shell {
         session: SessionId,
         result: Result<Box<SessionInfo>, Problem>,
     ) {
-        self.finder_session_read(session, &result);
         let words = self.words();
         let panel = &mut self.areas.workspace.code;
         let Some(target) = panel

@@ -233,6 +233,13 @@ impl EditorModel {
         self.writing.as_ref().map(|attempt| &attempt.base)
     }
 
+    /// Retire observations without discarding the draft or original write.
+    pub fn retire_observations(&mut self) {
+        self.read_sequence = self.read_sequence.saturating_add(1);
+        self.read_during_write = None;
+        self.reloading = false;
+    }
+
     /// The read last asked for; the caller must echo this number with
     /// the response because concurrent reads can finish out of order.
     #[must_use]

@@ -24,11 +24,10 @@ use vessel_app_kit::dialog::DialogState;
 use vessel_app_kit::ui::{ClipboardItem, Context, Pixels, Point, Window};
 use vessel_app_kit::{MenuState, TextField};
 use vessel_app_link::workspace::PathChange;
-use vessel_app_view::machine_book::Name;
+use vessel_app_view::workspace::file_scope::FileScope;
 use vessel_app_view::workspace::file_ticket::FileTicket;
 use vessel_app_view::workspace::file_tree::TreeRow;
 use vessel_app_view::workspace::problem::Problem;
-use vessel_proto::workspace::WorkspaceRoot;
 use vessel_proto::workspace::{CreateDir, DeletePath, RelPath, RenamePath};
 
 use crate::shell::Shell;
@@ -77,13 +76,12 @@ pub(super) enum Action {
 /// A menu/form capability is tied to its original root and one opening.
 #[derive(Debug, Clone)]
 pub(super) struct EntryOpening {
-    pub(super) machine: Name,
-    pub(super) root: WorkspaceRoot,
+    pub(super) scope: FileScope,
     pub(super) ticket: FileTicket,
 }
 impl EntryOpening {
     pub(super) fn current(&self, panel: &super::CodePanel) -> bool {
-        panel.root() == Some((self.machine.as_str(), &self.root))
+        panel.scope().as_ref() == Some(&self.scope)
     }
 }
 #[derive(Debug, Clone, Copy)]
@@ -188,11 +186,9 @@ pub(super) const fn group(action: Action) -> u8 {
 
 impl Shell {
     pub(super) fn entry_opening(&mut self) -> Option<EntryOpening> {
-        let (machine, root) = self.areas.workspace.code.root()?;
-        let (machine, root) = (Name::parse(machine).ok()?, *root);
+        let scope = self.areas.workspace.code.scope()?;
         Some(EntryOpening {
-            machine,
-            root,
+            scope,
             ticket: self.next_file_ticket()?,
         })
     }

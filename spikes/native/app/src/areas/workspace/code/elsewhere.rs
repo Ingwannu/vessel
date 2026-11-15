@@ -1,178 +1,191 @@
-//! The panel's file finding for other areas: track P's `@` in the composer
-//! (Paseo's `utils/file-mention-autocomplete.ts`) asks `code_find_files`
-//! with its own key, and the answers that are not the panel's go to
-//! `found_elsewhere`, P's slot. The open session's root is read once per
-//! session (`session.get`), whether or not the panel is open.
-//!
-//! [Decision Log]
-//! - Purpose: `@` a file of the project from the composer, with no second
-//!   way to reach the node's index or to learn where a session runs.
-//! - Constraint: a session's card has no root; the panel learns it with
-//!   `session.get` only when it opens. The node stops an older find only
-//!   when a newer one comes with the same key, so each field has its own.
-//! - Alternatives: P reading `session.get` itself (two caches of the same
-//!   fact); the root on the card (the lead's and the protocol's).
-//! - Choice: one cache of each session's root here, filled by every
-//!   `session.get` answer this area gets; a find asked before the root is
-//!   known waits for it (the newest query only) and is sent when it comes.
-//! - Cost: the first `@` in a session waits for one more round trip, and
-//!   says so (`FindRefused::Reading`).
-
-use std::collections::{HashMap, HashSet};
-
-use vessel_app_link::workspace::{Ask, FileAsk};
-use vessel_app_view::workspace::problem::Problem;
-use vessel_app_view::workspace::root::session_root;
-use vessel_proto::workspace::{FindFiles, FindQuery, FoundFiles, SearchKey, WorkspaceRoot};
-use vessel_proto::{SessionId, SessionInfo};
-
-use super::Place;
+//! The one root receipt cache serves mentions without opening the Explorer.
+//! A session id alone is never a cache key: node, session and original
+//! connection must all agree before a receipt can supply request facts.
+use super::scope::Acquisition;
 use crate::shell::Shell;
+use std::collections::HashMap;
+use vessel_app_link::workspace::{FileAsk, scoped::Request};
+use vessel_app_view::connection::ConnectionContext;
+use vessel_app_view::workspace::{file_scope::FileScope, problem::Problem, root::session_root};
+use vessel_proto::workspace::{FindFiles, FindQuery, FoundFiles, SearchKey, WorkspaceRoot};
+use vessel_proto::{NodeId, SessionId, SessionInfo};
+const MAX_ROOT_RECEIPTS: usize = 64;
 
-/// Why a find was not sent.
-#[expect(dead_code, reason = "track P's seam: its first caller is P's `@`")]
+/// Why the existing mention lookup could not be dispatched.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum FindRefused {
-    /// No session is open: `@` has no project to look in.
     NoSession,
-    /// The session's root is being read; the find goes out when it comes.
     Reading,
-    /// The session runs in no project.
     Outside,
-    /// The query is not one the node takes (a line of at most 256).
     Query,
-    /// Where the session runs could not be read; why (the machine's
-    /// words). The next call reads it again.
     Failed(String),
 }
-
-/// A find waiting for its session's root.
 struct Waiting {
-    machine: String,
+    context: ConnectionContext,
     session: SessionId,
     key: SearchKey,
     query: FindQuery,
     limit: u32,
 }
-
-/// Each session's root as read, and the find waiting on one.
+struct RootReceipt {
+    context: ConnectionContext,
+    root: Result<Option<WorkspaceRoot>, String>,
+}
 #[derive(Default)]
 pub(super) struct Finder {
-    /// `Ok(None)`: in no project; `Err`: the read failed, and why.
-    roots: HashMap<SessionId, Result<Option<WorkspaceRoot>, String>>,
-    /// Sessions whose `session.get` is out.
-    asked: HashSet<SessionId>,
+    roots: HashMap<(NodeId, SessionId), RootReceipt>,
+    asked: HashMap<(NodeId, SessionId), Acquisition>,
     waiting: Option<Waiting>,
 }
-
 impl Shell {
-    /// Track P's call: find files of the open session's project by name,
-    /// the best `limit` first, under `key` (P's own, from `SearchKeys`).
-    /// The answer comes to `found_elsewhere`.
-    #[expect(dead_code, reason = "track P's seam: its first caller is P's `@`")]
+    #[expect(
+        dead_code,
+        reason = "B1 mention consumer uses the canonical file-root seam"
+    )]
     pub(crate) fn code_find_files(
         &mut self,
         key: SearchKey,
         query: &str,
         limit: u32,
     ) -> Result<(), FindRefused> {
-        let Some((machine, session)) = self.code_session() else {
-            return Err(FindRefused::NoSession);
-        };
-        let Ok(query) = query.trim().parse::<FindQuery>() else {
-            return Err(FindRefused::Query);
-        };
-        let cached = self.file_workspace_scope().map(|(_, root)| root);
-        let panel = &mut self.areas.workspace.code;
-        // The panel knows it already when it shows this exact node/session.
-        let shown = cached.map(|root| Ok(Some(root))).or_else(|| {
-            panel.target.as_ref().and_then(|target| {
-                if target.session != session || target.machine != machine {
-                    return None;
-                }
-                match &target.place {
-                    Place::Root(root) => Some(Ok(Some(*root))),
-                    Place::Outside => Some(Ok(None)),
-                    Place::Reading | Place::Failed(_) => None,
-                }
-            })
+        let (machine, session) = self.code_session().ok_or(FindRefused::NoSession)?;
+        let context = self
+            .file_connection(&machine)
+            .ok_or_else(|| FindRefused::Failed("the original connection is unavailable".into()))?;
+        let query: FindQuery = query.trim().parse().map_err(|_| FindRefused::Query)?;
+        let cache_key = (context.node(), session);
+        let shown = self.file_workspace_scope().map(|(_, root)| Ok(Some(root)));
+        let root = shown.or_else(|| {
+            self.areas
+                .workspace
+                .code
+                .finder
+                .roots
+                .get(&cache_key)
+                .filter(|receipt| receipt.context == context)
+                .map(|receipt| receipt.root.clone())
         });
-        let finder = &mut panel.finder;
-        match shown.or_else(|| finder.roots.get(&session).cloned()) {
+        match root {
             Some(Ok(Some(root))) => {
-                self.ask(&machine, find_ask(root, query, key, limit));
+                self.send_file_scope(
+                    FileScope::new(context, root),
+                    find_ask(root, query, key, limit),
+                );
                 Ok(())
             }
             Some(Ok(None)) => Err(FindRefused::Outside),
             Some(Err(why)) => {
-                let _was = finder.roots.remove(&session);
+                let _removed = self.areas.workspace.code.finder.roots.remove(&cache_key);
                 Err(FindRefused::Failed(why))
             }
             None => {
-                finder.waiting = Some(Waiting {
-                    machine: machine.clone(),
+                self.areas.workspace.code.finder.waiting = Some(Waiting {
+                    context: context.clone(),
                     session,
                     key,
                     query,
                     limit,
                 });
-                if finder.asked.insert(session) {
-                    self.ask(&machine, Ask::Session(session));
+                let already = self
+                    .areas
+                    .workspace
+                    .code
+                    .finder
+                    .asked
+                    .get(&cache_key)
+                    .is_some_and(|read| read.context == context);
+                if !already {
+                    let ticket = self
+                        .next_file_ticket()
+                        .ok_or_else(|| FindRefused::Failed("file identities exhausted".into()))?;
+                    let finder = &mut self.areas.workspace.code.finder;
+                    if finder.asked.len() >= MAX_ROOT_RECEIPTS {
+                        return Err(FindRefused::Failed("file root lookups are busy".into()));
+                    }
+                    let _previous = finder.asked.insert(
+                        cache_key,
+                        Acquisition {
+                            context: context.clone(),
+                            ticket,
+                        },
+                    );
+                    self.command(vessel_app_link::Command::FileOperation(Request::root(
+                        context, session, ticket,
+                    )));
                 }
                 Err(FindRefused::Reading)
             }
         }
     }
-
-    /// A session's root arrived (for the panel or for a find): kept, and
-    /// the find waiting on it sent.
-    pub(super) fn finder_session_read(
+    pub(super) fn finder_scoped_root(
         &mut self,
+        context: &ConnectionContext,
         session: SessionId,
+        ticket: vessel_app_view::workspace::file_ticket::FileTicket,
         result: &Result<Box<SessionInfo>, Problem>,
+        live: bool,
     ) {
         let words = self.words();
         let finder = &mut self.areas.workspace.code.finder;
-        let _was = finder.asked.remove(&session);
-        let root = match result {
-            Ok(info) => Ok(session_root(info)),
-            Err(problem) => Err(words.problem(problem)),
-        };
-        let _was = finder.roots.insert(session, root.clone());
-        let Some(waiting) = finder.waiting.take_if(|waiting| waiting.session == session) else {
+        let key = (context.node(), session);
+        let owns = finder
+            .asked
+            .get(&key)
+            .is_some_and(|read| read.context == *context && read.ticket == ticket);
+        if !owns {
             return;
-        };
-        // In no project or not read: the next call says why.
-        if let Ok(Some(root)) = root {
-            self.ask(
-                &waiting.machine,
+        }
+        let _settled = finder.asked.remove(&key);
+        if !live {
+            let _stale = finder
+                .waiting
+                .take_if(|waiting| waiting.context == *context && waiting.session == session);
+            return;
+        }
+        let root = result
+            .as_ref()
+            .map(|info| session_root(info))
+            .map_err(|problem| words.problem(problem));
+        if finder.roots.len() >= MAX_ROOT_RECEIPTS && !finder.roots.contains_key(&key) {
+            finder.roots.clear();
+        }
+        let _previous = finder.roots.insert(
+            key,
+            RootReceipt {
+                context: context.clone(),
+                root: root.clone(),
+            },
+        );
+        let waiting = finder
+            .waiting
+            .take_if(|waiting| waiting.context == *context && waiting.session == session);
+        if let (Some(waiting), Ok(Some(root))) = (waiting, root) {
+            self.send_file_scope(
+                FileScope::new(context.clone(), root),
                 find_ask(root, waiting.query, waiting.key, waiting.limit),
             );
         }
     }
 }
-
 impl Finder {
-    /// The machine was renamed or forgotten in the book: a find waiting
-    /// on it is dropped (the roots are keyed by session, not by name; the
-    /// next call asks again under the new name).
     pub(super) fn machine_gone(&mut self, name: &str) {
-        let _was = self.waiting.take_if(|waiting| waiting.machine == name);
+        self.roots
+            .retain(|_, receipt| receipt.context.machine().as_str() != name);
+        self.asked
+            .retain(|_, read| read.context.machine().as_str() != name);
+        let _old = self
+            .waiting
+            .take_if(|waiting| waiting.context.machine().as_str() == name);
     }
 }
-
-fn find_ask(root: WorkspaceRoot, query: FindQuery, key: SearchKey, limit: u32) -> Ask {
-    Ask::File(FileAsk::Find(FindFiles {
+fn find_ask(root: WorkspaceRoot, query: FindQuery, key: SearchKey, limit: u32) -> FileAsk {
+    FileAsk::Find(FindFiles {
         root,
         query,
         key: Some(key),
         limit: Some(limit),
-    }))
+    })
 }
-
-/// Track P's slot: a find answer under a key that is not the panel's
-/// (`code_find_files`). P replaces this body with one call into the
-/// composer, `shell.composer_files_found(ask, result)`.
 pub(super) fn found_elsewhere(
     _shell: &mut Shell,
     _ask: &FindFiles,

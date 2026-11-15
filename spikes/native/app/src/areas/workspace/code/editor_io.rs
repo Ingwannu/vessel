@@ -4,7 +4,7 @@
 use std::time::Duration;
 
 use vessel_app_kit::ui::Context;
-use vessel_app_link::workspace::{Ask, FileAsk, Save};
+use vessel_app_link::workspace::{FileAsk, Save};
 use vessel_app_view::workspace::editor::{AUTOSAVE_MS, Step};
 use vessel_app_view::workspace::file_ticket::FileTicket;
 use vessel_proto::workspace::{RelPath, WorkspaceRoot};
@@ -48,7 +48,7 @@ impl Shell {
         }
     }
 
-    fn send_step_for(&mut self, key: &FileKey, step: Step) {
+    pub(super) fn send_step_for(&mut self, key: &FileKey, step: Step) {
         let ask = match step {
             Step::Write {
                 text,
@@ -58,10 +58,23 @@ impl Shell {
                 let Some(ticket) = self.next_file_ticket() else {
                     return;
                 };
+                let Some(scope) = self
+                    .areas
+                    .workspace
+                    .code
+                    .viewer_for(key)
+                    .map(|viewer| viewer.scope.clone())
+                else {
+                    return;
+                };
                 let Some(editing) = self.editing_for(key) else {
                     return;
                 };
-                editing.writing = Some((ticket, sequence));
+                editing.writing = Some(super::editing::WriteTicket {
+                    ticket,
+                    sequence,
+                    scope: scope.clone(),
+                });
                 FileAsk::Save(Save {
                     ticket,
                     root: key.root,
@@ -76,7 +89,7 @@ impl Shell {
             }
             Step::None | Step::Autosave | Step::StopAutosave => return,
         };
-        self.ask(key.machine.as_str(), Ask::File(ask));
+        self.send_file_for(key, ask);
     }
 
     fn read_editor_for(&mut self, key: &FileKey, sequence: u64) {
@@ -87,28 +100,26 @@ impl Shell {
             return;
         };
         editing.reading = Some((ticket, sequence));
-        self.ask(
-            key.machine.as_str(),
-            Ask::File(FileAsk::EditorRead {
+        self.send_file_for(
+            key,
+            FileAsk::EditorRead {
                 ask: whole_read(key.root, key.path.clone()),
                 ticket,
-            }),
+            },
         );
     }
 
     pub(super) fn send_editor_read(&mut self, root: WorkspaceRoot, path: RelPath, sequence: u64) {
-        let Some(machine) = self
+        let Some(scope) = self
             .areas
             .workspace
             .code
-            .root()
-            .map(|(on, _)| on.to_owned())
+            .scope()
+            .filter(|scope| scope.root() == root)
         else {
             return;
         };
-        let Some(key) = FileKey::from_book(&machine, root, path) else {
-            return;
-        };
+        let key = FileKey::new(&scope, path);
         self.read_editor_for(&key, sequence);
     }
 

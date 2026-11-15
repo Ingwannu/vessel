@@ -1,22 +1,17 @@
 //! What the node answered a workspace ask, with what was asked, and the
 //! answer an ask gets when it could not be sent at all.
 
-use vessel_app_view::workspace::file_ticket::FileTicket;
 use vessel_app_view::workspace::problem::Problem;
-use vessel_app_view::workspace::save::{SaveFailure, Saved};
 use vessel_proto::workspace::{
-    BranchList, CommandsDigest, CommitOutcome, CommitPage, DiffSummary, DirListing, DropSnapshot,
-    FetchOutcome, FileDiff, FileRead, FindFiles, FoundFiles, GetChanges, GetFileDiff, GitStatus,
-    GrepResult, ListDir, ProjectCommands, ProjectInfo, ProjectList, PullOutcome, PushOutcome,
-    ReadFile, ReadLog, RelPath, RemoveWorktree, RemoveWorktreeOutcome, RenameOutcome, SearchFiles,
+    BranchList, CommandsDigest, CommitOutcome, CommitPage, DiffSummary, DropSnapshot, FetchOutcome,
+    FileDiff, GetChanges, GetFileDiff, GitStatus, ProjectCommands, ProjectInfo, ProjectList,
+    PullOutcome, PushOutcome, ReadLog, RemoveWorktree, RemoveWorktreeOutcome, RenameOutcome,
     SnapshotList, StashList, StashOutcome, SwitchOutcome, WorkspaceRoot, WorktreeInfo,
     WorktreeList,
 };
 use vessel_proto::{ProjectId, SessionId, SessionInfo, WorktreeId};
 
-use super::{
-    Ask, FileAsk, GitAsk, GitWrite, PathChange, ProjectAsk, StartEnded, StartKey, WorktreeAsk,
-};
+use super::{Ask, GitAsk, GitWrite, ProjectAsk, StartEnded, StartKey, WorktreeAsk};
 
 /// What a git write answered.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -42,13 +37,6 @@ pub enum GitWritten {
 /// What the node answered a workspace ask, with what was asked.
 #[derive(Debug)]
 pub enum Answer {
-    /// A file-owned language query, correlated with its exact request.
-    Intelligence {
-        /// Original request, including source identity and ticket.
-        ask: super::IntelligenceAsk,
-        /// Typed language result or failure.
-        result: super::IntelligenceResult,
-    },
     /// Correlated backing-entity action result.
     Layout(super::layout::Answer),
     /// The machine's projects.
@@ -162,74 +150,6 @@ pub enum Answer {
         /// The outcome, a refusal included.
         result: Result<GitWritten, Problem>,
     },
-    /// A folder's entries.
-    Listed {
-        /// What was asked.
-        ask: ListDir,
-        /// The entries.
-        result: Result<DirListing, Problem>,
-    },
-    /// A page of a file.
-    Read {
-        /// What was asked.
-        ask: ReadFile,
-        /// Original request identity, independent of the active pane.
-        ticket: FileTicket,
-        /// The page.
-        result: Result<FileRead, Problem>,
-    },
-    /// A save's outcome.
-    EditorRead {
-        /// Requested source and byte budget.
-        ask: ReadFile,
-        /// The request identity; never inferred from current UI state.
-        ticket: FileTicket,
-        /// Exact read result.
-        result: Result<FileRead, Problem>,
-    },
-    /// A save's outcome.
-    Saved {
-        /// The request identity.
-        ticket: FileTicket,
-        /// The root.
-        root: WorkspaceRoot,
-        /// The file.
-        path: RelPath,
-        /// What it came to.
-        saved: Saved,
-    },
-    /// Files found by name.
-    Found {
-        /// What was asked.
-        ask: FindFiles,
-        /// The matches.
-        result: Result<FoundFiles, Problem>,
-    },
-    /// A shared picker response, fenced independently of query text.
-    TrackedFound {
-        /// Original wire request.
-        ask: FindFiles,
-        /// Original acquisition generation.
-        ticket: FileTicket,
-        /// Matches or a typed refusal.
-        result: Result<FoundFiles, Problem>,
-    },
-    /// Lines found in files.
-    Grepped {
-        /// What was asked.
-        ask: SearchFiles,
-        /// The matches.
-        result: Result<GrepResult, Problem>,
-    },
-    /// A path made, renamed or deleted.
-    PathChanged {
-        /// Original app mutation identity.
-        ticket: FileTicket,
-        /// What was asked.
-        change: PathChange,
-        /// Done, or why not.
-        result: Result<(), Problem>,
-    },
     /// A step of a start.
     Start {
         /// Which start.
@@ -291,7 +211,6 @@ pub(super) fn refused(ask: Ask, problem: &Problem) -> Answer {
         Ask::Project(ask) => project_refused(ask, problem),
         Ask::Worktree(ask) => worktree_refused(ask, problem),
         Ask::Git(ask) => git_refused(ask, problem),
-        Ask::File(ask) => file_refused(ask, problem),
         Ask::Start(start) => Answer::StartEnded {
             key: start.key,
             ended: StartEnded::Failed(problem.clone()),
@@ -380,53 +299,6 @@ fn git_refused(ask: GitAsk, problem: &Problem) -> Answer {
         },
         GitAsk::Write(write) => Answer::Git {
             write,
-            result: no(problem),
-        },
-    }
-}
-
-fn file_refused(ask: FileAsk, problem: &Problem) -> Answer {
-    match ask {
-        FileAsk::Intelligence(ask) => Answer::Intelligence {
-            result: super::intelligence::refused(ask.action, problem),
-            ask,
-        },
-        FileAsk::List(ask) => Answer::Listed {
-            ask,
-            result: no(problem),
-        },
-        FileAsk::Read { ask, ticket } => Answer::Read {
-            ask,
-            ticket,
-            result: no(problem),
-        },
-        FileAsk::EditorRead { ask, ticket } => Answer::EditorRead {
-            ask,
-            ticket,
-            result: no(problem),
-        },
-        FileAsk::Save(save) => Answer::Saved {
-            ticket: save.ticket,
-            root: save.root,
-            path: save.path,
-            saved: Saved::Failed(SaveFailure::Call(problem.clone())),
-        },
-        FileAsk::Find(ask) => Answer::Found {
-            ask,
-            result: no(problem),
-        },
-        FileAsk::TrackedFind { ask, ticket } => Answer::TrackedFound {
-            ask,
-            ticket,
-            result: no(problem),
-        },
-        FileAsk::Grep(ask) => Answer::Grepped {
-            ask,
-            result: no(problem),
-        },
-        FileAsk::Path { change, ticket } => Answer::PathChanged {
-            change,
-            ticket,
             result: no(problem),
         },
     }

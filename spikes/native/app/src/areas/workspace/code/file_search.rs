@@ -6,11 +6,11 @@ use std::collections::HashMap;
 use std::num::NonZeroU32;
 
 use vessel_app_kit::ui::Context;
-use vessel_app_link::workspace::{Ask, FileAsk};
-use vessel_app_view::machine_book::Name;
+use vessel_app_link::workspace::FileAsk;
+use vessel_app_view::workspace::file_scope::FileScope;
 use vessel_app_view::workspace::file_ticket::FileTicket;
 use vessel_app_view::workspace::problem::Problem;
-use vessel_proto::workspace::{FindFiles, FindQuery, FoundFiles, SearchKey, WorkspaceRoot};
+use vessel_proto::workspace::{FindFiles, FindQuery, FoundFiles, SearchKey};
 
 use crate::shell::Shell;
 
@@ -21,10 +21,8 @@ use vessel_app_view::workspace::find::{
 /// A reusable validated file search; no ambient cwd or selected tab is used.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct FileSearchRequest {
-    /// Node book name validated before dispatch.
-    pub(crate) machine: Name,
-    /// Authorized physical file root.
-    pub(crate) root: WorkspaceRoot,
+    /// Exact original connection and physical root; never resolved by name later.
+    pub(crate) scope: FileScope,
     /// Bounded protocol query.
     pub(crate) query: FindQuery,
     /// A stable per-field key allocated by `Shell::file_search_key`.
@@ -74,12 +72,12 @@ impl Shell {
             return Err(FileSearchRefusal::Capacity);
         }
         let ask = FindFiles {
-            root: request.root,
+            root: request.scope.root(),
             query: request.query.clone(),
             key: Some(request.key),
             limit: Some(request.limit.get()),
         };
-        let machine = request.machine.clone();
+        let scope = request.scope.clone();
         let _replaced = searches.insert(
             request.key,
             RegisteredSearch {
@@ -88,10 +86,7 @@ impl Shell {
                 receive,
             },
         );
-        self.ask(
-            machine.as_str(),
-            Ask::File(FileAsk::TrackedFind { ask, ticket }),
-        );
+        self.send_file_scope(scope, FileAsk::TrackedFind { ask, ticket });
         Ok(())
     }
 
@@ -102,7 +97,7 @@ impl Shell {
 
     pub(in crate::areas::workspace) fn file_search_answered(
         &mut self,
-        machine: &str,
+        scope: &FileScope,
         ask: &FindFiles,
         ticket: FileTicket,
         result: Result<FoundFiles, Problem>,
@@ -111,14 +106,14 @@ impl Shell {
         if result.as_ref().is_ok_and(|found| found.superseded) {
             return;
         }
-        if let Some((request, receive)) = self.take_file_search(machine, ask, ticket) {
+        if let Some((request, receive)) = self.take_file_search(scope, ask, ticket) {
             receive(self, &request, result, cx);
         }
     }
 
     fn take_file_search(
         &mut self,
-        machine: &str,
+        scope: &FileScope,
         ask: &FindFiles,
         ticket: FileTicket,
     ) -> Option<(FileSearchRequest, FileSearchReceiver)> {
@@ -126,8 +121,8 @@ impl Shell {
         let searches = &mut self.areas.workspace.code.searches.0;
         let pending = searches.get(&key)?;
         if pending.ticket != ticket
-            || pending.request.machine.as_str() != machine
-            || pending.request.root != ask.root
+            || pending.request.scope != *scope
+            || pending.request.scope.root() != ask.root
             || pending.request.query != ask.query
         {
             return None;

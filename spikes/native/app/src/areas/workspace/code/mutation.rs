@@ -3,11 +3,12 @@
 //! rather than losing content during a rename/delete race.
 
 use vessel_app_kit::ui::Context;
-use vessel_app_link::workspace::{Ask, FileAsk, PathChange};
-use vessel_app_view::machine_book::Name;
+use vessel_app_link::workspace::{FileAsk, PathChange};
 use vessel_app_view::workspace::explorer::replace_prefix;
+use vessel_app_view::workspace::file_scope::FileScope;
 use vessel_app_view::workspace::file_ticket::FileTicket;
 use vessel_app_view::workspace::problem::Problem;
+use vessel_proto::NodeId;
 use vessel_proto::workspace::RelPath;
 
 use super::buffers::FileKey;
@@ -15,7 +16,8 @@ use super::{CodePanel, Viewer};
 use crate::shell::Shell;
 
 pub(super) struct PendingMutation {
-    machine: Name,
+    pub(super) scope: FileScope,
+    uncertain: bool,
     ticket: FileTicket,
     change: PathChange,
 }
@@ -36,8 +38,8 @@ fn within(path: &RelPath, prefix: &RelPath) -> bool {
             .is_some_and(|tail| tail.starts_with('/'))
 }
 
-fn affected(key: &FileKey, machine: &Name, change: &PathChange) -> bool {
-    key.machine == *machine
+fn affected(key: &FileKey, node: NodeId, change: &PathChange) -> bool {
+    key.node == node
         && key.root == change.root()
         && prefix(change).is_some_and(|prefix| within(&key.path, prefix))
 }
@@ -50,9 +52,9 @@ fn busy(viewer: &Viewer) -> bool {
 }
 
 impl CodePanel {
-    fn affected_busy(&self, machine: &Name, change: &PathChange) -> bool {
+    fn affected_busy(&self, node: NodeId, change: &PathChange) -> bool {
         let destination_open = |key: &FileKey| {
-            key.machine == *machine
+            key.node == node
                 && key.root == change.root()
                 && matches!(change, PathChange::Rename(ask) if within(&key.path, &ask.to))
         };
@@ -64,31 +66,31 @@ impl CodePanel {
             return true;
         }
         self.file_key()
-            .filter(|key| affected(key, machine, change))
+            .filter(|key| affected(key, node, change))
             .and(self.files.viewer.as_ref())
             .is_some_and(busy)
             || self
                 .files
                 .retained
                 .iter()
-                .any(|(key, viewer)| affected(key, machine, change) && busy(viewer))
+                .any(|(key, viewer)| affected(key, node, change) && busy(viewer))
     }
 
     fn hold_mutation(
         &mut self,
-        machine: &Name,
+        node: NodeId,
         change: &PathChange,
         hold: bool,
         cx: &mut Context<'_, Shell>,
     ) {
         let active = self
             .file_key()
-            .is_some_and(|key| affected(&key, machine, change));
+            .is_some_and(|key| affected(&key, node, change));
         let viewers = self.files.viewer.iter_mut().filter(|_| active).chain(
             self.files
                 .retained
                 .iter_mut()
-                .filter_map(|(key, viewer)| affected(key, machine, change).then_some(viewer)),
+                .filter_map(|(key, viewer)| affected(key, node, change).then_some(viewer)),
         );
         for viewer in viewers {
             if let Some(editor) = viewer
@@ -111,31 +113,45 @@ impl CodePanel {
     pub(super) fn file_mutating(&self, key: &FileKey) -> bool {
         self.mutation
             .as_ref()
-            .is_some_and(|pending| affected(key, &pending.machine, &pending.change))
+            .is_some_and(|pending| affected(key, pending.scope.node(), &pending.change))
     }
 }
 
 impl Shell {
     pub(super) fn refuse_file_mutation(&mut self, key: &FileKey) -> bool {
         if self.areas.workspace.code.file_mutating(key) {
-            self.areas.workspace.code.files.actions.refused =
-                Some(self.words().labels().file_busy.to_owned());
+            self.areas.workspace.code.files.actions.refused = Some(
+                if self
+                    .areas
+                    .workspace
+                    .code
+                    .mutation
+                    .as_ref()
+                    .is_some_and(|pending| pending.uncertain)
+                {
+                    self.words().labels().save_failed
+                } else {
+                    self.words().labels().file_busy
+                }
+                .to_owned(),
+            );
             true
         } else {
             false
         }
     }
-    pub(super) fn begin_file_mutation(
+    pub(super) fn begin_file_mutation_for(
         &mut self,
-        machine: &str,
+        scope: FileScope,
         change: PathChange,
         cx: &mut Context<'_, Self>,
     ) {
-        let Ok(machine) = Name::parse(machine) else {
+        if scope.root() != change.root() {
             return;
-        };
+        }
+        let node = scope.node();
         let panel = &self.areas.workspace.code;
-        if panel.mutation.is_some() || panel.affected_busy(&machine, &change) {
+        if panel.mutation.is_some() || panel.affected_busy(node, &change) {
             self.areas.workspace.code.files.actions.refused =
                 Some(self.words().labels().file_busy.to_owned());
             return;
@@ -144,41 +160,56 @@ impl Shell {
             return;
         };
         let panel = &mut self.areas.workspace.code;
-        panel.hold_mutation(&machine, &change, true, cx);
+        panel.hold_mutation(node, &change, true, cx);
         panel.mutation = Some(PendingMutation {
-            machine: machine.clone(),
+            scope: scope.clone(),
+            uncertain: false,
             change: change.clone(),
             ticket,
         });
-        self.ask(
-            machine.as_str(),
-            Ask::File(FileAsk::Path { change, ticket }),
-        );
+        self.send_file_scope(scope, FileAsk::Path { change, ticket });
     }
 
-    pub(in crate::areas::workspace) fn file_mutation_answered(
+    pub(super) fn file_mutation_answered_for(
         &mut self,
-        machine: &str,
+        scope: &FileScope,
         change: &PathChange,
         ticket: FileTicket,
         result: Result<(), Problem>,
+        dispatched: bool,
         cx: &mut Context<'_, Self>,
     ) {
         let panel = &mut self.areas.workspace.code;
+        let owns = panel.mutation.as_ref().is_some_and(|pending| {
+            pending.scope == *scope && pending.ticket == ticket && pending.change == *change
+        });
+        if !owns {
+            return;
+        }
+        if dispatched
+            && result
+                .as_ref()
+                .is_err_and(|problem| problem.code() != Some(vessel_proto::ErrorCode::Conflict))
+        {
+            if let Some(pending) = panel.mutation.as_mut() {
+                pending.uncertain = true;
+            }
+            panel.files.actions.refused = Some(self.words().labels().save_failed.to_owned());
+            cx.notify();
+            return;
+        }
         let Some(pending) = panel.mutation.take_if(|pending| {
-            pending.machine.as_str() == machine
-                && pending.ticket == ticket
-                && pending.change == *change
+            pending.scope == *scope && pending.ticket == ticket && pending.change == *change
         }) else {
             return;
         };
-        panel.hold_mutation(&pending.machine, change, false, cx);
+        panel.hold_mutation(pending.scope.node(), change, false, cx);
         if result.is_ok() {
-            self.rewrite_mutated_resources(&pending.machine, change, cx);
+            self.rewrite_mutated_resources(pending.scope.node(), change, cx);
         }
         // An old workspace's acknowledgement may settle its buffers but
         // must never clear the new workspace's inline form or file viewer.
-        if self.areas.workspace.code.root() == Some((machine, &change.root())) {
+        if self.areas.workspace.code.scope().as_ref() == Some(scope) {
             self.path_changed(change, result);
             self.remember_file_tree();
         }
@@ -187,14 +218,14 @@ impl Shell {
 
     fn rewrite_mutated_resources(
         &mut self,
-        machine: &Name,
+        node: NodeId,
         change: &PathChange,
         cx: &Context<'_, Self>,
     ) {
         let panel = &mut self.areas.workspace.code;
         let active = panel
             .file_key()
-            .is_some_and(|key| affected(&key, machine, change));
+            .is_some_and(|key| affected(&key, node, change));
         if active && let Some(viewer) = panel.files.viewer.take() {
             panel.files.viewer = rewrite_viewer(viewer, change, cx);
         }
@@ -203,7 +234,7 @@ impl Shell {
             .retained
             .drain()
             .filter_map(|(mut key, viewer)| {
-                if !affected(&key, machine, change) {
+                if !affected(&key, node, change) {
                     return Some((key, viewer));
                 }
                 let viewer = rewrite_viewer(viewer, change, cx)?;
@@ -211,7 +242,10 @@ impl Shell {
                 Some((key, viewer))
             })
             .collect();
-        if panel.root() != Some((machine.as_str(), &change.root())) {
+        if panel
+            .scope()
+            .is_none_or(|scope| scope.node() != node || scope.root() != change.root())
+        {
             return;
         }
         let Some(prefix) = prefix(change) else {

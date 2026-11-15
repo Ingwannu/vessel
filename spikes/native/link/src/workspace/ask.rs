@@ -23,8 +23,6 @@ pub enum Ask {
     Worktree(WorktreeAsk),
     /// About a root's git.
     Git(GitAsk),
-    /// About a root's files.
-    File(FileAsk),
     /// A session started in a new worktree, walked to its end.
     Start(Box<StartAsk>),
     /// `session.get`: where a session runs (the code panel's root).

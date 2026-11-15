@@ -50,7 +50,10 @@ mod layout_adapter;
 mod line_syntax;
 mod markdown;
 mod mutation;
+mod receipts;
 mod scope;
+#[cfg(test)]
+mod scope_tests;
 mod search;
 mod tree;
 mod tree_memory;
@@ -125,6 +128,7 @@ struct Changes {
 
 /// A file shown in the Files tab.
 struct Viewer {
+    scope: vessel_app_view::workspace::file_scope::FileScope,
     markdown: Option<markdown::Preview>,
     /// Read-only loads must not overwrite a newer refresh of the same path.
     reading: Option<vessel_app_view::workspace::file_ticket::FileTicket>,
@@ -243,6 +247,7 @@ impl CodePanel {
     /// new name.
     pub(in crate::areas::workspace) fn machine_renamed(&mut self, from: &str, to: &str) {
         self.finder.machine_gone(from);
+        self.files.actions.invalidate();
         if let Some(target) = self.target.as_mut().filter(|target| target.machine == from) {
             to.clone_into(&mut target.machine);
         }
@@ -251,6 +256,7 @@ impl CodePanel {
     /// The machine was forgotten: nothing of it is shown or read again.
     pub(in crate::areas::workspace) fn machine_forgot(&mut self, name: &str) {
         self.finder.machine_gone(name);
+        self.files.actions.invalidate();
         if self
             .target
             .as_ref()
@@ -261,7 +267,7 @@ impl CodePanel {
             self.changes.states.clear();
             self.changes.relist();
             self.files.listings.clear();
-            self.files.viewer = None;
+            // The active resource remains owned, including dirty/uncertain work.
             self.files.relist();
         }
     }
