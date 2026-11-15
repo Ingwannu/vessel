@@ -153,6 +153,7 @@ impl Shell {
         let machine = machine.clone();
         // Disabling immediately revokes old snapshots' publishing rights in this UI.
         state.inventory.close();
+        state.source_tips = super::source_tips::SourceTips::default();
         state.session.close();
         state.summary.close();
         state.policy_error = None;
@@ -170,6 +171,7 @@ impl Shell {
 }
 impl State {
     fn close(&mut self) {
+        self.source_tips = super::source_tips::SourceTips::default();
         self.ledger.close();
         self.inventory.close();
         self.refresh_account = InventoryRefresh::Cached;

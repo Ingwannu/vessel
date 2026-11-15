@@ -25,6 +25,7 @@ pub(super) fn render(
 ) -> AnyElement {
     let text = shell.words.usage();
     let state = &shell.areas.usage;
+    let receipt = super::read_states::context(shell);
     let compact = matches!(density, Density::Compact);
     let mut body = div()
         .w_full()
@@ -48,7 +49,7 @@ pub(super) fn render(
         let enabled = source.availability != UsageSourceAvailability::Unsupported
             && state.policy_pending.is_none()
             && state.source_pending.is_none();
-        let machine = state.inventory.selection().cloned();
+        let receipt = receipt.clone();
         let request = SetUsageSourceLookup {
             source: source.id.clone(),
             policy: next,
@@ -66,8 +67,10 @@ pub(super) fn render(
             )
             .when(enabled, |button| {
                 button.on_click(cx.listener(move |shell, _, _, cx| {
-                    if let Some(machine) = &machine {
-                        shell.usage_source_policy(machine.clone(), request.clone());
+                    if let Some(receipt) = &receipt
+                        && super::read_states::current(shell, receipt)
+                    {
+                        shell.usage_source_policy(receipt.machine().clone(), request.clone());
                         cx.notify();
                     }
                 }))

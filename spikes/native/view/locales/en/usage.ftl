@@ -343,3 +343,17 @@ usage-source-unsupported = This source is not available on this machine.
 usage-runs-out-in = Source forecast: runs out in { $duration }
 # Source forecast has reached its reported instant; never infer a hard stopped turn.
 usage-runs-out-now = Source forecast: runs out now
+# Short current-attempt labels next to the shared card status dot.
+usage-status-error = Error
+usage-status-unavailable = Unavailable
+# Whole relative age, derived only from the actual successful observation time.
+usage-fresh-just-now = just now
+usage-fresh-minutes = { $count }m ago
+usage-fresh-hours = { $count }h ago
+usage-fresh-days = { $count }d ago
+# Whole card freshness label; $age is a translated relative age, never an attempt time.
+usage-updated = Updated { $age }
+usage-last-updated = Last updated { $age }
+usage-never-updated = No successful update
+# Whole explanation after the explicit refresh for this report failed.
+usage-refresh-failed = Could not refresh this report.

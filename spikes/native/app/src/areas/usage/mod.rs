@@ -14,9 +14,11 @@ mod read_states;
 mod rows;
 mod session;
 mod source_balances;
+mod source_card;
 mod source_controls;
 mod source_policy;
 mod source_reports;
+mod source_tips;
 mod source_windows;
 mod windows;
 pub(crate) use options::dialogs;
@@ -57,6 +59,7 @@ pub(crate) struct State {
     pub(super) modal: vessel_app_view::usage::ModalCycle,
     pub(super) options: vessel_app_kit::popover::PopoverState,
     pub(super) options_open: Option<options::Opening>,
+    pub(super) source_tips: source_tips::SourceTips,
     pub(super) options_anchor: vessel_app_kit::select::Anchor,
     pub(super) dialog: vessel_app_kit::DialogState,
     pub(super) host_list: vessel_app_kit::ComboboxState,
@@ -88,6 +91,7 @@ impl State {
             modal: vessel_app_view::usage::ModalCycle::default(),
             options: vessel_app_kit::popover::PopoverState::new(cx),
             options_open: None,
+            source_tips: source_tips::SourceTips::default(),
             options_anchor: vessel_app_kit::select::Anchor::default(),
             dialog: vessel_app_kit::DialogState::new(cx),
             host_list: vessel_app_kit::ComboboxState::new(window, cx),

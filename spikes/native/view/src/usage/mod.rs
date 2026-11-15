@@ -41,7 +41,9 @@ pub use session::{SessionSelection, binding_epoch};
 mod quota;
 pub use quota::{quota_facts, reset_label, window_label};
 
+mod freshness;
 mod source_errors;
+pub use freshness::source_freshness;
 mod source_summary;
 mod source_values;
 mod sources;

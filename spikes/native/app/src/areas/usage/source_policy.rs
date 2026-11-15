@@ -55,6 +55,7 @@ impl Shell {
             state.policy_error = Some(RequestFailure::Exhausted);
             return;
         };
+        state.source_tips = super::source_tips::SourceTips::default();
         state.inventory.close();
         state.summary.close();
         state.session.close();

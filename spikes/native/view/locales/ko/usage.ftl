@@ -343,3 +343,17 @@ usage-source-unsupported = 이 머신에서 이 소스를 사용할 수 없습�
 usage-runs-out-in = 소스 예측: { $duration } 후 소진
 # Source forecast has reached its reported instant; never infer a hard stopped turn.
 usage-runs-out-now = 소스 예측: 지금 소진
+# 공용 카드 상태 점 옆의 짧은 현재 시도 상태입니다.
+usage-status-error = 오류
+usage-status-unavailable = 사용 불가
+# 실제 성공 관측 시각만으로 계산한 전체 상대 시간입니다.
+usage-fresh-just-now = 방금
+usage-fresh-minutes = { $count }분 전
+usage-fresh-hours = { $count }시간 전
+usage-fresh-days = { $count }일 전
+# 카드의 전체 갱신 시각 문구. $age는 시도 시각이 아닌 번역된 상대 시간입니다.
+usage-updated = 업데이트: { $age }
+usage-last-updated = 마지막 업데이트: { $age }
+usage-never-updated = 성공한 업데이트가 없습니다
+# 이 보고서의 명시적인 새로 고침이 실패한 뒤 표시하는 전체 설명입니다.
+usage-refresh-failed = 이 보고서를 새로 고침하지 못했습니다.

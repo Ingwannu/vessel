@@ -141,10 +141,17 @@ pub(crate) fn dialogs(
     shell.retire_usage_options(window, cx);
     let modal = modal::dialogs(shell, tokens, window, cx);
     let options = draw(shell, tokens, window, cx);
-    if modal.is_none() && options.is_none() {
+    let tips = shell.areas.usage.source_tips.render(tokens);
+    if modal.is_none() && options.is_none() && tips.is_none() {
         return None;
     }
-    Some(div().children(modal).children(options).into_any_element())
+    Some(
+        div()
+            .children(modal)
+            .children(options)
+            .children(tips)
+            .into_any_element(),
+    )
 }
 fn draw(
     shell: &Shell,

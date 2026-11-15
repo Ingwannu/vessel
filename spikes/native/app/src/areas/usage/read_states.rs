@@ -11,14 +11,14 @@ use vessel_app_kit::{
 use vessel_app_view::usage::{InventoryRefresh, OptionsContext, Phase};
 use vessel_proto::limits::ExternalLookup;
 
-fn context(shell: &Shell) -> Option<OptionsContext> {
+pub(super) fn context(shell: &Shell) -> Option<OptionsContext> {
     let state = &shell.areas.usage;
     Some(OptionsContext::new(
         state.connection.clone()?,
         state.modal.current(),
     ))
 }
-fn current(shell: &Shell, receipt: &OptionsContext) -> bool {
+pub(super) fn current(shell: &Shell, receipt: &OptionsContext) -> bool {
     let state = &shell.areas.usage;
     receipt.matches(state.connection.as_ref(), state.modal.current())
         && shell.usage_connection_current(receipt.machine())
