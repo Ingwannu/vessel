@@ -235,9 +235,12 @@ fn successful_import_receipt_never_defers_alias_navigation_or_clears_the_active_
         // A same-node replacement and then an alias rebound cannot receive a
         // deferred command: receipt installation has no navigation registration.
         for node in [original.context.node(), NodeId::random()] {
-            let next = ConnectionEpochs::default()
-                .admit(original.machine.clone(), node)
+            let mut epochs = ConnectionEpochs::default();
+            let _old = epochs
+                .admit(original.machine.clone(), original.context.node())
                 .unwrap();
+            let next = epochs.admit(original.machine.clone(), node).unwrap();
+            assert_ne!(next.epoch(), original.context.epoch());
             let mut machine =
                 vessel_app_view::Machine::unreachable("fixture".into(), "fixture offline");
             machine.node = Some(next.node());

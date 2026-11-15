@@ -180,14 +180,13 @@ async fn a_full_owner_queue_past_both_old_deadlines_still_settles_the_exact_impo
         assert_eq!(peer.calls.lock().unwrap().len(), 1);
         let (events, mut incoming) = tokio::sync::mpsc::channel(1);
         events
-            .send(Event::History(super::Answer::refused(
+            .try_send(Event::History(super::Answer::refused(
                 Ask::Profiles {
                     scope: scope.clone(),
                     ticket,
                 },
                 Problem::Unsent,
             )))
-            .await
             .unwrap();
         let guard = selected.delivery_guard();
         let publication = super::publish(&selected, &events, request, reply, guard);
