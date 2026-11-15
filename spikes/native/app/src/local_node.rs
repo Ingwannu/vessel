@@ -181,7 +181,7 @@ fn quit(after: Option<AfterQuit>, confirmation: Option<Confirmation>, cx: &mut A
             }
             Err(error) => {
                 cx.update(|cx| {
-                    failed(cx, &error, Failure::Node(error.failure_snapshot().cloned()))
+                    failed(cx, &error, Failure::Node(error.failure_snapshot().cloned()));
                 });
             }
         }

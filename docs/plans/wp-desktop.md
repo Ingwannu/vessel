@@ -238,6 +238,7 @@ remains unverified.
 | control48eb2bcc / current-narrow134404 | strict RED: two uncalled old E3 setters and unnecessary CLI Option; no blanket suppression; owner-approved later cleanup |
 | currentd2f477b2 / link-current145243 | strict RED at Link: obsolete test State field, needless context borrow, let-and-return; App not reached |
 | current754056bb / link-current151900 | strict RED: Link test lints; App flush callback type and missing command-forward arm, fixture qualification; corrected source follows |
+| current1d08f88e / link-current155530 | strict RED at App: three formatting/closure lints and a test-only Reach import; corrected source follows |
 
 Root docs-only095f38c23 records the approved integration-test dev edge; prepared
 3d2128ae5 adds real Keep→Attached authority regression. Those additions do not

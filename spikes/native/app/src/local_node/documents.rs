@@ -6,7 +6,7 @@ use gpui::App;
 /// Run only after the initiating Shell/Window borrow ends. Final admission has
 /// no subsequent await before `App::quit` or `updater.restart`.
 pub(crate) fn admit(cx: &mut App) -> bool {
-    admit_matching(cx, |shell, cx| quit::readiness(shell, cx))
+    admit_matching(cx, quit::readiness)
 }
 
 pub(crate) fn admit_node(node: vessel_proto::NodeId, cx: &mut App) -> bool {

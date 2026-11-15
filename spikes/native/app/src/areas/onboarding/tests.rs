@@ -1,3 +1,4 @@
+use vessel_app_view::Reach;
 //! UI-controller regression: Finish must persist the model's completion effect.
 
 use super::*;

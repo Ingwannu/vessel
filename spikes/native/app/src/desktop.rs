@@ -201,7 +201,7 @@ fn install(
         async move {
             match flush.await {
                 Err(error) => {
-                    tracing::warn!(%error,"desktop state could not finish saving before quit")
+                    tracing::warn!(%error,"desktop state could not finish saving before quit");
                 }
                 Ok(receipt) => {
                     if let Some(error) = receipt.failure() {
