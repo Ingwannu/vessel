@@ -636,3 +636,10 @@ lead paragraph independently retained, one duplicate approval block removed),
 glyph registry count/sidebar tests, and size records615 field/828 picker.
 The checked standalone menu173 result remains bounded; this combined F4 source
 still needs its own narrow check. Latest base8 node merge remains separate.
+
+
+The incoming line also supplies the sole Button::aria_label API. Reorder arrows
+consume it with existing EN/KO move_up/move_down catalog words; the existing
+switch receives its row label through the toolkit's same element. No new
+keymap, role renderer or a11y completion claim. Correct the pure words helper's
+documentation: band descriptions are title info tips, not area paragraphs.

@@ -22,7 +22,7 @@ impl<'a> Sidebar<'a> {
             Section::Footer => self.footer_title(),
         }
     }
-    /// Description under a settings card heading.
+    /// Explanation shown by the settings card title info tip.
     #[must_use]
     pub fn band_description(self, section: Section) -> &'a str {
         match section {

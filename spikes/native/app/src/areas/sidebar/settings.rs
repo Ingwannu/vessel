@@ -13,7 +13,7 @@ use crate::shell::Shell;
 use std::{cell::RefCell, rc::Rc};
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, IntoElement as _, ParentElement as _,
+    AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
@@ -207,6 +207,10 @@ fn row(
             ),
             tokens,
         )
+        .aria_label(match direction {
+            Direction::Up => shell.words.sidebar().move_up(),
+            Direction::Down => shell.words.sidebar().move_down(),
+        })
         .on_click(cx.listener(move |shell, _, window, cx| {
             shell.sidebar_move_item(section, &key, direction, window, cx)
         }));
@@ -222,6 +226,7 @@ fn row(
         shell.areas.sidebar.settings.turn(section, &key),
         tokens,
     )
+    .aria_label(entry.label.clone())
     .on_click(cx.listener(move |shell, _, window, cx| {
         shell.sidebar_set_item_visible(
             section,
