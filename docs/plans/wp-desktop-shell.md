@@ -171,3 +171,15 @@ The lock-waiter test itself passed. The IPC fixture now uses a short unique Unix
 /tmp directory, preserving its real forward/restart assertions and exact cleanup.
 Product Unix IPC still reports the original OS error for an overlong configured
 socket location; this is an OS pathname limit, not silent forwarding or fallback.
+
+## Deferred CLI setup consumer
+
+Onboarding and Settings share `areas::desktop::cli::snapshot` and
+`set_installed(Operation, cx)`, both returning background tasks with typed
+`view::desktop::cli::Snapshot` acknowledgements. The read-only query checks the
+bundled file, exact shim ownership and current PATH/known shell rc; it never
+creates or edits the rc. Only an explicit install calls `PathSetup::ensure`.
+An installed CLI with an uneditable/unknown rc returns the manual PATH hint,
+while a foreign destination remains a typed refusal. Removal preserves the rc
+and reports its remaining configuration honestly. The existing ownership writer
+is reused rather than adding onboarding-specific filesystem policy.

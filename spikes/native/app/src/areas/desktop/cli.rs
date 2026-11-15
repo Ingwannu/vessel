@@ -14,7 +14,7 @@ use vessel_app_link::desktop::{
         path_setup::{PathSetup, Platform},
     },
 };
-use vessel_app_view::desktop::cli::{Availability, Operation, PathStatus, State, Status};
+use vessel_app_view::desktop::cli::{Availability, Operation, PathStatus, Snapshot, State, Status};
 
 pub(crate) struct CliPanel {
     state: State,
@@ -64,17 +64,74 @@ fn prepare() -> Result<(Installation, PathSetup), DesktopError> {
     Ok((Installation::new(source, target)?, path))
 }
 
-fn facts(installation: &Installation, path: PathStatus) -> Result<State, DesktopError> {
+fn facts(installation: &Installation, path: PathStatus) -> Result<Snapshot, DesktopError> {
     let availability = if installation.has_bundled_cli() {
         Availability::Bundled
     } else {
         Availability::Missing
     };
-    Ok(State::Ready {
+    Ok(Snapshot {
         availability,
         status: installation.status()?,
         path,
     })
+}
+
+fn path_status(path: &PathSetup) -> PathStatus {
+    match path.status() {
+        Ok(status) => status,
+        Err(error) => {
+            tracing::warn!(%error,"CLI PATH status needs manual inspection");
+            PathStatus::Manual
+        }
+    }
+}
+
+fn probe() -> Result<(Installation, PathSetup, Snapshot), DesktopError> {
+    let (installation, path) = prepare()?;
+    let snapshot = facts(&installation, path_status(&path))?;
+    Ok((installation, path, snapshot))
+}
+
+/// Onboarding reads offered/current facts without applying its default choice.
+pub(crate) fn snapshot(cx: &gpui::App) -> gpui::Task<Result<Snapshot, DesktopError>> {
+    cx.background_executor()
+        .spawn(async { probe().map(|(_installation, _path, snapshot)| snapshot) })
+}
+
+/// Capture work only on explicit Continue; the acknowledgement includes PATH hints.
+pub(crate) fn set_installed(
+    operation: Operation,
+    cx: &gpui::App,
+) -> gpui::Task<Result<Snapshot, DesktopError>> {
+    cx.background_executor().spawn(async move {
+        let (installation, path) = prepare()?;
+        perform(&installation, &path, operation)
+    })
+}
+
+fn perform(
+    installation: &Installation,
+    path: &PathSetup,
+    operation: Operation,
+) -> Result<Snapshot, DesktopError> {
+    let status = match operation {
+        Operation::Install => {
+            let _installed = installation.install()?;
+            match path.ensure() {
+                Ok(status) => status,
+                Err(error) => {
+                    tracing::warn!(%error,"CLI installed; PATH requires manual configuration");
+                    PathStatus::Manual
+                }
+            }
+        }
+        Operation::Remove => {
+            let _removed = installation.uninstall()?;
+            path_status(path)
+        }
+    };
+    facts(installation, status)
 }
 
 impl Shell {
@@ -83,11 +140,7 @@ impl Shell {
             return;
         }
         self.areas.desktop.cli.state = State::Checking;
-        let work = cx.background_executor().spawn(async move {
-            let (installation, path) = prepare()?;
-            let state = facts(&installation, PathStatus::Manual)?;
-            Ok::<_, DesktopError>((installation, path, state))
-        });
+        let work = cx.background_executor().spawn(async move { probe() });
         cx.spawn(async move |this, cx| {
             let result = work.await;
             let _closed = this.update(cx, |shell, cx| {
@@ -95,7 +148,7 @@ impl Shell {
                     Ok((installation, path, state)) => {
                         shell.areas.desktop.cli.installation = Some(installation);
                         shell.areas.desktop.cli.path = Some(path);
-                        shell.areas.desktop.cli.state = state;
+                        shell.areas.desktop.cli.state = state.into();
                     }
                     Err(error) => {
                         tracing::warn!(%error,"CLI status could not be read");
@@ -121,24 +174,14 @@ impl Shell {
         };
         panel.state = State::Working(operation);
         cx.notify();
-        let work=cx.background_executor().spawn(async move {
-            let path=match operation {
-                Operation::Install=>{
-                    let _installed=installation.install()?;
-                    match path.ensure() {
-                        Ok(status)=>status,
-                        Err(error)=>{tracing::warn!(%error,"CLI installed; PATH requires manual configuration");PathStatus::Manual}
-                    }
-                }
-                Operation::Remove=>{let _removed=installation.uninstall()?;PathStatus::Manual}
-            };
-            facts(&installation,path)
-        });
+        let work = cx
+            .background_executor()
+            .spawn(async move { perform(&installation, &path, operation) });
         cx.spawn(async move |this, cx| {
             let result = work.await;
             let _closed = this.update(cx, |shell, cx| {
                 shell.areas.desktop.cli.state = match result {
-                    Ok(state) => state,
+                    Ok(state) => state.into(),
                     Err(error) => {
                         tracing::warn!(%error,"CLI operation was refused");
                         State::Failed
