@@ -24,3 +24,23 @@ fn all_unsettled_document_states_refuse_without_changing_preferences(cx: &mut Te
         assert!(admit_shell(shell, cx));
     });
 }
+
+#[gpui::test]
+fn replacing_an_editor_callback_cannot_release_an_inflight_finalization(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |_shell, _window, cx| {
+        assert!(begin(cx));
+        assert!(is_finalizing(cx));
+        assert!(
+            !begin(cx),
+            "a second quit must not create another finalizer"
+        );
+        set_document_guard(|_shell| DocumentReadiness::Dirty, cx);
+        assert!(is_finalizing(cx), "new windows cannot reset an active quit");
+        finish(cx);
+        assert!(!is_finalizing(cx));
+        assert!(begin(cx));
+        finish(cx);
+    });
+}
