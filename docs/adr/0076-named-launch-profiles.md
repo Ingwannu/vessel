@@ -348,6 +348,19 @@ whole application. Other unsupported choices are not silently removed.
 The prepared result records omitted modes for the caller. Retired model
 or feature values still reach their normal validation/refusal path.
 
+Proposed eligibility read: `launch_profile.applicable`,
+`GetApplicableLaunchProfiles { session }`, Read. It uses the existing
+readable-session boundary and the node's account-name canonicalization,
+not a client-side harness/default-account table, to select profiles for
+that running agent/account. Terminal/ended sessions are inapplicable;
+parked structured sessions remain eligible. No credential file is read
+and no process is started. A distinct `ApplicableLaunchProfiles` result
+exposes filtered entries and list revision, not an editable whole-host
+snapshot. Its body keeps the same revision/profiles budgeted representation.
+Request correlation identifies the session; the app discards stale results.
+Agents meet the same Read rule as listing public profile notes. Applying
+still requires Operate and session ownership independently of this read.
+
 Application order is the reported model, mode, thinking category, then
 remaining features, stable within a category. An explicit direct API choice
 is not a request to silently omit an invalid mode: the profile materializer
