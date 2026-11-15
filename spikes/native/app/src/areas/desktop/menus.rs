@@ -85,17 +85,19 @@ pub(crate) fn trigger(
                             tokens,
                         )
                         .occlude()
-                        .on_click(cx.listener(move |shell, event, window, cx| {
-                            let area = &mut shell.areas.desktop;
-                            area.focus = window.focused(cx);
-                            area.group = if crate::areas::draft::compact(window) {
-                                Group::All
-                            } else {
-                                group
-                            };
-                            area.menu.open(event.position(), window, cx);
-                            cx.notify();
-                        }))
+                        .on_click(cx.listener(
+                            move |shell, event: &gpui::ClickEvent, window, cx| {
+                                let area = &mut shell.areas.desktop;
+                                area.focus = window.focused(cx);
+                                area.group = if crate::areas::draft::compact(window) {
+                                    Group::All
+                                } else {
+                                    group
+                                };
+                                area.menu.open(event.position(), window, cx);
+                                cx.notify();
+                            },
+                        ))
                         .into_any_element()
                     }),
             )

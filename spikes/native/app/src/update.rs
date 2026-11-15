@@ -274,10 +274,10 @@ impl Shell {
         confirmation: Option<vessel_app_link::local_node::Confirmation>,
         cx: &mut Context<'_, Self>,
     ) {
-        let Some(updates) = self.updates.runtime.as_ref().map(std::rc::Rc::clone) else {
+        let Some(runtime) = self.updates.runtime.as_ref().map(std::rc::Rc::clone) else {
             return;
         };
-        if updates.updater.is_none() || !crate::local_node::begin_finalization(cx) {
+        if runtime.updater.is_none() || !crate::local_node::begin_finalization(cx) {
             return;
         }
         let finalize = crate::local_node::finalize(
@@ -318,7 +318,7 @@ impl Shell {
                     crate::local_node::end_finalization(cx);
                     return;
                 }
-                let Some(updater) = updates.updater.as_ref() else {
+                let Some(updater) = runtime.updater.as_ref() else {
                     crate::local_node::end_finalization(cx);
                     return;
                 };
