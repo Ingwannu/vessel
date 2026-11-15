@@ -197,13 +197,17 @@ impl Shell {
         let Some(editing) = self.editing_for(&key) else {
             return;
         };
-        let Some((_, sequence)) = editing.writing.take_if(|(at, _)| *at == ticket) else {
+        let Some((_, sequence)) = editing.writing.filter(|(at, _)| *at == ticket) else {
             return;
         };
+        if !matches!(saved, Saved::Uncertain(_)) {
+            editing.writing = None;
+        }
         let written = match saved {
+            Saved::Uncertain(problem) => Written::Uncertain(words.problem(&problem)),
             Saved::Saved(version) => Written::Saved(version),
             Saved::Conflict { disk: Some(_), .. } => Written::Changed,
-            Saved::Conflict { disk: None, .. } => Written::Deleted,
+            Saved::Conflict { disk: None, .. } => Written::Changed,
             Saved::Failed(failure) => Written::Failed(words.save_failure(&failure)),
         };
         let step = editing.model.saved(sequence, written);

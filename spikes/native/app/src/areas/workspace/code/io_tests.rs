@@ -169,3 +169,53 @@ fn reload_decisions_keep_the_original_file_and_dialog_opening(cx: &mut TestAppCo
         assert_eq!(shell.areas.workspace.code.file_key(), Some(b));
     });
 }
+
+#[gpui::test]
+fn uncertain_original_write_is_retained_after_local_undo(cx: &mut TestAppContext) {
+    use vessel_app_view::workspace::editor::{Step, WriteState};
+    use vessel_app_view::workspace::save::Saved;
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update(cx, |shell, cx| {
+        let root = root();
+        target(shell, root);
+        shell.open_file_at("original.txt".parse().unwrap(), None, cx);
+        let key = shell.areas.workspace.code.file_key().unwrap();
+        let ticket = shell.editing_for(&key).unwrap().reading.unwrap().0;
+        shell.editor_read_answered(
+            "node",
+            ticket,
+            &read(root, "original.txt"),
+            Ok(text("a")),
+            cx,
+        );
+        let writing = shell.next_file_ticket().unwrap();
+        let editing = shell.editing_for(&key).unwrap();
+        let _step = editing.model.edit("b");
+        let Step::Write { sequence, .. } = editing.model.save() else {
+            panic!("write")
+        };
+        editing.writing = Some((writing, sequence));
+        shell.editor_saved(
+            "node",
+            writing,
+            &root,
+            &key.path,
+            Saved::Uncertain(Problem::Gone("lost reply".into())),
+            cx,
+        );
+        let editing = shell.editing_for(&key).unwrap();
+        assert_eq!(editing.writing, Some((writing, sequence)));
+        let _step = editing.model.edit("a");
+        assert!(!editing.model.modified());
+        assert_eq!(editing.model.write_state(), Some(WriteState::Uncertain));
+        assert_eq!(editing.model.save(), Step::None);
+        assert_eq!(editing.model.reload(), Step::None);
+        shell.open_file_at("next.txt".parse().unwrap(), None, cx);
+        assert!(shell.areas.workspace.code.files.retained.contains_key(&key));
+        assert_eq!(
+            shell.editing_for(&key).unwrap().writing,
+            Some((writing, sequence))
+        );
+    });
+}

@@ -302,3 +302,53 @@ fn a_queued_disk_read_adopts_its_format_only_after_the_write_settles() {
     let (_, wire, _) = write_of(&model.save());
     assert_eq!(wire, "next\r\ntext\r\n");
 }
+
+#[test]
+fn uncertain_effect_survives_undo_and_fresh_reads_until_original_completion() {
+    let mut model = loaded("baseline");
+    let _step = model.edit("submitted");
+    let (sequence, _, _) = write_of(&model.save());
+    let stale_read = read_of(&model.reconcile());
+    assert_eq!(
+        model.saved(sequence, Written::Uncertain("connection retired".into())),
+        Step::StopAutosave
+    );
+    assert_eq!(model.write_state(), Some(super::WriteState::Uncertain));
+    assert!(model.unsettled_base().is_some());
+    assert_eq!(model.edit("baseline"), Step::StopAutosave);
+    assert!(
+        !model.modified(),
+        "draft equality says nothing about remote completion"
+    );
+    assert_eq!(model.status(), EditorStatus::Error);
+    assert_eq!(model.save(), Step::None);
+    assert_eq!(model.flush(), Step::None);
+    assert_eq!(model.overwrite(), Step::None);
+    assert_eq!(model.reload(), Step::None);
+    assert_eq!(
+        model.read(stale_read, Read::Text("old".into(), version(3))),
+        Step::None
+    );
+    let fresh = read_of(&model.reconcile());
+    assert_eq!(
+        model.read(fresh, Read::Text("baseline".into(), version(8))),
+        Step::None
+    );
+    assert_eq!(model.writing(), Some(sequence));
+    assert_eq!(model.write_state(), Some(super::WriteState::Uncertain));
+    assert_eq!(model.content(), "baseline");
+    assert_eq!(
+        model.saved(sequence.saturating_add(1), Written::Saved(version(99))),
+        Step::None
+    );
+    assert_eq!(model.writing(), Some(sequence));
+    // A definitive original result can release the obligation. Its submitted
+    // text does not overwrite the local undo; a subsequent guarded save is new.
+    assert_eq!(
+        model.saved(sequence, Written::Saved(version(9))),
+        Step::Autosave
+    );
+    assert_eq!(model.writing(), None);
+    assert!(model.modified());
+    assert_eq!(model.content(), "baseline");
+}

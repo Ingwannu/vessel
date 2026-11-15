@@ -23,6 +23,11 @@
 //! - Cost: a change on disk while nothing is saved or re-read is seen only
 //!   at the next save (Paseo sees it at once through its watch).
 
+mod reading;
+mod write_attempt;
+use write_attempt::WriteAttempt;
+pub use write_attempt::WriteState;
+
 use super::text_format::{TextFormat, normalize_lines};
 use vessel_proto::workspace::FileVersion;
 
@@ -91,6 +96,8 @@ pub enum Written {
     Deleted,
     /// Not written, for another reason (the panel's sentence).
     Failed(String),
+    /// Possibly sent; only definitive original completion can release its hold.
+    Uncertain(String),
 }
 
 /// How a read ended.
@@ -118,7 +125,7 @@ pub struct EditorModel {
     write_sequence: u64,
     read_sequence: u64,
     /// The write out and the text it carries.
-    writing: Option<(u64, String)>,
+    writing: Option<WriteAttempt>,
     /// A read that came while a write was out, met when it ends.
     read_during_write: Option<Read>,
     /// The read out is a reload: its text replaces the buffer.
@@ -211,7 +218,19 @@ impl EditorModel {
     /// one is out), so the answer is this one's.
     #[must_use]
     pub fn writing(&self) -> Option<u64> {
-        self.writing.as_ref().map(|(sequence, _)| *sequence)
+        self.writing.as_ref().map(|attempt| attempt.sequence)
+    }
+
+    /// Remote-effect readiness is independent from the draft's text equality.
+    #[must_use]
+    pub fn write_state(&self) -> Option<WriteState> {
+        self.writing.as_ref().map(|attempt| attempt.state)
+    }
+
+    /// Guard of the original unsettled write, including explicit overwrite.
+    #[must_use]
+    pub fn unsettled_base(&self) -> Option<&Option<FileVersion>> {
+        self.writing.as_ref().map(|attempt| &attempt.base)
     }
 
     /// The read last asked for; the caller must echo this number with
@@ -244,6 +263,10 @@ impl EditorModel {
             return Step::None;
         }
         self.content = content;
+        if self.write_state() == Some(WriteState::Uncertain) {
+            self.status = EditorStatus::Error;
+            return Step::StopAutosave;
+        }
         self.error = None;
         if self.status == EditorStatus::Conflict {
             return Step::None;
@@ -269,7 +292,10 @@ impl EditorModel {
 
     /// Write the buffer over a file that changed on disk.
     pub fn overwrite(&mut self) -> Step {
-        if self.conflict != Some(ConflictKind::Changed) || self.status != EditorStatus::Conflict {
+        if self.writing.is_some()
+            || self.conflict != Some(ConflictKind::Changed)
+            || self.status != EditorStatus::Conflict
+        {
             return Step::None;
         }
         self.write(None)
@@ -278,6 +304,9 @@ impl EditorModel {
     /// Replace the buffer with the file on disk (the panel asks first when
     /// the buffer is modified: Paseo's "Reload from disk?").
     pub fn reload(&mut self) -> Step {
+        if self.writing.is_some() {
+            return Step::None;
+        }
         self.read_sequence = self.read_sequence.saturating_add(1);
         self.reloading = true;
         Step::Read {
@@ -316,7 +345,12 @@ impl EditorModel {
     fn write(&mut self, base: Option<FileVersion>) -> Step {
         self.write_sequence = self.write_sequence.saturating_add(1);
         let sequence = self.write_sequence;
-        self.writing = Some((sequence, self.content.clone()));
+        self.writing = Some(WriteAttempt {
+            sequence,
+            text: self.content.clone(),
+            base: base.clone(),
+            state: WriteState::Pending,
+        });
         self.read_during_write = None;
         self.status = EditorStatus::Saving;
         self.conflict = None;
@@ -330,7 +364,24 @@ impl EditorModel {
 
     /// A write's answer.
     pub fn saved(&mut self, sequence: u64, written: Written) -> Step {
-        let Some((_, text)) = self.writing.take_if(|(at, _)| *at == sequence) else {
+        if let Written::Uncertain(sentence) = &written {
+            let Some(attempt) = self
+                .writing
+                .as_mut()
+                .filter(|attempt| attempt.sequence == sequence)
+            else {
+                return Step::None;
+            };
+            attempt.state = WriteState::Uncertain;
+            self.status = EditorStatus::Error;
+            self.error = Some(sentence.clone());
+            self.read_during_write = None;
+            self.read_sequence = self.read_sequence.saturating_add(1);
+            return Step::StopAutosave;
+        }
+        let Some(WriteAttempt { text, .. }) =
+            self.writing.take_if(|attempt| attempt.sequence == sequence)
+        else {
             return Step::None;
         };
         let step = match written {
@@ -345,6 +396,7 @@ impl EditorModel {
                     Step::None
                 }
             }
+            Written::Uncertain(_) => Step::StopAutosave,
             Written::Changed => self.enter_conflict(ConflictKind::Changed),
             Written::Deleted => self.enter_conflict(ConflictKind::Deleted),
             Written::Failed(sentence) => {
@@ -360,88 +412,6 @@ impl EditorModel {
             }
             None => step,
         }
-    }
-
-    /// A read's answer: the first read, a reload, or the panel reading the
-    /// file again (a git write). A clean buffer follows the disk; a
-    /// modified one conflicts unless the disk matches it.
-    pub fn read(&mut self, sequence: u64, read: Read) -> Step {
-        if sequence != self.read_sequence {
-            return Step::None;
-        }
-        if !self.loaded() {
-            return match read {
-                Read::Text(text, version) => self.apply(&text, version),
-                Read::Deleted | Read::Failed(_) => {
-                    self.status = EditorStatus::Failed;
-                    self.error = match read {
-                        Read::Failed(sentence) => Some(sentence),
-                        Read::Deleted | Read::Text(..) => None,
-                    };
-                    Step::None
-                }
-            };
-        }
-        if self.writing.is_some() {
-            self.read_during_write = Some(read);
-            return Step::None;
-        }
-        if std::mem::take(&mut self.reloading)
-            && let Read::Text(text, version) = read
-        {
-            return self.apply(&text, version);
-        }
-        match read {
-            Read::Deleted => self.enter_conflict(ConflictKind::Deleted),
-            // A reload that fails keeps the buffer (Paseo: a loaded editor
-            // ignores a failed read).
-            Read::Failed(_) => Step::None,
-            Read::Text(text, version) => {
-                let (format, normalized) = TextFormat::decode(&text);
-                if normalized == self.persisted {
-                    self.format = format;
-                    self.version = Some(version);
-                    if self.status == EditorStatus::Conflict {
-                        self.conflict = None;
-                        self.status = if self.modified() {
-                            EditorStatus::Dirty
-                        } else {
-                            EditorStatus::Clean
-                        };
-                        if self.status == EditorStatus::Dirty {
-                            return Step::Autosave;
-                        }
-                    }
-                    Step::None
-                } else if !self.modified() {
-                    self.apply(&text, version)
-                } else {
-                    self.enter_conflict(ConflictKind::Changed)
-                }
-            }
-        }
-    }
-
-    /// The read on a reload or after a conflict: the buffer is the disk's.
-    fn apply(&mut self, text: &str, version: FileVersion) -> Step {
-        let (format, text) = TextFormat::decode(text);
-        self.format = format;
-        self.write_sequence = self.write_sequence.saturating_add(1);
-        self.writing = None;
-        self.persisted.clone_from(&text);
-        self.content = text;
-        self.version = Some(version);
-        self.status = EditorStatus::Clean;
-        self.conflict = None;
-        self.error = None;
-        Step::StopAutosave
-    }
-
-    fn enter_conflict(&mut self, kind: ConflictKind) -> Step {
-        self.status = EditorStatus::Conflict;
-        self.conflict = Some(kind);
-        self.error = None;
-        Step::StopAutosave
     }
 }
 

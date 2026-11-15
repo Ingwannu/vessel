@@ -47,6 +47,8 @@ pub enum Saved {
     },
     /// Not written, for another reason.
     Failed(SaveFailure),
+    /// The write may have happened. Retain its original obligation; do not retry.
+    Uncertain(Problem),
 }
 
 /// Why a save wrote nothing, other than a conflict.
@@ -128,7 +130,10 @@ where
         Err(problem) if guarded && problem.code() == Some(ErrorCode::Conflict) => {
             conflict_of(read().await, text)
         }
-        Err(problem) => Saved::Failed(SaveFailure::Call(problem)),
+        Err(problem @ (Problem::Older | Problem::Unsent)) => {
+            Saved::Failed(SaveFailure::Call(problem))
+        }
+        Err(problem) => Saved::Uncertain(problem),
     }
 }
 
@@ -328,7 +333,7 @@ mod tests {
     }
 
     #[test]
-    fn says_another_refusal_as_the_node_said_it() {
+    fn an_unclassified_write_failure_keeps_the_original_effect_uncertain() {
         let saved = now(save_text(
             |_expect, _text| ready(Err(refused(ErrorCode::Forbidden, "read only"))),
             || -> Ready<Result<FileRead, Problem>> { panic!("not read") },
@@ -337,10 +342,7 @@ mod tests {
         ));
         assert_eq!(
             saved,
-            Saved::Failed(SaveFailure::Call(refused(
-                ErrorCode::Forbidden,
-                "read only"
-            )))
+            Saved::Uncertain(refused(ErrorCode::Forbidden, "read only"))
         );
     }
 
@@ -363,6 +365,45 @@ mod tests {
         assert!(matches!(
             saved,
             Saved::Conflict { disk: Some(disk), disk_text: None, .. } if disk == changed()
+        ));
+    }
+}
+
+#[cfg(test)]
+mod completion_tests {
+    use super::*;
+    use std::future::ready;
+    #[test]
+    fn refused_before_dispatch_is_distinct_from_an_unknown_completion() {
+        let settle = |problem| async {
+            save_text(
+                |_, _| ready(Err(problem)),
+                || ready(Err(Problem::Unsent)),
+                "draft".into(),
+                None,
+            )
+            .await
+        };
+        // No executor is needed: both fake boundaries are immediately ready.
+        fn now<F: Future>(future: F) -> F::Output {
+            let mut future = std::pin::pin!(future);
+            let mut cx = std::task::Context::from_waker(std::task::Waker::noop());
+            match future.as_mut().poll(&mut cx) {
+                std::task::Poll::Ready(value) => value,
+                std::task::Poll::Pending => panic!("ready fake"),
+            }
+        }
+        assert!(matches!(
+            now(settle(Problem::Unsent)),
+            Saved::Failed(SaveFailure::Call(Problem::Unsent))
+        ));
+        assert!(matches!(
+            now(settle(Problem::Older)),
+            Saved::Failed(SaveFailure::Call(Problem::Older))
+        ));
+        assert!(matches!(
+            now(settle(Problem::Gone("transport lost".into()))),
+            Saved::Uncertain(Problem::Gone(_))
         ));
     }
 }
