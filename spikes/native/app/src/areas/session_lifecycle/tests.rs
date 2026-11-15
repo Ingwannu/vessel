@@ -15,7 +15,7 @@ use vessel_app_view::{
     Card,
     connection::{ConnectionEpochs, MachineKey},
     layout::{LookupProblem, WorkspaceLocation, WorkspaceLookup},
-    residents::{HoldReason, OperationKind, OwnerReadiness},
+    residents::{HoldReason, OperationKind, OwnerReadiness, Visibility},
     sessions::LifecycleAction,
 };
 use vessel_proto::{HarnessKind, NodeId, SessionId, SessionMode, SessionSpec, WorkspaceId};
@@ -133,11 +133,37 @@ fn lifecycle_stays_loading_until_exact_scoped_hydration_and_transfers_only_clean
         let clean = owner.take_clean_snapshot().unwrap();
         assert_eq!(clean.resident(), context.resident);
         assert_eq!(owner.readiness(), OwnerReadiness::Hold(HoldReason::Loading));
-        residents.focus(context.resident, &context.claim).unwrap();
+        // The minter already focused this claim. Change presentation for real;
+        // focusing the same claim is intentionally idempotent.
+        residents
+            .present(
+                context.resident,
+                &context.claim,
+                context.pane,
+                Visibility::RetainedHidden,
+            )
+            .unwrap();
         assert!(residents.resources(&context).is_err());
         let received = received_snapshot(residents, &admission).unwrap();
         assert_eq!(received.resident(), context.resident);
-        // A local caller refreshes its same claim; network hydration above did not.
+        assert_eq!(
+            residents
+                .context(context.resident, &context.claim)
+                .unwrap()
+                .visibility,
+            Visibility::RetainedHidden
+        );
+        // Only a local presentation transition restores visible input. Network
+        // hydration above neither refreshed its context nor acquired focus.
+        residents
+            .present(
+                context.resident,
+                &context.claim,
+                context.pane,
+                Visibility::Visible,
+            )
+            .unwrap();
+        residents.focus(context.resident, &context.claim).unwrap();
         let context = residents.context(context.resident, &context.claim).unwrap();
         residents
             .resources_mut(&context)
