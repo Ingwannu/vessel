@@ -28,5 +28,9 @@ creation-seed-busy = A draft already contains unsent or pending work. Finish it 
 
 # Workspace launch and primary action; empty Chat creates only a workspace.
 creation-create-workspace = Create workspace
+
+# Launch target: a chat, or only a workspace when there is no payload.
 creation-launch-chat = Chat
+
+# Launch target: the node configured shell, distinct from a stored profile.
 creation-launch-shell = Blank terminal

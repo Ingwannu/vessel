@@ -28,5 +28,9 @@ creation-seed-busy = 아직 보내지 않았거나 처리 중인 초안이 있�
 
 # Workspace launch and primary action; empty Chat creates only a workspace.
 creation-create-workspace = 워크스페이스 만들기
+
+# Launch target: a chat, or only a workspace when there is no payload.
 creation-launch-chat = 대화
+
+# Launch target: the node configured shell, distinct from a stored profile.
 creation-launch-shell = 빈 터미널
