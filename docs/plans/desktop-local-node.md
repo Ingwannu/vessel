@@ -27,7 +27,8 @@ reasons. Service files and arbitrary process signalling remain outside this pack
 - Why: owned child handles are the sole launch/cleanup authority. Reused nodes
   remain Attached; a socket or owner record never becomes an Owned handle.
 - Costs: the launching runtime must remain alive for the detached child reaper
-  until process exit. Once the launcher exits the OS reparents the child. A
+  until process exit. Unix reparents the child after launcher exit; Windows
+  process/job lifetime requires its own platform qualification. A
   detached handle never offers signalling or conversion back into an owned child.
 
 ## Boundaries and safety contract
@@ -143,8 +144,8 @@ contract is introduced, and ordinary restart delegates to the same method.
 
 ### Checked owned cleanup joins the controller
 
-The V3-source-reviewed W16 seam 7d4b23bb +622465a9 is merged provisionally for
-combined verification, not treated as runtime-qualified. Owned::wait now accepts
+The V3-reviewed portable W16 seam b37 is already in the announced node base;
+the old622 ancestry is excluded from this implementation. Owned::wait accepts
 only Child::wait_checked's private receipt and projects its leader exit code to
 ProcessExit. Typed Wait/Sweep/Unrecorded causes remain inside LaunchError::Wait;
 uncertainty prevents stop/restart acknowledgement and retains the lease. The
@@ -163,6 +164,11 @@ module remains the sole existing CLI parser; its detached field and tests are
 preserved, with only a flattened additional managed mode. Legacy attach readiness
 uses its existing constant; this package adds only proto::local_launch readiness.
 The ratchet keeps the announced head's entries and adds none.
+
+Only explicitly managed readiness makes a broken notification pipe fatal. The
+legacy detached announcement retains its previous log-and-continue behavior;
+the shared output helper has an injected full-slice regression to distinguish
+these contracts without replacing process-wide stdout during concurrent tests.
 
 The approved node dev dependency is integration wiring through public controller
 API only. The real Keep→Attached regression preserves observer/authority separation;

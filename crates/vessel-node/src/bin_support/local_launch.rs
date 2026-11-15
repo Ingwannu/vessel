@@ -37,6 +37,15 @@ impl Mode {
     }
 
     pub(super) fn announce(&self, detached: bool, node: NodeId) -> std::io::Result<()> {
+        self.announce_to(detached, node, &mut std::io::stdout().lock())
+    }
+
+    fn announce_to(
+        &self,
+        detached: bool,
+        node: NodeId,
+        output: &mut impl std::io::Write,
+    ) -> std::io::Result<()> {
         let line = if self.desktop_managed == Desktop::Enabled {
             Some(vessel_proto::local_launch::Ready::new(node).encode())
         } else if detached {
@@ -49,9 +58,16 @@ impl Mode {
             None
         };
         if let Some(line) = line {
-            let mut stdout = std::io::stdout().lock();
-            stdout.write_all(line.as_bytes())?;
-            stdout.flush()?;
+            let written = output
+                .write_all(line.as_bytes())
+                .and_then(|()| output.flush());
+            if self.desktop_managed() {
+                // Only the new managed contract fails launch on pipe loss.
+                // Legacy attach logged a failed announcement and kept serving.
+                written?;
+            } else if let Err(error) = written {
+                tracing::error!(%error, "cannot write to stdout");
+            }
         }
         Ok(())
     }
@@ -76,5 +92,23 @@ mod tests {
         assert!(!legacy.run.launch.desktop_managed());
         assert!(legacy.run.launch.survives_hangup(legacy.run.detached));
         assert!(Args::try_parse_from(["vesseld", "--desktop-managed", "--detached"]).is_err());
+    }
+
+    #[test]
+    fn failed_readiness_pipe_is_fatal_only_for_explicit_managed_launch() {
+        // A full slice deterministically refuses writes without changing the
+        // process-wide stdout used by concurrently running binary tests.
+        let mut full = &mut [][..];
+        let node = vessel_proto::NodeId::random();
+        let legacy = Args::try_parse_from(["vesseld", "--detached"]).unwrap();
+        assert!(legacy.run.launch.announce_to(true, node, &mut full).is_ok());
+        let managed = Args::try_parse_from(["vesseld", "--desktop-managed"]).unwrap();
+        assert!(
+            managed
+                .run
+                .launch
+                .announce_to(false, node, &mut full)
+                .is_err()
+        );
     }
 }
