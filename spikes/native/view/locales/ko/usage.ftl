@@ -339,4 +339,5 @@ usage-source-unsupported = 이 머신에서 이 소스를 사용할 수 없습�
 
 # Source-reported risk timing; never infer it from account quota or reset.
 usage-runs-out-in = 소스 예측: { $duration } 후 소진
+# Source forecast has reached its reported instant; never infer a hard stopped turn.
 usage-runs-out-now = 소스 예측: 지금 소진
