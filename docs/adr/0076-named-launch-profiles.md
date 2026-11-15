@@ -413,6 +413,13 @@ apply admission is separate from metadata/probe admission so hung setters
 cannot consume every profile-list slot. Queued/running jobs and completion
 handoffs retain ownership through cancellation. No second unbounded queue,
 process switch, hidden restart, retry or central session-map mutex is added.
+The configuration queue reuses the existing agent-command capacity's named
+definition; separate metadata/probe and apply admissions each use the
+accepted `LaunchProfileJobs::MAX_ACTIVE` bound, rather than duplicate a
+numeric definition. The new client budget follows the pinned source's
+`DEFAULT_SESSION_RPC_TIMEOUT_MS`; it is not applied to older methods.
+The owner must exit when its driver's command receiver closes even when
+an external clone of the input handle is retained.
 Tests drive the real owner with fake provider completions, barriers and
 finite safety clocks, including a competing old single-field call, partial
 failure, first-notice continuation, dropped callers, delayed acknowledgement,
