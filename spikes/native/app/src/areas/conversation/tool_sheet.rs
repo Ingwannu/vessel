@@ -192,7 +192,7 @@ pub(super) fn overlay(
     let paint = super::timeline::paint(shell, area, seat, tokens, window);
     let Some((title, body)) = content(&paint, area, &shown.selection, window, cx) else {
         cx.defer_in(window, move |shell, window, cx| {
-            shell.dismiss_tool_sheet(seat, generation, window, cx)
+            shell.dismiss_tool_sheet(seat, generation, window, cx);
         });
         return None;
     };
