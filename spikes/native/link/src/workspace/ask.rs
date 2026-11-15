@@ -16,6 +16,8 @@ use super::StartAsk;
 pub enum Ask {
     /// Host-bound project mutation with a unique draft ticket.
     ProjectChange(super::ProjectChange),
+    /// Correlated backing-entity actions from workspace tabs.
+    Layout(super::layout::Ask),
     /// About its projects.
     Project(ProjectAsk),
     /// About worktrees and snapshots.

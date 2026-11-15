@@ -147,7 +147,7 @@ fn session_events_of_ten_reach_older_clients_as_log_lines() {
             held: Some(QueueHold::Cancelled),
         },
     };
-    assert_eq!(held.since(), V10);
+    assert_eq!(held.required_protocol(), Some(V10));
     assert_eq!(held.for_protocol(V10), None);
     assert_eq!(
         held.for_protocol(V9),
@@ -193,7 +193,7 @@ fn agent_events_of_ten_reach_older_clients_too() {
     let steered = agent(AgentEvent::Steered {
         content: vec![text("\n  also run the tests\nplease")],
     });
-    assert_eq!(steered.since(), V10);
+    assert_eq!(steered.required_protocol(), Some(V10));
     assert_eq!(
         steered.for_protocol(V9),
         log("vessel: steered: also run the tests")
@@ -223,7 +223,7 @@ fn agent_events_of_ten_reach_older_clients_too() {
     let started = agent(AgentEvent::TurnStarted {
         content: vec![text("look"), ContentBlock::Attachment { attachment: image }],
     });
-    assert_eq!(started.since(), V10);
+    assert_eq!(started.required_protocol(), Some(V10));
     assert_eq!(
         started.for_protocol(V9),
         Some(agent(AgentEvent::TurnStarted {
@@ -239,7 +239,7 @@ fn agent_events_of_ten_reach_older_clients_too() {
     let plain = agent(AgentEvent::TurnStarted {
         content: vec![text("look")],
     });
-    assert_eq!(plain.since(), ProtocolVersion::new(2));
+    assert_eq!(plain.required_protocol(), Some(ProtocolVersion::new(2)));
     assert_eq!(plain.for_protocol(V9), None);
 }
 

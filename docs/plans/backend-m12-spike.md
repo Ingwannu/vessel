@@ -694,6 +694,13 @@ starts from, gated alone:
   line, so workers on base 3 lacked them (one was blocked on the Settings
   Chat words). Every package merged for a build now lands on this line,
   and the package base branch follows it by fast-forward.
+- `074ade16`: the dialog's shared return focus, taken early as a seam so
+  the packages that open dialogs, menus and selects reuse one policy: G4's
+  captured dismissal (`a80e7fd3`, the close is a clonable closure) and its
+  weak, once-per-open return to the opener (`fe53a206`, `42bde0bf`,
+  `11fba709`), picked alone rather than with G4's moving branch. The focus
+  commits need the closure commit to compile, and the reviewed tests had
+  one doubled blank line that the format step refuses.
 
 Root binaries for capture fleets are built once from that root
 (`fleet.sh` end to end), so the packages do not each build them.

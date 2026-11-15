@@ -128,6 +128,7 @@ impl Shell {
     ) -> bool {
         match answer {
             Answer::ProjectChanged { key, result } => self.project_changed(machine, &key, result),
+            Answer::Layout(answer) => self.layout_renamed(answer, cx),
             Answer::Projects(result) => {
                 let _was = self
                     .areas
