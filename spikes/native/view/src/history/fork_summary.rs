@@ -30,6 +30,7 @@ pub struct ForkBoundary {
     source: SessionRef,
     key: EntryKey,
     revision: u32,
+    through: vessel_proto::EventSeq,
 }
 impl ForkBoundary {
     /// Capture the exact visible row, not a mutable array position.
@@ -39,6 +40,7 @@ impl ForkBoundary {
             source,
             key: entry.key.clone(),
             revision: entry.rev,
+            through: entry.through,
         }
     }
 }
@@ -125,7 +127,17 @@ pub fn fork_summary(
             {
                 return Err(SummaryProblem::StaleBoundary);
             }
-            rows.get(..=index).ok_or(SummaryProblem::StaleBoundary)?
+            let selected = rows.get(..=index).ok_or(SummaryProblem::StaleBoundary)?;
+            // An earlier tool may have changed after the selected answer while
+            // that answer's own revision stayed unchanged. Its current body is
+            // not a historical snapshot through the captured source boundary.
+            if selected
+                .iter()
+                .any(|row| row.source == boundary.source && row.entry.through > boundary.through)
+            {
+                return Err(SummaryProblem::StaleBoundary);
+            }
+            selected
         }
     };
     let header = header(source);

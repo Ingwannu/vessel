@@ -97,3 +97,9 @@ operate on visible workspace placements, with at most9 numeric workspace
 targets. Managed child/session rows never enter that numeric projection. S2/W11
 own that single workspace source; this index serves only A4/session-tree and
 legacy session callers. No workspace-sidebar caller code was added here.
+
+## Exact fork overlap boundary
+
+W10's isolated Entry.through bridge20ae7edac (base4 parent, same code as consumer-tested9fbda65af) supplies the exclusive last contributing/invalidating source record watermark. The fork checkpoint captures it alongside source/key/revision and refuses any earlier same-source row whose current watermark crossed the selected checkpoint. This catches late tool updates even when the selected answer itself did not change. It never infers a historical body from revision counts or a contiguous seq range. Unanchored current snapshots remain allowed. Exact merged view/link checks remain owed.
+
+Plugin history uses the same agent.history/session.create resume boundary. W16's plugin-provider registration is not executable/consumer-ready yet; plugin history is unsupported until W22's provider adapter exists, rather than a second intake/store.

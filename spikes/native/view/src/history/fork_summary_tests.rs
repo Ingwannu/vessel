@@ -20,6 +20,7 @@ fn entry(seq: u64, kind: EntryKind) -> Entry {
     Entry {
         key: EntryKey::Record(EventSeq::new(seq)),
         seq: EventSeq::new(seq),
+        through: EventSeq::new(seq.saturating_add(1)),
         at: chrono::DateTime::UNIX_EPOCH,
         kind,
         rev: 0,
@@ -194,4 +195,28 @@ fn source_metadata_is_bounded_inside_the_same_total_budget() {
     assert!(result.as_str().contains("Source directory: /"));
     assert!(result.as_str().encode_utf16().count() <= MAX_FORK_UNITS);
     assert!(result.as_str().encode_utf16().count() < MAX_METADATA_UNITS.saturating_add(200));
+}
+
+#[test]
+fn an_earlier_tool_changed_after_the_selected_answer_refuses_the_snapshot() {
+    let source = source();
+    let mut earlier = entry(0, message("before".into()));
+    let answer = entry(4, message("selected answer".into()));
+    let boundary = ForkBoundary::of(source, &answer);
+    earlier.through = EventSeq::new(9);
+    let rows = [
+        SummaryEntry {
+            source,
+            entry: &earlier,
+        },
+        SummaryEntry {
+            source,
+            entry: &answer,
+        },
+    ];
+    assert_eq!(
+        fork_summary(&rows, Some(&boundary), metadata()),
+        Err(SummaryProblem::StaleBoundary)
+    );
+    assert!(fork_summary(&rows, None, metadata()).is_ok());
 }
