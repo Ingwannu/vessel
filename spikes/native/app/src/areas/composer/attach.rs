@@ -200,6 +200,7 @@ impl Shell {
                     .sends
                     .len()
                     .saturating_add(usize::from(composer.starting.borrow().is_some()))
+                    .saturating_add(composer.workspace_starting.len())
                     >= vessel_app_view::composer::trays::Trays::MAX;
         (files
             || self.composer_has_context(DraftKey::Session { session })

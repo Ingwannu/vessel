@@ -19,3 +19,5 @@ The attachment area resolves the exact W3 editor and optional authoritative root
 WorkspaceInput carries the source key, local creation ticket, canonical client message identity and expected node before preparation. Workspace holds are indexed by (DraftKey,Ticket), bounded with session sends, and transfer only captured file keys/context revisions to the created session. New remains on its existing API. Rejecting or completing an equal ticket from a sibling draft cannot release that hold. A context-only history seed does not infer a file root.
 
 The active destination awaits the layout owner's canonical effective-target accessor, and W3 owns source propagation through creation replies. No workspace submit fallback is introduced. VM-only strict checks and the equal-ticket GPUI regression remain required; source staging is not runtime or UI approval.
+
+Workspace history seeding does not focus its field: pre-layout and background admission preserve the layout owner's focus decision. Preparation capacity counts both New and workspace holds before reserving a live-session send.

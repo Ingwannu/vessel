@@ -41,7 +41,14 @@ impl Shell {
         if !self.draft_has_files() {
             return Ok(None);
         }
-        if self.areas.composer.sends.len() >= vessel_app_view::composer::trays::Trays::MAX {
+        if self
+            .areas
+            .composer
+            .sends
+            .len()
+            .saturating_add(self.areas.composer.workspace_starting.len())
+            >= vessel_app_view::composer::trays::Trays::MAX
+        {
             return Err(PrepareProblem::Capacity);
         }
         let mut held = self.areas.composer.starting.borrow_mut();

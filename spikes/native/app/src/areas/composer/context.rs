@@ -117,7 +117,9 @@ impl Shell {
             .contexts
             .tray(target)
             .reattach(history.into_attachment())?;
-        if let Some(field) = self.composer_field(target) {
+        if target == DraftKey::New
+            && let Some(field) = self.composer_field(target)
+        {
             field.focus(window, cx);
         }
         cx.notify();
