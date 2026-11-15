@@ -803,3 +803,13 @@ now returns an opaque typed wrapper around private preparation causes;
 request exchange is separated from routing/style preparation to keep each
 function focused. Already-cancelled node tasks return before observing input.
 The first run remains recorded; runtime tests and TS regeneration are next.
+
+
+Cancellation audit: current watch info can coalesce a parked/woken pair.
+The source owner now shares a bounded cached/live cursor and checks permanent
+cancellation events as well as the actor's current predicate. Gaps/lag cancel;
+ready cancellation is polled before preparation. A real runtime test parks and
+wakes before polling the cancellation future, proves current info is eligible,
+and requires the recorded park to stop the task. No new queue or retry exists.
+The first product Clippy reached all modules and found only the reused test
+fixture's formerly unused bin field name; it is renamed now that it is used.

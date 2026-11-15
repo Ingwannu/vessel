@@ -292,3 +292,27 @@ async fn a_live_subscription_waits_for_its_first_given_title_and_typed_words_sto
     })
     .await;
 }
+
+#[tokio::test]
+async fn parking_then_waking_before_polling_cannot_restore_generation_ownership() {
+    within(async {
+        let fixture = Fixture::new().await;
+        let (handle, records) = fixture.structured().await;
+        handle.send(prompt()).await.unwrap();
+        given(&handle).await;
+        let seed = source::first(&handle).await.unwrap();
+        let _parked = handle.park().await.unwrap();
+        let _woken = handle.wake().await.unwrap();
+        assert!(
+            handle.accepts_generated_title(&seed.expected),
+            "current info alone misses the intervening park"
+        );
+        source::lost(&handle, &seed.expected).await;
+        assert!(fixture.upstream.seen().is_empty());
+        handle.kill();
+        let _ended = handle.ended().await;
+        let _records = records.await.unwrap();
+        fixture.stop().await;
+    })
+    .await;
+}

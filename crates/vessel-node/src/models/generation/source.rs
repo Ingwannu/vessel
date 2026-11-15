@@ -1,7 +1,11 @@
 //! Freeze the first provisional title's material; lost history is never repaired with later input.
 
 use super::text::Material;
-use vessel_proto::{AgentEvent, ContentBlock, EventSeq, SessionEvent, SessionTitle, TitleOrigin};
+use std::sync::Arc;
+use tokio::sync::{broadcast, watch};
+use vessel_proto::{
+    AgentEvent, ContentBlock, EventSeq, SessionEvent, SessionInfo, SessionTitle, TitleOrigin,
+};
 use vessel_session::SessionHandle;
 
 pub(super) struct Seed {
@@ -34,11 +38,39 @@ fn capture(content: &[ContentBlock]) -> Result<Option<Seed>, SourceError> {
     Ok(None)
 }
 
+/// One bounded cursor; cancelling a pending broadcast receive loses no record.
+struct Cursor {
+    cached: std::vec::IntoIter<Arc<vessel_proto::EventRecord>>,
+    live: broadcast::Receiver<Arc<vessel_proto::EventRecord>>,
+}
+impl Cursor {
+    fn new(handle: &SessionHandle) -> Result<Self, SourceError> {
+        let follow = handle.follow(EventSeq::ZERO)?;
+        Ok(Self {
+            cached: follow.cached.into_iter(),
+            live: follow.live,
+        })
+    }
+    async fn next(
+        &mut self,
+        info: &mut watch::Receiver<SessionInfo>,
+    ) -> Result<Option<Arc<vessel_proto::EventRecord>>, SourceError> {
+        if let Some(record) = self.cached.next() {
+            return Ok(Some(record));
+        }
+        tokio::select! {
+            record = self.live.recv() => Ok(Some(record?)),
+            changed = info.changed() => {
+                changed.map_err(|_ended| SourceError::Kept)?;
+                Ok(None)
+            }
+        }
+    }
+}
+
 /// Cached and live records are subscribed atomically, covering input racing creation.
 pub(super) async fn first(handle: &SessionHandle) -> Result<Seed, SourceError> {
-    let follow = handle.follow(EventSeq::ZERO)?;
-    let mut cached = follow.cached.into_iter();
-    let mut live = follow.live;
+    let mut cursor = Cursor::new(handle)?;
     let mut info = handle.watch_info();
     loop {
         {
@@ -53,17 +85,12 @@ pub(super) async fn first(handle: &SessionHandle) -> Result<Seed, SourceError> {
                 return Err(SourceError::Kept);
             }
         }
-        let record = if let Some(record) = cached.next() {
-            record
-        } else {
-            tokio::select! {
-                record = live.recv() => record?,
-                changed = info.changed() => {
-                    changed.map_err(|_ended| SourceError::Kept)?;
-                    continue;
-                }
-            }
+        let Some(record) = cursor.next(&mut info).await? else {
+            continue;
         };
+        if matches!(record.event, SessionEvent::Parked { .. }) {
+            return Err(SourceError::Kept);
+        }
         if let SessionEvent::Agent {
             event: AgentEvent::TurnStarted { content },
         } = &record.event
@@ -92,11 +119,42 @@ async fn given(handle: &SessionHandle, seed: Seed) -> Result<Seed, SourceError> 
 
 /// Used around preparation and transport; the actor checks again when applying.
 pub(super) async fn lost(handle: &SessionHandle, expected: &SessionTitle) {
+    let Ok(mut cursor) = Cursor::new(handle) else {
+        return;
+    };
     let mut info = handle.watch_info();
     loop {
-        if !handle.accepts_generated_title(expected) || info.changed().await.is_err() {
+        if !handle.accepts_generated_title(expected) {
             return;
         }
+        match cursor.next(&mut info).await {
+            Ok(Some(record)) if cancels(&record.event, expected) => return,
+            Ok(Some(_) | None) => {}
+            Err(_lost) => return,
+        }
+    }
+}
+
+// A watch may coalesce Parked followed by Woken. Event history makes that
+// cancellation permanent for this task rather than spending after a wake.
+fn cancels(event: &SessionEvent, expected: &SessionTitle) -> bool {
+    match event {
+        SessionEvent::Parked { .. }
+        | SessionEvent::Forked { .. }
+        | SessionEvent::Rewound { .. } => true,
+        SessionEvent::Renamed { title, origin } => {
+            *origin != TitleOrigin::Given || title != expected
+        }
+        SessionEvent::Status { status } => !status.is_live(),
+        SessionEvent::Terminal(_)
+        | SessionEvent::Agent { .. }
+        | SessionEvent::ProfileChanged { .. }
+        | SessionEvent::ModelCall(_)
+        | SessionEvent::OptionsChanged { .. }
+        | SessionEvent::QueueChanged { .. }
+        | SessionEvent::CommandsChanged { .. }
+        | SessionEvent::UsageChanged { .. }
+        | SessionEvent::Woken => false,
     }
 }
 

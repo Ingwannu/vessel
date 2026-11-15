@@ -22,6 +22,7 @@ impl Task {
             return;
         }
         tokio::select! {
+            biased;
             () = self.stop.cancelled() => {},
             () = self.work(client) => {},
         }
@@ -38,7 +39,10 @@ impl Task {
         let settings = self.settings.current().await;
         let expected = seed.expected.clone();
         tokio::select! {
-            () = source::lost(&self.handle, &expected) => {},
+            biased;
+            () = source::lost(&self.handle, &expected) => {
+                tracing::debug!(session = %self.handle.id(), "title generation cancelled after losing its first source");
+            },
             result = driver::generate(&self.models, client, &self.handle, &settings.metadata,
                 seed, self.cwd.clone(), self.git.clone()) => {
                 match result {

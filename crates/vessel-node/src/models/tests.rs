@@ -41,7 +41,7 @@ type Records = JoinHandle<Vec<Arc<EventRecord>>>;
 
 pub(super) struct Fixture {
     pub(super) data: TempDir,
-    _bin: TempDir,
+    bin: TempDir,
     pub(super) runtime: Arc<SessionRuntime>,
     pub(super) upstream: FakeUpstream,
     pub(super) models: Arc<Models>,
@@ -91,7 +91,7 @@ impl Fixture {
         )));
         Self {
             data,
-            _bin: bin,
+            bin,
             runtime,
             upstream,
             models,
@@ -142,7 +142,7 @@ impl Fixture {
     pub(super) async fn structured(&self) -> (SessionHandle, Records) {
         drop(
             install(
-                self._bin.path(),
+                self.bin.path(),
                 HarnessKind::ClaudeCode,
                 Role::Structured,
                 &Fake::Acp.path().unwrap(),

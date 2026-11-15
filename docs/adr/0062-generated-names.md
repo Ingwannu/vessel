@@ -918,3 +918,10 @@ apply a title; the later owner must do those operations in that order.
   back to the working folder outside Git. Files run on blocking workers.
   This differs from Paseo's main-repository style root as already stated.
   No branch, commit or pull generation is enabled by this package.
+
+
+Cancellation observes bounded event history as well as the current info.
+A watch can coalesce a parked/woken pair; that pair must still cancel the
+original task. A gap or lag is conservative cancellation, never permission
+to take another source. Ready cancellation is polled before preparation.
+The actor's current eligibility check remains the final mutation authority.
