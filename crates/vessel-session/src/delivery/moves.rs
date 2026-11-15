@@ -142,9 +142,10 @@ impl StructuredActor {
 
     /// Publish the queue if it differs from what was last published.
     pub(crate) async fn publish_queue(&mut self) {
-        // An entry that left the queue without a turn starts none.
-        self.desk.tickets.prune(self.desk.queue.get());
         if self.desk.published.get() == self.desk.queue.get() {
+            self.desk
+                .tickets
+                .prune(self.desk.queue.get(), self.life.out.next_seq());
             return;
         }
         let queue = self.desk.queue.get().clone();
@@ -155,5 +156,10 @@ impl StructuredActor {
                 vessel_proto::SessionEvent::QueueChanged { queue },
             )
             .await;
+        // Receipt withdrawal cannot precede its canonical queue removal. Legacy
+        // tickets still close; a lost owner alone never emits a no-send fact.
+        self.desk
+            .tickets
+            .prune(self.desk.queue.get(), self.life.out.next_seq());
     }
 }

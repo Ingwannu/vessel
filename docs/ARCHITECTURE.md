@@ -1869,3 +1869,12 @@ advance it through the single Store writer after canonical persistence; read-onl
 observation cannot mint that token. Acceptance stays immutable. Startup rejects
 invalid target pairing or envelope accounting. RPC serving and actual actor-ticket
 production remain staged separately from this metadata implementation.
+
+Identified delivery now obtains exact target facts from the existing Tickets
+owner. Receipt tickets distinguish explicit post-publication queue withdrawal
+from owner loss; legacy notification tickets preserve their original interface.
+The node awaits a direct turn's exact start watermark before accepting its receipt,
+then the existing TaskTracker supervises target persistence in the same Store.
+Read-only observation routes authorized original requests to that retained owner
+without wake or attachment loading. The pending method remains unassigned and
+refuses on every current connection; positive runtime proof is still owed.

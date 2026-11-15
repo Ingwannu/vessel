@@ -1,5 +1,7 @@
 //! One keyed pipeline for prompt policies and native commands. Only a committed
 //! fresh reservation authorizes dispatch; uncertain work never resends automatically.
+
+mod receipt_observation;
 use super::{Found, Sessions};
 use crate::{error::ServiceError, persist};
 use std::time::Duration;
@@ -69,7 +71,7 @@ impl Sessions {
     ) -> Result<SubmitPromptReply, ServiceError> {
         let message = request.message;
         let result = handle
-            .submit_identified(
+            .submit_identified_tracked(
                 request.content,
                 message.clone(),
                 request.delivery,
@@ -77,9 +79,9 @@ impl Sessions {
                 request.native_command,
             )
             .await;
-        let accepted = match result {
-            Ok(SubmissionDispatch::Accepted(accepted)) => accepted,
-            Ok(SubmissionDispatch::Refused(reason)) => {
+        let (accepted, target) = match result {
+            Ok((SubmissionDispatch::Accepted(accepted), target)) => (accepted, target),
+            Ok((SubmissionDispatch::Refused(reason), _target)) => {
                 return self.refuse_identified(token, message, reason).await;
             }
             Err(vessel_session::SessionError::Moving) => {
@@ -89,23 +91,33 @@ impl Sessions {
                     .refuse_identified(token, message, SubmissionRefusal::Moving)
                     .await;
             }
-            Ok(SubmissionDispatch::OutcomeUnknown) | Err(_) => {
+            Ok((SubmissionDispatch::OutcomeUnknown, _target)) | Err(_) => {
                 return Ok(SubmitPromptReply::OutcomeUnknown { message });
             }
         };
         // An accepted queue entry or command echo must survive a restart before
         // its receipt is committed. The same watermark also covers prompt echoes.
-        let through = handle.info().next_seq;
+        let Some(barrier) =
+            receipt_observation::target_barrier(accepted, target, handle.info().next_seq).await
+        else {
+            return Ok(SubmitPromptReply::OutcomeUnknown { message });
+        };
         let persisted = tokio::time::timeout(
             RECEIPT_COMMIT_TIMEOUT,
-            persist::wait_until(request.session, &mut durability, through),
+            persist::wait_until(request.session, &mut durability, barrier.through),
         )
         .await;
         if !matches!(persisted, Ok(Ok(()))) {
             return Ok(SubmitPromptReply::OutcomeUnknown { message });
         }
+        let binding = token.binding_token();
         match self.store.accept_prompt(token, accepted).await {
-            Ok(receipt) => Ok(SubmitPromptReply::Accepted { receipt }),
+            Ok(receipt) => {
+                if let Some(target) = barrier.target {
+                    self.retain_receipt_target(request.session, binding, target, durability);
+                }
+                Ok(SubmitPromptReply::Accepted { receipt })
+            }
             Err(error) => {
                 tracing::warn!(session=%request.session, %error, "identified acceptance remains uncertain after commit failure");
                 Ok(SubmitPromptReply::OutcomeUnknown { message })

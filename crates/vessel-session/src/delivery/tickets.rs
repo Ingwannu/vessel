@@ -30,7 +30,35 @@ use vessel_proto::{Delivered, EventSeq, PromptQueue, QueueEntryId};
 
 /// Told the seq of the `turn_started` record of the turn a prompt started
 /// or joined; dropped if it never starts one.
-pub(crate) type TurnTicket = oneshot::Sender<EventSeq>;
+#[derive(Debug)]
+pub(crate) enum TurnTicket {
+    Legacy(oneshot::Sender<EventSeq>),
+    Receipt(oneshot::Sender<super::submission::SubmissionTarget>),
+}
+
+impl TurnTicket {
+    fn started(self, seq: EventSeq) {
+        match self {
+            Self::Legacy(ticket) => {
+                let _gone = ticket.send(seq);
+            }
+            Self::Receipt(ticket) => {
+                let _gone = ticket.send(super::submission::SubmissionTarget::Turn { started: seq });
+            }
+        }
+    }
+
+    fn withdrawn(self, entry: QueueEntryId, through: EventSeq) {
+        match self {
+            // Legacy callers retain their original closed-channel semantics.
+            Self::Legacy(_ticket) => {}
+            Self::Receipt(ticket) => {
+                let _gone =
+                    ticket.send(super::submission::SubmissionTarget::Withdrawn { entry, through });
+            }
+        }
+    }
+}
 
 /// The tickets the actor holds.
 #[derive(Debug, Default)]
@@ -58,7 +86,7 @@ impl Tickets {
             .partition(|(turn, _)| *turn <= seen);
         self.awaiting = waiting;
         for (_, ticket) in told {
-            let _gone = ticket.send(seq);
+            ticket.started(seq);
         }
     }
 
@@ -93,19 +121,24 @@ impl Tickets {
 
     /// Drop the tickets of entries no longer in `queue` (removed or
     /// cleared): those prompts start no turn.
-    pub(crate) fn prune(&mut self, queue: &PromptQueue) {
+    pub(crate) fn prune(&mut self, queue: &PromptQueue, through: EventSeq) {
         if self.queued.is_empty() {
             return;
         }
-        self.queued
-            .retain(|entry, _| queue.entries.iter().any(|queued| queued.id == *entry));
+        for (entry, ticket) in std::mem::take(&mut self.queued) {
+            if queue.entries.iter().any(|queued| queued.id == entry) {
+                let _replaced = self.queued.insert(entry, ticket);
+            } else {
+                ticket.withdrawn(entry, through);
+            }
+        }
     }
 
     /// The latest record is this prompt's turn's (the actor has seen as
     /// many begin as it started).
     fn tell(&self, ticket: TurnTicket) {
         if let Some(seq) = self.last {
-            let _gone = ticket.send(seq);
+            ticket.started(seq);
         }
     }
 }
@@ -115,7 +148,52 @@ mod tests {
     use super::*;
 
     fn ticket() -> (TurnTicket, oneshot::Receiver<EventSeq>) {
-        oneshot::channel()
+        let (sender, receiver) = oneshot::channel();
+        (TurnTicket::Legacy(sender), receiver)
+    }
+
+    #[test]
+    fn receipt_withdrawal_is_explicit_and_owner_loss_stays_unknown() {
+        let mut tickets = Tickets::default();
+        let entry = QueueEntryId::random();
+        let (sender, mut removed) = oneshot::channel();
+        tickets.give(TurnTicket::Receipt(sender), Delivered::Queued { entry }, 0);
+        tickets.prune(&PromptQueue::default(), EventSeq::new(27));
+        assert_eq!(
+            removed.try_recv(),
+            Ok(super::super::submission::SubmissionTarget::Withdrawn {
+                entry,
+                through: EventSeq::new(27)
+            })
+        );
+        let (sender, mut lost) = oneshot::channel();
+        tickets.give(TurnTicket::Receipt(sender), Delivered::Queued { entry }, 0);
+        drop(tickets);
+        assert_eq!(lost.try_recv(), Err(oneshot::error::TryRecvError::Closed));
+    }
+
+    #[test]
+    fn receipt_turn_ticket_preserves_fast_completion_and_replacement_scope() {
+        let mut tickets = Tickets::default();
+        let (sender, mut target) = oneshot::channel();
+        tickets.give(TurnTicket::Receipt(sender), Delivered::Started, 2);
+        tickets.turn_started(EventSeq::new(3));
+        assert!(target.try_recv().is_err());
+        tickets.turn_started(EventSeq::new(8));
+        assert_eq!(
+            target.try_recv(),
+            Ok(super::super::submission::SubmissionTarget::Turn {
+                started: EventSeq::new(8)
+            })
+        );
+        let (sender, mut fast) = oneshot::channel();
+        tickets.give(TurnTicket::Receipt(sender), Delivered::Steered, 2);
+        assert_eq!(
+            fast.try_recv(),
+            Ok(super::super::submission::SubmissionTarget::Turn {
+                started: EventSeq::new(8)
+            })
+        );
     }
 
     #[test]
@@ -170,7 +248,7 @@ mod tests {
             }],
             held: None,
         };
-        tickets.prune(&queue);
+        tickets.prune(&queue, EventSeq::new(19));
         assert_eq!(never.try_recv(), Err(oneshot::error::TryRecvError::Closed));
         let sender = tickets.take(kept).unwrap();
         tickets.give(sender, Delivered::Started, 1);

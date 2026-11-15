@@ -1,6 +1,6 @@
 //! Keyed delivery policies reuse the existing actor, attachment loader and pump.
 //! Wire attachment/retained outcome storage remain with the node receipt owner.
-use super::TurnEnd;
+use super::{TurnEnd, TurnTicket};
 use crate::moving::Control;
 use crate::structured::StructuredActor;
 use crate::{SessionError, SessionHandle};
@@ -10,7 +10,24 @@ use vessel_proto::timeline::{
     ClientMessageId, PromptDisposition, SubmissionAcceptedKind, SubmissionDelivery,
     SubmissionRefusal,
 };
-use vessel_proto::{ContentBlock, Creator, Delivered};
+use vessel_proto::{ContentBlock, Creator, Delivered, EventSeq, QueueEntryId};
+
+/// An exact owning-actor ticket fact, separate from immutable delivery acceptance.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SubmissionTarget {
+    /// The actual canonical start record of the turn this submission started/joined.
+    Turn {
+        /// Actor-observed original record, including a turn that already completed.
+        started: EventSeq,
+    },
+    /// An explicit queue mutation removed this entry before it was sent.
+    Withdrawn {
+        /// Actual removed entry; channel loss alone never constructs this value.
+        entry: QueueEntryId,
+        /// Exclusive watermark after the canonical queue removal was published.
+        through: EventSeq,
+    },
+}
 
 /// Actual actor acceptance, never inferred from a requested delivery policy.
 #[derive(Debug)]
@@ -29,6 +46,7 @@ pub(crate) struct Submit {
     delivery: SubmissionDelivery,
     by: Creator,
     native_command: Option<NativeCommandIntent>,
+    turn: Option<TurnTicket>,
     reply: oneshot::Sender<Result<SubmissionDispatch, SessionError>>,
 }
 
@@ -46,6 +64,46 @@ impl SessionHandle {
         by: Creator,
         native_command: Option<NativeCommandIntent>,
     ) -> Result<SubmissionDispatch, SessionError> {
+        self.submit_identified_ticket(content, message, delivery, by, native_command, None)
+            .await
+    }
+
+    /// Admit the same keyed delivery and retain the existing actor's exact target
+    /// ticket. Lost/closed tickets are uncertainty, never a no-send withdrawal.
+    ///
+    /// # Errors
+    /// As `submit_identified`; receipt persistence remains the node owner's duty.
+    pub async fn submit_identified_tracked(
+        &self,
+        content: Vec<ContentBlock>,
+        message: ClientMessageId,
+        delivery: SubmissionDelivery,
+        by: Creator,
+        native_command: Option<NativeCommandIntent>,
+    ) -> Result<(SubmissionDispatch, oneshot::Receiver<SubmissionTarget>), SessionError> {
+        let (ticket, target) = oneshot::channel();
+        let result = self
+            .submit_identified_ticket(
+                content,
+                message,
+                delivery,
+                by,
+                native_command,
+                Some(TurnTicket::Receipt(ticket)),
+            )
+            .await?;
+        Ok((result, target))
+    }
+
+    async fn submit_identified_ticket(
+        &self,
+        content: Vec<ContentBlock>,
+        message: ClientMessageId,
+        delivery: SubmissionDelivery,
+        by: Creator,
+        native_command: Option<NativeCommandIntent>,
+        turn: Option<TurnTicket>,
+    ) -> Result<SubmissionDispatch, SessionError> {
         let route = self.structured("an identified submission")?;
         self.order(route, |reply| {
             Control::Submit(Submit {
@@ -54,6 +112,7 @@ impl SessionHandle {
                 delivery,
                 by,
                 native_command,
+                turn,
                 reply,
             })
         })
@@ -78,6 +137,20 @@ impl StructuredActor {
             self.submit_prompt_policy(order.content, order.message, order.delivery, order.by)
                 .await
         };
+        if let (
+            Some(ticket),
+            SubmissionDispatch::Accepted(SubmissionAcceptedKind::Prompt { disposition }),
+        ) = (order.turn, &result)
+        {
+            let delivered = match disposition {
+                PromptDisposition::Started | PromptDisposition::InterruptedAndStarted { .. } => {
+                    Delivered::Started
+                }
+                PromptDisposition::Steered => Delivered::Steered,
+                PromptDisposition::Queued { entry } => Delivered::Queued { entry: *entry },
+            };
+            self.desk.tickets.give(ticket, delivered, self.desk.started);
+        }
         let _closed = order.reply.send(Ok(result));
     }
 

@@ -144,6 +144,12 @@ trait Target {
     fn target(&self) -> Option<SessionId>;
 }
 
+impl Target for vessel_proto::timeline::ObservePromptReceipt {
+    fn target(&self) -> Option<SessionId> {
+        Some(self.request.session)
+    }
+}
+
 macro_rules! targets {
     ($( $request:ty ),* $(,)?) => {
         $(

@@ -102,53 +102,30 @@ fn validate(
     accepted: SubmissionAcceptedKind,
     target: PromptReceiptBinding,
 ) -> Result<(), StoreError> {
-    let compatible = match (accepted, target) {
-        (
-            SubmissionAcceptedKind::Command { echo, .. },
-            PromptReceiptBinding::Command { echo: actual },
-        ) => echo == actual,
-        (
+    let compatible = match target {
+        PromptReceiptBinding::Command { echo } => matches!(accepted,
+            SubmissionAcceptedKind::Command { echo: actual, .. } if actual == echo),
+        PromptReceiptBinding::Queued { entry } | PromptReceiptBinding::Withdrawn { entry } => {
+            matches!(accepted,
+            SubmissionAcceptedKind::Prompt { disposition: PromptDisposition::Queued { entry: actual } } if actual == entry)
+        }
+        PromptReceiptBinding::Unobserved => matches!(
+            accepted,
             SubmissionAcceptedKind::Prompt {
-                disposition: PromptDisposition::Queued { entry },
-            },
-            PromptReceiptBinding::Queued { entry: actual }
-            | PromptReceiptBinding::Withdrawn { entry: actual },
-        ) => entry == actual,
-        (
-            SubmissionAcceptedKind::Prompt {
-                disposition: PromptDisposition::Queued { .. },
-            },
-            PromptReceiptBinding::Turn { .. },
-        ) => true,
-        (
-            SubmissionAcceptedKind::Prompt {
-                disposition: PromptDisposition::InterruptedAndStarted { interrupted },
-            },
-            PromptReceiptBinding::Turn { started },
-        ) => interrupted != started,
-        (
-            SubmissionAcceptedKind::Prompt {
-                disposition: PromptDisposition::Started | PromptDisposition::Steered,
-            },
-            PromptReceiptBinding::Turn { .. },
-        ) => true,
-        (
-            SubmissionAcceptedKind::Prompt {
-                disposition:
-                    PromptDisposition::Started
+                disposition: PromptDisposition::Started
                     | PromptDisposition::Steered
-                    | PromptDisposition::InterruptedAndStarted { .. },
+                    | PromptDisposition::InterruptedAndStarted { .. }
+            }
+        ),
+        PromptReceiptBinding::Turn { started } => match accepted {
+            SubmissionAcceptedKind::Command { .. } => false,
+            SubmissionAcceptedKind::Prompt { disposition } => match disposition {
+                PromptDisposition::InterruptedAndStarted { interrupted } => interrupted != started,
+                PromptDisposition::Started
+                | PromptDisposition::Steered
+                | PromptDisposition::Queued { .. } => true,
             },
-            PromptReceiptBinding::Unobserved,
-        ) => true,
-        (
-            SubmissionAcceptedKind::Prompt { .. } | SubmissionAcceptedKind::Command { .. },
-            PromptReceiptBinding::Unobserved
-            | PromptReceiptBinding::Queued { .. }
-            | PromptReceiptBinding::Turn { .. }
-            | PromptReceiptBinding::Withdrawn { .. }
-            | PromptReceiptBinding::Command { .. },
-        ) => false,
+        },
     };
     if !compatible {
         return Err(StoreError::AdmissionIntegrity);

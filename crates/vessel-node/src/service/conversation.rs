@@ -18,6 +18,18 @@ use crate::profiles::launch::creator;
 use crate::transfers::Holder;
 
 impl NodeService {
+    /// Read the original retained receipt, without reservation, wake or dispatch.
+    pub(crate) async fn observe_prompt_receipt(
+        &self,
+        connection: &Connection,
+        request: vessel_proto::timeline::ObservePromptReceipt,
+    ) -> Result<vessel_proto::timeline::ObservePromptReceiptReply, WireError> {
+        self.sessions
+            .observe_prompt_receipt(request, creator(&connection.principal))
+            .await
+            .map_err(|error| wire(&error))
+    }
+
     /// `session.respond_question`: exact typed outcome acknowledged after persistence.
     pub(crate) async fn respond_question(
         &self,

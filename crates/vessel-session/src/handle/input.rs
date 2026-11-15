@@ -223,7 +223,7 @@ impl SessionHandle {
                     content,
                     delivery,
                     by,
-                    turn: Some(ticket),
+                    turn: Some(crate::delivery::TurnTicket::Legacy(ticket)),
                     reply,
                 })
             })

@@ -165,4 +165,4 @@ pub use vessel_agent::{AttachmentBody, Attachments};
 mod plan_permissions;
 mod plugin_timeline;
 
-pub use delivery::submission::SubmissionDispatch;
+pub use delivery::submission::{SubmissionDispatch, SubmissionTarget};

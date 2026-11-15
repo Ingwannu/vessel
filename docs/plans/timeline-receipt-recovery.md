@@ -120,3 +120,21 @@ combined envelope instead of clearing bad metadata. No second table/store/schema
 migration is introduced. Transaction rollback/reopen, stale targets, Creator
 conflict, wrong queue identity and pending-row refusal fixtures are authored.
 The actual ticket producer and node handler remain separate, unimplemented work.
+
+The next source checkpoint wires the original Tickets owner for identified
+submissions too: a receipt ticket shares the existing started/awaiting/queued
+association, while legacy ticket receivers keep EventSeq/closed semantics. Only
+explicit queue pruning emits Withdrawn, after QueueChanged publication, with its
+exclusive watermark. Dropping the actor/ticket is uncertainty. Started/steered/
+replacement acceptance now awaits its actual ticket and persists through that
+exact start, rather than sampling a possibly earlier info watermark. Queued
+acceptance and native command echo do not wait for a model turn.
+
+After immutable receipt settlement, the existing TaskTracker supervises the
+binding wait and canonical persistence barrier before the same writer commits
+metadata. A crash/lost ticket/failed binding commit leaves explicit Unobserved or
+the original Queued binding, never a guessed target or redispatch. The handler
+now performs ordinary target/Creator checks without wake or attachment reads, and
+the row changes from staged to pending with that owner implementation. Its sole
+feature stays None and its agent policy deny stays in place. This source is
+uncompiled/unexecuted until the next exact VM checks; it is not consumer-ready.
