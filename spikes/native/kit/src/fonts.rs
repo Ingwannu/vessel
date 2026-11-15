@@ -4,8 +4,9 @@
 //! Geist for Latin, then Pretendard for Hangul and every script Geist
 //! lacks, as the page's stack has it; the owner's rule (no small text
 //! that looks like pixel type, Pretendard before any generic family)
-//! holds because no system face is ever asked for: both faces ship in the
-//! binary and every style names them. Embedded rather than read from
+//! holds for the default stack: both faces ship in the binary. An explicit
+//! Appearance override uses available face names supplied by the app,
+//! retaining Pretendard as fallback. Embedded rather than read from
 //! files beside the binary: one file to install, nothing to find at
 //! start, at about 7.5 MB (Pretendard's four weights are most of it; the
 //! real build subsets them, as the page does).
@@ -18,6 +19,9 @@
 //! - Why: metrics cannot mix independent UI/code preferences; `TypeExt` already
 //!   consumes the shared metrics/family and retains its fallback list.
 //! - Cost: one additional public type step; no font asset or editing engine.
+
+mod stack;
+pub use stack::{FontStack, Typeface, active};
 
 use std::borrow::Cow;
 use std::sync::atomic::{AtomicU8, Ordering};
@@ -79,7 +83,7 @@ pub struct FontError(String);
 /// The fallback list every style carries: Pretendard after Geist.
 #[must_use]
 pub fn fallbacks() -> FontFallbacks {
-    FontFallbacks::from_fonts(vec![HANGUL.to_owned()])
+    stack::active(Typeface::Interface).fallbacks()
 }
 
 /// The interface's text size the scale is drawn at (Settings ›
@@ -115,6 +119,10 @@ pub(crate) fn set_sizes(interface: u8, code: u8) -> bool {
     let before = INTERFACE.swap(interface, Ordering::Relaxed);
     let before_code = CODE.swap(code, Ordering::Relaxed);
     before != interface || before_code != code
+}
+
+pub(crate) fn set_stacks(interface: FontStack, code: FontStack) -> bool {
+    stack::set(interface, code)
 }
 
 /// `points` of interface text (written for 14) at the chosen size.
@@ -197,18 +205,34 @@ impl Type {
         }
     }
 
-    /// The family.
+    /// Fallbacks on the same semantic axis as this type step.
     #[must_use]
-    pub fn family(self) -> SharedString {
-        match self {
-            Self::Mono | Self::MonoBody => MONO.into(),
+    pub fn fallbacks(self) -> FontFallbacks {
+        let role = match self {
+            Self::Mono | Self::MonoBody => Typeface::Code,
             Self::Title
             | Self::Body
             | Self::Label
             | Self::Meta
             | Self::Kicker
             | Self::Card
-            | Self::Tiny => SANS.into(),
+            | Self::Tiny => Typeface::Interface,
+        };
+        stack::active(role).fallbacks()
+    }
+
+    /// The family.
+    #[must_use]
+    pub fn family(self) -> SharedString {
+        match self {
+            Self::Mono | Self::MonoBody => stack::active(Typeface::Code).family(),
+            Self::Title
+            | Self::Body
+            | Self::Label
+            | Self::Meta
+            | Self::Kicker
+            | Self::Card
+            | Self::Tiny => stack::active(Typeface::Interface).family(),
         }
     }
 }
@@ -229,7 +253,7 @@ pub fn measure(window: &gpui::Window, text: &str, step: Type) -> f32 {
         font: gpui::Font {
             family: step.family(),
             features: gpui::FontFeatures::default(),
-            fallbacks: Some(fallbacks()),
+            fallbacks: Some(step.fallbacks()),
             weight,
             style: gpui::FontStyle::Normal,
         },

@@ -142,3 +142,16 @@ same row allocation and cursor restoration, then requires changed text to
 replace the allocation. Its old-code remote run is preserved separately from
 repair validation. The existing quiet-theme and motion tests remain unchanged.
 No new speed claim is made before an isolated, same-source runtime comparison.
+
+## Resolved code-font identity for retained terminal rows
+
+Adopt the four kit font-stack source files from the small producer963a714ab;
+its unrelated Appearance-plan context is not imported into this package. This
+introduces only FontStack/Typeface/active/set_font_stacks and the shared font
+projection. The terminal face helper correction is a separate owned producer.
+Both measurement and painting must use that same resolved stack. Retained
+RowsKey/DrawKey must include the whole typed family+fallback snapshot so an
+unchanged cell metric does not hide a quiet font change. No Appearance page,
+prefs store, syntax renderer or second terminal renderer is introduced.
+These dependencies are provisional until this consumer's changed-package
+checks run; the producer's121 kit tests are bounded prior-source evidence.

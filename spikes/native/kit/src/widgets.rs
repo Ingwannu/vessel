@@ -4,7 +4,7 @@
 use gpui::prelude::*;
 use gpui::{Div, FontStyle, Hsla, SharedString, Stateful, div, px};
 
-use crate::fonts::{self, Type};
+use crate::fonts::Type;
 use crate::theme::{Tokens, radius};
 
 /// Set an element's type from the scale.
@@ -17,7 +17,7 @@ pub trait TypeExt: Styled + Sized {
         self.font(gpui::Font {
             family: step.family(),
             features: gpui::FontFeatures::default(),
-            fallbacks: Some(fonts::fallbacks()),
+            fallbacks: Some(step.fallbacks()),
             weight,
             style: FontStyle::Normal,
         })
@@ -38,7 +38,7 @@ pub trait TypeExt: Styled + Sized {
         self.font(gpui::Font {
             family: step.family(),
             features: gpui::FontFeatures::default(),
-            fallbacks: Some(fonts::fallbacks()),
+            fallbacks: Some(step.fallbacks()),
             weight,
             style: FontStyle::Normal,
         })
