@@ -27,6 +27,9 @@ mod files;
 mod forge;
 mod git;
 mod policy;
+// The actual creation controller removes this staging attribute with its caller.
+#[cfg(test)]
+mod provisioning;
 mod projects;
 mod roots;
 mod scripts;

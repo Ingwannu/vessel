@@ -181,6 +181,35 @@ workspace registry, no local cwd-based ownership cache and no copied persistence
 The new driver must reserve fixed backing identities through that authority,
 keep approval/Uncertain outcomes, and hold current admission through registration.
 
+### Private adapter development exception
+
+The coordinator approved merging only reviewed registry258c828d and project
+admission/fixed-id cd240807 into this private node tree ahead of the announced
+head. No result from that temporary union may be handed off or gated until
+the announced gate49 node head is merged. Registry migration precedes the
+creation/owner appends; their versions derive from the preceding constant.
+The generated wire file is kept from the registry producer during conflict
+resolution and requires combined regeneration after the announced merge;
+the earlier freshness evidence does not cover this development union.
+
+The owned workspace/provisioning module is literal cfg(test) staging. It
+requires an actual stored receipt Begin marker, derives the workspace id
+from that receipt, and uses the canonical backing reservation before effects.
+It acquires the shared bounded project admission before detaching its tracked
+task, keeps its own Arc through descriptor commit, and passes a clone to the
+fixed-id backing primitive. Creating/Uncertain reservations never re-create
+backing. Local provisioning changes no directory; managed creation always
+uses Skip. Descriptor readiness is backing readiness only: requested setup,
+source authorization, generation fences, resource/count/start leases and the
+actual async create RPC/controller remain unavailable and are not claimed.
+
+This modifies existing primitives rather than adding a registry, file store,
+counter or external library. Test source covers committed-marker admission,
+same-root distinct identities, same-operation descriptor retention, intent
+conflict, fixed backing identity with bootstrap skipped, and uncertain recovery
+without replay. No compile or execution evidence exists for this new adapter
+yet. The provider's physical-root/config/approval limits remain intact.
+
 The exact5bc four-library run executed 750 passing tests and one failed fixture:
 the completed-resource deletion test set SessionInfo.status before Store create,
 but Store intentionally starts a live log. The fixture now appends the actual
