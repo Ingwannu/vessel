@@ -27,6 +27,8 @@
 //!   limit, which harnesses back off from.
 
 mod accounting;
+#[cfg(test)]
+mod blocking_tests;
 mod key;
 pub(crate) use key::KeyError;
 pub(crate) mod config;
@@ -78,6 +80,8 @@ pub(crate) struct Models {
     session_slots: Mutex<HashMap<SessionId, Arc<Semaphore>>>,
     /// Where the proxy listens, once it does.
     addr: OnceLock<SocketAddr>,
+    #[cfg(test)]
+    blocked_reads: blocking_tests::Reads,
 }
 
 impl Models {
@@ -105,6 +109,8 @@ impl Models {
             node_slots: Arc::new(Semaphore::new(PER_NODE)),
             session_slots: Mutex::new(HashMap::new()),
             addr: OnceLock::new(),
+            #[cfg(test)]
+            blocked_reads: blocking_tests::Reads::default(),
         })
     }
 

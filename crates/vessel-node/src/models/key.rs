@@ -64,6 +64,12 @@ pub(crate) enum KeyError {
     Plain(SecretName),
 }
 
+impl From<tokio::task::JoinError> for KeyError {
+    fn from(cause: tokio::task::JoinError) -> Self {
+        Self::Task(TaskFailure(cause))
+    }
+}
+
 impl Models {
     /// One credential read shared by proxy and metadata; never diagnostics with values.
     ///
@@ -75,9 +81,19 @@ impl Models {
         };
         let files = self.files.clone();
         let wanted = name.clone();
-        let read = tokio::task::spawn_blocking(move || crate::fleet::secret_value(&files, &wanted))
-            .await
-            .map_err(TaskFailure)?;
+        #[cfg(test)]
+        let gate = self
+            .blocked_reads
+            .gate(super::blocking_tests::Stage::Secret);
+        let read = tokio::task::spawn_blocking(move || {
+            #[cfg(test)]
+            if let Some(gate) = gate {
+                gate.enter();
+            }
+            crate::fleet::secret_value(&files, &wanted)
+        })
+        .await
+        .map_err(TaskFailure)?;
         let value = read.map_err(|cause| {
             let failure = ReadFailure(cause);
             tracing::warn!(error = ?failure, "cannot read secrets.toml for a model call");

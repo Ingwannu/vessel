@@ -4,6 +4,7 @@
 mod attempt;
 mod client;
 mod driver;
+mod preparation;
 mod prepare;
 mod source;
 mod task;
@@ -11,7 +12,7 @@ mod text;
 
 use super::Models;
 use std::{path::PathBuf, sync::Arc};
-use tokio_util::{sync::CancellationToken, task::TaskTracker};
+use tokio_util::{sync::CancellationToken, task::TaskTrackerToken};
 use vessel_proto::{SessionMode, settings::MetadataSettings};
 use vessel_session::SessionHandle;
 use vessel_workspace::Git;
@@ -64,7 +65,7 @@ impl Models {
         cwd: PathBuf,
         git: Option<Git>,
         stop: CancellationToken,
-        tasks: &TaskTracker,
+        work: TaskTrackerToken,
     ) {
         if !vessel_proto::speaks_generated_names() {
             return;
@@ -80,6 +81,7 @@ impl Models {
         if !fresh || info.spec.title.is_some() || info.spec.side_question_of.is_some() {
             return;
         }
+        let tasks = work.task_tracker().clone();
         let task = task::Task {
             handle,
             models: Arc::clone(self),
@@ -87,6 +89,7 @@ impl Models {
             cwd,
             git,
             stop,
+            work,
         };
         drop(tasks.spawn(async move {
             if let Ok(client) = &task.models.title_generator.client {

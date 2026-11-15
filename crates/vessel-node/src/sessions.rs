@@ -115,6 +115,11 @@ impl Sessions {
         }
     }
 
+    /// Title work uses the node's hard drain, not the forwarders' grace.
+    pub(crate) fn metadata_work(&self) -> tokio_util::task::TaskTrackerToken {
+        self.tasks.token()
+    }
+
     /// The ends of sessions from now on (see the field).
     pub(crate) fn ends(&self) -> tokio::sync::broadcast::Receiver<SessionId> {
         self.ended.subscribe()

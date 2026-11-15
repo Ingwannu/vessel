@@ -69,7 +69,7 @@ impl NodeService {
                 cwd,
                 self.workspaces.git().ok().cloned(),
                 self.lifecycle.stopping(),
-                &self.forwarders,
+                self.sessions.metadata_work(),
             );
         }
         Ok(info)

@@ -10,6 +10,16 @@ use vessel_proto::{
 };
 use vessel_testkit::upstream::Reply;
 
+mod physical;
+
+fn context(fixture: &Fixture) -> preparation::Context {
+    preparation::Context {
+        cwd: fixture.data.path().to_owned(),
+        git: None,
+        tracked: tokio_util::task::TaskTracker::new().token(),
+    }
+}
+
 fn manual() -> MetadataSettings {
     MetadataSettings::new(vec![MetadataProvider {
         route: "sonnet".parse().unwrap(),
@@ -85,8 +95,7 @@ async fn cached_first_input_runs_one_bounded_call_and_records_the_applied_title(
             &handle,
             &manual(),
             seed,
-            fixture.data.path().to_owned(),
-            None,
+            context(&fixture),
         )
         .await
         .unwrap();
@@ -141,8 +150,7 @@ async fn invalid_semantic_title_keeps_the_given_title_but_not_the_usage_hidden()
                 &handle,
                 &manual(),
                 seed,
-                fixture.data.path().to_owned(),
-                None
+                context(&fixture)
             )
             .await,
             Err(driver::GenerateError::Text(_))
@@ -179,6 +187,23 @@ enum Cancel {
     Node,
 }
 
+async fn cancel_title(handle: &SessionHandle, stop: &CancellationToken, cancel: Cancel) {
+    match cancel {
+        Cancel::Typed => {
+            let _renamed = handle.rename("plain".parse().unwrap()).await.unwrap();
+        }
+        Cancel::Parked => {
+            idle(handle).await;
+            let _parked = handle.park().await.unwrap();
+        }
+        Cancel::Ended => {
+            handle.kill();
+            let _ended = handle.ended().await;
+        }
+        Cancel::Node => stop.cancel(),
+    }
+}
+
 #[tokio::test]
 async fn identical_typed_words_parking_ending_and_node_stop_cancel_inflight_work() {
     within(async {
@@ -209,26 +234,14 @@ async fn identical_typed_words_parking_ending_and_node_stop_cancel_inflight_work
                 cwd: fixture.data.path().to_owned(),
                 git: None,
                 stop: stop.clone(),
+                work: tokio_util::task::TaskTracker::new().token(),
             };
             let (client, entered) = client::Client::stalled();
             let running = tokio::spawn(async move {
                 task.run(&client).await;
             });
             entered.notified().await;
-            match cancel {
-                Cancel::Typed => {
-                    let _renamed = handle.rename("plain".parse().unwrap()).await.unwrap();
-                }
-                Cancel::Parked => {
-                    idle(&handle).await;
-                    let _parked = handle.park().await.unwrap();
-                }
-                Cancel::Ended => {
-                    handle.kill();
-                    let _ended = handle.ended().await;
-                }
-                Cancel::Node => stop.cancel(),
-            }
+            cancel_title(&handle, &stop, cancel).await;
             running.await.unwrap();
             assert_ne!(handle.info().title_origin, TitleOrigin::Generated);
             handle.kill();

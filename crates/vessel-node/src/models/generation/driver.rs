@@ -7,11 +7,12 @@ use super::super::{
 use super::{
     attempt::{self, Attempt},
     client::{Client, ClientError},
+    preparation::{Context, Lease},
     prepare::{self, PrepareError},
     source::Seed,
     text::{self, TextError},
 };
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 use vessel_llm::client::{Endpoint, Redactor};
 use vessel_proto::{GeneratedTitle, settings::MetadataSettings};
 use vessel_session::{SessionHandle, TitleUpdate};
@@ -44,31 +45,30 @@ pub(super) enum Outcome {
 }
 
 pub(super) async fn generate(
-    models: &Models,
+    models: &Arc<Models>,
     client: &Client,
     handle: &SessionHandle,
     settings: &MetadataSettings,
     seed: Seed,
-    cwd: PathBuf,
-    git: Option<Git>,
+    context: Context,
 ) -> Result<Outcome, GenerateError> {
     if !handle.accepts_generated_title(&seed.expected) {
         return Ok(Outcome::Kept);
     }
     // The existing node and session budgets also bound blocking preparation.
-    let Some(_permits) = models.slot(handle) else {
+    let Some(lease) = Lease::acquire(models, handle, context.tracked) else {
         return Ok(Outcome::Capacity);
     };
     let catalog = models.snapshot();
     let current = handle.info().model.map(|model| model.route);
     let selected = metadata::select(&catalog, settings, current.as_ref())?;
-    let styles = styles(cwd, git).await;
+    let styles = styles(context.cwd, context.git, &lease).await;
     let request = prepare::title(&selected, &seed.material, styles.title.as_ref())?;
     let provider = selected.provider();
     let endpoint = Endpoint {
         api: provider.flavor.api(),
         base_url: provider.base_url.clone(),
-        key: models.key(provider).await?,
+        key: lease.key(Arc::clone(models), provider.clone()).await?,
     };
     if !handle.accepts_generated_title(&seed.expected) {
         return Ok(Outcome::Kept);
@@ -115,7 +115,7 @@ async fn exchange(
     Ok(candidate?.into_title())
 }
 
-async fn styles(cwd: PathBuf, git: Option<Git>) -> ProjectStyles {
+async fn styles(cwd: PathBuf, git: Option<Git>, lease: &Lease) -> ProjectStyles {
     let folder = match git {
         Some(git) => match git.toplevel(&cwd).await {
             Ok(Some(root)) => root,
@@ -127,7 +127,7 @@ async fn styles(cwd: PathBuf, git: Option<Git>) -> ProjectStyles {
         },
         None => cwd,
     };
-    match tokio::task::spawn_blocking(move || ProjectStyles::read(&folder)).await {
+    match lease.styles(folder).await {
         Ok(styles) => styles,
         Err(_cause) => {
             tracing::warn!(class = "task", "metadata styles use defaults");
@@ -145,6 +145,14 @@ mod tests {
     #[tokio::test]
     async fn checked_git_root_and_non_git_folder_choose_their_own_styles() {
         crate::models::tests::within(async {
+            let fixture = crate::models::tests::Fixture::new().await;
+            let (handle, records) = fixture.structured().await;
+            let lease = Lease::acquire(
+                &fixture.models,
+                &handle,
+                tokio_util::task::TaskTracker::new().token(),
+            )
+            .unwrap();
             let temp = tempfile::tempdir().unwrap();
             let root = temp.path().join("repository");
             let nested = root.join("nested");
@@ -179,7 +187,7 @@ mod tests {
             )
             .unwrap();
             assert_eq!(
-                styles(nested.clone(), Some(git))
+                styles(nested.clone(), Some(git), &lease)
                     .await
                     .title
                     .unwrap()
@@ -187,9 +195,14 @@ mod tests {
                 "root convention"
             );
             assert_eq!(
-                styles(nested, None).await.title.unwrap().as_str(),
+                styles(nested, None, &lease).await.title.unwrap().as_str(),
                 "folder convention"
             );
+            drop(lease);
+            handle.kill();
+            let _ended = handle.ended().await;
+            let _records = records.await.unwrap();
+            fixture.stop().await;
         })
         .await;
     }

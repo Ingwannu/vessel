@@ -1,10 +1,10 @@
 //! Own one original session handle until the first-input task finishes or loses title ownership.
 
 use super::super::Models;
-use super::{client::Client, driver, source};
+use super::{client::Client, driver, preparation::Context, source};
 use crate::settings::Settings;
 use std::{path::PathBuf, sync::Arc};
-use tokio_util::sync::CancellationToken;
+use tokio_util::{sync::CancellationToken, task::TaskTrackerToken};
 use vessel_session::SessionHandle;
 use vessel_workspace::Git;
 
@@ -15,6 +15,7 @@ pub(super) struct Task {
     pub(super) cwd: PathBuf,
     pub(super) git: Option<Git>,
     pub(super) stop: CancellationToken,
+    pub(super) work: TaskTrackerToken,
 }
 impl Task {
     pub(super) async fn run(&self, client: &Client) {
@@ -44,7 +45,7 @@ impl Task {
                 tracing::debug!(session = %self.handle.id(), "title generation cancelled after losing its first source");
             },
             result = driver::generate(&self.models, client, &self.handle, &metadata,
-                seed, self.cwd.clone(), self.git.clone()) => {
+                seed, Context { cwd: self.cwd.clone(), git: self.git.clone(), tracked: self.work.clone() }) => {
                 match result {
                     Ok(outcome) => tracing::debug!(session = %self.handle.id(), ?outcome, "title generation finished"),
                     Err(error) => tracing::warn!(session = %self.handle.id(), %error, "title generation kept the provisional title"),
