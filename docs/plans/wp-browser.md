@@ -16,7 +16,9 @@ one registry arm and displays the localized unavailable state. The test-only
 PreparedFrame reuses W6's checked bounded PNG decoder/CPU RenderImage projection
 and view::browser::SurfaceMap: decoded raster dimensions must match metadata;
 CSS dimensions remain independent and letterbox points are excluded. Its
-receiving-union Clippy and composition tests are queued on exact89add9b11.
+receiving-union Kit/View/App all-target strict Clippy passed on exacta1e395f6;
+composition tests remain queued on exact89add9b11 (before typed dimension-error
+retention, with the same decode/size-match/map behavior).
 
 This model does not receive a frame or prove node/workspace/browser/revision,
 paint, GPU lifetime, focus or permission. Those remain the actual owner's
@@ -264,3 +266,13 @@ failed run is not a green union. The old89 composition test job remains queued
 on its exact source; its eventual result will retain that scope. Base9b adds
 dialog header actions only and explicitly permits db42d9c5 for non-dialog work,
 so this frame-only correction keeps the already joined base9.
+
+
+## Exact receiving-union strict evidence
+
+Runwp-browser-native-narrow-20261115T174710Z-a1e395f6 completed17:56:34 UTC
+with native-fonts0 and locked Kit/View/App all-target Clippy-Dwarnings0. The log
+shows actual changed Kit/App analysis. This settles the corrected preparation
+source's strict compile/lint check only. The source remains test-only, the old89
+composition test execution is still pending, and no live frame, GPU/paint, owner
+authority, engine, whole package or native capture is implied.
