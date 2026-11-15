@@ -142,3 +142,81 @@ increment is the existing Settings select for a reported ledger scope;
 account-window cards and their lookup policy remain the separate limits
 slice. Long scope names wrap using this feature's existing control style;
 the shared select implementation is not replaced or changed.
+
+
+## Feedback: modal ownership and toast clearance
+
+Paseo's `hooks/use-keyboard-shortcuts.ts:315–346` gives the top overlay
+first refusal before app shortcuts; `lib/overlay-root.ts:175–224` manages
+focus/IME/keys for that painted layer. Vessel retains Base UI for those
+behaviors and adds a small guard at background producers. Its public popup
+role and open attribute are checked at the time of a page focus request or
+a recorder key, rather than caching focus at mount. A second overlay stack
+or Escape listener was rejected: it would compete with the kit's nested
+controls and composition handling. The draft's mounted lifetime remains
+independent of its optional focus; the recorder pauses while a dialog or menu is
+open and can resume its pending choice after that overlay closes. A menu
+uses the same public open-role boundary: waiting only for dialogs would
+let a late lazy route move focus out of the Display menu. A controlled
+browser test first observes keyboard focus inside that real menu, releases
+the held route asset, then checks that focus remains there. Tooltips are
+not keyboard-owning menus and are not part of this guard.
+
+Paseo's `components/toast-host.tsx` places the app-shell viewport under the
+header, centred, including on narrow screens. Vessel uses its own safe
+inset/header/spacing tokens, retaining its 320px wide card. On narrow
+screens the reference first insets its host 16px at each side, then applies
+a 92% boundary capped at 480px. The card therefore measures
+`min(0.92 * (viewport width - 32px), 480px)`: 329.36px at a 390px
+viewport. Applying 92% directly to the viewport was an incorrect port. Positioning at
+the top across sizes avoids moving the same overlap to a wider composer.
+Existing success-four-seconds/error-until-dismissed and multi-toast semantics
+are deliberately retained here rather than changing unrelated notification
+lifetimes. Unlike the reference's single active message, Vessel bounds its
+existing stack to a scrolling quarter-viewport, so accumulated feedback does
+not keep extending down the page. This is a layout rule; it does not claim
+that every notification or OS/device behavior has parity.
+
+The scroll host itself must clear the actual header, not just its first
+unpanned card. Shadow padding can make a normal card look clear while
+scrolling reveals content inside the header. A browser regression checks
+the host's top edge as well as its lower boundary; the existing larger
+spacing token provides that clearance without a second positioning model.
+
+A viewport fraction alone is insufficient when a question grows into a
+short phone screen. The existing prompt dock is the boundary for the whole
+composer, including queued prompts, permissions and questions. The toast
+host therefore caps its viewport by that dock's actual top edge as well as
+the quarter-viewport limit. Browser-native resize observations follow
+folding and input growth; a filtered mount observer rebinds only when a
+prompt/menu enters or leaves. Listeners are owned by the visible host and
+released with its last message. The timeline observer is intentionally not
+reused: it owns reading intent and row anchors, which feedback must not
+change. No timer polling or second notification store is introduced.
+
+
+The feedback correction's executed source is `dac496599`. Its whole gate
+passes 2,307 Rust tests (twelve ignored), four TypeScript freshness checks,
+464 web units, 79 browser cases and four forge fixtures. This is execution
+evidence, not review or integration approval. The retained 32-image matrix
+belongs to the earlier unchanged toast renderer `7e3418d8` and its caption-
+only capture harness `37a723ba`; later menu ownership is exercised by the
+real-browser regressions. Earlier failures and the precise capture/provenance
+limits remain documented in the plan.
+
+The inset-width correction's executed source is `811c18d53`. Its whole-web
+run passes lint, both typechecks, 464 units, fonts and the fresh bundle/binary
+builds; E2E records 78 passed and one timeout before a Usage interaction.
+The retained DOM reports an actual identity-verification refusal. One
+explicitly authorized same-source replay passes that case (7.0s; 26.3s
+including its fixture). The original failure remains recorded as a named
+intermittent, with an open source/receipt-path investigation; it is not
+relabelled as a wholly clean run. The preceding exact Rust result is retained
+only because every Rust/manifests/toolchain/script byte is unchanged.
+
+Eight affected capture cases pass, producing sixteen newly inspected
+originals at 390x844/390x600 in both themes and browser locales. These use
+verified same-commit managed CLI/node/fake exports, without a local Rust or
+bundle build. The selected source and binary identities match before/after.
+This replaces the earlier narrow-width visual claim only; the plan retains
+the exact execution, provenance limits and next investigation.

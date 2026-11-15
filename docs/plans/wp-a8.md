@@ -778,3 +778,15 @@ of the absence of a local operation. The current kernel's old-shape checks and
 four primitive fixtures do not prove this rule. The full request/card schema
 guards and eligibility amendment belong in that same checked activation; no
 state may be inferred from labels, timeline completion or current alias.
+
+## Announced base10 resident preparation
+
+Main A8 merges announced3e7820e3 (baseline1535/0/2), preserving both the checked
+A7 resident preparation and A8's existing own response registration. The only
+merge conflict was their adjacent module registrations. The imported resident
+module/re-exports stay literal cfg(test); no global/resource/follow or lease
+staging is promoted. Legacy Seat/Place remain as the current product API.
+This merge is not adoption of the full unreviewed A7 branch or its body cut,
+and it does not import the selected Requests producer into product globals.
+A8's own stale-source and exact-resolution intake hooks remain present.
+Fresh combined-source checking remains owed before claiming this union works.
