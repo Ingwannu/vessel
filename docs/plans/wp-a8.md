@@ -767,3 +767,14 @@ GPUI tests. It does not move to base9 before those results. W12 and the lead
 verify the consumer union on their current line when adopting that exact packet.
 This main A8 union has no new narrow or whole-gate proof yet; baseline totals do
 not replace own changed-source verification.
+
+### Rich-state eligibility remains a consumer amendment
+
+The frozen portable kernel is checked against the base82 request DTOs, which
+have no authoritative delivery-state field. When W23's full rich contract lands,
+the real consumer must require canonical Pending BEFORE ticket admission.
+Answering and OutcomeUnknown are inspectable but never actionable, regardless
+of the absence of a local operation. The current kernel's old-shape checks and
+four primitive fixtures do not prove this rule. The full request/card schema
+guards and eligibility amendment belong in that same checked activation; no
+state may be inferred from labels, timeline completion or current alias.
