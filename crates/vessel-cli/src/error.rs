@@ -29,6 +29,12 @@ pub(crate) enum CliError {
     /// File observations refuse unsafe reads before a shutdown request.
     #[error(transparent)]
     ServiceFile(#[from] crate::init::ServiceFileError),
+    #[error(
+        "this command does not support explicit output selection; omit --json/-o/-q/--no-headers"
+    )]
+    UnsupportedPresentation,
+    #[error("cannot encode command output")]
+    ParityEncode(#[source] serde_json::Error),
     /// Service input and reads must never expose unit environment contents.
     #[error(transparent)]
     Service(#[from] crate::init::ServiceError),

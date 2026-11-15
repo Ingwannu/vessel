@@ -63,31 +63,88 @@ impl Teardown {
     }
 }
 
-/// Resolves when the process is asked to stop: `Ctrl-C`, or `SIGTERM` on
-/// Unix (what service managers send).
-pub async fn signal() {
-    let interrupt = async {
+/// The process's stop requests (`Ctrl-C`, and `SIGTERM` on Unix, which
+/// service managers send), listened for from the moment this is made.
+///
+/// [Decision Log] (2026-11-15, gate 45c)
+/// - Purpose: a process that says it is ready (`relay listening`, `node
+///   listening`, attach's readiness line) must already answer `SIGTERM` by
+///   stopping cleanly; whoever read that line may send it at once.
+/// - Before: `signal()` registered its handlers on its first poll, inside
+///   the `select!` that followed the readiness line. A `SIGTERM` sent in
+///   between met the default action and killed the process (the relay's
+///   health-and-stop test, `signal: 15`, on a loaded build machine).
+/// - Choice: [`StopSignals::listen`] registers the Unix handlers when it
+///   is called; callers make it before they announce anything and await
+///   [`StopSignals::stopped`] later. On other platforms `Ctrl-C` is still
+///   listened for from the first poll, as before (no change there).
+/// - Cost: the handlers replace the default action a little earlier, for
+///   the whole start-up; a `SIGTERM` during start-up now stops the process
+///   once it reaches the wait instead of killing it on the spot.
+#[must_use = "the signals are only listened for while this is kept"]
+#[derive(Debug)]
+pub struct StopSignals {
+    #[cfg(unix)]
+    terminate: Option<tokio::signal::unix::Signal>,
+    #[cfg(unix)]
+    interrupt: Option<tokio::signal::unix::Signal>,
+}
+
+impl StopSignals {
+    /// Start listening: the Unix handlers are in place when this returns.
+    #[cfg(unix)]
+    pub fn listen() -> Self {
+        use tokio::signal::unix::{SignalKind, signal};
+        let listen = |kind: SignalKind, name: &str| {
+            signal(kind)
+                .inspect_err(|error| tracing::warn!(%error, "cannot listen for {name}"))
+                .ok()
+        };
+        Self {
+            terminate: listen(SignalKind::terminate(), "SIGTERM"),
+            interrupt: listen(SignalKind::interrupt(), "Ctrl-C"),
+        }
+    }
+
+    /// Start listening (`Ctrl-C` is listened for from the first poll of
+    /// [`stopped`](Self::stopped), as before).
+    #[cfg(not(unix))]
+    pub fn listen() -> Self {
+        Self {}
+    }
+
+    /// Resolves when a stop is asked for.
+    #[cfg(unix)]
+    pub async fn stopped(mut self) {
+        tokio::select! {
+            () = received(self.terminate.as_mut()) => {}
+            () = received(self.interrupt.as_mut()) => {}
+        }
+    }
+
+    /// Resolves when a stop is asked for.
+    #[cfg(not(unix))]
+    pub async fn stopped(self) {
         if let Err(error) = tokio::signal::ctrl_c().await {
             tracing::warn!(%error, "cannot listen for Ctrl-C");
             std::future::pending::<()>().await;
         }
-    };
-    #[cfg(unix)]
-    {
-        use tokio::signal::unix::{SignalKind, signal};
-        match signal(SignalKind::terminate()) {
-            Ok(mut terminate) => {
-                tokio::select! {
-                    () = interrupt => {}
-                    _ = terminate.recv() => {}
-                }
-            }
-            Err(error) => {
-                tracing::warn!(%error, "cannot listen for SIGTERM");
-                interrupt.await;
-            }
-        }
     }
-    #[cfg(not(unix))]
-    interrupt.await;
+}
+
+/// One delivery of `signal`, or never when it could not be listened for.
+#[cfg(unix)]
+async fn received(signal: Option<&mut tokio::signal::unix::Signal>) {
+    match signal {
+        Some(signal) => {
+            let _delivered = signal.recv().await;
+        }
+        None => std::future::pending::<()>().await,
+    }
+}
+
+/// Resolves when the process is asked to stop. Listens from its first
+/// poll; a caller that announces readiness first uses [`StopSignals`].
+pub async fn signal() {
+    StopSignals::listen().stopped().await;
 }
