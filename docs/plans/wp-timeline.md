@@ -1186,3 +1186,9 @@ existing Origin::Shown level. It remains unexecuted/literal cfg(test) on W1's
 branch, not adopted here. When that owner's checked source joins the resident
 union, the external navigation vote passed to this snapshot must use that same
 recursive query; A7 still owns its separate loading/overlay/pending checks.
+
+The extracted computed-diff body retains its required FluentBuilder import at
+its new call site. A source scan against the pinned GPUI trait definitions found
+that `.when` belongs to this separate trait, not InteractiveElement/Styled. The
+old queued draw-test source lacks that moved import and is superseded only if
+still queued; no source pass is claimed from a canceled run.
