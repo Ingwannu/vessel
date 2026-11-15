@@ -136,20 +136,7 @@ pub fn dialog<V: 'static>(
     let release = sheet
         .as_ref()
         .map(|sheet| sheet.on_release(close.clone(), cx));
-    let footer = (!content.footer.is_empty()).then(|| {
-        div()
-            .flex()
-            .flex_shrink_0()
-            .flex_wrap()
-            .items_center()
-            .justify_end()
-            .gap(px(8.0))
-            .px(px(INSIDE))
-            .py(px(12.0))
-            .border_t_1()
-            .border_color(surfaces.surface2)
-            .children(content.footer)
-    });
+    let footer = footer(content.footer, &surfaces);
     let escape_close = close.clone();
     let card = div()
         .id("dialog")
@@ -173,53 +160,42 @@ pub fn dialog<V: 'static>(
         .bg(surfaces.surface0)
         .when(!narrow, |card| {
             card.max_w(layout.width().pixels())
-                .map(|card|match layout.height() {
-                    DesktopHeight::AtMost(height)=>card.max_h(relative(height.fraction())),
-                    DesktopHeight::Exact(height)=>card.h(relative(height.fraction())),
+                .map(|card| match layout.height() {
+                    DesktopHeight::AtMost(height) => card.max_h(relative(height.fraction())),
+                    DesktopHeight::Exact(height) => card.h(relative(height.fraction())),
                 })
                 .border_1()
                 .border_color(surfaces.surface2)
                 .rounded(px(popup::DIALOG_RADIUS))
         })
         .when(narrow, |card| {
-            card
-                .map(|sheet|match layout.compact() {
-                    CompactLayout::Fixed(height)=>sheet.max_h(relative(height.fraction())),
-                    CompactLayout::Draggable(_)=>sheet,
-                })
-                .map(|card|match sheet.as_ref().and_then(|sheet|sheet.geometry) {
-                    Some(geometry)=>card.h(geometry.height),None=>card,
-                })
-                .rounded_t(px(popup::SHEET_RADIUS))
-                .child(handle(tokens.neutral.foreground_extra_muted).map(|handle|match (&sheet,&release) {
-                    (Some(sheet),Some(release))=>handle.relative().child(sheet.listener(crate::sheet::snap::Origin::Handle,release)),
-                    (Some(_),None) | (None,Some(_) | None)=>handle,
-                }))
+            card.map(|sheet| match layout.compact() {
+                CompactLayout::Fixed(height) => sheet.max_h(relative(height.fraction())),
+                CompactLayout::Draggable(_) => sheet,
+            })
+            .map(
+                |card| match sheet.as_ref().and_then(|sheet| sheet.geometry) {
+                    Some(geometry) => card.h(geometry.height),
+                    None => card,
+                },
+            )
+            .rounded_t(px(popup::SHEET_RADIUS))
+            .child(handle(tokens.neutral.foreground_extra_muted).map(|handle| {
+                match (&sheet, &release) {
+                    (Some(sheet), Some(release)) => handle
+                        .relative()
+                        .child(sheet.listener(crate::sheet::snap::Origin::Handle, release)),
+                    (Some(_), None) | (None, Some(_) | None) => handle,
+                }
+            }))
         })
         .child(header(content.title, &surfaces, narrow, close.clone(), cx))
-        .child(
-            div()
-                .id("dialog-body")
-                .flex()
-                .flex_col()
-                // An automatic basis preserves fitting dialogs' natural
-                // height. Only this part yields to the card's maximum:
-                // long refusals must not push their actions out of view.
-                .flex_auto()
-                .min_h(px(0.0))
-                .overflow_y_scroll()
-                .map(|body|match &sheet {Some(sheet)=>body.track_scroll(&sheet.scroll),None=>body})
-                .when(sheet.is_some(), |body|body.relative())
-                .gap(px(16.0))
-                .p(px(INSIDE))
-                .type_(Type::Body)
-                .text_color(surfaces.foreground_muted)
-                .child(content.body)
-                .map(|body|match (&sheet,&release) {
-                    (Some(sheet),Some(release))=>body.child(sheet.listener(crate::sheet::snap::Origin::Content,release)),
-                    (Some(_),None) | (None,Some(_) | None)=>body,
-                }),
-        )
+        .child(body(
+            content.body,
+            &surfaces,
+            sheet.as_ref(),
+            release.as_ref(),
+        ))
         .children(footer);
     // The whole window, wherever the screen that keeps it open is drawn
     // (Paseo's overlay is `absoluteFill` of the window).
@@ -265,6 +241,42 @@ pub fn dialog<V: 'static>(
     deferred(anchored().position(point(px(0.0), px(0.0))).child(overlay))
         .with_priority(2)
         .into_any_element()
+}
+
+fn footer(children: Vec<AnyElement>, surfaces: &Surfaces) -> Option<gpui::Div> {
+    (!children.is_empty()).then(|| {
+        div()
+            .flex()
+            .flex_shrink_0()
+            .flex_wrap()
+            .items_center()
+            .justify_end()
+            .gap(px(8.0))
+            .px(px(INSIDE))
+            .py(px(12.0))
+            .border_t_1()
+            .border_color(surfaces.surface2)
+            .children(children)
+    })
+}
+
+fn body(
+    content: AnyElement,
+    surfaces: &Surfaces,
+    sheet: Option<&sheet::SheetFrame>,
+    release: Option<&crate::sheet::snap::listener::OnRelease>,
+) -> gpui::Stateful<gpui::Div> {
+    div().id("dialog-body").flex().flex_col()
+        // The body yields to the card's cap so long text cannot hide actions.
+        .flex_auto().min_h(px(0.0)).overflow_y_scroll()
+        .map(|body| match sheet { Some(sheet) => body.track_scroll(&sheet.scroll), None => body })
+        .when(sheet.is_some(), gpui::Styled::relative)
+        .gap(px(16.0)).p(px(INSIDE)).type_(Type::Body)
+        .text_color(surfaces.foreground_muted).child(content)
+        .map(|body| match (sheet, release) {
+            (Some(sheet), Some(release)) => body.child(sheet.listener(crate::sheet::snap::Origin::Content, release)),
+            (Some(_), None) | (None, Some(_) | None) => body,
+        })
 }
 
 /// A sheet's drag handle (Gorhom's indicator; Paseo themes it zinc 600,

@@ -70,7 +70,7 @@ impl SnapPoints {
             (Some(compact), Some(expanded)) if compact.0 < expanded.0 => {
                 Some(Self { compact, expanded })
             }
-            (Some(_), Some(_) | None) | (None, Some(_) | None) => None,
+            (Some(_) | None, Some(_) | None) => None,
         }
     }
 
