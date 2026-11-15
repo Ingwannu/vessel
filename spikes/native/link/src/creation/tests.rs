@@ -315,14 +315,19 @@ async fn a_reused_book_name_cannot_retarget_a_captured_submission() {
 }
 
 #[tokio::test]
-async fn internal_errors_cannot_prove_that_create_or_first_input_had_no_effect() {
+async fn generic_errors_cannot_prove_that_create_or_first_input_had_no_effect() {
     for (scenario, stage) in [
-        (Scenario::RefuseCreate(ErrorCode::Internal), Stage::Resource),
-        (
-            Scenario::RefusePrompt(ErrorCode::Internal),
-            Stage::InitialInput,
-        ),
-    ] {
+        ErrorCode::Internal,
+        ErrorCode::Unavailable,
+        ErrorCode::SpawnFailed,
+    ]
+    .into_iter()
+    .flat_map(|code| {
+        [
+            (Scenario::RefuseCreate(code), Stage::Resource),
+            (Scenario::RefusePrompt(code), Stage::InitialInput),
+        ]
+    }) {
         let answers = tokio::time::timeout(
             TEST_DEADLINE,
             execute(scenario, FirstInput::Text(Arc::from("first input"))),
