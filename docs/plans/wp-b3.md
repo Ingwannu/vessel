@@ -115,3 +115,28 @@ seams remain the canonical controls. This app tree takes no node branch or
 unreviewed values carrier; checkpoint UI remains held for the reviewed producer
 contract. The node producer separately consumes announced node9c150c6e and is
 under narrow validation. Base gates do not validate this package's future UI.
+
+### UI admission and retry details before implementation
+
+Base 8e's kit DialogContent/DialogState and captured dismissal/return-focus path
+remain the sole renderer. The checkpoint area will use that existing dialog for
+all frozen changed-file pages and a footer action bound to one exact plan. Layout
+retirement hooks run synchronously to invalidate tickets; they must not issue RPC
+or reenter layout. W10's timeline registration and W2's existing conversation
+rewind renderer remain owned integration points, not files to rewrite locally.
+
+Files eligibility is independent of the current rewind_point/conversation ability.
+A provider unable to rewind conversation can still have a Ready file checkpoint;
+a provider able to rewind conversation can still have no usable file image.
+TurnAssociated and the exact BeforeTurn/AfterTurn boundary supply association.
+The files action must not inherit the current conversation-mode eligibility
+check, synthesize an association from a row index, or send Act::Rewind.
+
+After response loss, restore_status can truthfully remain InProgress when files
+have succeeded but the result marker still needs publication. Status is read-only.
+The app must retain the original RestoreId and plan, and retry checkpoint.restore
+with that same identity to finish metadata; it must not create another operation
+or get stuck querying status forever. Existing-operation admission precedes plan
+expiry and never reapplies files. Stale node/session/panel tickets still refuse
+late replies, while a detached operation's durable identity remains available for
+reconnect result lookup. These are future implementation/test obligations.
