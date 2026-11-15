@@ -368,7 +368,14 @@ fn compact(
 /// A ring's stroke from twelve o'clock, clockwise, `percent` of the way
 /// round (100: the whole track), in `bounds`.
 fn ring_path(bounds: Bounds<Pixels>, percent: f32) -> Option<gpui::Path<Pixels>> {
-    let points = ring_points(bounds, percent);
+    let mut points = ring_points(bounds, percent);
+    let whole = percent >= 100.0;
+    if whole {
+        // The last point is the first again: drawn and then closed, the
+        // joint at twelve was stroked twice and the translucent track
+        // showed a brighter tick there (0.0.0.0.19 smoke).
+        points.pop();
+    }
     let (first, rest) = points.split_first()?;
     let mut path = PathBuilder::stroke(px(STROKE));
     path.move_to(*first);
@@ -379,7 +386,7 @@ fn ring_path(bounds: Bounds<Pixels>, percent: f32) -> Option<gpui::Path<Pixels>>
     // ends met at twelve with a notch, and with no context data (the track
     // alone, as an ended session shows it) the ring read as a loading
     // spinner beside Send (the coordinator's 0.0.0.0.18 smoke).
-    if percent >= 100.0 {
+    if whole {
         path.close();
     }
     path.build().ok()
