@@ -38,4 +38,3 @@ rewind-problem-unavailable = 머신이 지금 이 대화를 되감을 수 없습
 
 # Rewind refusal recovery: failed. The diagnostic stays in logs.
 rewind-failed = 되감기 결과를 확인하지 못했습니다. 대화를 다시 열고 시도하세요.
-

@@ -38,4 +38,3 @@ rewind-problem-unavailable = The machine cannot rewind this conversation right n
 
 # Rewind refusal recovery: failed. The diagnostic stays in logs.
 rewind-failed = Could not confirm the rewind. Open the conversation again before retrying.
-
