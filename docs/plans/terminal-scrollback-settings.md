@@ -15,7 +15,7 @@
   new openings use the same retained value. Generation invalidates old rows.
 - Why: retained physical addresses already distinguish genuine front eviction
   from new output. A larger limit cannot resurrect evicted rows.
-- Effects: settings owns one preference/page and its canonical apply/rollback
+- Effects: settings owns one preference/page and its committed-effect
   caller. Terminal owns model/viewport updates. The app hook is literally test
   staging until that real product caller lands in the same source union; no
   dead-code waiver or uncalled product seam is permitted.
@@ -38,7 +38,7 @@ from the retained prototype, with invalid persisted counts computed from the
 single named bound. Separate GPUI owner tests cover changes while output and
 history handovers own the model, plus a new opening inheriting the limit.
 The literal cfg(test) on the app settings module must be removed ONLY together
-with the canonical settings startup/apply/rollback caller and actual union
+with the canonical settings committed startup/effect caller and actual union
 checks. No dead-code exemption or fake product caller is used. The owner may
 remove that exact guard as part of the coordinated consumer cutover; the
 producer alone is not a live settings UI or all-resident retention proof.
@@ -63,3 +63,17 @@ the live trim to the existing canonical COMMITTED preference receipt, never an
 optimistic preview or a failed-save rollback effect. New openings use the last
 committed applied limit. No new writer/receipt or mutable snapshot restoration
 is introduced, and history rollback after a failed save is not promised.
+
+The existing canonical owner must deliver the minimum committed limit followed
+by the final committed limit when its latest-value watch coalesces several
+saves. A model currently outside the UI preserves that minimum in its existing
+opening-owned pending trim; a returned model applies minimum then final.
+New openings inherit only the last applied committed limit and do not replay
+another opening's predecessor effects. The existing Coordinator/App owner owns
+this ordered effect aggregation, not the terminal area or another receipt store.
+
+Only an actual Saved canonical outcome admits the irreversible effect. LaunchOnly
+and Failed keep both current live retention and new-opening applied limit
+unchanged. There is no memory-only trim alternative. A later ordinary retry that
+actually reaches Saved may apply it; a past failure does not permanently lock
+the setting. No product caller for these outcomes exists in this producer yet.
