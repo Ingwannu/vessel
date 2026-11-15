@@ -2,4 +2,4 @@
 mod edits;
 mod errors;
 mod fixtures;
-mod peer;
+use crate::testing::peer;

@@ -219,8 +219,13 @@ impl DevicesWords {
     }
     /// A failure without ever forwarding a peer's credential-bearing text.
     #[must_use]
-    pub const fn problem(&self, problem: Problem) -> &'static str {
+    pub fn problem<'a>(
+        &self,
+        problem: Problem,
+        translations: &'a crate::localization::Translator,
+    ) -> &'a str {
         match (self.lang, problem) {
+            (Lang::En | Lang::Ko, Problem::TargetChanged) => translations.device_target().changed(),
             (Lang::En, Problem::Offline) => {
                 "The machine is not connected. Reconnect the machine. Then try again."
             }
