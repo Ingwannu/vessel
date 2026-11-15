@@ -420,3 +420,20 @@ permission result was correct. A new process case checks actual delivered image 
 The image batch stays in conversation alongside FileInput/upload_file; raw file byte counts
 are not exposed to the command orchestration layer. W16 reserves root plugin registration
 and owns args::plugin / plugin::run over the same Presentation/output helper surface.
+
+## Current scoped verification
+
+| Check | Exact source | Result | Evidence |
+|---|---|---|---|
+| Shared seam clippy, proto/node | ed3a3323 | pass | /tmp/work/wp-cli/seams-check-recovery |
+| CLI unit tests | 6910fd61 | 116 passed, 0 failed, 0 ignored | wp-cli-narrow-20261115T075605Z-6910fd61; /tmp/work/wp-cli/cli-unit-check |
+| CLI process parity tests | 16428482 | 4 passed, 0 failed, 0 ignored | wp-cli-narrow-20261115T081105Z-16428482; /tmp/work/wp-cli/cli-process-check2 |
+| Full affected-crate narrow clippy | 19205c28 | failed on one unused extraction import, corrected in 6910fd61 | /tmp/work/wp-cli/qualityb-check6 |
+| Local TS generation | before1252d8dc | failed on the forge/registry declaration-name clash; corrected, rerun pending | /tmp/work/wp-cli/typescript-generation*.log |
+
+These are scoped results, not a whole root gate or V3 package pass. All runtime checks use
+fake ACP and isolated temporary nodes, under ubuntu UID/GID1000; no live user agent or
+service configuration is touched. No permission/ownership setting was changed. Package
+base3 6c782cb6 was merged as instructed (8467e96c); the exact approved e2e race fix c5da5305
+was merged first, with no local edits to that test. The pure screen engine and the listed
+external contracts still await their owners' reviewed consumer heads.
