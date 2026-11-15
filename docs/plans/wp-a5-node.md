@@ -148,8 +148,12 @@ Existing real HTTP/encryption/preparation cancellation/restart fixtures remain.
 Their completion observer now requires the canonical Session source before
 asserting exact keys. The terminal fake-node fixture propagates its outer timeout.
 While the feature is None it proves only SDK refusal/no delivery. Assigned
-positive terminal delivery, preparation-time cancellation and restart/runtime
-proof remain explicit obligations.
+positive terminal delivery and restart/runtime proof remain explicit obligations.
+A preparation-barrier fixture now covers exact clear, newer Working, removal,
+focused recipient, revocation and exact lease renewal at both Crypto and
+Transport. It waits for attempt completion before shutdown, so shutdown cannot
+make an absent admission check pass. While pending, its explicit capability
+guard does not establish any positive cancellation proof.
 
 ## Verification state
 
