@@ -482,3 +482,19 @@ combinations of Chat flags, plus both Responses sampling and Anthropic
 thinking choices. Narrow node all-targets Clippy passes and the LLM library
 has 103 passing tests. No existing test expectation changes. The proxy
 ratchet falls from 1592 to 1556. Whole-commit validation remains next.
+
+
+### Complete request policy: contract and resume point
+
+Add complete encoding separately from the byte-preserving extraction.
+Reuse the typed request encoders, an owned neutral request and a positive
+output-token value. Set stream=false on every API and omit Chat's stream
+options. Validate the actual encoded cap against that value, refusing any
+encoder increase before bytes are exposed to the HTTP caller. Keep the
+ADR's unsupported-effort omission rule, explicitly including Chat max and
+providers without reasoning fields; do not change proxy behavior.
+Adjacent tests owe every API, both Chat cap fields, omission/defaults,
+adaptive thinking within budget and budgeted thinking refused above it.
+The library introduces no metadata prompt, HTTP call, credential read,
+Node setting or wire field. Node wiring supplies the metadata budget and
+uses this same preparation for validation before saving and after reload.

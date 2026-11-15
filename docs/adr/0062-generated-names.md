@@ -195,7 +195,10 @@ be refused before saving. This is a deliberate security and cost bound,
 not a reproduction of Paseo's explicit-model pass-through. An effort that
 the provider's API cannot represent is omitted: Anthropic's wire effort is `low`, `medium`, `high` and
 `max` (`wire/anthropic.rs` 376–385), so `minimal` is omitted on that
-call and the provider's default stands. When the entry omits effort,
+call and the provider's default stands. Chat's `max` is likewise omitted
+rather than downgraded to `high`; a provider configured without reasoning
+fields receives no effort. These omissions apply only to metadata, and do
+not change proxy translation. When the entry omits effort,
 the provider's default stands, except the automatic `gpt-5.4-mini`
 match, which asks for low.
 
@@ -720,3 +723,26 @@ stated format choice, not a claim of identical whitespace classification.
   API encoding. Existing serde and Bytes suffice; no dependency is added.
 - Effects: the proxy shrinks. Complete-request policy will be a separate
   change, with actual encoded-budget checks rather than proxy changes.
+
+
+### Bounded complete request preparation
+
+[Decision Log]
+- Purpose and intent: send a bounded whole-response request through the
+  same typed encoders without inheriting streaming flags or a raised cap.
+- Existing constraints: upstream encoders select streaming and Anthropic's
+  budgeted thinking may raise max_tokens. Checking only the neutral cap
+  would not bound the actual provider request.
+- Alternatives considered: hand-write a second request format, or lower a
+  thinking budget after encoding. Both create a second API policy.
+- Choice: the LLM owner takes an owned neutral request and a positive
+  OutputTokens value, applies the stated metadata effort omissions, sets
+  the cap, delegates to the existing encoder, then verifies the encoded
+  cap before serialization. It switches stream off and removes Chat's
+  stream_options. A raised or missing encoded cap is a typed refusal.
+- Why this choice: the actual request is the cost boundary. Existing
+  encoders, serde and NonZeroU32 suffice; there is no new dependency.
+- Effects: budgeted thinking that cannot fit is refused, without another
+  route or retry. This is a Vessel cost limit; Paseo's structured call
+  (worktree-branch-name-generator.ts 114–135) does not specify this cap.
+  No request is sent and no node setting changes in this library slice.
