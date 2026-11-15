@@ -249,3 +249,22 @@ evidence remain unchanged; no fresh App/View/whole gate is claimed. V1's
 same-row P2 closure and SOURCE adoption remain pending. No consumer hash
 is broadcast before closure, and no live-stream/permission/UI approval is
 claimed. Remote numeric UID/GID and service-account flows remain unverified.
+
+
+### V1 closure and shared handoff (2026-11-15 10:30 UTC)
+
+V1 closed the sole P2 test-liveness return and granted bounded shared SOURCE
+adoption plus the exact requested Link narrow pass for074ade16..95c256bc;
+result-only docs72f081c3. Audit: `/tmp/work/m12-review/g4-95c2-preflight-closure.json`.
+The exact producer/API was sent once to G1, G2, W4, W7, W12, W13, E2,
+the coordinator and lead. Integration belongs to the coordinator/lead.
+Consumers take the exact isolated producer range, never the moving Devices
+branch or the last test-only commit by itself. The2399 Git pins, all14
+regression names and65 retained assertions were independently checked.
+
+This closes source adoption only. The earlier3f App/View suite remains
+prior-source evidence; current95 Link78/0/0 is separate. Live stream wiring,
+real EOF/error frames, authority UI, captures and package gates are still
+consumer obligations. Remote numeric UID/GID and service flow remain
+unverified. No unchanged gate was rerun. Further compilation and capture
+builds use the approved remote VM only, per the operator's10:3x instruction.
