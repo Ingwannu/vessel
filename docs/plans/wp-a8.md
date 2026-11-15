@@ -542,3 +542,12 @@ both node/session/request single-flight and refusal to settle with a changed
 context, followed by a distinct retry ticket only after original settlement.
 The previous alias-only fixture did not actually exercise a reconnect despite
 its test name. This strengthens scoped evidence without changing product logic.
+
+
+Exact7ff all-target Clippy reached Link and reported dispatcher length101/100
+plus two test get_unwrap lints; no whole/pass inference follows that failure.
+Reuse the existing prefs module for its own off-thread save/warning boundary:
+move the SavePrefs body unchanged into prefs::persist and retain one exhaustive
+dispatch arm. Task creation, await order, warnings and persistence behavior stay
+identical. This avoids a dispatch lint waiver, another persistence module or any
+size-record increase. No new test behavior is introduced by this extraction.
