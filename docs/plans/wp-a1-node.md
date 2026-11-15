@@ -232,6 +232,17 @@ supply those proofs, spawn a background task, or make a create RPC available.
 Real-writer regressions are owed for simultaneous identical last-slot admission,
 capacity/conflict lookup, finite waiting, lease rollback and retained identity.
 
+The count lease reuses Agents::reserve's existing locked grant/depth/count
+decision instead of adding a counter. A local opaque entry marker fences its
+rollback: dropping an old attempt cannot remove a later entry with the same
+SessionId. A pending lease rolls back only its own unregistered entry; after
+a matching committed Resource Begin it retains the count entry on cancellation
+because spawn may have happened. The legacy caller explicitly detaches this
+guard and keeps its existing forget/retire cleanup. The new Begin consumer
+remains cfg(test) until the real tracked receipt driver is wired. No lease
+checks current Store/resource absence, root authority or workspace start
+admission on behalf of that missing adapter.
+
 The internal refused outcome carries the canonical creation Certainty value
 explicitly. Generic backing refusals currently retain Uncertain reservations
 and return Unknown, so a future caller cannot mistake the typed refusal reason

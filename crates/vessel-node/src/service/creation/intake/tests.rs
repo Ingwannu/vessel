@@ -7,6 +7,7 @@ use vessel_proto::creation::{
 use vessel_proto::{BlobHash, ErrorCode, SessionId, WorkspaceId};
 use vessel_store::{DataDir, StoreConfig};
 
+mod count;
 mod recovery;
 
 async fn fixture() -> (tempfile::TempDir, DataDir, Store, Intake) {
