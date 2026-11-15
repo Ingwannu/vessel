@@ -2,7 +2,7 @@
 
 use std::{
     error::Error,
-    io,
+    io::{self, Write as _},
     path::Path,
     process::{Command, Stdio},
     time::Duration,
@@ -32,10 +32,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .ok_or_else(|| io::Error::other("missing fixture pid path"))?;
         descendant(Path::new(path))?;
     }
-    if mode == "stall" {
-        if let Some(path) = arguments.get(1) {
-            private_pid(Path::new(path), std::process::id())?;
-        }
+    if mode == "stall"
+        && let Some(path) = arguments.get(1)
+    {
+        private_pid(Path::new(path), std::process::id())?;
     }
     let mut input = tokio::io::stdin();
     let mut output = tokio::io::stdout();
@@ -141,10 +141,6 @@ async fn stderr_long() -> io::Result<()> {
     stream.flush().await
 }
 
-#[expect(
-    clippy::zombie_processes,
-    reason = "the fixture descendant intentionally outlives its leader to prove owned group cleanup"
-)]
 fn descendant(path: &Path) -> io::Result<()> {
     // The fixture deliberately uses a normal inherited process group: making
     // another vessel-proc group here would test a child that intentionally escapes
@@ -167,7 +163,6 @@ fn private_pid(path: &Path, pid: u32) -> io::Result<()> {
         let _mode = options.mode(0o600);
     }
     let mut note = options.open(path)?;
-    use std::io::Write;
     write!(note, "{pid}")?;
     Ok(())
 }

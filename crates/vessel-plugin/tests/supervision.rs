@@ -1,5 +1,5 @@
 //! Real owned fake helpers; no agent, network listener, credential or node store.
-#![cfg(feature = "fixture")]
+#![cfg(all(test, feature = "fixture"))]
 
 use std::{error::Error, path::Path, time::Duration};
 
@@ -89,7 +89,8 @@ async fn real_helper_echoes_only_live_registered_calls_and_withdraws_on_shutdown
         handle.call(stale, call(), &CancellationToken::new()).await,
         Err(CallError::Stale)
     );
-    supervisor.shutdown().await.expect("reaped shutdown");
+    let receipt = supervisor.shutdown().await.expect("reaped shutdown");
+    assert_eq!(receipt.code(), Some(0));
     assert_eq!(*handle.subscribe().borrow(), RuntimeState::Stopped);
 }
 
@@ -181,7 +182,8 @@ async fn private_stderr_retains_bounded_prefix_and_last_line() {
     )
     .expect("spawn");
     let _address = ready(&supervisor.handle()).await;
-    supervisor.shutdown().await.expect("shutdown");
+    let receipt = supervisor.shutdown().await.expect("shutdown");
+    assert!(!receipt.run().is_live());
     let entries = logs.snapshot().expect("management tail");
     assert!(
         entries
@@ -202,7 +204,7 @@ async fn private_stderr_retains_bounded_prefix_and_last_line() {
 
 #[cfg(target_os = "linux")]
 #[tokio::test]
-async fn graceful_leader_exit_reaps_its_descendant_with_private_account_owned_files() {
+async fn graceful_leader_exit_stops_its_descendant_with_private_account_owned_files() {
     use std::os::unix::fs::{MetadataExt, PermissionsExt};
     let directory = tempfile::tempdir().expect("isolated directory");
     let pid_path = directory.path().join("descendant.pid");
@@ -224,7 +226,8 @@ async fn graceful_leader_exit_reaps_its_descendant_with_private_account_owned_fi
     assert_eq!(metadata.uid(), account.uid());
     assert_eq!(metadata.gid(), account.gid());
     assert_eq!(metadata.permissions().mode() & 0o777, 0o600);
-    supervisor.shutdown().await.expect("group reaped");
+    let receipt = supervisor.shutdown().await.expect("group reaped");
+    assert_eq!(receipt.code(), Some(0));
     cannot_run(pid).await;
 }
 
@@ -263,8 +266,9 @@ async fn ignoring_dispose_requires_owned_group_termination_before_success() {
     )
     .expect("spawn");
     let _address = ready(&supervisor.handle()).await;
-    tokio::time::timeout(CLEANUP_WAIT_BUDGET, supervisor.shutdown())
+    let receipt = tokio::time::timeout(CLEANUP_WAIT_BUDGET, supervisor.shutdown())
         .await
         .expect("bounded cleanup")
         .expect("group reaped");
+    assert!(!receipt.run().is_live());
 }
