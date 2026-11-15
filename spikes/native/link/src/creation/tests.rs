@@ -52,7 +52,11 @@ async fn execute(scenario: Scenario, input: FirstInput) -> TestResult<Vec<Answer
             options: Vec::new(),
         },
     );
+    let source = vessel_app_view::composer::drafts::DraftKey::Session {
+        session: SessionId::random(),
+    };
     let ask = Ask {
+        source,
         ticket: TICKET,
         message: vessel_proto::timeline::ClientMessageId::random(),
         expected_node: if matches!(scenario, Scenario::WrongNode) {
@@ -82,6 +86,7 @@ async fn execute(scenario: Scenario, input: FirstInput) -> TestResult<Vec<Answer
         let Event::Creation(answer) = event else {
             return Err(std::io::Error::other("creation events only").into());
         };
+        assert_eq!(answer.source(), source);
         answers.push(answer);
     }
     Ok(answers)
@@ -102,9 +107,10 @@ async fn registration_and_success_are_correlated_and_in_order() {
             Answer::Registered { ticket: TICKET, .. },
             Answer::Progress {
                 ticket: TICKET,
-                stage: Stage::InitialInput
+                stage: Stage::InitialInput,
+                ..
             },
-            Answer::Complete(TICKET)
+            Answer::Complete(_, TICKET)
         ]
     ));
 }
@@ -126,7 +132,8 @@ async fn a_prompt_refusal_retains_the_registered_session_and_does_not_retry_crea
             Answer::Failed {
                 ticket: TICKET,
                 stage: Stage::InitialInput,
-                failure: Failure::Refused(ErrorCode::Conflict)
+                failure: Failure::Refused(ErrorCode::Conflict),
+                ..
             }
         ]
     ));
@@ -181,7 +188,7 @@ async fn deferred_payload_is_not_sent_by_the_creation_owner() {
     .unwrap();
     assert!(matches!(
         answers.as_slice(),
-        [Answer::Registered { .. }, Answer::Complete(TICKET)]
+        [Answer::Registered { .. }, Answer::Complete(_, TICKET)]
     ));
 }
 
@@ -201,7 +208,7 @@ async fn refused_first_input_retries_only_the_registered_session() {
     assert!(
         matches!(answers.first(), Some(Answer::Registered { session: info, .. }) if info.id == session)
     );
-    assert!(matches!(answers.last(), Some(Answer::Complete(TICKET))));
+    assert!(matches!(answers.last(), Some(Answer::Complete(_, TICKET))));
 }
 
 #[tokio::test]

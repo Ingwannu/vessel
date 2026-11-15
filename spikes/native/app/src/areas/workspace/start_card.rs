@@ -108,6 +108,7 @@ impl Shell {
                 }
                 self.creation_answer(
                     vessel_app_link::creation::Answer::Failed {
+                        source: vessel_app_view::composer::drafts::DraftKey::New,
                         ticket: start.ticket,
                         stage: vessel_app_view::creation::Stage::Workspace,
                         failure: vessel_app_view::creation::Failure::Refused(
@@ -121,6 +122,7 @@ impl Shell {
                 self.areas.draft.error = Some(self.words().problem(&problem));
                 self.creation_answer(
                     vessel_app_link::creation::Answer::Failed {
+                        source: vessel_app_view::composer::drafts::DraftKey::New,
                         ticket: start.ticket,
                         stage: vessel_app_view::creation::Stage::Workspace,
                         failure: vessel_app_view::creation::Failure::Refused(

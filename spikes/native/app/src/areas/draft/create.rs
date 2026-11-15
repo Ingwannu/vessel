@@ -50,12 +50,17 @@ impl CreationState {
 impl Shell {
     /// Shared registration forwards here; stale replies consume no payload.
     pub(crate) fn creation_answer(&mut self, answer: Answer, cx: &mut Context<'_, Self>) {
+        if answer.source() != vessel_app_view::composer::drafts::DraftKey::New {
+            // Workspace drafts use their own keyed owner once that bridge lands.
+            return;
+        }
         match answer {
             Answer::Registered {
                 ticket,
                 machine,
                 node,
                 session,
+                ..
             } => {
                 if self.areas.draft.creation.flow.ticket() == Some(ticket) {
                     self.areas.draft.creation.node = Some(node);
@@ -63,14 +68,15 @@ impl Shell {
                         Some(Card::from_session(machine.as_str(), &session));
                 }
             }
-            Answer::Progress { ticket, stage } => {
+            Answer::Progress { ticket, stage, .. } => {
                 let _transition = self.areas.draft.creation.flow.progress(ticket, stage);
             }
-            Answer::Complete(ticket) => self.creation_complete(ticket, cx),
+            Answer::Complete(_, ticket) => self.creation_complete(ticket, cx),
             Answer::Failed {
                 ticket,
                 stage,
                 failure,
+                ..
             } => {
                 let _transition = self.areas.draft.creation.flow.progress(ticket, stage);
                 if self.areas.draft.creation.flow.fail(ticket, failure) == Transition::Applied {
@@ -94,6 +100,7 @@ impl Shell {
             if !same_node {
                 self.creation_answer(
                     Answer::Failed {
+                        source: vessel_app_view::composer::drafts::DraftKey::New,
                         ticket,
                         stage: vessel_app_view::creation::Stage::InitialInput,
                         failure: Failure::Refused(vessel_proto::ErrorCode::Conflict),
@@ -168,6 +175,37 @@ impl Shell {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[gpui::test]
+    fn another_drafts_same_local_ticket_cannot_complete_the_top_level_draft(
+        cx: &mut gpui::TestAppContext,
+    ) {
+        crate::shell::language_tests::init(cx);
+        let (shell, cx) = cx.add_window_view(Shell::without_io);
+        shell.update_in(cx, |shell, _window, cx| {
+            let ticket = Ticket::new(7);
+            assert_eq!(
+                shell
+                    .areas
+                    .draft
+                    .creation
+                    .flow
+                    .begin(ticket, vessel_app_view::creation::Stage::Resource),
+                Transition::Applied
+            );
+            let original = shell.areas.draft.creation.flow.clone();
+            shell.creation_answer(
+                Answer::Complete(
+                    vessel_app_view::composer::drafts::DraftKey::Session {
+                        session: vessel_proto::SessionId::random(),
+                    },
+                    ticket,
+                ),
+                cx,
+            );
+            assert_eq!(shell.areas.draft.creation.flow, original);
+        });
+    }
 
     #[test]
     fn first_input_identity_survives_preparation_and_same_child_retry() {

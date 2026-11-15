@@ -19,6 +19,7 @@ pub(crate) async fn create(client: &NodeClient, ask: Ask, events: &mpsc::Sender<
             .await;
         return;
     }
+    let source = ask.source;
     let ticket = ask.ticket;
     let stage = match &ask.target {
         Target::New(_) => Stage::Resource,
@@ -29,6 +30,7 @@ pub(crate) async fn create(client: &NodeClient, ask: Ask, events: &mpsc::Sender<
         Err(failure) => {
             let _closed = events
                 .send(crate::Event::Creation(Answer::Failed {
+                    source,
                     ticket,
                     stage,
                     failure,
@@ -40,6 +42,7 @@ pub(crate) async fn create(client: &NodeClient, ask: Ask, events: &mpsc::Sender<
     let session = info.id;
     if events
         .send(crate::Event::Creation(Answer::Registered {
+            source,
             ticket,
             machine: ask.machine,
             node: client.node().id,
@@ -52,19 +55,21 @@ pub(crate) async fn create(client: &NodeClient, ask: Ask, events: &mpsc::Sender<
     }
     let FirstInput::Text(text) = ask.input else {
         let _closed = events
-            .send(crate::Event::Creation(Answer::Complete(ticket)))
+            .send(crate::Event::Creation(Answer::Complete(source, ticket)))
             .await;
         return;
     };
     let _closed = events
         .send(crate::Event::Creation(Answer::Progress {
+            source,
             ticket,
             stage: Stage::InitialInput,
         }))
         .await;
     let answer = match deliver(client, session, &text).await {
-        Ok(()) => Answer::Complete(ticket),
+        Ok(()) => Answer::Complete(source, ticket),
         Err(failure) => Answer::Failed {
+            source,
             ticket,
             stage: Stage::InitialInput,
             failure,
