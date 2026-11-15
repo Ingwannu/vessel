@@ -366,3 +366,11 @@ cleanup request, not observed death of every descendant or account process.
 ProcessLifetime revocation and durable PID identity do not mint it. No crate
 edge, dependency, wire field or management caller is added by this mechanism.
 The source/validation record is docs/plans/checked-process-cleanup.md.
+
+
+ADR0080's A1 dependency preparation owns ort at the node DEV boundary only,
+with defaults disabled and exact std/load-dynamic/api-28 features. This is an
+offline safe-wrapper build proof, without a normal crate edge, native linking
+or runtime/model call. T's exact package/index/checksum receipt and V3's actual
+lock/feature acceptance precede any build script/compiler run; native loading
+and distribution remain separate. See docs/plans/voice-vad-build-proof.md.

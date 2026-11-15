@@ -1788,3 +1788,12 @@ The portable body kernel has no event/RPC attachment or execution path; native
 renderers borrow it without creating a competing provider model. No dependency
 edge changes. See docs/plans/timeline-body-values.md for exact source provenance
 and pending consumer-adoption checks.
+
+
+## Offline VAD wrapper preparation
+
+ADR0080's selected A1 uses exact ort2.0.0-rc.15 as a node DEV-only dependency,
+defaults off and solely std/load-dynamic/api-28. It adds no product crate edge,
+loader or inference API. Approved sparse records and archive checksums precede
+fixed offline lock/feature review; Linux/Windows VM compilation is a separate
+later step. Candidate complete notices are retained, not a shipped inventory.
