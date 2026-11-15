@@ -1,6 +1,8 @@
 # Conversation stream parity
 
-Status: stream skeleton committed; approvals and questions handed to their package owner. Updated 2026-11-15T05:47:13Z.
+Status: A7 native rendering is being filled in on package base2 `6036eeb8`;
+canonical protocol and resident-context consumption remain pending their owners'
+verified hashes. A8 approvals/questions belong to W4. Updated2026-11-15T08:14Z.
 
 ## Reference and asset check
 
@@ -123,10 +125,23 @@ in the separate timeline protocol package (ADR 0084) and consumed after review.
 
 ## Validation and resume point
 
-Done: item/status/detail inventory; current/native-node boundary survey.
-Next: skeleton commit; typed display and plan outcome; question interaction fixes;
-consume reviewed node contract; captures once; whole native gate once; one review.
-Not yet verified: compilation, runtime, captures, real provider behavior.
+Source implemented: shared outcome-scoped Plan body, bounded line/unified diffs,
+turn and tool grouping, explicit reasoning defaults/disclosures, completion
+footer/copy boundaries, compact tool/group sheets and stable reading bookmarks.
+Protocol-dependent detail/item/receipt adapters remain staged until W23's
+combined source-consumable hash; resident adapters await W12's producer API.
+
+Scoped evidence: native view library880tests passed (the subsequently added
+precise context-boundary and distinct-file summary tests were not in that run);
+kit asset/raster/notice tests3passed. Earlier Plan renderer narrow clippy passed;
+later narrow runs caught fixture/import/context-comment issues and their fixes
+are being checked. The latest compact/bookmark adapter has no final green gate
+claim. No whole package gate, captures or V4 review yet. Real providers and new
+wire activation remain unverified; no real agent was run.
+
+Next: finish source-green narrow/model checks; consume the shared Chat, canonical
+protocol, Markdown callback and resident seams; then owned fake-fleet/GPUI
+captures once, one whole native gate and one V4 package review.
 
 ### Question form implementation
 
