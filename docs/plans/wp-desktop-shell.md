@@ -29,8 +29,9 @@ their authenticated owner adapters; desktop never substitutes a book alias.
 ## Current status
 
 Implementation is source under integration, not a completed parity claim. The
-latest application base is package line `db42d9c5` (base 9, native 1510/0/2),
-merged at `08aea5e2`. It contains the reviewed shared popover, pane/query seams, attention
+latest application base is package line `a7aab9d6` (base 9 plus header actions,
+native 1513/0/2), merged at `084f6858`. It contains the reviewed shared popover,
+title actions, pane/query seams, attention
 values and picker admission. The link's existing SavePrefs fallback was extracted
 by its owner; desktop native interception still owns its sole canonical writer.
 No node head was merged directly into this application tree. Existing
@@ -511,7 +512,7 @@ tests that merged source separately; no result is inferred before completion.
   remains pending. This identity is UI input authority, not host/session authority.
 The reviewed control producer is isolated on base91407173; the additive header
 slot is another isolated follow-up on that reviewed control head.
-Current source-size checks passed722 files/13 existing exceptions; no allowance
+Current source-size checks passed731 files/13 existing exceptions; no allowance
 increased. Direct rustfmt checks changed Rust files; this
 is formatting evidence only, without a local Cargo/Rustc invocation.
 
