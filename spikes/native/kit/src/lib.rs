@@ -61,6 +61,7 @@ pub mod slider;
 pub mod split_button;
 pub mod tabs;
 pub mod theme;
+pub mod theme_tile;
 pub mod toast;
 pub mod toolbar_label;
 pub mod tooltip;

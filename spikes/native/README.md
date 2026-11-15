@@ -436,6 +436,17 @@ static muted ink, a frame and a hit (slop `spacing::S2`) computed from those;
 its caller owns the callback and pending state, with no extra paint. Unlike
 Paseo's it has no accessible name (the kit has no accessibility tree yet).
 
+### Appearance tile (F5)
+
+`theme_tile` owns the token-only ThemePicker radio frame and miniature.
+`State::Chosen/Idle` controls the border/hover treatment;
+`Preview::Single(&Tokens)` or `Split { light, dark }` supplies the picture.
+The caller supplies an opaque UI id and attaches its action, then uses `cell`
+and `grid` for the reference's half-gap layout. No view preference, plugin
+or host identity reaches the kit. Labels use the reference's small12 step.
+The F5 plan records the consumer migration and the independent numeric/
+family field presentation over the existing editing engine.
+
 ### Named colour palettes (ADR 0070, staged)
 
 The kit can build `theme::Palette::{Light, Dark, Zinc, Midnight, Claude,
