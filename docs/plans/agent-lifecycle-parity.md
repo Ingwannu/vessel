@@ -910,3 +910,9 @@ unchanged into a private exporter method. This separate behavior-preserving
 extraction keeps export orchestration short and lets the peer guard validate
 the same snapshot placed in the manifest, rather than read/check then re-query.
 Existing fields, refusal ordering and test expectations are unchanged.
+
+The corrected-source strict check also requires the discovery runtime tests to
+consume testkit's deadline Result: a timeout must fail the test. They now unwrap
+that result without changing the budget or any assertion. The snapshot method
+also needs the SessionInfo import; its extraction was not used as compiled
+evidence before that correction.

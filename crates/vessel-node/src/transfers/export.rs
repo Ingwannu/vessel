@@ -30,7 +30,7 @@ use std::sync::Arc;
 use vessel_fleet::{Limits, Snapshot};
 use vessel_harness::{Profile, SessionFilesError};
 use vessel_proto::{
-    ExportMemory, ExportSession, HarnessKind, ProfileName, SessionMode, TransferDetail,
+    ExportMemory, ExportSession, HarnessKind, ProfileName, SessionInfo, SessionMode, TransferDetail,
     TransferManifest,
 };
 use vessel_session::SessionError;

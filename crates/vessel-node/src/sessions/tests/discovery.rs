@@ -126,7 +126,8 @@ async fn selection_preserves_the_canonical_order_and_exact_id_access() {
         );
         fixture.stop().await;
     })
-    .await;
+    .await
+    .unwrap();
 }
 
 async fn inherited(
@@ -168,5 +169,6 @@ async fn omitted_listing_inherits_durable_or_live_background_and_explicit_shown_
         );
         fixture.stop().await;
     })
-    .await;
+    .await
+    .unwrap();
 }
