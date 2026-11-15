@@ -52,6 +52,26 @@ or `envelope` (`fleet.forward`, `fleet.relay`, `fleet.deliver`: answered
 once with the carried call's reply, whose outcome it is). No pending method
 is registered by this foundation.
 
+## Pending A2 lifecycle actions
+
+`workspace::WORKSPACE_LIFECYCLE` is None until integration assigns one protocol
+threshold for the A2 session/workspace lifecycle package. No current connection
+may send or dispatch a pending call; this is not a new advertised protocol number.
+
+The pending unary Operate method `session.archive` accepts
+`session_archive::ArchiveSession { session, condition: if_idle | force }`. Condition
+is required; unknown or omitted conditions are invalid requests. IfIdle is checked
+at the structured actor's prompt mailbox, atomically fencing future deliveries
+before stop. Force cancels an active turn. A TUI cannot prove idle turn state and
+requires Force. Already archived is Conflict, and the acknowledged response is
+`ArchivedSession { session, archived_at }` with the committed store timestamp.
+Scope, ownership and forwarding follow session.mark; no new agent tool is implied.
+
+Workspace recovery DTOs distinguish recoverable action, unavailable reason, typed
+stage/source failure and uncertain completion. Future values remain Unknown so a
+client cannot infer a restore from a path. The inspect/restore methods await the
+reviewed registry adapter; defining DTOs alone does not make those calls available.
+
 ## Version 23 (2026-11-14, milestone 12): saved-sign-in limits (N2, ADR 0042)
 
 N2 proposed 19 for these together with `usage.query`; `usage.query` took

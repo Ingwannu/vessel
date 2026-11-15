@@ -109,8 +109,9 @@ implement archive-without-force, because a prompt can be admitted before the sto
 has a pending unary Operate row under the same A2 threshold. It rejects missing
 or unknown conditions rather than defaulting to Force. The node returns only its
 acknowledged SessionId and committed archived_at; the client supplies no timestamp.
-Agents cannot call this new person-facing archive action, while paired/delegated
-Operate clients can forward it through the existing envelope policy.
+It reuses session.mark's Operate scope and exact session ownership rule, including
+agent-owned children. The method is forwardable under that same envelope guard;
+it does not add an MCP tool or bypass ownership.
 
 Existing actor assets are reused: the structured control mailbox already orders
 prompts and queue changes, and Stopper already owns graceful escalation. Archive

@@ -1621,5 +1621,6 @@ admission condition and acknowledged store timestamp (`session_archive`). The
 session actor serializes IfIdle/Force with prompt intake and fences later queue
 advances once a stop is admitted. The node keeps its existing marking/resume lock
 through stop and persistence on a tracked task; the typed client cannot preflight
-idle state itself. Agents are refused. The feature threshold remains None until
+idle state itself. The existing session.mark scope/target ownership rule also
+applies to agent callers and forwarded requests. The feature threshold remains None until
 complete A2 lifecycle wiring is reviewed and integration assigns it.
