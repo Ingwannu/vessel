@@ -14,9 +14,8 @@ The node service remains routing only, with authorization through existing
 
 `vessel-proto::workspace::{panel_files,suggestions}` owns validated input
 and opaque byte pages. `vessel-workspace::files::{binary,duplicate,observe,
-suggestions}` owns disk work and its bounds. Only later, on the announced
-method-table base, node routing and client registration will bind these
-types to the one pending `FILE_PANELS_PROTOCOL` constant. No schema change.
+suggestions}` owns disk work and its bounds. Node routing and client registration bind these types through the one
+canonical method table and pending `FILE_PANELS_PROTOCOL` constant. No schema change.
 
 Binary input is capped at the reference's 64 MiB session-download budget;
 pages at its 256 KiB stream chunk. A continuation must name the original
@@ -76,8 +75,8 @@ the exact adversarial schedule and pins page/digest agreement. No full-source
 buffer or new transfer actor is added. Query input now uses the existing JS
 trim helper after explicit raw scalar/control admission; ADR0083 records why
 the 256-scalar and control/line-separator restrictions differ from Paseo. Unit
-and serde fixtures pin the chosen contract. These corrections still await the
-proper changed-source narrow checks and V3 follow-up; no green claim is made.
+and serde fixtures pin the chosen contract. V3 accepted these source corrections with executed scoped regressions on
+exact100da283; later SDK extraction and enclosing package gates remain owed.
 
 ## Admitted SDK reader prerequisite
 
@@ -123,3 +122,19 @@ Quantity; SuggestionQuery as person-entered Named text, matching FindQuery.
 Existing table entries and the head sorting/uniqueness assertion stay unchanged.
 An owned regression pins these choices. The next generation must execute and
 its exact artifact bytes must be reviewed/applied before freshness is claimed.
+
+### Generated declarations applied from the exact VM artifact
+
+Run wp-files-node-ts-20261115T131233Z-d9c96a5f executed on exact
+d9c96a5f644171838053ff138fbf1e30b42cd51f: clippy-ts rc0 (156 seconds),
+proto declaration generation tests3/0 and web bridge declaration test1/0.
+The TS step rc1 means tracked proto declarations changed after successful
+actual generation, not a successful freshness check. The artifact commit and
+all six SHA256SUMS entries were verified before applying its exact wire.patch.
+Only web/src/wire/proto.ts changes; calls.ts and bridge.ts match the artifact
+and existing files. The generated proto SHA256 is
+923618cdb7463c1b2e81cf2f5294765da1e2ef2b85a28ae9c06c01309755664b.
+Its37 trailing-space lines are generator output, retained byte-for-byte rather
+than manually formatting generated code. Freshness must rerun on the applied
+source; current SDK unit/changed-crate strict and final enclosing gate remain
+owed. No assigned protocol, app renderer or complete-download UI is claimed.
