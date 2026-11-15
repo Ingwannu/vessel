@@ -1581,3 +1581,14 @@ before reading ready output. Shutdown drains the real actor. The fake's optional
 ready-port argument only synchronizes this test; default held-input behavior is unchanged.
 Explicit Tokio net test feature reuses the workspace dependency, with no new package.
 This source and real regression are unexecuted; do not claim fairness from code alone.
+
+### Supersede the queued pre-N25 consumer suite once
+
+Run wp-cli-narrow-20261115T170744Z-467b86df was verified owned/queued on the
+ordinary lane with no acquired slot. Under the standing queued-supersession rule,
+cancel that obsolete9c source after announced1c and c3966e380 fairness/real N25
+fixtures; wait for terminal cancelled143, retained at17:28:14. No Cargo/setup step
+or test ran, and this is not source failure. Submit one same-command, same-lane
+immutable latest-source replacement in a new output bundle. It covers earlier
+held-queue/EOF/TUI/rename code as well as new ready-output scheduling and actual
+N25 acknowledgements. Do not duplicate a live replacement or call the old run proof.
