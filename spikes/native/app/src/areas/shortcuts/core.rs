@@ -23,7 +23,7 @@ impl Shell {
         match action {
             Action::Palette => self.toggle_palette(window, cx),
             Action::Help => self.toggle_shortcuts_help(window, cx),
-            Action::ToggleSidebars | Action::ToggleSidebar => self.toggle_sidebar(window, cx),
+            Action::ToggleSidebar => self.toggle_sidebar(window, cx),
             Action::Settings => {
                 if self.route == Route::Settings {
                     self.settings_back(false, window, cx);
@@ -76,6 +76,7 @@ impl Shell {
             | Action::OpenProject
             | Action::PinWorkspace
             | Action::ArchiveWorkspace
+            | Action::ToggleSidebars
             | Action::NewTab
             | Action::TabAgent
             | Action::NewTerminal

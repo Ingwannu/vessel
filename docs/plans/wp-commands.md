@@ -593,3 +593,10 @@ both badge queries and new modifier holds; no inferred menu flag or focus cache
 is introduced. The real modifier regression additionally opens the production
 Settings row menu and checks its rendered marker plus hidden badges. This closes
 the separate modifier-only path, which cannot rely on a later key-down guard.
+
+Withheld the old ToggleSidebars-to-left-only core fallback. S2's source requires
+one owner decision across both actual sidebar states; a left-only substitute
+violates that behavior in an active workspace. ToggleSidebar remains the existing
+left action. ToggleSidebars keeps its canonical binding but has no active native
+handler until S2's checked sidebar_toggle_both packet is adopted and registered.
+No sidebar state or lifecycle policy is copied into the dispatcher.

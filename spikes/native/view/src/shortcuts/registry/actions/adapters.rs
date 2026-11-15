@@ -63,7 +63,6 @@ impl Action {
             | Self::ClosePane
             | Self::ToggleSidebar
             | Self::ToggleInspector
-            | Self::ToggleSidebars
             | Self::ToggleFocus
             | Self::Find
             | Self::SteerQueued
@@ -93,6 +92,7 @@ impl Action {
             | Self::NextSession
             | Self::PinWorkspace
             | Self::ArchiveWorkspace
+            | Self::ToggleSidebars
             | Self::GoBoard
             | Self::GoMachines
             | Self::GoSync
