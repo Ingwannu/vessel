@@ -47,8 +47,10 @@ pub enum ContributionKind {
     Panel,
     /// Matching file tab.
     FilePanel,
-    /// Sidebar action.
-    Sidebar,
+    /// Sidebar header action; a footer may reuse the same local id.
+    SidebarHeader,
+    /// Sidebar footer action; separate registration namespace.
+    SidebarFooter,
     /// Command center.
     Command,
     /// Composer command.
