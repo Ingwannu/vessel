@@ -983,3 +983,9 @@ Close discards current references without allocating a new generation, so
 exhaustion cannot block terminal cleanup. The Closed state cannot be moved back
 to Uncertain by revision invalidation. The delayed-close fixture waits for its
 late peer ACK before confirming the cancelled operation did not restore state.
+
+
+The crate's [execution staging guide](../../crates/vessel-browser/README.md)
+records current module responsibilities, pending data flow, cancellation and
+cleanup boundaries, one-owner bounds and exact verification limits. It does not
+advertise the staged primitives as a supported runtime or product browser.
