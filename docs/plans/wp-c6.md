@@ -265,3 +265,11 @@ reached the app and found three missing InteractiveElement imports and one stale
 Navigation.resolve call. The consumer now uses Entries.resolve and imports the
 existing element trait; no new preference or rendering mechanism is added.
 Its changed-source check and the later modal/wording tests remain pending.
+
+The early compiled sidebar-navigation dependency also carried the unlanded
+`d2060f754` header-row Kit proposal. The lead confirmed it is absent from package
+base 8 and requested its removal. Only that unused module, its tests and its Kit
+registration are removed; the approved navigation accessor/persistence seam and
+this package's shared usage meter remain. The earlier normal compiler warning
+from that unlanded file is not a defect attributed to the announced app line.
+Future shared control adoption comes through an announced green package base.
