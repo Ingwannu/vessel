@@ -1,6 +1,6 @@
 //! Connected notification admission and explicit terminal attention (ADR 0089).
-//! These values do not register a call. The integrator assigns the protocol
-//! only after claim routing, terminal producers and their clients are reviewed.
+//! Calls live only in the shared method table; the integrator assigns their
+//! protocol after routing, semantic producers and consumers are reviewed.
 use crate::inbox::{InboxCursor, InboxKey};
 use crate::{ProtocolVersion, TerminalId};
 use chrono::{DateTime, Utc};
@@ -57,10 +57,6 @@ pub enum TerminalAttentionReason {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "state", rename_all = "snake_case")]
 pub enum TerminalActivity {
-    /// Plain shell, lost producer or newer state: no attention inferred.
-    #[default]
-    #[serde(other)]
-    Unknown,
     /// Producer reports idle with no outstanding attention.
     Idle,
     /// Producer reports active work.
@@ -70,6 +66,10 @@ pub enum TerminalActivity {
         /// Reason supplied by the typed activity producer.
         reason: TerminalAttentionReason,
     },
+    /// Plain shell, lost producer or newer state: no attention inferred.
+    #[default]
+    #[serde(other)]
+    Unknown,
 }
 
 /// The node-assigned current revision, never a client-supplied timestamp.
@@ -187,8 +187,7 @@ pub struct ReportTerminalActivity {
 mod tests {
     use super::*;
     #[test]
-    fn staged_feature_has_no_assigned_protocol_or_second_method_table() {
-        assert_eq!(ATTENTION_NOTIFICATIONS_PROTOCOL, None);
+    fn revision_exhaustion_cannot_reuse_an_identity() {
         assert_eq!(TerminalAttentionRevision::new(u64::MAX).next(), None);
     }
     #[test]

@@ -78,6 +78,28 @@ impl TermLog {
             status: status.clone(),
         });
         self.shared.info.send_modify(|info| {
+            let signal = match &status {
+                SessionStatus::Starting => None,
+                SessionStatus::Running => match &info.kind {
+                    vessel_proto::terminals::TerminalKind::Script { .. }
+                    | vessel_proto::terminals::TerminalKind::Service { .. } => {
+                        Some(vessel_proto::notifications::TerminalActivitySignal::Working)
+                    }
+                    vessel_proto::terminals::TerminalKind::Shell { .. }
+                    | vessel_proto::terminals::TerminalKind::Unknown => None,
+                },
+                SessionStatus::Exited { .. } => {
+                    Some(vessel_proto::notifications::TerminalActivitySignal::Idle)
+                }
+                SessionStatus::Interrupted | SessionStatus::Failed { .. } => {
+                    Some(vessel_proto::notifications::TerminalActivitySignal::Interrupt)
+                }
+            };
+            if let Some((current, signal)) = info.attention.zip(signal)
+                && let Ok(next) = super::attention::signal(current, signal, Utc::now())
+            {
+                info.attention = Some(next);
+            }
             info.status = status;
             if !live {
                 info.ended_at = Some(Utc::now());

@@ -1536,3 +1536,15 @@ name `vessel_proc` in store to `src/lock/`, which delegates the lock query
 only. The real CLI caller restricts proc's signal entry point to the force
 module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
+
+### Connected attention admission (ADR 0089)
+
+`vessel-proto::notifications` owns exact session-cursor and terminal-revision
+contracts. `vessel-node::push` elects one direct connection through its existing
+presence policy. `vessel-store::notification_claims` commits session admissions
+with the writer and bounds them by inbox retention through a cascading foreign
+key. `vessel-session::terminals` owns semantic activity and once-only terminal
+revision admission in the existing info watch. No PTY parser, push sender or
+notification content is duplicated; clients display only a generic local notice.
+The feature's protocol remains unassigned until reviewed integration, so added
+fields are projected away and methods are refused across old and current peers.

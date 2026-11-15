@@ -70,6 +70,7 @@ pub async fn start_shell(start: ShellStart) -> Result<TerminalHandle, TerminalEr
     let kill = shutdown.child_token();
     let shared = Arc::new(Shared {
         info: watch::Sender::new(info),
+        attention_claim: Mutex::new(None),
         ring: Mutex::new(ring),
         input: Some(pty.input()),
         kill: kill.clone(),

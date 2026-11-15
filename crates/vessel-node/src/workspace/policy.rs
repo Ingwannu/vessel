@@ -150,6 +150,8 @@ const fn refused(method: Method) -> bool {
         | Method::GetPublished
         // An agent's own history (protocol 17, ADR 0053): an account's
         // other conversations are a person's, not the fleet's sessions.
+        | Method::ClaimNotification
+        | Method::ClearTerminalAttention
         | Method::GetAgentHistory => true,
         // Orchestration: the projects, and a worktree with its setup's
         // output for a session the agent starts.
@@ -291,6 +293,7 @@ const fn refused(method: Method) -> bool {
         | Method::ListPorts
         | Method::ListInbox
         | Method::GetInboxEntry
+        | Method::ReportTerminalActivity
         | Method::MarkInbox
         | Method::GetPushKey
         | Method::SubscribePush

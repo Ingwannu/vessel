@@ -1,16 +1,20 @@
-//! Staged pure terminal activity reducer (ADR 0089). The wiring commit after
-//! Quality B removes cfg(test) and feeds the terminal actor's existing info
-//! watch; output bytes never enter this reducer.
+//! Pure semantic activity reducer (ADR 0089); output bytes never enter here.
 use chrono::{DateTime, Utc};
 use vessel_proto::notifications::{
     TerminalActivity, TerminalActivitySignal, TerminalAttention, TerminalAttentionReason,
     TerminalAttentionRevision,
 };
 
+/// A semantic mutation refused without changing current attention.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
-pub(super) enum AttentionError {
+pub enum AttentionError {
+    /// An ended process cannot begin new semantic work.
+    #[error("the terminal has ended; open a new terminal to report activity")]
+    Ended,
+    /// A revision cannot advance without reusing an identity.
     #[error("terminal attention revision exhausted; reopen the terminal")]
     Exhausted,
+    /// A stale clear or producer report cannot change newer attention.
     #[error("terminal attention changed; refresh before clearing it")]
     Stale,
 }

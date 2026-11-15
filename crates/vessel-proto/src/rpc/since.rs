@@ -84,6 +84,14 @@ impl Call {
                     .fold(5, u32::max)
             }),
             Self::ReadEvents(request) => request.wait.map(|_| 6),
+            Self::ReportPushPresence(request) => match request.focus {
+                crate::push::PushFocus::Terminal { .. } => {
+                    Some(crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL?.get())
+                }
+                crate::push::PushFocus::Session { .. }
+                | crate::push::PushFocus::Elsewhere
+                | crate::push::PushFocus::Background => None,
+            },
             // `notify` came in 11: an older node would deliver the prompt
             // and never tell anyone.
             Self::PromptSession(request) => request.notify.then_some(11),
@@ -256,11 +264,13 @@ impl Call {
             | Self::DeletePrompt(_)
             | Self::ListInbox(_)
             | Self::GetInboxEntry(_)
+            | Self::ClaimNotification(_)
+            | Self::ClearTerminalAttention(_)
+            | Self::ReportTerminalActivity(_)
             | Self::MarkInbox(_)
             | Self::GetPushKey(_)
             | Self::SubscribePush(_)
             | Self::UnsubscribePush(_)
-            | Self::ReportPushPresence(_)
             | Self::SearchMessages(_)
             | Self::ParkSession(_)
             | Self::WakeSession(_)

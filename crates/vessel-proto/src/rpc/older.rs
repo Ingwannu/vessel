@@ -34,6 +34,7 @@ use crate::session::SessionInfo;
 const ENDED_OUTSIDE_THE_ARCHIVE: ProtocolVersion = ProtocolVersion::new(10);
 
 mod labels;
+mod terminals;
 
 impl Reply {
     /// This reply as a peer speaking `protocol` reads it, or `None` when it
@@ -47,6 +48,11 @@ impl Reply {
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
         let info = |info: &SessionInfo| info.for_protocol(protocol);
         match self {
+            Self::ListTerminals(list) => terminals::list(list, protocol).map(Self::ListTerminals),
+            Self::SubscribeTerminal(subscribed) => terminals::subscribed(subscribed, protocol).map(Self::SubscribeTerminal),
+            Self::RenameTerminal(info) => terminals::info(info, protocol).map(Self::RenameTerminal),
+            Self::GetTerminal(info) => terminals::info(info, protocol).map(Self::GetTerminal),
+            Self::CreateTerminal(info) => terminals::info(info, protocol).map(Self::CreateTerminal),
             Self::OpenSideQuestion(session) => info(session).map(Self::OpenSideQuestion),
             Self::ResetSideQuestion(session) => info(session).map(Self::ResetSideQuestion),
             Self::NodeInfo(node) => node.for_protocol(protocol).map(Self::NodeInfo),
@@ -135,11 +141,7 @@ impl Reply {
             Self::CreateWorktree(outcome) => {
                 outcome.for_protocol(protocol).map(Self::CreateWorktree)
             }
-            Self::ListScripts(list) => list.commands.for_protocol(protocol).map(|commands| {
-                let mut list = list.clone();
-                list.commands = commands;
-                Self::ListScripts(list)
-            }),
+            Self::ListScripts(list) => terminals::scripts(list, protocol).map(Self::ListScripts),
             Self::RunScript(outcome) => outcome.for_protocol(protocol).map(Self::RunScript),
             Self::RestartScript(outcome) => outcome.for_protocol(protocol).map(Self::RestartScript),
             Self::Forward(forwarded) => nested(forwarded, protocol).map(Self::Forward),
@@ -254,13 +256,13 @@ impl Reply {
             | Self::OpenPullRequest(_)
             | Self::MergePullRequest(_)
             | Self::SetFeedback(_)
-            | Self::CreateTerminal(_)
-            | Self::ListTerminals(_)
-            | Self::GetTerminal(_)
+
+
+
             | Self::ReadTerminal(_)
-            | Self::SubscribeTerminal(_)
+
             | Self::SendTerminal(_)
-            | Self::RenameTerminal(_)
+
             | Self::KillTerminal(_)
             | Self::CloseTerminal(_)
             | Self::ListPorts(_)
@@ -286,6 +288,9 @@ impl Reply {
             | Self::DeletePrompt(_)
             | Self::ListInbox(_)
             | Self::GetInboxEntry(_)
+            | Self::ClaimNotification(_)
+            | Self::ClearTerminalAttention(_)
+            | Self::ReportTerminalActivity(_)
             | Self::MarkInbox(_)
             | Self::GetPushKey(_)
             | Self::SubscribePush(_)

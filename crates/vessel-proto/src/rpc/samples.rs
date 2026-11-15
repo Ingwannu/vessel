@@ -204,6 +204,11 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         Method::ReportPushPresence => {
             json!({"focus":{"focus":"background"},"activity":"unchanged"})
         }
+        Method::ClaimNotification => {
+            json!({"source":{"target":"session","key":{"session":id,"seq":1},"cursor":1}})
+        }
+        Method::ClearTerminalAttention => json!({"terminal":id,"revision":0}),
+        Method::ReportTerminalActivity => json!({"terminal":id,"revision":0,"signal":"working"}),
         Method::GetInboxEntry => json!({"key":{"session":id,"seq":1}}),
         Method::MarkInbox => json!({"key":{"session":id,"seq":1},"read":"read"}),
         Method::GetUsageLimits => {

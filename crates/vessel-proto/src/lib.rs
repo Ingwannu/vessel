@@ -39,6 +39,8 @@ mod model;
 mod name;
 mod node;
 pub mod notifications;
+#[cfg(test)]
+mod notifications_tests;
 mod options;
 mod pairing;
 pub mod parking;

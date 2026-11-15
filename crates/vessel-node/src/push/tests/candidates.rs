@@ -9,7 +9,7 @@ use vessel_proto::{
     SessionMode, SessionSpec, StopReason, TerminalSize,
 };
 use vessel_store::{DataDir, Store, StoreConfig};
-async fn session(store: &Store) -> SessionId {
+pub(super) async fn session(store: &Store) -> SessionId {
     let info = SessionInfo::new(
         SessionId::random(),
         SessionSpec::new(
@@ -25,7 +25,7 @@ async fn session(store: &Store) -> SessionId {
     store.create_session(info).await.unwrap();
     id
 }
-async fn finished(store: &Store, id: SessionId, sequence: u64) {
+pub(super) async fn finished(store: &Store, id: SessionId, sequence: u64) {
     store
         .append(
             id,

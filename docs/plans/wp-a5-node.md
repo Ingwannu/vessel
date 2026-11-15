@@ -17,3 +17,35 @@ admission persistence/retention and the connection-bound claim outcomes, then
 submit pending rows through the node integrator's Quality B. Pure types and
 staged service tests precede registration. Every new wire field gets all-path
 older-peer tests. No production node or real agent is used.
+
+## Wiring checkpoint after Quality B
+
+Merged green node29eebb8b under A8. Three pending rows use only method_table:
+notification.claim (Read, direct person connection only), terminal.attention_clear
+(Read, person only), terminal.activity (Operate plus existing terminal ownership).
+The one protocol constant remains None; no production peer can receive or send
+these calls or the added terminal focus until the integrator assigns it.
+TerminalInfo attention is optional and rewritten on direct/list/subscription,
+script and nested fleet replies for all unsupported peers. Existing push policy
+is reused with stable connection ordering to break equal-activity ties.
+Session admission commits once per inbox cursor; terminal admission is once per
+current revision in the terminal's bounded lifetime. Source/authority/focus are
+rechecked after preparation. Lost local grants never authorize a second display.
+
+[Decision Log]
+- Purpose: exact terminal clears and semantic attention without a second parser.
+- Existing constraints: raw PTY output has no reliable shell lifecycle meaning.
+- Alternatives: output heuristics, polling guessed prompt text, separate public hooks.
+- Choice: reuse terminal info watch and explicit revision-checked producer reports;
+  known script/service lifecycle feeds the same reducer. Plain shell stays unknown
+  until explicit activity. Clear/interrupt never fabricate finished attention.
+- Why: stale hooks and view callbacks cannot consume newer work, and no new listener
+  or credential is introduced. Person read marks remain separate from agent work.
+- Impact: native D1 consumes the snapshot through C2 and the single pane contract;
+  a real shell integration producer is still an explicitly outstanding parity row.
+
+Validation checkpoint: first narrow proto check found serde(other) positioned
+before other variants, corrected. Subsequent contract clippy/tests are pending.
+Size gate is blocked solely by shared rpc.rs 503/500 with the three added rows;
+requested W17's approved contract extraction from the integrator. No budget raised.
+No whole gate, V3 security review or app consumer handover has occurred.

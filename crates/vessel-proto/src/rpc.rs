@@ -42,6 +42,7 @@ use serde::{Deserialize, Serialize};
 use crate::device::Scope;
 use crate::error::WireError;
 use crate::node::ProtocolVersion;
+use crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL;
 
 mod frames;
 mod older;
@@ -417,6 +418,12 @@ macro_rules! method_table {
             UnsubscribePush / unsubscribe_push / "push.unsubscribe" [Read, 22, unary]: $crate::push::UnsubscribePush => $crate::Ack;
             /// Device-scoped push.presence (protocol 22, ADR 0041).
             ReportPushPresence / report_push_presence / "push.presence" [Read, 22, unary]: $crate::push::ReportPushPresence => $crate::Ack;
+            /// Claim local notification delivery for this authenticated connection.
+            ClaimNotification / claim_notification / "notification.claim" [Read, (pending ATTENTION_NOTIFICATIONS_PROTOCOL), unary]: $crate::notifications::ClaimNotification => $crate::notifications::NotificationClaim;
+            /// Clear the exact terminal attention revision a person viewed.
+            ClearTerminalAttention / clear_terminal_attention / "terminal.attention_clear" [Read, (pending ATTENTION_NOTIFICATIONS_PROTOCOL), unary]: $crate::notifications::ClearTerminalAttention => $crate::notifications::TerminalAttention;
+            /// Report a semantic activity transition for an owned terminal.
+            ReportTerminalActivity / report_terminal_activity / "terminal.activity" [Operate, (pending ATTENTION_NOTIFICATIONS_PROTOCOL), unary]: $crate::notifications::ReportTerminalActivity => $crate::notifications::TerminalAttention;
             /// A bounded page of this node's durable attention (protocol 22).
             ListInbox / list_inbox / "inbox.list" [Read, 22, unary]: $crate::inbox::ListInbox => $crate::inbox::InboxPage;
             /// Recheck exactly one inbox source after a delayed answer (protocol 22).

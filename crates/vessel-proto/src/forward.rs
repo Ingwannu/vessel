@@ -415,6 +415,8 @@ impl Method {
             | Self::DeletePrompt
             | Self::ListInbox
             | Self::GetInboxEntry
+            | Self::ClearTerminalAttention
+            | Self::ReportTerminalActivity
             | Self::MarkInbox
             // Protocol 12: a search reads, as `session.read` does.
             | Self::SearchMessages
@@ -432,6 +434,7 @@ impl Method {
             Self::GetPushKey
             | Self::SubscribePush
             | Self::UnsubscribePush
+            | Self::ClaimNotification
             | Self::ReportPushPresence
             | Self::AddAgent
             | Self::GetCatalogue

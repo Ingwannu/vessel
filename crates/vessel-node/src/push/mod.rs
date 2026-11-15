@@ -1,6 +1,7 @@
 //! Device-scoped push authority and presence (ADR 0041). The worker owns
 //! delivery, the store owns leases, and the protocol owns capability shapes.
 //! Neither a relay nor a service receives request or conversation content.
+mod claims;
 mod crypto;
 mod delivery;
 mod policy;
@@ -21,7 +22,7 @@ use vessel_proto::{DeviceId, ErrorCode, SessionId, WireError};
 use vessel_store::{DataDir, Store, StoredPush};
 
 /// Identity of one transport connection, shared by its delegated call contexts.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct PresenceId(uuid::Uuid);
 impl PresenceId {
     pub(crate) fn new() -> Self {

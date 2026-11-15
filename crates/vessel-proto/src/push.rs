@@ -58,6 +58,11 @@ pub enum PushFocus {
         /// Session this device is viewing.
         session: SessionId,
     },
+    /// Visible and focused on an independent terminal (ADR 0089).
+    Terminal {
+        /// Exact terminal this connection is viewing.
+        terminal: crate::TerminalId,
+    },
     /// Visible, focused on another screen.
     Elsewhere,
     /// Hidden or unfocused.

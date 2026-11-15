@@ -147,3 +147,5 @@ fn focus_reports_do_not_renew_activity_and_client_times_cannot_be_supplied() {
     assert!(presence.present(now()));
 }
 mod candidates;
+
+mod claims;

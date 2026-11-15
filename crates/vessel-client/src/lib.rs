@@ -52,6 +52,7 @@ pub mod file_fault;
 mod fleet_control;
 mod inbox;
 mod local;
+mod notifications;
 pub mod pairing;
 mod pinned;
 mod prompts;
