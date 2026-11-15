@@ -28,7 +28,7 @@ fn session(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) 
         archived_at: None,
         binding: None,
     });
-    shell
+    let _mounted_tab = shell
         .layout_open_target(
             &LayoutKey::Session {
                 machine: HostAlias::parse("fixture").unwrap(),
