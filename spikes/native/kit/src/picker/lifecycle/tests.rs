@@ -4,7 +4,6 @@ use crate::{
     Scheme, TextField, Tokens,
     dialog::{DialogContent, DialogSize, DialogState},
 };
-use gpui::prelude::*;
 use gpui::{
     Entity, InputEvent as _, KeyDownEvent, Keystroke, Modifiers, MouseDownEvent, MouseUpEvent,
     Render, TestAppContext, VisualTestContext, div, point, px,
@@ -43,7 +42,7 @@ impl Probe {
     ) -> Self {
         let field = TextField::new("Actual opener", |_, _, _, _| {}, window, cx);
         field.focus(window, cx);
-        let mut this = Self {
+        let this = Self {
             field,
             dialog: DialogState::new(cx),
             visible: true,
@@ -76,6 +75,9 @@ impl Probe {
                 self.open(window, cx);
             }
             Reopen::Replace => {
+                // Replacing a mounted control ACKs its actual dismissal first,
+                // exactly as the shared weak opener contract requires.
+                self.list.close_and_restore(window, cx);
                 self.list = ComboboxState::new(window, cx);
                 self.open(window, cx);
             }
@@ -154,7 +156,8 @@ impl Render for Probe {
 }
 fn initialize(cx: &mut TestAppContext) {
     cx.update(|cx| {
-        crate::init(cx, crate::SchemeChoice::Fixed(Scheme::Dark)).unwrap();
+        let initialized = crate::init(cx, crate::SchemeChoice::Fixed(Scheme::Dark));
+        assert!(initialized.is_ok());
         cx.set_reduce_motion(true);
     });
 }
@@ -163,10 +166,15 @@ fn open(view: &Entity<Probe>, cx: &mut VisualTestContext) {
     cx.update(|window, cx| view.update(cx, |this, cx| this.open(window, cx)));
     cx.run_until_parked();
 }
-fn press(window: &mut Window, cx: &mut App, text: &str) {
+fn press(window: &mut Window, cx: &mut App, text: &'static str) {
+    let parsed = Keystroke::parse(text);
+    assert!(parsed.is_ok());
+    let Ok(keystroke) = parsed else {
+        return;
+    };
     let _dispatch = window.dispatch_event(
         KeyDownEvent {
-            keystroke: Keystroke::parse(text).unwrap(),
+            keystroke,
             is_held: false,
             prefer_character_input: false,
         }
@@ -221,18 +229,36 @@ fn assert_b(view: &Entity<Probe>, window: &Window, cx: &App, draws: usize) {
 #[gpui::test]
 fn retained_combo_pointer_and_outside_cannot_choose_close_or_refocus_b(cx: &mut TestAppContext) {
     initialize(cx);
-    for mode in [Reopen::InPlace, Reopen::AfterClose, Reopen::Replace] {
-        for at in [point(px(120.0), px(90.0)), point(px(500.0), px(350.0))] {
-            let (view, cx) =
-                cx.add_window_view(|window, cx| Probe::new(false, Selection::Close, window, cx));
-            open(&view, cx);
-            cx.update(|window, cx| {
-                let draws = view.read(cx).draws.get();
-                view.update(cx, |this, cx| this.reopen(mode, window, cx));
-                click(window, cx, at);
-                assert_b(&view, window, cx, draws);
-            });
-            cx.run_until_parked();
+    for compact in [false, true] {
+        for mode in [Reopen::InPlace, Reopen::AfterClose, Reopen::Replace] {
+            let row = if compact {
+                point(px(120.0), px(740.0))
+            } else {
+                point(px(120.0), px(90.0))
+            };
+            for at in [row, point(px(350.0), px(350.0))] {
+                let (view, cx) = cx
+                    .add_window_view(|window, cx| Probe::new(false, Selection::Close, window, cx));
+                cx.simulate_resize(gpui::size(
+                    px(if compact { 390.0 } else { 1280.0 }),
+                    px(800.0),
+                ));
+                open(&view, cx);
+                cx.update(|window, cx| {
+                    let draws = view.read(cx).draws.get();
+                    view.update(cx, |this, cx| this.reopen(mode, window, cx));
+                    click(window, cx, at);
+                    assert_b(&view, window, cx, draws);
+                });
+                cx.run_until_parked();
+                cx.simulate_keystrokes("escape");
+                cx.run_until_parked();
+                view.read_with(cx, |this, _| {
+                    assert!(!this.list.is_open());
+                    assert!(this.visible);
+                    assert_eq!(this.parent_closes, 0);
+                });
+            }
         }
     }
 }
@@ -248,7 +274,7 @@ fn stale_combo_keys_are_contained_before_an_enclosing_dialog_and_b_stays_live(
             Reopen::Replace,
             Reopen::Drill,
         ] {
-            for key in ["down", "up", "enter", "escape"] {
+            for key in ["down", "up", "enter", "escape", "backspace"] {
                 let (view, cx) = cx.add_window_view(|window, cx| {
                     Probe::new(searchable, Selection::Stay, window, cx)
                 });
@@ -268,7 +294,11 @@ fn stale_combo_keys_are_contained_before_an_enclosing_dialog_and_b_stays_live(
                 });
                 cx.update(|window, cx| {
                     press(window, cx, key);
-                    assert_b(&view, window, cx, boundary.get().unwrap());
+                    assert!(boundary.get().is_some());
+                    let Some(draws) = boundary.get() else {
+                        return;
+                    };
+                    assert_b(&view, window, cx, draws);
                 });
                 drop(subscription);
                 cx.run_until_parked();

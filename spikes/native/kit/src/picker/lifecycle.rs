@@ -2,10 +2,10 @@
 //!
 //! [Decision Log]
 //! - Purpose: old rendered A cannot close, choose in, highlight or refocus B.
-//! - Existing assets: toolkit state identity and shared weak ReturnFocus policy.
-//! - Choice: each explicit open/drill resets a private Rc; callbacks retain only
-//!   Weak identity and check it before every state/action/focus side effect.
-//! - Why/cost: retained Weak prevents allocation ABA without a wrapping counter;
+//! - Existing assets: toolkit state identity and shared weak `ReturnFocus` policy.
+//! - Choice: each explicit open/drill resets a private `Rc`; callbacks retain only
+//!   `Weak` identity and check it before every state/action/focus side effect.
+//! - Why/cost: retained `Weak` prevents allocation ABA without a wrapping counter;
 //!   close refuses admission, while identity remains for actual-close focus ACK.
 use super::ComboboxState;
 use gpui::{App, Window};

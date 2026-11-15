@@ -1248,3 +1248,25 @@ slot is still required after the isolated admission handoff, not an accepted
 parity difference. Provider-error retry content and code typography also remain
 source gaps before F1's final package proof. No source-only correction is called
 native/visual approval.
+
+
+### Checked picker core, preserved F1 frame extension
+
+V1 final89528d40 accepted exact isolated914..99ad57b8 source and requested
+Kit narrow186/0/0 + Clippy0. The exact frozen manifest/log packet remains
+/tmp/work/m12-g2/picker-admission-99ad57b8-packet; docs result467f28f88.
+Selected isolated handoff went to lead/W2/W5; it is not the full F1 branch.
+Main F1 now takes the exact six corrected picker child blobs (focus, keys,
+lifecycle, their tests and rows) from99 with fresh mtimes. Existing F1's one
+combobox child keeps its explicitly assigned Form/HostWidth extensions and
+already matching private opening guard; no second renderer or root enum/API
+replacement is made. The missing row-length extraction/test compile fixes are
+therefore carried into F1 without pretending isolated186 proves this combined
+frame/App/consumer source. Final F1 source/package/UI checks remain owed.
+
+Announced green package c3429952 was merged as d24c74099, retaining the actual
+picker615 record (never raised to the older829) and the additive V1 multiline
+receipt. Its inherited1450/0/2 is not this combined F1's gate. Shared field files
+remain untouched pending G3's checked SearchField baton. Temporary picker-control
+label retirement follows the checked handoff; raw logs remain local immutable
+scratch even after the VM's regenerable label cache is removed.

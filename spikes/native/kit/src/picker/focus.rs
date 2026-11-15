@@ -8,7 +8,7 @@
 //!   restore after final choices only while this list/search still owns focus.
 //! - Alternative: each area manually focuses its root after every dismissal.
 //!   That duplicates policy and steals focus from a newly opened field.
-//! - Cost: G4's shared ReturnFocus policy; no renderer or geometry duplication.
+//! - Cost: G4's shared `ReturnFocus` policy; no renderer or geometry duplication.
 use super::ComboboxState;
 use gpui::{App, Window};
 impl ComboboxState {

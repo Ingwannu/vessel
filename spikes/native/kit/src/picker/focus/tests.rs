@@ -2,7 +2,6 @@
 //! an unmounted focus target stops swallowing the opener's keys.
 use super::super::*;
 use crate::{Scheme, Tokens};
-use gpui::prelude::*;
 use gpui::{Entity, KeyDownEvent, Modifiers, Render, TestAppContext, div, point, px};
 
 #[derive(Clone, Copy)]
@@ -101,8 +100,8 @@ impl Render for Probe {
 }
 fn setup(cx: &mut TestAppContext) {
     cx.update(|cx| {
-        crate::init(cx, crate::SchemeChoice::Fixed(Scheme::Dark))
-            .expect("faces and input globals register");
+        let initialized = crate::init(cx, crate::SchemeChoice::Fixed(Scheme::Dark));
+        assert!(initialized.is_ok(), "faces and input globals register");
     });
 }
 fn open(cx: &mut gpui::VisualTestContext) {
@@ -166,7 +165,14 @@ fn intermediate_choices_keep_list_focus_and_the_original_weak_opener(cx: &mut Te
     cx.update(|window, cx| {
         view.update(cx, |this, cx| {
             assert!(this.list.is_open());
-            assert!(this.list.owns_focus(window, cx));
+            assert!(
+                this.list.focus.contains_focused(window, cx)
+                    || this
+                        .list
+                        .search
+                        .focus_handle(cx)
+                        .contains_focused(window, cx)
+            );
             this.list.open(Some("Models"), window, cx);
             this.list.close_and_restore(window, cx);
             assert!(this.root.is_focused(window));
