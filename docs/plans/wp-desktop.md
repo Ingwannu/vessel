@@ -383,3 +383,7 @@ save guarantee is claimed. Synthetic runtime tests cover real supervisor/thread
 ownership, original UI sender drop while release acknowledgement is held, reaper
 runtime survival, eventual observed exit and ordinary owner cleanup. Actual
 GPUI/OS-exit/node integration and Windows/macOS remain unverified.
+
+The reserved ManagedLocal actor transition mechanics and weak-observer lifetime
+are recorded in [desktop-managed-admission-order.md](desktop-managed-admission-order.md).
+This preparation does not lift the W2/W12 product-promotion source hold.
