@@ -203,7 +203,7 @@ pub enum CancelSetupOutcome {
     NotRunning,
     /// No observation, or another generation is current; nothing signalled.
     Stale,
-    /// A newer node's result.
+    /// Uncertain run state or an unrecognized result; never proof of completion.
     #[serde(other)]
     Unknown,
 }

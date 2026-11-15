@@ -1,6 +1,7 @@
 //! Observation/cancellation use worktree and invocation identities, never cwd.
 
 use std::time::Duration;
+use tokio_util::sync::CancellationToken;
 
 use vessel_proto::workspace::{
     CancelSetup, CancelSetupOutcome, ReadSetupProgress, SetupProgressReply, SetupRunState,
@@ -84,13 +85,31 @@ impl Workspaces {
         if observation.snapshot.cursor.run != request.run {
             return Ok(CancelSetupOutcome::Stale);
         }
-        if observation.snapshot.state != SetupRunState::Running {
-            return Ok(CancelSetupOutcome::NotRunning);
-        }
-        let Some(cancel) = &entry.running else {
-            return Ok(CancelSetupOutcome::NotRunning);
-        };
-        cancel.cancel();
-        Ok(CancelSetupOutcome::Requested)
+        Ok(cancel_observed(
+            observation.snapshot.state,
+            entry.running.as_ref(),
+        ))
     }
 }
+
+// Called only after the worktree and invocation have matched under the lock.
+fn cancel_observed(state: SetupRunState, token: Option<&CancellationToken>) -> CancelSetupOutcome {
+    match state {
+        SetupRunState::Unknown => CancelSetupOutcome::Unknown,
+        SetupRunState::Succeeded | SetupRunState::Failed | SetupRunState::Cancelled => {
+            CancelSetupOutcome::NotRunning
+        }
+        SetupRunState::Running => match token {
+            Some(token) => {
+                token.cancel();
+                CancelSetupOutcome::Requested
+            }
+            // A missing token contradicts the live observation and cannot prove
+            // that the process or its children have ended.
+            None => CancelSetupOutcome::Unknown,
+        },
+    }
+}
+
+#[cfg(test)]
+mod tests;

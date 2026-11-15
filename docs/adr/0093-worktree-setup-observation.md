@@ -191,3 +191,9 @@ Boundary regressions admit the full command count with every output exactly at
 its cap, reject one extra output byte, excess rows, duplicate ordinals and
 reordering through both local validation and actual serde decoding. These are
 later decoder/runtime changes, not retroactive evidence for the scalar carrier.
+
+Cancellation of an unknown observation, or a contradictory running observation
+whose token is absent, returns Unknown without signalling. NotRunning is reserved
+for a structured terminal attempt state; neither uncertainty nor absence proves
+that a process tree ended. A regression injects these states without spawning
+any shell and checks that an unknown attempt's token remains untouched.
