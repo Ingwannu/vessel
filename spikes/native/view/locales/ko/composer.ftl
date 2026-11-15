@@ -107,3 +107,12 @@ composer-context-plugin = 플러그인 리소스
 
 # A new or background session did not provide attachment capabilities in time.
 composer-file-capabilities-failed = 에이전트의 첨부 지원 정보를 읽지 못했습니다. 클릭하여 다시 시도하세요.
+
+# Native attachment menu action or clipboard acquisition failure; a complete label.
+composer-paste-image = 이미지 붙여넣기
+
+# Native attachment menu action or clipboard acquisition failure; a complete label.
+composer-image-clipboard-empty = 클립보드에 이미지가 없습니다
+
+# Native attachment menu action or clipboard acquisition failure; a complete label.
+composer-image-format-unsupported = 아직 붙여넣을 수 없는 이미지 형식입니다. PNG, JPEG, GIF 또는 WebP 이미지를 선택하세요.

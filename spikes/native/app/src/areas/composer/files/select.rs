@@ -4,9 +4,17 @@ use super::super::attach::{Incoming, LocalFileProblem};
 use crate::shell::Shell;
 use gpui::PathPromptOptions;
 use vessel_app_kit::field::composer_hooks::{KeyAnswer, Pasted};
-use vessel_app_kit::ui::{Context, SharedString};
+use vessel_app_kit::ui::{Context, SharedString, Window};
 use vessel_app_view::composer::drafts::DraftKey;
 use vessel_app_view::toasts::ToastTone;
+
+/// The existing menu keeps a typed action instead of overloading a row index.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum Acquire {
+    Image,
+    ClipboardImage,
+    File,
+}
 
 impl Shell {
     fn file_destination(&self, new_chat: bool) -> Option<DraftKey> {
@@ -32,26 +40,54 @@ impl Shell {
         };
         for paste in pasted {
             match paste {
-                Pasted::Image { mime, bytes } => {
-                    self.composer_add(key, vec![Incoming::pasted(mime, bytes)], cx)
-                }
+                Pasted::Image { mime, bytes } => self.composer_pasted_image(key, mime, bytes, cx),
                 Pasted::Files(paths) => self.inspect_paths(key, paths, cx),
             }
         }
         KeyAnswer::Taken
     }
 
-    /// Both menu choices use GPUI's platform prompt, which has no MIME filter.
-    pub(super) fn composer_pick(&mut self, image: bool, cx: &mut Context<'_, Self>) {
+    /// Clipboard is acquired immediately; dialogs capture their destination
+    /// before awaiting the operating system, just like drops and key paste.
+    pub(super) fn composer_choose(
+        &mut self,
+        choice: Acquire,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
         let new_chat = self.areas.composer.attach_for.take().unwrap_or(false);
         let Some(key) = self.file_destination(new_chat) else {
             return;
         };
+        if choice == Acquire::ClipboardImage {
+            let image = cx.read_from_clipboard().and_then(|item| {
+                item.entries().iter().find_map(|entry| match entry {
+                    gpui::ClipboardEntry::Image(image) => {
+                        Some((image.format.mime_type(), image.bytes.clone()))
+                    }
+                    gpui::ClipboardEntry::String(_) | gpui::ClipboardEntry::ExternalPaths(_) => {
+                        None
+                    }
+                })
+            });
+            match image {
+                Some((mime, bytes)) => self.composer_pasted_image(key, mime, bytes, cx),
+                None => self.toast(
+                    self.words.composer().image_clipboard_empty(),
+                    ToastTone::Error,
+                    cx,
+                ),
+            }
+            if let Some(field) = self.composer_field(key) {
+                field.focus(window, cx);
+            }
+            return;
+        }
         let words = self.words.composer();
-        let prompt = if image {
-            words.attach_image()
-        } else {
-            words.attach_file()
+        let prompt = match choice {
+            Acquire::Image => words.attach_image(),
+            Acquire::File => words.attach_file(),
+            Acquire::ClipboardImage => return,
         };
         let picked = cx.prompt_for_paths(PathPromptOptions {
             files: true,
@@ -75,6 +111,27 @@ impl Shell {
             }
         })
         .detach();
+    }
+
+    fn composer_pasted_image(
+        &mut self,
+        key: DraftKey,
+        mime: &str,
+        bytes: Vec<u8>,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if matches!(
+            mime,
+            "image/png" | "image/jpeg" | "image/gif" | "image/webp"
+        ) {
+            self.composer_add(key, vec![Incoming::pasted(mime, bytes)], cx);
+        } else {
+            self.toast(
+                self.words.composer().image_format_unsupported(),
+                ToastTone::Error,
+                cx,
+            );
+        }
     }
 
     /// Dropped paths belong to the composer under the drop, even if the
@@ -119,3 +176,6 @@ impl Shell {
         }).detach();
     }
 }
+
+#[cfg(test)]
+mod tests;

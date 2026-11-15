@@ -116,3 +116,12 @@ composer-context-plugin = Plugin resource
 
 # A new or background session did not provide attachment capabilities in time.
 composer-file-capabilities-failed = The agent's attachment support couldn't be read. Click to retry.
+
+# Native attachment menu action or clipboard acquisition failure; a complete label.
+composer-paste-image = Paste image
+
+# Native attachment menu action or clipboard acquisition failure; a complete label.
+composer-image-clipboard-empty = There is no image on the clipboard
+
+# Native attachment menu action or clipboard acquisition failure; a complete label.
+composer-image-format-unsupported = This image format cannot be pasted yet. Choose a PNG, JPEG, GIF or WebP image.

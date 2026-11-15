@@ -104,5 +104,3 @@ fn escape_in_the_lightbox_cannot_submit_the_background_composer(cx: &mut TestApp
         assert!(shell.areas.composer.lightbox.preview.is_none())
     });
 }
-
-use std::sync::Arc;

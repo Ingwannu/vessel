@@ -165,14 +165,33 @@ fn attach_menu(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let words = shell.words.composer();
-    let items = [
-        MenuItem::new(words.attach_image().to_owned()),
-        MenuItem::new(words.attach_file().to_owned()),
+    #[cfg(not(target_arch = "wasm32"))]
+    const CHOICES: &[select::Acquire] = &[
+        select::Acquire::Image,
+        select::Acquire::ClipboardImage,
+        select::Acquire::File,
     ];
+    #[cfg(target_arch = "wasm32")]
+    const CHOICES: &[select::Acquire] = &[select::Acquire::Image, select::Acquire::File];
+    let items: Vec<_> = CHOICES
+        .iter()
+        .map(|choice| {
+            MenuItem::new(
+                match choice {
+                    select::Acquire::Image => words.attach_image(),
+                    select::Acquire::ClipboardImage => words.paste_image(),
+                    select::Acquire::File => words.attach_file(),
+                }
+                .to_owned(),
+            )
+        })
+        .collect();
     let handlers = MenuHandlers {
         state: |shell: &mut Shell| &mut shell.areas.composer.attach_menu,
-        chose: std::rc::Rc::new(|shell: &mut Shell, index, _window, cx| {
-            shell.composer_pick(index == 0, cx);
+        chose: std::rc::Rc::new(|shell: &mut Shell, index, window, cx| {
+            if let Some(choice) = CHOICES.get(index) {
+                shell.composer_choose(*choice, window, cx);
+            }
         }),
     };
     menu(
