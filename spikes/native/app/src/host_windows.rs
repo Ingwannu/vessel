@@ -11,15 +11,6 @@
 use crate::shell::Shell;
 use gpui::{AnyWindowHandle, App, Entity, Global, WeakEntity, Window};
 
-// These host operations gain product callers in the W7/E3 owner unions. The
-// literal staging attributes are removed only with those real callers.
-#[cfg(test)]
-mod dispatch;
-#[cfg(test)]
-pub(crate) use dispatch::{Delivery, open_additional, set_factory, with_focused_shell};
-#[cfg(test)]
-mod tests;
-
 #[derive(Clone)]
 pub(crate) struct WindowRecord {
     pub(crate) window: AnyWindowHandle,
@@ -65,3 +56,12 @@ pub(crate) fn register(shell: &Entity<Shell>, window: &Window, cx: &mut App) {
         shell: shell.downgrade(),
     });
 }
+
+// These host operations gain product callers in the W7/E3 owner unions. The
+// literal staging attributes are removed only with those real callers.
+#[cfg(test)]
+mod dispatch;
+#[cfg(test)]
+pub(crate) use dispatch::{Delivery, open_additional, set_factory, with_focused_shell};
+#[cfg(test)]
+mod tests;
