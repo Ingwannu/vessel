@@ -28,4 +28,5 @@ mod stream_error;
 
 mod prepare;
 mod quota;
+mod registry;
 mod secret_read;

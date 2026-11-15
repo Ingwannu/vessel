@@ -625,3 +625,40 @@ and key independently. Fixed outer diagnostics retain internal typed causes.
 Three new cases exercise actual loopback headers after two secret edits, deletion,
 local/disabled/unknown choice against a corrupt store, and absent/blank/invalid
 header keys. They are uncompiled staged source, not registry/product evidence.
+
+## Bounded registry implementation
+
+The staged registry has one serial worker per admitted id. Its map lock covers
+admission, lookup and identity-checked cleanup only. One pending replacement
+mailbox stores metadata; full admission preserves both generations. A notification
+wakes the current worker without consuming that mailbox before teardown, avoiding
+a second worker-held pending request and a transition race in caller-side stop
+selection. The worker joins the old actor before asking the existing settings
+owner for a current snapshot or resolving a new key. Pending start cancellation
+cannot publish an orphan, and preparation keeps its lease until real work ends.
+
+Both the supervisor and actor own the reservation lease, so a failed supervisor
+cannot free capacity while its actor still runs. A supervisor's active-task guard
+selects retirement rather than detaching. Service handles own a drop-stop guard;
+workers retain only weak registry membership and independent configuration/reader
+owners. Shutdown closes admission before joining the tracked workers. Final permit
+release, matching-entry removal and completion become visible under the same map
+lock. No connection lifetime guard is retained by resources. The actual existing
+RPC Outbound close future remains independent of context-drop cancellation.
+
+Eleven new forcing cases cover owner checks on every operation, both reservation
+bounds, unread terminal retention, old teardown before blocked current-settings
+read, failed replacement, a full replacement mailbox, physical memory-RPC outlet
+close with the context guard retained, stale cleanup and fresh secret deletion.
+Canceled preparing starts and last-service-handle drop also retain/release their
+reservations without canceling a sibling or its connection. An existing-settings
+snapshot case uses an empty session runtime with explicit
+temporary homes and no agent. These are uncompiled source and do not establish
+product behavior. The direct registry tests serve no dictation methods over RPC;
+registered scopes, the actual Connection accessor, settings mutation/availability,
+failed-root sharing/recreation and full product/CLI flow remain owed.
+
+Paseo dictation-stream-manager.ts486–488 calls cleanup directly for cancel, so
+cancel of an already absent id answers Ack here too. A foreign live id still
+refuses ownership. This preserves the reference's idempotent cleanup without
+granting one connection another connection's recording.

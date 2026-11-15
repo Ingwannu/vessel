@@ -100,6 +100,18 @@ pub(crate) struct Settings {
 }
 
 impl Settings {
+    /// Staged service preparation reads this only after the prior stream retires.
+    /// Product dictation wiring removes this test gate with the module's gate.
+    #[cfg(test)]
+    pub(crate) async fn dictation_snapshot(&self) -> vessel_proto::dictation::SetDictation {
+        self.saved
+            .lock()
+            .await
+            .dictation
+            .clone()
+            .unwrap_or_default()
+    }
+
     /// Read `settings.json` and apply what it holds to `runtime`. A file
     /// that cannot be used is moved aside and logged, and the flags'
     /// values stand.

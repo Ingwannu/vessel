@@ -11,25 +11,31 @@ pub(super) const NODE_STREAMS: usize = 8;
 const CONNECTION_STREAMS: usize = 2;
 
 #[derive(Debug, thiserror::Error)]
-enum QuotaError {
+/// Keep which reservation refused admission without retaining caller metadata.
+pub(super) enum QuotaError {
     #[error("this connection already holds {CONNECTION_STREAMS} dictation reservations")]
     Connection(#[source] TryAcquireError),
     #[error("the node already holds {NODE_STREAMS} dictation reservations")]
     Node(#[source] TryAcquireError),
 }
 
-struct NodeBudget(Arc<Semaphore>);
-struct ConnectionBudget(Arc<Semaphore>);
+/// One admission counter belongs to the node's dictation service.
+pub(super) struct NodeBudget(Arc<Semaphore>);
+#[derive(Clone)]
+/// Aliases must share this counter independently of the immutable ownership key.
+pub(super) struct ConnectionBudget(Arc<Semaphore>);
 /// Preparation and retirement retain this independently of the connection guard.
 pub(super) struct Lease {
     _connection: OwnedSemaphorePermit,
     _node: OwnedSemaphorePermit,
 }
 impl NodeBudget {
-    fn new() -> Self {
+    /// Seed one counter from the named node reservation bound.
+    pub(super) fn new() -> Self {
         Self(Arc::new(Semaphore::new(NODE_STREAMS)))
     }
-    fn take(&self, connection: &ConnectionBudget) -> Result<Arc<Lease>, QuotaError> {
+    /// Failed second acquisition returns the first permit before refusing.
+    pub(super) fn take(&self, connection: &ConnectionBudget) -> Result<Arc<Lease>, QuotaError> {
         let owner = Arc::clone(&connection.0)
             .try_acquire_owned()
             .map_err(QuotaError::Connection)?;
@@ -43,7 +49,8 @@ impl NodeBudget {
     }
 }
 impl ConnectionBudget {
-    fn new() -> Self {
+    /// Real connection setup creates this once and clones it for aliases.
+    pub(super) fn new() -> Self {
         Self(Arc::new(Semaphore::new(CONNECTION_STREAMS)))
     }
 }
