@@ -290,11 +290,12 @@ No row of the crate table changes.
   column/source errors remain; the quote/backslash, title trimming and
   corruption tests are unchanged. `QUALITY.md` records the removal without
   guessing a new global debt count. No dependency is added.
-- Half-done: this decoder refactor needs narrow store checks and its own
-  whole Rust gate. Later filtering, actor patches, CLI and MCP remain
-  protected drafts. Unwired services may be staged under `cfg(test)` until
-  the shared accessor and call plumbing are ready; they are not a product
-  build claim.
+- The independent decoder refactor passed its narrow store checks and whole
+  Rust gate: 1980 passed, none failed, 12 ignored; both prebuilds, format,
+  size, boundaries and clippy passed. No waiver or rerun was needed. The wire
+  and page were unchanged. Later label filtering, actor patches, CLI and MCP
+  remain protected drafts until the shared accessor and call plumbing are
+  ready; staged services are not a product build claim.
 - Implementation slice 5a, verification pending: one-shot `--tail` reuses
   the existing read/render path. The count is parsed before connection and
   its window allocates only for actual records. Zero selects no history;
@@ -303,7 +304,14 @@ No row of the crate table changes.
   Parser/window units and a fake-node CLI test remain unrun. A raw-chunk
   boundary test makes the projected-item difference explicit: the last record
   of a split reply renders only its final fragment. Count-overflow tests
-  derive their rejected input from the platform's integer bound.
+  derive their rejected input from the platform's integer bound. The first
+  narrow clippy run found a redundant module qualification in that new test;
+  it is shortened without changing the assertion. Clippy and the tests still
+  need their successful runs before the whole gate. After the path correction,
+  narrow clippy passed, the six log units passed, and the CLI tail case passed.
+  The CLI case now gives its final-stream teardown wait a named sub-deadline;
+  no expected value or product deadline changes. Clippy and the CLI case
+  also passed on that updated head; its first whole gate is now pending.
 - Implementation slice 5b, verification pending: time/kind predicates precede
   the existing tail window. Sequence gaps separate message chunks, but only
   raw page gaps generate retention notices. Parser, predicate, render-boundary
@@ -311,11 +319,13 @@ No row of the crate table changes.
   stay unchanged. A no-match CLI assertion also checks that no banner is
   fabricated. Follow and its transition test remain a protected draft for
   slice 5c, which must reuse these predicates and the raw history cursor.
+  The inherited stream-end wait and the new turn-end wait share one named
+  event budget; their expected records and output remain unchanged.
 - The contract's follow bullet and EOF explanation now name the same end.
   Parser and command-level checks are documented together: an invalid tail
   is refused by both products, with earlier validation in Vessel.
-- Next: report the independent decoder gate, then gate tail slice 5a and
-  selection slice 5b in order while
+- Next: finish the tail slice's whole gate, then run narrow checks and the
+  whole gate for selection slice 5b while
   label call wiring awaits the shared accessor. No new wire call or dependency
   is added by log options. Both slices include the caller-to-projection
   citations and retain the raw-chunk test; the selection render context changes

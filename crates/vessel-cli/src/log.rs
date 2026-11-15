@@ -57,6 +57,7 @@ struct Run {
 
 /// A page as runs in record order. `expected` is the first record asked
 /// for; a later first record means the ones before it were pruned.
+#[must_use]
 fn render(timeline: &mut Timeline, expected: EventSeq, records: &[EventRecord]) -> Vec<Run> {
     let mut runs: Vec<Run> = Vec::new();
     let mut push = |stream: Stream, text: &[u8]| {
@@ -117,6 +118,7 @@ impl Timeline {
 }
 
 /// Only a raw page can prove pruning: selection gaps must never become this notice.
+#[must_use]
 fn pruned(expected: EventSeq, records: &[EventRecord]) -> Option<Run> {
     let first = records.first()?;
     (first.seq > expected).then(|| Run {
@@ -277,7 +279,7 @@ mod tests {
     }
     #[test]
     fn a_tail_counts_raw_chunks_and_can_begin_inside_a_rendered_message() {
-        let mut window = super::tail::Window::new("1".parse().unwrap());
+        let mut window = tail::Window::new("1".parse().unwrap());
         for (seq, text) in [(0, "hel"), (1, "lo")] {
             window.push(agent(
                 seq,
