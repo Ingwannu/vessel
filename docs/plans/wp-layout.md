@@ -167,7 +167,7 @@ must land together before multi-session panes can be claimed. Existing frame can
 consume only the current legacy agent screen once; other unregistered targets
 retain a localized unavailable placeholder and are omitted from launchers.
 
-The next lazy-body change is source preparation: the session gives the registry a
+The bounded lazy-body foundation gives the registry a
 function pointer, rather than constructing timeline, composer and overlays before
 the pane projection is known. The registry invokes it once only for the matching
 visible legacy Agent tab. Missing/invalid layout projection builds no agent body;
@@ -175,6 +175,17 @@ pending session startup retains its original separate branch. This avoids hidden
 builders scheduling local work, without treating the selected-global body as an
 authenticated scoped resident renderer. The source-level deferred-builder/painted
 marker fixture is not actual network read-marking or multi-session authority proof.
+
+V1 accepted this selected foundation after exact App strict
+`wp-layout-core-union-20261115T180251Z-e4d844e1` and actual all-target App
+`wp-layout-core-union-20261115T183427Z-e4d844e1`: 117 passed, zero failed,
+two capture fixtures intentionally ignored, fonts/cargo succeeded and App
+compiled. The hidden/non-Agent/File-sheet negative and current-Agent compact
+top-sheet builder/paint-ONCE cases passed. The same mutable renderer option is
+threaded through frame and sheet registry; no second/eager body is constructed.
+Prior bad fixture defer syntax remains a failed historical check. This is a
+scoped integration result for unchanged owned source, not isolated portable-leaf
+execution, real scoped resource factory, lease authority, read tracking or IME.
 
 Remaining package evidence: narrow tests, feature-owner registrations, single-owner
 resident cutover, compact picker/explorer integration, isolated fixture captures,

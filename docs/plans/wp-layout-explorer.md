@@ -45,3 +45,20 @@ The requested checks cover the real book's selected tab, released borrow, hidden
 retention, sheet suppression and absent-key behavior. Actual dock rendering,
 header selection, callback/retirement ABA, focus and owner effects require the
 later consumer union.
+
+## Bounded integration receipt
+
+V1 accepted the selected Explorer source after exact App strict run
+`wp-layout-core-union-20261115T180251Z-e4d844e1` and actual App all-target run
+`wp-layout-core-union-20261115T183427Z-e4d844e1`: fonts/cargo succeeded, fresh
+App compilation, 117 passed, zero failed, two intentionally ignored capture
+fixtures. All three Explorer cases passed, including the corrected cold-cache
+setup after the Shell's real initial frame. The earlier combined run's cold-test
+failure remains historical; its green Toolbar/File-guard slices are separate.
+
+This portable range preserves the executed owned Rust bodies. Its shared layout
+module is composed with the line's independently accepted File guard; preserve
+that existing registration/precommit check when applying the Explorer module
+addition. This is not an exact isolated-leaf execution or a whole new-base gate.
+Every Explorer staging attribute remains. Real dock/header/visibility/owner scope,
+effects, focus and native/OS interaction still need their actual consumer union.
