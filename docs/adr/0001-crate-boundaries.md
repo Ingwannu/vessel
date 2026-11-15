@@ -379,3 +379,17 @@ binary, and retains private profile ownership. Hashing is streamed with the
 workspace SHA-256 dependency. These are A10 test-staged primitives, not an
 installation or qualified runtime grant; Node principal/service admission and
 the complete runtime/proxy/Preview/input/platform qualification remain above.
+
+
+## Checked owned process cleanup (W16 shared prerequisite)
+
+The additive proc-owned Child::wait_checked retains the first group/job sweep
+result while legacy wait keeps its leader-status behavior. It returns a private
+OwnedGroupExit receipt or concrete typed wait/first signal cause; no delayed
+numeric group-id retry is introduced. SignalError privately shares its original
+io::Error so the existing signal API and a retained failure share one concrete
+cause without string conversion. The receipt is leader reap plus accepted
+cleanup request, not observed death of every descendant or account process.
+ProcessLifetime revocation and durable PID identity do not mint it. No crate
+edge, dependency, wire field or management caller is added by this mechanism.
+The source/validation record is docs/plans/checked-process-cleanup.md.
