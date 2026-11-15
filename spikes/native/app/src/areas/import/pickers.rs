@@ -1,0 +1,163 @@
+//! Existing combobox rows bind to typed choices, never display strings.
+
+use super::Picker;
+use crate::shell::Shell;
+use vessel_app_kit::ui::{AnyElement, Context, Window};
+use vessel_app_kit::{ComboHandlers, ComboRow, Tokens, combobox};
+use vessel_app_view::devices::MachineKey;
+use vessel_app_view::history::Scope;
+use vessel_proto::{HarnessRef, ProfileName};
+
+#[derive(Debug, Clone)]
+enum Choice {
+    Machine(MachineKey),
+    Agent(HarnessRef),
+    Account(Option<ProfileName>),
+}
+
+fn choices(shell: &Shell, which: Picker) -> Vec<(Choice, ComboRow)> {
+    let scope = shell.areas.import.model.scope();
+    match which {
+        Picker::Machine => shell
+            .fleet
+            .online()
+            .map(|machine| {
+                let mut row = ComboRow::new(machine.name.clone());
+                row.checked = scope.is_some_and(|scope| scope.machine.as_str() == machine.name);
+                row.disabled = !machine.agents.iter().any(vessel_app_view::Agent::available);
+                (Choice::Machine(MachineKey::from_book(&machine.name)), row)
+            })
+            .collect(),
+        Picker::Agent => scope
+            .and_then(|scope| {
+                shell
+                    .fleet
+                    .online()
+                    .find(|machine| machine.name == scope.machine.as_str())
+            })
+            .into_iter()
+            .flat_map(|machine| &machine.agents)
+            .map(|agent| {
+                let mut row = ComboRow::new(agent.name.clone());
+                row.checked = scope.is_some_and(|scope| scope.harness == agent.harness);
+                row.disabled = !agent.available();
+                (Choice::Agent(agent.harness.clone()), row)
+            })
+            .collect(),
+        Picker::Account => {
+            let mut row = ComboRow::new(shell.words.history().default_account());
+            row.checked = scope.is_some_and(|scope| scope.profile.is_none());
+            let mut rows = vec![(Choice::Account(None), row)];
+            if let Ok(profiles) = &shell.areas.import.profiles {
+                rows.extend(profiles.iter().map(|profile| {
+                    let mut row = ComboRow::new(
+                        profile
+                            .label
+                            .clone()
+                            .unwrap_or_else(|| profile.name.to_string()),
+                    );
+                    row.checked =
+                        scope.is_some_and(|scope| scope.profile.as_ref() == Some(&profile.name));
+                    (Choice::Account(Some(profile.name.clone())), row)
+                }));
+            }
+            rows
+        }
+    }
+}
+
+pub(super) fn render(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    let which = shell.areas.import.choosing?;
+    let rows: Vec<_> = choices(shell, which)
+        .into_iter()
+        .map(|(_, row)| row)
+        .collect();
+    combobox(
+        "history-picker",
+        &shell.areas.import.picker,
+        &vessel_app_kit::select::header(),
+        &rows,
+        &ComboHandlers {
+            state: |shell| &mut shell.areas.import.picker,
+            chose: |shell, index, window, cx| {
+                let Some(which) = shell.areas.import.choosing else {
+                    return;
+                };
+                if let Some((choice, row)) = choices(shell, which).get(index).cloned()
+                    && !row.disabled
+                {
+                    shell.history_choose(choice);
+                }
+                shell.areas.import.picker.close();
+                shell.areas.import.choosing = None;
+                shell.areas.import.dialog.focus(window, cx);
+                cx.notify();
+            },
+            back: None,
+        },
+        vessel_app_kit::select::WIDTH,
+        tokens,
+        window,
+        cx,
+    )
+}
+
+impl Shell {
+    fn history_choose(&mut self, choice: Choice) {
+        if self.areas.import.model.importing() {
+            return;
+        }
+        let scope = match choice {
+            Choice::Machine(machine) => {
+                let Some(harness) = self
+                    .fleet
+                    .online()
+                    .find(|m| m.name == machine.as_str())
+                    .and_then(|m| m.agents.iter().find(|a| a.available()))
+                    .map(|a| a.harness.clone())
+                else {
+                    return;
+                };
+                Scope {
+                    machine,
+                    harness,
+                    profile: None,
+                    cwd: None,
+                }
+            }
+            Choice::Agent(harness) => {
+                let Some(mut scope) = self.areas.import.model.scope().cloned() else {
+                    return;
+                };
+                scope.harness = harness;
+                scope.profile = None;
+                scope
+            }
+            Choice::Account(profile) => {
+                let Some(mut scope) = self.areas.import.model.scope().cloned() else {
+                    return;
+                };
+                scope.profile = profile;
+                scope
+            }
+        };
+        let agent_changed = self
+            .areas
+            .import
+            .model
+            .scope()
+            .is_none_or(|old| old.machine != scope.machine || old.harness != scope.harness);
+        self.areas.import.model.choose(scope);
+        if agent_changed {
+            self.areas.import.profiles = Ok(Vec::new());
+            self.history_profiles();
+        }
+        self.areas.import.reproject();
+        self.history_refresh();
+    }
+}

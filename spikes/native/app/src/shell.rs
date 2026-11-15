@@ -205,6 +205,7 @@ impl Shell {
 
     fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
+            Event::History(reply) => self.history_answer(reply, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::Machines(answer) => self.machines_answer(answer, cx),
             Event::Sync(answer) => self.sync_answer(answer),
@@ -287,11 +288,9 @@ impl Shell {
         }
         cx.notify();
     }
-
     pub(crate) fn reload(&self) {
         self.command(Command::Reload);
     }
-
     /// Where the person is: the route, and the session open on it.
     fn place(&self) -> (Route, Option<vessel_proto::SessionId>) {
         let session = self.areas.session.open.as_ref().map(|open| open.session);
@@ -492,6 +491,7 @@ impl Render for Shell {
             )
             .children(areas::toasts::render(self, &tokens, window, cx))
             .children(areas::palette::render(self, &tokens, window, cx))
+            .children(areas::import::render(self, &tokens, window, cx))
             .child(vessel_app_kit::frame_log::drawn(started));
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }

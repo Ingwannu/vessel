@@ -79,6 +79,17 @@ from the start and sends its records, which the shell folds in batches
 into `view::Conversation`; the areas draw the result. Everything a person
 does that reaches a node is a `link::Command`.
 
+Native history import has its own `view::history` state and typed command/reply
+boundary in `link::history`; `app::areas::import` composes the existing adaptive
+dialog, combobox, field and virtual list. It preserves the listed agent account,
+conversation id, title and directory when preparing `session.create` with resume
+(ADR 0053). A batch retains individual receipts and never automatically retries
+an uncertain create. Import checks the authenticated node identity from the
+listing, so reusing a machine-book name cannot redirect an old selection.
+The new-conversation entry opens the sheet; its search explicitly covers loaded
+conversations, and opaque cursor paging reaches further history. The native
+package's reference differences and validation live in `docs/plans/wp-a2.md`.
+
 The command palette's matching lives in the shared pure `view::matcher`
 module; its cursor and result bands stay in `view::palette`. Provider
 catalogs reuse the same parsed `Query` and opaque ordered `Score` with

@@ -45,6 +45,8 @@ Paseo 0.15.4, read before implementation:
   Empty pages with a cursor remain pageable. Search filters loaded titles and
   paths and explicitly says it searches loaded conversations.
 - Already imported rows offer Open rather than disappearing (ADR 0053).
+- Listing pins the authenticated node id; a reused machine-book alias refuses
+  an old selection instead of creating on a different node.
 - Multi-selection extends Paseo's single import per the requested package.
   Failures remain visible; uncertain creates are never automatically repeated.
 - The shared kit supplies adaptive geometry, focus and motion; no second modal.
@@ -60,7 +62,16 @@ old list answers. Creation receipts remain independent of subsequent selection.
 
 ## Validation and resume point
 
-Done: reference/asset analysis and design. No product or gate claim yet.
-Next: pure state and tests, area/link skeleton, central base merge, existing-call
-adapter, fake fleet captures, one native gate and one package review.
+Done: reference/asset analysis, typed state and import boundary, EN/KO words,
+area registration and controls, profile.list and create-resume adapters.
+The initial pure-state run passed 12 tests before the final node-identity guard;
+its updated tests and the changed crates' Clippy are pending. Fast size,
+boundary and token checks passed. This is a skeleton, not a working or gated
+history-import claim: the current agent.history adapter explicitly returns
+Unsupported until the central native base supplies its existing contract.
+No fake fleet or capture has been started.
+
+Next: finish narrow checks, merge the centrally supplied base (never merge the
+node line independently), map agent.history, test the real framed boundary,
+inspect fake-fleet captures, run one native gate and submit one package review.
 Cross-machine move is the following package.

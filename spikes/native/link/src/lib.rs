@@ -50,6 +50,7 @@ pub mod agents;
 #[cfg(any(target_arch = "wasm32", test))]
 mod demo;
 pub mod devices;
+pub mod history;
 pub mod node_settings;
 pub mod search;
 pub mod sync;
@@ -201,6 +202,8 @@ pub enum LinkError {
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Scoped history listing and import.
+    History(history::Ask),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.
@@ -210,7 +213,6 @@ pub enum Command {
         /// The operation.
         ask: agents::Ask,
     },
-
     /// Read or edit the saved machine book.
     Machines(machines::Ask),
     /// Read the book again and connect to every node in it.
@@ -358,10 +360,11 @@ pub enum Command {
     /// [`Event::Searched`].
     Search(search::Ask),
 }
-
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// A keyed history result.
+    History(history::Reply),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.
@@ -371,7 +374,6 @@ pub enum Event {
         /// Facts or typed failure.
         answer: Result<agents::Answer, agents::AgentsError>,
     },
-
     /// A saved-machine operation completed.
     Machines(machines::Answer),
     /// The machines and their sessions, read again.
@@ -474,7 +476,6 @@ pub enum Event {
     /// A machine answered a search ([`Command::Search`]).
     Searched(search::Answer),
 }
-
 /// What an agent on a machine said last time, kept on this device
 /// ([`Event::OptionsKept`]): either half may be unknown.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -486,7 +487,6 @@ pub struct KeptLists {
     /// Its `/` commands, when a session of it reported them.
     pub commands: Option<Vec<AgentCommand>>,
 }
-
 #[cfg(not(target_arch = "wasm32"))]
 /// The link: a tokio runtime and the two channels.
 #[derive(Debug)]
@@ -494,7 +494,6 @@ pub struct Link {
     commands: mpsc::Sender<Command>,
     _runtime: tokio::runtime::Runtime,
 }
-
 #[cfg(not(target_arch = "wasm32"))]
 impl Link {
     /// Start the link; `label` is the build's label, sent as this client's
@@ -630,6 +629,7 @@ impl State {
 
     async fn handle(&mut self, command: Command) {
         match command {
+            Command::History(ask) => self.history(ask),
             Command::Reload => self.reload().await,
             Command::Agents {
                 machine,
