@@ -79,7 +79,7 @@ mod tests {
             state.manager.edit(label).unwrap();
             let source = state.name.id();
             cx.defer_in(window, move |shell, _window, cx| {
-                changed(shell, source, "stale".to_owned(), cx)
+                changed(shell, source, "stale".to_owned(), cx);
             });
             state.name = manager("", window, cx);
             assert_ne!(source, state.name.id());
