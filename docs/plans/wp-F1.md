@@ -1377,3 +1377,13 @@ remain FormText::Body. Rule resets still replace the identified engine and
 retain the same visit/editability guard. No area typography/style override is
 added. This closes the source wiring gap only; new Code tests and the F1 input
 consumer still await their exact remote checks and actual first-use evidence.
+
+
+Static preflight of the combined combobox found its render body at105 code
+lines after the newer admission/content-width union. The title/search/note
+assembly is now a named list_header helper in the SAME child renderer, with
+identical order and calls; no state, geometry, event, lease or placement change.
+No known-failing compiler run is requested to prove this count. The queued66735
+source predates this correction/Code/Search; its records remain exact prior
+source. Standing own-queued-run supersession may move the meaningful Kit suite
+to the corrected head only if cancellation is atomically accepted.

@@ -197,22 +197,7 @@ pub fn combobox_with<V: 'static>(
             .shadow(popup::shadow_md(tokens))
             .on_mouse_down_out(on_outside)
     };
-    if let Some(title) = &header.title {
-        panel = panel.child(title_row(
-            title.clone(),
-            header.back,
-            state,
-            handlers,
-            tokens,
-            cx,
-        ));
-    }
-    if header.search {
-        panel = panel.child(search_row(state, tokens, cx));
-    }
-    if let Some(note) = &header.note {
-        panel = panel.child(note_row(note.clone(), tokens));
-    }
+    panel = list_header(panel, header, state, handlers, tokens, cx);
     panel = panel.child(rows_list(
         header, rows, state, handlers, compact, tokens, cx,
     ));
@@ -246,6 +231,34 @@ pub fn combobox_with<V: 'static>(
             .children(tips)
             .into_any_element(),
     )
+}
+
+/// Shared title/search/note in their unchanged order, separate from placement.
+fn list_header<V: 'static>(
+    mut panel: gpui::Stateful<gpui::Div>,
+    header: &ComboHeader,
+    state: &ComboboxState,
+    handlers: &ComboHandlers<V>,
+    tokens: &Tokens,
+    cx: &mut Context<'_, V>,
+) -> gpui::Stateful<gpui::Div> {
+    if let Some(title) = &header.title {
+        panel = panel.child(title_row(
+            title.clone(),
+            header.back,
+            state,
+            handlers,
+            tokens,
+            cx,
+        ));
+    }
+    if header.search {
+        panel = panel.child(search_row(state, tokens, cx));
+    }
+    if let Some(note) = &header.note {
+        panel = panel.child(note_row(note.clone(), tokens));
+    }
+    panel
 }
 
 /// Where the list is drawn: below the compact width a sheet from the
