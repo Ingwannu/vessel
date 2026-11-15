@@ -142,3 +142,17 @@ same row allocation and cursor restoration, then requires changed text to
 replace the allocation. Its old-code remote run is preserved separately from
 repair validation. The existing quiet-theme and motion tests remain unchanged.
 No new speed claim is made before an isolated, same-source runtime comparison.
+
+## Terminal settings consumer boundary
+
+E2 owns the single persisted Terminal preference, Settings draft/commit page
+and words; C2 owns `ScrollbackLines` validated serde, live model retention and
+`Shell::terminal_scrollback_changed(limit,cx)`. No duplicate bounds or store.
+The setting is retained while replay owns the model; both history and live
+handover apply it before drawing. A new opening uses the retained limit.
+Lowering the bound evicts oldest rows and advances their origin, preserving a
+still-retained viewport anchor and clamping a genuinely evicted one. Increasing
+it never restores evicted output. Zero removes history and follows live output.
+The UI-independent seam is deliberately staged until E2 consumes its checked
+hash; it is not yet proof that the actual Settings page changes a live terminal.
+The shared engine migration must preserve these same retention tests/contracts.

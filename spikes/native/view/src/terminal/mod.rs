@@ -11,6 +11,8 @@ mod model;
 pub mod paint;
 pub mod parse;
 mod reply;
+#[cfg(test)]
+mod scrollback_tests;
 mod sender;
 mod size;
 mod viewport;

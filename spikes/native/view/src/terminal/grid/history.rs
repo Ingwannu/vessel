@@ -92,6 +92,12 @@ impl History {
         self.limit
     }
 
+    /// A live setting change trims only the rows no longer retained.
+    pub(super) fn set_limit(&mut self, limit: ScrollbackLines) {
+        self.limit = limit;
+        self.bound();
+    }
+
     /// Lines held.
     pub(super) fn len(&self) -> usize {
         self.lines.len()
