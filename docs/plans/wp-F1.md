@@ -1089,3 +1089,51 @@ or a fabricated/dead Vessel URL. TRACKER's own F1 screen row records this gap.
 This is a missing product dependency, not a parity exception. Exact selected
 ExternalLink source is already in the announced base8, so reuse that canonical
 line at the next clean merge rather than importing a moving G3 branch.
+
+
+## Base 8 and editor lifecycle follow-up (source, not a pass)
+
+Merged announced base8 `91407173` as `07c8e9145`. README and icon comments
+are additive unions; asset inventory is the actual95 variants, preserving all
+owners and adding only the incoming ArrowUpRight to our94. Base8 already has
+the checked ExternalLink and canonical FieldId; its DeliveryGuard remains
+literal test-only staging, so historical sessions remain unopened candidates.
+No moving lead head or separate field engine was substituted.
+
+[Decision Log]
+- Purpose: a completed off-route form must not steal focus on return, and a
+  local preview preparation failure must remain visible without raw diagnostics.
+- Existing implementation: the pure form visit, actual DialogState lifecycle,
+  typed preview-count Result, prepared Form cache and shared controls.
+- Alternatives: retaining stale mounted inputs or dropping the Result would
+  hide failures; making a replacement input/focus engine would duplicate policy.
+- Choice: cancel debounce on departure; discard retired inputs before remount;
+  keep the complete typed configuration error, translate its safe sentence once,
+  show it inside an open modal, and prepare option controls outside painting.
+- Impact: existing read/write admission remains unchanged. A new explicit
+  read-only retry method admits only the failed original visit/request, replaces
+  its ticket and never replays a write. Pure stale/duplicate/write cases are
+  authored; a source-equivalent provider retry presentation is still owed.
+
+Choice search now follows schedule-form-sheet.tsx729–791: project search,
+Thinking/Mode search only beyond six options, appropriate translated search and
+empty feedback instead of the HostFilter's machine-only sentence. Host status
+uses actual reachability rather than assuming a ConnectionContext means healthy.
+Existing6-point status-dot fallback remains the coordinator-approved temporary
+replacement until the shared8-point/slot14 producer lands. No new status control
+or area input chrome is introduced. The raw cron placeholder follows the source;
+its Code typography still awaits G3's checked SearchField handoff and our next
+assigned Body/Code profile on the same engine.
+
+`app/src/docs_links.rs` now holds the single typed schedules destination `None`.
+The Active empty state renders G3's canonical ExternalLink only for `Some`;
+no URL is fabricated or opened. Why: Vessel user docs do not exist yet. This
+is recorded as a known gap in F1's tracker row, not a parity exception. New
+preview/search/See docs labels live only in generated en/ko schedules.ftl;
+accepted cadence/error tables remain unchanged in text/schedules.rs.
+
+Direct rustfmt, native size/token/boundary checks and diff-check are local
+non-compiling evidence only. The old ordinary715 run remains unchanged and
+predates the editor and base8; no green outcome is inferred. Current source,
+real input/focus behavior, consumer UI, live delivery/opening and node isolation
+remain unverified until their stated package/dependency proofs.

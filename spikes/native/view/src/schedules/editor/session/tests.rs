@@ -11,6 +11,7 @@ use chrono::{DateTime, Utc};
 use vessel_proto::automation::{EverySeconds, SchedulePreview};
 
 mod choices;
+mod retry;
 fn at() -> DateTime<Utc> {
     "2026-11-15T00:00:00Z".parse().unwrap()
 }

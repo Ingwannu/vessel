@@ -89,7 +89,17 @@ impl Inputs {
 }
 fn rule(shell: &Shell, window: &mut Window, cx: &mut Context<'_, Shell>) -> Option<TextField> {
     let draft = shell.areas.schedules.data.editor.draft()?;
-    let field = TextField::with_source("", submit, change, window, cx);
+    let field = TextField::with_source(
+        if draft.cadence.choice() == vessel_app_view::schedules::editor::cadence::Choice::Custom {
+            shell.words.schedules().form_cron_placeholder()
+        } else {
+            ""
+        },
+        submit,
+        change,
+        window,
+        cx,
+    );
     field.set_text(draft.cadence.text(), window, cx);
     Some(field)
 }

@@ -28,6 +28,9 @@ pub(super) fn render(
         return div().into_any_element();
     };
     let mut body = div().flex().flex_col().gap(px(spacing::S6));
+    if let Some(notice) = &form.local {
+        body = body.child(super::super::draw::row_notice(notice, tokens));
+    }
     if let Some(line) = &form.read_only {
         body = body.child(super::super::draw::row_notice(
             &vessel_app_view::schedules::presentation::Notice {
@@ -120,9 +123,8 @@ pub(super) fn render(
             if model.project_id().is_some()
                 || model.draft().is_some_and(|draft| draft.opened().is_some())
             {
-                let controls = model.controls(shell.t.lang);
+                let controls = form.controls.as_ref();
                 let model_name = controls
-                    .as_ref()
                     .and_then(|controls| controls.model.as_ref())
                     .map(|control| control.current_name().to_owned());
                 let value = model_name.map_or_else(
@@ -155,8 +157,8 @@ pub(super) fn render(
                 ));
                 if let Some(controls) = controls {
                     for (picker, control) in [
-                        (Picker::Thinking, controls.effort),
-                        (Picker::Mode, controls.permissions),
+                        (Picker::Thinking, controls.effort.as_ref()),
+                        (Picker::Mode, controls.permissions.as_ref()),
                     ] {
                         if let Some(control) = control {
                             body = body.child(select(
@@ -268,7 +270,9 @@ pub(super) fn render(
     ));
     let preview_error = form.problems.iter().find_map(|problem| match problem {
         OperationProblem::Preview(notice) => Some(shared(&notice.label)),
-        _ => None,
+        OperationProblem::Targets(_) | OperationProblem::Options(_) | OperationProblem::Save(_) => {
+            None
+        }
     });
     let error = form.cadence_error.as_ref().map(shared).or(preview_error);
     let cadence_frame = framed(

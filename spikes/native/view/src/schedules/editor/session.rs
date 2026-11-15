@@ -15,6 +15,7 @@ use crate::schedules::load::{Failure, Ticket, Tickets};
 use vessel_proto::automation::{Cadence, ScheduleInfo, TimeZoneName};
 
 mod change;
+mod retry;
 mod submit;
 pub use change::FieldChange;
 pub use submit::Received;

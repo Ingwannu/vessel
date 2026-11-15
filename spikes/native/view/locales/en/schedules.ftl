@@ -438,3 +438,24 @@ schedules-form-target-label = Target
 
 # Project identity plus its node-authored directory, if a form target uses both; $dir/$project are display text, never local path joins.
 schedules-form-target-project = { $project } · { $dir }
+
+# Local typed preview configuration failure; no node call was sent.
+schedules-form-preview-configuration = The app could not prepare this schedule preview. Update the app and try again.
+
+# Hidden until the single typed Vessel schedules documentation destination exists.
+schedules-see-docs = See docs
+
+## Schedule form choice search and empty feedback
+
+schedules-form-search-projects = Search projects...
+schedules-form-search-models = Search models...
+schedules-form-search-thinking = Search thinking options...
+schedules-form-search-modes = Search modes...
+schedules-form-search-zones = Search time zones...
+schedules-form-empty-projects = No projects found
+schedules-form-empty-models = No models found
+schedules-form-empty-thinking = No thinking options found
+schedules-form-empty-modes = No modes found
+schedules-form-empty-zones = No time zones found
+schedules-form-empty-choices = No matching options
+schedules-form-cron-placeholder = 0 9 * * *

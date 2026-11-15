@@ -93,6 +93,7 @@ enum OpeningError {
     Cadence(vessel_app_view::schedules::editor::CadenceError),
     Definition(vessel_app_view::schedules::editor::EditError),
     Changed,
+    PreviewCount(vessel_proto::automation::OutOfRange),
 }
 #[derive(Debug)]
 struct Bootstrap {
@@ -408,14 +409,18 @@ fn queue_preview(shell: &mut Shell, visit: Visit, cx: &mut Context<'_, Shell>) {
             {
                 return;
             }
-            if let Ok(Some(request)) = shell
+            match shell
                 .areas
                 .schedules
                 .data
                 .editor
                 .preview(visit, chrono::Utc::now())
             {
-                shell.command(Command::Schedules(request.into()));
+                Ok(Some(request)) => shell.command(Command::Schedules(request.into())),
+                Ok(None) => {}
+                Err(error) => {
+                    shell.areas.schedules.ui.editor.error = Some(OpeningError::PreviewCount(error));
+                }
             }
             let _changed = shell.schedules_changed(cx);
             cx.notify();

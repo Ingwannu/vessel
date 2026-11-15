@@ -40,6 +40,8 @@ pub struct Form {
     pub text: Vec<Text>,
     /// Immutable existing-chat target, resolved only on its admitted machine.
     pub target: Option<Arc<str>>,
+    /// Agent option words and choices prepared once when form state changes.
+    pub controls: Option<crate::Controls>,
     /// Current rule description uses the accepted legacy cadence table once.
     pub cadence: Option<Arc<str>>,
     /// Cached grammar failure, not a raw parser diagnostic.
@@ -50,6 +52,8 @@ pub struct Form {
     pub viewer_known: bool,
     /// The exact operation's typed error; App chooses the source surface.
     pub problems: Vec<OperationProblem>,
+    /// Local identity/preparation refusal, never hidden behind a disabled save.
+    pub local: Option<Notice>,
     /// Known insufficient authority; unknown grants never imply read-only.
     pub read_only: Option<Arc<str>>,
     /// Current parsed definition and matching-preview readiness.
@@ -221,6 +225,11 @@ pub fn prepare(
             .authority()
             .and_then(|authority| authority.explanation(lang))
             .map(Into::into),
+        controls: model.controls(lang),
+        local: model.failure.as_ref().map(|failure| Notice {
+            label: crate::schedules::locale::failure(failure, catalog).into(),
+            variant: failure.variant(),
+        }),
         can_save: model.prepare_save().ok().flatten().is_some(),
         blocked: model.blocked(),
         saving: model.pending_save(),

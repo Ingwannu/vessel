@@ -143,6 +143,16 @@ pub(super) fn render(
     } else {
         super::body::render(shell, tokens, touch, cx)
     };
+    let body = div()
+        .flex()
+        .flex_col()
+        .gap(px(spacing::S4))
+        .children(
+            ui.opening_error()
+                .map(|notice| super::super::draw::notice(notice, tokens)),
+        )
+        .child(body)
+        .into_any_element();
     Some(kit::dialog(
         &ui.dialog,
         DialogContent {

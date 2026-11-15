@@ -10,6 +10,8 @@ use kit::{
 use vessel_app_view::schedules::editor::{IntervalUnit, cadence::Choice as CadenceChoice};
 use vessel_proto::{ChoiceValue, HarnessRef, OptionChoice, ProjectId};
 const NEW_INTERVAL_COUNT: &str = "1";
+mod words;
+use words::{empty_label, search_placeholder, searchable};
 #[derive(Debug, Clone)]
 enum Choice {
     Host(ConnectionContext),
@@ -80,15 +82,14 @@ pub(super) fn open(
     let Some(bounds) = shell.areas.schedules.ui.editor.anchors.get(picker).get() else {
         return;
     };
-    let search = matches!(
-        picker,
-        Picker::Project | Picker::Model | Picker::Thinking | Picker::Mode | Picker::Zone
-    );
+    let search = searchable(shell, picker);
+    let placeholder = search_placeholder(shell, picker).to_owned();
     let ui = &mut shell.areas.schedules.ui.editor;
     ui.picking = Some(picker);
     ui.browsing = false;
     ui.picker.set_anchor(Some(bounds));
-    ui.picker.open(search.then_some(""), window, cx);
+    ui.picker
+        .open(search.then_some(placeholder.as_str()), window, cx);
     cx.notify();
 }
 fn current(shell: &Shell, visit: Option<Visit>, bootstrap: Option<&Weak<()>>) -> bool {
@@ -114,7 +115,17 @@ fn offered(shell: &Shell, picker: Picker, tokens: &Tokens) -> Offered {
                     out.push(
                         ComboRow {
                             checked: model.connection() == Some(&context),
-                            leading: Some(Leading::Dot(tokens.status().success.foreground)),
+                            leading: Some(Leading::Dot(super::super::filters::status_color(
+                                match &machine.reach {
+                                    vessel_app_view::Reach::Online => {
+                                        vessel_app_view::badge::Variant::Success
+                                    }
+                                    vessel_app_view::Reach::Unreachable(_) => {
+                                        vessel_app_view::badge::Variant::Error
+                                    }
+                                },
+                                tokens,
+                            ))),
                             ..ComboRow::new(machine.name.clone())
                         },
                         Choice::Host(context),
@@ -165,12 +176,25 @@ fn offered(shell: &Shell, picker: Picker, tokens: &Tokens) -> Offered {
                 .operations()
                 .filter_map(io::Mailbox::request)
                 .find(|request| matches!(request.operation(), io::Operation::Options(_)));
-            if let (Some(controls), Some(request)) = (model.controls(shell.t.lang), request) {
+            let controls = shell
+                .areas
+                .schedules
+                .data
+                .editor_cache
+                .as_ref()
+                .ok()
+                .and_then(Option::as_ref)
+                .and_then(|form| form.controls.as_ref());
+            if let (Some(controls), Some(request)) = (controls, request) {
                 let control = match picker {
-                    Picker::Model => controls.model,
-                    Picker::Thinking => controls.effort,
-                    Picker::Mode => controls.permissions,
-                    _ => None,
+                    Picker::Model => controls.model.as_ref(),
+                    Picker::Thinking => controls.effort.as_ref(),
+                    Picker::Mode => controls.permissions.as_ref(),
+                    Picker::Host
+                    | Picker::Project
+                    | Picker::Cadence
+                    | Picker::Unit
+                    | Picker::Zone => None,
                 };
                 if let Some(control) = control {
                     for value in &control.values {
@@ -293,11 +317,8 @@ pub(super) fn popup(
     let header = ComboHeader {
         title: Some(label(shell, picker).to_owned().into()),
         back: back.is_some(),
-        search: matches!(
-            picker,
-            Picker::Project | Picker::Model | Picker::Thinking | Picker::Mode | Picker::Zone
-        ),
-        empty: shell.words.schedules().search_empty().into(),
+        search: searchable(shell, picker),
+        empty: empty_label(shell, picker).into(),
         note: (picker == Picker::Zone && ui.zones.is_err())
             .then(|| SharedString::from(shell.words.schedules().clock_zone())),
         side: kit::picker::Side::Below,

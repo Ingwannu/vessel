@@ -59,7 +59,9 @@ pub(crate) fn render(
         .bg(tokens.neutral.surface0)
         .text_color(tokens.neutral.foreground)
         .child(header);
-    if let Some(notice) = shell.areas.schedules.ui.editor.opening_error() {
+    if !shell.areas.schedules.ui.editor.is_mounted()
+        && let Some(notice) = shell.areas.schedules.ui.editor.opening_error()
+    {
         root = root.child(row_notice(notice, tokens));
     }
     if shell.areas.schedules.data.page.filters_visible() {
@@ -230,6 +232,18 @@ fn empty(shell: &Shell, tokens: &Tokens, touch: bool, cx: &mut Context<'_, Shell
                 .child(hint),
         );
     }
+    let docs = if bucket == vessel_app_view::schedules::Bucket::Active {
+        crate::docs_links::SCHEDULES.map(|destination| {
+            kit::external_link::external_link(
+                "schedules-docs",
+                Some(shell.words.schedules().see_docs().into()),
+                tokens,
+            )
+            .on_click(move |_, _, cx| cx.open_url(destination.url()))
+        })
+    } else {
+        None
+    };
     div()
         .w_full()
         .max_w(px(EMPTY_MAX_WIDTH))
@@ -251,6 +265,7 @@ fn empty(shell: &Shell, tokens: &Tokens, touch: bool, cx: &mut Context<'_, Shell
             (bucket == vessel_app_view::schedules::Bucket::Active)
                 .then(|| new_action(shell, "schedules-empty-new", tokens, touch, cx)),
         )
+        .children(docs)
 }
 
 pub(super) fn row_notice(message: &Notice, tokens: &Tokens) -> Div {

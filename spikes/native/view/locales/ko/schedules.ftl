@@ -438,3 +438,24 @@ schedules-form-target-label = 대상
 
 # Project identity plus its node-authored directory, if a form target uses both; $dir/$project are display text, never local path joins.
 schedules-form-target-project = { $project } · { $dir }
+
+# Local typed preview configuration failure; no node call was sent.
+schedules-form-preview-configuration = 앱에서 일정 미리보기를 준비하지 못했습니다. 앱을 업데이트한 뒤 다시 시도하세요.
+
+# Hidden until the single typed Vessel schedules documentation destination exists.
+schedules-see-docs = 문서 보기
+
+## Schedule form choice search and empty feedback
+
+schedules-form-search-projects = 프로젝트 검색...
+schedules-form-search-models = 모델 검색...
+schedules-form-search-thinking = 추론 옵션 검색...
+schedules-form-search-modes = 모드 검색...
+schedules-form-search-zones = 시간대 검색...
+schedules-form-empty-projects = 프로젝트를 찾을 수 없습니다
+schedules-form-empty-models = 모델을 찾을 수 없습니다
+schedules-form-empty-thinking = 추론 옵션을 찾을 수 없습니다
+schedules-form-empty-modes = 모드를 찾을 수 없습니다
+schedules-form-empty-zones = 시간대를 찾을 수 없습니다
+schedules-form-empty-choices = 일치하는 옵션이 없습니다
+schedules-form-cron-placeholder = 0 9 * * *

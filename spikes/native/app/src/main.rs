@@ -19,6 +19,7 @@ mod areas;
 pub mod badge;
 mod brand;
 mod chrome;
+mod docs_links;
 mod language;
 #[cfg(not(target_arch = "wasm32"))]
 mod motion;

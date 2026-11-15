@@ -28,7 +28,10 @@ fn leading(value: MachineLeading, tokens: &Tokens) -> AnyElement {
         }
     }
 }
-fn status_color(variant: vessel_app_view::badge::Variant, tokens: &Tokens) -> kit::ui::Hsla {
+pub(super) fn status_color(
+    variant: vessel_app_view::badge::Variant,
+    tokens: &Tokens,
+) -> kit::ui::Hsla {
     match variant {
         vessel_app_view::badge::Variant::Success => tokens.status().success.foreground,
         vessel_app_view::badge::Variant::Warning => tokens.status().warning.foreground,
@@ -97,7 +100,7 @@ pub(super) fn toolbar(
         .items_center()
         .justify_between()
         .gap(px(spacing::S3))
-        .child(controls.child(status).flex_shrink(1.0))
+        .child(controls.child(status).flex_shrink(1.0).min_w_0())
         .child(super::draw::new_action(
             shell,
             "schedules-new",

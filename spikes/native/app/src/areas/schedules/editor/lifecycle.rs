@@ -36,6 +36,15 @@ pub(in crate::areas::schedules) fn hold(shell: &mut Shell, cx: &mut Context<'_, 
         .map(|error| match error {
             OpeningError::Cadence(error) => Issue::Cadence(error).notice(catalog),
             OpeningError::Definition(error) => Issue::Edit(*error).notice(catalog),
+            OpeningError::PreviewCount(error) => {
+                // The typed configuration failure stays available to diagnostics;
+                // its English Display is never a customer-facing sentence.
+                tracing::error!(error = %error, "schedule preview count cannot be prepared");
+                vessel_app_view::schedules::presentation::Notice {
+                    label: catalog.schedules().form_preview_configuration().into(),
+                    variant: vessel_app_view::alert::Variant::Error,
+                }
+            }
             OpeningError::Changed => {
                 let failure = vessel_app_view::schedules::load::Failure::ConnectionChanged;
                 vessel_app_view::schedules::presentation::Notice {
@@ -95,6 +104,7 @@ pub(in crate::areas::schedules) fn leaving(
 ) {
     let ui = &mut shell.areas.schedules.ui.editor;
     ui.picker.close_and_restore(window, cx);
+    ui.cancel_preview();
     if ui.mounted {
         ui.dialog.dismissed(window, cx);
         ui.mounted = false;
@@ -105,7 +115,14 @@ pub(in crate::areas::schedules) fn arrive(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) {
+    let current = shell.areas.schedules.data.editor.visit();
     let ui = &mut shell.areas.schedules.ui.editor;
+    // A completed save can settle while this route is away. Never capture
+    // focus for its retired form on a later route arrival.
+    if ui.visit().is_some() && ui.visit() != current {
+        ui.inputs = None;
+        ui.cancel_preview();
+    }
     if (ui.inputs.is_some() || ui.bootstrap.is_some()) && !ui.mounted {
         ui.dialog.focus(window, cx);
         ui.mounted = true;
