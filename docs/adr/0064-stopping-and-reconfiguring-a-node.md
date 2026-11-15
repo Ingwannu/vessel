@@ -986,3 +986,14 @@ retain namespace references. The existing
 still applies. Paseo's owner-PID/replacement checks and polling remain the
 reference difference already recorded above; these added checks are Vessel's
 explicit conservative floor.
+
+
+## Durable identity seam for later checked signals
+
+The proposed ADR 0001 identity seam shares the start-time decoder with lock
+observations. Durable identity is captured from an owned Child, not a PID in
+an owner file. Provider restart ledgers and policy remain on the node. The
+future force caller still owes its authenticated directory, owner/executable
+and live-session consent checks; a serializable identity does not grant those.
+Its signal mechanism must use the same pidfd-verified boundary, never a
+check followed by bare-PID kill. This contract adds no signal or force caller.

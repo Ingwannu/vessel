@@ -6,6 +6,13 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- Contract in progress: durable helper identity belongs in proc, with typed
+  capture/verify and a later pidfd signal boundary. The node owns persistence
+  and reaping policy. No identity implementation or new dependency has landed.
+  Canonical ProcessId and the Child issuer seam must be coordinated with their
+  owners before implementation; unreviewed sibling drafts are not a checked base.
+
+
 - Merged the designated upstream auth-receipt test repair before the
   proof package's first executed whole gate. No product source or test
   expectation was edited locally for that base race.

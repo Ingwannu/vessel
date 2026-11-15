@@ -345,3 +345,93 @@ held-file fixture in proc; store keeps its data-directory, owner-byte and
 damaged-record assertions. That fixture uses standard-library exclusive
 creation, adding no external dependency. No signal, descriptor/generation
 verification or CLI edge is introduced. Those remain separate phases.
+
+
+## Durable process identity and checked helper signals (proposed)
+
+[Decision Log]
+- Purpose and intent: a provider helper left after a node restart must never
+  be confused with a different process that received its old PID. One generic
+  primitive owns durable kernel identity; the node owns the ledger and policy.
+- Existing implementation and constraints: proc already owns process creation,
+  selected-file observations and a bounded start-time decoder. A runner's
+  in-memory lifetime observation identifies one issuance and can be revoked;
+  it is not a durable boot/generation record. An owner record or bare PID is
+  no signal authority. Libraries read no configuration or user home here.
+- Alternatives considered: another node-local proc parser, a persisted group
+  number, numeric PID checks before kill, unsafe syscalls, or a new OS wrapper.
+  A second parser drifts; group IDs and numeric PIDs can be reused; unsafe is
+  forbidden. Existing workspace rustix already provides safe pidfd operations.
+- Selected approach: `vessel_proc::identity` captures an identity from a real,
+  still-owned Child, and verifies it as Same, Gone or Reused. The serializable
+  value has private validated PID, kernel start ticks, boot identity, namespace
+  context and executable identity where available. Reuse the canonical crate
+  root ProcessId; never add a second public PID type. Share the existing stat
+  decoder, preserving its opaque-command and bounded-read rules.
+- Why this approach: capture borrows the actual Child, refusing already reaped
+  or released ownership. Repeated kernel observations detect a changed record;
+  boot and namespace context prevent coincident identifiers in another context
+  from being treated as the original helper. Read/permission/format failures
+  remain typed errors, never Same. Other operating systems are Unsupported.
+- Advantages, costs and effects: proc gains no ledger, restart loop, provider
+  knowledge, data directory, principal or wire dependency. The node decides
+  whether and when to reap, records its own helpers, and retains uncertain
+  entries. Only a root process is in scope; no group or descendant sweep is
+  inferred from a persisted PID. In-memory lifetime revocation remains distinct
+  from direct-child exit observation and durable identity verification.
+
+The later single-process `signal_verified` boundary opens a Linux pidfd first,
+verifies the stored identity while retaining that descriptor, then sends the
+signal to that descriptor. It never falls back to numeric kill. Gone or Reused
+sends nothing; a missing pidfd facility is Unsupported. This closes the
+verify-to-signal PID-reuse race; it does not claim that executable metadata
+cannot change through exec after its observation. Node reap policy stays in
+its provider-helper module and uses this one boundary. The CLI force module
+may only consume it after its separate local-authentication and consent proof.
+Name restrictions for actual signal consumers land with their callers.
+
+Cancellation must not leave an effectful detached observer: potentially
+blocking preparation only reads and retains handles. Cancelling it cannot
+send a later signal. Sending uses the retained pidfd only after successful
+preparation returns to the still-polled caller. Capture keeps a real Child
+borrow across its observation and must not race another wait/detach of that
+handle. The issuer hook accepts only Running; Reaped/Released refuse. Capture
+also relies on the runner's exclusive child-reaping discipline; no caller may
+reap the same child through an independent wait or ignore its exit status.
+
+External reuse, before manifest changes:
+
+- Existing workspace serde/serde_core (MIT OR Apache-2.0) supplies the typed
+  ledger encoding. Standard Rust has no interchangeable serde implementation;
+  a second ad-hoc ledger grammar would not compose with the existing node file
+  helpers. Inspected source trees for serde 1.0.229 and serde_core 1.0.229 occupy
+  668 KiB and 480 KiB respectively. These are local source-disk measurements,
+  not linked-binary costs. They already occur in the workspace lockfile and
+  node dependency graph; no new external package or version is introduced.
+- Existing workspace rustix 1.1.6 adds its process feature on Linux. Its
+  manifest offers Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT; its
+  inspected source tree occupies 3412 KiB (again source disk, not binary size).
+  The standard library's pidfd interface is unavailable on the pinned stable
+  toolchain, and enabled nix has no safe pidfd open/send interface. Rustix is
+  already locked; no FFI, unsafe block or additional OS wrapper is introduced.
+
+The active internal graph remains unchanged: proc still has no Vessel
+normal dependency. The implementation commit updates its module/job description
+and manifests together; the node keeps its existing proc edge.
+
+Owed tests: owned fake capture and serde round trip; exact Same, actual child
+exit, altered generation/boot/namespace/executable and malformed identities;
+reaped/released capture refusal; safe errors without record contents; pidfd
+signal delivered only to an isolated owned fake; Gone/Reused/Unsupported send
+nothing; a retained dead pidfd cannot redirect a signal to a new helper;
+cancellation cannot trigger a late signal; non-Linux explicit refusal. Actual
+same-numeric-PID reuse or namespace mutation is not inferred from synthetic
+fixtures. The kernel API's stable-fd guarantee and each untested OS/context
+must be separated from runtime evidence.
+
+Primary references: Linux [pidfd_open](https://man7.org/linux/man-pages/man2/pidfd_open.2.html),
+[pidfd_send_signal](https://man7.org/linux/man-pages/man2/pidfd_send_signal.2.html)
+and [proc documentation](https://docs.kernel.org/filesystems/proc.html).
+Paseo daemon-instance.ts 149 and 197-218 uses an instance PID, replacement
+checks and tree cleanup. Vessel deliberately uses a verified root process
+and pidfd, with explicit unsupported outcomes instead of a name/group guess.

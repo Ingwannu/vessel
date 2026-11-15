@@ -1550,3 +1550,15 @@ selected-file kernel query to proc through `lock/query`. Its public
 this dependency inside that lock boundary. Proc still has no internal
 normal dependency; its snapshot alone grants no signal authority. The later
 CLI signal edge remains proposed and is not added by this move.
+
+
+## Proposed durable helper identity
+
+ADR 0001 assigns `vessel_proc::identity` the serializable kernel identity and
+checked single-process signal mechanism. It reuses the crate-root ProcessId,
+the existing stat decoder and workspace serde/rustix, adding no internal edge.
+The node owns its provider-helper ledger and restart reap policy; proc owns
+neither. In-memory ProcessLifetime revocation and Detached exit observation
+retain their distinct meanings. On Linux a pidfd is opened before verification
+and held through signal delivery; unsupported facilities never fall back to
+bare-PID signalling. Active tables/manifests remain unchanged in this contract.
