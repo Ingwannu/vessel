@@ -103,6 +103,9 @@ impl SampleRate {
     /// Keep callers' upper-rate boundary aligned with the decoder's invariant.
     pub const MAX: Self = Self(MAX_RATE);
 
+    /// The mono PCM rate required by the shared OpenAI-compatible STT encoder.
+    pub const TRANSCRIPTION: Self = Self(24_000);
+
     /// Validate before any stream or provider is opened.
     ///
     /// # Errors
