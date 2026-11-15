@@ -122,7 +122,7 @@ pub(crate) fn apply(
             let new = match journal::status(connection, plan.key.session, restore, plan.owner) {
                 Ok(_existing) => false,
                 Err(Error::Refused(CheckpointError::NotFound)) => true,
-                Err(error) => return Err(error),
+                Err(error) => return Err(error.into()),
             };
             let operation = journal::admit(connection, &plan, restore, at)?;
             if new {

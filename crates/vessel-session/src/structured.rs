@@ -120,7 +120,10 @@ impl StructuredActor {
                         break None;
                     }
                 }
-                () = self.file_pause.released() => self.release_files().await,
+                signal = self.file_pause.next() => match signal {
+                    crate::checkpoint::Signal::Released => self.release_files().await,
+                    crate::checkpoint::Signal::Metadata(order) => self.checkpoint_metadata(order).await,
+                },
                 code = self.agent.wait(), if self.parking.parked.is_none() => break code,
                 output = self.outputs.next(), if self.outputs_open => match output {
                     Some(output) => self.output(output).await,

@@ -112,3 +112,34 @@ async fn checkpoint_pause_refuses_a_running_turn_and_keeps_the_parked_route() {
     })
     .await;
 }
+
+#[tokio::test]
+async fn checkpoint_owned_pause_publishes_one_result_and_keeps_queue_held_until_resume() {
+    use vessel_proto::checkpoint::{CheckpointEvent, CheckpointId, PathCount, RestoreId};
+    within(async {
+        let fixture = Fixture::new();
+        let handle = fixture.start(structured(Vec::new())).await;
+        let mut log = Log::of(&handle);
+        ready(&mut log).await;
+        let _held = handle.change_queue(QueueChange::Hold).await.unwrap();
+        let _queued = handle.prompt(text("queued"), Delivery::Queue, Creator::Owner).await.unwrap();
+        let queue = handle.change_queue(QueueChange::Hold).await.unwrap().queue;
+        let conversation = handle.info().harness_session.clone();
+        let mut pause = handle.pause_for_checkpoint().await.unwrap();
+        let restore = RestoreId::random();
+        let checkpoint = CheckpointId::random();
+        let paths = PathCount::new(1).unwrap();
+        let seq = pause.files_restored(restore, checkpoint, paths).await.unwrap();
+        assert_eq!(pause.files_restored(restore, checkpoint, paths).await.unwrap(), seq);
+        assert!(matches!(pause.files_restored(RestoreId::random(), checkpoint, paths).await, Err(SessionError::CheckpointBusy)));
+        log.until(|event| matches!(event, SessionEvent::Checkpoint { event: CheckpointEvent::FilesRestored { restore: id, .. } } if *id == restore)).await;
+        assert_eq!(log.records.iter().filter(|record| matches!(&record.event, SessionEvent::Checkpoint { event: CheckpointEvent::FilesRestored { .. } })).count(), 1);
+        assert_eq!(handle.info().harness_session, conversation);
+        assert!(matches!(handle.send(prompt("still paused")).await, Err(SessionError::FilesPaused)));
+        pause.resume().await.unwrap();
+        assert_eq!(handle.change_queue(QueueChange::Hold).await.unwrap().queue, queue);
+        let _resumed = handle.change_queue(QueueChange::Resume).await.unwrap();
+        log.turn_over().await;
+        fixture.runtime.shutdown().await;
+    }).await;
+}

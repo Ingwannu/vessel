@@ -462,3 +462,16 @@ web-ci, nested-fakes and nested-vesseld prebuilds passed; generator tests 4/0/0.
 The generated proto.ts was copied from that exact verified VM checkout before
 reusing its owned label. No wire declaration was edited manually. This proves
 generation/prebuild for that source, not later store/actor runtime behavior.
+
+
+### Owned live-pause metadata (source, not verified)
+
+The pause guard owns a private one-slot metadata channel; the general session
+handle/control channel has no result-publish command. It accepts only typed
+FilesRestored identities/count, publishes under the actor's normal sequence
+allocator, preserves input/queue exclusion, and returns the same sequence for an
+identical retry on that pause. A different result is refused. Actor publication
+is not SQL durability: the node controller must await the restore row's matching
+EventSeq before releasing the physical lease and resuming. A new fake-actor test
+covers one result, retry/refusal, conversation identity, and held queue until
+resume. It has not run. The node restore controller remains unwired.
