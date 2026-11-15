@@ -74,6 +74,49 @@ of the corrected tree is owed on the designated builder.
 Next: review these rules, wire the existing call, then consume the reviewed
 shared menu/confirmation controls for Providers and capture their states.
 
+### Removal-rules verification (native only)
+
+Implementation `3177e7723e1f8cbec015abcae4a3c741708e0371` passed the complete
+native gate on its exact commit. Run `agents-20261115T022821Z-3177e772`:
+fonts, fmt, size/boundaries/tokens, Clippy with warnings denied, ordinary
+application build and tests all returned zero. The test log reports 1046
+runtime passes, two document-test passes and one ignored browser wording
+capture (`pairing_browser_words_capture`, requiring a private display and
+fake fleet). All nine new removal-rule cases passed. No skipped step is
+counted as a pass. Root/web gates were not run: no root or web code changed.
+
+A preceding exact-commit native Clippy check also passed. The earlier
+local fixture-arity failure remains a failed preparation run; it is not a
+flaky-test exception and no assertion was relaxed. Source was frozen for
+the final exact-commit run. The normal local application build for captures
+also passed; it is not a second whole native gate.
+
+The slice is with the designated reviewer for source-only review. There
+are no new screen captures and no UI approval. A capture fleet started
+with pre-existing development binaries failed its home-role fixture before
+agent seeding. Those binaries' source commit was not independently known;
+the two disposable nodes were stopped and no successful fleet or screen
+claim is derived from that run. Matching source-built fixture binaries
+and fresh captures remain the next verification work.
+
+### Profile parity boundary found on resumption
+
+Paseo 0.15.4 `agent-profiles/settings/agent-profiles-section.tsx:24–110`
+creates, edits, reorders and removes named launch bundles.
+`agent-profiles/internal/use-agent-profiles.ts:23–25` saves the whole array
+through `patchConfig({ agentProfiles: next })`. Its protocol
+`agent-profile.ts:12–28` stores `id`, `name`, `icon`, `color`, `provider`,
+`model`, `modeId`, `thinkingOptionId`, `featureValues` and `notes` (the UI's
+“When to use”). These are different from account profiles.
+
+The current Vessel `crates/vessel-proto/src/profile.rs:22–40` reports account
+profile name, label, harness, environment names and an optional model route.
+Its RPC table at `rpc.rs:137–141` offers list, reload and session profile
+move, with no named-launch-bundle CRUD/reordering or matching settings key.
+Existing `keep_choices` remains the new-chat default selection; it is not
+presented as full launch-profile editing. The contract gap was reported;
+this track makes no node change and no parallel client-only profile store.
+
 Track G3, branch `backend/m12-app-agents`. The contract is milestone
 11's track G and ADR 0032. This track changes no node or wire type.
 

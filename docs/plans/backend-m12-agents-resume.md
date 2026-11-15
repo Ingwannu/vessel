@@ -4,7 +4,7 @@
 
 Resumed on the published `56a7cbd3` baseline. The requested merge was a
 fast-forward because every earlier track commit was already on that line.
-The current source slice prepares provider-removal rules only; see the
+The first resumed implementation prepares provider-removal rules only; see the
 new Resume point in `backend-m12-agents.md`. No new control or navigation
 is registered. Historical findings and evidence below describe the earlier
 tree, not current verification: the baseline has its own detail-layout,
@@ -12,8 +12,11 @@ refresh-failure, queue-refusal, official-mark and navigation changes.
 Agents now holds idle release; the provider list is Providers. Keep the
 seven newer vendor marks unshipped and consume only the app's current set.
 The whole native gate now belongs to the designated builder; do not run
-it locally. Await the coordinator's command, using short-lane narrow checks
-for source work. No whole-gate pass is claimed for the resumed tree yet.
+it locally. The first resumed implementation `3177e772` passed that gate
+(run `agents-20261115T022821Z-3177e772`): every native step zero, 1046 runtime
+passes plus two document passes and one ignored browser capture. Its nine
+new cases passed. Source-only review is pending; no removal UI/call or
+complete Agents/Models result is claimed. Use short-lane checks for iteration.
 
 Read the current strict-worker, app-track and overnight briefs before work.
 Work remains on the Agents/Models track; the completed redraw slice does not
@@ -221,3 +224,19 @@ or `Disconnected` (a stopped link), as the devices page does
 themes, both languages, 1280 and 390, the long added agent, a failed
 refresh with details open). The "older node" read-only shape was not
 reachable: a protocol 11 node lists agents too.
+
+## Current work after the removal-rules submission
+
+The reporting snapshot and removal intent now retain physical `NodeId` in
+addition to the book route, so same-name/different-node changes are tested.
+The next call implementation must compare the expected identity against the
+current connection before sending, keep uncertain mutation results explicit,
+and never automatically repeat removal. The shared ProviderRow trigger is
+still awaiting an integrated reviewed control; do not duplicate it.
+
+No new captures exist yet. The current normal application build passed; the
+first reused fixture binaries failed home-role setup, were not treated as a
+successful fleet, and their nodes were stopped by verified PID. Matching
+fixture binaries and new authenticated-display captures remain in progress.
+Full named launch profiles need a node contract beyond account-profile list/
+reload and local default choices; see the parity boundary in the track plan.
