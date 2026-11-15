@@ -662,6 +662,45 @@ same here: the conversation under the panel is dimmed and a press on it
 closes the panel. A panel stored as wide as the row covers it all, as
 Paseo's full-width panel does; its close button is then the way back.
 
+## The node line in the app line, and seams for the packages (0.0.0.0.19, 0.0.0.0.20)
+
+The app line's crates were 246 commits behind the node line (protocol 15
+against 23), so the app could not call inbox, push, usage, side questions,
+agent history or `device.self`. B0 merged the node line into the app line
+(`07feb4ee`: node `d954fa3a`, the workspace stack `c408b653`, the app's
+`1d1f11df`; on conflict the node's crates, web and root rules, the app's
+`spikes/native`). The lead then built the package base every package
+starts from, gated alone:
+
+- `8d5513e4`: moves only. `LinkError` to `link/src/error.rs` and
+  `Shell::on_event` to `app/src/shell/events.rs` (G2), `State::options`
+  to `link/src/options.rs` (G3), and the link's crate root split so it
+  leaves the size list: `Command` (`command.rs`), `Event` and `KeptLists`
+  (`event.rs`), the actor's dispatch (`dispatch.rs`) and its refresh and
+  connection (`refresh.rs`). Every package registers a command, an event
+  and a dispatch arm, and `lib.rs` was a listed file held at its measured
+  size, so each package's first registration failed the size check.
+- `6036eeb8`: `view::Machine::node`, the node that answered under a book
+  name (a name can be renamed or reused, so a queued request checks the
+  node, not the name), and the kit field's events and `Editability` (W4),
+  one shared editor policy instead of three copies.
+
+Root binaries for capture fleets are built once from that root
+(`fleet.sh` end to end), so the packages do not each build them.
+
+Two findings of the coordinator's smoke tests on 0.0.0.0.18 and .19:
+
+- The grey ring beside Send in an ended session is the context meter with
+  no data: Paseo draws its empty track as a closed circle. Ours was an
+  open 48-piece polyline with a notch at twelve, then a closed one that
+  stroked the joint twice on a translucent track; the whole ring now
+  drops its repeated point and closes.
+- The `=` in the timeline's gutter at 800 x 600 is the chat outline rail,
+  which Paseo shows only in a panel at least 918 wide. Ours decided from
+  the list's width at its last layout inside the cached timeline region,
+  so after the window narrowed it was not drawn again (the rule added to
+  the README's regions paragraph).
+
 ## Packages installed on the machine
 
 - `fcitx5` and `fcitx5-hangul` (with their 12 dependencies: `fcitx5-data`,

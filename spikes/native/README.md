@@ -552,6 +552,13 @@ Its exact-value test keeps every step comparable with `styles/theme.ts`.
   leave the region showing old content. Measured on 2026-11-14 (release,
   composer focused on an open session, the caret blinking): the app's
   own work per blink fell from 7.1 to 2.1 ms (the draw probe below).
+  A region is drawn again when its size changes, but layout comes after
+  drawing: a decision taken from a size measured at the last layout (a
+  list's viewport width) is a frame late, and with nothing else marking
+  the region it stays late. Such a decision checks itself with a canvas
+  that measures this frame and marks the region dirty only when the
+  answer changes (`conversation::outline::width_probe`, the chat outline
+  rail that stayed at 800 x 600 in 0.0.0.0.19).
 
 ### The brand's drawing (ADR 0059)
 
