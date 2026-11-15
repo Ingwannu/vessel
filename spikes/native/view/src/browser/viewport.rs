@@ -59,7 +59,7 @@ macro_rules! device_presets {
 
             /// Branded device/model names are not fragmented translated sentences.
             #[must_use]
-            pub fn label<'a>(self, words: crate::localization::Browser<'a>) -> &'a str {
+            pub fn label(self, words: crate::localization::Browser<'_>) -> &str {
                 match self { $(Self::$variant => words.$getter(),)+ }
             }
 
