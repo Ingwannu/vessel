@@ -448,14 +448,7 @@ async fn retained_receipts_replay_before_loading_old_attachment_metadata() {
             size: 1,
         },
     });
-    let vessel_store::ReceiptAdmission::New(token) = fixture
-        .store
-        .admit_prompt(request.clone(), Creator::Owner)
-        .await
-        .unwrap()
-    else {
-        panic!("fresh fixture receipt")
-    };
+    let token = reserve_fixture_receipt(&fixture, &request).await;
     let receipt = fixture
         .store
         .accept_prompt(
@@ -487,14 +480,7 @@ async fn retained_receipts_replay_before_loading_old_attachment_metadata() {
         SubmitPromptReply::KeyConflict { .. }
     ));
     request.message = ClientMessageId::random();
-    let vessel_store::ReceiptAdmission::New(token) = fixture
-        .store
-        .admit_prompt(request.clone(), Creator::Owner)
-        .await
-        .unwrap()
-    else {
-        panic!("fresh pending fixture")
-    };
+    let token = reserve_fixture_receipt(&fixture, &request).await;
     drop(token);
     assert!(matches!(
         fixture
@@ -525,4 +511,19 @@ async fn retained_receipts_replay_before_loading_old_attachment_metadata() {
     )));
     fixture.sessions.live(session).unwrap().kill();
     fixture.settle().await;
+}
+
+async fn reserve_fixture_receipt(
+    fixture: &Fixture,
+    request: &SubmitPrompt,
+) -> vessel_store::ReceiptToken {
+    let vessel_store::ReceiptAdmission::New(token) = fixture
+        .store
+        .admit_prompt(request.clone(), Creator::Owner)
+        .await
+        .unwrap()
+    else {
+        panic!("fresh fixture receipt")
+    };
+    token
 }
