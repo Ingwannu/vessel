@@ -855,3 +855,16 @@ The barrier fixture combines an external collector lease with held capture I/O,
 then loses the model owner and proves the actual closure still exhausts the
 shared budget until it returns. No real process or filesystem is cancelled by
 that fixture. Remote execution and actual collector wiring remain outstanding.
+
+### Collected shared-worker baseline clippy evidence
+
+Run wp-checkpoints-node-narrow-20261115T130022Z-bfb7559c finished rc1,
+cargo101 after16s. Five workspace-library lint diagnostics stopped it: test-only
+AtFlags import, missing method-name backticks twice, the then-production-unused
+owned archive path, and the public generic Error type name. The first three
+source sites are corrected; the public error is CheckpointFsError (internal
+scoped aliases remain short). Private directory creation already changed owned
+archive-path forwarding/consumption after that tested head; the replacement
+checks that newer source rather than claiming the old diagnostic is green.
+No runtime tests executed in this clippy run. The ordinary test run remains
+queued and is not duplicated.

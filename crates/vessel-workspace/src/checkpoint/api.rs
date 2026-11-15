@@ -62,7 +62,7 @@ impl Tree {
         )
     }
     /// Stage every effective target before any project mutation. The node must
-    /// commit evidence() through its store barrier before calling apply().
+    /// commit `evidence()` through its store barrier before calling `apply()`.
     /// # Errors
     /// Stale before image, unsupported metadata/mount, corrupt blob or I/O failure.
     pub fn prepare(

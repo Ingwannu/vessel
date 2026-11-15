@@ -31,7 +31,7 @@ mod tests;
 
 #[derive(Debug, thiserror::Error)]
 /// Source-preserving filesystem failure; node adapters expose only its reason.
-pub enum Error {
+pub enum CheckpointFsError {
     /// An actual filesystem syscall failed.
     #[error("checkpoint filesystem access failed")]
     Io(#[from] std::io::Error),
@@ -47,7 +47,9 @@ pub use api::{Archive, IgnoreDefaults, Restore, Tree, image_fingerprint};
 pub use restore::{RecoveryState, Undo as Rollback};
 pub use storage::{CaptureStorage, Cleanup, StageDirectory, Storage};
 
-impl Error {
+pub(super) use CheckpointFsError as Error;
+
+impl CheckpointFsError {
     /// Classify once without putting paths or file contents into RPC errors.
     #[must_use]
     pub fn reason(&self) -> vessel_proto::checkpoint::CheckpointError {

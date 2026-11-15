@@ -5,7 +5,7 @@ use crate::checkpoint::{
     inspect,
     rooted::{Identity, metadata, refuse_attributes},
 };
-use rustix::fs::{AtFlags, CWD, Gid, Mode, OFlags};
+use rustix::fs::{CWD, Gid, Mode, OFlags};
 use std::{fs::File, os::unix::fs::MetadataExt as _, path::Path};
 use vessel_proto::{
     BlobHash,
@@ -128,7 +128,7 @@ impl Stage {
     }
     #[cfg(test)]
     pub(in crate::checkpoint) fn remove(&self, slot: Slot) -> Result<(), Error> {
-        rustix::fs::unlinkat(&self.folder, slot.text(), AtFlags::empty())
+        rustix::fs::unlinkat(&self.folder, slot.text(), rustix::fs::AtFlags::empty())
             .map_err(std::io::Error::from)?;
         self.folder.sync_all()?;
         Ok(())
