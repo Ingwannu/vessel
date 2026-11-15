@@ -38,6 +38,7 @@ macro_rules! bounded {
     ($name:ident, $raw:ty, $repr:literal, $limit:expr, $error:ident, $why:literal) => {
         #[doc = $why]
         #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+        #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
         #[serde(try_from = $repr, into = $repr)]
         pub struct $name($raw);
         impl $name {
@@ -98,6 +99,7 @@ bounded!(
 
 /// A nonroot portable file path subject to checkpoint's tighter byte limit.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(try_from = "RelPath", into = "RelPath")]
 pub struct CheckpointPath(RelPath);
 impl CheckpointPath {

@@ -335,6 +335,11 @@ impl Method {
             | Self::SetupOutput
             | Self::RunSetup
             | Self::RemoveWorktree
+            | Self::ListCheckpoints
+            | Self::PreviewCheckpoint
+            | Self::ReadCheckpointChanges
+            | Self::RestoreCheckpoint
+            | Self::CheckpointRestoreStatus
             | Self::ListSnapshots
             | Self::DropSnapshot
             | Self::GitStatus

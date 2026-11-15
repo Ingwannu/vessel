@@ -473,6 +473,16 @@ macro_rules! method_table {
             RewindSession / rewind_session / "session.rewind" [Operate, 14, unary]: $crate::forking::RewindSession => $crate::SessionInfo;
             /// A page of an agent's own conversations, to import one (protocol 17, ADR 0053).
             GetAgentHistory / agent_history / "agent.history" [Operate, 17, unary]: $crate::history::GetAgentHistory => $crate::history::AgentHistoryPage;
+            /// Local per-turn file images (ADR 0077); pending integration.
+            ListCheckpoints / list_checkpoints / "checkpoint.list" [Read, (pending $crate::checkpoint::FILE_CHECKPOINTS), unary]: $crate::checkpoint::ListCheckpoints => $crate::checkpoint::CheckpointPage;
+            /// Freeze a files-only confirmation, without project writes.
+            PreviewCheckpoint / preview_checkpoint / "checkpoint.preview" [Operate, (pending $crate::checkpoint::FILE_CHECKPOINTS), unary]: $crate::checkpoint::PreviewCheckpoint => $crate::checkpoint::RestorePreview;
+            /// Continue the same immutable, device-bound confirmation.
+            ReadCheckpointChanges / read_checkpoint_changes / "checkpoint.changes" [Operate, (pending $crate::checkpoint::FILE_CHECKPOINTS), unary]: $crate::checkpoint::ReadCheckpointChanges => $crate::checkpoint::ChangePage;
+            /// Restore covered files only; conversation remains unchanged.
+            RestoreCheckpoint / restore_checkpoint / "checkpoint.restore" [Operate, (pending $crate::checkpoint::FILE_CHECKPOINTS), unary]: $crate::checkpoint::RestoreCheckpoint => $crate::checkpoint::RestoreOutcome;
+            /// Read a durable files-only operation outcome after reconnecting.
+            CheckpointRestoreStatus / checkpoint_restore_status / "checkpoint.restore_status" [Operate, (pending $crate::checkpoint::FILE_CHECKPOINTS), unary]: $crate::checkpoint::CheckpointRestoreStatus => $crate::checkpoint::RestoreOutcome;
         }
     };
 }

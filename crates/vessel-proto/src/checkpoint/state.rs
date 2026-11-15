@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 
 /// The two file restore meanings offered without altering conversation history.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "CheckpointBoundary"))]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Boundary {
     /// Before a new turn's accepted prompt reaches the agent.
@@ -21,7 +23,8 @@ pub enum Boundary {
 }
 /// A monotonic capture lease; no sentinel/wrapping generation is valid.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(transparent)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(try_from = "u64", into = "u64")]
 pub struct CaptureGeneration(u64);
 impl CaptureGeneration {
     /// Initial lease for a coordinator incarnation.
@@ -35,6 +38,21 @@ impl CaptureGeneration {
             .checked_add(1)
             .map(Self)
             .ok_or(CheckpointError::GenerationExhausted)
+    }
+}
+impl TryFrom<u64> for CaptureGeneration {
+    type Error = CheckpointError;
+    fn try_from(value: u64) -> Result<Self, Self::Error> {
+        if value == 0 {
+            Err(CheckpointError::StaleCapture)
+        } else {
+            Ok(Self(value))
+        }
+    }
+}
+impl From<CaptureGeneration> for u64 {
+    fn from(value: CaptureGeneration) -> Self {
+        value.0
     }
 }
 /// Immutable association carried on every candidate completion.
@@ -53,8 +71,15 @@ pub struct CaptureKey {
 }
 /// Stable typed refusal; messages derive all bounds from their named constants.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, thiserror::Error)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
 pub enum CheckpointError {
+    /// Registration precedes activation; no incomplete mechanism may write files.
+    #[error("file checkpoint service is not enabled")]
+    FeatureUnavailable,
+    /// A cursor belongs to another snapshot or exceeds its page domain.
+    #[error("checkpoint cursor is invalid")]
+    InvalidCursor,
     /// File exceeded its declared streaming budget.
     #[error("file exceeds {} bytes", super::CHECKPOINT_FILE_BYTES)]
     FileTooLarge,
@@ -125,6 +150,7 @@ pub enum CheckpointError {
 }
 /// Files-only result: a failed multi-file operation is never reported as success.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum RestoreOutcome {
     /// Durable admission lets a retry query progress without reapplying files.

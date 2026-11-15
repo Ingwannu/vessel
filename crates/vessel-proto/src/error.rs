@@ -57,6 +57,11 @@ pub struct WireError {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum ErrorDetail {
+    /// A files-only checkpoint request was refused before writes began.
+    Checkpoint {
+        /// Stable refusal; filesystem sources remain private to the node.
+        reason: crate::checkpoint::CheckpointError,
+    },
     /// A schedule preview could not be computed.
     SchedulePreview {
         /// The stable preview reason.

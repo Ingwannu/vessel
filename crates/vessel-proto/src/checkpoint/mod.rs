@@ -1,12 +1,15 @@
 //! Files-only recovery values (ADR 0077). No I/O or provider message ids.
 //!
-//! Calls remain unregistered until Quality B assigns their shared shape and
-//! integration assigns a protocol. Conversation rewind is never a fallback.
+//! Pending unary calls use Quality B's shared registration shape. Only integration
+//! assigns a protocol. Conversation rewind is never a fallback.
 
 mod bounds;
 mod changes;
 mod image;
 mod metadata;
+mod rpc;
+#[cfg(test)]
+mod rpc_tests;
 mod state;
 
 pub use crate::id::{CaptureId, CheckpointId, RestoreId, RestorePlanId};
@@ -20,6 +23,11 @@ pub use bounds::{
 pub use changes::{Change, ChangeKind};
 pub use image::{EffectiveDesiredImage, Entry, FileImage, FileState};
 pub use metadata::{FileMetadata, GroupId, OrdinaryMode, OwnerId};
+pub use rpc::{
+    ChangeCursor, ChangePage, CheckpointCursor, CheckpointMark, CheckpointPage,
+    CheckpointRestoreStatus, CheckpointState, ListCheckpoints, PreviewCheckpoint,
+    ReadCheckpointChanges, RestoreCheckpoint, RestorePreview,
+};
 pub use state::{Boundary, CaptureGeneration, CaptureKey, CheckpointError, RestoreOutcome};
 
 /// No peer may receive checkpoint calls before the integrator enables them.

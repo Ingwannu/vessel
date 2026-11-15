@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 
 /// Confirmation describes filesystem effects, never agent tool-call counts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "CheckpointChangeKind"))]
 #[serde(rename_all = "snake_case")]
 pub enum ChangeKind {
     /// Create a currently absent regular file.
@@ -17,11 +19,17 @@ pub enum ChangeKind {
 }
 /// One approved path effect in deterministic sorted order.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "CheckpointChange"))]
 pub struct Change {
     /// The validated root-relative path.
     pub path: CheckpointPath,
     /// Destructive effects are visible before admission.
     pub kind: ChangeKind,
+    /// Raw bytes before the effect; absent means the path does not exist.
+    pub before: Option<super::FileBytes>,
+    /// Raw bytes after the effect; absent means removal.
+    pub after: Option<super::FileBytes>,
 }
 impl EffectiveDesiredImage {
     /// Only differences from this frozen target appear in a confirmation.
@@ -63,9 +71,17 @@ impl EffectiveDesiredImage {
                 kind.map(|kind| Change {
                     path: desired.path.clone(),
                     kind,
+                    before: size(current.get(&desired.path)),
+                    after: size(Some(&desired.state)),
                 })
             })
             .collect()
+    }
+}
+fn size(state: Option<&FileState>) -> Option<super::FileBytes> {
+    match state {
+        Some(FileState::Present { bytes, .. }) => Some(*bytes),
+        None | Some(FileState::Absent) => None,
     }
 }
 #[cfg(test)]

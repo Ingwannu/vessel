@@ -150,6 +150,10 @@ macro_rules! untargeted {
 targets!(
     // Protocol 12: parking and waking act on a session as a prompt does;
     // protocol 14: forking reads it and rewinding acts on it (ADR 0052).
+    // Files-only writes and their authorization checks belong to a session.
+    vessel_proto::checkpoint::PreviewCheckpoint,
+    vessel_proto::checkpoint::RestoreCheckpoint,
+    vessel_proto::checkpoint::CheckpointRestoreStatus,
     vessel_proto::parking::ParkSession,
     vessel_proto::parking::WakeSession,
     vessel_proto::forking::ForkSession,
@@ -181,6 +185,9 @@ targets!(
 // scheduler's rule (ADR 0033), and a run is checked as its definer.
 // Saved prompts name none either: agents may only read them.
 untargeted!(
+    // Reads use existing visibility; changes resolves its session from the plan.
+    vessel_proto::checkpoint::ListCheckpoints,
+    vessel_proto::checkpoint::ReadCheckpointChanges,
     vessel_proto::GetDeviceSelf,
     vessel_proto::usage::QueryUsage,
     vessel_proto::inbox::ListInbox,

@@ -115,3 +115,20 @@ The announced node baseline is `29eebb8b`; the app package baseline is
 pending unary rows with FILE_CHECKPOINTS still None, typed request/response
 values and explicit ownership/forwarding policy. Registration is not protocol
 assignment or permission to advertise an unfinished capability.
+
+### Quality B registration frame
+
+The node branch consumes Quality B and registers the five pending unary calls
+from ADR 0077. Typed payloads carry no raw file contents or absolute paths;
+errors use the additive Checkpoint ErrorDetail. Preview/changes/restore/status
+refuse direct and delegated agents. The list uses existing read visibility.
+Forwarding preserves the same destination checks and pending-version refusal.
+Handlers explicitly return FeatureUnavailable until the durable coordinator
+is connected; registration is not functional delivery. The feature constant
+and protocol version remain unchanged. Source-level pagination bounds and
+nonzero capture generations validate when decoding. TypeScript regeneration
+and narrow checks remain owed for this frame.
+
+The shared protocol contract extraction is consumed from its owner's commit
+1c8d0b93 rather than duplicated locally; it keeps registration within the
+existing file budget and preserves the public Request/UnexpectedReply API.

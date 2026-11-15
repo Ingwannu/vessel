@@ -150,10 +150,15 @@ const fn refused(method: Method) -> bool {
         | Method::GetPublished
         // An agent's own history (protocol 17, ADR 0053): an account's
         // other conversations are a person's, not the fleet's sessions.
+        | Method::PreviewCheckpoint
+        | Method::ReadCheckpointChanges
+        | Method::RestoreCheckpoint
+        | Method::CheckpointRestoreStatus
         | Method::GetAgentHistory => true,
         // Orchestration: the projects, and a worktree with its setup's
         // output for a session the agent starts.
-        Method::ListProjects
+        Method::ListCheckpoints
+        | Method::ListProjects
         // Side-question policy refuses agents before reading a parent;
         // its typed reason belongs to that domain, not file/git policy.
         | Method::OpenSideQuestion

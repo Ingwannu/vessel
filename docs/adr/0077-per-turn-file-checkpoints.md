@@ -483,7 +483,7 @@ needed for checkpoint operation.
 Contract accepted, with node implementation subsequently assigned on `d954fa3a`.
 The branch now contains validated value types and test-only capture/storage/
 actor seams, plus one appended checkpoint table migration. This does not
-advertise a file restore capability: calls remain unregistered, FILE_CHECKPOINTS
+advertise a file restore capability: pending unary calls are registered after Quality B, FILE_CHECKPOINTS
 is None and actual session wiring/restore execution are not complete. The plan
 records narrow-check failures and remaining proof. No whole package gate,
 permission, held-I/O, publication-race or crash-recovery pass is implied here.

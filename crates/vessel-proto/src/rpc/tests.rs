@@ -570,6 +570,11 @@ const FORWARDABLE: &[&str] = &[
     "session.fork",
     "session.rewind",
     "agent.history",
+    "checkpoint.list",
+    "checkpoint.preview",
+    "checkpoint.changes",
+    "checkpoint.restore",
+    "checkpoint.restore_status",
 ];
 
 #[test]
