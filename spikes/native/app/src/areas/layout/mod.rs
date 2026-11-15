@@ -12,6 +12,9 @@ mod queries;
 pub(crate) mod registry;
 mod rename;
 mod resize;
+// The product cutover removes this gate together with converted global storage.
+#[cfg(test)]
+pub(crate) mod residents;
 mod sheets;
 
 use crate::shell::Shell;
