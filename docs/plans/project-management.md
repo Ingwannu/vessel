@@ -152,3 +152,40 @@ The invalid-save regression checks both retained typed cause and absence of the
 rejected TOML in Display/Debug, while preserving the existing no-write assertion.
 This requires a new current-head check; the previous source's 4/0 result does
 not verify the new error surface. No config payload is added to wire errors.
+
+
+## Coordinator-approved A1 provisioning ownership transfer
+
+The actual empty-workspace filesystem provisioning and receipt/launch adapter
+move to A1. This package keeps canonical identity/registry/start leases, project
+and config admission, the priority native projection, nested project execution
+reroot, PR mode, unregister and legacy destructive-route fencing. The shared
+owner table section7 records this ruling. No unreviewed helper becomes shipping
+merely because ownership changes.
+
+A1 owns these node adapter files from this continuation as source reference:
+- workspace/registry.rs (staged adapter result/error surface);
+- workspace/registry/provision.rs (reservation and filesystem adapter);
+- workspace/tests/registry.rs (its staged provisioning tests).
+A1 may rename these under a provisioning module and add its own receipt driver.
+Only the corresponding module/test registration lines are shared edits.
+
+This package retains workspace/worktrees/create.rs, including the currently
+staged fixed-id primitive create_worktree_with_id, and project/config modules.
+It will provide a reviewed primitive/admission boundary rather than allowing
+two writers in that file. Store registry modules and proto registry values
+remain canonical here; A1 consumes them and does not duplicate persistence.
+
+The reference is not production-ready: project/unregister admission, nested
+execution reroot and PR mode are incomplete. In particular, its Allowed+Run path
+still delegates legacy worktree setup before an independent workspace descriptor
+is finalized. A1 must not ship that path as automatic workspace bootstrap.
+Backing creation and workspace-aware setup/terminal execution must be ordered
+so the latter uses the exact WorkspaceId, retained gate, command approval and
+start-lease producer with the scripts/runtime owner. Blocked sources keep Skip;
+no release or retry implicitly approves/runs anything. Existing InProgress and
+Uncertain outcomes remain distinct, with no repeat filesystem effect on replay.
+
+This is a scope/ownership update only. The three files remain staged and have
+no current checked-adapter adoption claim. The frozen minimal registry delivery
+excludes them and continues its independent final gate and source review.
