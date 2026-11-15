@@ -191,6 +191,11 @@ impl TerminalInfo {
         kind: TerminalKind,
         created_at: DateTime<Utc>,
     ) -> Self {
+        let activity = if matches!(&kind, TerminalKind::Shell { .. }) {
+            crate::notifications::TerminalActivity::Untracked
+        } else {
+            crate::notifications::TerminalActivity::Unknown
+        };
         Self {
             id,
             place,
@@ -209,7 +214,7 @@ impl TerminalInfo {
             attention: Some(crate::notifications::TerminalAttention {
                 terminal: id,
                 revision: crate::notifications::TerminalAttentionRevision::default(),
-                activity: crate::notifications::TerminalActivity::Unknown,
+                activity,
                 changed_at: created_at,
             }),
         }

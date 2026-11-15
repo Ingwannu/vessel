@@ -209,3 +209,16 @@ and activates its positive branch after integrator assignment. A pending-branch
 pass is not positive terminal delivery evidence; the assigned integration run
 and execution of the drafted preparation-time terminal cancellation cases
 remain required.
+
+## Explicit untracked versus future activity
+
+The pending activity DTO separates Untracked (a known plain shell without a
+semantic producer) from Unknown (missing/lost producer or serde(other) future
+state). Reusing Unknown as a neutral projection would silently classify a new
+wire state as uninstrumented. TerminalInfo's value constructor initializes only
+known Shell kind as Untracked; managed/future kinds remain Unknown. A semantic
+Clear/disconnect still yields Unknown and cannot manufacture a neutral fact.
+Both mean no terminal dot, but only explicit Untracked is neutral in workspace
+aggregation. Old peers still receive no attention field under the same pending
+feature; no new method, number, scope or migration is added. The native adapter
+waits for reviewed canonical values rather than duplicating this wire contract.
