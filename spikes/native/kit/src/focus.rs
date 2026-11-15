@@ -48,8 +48,10 @@ impl ReturnFocus {
             return;
         }
         match opener.and_then(|weak| weak.upgrade()) {
-            Some(opener) => opener.focus(window, cx),
-            None => window.blur(cx),
+            Some(opener) if !owner.contains(&opener, window) => opener.focus(window, cx),
+            // An owner/child accidentally focused before remember is not an
+            // external opener. Do not return focus into a dismissed subtree.
+            Some(_) | None => window.blur(cx),
         }
     }
 }
