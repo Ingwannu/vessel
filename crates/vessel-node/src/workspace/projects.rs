@@ -155,6 +155,7 @@ impl Workspaces {
         project: ProjectId,
         live: &Live,
     ) -> Result<(), WorkspaceError> {
+        let _capacity = self.project_operation_capacity()?;
         let _serial = self.project_registrations.lock().await;
         let cancel = {
             let mut state = self.state();

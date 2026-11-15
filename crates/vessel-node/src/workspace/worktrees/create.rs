@@ -78,7 +78,7 @@ impl Workspaces {
                 }
             })
             .await
-            .map_err(WorkspaceError::ProjectTask)?
+            .map_err(WorkspaceError::project_task)?
     }
 
     fn creation_refusal(
@@ -121,7 +121,7 @@ impl Workspaces {
                     .await
             })
             .await
-            .map_err(WorkspaceError::ProjectTask)?
+            .map_err(WorkspaceError::project_task)?
     }
 
     async fn create_admitted_now(

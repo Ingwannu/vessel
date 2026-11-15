@@ -31,8 +31,12 @@ This package is an internal prerequisite, not the complete provisioning flow.
 - Reason: the provisioner and tracked backing task can each retain the same hold;
   cancellation of the RPC cannot release another holder's protection.
 - Tradeoff: this coarse mutex serializes admissions across projects. The named
-  budget of 64 includes the holder and admission waiters; exhaustion refuses
-  before waiting or creating backing. Registration/removal also join the mutex.
+  budget of 64 includes retained holders, admission waiters, registration tasks
+  and removal waiters. Registration reserves non-waiting capacity before detaching
+  its persistence/publication task; cancellation cannot grow the mutex queue.
+  Removal reserves from the same budget. Exhaustion refuses before queue admission
+  or managed backing creation. Existing init/clone preparation is not a new
+  filesystem rollback guarantee.
 
 `projects::admission` owns the hold, exact `Workspaces` allocation/project check,
 and checked root. Registration deduplicates under the same lock and persists
@@ -82,3 +86,24 @@ functional tests remain owed. The package is not adoption-ready. After those
 checks, run the prescribed whole root gate once and submit the immutable range
 for source review. The real workspace provisioner consumes only the checked,
 reviewed producer. No native UI or filesystem provisioning adapter is included.
+
+
+## Review corrections: task diagnostics and retained queue capacity
+
+The tracked task cause now retains the concrete JoinError privately behind an
+input-free Cancelled/Panicked wrapper. Its Debug/Display and complete source chain
+stop before the raw panic payload; the existing workspace warning sees only the
+safe wrapper. This does not sanitize the runtime's independent global panic hook.
+Actual static/owned panic and abort tests exercise the enclosing error, complete
+chain, wire error and captured workspace warning, and a private test proves the
+concrete cause remains owned.
+
+A held-admission regression drives actual add callers until their detached inserts
+queue, then drops each caller. The shared budget caps retained tasks; repeated
+fresh requests refuse without adding a task. Releasing the hold drains the queue,
+deduplicates the same directory and publishes one durable registration. No second
+waiting semaphore or unlimited detached waiter population is introduced.
+
+Earlier exact strict and functional evidence belongs to the pre-correction head.
+The new source, diagnostic canaries and saturation regression require fresh
+changed-head checks and the same scoped source follow-up before adoption.

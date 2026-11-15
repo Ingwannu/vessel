@@ -245,3 +245,72 @@ async fn concurrent_registration_publishes_one_durable_project() {
     assert_eq!(restarted.list_projects().await.projects.len(), 1);
     fixture.stop.cancel();
 }
+
+/// Bounds the async test's event-driven progress; no sleep acts as synchronization.
+const PROJECT_ADMISSION_TEST_DEADLINE: std::time::Duration = std::time::Duration::from_secs(30);
+
+#[tokio::test]
+async fn cancelled_registrations_share_the_retained_admission_budget_and_deduplicate() {
+    use crate::workspace::projects::admission::MAX_PROJECT_ADMISSIONS;
+    let fixture = Fixture::new().await;
+    let project = fixture.project("retained-project", None).await;
+    let admission = fixture.workspaces.admit_project(project.id).await.unwrap();
+    let root = fixture.path().join("queued-registration");
+    std::fs::create_dir(&root).unwrap();
+    let baseline = fixture.tasks.len();
+    for queued in 1..MAX_PROJECT_ADMISSIONS {
+        let mut request = Box::pin(fixture.workspaces.add_project(root.clone(), None));
+        tokio::time::timeout(PROJECT_ADMISSION_TEST_DEADLINE, async {
+            while fixture.workspaces.project_admissions.available_permits()
+                != MAX_PROJECT_ADMISSIONS - 1 - queued
+            {
+                tokio::select! {
+                    result = &mut request => panic!("registration settled behind the retained hold: {result:?}"),
+                    () = tokio::task::yield_now() => {}
+                }
+            }
+        }).await.unwrap();
+        assert_eq!(fixture.tasks.len(), baseline + queued);
+        // The actual caller disappears after its separately tracked insert has started.
+        drop(request);
+    }
+    assert_eq!(fixture.workspaces.project_admissions.available_permits(), 0);
+    for _attempt in 0..MAX_PROJECT_ADMISSIONS {
+        assert!(matches!(
+            fixture.workspaces.add_project(root.clone(), None).await,
+            Err(WorkspaceError::Busy(_))
+        ));
+        assert_eq!(fixture.tasks.len(), baseline + MAX_PROJECT_ADMISSIONS - 1);
+    }
+    assert_eq!(fixture.workspaces.list_projects().await.projects.len(), 1);
+    drop(admission);
+    fixture.tasks.close();
+    tokio::time::timeout(PROJECT_ADMISSION_TEST_DEADLINE, fixture.tasks.wait())
+        .await
+        .unwrap();
+    assert_eq!(fixture.tasks.len(), 0);
+    assert_eq!(
+        fixture.workspaces.project_admissions.available_permits(),
+        MAX_PROJECT_ADMISSIONS
+    );
+    let projects = fixture.workspaces.list_projects().await.projects;
+    assert_eq!(projects.len(), 2);
+    assert_eq!(
+        projects
+            .iter()
+            .filter(|project| project.root == root)
+            .count(),
+        1
+    );
+    let restarted = fixture.restart().await;
+    let persisted = restarted.list_projects().await.projects;
+    assert_eq!(persisted.len(), 2);
+    assert_eq!(
+        persisted
+            .iter()
+            .filter(|project| project.root == root)
+            .count(),
+        1
+    );
+    fixture.stop.cancel();
+}
