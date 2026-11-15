@@ -225,6 +225,9 @@ The dependency changes below belong to their respective implementation commits.
     the relationship between the selected file, the kernel row and the live
     descriptor split between crates, and encourages exporting PID getters
     before there is a verified process. Passing a bare PID is not the proof.
+    FDinfo uses the same `lock_get_status` line decoder as `/proc/locks`,
+    so retaining it in store would require a duplicate decoder in proc or
+    the rejected reverse dependency.
   - Add another small crate. That adds a process-mechanism owner and more
     edges beside an existing owner; it would also split the existing Nix
     ownership or move it without a separate need.
@@ -301,3 +304,24 @@ unverified descendants. Its descriptor and namespace proof is an additional
 safety floor, not a claim that Paseo performs it.
 This amendment is reviewed before implementation; the active map changes
 only in the commit that adds each manifest edge.
+
+
+### Binding implementation conditions
+
+The contract has passed review; the dependency implementation still awaits
+its integration decision. Before the move starts, these conditions bind it:
+
+- The move adds only `proc` to store's active dependency cell; proc's cell
+  remains `-`. The manifest, table and the following name restriction land
+  in the same behavior-preserving commit.
+- Add a `Names only some files may use` row restricting `vessel_proc` in
+  `vessel-store` to its lock module (`src/lock/`). That module may delegate
+  only the lock query, not spawn a child or reach a signal/group/session
+  cleanup operation. Store retains its data layout and owner-record policy.
+- When the real CLI caller lands, add a name rule restricting proc's signal
+  entry point in `vessel-cli` to the force module. The graph edge does not
+  grant other CLI modules a second signalling path.
+- The move must remain readable as a move with `git diff -M`: no parser
+  cleanup, API change, changed bound or error source, weakened assertion,
+  different duplicate-writer handling, or changed `NotVisible` fallback.
+  A kernel PID alone continues to grant no signal authority.

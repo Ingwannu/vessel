@@ -6,9 +6,10 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
-- Proposed: process ownership contract (2p0) is documented; review must pass
-  before any proc implementation. Kernel observations alone grant no signal
-  authority. Active map rows and manifests are still unchanged.
+- Reviewed: process ownership contract (2p0) passed review. The move still
+  awaits its integration decision; no proc code has changed. Binding name
+  restrictions are recorded in ADR 0001 before implementation. Active map
+  rows and manifests are still unchanged.
 
 - Done: slices 1, 2a (launchd), 2b (graceful stop).
 - Source committed: 2c (`337f92b8`) adds authenticated directory binding
@@ -24,9 +25,10 @@ slice order. The docs commit adds both and no command.
 - Merged: node head `5ac9c991`, including the lost-wake repair, inbox and
   push. The next slice's gate covers this merged tree, including the
   explicit forge-fixture clippy and test steps.
-- Source: 2f service path fidelity, exclusive file creation and byte-stream
-  preservation. Initial focused clippy passed; the final quoting correction,
-  focused tests and whole gate still require evidence.
+- Gated: 2f service path fidelity, exclusive file creation and byte-stream
+  preservation. The final quoting correction,
+  focused checks and the whole gate passed (2,066 Rust tests, no failures,
+  12 ignored; forge 4, web unit 417 and e2e 62). Review is pending.
 - Next: gate 2f, then deadline-safe local reads, service
   observation/finalization, force/restart and slices 3/4. Actual service
   managers and real agents remain unverified.
