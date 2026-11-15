@@ -9,7 +9,7 @@ use super::{
     control::Control,
     input::Input,
     prepare::{Factory, PrepareError},
-    quota::{ConnectionBudget, Lease, NodeBudget, QuotaError},
+    quota::{ConnectionBudget, NodeBudget, QuotaError},
     stream_error::StreamError,
     updates::Event,
 };

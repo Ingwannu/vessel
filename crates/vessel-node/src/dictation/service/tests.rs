@@ -127,14 +127,15 @@ async fn the_product_service_transcribes_a_tail_and_delivers_partial_then_final_
     vessel_testkit::within(TEST_LIMIT, async {
         let f = Fixture::new().await;
         let service = f.service();
-        f.settings
+        let _configured = f
+            .settings
             .change_dictation(f.patch(), service.reader())
             .await
             .unwrap();
         let link = Link::new().await;
         let context = link.context.dictation_context().unwrap();
         let id: vessel_proto::dictation::DictationId = "service-flow".parse().unwrap();
-        service
+        let _ready = service
             .start(
                 &context,
                 StartDictation {
@@ -247,14 +248,15 @@ async fn the_node_work_tracker_joins_service_retirement_while_a_real_context_is_
     vessel_testkit::within(TEST_LIMIT, async {
         let f = Fixture::new().await;
         let service = f.service();
-        f.settings
+        let _configured = f
+            .settings
             .change_dictation(f.patch(), service.reader())
             .await
             .unwrap();
         let link = Link::new().await;
         let context = link.context.dictation_context().unwrap();
         let id = "node-stop".parse().unwrap();
-        service
+        let _ready = service
             .start(
                 &context,
                 StartDictation {

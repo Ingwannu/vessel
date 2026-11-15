@@ -26,7 +26,7 @@ fn config(root: &std::path::Path) -> Config {
 
 #[tokio::test]
 async fn hidden_get_and_legacy_set_skip_named_presence_reads_on_the_actual_node_service() {
-    vessel_testkit::within(TEST_LIMIT, async {
+    Box::pin(vessel_testkit::within(TEST_LIMIT, async {
         let root = tempfile::tempdir().unwrap();
         let config = config(root.path());
         std::fs::create_dir_all(config.data_dir.root()).unwrap();
@@ -76,14 +76,14 @@ async fn hidden_get_and_legacy_set_skip_named_presence_reads_on_the_actual_node_
         }
         link.close().await;
         node.stop().await.unwrap();
-    })
+    }))
     .await
     .unwrap();
 }
 
 #[tokio::test]
 async fn all_five_actual_guarded_handlers_refuse_read_only_devices_and_agents() {
-    vessel_testkit::within(TEST_LIMIT, async {
+    Box::pin(vessel_testkit::within(TEST_LIMIT, async {
         let root = tempfile::tempdir().unwrap();
         let node = Node::start(config(root.path())).await.unwrap();
         let link = Link::new().await;
@@ -163,7 +163,7 @@ async fn all_five_actual_guarded_handlers_refuse_read_only_devices_and_agents() 
         }
         link.close().await;
         node.stop().await.unwrap();
-    })
+    }))
     .await
     .unwrap();
 }

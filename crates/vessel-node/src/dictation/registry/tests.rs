@@ -222,7 +222,7 @@ async fn actual_outlet_close_retires_streams_even_while_the_lifetime_guard_is_re
         link.close_transport();
         match waiting.await.unwrap() {
             Event::End(End::Failed(source)) => {
-                assert_eq!(source.reason(), Some(DictationReason::Cancelled))
+                assert_eq!(source.reason(), Some(DictationReason::Cancelled));
             }
             Event::Partial(_) | Event::End(End::Final(_)) => {
                 panic!("transport closure produced text")

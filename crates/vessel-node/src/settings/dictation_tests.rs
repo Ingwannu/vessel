@@ -50,7 +50,8 @@ impl Fixture {
         }
     }
     async fn establish(&self) {
-        self.settings
+        let _configured = self
+            .settings
             .change_dictation(self.endpoint(), &self.reader)
             .await
             .unwrap();

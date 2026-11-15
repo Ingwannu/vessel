@@ -873,3 +873,11 @@ The transport projection amendment now records why one connection-factory
 observer was chosen over per-resource waits or another RPC accessor, and its
 one-task/no-I/O cost. This is rationale for the existing source, not a new
 transport implementation or additional runtime evidence.
+
+
+The second strict run passed type checking and exposed a leftover parent import
+following the worker import cleanup, one test semicolon, explicitly unused typed
+setup replies and two large assembled-service futures. The import/semicolon are
+corrected, setup returns are named, and the two existing test futures are boxed.
+The test deadline, inputs, branches and assertions are unchanged. The original
+nonzero run remains retained; none of this establishes runtime success.
