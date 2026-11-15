@@ -597,3 +597,10 @@ wrapped content), asserting the real parent VirtualList moves while the inner
 vertical offset stays zero. This supplements direct ListState and keyboard
 reveal tests; it has not run and does not establish wheel behavior. No vendor
 scroll-routing change was made from a source-only suspicion.
+
+Closed tabs without an outstanding answer previously had no answer-side cleanup
+trigger. Opening another C3 pane or reconciling a changed fleet now prunes closed
+entries through W12's existing read-only layout_tab_exists query. The original
+key issuer stays above entries, and no cache of tab authority or selected-session
+fallback is introduced. This bounds accumulation across repeated open/close;
+actual retained memory and full body-cache byte budgeting remain unverified.

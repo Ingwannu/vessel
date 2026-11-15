@@ -36,6 +36,7 @@ impl Shell {
         if !self.layout_panel_visible(&address.workspace, address.tab, window) {
             return;
         }
+        self.git_panels_prune();
         let context = self.git_panel_context(&address);
         let mut entry = Entry::new(target, context);
         let request = discover(&mut entry, &address, &mut self.areas.git.keys);
@@ -142,6 +143,25 @@ impl Shell {
         }
     }
 
+    // Closing a tab can leave no read in flight to trigger answer-side cleanup.
+    // Drop those documents on the next open/fleet reconciliation, using the sole
+    // layout book's read-only query. This list is local to one synchronous turn,
+    // not another retained tab/identity registry.
+    fn git_panels_prune(&mut self) {
+        let closed = self
+            .areas
+            .git
+            .panels
+            .entries
+            .keys()
+            .filter(|address| !self.layout_tab_exists(&address.workspace, address.tab))
+            .cloned()
+            .collect::<Vec<_>>();
+        for address in closed {
+            let _dropped = self.areas.git.panels.entries.remove(&address);
+        }
+    }
+
     /// Retirement happens before any device-area early return can skip it.
     #[must_use]
     pub(crate) fn git_panels_retired(&mut self, tag: &ConnectionTag) -> bool {
@@ -150,6 +170,7 @@ impl Shell {
 
     /// A fleet update cannot leave facts from a retired admission actionable.
     pub(crate) fn git_panels_fleet(&mut self) {
+        self.git_panels_prune();
         let retired = self
             .areas
             .git
