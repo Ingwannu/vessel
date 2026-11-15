@@ -51,7 +51,8 @@ launch, lifecycle and factory consumers; it must not recreate Desktop.records.
 Tests are installed for direct/wrapped roots, duplicate registration, retained old
 Shell after root replacement, close/dead recipient and successor handle, active /
 visible / hidden fallback, absent factory and an actual factory-created window.
-They have not executed yet. Root identity is not caller source/context authority;
+All five cases executed successfully in the selected continuation described below.
+Root identity is not caller source/context authority;
 W7 separately checks its opaque notice route and original source before actions.
 No OS notification delivery/permission, native capture, IME/a11y, E3 parity or
 historical Linux focused-field F5 claim is made by this control producer.
@@ -61,3 +62,11 @@ four style diagnostics: one missing documentation backtick and three unit-return
 callback semicolons. No tests ran. Correcting only those diagnostics does not
 constitute a runtime result; the continuation uses the ordinary lane, with the
 first priority record retained. No suppression or assertion change is added.
+
+Exact source d8b733972f406c65c42a09758abcba34bc30e0d3 passed ordinary selected
+run wp-desktop-host-narrow-20261115T170147Z-d8b73397: fonts, formatting, quality,
+all-target strict Clippy and tests all returned zero. The raw aggregate was
+1490 passed / 0 failed / 2 ignored, including App 108 / 0 / 2, Kit 204 / 0 / 0
+and all five host-window cases plus the root-owner helper. The logs show the
+changed Kit/App being checked and compiled. This is selected source evidence;
+review, final consumer union and the lead's combined gate remain separate.
