@@ -5,7 +5,7 @@ use crate::checkpoint::{
     restore::stage::{Slot, Stage},
 };
 use rustix::fs::{Mode, RenameFlags};
-use std::{fs::File, io};
+use std::{fs::File, io, os::unix::fs::MetadataExt as _};
 use vessel_proto::checkpoint::{CheckpointError, CheckpointPath};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -51,7 +51,6 @@ impl Root {
             };
             let found = child.metadata()?;
             self.check_mount(&child)?;
-            use std::os::unix::fs::MetadataExt as _;
             if found.dev() != self.identity.device || found.uid() != self.identity.owner {
                 return Err(CheckpointError::UnsupportedMetadata.into());
             }
@@ -83,7 +82,6 @@ impl Root {
         let target = self.location(path, policy)?;
         let source_metadata = stage.folder.metadata()?;
         let destination_metadata = target.folder.metadata()?;
-        use std::os::unix::fs::MetadataExt as _;
         if source_metadata.dev() != destination_metadata.dev() {
             return Err(CheckpointError::UnsupportedScope.into());
         }

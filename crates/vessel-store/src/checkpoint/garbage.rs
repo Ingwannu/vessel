@@ -2,7 +2,7 @@
 //!
 //! [Decision Log]
 //! - Purpose: session deletion must remove unpinned images without breaking quota.
-//! - Constraint: files cannot be removed inside a SQLite transaction atomically.
+//! - Constraint: files cannot be removed inside a `SQLite` transaction atomically.
 //! - Choice: transfer the reservation into durable garbage independent of the
 //!   session FK; only a verified filesystem cleanup acknowledgement releases it.
 //! - Cost: interrupted cleanup conservatively retains capacity until reconciliation.

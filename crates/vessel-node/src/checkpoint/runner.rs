@@ -43,6 +43,10 @@ struct Work {
 }
 #[derive(Debug)]
 enum Event {
+    CleanupFailed {
+        key: CaptureKey,
+        reason: CheckpointError,
+    },
     Candidate {
         key: CaptureKey,
         permit: oneshot::Sender<Result<(), CheckpointError>>,
@@ -62,6 +66,12 @@ enum Event {
 pub(super) struct Client {
     requests: mpsc::Sender<Request>,
     lifecycle: watch::Receiver<Lifecycle>,
+    cleanup_faults: watch::Receiver<Option<CleanupFault>>,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct CleanupFault {
+    pub(super) key: CaptureKey,
+    pub(super) reason: CheckpointError,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum Lifecycle {
@@ -69,6 +79,9 @@ pub(super) enum Lifecycle {
     Draining,
 }
 impl Client {
+    pub(super) fn cleanup_faults(&self) -> watch::Receiver<Option<CleanupFault>> {
+        self.cleanup_faults.clone()
+    }
     pub(super) fn lifecycle(&self) -> watch::Receiver<Lifecycle> {
         self.lifecycle.clone()
     }
@@ -125,11 +138,12 @@ where
         + 'static,
     Persist: Fn(CaptureKey, Publication) -> Stored + Send + Sync + 'static,
     Stored: Future<Output = Result<(), CheckpointError>> + Send + 'static,
-    Cleanup: Fn(CaptureKey, Disposition) + Send + Sync + 'static,
+    Cleanup: Fn(CaptureKey, Disposition) -> Result<(), CheckpointError> + Send + Sync + 'static,
 {
     let (requests, mut receive) = mpsc::channel::<Request>(CHECKPOINT_QUEUE);
     let (events, mut completed) = mpsc::channel::<Event>(CHECKPOINT_WORKERS);
     let (state, lifecycle) = watch::channel(Lifecycle::Accepting);
+    let (faults, cleanup_faults) = watch::channel(None);
     let read = Arc::new(read);
     let persist = Arc::new(persist);
     let cleanup = Arc::new(cleanup);
@@ -165,20 +179,7 @@ where
                 }
                 event=completed.recv()=>{
                     let Some(event)=event else {break;};
-                    match event {
-                        Event::Candidate{key,permit}=>{
-                            let _closed=permit.send(captures.candidate(key,Instant::now()));
-                        }
-                        Event::Published{key,result,accepted}=>{
-                            let disposition=match result {
-                                Ok(())=>match captures.published(key,Instant::now()) {Ok(())=>Disposition::Keep,Err(_)=>Disposition::Discard},
-                                Err(reason)=>{captures.refuse(key,reason);Disposition::Discard},
-                            };
-                            let _closed=accepted.send(disposition);
-                        }
-                        Event::Failed{key,reason}=>captures.refuse(key,reason),
-                        Event::Cleaned(key)=>{let _stale=captures.cleaned(key);},
-                    }
+                    completed_event(&mut captures,event,&faults);
                 }
                 ()=wait_deadline(deadline)=>captures.expire(Instant::now()),
             }
@@ -188,9 +189,47 @@ where
         Client {
             requests,
             lifecycle,
+            cleanup_faults,
         },
         task,
     )
+}
+
+fn completed_event(
+    captures: &mut Captures,
+    event: Event,
+    faults: &watch::Sender<Option<CleanupFault>>,
+) {
+    match event {
+        Event::CleanupFailed { key, reason } => {
+            captures.refuse(key, reason);
+            let _previous = faults.send_replace(Some(CleanupFault { key, reason }));
+        }
+        Event::Candidate { key, permit } => {
+            let _closed = permit.send(captures.candidate(key, Instant::now()));
+        }
+        Event::Published {
+            key,
+            result,
+            accepted,
+        } => {
+            let disposition = match result {
+                Ok(()) => match captures.published(key, Instant::now()) {
+                    Ok(()) => Disposition::Keep,
+                    Err(_) => Disposition::Discard,
+                },
+                Err(reason) => {
+                    captures.refuse(key, reason);
+                    Disposition::Discard
+                }
+            };
+            let _closed = accepted.send(disposition);
+        }
+        Event::Failed { key, reason } => captures.refuse(key, reason),
+        Event::Cleaned(key) => {
+            let _stale = captures.cleaned(key);
+        }
+    }
 }
 
 async fn wait_deadline(deadline: Option<Instant>) {
@@ -213,7 +252,7 @@ async fn work<Read, Persist, Cleanup, Stored>(
         + 'static,
     Persist: Fn(CaptureKey, Publication) -> Stored + Send + Sync + 'static,
     Stored: Future<Output = Result<(), CheckpointError>> + Send + 'static,
-    Cleanup: Fn(CaptureKey, Disposition) + Send + Sync + 'static,
+    Cleanup: Fn(CaptureKey, Disposition) -> Result<(), CheckpointError> + Send + Sync + 'static,
 {
     let key = job.key;
     let disposition = match persist(key, Publication::Reserve(job.bytes)).await {
@@ -237,9 +276,15 @@ async fn work<Read, Persist, Cleanup, Stored>(
     };
     // Cleanup is deliberately awaited here, never by the session/deadline owner.
     let cleaned = tokio::task::spawn_blocking(move || cleanup(key, disposition)).await;
-    if cleaned.is_ok() {
-        let _closed = events.send(Event::Cleaned(key)).await;
-    }
+    let event = match cleaned {
+        Ok(Ok(())) => Event::Cleaned(key),
+        Ok(Err(reason)) => Event::CleanupFailed { key, reason },
+        Err(_lost) => Event::CleanupFailed {
+            key,
+            reason: CheckpointError::StaleCapture,
+        },
+    };
+    let _closed = events.send(event).await;
 }
 async fn read_candidate<Read, Persist, Stored>(
     job: Work,

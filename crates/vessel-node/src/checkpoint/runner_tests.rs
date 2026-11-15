@@ -61,6 +61,7 @@ async fn held_read_io_releases_prompt_and_late_candidate_never_publishes() {
         move |_key, disposition| {
             assert_eq!(disposition, Disposition::Discard);
             cleaned.lock().unwrap().take().unwrap().send(()).unwrap();
+            Ok(())
         },
     );
     let capture_key = key();
@@ -98,7 +99,10 @@ async fn dropping_all_clients_does_not_drop_the_owner_before_held_io_is_cleaned(
             FileImage::new(Vec::new())
         },
         |_key, _phase| async { Ok(()) },
-        |_key, disposition| assert_eq!(disposition, Disposition::Discard),
+        |_key, disposition| {
+            assert_eq!(disposition, Disposition::Discard);
+            Ok(())
+        },
     );
     let call = client.clone();
     let actor =
@@ -150,6 +154,7 @@ async fn held_publication_ack_cannot_revive_the_expired_lease() {
         move |_key, disposition| {
             assert_eq!(disposition, Disposition::Discard);
             cleaned.lock().unwrap().take().unwrap().send(()).unwrap();
+            Ok(())
         },
     );
     let capture_key = key();
@@ -206,6 +211,7 @@ async fn accepted_candidate_releases_actor_but_activation_retains_worker_and_roo
         move |_key, disposition| {
             assert_eq!(disposition, Disposition::Keep);
             cleaned.lock().unwrap().take().unwrap().send(()).unwrap();
+            Ok(())
         },
     );
     let key = key();
@@ -253,6 +259,7 @@ async fn uncertain_ready_activation_keeps_archive_for_reconciliation() {
         move |_key, disposition| {
             assert_eq!(disposition, Disposition::Recovery);
             cleaned.lock().unwrap().take().unwrap().send(()).unwrap();
+            Ok(())
         },
     );
     let key = key();
@@ -299,6 +306,7 @@ async fn held_global_reservation_never_starts_filesystem_work_after_actor_deadli
         move |_key, disposition| {
             assert_eq!(disposition, Disposition::Discard);
             cleaned.lock().unwrap().take().unwrap().send(()).unwrap();
+            Ok(())
         },
     );
     let key = key();
@@ -318,4 +326,37 @@ async fn held_global_reservation_never_starts_filesystem_work_after_actor_deadli
     assert_eq!(reads.load(Ordering::SeqCst), 0);
     drop(client);
     owner.await.unwrap();
+}
+
+#[tokio::test]
+async fn failed_cleanup_cannot_return_worker_capacity_or_its_root_guard() {
+    let (client, owner) = runner::start(
+        |_key, _cancel| FileImage::new(Vec::new()),
+        |_key, _phase| async { Ok(()) },
+        |_key, _disposition| Err(CheckpointError::StorageFull),
+    );
+    let mut faults = client.cleanup_faults();
+    let key = key();
+    assert_eq!(
+        client.capture(key, ReservedBytes::new(1).unwrap()).await,
+        Ok(key)
+    );
+    while faults.borrow_and_update().is_none() {
+        faults.changed().await.unwrap();
+    }
+    assert_eq!(
+        *faults.borrow(),
+        Some(runner::CleanupFault {
+            key,
+            reason: CheckpointError::StorageFull
+        })
+    );
+    assert_eq!(
+        client.capture(key, ReservedBytes::new(1).unwrap()).await,
+        Err(CheckpointError::Busy)
+    );
+    // No real I/O is held in this failure fixture; stop its deliberately
+    // unresolved owner rather than presenting failed cleanup as completion.
+    owner.abort();
+    assert!(owner.await.unwrap_err().is_cancelled());
 }

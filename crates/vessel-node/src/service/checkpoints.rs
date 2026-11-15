@@ -6,6 +6,7 @@
 //! mutate files before the durable coordinator has been connected and reviewed.
 
 use super::{Connection, NodeService};
+use std::future::{Ready, ready};
 use vessel_proto::{
     ErrorCode, ErrorDetail, WireError,
     checkpoint::{
@@ -24,44 +25,49 @@ fn unavailable() -> WireError {
     }
 }
 
+fn unavailable_for<T>(connection: &Connection) -> Ready<Result<T, WireError>> {
+    ready(
+        connection
+            .principal()
+            .checkpoint_owner()
+            .and(Err(unavailable())),
+    )
+}
+
 impl NodeService {
-    pub(crate) async fn list_checkpoints(
+    pub(crate) fn list_checkpoints(
         &self,
         _connection: &Connection,
         _request: ListCheckpoints,
-    ) -> Result<CheckpointPage, WireError> {
-        Err(unavailable())
+    ) -> Ready<Result<CheckpointPage, WireError>> {
+        ready(Err(unavailable()))
     }
-    pub(crate) async fn preview_checkpoint(
+    pub(crate) fn preview_checkpoint(
         &self,
         connection: &Connection,
         _request: PreviewCheckpoint,
-    ) -> Result<RestorePreview, WireError> {
-        let _owner = connection.principal().checkpoint_owner()?;
-        Err(unavailable())
+    ) -> Ready<Result<RestorePreview, WireError>> {
+        unavailable_for(connection)
     }
-    pub(crate) async fn read_checkpoint_changes(
+    pub(crate) fn read_checkpoint_changes(
         &self,
         connection: &Connection,
         _request: ReadCheckpointChanges,
-    ) -> Result<ChangePage, WireError> {
-        let _owner = connection.principal().checkpoint_owner()?;
-        Err(unavailable())
+    ) -> Ready<Result<ChangePage, WireError>> {
+        unavailable_for(connection)
     }
-    pub(crate) async fn restore_checkpoint(
+    pub(crate) fn restore_checkpoint(
         &self,
         connection: &Connection,
         _request: RestoreCheckpoint,
-    ) -> Result<RestoreOutcome, WireError> {
-        let _owner = connection.principal().checkpoint_owner()?;
-        Err(unavailable())
+    ) -> Ready<Result<RestoreOutcome, WireError>> {
+        unavailable_for(connection)
     }
-    pub(crate) async fn checkpoint_restore_status(
+    pub(crate) fn checkpoint_restore_status(
         &self,
         connection: &Connection,
         _request: CheckpointRestoreStatus,
-    ) -> Result<RestoreOutcome, WireError> {
-        let _owner = connection.principal().checkpoint_owner()?;
-        Err(unavailable())
+    ) -> Ready<Result<RestoreOutcome, WireError>> {
+        unavailable_for(connection)
     }
 }
