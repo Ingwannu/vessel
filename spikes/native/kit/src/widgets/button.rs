@@ -56,6 +56,7 @@ const BUTTON_ICON: gpui::Pixels = px(crate::theme::icon::SM);
 const BUTTON_HEIGHT: gpui::Pixels = px(32.0);
 const BUTTON_HORIZONTAL: gpui::Pixels = px(16.0);
 const BUTTON_GAP: gpui::Pixels = px(8.0);
+const LABEL_VERTICAL: gpui::Pixels = px(crate::theme::spacing::S1);
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct ButtonGeometry {
@@ -163,12 +164,11 @@ pub fn button_with_kind_at(
     sizing: ControlSizing,
     tokens: &Tokens,
 ) -> Stateful<Div> {
-    button_with_content(
+    render(
         id,
         ButtonContent::Label(label.into()),
-        kind,
-        state,
-        sizing,
+        ButtonConfig::new(kind, state, sizing),
+        Presentation::PublishedFilled,
         tokens,
     )
 }
@@ -184,7 +184,13 @@ pub fn button_with_content(
     sizing: ControlSizing,
     tokens: &Tokens,
 ) -> Stateful<Div> {
-    render(id, content, ButtonConfig::new(kind, state, sizing), tokens)
+    render(
+        id,
+        content,
+        ButtonConfig::new(kind, state, sizing),
+        Presentation::Standard,
+        tokens,
+    )
 }
 
 /// Loading/size-aware content with a guarded handler entry. Catalog Add uses
@@ -195,7 +201,10 @@ pub fn button_control(
     config: ButtonConfig,
     tokens: &Tokens,
 ) -> Button {
-    Button::new(render(id, content, config, tokens), config.availability())
+    Button::new(
+        render(id, content, config, Presentation::Standard, tokens),
+        config.availability(),
+    )
 }
 // The published outline API passes a caller-selected tone and direct text
 // child. Keep that contract (including its actual child bounds) inside the
@@ -203,6 +212,7 @@ pub fn button_control(
 #[derive(Clone, Copy)]
 enum Presentation {
     Standard,
+    PublishedFilled,
     PublishedOutline(Hsla),
 }
 fn frame(config: ButtonConfig, presentation: Presentation, tokens: &Tokens) -> Div {
@@ -229,7 +239,7 @@ fn frame(config: ButtonConfig, presentation: Presentation, tokens: &Tokens) -> D
             ButtonSize::Medium => Type::Label,
         });
     match presentation {
-        Presentation::Standard => body
+        Presentation::Standard | Presentation::PublishedFilled => body
             .min_w_0()
             .max_w_full()
             .bg(paint.fill)
@@ -261,7 +271,7 @@ fn body(
             Some(icon) => {
                 let element = icon_element(icon, config.kind, state, config.size, tokens);
                 body.child(match presentation {
-                    Presentation::Standard => element,
+                    Presentation::Standard | Presentation::PublishedFilled => element,
                     Presentation::PublishedOutline(tone) => element.text_color(tone),
                 })
             }
@@ -270,6 +280,9 @@ fn body(
     };
     match (content.label, presentation) {
         (Some(label), Presentation::Standard) => body.child(wrapping(label)),
+        (Some(label), Presentation::PublishedFilled) => {
+            body.child(wrapping(label).py(LABEL_VERTICAL))
+        }
         (Some(label), Presentation::PublishedOutline(_)) => body.child(label),
         (None, _) => body,
     }
@@ -278,12 +291,13 @@ fn render(
     id: impl Into<gpui::ElementId>,
     content: ButtonContent,
     config: ButtonConfig,
+    presentation: Presentation,
     tokens: &Tokens,
 ) -> Stateful<Div> {
     let state = config.availability();
     let kind = config.kind;
     let pressed = button_paint(kind, ButtonPhase::Pressed, tokens);
-    body(content, config, Presentation::Standard, tokens)
+    body(content, config, presentation, tokens)
         .id(id)
         .group(BUTTON_GROUP)
         .when(state == ButtonState::Enabled, |button| {
@@ -368,13 +382,11 @@ pub fn button(
     button_with_kind(id, label, kind, ButtonState::Enabled, tokens)
 }
 
-/// A button's label: on one line while it fits, wrapped and centred when
-/// it does not (4 above and under each line block, so two lines do not
-/// touch the pill's edge).
+/// Source text wraps without additional vertical padding. Published filled
+/// entries explicitly retain their older four-point inset in the shared body.
 fn wrapping(label: SharedString) -> Div {
     div()
         .min_w_0()
-        .py(px(4.0))
         .text_center()
         .whitespace_normal()
         .child(label)
@@ -386,3 +398,5 @@ mod tests;
 
 #[cfg(test)]
 mod input_tests;
+#[cfg(test)]
+mod layout_tests;
