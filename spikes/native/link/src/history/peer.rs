@@ -26,11 +26,24 @@ pub(crate) enum Behaviour {
 pub(crate) struct Peer {
     pub client: NodeClient,
     pub calls: Arc<Mutex<Vec<Call>>>,
-    task: tokio::task::JoinHandle<()>,
+    owner: TaskOwner,
 }
-impl Drop for Peer {
+// Constructed immediately after spawn, before handshake can suspend or panic.
+struct TaskOwner(Option<tokio::task::JoinHandle<()>>);
+impl Drop for TaskOwner {
     fn drop(&mut self) {
-        self.task.abort();
+        if let Some(task) = &self.0 {
+            task.abort();
+        }
+    }
+}
+impl Peer {
+    pub(crate) async fn finish(mut self) {
+        if let Some(task) = self.owner.0.as_mut() {
+            task.abort();
+            let result = crate::testing::phase("history peer reap", task).await;
+            assert!(result.is_ok() || result.is_err_and(|error| error.is_cancelled()));
+        }
     }
 }
 
@@ -139,22 +152,30 @@ pub(crate) async fn connect_at(
             }
         }
     });
-    let (reader, writer) = tokio::io::split(local);
-    let client = NodeClient::over(
-        vessel_rpc::Framed::new(reader, writer, NonZeroUsize::new(FRAME_LIMIT).unwrap()),
-        ClientInfo {
-            name: "history-test".into(),
-            version: "0".into(),
-        },
-        &ClientConfig::default(),
-    )
-    .await
-    .unwrap();
+    let owner = TaskOwner(Some(task));
+    let client = handshake(local).await;
     Peer {
         client,
         calls,
-        task,
+        owner,
     }
+}
+
+async fn handshake(local: DuplexStream) -> NodeClient {
+    let (reader, writer) = tokio::io::split(local);
+    crate::testing::phase(
+        "history peer handshake",
+        NodeClient::over(
+            vessel_rpc::Framed::new(reader, writer, NonZeroUsize::new(FRAME_LIMIT).unwrap()),
+            ClientInfo {
+                name: "history-test".into(),
+                version: "0".into(),
+            },
+            &ClientConfig::default(),
+        ),
+    )
+    .await
+    .unwrap()
 }
 
 pub(crate) fn admitted(
@@ -187,4 +208,46 @@ pub(crate) fn admitted(
     );
     let selected = state.selected_connection(&context).unwrap();
     (home, state, selected, context, events)
+}
+
+#[tokio::test(start_paused = true)]
+async fn handshake_phase_failure_reaps_the_owned_transport() {
+    crate::testing::within(async {
+        struct Stopped(Option<tokio::sync::oneshot::Sender<()>>);
+        impl Drop for Stopped {
+            fn drop(&mut self) {
+                if let Some(done) = self.0.take() {
+                    let _closed = done.send(());
+                }
+            }
+        }
+        let (local, mut remote) = tokio::io::duplex(FRAME_LIMIT);
+        let (hello, observed) = tokio::sync::oneshot::channel();
+        let (stopped, stop) = tokio::sync::oneshot::channel();
+        let mut setup = TaskOwner(Some(tokio::spawn(async move {
+            let task = tokio::spawn(async move {
+                let _stopped = Stopped(Some(stopped));
+                assert!(matches!(
+                    read(&mut remote).await,
+                    Some(ClientFrame::Hello(_))
+                ));
+                hello.send(()).unwrap();
+                std::future::pending::<()>().await;
+            });
+            let _owner = TaskOwner(Some(task));
+            let _client = handshake(local).await;
+        })));
+        crate::testing::phase("actual hello before withheld welcome", observed)
+            .await
+            .unwrap();
+        tokio::time::advance(crate::testing::DEADLINE).await;
+        let failed = crate::testing::phase("failed setup task reaped", setup.0.as_mut().unwrap())
+            .await
+            .unwrap_err();
+        assert!(failed.is_panic());
+        crate::testing::phase("owned transport actually dropped", stop)
+            .await
+            .unwrap();
+    })
+    .await;
 }

@@ -2,8 +2,11 @@
 
 mod actions;
 mod draw;
+mod intent;
 mod pickers;
 mod rows;
+#[cfg(test)]
+mod tests;
 pub(crate) use draw::{entry, render};
 
 use crate::shell::Shell;
@@ -44,7 +47,7 @@ pub(crate) struct ImportArea {
     pub(super) tickets: Tickets,
     pub(super) failure: Option<Problem>,
     pub(super) prior: Option<FocusHandle>,
-    pub(super) pending_open: Option<crate::areas::session::Open>,
+    pub(super) visit: Option<Ticket>,
 }
 
 impl ImportArea {
@@ -77,7 +80,22 @@ impl ImportArea {
             tickets: Tickets::default(),
             failure: None,
             prior: None,
-            pending_open: None,
+            visit: None,
+        }
+    }
+
+    /// One persistent ticket source prevents close/reopen and scope ABA.
+    fn advance_visit(&mut self) -> bool {
+        match self.tickets.next_ticket() {
+            Ok(ticket) => {
+                self.visit = Some(ticket);
+                true
+            }
+            Err(_) => {
+                self.visit = None;
+                self.failure = Some(Problem::Exhausted);
+                false
+            }
         }
     }
 

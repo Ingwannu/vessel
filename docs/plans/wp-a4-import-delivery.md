@@ -31,12 +31,12 @@ existing agent.history/session.create and existing-session get/resume calls.
 - Base e1b73c9e is the lead's green1432/0/2 line; no native base move after this cut.
 - Exact86f55fbe View+Link all-target tests ran1220/0/0 (Link113, View967,
   integration/examples140), run wp-transfer-import-tests-20261115T132643Z-86f55fbe,
-  /tmp/work/wp-transfer/import-line-priority-tests-132643, completed13:32:19 UTC.
+  exact run logs, completed13:32:19 UTC.
   All three actual actor/history delivery regressions ran and passed.
 - Exact288370e3 strict app/view/link all-target Clippy ran0, actual Checking for
   app/kit/link/view and Finished22.38s, run
   wp-transfer-import-strict-20261115T134557Z-288370e3,
-  /tmp/work/wp-transfer/import-line-serial-strict-1-134556, completed13:46:36 UTC.
+  exact run logs, completed13:46:36 UTC.
 - Source deltas after86 change no product behavior:8f removes redundant
   std::mem:: qualification;288 removes two now-redundant queue type paths,
   moves the unchanged created-receipt helper before its inline test module and
@@ -50,3 +50,31 @@ existing agent.history/session.create and existing-session get/resume calls.
 - This final documentation commit changes no Rust/native executable source from
   288. V1 still reviews product export/visibility and actual callers before lead
   adoption. Whole native/GPUI receive/capture and final A4 parity are not implied.
+
+## R223 correction batch (source prepared, checks pending)
+
+[Decision Log]
+- Purpose: settle the four source findings without expanding the shared slot.
+- Constraint: the resident guarded opener is not a product API yet. Receipts
+  therefore remain in the import sheet; automatic alias Open and global Reload
+  registration are removed. Existing rows say Restore session. This delays direct
+  navigation but preserves the active draft and conversation across reconnection.
+- Choice: one persistent ticket source captures each rendered visit, original
+  scope and row selection. Row/footer/picker/dismiss intentions reject stale
+  captures before focus, model or command changes. Every accepted intention and
+  accepted page invalidates old captures; close/reopen cannot reuse a ticket.
+- Publication retains the existing eight-call semaphore and bounded Event queue.
+  After guarded publication's five-second deadline, only the correlated refusal
+  waits for receiver capacity or closure. A second dropping timeout could lose a
+  committed write receipt forever. The cost is bounded retained tasks while the
+  live receiver is stalled; no create is repeated and no unbounded queue is used.
+- Native tests reuse Tokio's existing test-util feature for deterministic clock
+  advancement. Framed peers own their task before handshake suspension; normal
+  cleanup aborts and joins with ownership retained through named test phases.
+- Requested regressions: actual retained GPUI row/footer/glyph/Escape callbacks
+  across reopen and scope ABA, current-row control, postvalidation receipt with
+  alias replacement, full publication queue beyond both previous deadlines,
+  withheld-Welcome phase failure and observable owned transport destruction.
+- The shared selected/export/actor files are untouched by this correction.
+  Exact strict and affected tests remain pending. Earlier1220/0 and strict0 are
+  immutable predecessor evidence; R223 remains RETURN until V1 rechecks.
