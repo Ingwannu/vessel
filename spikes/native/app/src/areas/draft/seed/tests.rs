@@ -15,6 +15,7 @@ fn destination(node: NodeId) -> DraftDestination {
 }
 fn connect(shell: &mut Shell, node: NodeId) {
     shell.fleet.machines.push(Machine {
+        connection_epoch: None,
         name: "fixture".to_owned(),
         reach: Reach::Online,
         sessions: Vec::new(),
