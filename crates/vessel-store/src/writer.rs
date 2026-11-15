@@ -127,7 +127,7 @@ pub(crate) enum Write {
     /// Mark one exact inbox entry; a read never answers a request.
     Inbox {
         mark: vessel_proto::inbox::MarkInbox,
-        done: Done,
+        done: Done<SessionCommit<()>>,
     },
     /// Device-scoped subscription changes; lease and scope checked atomically.
     Push {

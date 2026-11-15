@@ -1411,3 +1411,21 @@ older mark still applies without regressing time. Real fake-node tests exercise
 create/append/mark/handover and live detach/repeat publication. Existing error,
 cleanup, authority, cancellation, deadlines and assertions are unchanged. This
 still establishes no label-map coverage, new label event or reload behavior.
+
+
+### Exact inbox mark acknowledgement join
+
+The entry-mark convenience API now delegates to a committed variant, preserving
+its original unit result and Gone-entry semantics. The existing inbox handler
+keeps its scope and exact agent refusal, then delegates to the session owner
+instead of discarding the Store acknowledgement. That owner reuses the metadata
+lock and tracked-task pattern so a caller leaving cannot abandon a committed
+clock's live publication. No extra read path, timestamp source or permission is
+introduced. Later passive attention joins use this same acknowledgement rule.
+
+The fake-node regression waits for the exact TurnEnded record to be durable,
+marks its entry and checks live time. It then polls a second call while metadata
+is held, confirms its owned task exists, drops the caller and drains normal
+shutdown tasks; the canonical mark/time remain committed. The shared inbox
+handler change is only this delegation/error-boundary adjustment; its original
+authority checks and messages are untouched.

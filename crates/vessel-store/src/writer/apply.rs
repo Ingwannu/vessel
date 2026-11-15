@@ -110,9 +110,14 @@ pub(super) fn apply(
             });
             Answer::Done(done, applied)
         }
-        Write::Inbox { mark, done } => write_answer(transaction, done, |connection| {
-            crate::inbox::mark(connection, &mark)
-        }),
+        Write::Inbox { mark, done } => {
+            let applied = isolated(transaction, |connection| {
+                with_clock(connection, mark.key.session, |connection| {
+                    crate::inbox::mark(connection, &mark)
+                })
+            });
+            Answer::Session(done, applied)
+        }
         Write::Push { write, done } => write_answer(transaction, done, |connection| {
             crate::push::apply(connection, &write)
         }),

@@ -97,3 +97,116 @@ async fn live_detach_publishes_its_ack_and_repeating_it_does_not_erase_time() {
     .await
     .unwrap();
 }
+
+#[tokio::test]
+async fn exact_inbox_marks_publish_live_time_and_survive_caller_cancellation() {
+    use crate::sessions::Found;
+    use vessel_proto::{
+        AgentEvent, ContentBlock, SessionEvent, SessionInput,
+        inbox::{InboxKey, InboxRead, MarkInbox},
+    };
+    vessel_testkit::within(
+        MUTATION_PUBLICATION_BUDGET,
+        Box::pin(async {
+            let fixture = Fixture::new().await;
+            let created = fixture
+                .sessions
+                .create(fixture.structured(), LaunchOptions::default(), None)
+                .await
+                .unwrap();
+            let handle = fixture.runtime.get(created.id).unwrap();
+            let _running = ready(&handle).await.unwrap();
+            let mut follow = handle.follow(EventSeq::ZERO).unwrap();
+            handle
+                .send(SessionInput::Prompt {
+                    content: vec![ContentBlock::text("plain")],
+                })
+                .await
+                .unwrap();
+            let seq = loop {
+                let record = follow.live.recv().await.unwrap();
+                if matches!(
+                    record.event,
+                    SessionEvent::Agent {
+                        event: AgentEvent::TurnEnded { .. }
+                    }
+                ) {
+                    break record.seq;
+                }
+            };
+            let mut durability = match fixture.sessions.find(created.id).await.unwrap() {
+                Found::Live { durability, .. } => durability,
+                Found::Stored(_) => panic!("the fake must remain live after its turn"),
+            };
+            // Publication precedes Info update. Wait for THIS known record's commit,
+            // not a possibly earlier cursor read immediately after its broadcast.
+            crate::persist::wait_until(created.id, &mut durability, seq.next().unwrap())
+                .await
+                .unwrap();
+            let key = InboxKey {
+                session: created.id,
+                seq,
+            };
+            let before = handle.info().updated_at;
+            fixture
+                .sessions
+                .mark_inbox(MarkInbox {
+                    key,
+                    read: InboxRead::Read,
+                })
+                .await
+                .unwrap();
+            assert!(handle.info().updated_at > before);
+            assert_eq!(
+                fixture.store.inbox_entry(key).await.unwrap().unwrap().read,
+                InboxRead::Read
+            );
+            fixture
+                .sessions
+                .mark_inbox(MarkInbox {
+                    key,
+                    read: InboxRead::Unread,
+                })
+                .await
+                .unwrap();
+            let before_cancel = handle.info().updated_at;
+            let held = fixture.sessions.marking.lock().await;
+            let task_count = fixture.tasks.len();
+            let mut call = Box::pin(fixture.sessions.mark_inbox(MarkInbox {
+                key,
+                read: InboxRead::Read,
+            }));
+            let waker = std::task::Waker::noop();
+            assert!(
+                call.as_mut()
+                    .poll(&mut std::task::Context::from_waker(waker))
+                    .is_pending()
+            );
+            assert!(
+                fixture.tasks.len() > task_count,
+                "the owned task exists before caller loss"
+            );
+            drop(call);
+            drop(held);
+            fixture.runtime.shutdown().await;
+            fixture.settle().await;
+            assert_eq!(
+                fixture.store.inbox_entry(key).await.unwrap().unwrap().read,
+                InboxRead::Read
+            );
+            assert!(
+                fixture
+                    .store
+                    .session(created.id)
+                    .await
+                    .unwrap()
+                    .unwrap()
+                    .updated_at
+                    > before_cancel
+            );
+            fixture.stop().await;
+        }),
+    )
+    .await
+    .unwrap();
+}

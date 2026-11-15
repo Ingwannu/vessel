@@ -111,8 +111,8 @@ async fn inbox_reopen_and_first_detach_share_the_same_clock_but_repeat_receipts_
         .unwrap();
     let ended = clock(&dir, session.id).unwrap();
     assert!(ended > first);
-    store
-        .mark_inbox(MarkInbox {
+    let marked_entry = store
+        .mark_inbox_committed(MarkInbox {
             key: InboxKey {
                 session: session.id,
                 seq: EventSeq::ZERO,
@@ -121,6 +121,7 @@ async fn inbox_reopen_and_first_detach_share_the_same_clock_but_repeat_receipts_
         })
         .await
         .unwrap();
+    assert_eq!(marked_entry.updated_at(), clock(&dir, session.id));
     let seen = clock(&dir, session.id).unwrap();
     assert!(seen > ended);
     let _marks = store.reopen(session.id, EventSeq::new(1)).await.unwrap();

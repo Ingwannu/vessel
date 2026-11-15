@@ -46,11 +46,10 @@ impl NodeService {
             ));
         }
         self.sessions
-            .store()
             .mark_inbox(request)
             .await
             .map(|()| Ack)
-            .map_err(|error| wire(&error.into()))
+            .map_err(|error| wire(&error))
     }
 }
 
