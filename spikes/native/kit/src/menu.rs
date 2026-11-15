@@ -28,6 +28,8 @@
 //! typed feedback and dismissal are additive extensions of that renderer.
 
 mod draw;
+#[cfg(test)]
+mod focus_tests;
 mod item;
 #[cfg(test)]
 mod presentation_tests;
@@ -39,7 +41,7 @@ pub use draw::{Content, Width, menu, menu_right, menu_with};
 pub use item::{Dismissal, ItemStatus, LeadingSize, MenuItem, Presentation, Tone};
 pub use trigger::{TriggerProfile, TriggerSizing, trigger, trigger_with};
 
-use gpui::{App, Bounds, Context, FocusHandle, Pixels, Point, Window};
+use gpui::{App, Bounds, Context, FocusHandle, Pixels, Point, WeakFocusHandle, Window};
 use std::rc::Rc;
 
 /// A menu's state, kept by the screen that shows it.
@@ -48,6 +50,7 @@ pub struct MenuState {
     at: Option<Placement>,
     highlighted: Option<usize>,
     focus: FocusHandle,
+    return_to: Option<WeakFocusHandle>,
 }
 
 impl MenuState {
@@ -57,20 +60,51 @@ impl MenuState {
             at: None,
             highlighted: None,
             focus: cx.focus_handle(),
+            return_to: None,
         }
     }
 
     /// Open it at `at` (where its trigger was pressed), taking the keys.
     pub fn open(&mut self, at: Point<Pixels>, window: &mut Window, cx: &mut App) {
+        self.capture_return_focus(window, cx);
         self.at = Some(Placement::Pointer(at));
         self.highlighted = None;
         self.focus.focus(window, cx);
     }
 
-    /// Close it.
+    /// Close state only, preserving the existing API for callers without a
+    /// window. Input handlers use `close_and_restore` before dispatching actions.
     pub const fn close(&mut self) {
         self.at = None;
         self.highlighted = None;
+    }
+
+    /// Dismiss and restore the caller's focus only while this menu still owns
+    /// it. A new field/dialog that took focus is never displaced. A weak handle
+    /// cannot keep a removed caller alive.
+    pub fn close_and_restore(&mut self, window: &mut Window, cx: &mut App) {
+        self.close();
+        self.restore_focus(window, cx);
+    }
+    fn capture_return_focus(&mut self, window: &Window, cx: &App) {
+        if !self.is_open() && !self.focus.is_focused(window) {
+            self.return_to = window.focused(cx).map(|focus| focus.downgrade());
+        }
+    }
+    fn restore_focus(&mut self, window: &mut Window, cx: &mut App) {
+        let previous = self.return_to.take().and_then(|weak| weak.upgrade());
+        if !self.focus.is_focused(window) {
+            return;
+        }
+        match previous {
+            Some(focus) => focus.focus(window, cx),
+            None => window.blur(cx),
+        }
+    }
+    fn restore_after_choice(&mut self, window: &mut Window, cx: &mut App) {
+        if !self.is_open() {
+            self.restore_focus(window, cx);
+        }
     }
 
     /// Whether it is open.
@@ -87,6 +121,7 @@ impl MenuState {
 
     /// Open at a measured trigger's right/bottom corner, taking the keys.
     pub fn open_end(&mut self, bounds: Bounds<Pixels>, window: &mut Window, cx: &mut App) {
+        self.capture_return_focus(window, cx);
         self.at = Some(Placement::End(bounds));
         self.highlighted = None;
         self.focus.focus(window, cx);

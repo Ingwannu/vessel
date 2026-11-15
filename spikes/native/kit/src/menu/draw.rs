@@ -157,8 +157,8 @@ fn draw<V: 'static>(
     let on_key = cx.listener(move |view, event, window, cx| {
         keyboard(view, event, window, cx, &key_handlers, &keys_items);
     });
-    let on_outside = cx.listener(move |view: &mut V, _event, _window, cx| {
-        get(view).close();
+    let on_outside = cx.listener(move |view: &mut V, _event, window, cx| {
+        get(view).close_and_restore(window, cx);
         cx.notify();
     });
     let surfaces = Surfaces::of(tokens);
@@ -243,6 +243,7 @@ fn row<V: 'static>(
             })
             .on_click(cx.listener(move |view: &mut V, _event, window, cx| {
                 if let Some(index) = pointer_choice(get(view), &choice, index) {
+                    get(view).restore_after_choice(window, cx);
                     chose(view, index, window, cx);
                     cx.notify();
                 }
@@ -315,7 +316,7 @@ fn keyboard<V: 'static>(
 ) {
     let menu = (handlers.state)(view);
     match event.keystroke.key.as_str() {
-        "escape" => menu.close(),
+        "escape" => menu.close_and_restore(window, cx),
         "down" | "tab" => menu.step(items, Direction::Next),
         "up" => menu.step(items, Direction::Previous),
         "home" => {
@@ -328,6 +329,7 @@ fn keyboard<V: 'static>(
         }
         "enter" | "space" => {
             if let Some(index) = keyboard_choice(menu, items) {
+                menu.restore_after_choice(window, cx);
                 (handlers.chose)(view, index, window, cx);
             }
         }

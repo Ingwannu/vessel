@@ -1154,3 +1154,13 @@ their existing full-width geometry. Drawing/placement lives in
 `picker/combobox.rs`; existing row meaning, focus, selection and motion stay
 in the same parent/control. This extension does not claim focus restoration or
 first-use UI approval. Its captures belong to the final F1 package.
+
+
+Menu input dismissal now restores the weak previously focused caller before
+invoking a Close action; KeepOpen retains menu focus. `MenuState::close` keeps
+its state-only signature for callers without a window, while
+`close_and_restore(window, cx)` is the explicit input/navigation entry. A newly
+focused field/dialog is never displaced, and a removed return target is not
+retained. Actual window-key regressions exercise Enter, Escape, pointer/outside
+close and the root F5 witness. Passing those tests would not replace the final
+Linux first-use evidence or settle the historical UI HOLD by declaration.
