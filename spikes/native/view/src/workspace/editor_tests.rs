@@ -53,6 +53,24 @@ fn loads_the_file_clean() {
 }
 
 #[test]
+fn in_flight_write_cannot_be_replaced_by_autosave_or_flush_after_edit() {
+    let mut model = loaded("a");
+    let _step = model.edit("first");
+    let (first, _, _) = write_of(&model.save());
+    assert_eq!(model.edit("second"), Step::Autosave);
+    assert_eq!(model.save(), Step::None);
+    assert_eq!(model.flush(), Step::None);
+    assert_eq!(model.writing(), Some(first));
+    assert_eq!(
+        model.saved(first, Written::Saved(version(5))),
+        Step::Autosave
+    );
+    let (second, text, _) = write_of(&model.save());
+    assert_ne!(first, second);
+    assert_eq!(text, "second");
+}
+
+#[test]
 fn reports_a_file_it_cannot_read() {
     let mut model = EditorModel::new();
     let first = model.first_read();
@@ -247,4 +265,40 @@ fn prose_wraps_and_code_keeps_its_lines() {
         "a folder's name is not the file's"
     );
     assert!(!super::wraps("Makefile"));
+}
+
+#[test]
+fn saves_original_bom_and_line_separator_while_tracking_normalized_edits() {
+    let mut model = loaded("\u{feff}one\r\ntwo\r\n");
+    assert_eq!(model.content(), "one\ntwo\n");
+    assert_eq!(model.edit("one\r\nchanged\r\n"), Step::Autosave);
+    let (sequence, wire, _) = write_of(&model.save());
+    assert_eq!(wire, "\u{feff}one\r\nchanged\r\n");
+    assert_eq!(
+        model.saved(sequence, Written::Saved(version(20))),
+        Step::None
+    );
+    assert!(!model.modified());
+    assert_eq!(model.content(), "one\nchanged\n");
+    let read = read_of(&model.reconcile());
+    assert_eq!(model.read(read, Read::Text(wire, version(20))), Step::None);
+    assert_eq!(model.status(), EditorStatus::Clean);
+}
+
+#[test]
+fn a_queued_disk_read_adopts_its_format_only_after_the_write_settles() {
+    let mut model = loaded("a\rb\r");
+    let _step = model.edit("new\ntext\n");
+    let (sequence, wire, _) = write_of(&model.save());
+    assert_eq!(wire, "new\rtext\r");
+    let read = read_of(&model.reconcile());
+    assert_eq!(
+        model.read(read, Read::Text("new\r\ntext\r\n".to_owned(), version(11))),
+        Step::None
+    );
+    let _step = model.saved(sequence, Written::Saved(version(9)));
+    assert_eq!(model.status(), EditorStatus::Clean);
+    let _step = model.edit("next\ntext\n");
+    let (_, wire, _) = write_of(&model.save());
+    assert_eq!(wire, "next\r\ntext\r\n");
 }

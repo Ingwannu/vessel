@@ -1,6 +1,7 @@
 //! What the node answered a workspace ask, with what was asked, and the
 //! answer an ask gets when it could not be sent at all.
 
+use vessel_app_view::workspace::file_ticket::FileTicket;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::save::{SaveFailure, Saved};
 use vessel_proto::workspace::{
@@ -41,6 +42,13 @@ pub enum GitWritten {
 /// What the node answered a workspace ask, with what was asked.
 #[derive(Debug)]
 pub enum Answer {
+    /// A file-owned language query, correlated with its exact request.
+    Intelligence {
+        /// Original request, including source identity and ticket.
+        ask: super::IntelligenceAsk,
+        /// Typed language result or failure.
+        result: super::IntelligenceResult,
+    },
     /// The machine's projects.
     Projects(Result<ProjectList, Problem>),
     /// A project as it is now (a clone's progress, or its end).
@@ -163,11 +171,24 @@ pub enum Answer {
     Read {
         /// What was asked.
         ask: ReadFile,
+        /// Original request identity, independent of the active pane.
+        ticket: FileTicket,
         /// The page.
         result: Result<FileRead, Problem>,
     },
     /// A save's outcome.
+    EditorRead {
+        /// Requested source and byte budget.
+        ask: ReadFile,
+        /// The request identity; never inferred from current UI state.
+        ticket: FileTicket,
+        /// Exact read result.
+        result: Result<FileRead, Problem>,
+    },
+    /// A save's outcome.
     Saved {
+        /// The request identity.
+        ticket: FileTicket,
         /// The root.
         root: WorkspaceRoot,
         /// The file.
@@ -182,6 +203,15 @@ pub enum Answer {
         /// The matches.
         result: Result<FoundFiles, Problem>,
     },
+    /// A shared picker response, fenced independently of query text.
+    TrackedFound {
+        /// Original wire request.
+        ask: FindFiles,
+        /// Original acquisition generation.
+        ticket: FileTicket,
+        /// Matches or a typed refusal.
+        result: Result<FoundFiles, Problem>,
+    },
     /// Lines found in files.
     Grepped {
         /// What was asked.
@@ -191,6 +221,8 @@ pub enum Answer {
     },
     /// A path made, renamed or deleted.
     PathChanged {
+        /// Original app mutation identity.
+        ticket: FileTicket,
         /// What was asked.
         change: PathChange,
         /// Done, or why not.
@@ -345,15 +377,26 @@ fn git_refused(ask: GitAsk, problem: &Problem) -> Answer {
 
 fn file_refused(ask: FileAsk, problem: &Problem) -> Answer {
     match ask {
+        FileAsk::Intelligence(ask) => Answer::Intelligence {
+            result: super::intelligence::refused(ask.action, problem),
+            ask,
+        },
         FileAsk::List(ask) => Answer::Listed {
             ask,
             result: no(problem),
         },
-        FileAsk::Read(ask) => Answer::Read {
+        FileAsk::Read { ask, ticket } => Answer::Read {
             ask,
+            ticket,
+            result: no(problem),
+        },
+        FileAsk::EditorRead { ask, ticket } => Answer::EditorRead {
+            ask,
+            ticket,
             result: no(problem),
         },
         FileAsk::Save(save) => Answer::Saved {
+            ticket: save.ticket,
             root: save.root,
             path: save.path,
             saved: Saved::Failed(SaveFailure::Call(problem.clone())),
@@ -362,12 +405,18 @@ fn file_refused(ask: FileAsk, problem: &Problem) -> Answer {
             ask,
             result: no(problem),
         },
+        FileAsk::TrackedFind { ask, ticket } => Answer::TrackedFound {
+            ask,
+            ticket,
+            result: no(problem),
+        },
         FileAsk::Grep(ask) => Answer::Grepped {
             ask,
             result: no(problem),
         },
-        FileAsk::Path(change) => Answer::PathChanged {
+        FileAsk::Path { change, ticket } => Answer::PathChanged {
             change,
+            ticket,
             result: no(problem),
         },
     }

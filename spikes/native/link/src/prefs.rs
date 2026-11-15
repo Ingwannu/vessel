@@ -48,6 +48,12 @@ use crate::nodes::config_dir;
 /// The remembered choices.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Prefs {
+    /// File tree ordering and hidden-entry visibility (Paseo panel defaults).
+    #[serde(default)]
+    pub explorer: vessel_app_view::workspace::explorer::ExplorerOptions,
+    /// Expanded folders by authorized node/root; restored only to a bounded depth.
+    #[serde(default)]
+    pub explorer_expansions: vessel_app_view::workspace::explorer_memory::ExplorerMemory,
     /// The machine of the last conversation started.
     #[serde(default)]
     pub machine: Option<String>,

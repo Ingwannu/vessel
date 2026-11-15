@@ -13,10 +13,14 @@ pub mod changes;
 pub mod command_changes;
 pub mod diff_rows;
 pub mod editor;
+pub mod explorer;
+pub mod explorer_memory;
+pub mod file_ticket;
 pub mod file_tree;
 pub mod find;
 pub mod git;
 pub mod git_quick;
+pub mod intelligence;
 pub mod marks;
 pub mod pace;
 pub mod place;
@@ -30,6 +34,7 @@ pub mod setup_log;
 pub mod size;
 pub mod start;
 pub mod syntax;
+pub mod text_format;
 pub mod worktrees;
 
 /// The area's words: `text/workspace/`, by the app's convention.
