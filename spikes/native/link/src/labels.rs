@@ -58,6 +58,18 @@ impl Command {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+impl crate::State {
+    pub(super) async fn labels(&self, host: HostKey, ticket: Ticket, ask: Command) {
+        self.emit(crate::Event::Labels(Event {
+            host,
+            ticket,
+            answer: ask.refused(Failure::Unsupported),
+        }))
+        .await;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

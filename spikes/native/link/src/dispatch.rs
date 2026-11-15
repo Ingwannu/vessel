@@ -17,14 +17,7 @@ use vessel_proto::{PermissionOutcome, SessionInput};
 impl State {
     pub(super) async fn handle(&mut self, command: Command) {
         match command {
-            Command::Labels { host, ticket, ask } => {
-                self.emit(Event::Labels(super::labels::Event {
-                    host,
-                    ticket,
-                    answer: ask.refused(vessel_app_view::labels::Failure::Unsupported),
-                }))
-                .await;
-            }
+            Command::Labels { host, ticket, ask } => self.labels(host, ticket, ask).await,
             Command::Reload => self.reload().await,
             Command::Agents {
                 machine,
