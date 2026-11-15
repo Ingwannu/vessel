@@ -3,6 +3,7 @@
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::field::composer_hooks::{KeyAnswer, hooked};
 use vessel_app_kit::field::composer_layout::ComposerLayout;
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, App, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
     Styled as _, Window, div, px,
@@ -69,7 +70,7 @@ fn inline(
     };
     // The dock never mounts the same Entity while the fullscreen host mounts it.
     if surface.extent() == Extent::Fullscreen && touch {
-        return div().min_h(px(32.0)).into_any_element();
+        return div().min_h(px(spacing::S8)).into_any_element();
     }
     let layout = shell.composer_inline_layout(target, touch, window);
     let input = hooked_text(shell, over, layout, tokens, cx);

@@ -4,6 +4,7 @@
 use gpui::{anchored, deferred};
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::field::composer_layout::ComposerLayout;
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
     Styled as _, Window, div, point, px,
@@ -14,11 +15,11 @@ use vessel_app_view::composer_shell::surface::{Access, Extent};
 
 use crate::shell::Shell;
 
-const HEADER: f32 = 64.0;
+const HEADER: f32 = spacing::S16;
 const FOOTER: f32 = 68.0;
 /// Header, footer and the two editor insets leave one bounded input slot.
 const CHROME: f32 = 164.0;
-const INSET: f32 = 16.0;
+const INSET: f32 = spacing::S4;
 
 pub(crate) fn render(
     shell: &mut Shell,
@@ -85,7 +86,7 @@ pub(crate) fn render(
         .child(
             div()
                 .flex_1()
-                .min_h(px(0.0))
+                .min_h(px(spacing::S0))
                 .overflow_hidden()
                 .p(px(INSET))
                 .child(text),
@@ -101,7 +102,7 @@ pub(crate) fn render(
                 .child(send),
         );
     Some(
-        deferred(anchored().position(point(px(0.0), px(0.0))).child(overlay))
+        deferred(anchored().position(point(px(spacing::S0), px(spacing::S0))).child(overlay))
             .with_priority(2)
             .into_any_element(),
     )
