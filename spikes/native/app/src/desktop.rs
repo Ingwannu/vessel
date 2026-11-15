@@ -259,8 +259,6 @@ pub(crate) fn with_focused_shell(
 
 /// Whole-process admission must refuse an unknown/replaced root, not omit it.
 /// Call only at App level after Shell/Window borrows end, with no later await.
-pub(crate) fn shells(
-    cx: &mut App,
-) -> Result<Vec<WeakEntity<Shell>>, crate::host_windows::Unavailable> {
+pub(crate) fn shells(cx: &mut App) -> crate::host_windows::LiveShells {
     crate::host_windows::shells(cx)
 }

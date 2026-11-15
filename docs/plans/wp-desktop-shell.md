@@ -496,7 +496,7 @@ The former E3 selector and duplicate registry cleanup were removed. No second
 list or notice/context authority is introduced; this receiving union is unchecked.
 
 Global lifecycle traversal needs a stronger boundary than choosing one valid
-window. host_windows::shells now returns a typed Unavailable if any live handle
+window. host_windows::shells now returns LiveShells::Unavailable if any live handle
 is missing, duplicated, expired or has replaced its registered root. desktop::shells
 delegates to it and requires App-level mutable access after all window/Shell
 borrows end. The preference currentness fence uses that same enumeration and
@@ -518,3 +518,8 @@ They omit service-port/allocation approval, strict decode failure, session.delet
 handover and pending-label admission. The current base10 uses protocol25: obtain
 fresh lead approval before any fleet capture. Desktop does not rebuild shared
 root binaries, launch real agents, use live preview ports or open real browsers.
+
+Availability uses LiveShells::{Available,Unavailable}, not an ad hoc Result error
+or another App dependency. The complete-list test preserves typed refusal; real
+callers must match Unavailable to refusal, never convert it into an empty list.
+This source correction does not inherit the earlier focused-host review.

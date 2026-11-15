@@ -104,7 +104,7 @@ pub(crate) fn flush_current(receipt: &StateReceipt, cx: &mut App) -> StateReadin
     {
         return StateReadiness::Changed;
     }
-    let Ok(shells) = super::shells(cx) else {
+    let crate::host_windows::LiveShells::Available(shells) = super::shells(cx) else {
         return StateReadiness::Changed;
     };
     for weak in shells {

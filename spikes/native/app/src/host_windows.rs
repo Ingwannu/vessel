@@ -91,6 +91,6 @@ pub(crate) fn register(shell: &Entity<Shell>, window: &Window, cx: &mut App) {
 mod dispatch;
 mod enumeration;
 pub(crate) use dispatch::{Delivery, open_additional, set_factory, with_focused_shell};
-pub(crate) use enumeration::{Unavailable, shells};
+pub(crate) use enumeration::{LiveShells, shells};
 #[cfg(test)]
 mod tests;
