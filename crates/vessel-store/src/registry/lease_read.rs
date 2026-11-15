@@ -26,7 +26,7 @@ pub(crate) fn pending(
             },
             _ => return Err(StoreError::RegistryConflict),
         };
-        let state = match stage.as_str() {
+        let admission = match stage.as_str() {
             "pending" => RegistryStartState::Pending,
             "uncertain" => RegistryStartState::Uncertain,
             _ => return Err(StoreError::RegistryConflict),
@@ -36,7 +36,7 @@ pub(crate) fn pending(
         );
         starts.push(PendingRegistryStart {
             lease: WorkspaceStartLease::new(workspace, resource, revision),
-            state,
+            state: admission,
         });
     }
     Ok(starts)

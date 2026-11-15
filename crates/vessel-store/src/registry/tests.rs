@@ -191,7 +191,10 @@ fn reserved_backing_identity_is_idempotent_but_changed_intent_is_refused() {
         apply(&mut db, &RegistryWrite::Reserve(conflict)),
         Err(StoreError::RegistryConflict)
     ));
-    assert_eq!(reservation(&db, workspace).unwrap(), Some(reservation));
+    assert_eq!(
+        super::reservation(&db, workspace).unwrap(),
+        Some(reservation)
+    );
     apply(
         &mut db,
         &RegistryWrite::Stage {
@@ -256,7 +259,9 @@ fn restart_marks_interrupted_creation_uncertain_without_reallocating_ids() {
     };
     apply(&mut db, &RegistryWrite::Reserve(reservation.clone())).unwrap();
     apply(&mut db, &RegistryWrite::RecoverCreating).unwrap();
-    let found = reservation(&db, reservation.workspace).unwrap().unwrap();
+    let found = super::reservation(&db, reservation.workspace)
+        .unwrap()
+        .unwrap();
     assert_eq!(found.workspace, reservation.workspace);
     assert_eq!(found.stage, ReservationStage::Uncertain);
     let before = load(&db).unwrap();
@@ -298,7 +303,7 @@ fn descriptor_and_ready_stage_commit_or_roll_back_together() {
     apply(&mut db, &RegistryWrite::Completed(Box::new(record.clone()))).unwrap();
     assert_eq!(workspace(&db, record.descriptor.id).unwrap(), Some(record));
     assert_eq!(
-        reservation(&db, reservation.workspace)
+        super::reservation(&db, reservation.workspace)
             .unwrap()
             .unwrap()
             .stage,
