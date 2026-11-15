@@ -17,7 +17,8 @@ pub struct SourceView<'a> {
     pub observed: Option<&'a SuccessfulUsageReport>,
     /// Current safe status text; source/provider errors cannot supply it.
     pub status: Option<String>,
-    /// Whether this attempt failed or is still pending while showing old facts.
+    /// The success belongs to a failed/unavailable attempt, including its next refresh.
+    /// A pending refresh of an available attempt remains current, not retained.
     pub retained: bool,
     /// Actual known attempt completion, if the source supplies it.
     pub attempted_at: Option<DateTime<Utc>>,

@@ -25,10 +25,14 @@ impl Shell {
     /// Shared callback for the fixed footer icon and the optional summary row.
     pub(crate) fn open_usage(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let state = &mut self.areas.usage;
+        let previous = state.modal.current();
         if let Err(reason) = state.modal.show(&mut state.tickets) {
             state.policy_error = Some(reason);
             cx.notify();
             return;
+        }
+        if previous != state.modal.current() {
+            state.source_tips = super::source_tips::SourceTips::default();
         }
         self.areas.usage.dialog.focus(window, cx);
         self.settle_usage(window);
@@ -44,6 +48,7 @@ impl Shell {
         if !state.modal.dismiss(expected) {
             return;
         }
+        state.source_tips = super::source_tips::SourceTips::default();
         self.close_usage_options_for_parent(expected, window, cx);
         let state = &mut self.areas.usage;
         state.host_list.close_and_restore(window, cx);
