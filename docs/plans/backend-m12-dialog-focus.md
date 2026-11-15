@@ -45,7 +45,8 @@ The producer regression activates all four actual rendered close paths,
 refuses pending and old-decision closes, preserves a newer focus, proves
 reopen captures a fresh cycle, drops a deleted opener, and distinguishes
 captured absence. Exact-source narrow verification is recorded below; no
-whole-package or visual pass is claimed. The whole feature package gate and consuming Devices stale
+whole-package or visual pass is claimed. The whole feature package gate
+and consuming Devices stale
 context/intent proof remain separate. Unadopted callers do not receive
 implicit restoration, and the generic helper makes no domain decision.
 
