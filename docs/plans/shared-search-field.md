@@ -54,3 +54,15 @@ semicolon in the last test assertion. The sequential runtime stage did not
 start. Add that semicolon only; no product body, assertion, expected geometry
 or deadline changes. Old red evidence remains. Corrected exact-head Clippy
 and focused tests are still owed, without priority or a whole-gate claim.
+
+
+Exact2b999 strict Kit all-target Clippy completed0 at
+agents-control-20261115T143804Z-2b9994ac. The focused runtime at
+agents-control-20261115T150042Z-2b9994ac returned1 passed/1 failed.
+The real engine emitted one Change for each grapheme typed by simulate_input,
+then exactly one empty Change from X. The test incorrectly expected one
+aggregate typing event. Assert the entire literal prefix history and the final
+empty event; do not suppress callbacks or change the product. All focus, target,
+geometry, localization-identity and Enter assertions remain. The later checks
+were not reached in that failed test, so their execution remains unverified.
+Old red evidence is retained; corrected focused checks and adoption remain owed.
