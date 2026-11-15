@@ -246,3 +246,13 @@ Verification: isolated context value head20ea88e2 passed strict view Clippy and7
 ### Canonical plugin context values
 
 The retained context variant now directly contains the reviewed protocol plugin ContextAttachment. Its opaque logical key is compared through the producer's key() method, retaining source node/plugin/contribution/item and the captured installation generation; display labels never stand in for identity. A helper restart does not replace a selected snapshot or authorize a new invoke. Intake checks the captured source node against the explicit workspace node or verified connected machine before insertion. Sending uses the validated retained text only. The generic PluginResource placeholder is removed. Plugin picker/search/runtime calls remain unavailable until their owner activates the canonical producer; this is not an invented source registry or wire call.
+
+### Bounded image intake and preview normalization
+
+[Decision Log]
+- Purpose: native clipboard and selected images include BMP/TIFF, and tiny compressed or animated images must not reach the UI decoder with unrestricted dimensions/frames.
+- Existing assets: GPUI and the kit already link image0.25.10 with PNG/JPEG/GIF/WebP/BMP/TIFF codecs. Paseo hooks/picked-image-normalizer.ts preserves JPEG/PNG and exports other picked formats as PNG. No new library/version or protocol is needed.
+- Choice: a byte-only kit helper inspects the actual signature, applies strict4096 side limits and a64MiB decoder allocation budget, preserves static PNG/JPEG, and exports the first frame of other supported rasters/APNG as RGBA PNG. Its encoder writer cannot exceed the node image byte limit. App acquisition runs this on the background executor before retaining the private managed copy and publishing its pill. Selected image paths are read only from the already frozen managed source in production. Remote image previews remain Reading until the same conversion completes, preserving the existing two-reader budget.
+- Tradeoffs: animation becomes a static preview and images over the dimension budget are visibly refused; no silent resize or arbitrary URL decoding is introduced. Codec allocation limits include a documented best-effort component; strict side limits remain separately enforced. This is not proof of a global GPU/decoded-cache memory bound, and W13's separate file renderer has not adopted it yet.
+
+Tests cover static PNG byte preservation, BMP conversion, invalid/oversized input, encoder output overflow and dimension refusal. The actual clipboard regression now waits for background validation and checks Send remains blocked until intake ends. VM execution and OS clipboard/dialog/drop captures are still owed.

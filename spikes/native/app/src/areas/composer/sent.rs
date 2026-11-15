@@ -11,6 +11,7 @@
 //! the drawing (a command is a message to the link, not a change of the
 //! shell); their answers change the shell as any answer does.
 
+mod normalize;
 use std::cell::RefCell;
 use std::sync::Arc;
 
@@ -213,11 +214,7 @@ impl Shell {
                 }
             },
             Answer::Upload { session, key, step } => self.composer_upload(session, key, step, cx),
-            Answer::Read { sent, bytes } => {
-                self.areas.composer.sent.borrow_mut().read(&sent, bytes);
-                self.sent_reads();
-                cx.notify();
-            }
+            Answer::Read { sent, bytes } => self.sent_image_received(sent, bytes, cx),
         }
     }
 }

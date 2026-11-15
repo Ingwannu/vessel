@@ -1,6 +1,7 @@
 //! Platform selection captures its destination before asynchronous inspection.
 
 use super::super::attach::{Incoming, LocalFileProblem};
+mod images;
 use crate::shell::Shell;
 use gpui::PathPromptOptions;
 use vessel_app_kit::field::composer_hooks::{KeyAnswer, Pasted};
@@ -113,63 +114,74 @@ impl Shell {
     fn composer_pasted_image(
         &mut self,
         key: DraftKey,
-        mime: &str,
+        _mime: &str,
         bytes: Vec<u8>,
         cx: &mut Context<'_, Self>,
     ) {
-        if matches!(
-            mime,
-            "image/png" | "image/jpeg" | "image/gif" | "image/webp"
-        ) {
-            #[cfg(not(target_arch = "wasm32"))]
-            if self.areas.composer.local.production {
-                let Some(store) = self.areas.composer.local.store.clone() else {
-                    self.toast(
-                        self.words.composer().file_local_failed(),
-                        ToastTone::Error,
-                        cx,
-                    );
-                    return;
-                };
-                let incoming = Incoming::pasted(mime, bytes);
-                let Some(name) =
-                    vessel_app_view::composer::attach::attachment_name(&incoming.name, "image.png")
-                else {
-                    return;
-                };
-                let Some(mime) = vessel_app_view::composer::attach::mime_of(&incoming.name) else {
-                    return;
-                };
-                let vessel_app_view::composer::tray::Origin::Pasted(bytes) = incoming.origin else {
-                    return;
-                };
-                self.local_intake_started(key, cx);
-                let saved = cx
-                    .background_executor()
-                    .spawn(async move { store.put_bytes(name, mime, &bytes) });
-                cx.spawn(async move |this, cx| {
-                    let result = saved.await;
-                    let _closed = this.update(cx, |shell, cx| {
-                        shell.local_intake_finished(key, cx);
-                        match result {
-                            Ok(file) => shell.composer_add(key, vec![Incoming::stored(file)], cx),
-                            Err(problem) => {
-                                tracing::info!(%problem, "pasted image could not be retained locally");
-                                shell.toast(shell.words.composer().file_local_failed(), ToastTone::Error, cx);
-                            }
-                        }
-                    });
-                }).detach();
-                return;
-            }
-            self.composer_add(key, vec![Incoming::pasted(mime, bytes)], cx);
-        } else {
+        #[cfg(not(target_arch = "wasm32"))]
+        let store = self.areas.composer.local.store.clone();
+        #[cfg(not(target_arch = "wasm32"))]
+        if self.areas.composer.local.production && store.is_none() {
             self.toast(
-                self.words.composer().image_format_unsupported(),
+                self.words.composer().file_local_failed(),
                 ToastTone::Error,
                 cx,
             );
+            return;
         }
+        self.local_intake_started(key, cx);
+        let saved = cx.background_executor().spawn(async move {
+            let normalized = vessel_app_kit::image_input::normalize(
+                bytes,
+                vessel_app_kit::image_input::InputLimits {
+                    source: vessel_proto::AttachmentLimits::DEFAULT.file,
+                    result: vessel_proto::AttachmentLimits::DEFAULT.image,
+                },
+            )
+            .map_err(LocalFileProblem::Image)?;
+            let incoming = Incoming::pasted(normalized.format.mime(), normalized.bytes);
+            #[cfg(not(target_arch = "wasm32"))]
+            if let Some(store) = store {
+                use vessel_app_view::composer::attach::{attachment_name, mime_of};
+                let name =
+                    attachment_name(&incoming.name, "image.png").ok_or(LocalFileProblem::NoName)?;
+                let mime = mime_of(&incoming.name).ok_or(LocalFileProblem::NoName)?;
+                let vessel_app_view::composer::tray::Origin::Pasted(bytes) = incoming.origin else {
+                    return Err(LocalFileProblem::NoName);
+                };
+                return store
+                    .put_bytes(name, mime, &bytes)
+                    .map(Incoming::stored)
+                    .map_err(LocalFileProblem::Storage);
+            }
+            Ok(incoming)
+        });
+        cx.spawn(async move |this, cx| {
+            let result = saved.await;
+            let _closed = this.update(cx, |shell, cx| {
+                shell.local_intake_finished(key, cx);
+                match result {
+                    Ok(incoming) => shell.composer_add(key, vec![incoming], cx),
+                    Err(problem) => {
+                        tracing::info!(?problem, "image intake refused before preview");
+                        let message = match problem {
+                            LocalFileProblem::Image(_) => {
+                                shell.words.composer().image_format_unsupported()
+                            }
+                            LocalFileProblem::Read(_)
+                            | LocalFileProblem::NoName
+                            | LocalFileProblem::NotFile => shell.words.composer().file_unreadable(),
+                            #[cfg(not(target_arch = "wasm32"))]
+                            LocalFileProblem::Storage(_) => {
+                                shell.words.composer().file_local_failed()
+                            }
+                        };
+                        shell.toast(message, ToastTone::Error, cx);
+                    }
+                }
+            });
+        })
+        .detach();
     }
 
     /// Dropped paths belong to the composer under the drop, even if the
@@ -215,7 +227,14 @@ impl Shell {
                         let file = store
                             .copy_file(name, mime, &path)
                             .map_err(LocalFileProblem::Storage)?;
+                        if images::is_image(&incoming.name) {
+                            let normalized = images::normalize(&file.path, &incoming.name)?;
+                            return images::store_image(store, normalized);
+                        }
                         return Ok(Incoming::stored(file));
+                    }
+                    if images::is_image(&incoming.name) {
+                        return images::normalize(&path, &incoming.name);
                     }
                     Ok(incoming)
                 })
@@ -236,6 +255,7 @@ impl Shell {
                             let words = shell.words.composer();
                             let message = match &why {
                                 LocalFileProblem::Read(_) | LocalFileProblem::NoName | LocalFileProblem::NotFile => words.file_unreadable(),
+                                LocalFileProblem::Image(_) => words.image_format_unsupported(),
                                 #[cfg(not(target_arch = "wasm32"))]
                                 LocalFileProblem::Storage(problem) => {
                                     tracing::info!(%problem, "attached bytes could not be retained locally");

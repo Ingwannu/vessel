@@ -38,11 +38,15 @@ impl Pictures {
         if let Some((_, source)) = kept.iter().find(|(held, _)| Arc::ptr_eq(held, bytes)) {
             return source.clone();
         }
-        let format = match mime {
-            "image/jpeg" => ImageFormat::Jpeg,
-            "image/gif" => ImageFormat::Gif,
-            "image/webp" => ImageFormat::Webp,
-            _ => ImageFormat::Png,
+        let format = if bytes.starts_with(b"\x89PNG\r\n\x1a\n") {
+            ImageFormat::Png
+        } else {
+            match mime {
+                "image/jpeg" => ImageFormat::Jpeg,
+                "image/gif" => ImageFormat::Gif,
+                "image/webp" => ImageFormat::Webp,
+                _ => ImageFormat::Png,
+            }
         };
         let image = Arc::new(Image::from_bytes(format, bytes.to_vec()));
         let source = ImageSource::from(image);

@@ -15,11 +15,23 @@ fn clipboard_menu_attaches_the_image_and_restores_the_target_field(cx: &mut Test
     shell.update_in(cx, |shell, window, cx| {
         shell.areas.composer.attach_for = Some(true);
         shell.composer_choose(Acquire::ClipboardImage, window, cx);
+        assert!(shell.composer_attachments_blocked(DraftKey::New));
+        assert!(
+            shell
+                .areas
+                .draft
+                .composer
+                .focus_handle(cx)
+                .is_focused(window)
+        );
+    });
+    cx.run_until_parked();
+    shell.update_in(cx, |shell, _window, cx| {
+        assert!(!shell.composer_attachments_blocked(DraftKey::New));
         let tray = shell.areas.composer.trays.get(DraftKey::New).unwrap();
         assert_eq!(tray.items().len(), 1);
         assert_eq!(tray.items()[0].name.as_str(), "image.png");
         assert!(matches!(&tray.items()[0].origin, vessel_app_view::composer::tray::Origin::Pasted(actual) if actual.as_ref() == bytes.as_slice()));
-        assert!(shell.areas.draft.composer.focus_handle(cx).is_focused(window));
     });
 }
 #[gpui::test]

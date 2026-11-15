@@ -84,6 +84,7 @@ pub(super) enum LocalFileProblem {
     Read(std::io::Error),
     NotFile,
     NoName,
+    Image(vessel_app_kit::image_input::ImageProblem),
     #[cfg(not(target_arch = "wasm32"))]
     Storage(vessel_app_link::attachments::local::LocalFailure),
 }
