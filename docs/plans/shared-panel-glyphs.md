@@ -33,3 +33,12 @@ GPUI first-use/OS/consumer UI approval; those remain with the workspace rail.
 Resume: isolated source on package base9 db42d9c5. No Rust compile/test or V1
 pass yet; serialize its narrow suite after the currently queued owner tests,
 then provide the exact checked leaf to review and the shared line first.
+
+Source preflight: independently compare the old95 declaration/path sequence,
+the full old drawing prefix and frozen inventory test against base9; all are
+byte/value identical. The five appended SVG node/attribute sequences match
+the canonical1.50 source exactly, while the existing line macro supplies the
+actual provider stroke1.5. No bitmap/image node is introduced. The system
+librsvg source overview in light/dark at all listed sizes/scales was opened:
+axes, outward/inward corners and X remain distinct and unclipped. That is
+source-only rendering, not executed Rust raster tests or native UI evidence.
