@@ -16,7 +16,7 @@ pub struct ParentExecutionStamp {
 }
 
 /// Saved authority is at most Read/Operate and never grows during recovery.
-/// Finish registration/admission requires ReadOperate and the same current grant.
+/// Finish registration/admission requires `ReadOperate` and the same current grant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]

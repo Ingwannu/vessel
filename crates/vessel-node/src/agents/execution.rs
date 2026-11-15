@@ -69,16 +69,15 @@ mod tests {
         let _other = agents.reserve(other, &Principal::Owner, false).unwrap();
         let (mut watched, other_id) = {
             let entries = agents.lock();
-            (
-                entries.get(&session).unwrap().execution.changed.subscribe(),
-                entries
-                    .get(&other)
-                    .unwrap()
-                    .execution
-                    .changed
-                    .borrow()
-                    .incarnation,
-            )
+            let watched = entries.get(&session).unwrap().execution.changed.subscribe();
+            let other_id = entries
+                .get(&other)
+                .unwrap()
+                .execution
+                .changed
+                .borrow()
+                .incarnation;
+            (watched, other_id)
         };
         let original_scopes = agents.scopes(session).unwrap();
         for cause in [
