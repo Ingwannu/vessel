@@ -4,6 +4,26 @@ Node-side speech to text, following Paseo's composer dictation. ADR 0067
 is the contract. The protocol number is `dictation::SINCE`, given at
 merge. This plan does not change `PROTOCOL_VERSION`.
 
+## Current resume point (2026-11-15)
+
+The designated node head d432ef0f and the source-reviewed settings-file privacy
+prerequisite are now on this feature branch. Its reviewed safe decoder wraps
+the owned lenient file projection; a new marker case covers the malformed
+dictation block specifically. The prerequisite's narrow evidence is still owed.
+
+Staged source now includes the real provider, actor, bounded registry and twelve
+registry cases, generation-control/lease transfer, failed-root service-recreation
+regression, typed call-reason detail and the file preflight decoder. No current
+remote result validates those newer drafts: narrow checks and TS regeneration
+remain owed. No dictation call is registered, no product speech service or CLI
+command exists, and the protocol stays unassigned.
+
+Next: finish atomic settings application/presence, the actual Connection
+accessor, pending method rows and scope/transport integration, then the file
+command. Remove staging with real callers and run one whole product/package
+gate. Earlier resume paragraphs below are historical checkpoints, not claims
+about the current tree. Local engines, app capture and TTS remain deferred.
+
 ## What Paseo does
 
 Read for ADR 0067. Paths are Paseo's packages, not a machine.
@@ -718,4 +738,3 @@ checks pass; compilation and test execution remain owed on the build machine.
 The lock change only adds the already locked path-tracker to the store dependency
 list. Submit the exact commit and narrow evidence for security review before
 merging it into the feature package.
-

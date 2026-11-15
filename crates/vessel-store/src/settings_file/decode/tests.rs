@@ -72,3 +72,21 @@ fn deeply_nested_paths_are_bounded_without_printing_map_keys() {
     assert!(error.path.0.ends_with(".…"));
     assert!(settings::<Tree>(b"{}").unwrap().0.is_empty());
 }
+
+#[test]
+fn dictation_file_projection_uses_the_same_private_parse_cause_boundary() {
+    let root = tempfile::tempdir().unwrap();
+    let data = DataDir::new(root.path());
+    let bytes = format!(r#"{{"dictation":"{MARKER}"}}"#);
+    std::fs::write(data.settings_path(), &bytes).unwrap();
+    let error = data.read_settings().unwrap_err();
+    safe_chain(&error);
+    let SettingsFileError::Parse { source, .. } = error else {
+        panic!("expected the malformed dictation block to be refused");
+    };
+    assert!(source.cause.to_string().contains(MARKER));
+    assert_eq!(
+        std::fs::read(data.settings_path()).unwrap(),
+        bytes.as_bytes()
+    );
+}
