@@ -560,8 +560,8 @@ and all original limits/results remain preserved alongside this continuation.
 
 ## Proposed Phase B: fixed private layout and dependency build proof
 
-Status: **PROPOSAL ONLY**, after row221 closed the Phase A inventory and
-notice correspondence. No Phase B extraction, dependency/lock change, Cargo
+Status: **V3 row221 Phase B CONTRACT PASS**, exact437739b2c..05984b9a0,
+preparation/compile-only. No Phase B extraction, dependency/lock change, Cargo
 build script, static native inspection, model/native load or distribution has
 been performed. This is a bounded next gate; it does not change the closed
 Phase A policy, its preserved refusal or skipped PDB evidence.
@@ -617,8 +617,9 @@ This proposal contains no Kokoro/Kitten/Piper/espeak data or local ASR/TTS.
 
 ### Requested private preparation only
 
-Request authorization for ONLY the following next phase; until accepted,
-execute none of it:
+V3 accepted ONLY the following next phase. The build owner currently requires
+its fixed handoff schema before actual fixture creation or transfer; that
+prerequisite is still pending:
 
 1. Re-verify the same approved archives and opaque model. Stream only the
    positive native/notice/metadata members into a fresh task-owned private
@@ -682,3 +683,16 @@ Both-platform offline/log privacy, ABI and reference probability/boundary
 compatibility, native allocation/latency/loaded size and hardware quality are
 still owed. This phase cannot establish a hard native heap bound or unblocked
 native cancellation. W22/lifecycle/MCP prerequisites remain independent.
+
+
+Phase B review independently matched all14 platform files, the model and9
+unique source notices. Mandatory NOTICE.md must be copied from the exact
+reviewed05984b9a0 source with its full size/SHA included in handoff receipts.
+The wrapper has build=false; its load-dynamic feature includes preload-dylibs
+and ort-sys/disable-linking. V3 read the complete pinned ort-sys build main
+(SHA2569d4af3dc20d1462964e80e7829446012acd4effa262d82cd3a11640341f07dc3):
+with verified disable-linking it returns after check-cfg emission, before any
+lookup/copy/download/link branch. This is source proof, not actual resolved
+Cargo features or a compiler result. DOCS_RS is not a substitute for the
+required branch. The actual lock/feature tree must be verified before its
+build script executes; no native/model API is authorized.
