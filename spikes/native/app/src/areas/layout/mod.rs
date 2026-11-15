@@ -30,6 +30,8 @@ pub(crate) use draw::frame;
 
 /// Presentation retained across navigation; buffers stay with feature owners.
 pub(crate) struct LayoutArea {
+    #[cfg(test)]
+    retirements: registry::retirement::Owners,
     book: RefCell<Option<BTreeMap<LayoutKey, Layout>>>,
     menu: MenuState,
     tips: vessel_app_kit::Tooltips,
@@ -46,6 +48,8 @@ pub(crate) struct LayoutArea {
 impl LayoutArea {
     pub(crate) fn new(cx: &mut App) -> Self {
         Self {
+            #[cfg(test)]
+            retirements: registry::retirement::Owners::new(),
             book: RefCell::new(None),
             menu: MenuState::new(cx),
             tips: vessel_app_kit::Tooltips::new(),

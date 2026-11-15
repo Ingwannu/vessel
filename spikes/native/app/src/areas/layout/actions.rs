@@ -33,7 +33,20 @@ impl Shell {
         change: impl FnOnce(&mut vessel_app_view::layout::Layout) -> Result<T, LayoutError>,
         cx: &mut Context<'_, Self>,
     ) -> Result<T, LayoutError> {
-        let result = super::with_layout_at(self, workspace, change);
+        #[cfg(test)]
+        let before = super::registry::retirement::Before::layout(self, workspace);
+        let result = super::with_layout_at(self, workspace, |layout| {
+            // Feature batches commit only as a whole. Otherwise an Err after
+            // one retarget could change the resource without retiring its owner.
+            let mut next = layout.clone();
+            let value = change(&mut next)?;
+            *layout = next;
+            Ok(value)
+        });
+        #[cfg(test)]
+        if result.is_ok() {
+            self.layout_retired(before, super::registry::retirement::Source::Local, cx);
+        }
         self.layout_result(result.as_ref().map(|_| ()).map_err(|error| *error), cx);
         result
     }
@@ -155,6 +168,8 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         super::initialized(self);
+        #[cfg(test)]
+        let before = super::registry::retirement::Before::layout(self, key);
         let result = result.and_then(|()| {
             let mut book = self.areas.layout.book.borrow_mut();
             let layout = book
@@ -163,6 +178,10 @@ impl Shell {
                 .ok_or(LayoutError::InvalidState)?;
             layout.close_confirmed(plan, CloseApproval::LifecycleSettled)
         });
+        #[cfg(test)]
+        if result.is_ok() {
+            self.layout_retired(before, super::registry::retirement::Source::Local, cx);
+        }
         self.layout_result(result, cx);
     }
     fn layout_close_plans(

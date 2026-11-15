@@ -88,7 +88,13 @@ impl Shell {
         id: TabId,
         cx: &mut Context<'_, Self>,
     ) {
+        #[cfg(test)]
+        let before = super::registry::retirement::Before::layout(self, key);
         let result = super::with_layout_at(self, key, |layout| layout.dismiss_sheet(id));
+        #[cfg(test)]
+        if result.is_ok() {
+            self.layout_retired(before, super::registry::retirement::Source::Local, cx);
+        }
         self.layout_result(result, cx);
     }
 }
