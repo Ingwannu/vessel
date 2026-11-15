@@ -97,7 +97,7 @@ renderer/virtual-row/copy seam is implemented or approved by this ruling.
 The current bounded control packet may proceed with this explicit exclusion;
 this does not make full C3/split/copy parity passed.
 
-## Immutable producer selection
+## Historical27194 producer selection
 
 This handoff branch retains exact27194 Rust source. The later header foreground
 TextDecorationCollection correction (fb8a98cf2, d7fee2bff in the app) is preserved
@@ -117,3 +117,21 @@ Context lifetimes and converts Editor to AnyElement at that test boundary.
 No production mapping, geometry, assertion or lint policy changes. The running
 27194 test retains its old source and is not cancelled or assumed passed.
 The next meaningful checked union must carry these public API corrections.
+
+## Coherent correction union after the actual b011 return
+
+The next producer now includes the previously prepared fb8 header foreground
+correction through the SAME existing TextDecorationCollection (not a new vendor
+or syntax API), together with explicit public fixture lifetimes/Element conversion.
+Its Rust blobs equal the corrected app's control blobs. The old27194 queue and
+b011 Clippy remain on their original source, excluding this colour correction.
+No old pass or current test execution is inferred. The same native selected
+byte-range/copy contract remains unchanged; split parity is still excluded.
+
+Header ranges are computed once in UTF-8 byte coordinates from admitted immutable
+rows. Only nonempty Header rows receive foregroundMuted, after palette.ts
+codeTextColor. A shared colour cache prevents repeated notifications on unchanged
+redraws or clones; an actual semantic theme change replaces that one collection.
+The regression uses public input state/collection observation, Hangul byte ranges,
+unchanged buffer text and clone/theme updates. It is newly included, unexecuted
+source until the next immutable producer selection runs.
