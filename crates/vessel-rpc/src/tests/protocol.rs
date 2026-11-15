@@ -1,6 +1,8 @@
 //! Protocol 5 against older connections: a raw client that offers only one
 //! version, so the server cannot negotiate up.
 
+mod registry;
+
 use vessel_proto::{CreateSession, GetManifest, Hello, Method, Reply};
 
 use super::*;

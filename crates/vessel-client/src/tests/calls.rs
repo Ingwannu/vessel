@@ -1,5 +1,7 @@
 //! Calls that need more than the stream tests show: `node.stop`.
 
+mod registry;
+
 use futures_util::{SinkExt as _, StreamExt as _};
 use vessel_proto::{ProtocolVersion, ServerFrame, Welcome};
 
