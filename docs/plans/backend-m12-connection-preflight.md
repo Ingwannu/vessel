@@ -140,3 +140,7 @@ only its source; cached destination absence may not have been refreshed before
 the book edit. Both retire before event-channel backpressure. Source follow
 is preserved and renamed; an overwritten destination follow is cancelled.
 No second resolver or client-book writer is added.
+
+The2782c216 probe stopped at the new rename tests' constructor: the shared
+validated book Name uses its explicit parse method, not FromStr. Only those
+fixture calls are corrected; the failing compile log is retained.

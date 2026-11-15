@@ -4,6 +4,7 @@ use super::*;
 use crate::testing::{Home, peer, state};
 use vessel_app_view::Reach;
 use vessel_app_view::devices::MachineKey;
+use vessel_app_view::machine_book::{Edit, Name};
 use vessel_client::book::{NodeName, TokenSource};
 
 fn binding() -> BookEntry {
@@ -163,11 +164,10 @@ async fn rename_retires_a_stale_destination_before_event_backpressure() {
             vec![replaced.tag()]
         };
         {
-            let changing =
-                state.book_connections_applied(vessel_app_view::machine_book::Edit::Rename {
-                    from: "fixture".parse().unwrap(),
-                    to: "destination".parse().unwrap(),
-                });
+            let changing = state.book_connections_applied(Edit::Rename {
+                from: Name::parse("fixture").unwrap(),
+                to: Name::parse("destination").unwrap(),
+            });
             tokio::pin!(changing);
             tokio::select! {
                 biased;
@@ -224,9 +224,9 @@ async fn an_unchanged_alias_does_not_retire_or_allocate_an_admission() {
     let connected = Connected::new(client, Vec::new(), binding(), original.clone());
     let _old = state.clients.insert("fixture".into(), connected.clone());
     state
-        .book_connections_applied(vessel_app_view::machine_book::Edit::Rename {
-            from: "fixture".parse().unwrap(),
-            to: "fixture".parse().unwrap(),
+        .book_connections_applied(Edit::Rename {
+            from: Name::parse("fixture").unwrap(),
+            to: Name::parse("fixture").unwrap(),
         })
         .await;
     assert!(state.clients["fixture"].matches(&original));
