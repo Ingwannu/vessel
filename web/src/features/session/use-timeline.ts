@@ -31,6 +31,7 @@ export function useTimeline(
   // The record to follow from when the log is followed again: the one
   // after the last that arrived (they arrive in order, each once).
   const next = useRef(0);
+  const reads = useRef(0);
   // Each follow of the log: a new one once the session runs again after
   // its log ended.
   const ended = stream?.state === "ended";
@@ -44,15 +45,24 @@ export function useTimeline(
   }
   useEffect(() => {
     let batch: EventRecord[] = [];
-    let snapshot: Conversation | null = null;
+    let snapshot: { value: Conversation; read: number } | null = null;
     let disposed = false;
     const covered = (current: Timeline) =>
-      snapshot === null ? current : reconcileSnapshot(current, snapshot);
+      snapshot === null
+        ? current
+        : reconcileSnapshot(current, snapshot.value, snapshot.read);
     const refresh = () => {
+      const read = ++reads.current;
       void readConversation(fleet, node, session).then((outcome) => {
-        if (disposed || !outcome.ok || outcome.value.through == null) return;
-        if ((snapshot?.through ?? -1) > outcome.value.through) return;
-        snapshot = outcome.value;
+        if (
+          disposed ||
+          read !== reads.current ||
+          !outcome.ok ||
+          outcome.value.through == null
+        )
+          return;
+        if ((snapshot?.value.through ?? -1) > outcome.value.through) return;
+        snapshot = { value: outcome.value, read };
         setTimeline(covered);
       });
     };

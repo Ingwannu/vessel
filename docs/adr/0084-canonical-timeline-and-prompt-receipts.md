@@ -502,3 +502,16 @@ there is no polling loop or client shadow queue. Tests for covered absence,
 stale/ahead snapshots and pruned-announcement settlement are prepared, not yet
 executed. This is client reconciliation and never substitutes for provider or
 node response validation.
+
+The coverage watermark is not a durable delivery revision. Retained question
+claims can change without advancing that watermark. Browser snapshot reads use
+per-owner monotonically increasing read tickets; an older completion cannot
+replace a newer issued read, even with equal coverage. Snapshot reconciliation
+may move Pending to Answering/OutcomeUnknown but cannot reopen admitted state
+from a Pending snapshot, including a snapshot with a higher unrelated log fence.
+An actual ordered request refresh after no-effect refusal can restore Pending;
+known settlement/loss retires the card. Local admitted/uncertain response fences
+remain independent of ordinary read presence. These are conservative client
+rules, not additional response authority or a new wire revision. New regressions
+are prepared for equal-watermark updates, stale read completion, pruned request
+state and actual canonical reset; execution remains owed.

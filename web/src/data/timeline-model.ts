@@ -104,6 +104,8 @@ export interface PendingPermission {
 }
 export interface AuthoritativeRequests {
   through: number;
+  /** Per-owner read order, independent of log coverage and durable delivery. */
+  read?: number;
   /** Requests whose announcements were pruned; no log row is fabricated. */
   permissions: readonly PermissionRequest[];
 }

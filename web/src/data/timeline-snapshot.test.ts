@@ -94,3 +94,62 @@ test("a pruned announcement supplies only a dock request and real resolution ret
   ]);
   expect(resolved.pending).toBeNull();
 });
+
+test("read order and coverage cannot reopen admitted snapshot-only requests", () => {
+  let timeline = reconcileSnapshot(
+    { ...EMPTY, next: 8 },
+    snapshot(4, [{ ...request, delivery_state: "answering" }]),
+    1,
+  );
+  timeline = reconcileSnapshot(
+    timeline,
+    snapshot(4, [{ ...request, delivery_state: "outcome_unknown" }]),
+    2,
+  );
+  expect(timeline.pending?.request.delivery_state).toBe("outcome_unknown");
+  // A higher unrelated log fence does not revise retained delivery state.
+  const newer = reconcileSnapshot(timeline, snapshot(6, [request]), 3);
+  expect(newer.pending?.request.delivery_state).toBe("outcome_unknown");
+  expect(reconcileSnapshot(newer, snapshot(7), 2)).toBe(newer);
+  expect(newer.next).toBe(8);
+  expect(newer.entries).toEqual([]);
+});
+
+test("question delivery stays inert across newer pending snapshots until a real refresh", () => {
+  const question = {
+    id: fixtureId("QuestionId", "question"),
+    message: "Choose",
+    fields: [],
+    delivery_state: "answering" as const,
+  };
+  const first = { ...snapshot(2), questions: [question] };
+  let timeline = reconcileSnapshot({ ...EMPTY, next: 5 }, first, 1);
+  timeline = reconcileSnapshot(
+    timeline,
+    {
+      ...snapshot(4),
+      questions: [{ ...question, delivery_state: "pending" }],
+    },
+    2,
+  );
+  expect(timeline.conversation.questions[0]?.question.delivery_state).toBe(
+    "answering",
+  );
+  const refreshed = reduce(timeline, [
+    {
+      seq: 5,
+      at: "2026-11-15T00:00:00Z",
+      event: {
+        type: "agent",
+        event: {
+          event: "question_asked",
+          ...question,
+          delivery_state: "pending",
+        },
+      },
+    },
+  ]);
+  expect(refreshed.conversation.questions[0]?.question.delivery_state).toBe(
+    "pending",
+  );
+});
