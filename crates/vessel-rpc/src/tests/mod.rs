@@ -504,6 +504,13 @@ impl Handler for Fake {
     }
 
     unserved! {
+        get_registry: vessel_proto::registry::GetRegistry => vessel_proto::registry::RegistrySnapshot;
+        list_workspaces: vessel_proto::registry::ListWorkspaces => Vec<vessel_proto::registry::WorkspaceDescriptor>;
+        get_workspace: vessel_proto::registry::GetWorkspace => vessel_proto::registry::WorkspaceDescriptor;
+        rename_workspace: vessel_proto::registry::RenameWorkspace => vessel_proto::registry::WorkspaceDescriptor;
+        pin_workspace: vessel_proto::registry::PinWorkspace => vessel_proto::registry::WorkspaceDescriptor;
+        release_workspace_automation: vessel_proto::registry::ReleaseWorkspaceAutomation => vessel_proto::registry::WorkspaceDescriptor;
+        diagnostics: vessel_proto::diagnostics::GetDiagnostics => vessel_proto::diagnostics::DiagnosticReport;
         forward: vessel_proto::Forward => vessel_proto::Forwarded;
         relay: vessel_proto::RelayCall => vessel_proto::Forwarded;
         deliver: vessel_proto::Deliver => vessel_proto::Forwarded;
@@ -645,6 +652,7 @@ impl Handler for Fake {
         fork_session: vessel_proto::forking::ForkSession => SessionInfo;
         rewind_session: vessel_proto::forking::RewindSession => SessionInfo;
         agent_history: vessel_proto::history::GetAgentHistory => vessel_proto::history::AgentHistoryPage;
+        detach_session: vessel_proto::subagents::DetachSession => vessel_proto::subagents::DetachedSession;
     }
 }
 

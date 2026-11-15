@@ -17,6 +17,11 @@ fn pending_setup_calls_have_one_table_row_and_no_assigned_protocol() {
 }
 
 #[test]
+fn the_values_carrier_assigns_no_protocol_or_dispatch_surface() {
+    assert_eq!(WORKTREE_SETUP_OBSERVATION, None);
+}
+
+#[test]
 fn command_ordinals_match_first_last_and_approved_list_order_on_roundtrip() {
     let approved: Vec<_> = (0..MAX_PROJECT_COMMANDS)
         .map(|position| format!("command {position}"))

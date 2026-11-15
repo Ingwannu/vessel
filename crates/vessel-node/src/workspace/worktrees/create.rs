@@ -24,7 +24,7 @@ use vessel_proto::{Creator, SessionId, WorktreeId};
 use vessel_workspace::git::{AddRefusal, NewBranch};
 
 use super::start::{Chosen, choose};
-use crate::workspace::projects::short;
+use crate::workspace::projects::{admission::ProjectAdmission, short};
 use crate::workspace::{
     MAX_PER_AGENT, MAX_WORKTREES, State, WorkspaceError, Workspaces, WorktreeEntry,
 };
@@ -42,25 +42,102 @@ impl Workspaces {
         request: CreateWorktree,
         created_for: Option<SessionId>,
     ) -> Result<CreateWorktreeOutcome, WorkspaceError> {
-        // A task of the node's: a caller that goes away does not leave a
-        // folder made and unrecorded.
-        let workspaces = Arc::clone(self);
-        self.tasks
-            .spawn(async move { workspaces.create_now(creator, request, created_for).await })
+        self.create_worktree_with_id(creator, request, created_for, WorktreeId::random())
             .await
-            .map_err(|_stopped| WorkspaceError::Io("making the worktree stopped".to_owned()))?
     }
 
-    async fn create_now(
+    /// The legacy entry mints once before its tracked task starts.
+    async fn create_worktree_with_id(
         self: &Arc<Self>,
         creator: Creator,
         request: CreateWorktree,
         created_for: Option<SessionId>,
+        id: WorktreeId,
     ) -> Result<CreateWorktreeOutcome, WorkspaceError> {
+        // A task of the node's: a caller that goes away does not leave a
+        // folder made and unrecorded.
+        let workspaces = Arc::clone(self);
+        self.tasks
+            .spawn(async move {
+                // Preserve the existing typed legacy refusals before ready-root admission.
+                if let Some(reason) = workspaces.creation_refusal(request.project)? {
+                    return Ok(CreateWorktreeOutcome::Refused { reason });
+                }
+                let admission = workspaces.admit_project(request.project).await?;
+                match request.setup {
+                    SetupChoice::Skip => {
+                        workspaces
+                            .create_worktree_admitted(admission, creator, request, created_for, id)
+                            .await
+                    }
+                    SetupChoice::Run => {
+                        workspaces
+                            .create_admitted_now(&admission, creator, request, created_for, id)
+                            .await
+                    }
+                }
+            })
+            .await
+            .map_err(WorkspaceError::project_task)?
+    }
+
+    fn creation_refusal(
+        &self,
+        project: vessel_proto::ProjectId,
+    ) -> Result<Option<WorktreeRefusal>, WorkspaceError> {
+        let state = self.state();
+        let entry = state
+            .projects
+            .get(&project)
+            .ok_or(WorkspaceError::UnknownProject(project))?;
+        Ok(if !entry.info.git {
+            Some(WorktreeRefusal::NotGit)
+        } else if !matches!(entry.info.state, ProjectState::Ready) {
+            Some(WorktreeRefusal::NotReady)
+        } else {
+            None
+        })
+    }
+
+    /// Provision backing without bootstrap; the driver retains its own Arc through
+    /// descriptor finalization. Workspace-aware setup is a separate later admission.
+    pub(crate) async fn create_worktree_admitted(
+        self: &Arc<Self>,
+        admission: Arc<ProjectAdmission>,
+        creator: Creator,
+        request: CreateWorktree,
+        created_for: Option<SessionId>,
+        id: WorktreeId,
+    ) -> Result<CreateWorktreeOutcome, WorkspaceError> {
+        admission.require(self, request.project)?;
+        if request.setup != SetupChoice::Skip {
+            return Err(WorkspaceError::Invalid("workspace backing creation requires setup to be skipped until its descriptor is finalized".to_owned()));
+        }
+        let workspaces = Arc::clone(self);
+        self.tasks
+            .spawn(async move {
+                workspaces
+                    .create_admitted_now(&admission, creator, request, created_for, id)
+                    .await
+            })
+            .await
+            .map_err(WorkspaceError::project_task)?
+    }
+
+    async fn create_admitted_now(
+        self: &Arc<Self>,
+        admission: &ProjectAdmission,
+        creator: Creator,
+        request: CreateWorktree,
+        created_for: Option<SessionId>,
+        id: WorktreeId,
+    ) -> Result<CreateWorktreeOutcome, WorkspaceError> {
+        admission.require(self, request.project)?;
         let refused = |reason| Ok(CreateWorktreeOutcome::Refused { reason });
         let project = request.project;
         let (root, default_branch) = {
             let mut state = self.state();
+            require_new_worktree_id(&state, id)?;
             let entry = state
                 .projects
                 .get(&project)
@@ -71,7 +148,10 @@ impl Workspaces {
             if !matches!(entry.info.state, ProjectState::Ready) {
                 return refused(WorktreeRefusal::NotReady);
             }
-            let found = (entry.info.root.clone(), entry.info.default_branch.clone());
+            let found = (
+                admission.root().path().to_path_buf(),
+                entry.info.default_branch.clone(),
+            );
             if over_limit(&state, &creator) {
                 return refused(WorktreeRefusal::Limit);
             }
@@ -79,14 +159,15 @@ impl Workspaces {
             // at once see each other; given back when this one ends,
             // however it ends (`Making`).
             state.making.push(creator.clone());
+            let _new_id = state.making_ids.insert(id);
             found
         };
         let _making = Making {
             workspaces: self,
             creator: creator.clone(),
+            id,
         };
         let git = self.git()?.clone();
-        let id = WorktreeId::random();
         let Chosen {
             branch,
             start,
@@ -96,17 +177,14 @@ impl Workspaces {
             Ok(chosen) => chosen,
             Err(reason) => return refused(reason),
         };
-        let commands = {
-            let file = self
-                .file_at(
-                    &root,
-                    &WorktreeBase::Commit {
-                        id: start.commit.clone(),
-                    },
-                )
-                .await?;
-            self.describe(project, file)
-        };
+        let commands = self
+            .commands(
+                project,
+                Some(&WorktreeBase::Commit {
+                    id: start.commit.clone(),
+                }),
+            )
+            .await?;
         let Some(setup) = plan(request.setup, &commands) else {
             return Ok(CreateWorktreeOutcome::NeedsApproval { commands });
         };
@@ -140,17 +218,27 @@ impl Workspaces {
             },
             kept: None,
         };
-        drop(
-            self.state()
-                .worktrees
-                .insert(id, WorktreeEntry::new(info.clone())),
-        );
+        self.remember_created_worktree(&info);
         self.save_worktree(info.clone()).await?;
         let info = match setup {
             Planned::Run(commands) => self.start_setup(id, commands)?,
             Planned::Skipped | Planned::Nothing => info,
         };
         Ok(CreateWorktreeOutcome::Created { worktree: info })
+    }
+
+    /// Preserve the existing publication order; durability and setup stay with the tracked creator.
+    fn remember_created_worktree(&self, info: &WorktreeInfo) {
+        let (written, _) = tokio::sync::watch::channel(0);
+        drop(self.state().worktrees.insert(
+            info.id,
+            WorktreeEntry {
+                info: info.clone(),
+                written: Arc::new(written),
+                running: None,
+                starting: 0,
+            },
+        ));
     }
 
     /// Run setup again with the commands of the worktree's file as it is.
@@ -272,11 +360,13 @@ fn over_limit(state: &State, creator: &Creator) -> bool {
 struct Making<'a> {
     workspaces: &'a Workspaces,
     creator: Creator,
+    id: WorktreeId,
 }
 
 impl Drop for Making<'_> {
     fn drop(&mut self) {
         let mut state = self.workspaces.state();
+        let _released = state.making_ids.remove(&self.id);
         if let Some(at) = state.making.iter().position(|made| *made == self.creator) {
             let _given_back = state.making.swap_remove(at);
         }
@@ -309,6 +399,16 @@ async fn canonical(path: PathBuf) -> PathBuf {
     tokio::task::spawn_blocking(move || std::fs::canonicalize(&path).unwrap_or(path))
         .await
         .unwrap_or_default()
+}
+
+/// A durably reserved identity must never replay an already-registered backing effect.
+fn require_new_worktree_id(state: &State, id: WorktreeId) -> Result<(), WorkspaceError> {
+    if state.worktrees.contains_key(&id) || state.making_ids.contains(&id) {
+        return Err(WorkspaceError::Conflict(
+            "the reserved worktree identity already exists".to_owned(),
+        ));
+    }
+    Ok(())
 }
 
 #[cfg(test)]

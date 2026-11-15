@@ -110,6 +110,8 @@ describe("the window's rows", () => {
     expect(rowIndex(closed, "t99", folds)).toBe(-1);
   });
 
+  // O(n²) by design: its scale is the point, and the 5 s default fails
+  // under build-machine load (1-2 s when idle), so it gets 30 s.
   it("hold every key find and the outline hand over, folded or not", () => {
     // Find looks in prompts and messages, the outline lists prompts: none
     // is ever inside a run, so each is a row of its own either way, and
@@ -132,5 +134,5 @@ describe("the window's rows", () => {
     }
     // Folded, a third of the conversation's 20,001 entries are rows.
     expect(rowsOf(entries, folds, new Set())).toHaveLength(13_335);
-  });
+  }, 30_000);
 });
