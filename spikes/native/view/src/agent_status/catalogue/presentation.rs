@@ -23,6 +23,14 @@ pub enum Read<'a, E> {
     /// A node reply can still be unfetched when only its cache was requested.
     Ready(&'a Catalogue),
 }
+// This descriptor only borrows data. Manual implementations avoid derive's
+// unnecessary E: Copy/Clone bound: real transport errors are not cloneable.
+impl<E> Copy for Read<'_, E> {}
+impl<E> Clone for Read<'_, E> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
 /// Pending work is neutral, not an availability or failure verdict.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Activity {
