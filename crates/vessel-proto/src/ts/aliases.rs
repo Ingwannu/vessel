@@ -68,6 +68,8 @@
 //!   text a schedule or a saved prompt sends, carried as a draft's is
 //!   (track D had it plain as a name; the join moved it, plain either
 //!   way).
+//! - Project service declarations: `ServicePort` is a number a person chooses,
+//!   like a pull-request number, not a node-minted handle or a count.
 //! - Kept current: every primitive alias the generator meets must be in
 //!   `ALIASES` (`Declarations::unclassified` lists the others, and the
 //!   generating crates' tests fail on one), and every entry must still be
@@ -218,6 +220,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("SecretName", Alias::Named),
     ("SecretText", Alias::Secret),
     ("SecretValue", Alias::Secret),
+    ("ServicePort", Alias::Named),
     ("SessionId", Alias::Handle),
     ("SessionTitle", Alias::Named),
     ("Sha256Hex", Alias::Named),

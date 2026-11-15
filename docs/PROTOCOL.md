@@ -1864,6 +1864,16 @@ approval and script/worktree approval replies. Older nodes omit the field;
 new readers treat omission as no terminal commands. Parsing and approval are
 staged ahead of automatic terminal creation, which is not implemented yet.
 
+
+The same unassigned `PROJECT_FILE_KEYS` also gates a declared `ScriptEntry.port`
+(nonzero TCP port, optional/absent by default). A current or previous approval
+with one is invalid for every peer while unassigned, through every direct and
+nested approval reply. `ScriptEntry` keeps its JSON kind string and validates
+kind and port together; a plain script with a port is refused. The TOML parser
+reads `services.<name>.port` through that validated declaration and includes it
+in the version-three approval. It assigns no number and starts no allocator
+or process; the allocation block is not parsed yet.
+
 ## Pending diagnostics (ADR 0074)
 
 `node.diagnostics {}` returns a bounded DiagnosticReport through the sole
@@ -1873,3 +1883,4 @@ client send and server dispatch refuses it through required_protocol while
 unassigned. Protocol maximum/minimum and store schema are unchanged here.
 The report adds explicit own-process numeric observations, source states and
 closed resource-refusal detail; it never carries raw logs or environment.
+

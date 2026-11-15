@@ -1,266 +1,637 @@
-//! A slider of discrete steps, as the effort control the owner chose
-//! (2026-11-13, captures of another product's composer, described in
-//! `docs/plans/backend-m12-spike.md`, not kept here): a pill-shaped track
-//! with a dot per step, filled from its start to a round white thumb; the
-//! fill a colour or a gradient the caller gives; on top, when the caller
-//! asks, small sparkles drifting along the fill and a sheen travelling
-//! over it.
+//! The effort slider, drawn as the local Codex app's model card draws it
+//! (the owner, 2026-11-14: "learn the local Codex app's slider"): a 24-tall
+//! round track at 10 % ink, filled in the accent to the thumb's centre, a
+//! 4-point dot per stop 13 in from either end, and a white 28-point thumb
+//! that grows to 32 while hovered or pressed. At the top stop the fill is
+//! a moving purple field revealed from the thumb, with a burst at the
+//! thumb; with Fast on, white dots stream back from the thumb.
 //!
 //! [Decision Log]
-//! - Purpose: choose one of a few ordered steps (an agent's thinking
-//!   levels) by dragging, clicking or the arrow keys, with the step's
-//!   strength shown by the fill.
-//! - Values, measured on the captures: the track 24 tall and round, its
-//!   dots 4 across, 13 in from either end; the thumb 28 across, white.
-//!   On touch the target is 44 tall (the track and thumb are not larger).
-//! - Choice: steps placed by fractions of the track (`relative`), so the
-//!   first frame is right before the track was measured; the track's
-//!   bounds, recorded each frame, turn a pointer's position into a step.
-//!   A drag shows the step under the pointer (`SliderState::previewing`)
-//!   and chooses it when released, so a drag across five steps sends one
-//!   choice, not five. Drag and release are heard window-wide while
-//!   dragging (the pointer may leave the track).
-//! - Motion: frame-driven (GPUI's animation, as the switch's slide), and
-//!   only while drawn and asked for: nothing moves when the caller says
-//!   [`Motion::Still`] or when the slider is not drawn (its card closed).
-//! - Differences: no tooltip over the thumb (the caller's word above the
-//!   track names the step, as the captures do).
+//! - Purpose: the owner found the previous slider (a flat white disc on a
+//!   grey pill, a jump from stop to stop) low quality.
+//! - Constraint: the kit knows no view types; the slider's logic (which
+//!   stop a pointer is on, the glide, the spring, the decorations through
+//!   time) is in `view::slider`, under test.
+//! - Choice: this control draws a [`Paint`] the caller computes each frame
+//!   (from `view::slider::state::Motion`) and reports the pointer in
+//!   points along the track ([`Pointer`]), the wheel's units and the arrow
+//!   keys ([`Events`]). While the paint says something moves it asks for
+//!   the display's next frame (GPUI's frame callback, at the display's
+//!   rate: the thumb, the fill, Fast's dots, the field and the burst all
+//!   advance once per frame drawn); when it rests or is not drawn nothing
+//!   ticks. Until 0.0.0.0.14 the decorations ran on a 30-a-second timer,
+//!   which read as choppy on the owner's GPU (words 41-42).
+//! - The field: the caller gives a sampler (colour and opacity at a point
+//!   of the fill); the control samples it every 2 points into one small
+//!   image per frame, painted over the fill with its left corners rounded,
+//!   and drops the previous frame's image from the atlas.
+//! - Differences from the reference, named: the fill is Vessel's accent
+//!   (the reference's default `#339cff`); the track's edge is Vessel's
+//!   `border` token and the thumb's edge `border_accent` (the reference's
+//!   desktop values were not in its bundle); a hovered stop grows but is
+//!   not darkened (GPUI has no brightness filter).
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
+use std::sync::Arc;
 use std::time::Duration;
 
 use gpui::prelude::*;
 use gpui::{
-    Animation, AnimationExt as _, AnyElement, App, Bounds, ElementId, FocusHandle, Hsla,
-    MouseButton, MouseMoveEvent, MouseUpEvent, Pixels, Window, canvas, div, linear_color_stop,
-    linear_gradient, px, relative, white,
+    Animation, AnimationExt as _, AnyElement, App, Bounds, BoxShadow, Corners, ElementId,
+    FocusHandle, Hsla, MouseButton, MouseMoveEvent, MouseUpEvent, Pixels, RenderImage, ScrollDelta,
+    ScrollEvent, Window, canvas, div, hsla, point, px, white,
 };
 
 use crate::theme::Tokens;
 
 /// The track's height.
 const TRACK: f32 = 24.0;
-/// A dot's size.
-const DOT: f32 = 4.0;
-/// Half a dot, to centre it on its place.
-const HALF_DOT: f32 = -2.0;
-/// The steps' distance from the track's ends.
-const INSET: f32 = 13.0;
-/// The thumb's size.
-const THUMB: f32 = 28.0;
-/// Half the thumb, to centre it on its place.
-const HALF_THUMB: f32 = -14.0;
-/// The fill starts at the track's start, before the line.
-const BEFORE_LINE: f32 = -13.0;
-/// The pointer's target height.
-const POINTER: f32 = 28.0;
+/// The control's height with a pointer.
+const CONTROL: f32 = 28.0;
 /// The touch target's height.
 const TOUCH: f32 = 44.0;
+/// The block around the control: its height and side padding.
+const BLOCK: f32 = 32.0;
+const BLOCK_SIDE: f32 = 6.0;
+/// The first and last stop's distance from the track's ends.
+const INSET: f32 = 13.0;
+/// A stop's dot.
+const DOT: f32 = 4.0;
+/// A stop's hit area.
+const DOT_HIT: f32 = 16.0;
+/// The thumb at rest.
+const THUMB: f32 = 28.0;
+/// The thumb's hit area.
+const THUMB_HIT: f32 = 34.0;
+/// A burst particle.
+const BURST_DOT: f32 = 5.0;
+/// A fast dot.
+const FAST_DOT: f32 = 3.0;
+/// The field's sampling step, points.
+const FIELD_STEP: f32 = 2.0;
+/// A line of wheel scrolling, in the reference's units.
+const WHEEL_LINE: f32 = 30.0;
 
-/// What the track's fill is.
+/// A particle: its centre's offset, scale, opacity and colour.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Fill {
-    /// One colour.
-    Solid(Hsla),
-    /// From one colour at the start to another at the end.
-    Gradient(Hsla, Hsla),
+pub struct Particle {
+    /// Across.
+    pub x: f32,
+    /// Down.
+    pub y: f32,
+    /// Scale.
+    pub scale: f32,
+    /// Opacity.
+    pub opacity: f32,
+    /// Colour.
+    pub colour: Hsla,
 }
 
-/// How the fill moves.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Motion {
-    /// Not at all.
-    Still,
-    /// Sparkles drifting slowly.
-    Slow,
-    /// Sparkles drifting quickly, and a sheen travelling over the fill.
-    Fast,
+/// A stop's dot: its sideways shift, scale, opacity, and whether it is
+/// under the fill.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Stop {
+    /// Sideways shift, points.
+    pub shift: f32,
+    /// Scale.
+    pub scale: f32,
+    /// Opacity.
+    pub opacity: f32,
+    /// Under the fill.
+    pub filled: bool,
 }
 
-/// How a slider looks at its value.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Look {
-    /// The fill, from the start to the thumb.
-    pub fill: Fill,
-    /// Whether sparkles show on the fill.
-    pub sparkles: bool,
-    /// How it moves.
-    pub motion: Motion,
+/// The field's colour and opacity (straight, 0 to 1) at a point `x`
+/// points from the track's start and `y` up the track (0 bottom, 1 top),
+/// with the fill `fill` points wide on a track `track` points wide.
+pub type Sampler = Rc<dyn Fn(f32, f32, f32, f32) -> [f32; 4]>;
+
+/// What one frame draws.
+#[derive(Clone)]
+pub struct Paint {
+    /// The thumb's place between the first and last stop (`None`: no stop
+    /// in effect, nothing filled and no thumb).
+    pub fraction: Option<f32>,
+    /// The thumb's scale.
+    pub thumb: f32,
+    /// The stops.
+    pub stops: Vec<Stop>,
+    /// The burst, offsets from the thumb's centre.
+    pub burst: Vec<Particle>,
+    /// Fast's dots: `x` the share of the track's width back from the
+    /// thumb, `y` the share of its height from the top.
+    pub dots: Vec<Particle>,
+    /// The field over the fill, when at the top stop.
+    pub field: Option<Sampler>,
+    /// The fill's colour.
+    pub fill: Hsla,
+    /// Whether anything moves (the display's next frame is asked for).
+    pub moving: bool,
+    /// Whether the slider has the keys and the last input was a key: the
+    /// thumb shows the focus ring (the reference's `:focus-visible`).
+    pub ring: Option<Hsla>,
+}
+
+impl std::fmt::Debug for Paint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Paint")
+            .field("fraction", &self.fraction)
+            .field("thumb", &self.thumb)
+            .field("stops", &self.stops.len())
+            .field("field", &self.field.is_some())
+            .field("moving", &self.moving)
+            .finish_non_exhaustive()
+    }
+}
+
+/// A callback with a number.
+pub type With<T> = Rc<dyn Fn(T, &mut Window, &mut App)>;
+/// A callback.
+pub type Then = Rc<dyn Fn(&mut Window, &mut App)>;
+
+/// What the control reports.
+#[derive(Clone)]
+#[expect(missing_debug_implementations, reason = "callbacks only")]
+pub struct Events {
+    /// A press on the track.
+    pub press: With<Pointer>,
+    /// The pointer, pressed, anywhere in the window.
+    pub drag: With<Pointer>,
+    /// The release.
+    pub release: Then,
+    /// The pointer onto or off the thumb.
+    pub hover: With<bool>,
+    /// The wheel, in the reference's units (positive: on).
+    pub wheel: With<f32>,
+    /// An arrow key: -1 back, +1 on.
+    pub key: With<i32>,
 }
 
 /// A slider's own state, kept by its screen.
 #[derive(Debug, Clone)]
 pub struct SliderState {
     focus: FocusHandle,
-    /// Where the steps' line was drawn last frame.
-    line: Rc<Cell<Option<Bounds<Pixels>>>>,
-    /// While dragging: the step under the pointer.
-    dragging: Rc<Cell<Option<usize>>>,
+    /// Where the track was drawn last frame.
+    track: Rc<Cell<Option<Bounds<Pixels>>>>,
+    /// Whether the pointer is pressed on it.
+    pressed: Rc<Cell<bool>>,
+    /// The field's image last painted, dropped when the next is.
+    field: Rc<RefCell<Option<Arc<RenderImage>>>>,
 }
 
 impl SliderState {
-    /// A slider not being dragged.
+    /// A slider not pressed.
     pub fn new(cx: &mut App) -> Self {
         Self {
-            focus: cx.focus_handle(),
-            line: Rc::new(Cell::new(None)),
-            dragging: Rc::new(Cell::new(None)),
+            // A tab stop: the kit's root moves the keys with Tab
+            // (`focus_next`), and the slider must be reachable that way.
+            focus: cx.focus_handle().tab_stop(true),
+            track: Rc::new(Cell::new(None)),
+            pressed: Rc::new(Cell::new(false)),
+            field: Rc::new(RefCell::new(None)),
         }
-    }
-
-    /// While dragging, the step under the pointer (the caller names it).
-    #[must_use]
-    pub fn previewing(&self) -> Option<usize> {
-        self.dragging.get()
     }
 
     /// Give it the keys (the arrow keys move it).
     pub fn focus(&self, window: &mut Window, cx: &mut App) {
         self.focus.focus(window, cx);
     }
-}
 
-/// What choosing a step does.
-pub type OnStep = Rc<dyn Fn(usize, &mut Window, &mut App)>;
-
-/// The step nearest `x` on a line of `steps` steps drawn in `line`.
-fn step_at(x: Pixels, line: Bounds<Pixels>, steps: usize) -> usize {
-    let width = f32::from(line.size.width);
-    if width <= 0.0 {
-        return 0;
+    /// Whether it has the keys and they were the last input (the ring
+    /// shows then, not after a click).
+    #[must_use]
+    pub fn keyboard_focused(&self, window: &Window) -> bool {
+        self.focus.is_focused(window) && window.last_input_was_keyboard()
     }
-    let along = f32::from(line.left())
-        .mul_add(-1.0, f32::from(x))
-        .clamp(0.0, width);
-    let fraction = along.mul_add(width.recip(), 0.0);
-    let distance = |index: &usize| fraction.mul_add(-1.0, place(*index, steps)).abs();
-    (0..steps)
-        .min_by(|a, b| distance(a).total_cmp(&distance(b)))
-        .unwrap_or(0)
 }
 
-/// Step `index`'s place along the line, a fraction of it.
-fn place(index: usize, steps: usize) -> f32 {
-    let last = steps.saturating_sub(1);
-    if last == 0 {
-        return 0.0;
+/// A pointer over the track, in points: from the track's start (beyond
+/// either end while dragging), and the track's width.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Pointer {
+    /// Points from the track's start.
+    pub x: f32,
+    /// The track's width.
+    pub width: f32,
+}
+
+/// The pointer at `x` over `track`.
+fn pointer(x: Pixels, track: Bounds<Pixels>) -> Pointer {
+    Pointer {
+        x: f32::from(track.left()).mul_add(-1.0, f32::from(x)),
+        width: f32::from(track.size.width),
     }
-    let index = f32::from(u16::try_from(index).unwrap_or(u16::MAX));
-    let last = f32::from(u16::try_from(last).unwrap_or(u16::MAX));
-    index.mul_add(last.recip(), 0.0)
 }
 
-/// Where a slider's thumb is: `steps` steps, at `at` (`None`: no step,
-/// the thumb at the start, nothing filled).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Position {
-    /// How many steps.
-    pub steps: usize,
-    /// The step in effect.
-    pub at: Option<usize>,
+/// Where along a track `width` wide a point `fraction` of the way between
+/// the first and last stop is drawn.
+fn along(fraction: f32, width: f32) -> f32 {
+    fraction.mul_add(INSET.mul_add(-2.0, width).max(0.0), INSET)
 }
 
-/// A slider at `position`. `on_step` is called with a step clicked,
-/// dragged to and released, or reached by a key.
+/// The track's width before it was first measured: the card's (254, less
+/// its 4 padding, the block's 2 margins and 6 padding on each side).
+const FIRST_WIDTH: f32 = 230.0;
+
+/// A slider drawing `paint`. `touch` makes the target 44 tall.
 #[must_use]
 pub fn slider(
     id: impl Into<ElementId>,
     state: &SliderState,
-    position: Position,
-    look: Look,
+    paint: &Paint,
     touch: bool,
     tokens: &Tokens,
-    on_step: &OnStep,
+    events: &Events,
 ) -> AnyElement {
     let id = id.into();
-    let Position { steps, at } = position;
-    let shown = state.dragging.get().or(at);
-    let fraction = shown.map_or(0.0, |index| place(index, steps));
-    // The steps' line: the track less its insets; the dots, the fill's
-    // end and the thumb are placed on it by fractions.
-    let mut line = div()
-        .absolute()
-        .top_0()
-        .bottom_0()
-        .left(px(INSET))
-        .right(px(INSET))
-        .child(drag_listener(state, steps));
-    if shown.is_some() {
-        line = line.child(fill(&id, look, fraction));
-    }
-    for index in 0..steps {
-        let filled = shown.is_some_and(|shown| index < shown);
-        line = line.child(dot(index, steps, filled, tokens));
-    }
-    line = line.child(thumb(fraction, tokens));
-    // The track's rest: a step above the card (`surface3` in both).
-    let track = div()
-        .relative()
-        .w_full()
-        .h(px(TRACK))
-        .rounded_full()
-        .bg(tokens.neutral.surface3)
-        .child(line);
-    let press_line = Rc::clone(&state.line);
-    let press_drag = Rc::clone(&state.dragging);
-    let key_step = Rc::clone(on_step);
-    div()
+    let width = state
+        .track
+        .get()
+        .map_or(FIRST_WIDTH, |track| f32::from(track.size.width));
+    let height = if touch { TOUCH } else { CONTROL };
+    let thumb_x = paint.fraction.map(|fraction| along(fraction, width));
+    let track = track(state, paint, thumb_x, width, tokens);
+    let mut root = div()
         .id(id)
         .track_focus(&state.focus)
+        .relative()
         .w_full()
-        .h(px(if touch { TOUCH } else { POINTER }))
+        .h(px(height))
         .flex()
         .items_center()
-        .cursor_pointer()
-        .child(track)
-        .on_mouse_down(MouseButton::Left, move |event, window, _cx| {
-            if let Some(line) = press_line.get() {
-                press_drag.set(Some(step_at(event.position.x, line, steps)));
-                window.refresh();
-            }
-        })
-        .on_mouse_up(MouseButton::Left, release(state, on_step))
-        .on_mouse_up_out(MouseButton::Left, release(state, on_step))
-        .on_key_down(move |event, window, cx| {
-            let last = steps.saturating_sub(1);
-            let from = at.unwrap_or(0);
-            let to = match event.keystroke.key.as_str() {
-                "left" | "down" => from.saturating_sub(1),
-                "right" | "up" => from.saturating_add(1).min(last),
-                "home" => 0,
-                "end" => last,
-                _ => return,
-            };
-            cx.stop_propagation();
-            if Some(to) != at {
-                key_step(to, window, cx);
+        .child(track);
+    if let Some(centre) = thumb_x {
+        root = root
+            .children(paint.burst.iter().map(|particle| {
+                dot_at(
+                    centre.mul_add(1.0, particle.x),
+                    height.mul_add(0.5, particle.y),
+                    BURST_DOT,
+                    particle,
+                )
+            }))
+            .child(thumb(centre, height, paint, tokens, events));
+    }
+    root.child(frames(state, paint, events))
+        .on_mouse_down(MouseButton::Left, press(state, events))
+        .on_mouse_up(MouseButton::Left, release(state, events))
+        .on_mouse_up_out(MouseButton::Left, release(state, events))
+        .on_scroll(wheel(events))
+        .on_key_down({
+            let key = Rc::clone(&events.key);
+            move |event, window, cx| {
+                let step = match event.keystroke.key.as_str() {
+                    "left" => -1,
+                    "right" => 1,
+                    _ => return,
+                };
+                cx.stop_propagation();
+                key(step, window, cx);
             }
         })
         .into_any_element()
 }
 
-/// Records where the steps' line is drawn, and while dragging hears the
-/// pointer's moves anywhere in the window (they pick the step shown). The
-/// release is heard by the slider itself, over it or outside it: a quick
-/// click's release can come before this frame's listeners are painted.
-fn drag_listener(state: &SliderState, steps: usize) -> AnyElement {
-    let probe_line = Rc::clone(&state.line);
-    let drag = Rc::clone(&state.dragging);
+/// The block the reference sets the control in: 32 tall, 2 out and 6 in
+/// at the sides.
+#[must_use]
+pub fn block(slider: AnyElement) -> AnyElement {
+    div()
+        .h(px(BLOCK))
+        .mx(px(2.0))
+        .px(px(BLOCK_SIDE))
+        .flex()
+        .flex_col()
+        .justify_center()
+        .child(slider)
+        .into_any_element()
+}
+
+/// The track: the 10 % ink pill, the fill, the field, Fast's dots and the
+/// stops.
+fn track(
+    state: &SliderState,
+    paint: &Paint,
+    thumb_x: Option<f32>,
+    width: f32,
+    tokens: &Tokens,
+) -> AnyElement {
+    let measure = Rc::clone(&state.track);
+    // No border on the track itself: GPUI places absolute children inside
+    // a border, so the fill (24 tall) sat half a point low and showed
+    // under the track (the owner, on 0.0.0.0.13, word 26). The hairline
+    // is a layer of its own, under the fill, as the reference's inset
+    // shadow is under its range.
+    let radius = px(TRACK.mul_add(0.5, 0.0));
+    let mut track = div()
+        .relative()
+        .w_full()
+        .h(px(TRACK))
+        .rounded(radius)
+        .bg(tokens.neutral.foreground.opacity(0.10))
+        .child(
+            div()
+                .absolute()
+                .size_full()
+                .rounded(radius)
+                .border(px(0.5))
+                .border_color(tokens.neutral.border),
+        )
+        .child(
+            canvas(
+                move |bounds, _window, _cx| measure.set(Some(bounds)),
+                |_, (), _, _| {},
+            )
+            .absolute()
+            .size_full(),
+        );
+    if let Some(fill) = thumb_x {
+        // The fill is a whole pill whose right cap is centred on the
+        // thumb's centre: its left end is always the track's 12-point cap
+        // (a fill narrower than the track is tall had its corners cut to
+        // half its width, the "square" end at the lowest stop the owner
+        // saw), and its right cap, 12 round, lies under the 14-round thumb.
+        let span = fill.mul_add(1.0, TRACK.mul_add(0.5, 0.0));
+        let mut filled = div()
+            .absolute()
+            .left_0()
+            .top_0()
+            .bottom_0()
+            .w(px(span))
+            .rounded(radius)
+            .overflow_hidden();
+        filled = match &paint.field {
+            // The field's image carries the fill's colour where it is not
+            // yet revealed, so nothing is painted under it: a fill under
+            // the image showed as a one-pixel rim at fractional scales,
+            // where the image's bounds are snapped and the fill's are not.
+            Some(sampler) => {
+                filled.child(field(state, Rc::clone(sampler), fill, width, paint.fill))
+            }
+            None => filled.bg(paint.fill),
+        };
+        filled = filled.children(paint.dots.iter().map(|particle| {
+            let x = particle.x.mul_add(width.mul_add(-1.0, 0.0), fill);
+            let y = particle.y.mul_add(TRACK, 0.0);
+            // GPUI clips to rectangles: a dot near the track's round end
+            // fades by how much of it (and its glow) is inside the pill.
+            let mut particle = *particle;
+            particle.opacity = particle
+                .opacity
+                .mul_add(inside_pill(x, y, FAST_DOT.mul_add(1.5, 0.0), width), 0.0);
+            dot_at(x, y, FAST_DOT, &particle).shadow(vec![BoxShadow {
+                color: hsla(0.0, 0.0, 1.0, 0.34),
+                offset: point(px(0.0), px(0.0)),
+                blur_radius: px(5.0),
+                spread_radius: px(0.0),
+                inset: false,
+            }])
+        }));
+        track = track.child(filled);
+    }
+    let stops = paint.stops.len();
+    let last = stops.saturating_sub(1);
+    track
+        .children(paint.stops.iter().enumerate().map(|(index, stop)| {
+            let fraction = if last == 0 {
+                0.0
+            } else {
+                f32::from(u16::try_from(index).unwrap_or(0))
+                    .mul_add(f32::from(u16::try_from(last).unwrap_or(1)).recip(), 0.0)
+            };
+            let x = along(fraction, width).mul_add(1.0, stop.shift);
+            let colour = if stop.filled {
+                white().opacity(0.30)
+            } else {
+                tokens.neutral.foreground.opacity(0.35)
+            };
+            let size = DOT.mul_add(stop.scale, 0.0);
+            let centre = TRACK.mul_add(0.5, 0.0);
+            // A stop sliding away (Fast) leaves through the round end, not
+            // past it: faded by how much of it is inside the pill.
+            let opacity = stop
+                .opacity
+                .mul_add(inside_pill(x, centre, size.mul_add(0.5, 0.0), width), 0.0);
+            div()
+                .absolute()
+                .left(px(DOT_HIT.mul_add(-0.5, x)))
+                .top(px(DOT_HIT.mul_add(-0.5, centre)))
+                .size(px(DOT_HIT))
+                .flex()
+                .items_center()
+                .justify_center()
+                .opacity(opacity)
+                .group("slider-stop")
+                .child(
+                    div()
+                        .size(px(size))
+                        .rounded_full()
+                        .bg(colour)
+                        .group_hover("slider-stop", move |style| {
+                            style.size(px(size.mul_add(2.0, 0.0)))
+                        }),
+                )
+        }))
+        .into_any_element()
+}
+
+/// How much of a round mark of `radius` centred at (`x`, `y`) lies inside
+/// the track's pill, `width` wide and 24 tall: 1 inside, 0 outside, fading
+/// over a point at the outline. GPUI's content masks are rectangles, so
+/// the round ends are cut here, in what is painted.
+#[expect(clippy::float_arithmetic, reason = "a distance to the pill's outline")]
+fn inside_pill(x: f32, y: f32, radius: f32, width: f32) -> f32 {
+    let half = TRACK * 0.5;
+    let centre_x = x.clamp(half, (width - half).max(half));
+    let (dx, dy) = (x - centre_x, y - half);
+    let distance = (dx * dx + dy * dy).sqrt();
+    (half - distance - radius + 1.0).clamp(0.0, 1.0)
+}
+
+/// A round particle of `size` centred at (`x`, `y`).
+fn dot_at(x: f32, y: f32, size: f32, particle: &Particle) -> gpui::Div {
+    let size = size.mul_add(particle.scale, 0.0);
+    div()
+        .absolute()
+        .left(px(size.mul_add(-0.5, x)))
+        .top(px(size.mul_add(-0.5, y)))
+        .size(px(size))
+        .rounded_full()
+        .bg(particle.colour)
+        .opacity(particle.opacity)
+}
+
+/// The thumb, white with a hairline edge and a faint shadow, at `centre`;
+/// its 34-point hit area reports hovering.
+fn thumb(centre: f32, height: f32, paint: &Paint, tokens: &Tokens, events: &Events) -> AnyElement {
+    let size = THUMB.mul_add(paint.thumb, 0.0);
+    let ring = paint.ring;
+    let hover = Rc::clone(&events.hover);
+    div()
+        .id("slider-thumb")
+        .absolute()
+        .left(px(THUMB_HIT.mul_add(-0.5, centre)))
+        .top(px(THUMB_HIT.mul_add(-0.5, height.mul_add(0.5, 0.0))))
+        .size(px(THUMB_HIT))
+        .flex()
+        .items_center()
+        .justify_center()
+        .on_hover(move |over, window, cx| hover(*over, window, cx))
+        .child(
+            div()
+                .size(px(size))
+                .flex_none()
+                .rounded_full()
+                .bg(white())
+                .border(px(0.5))
+                .border_color(tokens.neutral.border_accent)
+                .shadow(
+                    // The reference's faint shadow; with the keys, its
+                    // 2-point ring around the thumb.
+                    std::iter::once(BoxShadow {
+                        color: hsla(0.0, 0.0, 0.0, 0.10),
+                        offset: point(px(0.0), px(0.0)),
+                        blur_radius: px(2.0),
+                        spread_radius: px(0.0),
+                        inset: false,
+                    })
+                    .chain(ring.map(|colour| BoxShadow {
+                        color: colour,
+                        offset: point(px(0.0), px(0.0)),
+                        blur_radius: px(0.0),
+                        spread_radius: px(2.0),
+                        inset: false,
+                    }))
+                    .collect(),
+                ),
+        )
+        .into_any_element()
+}
+
+/// The field over the fill, sampled every 2 points into one image.
+fn field(state: &SliderState, sampler: Sampler, fill: f32, width: f32, under: Hsla) -> AnyElement {
+    let last = Rc::clone(&state.field);
     canvas(
-        move |bounds, _window, _cx| probe_line.set(Some(bounds)),
-        move |bounds, (), window, _cx| {
-            if drag.get().is_none() {
+        |_, _, _| {},
+        move |bounds, (), window, cx| {
+            let span = f32::from(bounds.size.width);
+            let Some(image) = field_image(&sampler, fill, span, width, under) else {
+                return;
+            };
+            if let Some(previous) = last.borrow_mut().replace(Arc::clone(&image)) {
+                cx.drop_image(previous, Some(window));
+            }
+            let radius = px(TRACK.mul_add(0.5, 0.0));
+            let corners = Corners::all(radius);
+            if let Err(error) = window.paint_image(bounds, bounds, corners, image, 0, false) {
+                tracing::warn!(%error, "the slider's field could not be drawn");
+            }
+        },
+    )
+    .absolute()
+    .left_0()
+    .top_0()
+    .size_full()
+    .into_any_element()
+}
+
+/// The field's samples as an image (BGRA, opaque, as GPUI's images are),
+/// `span` points wide, the thumb `fill` points along: where the field is
+/// not yet revealed the sample is the fill's own colour `under`.
+fn field_image(
+    sampler: &Sampler,
+    fill: f32,
+    span: f32,
+    width: f32,
+    under: Hsla,
+) -> Option<Arc<RenderImage>> {
+    let base = under.to_rgb();
+    let columns = (span.mul_add(FIELD_STEP.recip(), 0.0).ceil()).clamp(1.0, 2048.0);
+    let rows = TRACK.mul_add(FIELD_STEP.recip(), 0.0);
+    let (count_x, count_y) = (whole(columns), whole(rows));
+    let mut bytes = Vec::with_capacity(
+        usize::try_from(count_x.saturating_mul(count_y).saturating_mul(4)).unwrap_or(0),
+    );
+    for row in 0..count_y {
+        let y = centre_of(row).mul_add(FIELD_STEP, 0.0);
+        let up = y.mul_add(TRACK.recip().mul_add(-1.0, 0.0), 1.0);
+        for column in 0..count_x {
+            let x = centre_of(column).mul_add(FIELD_STEP, 0.0);
+            let [red, green, blue, shown] = sampler(x, up, fill, width);
+            let over = |field: f32, fill: f32| {
+                field.mul_add(shown, fill.mul_add(shown.mul_add(-1.0, 1.0), 0.0))
+            };
+            bytes.extend([
+                byte(over(blue, base.b)),
+                byte(over(green, base.g)),
+                byte(over(red, base.r)),
+                u8::MAX,
+            ]);
+        }
+    }
+    let buffer = image::RgbaImage::from_raw(count_x, count_y, bytes)?;
+    Some(Arc::new(RenderImage::new(vec![image::Frame::new(buffer)])))
+}
+
+/// Sample `index`'s centre, in steps.
+fn centre_of(index: u32) -> f32 {
+    f32::from(u16::try_from(index).unwrap_or(u16::MAX)).mul_add(1.0, 0.5)
+}
+
+/// A count of samples (1 to 2048) as a whole number.
+#[expect(
+    clippy::as_conversions,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    reason = "the value is clamped to 1..=2048 and whole before the cast"
+)]
+fn whole(count: f32) -> u32 {
+    count.clamp(1.0, 2048.0).round() as u32
+}
+
+/// A channel, 0 to 1, as a byte.
+#[expect(
+    clippy::as_conversions,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    reason = "the value is clamped to 0..=255 and rounded before the cast"
+)]
+fn byte(channel: f32) -> u8 {
+    channel.mul_add(255.0, 0.0).clamp(0.0, 255.0).round() as u8
+}
+
+/// Asks for the next frame while the paint moves, and while pressed hears
+/// the pointer's moves anywhere in the window.
+fn frames(state: &SliderState, paint: &Paint, events: &Events) -> AnyElement {
+    let pressed = Rc::clone(&state.pressed);
+    let track = Rc::clone(&state.track);
+    let drag = Rc::clone(&events.drag);
+    let moving = paint.moving;
+    canvas(
+        |_, _, _| {},
+        move |_bounds, (), window, _cx| {
+            // Asked only while the paint moves (under held motion the
+            // caller's frames rest): a resting or closed card does not
+            // tick. Each frame drawn while it moves asks for the next.
+            if moving {
+                crate::frame_log::note("slider");
+                window.request_animation_frame();
+            } else {
+                crate::frame_log::note("still");
+            }
+            if !pressed.get() {
                 return;
             }
-            let moving = Rc::clone(&drag);
-            window.on_mouse_event(move |event: &MouseMoveEvent, phase, window, _cx| {
-                if phase.bubble() && moving.get().is_some() {
-                    let step = step_at(event.position.x, bounds, steps);
-                    if moving.get() != Some(step) {
-                        moving.set(Some(step));
-                        window.refresh();
-                    }
+            let pressed = Rc::clone(&pressed);
+            let track = Rc::clone(&track);
+            let drag = Rc::clone(&drag);
+            window.on_mouse_event(move |event: &MouseMoveEvent, phase, window, cx| {
+                if phase.bubble()
+                    && pressed.get()
+                    && let Some(bounds) = track.get()
+                {
+                    drag(pointer(event.position.x, bounds), window, cx);
                 }
             });
         },
@@ -270,177 +641,60 @@ fn drag_listener(state: &SliderState, steps: usize) -> AnyElement {
     .into_any_element()
 }
 
-/// A release: the step shown while dragging is chosen.
+fn press(
+    state: &SliderState,
+    events: &Events,
+) -> impl Fn(&gpui::MouseDownEvent, &mut Window, &mut App) + 'static {
+    let pressed = Rc::clone(&state.pressed);
+    let track = Rc::clone(&state.track);
+    let focus = state.focus.clone();
+    let press = Rc::clone(&events.press);
+    move |event, window, cx| {
+        let Some(bounds) = track.get() else {
+            return;
+        };
+        pressed.set(true);
+        focus.focus(window, cx);
+        press(pointer(event.position.x, bounds), window, cx);
+    }
+}
+
 fn release(
     state: &SliderState,
-    on_step: &OnStep,
+    events: &Events,
 ) -> impl Fn(&MouseUpEvent, &mut Window, &mut App) + 'static {
-    let dragging = Rc::clone(&state.dragging);
-    let chosen = Rc::clone(on_step);
+    let pressed = Rc::clone(&state.pressed);
+    let release = Rc::clone(&events.release);
     move |_event, window, cx| {
-        if let Some(step) = dragging.take() {
-            chosen(step, window, cx);
-            window.refresh();
+        if pressed.replace(false) {
+            release(window, cx);
         }
     }
 }
 
-/// The fill, from the track's start to the thumb at `fraction`.
-fn fill(id: &ElementId, look: Look, fraction: f32) -> AnyElement {
-    let colour = match look.fill {
-        Fill::Solid(colour) => colour.into(),
-        Fill::Gradient(from, to) => linear_gradient(
-            90.0,
-            linear_color_stop(from, 0.0),
-            linear_color_stop(to, 1.0),
-        ),
-    };
-    div()
-        .absolute()
-        .top(px(0.0))
-        .bottom(px(0.0))
-        .left(px(BEFORE_LINE))
-        .right(relative(fraction.mul_add(-1.0, 1.0)))
-        .rounded_full()
-        .bg(colour)
-        .overflow_hidden()
-        .when(look.sparkles, |fill| fill.child(sparkles(id, look.motion)))
-        .when(look.motion == Motion::Fast, |fill| fill.child(sheen(id)))
-        .into_any_element()
-}
-
-/// Step `index`'s dot, lighter over the fill.
-fn dot(index: usize, steps: usize, filled: bool, tokens: &Tokens) -> AnyElement {
-    let colour = if filled {
-        white().opacity(0.5)
-    } else {
-        tokens.neutral.foreground_muted.opacity(0.6)
-    };
-    div()
-        .absolute()
-        .top(relative(0.5))
-        .mt(px(HALF_DOT))
-        .left(relative(place(index, steps)))
-        .ml(px(HALF_DOT))
-        .size(px(DOT))
-        .rounded_full()
-        .bg(colour)
-        .into_any_element()
-}
-
-/// The thumb, a white disc at `fraction`; on a light card, edged (white on
-/// white is lost: the captures are dark and show no edge).
-fn thumb(fraction: f32, tokens: &Tokens) -> AnyElement {
-    let edged = tokens.scheme == crate::theme::Scheme::Light;
-    div()
-        .absolute()
-        .top(relative(0.5))
-        .mt(px(HALF_THUMB))
-        .left(relative(fraction))
-        .ml(px(HALF_THUMB))
-        .size(px(THUMB))
-        .rounded_full()
-        .bg(white())
-        .when(edged, |thumb| {
-            thumb.border_1().border_color(tokens.neutral.surface4)
-        })
-        .shadow(crate::popup::shadow_md(tokens))
-        .into_any_element()
-}
-
-/// Where the sparkles sit, as fractions of the fill's width and height
-/// (fixed, so they drift together rather than flicker).
-const SPARKS: [(f32, f32, f32); 12] = [
-    (0.04, 0.30, 0.9),
-    (0.11, 0.70, 0.6),
-    (0.19, 0.45, 0.8),
-    (0.27, 0.20, 0.5),
-    (0.35, 0.65, 0.9),
-    (0.43, 0.35, 0.6),
-    (0.52, 0.75, 0.8),
-    (0.60, 0.25, 0.7),
-    (0.68, 0.55, 0.9),
-    (0.76, 0.30, 0.5),
-    (0.85, 0.70, 0.8),
-    (0.93, 0.40, 0.6),
-];
-
-/// A sparkle's size.
-const SPARK: f32 = 2.0;
-
-/// Sparkles over the fill, drifting at `motion`'s pace.
-fn sparkles(id: &ElementId, motion: Motion) -> AnyElement {
-    let layer = |shift: f32| {
-        let mut layer = div().absolute().top_0().left_0().size_full();
-        for (x, y, alpha) in SPARKS {
-            let x = x.mul_add(1.0, shift).fract();
-            layer = layer.child(
-                div()
-                    .absolute()
-                    .left(relative(x))
-                    .top(relative(y))
-                    .size(px(SPARK))
-                    .rounded_full()
-                    .bg(white().opacity(alpha)),
-            );
+fn wheel(events: &Events) -> impl Fn(&ScrollEvent, &mut Window, &mut App) + 'static {
+    let wheel = Rc::clone(&events.wheel);
+    move |event, window, cx| {
+        if event.modifiers.control {
+            return;
         }
-        layer
-    };
-    let period = match motion {
-        Motion::Still => return layer(0.0).into_any_element(),
-        Motion::Slow => Duration::from_millis(9000),
-        Motion::Fast => Duration::from_millis(2400),
-    };
-    div()
-        .absolute()
-        .top_0()
-        .left_0()
-        .size_full()
-        .with_animation(
-            ElementId::NamedChild(std::sync::Arc::new(id.clone()), "sparkles".into()),
-            Animation::new(period).repeat(),
-            move |frame, delta| frame.child(layer(delta)),
-        )
-        .into_any_element()
-}
-
-/// Half a sheen's width.
-const HALF_SHEEN: f32 = 28.0;
-/// A sheen's light at its middle.
-const SHEEN_LIGHT: f32 = 0.32;
-
-/// A soft light band crossing the fill, quickly (fast mode on).
-fn sheen(id: &ElementId) -> AnyElement {
-    let band = |delta: f32| {
-        // Clear, light, clear: two halves, each a two-stop gradient.
-        let half = |from: f32, to: f32| {
-            div().h_full().w(px(HALF_SHEEN)).bg(linear_gradient(
-                90.0,
-                linear_color_stop(white().opacity(from), 0.0),
-                linear_color_stop(white().opacity(to), 1.0),
-            ))
+        // The reference takes the larger of the two axes, up and right
+        // moving on.
+        let (across, up) = match event.delta {
+            ScrollDelta::Pixels(delta) => {
+                (f32::from(delta.x).mul_add(-1.0, 0.0), f32::from(delta.y))
+            }
+            ScrollDelta::Lines(delta) => (
+                delta.x.mul_add(WHEEL_LINE.mul_add(-1.0, 0.0), 0.0),
+                delta.y.mul_add(WHEEL_LINE, 0.0),
+            ),
         };
-        div()
-            .absolute()
-            .top_0()
-            .bottom_0()
-            .left(relative(delta.mul_add(1.4, -0.3)))
-            .flex()
-            .flex_row()
-            .child(half(0.0, SHEEN_LIGHT))
-            .child(half(SHEEN_LIGHT, 0.0))
-    };
-    div()
-        .absolute()
-        .top_0()
-        .left_0()
-        .size_full()
-        .with_animation(
-            ElementId::NamedChild(std::sync::Arc::new(id.clone()), "sheen".into()),
-            Animation::new(Duration::from_millis(1300)).repeat(),
-            move |frame, delta| frame.child(band(delta)),
-        )
-        .into_any_element()
+        let units = if across.abs() > up.abs() { across } else { up };
+        if units.abs() > 0.0 {
+            cx.stop_propagation();
+            wheel(units, window, cx);
+        }
+    }
 }
 
 /// Paseo's activity indicator: three quarters of a ring turning, a turn
@@ -467,25 +721,31 @@ pub fn spinner(id: impl Into<ElementId>, size: f32, colour: Hsla) -> AnyElement 
 mod tests {
     use gpui::{Bounds, point, px, size};
 
-    use super::{place, step_at};
+    use super::{along, pointer};
 
     #[test]
-    fn a_pointer_picks_the_nearest_step() {
-        let line = Bounds::new(point(px(100.0), px(0.0)), size(px(200.0), px(24.0)));
-        assert_eq!(step_at(px(90.0), line, 6), 0);
-        assert_eq!(step_at(px(100.0), line, 6), 0);
-        assert_eq!(step_at(px(139.0), line, 6), 1);
-        assert_eq!(step_at(px(181.0), line, 6), 2);
-        assert_eq!(step_at(px(300.0), line, 6), 5);
-        assert_eq!(step_at(px(400.0), line, 6), 5);
-        assert_eq!(step_at(px(150.0), line, 1), 0);
+    fn a_pointer_is_measured_from_the_track_start() {
+        let track = Bounds::new(point(px(100.0), px(0.0)), size(px(200.0), px(24.0)));
+        assert!((pointer(px(90.0), track).x + 10.0).abs() < 1e-6);
+        assert!((pointer(px(150.0), track).x - 50.0).abs() < 1e-6);
+        assert!((pointer(px(150.0), track).width - 200.0).abs() < 1e-6);
     }
 
     #[test]
-    fn steps_are_spread_from_end_to_end() {
-        assert!((place(0, 6) - 0.0).abs() < 1e-6);
-        assert!((place(5, 6) - 1.0).abs() < 1e-6);
-        assert!((place(2, 5) - 0.5).abs() < 1e-6);
-        assert!((place(0, 1) - 0.0).abs() < 1e-6);
+    fn a_mark_past_the_round_end_is_not_drawn() {
+        // In the middle, inside; at the very left, a mark centred on the
+        // end's curve is outside; one sliding 85 to the left is gone.
+        assert!((super::inside_pill(100.0, 12.0, 2.0, 230.0) - 1.0).abs() < 1e-6);
+        assert!(super::inside_pill(1.0, 12.0, 2.0, 230.0) < 1e-6);
+        assert!(super::inside_pill(-60.0, 12.0, 2.0, 230.0) < 1e-6);
+        // A fast dot by the top edge near the left end is cut.
+        assert!(super::inside_pill(4.0, 3.0, 2.0, 230.0) < 1e-6);
+        assert!((super::inside_pill(13.0, 12.0, 2.0, 230.0) - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn stops_sit_thirteen_in_from_either_end() {
+        assert!((along(0.0, 230.0) - 13.0).abs() < 1e-4);
+        assert!((along(1.0, 230.0) - 217.0).abs() < 1e-4);
     }
 }
