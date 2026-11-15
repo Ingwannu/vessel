@@ -140,6 +140,42 @@ Tests cover these transitions against the existing in-memory registry. Actual
 GPUI rendering, async result correlation, node transport and UI error words are
 still required and no current test proves those paths.
 
+## Staged GPUI contribution renderer
+
+The app's plugins module is deliberately cfg(test) until the real node-backed
+Hub and canonical panel registration are wired. Its surface entity borrows the
+one injected registry through a weak owner reference; it does not start another
+catalog loader or clone a registry. Losing that owner immediately refuses new
+intentions. Real kit TextField entities retain focus and values, with typed edit
+and Enter events; refused oversized edits restore the accepted visible draft.
+Buttons, finite choices, switches, status badges, section spacing and menus
+reuse kit controls and semantic tokens without another painter.
+
+Surface events remain requests: the view rechecks node/generation/graph, and the
+future link/node dispatch must still authorize caller/context and correlate its
+result. There is no product helper call, Settings route or RPC in this stage.
+Native declarations choose the kit's wrapping finite-choice buttons; nested
+menus replace the current core menu after selection rather than adding a
+second hover-submenu renderer. These are explicit native-author-port control
+choices, since arbitrary React presentation cannot execute in GPUI.
+
+The coordinator approved only an additive markdown_with_link_handler entry
+delegating to the existing Markdown renderer. Existing markdown is unchanged.
+Plugin-authored links pass the canonical HTTP(S)/no-userinfo URL validator and
+the supplied core opener; test windows always supply a recording fake opener.
+This refuses executable OS schemes and credential-bearing links rather than
+letting the Markdown component open an unchecked URL. Refusals emit safe typed
+events, with no raw input in their diagnostics. New actual-input GPUI tests
+exercise Enter before/after offline and valid/refused Markdown link clicks;
+these cases are written but have not yet run.
+
+Popover rendering is dependency-blocked on W19b's shared content popover and
+its V1/lead handoff. Until that exact producer is available, popover controls
+are unavailable. The coordinator expressly refused a Dialog substitution;
+no private popup or modal imitation is added. The future adapter must retain
+and recheck the producer's opaque Lease as well as this contribution's exact
+node/generation before admission, dismissal or focus acknowledgement.
+
 ## Follow-on plugin usage adapter
 
 The coordinator assigned F6 the usage adapter after the current body work.

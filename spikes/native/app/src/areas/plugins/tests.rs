@@ -1,0 +1,207 @@
+use super::*;
+use gpui::{AppContext as _, TestAppContext};
+use vessel_app_kit::{Scheme, SchemeChoice};
+use vessel_app_view::plugins::{HostSupport, Installation, Submission};
+use vessel_proto::plugins::{
+    Action, Availability, Button, ButtonBehavior, ClientDocument, Contribution,
+    ContributionContent, ContributionKind, Control, ControlContent, PluginAddress,
+    RuntimeGeneration, Surface,
+};
+
+#[gpui::test]
+fn markdown_links_use_the_typed_guard_and_recording_fake_opener(cx: &mut TestAppContext) {
+    use gpui::{Modifiers, point, px};
+    use std::sync::Mutex;
+    cx.update(|cx| {
+        vessel_app_kit::init(cx, SchemeChoice::Fixed(Scheme::Dark)).expect("kit");
+    });
+    for (markdown, accepted) in [
+        ("[Open](https://example.invalid/page)", true),
+        (
+            "[Open](https://user:PRIVATE-LINK-CANARY@example.invalid/page)",
+            false,
+        ),
+    ] {
+        let (registry, address) = fixture_with_markdown(Some(markdown));
+        let owner = Rc::clone(&registry);
+        let opened = Arc::new(Mutex::new(Vec::new()));
+        let fake = Arc::clone(&opened);
+        let events = Rc::new(RefCell::new(Vec::new()));
+        let observed = Rc::clone(&events);
+        let (_view, cx) = cx.add_window_view(move |window, cx| {
+            let view = SurfaceView::new(
+                &owner,
+                address,
+                Arc::new(move |url, _, _| fake.lock().expect("fake opener").push(url.clone())),
+                window,
+                cx,
+            )
+            .expect("surface");
+            cx.subscribe_self(move |_view, event: &SurfaceEvent, _cx| {
+                observed.borrow_mut().push(event.clone())
+            })
+            .detach();
+            view
+        });
+        cx.run_until_parked();
+        let bounds = cx
+            .debug_bounds("plugin-surface-markdown")
+            .expect("real Markdown body");
+        let inset = px(vessel_app_kit::theme::spacing::S2);
+        cx.simulate_click(
+            point(bounds.left() + inset, bounds.top() + inset),
+            Modifiers::none(),
+        );
+        cx.run_until_parked();
+        if accepted {
+            let urls = opened.lock().expect("recorded opener");
+            assert_eq!(urls.len(), 1);
+            assert_eq!(urls[0].as_str(), "https://example.invalid/page");
+        } else {
+            assert!(opened.lock().expect("recorded opener").is_empty());
+            assert!(
+                events
+                    .borrow()
+                    .iter()
+                    .any(|event| matches!(event, SurfaceEvent::LinkRejected))
+            );
+        }
+    }
+}
+use vessel_proto::{NodeId, RawJson};
+
+fn fixture() -> (Rc<RefCell<Registry>>, ContributionAddress) {
+    fixture_with_markdown(None)
+}
+fn fixture_with_markdown(markdown: Option<&str>) -> (Rc<RefCell<Registry>>, ContributionAddress) {
+    let installation = PluginAddress {
+        node: NodeId::random(),
+        plugin: "fixture".parse().expect("id"),
+        generation: RuntimeGeneration::random(),
+    };
+    let address = ContributionAddress {
+        installation: installation.clone(),
+        kind: ContributionKind::Screen,
+        contribution: "home".parse().expect("id"),
+    };
+    let mut controls = vec![
+        Control {
+            id: "text".parse().expect("id"),
+            content: ControlContent::Text {
+                text: "Hello 안녕하세요".parse().expect("text"),
+            },
+        },
+        Control {
+            id: "button".parse().expect("id"),
+            content: ControlContent::Button {
+                button: Button {
+                    title: "Run".parse().expect("title"),
+                    availability: Availability::Enabled,
+                    behavior: ButtonBehavior::Action {
+                        action: Action::Invoke {
+                            method: "act".parse().expect("method"),
+                            input: RawJson::from_text("{}").expect("json"),
+                        },
+                    },
+                },
+            },
+        },
+        Control {
+            id: "field".parse().expect("id"),
+            content: ControlContent::TextField {
+                label: "Input".parse().expect("label"),
+                submit: "act".parse().expect("method"),
+            },
+        },
+    ];
+    if let Some(markdown) = markdown {
+        controls.insert(
+            0,
+            Control {
+                id: "markdown".parse().expect("id"),
+                content: ControlContent::Markdown {
+                    text: markdown.parse().expect("bounded Markdown"),
+                },
+            },
+        );
+    }
+    let document = ClientDocument::new(
+        vec!["act".parse().expect("method")],
+        vec![Contribution {
+            id: address.contribution.clone(),
+            title: "Home".parse().expect("title"),
+            content: ContributionContent::Screen {
+                surface: Surface { controls },
+            },
+        }],
+        vec![],
+    )
+    .expect("graph");
+    let mut registry = Registry::default();
+    let ticket = registry
+        .begin(installation.node, HostSupport::Supported)
+        .expect("begin");
+    registry
+        .apply(
+            ticket,
+            Ok(vec![Installation::from_document(installation, document)]),
+        )
+        .expect("publish");
+    (Rc::new(RefCell::new(registry)), address)
+}
+
+#[gpui::test]
+fn real_native_field_captures_bounded_text_and_refuses_submit_after_owner_goes_offline(
+    cx: &mut TestAppContext,
+) {
+    cx.update(|cx| {
+        vessel_app_kit::init(cx, SchemeChoice::Fixed(Scheme::Dark)).expect("kit");
+    });
+    let (registry, address) = fixture();
+    let owner = Rc::clone(&registry);
+    let captured = Rc::new(RefCell::new(Vec::new()));
+    let events = Rc::clone(&captured);
+    let (view, cx) = cx.add_window_view(move |window, cx| {
+        let view = SurfaceView::new(
+            &owner,
+            address,
+            Arc::new(|_, _, _| panic!("no browser in fixture")),
+            window,
+            cx,
+        )
+        .expect("surface");
+        cx.subscribe_self(move |_view, event: &SurfaceEvent, _cx| {
+            events.borrow_mut().push(event.clone())
+        })
+        .detach();
+        view
+    });
+    cx.run_until_parked();
+    let id: ContributionId = "field".parse().expect("field");
+    view.update_in(cx, |view, window, cx| {
+        let field = view.fields.get(&id).expect("real field").clone();
+        field.update(cx, |field, cx| {
+            field.editor.set_text("retained literal", window, cx);
+            field.editor.focus(window, cx);
+        });
+    });
+    cx.simulate_keystrokes("enter");
+    cx.run_until_parked();
+    assert!(captured.borrow().iter().any(|event| matches!(event, SurfaceEvent::Requested(request) if matches!(request.submission(), Submission::Field { value: FieldValue::Text(text), .. } if text.as_str() == "retained literal"))));
+    registry
+        .borrow_mut()
+        .offline(view.read_with(cx, |view, _| view.state.address().installation.node));
+    captured.borrow_mut().clear();
+    cx.simulate_keystrokes("enter");
+    cx.run_until_parked();
+    assert!(captured.borrow().iter().any(|event| matches!(
+        event,
+        SurfaceEvent::Rejected(SurfaceProblem::Catalog(Problem::Offline))
+    )));
+    assert!(
+        !captured
+            .borrow()
+            .iter()
+            .any(|event| matches!(event, SurfaceEvent::Requested(_)))
+    );
+}

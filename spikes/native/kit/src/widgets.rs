@@ -115,6 +115,20 @@ pub fn markdown(id: impl Into<gpui::ElementId>, text: impl Into<SharedString>) -
     gpui_component::text::TextView::markdown(id, text)
 }
 
+/// The same Markdown renderer with caller-owned link admission.
+/// Why: plugin-authored links require typed HTTP(S) validation and the core opener.
+#[must_use]
+pub fn markdown_with_link_handler(
+    id: impl Into<gpui::ElementId>,
+    text: impl Into<SharedString>,
+    handler: impl Fn(&SharedString, &gpui::ClickEvent, &mut gpui::Window, &mut gpui::App)
+    + Send
+    + Sync
+    + 'static,
+) -> impl IntoElement {
+    gpui_component::text::TextView::markdown(id, text).on_link_click(handler)
+}
+
 /// One of a few choices (a machine, an agent): a pill, filled with the
 /// ink when chosen (the page's segmented choices).
 #[must_use]

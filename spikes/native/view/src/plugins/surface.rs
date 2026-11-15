@@ -234,7 +234,7 @@ impl SurfaceState {
         registry: &Registry,
         id: &ContributionId,
     ) -> Result<SurfaceRequest, SurfaceProblem> {
-        self.current(registry)?;
+        self.check_current(registry)?;
         let (control, enabled) = self.control(id)?;
         if !enabled {
             return Err(SurfaceProblem::Disabled);
@@ -271,7 +271,7 @@ impl SurfaceState {
         id: &ContributionId,
         menu_path: &[ContributionId],
     ) -> Result<SurfaceRequest, SurfaceProblem> {
-        self.current(registry)?;
+        self.check_current(registry)?;
         let (control, enabled) = self.control(id)?;
         if !enabled {
             return Err(SurfaceProblem::Disabled);
@@ -295,14 +295,17 @@ impl SurfaceState {
         registry: &Registry,
         request: &SurfaceRequest,
     ) -> Result<(), SurfaceProblem> {
-        self.current(registry)?;
+        self.check_current(registry)?;
         if request.address != self.address {
             return Err(SurfaceProblem::Catalog(Problem::Stale));
         }
         Ok(())
     }
 
-    fn current(&self, registry: &Registry) -> Result<(), SurfaceProblem> {
+    /// Current render/input eligibility, independent from retained local edits.
+    /// # Errors
+    /// Refuses offline, removed, replaced or semantically changed declarations.
+    pub fn check_current(&self, registry: &Registry) -> Result<(), SurfaceProblem> {
         if surface(&registry.resolve_contribution(&self.address)?.content) != Some(&self.surface) {
             return Err(SurfaceProblem::Catalog(Problem::Stale));
         }

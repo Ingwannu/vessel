@@ -21,6 +21,9 @@ pub(crate) mod layout;
 pub(crate) mod pair;
 pub(crate) mod palette;
 pub(crate) mod pulls;
+// Staged declarative renderer; real node-backed Hub/panel wiring removes this.
+#[cfg(test)]
+mod plugins;
 pub(crate) mod session;
 pub(crate) mod settings;
 pub(crate) mod shortcuts;
