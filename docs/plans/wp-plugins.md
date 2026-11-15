@@ -222,3 +222,10 @@ This stage does not yet prove app language subscriptions, cancellation,
 generation-fenced publication, installed cache, disposal or actual rendering.
 Those remain the coupled production wiring's obligation. Tests use fictional
 English/Korean resources and no copied reference translation assets.
+
+App A8 merge now includes line2e95b7d31 and its exact reviewed scalar e46
+ancestor. Add/add conflicts retained the later owned graph/JS-edge decoder
+corrections and source-boundary documentation, rather than restoring the older
+scalar-only grammar. No whole-node head entered the app tree. Existing narrow
+evidence remains pinned to its original immutable source; merged-head checks
+remain required.

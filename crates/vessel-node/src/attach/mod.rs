@@ -34,6 +34,7 @@ use vessel_store::{DataDir, NodeToken, StoreError};
 
 use crate::ipc::{self, Endpoint};
 use bridge::bridge;
+pub use start::START_TIMEOUT;
 use start::start_node;
 
 /// The line a node started by `attach` prints on stdout once it serves,
