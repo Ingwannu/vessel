@@ -173,3 +173,12 @@ bounded corpus or an eventual green2d5 whole while this known divergence remains
 Require the pure owner's measured/reviewed correction before W17 final consumer
 qualification. Current source uses frozen Silent observation with capture feature
 None and NodeAuthority OFF. No node-side coordinate compensation is permitted.
+
+C2 subsequently retained an actual43/2 display regression at202764a2: repeated1049
+entry must clear the existing alternate cells, and DECSTR must reset actual VT
+application-cursor/bracketed-paste state. Candidate346653a9 is submitted, not
+checked/reviewed/adoptable. The coordinator's policy preserves the pinned server
+tracker's separate Kitty/Win32 stack behavior through the same decoded owner;
+primary/alternate saved attributes remain buffer-local. W17 makes no compensating
+tracker or coordinate repair and keeps the source dependency hold. A successful
+frozen2d5 whole alone cannot settle these additional measured semantic failures.

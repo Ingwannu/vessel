@@ -1711,3 +1711,14 @@ a unit module and a long integration-test body. Move the declaration before the
 test module and extract the existing idle-stop presentation assertions unchanged;
 format that integration fixture. Vendor source-length candidates are retained
 as third-party-source diagnostics, not treated as Clippy execution evidence.
+
+Corrected-source strict is queued once as
+wp-cli-narrow-20261115T184714Z-8a92af01, exact8a92af01, short lane. Local source
+preflight reports no remaining W17 function/test-order candidates; its five
+length candidates are vendored vt100 source, which this node adapter does not
+modify. This is source analysis, not Rust execution. The invocation map contains
+exactly117 distinct paths. Reopened pinned agent/run.ts confirms no-wait aliases
+at30–37 and repeatable --label at79–82; native --listing stays a declared addition.
+The workspace.list method is assigned25; its remaining CLI blocker is the
+canonical display projection, not method assignment. No new RPC or code is added
+by these status corrections.

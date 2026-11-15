@@ -21,7 +21,10 @@ wp-cli-narrow-20261115T172916Z-8447cf72, exact8447cf723.
 The replacement completed rc1 before tests (two private-field E0616 errors in
 sealed-owner test placement; one unused read count warning). Setup3 steps0 is not
 runtime proof. Those source defects are corrected without exposing private fields;
-changed-source strict and actual execution remain owed.
+changed-source strict and actual execution remain owed. The latest strict target
+is8a92af01, run wp-cli-narrow-20261115T184714Z-8a92af01, queued once in the short
+lane; it also compiles the PTY/testkit fixtures. No newer Rust source is introduced
+by this invocation-map documentation correction.
 
 Source means code over existing calls, with the limitations listed below; it does
 not mean latest-head tests passed. Pending means a typed grammar/refusal or an
@@ -116,7 +119,7 @@ JSON-only admission are preserved; all six own pending rows stay at the table en
 | `project delete <project-id>` | project delete | Pending | none activated | W11 title/reset/cascade operation awaited; project.remove alone is insufficient. |
 | `workspace setup <workspace-id>` | workspace setup | Pending | none activated | W11 canonical WorkspaceId registry/placement/setup/visibility contract awaited. |
 | `workspace create` | workspace create | Pending | none activated | W11 canonical WorkspaceId registry/placement/setup/visibility contract awaited. |
-| `workspace ls` | workspace ls | Pending | workspace.list source on9c, registry feature None | Await announced assignment and canonical project/derived workspace names; no cwd/branch naming heuristics. |
+| `workspace ls` | workspace ls | Pending display projection | workspace.list assigned metadata protocol25 | The method is available; canonical project/derived workspace names remain awaited. No cwd/branch naming heuristics. |
 | `workspace rename <workspace-id> [title]` | workspace rename | Source, execution owed | existing workspace.rename, assigned metadata protocol25 | Full WorkspaceId only; actual ack ID/title checked; raw override resets to null. Real table/JSON/YAML/quiet/reset process proof drafted, not executed. |
 | `workspace archive <workspace-id>` | workspace archive | Pending | none activated | W11 canonical WorkspaceId registry/placement/setup/visibility contract awaited. |
 | `worktree ls` | worktree ls | Pending | none activated | Repository/ownership contract W11 awaited. ls is distinct from native broad worktree list; no cwd/project alias substitution. |
@@ -177,7 +180,8 @@ JSON-only admission are preserved; all six own pending rows stay at the table en
 
 The additional host_registry.list_shared method is a separately typed bounded Read
 inventory for direct local agents, outside the 117 CLI paths. V3 row202 approved its
-security design before code; implementation/admission/serialized-field tests are not
-executed yet. Its explicit DTO excludes full private records, source and revision.
+security design before code; earlier5738 scoped node fixtures exercised admission,
+while current-head strict, package execution and implementation review remain owed.
+Its explicit DTO excludes full private records, source and revision.
 All six host/capture rows remain behind CLI_PARITY_PROTOCOL=None. The frame/mode/anchor
 follow-up proposal has no DTO/call registered and is independent of Silent capture.
