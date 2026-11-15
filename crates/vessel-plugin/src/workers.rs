@@ -61,6 +61,13 @@ impl Workers {
         while let Some(joined) = self.tasks.join_next().await {
             let error = match joined {
                 Ok(Ok(_exit)) => None,
+                // These pipes were intentionally retired above. Any protocol
+                // failure selected while live is already retained by Actor;
+                // an in-flight write losing its pipe during shutdown is not
+                // a new failed process-cleanup acknowledgement.
+                Ok(Err(
+                    RuntimeError::Read(_) | RuntimeError::Write(_) | RuntimeError::WriteTimeout,
+                )) => None,
                 Ok(Err(error)) => Some(error),
                 Err(cause) if cause.is_cancelled() => None,
                 Err(cause) => Some(RuntimeError::Task(crate::TaskFailure::new(cause))),
