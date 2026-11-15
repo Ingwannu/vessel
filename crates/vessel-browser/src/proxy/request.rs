@@ -55,9 +55,10 @@ pub(super) fn destination<B>(request: &Request<B>) -> Result<Destination, Invali
     // A proxy accepts absolute-form HTTP (and WebSocket's equivalent),
     // never origin-form plus an unchecked Host or plaintext HTTPS forwarding.
     let input = request.uri().to_string();
-    let input = input
-        .strip_prefix("ws://")
-        .map_or_else(|| input.clone(), |tail| format!("http://{tail}"));
+    let input = match input.strip_prefix("ws://") {
+        Some(tail) => format!("http://{tail}"),
+        None => input,
+    };
     let url: BrowserUrl = input.parse().map_err(InvalidRequest::Url)?;
     if url.parsed().scheme() != "http" {
         return Err(InvalidRequest::Form);
