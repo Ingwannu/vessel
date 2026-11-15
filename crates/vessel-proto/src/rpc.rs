@@ -424,6 +424,10 @@ macro_rules! method_table {
             /// Mark current attention read or unread without answering it (protocol 22).
             MarkInbox / mark_inbox / "inbox.mark" [Read, 22, unary]: $crate::inbox::MarkInbox => $crate::Ack;
             /// Latest saved-sign-in limits (protocol 23, ADR 0042); explicit refresh additionally needs operate.
+            /// Generic source/account reports; pending until real sources and consumers land.
+            ListUsageReports / list_usage_reports / "usage.reports" [Read, (pending $crate::usage_reports::ACCOUNT_REPORTS_PROTOCOL), unary]: $crate::usage_reports::ListUsageReports => $crate::usage_reports::UsageReports;
+            /// Inspect one opaque id obtained from the same report registry.
+            InspectUsageReport / inspect_usage_report / "usage.inspect" [Read, (pending $crate::usage_reports::ACCOUNT_REPORTS_PROTOCOL), unary]: $crate::usage_reports::InspectUsageReport => $crate::usage_reports::UsageReportLookup;
             GetUsageLimits / get_usage_limits / "usage.limits" [Read, {$crate::limits::LIMITS_PROTOCOL_VERSION.get()}, unary]: $crate::limits::GetUsageLimits => $crate::limits::UsageLimits;
             /// Persist this machine's credential-use policy (protocol 23); administrator only.
             SetUsageLookup / set_usage_lookup / "usage.lookup" [Admin, {$crate::limits::LIMITS_PROTOCOL_VERSION.get()}, unary]: $crate::limits::SetUsageLookup => $crate::limits::ExternalLookup;

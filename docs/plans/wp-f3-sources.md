@@ -20,11 +20,11 @@ Paseo 0.15.4, repository-relative paths:
   host/query outcomes, current versus retained observation and freshness.
 - `packages/app/src/usage/preferences.ts:8-32,50-96`: source/window pins,
   null defaults versus explicit empty, first-edit default snapshot.
-- `packages/app/src/usage/pinned.ts:160-184,201-235`: adaptive sidebar
+- `packages/app/src/usage/pinned.ts:1-99`: adaptive sidebar
   layout, available reports only and source-grouped account order.
 - `packages/app/src/usage/tone.ts:4-11`, `meter.tsx:46-74`: source tone
   first; fallback danger strictly above 90, warning from 70; quiet fill.
-- `packages/app/src/usage/usage-modal.tsx:23-94`, `hosts.ts:263-300`:
+- `packages/app/src/usage/usage-modal.tsx:23-94`, `hosts.ts:1-59`:
   connected-host filter, persisted host choice and compact sheet.
 - `packages/protocol/src/messages.ts:6411-6527`: report, attempt,
   independent window/balance/detail data and streamed response contract.
@@ -73,3 +73,12 @@ Sources: sanitized fixtures only, every parse/status/rate-limit branch, no real
 credentials or vendor endpoints. Consumers: old-peer typed refusal, report-not-
 found and mutually exclusive selectors. Whole native/root gates and review
 remain owed until the complete package is wired.
+
+### Executable skeleton registration
+
+Quality B base `29eebb8b` permits the two report selectors to register in the
+single method table with `(pending ACCOUNT_REPORTS_PROTOCOL)`, which remains
+`None`. Client and server admission therefore refuse these methods rather than
+assigning an invented protocol version. The node handlers also refuse with typed
+`Unsupported` until the actual source registry is connected. This is a skeleton,
+not a source implementation or a successful empty-report claim.

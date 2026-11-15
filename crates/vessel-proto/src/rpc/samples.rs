@@ -206,6 +206,8 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         }
         Method::GetInboxEntry => json!({"key":{"session":id,"seq":1}}),
         Method::MarkInbox => json!({"key":{"session":id,"seq":1},"read":"read"}),
+        Method::ListUsageReports => json!({"scope":{"kind":"machine"},"refresh":"cached"}),
+        Method::InspectUsageReport => json!({"id":"sample:account","refresh":"cached"}),
         Method::GetUsageLimits => {
             json!({"scope":{"kind":"session","session":id},"refresh":"cached"})
         }
