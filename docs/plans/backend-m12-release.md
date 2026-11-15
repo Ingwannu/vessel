@@ -7,7 +7,7 @@ track's is). Answers questions 4 (Windows and macOS) and 8 (updates) of
 
 Read first: ADR 0035 (the native app), ADR 0008 (how `vesseld` releases
 are signed and installed), ADR 0014 (what may be linked), and
-`spikes/release/patches/README.md` (the patched GPUI crate).
+`spikes/release/patches/README.md` (the patched GPUI crates).
 
 ## What this track owns
 
@@ -17,7 +17,9 @@ spikes/release/
   hello/                 the smallest GPUI window (a target's first proof)
   updater/               vessel-app-updater: the app's updater, no GPUI
   feed/                  vessel-app-feed: release key, signed feed, sums
-  patches/               gpui-pre-windows 0.3.10, patched (README there)
+  patches/               patched crates (README there): gpui-pre-windows and
+                         gpui-pre-linux 0.3.10, and from 0.0.0.0.15
+                         gpui-base 0.8.1 (a steady caret while motion is held)
   tools/fxc-wine         Microsoft's fxc.exe under wine, for GPUI's shaders
   tools/fetch-fxc.py     fetches fxc.exe and d3dcompiler_47.dll from the SDK
   windows/installer.nsi  the per-user installer
@@ -26,9 +28,11 @@ spikes/release/
 ```
 
 The app itself is the desktop track's (`spikes/native/`, merged from
-`backend/m12-spike`). This track adds one section to its manifest: the
-`[patch.crates-io]` line that points `gpui-pre-windows` at the patched
-copy, which only a Windows build compiles.
+`backend/m12-spike`). Its manifest's `[patch.crates-io]` section points
+each patched crate at its copy here: `gpui-pre-windows` (compiled only by
+a Windows build), `gpui-pre-linux` (only by a Linux build) and, from
+0.0.0.0.15, `gpui-base` (both). The release workspace uses none of
+gpui-base, so its own patch table is unchanged.
 
 ## Running it
 
@@ -633,6 +637,331 @@ never rebuilt.
       desktop track's release profile would add the lines to the
       `.pdb`; the exe itself is not changed on Windows.
 
+- **0.0.0.0.7**:
+  - Built from exactly `fd61c23`: the desktop track's line tables in
+    the release profile (`7638b83`), and the Linux debug information
+    split out by `build.sh`.
+  - The set went into place at 11:21 UTC. It is not published yet.
+  - Files: setup 10,897,729, exe 39,547,392, zip 15,789,705, linux
+    74,383,456, tar.gz 25,448,397 bytes.
+  - The shipped Linux executable is the stripped one, 309,384 bytes
+    smaller than 0.0.0.0.6's. Its only `.debug_*` section left is
+    `.debug_gdb_scripts`, a small loaded section. Its `.gnu_debuglink`
+    names `vessel-app.debug`, with a matching CRC.
+  - `vessel-app.debug` (230,620,128 bytes) and `vessel_app.pdb`
+    (117,829,632 bytes) are in `vessel-app-symbols/0.0.0.0.7/` with
+    their SHA256SUMS, and not in the dist folder.
+  - The shipped executable started under a virtual display with a
+    scratch configuration. Its `vessel.log` has no escape codes and no
+    feed path.
+  - One address resolves to a file and line on each system:
+    - `vessel_app_kit::init`+0x30 → `spikes/native/kit/src/lib.rs:122`
+      (`addr2line` with the `.debug`)
+    - the same function on Windows → `lib.rs:121` (`llvm-symbolizer
+      --relative-address` with the `.pdb`)
+  - The icons, the version block, the sums and the signature were
+    checked as before.
+
+- **The signature's comment** (fixed before 0.0.0.0.8):
+  - `SHA256SUMS.minisig` is signed while the set sits in its hidden
+    staging directory. Up to 0.0.0.0.7 its trusted comment named that
+    directory ("vessel-app .0.0.0.0.7.partial.<pid> SHA256SUMS"), and
+    anyone verifying the sums sees the comment.
+  - `vessel-app-feed sums` now takes `--label`, and the comment is
+    "vessel-app <label> SHA256SUMS" whatever directory the files are
+    in. `build.sh` and the CI file pass the label.
+  - Labels 0.0.0.0.1 to 0.0.0.0.7 keep their old comment, because
+    published labels are never rebuilt.
+
+- **0.0.0.0.8**:
+  - An earlier build from `ccfba8e` was held and set aside, never
+    published. The real build is from `c802da9`: the desktop lead's
+    `779891d4` (the permission card as Paseo's, the Linux platform
+    patch `gpui-pre-linux`, the Fluent translations) plus this track's
+    signature comment fix. Only `docs/` and `spikes/release/` differ
+    from `779891d4`.
+  - The set went into place at 18:53 UTC and was published to
+    `preview` at 18:59:58 UTC, after the coordinator ran the Linux build
+    against the real node. The notes gained one line asking the owner
+    to check Enter during Hangul composition on Windows.
+  - Checked from outside, through the public feed: the manifest names
+    0.0.0.0.8, and all five files download with matching sums and
+    signature.
+  - The published 0.0.0.0.7 Linux build, unpacked with a scratch
+    configuration, took 0.0.0.0.8 by itself at 19:01:18 UTC, and its
+    log shows each step. The held `ccfba8e` set was then deleted.
+  - The signature's comment is "vessel-app 0.0.0.0.8 SHA256SUMS".
+  - Sizes against 0.0.0.0.7:
+
+    | File | Bytes | Change |
+    |---|---|---|
+    | setup | 11,638,832 | +741,103 |
+    | exe | 42,672,128 | +3,124,736 |
+    | zip | 16,872,307 | +1,082,602 |
+    | linux | 77,856,496 | +3,473,040 |
+    | tar.gz | 26,621,127 | +1,172,730 |
+
+  - The patched `gpui-pre-linux` compiled from its path in the release
+    build.
+  - The new crates (fluent-bundle, fluent-syntax, fluent-pseudo,
+    fluent-langneg, intl-memoizer, intl_pluralrules, unic-langid,
+    type-map, self_cell) are all Apache-2.0 or MIT; for self_cell,
+    "Apache-2.0 OR GPL-2.0-only", Apache-2.0 is taken. The bundle's
+    licence files are unchanged (the three OFL texts).
+  - The usual checks passed: icons, version block, stripped Linux exe
+    with a matching debuglink, symbols kept, the shipped exe starts and
+    logs without escape codes or the feed's path.
+
+- **0.0.0.0.9**:
+  - Built from exactly `7081463`, the desktop lead's gated head, which
+    holds this track's branch. It speaks node protocol 13.
+  - The set went into place at 21:17 UTC. It was published to
+    `preview` at 21:21:43 UTC, after the coordinator paired it with the
+    real node, which still speaks protocol 11.
+  - The notes gained three lines: what was checked against the older
+    node, what was not checked, and what is known.
+  - From outside, the public feed serves the 0.0.0.0.9 manifest and
+    all five files with matching sums and signature. The published
+    0.0.0.0.8 Linux build took 0.0.0.0.9 by itself at 21:22:46 UTC.
+  - Files: setup 12,353,161, exe 44,480,512, zip 18,004,043, linux
+    81,060,120, tar.gz 28,165,806 bytes.
+  - No new crates. The two added faces are embedded in the executable,
+    and their OFL texts are the bundle's existing three.
+  - The usual checks passed: the signature's comment names 0.0.0.0.9,
+    icons, version block, stripped Linux exe with a matching debuglink,
+    symbols kept. The shipped exe starts and its log has no escape
+    codes, no ERROR line and no feed path.
+  - In Korean, About showed "앱이 최신 상태입니다." with 확인 enabled
+    and 업데이트 disabled, because the feed held 0.0.0.0.8.
+
+- **0.0.0.0.10**:
+  - Built from `81148c8`: the desktop lead's `397e7f44` plus this
+    track's documents and one release fix.
+  - The fix: from `397e7f44` the app embeds the official Gemini CLI icon
+    (a 46,696-byte PNG) under Apache-2.0, whose section 4(a) asks that
+    the licence travel with the object form.
+    - `build.sh` now copies every text in `docs/design/agent-marks/` into
+      each package's `licenses/`.
+    - The uninstaller removes `licenses\*.txt`, not only the fonts' texts.
+    - A build already running from `397e7f44` was stopped by its process
+      group and its staging directory removed before this fix went in.
+  - The set went into place at 22:39 UTC and was published to
+    `preview` at 22:44:11 UTC, after the coordinator's check on the real
+    node (protocol 11).
+  - From outside, the public feed serves the manifest and all five files
+    with matching sums and signature. The published 0.0.0.0.9 Linux
+    build took 0.0.0.0.10 by itself at 22:45:16 UTC.
+  - The PNG's bytes are inside both the Windows exe and the Linux
+    executable.
+  - Sizes, with the change against 0.0.0.0.9:
+
+    | File | Bytes | Change |
+    |---|---|---|
+    | setup | 12,460,513 | +107,352 |
+    | exe | 45,014,016 | +533,504 |
+    | zip | 18,303,454 | +299,411 |
+    | linux | 81,594,744 | +534,624 |
+    | tar.gz | 28,502,801 | +336,995 |
+
+  - It is the first two-digit label. The updater compares labels as
+    numbers: 0.0.0.0.10 called the feed's 0.0.0.0.9 not newer.
+  - The usual checks passed: the signature's comment, icons, version
+    block, stripped Linux exe with a matching debuglink, symbols kept,
+    and a clean log.
+
+- **0.0.0.0.11**:
+  - Built from exactly `f0c1d540`, the desktop lead's head, which holds
+    this track's branch up to `d2260ce3`. The app speaks protocol 14.
+  - The set went into place at 23:55 UTC and was published to
+    `preview` at 00:00:36 UTC on 2026-11-14, after the coordinator's
+    check on the real node.
+  - From outside, the public feed serves the manifest and all five files
+    with matching sums and signature. The published 0.0.0.0.10 Linux
+    build took 0.0.0.0.11 by itself at 00:01:53 UTC.
+  - Sizes, with the change against 0.0.0.0.10: setup 12,592,815
+    (+132,302), exe 45,623,296 (+609,280), zip 18,539,862 (+236,408),
+    linux 82,100,320 (+505,576), tar.gz 28,671,250 (+168,449).
+  - No new crates and no new assets.
+  - The usual checks passed. The shipped Linux build made its log
+    folder 0700 and `vessel.log` 0600 (`02d8fe0b`).
+
+- **0.0.0.0.12**:
+  - Built from `509ef7f`: the desktop lead's `280927b0` (protocol 15)
+    merged into this branch. Only `docs/` differs from `280927b0`.
+  - The set went into place at 00:35 UTC on 2026-11-14.
+  - Sizes, with the change against 0.0.0.0.11: setup 12,680,258
+    (+87,443), exe 46,038,528 (+415,232), zip 18,683,359 (+143,497),
+    linux 82,481,888 (+381,568), tar.gz 28,808,401 (+137,151).
+  - No new crates and no new assets. The usual checks passed.
+  - **Built and withheld; the label is skipped.** The coordinator's
+    check on the real node found the new Settings › Sync page telling an
+    admin device that it has no permission and should use an admin
+    device. That sentence is wrong for a refusal from a standalone
+    protocol 11 node. Everything else in that check passed.
+  - The folder stays where it is. It is never published, and the label
+    is never rebuilt. The feed served 0.0.0.0.11 until 0.0.0.0.13.
+  - 0.0.0.0.13 hides Settings › Sync until its page is right on every
+    kind of machine (`ce880e4d`), and carries the owner's fixes to the
+    marks and the slider.
+
+- **0.0.0.0.13**:
+  - Built from exactly `9461f149`, the desktop lead's head (protocol
+    15), checked out detached; this branch then merged it.
+  - The set went into place at 03:46:57 UTC on 2026-11-14 and was
+    published to `preview` at 03:53:49 UTC, after the coordinator's
+    check on the real node.
+  - From outside, the public feed serves the manifest and all five files
+    with matching sums and signature. The published 0.0.0.0.11 Linux
+    build took 0.0.0.0.13 by itself at 03:56:13 UTC, past the withheld
+    label.
+  - Sizes, with the change against 0.0.0.0.11, the last published:
+
+    | File | Bytes | Change |
+    |---|---|---|
+    | setup | 12,746,999 | +154,184 |
+    | exe | 46,142,976 | +519,680 |
+    | zip | 18,566,980 | +27,118 |
+    | linux | 82,670,256 | +569,936 |
+    | tar.gz | 28,732,276 | +61,026 |
+
+  - The Gemini CLI PNG is gone. Five 64-byte slices of it are found in
+    0.0.0.0.11's executables and in neither of 0.0.0.0.13's, which carry
+    the spark's vector path instead. Against the withheld 0.0.0.0.12
+    the executables grew (exe +104,448, linux +188,368) while the zip
+    and tar.gz shrank (-116,379, -76,125).
+  - The spark comes from `google/adk-docs` under Apache-2.0
+    (`docs/design/agent-marks/README.md`), so `google-Apache-2.0.txt`
+    still belongs to something shipped. Every package carries the 4
+    texts, as before.
+  - The new card paints per frame while it moves or shows the top stop's
+    field. The packaged Linux build's CPU was read against two fake
+    nodes (`scripts/fleet.sh`) on Xvfb with Mesa's software Vulkan. That
+    is an upper bound, not what a desktop with a GPU sees.
+
+    | State | This track | Coordinator (real node) |
+    |---|---|---|
+    | card closed | 7.3% of a core | about 6% |
+    | open, middle stop (High) | 7.9% | about the same |
+    | open, top stop (Ultracode) | 307% | about 310% (Fast on: 320%) |
+
+    The frame-rate work goes to the desktop lead for the next build.
+  - The usual checks passed. The 4 headless WARNs (no desktop portal on
+    Xvfb) are the same as in 0.0.0.0.12's run.
+
+- **0.0.0.0.14**:
+  - Built from exactly `a792d766`, the desktop lead's head (the native
+    gate passed at `52344564`; above it only plans), checked out
+    detached; this branch then merged it.
+  - The set went into place at 06:04:53 UTC on 2026-11-14 and was
+    published to `preview` at 06:55:18 UTC, after the coordinator's
+    check on the real node.
+  - From outside, the public feed serves the manifest and all five files
+    with matching sums and signature. The published 0.0.0.0.13 Linux
+    build took 0.0.0.0.14 by itself at 06:57:04 UTC.
+  - The notes carry one known cost: with the composer focused, the
+    caret's blink repaints the window (on the software renderer about
+    31% of a core at 1280×800 and 62% at 1920×1200, the coordinator's
+    reading). It is the desktop lead's first follow-up.
+  - In it: the slider's fill inside its pill, popovers that take the
+    pointer, the card's decorations at 30 frames a second coming to
+    rest, the whole app's motion held still on a software renderer, and
+    no redraw for an unchanged fleet read.
+  - Sizes, with the change against 0.0.0.0.13: setup 12,751,182
+    (+4,183), exe 46,177,792 (+34,816), zip 18,583,488 (+16,508), linux
+    82,676,920 (+6,664), tar.gz 28,748,306 (+16,030).
+  - The usual checks passed. On Xvfb the shipped Linux build logged "a
+    software renderer: the app holds its motion still" and used 0.3% of
+    a core over 15 s on its first screen with no node.
+
+- **0.0.0.0.15**:
+  - Built from exactly `a925f5e9`, the desktop lead's head (native gate
+    green there, 705 tests), checked out detached and run through the
+    machine's build slots (`cargo-slot`, slot 4 after 826 s in line);
+    this branch then merged it.
+  - The set went into place at 12:45:12 UTC on 2026-11-14 and was
+    published to `preview` at 13:34:12 UTC, after the coordinator's
+    smoke test on the real node.
+  - From outside, the public feed serves the manifest and all five files
+    with matching sums and signature. The published 0.0.0.0.14 Linux
+    build took 0.0.0.0.15 by itself at 13:40:29 UTC. The `/dl/` page is
+    behind the preview's sign-in (302 from outside); its list, rendered
+    with the proxy's own function over the dist folder, puts 0.0.0.0.15
+    first.
+  - A fault in this track's checks, found the same hour: the debuglink
+    check ran `objcopy --dump-section` with no output file, which rewrote
+    the dist folder's Linux executable in place for 0.0.0.0.13, .14 and
+    .15 (each before its publish: same bytes, new mtime; every label's
+    sums and the three signatures verify after). The check now reads a
+    copy and writes its output elsewhere, and leaves the dist file's
+    mtime unchanged.
+  - New in the build: the patched `gpui-base` 0.8.1 (a steady caret
+    while motion is held), compiled from `spikes/release/patches/gpui-base`
+    (the build log names that path).
+  - Sizes, with the change against 0.0.0.0.14: setup 12,841,933
+    (+90,751), exe 46,493,184 (+315,392), zip 18,700,707 (+117,219),
+    linux 83,149,200 (+472,280), tar.gz 28,890,686 (+142,380).
+  - The usual checks passed. The shipped Linux build on Xvfb held its
+    motion (software renderer) and used 0.4% of a core on its first
+    screen.
+
+- **0.0.0.0.16**:
+  - Built from exactly `cb261b03`, the desktop lead's head (native gate
+    green there, 990 tests), checked out detached and run through
+    `cargo-slot` (slot 2 after 718 s in line, 5 jobs); this branch then
+    merged it.
+  - The set went into place at 17:14:45 UTC on 2026-11-14 and was
+    published to `preview` at 18:34:05 UTC, after the coordinator's
+    smoke test on the real node. The notes carry one known problem: in a
+    window about 800 wide with the right panel open, the conversation
+    column is squeezed (fixed in the next build).
+  - From outside, the public feed serves the manifest and all five files
+    with matching sums and signature; the published 0.0.0.0.15 Linux
+    build took 0.0.0.0.16 by itself at 18:35:39 UTC; the `/dl/` list (the
+    proxy's own function over the dist folder) puts 0.0.0.0.16 first.
+  - Gemini's mark is now Google's own file from Google's CDN, embedded
+    byte for byte (27,794 bytes, the SHA-256 in
+    `docs/design/agent-marks/README.md`); three slices of it are in both
+    executables and none in 0.0.0.0.15's. No Apache-2.0 artwork is
+    embedded any more; `google-Apache-2.0.txt` still ships because it
+    still sits beside the marks (harmless, removable since `7151985e`).
+  - Sizes, with the change against 0.0.0.0.15: setup 13,159,965
+    (+318,032), exe 47,844,352 (+1,351,168), zip 19,220,192 (+519,485),
+    linux 84,708,968 (+1,559,768), tar.gz 29,425,441 (+534,755).
+  - The usual checks passed (the debuglink read from a copy; the dist
+    file's mtime unchanged). The shipped Linux build on Xvfb held its
+    motion and used 0.5% of a core on its first screen.
+
+- **0.0.0.0.17**:
+  - Built from exactly `56a7cbd3`, the desktop lead's merge of the file
+    editor, checked out detached and run through `cargo-slot`'s priority
+    lane (`VESSEL_SLOT_PRIORITY=1`, 5 jobs, a slot at once); this branch
+    then merged it. Windows took 7 min 49 s, Linux 22 min 47 s.
+  - The set went into place at 23:11:14 UTC on 2026-11-14 and was
+    published to `preview` at 23:30:47 UTC, after the coordinator's
+    smoke test on the real node (by then on the node line `a365d295`).
+    The notes carry one known problem: ended (interrupted or exited)
+    sessions are hidden in the sidebar by default; the Display menu's
+    "Show ended sessions" shows them, and the next build shows them by
+    default.
+  - From outside, the public feed serves the manifest (equal to the
+    local one) and all seven files, each byte for byte the dist folder's,
+    with matching sums and signature. The published 0.0.0.0.16 Linux
+    build took 0.0.0.0.17 by itself 19 s after its start (23:32:40 UTC;
+    no error, no leftover `.part`, no feed token in its log). The `/dl/`
+    page answers 200 on the proxy's loopback port with the public host
+    name (a plain GET, the unit untouched) and lists 0.0.0.0.17 first
+    with its seven files; from outside it answers 302 (sign-in).
+  - Sizes, with the change against 0.0.0.0.16: setup 13,484,447
+    (+324,482), exe 49,435,648 (+1,591,296), zip 19,698,508 (+478,316),
+    linux 86,414,936 (+1,705,968), tar.gz 29,920,176 (+494,735).
+  - The usual checks passed: icons the same as 0.0.0.0.16, the Windows
+    version resource 0.0.0.0.17, the debuglink read from a copy (CRC
+    matches, the dist file's mtime unchanged), the four licence texts in
+    both archives, no feed token or path in the build log. The updated
+    Linux build (the one that replaced 0.0.0.0.16) on Xvfb held its
+    motion (software renderer) and used 0.5% of a core on its first
+    screen, ERROR 0.
+
 ## Logs and retries (from the build after 0.0.0.0.5)
 
 - **The log file**: `spikes/release/applog` (`vessel-app-log`). The app
@@ -697,6 +1026,83 @@ Build tools, not linked: cargo-xwin (MIT or Apache-2.0); Microsoft's
 CRT, SDK libraries, `fxc.exe` and `d3dcompiler_47.dll` (Microsoft's
 terms; only the static CRT ends up in the exe, as in every MSVC build);
 NSIS (zlib); wine (LGPL, only to run tools and tests).
+
+## CI for the native app and the release crates (2026-11-14)
+
+`.github/workflows/native.yml`: one Linux job that runs the native gate
+exactly as `spikes/native/README.md` states it (`cargo fmt --all --check`,
+`cargo clippy --all-targets -- -D warnings`, `cargo test`, from
+`spikes/native`), then the same three in `spikes/release` (updater, feed
+tool, log, hello). It runs as `ci.yml` does: every push to `main` and
+`backend/**`, every pull request, and by hand. Nothing in it publishes or
+signs: the token is read-only and it uses no secret. It is active for a
+branch once a commit holding it is pushed (the owner's step, through a
+pull request to `main`; this track pushes nothing).
+
+[Decision Log]
+- Purpose: the quality audit found no CI for the native app or the
+  release crates. `ci.yml` checks only the main workspace, and
+  `spikes/release/ci/app-release.yml` is a release recipe that does not
+  run. Each track ran the gate by hand; nothing checked a merge.
+- Constraints:
+  - Both are workspaces of their own, on Rust 1.98.1 (`rust-toolchain.toml`;
+    the GPUI snapshot needs 1.95 or newer, the main workspace stays on 1.93).
+  - GPUI links `libxcb`, `libxkbcommon` and `libxkbcommon-x11` on Linux
+    (the shipped executable's `NEEDED` entries); fontconfig, freetype,
+    Wayland and Vulkan are loaded at run time.
+  - The app embeds its faces with `include_bytes!` and they are not
+    committed (`spikes/native/.gitignore`), so the kit does not compile
+    without them.
+  - The native app depends on the main workspace's `vessel-client`,
+    `vessel-rpc` and `vessel-proto` by path.
+  - The repository is public, so standard hosted runners cost nothing.
+- Alternatives:
+  - A job in `ci.yml`: its matrix and its 1.93 toolchain are the main
+    workspace's, and two toolchains in one job confuse its cache.
+  - Windows and macOS runners: the Windows build is a cross build that
+    `build.sh` makes and checks for every label (a hosted Windows build
+    would check a second way of building it), and macOS is not released.
+    Worth adding when the Windows-only code grows.
+  - A path filter on `spikes/**`: it would miss a change in the main
+    workspace's crates that breaks the app.
+- Choice: one Linux job, both gates in sequence, no path filter.
+  - The faces as the README says: `npm ci` in `web/` (Pretendard comes from
+    the page's packages, cached by `setup-node`), then `scripts/fonts.sh`
+    (Geist through `npm pack`).
+  - The toolchain read from both `rust-toolchain.toml` files, failing if
+    they differ.
+  - `Swatinem/rust-cache` over both workspaces' `target`.
+- Costs:
+  - Run time, measured 2026-11-14 on this machine with 4 jobs (a hosted
+    runner has 4 vCPUs) while it was busy (load about 18 on 16 cores):
+
+    | Step | Cold (s) | Cached (s) |
+    |---|---|---|
+    | `npm ci` | 9 | |
+    | `fonts.sh` | 1 | |
+    | native fmt / clippy / test | 5 / 175 / 642 | – / 96 / 486 |
+    | release fmt / clippy / test | 1 / 87 / 150 | – / 65 / 176 |
+    | cargo steps in all | about 18 min | about 14 min |
+
+    The cache saves little because the workspace's own test binaries link
+    GPUI and are rebuilt on every run (`cargo test` compiles for 9.5 of
+    its 10.7 cold minutes; the 610 native and 47 release tests run in
+    about 12 s). With setup and the cache's upload, expect about 20-25
+    minutes, then 15-18. The job's timeout is 60.
+  - Disk: a cold run's targets reach about 13 GB (native) and 3.4 GB
+    (release). The job first removes the image's Android, .NET, Haskell
+    and CodeQL toolsets and prints the free space before and after. If it
+    ever runs out, `CARGO_PROFILE_DEV_DEBUG=line-tables-only` for the job
+    is the next step (smaller test binaries, the same results).
+  - The cache counts against the repository's 10 GB, with `ci.yml`'s;
+    GitHub evicts the oldest entries first.
+- Measured: 610 native tests passed (1 ignored: the window capture, which
+  needs a display) and 47 release tests passed, with no display, no
+  Vulkan and a fresh target.
+  - Run by `run.sh` and `warm.sh` in a scratch worktree of this branch
+    (removed afterwards); the cached run first dropped what rust-cache
+    drops, the local path packages.
+  - The workflow itself has not run on GitHub yet; its YAML parses.
 
 ## CI: what the owner decides
 

@@ -1863,3 +1863,24 @@ on every negotiated connection. This also covers a terminal-bearing prior
 approval and script/worktree approval replies. Older nodes omit the field;
 new readers treat omission as no terminal commands. Parsing and approval are
 staged ahead of automatic terminal creation, which is not implemented yet.
+
+
+The same unassigned `PROJECT_FILE_KEYS` also gates a declared `ScriptEntry.port`
+(nonzero TCP port, optional/absent by default). A current or previous approval
+with one is invalid for every peer while unassigned, through every direct and
+nested approval reply. `ScriptEntry` keeps its JSON kind string and validates
+kind and port together; a plain script with a port is refused. The TOML parser
+reads `services.<name>.port` through that validated declaration and includes it
+in the version-three approval. It assigns no number and starts no allocator
+or process.
+
+
+The same gate also covers optional `service_ports` on `CommandSet` and
+`ProjectCommands::Listed`. Its `ServicePorts` owner contains a range and/or
+literal port-script path; an empty block or an unknown choice is refused.
+Omission from an older node decodes as absent. The file parser keeps block
+presence even without services, and version three fills its two reserved
+slots with the canonical range and approved literal program. A current or
+prior block is invalid on every approval reply while unassigned. CLI shows
+both choices; web refuses current, prior and approved-folder blocks until
+it can display them completely. No allocator or process runs in this stage.

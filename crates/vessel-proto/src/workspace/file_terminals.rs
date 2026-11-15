@@ -4,8 +4,9 @@ use super::ProjectCommand;
 use crate::{ProtocolVersion, SessionTitle};
 use serde::{Deserialize, Serialize};
 
-/// Assign only after the web approval dialog displays terminals, web
-/// command-changes compares them, and the native approval card displays them.
+/// Assign only after the web dialog, web command-changes and native approval
+/// card display and compare every terminal command and service port declaration,
+/// including both choices of the allocation block.
 /// Until all three land, `None` refuses these sets on negotiated connections;
 /// clients also refuse sets whose complete contents they cannot display.
 pub const PROJECT_FILE_KEYS: Option<ProtocolVersion> = None;

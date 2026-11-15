@@ -34,7 +34,12 @@ import type {
   ProjectCommand,
   ProjectCommands,
 } from "../../wire/proto";
-import { compareScripts, type ScriptLine } from "./script-changes";
+import { allocationForDisplay } from "./allocation-fields";
+import {
+  compareScripts,
+  hasDeclaredPorts,
+  type ScriptLine,
+} from "./script-changes";
 
 export { compareScripts, type ScriptLine };
 
@@ -155,7 +160,18 @@ export type Compared =
   /** No approved set is known to compare with. */
   | { kind: "none" }
   /** A partial comparison must never claim hidden terminal commands are unchanged. */
-  | { kind: "unsupported_terminals" };
+  | { kind: "unsupported_terminals" }
+  /** A declared port cannot disappear from a partial comparison. */
+  | { kind: "unsupported_ports" };
+
+/** A refusal the dialog can explain without offering partial approval. */
+export type ApprovalRefusal = Extract<
+  Compared,
+  { kind: "unsupported_terminals" | "unsupported_ports" }
+>;
+
+/** Whether this page covers all fields in both snapshots. */
+export type ApprovalCoverage = "complete" | ApprovalRefusal["kind"];
 
 /** A set's lists, as both an approval and a listing carry them. */
 function setOf(commands: CommandSet): Required<CommandSet> {
@@ -165,18 +181,36 @@ function setOf(commands: CommandSet): Required<CommandSet> {
     teardown: commands.teardown,
     scripts: commands.scripts ?? [],
     terminals: commands.terminals ?? [],
+    service_ports: commands.service_ports ?? null,
   };
 }
 
+/** Presence alone refuses a block, including a malformed empty peer value. */
+function hasPortConfiguration(set: Required<CommandSet>): boolean {
+  return (
+    hasDeclaredPorts(set.scripts) ||
+    allocationForDisplay(set.service_ports) !== null
+  );
+}
+
 /** Refuse approval while a current or previous set contains commands this page cannot show. */
-export function approvalCoverage(
-  asked: ListedCommands,
-): "complete" | "unsupported_terminals" {
-  const last = asked.last_approved?.commands;
-  return setOf(asked).terminals.length > 0 ||
-    (last !== undefined && setOf(last).terminals.length > 0)
-    ? "unsupported_terminals"
-    : "complete";
+export function approvalCoverage(asked: ListedCommands): ApprovalCoverage {
+  const now = setOf(asked);
+  const previous = asked.last_approved?.commands;
+  const before = previous === undefined ? null : setOf(previous);
+  if (
+    now.terminals.length > 0 ||
+    (before !== null && before.terminals.length > 0)
+  ) {
+    return "unsupported_terminals";
+  }
+  if (
+    hasPortConfiguration(now) ||
+    (before !== null && hasPortConfiguration(before))
+  ) {
+    return "unsupported_ports";
+  }
+  return "complete";
 }
 
 /** `asked` against an approved set. */
@@ -189,6 +223,9 @@ function against(
   const after = setOf(asked);
   if (before.terminals.length > 0 || after.terminals.length > 0) {
     return { kind: "unsupported_terminals" };
+  }
+  if (hasPortConfiguration(before) || hasPortConfiguration(after)) {
+    return { kind: "unsupported_ports" };
   }
   return {
     kind: "changed",
@@ -206,8 +243,9 @@ export function compareApproved(
   asked: ListedCommands,
   folder: ProjectCommands | null,
 ): Compared {
-  if (approvalCoverage(asked) === "unsupported_terminals") {
-    return { kind: "unsupported_terminals" };
+  const coverage = approvalCoverage(asked);
+  if (coverage !== "complete") {
+    return { kind: coverage };
   }
   const last = asked.last_approved ?? null;
   if (last !== null) {
