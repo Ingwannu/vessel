@@ -89,10 +89,13 @@ impl Controller {
     }
     async fn run_restore(&self, job: Job) -> Result<RestoreOutcome, CheckpointError> {
         let (plan, guard, recovering) = self.restore_scope(&job).await?;
+        let guard = Arc::new(guard);
         let (files, recovering) = self.observe_restore(&plan, recovering, &job).await?;
         let operation = self.admit_restore(&plan, &guard, recovering, &job).await?;
         let _prior = job.progress.send_replace(Progress::Admitted);
-        let execution = self.run_io(&plan, &operation, files, &job).await;
+        let execution = self
+            .run_io(&plan, &operation, files, Arc::clone(&guard), &job)
+            .await;
         self.finish_restore(&plan, &operation, guard, execution)
             .await
     }
@@ -242,6 +245,7 @@ impl Controller {
         plan: &Plan,
         operation: &Operation,
         files: crate::workspace::CheckpointFiles,
+        guard: Arc<crate::workspace::StartGuard>,
         job: &Job,
     ) -> Result<RestoreOutcome, CheckpointError> {
         let store = self.context.store.clone();
@@ -253,6 +257,8 @@ impl Controller {
         let defaults = bridge::defaults()?;
         tokio::task::spawn_blocking(move || {
             let _worker = actual;
+            // Actual writes retain exclusion even if their async owner is lost.
+            let _root = guard;
             let execute = Execution {
                 runtime: &runtime,
                 store: &store,
@@ -295,7 +301,7 @@ impl Controller {
         &self,
         plan: &Plan,
         operation: &Operation,
-        guard: crate::workspace::StartGuard,
+        guard: Arc<crate::workspace::StartGuard>,
         execution: Result<RestoreOutcome, CheckpointError>,
     ) -> Result<RestoreOutcome, CheckpointError> {
         let outcome = match execution {

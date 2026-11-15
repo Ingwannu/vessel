@@ -303,3 +303,41 @@ async fn checkpoint_original_writer_can_settle_its_own_verified_pin_without_unlo
     drop(gate);
     owner.await.unwrap();
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn checkpoint_actual_writer_retains_root_after_async_owner_loss_until_io_completion() {
+    vessel_testkit::within(std::time::Duration::from_secs(60), async {
+        let (gate, owner) = RootGate::start(RecoveryRoots::default(), CancellationToken::new());
+        let root_lease = Arc::new(gate.claim(root(1), deadline()).await.unwrap());
+        let actual = Arc::clone(&root_lease);
+        let (entered, entry) = tokio::sync::oneshot::channel();
+        let (release, held) = std::sync::mpsc::channel();
+        let (finished, completion) = tokio::sync::oneshot::channel();
+        let task = tokio::spawn(async move {
+            tokio::task::spawn_blocking(move || {
+                entered.send(()).unwrap();
+                held.recv().unwrap();
+                drop(actual);
+                finished.send(()).unwrap();
+            })
+            .await
+            .unwrap();
+        });
+        entry.await.unwrap();
+        drop(root_lease);
+        task.abort();
+        assert!(task.await.unwrap_err().is_cancelled());
+        assert!(matches!(
+            gate.claim(root(1), deadline()).await,
+            Err(RootRefusal::Busy)
+        ));
+        release.send(()).unwrap();
+        completion.await.unwrap();
+        let next = gate.claim(root(1), deadline()).await.unwrap();
+        drop(next);
+        drop(gate);
+        owner.await.unwrap();
+    })
+    .await
+    .unwrap();
+}

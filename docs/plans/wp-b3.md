@@ -1158,3 +1158,20 @@ file success, checks that admission stays fenced, then retries publication and
 checks root admission releases without file reapply. A later external edit is
 preserved. The new writer regression retains the completed result through payload
 collection, image expiration and database reopen. All additions remain unrun.
+
+### Actual writer ownership (source; unverified)
+
+The restore blocking closure now owns an Arc of its actual StartGuard in addition
+to the shared worker lease. The async owner and the closure therefore both retain
+physical exclusion through real mutation/postconditions. Lost async ownership
+cannot release another writer while kernel I/O still runs; the operation/pin and
+quota remain available for reconciliation. A barrier regression aborts only the
+pure test waiter and proves the canonical gate stays Busy until the real blocking
+closure drops its lease. This is an ownership test, not descendant or kernel-I/O
+cancellation proof. Live restore remains closed; its eventual owned actor pause
+must likewise survive actual worker I/O if its async coordinator disappears.
+
+StartGuard exposes a borrowed opaque root_lease() for W17's future lifetime-bound
+quiescence contract. Its physical() accessor uses that exact same lease; there is
+no copyable lease id or additional root lock. This is unverified source and no
+consumer-ready hash or external adoption is announced.

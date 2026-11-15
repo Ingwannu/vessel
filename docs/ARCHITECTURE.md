@@ -1881,3 +1881,8 @@ the matching physical recovery lease, finishes only metadata publication, and
 settles that exact operation before release. This lookup grants no file-mutation
 authority. Missing/error publication acknowledgements cannot force file reapply,
 lose the original fence or leave an otherwise completed root permanently locked.
+
+Actual restore mutation closures retain an Arc of the opened-root StartGuard as
+well as their worker permit. Async-owner loss cannot unlock in-flight writes.
+The borrowed opaque root_lease accessor is the planned quiescence-proof seam;
+its consumer/producer review and actual non-root runtime proof remain outstanding.

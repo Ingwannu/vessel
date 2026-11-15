@@ -22,7 +22,13 @@ pub(crate) struct StartGuard {
 impl StartGuard {
     #[cfg(target_os = "linux")]
     pub(crate) const fn physical(&self) -> vessel_proto::checkpoint::PhysicalRoot {
-        self.lease.root()
+        self.root_lease().root()
+    }
+    /// Borrow the exact opaque lease for a lifetime-bound quiescence proof.
+    /// It cannot be cloned, recreated from a path, or outlive this guard.
+    #[cfg(target_os = "linux")]
+    pub(crate) const fn root_lease(&self) -> &RootLease {
+        &self.lease
     }
     pub(crate) fn folder(&self) -> &Path {
         &self.folder

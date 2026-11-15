@@ -6,7 +6,7 @@ use vessel_proto::checkpoint::RestoreOutcome;
 
 /// The existing startup interrupt pass already ended previous live runs. Every
 /// append and restore-row marker shares one FULL-sync transaction; a retry after
-/// crash cannot append a second FilesRestored or alter status/ended_at/queue.
+/// crash cannot append a second `FilesRestored` or alter status/ended_at/queue.
 pub(crate) fn replay_metadata(
     connection: &mut Connection,
     at: DateTime<Utc>,
