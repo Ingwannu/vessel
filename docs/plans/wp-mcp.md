@@ -344,7 +344,7 @@ There are no native UI changes/captures or operator-home/service mutations.
 | cb836083a | MCP suite stopped compiling a borrowed ID assertion; fixed c7f0; no MCP tests executed | mcp-tests-cb836 |
 | 7bfc7f72e | TS failed three unclassified aliases; fixed 146c83 | ts-7bfc7 |
 | 9e2be4d25 | TS generators 4 passed; stale file diff keeps step rc1; six artifact hashes verified and exact generated patch applied | ts-9e2be |
-| c7f0c5df1 | Strict stopped on a new module-doc backtick lint; fixed with the matching ToolId doc spelling; functional suite still running | strict-c7f0, functional-c7f0 |
+| c7f0c5df1 | Strict stopped on a new module-doc backtick lint; fixed with the matching ToolId doc spelling; functional suite stopped after 91 passed/1 failed/1 ignored at the new default-notification fixture | strict-c7f0, functional-c7f0 |
 
 The alias registry brands node-minted PromptReceiptId; SkillName and
 StoredTool remain plain names validated at the Rust boundary. Generated TS was applied from the verified remote artifact after confirming
@@ -375,3 +375,12 @@ overrides stay unsupported and voice is not activated. The only merge
 conflict joined independent architecture sections, preserving both. Wire
 roots are unchanged, so the previously generated MCP artifact remains exact;
 merged-head checks are still owed. No whole gate was running during merge.
+
+The first default-notification fixture timed out. Source inspection found
+its arbitrary second prompt enters fake-acp's permission-request path, and
+an occupied parent can receive a notice in QueueChanged rather than a new
+TurnStarted. The fixture now uses the fake's distinct deterministic cwd
+report, an explicit temporary cwd, the existing node-notice test's typed
+queued-or-started observation, and named per-stage deadlines. Both exact
+completion replies and the absence of a wait-tool call remain asserted.
+This correction does not yet prove the product path passes; rerun is owed.
