@@ -204,12 +204,14 @@ impl Shell {
             self.shortcut_save_failed(cx);
             return false;
         };
+        // This is local acceptance only. The shared desktop preference
+        // coordinator owns write acknowledgement, rollback and cross-window merge.
         self.prefer(&change, window, cx);
-        let saved = self.prefs.settings.shortcuts == expected.shortcuts;
-        if !saved {
+        let applied = self.prefs.settings.shortcuts == expected.shortcuts;
+        if !applied {
             self.shortcut_save_failed(cx);
         }
-        saved
+        applied
     }
 
     fn shortcut_save_failed(&mut self, cx: &mut Context<'_, Self>) {

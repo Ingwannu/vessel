@@ -377,3 +377,16 @@ stays equal or decreases. The old Messages fixture now explicitly carries no
 connection_epoch; fake online reach/node data never invents an admitted lease.
 The current combined Clippy run bc790536 predates this merge; it cannot prove
 that this combined head compiles. No whole package gate has started.
+
+
+Canonical NewWorkspace (retained Action::NewSession identity) no longer falls
+back to opening a global agent Draft. It requires W3's actual workspace-create
+owner handler, just as numeric workspace navigation requires S2/W11 projection.
+Missing owners remain unhandled rather than creating a different resource.
+
+Preference edits currently report local validation/application only. W19b owns
+the sole shared desktop preferences Coordinator/Client/Snapshot write receipt,
+rollback and per-window rebase path (source71e2c94ec, not checked at this point).
+F4 does not introduce another writer or interpret SavePrefs queueing as disk
+success. The checked common coordinator and rollback invalidation hook remain
+a required dependency before claiming persistence-failure parity.

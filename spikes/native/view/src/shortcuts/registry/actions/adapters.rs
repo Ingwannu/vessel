@@ -208,7 +208,6 @@ impl Action {
             | Self::Help
             | Self::Settings
             | Self::CycleTheme
-            | Self::NewSession
             | Self::GoBoard
             | Self::GoMachines
             | Self::GoSync
@@ -220,7 +219,8 @@ impl Action {
             | Self::Find
             | Self::SteerQueued
             | Self::EditQueued => true,
-            Self::JumpSession
+            Self::NewSession
+            | Self::JumpSession
             | Self::PreviousSession
             | Self::NextSession
             | Self::SearchFiles

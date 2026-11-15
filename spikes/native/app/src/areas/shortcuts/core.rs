@@ -24,13 +24,6 @@ impl Shell {
             Action::Palette => self.toggle_palette(window, cx),
             Action::Help => self.toggle_shortcuts_help(window, cx),
             Action::ToggleSidebars | Action::ToggleSidebar => self.toggle_sidebar(window, cx),
-            Action::NewSession => {
-                let machine = self.machine_in_view();
-                self.go(Route::Draft, window, cx);
-                if let Some(machine) = machine {
-                    self.choose_machine(machine, window, cx);
-                }
-            }
             Action::Settings => {
                 if self.route == Route::Settings {
                     self.settings_back(false, window, cx);
@@ -69,7 +62,8 @@ impl Shell {
                     && self.areas.session.composer.at_start(window, cx)
                     && self.conversation_edit_latest_queued(window, cx);
             }
-            Action::JumpSession
+            Action::NewSession
+            | Action::JumpSession
             | Action::PreviousSession
             | Action::NextSession
             | Action::SearchFiles
