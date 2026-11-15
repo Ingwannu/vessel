@@ -1,0 +1,81 @@
+[
+  {
+    "method": "session.create",
+    "params": {
+      "spec": {
+        "harness": "claude-code",
+        "mode": "structured",
+        "listing": "shown"
+      }
+    }
+  },
+  {
+    "method": "prompt.create",
+    "params": {
+      "name": "fixture",
+      "text": "No write",
+      "session": {
+        "harness": "claude-code",
+        "mode": "structured",
+        "listing": "shown"
+      }
+    }
+  },
+  {
+    "method": "prompt.update",
+    "params": {
+      "prompt": "00000000-0000-4000-8000-000000000001",
+      "revision": 1,
+      "name": "fixture",
+      "text": "No write",
+      "session": {
+        "harness": "claude-code",
+        "mode": "structured",
+        "listing": "shown"
+      }
+    }
+  },
+  {
+    "method": "schedule.create",
+    "params": {
+      "definition": {
+        "cadence": {
+          "kind": "every",
+          "seconds": 61
+        },
+        "target": {
+          "kind": "new_session",
+          "spec": {
+            "harness": "claude-code",
+            "mode": "structured",
+            "listing": "shown"
+          }
+        },
+        "prompt": "No work before assignment"
+      },
+      "paused": true
+    }
+  },
+  {
+    "method": "schedule.update",
+    "params": {
+      "schedule": "00000000-0000-4000-8000-000000000001",
+      "revision": 1,
+      "definition": {
+        "cadence": {
+          "kind": "every",
+          "seconds": 61
+        },
+        "target": {
+          "kind": "new_session",
+          "spec": {
+            "harness": "claude-code",
+            "mode": "structured",
+            "listing": "shown"
+          }
+        },
+        "prompt": "No work before assignment"
+      }
+    }
+  }
+]

@@ -1,13 +1,27 @@
-//! The shared labels fixture is fictional wire input. Decoding stays here;
-//! the SDK and forced-frame assertions exercise the same typed requests.
+//! Pending session-metadata admission, including discovery. Fictional wire
+//! fixtures decode here; SDK and forced-frame checks use the same typed calls.
 
 use super::*;
 
 fn calls() -> Vec<Call> {
-    let direct: Vec<Call> = serde_json::from_str(include_str!(
+    let mut direct: Vec<Call> = serde_json::from_str(include_str!(
         "../../../../vessel-proto/tests/fixtures/labelled-requests.json"
     ))
     .unwrap();
+    direct.extend(
+        serde_json::from_str::<Vec<Call>>(include_str!(
+            "../../../../vessel-proto/tests/fixtures/listed-requests.json"
+        ))
+        .unwrap(),
+    );
+    for selection in [
+        vessel_proto::SessionSelection::shown(),
+        vessel_proto::SessionSelection::all(),
+        vessel_proto::SessionSelection::shown()
+            .with_labels(serde_json::from_str(r#"{"env":"prod"}"#).unwrap()),
+    ] {
+        direct.push(ListSessions::selected(selection).into_call());
+    }
     let node = NodeId::random();
     let origin = vessel_proto::Origin {
         node,
@@ -36,7 +50,7 @@ fn calls() -> Vec<Call> {
 }
 
 #[tokio::test]
-async fn raw_labelled_specs_and_envelopes_are_refused_before_dispatch() {
+async fn raw_pending_metadata_and_envelopes_are_refused_before_dispatch() {
     let (mut client, mut served) = raw_client(vessel_proto::PROTOCOL_VERSION.get()).await;
     for call in calls() {
         let method = call.method();
@@ -56,7 +70,10 @@ async fn raw_labelled_specs_and_envelopes_are_refused_before_dispatch() {
         }
     ));
     assert_eq!(served.seen.recv().await.unwrap().method(), GetNode::METHOD);
-    assert!(served.seen.try_recv().is_err(), "labels reached dispatch");
+    assert!(
+        served.seen.try_recv().is_err(),
+        "pending metadata reached dispatch"
+    );
 }
 
 async fn connected() -> (Connection, MemoryTransport) {
@@ -86,7 +103,7 @@ async fn connected() -> (Connection, MemoryTransport) {
 }
 
 #[tokio::test]
-async fn sdk_labelled_specs_and_envelopes_never_send_a_frame_or_consume_an_id() {
+async fn sdk_pending_metadata_and_envelopes_never_send_a_frame_or_consume_an_id() {
     let (client, mut server) = connected().await;
     for call in calls() {
         let method = call.method();

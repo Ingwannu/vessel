@@ -57,7 +57,12 @@ fn every_method_declares_authority_and_admin_is_rare() {
             "agent.install_output",
             "usage.lookup",
             "node.set_settings",
-            "usage.source_lookup"
+            "skills.status",
+            "skills.reconcile",
+            "skills.uninstall",
+            "skills.save_selection",
+            "skills.import_selection",
+            "usage.source_lookup",
         ]
     );
     assert_eq!(
@@ -671,6 +676,11 @@ const FORWARDABLE: &[&str] = &[
     "workspace.release_automation",
     "git.compare",
     "git.compare_file",
+    "file.inspect",
+    "file.read_bytes",
+    "file.duplicate",
+    "file.observe",
+    "file.suggest",
     "usage.reports",
     "usage.inspect",
     "usage.source_lookup",
