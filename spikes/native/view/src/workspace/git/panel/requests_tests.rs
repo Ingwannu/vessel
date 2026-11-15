@@ -155,7 +155,10 @@ fn reader_projection_keeps_status_failure_ahead_of_a_retained_diff() {
     let mut reads = PanelReads::new(repository(), Comparison::default());
     assert_eq!(reads.body(Demand::Active), Body::CheckingRepository);
     let first = reads.begin_status(keys.issue().unwrap());
-    assert!(reads.finish_status(first, Ok(crate::workspace::git::fixtures::status())));
+    assert!(reads.finish_status(
+        first,
+        Ok(crate::workspace::git::fixtures::status(Vec::new()))
+    ));
     assert_eq!(reads.body(Demand::Active), Body::ReadingDiff);
     let ticket = reads.begin_summary(keys.issue().unwrap());
     assert!(reads.finish_summary(&ticket, Ok(summary())));
@@ -179,7 +182,10 @@ fn explicit_refresh_reason_and_nondata_comparison_results_keep_their_meaning() {
     let mut keys = RequestKeys::default();
     let mut reads = PanelReads::new(repository(), Comparison::default());
     let status = reads.begin_status(keys.issue().unwrap());
-    assert!(reads.finish_status(status, Ok(crate::workspace::git::fixtures::status())));
+    assert!(reads.finish_status(
+        status,
+        Ok(crate::workspace::git::fixtures::status(Vec::new()))
+    ));
     let fresh = reads.begin_summary_for(keys.issue().unwrap(), GitReadReason::Refresh);
     assert_eq!(fresh.reason(), GitReadReason::Refresh);
     assert!(reads.finish_summary(&fresh, Err(ReadFailure::NoBase)));

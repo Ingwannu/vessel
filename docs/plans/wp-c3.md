@@ -775,3 +775,11 @@ reads use View. No fetch, runtime admission or approximate legacyBase fallback
 is introduced. New View/Link fixtures cover whole query/outcome values and
 actual staged summary/file no-frame settlement. These current native changes
 are uncompiled/unexecuted; older fa1/0af jobs are not relabeled as their proof.
+
+
+The exact b011 all-target Clippy returned cargo101 on six new fixture API issues:
+two status fixture arguments, three elided Context lifetimes and a test helper
+requiring Element rather than IntoElement. Corrected with the existing empty
+status fixture, explicit lifetimes and AnyElement conversion; no production
+state, assertion or lint is weakened. Current correction needs its own check;
+b011 is retained as red, and queued27194 tests are not relabeled.
