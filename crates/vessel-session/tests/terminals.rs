@@ -551,3 +551,5 @@ async fn captured_screen_survives_output_ring_pruning_and_process_exit() {
     })
     .await;
 }
+#[path = "terminals/lifetime.rs"]
+mod lifetime;

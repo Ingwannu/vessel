@@ -92,6 +92,7 @@ where
         kill: kill.clone(),
         restarts: Some(restarts),
         pid: AtomicU32::new(0),
+        process: Mutex::new(None),
     });
     let actor = ScriptActor {
         log: TermLog::new(Arc::clone(&shared), authority),
@@ -267,7 +268,7 @@ impl<A: Fn() -> bool> ScriptActor<A> {
             return Ended::Spawn;
         };
         drop(stdin);
-        self.log.running(Some(child.pid()));
+        self.log.running(Some(child.lifetime()));
         if *first {
             *first = false;
             self.log.status(SessionStatus::Running);

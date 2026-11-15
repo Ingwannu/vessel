@@ -545,3 +545,16 @@ legacy paths refuse instead of ignoring the request. Compare retains its local
 JSON switch. Terminal capture/send-keys quiet output uses terminal IDs; their
 plain default remains raw capture/silent send respectively. Full package gate,
 corrected shared strict lint and targeted execution remain owed.
+
+
+### Announced node gate42 merge
+
+Merged announced d432ef0f into the W17 development tree after its immutable
+early-output test was submitted from the separate source tree. Preserved both
+terminal lifetime regressions and W17 ring-pruning capture regression, and both
+architecture sections. ProcessLifetime observation is only a read-only carrier;
+no additional socket/signal authority is inferred. SDK check_call is now present.
+Lifecycle still owns the separately reserved legacy run_session preflight line;
+W17 does not duplicate it. No owned AgentSetup literal required a new field;
+base literals retain the incoming system_prompt field. Shrinking size allowances
+use the new lower limits; no record was raised. This is not a latest-head gate.
