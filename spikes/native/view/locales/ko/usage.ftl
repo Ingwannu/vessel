@@ -14,6 +14,8 @@ usage-day = 최근 24시간
 usage-week = 최근 7일
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-refresh = 새로고침
+# 현재 선택한 머신의 구성된 모든 계정을 명시적으로 조회합니다.
+usage-refresh-all = 모든 계정 새로고침
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-retry = 다시 시도
 # Usage settings or limit notice; keep this whole label or explanation together.

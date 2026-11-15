@@ -86,7 +86,7 @@ impl Shell {
                     .map(|request| Ask::Accounts {
                         surface,
                         request,
-                        refresh: state.refresh_account.take(),
+                        refresh: std::mem::take(&mut state.refresh_account),
                     })
             }
             InventorySurface::Summary => {
@@ -96,7 +96,7 @@ impl Shell {
                     .map(|request| Ask::Accounts {
                         surface,
                         request,
-                        refresh: None,
+                        refresh: vessel_app_view::usage::InventoryRefresh::Cached,
                     })
             }
         };
@@ -132,6 +132,6 @@ impl Shell {
             None
         };
         state.policy_pending = None;
-        self.usage_accounts(None);
+        self.usage_accounts(vessel_app_view::usage::InventoryRefresh::Cached);
     }
 }

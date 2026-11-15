@@ -15,7 +15,7 @@ fn queue_refusals_preserve_the_exact_inventory_lifetime() {
     } = Ask::Accounts {
         surface: InventorySurface::Accounts,
         request,
-        refresh: None,
+        refresh: vessel_app_view::usage::InventoryRefresh::Cached,
     }
     .refused(RequestFailure::Busy)
     else {

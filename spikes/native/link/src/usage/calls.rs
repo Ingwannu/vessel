@@ -3,12 +3,13 @@ use super::{Answer, Ask};
 use std::{sync::Arc, time::Duration};
 use tokio::sync::{Semaphore, mpsc};
 use vessel_app_view::usage::{
-    AccountReport, Inventory, RequestFailure, account_binding, configured_accounts,
+    AccountReport, Inventory, InventoryRefresh, RequestFailure, account_binding,
+    configured_accounts,
 };
 use vessel_client::{CallError, NodeClient};
 use vessel_proto::{
     ErrorCode, ListProfiles,
-    limits::{GetUsageLimits, LimitAccount, LimitRefresh, LimitsScope, SetUsageLookup},
+    limits::{GetUsageLimits, LimitRefresh, LimitsScope, SetUsageLookup},
     usage::{QueryUsage, UsagePeriod, UsageScope},
 };
 
@@ -72,7 +73,7 @@ async fn execute(client: &NodeClient, ask: Ask) -> Answer {
             request,
             refresh,
         } => {
-            let result = inventory(client, refresh.as_ref()).await;
+            let result = inventory(client, &refresh).await;
             Answer::Accounts {
                 surface,
                 request,
@@ -126,7 +127,7 @@ async fn execute(client: &NodeClient, ask: Ask) -> Answer {
 
 async fn inventory(
     client: &NodeClient,
-    refresh: Option<&LimitAccount>,
+    refresh: &InventoryRefresh,
 ) -> Result<Inventory, RequestFailure> {
     let profiles = client
         .call(ListProfiles { harness: None })
@@ -134,11 +135,11 @@ async fn inventory(
         .map_err(problem)?;
     let accounts =
         configured_accounts(&profiles).map_err(|_invalid| RequestFailure::InvalidReply)?;
-    let mut matched = refresh.is_none();
+    let mut matched = !matches!(refresh, InventoryRefresh::Account(_));
     let mut reports = Vec::with_capacity(accounts.len());
     for account in accounts {
         let binding = account_binding(&account);
-        let refresh = if refresh == Some(&binding) {
+        let refresh = if refresh.includes(&binding) {
             matched = true;
             LimitRefresh::Refresh
         } else {

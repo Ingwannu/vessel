@@ -83,7 +83,7 @@ impl Shell {
                 self.command(Command::Usage(Ask::Accounts {
                     surface: InventorySurface::Summary,
                     request,
-                    refresh: None,
+                    refresh: vessel_app_view::usage::InventoryRefresh::Cached,
                 }));
             }
         }
@@ -97,7 +97,7 @@ impl Shell {
             self.command(Command::Usage(Ask::Accounts {
                 surface: InventorySurface::Summary,
                 request,
-                refresh: None,
+                refresh: vessel_app_view::usage::InventoryRefresh::Cached,
             }));
         }
     }

@@ -1,6 +1,28 @@
 //! A configured binding and its independent account-limit result stay together.
 use super::{Account, RequestFailure};
 use vessel_proto::limits::{ExternalLookup, LimitAccount, UsageLimits};
+/// An explicit user refresh cannot be confused with a passive cached inventory read.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub enum InventoryRefresh {
+    /// The default has no credential or vendor I/O, including cache misses.
+    #[default]
+    Cached,
+    /// Refresh exactly one configured account, leaving all others cached.
+    Account(LimitAccount),
+    /// Refresh every account in the selected machine's bounded current inventory.
+    All,
+}
+impl InventoryRefresh {
+    /// Compare canonical bindings; labels and currently selected defaults never match accounts.
+    #[must_use]
+    pub fn includes(&self, account: &LimitAccount) -> bool {
+        match self {
+            Self::Cached => false,
+            Self::Account(chosen) => chosen == account,
+            Self::All => true,
+        }
+    }
+}
 
 /// A failed account never hides the accounts that answered successfully.
 #[derive(Debug, Clone)]

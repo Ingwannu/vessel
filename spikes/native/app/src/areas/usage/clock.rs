@@ -40,7 +40,7 @@ impl Shell {
         if matches!(state.target, Target::Online(_))
             && !matches!(state.inventory.phase(), Phase::Loading { .. })
         {
-            self.usage_accounts(None);
+            self.usage_accounts(vessel_app_view::usage::InventoryRefresh::Cached);
         }
         let state = &mut self.areas.usage;
         if !matches!(state.summary.phase(), Phase::Loading { .. })
@@ -50,7 +50,7 @@ impl Shell {
             self.command(Command::Usage(Ask::Accounts {
                 surface: InventorySurface::Summary,
                 request,
-                refresh: None,
+                refresh: vessel_app_view::usage::InventoryRefresh::Cached,
             }));
         }
         let reader = &mut self.areas.usage.session;

@@ -27,7 +27,9 @@ pub use report::{ReportFact, coverage_facts, partial_report, total_facts};
 mod limits;
 pub use limits::{LimitStatus, LimitView, limit_failure, limit_view};
 mod inventory;
-pub use inventory::{AccountReport, Inventory, InventorySurface, account_binding};
+pub use inventory::{
+    AccountReport, Inventory, InventoryRefresh, InventorySurface, account_binding,
+};
 
 mod session;
 pub use session::{SessionSelection, binding_epoch};

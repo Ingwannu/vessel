@@ -1,10 +1,11 @@
 //! Correlated usage operations carry source facts and sanitized errors only.
 use vessel_app_view::devices::{MachineKey, Ticket};
 use vessel_app_view::usage::{
-    Inventory, InventorySurface, LedgerSelection, ReadRequest, RequestFailure, SessionSelection,
+    Inventory, InventoryRefresh, InventorySurface, LedgerSelection, ReadRequest, RequestFailure,
+    SessionSelection,
 };
 use vessel_proto::{
-    limits::{ExternalLookup, LimitAccount, LimitRefresh, UsageLimits},
+    limits::{ExternalLookup, LimitRefresh, UsageLimits},
     usage::UsageReport,
 };
 
@@ -18,7 +19,7 @@ pub enum Ask {
         /// Machine and read lifetime.
         request: ReadRequest<MachineKey>,
         /// Exact configured binding explicitly selected for a vendor refresh.
-        refresh: Option<LimitAccount>,
+        refresh: InventoryRefresh,
     },
     /// Retained reported token/cost totals, independent of vendor quota.
     Ledger(ReadRequest<LedgerSelection>),

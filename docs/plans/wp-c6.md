@@ -111,3 +111,12 @@ shared enum's size threshold as the preference document gains feature sections.
 - Bounds: the broader profile API is validated before per-account calls. More
   than 256 profiles or invalid whole account labels refuse the entire usage
   inventory; no configured account is silently omitted or relabelled.
+
+### Explicit whole-inventory refresh
+
+InventoryRefresh distinguishes Cached, one canonical Account and All. A shared
+Settings/modal action captures the selected machine and explicitly requests every
+account in that machine's validated inventory. Stale callbacks cannot refresh a
+new host. Passive clocks/sidebar reads always select Cached; queued requests retain
+their exact refresh choice. A fake framed peer checks both whole-inventory Refresh
+and subsequent cache-only reads, independently from UI rendering.

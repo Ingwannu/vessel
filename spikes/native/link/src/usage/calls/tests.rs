@@ -3,7 +3,7 @@ mod peer;
 use std::sync::Mutex;
 use vessel_proto::{
     Call, Outcome, ProfileInfo, Reply,
-    limits::{AccountLimitState, UsageLimits},
+    limits::{AccountLimitState, LimitAccount, UsageLimits},
     usage::CostVisibility,
 };
 fn profile(name: &str) -> ProfileInfo {
@@ -57,7 +57,9 @@ async fn inventory_refreshes_only_the_explicit_profile_and_preserves_other_failu
         harness: "codex".parse().unwrap(),
         profile: Some("second".parse().unwrap()),
     };
-    let report = inventory(&peer.client, Some(&binding)).await.unwrap();
+    let report = inventory(&peer.client, &InventoryRefresh::Account(binding))
+        .await
+        .unwrap();
     assert_eq!(report.accounts.len(), 2);
     assert!(matches!(
         report.accounts[0].result,
@@ -93,7 +95,9 @@ async fn cached_inventory_rejects_a_reply_for_another_account() {
         })))
     })
     .await;
-    let report = inventory(&peer.client, None).await.unwrap();
+    let report = inventory(&peer.client, &InventoryRefresh::Cached)
+        .await
+        .unwrap();
     assert!(matches!(
         report.accounts[0].result,
         Err(RequestFailure::InvalidReply)
@@ -108,4 +112,43 @@ fn raw_node_error_text_never_crosses_the_usage_event_boundary() {
     )));
     assert_eq!(safe, RequestFailure::Refused(ErrorCode::Forbidden));
     assert!(!format!("{safe:?}").contains(raw));
+}
+#[tokio::test]
+async fn refresh_all_targets_the_bounded_inventory_and_cached_reads_never_refresh() {
+    let modes = Arc::new(Mutex::new(Vec::new()));
+    let seen = Arc::clone(&modes);
+    let peer = peer::connect(move |call| {
+        if matches!(&call, Call::ListProfiles(_)) {
+            return Outcome::Ok(Reply::ListProfiles(vec![
+                profile("first"),
+                profile("second"),
+            ]));
+        }
+        let Call::GetUsageLimits(ask) = call else {
+            panic!("unexpected fixture method")
+        };
+        seen.lock().unwrap().push(ask.refresh);
+        let LimitsScope::Account { account } = ask.scope else {
+            panic!("account only")
+        };
+        Outcome::Ok(Reply::GetUsageLimits(limits(account)))
+    })
+    .await;
+    let all = inventory(&peer.client, &InventoryRefresh::All)
+        .await
+        .unwrap();
+    assert_eq!(all.accounts.len(), 2);
+    let cached = inventory(&peer.client, &InventoryRefresh::Cached)
+        .await
+        .unwrap();
+    assert_eq!(cached.accounts.len(), 2);
+    assert_eq!(
+        *modes.lock().unwrap(),
+        [
+            LimitRefresh::Refresh,
+            LimitRefresh::Refresh,
+            LimitRefresh::Cached,
+            LimitRefresh::Cached
+        ]
+    );
 }

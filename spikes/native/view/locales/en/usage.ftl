@@ -14,6 +14,8 @@ usage-day = Past 24 hours
 usage-week = Past 7 days
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-refresh = Refresh
+# Explicitly fetch every configured account of the currently selected machine.
+usage-refresh-all = Refresh all accounts
 # Usage settings or limit notice; keep this whole label or explanation together.
 usage-retry = Retry
 # Usage settings or limit notice; keep this whole label or explanation together.

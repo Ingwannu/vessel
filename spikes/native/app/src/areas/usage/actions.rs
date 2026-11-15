@@ -7,7 +7,7 @@ use vessel_app_view::{
     Reach,
     devices::{MachineKey, Target},
     settings::Section,
-    usage::{InventorySurface, LedgerSelection, Range, RequestFailure},
+    usage::{InventoryRefresh, InventorySurface, LedgerSelection, Range, RequestFailure},
 };
 use vessel_proto::limits::{ExternalLookup, LimitAccount};
 
@@ -46,7 +46,7 @@ impl Shell {
         };
         let machine = machine.clone();
         if state.policy_pending.is_none() && state.inventory.selection() != Some(&machine) {
-            self.usage_accounts(None);
+            self.usage_accounts(InventoryRefresh::Cached);
         }
         let state = &mut self.areas.usage;
         let selection = LedgerSelection {
@@ -77,14 +77,14 @@ impl Shell {
             self.command(Command::Usage(Ask::Ledger(request)));
         }
     }
-    pub(super) fn usage_accounts(&mut self, refresh: Option<LimitAccount>) {
+    pub(super) fn usage_accounts(&mut self, refresh: InventoryRefresh) {
         let state = &mut self.areas.usage;
         let Target::Online(machine) = &state.target else {
             return;
         };
         state.refresh_account = refresh;
         if let Some(request) = state.inventory.request(machine.clone()) {
-            let refresh = state.refresh_account.take();
+            let refresh = std::mem::take(&mut state.refresh_account);
             self.command(Command::Usage(Ask::Accounts {
                 surface: InventorySurface::Accounts,
                 request,
@@ -92,11 +92,17 @@ impl Shell {
             }));
         }
     }
+    pub(super) fn usage_refresh_all(&mut self, machine: MachineKey) {
+        if !matches!(&self.areas.usage.target,Target::Online(current) if current==&machine) {
+            return;
+        }
+        self.usage_accounts(InventoryRefresh::All);
+    }
     pub(crate) fn usage_refresh_account(&mut self, machine: MachineKey, account: LimitAccount) {
         if !matches!(&self.areas.usage.target,Target::Online(current) if current==&machine) {
             return;
         }
-        self.usage_accounts(Some(account));
+        self.usage_accounts(InventoryRefresh::Account(account));
     }
     pub(crate) fn usage_set_policy(&mut self, expected: MachineKey, policy: ExternalLookup) {
         let state = &mut self.areas.usage;
@@ -135,7 +141,7 @@ impl State {
     fn close(&mut self) {
         self.ledger.close();
         self.inventory.close();
-        self.refresh_account = None;
+        self.refresh_account = InventoryRefresh::Cached;
         self.policy_error = None;
     }
 }

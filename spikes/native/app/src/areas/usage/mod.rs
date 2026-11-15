@@ -18,10 +18,10 @@ pub(crate) use session::{limit_notice, session_card};
 use chrono::FixedOffset;
 use vessel_app_view::devices::{MachineKey, Target, Ticket, Tickets};
 use vessel_app_view::usage::{
-    Inventory, LedgerSelection, Range, Reader, RequestFailure, SessionSelection,
+    Inventory, InventoryRefresh, LedgerSelection, Range, Reader, RequestFailure, SessionSelection,
 };
 use vessel_proto::{
-    limits::{ExternalLookup, LimitAccount, UsageLimits},
+    limits::{ExternalLookup, UsageLimits},
     usage::UsageReport,
 };
 
@@ -51,7 +51,7 @@ pub(crate) struct State {
     pub(super) summary: Reader<MachineKey, Inventory>,
     pub(super) summary_place: vessel_app_kit::select::Anchor,
     pub(super) inventory: Reader<MachineKey, Inventory>,
-    pub(super) refresh_account: Option<LimitAccount>,
+    pub(super) refresh_account: InventoryRefresh,
     pub(super) policy_pending: Option<PolicyPending>,
     pub(super) policy_error: Option<RequestFailure>,
     pub(super) tickets: Tickets,
@@ -77,7 +77,7 @@ impl State {
             summary: Reader::default(),
             summary_place: vessel_app_kit::select::Anchor::default(),
             inventory: Reader::default(),
-            refresh_account: None,
+            refresh_account: InventoryRefresh::Cached,
             policy_pending: None,
             policy_error: None,
             tickets: Tickets::default(),
