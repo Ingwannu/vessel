@@ -58,14 +58,8 @@ impl Shell {
             return;
         };
         let message = self.areas.draft.creation.message(ticket);
-        let Some(input) = self.prepare_creation_input(
-            ticket,
-            message.clone(),
-            expected_node,
-            &machine,
-            &text,
-            cx,
-        ) else {
+        let Some(input) = self.prepare_creation_input(ticket, message.clone(), &context, &text, cx)
+        else {
             return;
         };
         let stage = if matches!(target, Target::Registered(_)) {
@@ -132,12 +126,11 @@ impl Shell {
         &mut self,
         ticket: Ticket,
         message: vessel_proto::timeline::ClientMessageId,
-        expected_node: vessel_proto::NodeId,
-        machine: &Name,
+        connection: &vessel_app_view::connection::ConnectionContext,
         text: &str,
         cx: &mut Context<'_, Self>,
     ) -> Option<FirstInput> {
-        match self.prepare_draft_input(ticket, message, expected_node, machine.as_str(), text) {
+        match self.prepare_draft_input_on(ticket, message, connection.clone(), text) {
             Ok(Some(prepared)) => {
                 if prepared.ticket() == ticket {
                     Some(FirstInput::Deferred)

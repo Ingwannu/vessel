@@ -288,3 +288,10 @@ with duplex tests at registration and first-input stages. Generic outcome
 wording covers both a live transport refusal and a disconnect; it does not
 assert that the connection necessarily ended. Durable before-effect refusal
 receipts will provide a narrower retry distinction in the new API.
+
+The attachment pipeline now receives the same captured ConnectionContext as
+the creation ask via prepare_draft_input_on; it does not resolve the host again
+between payload preparation and child registration. W6 retains this context
+through capability reads, upload/resume and first-input delivery, using the
+same selected-connection guard. The caller keeps one canonical message id and
+one payload ticket; no additional identity cache or allocator is introduced.
