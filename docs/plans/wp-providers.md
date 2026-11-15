@@ -58,13 +58,14 @@ G3 keeps modern provider metadata apart from legacy installation/account rows;
 no profile, sign-in, defaults or removal identity is inferred from a provider ID.
 
 Prior immutable selections passed provider70, agent139(with2externalSDKtests
-ignored), and RPC53; these do not prove the latest combined source. Actual
-strict failures and the coordinator-approved queued cancellations are retained
-below. Current node46g union, encoded reply budget and strict corrections await
-merged-head strict and provider regression execution before the final whole
-and V3 core PASS. All new Rust work runs on the build VM through the approved
-remote gate. Detailed current run IDs are in the review packet; no green gate
-or callable provider head is claimed here.
+ignored), RPC53, node provider24 and correction node/store37; these do not prove
+the latest combined source. V3 settled the returned physical-work, host-facade,
+private-error and named-bound source corrections; the remaining full driver/type/
+core audit and current strict/whole remain owed. Original reds and intentional
+queued cancellations are retained below. All new Rust work runs on the build VM
+through the approved remote gate, including boundary checks that invoke Cargo
+metadata. Detailed current run IDs are in the review packet; no package PASS or
+callable provider head is claimed here.
 
 The pure create resolver is not an authoritative create RPC. Native mode
 capability, actor-attested binding, actual applied provider/env/sign-in proof,
@@ -684,3 +685,22 @@ other node subsystems. Existing explicit node stop still cancels the same child.
 The product-manager regression now checks both explicit stop and last-handle
 drop, including a surviving clone and retained test-staged facade handles. It is
 new source only; no bootstrap/runtime proof is claimed before execution.
+
+## Actual correction regression evidence (2026-11-15 15:31 UTC)
+
+Exact971bb5ad6, run wp-providers-20261115T145452Z-971bb5ad, passed all four
+steps: web-ci44s, nested-fakes36s, nested-vesseld100s, cargo112s. Node provider29
+and Store provider-file8 tests passed (37/0/0). Logs contain both actual blocking
+preparation barrier tests, per-provider/global saturation and shutdown/deadline,
+static/owned panic chains, cancellation, actual invalid-file decoder/encoder
+and startup/owner-log canaries. This is scoped execution proof for971, not the
+later last-manager-drop branch, exact current strict, complete source audit or
+whole package. V3 source-settled the returned corrections throughf082 separately.
+
+The f082 strict failed29s on test item ordering and a needless by-value stop
+parameter.784 corrects those without changing assertions or timeout/capacity
+values; changed strict remains queued. The exact current Codex schema contract
+also remains queued: the schema file matches T's67c5, but this driver's contract
+asserts config on ThreadStart/Resume additionally, so that earlier schema test
+is not relabeled as proof of the extra checks. Only the fixed offline schema
+wrapper may run, never an agent/account operation.
