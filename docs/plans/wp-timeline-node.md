@@ -73,7 +73,11 @@ No native UI files are owned by this package.
 
 Done: fresh worktree from the announced node head, source/survey inventory,
 existing assets checked, ADR and contract written.
-In progress: contract review. Integration ruling: one optional protocol constant;
+In progress: contract review revision after retained-state capacity finding.
+ADR now fixes finite per-session/node count+byte reservations, capacity refusal
+before effects, replay-at-capacity and session-removal-only accounting release.
+The uncommitted timeline value skeleton is excluded from this docs revision.
+ Integration ruling: one optional protocol constant;
 one newest-plus-one migration, re-pointed at merge; shared event accessor.
 Quality B head is still awaited.
 Next: resolve review; send exact approved types to native/CLI consumers; value

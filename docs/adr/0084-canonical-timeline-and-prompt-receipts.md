@@ -179,6 +179,75 @@ questions, never ordinary SDK promises. Provider-history retention removes
 orphan identities with explicit resolution records. Explicit deletion removes
 session-owned records; moving/reloading rehydrates them rather than cancels them.
 
+### Retained admission budgets and refusal
+
+Retained receipt and question state has one finite owner in the store writer.
+The named limits are a deliberate resource floor beyond Paseo's unbounded
+receipt map/files and async record map. They bound logical retained state;
+SQLite page/WAL overhead remains subject to the existing store lifecycle and
+is not claimed to equal the logical byte charge.
+
+| Named budget | Proposed fixed limit | What consumes it |
+| --- | --- | --- |
+| `MAX_SESSION_ADMISSIONS` | 8192 records | Every receipt and every source question identity retained for one session, including settled and uncertain records |
+| `MAX_NODE_ADMISSIONS` | 131072 records | The same records across all retained sessions |
+| `MAX_SESSION_ADMISSION_BYTES` | 16 MiB | Reserved maximum encoded state plus per-record charge for one session |
+| `MAX_NODE_ADMISSION_BYTES` | 256 MiB | Reserved maximum encoded state plus per-record charge across retained sessions |
+| `MAX_RECEIPT_STATE_BYTES` | 4 KiB | One receipt's key, fingerprint, creator and largest accepted result |
+| `MAX_QUESTION_STATE_BYTES` | 512 KiB | One question, stable source identity and all answer/admission/resolution fields |
+| `ADMISSION_ROW_CHARGE_BYTES` | 512 bytes | Additional logical accounting per record for fixed metadata |
+
+The constants are defined once beside the value types in the implementation;
+this table names the contract values until those definitions land. Limits are
+not settings and an untrusted caller cannot raise them. Input decoders refuse
+a record which cannot fit its per-record envelope before admission. Receipt
+fingerprints are fixed-size; the stored receipt never retains prompt content.
+Question bounds include every typed field, option/preview and answer value.
+An answer exceeding its reserved envelope is rejected before dispatch.
+
+Store admission first looks up the exact `(session, message)` or
+`(session, source-question-id)` key. Existing keys retain their replay/conflict/
+uncertain/settled semantics even at capacity and require no new reservation.
+For a new key, the writer transaction checks both count budgets and both byte
+budgets and reserves the entire type-specific envelope plus row charge before
+inserting Pending. This worst-case reservation covers accepted/result growth
+and the question's answer admission without a later capacity race after an
+external effect. All checks, counters and insert commit together. Independent
+clients/sessions cannot overbook the last slot.
+
+An identified prompt that cannot reserve capacity returns typed
+`AdmissionCapacity { scope: Session|Node, resource: Records|Bytes }` and does no
+provider, queue or notification work. A new provider-origin async question
+which cannot reserve is not published as actionable: emit a typed capacity
+notice/error through the ordinary event path; do not create an untracked
+responder or an answer which a client could falsely complete. Existing duplicate
+source items still reconcile to their retained state. Unsupported rich edits
+and oversize question answers refuse before any provider effect independently
+of capacity.
+
+A reservation never expires and is not released by log pruning, an accepted
+reply, a resolved/dismissed question, provider-history retention or an uncertain
+outcome. Those transitions retain a compact replay tombstone within the original
+reservation. Only committed removal of the owning session (explicit deletion or
+the store's authorized whole-session retention) cascades these rows and releases
+its accounting in the same transaction. A caller cannot use a deleted session
+id to obtain another send; normal session existence/ownership checks precede
+admission. A new session has a distinct identity and a distinct idempotency scope.
+
+On restart, derive/verify accounting from the retained reservation rows before
+admission is enabled. Missing/inconsistent accounting refuses new admission with
+a typed store integrity error; it never resets counters or deletes keys to make
+space. Process crashes and failed transactions retain either the complete
+reservation/Pending state or no new admission. The existing WAL store is not a
+claim of persistence through host power loss.
+
+Tests must saturate every per-session/per-node count/byte boundary, race fresh
+ids for the last reservation, retry accepted and pending ids while full,
+restart while full and after uncertain answer admission, and perform each
+permitted/disallowed cleanup transition. Assert zero provider/queue effects on
+capacity refusal, no replay eviction or resend, unchanged outcomes for old keys,
+and exact accounting release only with committed whole-session removal.
+
 ## Versioning, activation and older peers
 
 Use one `TIMELINE_PARITY: Option<ProtocolVersion> = None` until integration.
@@ -217,7 +286,7 @@ Differences from Paseo are explicit: SQLite receipts instead of individual JSON
 files, no compatibility with Paseo's disk layout; typed named errors instead
 of opaque objects; durable shared queue instead of its device-local human
 queue; typed refusals rather than ignoring unknown edits; bounded plugin data
-and typed validated identities; no claim to persist ordinary live approvals.
+and typed validated identities; finite reserved retained-admission budgets; no claim to persist ordinary live approvals.
 An uncertainty window remains between provider acceptance and durable commit;
 the design prevents automatic duplication, not exactly-once execution inside
 an external provider. Extending all exhaustive consumers and regenerating
