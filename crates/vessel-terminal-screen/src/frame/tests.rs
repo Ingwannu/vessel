@@ -46,11 +46,11 @@ fn trimmed_history_still_projects_every_promised_live_and_snapshot_cell() {
 }
 
 fn assert_complete(frame: &FrameView<'_>) {
-    let mut cells = 0;
+    let mut cells = 0_u32;
     for row in 0..frame.rows().get() {
         for column in 0..frame.columns() {
             assert!(frame.cell(Row(row), Column(column)).is_some());
-            cells += 1;
+            cells = cells.checked_add(1).unwrap();
         }
     }
     assert_eq!(cells, frame.cells().get());

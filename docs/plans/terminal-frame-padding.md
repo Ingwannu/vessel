@@ -29,3 +29,8 @@ cell through wider/narrower resize, alternate/reset transitions, preserved
 wide/continuation ink and unchanged snapshot geometry, and directly checks
 that a nonexistent physical row remains unavailable. That strengthened test
 head still needs its own narrow result and changed-source enclosing gate.
+
+The strengthened a637 head executed39 tests with no failures. Its strict check
+rejected unchecked arithmetic in the test's full-grid counter. The counter now
+checks overflow without weakening the cardinality assertion or changing product
+code. Its strict check and the changed-source enclosing whole remain owed.
