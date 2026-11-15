@@ -4793,10 +4793,10 @@ place: ScriptPlace, };
 export type ListSecrets = null;
 
 /**
- * `session.list`: every session the node knows, newest first, including
- * ended sessions restored from disk.
+ * `session.list`: preserve the legacy full collection unless a caller
+ * explicitly supplies the versioned discovery selection.
  */
-export type ListSessions = null;
+export type ListSessions = SessionSelection | null;
 
 /**
  * `worktree.snapshots`: a project's snapshots.
@@ -4876,6 +4876,11 @@ process?: ProcessName | null,
  * Whose tree it is in.
  */
 owner: PortOwner, };
+
+/**
+ * A discovery read's inclusion policy, never permission to operate on an id.
+ */
+export type ListingScope = "shown" | "all";
 
 /**
  * A location relative to the authorized workspace.
@@ -8383,6 +8388,11 @@ title?: SessionTitle | null,
  */
 labels?: SessionLabels, 
 /**
+ * Immutable discovery classification, independent of process state and
+ * archival. Older or unassigned peers receive no listing metadata.
+ */
+listing?: SessionListing, 
+/**
  * Who produced [`title`](Self::title) (ADR 0062). Absent means
  * [`TitleOrigin::Unknown`](crate::title::TitleOrigin::Unknown): this
  * build does not speak the field yet, or the row was stored before
@@ -8469,6 +8479,11 @@ answer: QuestionAnswer, };
  * sent the map. An empty map is left off the wire.
  */
 export type SessionLabels = Record<string, string>;
+
+/**
+ * A creation-only discovery choice, separate from the session's run state.
+ */
+export type SessionListing = "shown" | "background";
 
 /**
  * A session's marks, as `SessionInfo.marks`.
@@ -8619,6 +8634,20 @@ node: NodeId,
 session: SessionId, };
 
 /**
+ * Scope and an AND predicate on current labels. Scope is required on the
+ * wire so an empty object cannot silently choose a discovery policy.
+ */
+export type SessionSelection = { 
+/**
+ * Background inclusion is separate from permission to access an id.
+ */
+scope: ListingScope, 
+/**
+ * Every requested key and value must match; empty adds no predicate.
+ */
+labels: SessionLabels, };
+
+/**
  * What to run. Body of `session.create`.
  *
  * `#[non_exhaustive]` with a constructor (protocol 5): every field added
@@ -8653,6 +8682,11 @@ title?: SessionTitle | null,
  * own; this stays what was asked. Left out when there are none.
  */
 labels?: SessionLabels, 
+/**
+ * Creation-only discovery override (ADR 0063). Omission can inherit
+ * the creating agent; reusable templates retain that omission.
+ */
+listing?: SessionListing | null, 
 /**
  * Where it runs (protocol 10, ADR 0027): a project's folder or a
  * worktree. With a place, `cwd` is left out by the client and filled
