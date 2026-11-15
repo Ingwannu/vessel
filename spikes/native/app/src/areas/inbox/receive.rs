@@ -14,6 +14,24 @@ impl Shell {
         match answer {
             Answer::Targets(Ok(targets)) => self.inbox_targets(targets, cx),
             Answer::Targets(Err(problem)) => self.areas.inbox.problem = Some(problem),
+            Answer::ReadSession(source, session, request, result) => {
+                let target = vessel_app_view::inbox::reading::Target {
+                    node: source.node,
+                    session,
+                };
+                if self.areas.inbox.read_last == Some((request, target))
+                    && self
+                        .areas
+                        .inbox
+                        .store
+                        .nodes()
+                        .iter()
+                        .any(|node| node.source == source)
+                {
+                    self.areas.inbox.read_problem = result.err();
+                    self.inbox_refresh();
+                }
+            }
             Answer::Presence(source, result) => {
                 if self
                     .areas

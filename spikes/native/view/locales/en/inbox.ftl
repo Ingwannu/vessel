@@ -81,3 +81,15 @@ inbox-in-session = Complete details remain in the source conversation. Open it b
 
 # Safe status when the current node connection refuses a presence report.
 inbox-presence-failed = Notification presence could not be reported. The inbox remains available.
+
+# Notification settings: known backend status, never a delivery-success claim.
+inbox-permission = Permission
+
+# Notification settings: known backend status, never a delivery-success claim.
+inbox-os-managed = Managed by your operating system; cannot be checked here.
+
+# Notification settings: known backend status, never a delivery-success claim.
+inbox-test-requested = Test notification requested
+
+# Notification settings: known backend status, never a delivery-success claim.
+inbox-test-unconfirmed = Check that it appeared. If it did not, check notification permissions in your operating system.

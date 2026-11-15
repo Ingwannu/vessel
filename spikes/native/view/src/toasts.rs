@@ -114,7 +114,7 @@ impl Toasts {
     }
     /// Start the current non-sticky toast's injected monotonic clock.
     pub fn start(&mut self, id: u64, now: Instant) -> Option<ToastWake> {
-        self.list.first().filter(|toast| toast.id == id)?;
+        let _current = self.list.first().filter(|toast| toast.id == id)?;
         let remaining = self.lifetime?;
         if self.clock.as_ref().is_some_and(|clock| clock.id == id) {
             return None;
@@ -318,7 +318,7 @@ mod info_clock_tests {
                 .iter()
                 .map(|toast| toast.id)
                 .collect::<Vec<_>>(),
-            []
+            Vec::<u64>::new()
         );
     }
 }
@@ -360,7 +360,7 @@ mod hover_replacement_tests {
                 .iter()
                 .map(|toast| toast.id)
                 .collect::<Vec<_>>(),
-            []
+            Vec::<u64>::new()
         );
     }
     #[test]

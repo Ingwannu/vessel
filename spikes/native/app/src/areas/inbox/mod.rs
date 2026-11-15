@@ -5,6 +5,8 @@ mod draw;
 mod notifications;
 mod place;
 mod presence;
+mod reading;
+pub(crate) use reading::start;
 mod receive;
 pub(crate) mod settings;
 pub(crate) use draw::render;
@@ -23,6 +25,13 @@ pub(crate) struct InboxArea {
     pub(crate) targets: Vec<Target>,
     pub(crate) problem: Option<Problem>,
     pub(crate) presence: vessel_app_view::inbox::presence::Presence,
+    pub(crate) reading: vessel_app_view::inbox::reading::Reader,
+    pub(crate) read_last: Option<(
+        vessel_app_view::inbox::Request,
+        vessel_app_view::inbox::reading::Target,
+    )>,
+    pub(crate) read_problem: Option<Problem>,
+    pub(crate) test_notice: vessel_app_view::inbox::settings::TestNotice,
     pub(crate) presence_problems: Vec<(vessel_proto::NodeId, Problem)>,
     pub(crate) tool: Option<ToolView>,
     pub(crate) notice_routes: vessel_app_view::inbox::notices::NoticeRoutes,
@@ -43,6 +52,10 @@ impl InboxArea {
             problem: None,
             presence: vessel_app_view::inbox::presence::Presence::default(),
             presence_problems: Vec::new(),
+            reading: vessel_app_view::inbox::reading::Reader::default(),
+            read_last: None,
+            read_problem: None,
+            test_notice: vessel_app_view::inbox::settings::TestNotice::Idle,
             tool: None,
             notice_routes: vessel_app_view::inbox::notices::NoticeRoutes::default(),
             notices: vessel_app_view::inbox::notices::NoticeQueue::default(),

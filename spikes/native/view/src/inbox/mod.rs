@@ -7,6 +7,8 @@ mod detail;
 pub mod notices;
 mod pages;
 pub mod presence;
+pub mod reading;
+pub mod settings;
 mod state;
 pub use pages::{MAX_PAGES, Pages};
 pub mod words;

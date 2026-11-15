@@ -16,7 +16,7 @@ use crate::prefs::{
     SidebarView, Theme, TurnDelivery,
 };
 
-const DEFAULT: &str = r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown"},"composer":{"send":"enter","delivery":"steer"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":false},"defaults":{}}"#;
+const DEFAULT: &str = r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown"},"composer":{"send":"enter","delivery":"steer"},"shortcuts":{},"notifications":{"alerts":"system_and_sound","title":true},"sidebar":{"group":"machine","sort":"created","ended":false},"defaults":{}}"#;
 
 fn change(json: &str) -> PreferenceChange {
     serde_json::from_str(json).unwrap()
@@ -448,4 +448,17 @@ fn animations_are_kept_changed_alone_and_lenient() {
     let unknown: Preferences =
         serde_json::from_str(r#"{"appearance":{"animations":"sometimes"}}"#).unwrap();
     assert_eq!(unknown.appearance.animations, Animations::On);
+}
+
+// Coordinator A8 ruling: only missing settings change; an explicit off is
+// still the person's choice (Paseo desktop-settings.ts:33–35 default parity).
+#[test]
+fn an_explicit_alerts_off_survives_the_new_on_default() {
+    let settings: Preferences =
+        serde_json::from_str(r#"{"notifications":{"alerts":"off"}}"#).unwrap();
+    assert_eq!(settings.notifications.alerts, crate::prefs::Alerts::Off);
+    assert_eq!(
+        crate::prefs::Notifications::default().alerts,
+        crate::prefs::Alerts::SystemAndSound
+    );
 }

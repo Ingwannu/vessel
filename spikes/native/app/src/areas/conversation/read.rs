@@ -105,6 +105,9 @@ impl ConversationArea {
 /// Called while the timeline is drawn: when a read mark is due, check
 /// again after the frame and send it.
 pub(super) fn check(shell: &Shell, window: &Window, cx: &mut Context<'_, Shell>) {
+    if shell.inbox_read_owns_current() {
+        return;
+    }
     let area = &shell.areas.conversation;
     if area.read.scheduled.get() || area.read_due(window.is_window_active()).is_none() {
         return;
@@ -122,6 +125,7 @@ impl Shell {
     /// does not mark it read again until a record comes after what it
     /// shows, so the person's mark stays. Another session: nothing.
     pub(crate) fn conversation_marked_unread(&mut self, machine: &str, session: SessionId) {
+        self.inbox_hold_read(machine, session);
         let area = &mut self.areas.conversation;
         if area
             .shown
@@ -134,6 +138,10 @@ impl Shell {
 
     /// Send the read mark due, or wait for the rest of the second.
     fn conversation_read(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if self.inbox_read_owns_current() {
+            self.areas.conversation.read.scheduled.set(false);
+            return;
+        }
         let area = &mut self.areas.conversation;
         area.read.scheduled.set(false);
         let Some(through) = area.read_due(window.is_window_active()) else {

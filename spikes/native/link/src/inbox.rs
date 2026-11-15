@@ -12,6 +12,8 @@ mod input;
 mod node;
 #[cfg(not(target_arch = "wasm32"))]
 mod presence;
+#[cfg(not(target_arch = "wasm32"))]
+mod reading;
 pub use input::Input;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use presence::PresenceHub;
@@ -65,6 +67,17 @@ pub enum Ask {
         /// No text, coordinates or client timestamp crosses this boundary.
         report: vessel_app_view::inbox::presence::Report,
     },
+    /// Passively clear only the observed session watermark after checking live requests.
+    ReadSession {
+        /// Exact authenticated source.
+        source: Source,
+        /// Session actually viewed.
+        session: vessel_proto::SessionId,
+        /// Exclusive observed watermark.
+        through: vessel_proto::EventSeq,
+        /// Correlation identity for safe late failure feedback.
+        request: Request,
+    },
     /// Read a bounded descending prefix of durable entries.
     List {
         /// Exact connection identity.
@@ -115,6 +128,13 @@ pub enum Answer {
     Targets(Result<Vec<Target>, Problem>),
     /// Safe status of a connection's last presence report.
     Presence(Source, Result<(), Problem>),
+    /// Completion of the exact passive session read.
+    ReadSession(
+        Source,
+        vessel_proto::SessionId,
+        Request,
+        Result<(), Problem>,
+    ),
     /// A node's current bounded snapshot.
     Listed(Source, Request, Result<Snapshot, Problem>),
     /// A confirmed form or withdrawal after a load, mark or answer.
@@ -123,7 +143,10 @@ pub enum Answer {
 impl Ask {
     fn validate(&self) -> Result<(), Problem> {
         match self {
-            Self::Discover | Self::List { .. } | Self::Presence { .. } => Ok(()),
+            Self::Discover
+            | Self::List { .. }
+            | Self::Presence { .. }
+            | Self::ReadSession { .. } => Ok(()),
             Self::Get { source, key, .. }
             | Self::Mark { source, key, .. }
             | Self::Answer { source, key, .. } => {
@@ -143,6 +166,12 @@ impl Ask {
         match self {
             Self::Discover => Answer::Targets(Err(problem)),
             Self::Presence { source, .. } => Answer::Presence(source, Err(problem)),
+            Self::ReadSession {
+                source,
+                session,
+                request,
+                ..
+            } => Answer::ReadSession(source, session, request, Err(problem)),
             Self::List {
                 source, request, ..
             } => Answer::Listed(source, request, Err(problem)),
@@ -204,7 +233,8 @@ impl crate::State {
         }
         let source = match &ask {
             Ask::Discover => return,
-            Ask::Presence { source, .. }
+            Ask::ReadSession { source, .. }
+            | Ask::Presence { source, .. }
             | Ask::List { source, .. }
             | Ask::Get { source, .. }
             | Ask::Mark { source, .. }
@@ -263,6 +293,17 @@ const DEADLINE: std::time::Duration = std::time::Duration::from_secs(15);
 #[cfg(not(target_arch = "wasm32"))]
 async fn bounded(client: &vessel_client::NodeClient, ask: Ask) -> Answer {
     let timeout = match &ask {
+        Ask::ReadSession {
+            source,
+            session,
+            request,
+            ..
+        } => Answer::ReadSession(
+            source.clone(),
+            *session,
+            *request,
+            Err(Problem::Refused(vessel_proto::ErrorCode::Unavailable)),
+        ),
         Ask::Presence { source, .. } => Answer::Presence(
             source.clone(),
             Err(Problem::Refused(vessel_proto::ErrorCode::Unavailable)),
@@ -292,6 +333,17 @@ async fn bounded(client: &vessel_client::NodeClient, ask: Ask) -> Answer {
 #[cfg(not(target_arch = "wasm32"))]
 async fn call(client: &vessel_client::NodeClient, ask: Ask) -> Answer {
     match ask {
+        Ask::ReadSession {
+            source,
+            session,
+            through,
+            request,
+        } => Answer::ReadSession(
+            source,
+            session,
+            request,
+            reading::clear(client, session, through).await,
+        ),
         Ask::Discover => Answer::Targets(Err(Problem::InvalidReply)),
         Ask::Presence { source, .. } => Answer::Presence(source, Err(Problem::InvalidReply)),
         Ask::List {

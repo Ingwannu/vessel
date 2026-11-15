@@ -298,7 +298,9 @@ impl Shell {
         {
             return;
         }
-        if open.live {
+        let live = open.live;
+        self.inbox_read_trigger(vessel_app_view::inbox::reading::Trigger::PromptSend);
+        if live {
             let delivery = self.delivery();
             // A send shows in the conversation at once (Paseo's pending
             // message; track C's tail), unless it waits in the queue,

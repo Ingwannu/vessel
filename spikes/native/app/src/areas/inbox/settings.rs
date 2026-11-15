@@ -59,6 +59,8 @@ pub(crate) fn render(
     }));
     let test = outline_button("notifications-test", words.test(), true, tokens).on_click(
         cx.listener(|shell, _event, window, cx| {
+            shell.areas.inbox.test_notice = vessel_app_view::inbox::settings::TestNotice::Requested;
+            cx.notify();
             cx.show_system_notification(vessel_app_kit::ui::SystemNotification {
                 tag: "vessel-notification-test".into(),
                 title: shell.t.app.into(),
@@ -72,11 +74,20 @@ pub(crate) fn render(
     );
     let card = settings::card(tokens)
         .child(settings::row_at(
+            words.permission(),
+            Some(words.os_managed().into()),
+            None,
+            None,
+            true,
+            compact,
+            tokens,
+        ))
+        .child(settings::row_at(
             words.desktop_alerts(),
             Some(words.desktop_hint().into()),
             None,
             Some(desktop.into_any_element()),
-            true,
+            false,
             compact,
             tokens,
         ))
@@ -107,5 +118,17 @@ pub(crate) fn render(
             compact,
             tokens,
         ));
+    let card = match shell.areas.inbox.test_notice {
+        vessel_app_view::inbox::settings::TestNotice::Idle => card,
+        vessel_app_view::inbox::settings::TestNotice::Requested => card.child(settings::row_at(
+            words.test_requested(),
+            Some(words.test_unconfirmed().into()),
+            None,
+            None,
+            false,
+            compact,
+            tokens,
+        )),
+    };
     settings::section(words.notifications(), card, tokens).into_any_element()
 }

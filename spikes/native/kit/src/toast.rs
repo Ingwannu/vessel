@@ -115,8 +115,8 @@ pub fn toast_with(content: ToastContent, handlers: ToastHandlers, tokens: &Token
     let neutral = tokens.neutral;
     let border = match look {
         ToastLook::Plain | ToastLook::Success => neutral.border,
-        ToastLook::Info => tokens.status.blue_300,
-        ToastLook::Warning => tokens.status.amber_500,
+        ToastLook::Info => tokens.status().blue_300,
+        ToastLook::Warning => tokens.status().amber_500,
         ToastLook::Error => neutral.destructive,
     };
     let card = div()
@@ -134,13 +134,13 @@ pub fn toast_with(content: ToastContent, handlers: ToastHandlers, tokens: &Token
         .rounded(px(16.0))
         .shadow(popup::shadow_md(tokens))
         .when(look == ToastLook::Info, |card| {
-            card.child(glyph(Glyph::Info, 18.0, tokens.status.blue_300))
+            card.child(glyph(Glyph::Info, 18.0, tokens.status().blue_300))
         })
         .when(look == ToastLook::Success, |card| {
             card.child(glyph(Glyph::CircleCheck, 18.0, tokens.btn_primary_bg))
         })
         .when(look == ToastLook::Warning, |card| {
-            card.child(glyph(Glyph::Alert, 18.0, tokens.status.amber_500))
+            card.child(glyph(Glyph::Alert, 18.0, tokens.status().amber_500))
         })
         .when(look == ToastLook::Error, |card| {
             card.child(glyph(Glyph::Alert, 18.0, neutral.destructive))

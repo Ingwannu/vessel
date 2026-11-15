@@ -83,6 +83,9 @@ fn list(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> AnyEleme
         body = body.child(note(words::problem(problem, shell.words), tokens));
     }
     body = machine_notes(body, shell, tokens);
+    if let Some(problem) = area.read_problem {
+        body = body.child(note(words::problem(problem, shell.words), tokens));
+    }
     if let Some((_, problem)) = area.presence_problems.first() {
         body = body
             .child(note(labels.presence_failed(), tokens))

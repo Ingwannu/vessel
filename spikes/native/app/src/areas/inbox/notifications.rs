@@ -31,6 +31,7 @@ pub(super) fn listen(window: &Window, cx: &mut Context<'_, Shell>) {
 
 impl Shell {
     pub(crate) fn inbox_window(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        self.inbox_read_frame(window);
         self.inbox_presence(window);
         let title = if self.prefs.settings.notifications.title {
             let count =

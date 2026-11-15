@@ -245,13 +245,13 @@ fn lenient_true<'de, D: Deserializer<'de>>(deserializer: D) -> Result<bool, D::E
 #[serde(rename_all = "snake_case")]
 pub enum Alerts {
     /// Not at all.
-    #[default]
     Off,
     /// A system notification.
     System,
     /// A sound.
     Sound,
-    /// Both.
+    /// Both; Paseo desktop notifications and playSound default on.
+    #[default]
     SystemAndSound,
 }
 

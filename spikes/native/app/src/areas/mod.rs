@@ -79,6 +79,7 @@ impl Areas {
         };
         // Track P: the composers' drafts read back, and kept as typed.
         composer::keep_drafts(&mut areas, window, cx);
+        inbox::start(&areas, window, cx);
         areas
     }
 }

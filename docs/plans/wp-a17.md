@@ -186,3 +186,34 @@ Git/forge guidance uses an explicit 3200ms duration rather than changing the
 shared Info default. Existing Ok is the success semantic tone for callers.
 The kit uses the five reference looks; all areas share this timing change.
 The package report must tell the native lead about the shared timing change.
+
+## Native notification status difference (coordinator accepted for version one)
+
+The current GPUI App::show_system_notification returns (), with no capability,
+permission or delivery result (gpui app.rs:1958). Backend refusal is logged below
+that boundary. Settings therefore says permission is managed by the OS and
+cannot be checked here. A test says requested/sent, check that it appeared; it
+never shows a success result inferred from the void call. Typed status/permission
+support is the later desktop-shell owner W19b's item after .19, per coordinator.
+The approved Linux GPUI SuppressSound patch is still exactly one product line.
+
+## Attention clear and native settings checkpoint
+
+Paseo use-agent-attention-clear.ts:94-138 and utils/agent-attention.ts:63-83
+require focus-entry, input-focus, prompt-send and pane-blur triggers. Newly
+arriving attention while already viewed is deferred until input/send/blur.
+The new pure Reader carries exact node/session and observed exclusive sequence;
+pending permission/question state vetoes passive clear. The link rechecks live
+requests and uses the existing Mark::Read watermark, never a fabricated call.
+Explicit unread holds the current pane, including its own outgoing blur, and
+can clear on a later return. The old repaint timer yields to this controller.
+
+Coordinator A8 approved defaults parity with Paseo desktop-settings.ts:33-35:
+new/missing Alerts defaults SystemAndSound, while explicit off/system/sound
+remain unchanged. Only that field of the baseline default JSON is updated and
+an explicit-off preservation regression is added.
+
+Narrow pure view test log /tmp/work/wp-inbox/view-feature-tests-1.log:
+881 passed, zero failed, 17.09s execution. One unnecessary qualification warning
+in the new prefs test was corrected afterward. App/link integration, root node
+and runtime/visual evidence are still pending; this checkpoint is not delivery.

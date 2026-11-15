@@ -81,3 +81,15 @@ inbox-in-session = 전체 세부 내용은 원래 대화에 있습니다. 확인
 
 # Safe status when the current node connection refuses a presence report.
 inbox-presence-failed = 알림 활동 상태를 보고하지 못했습니다. 받은 편지함은 계속 사용할 수 있습니다.
+
+# Notification settings: known backend status, never a delivery-success claim.
+inbox-permission = 권한
+
+# Notification settings: known backend status, never a delivery-success claim.
+inbox-os-managed = 운영체제에서 관리하며 여기서는 확인할 수 없습니다.
+
+# Notification settings: known backend status, never a delivery-success claim.
+inbox-test-requested = 테스트 알림 전송을 요청했습니다
+
+# Notification settings: known backend status, never a delivery-success claim.
+inbox-test-unconfirmed = 알림이 표시됐는지 확인하세요. 표시되지 않으면 운영체제의 알림 권한을 확인하세요.
