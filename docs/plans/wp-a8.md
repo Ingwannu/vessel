@@ -70,7 +70,10 @@ Further reference paths will be recorded as their runtime paths are read.
 
 - W23 (`17459095`) owns the shared proto/node permission/question fields,
   rich response acknowledgement and durable async runtime under ADR 0084.
-  Proposed docs `4de3f335` are not a consumer-ready implementation.
+  ADR contract `b5b131bd` passed V3 source review (row113), and standalone
+  types `96ed8b0b` are committed source contracts. Attached metadata, rich receipt
+  and runtime proof still need W23's checked consumer hash; none is treated as
+  consumer-ready from source review alone.
 - W10 (`9dc6bb3a`) owns A7 timeline and shared Plan body. His A8 patch
   `bef67fa7..95206de1` has a reported clippy pass only; tests/captures are
   unverified. The saved patch omits its `step_after_pick` re-export, which
@@ -179,3 +182,32 @@ per-message Fluent translator context and a FieldId documentation backtick; both
 are fixed in the next commit. The newer source also corrects generated plain
 message method calls and test unused results found during inspection. No passing
 compile/test claim is made from a build that stopped in translation generation.
+
+
+## Remaining parity validation matrix
+
+These rows describe the fill-in checks; they are **not passing test claims**.
+
+| Scenario | Required behavior | Boundary / owner |
+| --- | --- | --- |
+| Provider-defined plan/mode actions | Show all labels in provider order, preserve exact option id and implement vs implement_resume intent; only primary changes emphasis in this Paseo snapshot | W23 metadata + A8 permission view + W10 Plan body |
+| Plan approval | Durable accepted resolution precedes replacing run with provider-owned follow-up; reject/cancel resets disclosure according to outcome | W23 runtime + A8 outcome seam |
+| Question radio | Empty initial state; selecting one clears custom answer and advances one step, never submits final step | Existing typed view + source-aware A8 callbacks |
+| Question multi-select | Checkbox order and selected labels retained while custom text appends; typed values stay provider adapter-owned | Question view + W23 provider mapping |
+| Question preview | Every option preview visible for comparison as wrapped plain text; label/description compact Markdown | W23 option preview + shared Markdown renderer |
+| Explicit custom companion | Use metadata FieldName pairing, not a guessed provider suffix; choice-only questions get no invented free-text answer | W23 field presentation + A8 step reducer |
+| Empty answer / Dismiss | All free-text allowEmpty questions encode empty accepted answers on Dismiss; mixed/choice forms decline; custom dismiss label does not independently change semantics | W23 empty policy + A8 explicit pressed-action spinner |
+| Failure / retry | Keep drafts/caret/step; unrelated metadata read failures cannot erase request failure; old callbacks/replies cannot affect successor | A8 request correlation and retained input |
+| Durable async question | Completed provider message/turn does not withdraw session-lifetime request; active exact-turn steer or idle follow-up; restart does not resend uncertain answer | W23 runtime / fake Codex tests + A8 authoritative delivery state |
+| Cross-client resolution / cancel | All observing clients fold one exact resolution; sender without subscription still receives durable receipt; cancellation removes actionable form, no human-answer TTL | W23 fan-out + A8 pending fold |
+| Offline / reconnect | Cached cards not actionable; preserve local draft; no queued answer and no replay on reconnect | A8 availability admission + direct response port |
+| CLI malformed input / missing scope | Refuse JSON/deny missing scope before connecting; allow omitted request means all; ambiguous prefix refuses before effects | Staged CLI parser/selection |
+| CLI complete list / exact recheck | Last page must succeed; empty final list is valid; all selected current forms and source identities preflight before effects | Staged CLI pages/source |
+| CLI modified input / refusal | Forward scalar/null JSON for provider validation; unsupported edits/message/interrupt refuse before that request's effects, never downgrade to legacy input | W23 rich receipt + CLI call |
+| CLI batch acknowledgement | Print only acknowledged allowed/denied results, report possible partial completion and uncertainty without automatic retry | W23 receipt + W17 output helpers |
+
+W23 confirmed deterministic fake-provider runtime tests will cover plan options,
+rich refusals, async active/idle/restart. Existing seams are vessel-testkit
+fake-acp/fake-codex and vessel-agent integration tests. Native captures may add
+private test-only typed seeds after the exact reviewed hash, without changing
+root provider adapters. Runtime fixtures and names are still owed with that hash.
