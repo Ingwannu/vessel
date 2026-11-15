@@ -124,3 +124,15 @@ verified locally; that exact generated patch is applied without hand edits.
 Proto/web generator sources are unchanged between 294d9cca3 and 158056295.
 The generated file retains the generator's whitespace. This establishes the
 artifact's origin/content, not a whole root gate or assigned-wire behavior.
+
+## Deliberate unread with an empty/pruned inbox
+
+N1 confirmed the separate `explicit_unread` rollup flag from committed
+`sessions.marked_unread` is required: it is read in the same transaction as
+inbox unread/waiting/failed counts, without OR-ing historical attention/read
+watermarks into those counts. Exact-entry Seen, answer and removal leave this
+whole-session choice intact; the existing whole-session Read clears it.
+The pending method's DTO carries this distinct flag; no new method, number,
+scope, migration or read engine is introduced. UI Review can use flag OR unseen
+entries, with pending/failure/work priorities unchanged. Drafted fixtures cover
+empty inbox, appended unread result, exact-entry Seen and actual session Read.

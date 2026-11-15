@@ -117,3 +117,54 @@ fn failure_bucket_is_separate_from_unread_and_clears_when_work_restarts() {
     let attention = crate::inbox::attention::read(&db, &[target]).unwrap();
     assert_eq!(attention[0].failed.get(), 0);
 }
+
+#[test]
+fn deliberate_unread_survives_empty_inbox_and_exact_seen_until_whole_read() {
+    let db = database();
+    let target = session(&db);
+    let now = chrono::DateTime::UNIX_EPOCH;
+    let read = || {
+        crate::inbox::attention::read(&db, &[target])
+            .unwrap()
+            .remove(0)
+    };
+    let _marked = crate::marks::mark(&db, target, vessel_proto::Mark::Unread, now).unwrap();
+    assert!(read().explicit_unread);
+    assert_eq!(read().unread.get(), 0);
+    append(
+        &db,
+        target,
+        0,
+        AgentEvent::TurnEnded {
+            reason: StopReason::EndTurn,
+            usage: None,
+            point: None,
+        },
+    );
+    assert!(read().explicit_unread);
+    assert_eq!(read().unread.get(), 1);
+    crate::inbox::mark(
+        &db,
+        &MarkInbox {
+            key: InboxKey {
+                session: target,
+                seq: EventSeq::ZERO,
+            },
+            read: InboxRead::Read,
+        },
+    )
+    .unwrap();
+    assert!(read().explicit_unread);
+    assert_eq!(read().unread.get(), 0);
+    let _marked = crate::marks::mark(
+        &db,
+        target,
+        vessel_proto::Mark::Read {
+            through: EventSeq::new(1),
+        },
+        now,
+    )
+    .unwrap();
+    assert!(!read().explicit_unread);
+    assert_eq!(read().unread.get(), 0);
+}
