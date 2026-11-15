@@ -239,6 +239,16 @@ mod tests {
             let a = admit(shell, node, workspace, DraftId::random(), window, cx);
             let b = admit(shell, node, workspace, DraftId::random(), window, cx);
             assert!(shell.composer_accepts_attachments(a));
+            shell
+                .composer_field(a)
+                .unwrap()
+                .set_text("scoped", window, cx);
+            shell.composer_keep_workspace_text(a, "scoped", cx);
+            shell.composer_keep_workspace_text(b, "stale sibling text", cx);
+            assert_eq!(shell.areas.composer.drafts.text(a), "scoped");
+            assert!(shell.areas.composer.drafts.text(b).is_empty());
+            assert!(shell.areas.composer.drafts.text(DraftKey::New).is_empty());
+
             let terminal = DraftId::random();
             shell
                 .seed_draft(
