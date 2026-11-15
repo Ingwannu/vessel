@@ -21,6 +21,10 @@ use crate::connection_life::Owner;
 use crate::principal::Principal;
 use crate::{Config, Node};
 
+/// How long the node may take to notice its transport closing and end the
+/// life: it takes milliseconds, so this only bounds a hang.
+const CLOSE_SEEN_WITHIN: Duration = Duration::from_secs(10);
+
 #[tokio::test]
 async fn a_connections_contexts_share_one_life_that_ends_with_its_transport() {
     let temp = tempfile::tempdir().unwrap();
@@ -73,7 +77,7 @@ async fn a_connections_contexts_share_one_life_that_ends_with_its_transport() {
 
     drop(client);
     serving.await.unwrap().unwrap();
-    tokio::time::timeout(Duration::from_secs(10), closed.cancelled())
+    tokio::time::timeout(CLOSE_SEEN_WITHIN, closed.cancelled())
         .await
         .expect("the transport closing ends the life while a context is held");
     assert_eq!(kept.life().owner(), owner, "the identity outlives the life");

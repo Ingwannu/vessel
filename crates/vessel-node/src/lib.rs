@@ -134,13 +134,14 @@ pub use vessel_store::{KernelLock, KernelProbe, NodeLock};
 mod speech_audio;
 
 // Every connection's context carries one (`service::Connection::life`).
-// Nothing reads it outside tests yet: the first connection-owned resource
-// that does removes this expectation.
+// A temporary A10 exception: nothing reads it outside tests until its
+// consumers, workspace D2 Preview and W14, land. The first of them removes
+// this expectation and the one on the accessor.
 #[cfg_attr(
     not(test),
     expect(
         dead_code,
-        reason = "the first connection-owned resource reads the owner and close observer"
+        reason = "A10 exception until D2 Preview or W14 reads the owner and close observer"
     )
 )]
 mod connection_life;

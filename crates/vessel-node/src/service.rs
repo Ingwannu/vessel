@@ -360,7 +360,7 @@ impl Connection {
     /// connection's last context from ending it.
     #[cfg_attr(
         not(test),
-        expect(dead_code, reason = "the first connection-owned resource reads it")
+        expect(dead_code, reason = "A10 exception until D2 Preview or W14 reads it")
     )]
     pub(crate) const fn life(&self) -> &ConnectionLife {
         &self.life
