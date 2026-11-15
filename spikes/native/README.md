@@ -308,6 +308,10 @@ Labels remain whole and explanations belong below their row.
 26-point pointer / 44-point touch geometry, shared busy spinner, disabled
 primary, and `menu_right` for the menu aligned to the caret's right edge.
 The caller owns its actions, labels and menu state.
+Each explicit menu opening has a private render lease: callbacks retained from
+a prior opening or replaced state stand down before state, focus or action
+changes. See `../../docs/plans/backend-m12-menu-render-lease.md` for the lifecycle
+and headless GPUI proof boundary.
 
 Picker rows retain `Leading::Glyph` at 16 points; `Leading::SmallGlyph`
 is the explicit 14-point slot used by Paseo’s branch switcher.
