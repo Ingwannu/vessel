@@ -37,6 +37,31 @@ fn fixture() -> (Residents, ResidentToken, PanelClaim) {
         .unwrap();
     (residents, token, claim)
 }
+#[test]
+fn claim_key_cannot_substitute_another_node_or_legacy_session_before_allocation() {
+    let address = SessionAddress {
+        node: NodeId::random(),
+        session: SessionId::random(),
+    };
+    let mut residents = Residents::new();
+    let mut wrong_node = claim(address.session);
+    wrong_node.workspace = LayoutKey::Workspace {
+        node: NodeId::random(),
+        workspace: vessel_proto::WorkspaceId::random(),
+    };
+    assert_eq!(
+        residents.claim(address, wrong_node, PaneId::MAIN),
+        Err(ResidentProblem::OwnerConflict)
+    );
+    assert_eq!(
+        residents.claim(address, claim(SessionId::random()), PaneId::MAIN),
+        Err(ResidentProblem::OwnerConflict)
+    );
+    let token = residents
+        .claim(address, claim(address.session), PaneId::MAIN)
+        .unwrap();
+    assert_eq!(token.epoch, ResidentEpoch(1));
+}
 fn ready(residents: &mut Residents, token: ResidentToken) {
     for owner in ResourceOwner::ALL {
         residents
