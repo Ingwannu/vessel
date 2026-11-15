@@ -205,3 +205,15 @@ Local app narrow 1 and remote app narrow 5 reached only the two unbound
 cancellation acknowledgements in link; fixed by standalone 8a203181. The second
 local app check was still queued (its cwd/command and waiting child were checked)
 and was cancelled in favor of the warm remote target. No app-wide green claim.
+
+## Reopen memory and close regression
+
+The remembered first-window state is updated in application memory alongside the
+serialized write, so a macOS dock reopen during the same process restores the
+latest geometry. A real GPUI-window regression exercises the installed chrome
+close callback: a pending/refused finalizer retains the last non-macOS window,
+while another window closes without requesting process quit. This test awaits
+compilation/execution; OS-native close callbacks still require platform smoke.
+
+Merged package base 3 (6c782cb6); only announced base changes touch root crates.
+This package adds no node method and has no independently changed root sources.

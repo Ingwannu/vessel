@@ -8,6 +8,9 @@ use vessel_app_view::desktop::window::{
     MIN_HEIGHT, MIN_WIDTH, Presentation, WindowState, WorkArea,
 };
 
+#[cfg(all(test, not(target_os = "macos")))]
+mod tests;
+
 enum Placement {
     Primary,
     Additional,
@@ -183,6 +186,7 @@ fn remember(window: &Window, cx: &mut App) {
         return;
     };
     let desktop = cx.global_mut::<Desktop>();
+    desktop.saved = Some(state);
     desktop.latest = state;
     if let Some(writer) = &desktop.writer
         && let Err(error) = writer.changed(state)
