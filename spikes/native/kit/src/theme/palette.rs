@@ -8,10 +8,12 @@
 //! - Alternatives: expand Scheme, or duplicate every token per theme.
 //! - Choice: one palette id, authored tint data and one mapping (ADR 0070).
 //! - Cost: the app maps its preference to this UI-only id once.
+mod contributed;
 mod tint;
+pub use contributed::ContributedColors;
 
 use super::{Neutrals, Scheme, Tokens};
-use gpui::rgb;
+use gpui::{Hsla, rgb};
 use tint::Tint;
 
 /// Paseo palette.green[500]; menu success uses this in both themes.
@@ -115,13 +117,22 @@ fn neutrals(tint: Tint, base: &Neutrals) -> Neutrals {
 fn tinted(tint: Tint) -> Tokens {
     let base = Tokens::of(Scheme::Dark);
     let neutral = neutrals(tint, &base.neutral);
+    mapped(base, neutral, rgb(tint::DARK_RING).into())
+}
+
+// One neutral-to-token mapping serves authored tints and validated custom
+// paints. The two shipped constructors remain untouched.
+fn mapped(base: Tokens, neutral: Neutrals, ring: Hsla) -> Tokens {
     Tokens {
-        scheme: Scheme::Dark,
+        scheme: base.scheme,
         neutral,
         bg_shell: neutral.surface_sidebar,
         bg_base: neutral.surface0,
         bg_surface: neutral.surface1,
-        bg_elevated: neutral.surface2,
+        bg_elevated: match base.scheme {
+            Scheme::Light => neutral.surface0,
+            Scheme::Dark => neutral.surface2,
+        },
         bg_hover: base.bg_hover,
         bg_active: base.bg_active,
         bg_well: neutral.surface2,
@@ -133,7 +144,7 @@ fn tinted(tint: Tint) -> Tokens {
         text_tertiary: neutral.foreground_extra_muted,
         text_disabled: base.text_disabled,
         accent: neutral.foreground,
-        ring: rgb(tint::DARK_RING).into(),
+        ring,
         st_building: base.st_building,
         st_validating: base.st_validating,
         st_review: base.st_review,

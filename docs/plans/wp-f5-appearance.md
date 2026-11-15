@@ -178,3 +178,19 @@ custom stacks retain Pretendard. No host font enumeration happens in paint.
 The current control commit exposes only kit type-step configuration; its
 Appearance adapter and component-layer projection remain pending the shared
 field handoff, and are not claimed as a working family preference yet.
+
+### Contributed-colour preparation
+
+`Tokens::contributed(Scheme, ContributedColors)` accepts only decoded UI
+colours; contribution ids, hosts, validation and optional-accent resolution
+stay outside kit. Its shared neutral-to-token mapping also serves the five
+existing authored tints. The four shipped Light/Dark constructor bodies are
+not edited. Light custom popovers/destructive foreground use the supplied
+background; dark popovers use control and destructive foreground stays
+white, as the source builders specify. Status/diff signals retain their
+scheme defaults, and alpha in supplied colours is preserved.
+
+This is token preparation only. The typed plugin catalog/selection is not
+imported yet, and no plugin tile, saved choice or runtime connectivity is
+claimed. Existing page-only aliases without a Paseo counterpart retain the
+same scheme defaults used by the accepted named-palette mapping.
