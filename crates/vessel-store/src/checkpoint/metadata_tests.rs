@@ -46,6 +46,13 @@ async fn completed(store: &Store) -> Operation {
         .unwrap();
     let operation = read_operation(store, &plan, restore).await;
     store
+        .checkpoint_write(CheckpointWrite::Staged {
+            operation: Box::new(operation.clone()),
+            paths: super::tests::staged(&plan),
+        })
+        .await
+        .unwrap();
+    store
         .checkpoint_write(CheckpointWrite::Advance {
             operation: Box::new(operation.clone()),
             path: serde_json::from_str("\"file\"").unwrap(),

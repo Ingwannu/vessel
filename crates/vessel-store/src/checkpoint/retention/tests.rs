@@ -138,6 +138,12 @@ fn checkpoint_success_waits_for_metadata_even_after_its_preview_expired() {
     journal::put_plan(&db, &plan, DateTime::UNIX_EPOCH).unwrap();
     let operation = journal::admit(&db, &plan, RestoreId::random(), DateTime::UNIX_EPOCH).unwrap();
     paths::prepare(&db, &operation).unwrap();
+    super::super::super::staging::commit(
+        &db,
+        &operation,
+        &super::super::super::tests::staged(&plan),
+    )
+    .unwrap();
     paths::advance(
         &db,
         &operation,

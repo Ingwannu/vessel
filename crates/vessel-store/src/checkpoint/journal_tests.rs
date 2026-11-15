@@ -417,6 +417,18 @@ fn terminal_outcomes_require_the_complete_approved_path_journal() {
         journal::outcome(&connection, &operation, &RestoreOutcome::Unchanged),
         Err(Error::Refused(CheckpointError::RecoveryPending))
     ));
+    assert!(
+        paths::advance(
+            &connection,
+            &operation,
+            &path,
+            Phase::Pending,
+            Phase::Applied
+        )
+        .is_err(),
+        "no filesystem mutation may precede committed staged evidence"
+    );
+    super::staging::commit(&connection, &operation, &super::tests::staged(&plan)).unwrap();
     paths::advance(
         &connection,
         &operation,

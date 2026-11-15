@@ -222,6 +222,20 @@ async fn checkpoint_public_writer_requires_a_durable_boundary_and_preserves_ende
         1
     );
     store
+        .checkpoint_write(CheckpointWrite::Staged {
+            operation: Box::new(operation.clone()),
+            paths: vessel_proto::checkpoint::StagedPaths::new(vec![
+                vessel_proto::checkpoint::StagedPath {
+                    path: path.clone(),
+                    before: None,
+                    desired: Some(ObjectFingerprint::new(BlobHash::from_bytes([8; 32]))),
+                },
+            ])
+            .unwrap(),
+        })
+        .await
+        .unwrap();
+    store
         .checkpoint_write(CheckpointWrite::Advance {
             operation: Box::new(operation.clone()),
             path,

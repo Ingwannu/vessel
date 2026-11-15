@@ -92,3 +92,41 @@ pub(super) fn observed(
         SnapshotEvidence::new(scope.physical(), scope.root(), scope.ignore(), entries).unwrap();
     ObservedSnapshot::new(image, evidence).unwrap()
 }
+
+pub(super) fn staged(plan: &super::records::Plan) -> vessel_proto::checkpoint::StagedPaths {
+    use sha2::Digest as _;
+    use vessel_proto::checkpoint::{
+        FileState, ObjectFingerprint, ObservedPresence, StagedPath, StagedPaths,
+    };
+    StagedPaths::new(
+        plan.desired
+            .changes(&plan.current)
+            .into_iter()
+            .map(|change| {
+                let before = plan
+                    .evidence
+                    .entries()
+                    .iter()
+                    .find(|entry| entry.path == change.path)
+                    .and_then(|entry| match entry.presence {
+                        ObservedPresence::Absent => None,
+                        ObservedPresence::Present { object, .. } => Some(object),
+                    });
+                let desired = match plan.desired.image().get(&change.path).unwrap() {
+                    FileState::Absent => None,
+                    FileState::Present { .. } => {
+                        Some(ObjectFingerprint::new(vessel_proto::BlobHash::from_bytes(
+                            sha2::Sha256::digest(change.path.to_string().as_bytes()).into(),
+                        )))
+                    }
+                };
+                StagedPath {
+                    path: change.path,
+                    before,
+                    desired,
+                }
+            })
+            .collect(),
+    )
+    .unwrap()
+}

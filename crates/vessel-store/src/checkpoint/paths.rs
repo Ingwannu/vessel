@@ -48,6 +48,8 @@ pub struct Entry {
     pub desired: FileState,
     /// Current durable progress.
     pub phase: Phase,
+    /// Stable original/written objects, committed before project mutation.
+    pub staged: Option<vessel_proto::checkpoint::StagedPath>,
 }
 
 fn encode<T: Serialize>(value: &T) -> Result<String, Error> {
@@ -89,7 +91,7 @@ pub(super) fn list(connection: &Connection, operation: &Operation) -> Result<Vec
     let _authorized =
         super::journal::status(connection, operation.session, operation.id, operation.owner)?;
     let mut statement = connection.prepare(
-        "SELECT path,before_state,desired_state,phase FROM checkpoint_paths WHERE restore=?1 ORDER BY path LIMIT ?2",
+        "SELECT path,before_state,desired_state,phase,staged FROM checkpoint_paths WHERE restore=?1 ORDER BY path LIMIT ?2",
     )?;
     let limit = vessel_proto::checkpoint::CHECKPOINT_PATHS.saturating_add(1);
     let raw = statement
@@ -104,18 +106,20 @@ pub(super) fn list(connection: &Connection, operation: &Operation) -> Result<Vec
                     row.get::<_, String>(1)?,
                     row.get::<_, String>(2)?,
                     row.get::<_, String>(3)?,
+                    row.get::<_, Option<String>>(4)?,
                 ))
             },
         )?
         .collect::<Result<Vec<_>, _>>()?;
     let _count = vessel_proto::checkpoint::PathCount::new(raw.len())?;
     raw.into_iter()
-        .map(|(path, before, desired, phase)| {
+        .map(|(path, before, desired, phase, staged)| {
             Ok(Entry {
                 path: serde_json::from_str(&encode(&path)?)?,
                 before: serde_json::from_str(&before)?,
                 desired: serde_json::from_str(&desired)?,
                 phase: serde_json::from_str(&encode(&phase)?)?,
+                staged: staged.map(|raw| serde_json::from_str(&raw)).transpose()?,
             })
         })
         .collect()
@@ -141,7 +145,7 @@ pub(super) fn advance(
         return Err(CheckpointError::RestoreIdConflict.into());
     }
     let changed = connection.execute(
-        "UPDATE checkpoint_paths SET phase=?1 WHERE restore=?2 AND path=?3 AND phase=?4",
+        "UPDATE checkpoint_paths SET phase=?1 WHERE restore=?2 AND path=?3 AND phase=?4 AND (?1 != 'applied' OR staged IS NOT NULL)",
         params![
             next.label(),
             operation.id.to_string(),
@@ -169,7 +173,9 @@ pub(super) fn verify_terminal(
             changed != 0
                 && count.get() == changed
                 && entries.len() == changed
-                && entries.iter().all(|entry| entry.phase == Phase::Applied)
+                && entries
+                    .iter()
+                    .all(|entry| entry.phase == Phase::Applied && entry.staged.is_some())
         }
         RestoreOutcome::Unchanged => changed == 0 && entries.is_empty(),
         RestoreOutcome::RolledBack { .. } => {

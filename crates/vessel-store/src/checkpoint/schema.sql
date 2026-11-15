@@ -47,6 +47,7 @@ CREATE TABLE checkpoint_paths (
     path TEXT NOT NULL,
     before_state TEXT NOT NULL,
     desired_state TEXT NOT NULL,
+    staged TEXT,
     phase TEXT NOT NULL CHECK(phase IN ('pending','applied','restored','conflict')),
     PRIMARY KEY(restore, path)
 ) STRICT, WITHOUT ROWID;

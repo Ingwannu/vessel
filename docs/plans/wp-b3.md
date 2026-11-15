@@ -588,3 +588,19 @@ an equal-content/equal-mode external replacement stays a conflict and keeps its
 bytes. These tests are unrun. Store path-journal persistence of this evidence and
 actual crash/startup controller assembly are still the next work; serialized
 fixture reconstruction is not a process-crash/recovery pass.
+
+
+### Store staged-object barrier (production storage seam)
+
+One nullable staged-evidence field joins the same checkpoint_paths table in the
+single package migration; no additional schema number is assigned. Staged commits
+the complete bounded approved path set inside the existing writer's savepoint,
+checking captured original object and target presence, refusing changed retries.
+Advance to Applied is impossible before that path's staged evidence exists;
+terminal Restored requires all applied paths to have evidence. Reads retain the
+objects through restart for workspace recovery reconstruction. A real-writer
+trigger fixture fails the second path, checks that none committed, retries once
+after removing the trigger, rejects altered object evidence and reopens the store.
+The public non-test storage fixture also uses this barrier. All remain unrun.
+Consumed plans no longer count as active preview authority or independently pin
+retirement: their restore/worker/metadata obligations provide the required pins.

@@ -88,7 +88,7 @@ pub(super) fn put_plan(
         return Err(CheckpointError::StalePreview.into());
     }
     let active: i64 = connection.query_row(
-        "SELECT count(*) FROM checkpoint_plans WHERE owner=?1 AND expires_at>?2",
+        "SELECT count(*) FROM checkpoint_plans WHERE owner=?1 AND expires_at>?2 AND consumed_by IS NULL",
         params![encode(&plan.owner)?, at.timestamp_millis()],
         |row| row.get(0),
     )?;

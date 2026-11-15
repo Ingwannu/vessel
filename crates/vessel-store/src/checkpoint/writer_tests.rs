@@ -112,6 +112,126 @@ pub(super) async fn publish_capture(store: &Store, plan: &Plan) {
 }
 
 #[tokio::test]
+async fn checkpoint_staged_objects_commit_all_paths_or_none_and_survive_a_retry() {
+    let temp = tempfile::tempdir().unwrap();
+    let dir = DataDir::new(temp.path());
+    dir.prepare().unwrap();
+    let store = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    let info = info();
+    store.create_session(info.clone()).await.unwrap();
+    let mut plan = plan(info.id);
+    let mut selected = plan.desired.image().entries().to_vec();
+    let mut other = selected[0].clone();
+    other.path = serde_json::from_str("\"other\"").unwrap();
+    selected.push(other);
+    let FileState::Present { metadata, .. } = selected[0].state else {
+        panic!("present fixture")
+    };
+    plan.desired = FileImage::new(selected)
+        .unwrap()
+        .effective(&plan.current, metadata)
+        .unwrap();
+    publish_capture(&store, &plan).await;
+    store
+        .checkpoint_write(CheckpointWrite::Allocate {
+            key: plan.key,
+            allocation: super::Allocation::Preview { plan: plan.id },
+            owner: plan.owner,
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+    store
+        .checkpoint_write(CheckpointWrite::Plan {
+            plan: Box::new(plan.clone()),
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+    let restore = RestoreId::random();
+    store
+        .checkpoint_write(CheckpointWrite::Admit {
+            plan: Box::new(plan.clone()),
+            restore,
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+    let operation = read_operation(&store, &plan, restore).await;
+    let path = dir.database_path();
+    tokio::task::spawn_blocking(move || {
+        rusqlite::Connection::open(path).unwrap().execute_batch("CREATE TRIGGER deny_second_stage BEFORE UPDATE OF staged ON checkpoint_paths WHEN NEW.path='other' BEGIN SELECT RAISE(ABORT,'fixture staged path failure'); END;").unwrap();
+    }).await.unwrap();
+    let staged = super::tests::staged(&plan);
+    assert!(
+        store
+            .checkpoint_write(CheckpointWrite::Staged {
+                operation: Box::new(operation.clone()),
+                paths: staged.clone()
+            })
+            .await
+            .is_err()
+    );
+    assert!(
+        store
+            .checkpoint_paths(operation.clone())
+            .await
+            .unwrap()
+            .iter()
+            .all(|entry| entry.staged.is_none())
+    );
+    let path = dir.database_path();
+    tokio::task::spawn_blocking(move || {
+        rusqlite::Connection::open(path)
+            .unwrap()
+            .execute_batch("DROP TRIGGER deny_second_stage")
+            .unwrap();
+    })
+    .await
+    .unwrap();
+    for _ in 0..2 {
+        store
+            .checkpoint_write(CheckpointWrite::Staged {
+                operation: Box::new(operation.clone()),
+                paths: staged.clone(),
+            })
+            .await
+            .unwrap();
+    }
+    let entries = store.checkpoint_paths(operation.clone()).await.unwrap();
+    assert_eq!(
+        entries
+            .iter()
+            .map(|entry| entry.staged.clone().unwrap())
+            .collect::<Vec<_>>(),
+        staged.entries()
+    );
+    let mut changed = staged.entries().to_vec();
+    changed[0].desired = Some(vessel_proto::checkpoint::ObjectFingerprint::new(
+        BlobHash::from_bytes([99; 32]),
+    ));
+    assert!(
+        store
+            .checkpoint_write(CheckpointWrite::Staged {
+                operation: Box::new(operation.clone()),
+                paths: vessel_proto::checkpoint::StagedPaths::new(changed).unwrap()
+            })
+            .await
+            .is_err()
+    );
+    store.close().await;
+    let store = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    assert_eq!(store.checkpoint_paths(operation).await.unwrap(), entries);
+    store.close().await;
+}
+
+#[tokio::test]
 async fn shared_writer_admits_all_path_intents_before_reply_and_keeps_idempotent_result() {
     let temp = tempfile::tempdir().unwrap();
     let dir = DataDir::new(temp.path());
@@ -162,6 +282,13 @@ async fn shared_writer_admits_all_path_intents_before_reply_and_keeps_idempotent
     assert_eq!(entries.len(), 1);
     let path = entries.first().unwrap().path.clone();
     assert_eq!(entries.first().unwrap().phase, Phase::Pending);
+    store
+        .checkpoint_write(CheckpointWrite::Staged {
+            operation: Box::new(operation.clone()),
+            paths: super::tests::staged(&plan),
+        })
+        .await
+        .unwrap();
     store
         .checkpoint_write(CheckpointWrite::Advance {
             operation: Box::new(operation.clone()),

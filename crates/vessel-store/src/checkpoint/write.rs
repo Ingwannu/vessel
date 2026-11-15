@@ -85,6 +85,13 @@ pub enum CheckpointWrite {
         /// Coordinator observation time.
         at: DateTime<Utc>,
     },
+    /// Commit every prepared original/written object before project mutation.
+    Staged {
+        /// Exact owned durable operation snapshot.
+        operation: Box<Operation>,
+        /// Complete canonical per-path object evidence.
+        paths: vessel_proto::checkpoint::StagedPaths,
+    },
     /// Compare-and-advance a path after its real filesystem postcondition.
     Advance {
         /// Exact owned durable operation snapshot.
@@ -199,6 +206,9 @@ pub(crate) fn apply(
                 paths::prepare(connection, &operation)?;
             }
             Ok(())
+        }
+        CheckpointWrite::Staged { operation, paths } => {
+            super::staging::commit(connection, &operation, &paths)
         }
         CheckpointWrite::Advance {
             operation,
