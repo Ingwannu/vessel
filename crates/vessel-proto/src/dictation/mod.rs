@@ -22,6 +22,8 @@ mod stream_values;
 
 pub use local_model::{LocalModelId, UnknownLocalModelId};
 pub use patch::DictationChange;
+/// Speech settings share omission/null decoding without duplicating its visitor.
+pub(crate) use patch::present as deserialize_change;
 pub use secret_ref::{RedactedNameError, SecretReference};
 pub use settings::{
     DictationProvider, DictationSettings, DictationSwitch, KeyPresence, SetDictation,
