@@ -643,6 +643,7 @@ impl Handler for Fake {
         fork_session: vessel_proto::forking::ForkSession => SessionInfo;
         rewind_session: vessel_proto::forking::RewindSession => SessionInfo;
         agent_history: vessel_proto::history::GetAgentHistory => vessel_proto::history::AgentHistoryPage;
+        detach_session: vessel_proto::subagents::DetachSession => vessel_proto::subagents::DetachedSession;
     }
 }
 
