@@ -40,7 +40,9 @@ use vessel_app_view::timeline::{
 };
 use vessel_proto::{Question, QuestionAnswer, QuestionId};
 
-use super::{Answer, ConversationArea, Place, Seat, SessionPlace};
+#[cfg(test)]
+use super::SessionPlace;
+use super::{Answer, ConversationArea, Place, Seat};
 use crate::shell::Shell;
 
 mod card;

@@ -55,7 +55,7 @@ pub(crate) fn card<P: Place>(
     }
     let cards: Vec<_> = pending
         .into_iter()
-        .filter_map(|question| super::card_at::<P>(shell, question.id, tokens, window, cx))
+        .filter_map(|question| card_at::<P>(shell, question.id, tokens, window, cx))
         .collect();
     if cards.is_empty() {
         return None;

@@ -49,7 +49,7 @@ pub(super) fn option_row<P: Place>(
                 .gap(px(spacing::S1))
                 .child(
                     div()
-                        .debug_selector("question-option-title")
+                        .debug_selector(|| "question-option-title".to_owned())
                         .line_height(px(OPTION_LINE))
                         .text_color(if on {
                             neutral.foreground
@@ -66,7 +66,7 @@ pub(super) fn option_row<P: Place>(
                         .id(option_text_key(source, cursor, index, "question-option-description-hit"))
                         .text_size(px(OPTION_DESCRIPTION))
                         .text_color(neutral.foreground_muted)
-                        .debug_selector("question-option-description")
+                        .debug_selector(|| "question-option-description".to_owned())
                         // Reading/selecting a description must not pick its option.
                         .on_click(|_event, _window, cx| cx.stop_propagation())
                         .child(markdown(

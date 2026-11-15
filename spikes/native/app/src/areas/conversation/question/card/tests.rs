@@ -26,7 +26,7 @@ impl Render for Probe {
                 cx,
             )
             .w(px(360.0))
-            .debug_selector("question-option-row")
+            .debug_selector(|| "question-option-row".to_owned())
         })
     }
 }

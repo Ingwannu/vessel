@@ -609,3 +609,11 @@ A fixture admits records through the sole registry's fresh binding, retains Hold
 for an unrelated resolution, then accepts the exact resolution and becomes Ready
 while preserving the actual local editor. This is staged source, with execution
 owed; live lease-checked ingress and coordinated product cutover remain required.
+
+Run wp-side-narrow-20261115T134424Z-87a4d876 rebuilt the actual four native
+crates, then failed in App on missing StatefulInteractiveElement for the stack,
+GPUI debug_selector closures, one unnecessary card_at qualification, a test-only
+SessionPlace import and one old single-form fixture call missing its request id.
+The corrections use the existing GPUI/kit API and explicit-id controller; no
+lint suppression or alternate renderer is introduced. This run has no whole or
+runtime pass and predates base8 plus uncertainty/resident deltas.
