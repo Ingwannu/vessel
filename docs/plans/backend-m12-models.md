@@ -285,3 +285,13 @@ read results still decide Offline/Denied/Busy. Tests cover the shared
 fan-out identity, equal-id reconnect, replaced node, stale responses,
 unrelated notices and navigation. Changed-source narrow/runtime checks
 remain pending; these rules are not a reconnect UI approval.
+
+
+## Shared search field consumption
+
+Models now uses the checked shared SearchField (V1 bounded source/requested
+Kit narrow on13c46693). This replaces the temporary ordinary form surface, with
+no area-owned Search/X drawing or second query state. Its horizontal full-width
+rail preserves the reference max420 field; locale placeholder and selected-machine
+reset keep the existing engine/selection lifetime. App compilation and actual
+consumer captures remain separate from the control's two focused test results.

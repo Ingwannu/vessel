@@ -4,25 +4,19 @@ use std::{cell::Cell, rc::Rc};
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, IntoElement as _, ParentElement as _, Styled as _, Window, div, px,
 };
-use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, loading, settings, theme::spacing};
+use vessel_app_kit::{SearchField, Tokens, Type, TypeExt as _, loading, settings, theme::spacing};
 use vessel_app_view::agent_status::catalogue::{self, Body, Read};
 mod actions;
 mod tile;
 pub(super) struct State {
-    query: TextField,
+    query: SearchField,
     width: Rc<Cell<gpui::Pixels>>,
     clear: Cell<bool>,
 }
 impl State {
     pub(super) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
-            query: TextField::with_change(
-                "",
-                super::add::edit_only,
-                super::add::changed,
-                window,
-                cx,
-            ),
+            query: SearchField::new("", super::add::changed, window, cx),
             width: Rc::default(),
             clear: Cell::new(false),
         }
@@ -52,12 +46,11 @@ pub(super) fn render(
             .flex()
             .items_center()
             .gap(px(spacing::S3))
-            .child(
-                div()
-                    .flex_1()
-                    .min_w_0()
-                    .child(state.query.element(tokens, compact, cx)),
-            )
+            .child(div().flex().flex_1().min_w_0().child(state.query.element(
+                "provider-catalog-search",
+                tokens,
+                cx,
+            )))
             .child(actions::command(shell, tokens, compact, cx)),
     );
     if let Some(error) = presentation.retained_failure {

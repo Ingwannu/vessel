@@ -4,7 +4,7 @@ use std::cell::Cell;
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, IntoElement as _, ParentElement as _, Styled as _, Window, div, px,
 };
-use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, settings, theme::spacing};
+use vessel_app_kit::{SearchField, Tokens, Type, TypeExt as _, settings, theme::spacing};
 use vessel_app_link::{
     Command,
     models::{Answer, Ask, ModelsError},
@@ -26,7 +26,7 @@ enum SearchReset {
 pub(super) struct State {
     page: models::page::State<ModelsError>,
     refused: Option<StartProblem>,
-    query: TextField,
+    query: SearchField,
     reset: Cell<SearchReset>,
 }
 impl State {
@@ -34,13 +34,7 @@ impl State {
         Self {
             page: models::page::State::default(),
             refused: None,
-            query: TextField::with_change(
-                "",
-                |_shell: &mut Shell, _text, _window, _cx| {},
-                |_shell: &mut Shell, _text, cx| cx.notify(),
-                window,
-                cx,
-            ),
+            query: SearchField::new("", |_shell: &mut Shell, _text, cx| cx.notify(), window, cx),
             reset: Cell::new(SearchReset::Keep),
         }
     }
@@ -130,9 +124,12 @@ pub(super) fn render(
     if let Some(issue) = presentation.retained_issue {
         body = body.child(notice(issue, shell, tokens));
     }
-    body = body
-        .child(text(words.read_only(), tokens))
-        .child(state.query.element(tokens, compact, cx));
+    body = body.child(text(words.read_only(), tokens)).child(
+        div()
+            .flex()
+            .w_full()
+            .child(state.query.element("models-search", tokens, cx)),
+    );
     body = body.child(body::render(
         presentation.content,
         presentation.refresh,

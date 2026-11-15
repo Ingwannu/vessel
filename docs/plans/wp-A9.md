@@ -434,11 +434,13 @@ ACK settles only its correlated page ticket; uncertainty still requires discover
 
 The registry and mutation forms use new English/Korean Fluent messages, with whole
 refusal tables. Shared search ownership was assigned to this track after the
-preceding field writers. The installed consumer temporarily uses ordinary TextField
-while that exact shared SearchField handoff is pending. This is an acknowledged
-source-parity gap, not a visual pass or an area-owned search skin. The shared
-SearchField producer is now installed after the checked preceding writer handoff;
-consumer changes stay outside the tree until its focused runtime and V1 disposition.
+preceding field writers. The installed Providers catalogue and Models consumers now use the checked shared
+SearchField after V1's bounded source/Kit-narrow disposition on13c46693. Both
+keep the same localized placeholder, existing change callback and programmatic
+machine-selection reset; one horizontal rail lets the source max420 field shrink
+without vertical flex growth. Source Search/X/clear/focus furniture stays in Kit,
+not in either area. This consumer change still needs its own compiler and final
+first-use evidence; the shared control pass is not a page pass.
 
 All this consumer source is unverified until the changed-head remote narrow and
 final A9 gate/captures. Earlier039c runtime evidence excludes these new controls,
@@ -583,3 +585,16 @@ a runtime result. The announced green c3429952 base was meanwhile merged with
 only a README append conflict; its shared boxed SavePrefs command and field
 predecessor are preserved. No complete A9 or current-screen pass follows from
 that base's gate.
+
+
+### Checked shared search consumption
+
+V1's exact13c46693 bounded Source/requested Kit narrow pass permits selected
+SearchField adoption. G2 received the next shared-field writer baton for Code
+form text; this package makes no further Kit field edits. Temporary agents-control
+is retired. Its one approved focused-runtime priority was consumed once after
+the old queued ticket reached143; no priority is carried into these App changes.
+The Models and catalogue areas replace only the previous ordinary field/API and
+horizontal search rail. The query still comes from the same editor engine, clear
+uses its regular Change path, and navigation resets stay silent. No controller,
+node call, extra input engine or consumer-owned search glyph is added.
