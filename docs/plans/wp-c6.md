@@ -273,3 +273,8 @@ registration are removed; the approved navigation accessor/persistence seam and
 this package's shared usage meter remain. The earlier normal compiler warning
 from that unlanded file is not a defect attributed to the announced app line.
 Future shared control adoption comes through an announced green package base.
+The same dependency brought unused route-width additions in `view::panels`.
+No application consumer references them in this tree; that file is returned to
+package base 8 as part of the lead's dependency cleanup. This removes no usage
+API or approved sidebar-navigation preference. The original S2 commits remain
+in Git history for its owner to land through the shared app line.
