@@ -158,3 +158,18 @@ program-unset default or Hard row. No DTO/serializer/API is frozen by this note,
 no separate renderer branch is consumed, and complete D1 copy/cursor appearance
 parity is not claimed. The padding correction merged onto announced1c is reported
 source-satisfactory but its ONE corrected whole still gates producer qualification.
+
+## Additional measured engine boundary before consumer qualification
+
+C2 reports baseline3666 strict0 with44 tests passed/2 failed: pinned xterm1049
+copies the primary cursor into the alternate buffer, while frozen2d5/vt100 starts
+it at0,0. This changes wrap/cell placement when entry begins at a nonzero cursor;
+it is not merely a renderer-appearance issue and can affect interpreted capture
+and future CPR/frame results. The independent blink-only DECSCUSR case also fails.
+The preserved oracle expanded26→34 checkpoints; same-engine repair d105d3f46 is
+staged with narrow proof pending, not an adoption request. Frozen2d5 whole is
+unchanged. W17 will not infer general capture/frame/query parity from its earlier
+bounded corpus or an eventual green2d5 whole while this known divergence remains.
+Require the pure owner's measured/reviewed correction before W17 final consumer
+qualification. Current source uses frozen Silent observation with capture feature
+None and NodeAuthority OFF. No node-side coordinate compensation is permitted.

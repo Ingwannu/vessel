@@ -1604,3 +1604,15 @@ one corrected whole remains queued, not consumer-ready. Reserve its separate
 unreviewed cursor shape/blink and physical-row Hard/Soft properties in the frame
 design without adopting code or inventing defaults/tracking. Row246 only covers
 cursor position/visibility. Keep every new API staged and NodeAuthority OFF.
+
+### Known alternate-entry semantics remain an engine-owner prerequisite
+
+C2 reports actual1049 alternate cursor/cell-placement divergence plus separate
+blink-state failure (baseline3666 strict0, tests44/2), with old goldens retained
+and a broader34-checkpoint oracle. Staged d105 same-engine repair is not adopted.
+Record this as a material capture/frame/CPR qualification condition in the frame
+proposal, not a node rendering workaround. Old/corrected whole results alone do
+not prove general parity with that known divergence. Latest8447 suite still targets
+explicit frozen cases only; no unmeasured semantic pass is inferred. Current capture
+RPC remains own featureNone, Silent observation and NodeAuthorityOFF. Coordinator
+and C2 were told the final consumer qualification will await the verified repair.
