@@ -752,3 +752,18 @@ This contract is preparation for the coordinated consumer. It adds no live
 resource field, no new allocator, no transport call and no product staging
 promotion. Current staged primitive tests are not authority, populated bundle,
 keyboard/IME, whole-package or user-flow proof.
+
+## Official base 9 and frozen portable prerequisite
+
+Main A8 merges announced db42d9c5 (native1510/0/2 baseline, root9c150c6e)
+without conflicts, preserving A8's own registration and FieldId exports. This
+brings only the checked body/identity vocabulary; full permission/question rich
+fields, receipts and provider runtime are still absent and are not activated.
+The newer shared body renderer remains held for its own checked handoff.
+
+By the coordinator's explicit selected-producer ruling, the separate portable
+Requests packet remains frozen on82ca at3eaa330f0 for its queued strict and four
+GPUI tests. It does not move to base9 before those results. W12 and the lead
+verify the consumer union on their current line when adopting that exact packet.
+This main A8 union has no new narrow or whole-gate proof yet; baseline totals do
+not replace own changed-source verification.
