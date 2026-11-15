@@ -399,3 +399,22 @@ Off/On acknowledgments rather than discarding them. Production admission, gates,
 barriers, cache refusal and fresh recorded-success control are unchanged. Its
 separate e884 runtime run is retained independently; a strict pass is not inferred
 from a successful ordinary test execution or an older d918 snapshot.
+
+
+### Workspace test-handler completion after gate 2
+
+Whole root gate `wp-usage-source-tests-20261115T173855Z-98f53513`
+passed formatting, size and boundaries, then stopped at workspace Clippy because
+`vessel-client`'s test-only manual Handler lacked the three new report methods.
+The earlier five-crate strict check did not compile this dependency's test target.
+Both manual transport fakes now reuse their existing typed Unsupported refusal
+macro for these calls; they do not return made-up quota data. Their long refusal
+lists move into test-only child modules so method coverage does not enlarge the
+fixture roots. Guarded production dispatch remains generated from the method table.
+
+The next source includes green node base `27502436` (protocol 25, schema 21).
+Its staged file/skills rows precede the three still-unassigned usage rows. Generated
+TypeScript is temporarily the exact incoming base and must be regenerated through
+the normal TS step before freshness or consumer readiness can be claimed. The two
+feature constants remain unassigned. Client/RPC all-target compilation and their
+transport tests are required alongside the current usage regression checks.
