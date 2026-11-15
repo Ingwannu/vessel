@@ -1,11 +1,12 @@
 # F4 command center and keyboard parity
 
-Status: implementation in progress on package base6 18eedad4 (merged7e9cc3d09),
+Status: implementation in progress on package base6 plus official dd13ce378 lock/G2
+correction (merged5a54c0aca; prior18eedad4 merged7e9cc3d09),
 with exact
 canonical value prerequisite e46cd57b and portable W12 producer 9480d4d0
 (adopted as ad8f4931b). S2's exact theme/input dependency eddce254 is reviewed V1 PASS.
 Canonical defaults, dispatcher, Settings/help and source projection are written;
-app compilation, feature-owner integration and package verification remain open.
+combined strict checks, feature-owner integration and package verification remain open.
 No command-center or keyboard tracker row is passed. No new node RPC is needed
 for this package's mechanics; feature-owned RPC targets remain with their owners.
 
@@ -79,8 +80,10 @@ reset, rather than a second contribution registry.
 
 ## Validation and closeout
 
-Per-commit narrow view/app tests and clippy through cargo-slot; final one native
-remote gate. End-of-package fake-fleet captures at 1280x900 and 390x844, plus
+Every compile, test and Clippy run uses vessel-remote-gate on build-vm; no new
+cargo/rustc or cargo-slot invocation runs on dev-host. Run narrow checks per
+meaningful immutable source, then one final frozen native remote gate.
+End-of-package fake-fleet captures at 1280x900 and 390x844, plus
 800x600 for layout-sensitive changes, both themes and EN/KO. Never use live
 preview ports or real agents. Review V4 receives one range, gate and captures;
 rows are marked passed only after the corresponding behavior is verified.
