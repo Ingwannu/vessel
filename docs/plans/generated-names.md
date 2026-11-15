@@ -710,3 +710,14 @@ callers. The requested model, style/source prompt, effort, route ordering
 and failure variants are unchanged. No new entry point or behavior is
 registered here. The following preflight extension reuses these functions
 rather than repeat provider/model/effort policy in Settings.
+
+### File view before metadata settings wiring
+
+The reviewed wire-strict/file-lenient contract is implemented through a
+separate file decoder on MetadataSettings. A generic bounded provider
+visitor serves both forms and keeps the same allocation/count rule.
+Private file candidate fields ignore unknown keys at each nested object
+and convert to the canonical strict wire value through the same constructor.
+Known bad types/values still fail; future effort remains Unknown. No file
+keeping mechanism or setting field is added here. Store wiring will select
+this decoder while retaining the shared later/unreadable set-aside rules.
