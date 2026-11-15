@@ -12,6 +12,9 @@ mod queries;
 pub(crate) mod registry;
 mod rename;
 mod resize;
+// Cutover removes this attribute together with legacy global resources/follow.
+#[cfg(test)]
+pub(crate) mod residents;
 mod sheets;
 
 use crate::shell::Shell;
@@ -70,14 +73,11 @@ fn key(shell: &Shell) -> Result<LayoutKey, LayoutError> {
         session: open.session,
     })
 }
-fn mode(window: &Window) -> LayoutMode {
-    if vessel_app_kit::breakpoint::phone(window) {
-        LayoutMode::Compact
-    } else if cfg!(any(target_os = "android", target_os = "ios")) {
-        LayoutMode::SinglePane
-    } else {
-        LayoutMode::SplitPanes
-    }
+pub(crate) fn mode(window: &Window) -> LayoutMode {
+    LayoutMode::for_width(
+        f32::from(window.viewport_size().width),
+        !cfg!(any(target_os = "android", target_os = "ios")),
+    )
 }
 fn initialized(shell: &Shell) {
     if shell.areas.layout.book.borrow().is_none() {
