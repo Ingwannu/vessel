@@ -1,3 +1,7 @@
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: the IME's rectangles and
+// points cross in the platform's space under a window's user zoom
+// (spikes/release/patches/README.md, "gpui-pre", change 8); see the lines
+// marked "Vessel patch".
 mod app_menu;
 mod keyboard;
 mod keystroke;
@@ -2126,7 +2130,12 @@ impl PlatformInputHandler {
 
     pub fn bounds_for_range(&mut self, range_utf16: Range<usize>) -> Option<Bounds<Pixels>> {
         self.cx
-            .update(|window, cx| self.handler.bounds_for_range(range_utf16, window, cx))
+            .update(|window, cx| {
+                // Vessel patch: out to the platform in its space (the user's zoom).
+                self.handler
+                    .bounds_for_range(range_utf16, window, cx)
+                    .map(|bounds| window.bounds_to_platform(bounds))
+            })
             .ok()
             .flatten()
     }
@@ -2134,8 +2143,12 @@ impl PlatformInputHandler {
     pub fn selection_bounds_for_range(&mut self, range_utf16: Range<usize>) -> Vec<Bounds<Pixels>> {
         self.cx
             .update(|window, cx| {
+                // Vessel patch: out to the platform in its space (the user's zoom).
                 self.handler
                     .selection_bounds_for_range(range_utf16, window, cx)
+                    .into_iter()
+                    .map(|bounds| window.bounds_to_platform(bounds))
+                    .collect()
             })
             .unwrap_or_default()
     }
@@ -2187,9 +2200,11 @@ impl PlatformInputHandler {
     pub fn selected_bounds(&mut self, window: &mut Window, cx: &mut App) -> Option<Bounds<Pixels>> {
         let marked_range = self.handler.marked_text_range(window, cx);
         let selection = self.handler.selected_text_range(true, window, cx)?;
+        // Vessel patch: out to the platform in its space (the user's zoom).
         Self::compute_ime_candidate_bounds(marked_range, &selection, |range| {
             self.handler.bounds_for_range(range, window, cx)
         })
+        .map(|bounds| window.bounds_to_platform(bounds))
     }
 
     pub fn ime_candidate_bounds(&mut self) -> Option<Bounds<Pixels>> {
@@ -2203,7 +2218,11 @@ impl PlatformInputHandler {
     #[allow(unused)]
     pub fn character_index_for_point(&mut self, point: Point<Pixels>) -> Option<usize> {
         self.cx
-            .update(|window, cx| self.handler.character_index_for_point(point, window, cx))
+            .update(|window, cx| {
+                // Vessel patch: the platform's point into layout space.
+                let point = window.point_from_platform(point);
+                self.handler.character_index_for_point(point, window, cx)
+            })
             .ok()
             .flatten()
     }
