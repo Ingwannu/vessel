@@ -51,7 +51,8 @@ capability; no package UI or node implementation starts before that sequence.
 
 ## Current producer/consumer boundary
 
-The app tree has consumed package base 6 (18eedad4) through its own line merge.
+The app tree has consumed package base 8 (91407173) through its authorized line merge,
+including the fixed native lock and the shared layout/delivery seams.
 The node producer remains on its separate checkpoint branch. Its latest source
 includes physical admission for ordinary writers and retained startup/lifecycle
 operations, actor pause and turn hooks, and pending checkpoint metadata. These
@@ -74,3 +75,33 @@ was running. It includes G2's reviewed trigger/menu changes and the fixed native
 Cargo.lock; --locked is now usable for future app checks. No node worktree head
 was merged into this tree and no checkpoint UI has been implemented yet. Node
 contract/runtime review and a consumer-ready producer remain prerequisites.
+
+
+### App preparation on package base 8 (no feature implementation)
+
+Consumed 91407173 through app-line merge da48212c. No running app whole gate
+was frozen, no node worktree head or unreviewed checkpoint values carrier was
+merged, and no Cargo command ran locally. This base merge is not checkpoint
+validation. Node contract/runtime review and the producer sequence remain owed.
+
+Existing integration points inspected: view/timeline/{entry,rewind}.rs keeps
+stable EventSeq/EntryKey identities and conversation rewind independently;
+app/areas/conversation/rewind.rs owns the current message action renderer and
+kit menu/tooltip integration. The new feature will reuse those kit controls
+and the shared dialog focus lease. It must not send the existing Rewind action,
+replace composer text, hide history, or infer a file checkpoint from provider
+message ids/tool counts. Node TurnAssociated metadata ties PromptAccepted's
+exact sequence to the actual TurnStarted; AfterTurn names its exact ended event.
+Timeline registration remains coordinated with W10 before shared product edits.
+
+The intended vertical slice is view/checkpoints pure enum state, link/checkpoints
+correlated typed calls, app/areas/checkpoints drawing/actions, and EN/KO strings
+in L's existing text format. Loading, unavailable, paging, confirmable, restoring,
+awaiting reconnect status, verified result and typed refusal are explicit states.
+The dialog is confirmable only after every frozen changes page is present for
+one plan/expiry. A new selected host/session, stale ticket, changed node identity
+or disconnected/expired plan cannot apply an old response to the current panel.
+RestoreId survives response loss and reconnect; retries query durable status
+before another action. Existing queue, conversation and composer stay untouched.
+Runtime Busy/FeatureUnavailable remains visible until reviewed node activation;
+private fixtures or baseline native gates cannot establish a working app feature.
