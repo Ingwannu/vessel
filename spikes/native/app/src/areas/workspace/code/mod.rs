@@ -35,6 +35,7 @@ mod editor_find;
 mod editor_io;
 mod editor_status;
 mod elsewhere;
+mod file_search;
 mod files;
 mod found;
 mod frame;
@@ -60,6 +61,7 @@ use vessel_proto::workspace::{DiffSummary, RelPath, WorkspaceRoot};
 use vessel_proto::{SessionId, SessionInfo};
 
 pub(crate) use elsewhere::FindRefused;
+pub(crate) use file_search::FileSearchRequest;
 pub(crate) use frame::{code_beside, code_toggle, frame_row};
 pub(crate) use layout_adapter::{ExplorerKind, render_explorer, show_layout_explorer};
 
@@ -160,6 +162,8 @@ struct Files {
 
 /// The panel's state.
 pub(crate) struct CodePanel {
+    find_keys: vessel_app_view::workspace::find::SearchKeys,
+    searches: file_search::Searches,
     /// Whether it is out.
     pub(crate) open: bool,
     tab: Tab,
@@ -188,6 +192,8 @@ struct Stale {
 impl CodePanel {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
+            find_keys: vessel_app_view::workspace::find::SearchKeys::default(),
+            searches: file_search::Searches::default(),
             open: false,
             tab: Tab::Changes,
             target: None,

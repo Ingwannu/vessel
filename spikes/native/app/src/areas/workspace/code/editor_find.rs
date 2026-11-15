@@ -7,8 +7,8 @@ use vessel_app_kit::code_editor::{
 };
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    Context, Entity, IntoElement as _, ParentElement as _, Render, StatefulInteractiveElement as _,
-    Styled as _, Subscription, WeakEntity, Window, div, px,
+    AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render,
+    StatefulInteractiveElement as _, Styled as _, Subscription, WeakEntity, Window, div, px,
 };
 use vessel_app_kit::{TextField, Type, TypeExt as _, button};
 

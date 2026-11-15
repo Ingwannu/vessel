@@ -107,7 +107,7 @@ fn result_body(
                 body = body.child(labels.language_no_locations);
             }
             for (index, location) in page.items.iter().enumerate() {
-                body = body.child(location_row(shell, index, location, None, tokens, cx));
+                body = body.child(location_row(index, location, None, tokens, cx));
             }
             (page.context.freshness, page.next, page.truncated)
         }
@@ -151,7 +151,6 @@ fn result_body(
 }
 
 fn location_row(
-    shell: &Shell,
     index: usize,
     location: &Location,
     message: Option<&str>,
@@ -166,7 +165,6 @@ fn location_row(
         || format!("{path}:{line}:{column}"),
         |message| format!("{path}:{line}:{column} {message}"),
     );
-    let _words = shell.words();
     button(("file-language-location", index), text, false, tokens)
         .on_click(cx.listener(move |shell, _, _, cx| shell.language_location(&target, cx)))
         .into_any_element()

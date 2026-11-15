@@ -30,6 +30,7 @@ use vessel_app_link::workspace::{Answer, Ask, ProjectAsk};
 use vessel_app_view::workspace::projects::ProjectsView;
 use vessel_app_view::workspace::words::WorkspaceWords;
 
+pub(crate) use code::FileSearchRequest;
 #[expect(unused_imports, reason = "track P's seam: its first user is P's `@`")]
 pub(crate) use code::FindRefused;
 pub(crate) use code::{ExplorerKind, render_explorer, show_layout_explorer};
@@ -172,8 +173,8 @@ impl Shell {
                 ticket,
                 result,
             } => self.editor_read_answered(machine, ticket, &ask, result, cx),
-            Answer::Found { ask, result } => self.files_found(&ask, result),
-            Answer::Grepped { ask, result } => self.files_grepped(&ask, result),
+            Answer::Found { ask, result } => self.files_found(machine, &ask, result, cx),
+            Answer::Grepped { ask, result } => self.files_grepped(machine, &ask, result),
             Answer::PathChanged { change, result } => self.path_changed(&change, result),
             // Track G1's: the git toolbar's reads and writes.
             Answer::Status { root, result } => {

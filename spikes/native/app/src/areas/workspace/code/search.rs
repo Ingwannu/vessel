@@ -23,7 +23,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Reveal, TextField, Tokens, VirtualList, glyph};
 use vessel_app_link::workspace::{Ask, FileAsk};
-use vessel_app_view::workspace::find::SearchKeys;
+use vessel_app_view::workspace::find::FILE_SEARCH_LIMIT;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::reference::{file_reference, with_reference};
 use vessel_proto::workspace::{
@@ -34,7 +34,7 @@ use crate::shell::Shell;
 
 /// The most files a search by name asks for (the best first): past it, a
 /// person types more of the name.
-pub(super) const FIND_LIMIT: u32 = 100;
+pub(super) const FIND_LIMIT: u32 = FILE_SEARCH_LIMIT;
 
 /// Which search.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -60,7 +60,7 @@ pub(super) enum Results {
 pub(super) struct Search {
     pub(super) field: TextField,
     pub(super) mode: Mode,
-    key: SearchKey,
+    key: Option<SearchKey>,
     pub(super) results: Results,
     pub(super) list: VirtualList,
     /// How many characters the search in files shown looked for: each
@@ -75,7 +75,6 @@ pub(super) struct Search {
 
 impl Search {
     pub(super) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
-        let mut keys = SearchKeys::default();
         Self {
             field: TextField::with_change(
                 "",
@@ -85,7 +84,7 @@ impl Search {
                 cx,
             ),
             mode: Mode::Name,
-            key: keys.next(),
+            key: None,
             results: Results::Idle,
             list: VirtualList::new(false),
             width: 0,
@@ -104,6 +103,11 @@ impl Search {
 
 impl Shell {
     fn search_typed(&mut self, text: &str, cx: &mut Context<'_, Self>) {
+        if text.trim().is_empty() {
+            if let Some(key) = self.areas.workspace.code.files.search.key {
+                self.cancel_file_search(key);
+            }
+        }
         let search = &mut self.areas.workspace.code.files.search;
         if text.trim().is_empty() {
             search.results = Results::Idle;
@@ -123,50 +127,78 @@ impl Shell {
     }
 
     fn run_search(&mut self, text: &str) {
-        let panel = &mut self.areas.workspace.code;
-        let Some((machine, root)) = panel
+        let Some((machine, root)) = self
+            .areas
+            .workspace
+            .code
             .root()
             .map(|(machine, root)| (machine.to_owned(), *root))
         else {
             return;
         };
-        let search = &mut panel.files.search;
-        // What is sent, trimmed for a name (a find's spaces mean nothing)
-        // and as typed for a search in files (its spaces are searched).
-        let sent = match search.mode {
+        let mode = self.areas.workspace.code.files.search.mode;
+        let sent = match mode {
             Mode::Name => text.trim(),
             Mode::Content => text,
         };
-        let ask = match search.mode {
-            Mode::Name => sent.parse().map(|query| {
-                FileAsk::Find(FindFiles {
+        let dispatch = match mode {
+            Mode::Name => {
+                let key = match self.areas.workspace.code.files.search.key {
+                    Some(key) => key,
+                    None => self.file_search_key(),
+                };
+                self.areas.workspace.code.files.search.key = Some(key);
+                let (Ok(query), Ok(machine), Some(limit)) = (
+                    sent.parse(),
+                    vessel_app_view::machine_book::Name::parse(&machine),
+                    std::num::NonZeroU32::new(FIND_LIMIT),
+                ) else {
+                    self.refuse_search();
+                    return;
+                };
+                SearchDispatch::Find(crate::areas::workspace::FileSearchRequest {
+                    machine,
                     root,
                     query,
-                    key: Some(search.key),
-                    limit: Some(FIND_LIMIT),
+                    key,
+                    limit,
                 })
-            }),
-            Mode::Content => sent.parse().map(|query| {
-                FileAsk::Grep(SearchFiles {
+            }
+            Mode::Content => {
+                let Ok(query) = sent.parse() else {
+                    self.refuse_search();
+                    return;
+                };
+                SearchDispatch::Grep(SearchFiles {
                     root,
                     query,
                     mode: GrepMode::Literal,
                     case: GrepCase::Smart,
                     dir: None,
-                    limit: Some(200),
+                    limit: Some(GREP_LIMIT),
                 })
-            }),
+            }
         };
-        let Ok(ask) = ask else {
-            search.results = Results::Refused;
-            search.asked = None;
-            search.list.reset(0);
-            return;
-        };
+        let search = &mut self.areas.workspace.code.files.search;
         search.asked = Some(sent.to_owned());
         search.results = Results::Loading;
         search.list.reset(0);
-        self.ask(&machine, Ask::File(ask));
+        match dispatch {
+            SearchDispatch::Find(request) => {
+                if let Err(error) = self.search_workspace_files(request, search_received) {
+                    self.areas.workspace.code.files.search.results =
+                        Results::Failed(error.to_string());
+                }
+            }
+            SearchDispatch::Grep(ask) => self.ask(&machine, Ask::File(FileAsk::Grep(ask))),
+        }
+    }
+
+    fn refuse_search(&mut self) {
+        let search = &mut self.areas.workspace.code.files.search;
+        search.results = Results::Refused;
+        search.asked = None;
+        search.list.reset(0);
     }
 
     /// The field's placeholder for its search, in the person's language.
@@ -184,6 +216,9 @@ impl Shell {
     }
 
     fn search_mode(&mut self, mode: Mode, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if let Some(key) = self.areas.workspace.code.files.search.key {
+            self.cancel_file_search(key);
+        }
         self.areas.workspace.code.files.search.mode = mode;
         self.search_words(window, cx);
         let search = &mut self.areas.workspace.code.files.search;
@@ -201,12 +236,24 @@ impl Shell {
     /// Files found by name.
     pub(in crate::areas::workspace) fn files_found(
         &mut self,
+        machine: &str,
         ask: &FindFiles,
         result: Result<FoundFiles, Problem>,
+        cx: &mut Context<'_, Self>,
     ) {
-        if ask.key != Some(self.areas.workspace.code.files.search.key) {
+        if result.as_ref().is_ok_and(|found| found.superseded) {
+            return;
+        }
+        if let Some((request, receive)) = self.take_file_search(machine, ask) {
+            receive(self, request, result, cx);
+            return;
+        }
+        if ask.key != self.areas.workspace.code.files.search.key {
             // Another field's find (track P's `@`, `code_find_files`).
             super::elsewhere::found_elsewhere(self, ask, result);
+            return;
+        }
+        if self.areas.workspace.code.root() != Some((machine, &ask.root)) {
             return;
         }
         let words = self.words();
@@ -226,9 +273,13 @@ impl Shell {
     /// Lines found in files.
     pub(in crate::areas::workspace) fn files_grepped(
         &mut self,
+        machine: &str,
         ask: &SearchFiles,
         result: Result<GrepResult, Problem>,
     ) {
+        if self.areas.workspace.code.root() != Some((machine, &ask.root)) {
+            return;
+        }
         let words = self.words();
         let search = &mut self.areas.workspace.code.files.search;
         if search.mode != Mode::Content || search.asked.as_deref() != Some(ask.query.as_str()) {
@@ -402,4 +453,37 @@ pub(super) fn chosen_words(shell: &Shell, chosen: (usize, usize)) -> String {
     shell
         .words()
         .add_lines(first.saturating_add(1), last.saturating_add(1))
+}
+
+/// Match the existing bounded content-search response budget.
+const GREP_LIMIT: u32 = 200;
+
+enum SearchDispatch {
+    Find(crate::areas::workspace::FileSearchRequest),
+    Grep(SearchFiles),
+}
+
+fn search_received(
+    shell: &mut Shell,
+    request: crate::areas::workspace::FileSearchRequest,
+    result: Result<FoundFiles, Problem>,
+    _cx: &mut Context<'_, Shell>,
+) {
+    if shell.areas.workspace.code.root() != Some((request.machine.as_str(), &request.root)) {
+        return;
+    }
+    let words = shell.words();
+    let search = &mut shell.areas.workspace.code.files.search;
+    if search.mode != Mode::Name
+        || search.key != Some(request.key)
+        || search.asked.as_deref() != Some(request.query.as_str())
+    {
+        return;
+    }
+    search.results = match result {
+        Ok(found) if found.superseded => return,
+        Ok(found) => Results::Found(found),
+        Err(problem) => Results::Failed(words.problem(&problem)),
+    };
+    search.list.reset(search.rows());
 }

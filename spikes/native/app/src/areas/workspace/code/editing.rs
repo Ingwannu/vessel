@@ -105,6 +105,9 @@ impl Shell {
             return;
         };
         let step = editing.model.edit(&text);
+        if let Some(viewer) = self.areas.workspace.code.viewer_for(key) {
+            viewer.intelligence = super::intelligence::State::Idle;
+        }
         self.run_step_for(key.clone(), step, cx);
     }
 

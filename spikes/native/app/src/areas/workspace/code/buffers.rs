@@ -3,7 +3,7 @@
 
 use vessel_proto::workspace::{RelPath, WorkspaceRoot};
 
-use super::{CodePanel, Files, Slot, Viewer};
+use super::{CodePanel, Files, Slot, Viewer, actions};
 use crate::shell::Shell;
 use vessel_app_view::workspace::file_tree::{TreeRow, tree_rows_with};
 
