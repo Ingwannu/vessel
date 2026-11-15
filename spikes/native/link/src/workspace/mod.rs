@@ -47,7 +47,7 @@ use tokio::task::AbortHandle;
 use vessel_app_view::machine_book::Edit;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_client::NodeClient;
-use vessel_proto::ProjectId;
+use vessel_proto::{NodeId, ProjectId};
 
 pub use answer::{Answer, Form, GitWritten};
 pub use ask::{Ask, FileAsk, GitAsk, GitWrite, PathChange, ProjectAsk, Save, WorktreeAsk};
@@ -57,13 +57,15 @@ pub use start::{StartAnswer, StartAsk, StartEnded, StartKey};
 
 use crate::Event;
 
+type FollowKey = (String, NodeId, ProjectId);
+
 /// The workspace's long-lived part of the link: the clones followed, so a
 /// project is followed once however often the list is read.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Hub {
     /// Each clone followed by route, authenticated node and project. Rebinding
     /// cancels the old peer's task rather than keeping its client alive.
-    following: Arc<Mutex<HashMap<(String, vessel_proto::NodeId, ProjectId), AbortHandle>>>,
+    following: Arc<Mutex<HashMap<FollowKey, AbortHandle>>>,
 }
 
 impl Hub {

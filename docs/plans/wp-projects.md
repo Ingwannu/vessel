@@ -388,3 +388,8 @@ confirmation exists, followed by normal confirmation on the verified peer.
 Read-ticket lookup and detachment take the existing validated book Name type,
 using direct map lookup instead of scanning string labels. Book hooks retain
 that type until they reach older display-only helpers. The RPC remains unchanged.
+
+The first strict read-provenance run (8f7bf2ee) passed view compilation, then
+stopped on the extended clone-follow map's type complexity in link. Its key
+now has one private FollowKey alias without changing its representation or
+ownership. App compilation/runtime checks remain owed on the latest source.
