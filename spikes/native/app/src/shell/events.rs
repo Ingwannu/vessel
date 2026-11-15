@@ -58,10 +58,9 @@ impl Shell {
                 answer,
             } => self.agents_answer(&machine, request, answer, cx),
             Event::Records { session, records } => {
-                self.records(&session, &records, cx);
-                // Track P: a session's reported `/` commands kept for its agent.
-                self.offers_commands_seen();
-                self.composer_files_seen(cx);
+                if self.link_records(&session, &records, cx) == crate::areas::Redraw::GridAlone {
+                    return;
+                }
             }
             Event::Started(card) => self.started_with_files(&card, cx),
             Event::Sent { .. } => {}

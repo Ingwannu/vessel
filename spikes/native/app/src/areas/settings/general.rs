@@ -115,7 +115,7 @@ pub(crate) fn render(
         .flex()
         .flex_col()
         .child(settings::section(
-            words.section(Section::General),
+            words.section(Section::General, shell.words),
             general,
             tokens,
         ))

@@ -45,9 +45,10 @@ Step3 unifies the existing outline compatibility wrapper with the same renderer.
 All five variants now share the measured Small/Medium geometry, icon-only width,
 text size/medium weight and pressed/disabled paint. Literal both-theme matrices
 cover every variant/size/layout/content state. No area caller is edited.
-The old outline wrapper retains its no-shrink behavior, but its label now uses
-the shared wrapping policy rather than a separate text subtree; affected existing
-caller files are listed below. Other legacy label behavior stays unchanged.
+The published outline compatibility wrappers retain direct text, no-shrink,
+caller-selected tone and immediate-child bounds. They use the same frame/content
+renderer through a private published-outline presentation. Typed entries retain
+their wrapping labels. Existing caller files are listed below.
 
 The signature-compatible button_with_kind and outline_button receive no Window
 or App. Their Stateful<Div> is constructed before layout, so there is no reliable
@@ -71,3 +72,22 @@ Existing outline caller inventory (source scan at this change):
 - `spikes/native/app/src/areas/settings/diagnostics.rs`: 3 call(s).
 - `spikes/native/app/src/areas/settings/agents/detail/facts.rs`: 1 call(s).
 - `spikes/native/app/src/areas/settings/agents/detail/sign_in.rs`: 1 call(s).
+
+## Package-base4 integration checkpoint
+
+The A8 merge of3cd0d3fc preserves its new outline_button_with_glyph signature,
+its explicit glyph/text tone, and its exact actual-layout regression. A private
+PublishedOutline presentation in the one frame/content renderer preserves the
+published direct-label bounds and outline typography, rather than silently
+changing the lead's Remove-machine action. The public typed APIs remain the
+ordered content/loading/sizing extension; no area call is migrated. The canonical
+incoming palette (including GREEN_500) is retained byte for byte. Both language
+refresh hooks and all incoming kit exports are kept.
+
+The earlier isolated6036 producer narrow run schedules-narrow-20261115T081346Z-b0948720
+failed: native-fonts0, native-cargo101; no tests ran. It found one nonexistent
+popup touch-target alias assertion, two redundant must_use attributes, an
+unexhaustive button border match and a documentation lint. The original result
+is retained as old-source failure. The base4 checkpoint corrects these; a new
+minimal base4 producer must pass narrow checks before consumer handoff. No whole
+F1 gate or UI pass is claimed here.

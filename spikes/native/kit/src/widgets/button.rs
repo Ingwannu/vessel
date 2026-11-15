@@ -112,7 +112,10 @@ fn button_paint(kind: ButtonKind, phase: ButtonPhase, tokens: &Tokens) -> Button
         fill,
         border: match kind {
             ButtonKind::Outline => neutral.border_accent,
-            _ => fill,
+            ButtonKind::Primary
+            | ButtonKind::Secondary
+            | ButtonKind::Destructive
+            | ButtonKind::Ghost => fill,
         },
         text,
         opacity: match phase {
@@ -185,8 +188,7 @@ pub fn button_with_content(
 }
 
 /// Loading/size-aware content with a guarded handler entry. Catalog Add uses
-/// Small+Outline; loading is the source Small20 ActivityIndicator before text.
-#[must_use]
+/// Small+Outline; loading is the source Small20 `ActivityIndicator` before text.
 pub fn button_control(
     id: impl Into<gpui::ElementId>,
     content: ButtonContent,
@@ -195,80 +197,159 @@ pub fn button_control(
 ) -> Button {
     Button::new(render(id, content, config, tokens), config.availability())
 }
-fn render(
-    id: impl Into<gpui::ElementId>,
-    content: ButtonContent,
-    config: ButtonConfig,
-    tokens: &Tokens,
-) -> Stateful<Div> {
-    let ButtonConfig {
-        kind,
-        sizing,
-        size,
-        activity,
-        ..
-    } = config;
-    let state = config.availability();
-    let geometry = size.geometry(sizing);
-    let phase = match state {
+// The published outline API passes a caller-selected tone and direct text
+// child. Keep that contract (including its actual child bounds) inside the
+// same frame/content renderer, rather than replacing the lead's Remove action.
+#[derive(Clone, Copy)]
+enum Presentation {
+    Standard,
+    PublishedOutline(Hsla),
+}
+fn frame(config: ButtonConfig, presentation: Presentation, tokens: &Tokens) -> Div {
+    let phase = match config.availability() {
         ButtonState::Enabled => ButtonPhase::Idle,
         ButtonState::Disabled => ButtonPhase::Disabled,
     };
-    let paint = button_paint(kind, phase, tokens);
-    let pressed = button_paint(kind, ButtonPhase::Pressed, tokens);
-    let button = div()
-        .id(id)
-        .group(BUTTON_GROUP)
+    let paint = button_paint(config.kind, phase, tokens);
+    let geometry = config.size.geometry(config.sizing);
+    let body = div()
         .flex()
         .flex_row()
         .items_center()
         .justify_center()
         .gap(BUTTON_GAP)
         .min_h(geometry.height)
-        .min_w_0()
-        .max_w_full()
         .px(geometry.horizontal)
         .rounded_full()
         .border_1()
         .border_color(paint.border)
-        .bg(paint.fill)
-        .text_color(paint.text)
         .opacity(paint.opacity)
-        .type_(match size {
+        .type_(match config.size {
             ButtonSize::Small => Type::Meta,
             ButtonSize::Medium => Type::Label,
-        })
-        .font_weight(gpui::FontWeight::MEDIUM)
+        });
+    match presentation {
+        Presentation::Standard => body
+            .min_w_0()
+            .max_w_full()
+            .bg(paint.fill)
+            .text_color(paint.text)
+            .font_weight(gpui::FontWeight::MEDIUM),
+        Presentation::PublishedOutline(tone) => body.flex_shrink_0().text_color(tone),
+    }
+}
+fn body(
+    content: ButtonContent,
+    config: ButtonConfig,
+    presentation: Presentation,
+    tokens: &Tokens,
+) -> Div {
+    let content = content.parts();
+    let state = config.availability();
+    let geometry = config.size.geometry(config.sizing);
+    let mut body = frame(config, presentation, tokens);
+    if content.label.is_none() {
+        body = body.w(geometry.height).px(px(0.0)).flex_none();
+    }
+    body = match config.activity {
+        Activity::Loading => body.child(crate::loading::activity_indicator(
+            "button-loading",
+            crate::loading::Size::Small,
+            button_paint(config.kind, ButtonPhase::Idle, tokens).text,
+        )),
+        Activity::Idle => match content.leading {
+            Some(icon) => {
+                let element = icon_element(icon, config.kind, state, config.size, tokens);
+                body.child(match presentation {
+                    Presentation::Standard => element,
+                    Presentation::PublishedOutline(tone) => element.text_color(tone),
+                })
+            }
+            None => body,
+        },
+    };
+    match (content.label, presentation) {
+        (Some(label), Presentation::Standard) => body.child(wrapping(label)),
+        (Some(label), Presentation::PublishedOutline(_)) => body.child(label),
+        (None, _) => body,
+    }
+}
+fn render(
+    id: impl Into<gpui::ElementId>,
+    content: ButtonContent,
+    config: ButtonConfig,
+    tokens: &Tokens,
+) -> Stateful<Div> {
+    let state = config.availability();
+    let kind = config.kind;
+    let pressed = button_paint(kind, ButtonPhase::Pressed, tokens);
+    body(content, config, Presentation::Standard, tokens)
+        .id(id)
+        .group(BUTTON_GROUP)
         .when(state == ButtonState::Enabled, |button| {
             button
                 .cursor_pointer()
-                // Paseo sets no hover style on a filled button; ghost alone
-                // changes its text. Press changes only opacity, so the two
-                // selectors compose when the pointer is also hovering.
+                // Paseo has no filled-button hover. Ghost alone changes ink.
                 .when(kind == ButtonKind::Ghost, |button| {
                     let hover = button_paint(kind, ButtonPhase::Hovered, tokens);
                     button.hover(move |style| style.text_color(hover.text))
                 })
                 .active(move |style| style.opacity(pressed.opacity))
-        });
-    let content = content.parts();
-    let mut button = if content.label.is_none() {
-        button.w(geometry.height).px(px(0.0)).flex_none()
-    } else {
-        button
-    };
-    button = match activity {
-        Activity::Loading => button.child(crate::loading::activity_indicator(
-            "button-loading",
-            crate::loading::Size::Small,
-            paint.text,
-        )),
-        Activity::Idle => match content.leading {
-            Some(icon) => button.child(icon_element(icon, kind, state, size, tokens)),
-            None => button,
+        })
+}
+fn outline_config(enabled: bool) -> ButtonConfig {
+    ButtonConfig::new(
+        ButtonKind::Outline,
+        if enabled {
+            ButtonState::Enabled
+        } else {
+            ButtonState::Disabled
         },
-    };
-    button.children(content.label.map(wrapping))
+        ControlSizing::Pointer,
+    )
+}
+pub(super) fn outline_pressable(
+    body: Div,
+    id: impl Into<gpui::ElementId>,
+    enabled: bool,
+) -> Stateful<Div> {
+    body.id(id).when(enabled, |button| {
+        button.cursor_pointer().active(|style| style.opacity(0.85))
+    })
+}
+pub(super) fn outline_label(
+    id: impl Into<gpui::ElementId>,
+    label: SharedString,
+    enabled: bool,
+    tokens: &Tokens,
+) -> Stateful<Div> {
+    outline_pressable(
+        body(
+            ButtonContent::Label(label),
+            outline_config(enabled),
+            Presentation::PublishedOutline(tokens.neutral.foreground),
+            tokens,
+        ),
+        id,
+        enabled,
+    )
+}
+pub(super) fn outline_glyph_body(
+    glyph: crate::assets::Glyph,
+    label: SharedString,
+    tone: Hsla,
+    enabled: bool,
+    tokens: &Tokens,
+) -> Div {
+    body(
+        ButtonContent::IconAndLabel {
+            icon: ButtonIcon::new(glyph),
+            label,
+        },
+        outline_config(enabled),
+        Presentation::PublishedOutline(tone),
+        tokens,
+    )
 }
 /// Compatibility entry point. The lead retires this bool API after migrating
 /// its callers; all drawing already delegates to the typed entry point.
