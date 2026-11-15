@@ -85,3 +85,46 @@ fn the_facts_read_as_paseo_s_pane_reads_them() {
     assert_eq!(plain(&CheckCount::Failing(2).words(en())), "2 failing");
     assert_eq!(plain(&CheckCount::Passed(5).words(ko())), "5개 성공");
 }
+
+#[test]
+fn the_form_title_and_nonduplicated_review_words_keep_their_context_in_both_languages() {
+    use crate::workspace::pull::ReviewPills;
+    use vessel_proto::forge::ReviewDecision;
+
+    let pills = ReviewPills {
+        approved: true,
+        changes_requested: false,
+        unresolved: 0,
+    };
+    for (catalog, title, approved, required, changes) in [
+        (
+            en(),
+            "Create pull request",
+            "Approved",
+            "Review required",
+            "Changes requested",
+        ),
+        (ko(), "PR 생성", "승인됨", "리뷰 필요", "변경 요청됨"),
+    ] {
+        assert_eq!(catalog.pulls().form_title(), title);
+        assert_eq!(catalog.pulls().approved(), approved);
+        assert_eq!(
+            pills
+                .remaining_verdict(ReviewDecision::Approved)
+                .words(catalog),
+            None
+        );
+        assert_eq!(
+            pills
+                .remaining_verdict(ReviewDecision::ReviewRequired)
+                .words(catalog),
+            Some(required)
+        );
+        assert_eq!(
+            pills
+                .remaining_verdict(ReviewDecision::ChangesRequested)
+                .words(catalog),
+            Some(changes)
+        );
+    }
+}

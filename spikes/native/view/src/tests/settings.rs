@@ -126,7 +126,7 @@ fn names_every_section_of_a_group_each_differently() {
                 .collect();
             let labels: BTreeSet<&str> = sections
                 .iter()
-                .map(|section| lang.settings().section(*section))
+                .map(|section| lang.settings().section(*section, catalog(lang)))
                 .collect();
             assert_eq!(labels.len(), sections.len(), "{lang:?} {group:?}");
         }
@@ -137,9 +137,24 @@ fn names_every_section_of_a_group_each_differently() {
         assert_eq!(groups.len(), Group::ALL.len());
     }
     assert!(Section::ALL.contains(&Section::DEFAULT));
-    assert_eq!(Lang::En.settings().section(Section::DEFAULT), "General");
-    assert_eq!(Lang::En.settings().section(Section::Devices), "Pair device");
-    assert_eq!(Lang::Ko.settings().section(Section::Overview), "개요");
+    assert_eq!(
+        Lang::En
+            .settings()
+            .section(Section::DEFAULT, catalog(Lang::En)),
+        "General"
+    );
+    assert_eq!(
+        Lang::En
+            .settings()
+            .section(Section::Devices, catalog(Lang::En)),
+        "Pair device"
+    );
+    assert_eq!(
+        Lang::Ko
+            .settings()
+            .section(Section::Overview, catalog(Lang::Ko)),
+        "개요"
+    );
 }
 
 #[test]
@@ -173,4 +188,16 @@ fn is_the_default_section_when_it_names_none_or_an_unknown_one() {
 fn is_nothing_outside_settings() {
     assert_eq!(Place::of(&["sessions"], None, None), None);
     assert_eq!(Place::of(&[], None, None), None);
+}
+
+fn catalog(lang: Lang) -> &'static crate::localization::Translator {
+    use crate::localization::{Locale, Translator};
+    Translator::get(
+        Locale::from_tag(match lang {
+            Lang::En => "en",
+            Lang::Ko => "ko",
+        })
+        .unwrap(),
+    )
+    .unwrap()
 }
