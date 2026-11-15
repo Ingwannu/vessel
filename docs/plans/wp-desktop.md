@@ -528,3 +528,9 @@ no local target is synthesized. The desktop-shell owner approved removing the
 two uncalled session/project setter definitions in this older snapshot, preserving
 its fields/drain/None behavior until their actual owner consumers arrive. This
 is source hygiene, not session/project delivery or E3 completion.
+
+The node-filter setter stays literal cfg(test) staging until C5 registers its
+actual retained-buffer reducer. The production readiness query conservatively
+falls back to the existing global guard; no absent owner is presented as a
+successful node-filter capability. C5 promotion requires its real caller and
+combined checks, not a synthetic registration for lint.

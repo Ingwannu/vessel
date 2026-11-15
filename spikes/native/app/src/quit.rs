@@ -52,6 +52,8 @@ pub(crate) fn set_document_guard(guard: DocumentGuard, cx: &mut App) {
 /// C5 supplies a facts filter over the same retained owners and original writes.
 /// The node ID grants no process authority; the controller validates its lease.
 /// Until registered, the global guard conservatively protects every node.
+// C5 promotes this setter with its actual retained-buffer owner registration.
+#[cfg(test)]
 pub(crate) fn set_node_document_guard(guard: NodeDocumentGuard, cx: &mut App) {
     initialize(cx);
     cx.global_mut::<Documents>().node_guard = Some(guard);
