@@ -240,7 +240,6 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("TransferId", Alias::Handle),
     ("UploadId", Alias::Handle),
     ("WorkspaceId", Alias::Handle),
-    ("WorkspaceOperationId", Alias::Handle),
     ("WorktreeId", Alias::Handle),
 ];
 
