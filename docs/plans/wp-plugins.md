@@ -566,3 +566,21 @@ Precompile source inspection found that the extracted MenuEntry pattern omitted
 its unused id field. Restoring the existing .. pattern changes no selected
 identity, availability check, assertion or data. The own queued previous check
 was superseded before compilation; no executed failure/pass is inferred.
+
+### Executed pre-popover Hub checkpoint
+
+Exact9739ca5043896262e6066ece3c7dfacd40863704 passed all-target strict App/Kit/
+View/Link checks in run wp-plugins-hub-check-20261115T165348Z-9739ca50, with
+actual View compilation and App/Kit/Link checking. Its separate exact test run
+wp-plugins-hub-test-20261115T165348Z-9739ca50 passed1554, failed0, ignored2,
+filtered0: App112/0/2, Kit205, Link92, View1001, localization contract22, matcher
+contract3, page host contract117 and View doctests2. The old-editor queued event,
+four Hub scheduling/ownership cases, actual Hub-drop/Enter, graph-origin and
+canonical receiver budget/floor/foreign-node cases ran by name.
+
+This closes author-side source-check execution for that pre-popover tree. It
+includes the localization reuse ancestors and does not replace the final native
+package gate/captures/review. Later popover source636ff7613 and the Node API/
+installer/settings/runtime product still have separate obligations. The private
+canonical-model adoption restriction remains until the integrator and app base
+carry it through the announced line; no consumer handoff follows from this run.
