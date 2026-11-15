@@ -685,3 +685,8 @@ No method is registered by this value-only commit; unassigned calls remain
 refused, and no new detail can reach a peer through this inactive service.
 Regeneration and narrow compile/tests remain owed; the queued earlier TS snapshot
 does not include this addition.
+
+Root initialization now lives in its own private function, separately from the
+wait loop. OnceLock still installs exactly one receiver synchronously and the
+same independent producer owns the result. This keeps the cache operation and
+loader below the function budget without adding another state or retry path.

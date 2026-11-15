@@ -60,51 +60,48 @@ impl Factory {
         }
     }
 
+    fn initialize(&self) -> watch::Receiver<Option<Loaded>> {
+        let (sender, receiver) = watch::channel(None);
+        #[cfg(test)]
+        let gate = self.gate.clone();
+        #[cfg(test)]
+        let refusal_probe = self.refusal_probe.clone();
+        drop(tokio::spawn(async move {
+            #[cfg(test)]
+            if let Some(gate) = gate {
+                let _previous = gate
+                    .starts
+                    .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                gate.entered.notify_one();
+                gate.release.notified().await;
+            }
+            #[cfg(test)]
+            let load = move || {
+                if let Some(probe) = refusal_probe
+                    && probe.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 0
+                {
+                    return Err(rustls::Error::General("synthetic root refusal".to_owned()));
+                }
+                crate::http_tls::config()
+            };
+            #[cfg(not(test))]
+            let load = crate::http_tls::config;
+            let result = tokio::task::spawn_blocking(load)
+                .await
+                .map_err(RootsError::Worker)
+                .and_then(|result| result.map_err(RootsError::Tls))
+                .map(|config| Configuration(Arc::new(config)))
+                .map_err(Arc::new);
+            // The cache has no earlier result. Once the service and all
+            // waiters are gone, the last sender drops this configuration.
+            drop(sender.send_replace(Some(result)));
+        }));
+        receiver
+    }
+
     /// Waiting is cancel-safe: the independent producer remains unique.
     pub(super) async fn get(&self) -> Result<Configuration, Arc<RootsError>> {
-        let mut receiver = self
-            .result
-            .get_or_init(|| {
-                let (sender, receiver) = watch::channel(None);
-                #[cfg(test)]
-                let gate = self.gate.clone();
-                #[cfg(test)]
-                let refusal_probe = self.refusal_probe.clone();
-                drop(tokio::spawn(async move {
-                    #[cfg(test)]
-                    if let Some(gate) = gate {
-                        let _previous = gate
-                            .starts
-                            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                        gate.entered.notify_one();
-                        gate.release.notified().await;
-                    }
-                    #[cfg(test)]
-                    let load = move || {
-                        if let Some(probe) = refusal_probe
-                            && probe.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 0
-                        {
-                            return Err(rustls::Error::General(
-                                "synthetic root refusal".to_owned(),
-                            ));
-                        }
-                        crate::http_tls::config()
-                    };
-                    #[cfg(not(test))]
-                    let load = crate::http_tls::config;
-                    let result = tokio::task::spawn_blocking(load)
-                        .await
-                        .map_err(RootsError::Worker)
-                        .and_then(|result| result.map_err(RootsError::Tls))
-                        .map(|config| Configuration(Arc::new(config)))
-                        .map_err(Arc::new);
-                    // The cache has no earlier result. Once the service and all
-                    // waiters are gone, the last sender drops this configuration.
-                    drop(sender.send_replace(Some(result)));
-                }));
-                receiver
-            })
-            .clone();
+        let mut receiver = self.result.get_or_init(|| self.initialize()).clone();
         loop {
             let loaded = receiver.borrow().clone();
             if let Some(result) = loaded {
