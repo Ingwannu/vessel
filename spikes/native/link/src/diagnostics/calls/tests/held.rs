@@ -118,7 +118,7 @@ async fn expire_pending(
         assert_eq!(answer.result.unwrap().facts, Err(Problem::TimedOut));
     }
     assert!(pending.is_empty());
-    assert!(began.elapsed() <= NODE_INFO_DEADLINE + BEFORE_EXPIRY);
+    assert!(began.elapsed() <= NODE_INFO_DEADLINE.checked_add(BEFORE_EXPIRY).unwrap());
     assert_eq!(
         state.diagnostic_calls.0.available_permits(),
         MAX_PARALLEL_HOSTS

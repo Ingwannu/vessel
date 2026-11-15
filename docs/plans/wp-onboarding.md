@@ -246,3 +246,9 @@ layout matrix remain their original exact-source evidence, not a new-head gate
 or capture claim. The old extra running frame shows the pre-fix enabled Refresh
 and is superseded as behavior evidence by the new handler regression and draw
 predicate. Correction narrow outcomes are pending; review approval is pending.
+
+Correction validation checkpoint: exact64c44a435 remote format/quality passed,
+but Clippy rejected unchecked Duration addition in the new test. Tests did not
+run. The assertion now uses std::time::Duration::checked_add, retaining its
+original bound; no lint allowance or product behavior change is introduced.
+The earlier rc143 interruption and this source-lint failure are separate.
