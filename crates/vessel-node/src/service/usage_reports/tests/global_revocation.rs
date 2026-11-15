@@ -147,7 +147,7 @@ async fn revoked_without_setter_continuation(held: Held) {
     // A revoked waiter may end before its physical credential worker. Observe
     // the actual job's completion before proving it never began HTTP.
     service.0.limits.sources.drained().await;
-    let expected = if matches!(held, Held::Credential) {
+    let expected: usize = if matches!(held, Held::Credential) {
         1
     } else {
         2
@@ -180,7 +180,10 @@ async fn revoked_without_setter_continuation(held: Held) {
         cursor(&fresh).state,
         SourceReportState::Available { .. }
     ));
-    assert_eq!(control.polls.load(Ordering::SeqCst), expected + 1);
+    assert_eq!(
+        control.polls.load(Ordering::SeqCst),
+        expected.checked_add(1).unwrap()
+    );
     fixture.finish().await;
 }
 
