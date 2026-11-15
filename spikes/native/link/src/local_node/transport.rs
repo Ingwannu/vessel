@@ -1,7 +1,7 @@
 //! Controller transport correlation is separate from UI epochs and child authority.
 //!
-//! Snapshots can outlive the actor. They retain only a receiver, so keeping a
-//! snapshot cannot keep admission alive after its actual controller withdraws.
+//! The transport lease retains only a receiver. A snapshot's authenticated client
+//! recipe cannot keep admission authorized after its actual controller withdraws.
 
 use std::sync::Arc;
 use tokio::sync::watch;
@@ -98,13 +98,15 @@ impl Source {
                 false
             }
         });
+        // After withdrawal this observer has no reason to retain another client
+        // clone while a Keep veto leaves the launcher and its reaper alive.
+        self.closed.abort();
     }
 }
 
 impl Drop for Source {
     fn drop(&mut self) {
         self.retire();
-        self.closed.abort();
     }
 }
 
@@ -165,5 +167,21 @@ mod tests {
         drop(sender);
         assert_eq!(lease.refusal(), Some(Refusal::Closed));
         assert_eq!(lease.retired().await, Refusal::Closed);
+    }
+
+    #[tokio::test]
+    async fn a_withdrawn_issuer_does_not_retain_its_closed_observer_client() {
+        let mut peer = crate::testing::peer::connect("withdrawn-observer").await;
+        let source = Source::new(peer.client.take().unwrap());
+        let lease = source.lease();
+        source.retire();
+        // Keep the source and receiver alive: only retiring its obsolete
+        // observer should drop the last client and close the real transport.
+        tokio::time::timeout(OBSERVATION_DEADLINE, peer.task.take().unwrap())
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(lease.refusal(), Some(Refusal::Changed));
+        drop(source);
     }
 }

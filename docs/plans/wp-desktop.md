@@ -129,6 +129,10 @@ are child-only, and the updater's RESTARTED_FROM marker is explicitly removed.
 No process-global environment mutation occurs.
 
 Snapshots expose authenticated provenance, status and bounded explicit log reads.
+Withdrawal also aborts the issuer's old connection-close observer, releasing its
+client clone while a Keep veto can leave the launcher/reaper alive. Registration
+recipes remain distinct from the weak delivery guard; neither grants admission
+after source retirement.
 Manual destructive intent captures a sealed ControlLease before yielding. The
 actor rechecks its exact permit and Owned node before effect, including when a
 replacement keeps the same NodeId. Interruption approval captures the failed
