@@ -3,7 +3,7 @@
 use std::fmt;
 
 /// A provider worker failed. A panic payload is retained for ownership/evidence,
-/// but never appears in public Debug/Display or as an Error source.
+/// but never appears in public `Debug`/`Display` or as an `Error` source.
 pub struct ProviderTaskFailure(tokio::task::JoinError);
 
 impl From<tokio::task::JoinError> for ProviderTaskFailure {

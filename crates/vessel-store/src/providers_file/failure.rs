@@ -1,11 +1,11 @@
-//! Preserve concrete private causes without making them public Error sources.
+//! Preserve concrete private causes without making them public `Error` sources.
 //! Follows the reviewed settings diagnostic boundary; provider documents need
 //! category/line/column only, not another path-tracking decoder dependency.
 use crate::StoreError;
 use std::fmt;
 
-/// Safe file/codec evidence. The original cause remains private: neither Debug
-/// nor Error::source can expose strings quoted by serde or private file paths.
+/// Safe file/codec evidence. The original cause remains private: neither `Debug`
+/// nor `Error::source` can expose strings quoted by serde or private file paths.
 pub struct ProvidersFileFailure(Cause);
 
 enum Cause {

@@ -33,7 +33,7 @@ impl WorkLease {
     }
 
     /// The queued/running closure owns both permits and its tracker token.
-    /// Dropping a JoinHandle cannot make actual filesystem work disappear.
+    /// Dropping a `JoinHandle` cannot make actual filesystem work disappear.
     pub(super) fn blocking<T, F>(&self, operation: F) -> JoinHandle<T>
     where
         F: FnOnce() -> T + Send + 'static,
