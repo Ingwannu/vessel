@@ -7,8 +7,12 @@
 //! handles and its lifetime.
 
 mod agent;
+mod claims;
+mod drivers;
 mod launch;
 mod parts;
+#[cfg(test)]
+mod private_dir;
 
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
@@ -60,6 +64,11 @@ pub struct SessionRuntime {
     /// parked, as the node now says (protocol 12, ADR 0038): every actor
     /// follows it, so a change applies to live sessions at once.
     park_after: watch::Sender<Option<Duration>>,
+    /// Conversations sessions are starting on (protocol 17, `claims`).
+    claims: claims::Claims,
+    /// Which protocol drives each agent's new sessions (protocol 18,
+    /// `drivers`).
+    drivers: drivers::Drivers,
 }
 
 /// A session that was just started.
@@ -87,6 +96,8 @@ impl SessionRuntime {
             sessions: RwLock::new(HashMap::new()),
             attachments: None,
             park_after,
+            claims: claims::Claims::default(),
+            drivers: drivers::Drivers::default(),
         }
     }
 
@@ -134,6 +145,12 @@ impl SessionRuntime {
     /// How long an agent's handshake may take.
     pub(crate) const fn handshake_timeout(&self) -> Duration {
         self.config.agent_handshake_timeout
+    }
+
+    /// The node's private directory a session's launches carry
+    /// (`RuntimeConfig::private_dir`).
+    pub(crate) fn private_dir(&self) -> Option<std::path::PathBuf> {
+        self.config.private_dir.clone()
     }
 
     /// A session of this run, live or ended (until [`remove`](Self::remove)d).
@@ -214,6 +231,8 @@ impl SessionRuntime {
             Entry::Occupied(_) => return Err(RemoveError::Running(id)),
             Entry::Vacant(_) => return Err(RemoveError::NotFound(id)),
         };
+        // Ended, so it held no conversation for the live check already.
+        self.release(id);
         tracing::debug!(session = %id, "session removed from the runtime");
         Ok(removed.info())
     }

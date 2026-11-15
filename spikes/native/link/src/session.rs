@@ -359,7 +359,8 @@ pub(crate) async fn run(
             vessel_client::CallError::Disconnected
             | vessel_client::CallError::UnexpectedReply(_)
             | vessel_client::CallError::RequestIdsExhausted
-            | vessel_client::CallError::NotInProtocol { .. } => error.to_string(),
+            | vessel_client::CallError::NotInProtocol { .. }
+            | vessel_client::CallError::UnassignedProtocol { .. } => error.to_string(),
         },
     })
 }

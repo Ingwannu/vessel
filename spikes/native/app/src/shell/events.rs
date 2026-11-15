@@ -1,12 +1,19 @@
-//! Link event dispatch; screens retain their feature logic in their areas.
-use super::{Event, Route, Shell};
-use vessel_app_kit::ui::Context;
+//! The shell's exhaustive link-event dispatch, with no drawing or transport.
+//!
+//! [Decision Log]
+//! - Purpose: keep the window root below its file budget as areas register.
+//! - Constraint: one dispatcher, unchanged event order/body and no wider API.
+//! - Choice: a child of shell; pub(super) has the original shell-only boundary.
+//! - Why and cost: ordinary module tooling sees this file, with no include! or
+//!   duplicated dispatcher. The existing exhaustive match is deliberately kept
+//!   intact in this move rather than mixing an event-policy refactor into it.
+use super::{Context, Event, Route, Shell};
 
 impl Shell {
     pub(super) fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
-            Event::SessionLifecycle(answer) => self.sessions_lifecycle_answer(answer, cx),
             Event::Sessions(answer) => self.sessions_navigation_answer(answer, cx),
+            Event::SessionLifecycle(answer) => self.sessions_lifecycle_answer(answer, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::Machines(answer) => self.machines_answer(answer, cx),
             Event::Sync(answer) => self.sync_answer(answer),
@@ -37,6 +44,7 @@ impl Shell {
                 self.retitle();
                 self.workspace_fleet();
                 self.sessions_fleet_changed();
+                self.refresh_fork_headers();
                 if self.route == Route::Settings {
                     self.agent_load(false, cx);
                 }
@@ -65,6 +73,7 @@ impl Shell {
                 {
                     self.acted(answer, cx);
                 }
+                self.refresh_fork_headers();
             }
             Event::Resumed { session } => self.resumed(session, cx),
             Event::ResumeFailed { session, why } => self.resume_failed(session, why),

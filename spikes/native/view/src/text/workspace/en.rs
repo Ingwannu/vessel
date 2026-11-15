@@ -1,6 +1,7 @@
 //! The workspace's words in English: the page's, word for word.
 
 use vessel_proto::scripts::{ScriptEntry, ScriptKind};
+use vessel_proto::workspace::ServicePort;
 use vessel_proto::workspace::{
     ChangeStatus, CloneFailure, CloneStage, ConfigKey, DiffScope, GitOperation, GitRefusal,
     GitSupport, KeptReason, ProjectState, RepositoryConfigReason, SetupFailure, SetupState,
@@ -106,7 +107,11 @@ impl En {
     /// "script lint added", "service web changed (its command)".
     fn script_part(self, line: &ScriptLine) -> Option<String> {
         let script = line.script();
-        let named = format!("{} {}", self.script_kind(script.kind), script.name.as_str());
+        let named = format!(
+            "{} {}",
+            self.script_kind(script.kind()),
+            script.name.as_str()
+        );
         match line {
             ScriptLine::Line {
                 change: Change::Same,
@@ -433,24 +438,15 @@ impl WorkspaceWords for En {
     }
 
     fn script_kind(&self, kind: ScriptKind) -> &'static str {
-        match kind {
-            ScriptKind::Script => "script",
-            ScriptKind::Service => "service",
-        }
+        super::script_words::kind(crate::Lang::En, kind)
+    }
+
+    fn script_port(&self, port: Option<ServicePort>) -> String {
+        super::script_words::port(crate::Lang::En, port)
     }
 
     fn script_change(&self, was: &ScriptEntry, now: &ScriptEntry) -> String {
-        let mut parts = Vec::with_capacity(3);
-        if was.kind != now.kind {
-            parts.push(format!("now a {}", self.script_kind(now.kind)));
-        }
-        if was.command != now.command {
-            parts.push("its command".to_owned());
-        }
-        if was.dir != now.dir {
-            parts.push("its folder".to_owned());
-        }
-        parts.join(" and ")
+        super::script_words::change(crate::Lang::En, was, now)
     }
 
     fn compared(&self, compared: &Compared, local: &Local) -> String {

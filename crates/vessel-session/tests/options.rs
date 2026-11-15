@@ -6,6 +6,7 @@
 
 use vessel_proto::{
     ErrorCode, HarnessKind, SessionEvent, SessionMode, SessionSpec, SessionStatus, TerminalSize,
+    TitleOrigin,
 };
 use vessel_session::SessionError;
 
@@ -29,20 +30,23 @@ async fn the_first_prompt_names_a_session_and_a_rename_replaces_it() {
         let fixture = Fixture::new();
         let handle = fixture.start(structured(Vec::new())).await;
         assert_eq!(handle.info().title, None);
+        assert_eq!(handle.info().title_origin, TitleOrigin::Unknown);
         let mut log = Log::of(&handle);
         // The fake ends a turn at once only for `plain`; the first line
         // and the cut are the protocol's own tests (`SessionTitle`).
         handle.send(prompt("plain")).await.unwrap();
-        log.until(|event| matches!(event, SessionEvent::Renamed { .. }))
+        log.until(|event| matches!(event, SessionEvent::Renamed { origin: TitleOrigin::Given, .. }))
             .await;
         assert_eq!(handle.info().title, Some(title("plain")));
+        assert_eq!(handle.info().title_origin, TitleOrigin::Given);
         log.turn_over().await;
 
         let renamed = handle.rename(title("Release notes")).await.unwrap();
         assert_eq!(renamed.title, Some(title("Release notes")));
+        assert_eq!(renamed.title_origin, TitleOrigin::Typed);
         handle.send(prompt("plain")).await.unwrap();
         log.turn_over().await;
-        log.until(|event| matches!(event, SessionEvent::Renamed { title } if title.as_str() == "Release notes"))
+        log.until(|event| matches!(event, SessionEvent::Renamed { title, .. } if title.as_str() == "Release notes"))
             .await;
         assert_eq!(log.titles(), ["plain", "Release notes"]);
         assert_eq!(handle.info().title, Some(title("Release notes")));
@@ -57,17 +61,44 @@ async fn the_first_prompt_names_a_session_and_a_rename_replaces_it() {
 
 /// A session created with a title keeps it: its prompts do not rename it.
 #[tokio::test]
-async fn a_given_title_is_kept() {
+async fn a_typed_title_is_kept() {
     within(Box::pin(async {
         let fixture = Fixture::new();
         let handle = fixture
             .start(structured(Vec::new()).with_title(title("Mine")))
             .await;
         assert_eq!(handle.info().title, Some(title("Mine")));
+        assert_eq!(handle.info().title_origin, TitleOrigin::Typed);
         let mut log = Log::of(&handle);
         handle.send(prompt("plain")).await.unwrap();
         log.turn_over().await;
         assert!(log.titles().is_empty(), "{:?}", log.titles());
+        handle.kill();
+        let _end = handle.ended().await;
+    }))
+    .await;
+}
+
+/// Fork creation carries a derived title without pretending a person
+/// supplied it; the ordinary rename path still records a typed title.
+#[tokio::test]
+async fn a_launch_can_mark_a_derived_title() {
+    within(Box::pin(async {
+        let fixture = Fixture::new();
+        let handle = fixture
+            .start_with(
+                structured(Vec::new()).with_title(title("Original (fork)")),
+                vessel_session::LaunchOptions {
+                    title_origin: Some(TitleOrigin::Given),
+                    ..vessel_session::LaunchOptions::default()
+                },
+            )
+            .await;
+        assert_eq!(handle.info().title_origin, TitleOrigin::Given);
+        assert_eq!(
+            handle.rename(title("Mine")).await.unwrap().title_origin,
+            TitleOrigin::Typed
+        );
         handle.kill();
         let _end = handle.ended().await;
     }))

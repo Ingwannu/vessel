@@ -45,7 +45,21 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all -- --check
+      # The file budget and the crate map (docs/QUALITY.md M3, M2): they
+      # read the sources and `cargo metadata --no-deps`, build nothing, and
+      # answer the same on every OS, so Linux runs them, before the compile.
+      - if: runner.os == 'Linux'
+        name: rust-size
+        run: node scripts/check-rust-size.mjs
+      - if: runner.os == 'Linux'
+        name: boundaries
+        run: node scripts/check-boundaries.mjs
       - run: cargo clippy --workspace --all-targets -- -D warnings
+      # Workspace checks skip binaries with required-features. Compile
+      # the separate forge fixture and its feature-only tests explicitly;
+      # product/release builds do not enable this feature.
+      - name: forge fixture (clippy)
+        run: cargo clippy -p vessel-node --features forge-fixture --all-targets -- -D warnings
       # The web UI's TypeScript declarations (ADR 0017): the `ts` features of
       # vessel-proto (the wire) and vessel-web (the bridge's frames), linted,
       # and their tests failing while web/src/wire differs from what the
@@ -64,6 +78,8 @@ jobs:
       # Every test binary runs even after one fails, so a single failure
       # does not hide the state of the rest (on Windows it hid all of it).
       - run: cargo test --workspace --no-fail-fast
+      - name: forge fixture (test)
+        run: cargo test -p vessel-node --features forge-fixture --test forge_fixture
 
   # The web UI (ADR 0017), on Linux: the page's own checks, then the
   # `vessel` binary with the page embedded (a missing bundle fails the

@@ -28,6 +28,8 @@ use crate::shell::Shell;
 
 /// What every row needs to draw itself.
 pub(super) struct Paint<'a> {
+    /// Prepared catalogs for the areas already moved out of legacy tables.
+    pub(super) catalog: &'static vessel_app_view::localization::Translator,
     pub(super) words: &'static ConversationWords,
     pub(super) tokens: &'a Tokens,
     pub(super) look: Look,
@@ -52,7 +54,7 @@ pub(super) struct Paint<'a> {
     )>,
     /// The machines' sessions: a forked session's first line names its
     /// source by its title.
-    pub(super) fleet: &'a vessel_app_view::Fleet,
+    pub(super) fork_headers: &'a vessel_app_view::fork::Headers,
     /// What a fork's first line has above or under it (`origin`).
     pub(super) above: super::origin::Above<'a>,
 }
@@ -121,16 +123,19 @@ pub(super) fn entry(
         EntryKind::TurnEnded { reason, .. } => {
             super::footer::completed(paint, index, *reason, window, cx)
         }
-        EntryKind::TurnFailed { .. } => failure(paint, words.spoken(entry)),
+        EntryKind::TurnFailed { .. } => failure(paint, words.spoken(entry, paint.catalog)),
         EntryKind::Log { line } => log_line(paint, line),
         EntryKind::Forked { from, .. } => {
-            let head = words.forked_from(paint.fleet.title_of(*from));
-            super::origin::forked_line(paint, dated(paint, &head, entry))
+            let head = paint.fork_headers.words(*from, paint.catalog);
+            super::origin::forked_line(paint, dated(paint, head, entry))
         }
-        EntryKind::Status { .. } | EntryKind::Parking(_) => {
-            meta(paint, dated(paint, &words.spoken(entry), entry))
+        EntryKind::Status { .. } | EntryKind::Parking(_) => meta(
+            paint,
+            dated(paint, &words.spoken(entry, paint.catalog), entry),
+        ),
+        EntryKind::Ready { .. } | EntryKind::Profile { .. } => {
+            meta(paint, words.spoken(entry, paint.catalog))
         }
-        EntryKind::Ready { .. } | EntryKind::Profile { .. } => meta(paint, words.spoken(entry)),
         EntryKind::Model(call) => meta(paint, words.model_line(call)),
     }
 }

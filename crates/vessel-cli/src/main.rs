@@ -1,6 +1,6 @@
 //! `vessel`: the command-line client for Vessel nodes.
 //!
-//! Commands: `node start`, `node install`, `nodes`, `status`, `harnesses`,
+//! Commands: `node start`, `node stop`, `node install`, `nodes`, `status`, `harnesses`,
 //! `sessions`, `run`, `attach`, `send`, `log`, `kill`, `session` (a
 //! session's profile, queue, answers, marks, starting again, deletion). Everything goes through
 //! `vessel-client`; this crate only parses arguments, resolves the token,
@@ -16,13 +16,18 @@ mod connect;
 mod conversation;
 mod devices;
 mod error;
+mod file_terminals;
 mod fleet;
 mod forge;
+mod history;
+mod inbox;
 mod init;
 mod io;
 mod log;
+mod node_ctl;
 mod nodes;
 mod pair;
+mod project_commands;
 mod remote;
 mod render;
 mod search;
@@ -31,6 +36,7 @@ mod selector;
 mod terminals;
 mod transfer;
 mod ui;
+mod usage;
 mod view;
 mod workspace;
 
@@ -108,8 +114,9 @@ async fn cli() -> ExitCode {
         | Command::Run(_)
         | Command::Attach { .. }
         | Command::Send(_)
-        | Command::Log { .. }
+        | Command::Log(_)
         | Command::Search(_)
+        | Command::History(_)
         | Command::Kill { .. }
         | Command::Session { .. }
         | Command::Project { .. }
@@ -118,10 +125,12 @@ async fn cli() -> ExitCode {
         | Command::Shell(_)
         | Command::Script { .. }
         | Command::Ports(_)
+        | Command::Usage { .. }
         | Command::Schedule { .. }
         | Command::Prompt { .. }
         | Command::Init(_)
         | Command::Mcp
+        | Command::Inbox { .. }
         | Command::Ui(_) => "warn",
     };
     tracing_subscriber::fmt()

@@ -27,6 +27,7 @@ pub(super) const DESCRIPTOR: Descriptor = Descriptor {
         instructions: Some("GEMINI.md"),
         skills: None,
     },
+    limits: None,
     login: None,
     install: "npm install -g @google/gemini-cli",
     login_command: None,

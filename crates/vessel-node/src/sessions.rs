@@ -87,6 +87,14 @@ pub(crate) struct Sessions {
 const ENDED: usize = 64;
 
 impl Sessions {
+    pub(crate) fn limit_association(&self, id: SessionId) -> vessel_session::LimitAssociation {
+        self.runtime
+            .get(id)
+            .map_or(vessel_session::LimitAssociation::Unavailable, |handle| {
+                handle.limit_association()
+            })
+    }
+
     pub(crate) fn new(
         runtime: Arc<SessionRuntime>,
         store: Store,
@@ -125,10 +133,14 @@ impl Sessions {
         self: &Arc<Self>,
         spec: SessionSpec,
         options: LaunchOptions,
+        lease: Option<tokio::sync::OwnedMutexGuard<()>>,
     ) -> Result<SessionInfo, ServiceError> {
         let sessions = Arc::clone(self);
         self.tasks
-            .spawn(async move { sessions.start(spec, options).await })
+            .spawn(async move {
+                let _lease = lease;
+                sessions.start(spec, options).await
+            })
             .await
             .map_err(ServiceError::Task)?
     }
@@ -221,12 +233,14 @@ impl Sessions {
         }
         self.agents.retire(id);
         self.models.retire(id);
-        // Nobody listening is fine: nothing needs to hear of this end.
-        let _listeners = self.ended.send(id);
         if let Err(error) = self.runtime.remove(id) {
             tracing::warn!(session = %id, %error, "cannot remove a finished session from the runtime");
         }
         self.forget(id);
+        // End listeners recheck find(). Publish only after both live
+        // entries are gone, or they can consume the only wake while still
+        // finding Live and wait for an end that will never be sent again.
+        let _listeners = self.ended.send(id);
     }
 
     /// Drop a session's durability entry; it is then found in the store.
@@ -446,6 +460,21 @@ impl Sessions {
             .await?)
     }
 
+    /// A page of `harness`'s own conversations (`SessionRuntime::history`).
+    pub(crate) async fn history(
+        &self,
+        harness: HarnessRef,
+        launch: (Option<Profile>, Option<ModelProxy>),
+        dir: PathBuf,
+        folder: Option<&std::path::Path>,
+        from: vessel_agent::HistoryFrom,
+    ) -> Result<vessel_agent::HistoryPage, ServiceError> {
+        Ok(self
+            .runtime
+            .history(harness, launch, dir, folder, from)
+            .await?)
+    }
+
     /// Stop a session. Killing one that already ended is a no-op.
     pub(crate) async fn kill(&self, id: SessionId) -> Result<(), ServiceError> {
         match self.find(id).await? {
@@ -462,6 +491,7 @@ pub(crate) mod again;
 mod conversation;
 mod marks;
 mod read;
+mod side_questions;
 
 #[cfg(test)]
 mod tests;
