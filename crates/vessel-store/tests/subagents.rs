@@ -137,14 +137,16 @@ async fn a_receipt_for_another_parent_is_corrupt_and_never_overwritten() {
         at(1),
     );
     let db = rusqlite::Connection::open(dir.database_path()).unwrap();
-    db.execute(
-        "UPDATE sessions SET detach_receipt=?2 WHERE id=?1",
-        rusqlite::params![
-            info.id.to_string(),
-            serde_json::to_string(&receipt).unwrap()
-        ],
-    )
-    .unwrap();
+    let changed = db
+        .execute(
+            "UPDATE sessions SET detach_receipt=?2 WHERE id=?1",
+            rusqlite::params![
+                info.id.to_string(),
+                serde_json::to_string(&receipt).unwrap()
+            ],
+        )
+        .unwrap();
+    assert_eq!(changed, 1);
     assert!(
         matches!(store.session(info.id).await,Err(StoreError::InvalidParentage(id)) if id==info.id)
     );

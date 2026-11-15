@@ -113,7 +113,9 @@ withholding. Fakes are test-only; no installed agent or real sign-in is exercise
 
 ## Resume point
 
-Design recorded; no product implementation, migration or registered method yet.
-Next: typed DTOs and pure tests, store receipt and ownership boundary, actual
-provider observations and projection, V3 review, Quality B registration, native
-consumer wiring and package gates. No readiness claim.
+Validated DTOs, the nullable receipt migration, atomic writer, current-parent
+admission/publication and a pending detach method are staged in the W2 node tree.
+They are not reviewed implementation or consumer-ready; exact narrow and package
+checks remain owed. Provider observations/projection, native consumer wiring,
+generated wire declarations and final package gates remain outstanding. See
+`docs/plans/wp-a4-node.md` for module/data flow and evidence boundaries.
