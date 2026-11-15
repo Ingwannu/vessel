@@ -11,6 +11,7 @@
 //! decide the same way (ADR 0036).
 
 pub mod attach;
+pub mod context;
 pub mod drafts;
 pub mod matching;
 pub mod modes;
