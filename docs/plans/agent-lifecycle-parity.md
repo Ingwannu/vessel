@@ -397,6 +397,15 @@ No row of the crate table changes.
   `cfg(test)` field, control and fault branch. The designated follow/display
   head is merged, and this package now owes its one complete gate.
 
+## Typed label entry access for app consumers
+
+The metadata editor consumes `SessionLabels::iter()` as an exact-size iterator
+of `(&LabelKey, &LabelValue)`, in canonical key order. Its `len()` is the count
+of remaining entries. This extends the existing validated map, with no JSON
+tree, summary parsing, mutable map access or new wire field. Values retain
+spaces, commas and equals signs. This accessor does not add the pending
+`session.labels` mutation method or workspace label catalogs.
+
 ## Background value staging
 
 - Existing asset check: `DirListing` describes a directory, and `UsageScope`
