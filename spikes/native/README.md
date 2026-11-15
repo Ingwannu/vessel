@@ -1219,13 +1219,28 @@ route. The fixed grid is an audit fixture; the action itself is unchanged.
 
 ### Permission and question responses
 
-`view::responses` admits each exact request once across local conversations.
-`link::responses` carries its target/request/ticket through a bounded direct call
-and acknowledgement deadline; `app::areas::responses` settles only its original
-still-waiting card. Inline translated failures retain question drafts and reread
-authoritative waiting state. An uncertain result never causes an automatic retry
-or denial. Rich permission presentation and durable receipts are tracked in
-`docs/plans/wp-a8.md` and remain dependent on the shared ADR 0084 contract.
+`view::responses` admits each node/session/request once across local
+conversations. Its target retains the original canonical ConnectionContext;
+`link::responses` uses only selected_connection and its guarded typed call,
+retaining target/request/ticket across the bounded acknowledgement deadline.
+`app::areas::responses` validates the actual offered option or Question::check
+before admission, and settles only the original still-waiting card. Debug output
+preserves request correlation while omitting answer payloads.
+
+ConversationArea retains real question fields/drafts by QuestionId and sending,
+failures and plan disclosure by exact request. The main dock draws all pending
+cards; Place::response_scope can restrict an Inbox detail to One(Request).
+Inline translated failures retain drafts and reread authoritative waiting state.
+An uncertain result never causes an automatic retry or denial. Rich permission
+presentation and durable receipts remain dependent on the shared ADR0084
+contract, tracked in `docs/plans/wp-a8.md`.
+
+The Requests owner adapter to W12's sole SessionResidents remains literal
+cfg(test), together with that resource producer. It correlates canonical
+operation tickets and handles exact original follow retirement before replacement,
+conservatively holding pending forms. It does not activate a second runtime
+resource map, scoped keyboard factory, live stream or durable receipt path.
+
 Shared typed button content/loading/sizing is documented in
 `docs/plans/backend-m12-g2-button-content.md`. Label/Icon/IconAndLabel share one
 renderer; ButtonIcon::muted keeps the explicit source icon tone. button_control
