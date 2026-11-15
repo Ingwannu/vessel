@@ -205,3 +205,18 @@ The existing Page::listed unit-return API remains compatible. The auxiliary
 calendar edge uses accept_list's explicit accepted result; ordinary callers do
 not silently discard a new bool under unused_results. Deferred focus set
 insert/remove results are explicitly named bookkeeping, not ignored outcomes.
+
+## Cadence edit boundary
+
+The form's pure Draft caches typed validation at setters, preserves an opened
+interval/anchor exactly, and remembers its typed zone through interval/cron
+switches. A zone choice updates a parsed cron without parsing its expression
+again. Presets follow pinned schedule-cadence-options.test.ts in portable JSON;
+zone-policy cases follow schedule-cadence-policy.test.ts. Deliberate accepted
+difference: intervals stay exact instead of being rounded/converted to cron.
+The node wire requires an explicit cron zone, so a legacy missing-zone reference
+case is represented by the explicit UTC boundary, never a guessed missing field.
+New short preset-choice labels are in the schedules Fluent files; the saved-row
+cadence descriptions and existing errors remain in the accepted Rust table.
+These pure form rules are source checkpoints only, no editor screen or green
+narrow/final gate is claimed yet.

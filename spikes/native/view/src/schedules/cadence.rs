@@ -270,18 +270,33 @@ impl CadenceInput<'_> {
                 })
             }
             Self::Cron { expression, zone } => {
-                if expression.trim().is_empty() {
-                    return Err(CadenceError::EmptyExpression);
-                }
-                let expr = expression
-                    .parse::<CronExpr>()
-                    .map_err(|source| CadenceError::Cron {
-                        issue: CronIssue::of(&source, expression),
-                        source,
-                    })?;
+                let expr = parse_expression(expression)?;
                 let zone = zone.parse().map_err(CadenceError::Zone)?;
                 Ok(Cadence::Cron { expr, zone })
             }
         }
     }
+}
+
+/// Parse expression text once while retaining a zone already chosen from the
+/// typed picker. The raw-zone input boundary delegates here after its own parse.
+/// # Errors
+/// Empty or invalid expressions retain the original grammar failure.
+pub fn cron(
+    expression: &str,
+    zone: vessel_proto::automation::TimeZoneName,
+) -> Result<Cadence, CadenceError> {
+    let expr = parse_expression(expression)?;
+    Ok(Cadence::Cron { expr, zone })
+}
+fn parse_expression(expression: &str) -> Result<CronExpr, CadenceError> {
+    if expression.trim().is_empty() {
+        return Err(CadenceError::EmptyExpression);
+    }
+    expression
+        .parse::<CronExpr>()
+        .map_err(|source| CadenceError::Cron {
+            issue: CronIssue::of(&source, expression),
+            source,
+        })
 }

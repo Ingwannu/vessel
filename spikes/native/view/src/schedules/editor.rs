@@ -1,6 +1,8 @@
 //! Typed form boundary. Raw text becomes a protocol value once, when edited;
 //! submission uses the validated value and the revision that was opened.
 
+pub mod cadence;
+
 use thiserror::Error;
 use vessel_proto::SessionMode;
 use vessel_proto::automation::{

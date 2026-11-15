@@ -208,3 +208,10 @@ schedules-filter-by-machine = 머신별로 보기
 
 # Unassigned local feature: no call sent; updating the machine is not promised as a fix.
 schedules-failed-not-enabled = 이 버전에서는 해당 예약 기능을 사용할 수 없습니다.
+
+# Cadence preset picker labels; not the saved row’s full cadence description.
+schedules-preset-minute = 매분
+schedules-preset-hour = 매시간
+schedules-preset-daily = 매일 09:00
+schedules-preset-weekdays = 평일 09:00
+schedules-preset-mondays = 월요일 09:00

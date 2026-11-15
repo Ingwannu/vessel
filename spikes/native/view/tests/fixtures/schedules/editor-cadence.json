@@ -1,0 +1,7 @@
+[
+  {"id":"preset-every-minute","preset":"minute","expression":"* * * * *","en":"Every minute","ko":"매분"},
+  {"id":"preset-every-hour","preset":"hour","expression":"0 * * * *","en":"Every hour","ko":"매시간"},
+  {"id":"preset-daily-nine","preset":"daily","expression":"0 9 * * *","en":"Daily 9:00","ko":"매일 09:00"},
+  {"id":"preset-weekdays-nine","preset":"weekdays","expression":"0 9 * * 1-5","en":"Weekdays 9:00","ko":"평일 09:00"},
+  {"id":"preset-mondays-nine","preset":"mondays","expression":"0 9 * * 1","en":"Mondays 9:00","ko":"월요일 09:00"}
+]

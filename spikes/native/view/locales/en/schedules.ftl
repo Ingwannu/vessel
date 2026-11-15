@@ -208,3 +208,10 @@ schedules-filter-by-machine = Filter by machine
 
 # Unassigned local feature: no call sent; updating the machine is not promised as a fix.
 schedules-failed-not-enabled = This schedule feature is not available in this build.
+
+# Cadence preset picker labels; not the saved row’s full cadence description.
+schedules-preset-minute = Every minute
+schedules-preset-hour = Every hour
+schedules-preset-daily = Daily 9:00
+schedules-preset-weekdays = Weekdays 9:00
+schedules-preset-mondays = Mondays 9:00
