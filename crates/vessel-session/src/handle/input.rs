@@ -35,23 +35,7 @@ impl SessionHandle {
         }
         match (&self.0.input, input) {
             (Input::Terminal { pty, screen }, SessionInput::Terminal { input }) => {
-                let sent = match input {
-                    TerminalInput::Data { data } => pty.write(data.into_bytes()).await,
-                    TerminalInput::Resize { size } => {
-                        screen.resize(size)?;
-                        let resized = pty
-                            .resize(WindowSize {
-                                cols: size.cols,
-                                rows: size.rows,
-                            })
-                            .await;
-                        if resized.is_err() {
-                            screen.invalidate();
-                        }
-                        resized
-                    }
-                };
-                sent.map_err(|vessel_pty::PtyClosed| SessionError::Ended)
+                send_terminal(pty, screen, input).await
             }
             // Protocol 10: prompts and cancels take the actor's turn, in
             // order with the queue (`delivery`).
@@ -250,4 +234,29 @@ impl SessionHandle {
             Input::Structured(route) => Ok(current(route)?.turn_running().await?),
         }
     }
+}
+
+/// Keep PTY/screen admission separate from the structured actor's delivery graph.
+async fn send_terminal(
+    pty: &vessel_pty::PtyInput,
+    screen: &crate::terminal_screen::CaptureEndpoint,
+    input: TerminalInput,
+) -> Result<(), SessionError> {
+    let sent = match input {
+        TerminalInput::Data { data } => pty.write(data.into_bytes()).await,
+        TerminalInput::Resize { size } => {
+            screen.resize(size)?;
+            let resized = pty
+                .resize(WindowSize {
+                    cols: size.cols,
+                    rows: size.rows,
+                })
+                .await;
+            if resized.is_err() {
+                screen.invalidate();
+            }
+            resized
+        }
+    };
+    sent.map_err(|vessel_pty::PtyClosed| SessionError::Ended)
 }
