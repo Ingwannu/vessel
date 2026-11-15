@@ -10,7 +10,7 @@ Read Paseo 0.15.4 before implementation:
   loading, error/retry, empty and report-list states are distinct.
 - `packages/app/src/usage/queries.ts:36-38,59-83`: cached reads do not
   force vendor I/O; explicit refresh does. Reports arrive independently.
-- `packages/app/src/usage/model.ts:139-168,245-279`: a failed refresh and
+- `packages/app/src/usage/model.ts:139-168,208-238`: a failed refresh and
   the last successful values/freshness are separate facts.
 - `packages/app/src/usage/list.tsx:11-43` and `card.tsx:78-183`: a card
   per source/account, independent windows, status, plan, freshness.
@@ -64,6 +64,10 @@ the distinction between ledger totals and account limits.
   this client introduces no protocol number or invented method.
 
 ## Verification and delivery
+
+The account inventory uses `profile.list` (node's `profiles::list` calls
+`Profiles::all`, including implicit defaults); the client does not append
+a second guessed default per agent. Labels never identify an account.
 
 Tests cover stale responses, refresh failure with retained provenance,
 rapid scope changes and closing/reopening while a request is pending.
