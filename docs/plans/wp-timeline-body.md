@@ -38,3 +38,9 @@ is claimed; A7's final package keeps its single full gate/review. Prior A7 evide
 (1153 view; 271 app/kit) does not prove this isolated source. The new staged fixture
 draws proposed material without ToolView/log/session objects. W4 owns actual
 permission/question/controller integration and its independent verification.
+
+Source amendment: facade types are exercised through their exported path. The
+same headless fixture also changes proposed Ready content into an empty Loading
+body and draws it, retaining one stable structural identity. No execution or
+approval outcome is fabricated. Output range assertions use first()/from_ref;
+the earlier A7 actual test pass preceded this isolated draw fixture.
