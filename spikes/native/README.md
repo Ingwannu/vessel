@@ -1294,3 +1294,13 @@ Pages, including their one-operation ticket and physical node identity. Its
 connection notice shares `nodes::connection_notices`; do not add another
 reconnect observer or registry cache. Cached/unfetched and failed/empty copies
 remain distinct. Record-only Add must not trigger discovery or probe options.
+
+
+`kit::external_link::external_link(id, Option<SharedString>, &tokens)` draws
+Paseo's inline external link (label12, ArrowUpRight12, gap4, hitSlop8;
+muted text and SVG both become foreground on hover). It receives no URL and
+performs no OS action: callers keep their typed URL and opener. Use existing
+Tooltips only when the source consumer needs a hint. `None` is arrow-only.
+It has no button fill or private target override. Native Type::Meta supplies
+12/16 regular metrics where Paseo leaves line height platform-defined;
+accessibility/keyboard semantics remain the existing kit-wide gap.
