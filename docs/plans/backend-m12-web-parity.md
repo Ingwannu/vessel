@@ -1,6 +1,6 @@
 # Web page parity
 
-Status: parity contract accepted; A1 whole gate passed, implementation review pending, 2026-11-15. ADR 0075.
+Status: bounded A1 accepted; paired sidebar/viewport corrections gated, review pending, 2026-11-15. ADR 0075.
 
 ## Scope and evidence
 
@@ -124,7 +124,7 @@ new wire number or native modification.
 | F77 / m11:204 / Saved prompts | prompt.list/create/update/delete | No saved-prompts page | No registered saved-prompts renderer found | Not found in surveyed Paseo app; wider-reference feature retained. | Add bounded picker/editor; no claim Paseo has an identical named surface. |
 | F78 / m11:205 / A webhook starts a session | hook calls not on base | No webhook UI | No registered webhook renderer found | [P25](#reference-p25) | Blocked until hooks merged; receiving endpoint/secret generation never moves into page. |
 | F79 / m11:211 / A board by status | session.list board projection | board/board-page.tsx; data/board.ts | board/mod.rs | Not found in surveyed Paseo app; wider-reference feature retained. | Existing board; Paseo has status/sidebar views rather than this board surface. |
-| F80 / m11:212 / Sidebar: group, sort, filter, pin | Session marks; bridge preferences | shell/sidebar-view-menu.tsx; data/sidebar.ts | sidebar.rs | [P05](#reference-p05); [P37](#reference-p37) | Existing group/sort/filter/pin; review persistence and nesting before extending. |
+| F80 / m11:212 / Sidebar: group, sort, filter, pin | Session marks; bridge preferences | shell/sidebar-view-menu.tsx; data/sidebar.ts | sidebar.rs | [P05](#reference-p05); [P37](#reference-p37) | Ended default, stored off and archive exclusion covered by the paired follow-up; broader grouping/pinning/nesting parity remains unverified. |
 | F81 / m11:213 / A notification inbox that survives a reload | Inbox not on base | notifications/use-notices.ts is transient; no durable inbox | No inbox renderer registered | [P32](#reference-p32); [P06](#reference-p06) | After inbox merge, durable list/read cursor, loading/offline/refusal states, no local fake inbox. |
 | F82 / m11:214 / Desktop notification and sound | Client preferences; browser Notification API | notifications/use-notices.ts; sound.ts; settings/notifications-section.tsx | toasts.rs; no OS-notification integration verified | [P32](#reference-p32) | Existing web desktop alerts/sound; compare focus/privacy defaults before changing. |
 | F83 / m11:215 / Usage: tokens, cost, each account's limits | usage.query protocol21; limits/lookup awaiting merge | session/inspector-summary.tsx routed usage; A1 adds usage/usage-section.tsx (verification below) | conversation/footer.rs/meter.rs; settings Usage=None | [P26](#reference-p26); [P27](#reference-p27); [P28](#reference-p28); [P29](#reference-p29); [P44](#reference-p44) | A1 machine totals/day/week are implemented; verification below. Agent/session rows remain A2, account limits await merge; no estimates. |
@@ -302,8 +302,9 @@ zero failed / 12 ignored, TypeScript freshness two passed, frontend units
 428 passed, full browser E2E 63 passed, and sixteen capture cases passed.
 All format, size, boundaries, Clippy, web lint, typecheck and bundle steps
 passed. Execution identity, served assets and cleanup are recorded below.
-This is executed validation, with implementation review still pending;
-it is not whole-page parity or combined integration approval.
+This bounded A1 source/runtime/capture scope passed implementation review
+and maintainer acceptance. It is not whole-page parity or combined
+integration approval.
 
 A1 adds machine reported accounting in Settings: pick a machine and the
 past day/week, read totals and coverage, then explicitly refresh. It adds
@@ -582,7 +583,7 @@ Intentional screenshots use only isolated synthetic content, in both
 system themes and four viewport sizes; Korean locale formats numbers and
 dates but does not translate the page's English labels.
 
-Resume: A1 source is prepared for its immutable merged-tree gate. Earlier
+Historical A1 source checkpoint: source was prepared for its immutable merged-tree gate. Earlier
 focused type/unit runs passed; lint exposed ordinary test/style issues
 which were corrected without exemptions. Whole Rust/web, real-node e2e,
 served assets and rendered captures are still unverified at this source
@@ -698,3 +699,218 @@ capture diagnostic and the original HTML-audit error remain adverse
 historical evidence. They are corrected by this new changed-tree run,
 not relabelled as successes or waived. Implementation review and any
 combined-line gate remain separate from this result.
+
+
+## Sidebar and viewport follow-up
+
+Before extending accounting, two small page corrections follow as separate
+commits. First, an ended conversation remains in the sidebar by default:
+reuse the bridge's field-aware preference reader and the page's existing
+filter rather than migrating or overwriting a stored choice. Missing
+`sidebar.ended` means on; stored false stays false; archived remains out.
+ADR 0036 records the reason. The second correction will address following
+the timeline's end when the viewport and composer dock change together,
+keeping the existing browser assertion and deadlines intact. The A1 review
+handoff above remains tied to its immutable executed source.
+
+
+The default-on correction's first focused frontend run exposed four old
+live-only test cases that had relied implicitly on the old off default
+(17 passed, four failed). Those four view arguments now explicitly choose
+ended=false; their expected rows, order, names and assertions are kept.
+Separate added cases verify the new default, retained off choice and
+archive exclusion. The first bridge-unit run passed 54 and failed one
+new assertion that searched pretty-printed JSON without accounting for
+whitespace; it now uses that test module's existing compact comparison.
+This was a new test's assumption, not a stored-false product failure.
+The real-node browser flow and whole follow-up gate are still pending.
+
+
+After correcting that new test's whitespace assumption, scoped bridge
+Clippy passed, all 55 bridge unit tests passed, all 430 frontend unit tests
+passed, and web typecheck plus changed-file ESLint passed. The added real
+browser case checks ended visibility, acknowledged off, reload retention,
+turning on again and archive exclusion. It has not run at this checkpoint;
+the two corrections' whole gate and rendered evidence are still required.
+The older collapsed-rail Settings/theme-mark clipping at 800×600 is a
+separate later parity item; these corrections do not claim to repair it.
+
+
+### Viewport/dock correction and reproducible ordering
+
+The old watch recalculated end-following from the new gap on every scroll.
+If layout's queued scroll arrived before ResizeObserver, a shorter view
+made that gap look like a reader scrolling up. The resize callback then
+saw following=false; row measurement only held a pin, and the layout
+correction was also conditional on following. Nothing restored the end.
+
+A synthetic React fixture using the actual timeline window reproduced
+that ordering explicitly: after a simultaneous width/dock change and a
+scroll delivered before resize, the old watch stayed 100 pixels from the
+end, with its last line below the dock. A normal uncontrolled resize in
+that fixture passed. This is controlled-order evidence, not a claim that
+the historical eight-pixel failure was reproduced naturally. The staged
+correction returned the controlled case to a zero gap, while an explicit
+upward reader stayed at top=0 through another resize (gap 101 pixels).
+
+Modify/reuse: keep the existing observers, virtual window, pin ownership
+and scroll threshold. A pure geometry decision preserves prior end intent
+across layout; the DOM follower uses it for both container resize and row
+measurement. An upward move outside the existing near-end band still wins; a browser
+clamp within that band retains end intent. Event/observer registration is split from that decision to
+keep functions small and cleanup explicit. No CSS offset, timer, polling
+repair, retry, new dependency or wire change is introduced.
+
+The original phone question test is unchanged. Added pure cases cover
+scroll-before-resize, later wrapped-row growth, genuine upward reading,
+content clamping and the existing near-end threshold. The added actual
+page case forces the callback order, then waits for a real resize delivery
+to verify an upward reader remains put. Separate light/dark captures cover
+the new ended default and the actual question dock at 1280×900, 390×844,
+800×600 and 1024×700. These browser
+cases/captures and the whole paired-correction gate remain unverified at
+this source checkpoint. The first correction is committed as `3d888d1b`.
+
+
+The viewport checkpoint passes all 434 frontend unit tests, including its
+four added pure ordering/reading cases. An initial typecheck passed; the
+subsequently expanded capture matrix and exhaustive DOM decision branch
+are checked again by the pending bundle's typecheck and the whole gate.
+Format, size, boundary and diff checks passed. Full web lint/build is
+queued; no actual-node or rendered follow-up success is claimed yet.
+
+
+The narrow full web lint caught two new static errors before the whole
+queue: a geometry read discarded with a needless void operator and an
+exported follower missing its explicit return type. The follower now has
+a named interface. The actual-page fixture returns its measured geometry
+and asserts a positive, shortened viewport with a pre-delivery gap beyond
+the shared near-end threshold, making its controlled ordering meaningful.
+The original phone assertion and deadline remain unchanged.
+
+
+After those static corrections, all 434 frontend units, the complete page
+and script typecheck, full web lint (including 132 font stacks) and the
+production bundle pass on the final correction tree. The bundle typecheck
+covers the final ten-image capture matrix and the explicit DOM decision
+interface. No actual-node browser/capture or whole-gate success is inferred
+from these narrow checks; the next run freezes both corrections together.
+
+
+## Paired sidebar/viewport gate and review handoff
+
+Executed source: `9a21b8df32bb7cb35b6d038ecba4e05b1a57049a`, comprising
+`3d888d1b` (ended default), `6126d8be` (layout/end intent), and `9a21b8df`
+(the explicit fixture geometry and follower return type). These remain
+separate commits for their separate reasons. This is a page/bridge correction;
+there is no node protocol, store schema, generated wire, dependency or native
+source change. ADR 0036 records the default's shared behavior contract.
+
+[Decision Log]
+- Purpose and intent: retain stopped conversations until archiving and preserve a
+  reader at the timeline end across viewport/dock layout.
+- Existing constraints: an explicit off preference must survive; the virtual
+  window owns pins and uses an existing near-end band; scroll may arrive before
+  ResizeObserver.
+- Alternatives considered: rewriting persisted preferences, resize-only
+  correction, a timed retry, and a CSS offset.
+- Choice: reuse field-aware preference defaults and existing filters; share one
+  pure geometry decision across scroll, container resize and row measurement.
+- Why: absent fields inherit the new default without replacing a saved choice;
+  correcting the event-order decision fixes the lost end intent without a timer or
+  changing dock geometry.
+- Costs and consequences: automatic browser clamping inside the existing near-end
+  band follows the end; an upward reader outside that band and a held pin still
+  win. No new dependency, wire field or native behavior is introduced.
+
+
+For the retention behavior, the pinned Paseo source is
+`packages/app/src/hooks/use-aggregated-agents.ts:22–28,76–100` (archive-only
+exclusion), with the sidebar's retained done bucket in
+`hooks/sidebar-status-view-model.ts:6–16,27–53`. The aggregate hook is not
+claimed to be the current sidebar's data source. This changes no row/card
+look. The layout correction repairs Vessel's `978d0dc9` watch; it does not
+claim to copy a Paseo DOM ResizeObserver implementation.
+
+The four previously implicit live-only sidebar tests now explicitly supply
+ended=false, as authorized: the two sidebarMachines cases, status grouping,
+and keyboard order. A content audit proves those four call arguments are
+that file's only changes; names, expected rows/order and assertions remain
+unchanged. The entire original `conversation.spec.ts`, including its phone
+case and deadline, is byte-for-byte unchanged.
+
+The whole run executed 2026-11-15 01:09–02:48 UTC. It had been started before
+the remote-gate amendment and was retained as instructed. One ordinary slot
+held both A5 prebuilds and the complete gate, with four build jobs, two Rust
+test threads and private mode-0700 SSD test data. One-minute load before/after
+was 14.09 / 7.46. No test deadline, retry count or assertion was relaxed.
+
+| Check | Actual result on the paired correction source |
+| --- | --- |
+| Both A5 prebuilds, format, Rust size/boundaries, whole Clippy | All exit 0 |
+| Rust workspace | 112 summaries: 1,965 passed, zero failed, 12 ignored; exit 0 |
+| TypeScript declaration freshness | Two passed; no generated change |
+| Web lint/fonts, page/script typecheck, production bundle | All exit 0; 132 font stacks |
+| Web unit | 434 passed across 85 files |
+| Post-bundle binaries | Web/node/CLI compiled before browser execution |
+| Full isolated-fleet browser suite | 65 passed, zero failed, including the unchanged phone case and both new regressions |
+| Follow-up captures | Two cases passed, ten original images |
+
+All stages, the source pin and the enclosing whole exit are zero. The pre/post
+selection of 2,439 inputs matched exactly:
+`61e829476e61d05fbe31058e0ea8ca4efbf99f235b0e53845d50c9996c39a6b8`.
+All 2,270 tracked input contents match the executed commit's Git blobs.
+The remaining selected inputs include the local build configuration, npm
+installation identity and built bundle. External dependency/toolchain/OS
+caches and non-input artifacts are excluded: this is selected-input evidence,
+not a supply-chain attestation.
+
+An independent narrow remote run of the same commit passed the original phone
+case and the two new regressions, three passed / zero failed. It is additional
+runtime evidence, not a second whole run. Future whole gates use the remote
+tool; captures remain local. No unchanged whole gate was repeated.
+
+Both whole-run fleets served eighteen static graph assets each with hashes
+equal to the new bundle. The additional successful local console/capture run
+also served the same eighteen assets. Per-request painted HTML remains
+excluded from byte comparison. That extra run passed two cases and ten images,
+with zero page/console errors in each case; its source and external-harness
+pre/post identities matched. Its first harness attempt failed before test
+collection because the temporary folder lacked ES module mode. That failure
+and its logs remain retained; the corrected external harness is a separate
+run, with no product-source change or whole-gate retry.
+
+All twenty original images were personally opened after read-only PNG/OCR
+checks: no OCR failure or own-machine-name match. These are short-name,
+normal synthetic English states, light/dark: an ended conversation at
+1280×900, and the question dock at 1280×900, 390×844, 800×600 and 1024×700.
+The stopped conversation stays listed even when the machine's live count is
+zero; the waiting line stays above the question dock. The separate browser
+regression also proves saved off survives reload and archive removes the row,
+and the forced ordering case preserves an upward reader.
+
+These frames retain an existing transient kill toast over the lower composer,
+and the known collapsed-rail Settings-mark clipping is not repaired. They
+are not general layout, full translation, cold-phone-bootstrap, physical-device,
+OS input-method, accessibility, native or cross-platform approval. The old
+uncontrolled eight-pixel occurrence was not reproduced naturally; the controlled
+old-watch failure and corrected ordering evidence are described above.
+
+All fifteen recorded successful fleet process identities and eight owned helper
+identities had exited; the failed external harness's five recorded PIDs had
+already exited separately. No owned target runtime or private-SSD cwd remained.
+Nineteen private SSD entries were removed, leaving zero. No extra cleanup
+signal was needed; no live service or permission changed. No real credentials, vendor account,
+live preview, deploy or push was used.
+
+The focused 17/4 sidebar run, the 54/1 new whitespace assertion, the two new
+static-lint findings and the failed optional harness remain historical evidence.
+They are not relabelled as successes. Review and latest-node combined integration
+approval remain separate from this clean bounded-source gate.
+
+Resume: submit these two corrections together for review. The next ready usage
+work is A2: first agent/profile selection, then a separately bounded session
+summary/cursor slice if required by size. Both use existing usage.query only.
+Account limits, inbox and project-wide PR enumeration remain gated by the exact
+assigned contracts on a subsequently merged green node head. No new wire number
+is introduced by this page track.
