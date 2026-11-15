@@ -8,6 +8,7 @@ mod tests;
 
 use crate::areas::{conversation::ConversationArea, session::SessionView};
 use std::collections::BTreeMap;
+use std::collections::btree_map::Entry as MapEntry;
 use vessel_app_view::layout::PaneId;
 use vessel_app_view::residents::{
     PanelClaim, ResidentProblem, ResidentToken, Residents, SessionAddress, SessionContext,
@@ -46,12 +47,10 @@ impl SessionResidents {
         build: impl FnOnce(&SessionContext) -> SessionResources,
     ) -> Result<ResidentToken, ResidentProblem> {
         let token = self.admission.claim(address, claim.clone(), pane)?;
-        if !self.entries.contains_key(&address.session) {
+        if let MapEntry::Vacant(slot) = self.entries.entry(address.session) {
             let context = self.admission.context(token, &claim)?;
             let resources = build(&context);
-            let _previous = self
-                .entries
-                .insert(address.session, Entry { token, resources });
+            let _inserted = slot.insert(Entry { token, resources });
         }
         Ok(token)
     }
