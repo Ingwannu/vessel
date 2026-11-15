@@ -1071,6 +1071,31 @@ never rebuilt.
     a byte range since 09:08 UTC (the preview proxy, its README says how),
     and the updater resumes, downloads a compressed file and shows a
     broken-off download (ADR 0094's branch).
+- **0.0.0.0.21**, the first label built the ADR 0099 way:
+  - Source: `e134d16a2`. That is package base 8 (`91407173`, the lead's
+    gate 1431/0/2) merged into this track's branch, which brings ADR 0094
+    (companions off) and ADR 0099. Beyond base 8 it adds only the release
+    workspace, the app's two update-words files, one `Cargo.lock` edge
+    (`flate2`) and documents.
+  - Compiled on the build VM: `--release-compile 0.0.0.0.21 windows-x64
+    linux-x64`, in the priority lane the coordinator opened for labels.
+    It waited 50 s and took 1038 s, Windows and Linux together. This was
+    the build VM's first Windows build. The slot was found once in each
+    app.
+  - Packaged here at 13:58-13:59 UTC on 2026-11-15:
+    - The test proof took 6 s and the real proof 6 s.
+    - Both shipped apps pass `patch-feed.py verify`.
+    - The sums' signature verifies with the key compiled in.
+    - The build log holds neither the address nor its token.
+  - Not published until the coordinator's smoke.
+  - Sizes, with the change against 0.0.0.0.20: setup 14,274,020
+    (+322,119), exe 53,210,624 (+1,566,720), zip 20,963,088 (+446,904),
+    linux 90,384,408 (+1,629,792), tar.gz 31,201,943 (+458,553). The first
+    gzip copies: exe.gz 20,856,477 (39.2% of the exe), linux.gz
+    30,953,121 (34.2%).
+  - Checks: icons the same as 0.0.0.0.20, the Windows version string
+    0.0.0.0.21, the DLL and resource checks, the debuglink CRC, the four
+    licence texts in both archives, `/dl/` lists it.
 
 ## The command line and the node in the package (ADR 0094, 2026-11-15)
 
