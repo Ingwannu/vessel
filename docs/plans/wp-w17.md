@@ -577,3 +577,9 @@ Lifecycle still owns the separately reserved legacy run_session preflight line;
 W17 does not duplicate it. No owned AgentSetup literal required a new field;
 base literals retain the incoming system_prompt field. Shrinking size allowances
 use the new lower limits; no record was raised. This is not a latest-head gate.
+
+Staged schema dialect correction: fixed draft-07 (Paseo Ajv8 default), typed
+$schema declaration gate, and format annotations disabled (no ajv-formats in
+reference). Added tuple-items/dialect/format fixtures; not executed yet. OpenAPI
+nullable and other Ajv extensions remain an explicit runtime-promotion debt, not
+a claim of complete validator equivalence.

@@ -381,3 +381,13 @@ command. Promoting it requires the reviewed W22 per-turn contract and full CLI
 regressions. Current pre-create refusal remains. No runtime schema, provider,
 network or file call is silently emulated. Byte/candidate limits and redacted
 errors are deliberate bounds beyond Paseo; no implicit remote refs are supported.
+
+The schema adapter fixes the dialect to draft-07, matching Paseo's default Ajv
+import (agent-response-loop.ts) rather than jsonschema's default 2020-12. A typed
+root $schema header permits omission/canonical draft-07 only; unsupported dialects
+are refused before interpretation. Format annotation checking is disabled to
+match Paseo's Ajv8 without ajv-formats. References: Ajv official
+https://ajv.js.org/json-schema.html#draft-07-default and
+https://ajv.js.org/guide/formats.html. Ajv-specific OpenAPI extensions (e.g. nullable)
+still need explicit parity assessment before runtime promotion; staged standard
+validation tests do not prove those extensions or full Ajv equivalence.

@@ -6,10 +6,33 @@
     reason = "coordinator-approved CLI JSON Schema compiler edge; no Value escapes"
 )]
 
+use serde::Deserialize;
 use vessel_proto::RawJson;
 
 pub(super) const MAX_SCHEMA_BYTES: usize = 65_536;
 pub(super) const MAX_RESPONSE_BYTES: usize = 1_048_576;
+
+#[derive(Default, Deserialize)]
+struct DialectHeader {
+    #[serde(default, rename = "$schema")]
+    dialect: SupportedDialect,
+}
+#[derive(Default, Deserialize)]
+enum SupportedDialect {
+    #[default]
+    #[serde(
+        rename = "http://json-schema.org/draft-07/schema#",
+        alias = "http://json-schema.org/draft-07/schema"
+    )]
+    Draft7,
+}
+impl SupportedDialect {
+    fn version(self) -> jsonschema::Draft {
+        match self {
+            Self::Draft7 => jsonschema::Draft::Draft7,
+        }
+    }
+}
 
 pub(super) struct Schema {
     document: RawJson,
@@ -21,6 +44,8 @@ pub(super) enum SchemaError {
     TooLarge,
     #[error("output schema must be a JSON object")]
     NotObject,
+    #[error("output schema declares an unsupported dialect; use draft-07 or omit $schema")]
+    Dialect,
     #[error("output schema is invalid or requires unavailable external references")]
     Invalid,
 }
@@ -42,7 +67,13 @@ impl Schema {
         if !parsed.is_object() {
             return Err(SchemaError::NotObject);
         }
+        // Paseo imports Ajv's draft-07 class without ajv-formats. Parse the
+        // declared dialect with a closed type, never by traversing Value.
+        let header: DialectHeader =
+            serde_json::from_str(document.as_text()).map_err(|_dialect| SchemaError::Dialect)?;
         let validator = jsonschema::options()
+            .with_draft(header.dialect.version())
+            .should_validate_formats(false)
             .offline()
             .build(&parsed)
             .map_err(|_invalid| SchemaError::Invalid)?;
@@ -102,7 +133,7 @@ mod tests {
             ));
         }
         let internal = Schema::compile(raw(
-            r##"{"$defs":{"word":{"type":"string"}},"$ref":"#/$defs/word"}"##,
+            r##"{"definitions":{"word":{"type":"string"}},"$ref":"#/definitions/word"}"##,
         ))
         .unwrap();
         assert!(internal.validate(raw(r#""ok""#)).is_ok());
@@ -118,6 +149,30 @@ mod tests {
             Schema::compile(raw(r#"{"type":42}"#)),
             Err(SchemaError::Invalid)
         ));
+    }
+    #[test]
+    fn schema_uses_paseo_draft7_and_refuses_other_declared_dialects() {
+        // Tuple items are draft-07; the library's default 2020-12 rejects them.
+        let tuple = Schema::compile(raw(
+            r#"{"type":"array","items":[{"type":"integer"}],"additionalItems":false}"#,
+        ))
+        .unwrap();
+        assert!(tuple.validate(raw("[1]")).is_ok());
+        assert_eq!(
+            tuple.validate(raw("[1,2]")).unwrap_err(),
+            ResponseError::Mismatch
+        );
+        let format = Schema::compile(raw(r#"{"type":"string","format":"email"}"#)).unwrap();
+        assert!(format.validate(raw(r#""not-an-email""#)).is_ok());
+        for unsupported in [
+            r#"{"$schema":"https://json-schema.org/draft/2020-12/schema"}"#,
+            r#"{"$schema":null}"#,
+        ] {
+            assert!(matches!(
+                Schema::compile(raw(unsupported)),
+                Err(SchemaError::Dialect)
+            ));
+        }
     }
     #[test]
     fn schema_and_response_budgets_fail_before_interpretation_and_errors_are_redacted() {
