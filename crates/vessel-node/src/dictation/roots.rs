@@ -100,17 +100,11 @@ impl Factory {
 
     /// Waiting is cancel-safe: the independent producer remains unique.
     pub(super) async fn get(&self) -> Result<Configuration, Arc<RootsError>> {
-        let mut receiver = self
-            .result
-            .get_or_init(|| {
-                Self::initialize(
-                    #[cfg(test)]
-                    self.gate.clone(),
-                    #[cfg(test)]
-                    self.refusal_probe.clone(),
-                )
-            })
-            .clone();
+        #[cfg(test)]
+        let initialize = || Self::initialize(self.gate.clone(), self.refusal_probe.clone());
+        #[cfg(not(test))]
+        let initialize = Self::initialize;
+        let mut receiver = self.result.get_or_init(initialize).clone();
         loop {
             let loaded = receiver.borrow().clone();
             if let Some(result) = loaded {

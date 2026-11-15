@@ -861,3 +861,9 @@ inputs, assertions or product limits. SegmentBuffer now consumes the codec's
 existing validated PCM view instead of leaving that product edge unused. The
 root initializer is associated; its synthetic arguments exist only under test.
 The failed run remains evidence of failure, not runtime or product success.
+
+
+The product root-cache path passes its associated initializer directly to
+OnceLock; only tests close over the synthetic loader arguments. Both paths keep
+one initialization and the same persistent result semantics, without a product
+closure whose arguments disappear under cfg(test).
