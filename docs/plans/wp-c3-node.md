@@ -175,3 +175,22 @@ WORKSPACE_FAMILIES_LATER; their protocol remains unassigned. Both architecture
 additions are retained. This closes the old prefix-family fixture conflict
 without assigning a protocol or changing a legacy call. Gate40's published
 whole results are base evidence only; the combined package still needs checks.
+
+## Recorded base admission
+
+The existing roots::Resolved now carries pinned_base beside its unchanged base
+fallback, captured under the same state lock. Projects have no pinned ref;
+worktrees retain their recorded name before the project fallback. W11 confirmed
+this small addition has no overlap with its registry work. Its first caller is
+the comparison service, which admits a display alias or exact ref, then retains
+the recorded stream. A different qualified ref returns BaseMismatch with both
+typed facts before reserving work; neither ref is labelled correct. Immutable
+commit and uncommitted comparisons retain their separate meanings. This follows
+checkout-git.ts resolveOperationBaseRef/isSameBaseRef rather than a second root
+resolver or a symmetric label comparison.
+
+Real-node fixtures use a worktree created from refs/remotes/upstream/main and
+assert the same-snapshot facts, a successful main display alias, and summary/body
+refusals even after the job tracker stops. Wire tests retain both identities.
+This changed tree still requires narrow checks and execution. Prior base-selection
+clippy at5f726c04 passed; it does not cover this admission addition.

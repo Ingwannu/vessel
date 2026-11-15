@@ -11,7 +11,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::{CommitId, RelPath, WorkspaceRoot, WorktreeBase};
+use super::{CommitId, RefName, RelPath, WorkspaceRoot, WorktreeBase};
 
 /// Pending until the integrator assigns the completed git panel package.
 /// This registers methods through Quality B without inventing a version.
@@ -25,6 +25,13 @@ pub const GIT_PANEL: Option<crate::ProtocolVersion> = None;
 pub enum GitCompared<T> {
     /// No registered or explicit base exists for this comparison.
     NoBase,
+    /// Both facts are retained without declaring either branch correct.
+    BaseMismatch {
+        /// The ref recorded when this worktree was created.
+        stored: RefName,
+        /// The different base selected by the caller.
+        requested: WorktreeBase,
+    },
     /// The protected reader refused a complete result past its output budget.
     TooLarge,
     /// The typed bounded summary or body, preserving all of its fields.
@@ -219,5 +226,28 @@ mod tests {
         assert_ne!(encoded[0], encoded[1]);
         assert_ne!(encoded[0], encoded[2]);
         assert_ne!(encoded[1], encoded[2]);
+    }
+
+    #[test]
+    fn base_mismatch_preserves_both_ref_identities_on_the_wire() {
+        let value: GitCompared<super::super::DiffSummary> = GitCompared::BaseMismatch {
+            stored: "refs/remotes/upstream/main".parse().unwrap(),
+            requested: WorktreeBase::Ref {
+                name: "refs/heads/main".parse().unwrap(),
+            },
+        };
+        let encoded = serde_json::to_value(&value).unwrap();
+        assert_eq!(
+            encoded,
+            serde_json::json!({
+                "kind": "base_mismatch",
+                "stored": "refs/remotes/upstream/main",
+                "requested": { "kind": "ref", "name": "refs/heads/main" }
+            })
+        );
+        assert_eq!(
+            serde_json::from_value::<GitCompared<super::super::DiffSummary>>(encoded).unwrap(),
+            value
+        );
     }
 }

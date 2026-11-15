@@ -25,6 +25,9 @@ pub(crate) struct Resolved {
     /// own (by name when it started from one), else the project's default
     /// branch.
     pub(crate) base: Option<RefName>,
+    /// The worktree’s recorded ref before the project-default fallback.
+    /// Comparison admission needs this fact from the same authority snapshot.
+    pub(crate) pinned_base: Option<RefName>,
 }
 
 impl Resolved {
@@ -42,7 +45,7 @@ impl Workspaces {
     /// the root checks of `policy`.
     pub(crate) async fn resolve(&self, root: WorkspaceRoot) -> Result<Resolved, WorkspaceError> {
         // A worktree's repository is checked with it (`open`).
-        let (path, git, repository, project, worktree, base) = {
+        let (path, git, repository, project, worktree, base, pinned_base) = {
             let state = self.state();
             match root {
                 WorkspaceRoot::Project { project } => {
@@ -63,6 +66,7 @@ impl Workspaces {
                         project,
                         None,
                         entry.info.default_branch.clone(),
+                        None,
                     )
                 }
                 WorkspaceRoot::Worktree { worktree } => {
@@ -75,11 +79,13 @@ impl Workspaces {
                         .projects
                         .get(&project)
                         .ok_or(WorkspaceError::UnknownProject(project))?;
-                    let base = entry
+                    let pinned_base = entry
                         .info
                         .base
                         .as_ref()
-                        .and_then(|start| start.name.clone())
+                        .and_then(|start| start.name.clone());
+                    let base = pinned_base
+                        .clone()
                         .or_else(|| owner.info.default_branch.clone());
                     (
                         entry.info.path.clone(),
@@ -88,6 +94,7 @@ impl Workspaces {
                         project,
                         Some(worktree),
                         base,
+                        pinned_base,
                     )
                 }
             }
@@ -104,6 +111,7 @@ impl Workspaces {
             project,
             worktree,
             base,
+            pinned_base,
         })
     }
 
