@@ -19,6 +19,37 @@ pub(crate) enum ProjectSettingsRefusal {
 }
 
 impl Shell {
+    /// Open a row's project settings without substituting a same-node reconnect.
+    ///
+    /// # Errors
+    /// A retired row, an unhydrated list or a missing project preserves the route.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "sidebar and palette consume this producer after source review"
+        )
+    )]
+    pub(crate) fn open_project_settings_for_connection(
+        &mut self,
+        context: &vessel_app_view::connection::ConnectionContext,
+        project: ProjectId,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> Result<(), ProjectSettingsRefusal> {
+        if self.project_connection(context.machine().as_str()).as_ref() != Some(context) {
+            return Err(ProjectSettingsRefusal::Unavailable);
+        }
+        let host = vessel_app_view::machine_book::Name::parse(context.machine().as_str())
+            .map_err(|_invalid| ProjectSettingsRefusal::Unavailable)?;
+        self.open_project_settings(
+            &ProjectTarget::new(host, context.node()),
+            project,
+            window,
+            cx,
+        )
+    }
+
     /// Open one exact host/project from a sidebar, palette or project row.
     /// All refusals preserve the previous route, host selection and project detail.
     ///

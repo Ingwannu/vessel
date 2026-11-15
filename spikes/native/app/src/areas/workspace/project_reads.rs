@@ -149,7 +149,7 @@ mod tests {
             );
             let selected = ProjectTarget::new(host.clone(), node);
             assert_eq!(
-                shell.open_project_settings(&selected, project.id, window, cx),
+                shell.open_project_settings_for_connection(&context, project.id, window, cx),
                 Ok(())
             );
             assert_eq!(shell.areas.settings.machine.as_deref(), Some(host.as_str()));
@@ -231,6 +231,7 @@ mod tests {
                 )
                 .unwrap();
             shell.fleet.machines[0].connection_epoch = Some(next.epoch());
+            assert_eq!(shell.open_project_settings_for_connection(&context, project.id, window, cx), Err(super::super::project_navigation::ProjectSettingsRefusal::Unavailable));
             assert!(super::super::project_form::for_connection(shell, &context, &tokens, false, cx).is_none());
             assert!(super::super::project_form::for_connection(shell, &next, &tokens, false, cx).is_none());
             assert_eq!(shell.setup_readiness_on(&context), vessel_app_view::workspace::projects::actions::ProjectSetupReadiness::Failed);

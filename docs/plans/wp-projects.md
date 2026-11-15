@@ -436,3 +436,10 @@ can send them; Commands/Approve and other owners' workspace resources retain
 their existing route. The small actor dispatch moved from link/lib.rs into the
 owned project request module, shrinking the crate root. A framed regression
 checks that the old project-write route sends no RPC.
+
+The corresponding project-settings sink is now
+`open_project_settings_for_connection(&ConnectionContext, ProjectId, ...)`.
+It validates the row's original admission before the existing checked cache and
+project membership route. It is the intended cross-area sink for S2/palette;
+WorkspaceId-based activation still belongs to the pending registry projection
+and W12's one activation adapter. Current-source checks remain owed.
