@@ -5,6 +5,7 @@ mod choices;
 mod draw;
 mod inputs;
 mod lifecycle;
+mod preferences;
 use crate::shell::Shell;
 pub(super) use choices::popup;
 pub(super) use draw::render;
@@ -447,7 +448,7 @@ fn save(shell: &mut Shell, visit: Visit, _window: &mut Window, cx: &mut Context<
     };
     if let Some(request) = shell.areas.schedules.data.editor.save(visit, candidate) {
         hold(shell, cx);
-        shell.command(Command::Schedules(request.into()));
+        preferences::dispatch(shell, request, cx);
         let _changed = shell.schedules_changed(cx);
         cx.notify();
     }

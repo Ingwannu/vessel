@@ -195,7 +195,9 @@ fn choose(
         match choice {
             Choice::Host(context) => choose_host(shell, visit, context, window, cx),
             Choice::Project(project) => {
-                let _changed = shell.areas.schedules.data.editor.project(visit, project);
+                if shell.areas.schedules.data.editor.project(visit, project) {
+                    super::preferences::after_project(shell, visit);
+                }
             }
             Choice::Agent(harness) => {
                 browser::drill(shell, visit, harness, window, cx);

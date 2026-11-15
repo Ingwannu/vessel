@@ -1,6 +1,7 @@
 //! Actual mount/dismiss and read preparation; no second field or focus engine.
 use super::{Command, Context, OpeningError, Shell, Window, io};
 pub(in crate::areas::schedules) fn ready_choices(shell: &mut Shell) {
+    super::preferences::restore(shell);
     let model = &shell.areas.schedules.data.editor;
     if model.targets().is_none()
         || model.operations().any(|slot| {

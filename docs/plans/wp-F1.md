@@ -1679,3 +1679,15 @@ The shared F1 picks projection now follows actual agent application order:
 legacy model first, then explicit choices. An unavailable default is not a
 valid model merely because no explicit model was set. These were source gaps,
 not parity exceptions; all new pure/caller tests and checks remain owed.
+
+
+The app now wraps only new-session saves with those choices in the existing
+Prefs snapshot; heartbeat goes through the ordinary request unchanged. As in
+the native draft composer, current-launch cache updates preserve all unrelated
+settings, host and folders; the ordered actor outcome separately controls
+whether a node RPC is admitted. A cache update is not a claim of disk success.
+A fresh project seeds an available remembered provider (or first available),
+and a matching received catalog restores only valid model/mode/thinking values
+into an unedited create. An existing edit/explicit selection is never replaced.
+No browser-only profiles or isolation fields are invented. Actual failure/
+write-order/disk readback and consumer UI remain unverified at this checkpoint.
