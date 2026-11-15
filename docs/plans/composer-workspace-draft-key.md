@@ -28,7 +28,7 @@ Context/history intake refuses a new occupied-slot overflow before calling the l
 
 Creation now reserves an additional byte/context tray slot before any create effect, because newer input may remain in the source while its captured snapshot transfers. New owners count those reservations during intake; empty remnants alone are pruned, while suppressed context and pending revisions remain protected. If every slot contains retained data, preparation refuses Capacity before the create call. A regression fills the remaining slots, adds newer source input, completes in the background and requires every sibling plus both source/destination to survive. Completion also refuses an already-owned session destination instead of replacing its pending submission.
 
-The producer also reports a context-only pump followup: it must use a temporary empty byte tray rather than allocate/evict a persistent byte slot. That separate code dependency is not included in this portable scoped-card commit and remains to be adopted here.
+The context-only pump uses a temporary empty byte tray when none exists. Merely submitting context cannot allocate a persistent byte slot or evict an unrelated file owner; its regression fills all byte slots and requires them to survive context-only dispatch.
 
 
 ## Scoped card and effective selection

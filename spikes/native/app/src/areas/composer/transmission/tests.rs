@@ -81,3 +81,67 @@ fn uncertainty_keeps_exact_payload_and_only_matching_completion_can_consume_it(
         );
     });
 }
+
+#[gpui::test]
+fn context_only_submission_does_not_evict_a_full_book_of_unrelated_byte_trays(
+    cx: &mut TestAppContext,
+) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, _window, cx| {
+        let mut siblings = Vec::new();
+        for _ in 0..vessel_app_view::composer::trays::Trays::MAX {
+            let key = DraftKey::Session {
+                session: SessionId::random(),
+            };
+            shell.composer_add(
+                key,
+                vec![crate::areas::composer::attach::Incoming::pasted(
+                    "image/png",
+                    vec![1],
+                )],
+                cx,
+            );
+            siblings.push(key);
+        }
+        let session = SessionId::random();
+        let target = DraftKey::Session { session };
+        let tray = shell.areas.composer.contexts.tray(target);
+        tray.add(ContextAttachment::Snapshot {
+            kind: ContextKind::Review,
+            payload: Payload {
+                id: ContextId::parse("review").unwrap(),
+                title: ContextTitle::parse("Review").unwrap(),
+                text: ContextText::parse("context only").unwrap(),
+                url: None,
+            },
+        })
+        .unwrap();
+        let context = tray.prepare().unwrap();
+        drop(shell.areas.composer.sends.insert(
+            session,
+            Waiting {
+                message: vessel_proto::timeline::ClientMessageId::random(),
+                machine: Name::parse("fixture").unwrap(),
+                expected_node: NodeId::random(),
+                text: String::new(),
+                context,
+                phase: Phase::Preparing,
+                local_files: Vec::new(),
+                delivery: Delivery::Start,
+                creation: None,
+            },
+        ));
+        shell.composer_pump(session, cx);
+        assert!(matches!(
+            shell.areas.composer.sends[&session].phase,
+            Phase::Submitting(_)
+        ));
+        assert!(
+            siblings
+                .into_iter()
+                .all(|key| shell.composer_has_files(key))
+        );
+        assert!(shell.areas.composer.trays.get(target).is_none());
+    });
+}
