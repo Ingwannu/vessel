@@ -47,6 +47,15 @@ pub struct Action<V> {
     state: ButtonState,
     press: OnPress<V>,
 }
+impl<V> std::fmt::Debug for Action<V> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Action")
+            .field("label", &self.label)
+            .field("kind", &self.kind)
+            .field("state", &self.state)
+            .finish_non_exhaustive()
+    }
+}
 impl<V> Action<V> {
     /// Create an enabled action with its whole translated label.
     #[must_use]
@@ -98,6 +107,41 @@ pub struct Content<V> {
     pub actions: Actions<V>,
     /// Absent for nondismissible notices.
     pub dismiss: Option<Dismiss<V>>,
+}
+
+// UI callbacks and erased elements intentionally do not require Debug on
+// the caller's entire application state or attempt to inspect element data.
+impl<V> std::fmt::Debug for Actions<V> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::None => f.write_str("None"),
+            Self::One(action) => f.debug_tuple("One").field(action).finish(),
+            Self::Two(first, second) => f.debug_tuple("Two").field(first).field(second).finish(),
+        }
+    }
+}
+impl<V> std::fmt::Debug for Dismiss<V> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Dismiss").finish_non_exhaustive()
+    }
+}
+impl std::fmt::Debug for Description {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Text(text) => f.debug_tuple("Text").field(text).finish(),
+            Self::Content(_) => f.debug_struct("Content").finish_non_exhaustive(),
+        }
+    }
+}
+impl<V> std::fmt::Debug for Content<V> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Content")
+            .field("title", &self.title)
+            .field("description", &self.description)
+            .field("actions", &self.actions)
+            .field("dismiss", &self.dismiss)
+            .finish_non_exhaustive()
+    }
 }
 
 /// Draw one strip, with natural height and no section height budget.
