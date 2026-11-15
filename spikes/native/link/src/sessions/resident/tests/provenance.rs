@@ -4,17 +4,19 @@ use vessel_proto::{Call, GetSession, Mark, Outcome, Reply, conversation::MarkSes
 
 async fn wrong_reply(fixture: &mut Fixture, mutation: bool) -> SessionInfo {
     let session = fixture.binding.resident.address.session;
+    // Clone the same original lease, keeping peer-response mutation separate
+    // from the async request's borrow; this does not resolve another client.
+    let selected = fixture.selected.clone();
     let request = async {
         if mutation {
-            fixture
-                .selected
+            selected
                 .call(MarkSession {
                     session,
                     mark: Mark::Archive,
                 })
                 .await
         } else {
-            fixture.selected.call(GetSession { session }).await
+            selected.call(GetSession { session }).await
         }
     };
     tokio::pin!(request);
