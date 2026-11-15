@@ -166,3 +166,11 @@ usage-timestamp = { DATETIME($at) }
 usage-value-used = { $percentage } used
 # Whole remaining percentage label. $percentage includes its percent sign.
 usage-value-remaining = { $percentage } remaining
+# Account limits: explicit policy action or whole window label, with provider-supplied data.
+usage-enable-lookup = Enable account checks
+# Account limits: explicit policy action or whole window label, with provider-supplied data.
+usage-disable-lookup = Disable account checks
+# Account limits: explicit policy action or whole window label, with provider-supplied data.
+usage-scoped-window = { $scope } · { $period }
+# Account limits: explicit policy action or whole window label, with provider-supplied data.
+usage-duration-window = Reported window ({ $milliseconds } ms)

@@ -9,7 +9,8 @@ const FULL_PERCENT: f64 = 100.0;
 const EMPTY_PERCENT: f64 = 0.0;
 
 /// Paseo's used/remaining choice changes presentation only.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum DisplayAs {
     /// Default display is consumption already reported.
     #[default]

@@ -166,3 +166,11 @@ usage-timestamp = { DATETIME($at) }
 usage-value-used = { $percentage } 사용됨
 # Whole remaining percentage label. $percentage includes its percent sign.
 usage-value-remaining = { $percentage } 남음
+# Account limits: explicit policy action or whole window label, with provider-supplied data.
+usage-enable-lookup = 계정 조회 켜기
+# Account limits: explicit policy action or whole window label, with provider-supplied data.
+usage-disable-lookup = 계정 조회 끄기
+# Account limits: explicit policy action or whole window label, with provider-supplied data.
+usage-scoped-window = { $scope } · { $period }
+# Account limits: explicit policy action or whole window label, with provider-supplied data.
+usage-duration-window = 보고된 한도 ({ $milliseconds }ms)
