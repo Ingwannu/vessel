@@ -205,30 +205,50 @@ impl Shell {
             Answer::Root(answer) => self.composer_mention_root(answer, cx),
             Answer::Suggestions(answer) => self.composer_mention_answer(answer, cx),
             Answer::Capabilities { ask, result } => self.composer_capabilities(&ask, result, cx),
-            Answer::Woke { session, outcome } => match outcome {
-                vessel_app_link::attachments::WakeOutcome::Ready => self.resumed(session, cx),
-                vessel_app_link::attachments::WakeOutcome::Refused => {
-                    if let Some(waiting) = self.areas.composer.sends.remove(&session)
-                        && let Some(context) = &waiting.context
-                        && let Some(tray) = self
-                            .areas
-                            .composer
-                            .contexts
-                            .get_mut(DraftKey::Session { session })
-                    {
-                        let _settled = tray.settle(
-                            context,
-                            vessel_app_view::composer::context::SubmissionOutcome::Failed,
-                        );
-                    }
-                    self.resume_failed(
-                        session,
-                        self.words.composer().file_wake_failed().to_owned(),
-                    );
-                    cx.notify();
+            Answer::Woke {
+                message,
+                session,
+                outcome,
+            } => {
+                if !self
+                    .areas
+                    .composer
+                    .sends
+                    .get(&session)
+                    .is_some_and(|waiting| waiting.message == message)
+                {
+                    return;
                 }
-            },
-            Answer::Upload { session, key, step } => self.composer_upload(session, key, step, cx),
+                match outcome {
+                    vessel_app_link::attachments::WakeOutcome::Ready => self.resumed(session, cx),
+                    vessel_app_link::attachments::WakeOutcome::Refused => {
+                        if let Some(waiting) = self.areas.composer.sends.remove(&session)
+                            && let Some(context) = &waiting.context
+                            && let Some(tray) = self
+                                .areas
+                                .composer
+                                .contexts
+                                .get_mut(DraftKey::Session { session })
+                        {
+                            let _settled = tray.settle(
+                                context,
+                                vessel_app_view::composer::context::SubmissionOutcome::Failed,
+                            );
+                        }
+                        self.resume_failed(
+                            session,
+                            self.words.composer().file_wake_failed().to_owned(),
+                        );
+                        cx.notify();
+                    }
+                }
+            }
+            Answer::Upload {
+                message,
+                session,
+                key,
+                step,
+            } => self.composer_upload(session, &message, key, step, cx),
             Answer::Read { sent, bytes } => self.sent_image_received(sent, bytes, cx),
         }
     }

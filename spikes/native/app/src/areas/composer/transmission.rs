@@ -41,6 +41,7 @@ impl Shell {
             .into_iter()
             .map(|(item, resume)| {
                 Command::Files(Files::Send(Attach {
+                    message: waiting.message.clone(),
                     machine: waiting.machine.clone(),
                     expected_node: waiting.expected_node,
                     session,

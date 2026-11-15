@@ -9,15 +9,16 @@
 //! agent has said what it takes (its first records) the files go and the
 //! prompt follows (the node takes a file only into a live session).
 
+mod upload;
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::Command;
-use vessel_app_link::attachments::{Files, Step};
+use vessel_app_link::attachments::Files;
 use vessel_app_view::Card;
 use vessel_app_view::composer::drafts::DraftKey;
-use vessel_app_view::composer::tray::{ItemKey, ItemState, Origin, Target};
+use vessel_app_view::composer::tray::{ItemState, Origin, Target};
 use vessel_proto::{AttachmentLimits, Delivery, SessionId};
 
 use crate::shell::Shell;
@@ -346,7 +347,7 @@ impl Shell {
         drop(self.areas.composer.sends.insert(
             session,
             Waiting {
-                message,
+                message: message.clone(),
                 local_files,
                 phase: super::transmission::Phase::Preparing,
                 context,
@@ -362,6 +363,7 @@ impl Shell {
         self.areas.session.resume_error = None;
         self.command(Command::Files(Files::Wake(
             vessel_app_link::attachments::Wake {
+                message,
                 machine: key,
                 expected_node,
                 session,
@@ -462,34 +464,5 @@ impl Shell {
         if starting.ticket.is_none() {
             self.composer_pump(session, cx);
         }
-    }
-
-    /// A step of a file's upload to `session`: its tray follows (a tray
-    /// dropped since, or a file removed since, takes nothing), and the
-    /// next file, or the prompt, goes.
-    pub(crate) fn composer_upload(
-        &mut self,
-        session: SessionId,
-        key: ItemKey,
-        step: Step,
-        cx: &mut Context<'_, Self>,
-    ) {
-        let Some(tray) = self
-            .areas
-            .composer
-            .trays
-            .get_mut(DraftKey::Session { session })
-        else {
-            return;
-        };
-        match step {
-            Step::Progress(received) => tray.progress(key, received),
-            Step::Done(attachment) => tray.uploaded(key, attachment),
-            Step::Failed { problem, again } => {
-                tracing::info!(?problem, ?again, "a file's upload failed");
-                tray.failed(key, problem, again);
-            }
-        }
-        self.composer_pump(session, cx);
     }
 }

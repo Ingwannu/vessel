@@ -261,3 +261,8 @@ Tests cover static PNG byte preservation, BMP conversion, invalid/oversized inpu
 ### Sent preview destination pin
 
 Sent image identity now includes the verified welcome NodeId as well as machine label/session/attachment. The existing attachment_client boundary and read collector both reject a rebound peer before issuing attachment.read; a late reply remains keyed to its old node and cannot populate the replacement node's image slot. No new registry or wire method is introduced. The in-memory peer test requires zero requests on wrong-node refusal, and a pure cache regression isolates equal label/session/attachment values across nodes. This pin does not establish the future resident connection lease or broaden the selected conversation's authority.
+
+
+### Late upload/resume reply correlation
+
+Upload and resume envelopes now carry the same existing canonical ClientMessageId allocated before preparation. The link echoes it on every progress/final/unsent/demo reply; no new identifier or wire method is introduced. The owner accepts progress only for that pending submission in Preparing phase and an actively uploading item. A reused tray ItemKey cannot let an old task fail or complete a newer prompt, and a late resume refusal cannot remove its pending owner. The regression sends an old id against a new uploading file and resume, then requires the matching id alone to change the file. This local correlation is not a substitute for the future resident OperationTicket/connection lease or the inactive keyed server receipt contract.

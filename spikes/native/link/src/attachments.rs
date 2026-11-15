@@ -97,6 +97,8 @@ pub enum Answer {
     },
     /// A session resumed before its files upload; failure is translated by the area.
     Woke {
+        /// Original immutable submission owner, before asynchronous resume.
+        message: vessel_proto::timeline::ClientMessageId,
         /// The session whose composer waits.
         session: SessionId,
         /// The node accepted the resume or the files remain in the tray.
@@ -104,6 +106,8 @@ pub enum Answer {
     },
     /// A step of a composer's file on its way to its session.
     Upload {
+        /// An old tray operation cannot settle a newer submission.
+        message: vessel_proto::timeline::ClientMessageId,
         /// The session.
         session: SessionId,
         /// The file's place in the composer's tray.
@@ -137,6 +141,8 @@ pub struct Create {
 /// One file to send.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Attach {
+    /// Same local submission identity retained through upload and retry.
+    pub message: vessel_proto::timeline::ClientMessageId,
     /// The machine.
     pub machine: Name,
     /// The immutable welcome identity admitted before preparation.
@@ -216,6 +222,8 @@ pub enum ReadProblem {
 /// An existing session must be live before the node will accept files.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Wake {
+    /// Same local submission identity retained while resume is asynchronous.
+    pub message: vessel_proto::timeline::ClientMessageId,
     /// Validated book identity, rather than a display label.
     pub machine: Name,
     /// The immutable welcome identity admitted before preparation.

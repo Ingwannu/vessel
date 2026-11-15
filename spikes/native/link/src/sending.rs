@@ -121,6 +121,7 @@ impl State {
             }
         };
         self.emit(Event::Files(attachments::Answer::Woke {
+            message: wake.message,
             session: wake.session,
             outcome,
         }))

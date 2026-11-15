@@ -27,10 +27,17 @@ pub(crate) fn spawn(
     drop(tokio::spawn(async move {
         let session = attach.session;
         let key = attach.key;
+        let message = attach.message.clone();
         let tell = |step: Step| {
             let events = events.clone();
+            let message = message.clone();
             async move {
-                let upload = Answer::Upload { session, key, step };
+                let upload = Answer::Upload {
+                    message,
+                    session,
+                    key,
+                    step,
+                };
                 let _closed = events.send(Event::Files(upload)).await;
             }
         };
