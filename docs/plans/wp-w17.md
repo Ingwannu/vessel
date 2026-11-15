@@ -31,7 +31,7 @@ request → typed response → presentation → stdout. Stream/attach paths reta
 No live node, real provider, credential store or production configuration is used for checks.
 Existing CLI modules remain the authority for lifecycle/daemon/scripts.
 
-## Current integration state (2026-11-15 14:56 UTC)
+## Current integration state (2026-11-15 15:00 UTC)
 
 The table below is the initial 117-path inventory, not a current green checklist.
 The [current invocation map](wp-w17-current.md) records source adapters and refusals
@@ -1173,3 +1173,30 @@ steps are source-red evidence, not an executed test or latest strict pass.
 
 Capture remains Silent. NodeAuthority separately awaits C2's reviewed and gated
 same-parser presentation suppression; the CLI frame renderer is a later consumer.
+
+### Structured response fence selection (2026-11-15 15:00 UTC)
+
+[Decision Log]
+- Purpose: preserve the pinned agent-response-loop.ts extractJsonFromMarkdown
+  selection before JSON snippet fallback, including malformed fenced responses.
+- Existing constraint: the staged RawJson decoder inspected only the first triple
+  and allowed a closing triple without its preceding newline. The reference regex
+  searches later/overlapping triples and uses greedy opening whitespace.
+- Alternatives: add a regex dependency or parse a dynamic JSON tree; neither is
+  needed. Reuse string slicing and the existing RawValue decoder instead.
+- Choice: scan bounded overlapping triple candidates, preserve the newline and
+  greedy-whitespace ordering, and use the exact ECMAScript whitespace set for
+  fence admission/trim (BOM included, NEL excluded). Invalid matched fences remain
+  authoritative and do not fall back to an earlier valid JSON object.
+- Reason/consequences: named128 fence and128 snippet candidate bounds cap work
+  within the existing1MiB response bound. Exceeding the fence budget is a typed
+  processing refusal rather than a byte-limit claim or retry. This resource bound
+  differs from the unbounded reference scan. No new dependency or wire type.
+
+An independent Node regex oracle found a greedy-whitespace counterexample during
+development; the corrected algorithm projection matched20,000 deterministic strings.
+That is algorithm-only evidence, not executed Rust. Added Rust oracle regressions
+for inline closing, overlapping triples, non-JSON first fences, greedy blank lines,
+BOM/NEL and the explicit work bound; the next remote CLI suite must execute them.
+Schema interpretation remains cfg(test), with W22 runtime transport and Ajv extension
+equivalence still owed. No current host test or earlier134-unit pass covers this delta.

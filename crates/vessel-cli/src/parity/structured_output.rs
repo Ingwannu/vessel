@@ -31,6 +31,8 @@ enum GenerationError<E> {
     Caller(#[source] E),
     #[error("structured response exceeds the CLI byte budget")]
     TooLarge,
+    #[error("structured response exceeds the CLI fence processing budget")]
+    FenceBudget,
     #[error("agent response did not match the required output schema after two retries")]
     Exhausted,
 }
@@ -49,6 +51,7 @@ where
         let raw = match response::decode(&text) {
             Ok(raw) => raw,
             Err(response::DecodeError::TooLarge) => return Err(GenerationError::TooLarge),
+            Err(response::DecodeError::FenceBudget) => return Err(GenerationError::FenceBudget),
             Err(response::DecodeError::Invalid) => continue,
         };
         match schema.validate(raw) {
