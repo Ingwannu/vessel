@@ -380,3 +380,11 @@ ports, terminal commands and allocation blocks to an invalid set on every
 approval-bearing reply. The app adds no independent version guess or bypass.
 Its full declaration renderer is prepared for the reviewed joint adoption;
 current protocol replies do not activate allocator or environment behavior.
+
+The layout owner confirmed that tab existence and visibility alone do not prove
+that a retargeted tab still hosts Scripts. Its effective focused selection is
+also insufficient for a visible background pane. Until the reviewed exact-tab
+`layout_tab_matches` producer is adopted, the Scripts panel displays unavailable
+and its owner adapter refuses reads/actions. The project-settings card uses its
+independent captured project admission. No target cache or selected-session
+fallback is introduced. The reserved adapter will call the single owner query.

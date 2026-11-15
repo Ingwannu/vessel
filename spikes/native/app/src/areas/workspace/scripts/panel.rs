@@ -54,6 +54,13 @@ fn target(shell: &Shell, surface: &Surface) -> Option<Target> {
     Target::legacy_panel(context, surface.clone())
 }
 
+// The layout owner is preparing an existing-only exact-tab target query. Until
+// that checked seam is adopted, no selected/focused target can prove a visible
+// background pane's identity. This adapter therefore refuses, without a cache.
+fn target_matches(_shell: &Shell, _workspace: &LayoutKey, _tab: TabId) -> bool {
+    false
+}
+
 pub(crate) fn render(
     shell: &Shell,
     panel: &PanelContext<'_>,
@@ -61,7 +68,9 @@ pub(crate) fn render(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    if matches!(panel.workspace, LayoutKey::Workspace { .. }) {
+    if matches!(panel.workspace, LayoutKey::Workspace { .. })
+        || !target_matches(shell, panel.workspace, panel.tab)
+    {
         return super::ports::notice(shell.words.layout().panel_unavailable(), tokens)
             .into_any_element();
     }
@@ -174,7 +183,8 @@ impl Shell {
         let Some((workspace, tab)) = key(&expected.surface) else {
             return false;
         };
-        self.layout_tab_exists(workspace, tab)
+        target_matches(self, workspace, tab)
+            && self.layout_tab_exists(workspace, tab)
             && target(self, &expected.surface).as_ref() == Some(expected)
             && self
                 .areas
@@ -200,6 +210,9 @@ impl Shell {
         let Some((workspace, tab)) = key(surface) else {
             return;
         };
+        if !target_matches(self, workspace, tab) {
+            return;
+        }
         let request = {
             let mut states = self.areas.workspace.scripts.panels.borrow_mut();
             let Some(controls) = states.get_mut(&(workspace.clone(), tab)) else {
