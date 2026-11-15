@@ -279,3 +279,12 @@ calls. All-window registry traversal is in local_node/documents.rs, the host
 adapter. C5 can consume the control blobs without importing the provisional E3
 branch; the adapter still uses the one existing desktop registry. The policy and
 callback signatures are unchanged, including direct admit_shell for E3 closes.
+
+The shell owner's source-only 9066c757 deferred window guard is adopted with its
+real GPUI regression, adapted only to this tree's existing Shell::without_io
+fixture. The one registration beside set_quit_handler passes quit::admit_shell.
+Additional/macOS close waits until the initiating entity borrow ends, coalesces
+requests, and rechecks last non-macOS status before removal. A whole-app quit in
+flight refuses individual window removal so failure/prompt targets remain alive;
+this uses the same app::quit phase, not a second manager. Runtime union proof is
+still pending; the two source packages' prior scoped results do not cover this.

@@ -20,7 +20,15 @@ pub(crate) use windows::open_additional;
 struct WindowRecord {
     window: AnyWindowHandle,
     shell: WeakEntity<Shell>,
+    close: WindowClose,
 }
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum WindowClose {
+    Idle,
+    Checking,
+}
+type WindowCloseHandler = fn(&mut Shell, &mut gpui::Context<'_, Shell>) -> bool;
 
 pub(crate) struct Desktop {
     records: Vec<WindowRecord>,
@@ -29,6 +37,7 @@ pub(crate) struct Desktop {
     writer: Option<WindowWriter>,
     environment: ShellEnvironment,
     quit: Option<fn(&mut App)>,
+    window_close: Option<WindowCloseHandler>,
     session: Option<SessionHandler>,
     project: Option<ProjectHandler>,
     preferences: Coordinator,
@@ -66,6 +75,7 @@ impl Desktop {
             writer,
             environment,
             quit: None,
+            window_close: None,
             session: None,
             project: None,
             preferences,
@@ -129,6 +139,13 @@ pub(crate) fn drain_pending(
 pub(crate) fn set_quit_handler(handler: fn(&mut App), cx: &mut App) {
     if cx.has_global::<Desktop>() {
         cx.global_mut::<Desktop>().quit = Some(handler);
+    }
+}
+
+/// The document owner admits window removal after initiating Shell borrows end.
+pub(crate) fn set_window_close_handler(handler: WindowCloseHandler, cx: &mut App) {
+    if cx.has_global::<Desktop>() {
+        cx.global_mut::<Desktop>().window_close = Some(handler);
     }
 }
 

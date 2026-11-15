@@ -48,6 +48,7 @@ pub(crate) fn ensure(prefs: &vessel_app_link::Prefs, cx: &mut App) {
         unavailable,
     });
     crate::desktop::set_quit_handler(request_quit, cx);
+    crate::desktop::set_window_close_handler(crate::quit::admit_shell, cx);
     // OS shutdown bypasses menu cancellation. Preserve active work by releasing
     // only an owned child if its protected graceful stop is refused. This never
     // sends an unconfirmed StopWhen::Now to a reused or owned node.

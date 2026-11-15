@@ -1,6 +1,6 @@
 //! The first window restores state; additional windows have independent placement.
 
-use super::{Desktop, WindowRecord};
+use super::{Desktop, WindowClose, WindowRecord};
 use crate::shell::Shell;
 use gpui::{App, AppContext as _, Bounds, Context, Pixels, Window, WindowBounds, point, size};
 use vessel_app_link::desktop::instance::Launch;
@@ -22,17 +22,77 @@ pub(crate) fn open_additional(cx: &mut App) {
 
 /// Last-window removal waits for the same owned-node quit boundary as the menu.
 pub(super) fn request_close(window: &mut Window, cx: &mut App) {
-    if may_close(cx) {
+    if may_close(window, cx) {
         window.remove_window();
     }
 }
 
-fn may_close(cx: &mut App) -> bool {
+fn may_close(window: &mut Window, cx: &mut App) -> bool {
     if !cfg!(target_os = "macos") && cx.windows().len() <= 1 {
         super::request_quit(cx);
         false
     } else {
-        true
+        guarded_close(window, cx)
+    }
+}
+
+fn guarded_close(window: &Window, cx: &mut App) -> bool {
+    let Some(handler) = cx
+        .try_global::<Desktop>()
+        .and_then(|desktop| desktop.window_close)
+    else {
+        return true;
+    };
+    let desktop = cx.global_mut::<Desktop>();
+    let Some(record) = desktop
+        .records
+        .iter_mut()
+        .find(|record| record.window == window.window_handle())
+    else {
+        return true;
+    };
+    if record.close == WindowClose::Checking {
+        return false;
+    }
+    record.close = WindowClose::Checking;
+    let record = record.clone();
+    // Shortcut/menu close can run while its Shell is mutably borrowed. Reading
+    // its documents here would reborrow and panic, so admission runs next turn.
+    cx.defer(move |cx| {
+        if !cfg!(target_os = "macos") && cx.windows().len() <= 1 {
+            reset_close(&record, cx);
+            super::request_quit(cx);
+            return;
+        }
+        let result = record.window.update(cx, |_root, window, cx| {
+            let admitted = record
+                .shell
+                .upgrade()
+                .is_none_or(|shell| shell.update(cx, |shell, cx| handler(shell, cx)));
+            if admitted {
+                if !cfg!(target_os = "macos") && cx.windows().len() <= 1 {
+                    super::request_quit(cx);
+                } else {
+                    window.remove_window();
+                }
+            }
+        });
+        reset_close(&record, cx);
+        if let Err(error) = result {
+            tracing::warn!(%error,"window close target is no longer available");
+        }
+    });
+    false
+}
+
+fn reset_close(record: &WindowRecord, cx: &mut App) {
+    if let Some(retained) = cx
+        .global_mut::<Desktop>()
+        .records
+        .iter_mut()
+        .find(|retained| retained.window == record.window)
+    {
+        retained.close = WindowClose::Idle;
     }
 }
 
@@ -89,12 +149,13 @@ fn open(placement: Placement, launch: Option<Launch>, cx: &mut App) {
     }
     let primary = matches!(placement, Placement::Primary);
     match cx.open_window(options, move |window, cx| {
-        window.on_window_should_close(cx, |_window, cx| may_close(cx));
+        window.on_window_should_close(cx, |window, cx| may_close(window, cx));
         crate::motion::note_renderer(window, cx);
         let shell = cx.new(|cx| Shell::new(prefs, language, words, window, cx));
         cx.global_mut::<Desktop>().records.push(WindowRecord {
             window: window.window_handle(),
             shell: shell.downgrade(),
+            close: WindowClose::Idle,
         });
         shell.update(cx, |shell, cx| {
             if primary {
@@ -184,3 +245,6 @@ fn remember(window: &Window, cx: &mut App) {
         tracing::warn!(%error,"window position could not be queued for saving");
     }
 }
+
+#[cfg(test)]
+mod tests;

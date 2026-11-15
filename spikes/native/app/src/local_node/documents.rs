@@ -15,9 +15,7 @@ pub(crate) fn admit(cx: &mut App) -> bool {
         return true;
     };
     crate::desktop::with_focused_shell(cx, |shell, _window, cx| {
-        if quit::admit_shell(shell, cx) {
-            let _refused = quit::report(shell, blocked, cx);
-        }
+        let _refused = quit::report(shell, blocked, cx);
     });
     false
 }

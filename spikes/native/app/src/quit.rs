@@ -84,6 +84,11 @@ pub(crate) fn readiness(shell: &Shell, cx: &App) -> DocumentReadiness {
 /// The same owner guards additional-window/macOS close before removal.
 #[must_use]
 pub(crate) fn admit_shell(shell: &mut Shell, cx: &mut gpui::Context<'_, Shell>) -> bool {
+    if is_finalizing(cx) {
+        shell.notice = Some(shell.words.quit().finalizing().to_owned());
+        cx.notify();
+        return false;
+    }
     let readiness = readiness(shell, cx);
     report(shell, readiness, cx)
 }
