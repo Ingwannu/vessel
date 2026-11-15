@@ -195,7 +195,7 @@ fn invoke(item: Item, cx: &mut App) {
     // then no recorder or Shell to admit these two process-level commands.
     if cx.windows().is_empty() {
         if matches!(item, Item::Desktop(DesktopAction::NewWindow)) {
-            crate::desktop::open_additional(cx);
+            let _delivery = crate::host_windows::open_additional(cx);
             return;
         }
         if matches!(item, Item::Quit) {

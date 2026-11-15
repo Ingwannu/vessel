@@ -452,9 +452,23 @@ native-menu/recorder or physical keyboard result is inferred.
 
 The sole host registry has a separate isolated producer on announced82ca07a7.
 Its exact d8b73397 selected suite passed1490/0/2, including five host-window cases
-and the reviewed root helper; V1 row273 review is pending. This E3 tree contains
-the move-only registry prerequisite and provisional root helper, but does not yet
-consume that reviewed host dispatch/factory union. No second list is introduced.
+and the root helper; V1 row273 accepted bounded source and the selected checks.
+This E3 tree merged the selected owner, preserving its existing close-coalescing
+field. Desktop startup installs the real window factory; all actual creations
+register through the owner, and menus/launches use its root-checked dispatch.
+The former E3 selector and duplicate registry cleanup were removed. No second
+list or notice/context authority is introduced; this receiving union is unchecked.
+
+Global lifecycle traversal needs a stronger boundary than choosing one valid
+window. host_windows::shells now returns a typed Unavailable if any live handle
+is missing, duplicated, expired or has replaced its registered root. desktop::shells
+delegates to it and requires App-level mutable access after all window/Shell
+borrows end. The preference currentness fence uses that same enumeration and
+also refuses a current Shell without its canonical Client. A partial weak list
+can no longer grant global admission. New direct/wrapped/unknown/root-replacement
+and real preference-fence regressions are installed but not executed yet. W15's
+document guard must refuse this result, not omit the successor; its actual
+consumer and the receiving source/runtime checks remain required.
 
 Before handoff: finish owner integrations, run focused checks, freeze one final
 commit/base, run the whole native gate with app-only export, then inspect EN/KO

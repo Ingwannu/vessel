@@ -55,16 +55,17 @@ fn app_fence_rejects_late_geometry_and_unreconciled_preference_edits(cx: &mut Te
             });
     });
     cx.run_until_parked();
-    let flushing = cx.update(|_, cx| flush_state(cx));
+    let flushing = cx.cx.update(|cx| flush_state(cx));
     let moved = WindowState::new(Some((40.0, 50.0)), 900.0, 700.0, Presentation::Windowed).unwrap();
-    cx.update(|_, cx| {
+    cx.cx.update(|cx| {
         cx.global_mut::<Desktop>().remember(moved);
     });
     let old = super::super::testing::wait(flushing).unwrap();
-    cx.update(|_, cx| assert!(matches!(flush_current(&old, cx), StateReadiness::Changed)));
-    let flushing = cx.update(|_, cx| flush_state(cx));
+    cx.cx
+        .update(|cx| assert!(matches!(flush_current(&old, cx), StateReadiness::Changed)));
+    let flushing = cx.cx.update(|cx| flush_state(cx));
     let current = super::super::testing::wait(flushing).unwrap();
-    cx.update(|_, cx| {
+    cx.cx.update(|cx| {
         assert!(matches!(
             flush_current(&current, cx),
             StateReadiness::LaunchOnly
@@ -74,22 +75,22 @@ fn app_fence_rejects_late_geometry_and_unreconciled_preference_edits(cx: &mut Te
     shell.update_in(cx, |shell, window, cx| {
         shell.prefer(&PreferenceChange::Theme(Theme::Light), window, cx)
     });
-    cx.update(|_, cx| {
+    cx.cx.update(|cx| {
         assert!(matches!(
             flush_current(&current, cx),
             StateReadiness::Changed
         ))
     });
-    let flushing = cx.update(|_, cx| flush_state(cx));
+    let flushing = cx.cx.update(|cx| flush_state(cx));
     let written = super::super::testing::wait(flushing).unwrap();
-    cx.update(|_, cx| {
+    cx.cx.update(|cx| {
         assert!(matches!(
             flush_current(&written, cx),
             StateReadiness::Changed
         ))
     });
     cx.run_until_parked();
-    cx.update(|_, cx| {
+    cx.cx.update(|cx| {
         assert!(matches!(
             flush_current(&written, cx),
             StateReadiness::LaunchOnly
@@ -122,4 +123,51 @@ fn equal_bounds_after_intervening_publications_still_require_a_fresh_receipt(
         ));
     });
     assert_eq!(store.load_window().unwrap(), Some(WindowState::default()));
+}
+
+#[gpui::test]
+fn state_fence_refuses_a_retained_old_root_and_a_successor_without_its_client(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let (_root, _store) = owner(cx);
+    let (old, cx) = cx.add_window_view(Shell::without_io);
+    old.update_in(cx, |shell, window, cx| {
+        crate::desktop::preferences::start(shell, window, cx);
+        crate::host_windows::register(&cx.entity(), window, cx);
+    });
+    cx.run_until_parked();
+    let flushing = cx.cx.update(|cx| flush_state(cx));
+    let receipt = super::super::testing::wait(flushing).unwrap();
+    cx.cx.update(|cx| {
+        assert!(matches!(
+            flush_current(&receipt, cx),
+            StateReadiness::LaunchOnly
+        ));
+    });
+    let replacement = cx.update(|window, cx| window.replace_root(cx, Shell::without_io));
+    cx.cx.update(|cx| {
+        assert!(old.downgrade().upgrade().is_some());
+        assert!(matches!(
+            flush_current(&receipt, cx),
+            StateReadiness::Changed
+        ));
+    });
+    replacement.update_in(cx, |_shell, window, cx| {
+        crate::host_windows::register(&cx.entity(), window, cx);
+    });
+    cx.cx.update(|cx| {
+        assert!(matches!(
+            flush_current(&receipt, cx),
+            StateReadiness::Changed
+        ));
+    });
+    replacement.update_in(cx, crate::desktop::preferences::start);
+    cx.run_until_parked();
+    cx.cx.update(|cx| {
+        assert!(matches!(
+            flush_current(&receipt, cx),
+            StateReadiness::LaunchOnly
+        ));
+    });
 }

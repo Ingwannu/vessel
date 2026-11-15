@@ -27,7 +27,6 @@ pub(crate) enum WindowClose {
 #[derive(Default)]
 pub(crate) struct Registry {
     pub(crate) records: Vec<WindowRecord>,
-    #[cfg(test)]
     factory: Option<dispatch::Factory>,
 }
 impl Global for Registry {}
@@ -65,11 +64,10 @@ pub(crate) fn register(shell: &Entity<Shell>, window: &Window, cx: &mut App) {
     });
 }
 
-// These host operations gain product callers in the W7/E3 owner unions. The
-// literal staging attributes are removed only with those real callers.
-#[cfg(test)]
+// Desktop startup, native menus and launch delivery are the real host callers.
 mod dispatch;
-#[cfg(test)]
+mod enumeration;
 pub(crate) use dispatch::{Delivery, open_additional, set_factory, with_focused_shell};
+pub(crate) use enumeration::{Unavailable, shells};
 #[cfg(test)]
 mod tests;

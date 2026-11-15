@@ -48,7 +48,10 @@ impl Shell {
             return false;
         }
         match action {
-            DesktopAction::NewWindow => crate::desktop::open_additional(cx),
+            DesktopAction::NewWindow => {
+                return crate::host_windows::open_additional(cx)
+                    == crate::host_windows::Delivery::Delivered;
+            }
             DesktopAction::CloseWindow => vessel_app_kit::chrome::request_close(window, cx),
             DesktopAction::Fullscreen => window.toggle_fullscreen(),
             DesktopAction::ZoomIn => Self::queue_desktop_zoom(ZoomChange::In, window, cx),

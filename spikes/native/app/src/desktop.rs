@@ -8,7 +8,7 @@ mod startup_error;
 mod testing;
 mod windows;
 
-use crate::host_windows::{Registry, WindowClose, WindowRecord};
+use crate::host_windows::{WindowClose, WindowRecord};
 use crate::shell::Shell;
 use gpui::{App, Global, WeakEntity};
 use std::sync::Arc;
@@ -20,7 +20,6 @@ use vessel_app_view::desktop::window::WindowState;
 
 pub(crate) use persistence::{StateReadiness, StateReceipt, flush_current, flush_state};
 pub(crate) use startup::run;
-pub(crate) use windows::open_additional;
 
 pub(crate) type EnvironmentBroadcast = fn() -> Result<(), std::io::Error>;
 
@@ -197,7 +196,8 @@ fn install(
     cx: &mut App,
 ) -> Result<(), vessel_app_link::desktop::DesktopError> {
     cx.set_global(Desktop::new(store, environment, environment_broadcast)?);
-    let _registry = cx.default_global::<Registry>();
+    crate::host_windows::init(cx);
+    crate::host_windows::set_factory(windows::open_additional, cx);
     // Keep the latest OS session intent queued until the session owner supplies
     // its current-context/retirement-safe product adapter. NodeId alone does
     // not admit a result from an earlier connection to that same node.
@@ -208,10 +208,7 @@ fn install(
     cx.set_quit_mode(gpui::QuitMode::Explicit);
     vessel_app_kit::chrome::set_close_handler(windows::request_close, cx);
     crate::areas::desktop::listen(cx);
-    cx.on_window_closed(|cx, closed| {
-        cx.default_global::<Registry>()
-            .records
-            .retain(|record| record.window.window_id() != closed);
+    cx.on_window_closed(|cx, _closed| {
         if !cfg!(target_os = "macos") && cx.windows().is_empty() {
             request_quit(cx);
         }
@@ -257,56 +254,13 @@ pub(crate) fn with_focused_shell(
     cx: &mut App,
     run: impl FnOnce(&mut Shell, &mut gpui::Window, &mut gpui::Context<'_, Shell>),
 ) {
-    let record = target_window(cx);
-    if let Some(record) = record {
-        let result = record.window.update(cx, |_root, window, cx| {
-            if let Some(shell) = record.shell.upgrade() {
-                shell.update(cx, |shell, cx| run(shell, window, cx));
-            }
-        });
-        if let Err(error) = result {
-            tracing::warn!(%error,"desktop menu target is no longer available");
-        }
-    }
+    let _delivery = crate::host_windows::with_focused_shell(cx, run);
 }
 
-/// Quit admission reads document owners through the existing window registry.
-/// Closed windows and expired entities grant no retained document target.
-pub(crate) fn shells(cx: &App) -> Vec<WeakEntity<Shell>> {
-    let Some(registry) = cx.try_global::<Registry>() else {
-        return Vec::new();
-    };
-    let windows = cx.windows();
-    registry
-        .records
-        .iter()
-        .filter(|record| windows.contains(&record.window))
-        .filter_map(|record| record.shell.upgrade().map(|shell| shell.downgrade()))
-        .collect()
-}
-
-/// Routing prefers the active or visible live window before a hidden first one.
-fn target_window(cx: &mut App) -> Option<WindowRecord> {
-    let active = cx.active_window();
-    let live = cx.windows();
-    let records: Vec<_> = cx
-        .try_global::<Registry>()?
-        .records
-        .iter()
-        .filter(|record| live.contains(&record.window) && record.shell.upgrade().is_some())
-        .cloned()
-        .collect();
-    records
-        .iter()
-        .find(|record| Some(record.window) == active)
-        .or_else(|| {
-            records.iter().find(|record| {
-                record
-                    .window
-                    .update(cx, |_root, window, _cx| window.is_visible())
-                    .unwrap_or(false)
-            })
-        })
-        .or_else(|| records.first())
-        .cloned()
+/// Whole-process admission must refuse an unknown/replaced root, not omit it.
+/// Call only at App level after Shell/Window borrows end, with no later await.
+pub(crate) fn shells(
+    cx: &mut App,
+) -> Result<Vec<WeakEntity<Shell>>, crate::host_windows::Unavailable> {
+    crate::host_windows::shells(cx)
 }

@@ -19,10 +19,10 @@ enum Placement {
 }
 
 pub(super) fn open_primary(launch: Option<Launch>, cx: &mut App) {
-    open(Placement::Primary, launch, cx);
+    let _delivery = open(Placement::Primary, launch, cx);
 }
-pub(crate) fn open_additional(cx: &mut App) {
-    open(Placement::Additional, None, cx);
+pub(crate) fn open_additional(cx: &mut App) -> crate::host_windows::Delivery {
+    open(Placement::Additional, None, cx)
 }
 
 /// Last-window removal waits for the same owned-node quit boundary as the menu.
@@ -124,14 +124,18 @@ fn reset_close(record: &WindowRecord, cx: &mut App) {
     }
 }
 
-fn open(placement: Placement, launch: Option<Launch>, cx: &mut App) {
+fn open(
+    placement: Placement,
+    launch: Option<Launch>,
+    cx: &mut App,
+) -> crate::host_windows::Delivery {
     let prefs = (*cx.global::<Desktop>().preferences.current()).clone();
     let language = crate::language::Language::new();
     let words = match language.prepare(prefs.settings.language) {
         Ok(words) => words,
         Err(error) => {
             tracing::error!(%error,"window translations could not start");
-            return;
+            return crate::host_windows::Delivery::Unavailable;
         }
     };
     let state = match placement {
@@ -182,11 +186,7 @@ fn open(placement: Placement, launch: Option<Launch>, cx: &mut App) {
         window.set_zoom(state.zoom().factor(), cx);
         crate::motion::note_renderer(window, cx);
         let shell = cx.new(|cx| Shell::new(prefs, language, words, window, cx));
-        cx.default_global::<Registry>().records.push(WindowRecord {
-            window: window.window_handle(),
-            shell: shell.downgrade(),
-            close: WindowClose::Idle,
-        });
+        crate::host_windows::register(&shell, window, cx);
         shell.update(cx, |shell, cx| {
             shell.areas.desktop.zoom = state.zoom();
             cx.observe_window_activation(window, |shell, window, _cx| {
@@ -204,8 +204,14 @@ fn open(placement: Placement, launch: Option<Launch>, cx: &mut App) {
         });
         vessel_app_kit::root(shell, window, cx)
     }) {
-        Ok(_opened) => cx.activate(true),
-        Err(error) => tracing::error!(%error,"native window could not open"),
+        Ok(_opened) => {
+            cx.activate(true);
+            crate::host_windows::Delivery::Delivered
+        }
+        Err(error) => {
+            tracing::error!(%error,"native window could not open");
+            crate::host_windows::Delivery::Unavailable
+        }
     }
 }
 
@@ -220,26 +226,20 @@ fn capture_size() -> Option<(f64, f64)> {
 
 pub(super) fn deliver(launch: Launch, cx: &mut App) {
     match launch {
-        Launch::NewWindow => open_additional(cx),
+        Launch::NewWindow => {
+            let _delivery = crate::host_windows::open_additional(cx);
+        }
         Launch::Project(directory) => {
-            open(Placement::Additional, Some(Launch::Project(directory)), cx);
+            let _delivery = open(Placement::Additional, Some(Launch::Project(directory)), cx);
         }
         session @ Launch::Session(_) => {
-            let target = super::target_window(cx);
-            if let Some(record) = target {
-                let result = record.window.update(cx, |_root, window, cx| {
-                    window.activate_window();
-                    if let Some(shell) = record.shell.upgrade() {
-                        shell.update(cx, |shell, cx| {
-                            shell.areas.desktop.pending.push(session);
-                            cx.notify();
-                        });
-                    }
-                });
-                if let Err(error) = result {
-                    tracing::warn!(%error,"desktop destination window is no longer available");
-                }
-            } else {
+            let pending = session.clone();
+            let delivery = crate::host_windows::with_focused_shell(cx, move |shell, window, cx| {
+                window.activate_window();
+                shell.areas.desktop.pending.push(pending);
+                cx.notify();
+            });
+            if delivery == crate::host_windows::Delivery::Unavailable {
                 open_primary(Some(session), cx);
             }
         }

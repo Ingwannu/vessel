@@ -84,7 +84,7 @@ pub(crate) fn flush_state(
 
 /// App-level only, after `Shell` borrows end. Existing live records are the sole
 /// registry; the quit owner combines this fence with its final document guard.
-pub(crate) fn flush_current(receipt: &StateReceipt, cx: &App) -> StateReadiness {
+pub(crate) fn flush_current(receipt: &StateReceipt, cx: &mut App) -> StateReadiness {
     let Some(desktop) = cx.try_global::<Desktop>() else {
         return if receipt.preferences.is_none() {
             StateReadiness::LaunchOnly
@@ -104,17 +104,17 @@ pub(crate) fn flush_current(receipt: &StateReceipt, cx: &App) -> StateReadiness 
     {
         return StateReadiness::Changed;
     }
-    let live = cx.windows();
-    for record in cx
-        .try_global::<crate::host_windows::Registry>()
-        .into_iter()
-        .flat_map(|registry| registry.records.iter())
-        .filter(|record| live.contains(&record.window))
-    {
-        if let Some(shell) = record.shell.upgrade()
-            && let Some(client) = &shell.read(cx).areas.desktop.preferences
-            && !client.is_settled(preferences)
-        {
+    let Ok(shells) = super::shells(cx) else {
+        return StateReadiness::Changed;
+    };
+    for weak in shells {
+        let Some(shell) = weak.upgrade() else {
+            return StateReadiness::Changed;
+        };
+        let Some(client) = &shell.read(cx).areas.desktop.preferences else {
+            return StateReadiness::Changed;
+        };
+        if !client.is_settled(preferences) {
             return StateReadiness::Changed;
         }
     }
