@@ -11,7 +11,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-/// A recognition site has no enabled switch of its own; VoiceSettings owns it.
+/// A recognition site has no enabled switch of its own; `VoiceSettings` owns it.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct VoiceSttSettings {
@@ -121,7 +121,7 @@ impl SetVoiceStt {
     /// Used only by the existing secret owner, not a read response.
     #[must_use]
     pub fn key_name(&self) -> Option<&SecretName> {
-        key_name(&self.key)
+        key_name(self.key.as_ref())
     }
     fn into_dictation(self) -> SetDictation {
         SetDictation {

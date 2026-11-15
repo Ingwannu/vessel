@@ -185,6 +185,6 @@ impl SetVoiceTts {
     /// Only the existing node secret owner may use this selected name.
     #[must_use]
     pub fn key_name(&self) -> Option<&SecretName> {
-        key_name(&self.key)
+        key_name(self.key.as_ref())
     }
 }

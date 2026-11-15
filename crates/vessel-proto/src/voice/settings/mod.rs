@@ -162,9 +162,8 @@ impl SetVoice {
             .and_then(SetVoiceTts::key_name)
     }
 }
-fn key_name(change: &Option<DictationChange<SecretReference>>) -> Option<&SecretName> {
+fn key_name(change: Option<&DictationChange<SecretReference>>) -> Option<&SecretName> {
     change
-        .as_ref()
         .and_then(DictationChange::value)
         .map(SecretReference::selected_name)
 }
