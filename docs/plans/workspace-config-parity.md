@@ -475,3 +475,19 @@ replacement clock. These tests have been authored but not yet executed.
 The callback carries no endpoint or authority. Resume: narrow node checks
 are owed; product route ownership, probe cancellation/revalidation and the
 full runtime package remain unimplemented.
+
+
+## Service proxy publication contract
+
+ADR 0066 now separates the default loopback proxy from per-service Admin
+opt-in to anonymous public sharing. The typed `services` node setting will
+reuse settings persistence and needs a clear per-service warning before
+mutation; wildcard node listen and declared/running ports grant nothing.
+Paseo's anonymous registered routes and the deliberate security difference
+are stated. The browser Preview consumer is the exact attested backend
+origin, not this proxy or node control. No setting/listener/URL API is wired
+by this contract. Checked canonical registry incarnation/start/restart and
+fresh process/socket/scheme proof are prerequisites; the current registry
+source has no incarnation guarantee across physical restoration, so no
+local generation or cwd heuristic substitutes for it. Resume: source
+contract recorded before front-door code; focused checks/review are owed.

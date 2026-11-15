@@ -830,3 +830,81 @@ has no release operation; those joint tests remain with that integration.
   they owe grace-boundary, repeated-state, recovery/failure-reset, saturation,
   cancellation and independent replacement-clock coverage without real
   sockets, processes or sleep-based coordination.
+
+### Local service proxy and explicit anonymous sharing
+
+[Decision Log]
+
+- Purpose and intent: provide named development-service routes without
+  turning every approved loopback service into a publicly reachable service
+  merely because the node accepts remote control connections.
+- Existing assets and constraints: Paseo's `server/service-proxy.ts:421–754,
+  758–1045` routes registered service hosts in front of node authentication.
+  Its `server/config.ts:364–392` resolves enable/listen/public-base options.
+  Registration therefore permits anonymous HTTP and websocket access. Vessel's
+  `server.rs` instead has bearer authentication for RPC and a separately
+  authenticated secure channel; neither is a browser HTTP session for a
+  workspace. The model proxy is a credentialed model-protocol boundary and
+  must not become a generic service proxy. The browser's ADR 0078 Preview
+  consumes the exact backend loopback origin, independently of this proxy.
+- Alternatives: inherit the node's wildcard listen and publish every route;
+  put the node token into a service page; design route-scoped browser
+  authentication now; or separate local proxying from explicit anonymous
+  publication. Choose the last. A page must never receive a node control
+  credential, and a new sharing-authentication mechanism is outside this
+  runtime package.
+- Choice and stated difference: the service proxy listener binds loopback
+  only by default. Beyond-loopback publication requires an explicit Admin
+  opt-in for each exact `(WorkspaceId, ScriptName)`, off by default. A
+  wildcard node listen, an approved command, a declared port, a configured
+  public base or a successfully probed service is not that opt-in. This is
+  deliberately stricter than Paseo's anonymous registered-service routes:
+  approval of command text is not permission to increase its network reach.
+- Typed administration: the package adds one `services` key to node settings
+  through the existing Admin settings boundary, superseding the earlier
+  no-new-setting statement for the original file-only scope. Exposure is a
+  closed typed choice: loopback or public without Vessel authentication.
+  Absent and unknown choices never publish publicly. Existing settings-file
+  atomic/private writes and later-version set-aside rules are reused; no
+  parallel settings file or independent schema is introduced. Public base
+  configuration is explicit and validated; no domain is guessed from a
+  client Host header, wildcard bind or pairing address.
+- Required warning: before enabling an individual service, the client shows
+  its workspace and script plus: “Anyone who can reach this public address
+  can access this service without Vessel authentication. It may expose
+  project data.” Public status retains that warning. No setting starts a
+  stopped service, releases blocked automation, approves a digest or mints
+  a browser capability. Agents do not hold Admin. A failed settings write
+  cannot change the in-memory exposure.
+- Ingress separation: local listener admission and public ingress admission
+  are distinct trusted server paths, never a choice derived from a caller's
+  Host or forwarding headers. Public ingress exposes only currently opted-in
+  services with a configured public route. Unknown service hosts and private
+  aliases on public ingress are refused, without falling through to node
+  control routes. The local service listener has no RPC, secure channel,
+  model, browser-control or arbitrary loopback-forwarding endpoint. The node
+  creates no additional wildcard listener for sharing. An operator can
+  independently forward a local port outside Vessel; this policy cannot
+  prevent that operating-system or reverse-proxy action.
+- Backend and lifetime: a route takes a fresh complete ownership observation
+  for the exact admitted service run, not an arbitrary supplied URL or
+  cached PID/port. Replacement, stop, archive, ownership uncertainty and
+  expiry revoke its target and active tunnels. A declared but unobserved
+  port is pending, not a target. Public consent must not transfer silently
+  across a changed approved service or a restored/replaced checkout. The
+  canonical registry must provide that incarnation boundary before public
+  grant wiring; descriptor path equality and a coalesced lifecycle snapshot
+  alone do not supply it. No second workspace generation is invented here.
+- Preview stays separate: ADR 0078 binds the exact WorkspaceId, opening
+  SessionId, actual run observation and verified backend HTTP/HTTPS loopback
+  origin. Its isolated policy proxy connects directly to that pinned
+  backend. It receives no node token/cookie or node-control/service-proxy
+  origin grant. TCP health alone proves no HTTP scheme or browser admission.
+- Costs, tests and limits: anonymous public sharing is visibly opt-in, and
+  changes of the service/checkout require renewed consent. Route-scoped
+  authentication can be a later feature. Required tests cover default-off,
+  wildcard-listen non-grant, Admin-only opt-in, failed-write preservation,
+  per-service separation, unknown-choice refusal, stale/changed/archived
+  binding rejection, private/public ingress separation, no control-host
+  fallback, credential stripping and cancellation of in-flight HTTP/WS.
+  This document enables no listener, setting, route or network request.
