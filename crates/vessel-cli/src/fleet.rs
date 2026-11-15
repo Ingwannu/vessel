@@ -73,6 +73,7 @@ pub(crate) async fn command(target: &Target, command: FleetCommand) -> Result<()
         }
         FleetCommand::Forget { node } => forget(target, node).await,
         FleetCommand::Sync => remote::sync(target).await,
+        FleetCommand::Published => remote::published(target).await,
         FleetCommand::Status if target.node.is_some() => remote::status(target).await,
         FleetCommand::Status => {
             let files = files()?;

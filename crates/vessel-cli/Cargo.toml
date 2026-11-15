@@ -39,6 +39,8 @@ hostname.workspace = true
 qrcode.workspace = true
 # Retain the typed error from encoding a confirmed invitation for fleet.join.
 # Previously test-only; this reuses the same workspace-pinned dependency.
+# Typed passive comparison resource reports; already used by the client.
+serde.workspace = true
 serde_json.workspace = true
 # A scratch directory for a release download (`vessel node install`).
 tempfile.workspace = true

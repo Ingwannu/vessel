@@ -226,3 +226,6 @@ feedback, list every pull request or see the node's sign-in.
 - `SessionInfo.pull_request` reaches an agent with every session's info,
   as `pr.get` does (an agent reads any session's pull request, its
   contract says); `pr.list` and `forge.status` stay a person's.
+
+
+The file-seeded test-fleet launcher is decided separately in ADR 0060.

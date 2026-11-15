@@ -24,7 +24,10 @@ use serde::{Deserialize, Serialize};
 use crate::id::{ProjectId, SessionId, TerminalId};
 use crate::node::ProtocolVersion;
 use crate::terminals::TerminalInfo;
-use crate::workspace::{CreateWorktreeOutcome, ProjectCommand, ProjectCommands, RelPath};
+use crate::workspace::{CreateWorktreeOutcome, ProjectCommands};
+
+mod entry;
+pub use entry::{InvalidScriptEntry, ScriptEntry, ScriptEntryView};
 
 /// A script's or a service's name in `vessel.toml`: 1 to 64 bytes of ASCII
 /// letters, digits, `-`, `_` and `.`, starting with a letter or a digit.
@@ -107,21 +110,6 @@ impl ScriptKind {
             Self::Service => "services",
         }
     }
-}
-
-/// One script or service of `vessel.toml`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-pub struct ScriptEntry {
-    /// Its name.
-    pub name: ScriptName,
-    /// Script or service.
-    pub kind: ScriptKind,
-    /// What runs, through the platform's shell.
-    pub command: ProjectCommand,
-    /// Where it runs, inside the root; the root when absent.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub dir: Option<RelPath>,
 }
 
 /// Whose checkout a script runs in.
@@ -245,6 +233,40 @@ impl ProjectCommands {
     /// for such a client, which knows no such field.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
+        self.for_project_fields(protocol, crate::workspace::PROJECT_FILE_KEYS)
+    }
+
+    fn for_project_fields(
+        &self,
+        protocol: ProtocolVersion,
+        since: Option<ProtocolVersion>,
+    ) -> Option<Self> {
+        // A new approved field must force a decision here, even if optional.
+        if let Self::Listed {
+            setup: _,
+            teardown: _,
+            scripts,
+            terminals,
+            digest: _,
+            approved: _,
+            last_approved,
+        } = self
+            && since.is_none_or(|since| protocol < since)
+            && (requires_project_fields(scripts, terminals)
+                || last_approved.as_ref().is_some_and(|last| {
+                    let crate::workspace::CommandSet {
+                        setup: _,
+                        teardown: _,
+                        scripts,
+                        terminals,
+                    } = &last.commands;
+                    requires_project_fields(scripts, terminals)
+                }))
+        {
+            return Some(Self::Invalid {
+                message: "this client cannot show the project file's terminal commands or service port declarations; approve from a newer client".to_owned(),
+            });
+        }
         if protocol >= SCRIPTS_SHOWN {
             return None;
         }
@@ -258,6 +280,7 @@ impl ProjectCommands {
                 digest,
                 approved,
                 scripts,
+                terminals,
                 last_approved: Some(_),
             } => Some(Self::Listed {
                 setup: setup.clone(),
@@ -265,9 +288,31 @@ impl ProjectCommands {
                 digest: digest.clone(),
                 approved: *approved,
                 scripts: scripts.clone(),
+                terminals: terminals.clone(),
                 last_approved: None,
             }),
             Self::None | Self::Listed { .. } | Self::Invalid { .. } => None,
+        }
+    }
+}
+
+// Shared by current and previous approvals so neither can leak undisplayed data.
+fn requires_project_fields(
+    scripts: &[ScriptEntry],
+    terminals: &[crate::workspace::FileTerminal],
+) -> bool {
+    !terminals.is_empty() || scripts.iter().any(|script| script.port().is_some())
+}
+
+impl ScriptRunOutcome {
+    /// Prevent approval through a script reply when its fields cannot be shown.
+    #[must_use]
+    pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
+        match self {
+            Self::NeedsApproval { commands } => commands
+                .for_protocol(protocol)
+                .map(|commands| Self::NeedsApproval { commands }),
+            Self::Started { .. } | Self::Refused { .. } => None,
         }
     }
 }
@@ -335,14 +380,17 @@ mod tests {
             digest: digest.clone(),
             approved: false,
             scripts,
+            terminals: Vec::new(),
             last_approved: None,
         };
-        let dev = ScriptEntry {
-            name: "dev".parse().unwrap(),
-            kind: ScriptKind::Service,
-            command: "npm run dev".parse().unwrap(),
-            dir: None,
-        };
+        let dev = ScriptEntry::new(
+            "dev".parse().unwrap(),
+            ScriptKind::Service,
+            "npm run dev".parse().unwrap(),
+            None,
+            None,
+        )
+        .unwrap();
         let with = listed(vec![dev]);
         assert!(matches!(
             with.for_protocol(ProtocolVersion::new(10)),
@@ -377,8 +425,68 @@ mod tests {
     }
 
     #[test]
+    fn terminal_approvals_are_gated_on_every_reply_and_keep_legacy_defaults() {
+        use crate::workspace::{CommandSet, FileTerminal};
+        let old = r#"{"setup":[],"teardown":[],"scripts":[]}"#;
+        assert!(
+            serde_json::from_str::<CommandSet>(old)
+                .unwrap()
+                .terminals
+                .is_empty()
+        );
+        let legacy = format!(
+            r#"{{"state":"listed","setup":[],"teardown":[],"scripts":[],"digest":"{}","approved":false}}"#,
+            "a".repeat(64)
+        );
+        assert!(matches!(
+            serde_json::from_str::<ProjectCommands>(&legacy).unwrap(),
+            ProjectCommands::Listed { terminals, .. } if terminals.is_empty()
+        ));
+        let terminal = FileTerminal {
+            name: Some("logs".parse().unwrap()),
+            command: "tail -f dev.log".parse().unwrap(),
+        };
+        let commands = ProjectCommands::Listed {
+            setup: Vec::new(),
+            teardown: Vec::new(),
+            scripts: Vec::new(),
+            terminals: vec![terminal],
+            digest: "b".repeat(64).parse().unwrap(),
+            approved: false,
+            last_approved: None,
+        };
+        let encoded = serde_json::to_string(&commands).unwrap();
+        assert_eq!(
+            serde_json::from_str::<ProjectCommands>(&encoded).unwrap(),
+            commands
+        );
+        // A merge-time assignment enables exactly its threshold; current builds
+        // leave it absent, so no guessed protocol number admits these commands.
+        assert_eq!(
+            commands.for_project_fields(ProtocolVersion::new(31), Some(ProtocolVersion::new(31))),
+            None
+        );
+        assert!(matches!(
+            commands.for_project_fields(ProtocolVersion::new(30), Some(ProtocolVersion::new(31))),
+            Some(ProjectCommands::Invalid { .. })
+        ));
+        for protocol in [ProtocolVersion::new(10), crate::PROTOCOL_VERSION] {
+            for reply in port_approval_tests::approval_replies(&commands) {
+                let adapted =
+                    serde_json::to_string(&reply.for_protocol(protocol).unwrap()).unwrap();
+                assert!(!adapted.contains("tail -f dev.log"));
+                assert!(!adapted.contains(&"b".repeat(64)));
+                assert!(adapted.contains("invalid"));
+            }
+        }
+    }
+
+    #[test]
     fn a_refusal_a_newer_node_knows_reads_as_unknown() {
         let refusal: ScriptRefusal = serde_json::from_str(r#"{"kind":"busy"}"#).unwrap();
         assert_eq!(refusal, ScriptRefusal::Unknown);
     }
 }
+
+#[cfg(test)]
+mod port_approval_tests;
