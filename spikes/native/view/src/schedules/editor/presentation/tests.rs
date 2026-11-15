@@ -36,7 +36,7 @@ fn new_form_words_and_feedback_are_cached_without_pristine_errors() {
         assert!(!form.viewer_known);
         assert!(form.next_runs.is_empty());
     }
-    assert!(model.field(visit, FieldChange::Limit("bad".into())));
+    assert!(model.field(visit, FieldChange::Limit("1000001".into())));
     for (catalog, _) in catalogs() {
         let form = prepare(&model, &crate::Fleet::default(), &Clock::unknown(), catalog)
             .unwrap()

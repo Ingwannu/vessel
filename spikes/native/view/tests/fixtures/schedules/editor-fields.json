@@ -5,11 +5,21 @@
   {"id":"trimmed-whole-count","input":" 12 ","kind":"value","value":12},
   {"id":"minimum-count","input":"1","kind":"value","value":1},
   {"id":"maximum-count","input":"1000000","kind":"value","value":1000000},
-  {"id":"zero-is-not-unlimited","input":"0","kind":"range"},
+  {"id":"zero-unlimited","input":"0","kind":"unlimited"},
   {"id":"outside-maximum","input":"1000001","kind":"range"},
-  {"id":"negative-count","input":"-1","kind":"number"},
-  {"id":"fractional-count","input":"1.5","kind":"number"},
-  {"id":"suffix-is-not-a-count","input":"12runs","kind":"number"},
+  {"id":"negative-count","input":"-1","kind":"unlimited"},
+  {"id":"fractional-count","input":"1.5","kind":"value","value":1},
+  {"id":"decimal-prefix-with-suffix","input":"12runs","kind":"value","value":12},
   {"id":"representation-overflow","input":"4294967296","kind":"number"},
-  {"id":"non-ascii-digit","input":"１２","kind":"number"}
+  {"id":"non-ascii-digit","input":"１２","kind":"unlimited"},
+  {"id":"malformed-unlimited","input":"bad","kind":"unlimited"},
+  {"id":"signed-positive-prefix","input":" +5.5","kind":"value","value":5},
+  {"id":"positive-prefix-before-letter","input":"5x","kind":"value","value":5},
+  {"id":"negative-prefix-with-suffix","input":"-5runs","kind":"unlimited"},
+  {"id":"fraction-without-integer","input":".5","kind":"unlimited"},
+  {"id":"explicit-decimal-radix","input":"0x10","kind":"unlimited"},
+  {"id":"bom-leading-space","input":"﻿12x","kind":"value","value":12},
+  {"id":"non-js-leading-space","input":"12","kind":"unlimited"},
+  {"id":"above-bound-prefix","input":"1000001runs","kind":"range"},
+  {"id":"exponent-is-a-suffix","input":"1e6","kind":"value","value":1}
 ]

@@ -1,4 +1,4 @@
-//! Renderer-independent cases retain whole integer semantics, never `parseInt`.
+//! Pinned form decimal-prefix semantics, followed by the existing typed node bound.
 use super::*;
 use crate::localization::{ENGLISH, Locale};
 use serde::Deserialize;
@@ -19,7 +19,7 @@ struct Case {
     expected: Expected,
 }
 #[test]
-fn portable_run_limits_never_silently_discard_invalid_nonblank_input() {
+fn portable_run_limits_match_the_form_prefix_and_unlimited_rules() {
     let cases: Vec<Case> = serde_json::from_str(include_str!(
         "../../../../tests/fixtures/schedules/editor-fields.json"
     ))
@@ -119,10 +119,10 @@ fn feedback_belongs_to_the_edited_field_without_hiding_save_validation() {
     let mut fields = Fields::empty();
     assert!(matches!(fields.error(), Some(FieldError::Prompt(_))));
     assert!(fields.feedback(Field::Prompt).is_none());
-    fields.set_limit("bad".into());
+    fields.set_limit("1000001".into());
     assert!(matches!(
         fields.feedback(Field::Limit),
-        Some(FieldError::Number(_))
+        Some(FieldError::Range(_))
     ));
     assert!(fields.feedback(Field::Prompt).is_none());
     fields.set_prompt(" ".into());

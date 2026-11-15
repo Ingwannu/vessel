@@ -451,10 +451,11 @@ post-merge source diff itself has no whitespace error.
   inputs493–548, new-agent target selection704–814, heartbeat cadence-only
   branch476–489, submit316–399 and footer409–449. Exact renderer work is still
   pending; these are View rules, not a drawn/wired form.
-- Deliberate difference: malformed nonblank Max runs is an error instead of
-  reference parseInt dropping a suffix or interpreting zero as unlimited. Node
-  bounds are authoritative; blank alone means Unlimited. New prompt edits trim
-  as the reference does, but untouched wire text stays byte-identical.
+- Max runs now follows pinned schedule-form-sheet.tsx68–71: decimal integer
+  prefix; malformed, blank, zero and negative clear to Unlimited. The older
+  strict-form difference was returned by source audit and superseded. Positive
+  values still pass the existing node bound without clamping. New prompt edits
+  trim as the reference does; untouched wire text stays byte-identical.
 - Preview: a private outcome admits only the expected immutable context/ticket,
   exact after/count, strictly increasing future instants and matching typed
   cadence/zone. Every without an anchor requires the node-returned after anchor.
@@ -1768,3 +1769,18 @@ the same button now exposes a debug-only selector, with no layout/paint/input
 change. Corrected-source execution remains owed. All red logs stay pinned.
 No View/App/Link, native UI/IME, final package or later-source approval is
 inferred from the230 passing cases or prior strict0.
+
+
+### Max runs source parity correction
+
+Coordinator f557d0ba resolves the old stricter-form behavior in favor of pinned
+schedule-form-sheet.tsx68–71. The same edit-edge parser uses an ASCII decimal
+prefix with optional leading plus and ECMAScript whitespace; malformed/blank,
+zero or negative clears the optional limit. Values such as5x/5.5 mean5, while
+0x10 with explicit radix10 means Unlimited. Positive values above the node's
+unchanged MaxRuns bound are errors, never clamped or silently cleared.
+The23 portable cases were independently checked against actual Node parseInt
+and the source's finite/positive rule; Rust execution remains owed. The two
+feedback fixtures now use above-bound1000001 rather than malformed text to
+exercise a real remaining error. No wire/schema/node bound or word ownership
+changed, and no JavaScript runtime/dependency was added to the form.

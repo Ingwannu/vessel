@@ -1,6 +1,6 @@
 //! Schedule text is validated at edit edges, never reparsed by drawing or save.
-//! Empty optional fields mean clear; invalid limits cannot silently become
-//! Unlimited (Paseo's `parseInt` behavior would discard that mistake).
+//! Optional limits use the pinned form's decimal-prefix/Unlimited behavior;
+//! positive values still pass the node's existing typed bounds without clamping.
 use crate::localization::{Number, Translator};
 use vessel_proto::automation::{
     AutomationText, InvalidAutomationText, MaxRuns, OutOfRange, PromptText, ScheduleDefinition,
@@ -16,7 +16,7 @@ pub enum FieldError {
     /// Nonempty, bounded prompt required.
     #[error("schedule prompt: {0}")]
     Prompt(#[source] InvalidAutomationText),
-    /// Run limit has a noninteger suffix or cannot fit its representation.
+    /// Positive decimal prefix cannot fit the node's integer representation.
     #[error("schedule run count: {0}")]
     Number(#[source] std::num::ParseIntError),
     /// Positive integer lies outside the node's bound.
@@ -156,20 +156,11 @@ impl Fields {
             edited: true,
         };
     }
-    /// Blank means Unlimited; malformed nonblank input is an error, not clear.
+    /// Pinned `schedule-form-sheet.tsx:68–71` uses `parseInt(raw,10)`: a positive
+    /// decimal prefix counts; blank, malformed, zero and negative mean Unlimited.
+    /// The node's typed upper bound still refuses a positive out-of-range value.
     pub fn set_limit(&mut self, text: String) {
-        let value = if text.trim().is_empty() {
-            Ok(None)
-        } else {
-            text.trim()
-                .parse::<u32>()
-                .map_err(FieldError::Number)
-                .and_then(|value| {
-                    MaxRuns::try_from(value)
-                        .map(Some)
-                        .map_err(FieldError::Range)
-                })
-        };
+        let value = parse_limit(&text);
         self.limit = Input {
             text,
             value,
@@ -210,6 +201,40 @@ impl Fields {
     pub fn error(&self) -> Option<&FieldError> {
         self.values().err()
     }
+}
+
+// Match the source JavaScript form at the edit edge, without a JS runtime or
+// floating-point conversion. A large positive prefix remains a typed refusal;
+// it is never clamped to the node maximum or cleared as a representation error.
+fn parse_limit(text: &str) -> Result<Option<MaxRuns>, FieldError> {
+    let text = text.trim_start_matches(parse_int_space);
+    if text.starts_with('-') {
+        return Ok(None);
+    }
+    let unsigned = text.strip_prefix('+').unwrap_or(text);
+    let digits = unsigned
+        .split(|ch: char| !ch.is_ascii_digit())
+        .next()
+        .unwrap_or_default();
+    if digits.is_empty() {
+        return Ok(None);
+    }
+    let value = digits.parse::<u32>().map_err(FieldError::Number)?;
+    if value == 0 {
+        return Ok(None);
+    }
+    MaxRuns::try_from(value)
+        .map(Some)
+        .map_err(FieldError::Range)
+}
+// ECMAScript leading WhiteSpace/LineTerminator, including BOM but not NEL.
+fn parse_int_space(ch: char) -> bool {
+    matches!(
+        ch,
+        '\u{0009}'..='\u{000d}' | ' ' | '\u{00a0}' | '\u{1680}'
+        | '\u{2000}'..='\u{200a}' | '\u{2028}' | '\u{2029}'
+        | '\u{202f}' | '\u{205f}' | '\u{3000}' | '\u{feff}'
+    )
 }
 
 #[cfg(test)]
