@@ -224,11 +224,11 @@ impl Action {
             | Self::GoDevices
             | Self::ToggleSidebar
             | Self::ToggleInspector
-            | Self::FocusComposer
             | Self::Find
             | Self::SteerQueued
             | Self::EditQueued => true,
             Self::NewSession
+            | Self::FocusComposer
             | Self::JumpSession
             | Self::PreviousSession
             | Self::NextSession

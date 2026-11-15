@@ -751,3 +751,15 @@ That View source is byte-identical to the current View tree and covers the
 shared whitespace visibility/help/PR-query changes. Later App Backspace/order
 changes still require their own strict result plus the queued6d739b111
 App/Kit/View regression run; no test or App Clippy pass is inferred from this.
+
+B2 owner policy2942b7ca explicitly withdraws canonical FocusComposer's inherited
+RouteSession/RouteDraft fallback until its admitted-target adapter exists. Removed
+that core registration/effect and the now-unused global route helper. Palette and
+help dead-opener close also no longer call it as generic focus permission: the
+shared ReturnFocus restores its captured weak opener only while the modal owns
+focus; a missing/dead opener stays blurred, a newer focus is preserved. Existing
+live-opener restoration is unchanged. Updated the actual close regression and
+added real Cmd/Ctrl+L missing-owner cases on both legacy routes. No W12 target
+metadata, alternate getter, global New fallback or scope/IME exception is used.
+The old a675 dead-opener test proved its earlier fallback behavior, not this
+corrected owner policy; latest source checks are still owed.

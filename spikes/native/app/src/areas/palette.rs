@@ -184,9 +184,6 @@ impl Shell {
         palette.unavailable = None;
         let owner = palette.search.focus_handle(cx);
         palette.return_focus.restore_if_owned(&owner, window, cx);
-        if window.focused(cx).is_none() {
-            let _restored = self.focus_composer(window, cx);
-        }
         self.message_search_query("", cx);
         cx.notify();
     }

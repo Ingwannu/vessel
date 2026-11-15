@@ -45,7 +45,6 @@ impl Shell {
                 }
                 self.conversation_find(window, cx);
             }
-            Action::FocusComposer => return self.focus_composer(window, cx),
             Action::ToggleInspector => {
                 if self.route != Route::Session {
                     return false;
@@ -63,6 +62,7 @@ impl Shell {
                     && self.conversation_edit_latest_queued(window, cx);
             }
             Action::NewSession
+            | Action::FocusComposer
             | Action::JumpSession
             | Action::PreviousSession
             | Action::NextSession
@@ -106,18 +106,6 @@ impl Shell {
             | Action::MuteVoice
             | Action::ConfirmDictation => return false,
         }
-        true
-    }
-
-    /// Give the composer on screen the keys: the session's, or the new
-    /// chat's; nothing on a page without one.
-    pub(crate) fn focus_composer(&self, window: &mut Window, cx: &mut Context<'_, Self>) -> bool {
-        let composer = match self.route {
-            Route::Session => &self.areas.session.composer,
-            Route::Draft => &self.areas.draft.composer,
-            Route::Board | Route::Archive | Route::Pair | Route::Settings => return false,
-        };
-        composer.focus(window, cx);
         true
     }
 

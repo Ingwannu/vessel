@@ -103,9 +103,6 @@ impl Shell {
         help.search.clear(window, cx);
         let owner = help.search.focus_handle(cx);
         help.return_focus.restore_if_owned(&owner, window, cx);
-        if window.focused(cx).is_none() {
-            let _restored = self.focus_composer(window, cx);
-        }
         cx.notify();
     }
 

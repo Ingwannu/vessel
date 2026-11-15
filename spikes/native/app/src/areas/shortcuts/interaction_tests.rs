@@ -331,12 +331,8 @@ fn help_and_palette_release_dead_openers_and_preserve_newer_focus(cx: &mut TestA
                 shell.close_palette(window, cx);
             }
             assert!(
-                shell
-                    .areas
-                    .draft
-                    .composer
-                    .focus_handle(cx)
-                    .is_focused(window)
+                window.focused(cx).is_none(),
+                "no global draft focus fallback"
             );
             if help {
                 shell.open_shortcuts_help(window, cx);
@@ -359,5 +355,27 @@ fn help_and_palette_release_dead_openers_and_preserve_newer_focus(cx: &mut TestA
             );
         });
         cx.run_until_parked();
+    }
+}
+
+#[gpui::test]
+fn canonical_composer_focus_has_no_unadmitted_route_fallback(cx: &mut TestAppContext) {
+    let (shell, cx) = setup(cx);
+    for route in [crate::routes::Route::Draft, crate::routes::Route::Session] {
+        let current = shell.update_in(cx, |shell, window, cx| {
+            shell.route = route;
+            let current = cx.focus_handle();
+            current.focus(window, cx);
+            current
+        });
+        cx.run_until_parked();
+        cx.simulate_keystrokes(match Platform::native() {
+            Platform::Mac => "cmd-l",
+            Platform::Other => "ctrl-l",
+        });
+        cx.run_until_parked();
+        shell.update_in(cx, |_, window, _| {
+            assert!(current.is_focused(window), "no admitted composer owner");
+        });
     }
 }
