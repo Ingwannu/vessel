@@ -1703,7 +1703,7 @@ The node's startup recovery logger uses that diagnostic while retaining the
 existing set-aside behavior. It reuses serde_path_to_error already in the
 workspace; no workspace-crate edge changes (ADR 0038).
 
-### Independent workspace registry (ADR 0082, pending)
+### Independent workspace registry (ADR 0082, metadata at protocol 25)
 
 `vessel-proto::registry` carries independent workspace identity, exact backing,
 lifecycle and atomic node/workspace/resource snapshots. Workspace and create
@@ -1718,14 +1718,17 @@ commit publishes a coalesced watch; readers hydrate descriptors and memberships
 in one transaction. `registry::write::{require_active,bump_revision}` is the
 in-transaction seam for catalog assignment extensions, not a second registry.
 
-`vessel-node::service::registry` handles person-only registry reads, bounded
-long-poll, rename and pin through the single pending method table. The separate
+`vessel-node::service::registry` handles registry reads, bounded long-poll,
+rename, pin and the blocked-source release through the single method table:
+protocol 25's six metadata methods. Agent principals, direct or delegated, are
+refused before lookup; a forwarded person-origin call holds the intersected
+scopes and reads without the long poll. The separate
 create and lifecycle packages own actor launch and archive/recovery orchestration.
 Pre-spawn leases fence archive against late actor registration. Restoring is an
 exclusive persisted claim before backing recovery. Filesystem provisioning remains on the separate continuation until a real
 create driver wires it; no unwired node service ships in this dependency. Project config,
 icons, editor integration and automatic archive remain separate incomplete work.
-No protocol number or full package acceptance follows from this architecture.
+Those have no method row; protocol 25 covers the six metadata methods only.
 
 ### Settings writer lifetime
 
@@ -1801,3 +1804,21 @@ Obsolete test-only workspace provisioning files are removed in favor of the
 separate creation owner. See `docs/plans/project-management.md` for scope.
 This merge is source integration only; generated TypeScript, changed-source
 checks, config diagnostic/physical admission and full package review remain owed.
+
+## Page feedback and modal ownership
+
+The existing Base UI dialog, command palette and sheet own their key and
+focus behavior. `web/src/ui/page-focus` lets page-originated focus and
+keyboard capture yield to a currently open kit dialog or menu, using its public
+role/open attributes. This closes the gap before its initial focus frame:
+a late-mounted draft cannot take a menu's focus, and a page shortcut recorder cannot
+consume Escape before the dialog receives it. No second modal registry or
+Escape listener competes with Base UI's nested controls and IME handling.
+`compose/use-draft-presence` keeps the mounted draft's asynchronous completion
+guard separate from the optional initial focus; closing a modal does not
+re-run that mount effect. A paused shortcut recording remains pending.
+
+Toasts retain the existing host and lifetime rules. The viewport sits below
+the header and centres existing cards, with responsive width and a bounded
+scrolling stack. It no longer occupies the lower composer/dock region.
+The layer's tokens, status roles, colors and dismiss actions are unchanged.

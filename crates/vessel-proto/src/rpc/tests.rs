@@ -444,6 +444,33 @@ fn protocol_seventeen_methods_know_their_version_and_scope() {
     assert_eq!(seventeen, PROTOCOL_SEVENTEEN);
 }
 
+/// Protocol 25's methods (ADR 0082): the workspace registry's six metadata
+/// calls, each unary. Creation, archive and restore have no row.
+const PROTOCOL_TWENTY_FIVE: &[(&str, Scope)] = &[
+    ("workspace.registry", Scope::Read),
+    ("workspace.list", Scope::Read),
+    ("workspace.get", Scope::Read),
+    ("workspace.rename", Scope::Operate),
+    ("workspace.pin", Scope::Operate),
+    ("workspace.release_automation", Scope::Operate),
+];
+
+#[test]
+fn protocol_twenty_five_methods_know_their_version_scope_and_shape() {
+    let twenty_five: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == Some(ProtocolVersion::new(25)))
+        .inspect(|method| assert_eq!(method.shape(), MethodShape::Unary, "{method:?}"))
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
+        .collect();
+    assert_eq!(twenty_five, PROTOCOL_TWENTY_FIVE);
+}
+
 #[test]
 fn every_hop_of_the_envelope_has_its_own_scope() {
     // What a member holds on its home: `sync` for the bundle, `relay` only
