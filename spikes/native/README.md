@@ -1321,6 +1321,13 @@ refuses clicks. Existing button_control and every legacy signature stay intact.
 Button::aria_label forwards an explicit role/name without creating a keymap;
 consumer accessibility/OS/first-use evidence remains unverified.
 
+The shared combobox captures a private identity for each explicit opening.
+Retained frame callbacks admit that opening before keys, outside/scrim, row/back
+or implicit pointer focus; they cannot act on a later opening. Final dismissal
+reuses the shared weak ReturnFocus policy; state replacement acknowledges actual
+close before dropping its opener cycle. Existing signatures, placement and
+geometry remain. Evidence and limits: `docs/plans/shared-picker-admission.md`.
+
 ### Identified form textarea
 
 TextField::form_multiline_with_source takes the same checked FieldId callbacks
