@@ -7,6 +7,10 @@ which remains `None` until integration; this branch does not
 change `PROTOCOL_VERSION`. This track adds no `node.settings` key, and
 it does not touch parking, rewind, fork, or `vessel-agent`.
 
+The [Resume point](#resume-point) states the current package boundary. Earlier
+implementation and verification notes retain the checkpoints at which they were
+written; their pending checks are historical unless restated in that section.
+
 ## What Paseo does
 
 Read first, and reproduced except for the differences ADR 0063 lists.
@@ -76,9 +80,15 @@ Read first, and reproduced except for the differences ADR 0063 lists.
   (`paseo-tools.ts:1396-1401`) and `list_agents.includeBackground`
   (`:2133`, default false) and `list_workspaces`
   (`:1526`, default false).
-- Vessel has no workspace visibility. The flag is `SessionListing` on
-  the session (ADR 0063). Archived sessions stay listed as they are;
-  `--background` does not mean `-a`.
+- Bound Vessel sessions derive an immutable `SessionListing` mirror from
+  canonical workspace visibility (ADR 0082); conflicting explicit session
+  overrides are refused by creation orchestration before work. Only legacy or
+  unbound sessions retain an independent listing. The bridge is owned by
+  workspace/session creation and is not implemented here yet.
+- Paseo `run.ts:30-36,396-414` makes `run -d/--background` a hidden legacy
+  no-wait alias, not visibility. The CLI owner retains it; list filters consume
+  discovery, while workspace creation owns bound visibility. Archived sessions
+  remain listed as before; discovery inclusion does not change archival.
 
 ### Reload
 
@@ -228,7 +238,9 @@ patches and their RPC/event; 2e CLI/MCP ingress. Each is gated separately.
    column on the same schema append as the labels column when that
    append has not shipped yet, otherwise the append after it.
    `session.list`'s `scope`. CLI
-   `--background` on `run` and on `sessions`. MCP `listing` and `scope`.
+   list inclusion filters are consumed by the CLI owner; the run no-wait alias
+   keeps its legacy meaning. Bound creation visibility is the workspace owner's
+   flag. MCP `listing` and `scope` cover legacy/unbound metadata.
    Tests: default hides, `all` shows, an exact get still finds it, an
    older peer is not filtered and does not see the field, an agent
    inherits, a person does not.
@@ -397,7 +409,152 @@ No row of the crate table changes.
   `cfg(test)` field, control and fault branch. The designated follow/display
   head is merged, and this package now owes its one complete gate.
 
+## Typed label entry access for app consumers
+
+Consumers read `SessionLabels::iter()` as an exact-size iterator of
+`(&LabelKey, &LabelValue)`, in canonical key order. No generic session-label
+editor is introduced by this accessor. Its `len()` is the count
+of remaining entries. This extends the existing validated map, with no JSON
+tree, summary parsing, mutable map access or new wire field. Values retain
+spaces, commas and equals signs. This accessor does not add the pending
+`session.labels` mutation method or workspace label catalogs.
+
+## Proposed session discovery request contract
+
+The protocol owner accepted this existing-wire-type change with required wire
+scope and named Rust constructors. The method-table integration head is now merged. The request conversion and
+its optional field rule are implemented, along with durable listing, source
+inheritance, selected discovery and import preservation. Their package checks
+are in progress; the separately integrated CLI/MCP consumers and canonical
+bound-workspace bridge remain outside this implementation.
+
+```rust
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(transparent)]
+pub struct ListSessions(Option<SessionSelection>);
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct SessionSelection {
+    pub scope: ListingScope,
+    #[serde(default)]
+    pub labels: SessionLabels,
+}
+```
+
+`ListSessions::default()` is `None`; its wire body remains `null`.
+`ListSessions::selected(selection)` constructs `Some(selection)` and
+`selection()` borrows it. `SessionSelection::shown()` and `all()` are
+named Rust constructors with empty label filters; `with_labels(labels)` adds
+the validated predicate. The selection has no Rust Default and its wire
+`scope` is required: `{}` or a labels-only object is invalid. A valid present
+selection requests the new feature. Missing or unknown scope and invalid
+labels fail during decoding. No second request type, row or boolean scope is
+introduced. On the method-table integration head the field rule belongs in
+`Call::since() -> Option<ProtocolVersion>`: a present selection contributes the
+feature constant, and an unassigned constant makes the whole call None.
+`required_protocol()` delegates to since; it gets no second field check.
+
+| Caller or body | Meaning | Admission and compatibility |
+|---|---|---|
+| Existing Rust unit-value caller | Complete only the value to `ListSessions::default()` | Existing assertions unchanged in the field-introducing commit |
+| `params: null` / `ListSessions::default()` | Legacy full list, background included | Existing method requirement; works with old nodes and preserves the wire shape |
+| `params: {}` / labels-only object | Invalid: required scope is missing | Decoding refuses before dispatch; no silent Shown choice |
+| Present `scope: shown` | Shown sessions, no label predicate by default | Unassigned feature is refused; after assignment requires its threshold |
+| Present `scope: all` | Both listing kinds | Same feature gate; explicit unsupported requests are never discarded |
+| Present nonempty labels | Every pair must match current labels, after scope | Same feature gate; filtering preserves existing list order |
+| Existing SDK `sessions()` | Keep the legacy full-collection API | Only its Rust value expression changes, not its behavior |
+| CLI default list with supported assigned metadata | Send present Shown selection | Default discovery hides background work |
+| CLI default list before assignment / on an older connection | Keep the legacy null path | Compatibility difference: that peer cannot supply listing metadata; no explicit filter is dropped |
+| CLI explicit background inclusion or label filter | Always a present selection | Unsupported/unassigned is an error, with no silent fallback |
+
+[Decision Log]
+- Purpose: distinguish old full-list reads from new default discovery without
+  breaking old `params: null` callers or treating omission as an explicit flag.
+- Existing assets: extend the current `ListSessions` row and shared optional
+  field admission, the validated label map and the existing list service.
+- Choice: an optional typed selection in the same request; its required
+  scope owns inclusion, and labels are an AND predicate. Named constructors
+  keep Rust choices explicit. No dependency is needed.
+- Alternatives: changing null to Shown would silently change old clients;
+  sending an empty object to an old unit request would break decoding; a new
+  method or second request alias would duplicate protocol knowledge.
+- Consequence: defaults use the existing legacy behavior when metadata cannot
+  be negotiated, while explicit new requests require the feature. Paseo has
+  no negotiated Vessel legacy null request; this compatibility difference is
+  deliberate. Its background discovery defaults still apply on supported peers.
+
+## Background value staging
+
+- Existing asset check: `DirListing` describes a directory, and `UsageScope`
+  chooses usage aggregation. Neither models session discovery. The existing
+  session listing merges live and stored information; that service and its
+  ordering will be extended through the now-integrated shared admission accessor.
+- Decision: new value types, using the existing serde and TypeScript derives,
+  with no dependency. `SessionListing` separates shown/background discovery
+  from run state; `ListingScope` separates default/inclusive reads. A generic
+  boolean would lose that distinction at a module boundary.
+- Paseo's source remains the reviewed background contract:
+  `docs/agent-lifecycle.md:186-203`, CLI `ls.ts:138-151`, MCP
+  `server/agent/tools/paseo-tools.ts:1396-1401,2133`, and
+  `server/workspace-registry.ts:106,684-687` (durable default false).
+  The stated difference remains session metadata rather than workspace
+  visibility, because a shared project is not one agent workspace.
+- These are values only. No request, reply, event, field, migration, filter
+  service, caller inheritance or CLI/MCP input is added here. A future creation
+  field must be optional; the value's default does not erase an omitted
+  override. Exact-id operations will continue to bypass discovery filtering.
+
+- The initial value-only branch passed TypeScript-enabled narrow clippy and
+  three listing/default/serde tests. Its queued complete gate was cancelled
+  before execution. Under the package workflow, these values now belong to
+  the complete background feature and receive no separate value-only gate.
+
 ## Resume point
+
+The title-origin node head is merged before background fields. Its origin
+projection remains authoritative; readable events use the existing origin mask,
+and event pages detect actual projection changes. This also incorporates the
+head's fix for the previously reported Replayed observation page inconsistency.
+The legacy labels migration test already follows the table's latest version.
+
+Current package boundary: legacy interrupt repair, label admission and the event/stop
+prerequisite passed review; their integrated gate debt is also settled. The
+background package implements validated listing/scope/selection values, the
+nullable request, durable effective metadata, source-node inheritance, selected
+current-label reads and source-preserving imports. The migration runner and
+legacy SDK full-list behavior remain unchanged. Explicit discovery and metadata
+are refused by the shared accessor while the assignment remains pending.
+
+Generated declarations preserve unrelated integrated types. Metadata projection
+covers infos, lists, subscriptions, transfers, templates and envelopes. The
+strict check found fixture Arc/SQL-result and helper-reference defects, which
+are corrected. The source correction for rejected-transfer cleanup passed review.
+Scoped checks passed on their exact revisions: generated declarations at 58f9d7af
+(four tests and no generated diff), node library tests at e292aa24 (267 passing),
+and actual Forward/Relay cleanup wiring at f0578a20 (one passing regression with
+four cases). These are not one current whole-package result. Admission of the
+package requires a corrected changed-crate strict check and one complete root
+gate; the handoff records their exact revisions and results. Integration and
+consumer readiness require that complete evidence, rather than any scoped result.
+The typed iterator belongs to this package.
+
+The independent public call preflight passed its narrow, complete root gate and
+review. Its approved legacy run anchor now checks the creation call after
+connection but before placement. New CLI metadata/filter options and MCP
+facades are separate consumer integrations. A real-node regression also covers
+hidden durable listing and the dynamic import refusal before target-directory
+work. That integration case belongs to the complete package gate, rather than
+the earlier node-library checks.
+
+Canonical workspace visibility is the authority for bound sessions; creation
+orchestration still owes that mirror/override bridge. Independent listing and
+source inheritance apply to legacy/unbound sessions or an already fixed mirror.
+No label mutation call or LabelsChanged event is implemented yet. Actual reload
+also remains unimplemented: a reviewed producer with proved transient-prompt
+support/capture/restore precedes that common orchestration. No real-provider,
+platform or end-user metadata workflow is claimed.
 
 Current label-mutation preparation: `LabelPatch` and its five edge tests are
 implemented. The corrected TypeScript-enabled prototype Clippy passed on its
@@ -549,6 +706,7 @@ The labelled-request invariant now asserts `since() == None` as well as
 numeric-accessor comparison is obsolete on the integrated optional API; this
 strengthens the pending check without changing any assigned expectation.
 
+
 ## Shared preflight for validation before work
 
 Existing assets: the RPC client already checks the call's optional protocol
@@ -574,6 +732,386 @@ The shared checker, allocator and writer behavior are unchanged. The complete ro
 regression, TypeScript freshness, web checks and the forge fixture. This API
 adds no CLI behavior until its separate consumer calls it.
 
+
+
+### Optional call admission after the method-table merge
+
+The label rule now contributes to `Call::since()` after the method and other
+field requirements. A pending label assignment makes that one accessor return
+`None`; `required_protocol()` delegates unchanged. The old numeric label
+contributions are removed, so a label is considered once. Fleet envelopes keep
+the head's recursive optional requirement, and all other thresholds stay as
+written there. The labelled-template fixture asserts both accessors are pending
+for every direct and nested request. The whole-method assigned-request invariant
+keeps the head's optional expectations.
+
+The typed label iterator is borrowed and exact-size; callers can count remaining
+entries without parsing the display summary. Its first narrow check found a
+missing must-use annotation and a newly added title-event test using the removed
+numeric event accessor. Both are corrected; a new narrow check is owed.
+
+### Session-template boundary naming
+
+Before extending discovery metadata, the optional admission and older-peer
+modules are named for their responsibility: session templates. This separate
+refactor only renames modules and the internal synthetic-threshold projection
+helper. It changes no value, expectation or wire representation. Label rules
+and their tests remain byte-identical in the renamed files.
+
+### Durable listing and template projection
+
+The background append follows the head's newest migration through one named
+constant; its table length is checked by the array type. The production runner
+is unchanged. Existing rows default to Shown without rewriting their specs.
+The codec reads the immutable effective listing independently of the requested
+override; corruption keeps the session and column in its typed error.
+The original approval/device/log/marks and inbox rollback cases gain only this
+append's DROP before their existing SQL. The title-origin fixture first undoes
+this later append and its version, then runs the head's relative rollback and
+assertions unchanged. Reopening, idempotent migration, corruption and legacy
+spec retention have new tests.
+
+Metadata projection now hides listing together with labels on every existing
+info/transfer/template path. Listing-only creation fixtures exercise shared
+admission too, so an explicit Shown override cannot disappear at an older hop.
+A synthetic assigned threshold retains the effective and requested listing for
+a new-enough peer. These new checks still need execution; creation and discovery
+service wiring remain next.
+
+### Creation inheritance and scoped discovery service
+
+The canonical session collection still includes both listing kinds. A selected
+read filters a fresh copy by scope and then by every current label pair, keeping
+its order. Exact-id operations and the existing SDK full collection are unchanged.
+Real store/runtime tests include live and ended background sessions, current
+labels different from creation labels, explicit Shown overriding inheritance,
+unknown-parent refusal and direct access after a filtered read.
+
+The authenticated source resolves an omitted Background before forwarding a
+CreateSession, after the existing forwardability and scope checks. Shown stays
+the legacy omission; explicit values are untouched. The destination treats
+a remote-agent omission as Shown, without a remote-parent lookup or new Origin
+field. This forwarding distinction has no Paseo counterpart and preserves old
+ordinary creation while refusing a new Background field at pending/older hops.
+A local scheduled run inherits then, not when its template is saved. The existing
+scheduler limit on remote definers remains. Dynamic manifests refuse pending metadata before files are fetched. Import
+spec assembly will first be extracted without a behavior change to make room
+for explicitly retaining its source listing. Side-question overrides are refused before parent lookup instead
+of being discarded. The source inheritance boundary is security-relevant and
+needs its commit reviewed; no trust or scope is added. CLI/MCP wiring is next.
+
+### Import specification assembly extraction
+
+Before adding the immutable listing copy, import's existing spec assembly moves
+to `transfers::import::session_spec`. This keeps the import transaction orchestration
+within its size budget without raising a record. The extraction takes the same
+validated harness, resume id, ordered choices, target cwd and profile; it copies
+the same model/current title/current labels. No value or test expectation changes.
+The existing import assertions remain the refactor's behavior contract.
+
+The following metadata change copies the import source's effective listing
+explicitly in the extracted spec builder. Both Shown and Background override
+caller inheritance, including a source whose original spec omitted it. A focused
+unit checks this with current labels and the same resume id. The dynamic starting
+manifest guard remains before file fetching; no import deadline or existing
+assertion changes.
+
+### Canonical workspace authority and consumer ownership
+
+Workspace visibility is the one authority for bound sessions (ADR 0082). The
+creation owner resolves it into `SessionListing::{Shown, Background}`, refuses
+a conflicting explicit `SessionSpec.listing` before any work, and writes the
+immutable mirror read by this package. Its reviewed producer/adapter is still
+pending: no bound bridge is claimed. The source-node inheritance rule applies
+only to legacy/unbound creation or to an already fixed mirror. The registry and
+workspace DTOs are not edited here.
+
+The CLI owner consumes the discovery contract and owns new flags/creation flows.
+Only the approved legacy run preflight line is added by this track. Paseo's
+run background spelling is a legacy no-wait alias, as its command and caller
+confirm; it is never repurposed as a visibility flag. The earlier contrary
+plan promise is corrected. Native views, bound creation and CLI integration
+remain separately owned consumer work before protocol assignment.
+
+The first core narrow lint refused redundant SessionSpec qualifications in
+the template rule and its test. They are removed without changing behavior
+or expectations; a fresh corrected-source check remains owed.
+
+### MCP consumer boundary
+
+This node package supplies validated creation metadata and the nullable discovery
+request. MCP decoding, schema and facade integration belong with the tools
+consumer, so no second decoder or fallback implementation is shipped here.
+The existing MCP full-list call only changes its Rust unit-value spelling to
+`ListSessions::default()`, preserving null and its behavior. The consumer must
+use the shared admission accessor after its integrated head, and explicit
+selectors must never disappear. Its metadata ingress tests remain consumer work.
+
+The discovery fixture gives stored rows distinct fixed timestamps. The existing
+canonical sort promises newest-first, not an order among equal timestamps, so
+this prevents a test from depending on a fresh hash map's tie order. Expected
+selection contents and ordering requirements are unchanged. Key-cap atomicity remains covered beside the shared label map itself.
+
+### Integrated admission and discovery merge
+
+The integrated method table and request-contract modules are kept in their
+new locations. The existing optional label rule remains one final field rule:
+the session-template module name and its typed spec input also let listing
+contribute there, without another accessor or numeric fallback. Both sets of
+architecture and plan additions are retained. The integrated event projection,
+title-origin masks and shared test expectations stay unchanged. Narrow checks
+and fresh generated-wire bytes are still owed for the discovery package.
+
+### Generated discovery declarations
+
+The generator-produced declaration delta adds the nullable selection, scope,
+listing and metadata fields. It applies on top of the integrated declarations
+without replacing unrelated generated types. The source generator tests passed;
+the original stale result remains a freshness failure until these bytes are
+committed. A fresh integrated-head TS check and the package gate are still owed.
+The MCP decoder draft is excluded; its consumer owns that separate integration.
+
+### Dynamic import regression
+
+A new real-node test seeds effective Background and explicit Shown metadata
+while the wire assignment is pending. Legacy null discovery retains both ids,
+replies hide both metadata fields, and starting imports receive the exact
+listing refusal before creating their target directories. Reopening checks
+that the effective classification and original omission/override stay durable.
+The existing label import test and all its assertions and deadlines are kept
+unchanged; this separate case covers the additional discovery boundary.
+
+### Legacy run preparation preflight
+
+The existing run path now calls the reviewed SDK checker immediately after
+connecting and before resolving or creating its workspace placement. It checks
+the parsed creation specification through the same typed CreateSession call;
+the eventual send still checks again. No new option, parser or discovery
+consumer is introduced here. The separate CLI consumer must prove its new
+metadata flags cannot create a worktree before a pending/older refusal. That
+end-user path is not claimed by the raw SDK regression alone.
+
+### Discovery narrow-check corrections
+
+The integrated strict check found two fixture defects and a private helper's
+reference convention: append records are shared Arc values, the corruption
+fixture must consume and assert its SQL row count, and the import spec builder
+takes Option<&ProfileName>. These corrections retain imported profile values
+and existing expectations; both insert and corruption fixtures now assert
+that their SQL changed exactly the intended row. The failed
+check is retained, and corrected-source checks and the complete package gate
+are still owed.
+
+The legacy schema fixture reads SQLite's user_version as its supported i64
+representation and converts the migration length with TryFrom for comparison.
+The earlier usize read did not compile; no schema value or expectation changes.
+
+### Peer-safe export before metadata projection
+
+Source review found a remote-import gap: an unreadable export reply hides
+metadata before the destination's dynamic manifest check can identify it. The
+source guard will reuse lifecycle visibility on its original current labels and
+classification, after ownership and before provider history/transfer work.
+Forward and Relay will apply the same guard to the returned session manifest
+before their connection's projection, preserving the three-hop case with a new
+source/home and old importer. No request, origin, shared accessor, schema or
+reply projection changes. The ADR states the necessary non-starting export
+refusal and the difference from Paseo's caller-labelled history import.
+Tests precede the fix: real-node source refusal, default metadata unchanged,
+synthetic assignment/older visibility and the three-hop return boundary.
+
+The first source-export regression seeds durable labels and Background without
+a provider conversation. The exact typed protocol refusal must precede the
+otherwise-later missing-history error, and the stored metadata must remain
+unchanged. This test is committed before the guard; its red run is still owed.
+
+Before the export guard, the existing info/turn/terminal snapshot lookup moves
+unchanged into a private exporter method. This separate behavior-preserving
+extraction keeps export orchestration short and lets the peer guard validate
+the same snapshot placed in the manifest, rather than read/check then re-query.
+Existing fields, refusal ordering and test expectations are unchanged.
+
+The corrected-source strict check also requires the discovery runtime tests to
+consume testkit's deadline Result: a timeout must fail the test. They now unwrap
+that result without changing the budget or any assertion. The snapshot method
+also needs the SessionInfo import; its extraction was not used as compiled
+evidence before that correction.
+
+### Export preservation implementation
+
+The original test commit fails on the real source node with Conflict instead
+of the required Unsupported; it reaches the missing-conversation path before
+metadata readiness. The fix shares lifecycle_version::visible with projection.
+The source service supplies its connection protocol to the existing exporter,
+whose single original-info snapshot is checked before turn/history work and
+is then the same snapshot placed in the manifest. Local pulls supply no peer
+and retain their existing original-info/manifest checks. This avoids a separate
+check/re-fetch race. Forward and Relay check returned session manifests before
+returning to their peer, without remote lookups or changes to broader replies.
+
+The new peer tests exercise default metadata, pending and synthetic assigned
+thresholds, plus serialized source/home/older-importer return boundaries. The
+three-hop assignment is synthetic because the actual assignment remains None;
+it is not a claim of an assigned feature running across a real fleet. Existing
+ordinary-history transfer tests and their assertions remain unchanged. Corrected
+strict checks, green source regression and the complete package gate are owed.
+
+### Returned export checkpoint: test compilation
+
+The first exact export-policy narrow checks stopped before tests because the new
+fixture called a nonexistent service-error accessor and imported an unused trait.
+The assertion now uses the existing wire mapping, keeping the same Unsupported
+expectation. The returned-transfer cleanup correction and its cancellation proof
+remain in progress; no package gate or completed background feature is claimed.
+
+### Retaining a fleet route
+
+A separate structural extraction moves the existing home/member transport choice
+into envelope::route. It keeps Links' existing callback selection, destination,
+origin, permission checks and response unchanged. The retained descriptor will
+let rejected-transfer cleanup use the export's exact holder rather than rebuild
+an origin after the original call has completed.
+
+### Rejected returned-transfer ownership
+
+[Decision Log]
+- Purpose: an unreadable successful export must not strand a handle the caller
+  never receives. Preserve the typed metadata refusal and its original authority.
+- Existing assets: CloseTransfer, exact Origin, Links' member/callback routing,
+  the node forwarding TaskTracker, and the transfer idle/expiry policy.
+- Alternatives: awaiting close in the request loses cleanup on cancellation;
+  replaying export or rebuilding an owner origin changes resources or authority.
+- Choice: modify the envelope to retain its route; register an independently
+  tracked close before awaiting settlement, bounded by the existing idle lifetime.
+- Effect: confirmed closes release admission; uncertain closes retain the original
+  Unsupported and rely on source expiry/restart. Shutdown grace is unchanged.
+- Tests: exact transfer/Origin and holder, successful settlement, caller abort
+  while close is held, timeout and transport refusal. Assignment remains synthetic.
+
+The correction now retains the authorized route through the returned manifest,
+registers close in the existing forwarding task tracker and keeps the original
+typed metadata refusal even when close is uncertain. New tests exercise actual
+transfer-store release, wrong-holder refusal, caller abort during held close,
+virtual-time expiry, unchanged readable/default replies, and exact Home/Member
+frames used by forwarding, relay and callback selection. The frame fixture is
+not an assigned three-node fleet or a live callback transport proof; those remain
+explicitly unverified until runtime coverage is added. No old assertion or budget
+is changed. Narrow compilation and the complete package gate remain owed.
+
+### Event-log boundary wording
+
+The shared Status documentation now distinguishes a run's last runtime-produced
+lifecycle record from checkpoint metadata appended after that run. This permits
+a separately implemented ended-session file restore to report its checkpoint
+without starting an agent. No event, accessor, stream implementation or assertion
+changes here; log follow still has its previously reviewed run-EOF behavior.
+
+New retained-cleanup tests use the existing testkit safety net for channel and
+filesystem waits. The virtual-time case separately bounds its join after advancing
+the production idle deadline; an absent timeout fails instead of hanging forever.
+This changes no existing deadline or assertion.
+
+A new private node-unit fixture also builds a temporary home/member fleet and a
+loopback relay. The member advertises no own routes; the ordinary authenticated
+grant establishes its callback as a handshake barrier. The fixture owns that
+connection: it cancels the existing membership epoch before joining, avoiding
+a second automatic grant producer without adding a product test control. Synthetic returned
+metadata references real holder-bound transfers; cleanup runs through home
+forwarding and member Relay back to callback Deliver, checking exact settlement
+and wrong-holder refusal. This is actual callback transport with synthetic
+metadata, not an assigned three-node export. No new product control or real
+harness is introduced; execution remains owed.
+
+The callback fixture setup is split by relay establishment and authenticated
+member grant so each phase remains reviewable; its assertions, routes and safety
+net are unchanged. The successful close acknowledgement is explicitly consumed.
+
+The callback fixture uses distinct explicit node names rather than host-derived
+names, and names its invitation lifetime once. This avoids a fixture name
+collision and makes its temporary identity independent of the test machine.
+
+### Deferred actor capture authority
+
+The later creation/reload capture must bind the actual run's ProcessLifetime,
+HarnessRef, resolved profile and immutable launch association in one actor
+snapshot, with the existing native-options fence and same-run checks before and
+after it. A provider identity is an explicitly resolved launch binding, never a
+kind/family/account inference. Sign-in state is an attested observation bound to
+that same run and provider association; absence of such observation is Unknown,
+not inferred success from a credential or identifier. Provider binding types and
+registry projection stay with the provider module. This records the authority
+boundary only: no actor capture API or consumer-ready implementation exists yet.
+
+The first cleanup increment's strict check stopped in a new fixture before tests:
+a string converted with Into left the generic WireError constructor ambiguous.
+The fixture now passes its string literal directly; its Forbidden result and
+assertions are unchanged. The original compile failure remains recorded.
+
+Retained route entry points document their authorization prerequisite: the
+transport descriptor grants no permission, keeps the exact origin, and leaves
+callback selection to Links. Test fixture visibility exists only to share the
+synthetic manifest across policy and real-transport tests; it is absent from
+product builds. These comments add no behavior or assertion change.
+
+The route regression also compares the export frame directly with its input
+origin, so identically rebuilding the wrong principal for both export and close
+cannot satisfy the test. Existing expected values and product behavior remain
+unchanged; this strengthens only the new authority regression.
+
+### Guarded envelope regression boundary
+
+The helper/physical-callback cases are complemented by tests of the actual
+Forward and member-to-home Relay refusal arms. A raw in-memory fixture peer
+intentionally returns unprojected metadata, without assigning a protocol. The
+only shared test seam is a cfg(test)-only member connection cache insertion,
+keyed by the negotiated NodeId; no installed node exposes it. The remaining
+fixture lives beside export cleanup and uses existing guards, Origins,
+CloseTransfer and actual transfer-store ownership. The raw fixture is a test
+edge, not an authenticated production peer or an assigned fleet proof.
+
+The wiring regression now drives both actual refusal arms through a raw peer,
+checking exact Unsupported text and a separate retained cleanup task. It holds
+CloseTransfer, aborts the caller, uses a normal request as a cancellation-order
+barrier, releases close and verifies exact transfer settlement and original
+Origin/scopes. The real callback fixture remains separate transport evidence.
+The shared cache helper is cfg(test)-only and will be called out explicitly at
+integration. The four-case regression passed at f0578a20; that scoped result
+covers the guarded refusal arms, not a complete package or assigned fleet.
+
+The approved connection-cache helper lives inside links.rs's existing cfg(test)
+module. This keeps all helper documentation and spacing classified as test code
+and preserves that file's product-line ratchet; no product code or size exception
+is removed or increased. The helper's behavior and visibility stay unchanged.
+
+The broad strict check found two new-test issues despite the library tests
+passing: an expected error unnecessarily passed by value, and a large callback
+fixture Future. Expectations now borrow the same error values; the fixture's
+existing deadline Future is pinned on the heap so the test task does not retain
+that state on its stack. No deadline, outcome or authority assertion changes.
+
+### Package validation boundary
+
+Source review includes retained exact-origin cleanup, actual transfer ownership,
+caller cancellation, the independent authenticated callback route and deliberately
+unprojected raw-peer Forward/Relay regression. The latter passed in 2.99 seconds;
+the broader node library passed in 38.97 seconds on its earlier exact revision.
+The generated declaration checks passed without a wire difference. Original
+compile and strict failures remain recorded; the expected-error borrow and large
+fixture Future fixes change neither deadlines nor assertions. Final package
+validation pairs the corrected changed-crate strict result with one complete
+root gate, including generated-wire freshness, forge and web checks. The earlier
+scoped results are retained separately and cannot replace that final evidence.
+
+No assigned three-node export, bound-workspace creation bridge, consumer UI,
+new label mutation/event, actual reload, actor capture or real-provider/platform
+behavior is inferred from these scopes. The future actor must preserve an explicit
+actual-launch provider/profile association; today's normalized profile name and
+quota-location association cannot supply that authority.
+
+The new local-owner fixture helper uses its temporary roots, so their earlier
+keep-alive-only underscore names are replaced with ordinary field names. This
+resolves the strict used-underscore-binding check without changing ownership,
+cleanup, deadlines or expected results. The original strict result is retained.
 
 ## Nonempty label patch foundation
 

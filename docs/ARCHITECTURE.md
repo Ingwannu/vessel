@@ -1703,7 +1703,7 @@ The node's startup recovery logger uses that diagnostic while retaining the
 existing set-aside behavior. It reuses serde_path_to_error already in the
 workspace; no workspace-crate edge changes (ADR 0038).
 
-### Independent workspace registry (ADR 0082, pending)
+### Independent workspace registry (ADR 0082, metadata at protocol 25)
 
 `vessel-proto::registry` carries independent workspace identity, exact backing,
 lifecycle and atomic node/workspace/resource snapshots. Workspace and create
@@ -1718,14 +1718,17 @@ commit publishes a coalesced watch; readers hydrate descriptors and memberships
 in one transaction. `registry::write::{require_active,bump_revision}` is the
 in-transaction seam for catalog assignment extensions, not a second registry.
 
-`vessel-node::service::registry` handles person-only registry reads, bounded
-long-poll, rename and pin through the single pending method table. The separate
+`vessel-node::service::registry` handles registry reads, bounded long-poll,
+rename, pin and the blocked-source release through the single method table:
+protocol 25's six metadata methods. Agent principals, direct or delegated, are
+refused before lookup; a forwarded person-origin call holds the intersected
+scopes and reads without the long poll. The separate
 create and lifecycle packages own actor launch and archive/recovery orchestration.
 Pre-spawn leases fence archive against late actor registration. Restoring is an
 exclusive persisted claim before backing recovery. Filesystem provisioning remains on the separate continuation until a real
 create driver wires it; no unwired node service ships in this dependency. Project config,
 icons, editor integration and automatic archive remain separate incomplete work.
-No protocol number or full package acceptance follows from this architecture.
+Those have no method row; protocol 25 covers the six metadata methods only.
 
 ### Settings writer lifetime
 
@@ -1788,3 +1791,50 @@ The portable body kernel has no event/RPC attachment or execution path; native
 renderers borrow it without creating a competing provider model. No dependency
 edge changes. See docs/plans/timeline-body-values.md for exact source provenance
 and pending consumer-adoption checks.
+
+## Page feedback and modal ownership
+
+The existing Base UI dialog, command palette and sheet own their key and
+focus behavior. `web/src/ui/page-focus` lets page-originated focus and
+keyboard capture yield to a currently open kit dialog or menu, using its public
+role/open attributes. This closes the gap before its initial focus frame:
+a late-mounted draft cannot take a menu's focus, and a page shortcut recorder cannot
+consume Escape before the dialog receives it. No second modal registry or
+Escape listener competes with Base UI's nested controls and IME handling.
+`compose/use-draft-presence` keeps the mounted draft's asynchronous completion
+guard separate from the optional initial focus; closing a modal does not
+re-run that mount effect. A paused shortcut recording remains pending.
+
+Toasts retain the existing host and lifetime rules. The viewport sits below
+the header and centres existing cards, with responsive width and a bounded
+scrolling stack. It no longer occupies the lower composer/dock region.
+The layer's tokens, status roles, colors and dismiss actions are unchanged.
+
+### Creation-only session discovery metadata (ADR 0063, wiring in progress)
+
+`SessionSpec.listing` keeps an omitted override distinct from explicit Shown.
+`SessionInfo.listing` is the immutable effective classification, independent of
+process state and archival. The store appends a default-Shown column (schema
+21, `vessel-store::schema::listing`); it does
+not rewrite original specs or change the migration runner. Protocol projection
+hides both fields while the lifecycle assignment is pending, including reusable
+templates and transfers. The existing creation and discovery service paths
+consume these types for legacy/unbound sessions; explicit inputs remain refused
+while assignment is pending. Canonical bound workspace mirroring and the
+separately integrated CLI/MCP consumers remain outside this node package.
+
+### Export metadata readiness (ADR 0063)
+
+The node's `metadata_export` policy shares protocol visibility with reply
+projection. The exporter validates its one owned info snapshot before reading
+provider history, so the checked classification is the one in the manifest.
+Local pulls have no wire projection and retain their existing import guards.
+Forward and Relay also validate returned export manifests against their next
+peer before projection; a new source/home cannot silently turn an old importer
+into a Shown session. This adds no crate edge, authority or wire shape.
+
+Rejected export manifests retain their original envelope route for CloseTransfer.
+The existing forwarding TaskTracker owns cleanup across caller cancellation;
+Links keeps direct/callback selection and the source guard keeps holder/scope
+checks. Cleanup waits no longer than the existing transfer idle lifetime, while
+normal shutdown grace and source expiry/restart remain unchanged.

@@ -179,6 +179,14 @@ impl SessionLabels {
         self.0.is_empty()
     }
 
+    /// Borrow exact entries in canonical key order for typed display and
+    /// editing. The iterator's exact size supplies a count without parsing
+    /// the human summary or allocating another map.
+    #[must_use]
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = (&LabelKey, &LabelValue)> {
+        self.0.iter()
+    }
+
     /// Drop every label. An older peer is shown a session with none.
     pub fn clear(&mut self) {
         self.0.clear();
@@ -380,5 +388,20 @@ mod tests {
         let text = serde_json::to_string(&map).unwrap();
         assert_eq!(serde_json::from_str::<SessionLabels>(&text).unwrap(), map);
         assert_eq!(map.summary(), "env=prod, tier=a");
+    }
+    #[test]
+    fn typed_entries_preserve_values_and_report_the_remaining_count() {
+        let map = labels(&[("z", "last"), ("a", "  raw,=한  ")]);
+        let mut entries = map.iter();
+        assert_eq!(entries.len(), 2);
+        let (key, value) = entries.next().unwrap();
+        assert_eq!(key.as_str(), "a");
+        assert_eq!(value.as_str(), "  raw,=한  ");
+        assert_eq!(entries.len(), 1);
+        let (key, value) = entries.next().unwrap();
+        assert_eq!(key.as_str(), "z");
+        assert_eq!(value.as_str(), "last");
+        assert_eq!(entries.len(), 0);
+        assert!(entries.next().is_none());
     }
 }

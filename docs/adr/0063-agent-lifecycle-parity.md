@@ -119,6 +119,43 @@ import must still check its source metadata before export/placement, because
 the caller does not carry those labels. No new method is registered by this
 admission change. Refusal avoids accepting data that no client can see.
 
+### Export classification before peer projection
+
+An export must not silently lose its current labels or Background classification
+on the way to a later import. After the existing ownership guard, the source
+reads the original session info and checks the same lifecycle visibility rule
+used by reply projection, before reading provider history or opening a transfer.
+Default metadata needs no feature support. Nonempty current labels or a
+Background listing require an assigned threshold readable by that connection;
+otherwise export returns typed Unsupported. No metadata values enter the error.
+
+Forward and Relay apply that same check to an ExportSession manifest before
+returning it to their connection. A newer source and home must not let an older
+importing node receive a silently projected classification. They use the returned
+manifest, without another remote lookup or a new Origin field. Requests, shared
+call admission and all reply projections remain unchanged.
+
+A returned manifest already owns a source transfer. Before refusing that result,
+the forwarding node schedules the existing CloseTransfer for that exact handle
+on the retained destination and Origin, including Links' callback route. The
+receiving guard still intersects the same scopes and checks the same holder;
+cleanup grants no extra authority. The node tracks this task independently of
+the caller, so cancelling the caller while close waits does not discard it.
+The existing transfer idle lifetime bounds an uncertain close; failure or timeout
+is logged without replacing the original typed metadata refusal. Normal shutdown
+keeps its existing bounded forwarding-task grace, and expiry/restart remains the
+fallback if the source cannot confirm closure. No export is replayed.
+
+
+This deliberately also refuses a non-starting history export when its current
+metadata cannot travel: the existing export request carries no import-start
+intent, so the source cannot promise preservation only for one future consumer.
+Paseo's provider-history import (`agent/import.ts:110-123`) supplies labels from
+its caller and has no corresponding fleet transfer route. Vessel's refusal
+protects the source classification instead of silently making the import Shown.
+While the assignment is None it applies to every peer; afterwards it applies
+only below the assigned threshold. Ordinary metadata-free transfers are kept.
+
 ### Stop failure before a restart
 
 The existing profile-move stop helper is the candidate for reload reuse. Its
@@ -172,11 +209,32 @@ pair (logical and). Empty means no label filter.
 
 ### Background
 
-`SessionListing` is `shown` or `background`, chosen at creation, never
-updated. Omitted means `shown`, except when the caller is an agent: then
-omission inherits that agent's own session listing. An explicit value
-always wins, including a schedule's run made as an agent. A person's or
-a schedule-definer's omission is `shown`.
+`SessionListing` is `shown` or `background`, immutable after creation. For a
+bound session, workspace visibility is the one truth (ADR 0082). Creation
+orchestration resolves that visibility to the same typed listing, refuses a
+conflicting explicit session override before work, and writes an immutable
+mirror. Discovery, storage and source inheritance read that fixed mirror;
+they never override the owning workspace. That bridge belongs to creation
+orchestration and is not implemented by this legacy/unbound package.
+
+For a legacy or unbound session, omitted means `shown`, except when the caller
+is an agent: then omission inherits that agent's resolved session listing.
+An explicit value wins, including a local schedule's run made as an agent.
+A person's omission is `shown`. The forwarding rule below applies to unbound
+creation and to a listing already fixed by the owning-workspace bridge.
+
+For a forwarded creation the authenticated source resolves an omitted
+Background inheritance after scope/forwardability checks and before sending.
+It fills `Some(Background)` only for its own background agent; Shown keeps
+the legacy omission, and explicit overrides remain untouched. The receiving
+node treats a remote-agent omission as Shown. A filled Background field still
+passes shared admission and is refused for a pending or older protocol. This
+reuses the existing trusted source/origin boundary without another origin
+field or a privileged remote-parent lookup. Paseo has no node forwarding;
+Vessel needs this distinction to preserve both inheritance and old ordinary
+creation. Saved templates keep omission until a local run; the scheduler's
+existing remote-definer limit stays. Imports explicitly keep their source
+session's effective listing instead of inheriting from the importer.
 
 `session.list` gains `scope`: `shown` (default) or `all`. `shown` leaves
 background sessions out. `all` includes them. It does not change which
@@ -189,7 +247,18 @@ are absent. A current client does not send `scope: all`, a label
 filter, a background listing or any labels to an older node
 (the shared `required_protocol()` accessor returns the assigned threshold,
 or `None` while the feature is unassigned).
-`params: null` keeps decoding as the default request.
+`params: null` remains the legacy full-list request. A present typed
+selection instead requires an explicit wire scope and the feature's
+assignment. An empty object or labels-only object is invalid; Rust callers
+use named Shown/All constructors. The SDK's existing full-collection method
+keeps the null path. CLI default discovery uses Shown when the assigned feature
+is supported, and the legacy path before assignment or on an older connection.
+This compatibility difference is necessary because an older peer cannot supply
+listing metadata. Explicit background inclusion or label predicates never
+fall back: unsupported or unassigned requests are refused. The exact nullable
+request shape and compatibility table are in the plan. The protocol owner
+accepted the required-scope form. Its optional field requirement uses the
+integrated method-table head; storage and discovery wiring remain in progress.
 
 `session.get`, attach, log, send, kill, rename, labels and reload do
 not care about the listing. A background session is still there.
@@ -300,7 +369,19 @@ live output (`logs.ts:362-363,402`). Vessel writes no boundary banner on
 either stream: stdout remains session output and stderr remains status and
 real stream notices, preserving the same capture contract for follow.
 
-### MCP
+### MCP consumer contract (separately integrated)
+
+The tools consumer owns decoding/schema/facade integration; this node package
+exposes the typed spec and selection boundary without shipping another decoder.
+
+MCP discovery follows the same negotiated default as the CLI. If an older fleet
+hop refuses an implicit Shown read with Unsupported, that implicit default alone
+may make one legacy null read. Explicit scope or labels never fall back, and
+no other refusal or transport failure is retried. Paseo has no such forwarding
+hop; this preserves the existing full-list compatibility contract. Invalid
+metadata is decoded before even target-name lookup. Existing-session schedules
+and heartbeats refuse creation-only labels/listing instead of discarding them.
+
 
 On the session's own `vessel` server, as one protocol call each:
 
@@ -373,11 +454,17 @@ Vessel does not copy it.
   items (`logs.ts:288-295,384-393`). Vessel selects its typed, durable
   permission requests and resolutions. Reason: the existing log contains
   these approval records, and the named filter should expose them.
-- Background is `workspace.background`, creation-only
-  (`docs/agent-lifecycle.md:186`, "controls discovery only"). Vessel
-  puts `SessionListing` on the session. Reason: a project is a shared
-  folder, not an agent workspace; hiding the folder would hide sessions
-  nobody asked to hide. The flag stays creation-only, as Paseo's does.
+- Background is creation-only `workspace.background` in Paseo
+  (`docs/agent-lifecycle.md:186-203`). Bound Vessel sessions derive their
+  immutable listing mirror from canonical workspace visibility (ADR 0082).
+  Only legacy/unbound sessions have an independent listing: they predate
+  canonical workspace membership, and a shared project folder is not that
+  membership. The creation bridge refuses conflicts instead of keeping two
+  authorities. It remains outside this package until workspace creation lands.
+- `run -d/--background` in Paseo is a hidden legacy alias for `--no-wait`,
+  not workspace visibility (`run.ts:30-36,396-414`). The CLI retains that
+  alias. Discovery uses the CLI's list filters, and bound visibility uses
+  workspace creation's background choice; no run flag is repurposed here.
 - `ls -a` includes archived and background (`ls.ts:149`,
   `options.background || options.all`). Vessel's `--background` only
   adds background sessions. Reason: Vessel already lists archived
