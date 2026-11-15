@@ -871,7 +871,19 @@ host's projects in the sidebar and filters them through its Display
 menu. The row now unfolds the rest in place, "Show fewer" folds them
 back, so the count and what the press shows are the same rows.
 
-### Resume point (track S3, 2026-11-14 15:40 UTC)
+### Resume point (2026-11-15 continuation)
+
+The row menu, ended-session default and All projects unfolding are complete
+in `f7e91461`, `8366a2b4`, `d33d1ba6` and the token correction `4bcdc117`.
+The width supplement opened all 86 original captures and found vertical
+overflow with many projects: sessions and the settings foot disappear at
+small height or after unfolding. Refolding restores them; this is a known
+failure, not a full visual pass. See `backend-m12-shell-s2.md` for the exact
+binary, coverage, limits and continuation order. Theme cycling through the
+existing registry comes next, followed by machine filtering and the remaining
+items below.
+
+### Earlier resume point (2026-11-14 15:40 UTC; historical)
 
 - Done and reported: palette (`153da701`, accepted); `view::matcher`
   (`b89e4528`); app-wide keys (`62f80a87`); Settings › Shortcuts
