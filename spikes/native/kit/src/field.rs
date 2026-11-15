@@ -389,7 +389,7 @@ impl TextField {
         range.start == 0 && range.end == 0
     }
 
-    /// Whether any kit text field in this window has the keys and an input
+    /// Whether any kit text engine in this window has the keys and an input
     /// method composing in it: what a window-wide shortcut listener asks
     /// before acting on a key (track S2's registry), since the fields are
     /// private to the areas that own them.
@@ -401,12 +401,12 @@ impl TextField {
     ///   whatever G1 and G3 add).
     /// - Constraint: those fields are private to their areas; a list of
     ///   them in S2's code would miss the next one.
-    /// - Choice: every field the kit makes registers a weak handle to its
-    ///   text engine (one per field, thread-local: GPUI's entities live on
+    /// - Choice: kit fields and code editors register weak handles in one
+    ///   registry (one per engine, thread-local: GPUI's entities live on
     ///   the main thread); this asks each live one, dropping the dead.
     ///   Only the focused field counts, as in [`Self::composing`].
-    /// - Cost: one weak handle per field ever made, pruned here; a field
-    ///   made outside the kit (none today) is not seen.
+    /// - Cost: one weak handle per engine, pruned here; an engine made
+    ///   outside the kit must register before this query can see it.
     pub fn focused_composing(window: &mut Window, cx: &mut App) -> bool {
         composition::focused(window, cx)
     }
