@@ -121,6 +121,32 @@ async fn a_provider_switch_with_any_bad_field_or_new_key_changes_nothing() {
 }
 
 #[tokio::test]
+async fn failed_presence_read_refuses_before_an_unrelated_setting_is_written() {
+    vessel_testkit::within(TEST_LIMIT, async {
+        let f = Fixture::new();
+        f.establish().await;
+        let before = std::fs::read(f.data.settings_path()).unwrap();
+        let current = f.settings.current().await;
+        std::fs::write(f.files.secrets(), b"not valid TOML = [").unwrap();
+        let result = f
+            .settings
+            .change_dictation(
+                SetNodeSettings {
+                    park_after: Some(ParkAfter::DEFAULT),
+                    ..SetNodeSettings::default()
+                },
+                &f.reader,
+            )
+            .await;
+        assert!(matches!(result, Err(SettingsError::DictationSecret(_))));
+        assert_eq!(std::fs::read(f.data.settings_path()).unwrap(), before);
+        assert_eq!(f.settings.current().await, current);
+    })
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
 async fn actual_failed_write_preserves_the_saved_file_and_all_settings_in_force() {
     vessel_testkit::within(TEST_LIMIT, async {
         let mut f = Fixture::new();

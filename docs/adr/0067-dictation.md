@@ -400,6 +400,15 @@ read/start wire diagnostics never reveal a name, value or path. Hidden replies
 to unassigned/older peers skip the presence work entirely. The gate is independent
 of the stream quotas so a read does not look like an active recording.
 
+A supported settings change resolves the candidate's key presence before writing,
+even when only a parking or driver option changes. If the secret store cannot be
+read, the whole change is refused before persistence. This avoids an inaccurate
+presence reply or a failure reported after a successful write; the cost is that
+a corrupt store can temporarily block otherwise unrelated supported settings
+changes until repaired. An absent, deleted or blank existing key is readable as
+Absent and does not block such a change. An explicit new selection still must
+resolve to a nonempty value. Hidden replies retain the no-read rule above.
+
 Typed failure data: the shared reason is an internally tagged object (`kind`),
 with the model carried inside LocalNotBuilt { model }, not a separate optional
 sibling that can accompany the wrong reason. Unknown kind decodes to Unknown.

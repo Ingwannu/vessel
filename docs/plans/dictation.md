@@ -397,34 +397,33 @@ These tests are owed; this documents the choices before the implementation.
 
 ## Resume point
 
-Done: wire audio and settings values, provider metadata, TLS and secret lookup
-extractions; staged audio/owner, root cache, multipart, JSON response and HTTP
-helpers. Their historical whole-gate and review evidence is scoped below. Input
-ordering, submission-order text, adaptive budgets, DTOs, update delivery and
-provider jobs have narrow checks. They remain staged until product wiring.
+Written, not yet package-validated: the actor, registry, settings/file view,
+fresh-reader admission, five pending RPC rows and file CLI. Product modules now
+have callers; older staged helper checks do not establish product readiness.
+The CLI drains next concurrently and prints only a final after finish acceptance.
+Current protocol numbers remain unassigned. Earlier narrow checks found product
+and test lints that are corrected in source; current strict and runtime evidence
+is still owed. No actor/registry/settings/CLI package pass is claimed.
 
-Done as staged source: the exclusive actor and fresh secret reader/reservations
-passed strict node all-target Clippy and all 76 dictation unit cases, including
-twelve actor and four reservation/reader cases. The reader security delta passed
-source review. Those results do not prove registry admission or product wiring.
-No service registry, callable settings field, RPC registration or CLI command
-exists yet. The separate settings/file-view draft and the file preflight decoder
-are in progress; their own checks are not yet complete.
+The announced node head and designated package base are merged. The native lock
+is identical to that package base. A focused view compatibility check initially
+stopped at the older lock before compilation; its retained failure is not a test
+result, and one check on the adopted lock is pending. Native changes remain only
+the three omitted dictation fields in existing view fixtures.
 
-Next: merge the announced call-table head at a clean boundary, then bounded
-service admission, fresh secret preparation, settings and common file-policy
-integration, pending method rows and policy/ownership/close tests. Complete old
-settings literals only with the optional-field commit. Keep the one method table
-and existing settings/secret owners. Four settings compatibility/deletion/atomic
-failure cases and failed-root-cache/recreated-service tests remain owed.
+Next: adopt the announced common settings-writer and canonical connection-life
+head when available. Preserve their single persistence and close owners, adapt
+the non-Copy settings candidate, and remove the superseded close observer. Then
+run focused package runtime checks, regenerate the final TypeScript snapshot and
+run the package's one whole product gate before combined review. The historical
+checks below remain scoped to their exact sources. Settings compatibility,
+deletion/atomic failure, failed-root-cache recreation, registry and physical
+transport-close cases exist in source but still need current execution evidence.
 
-The file CLI follows the service using the new WAV amendment. It drains next
-concurrently and prints only a final after finish acceptance. The feature package
-gets one whole product gate and one combined review; credential/path changes keep
-their security review. Removing staging must compile the actual product and test
-real transport close. No current result claims a live service, real HTTPS/ASR,
-platform microphone, credential or service-account verification. Local engines,
-app capture and TTS remain deferred.
+The feature package gets one whole product gate and one combined review;
+credential/path changes keep their security review. No current result claims a
+live service, real HTTPS/ASR, platform microphone, credential or service-account
+verification. Local engines, app capture and TTS remain deferred.
 
 ## Input ordering implementation
 
@@ -923,3 +922,9 @@ asserts both code/reason pairs; the real-service deletion-race assertion now
 expects the ADR's Unavailable rather than mirroring the earlier incorrect
 Conflict. No input, deadline, refusal reason or admission policy is relaxed.
 The new tests remain unexecuted until the checked-writer integration runtime.
+
+The presence-read availability tradeoff is now explicit in ADR 0067. A regression
+uses the real selected secret store, corrupts it, and requests only a parking
+change: the supported reply must refuse before either the saved settings file or
+settings in force changes. It would expose a presence lookup moved after the
+write. This is an additional unexecuted case, not new runtime evidence.
