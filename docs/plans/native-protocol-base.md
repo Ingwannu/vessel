@@ -48,12 +48,11 @@ measured totals are recorded in the handover, outside repository content.
 
 ## Resume point
 
-The node and reviewed workspace-stack merges are committed. Client/settings and
-terminal approval adaptations pass focused link/view clippy and library
-tests. Declared-port consumers and regression cases are implemented. Next:
-complete focused checks and both whole gates on the final committed head.
-The declared-port regression tests explicitly import the comparison types
-and function; a full native gate compiles these tests as well as the app.
+The package base now includes the node's Quality B method table. The
+native consumer audit found no direct protocol `since()` use or independent
+RPC method list to adapt. The existing typed client owns admission and
+unary method selection. Validate the combined root and native workspaces
+on the same committed head; keep gate outcomes in the external handover.
 
 ### Client error and settings adaptation
 
@@ -104,3 +103,31 @@ exposing it as another app control; the idle-release write continues to
 leave unrelated settings absent. Existing refresh, refusal and toggle tests
 exercise repeated access to the same owned reply. No recovery feature is
 assigned or enabled by this adaptation.
+
+### Package base and Quality B
+
+- Purpose and intent: give native feature packages the node's single method
+  table, optional protocol requirements and method-shape information.
+- Existing implementation and constraints: the package base has already
+  split link commands, events and dispatch and the shell's event handling.
+  Native calls use the typed client; UI text methods named `since` format
+  relative time and are unrelated to protocol admission.
+- Alternatives considered: rewrite native wrappers pre-emptively, duplicate
+  admission or method lists, or retain the typed client boundary.
+- Choice: merge the published Quality B node history into the package base
+  and retain native source unless compilation requires a consumer change.
+- Why: optional protocol admission and generated unary selection already
+  belong to the root client. Native wrappers do not compare protocol
+  `since()` values or maintain RPC method lists, so another adapter would
+  duplicate the same contract. Existing UnassignedProtocol mappings remain.
+- Advantages, costs and effects: no native behaviour, dependency edge or
+  public wire number changes. Commands remain in `link/src/command.rs`,
+  events in `event.rs`, dispatch in `dispatch.rs`, and shell event handling
+  in `app/src/shell/events.rs`. Whole native compilation is the check that
+  every request still has its generated client implementation.
+
+The selected node commit is `29eebb8b`, the latest green head announced
+when this integration began; the package parent is `8d5513e4`. Their
+histories are retained by a merge commit. The node's exported table and
+Option-valued admission decision are documented in `rpc.rs` and
+`rpc/since.rs`; no new Paseo behaviour is introduced by this integration.
