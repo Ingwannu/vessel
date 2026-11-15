@@ -233,6 +233,28 @@ mod tests {
         assert_eq!(view.attempted_at, Some(attempted));
     }
     #[test]
+    fn pending_current_success_is_not_a_retained_failure() {
+        use vessel_proto::usage_reports::UsageRefreshOrigin;
+        let words = Translator::get(ENGLISH).unwrap();
+        for (origin, retained) in [
+            (UsageRefreshOrigin::Available, false),
+            (UsageRefreshOrigin::Unavailable, true),
+        ] {
+            let state = SourceReportState::Refreshing {
+                origin,
+                started_at: Some(DateTime::from_timestamp(100, 0).unwrap()),
+                retained: Some(SuccessfulUsageReport {
+                    at: DateTime::UNIX_EPOCH,
+                    report: AvailableUsageReport::default(),
+                }),
+            };
+            let view = source_view(&state, words);
+            assert_eq!(view.retained, retained);
+            assert_eq!(view.observed.unwrap().at, DateTime::UNIX_EPOCH);
+            assert!(view.attempted_at.is_none());
+        }
+    }
+    #[test]
     fn withheld_balance_cannot_leak_even_when_a_peer_populates_amounts() {
         let words = Translator::get(ENGLISH).unwrap();
         let balance = UsageBalance {
