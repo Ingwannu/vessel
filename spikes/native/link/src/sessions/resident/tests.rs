@@ -24,10 +24,14 @@ struct Fixture {
     residents: Residents,
     binding: FollowBinding,
 }
-async fn fixture() -> Fixture {
+async fn fixture(controlled: bool) -> Fixture {
     let home = Home::new();
     let (mut state, _events) = state(&home);
-    let mut peer = peer::connect("fixture").await;
+    let mut peer = if controlled {
+        peer::controlled("fixture").await
+    } else {
+        peer::connect("fixture").await
+    };
     let client = peer.client.take().unwrap();
     let entry = vessel_client::book::BookEntry {
         address: "ws://127.0.0.1:0/rpc".parse().unwrap(),
@@ -186,7 +190,7 @@ async fn queue_original_stream(
 async fn queued_real_metadata_records_and_terminal_frames_recheck_the_original_lease() {
     within(async {
         for end in [SubscriptionEnd::SessionEnded, SubscriptionEnd::Unsubscribed] {
-            let fixture = fixture().await;
+            let fixture = fixture(false).await;
             let scope =
                 Scope::capture(&fixture.selected, &fixture.context, fixture.binding).unwrap();
             let (sender, mut receiving) = tokio::sync::mpsc::channel(QUEUED_PARTS);
@@ -212,7 +216,7 @@ async fn queued_real_metadata_records_and_terminal_frames_recheck_the_original_l
 #[tokio::test]
 async fn same_connection_reattach_rejects_old_binding_before_data_installation() {
     within(async {
-        let mut fixture = fixture().await;
+        let mut fixture = fixture(false).await;
         let mut conflicting = fixture.binding;
         conflicting.resident.address.node = vessel_proto::NodeId::random();
         assert!(matches!(
@@ -262,7 +266,7 @@ async fn same_connection_reattach_rejects_old_binding_before_data_installation()
 #[tokio::test]
 async fn a_follow_failure_retires_only_its_binding_on_a_still_active_connection() {
     within(async {
-        let mut fixture = fixture().await;
+        let mut fixture = fixture(false).await;
         let original =
             Scope::capture(&fixture.selected, &fixture.context, fixture.binding).unwrap();
         original
@@ -298,103 +302,4 @@ async fn a_follow_failure_retires_only_its_binding_on_a_still_active_connection(
     .await;
 }
 
-#[tokio::test]
-async fn canonical_operation_kind_and_single_use_ticket_precede_completion() {
-    within(async {
-        let mut fixture = fixture().await;
-        let scope = Scope::capture(&fixture.selected, &fixture.context, fixture.binding).unwrap();
-        let operation = Operation {
-            kind: OperationKind::Lifecycle,
-            ticket: fixture
-                .residents
-                .admit_operation(fixture.binding, OperationKind::Lifecycle)
-                .unwrap(),
-        };
-        let mut count = 0;
-        let completion = || {
-            scope.envelope(Payload::Completion {
-                operation,
-                result: Box::new(Ok(Acted::Done)),
-            })
-        };
-        assert_eq!(completion().operation(), Some(operation));
-        install(&mut fixture.residents, completion(), &mut count).unwrap();
-        assert!(matches!(
-            install(&mut fixture.residents, completion(), &mut count),
-            Err(Problem::Resident(_))
-        ));
-        assert_eq!(count, 1);
-        let wrong = scope.envelope(Payload::Completion {
-            operation: Operation {
-                kind: OperationKind::Composer,
-                ..operation
-            },
-            result: Box::new(Ok(Acted::Done)),
-        });
-        assert!(matches!(
-            install(&mut fixture.residents, wrong, &mut count),
-            Err(Problem::Resident(_))
-        ));
-        assert_eq!(count, 1);
-    })
-    .await;
-}
-
-#[tokio::test]
-async fn guardless_refusals_downgrade_only_the_original_pending_admission() {
-    within(async {
-        let mut fixture = fixture().await;
-        let operation = Operation {
-            kind: OperationKind::Lifecycle,
-            ticket: fixture
-                .residents
-                .admit_operation(fixture.binding, OperationKind::Lifecycle)
-                .unwrap(),
-        };
-        CorrelatedRefusal::new(
-            fixture.context.clone(),
-            fixture.binding,
-            Some(operation),
-            FailurePhase::NotSent,
-            Refusal::Changed,
-        )
-        .apply(|context, binding, admission, failure_phase, reason| {
-            assert_eq!(context, &fixture.context);
-            assert_eq!(failure_phase, FailurePhase::NotSent);
-            assert_eq!(reason, Refusal::Changed);
-            let admission = admission.unwrap();
-            fixture
-                .residents
-                .settle_operation(binding, admission.kind, admission.ticket)
-        })
-        .unwrap();
-        let old = fixture.binding;
-        let fresh = fixture.residents.begin_follow(old.resident).unwrap();
-        let successor = fixture
-            .residents
-            .admit_operation(fresh, OperationKind::Lifecycle)
-            .unwrap();
-        let refusal = CorrelatedRefusal::new(
-            fixture.context.clone(),
-            old,
-            Some(operation),
-            FailurePhase::Uncertain,
-            Refusal::Closed,
-        );
-        assert!(
-            refusal
-                .apply(|_, binding, _, _, _| {
-                    fixture.residents.validate_binding(binding)?;
-                    let _retired = fixture.residents.retire_current(binding.resident)?;
-                    Ok(())
-                })
-                .is_err()
-        );
-        assert!(fixture.residents.validate_binding(fresh).is_ok());
-        fixture
-            .residents
-            .settle_operation(fresh, OperationKind::Lifecycle, successor)
-            .unwrap();
-    })
-    .await;
-}
+mod mutations;

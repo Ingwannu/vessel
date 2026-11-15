@@ -136,6 +136,9 @@ Written component regressions use a real framed subscription for metadata, a
 record and actual SessionEnded/Unsubscribed frames. They queue envelopes before
 retirement and require receiver-side rejection; same-connection reattach, metadata
 identity, wrong owner/duplicate tickets and obsolete guardless refusals are also
-covered. These tests have not executed yet and do not prove App timeline/form/input
+covered. A real framed MarkSession reply is also decoded and queued before shared
+lease retirement; its peer result cannot reach the mutation callback or consume
+the retained owner ticket. This is ingress evidence only, not an actor archive test.
+These tests have not executed yet and do not prove App timeline/form/input
 mutation, dirty/IME retention or live scoped admission. Cross-crate guard staging
 remains intact; App tests cannot manufacture a guard through Link::detached.
