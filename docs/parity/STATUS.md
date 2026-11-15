@@ -1,6 +1,6 @@
 # Paseo parity: where the work stands
 
-Updated 2026-11-15, 17:15 UTC. The full row-by-row state is in `TRACKER.md`. The scored catalogue is in `measure/`.
+Updated 2026-11-15, 19:50 UTC. The full row-by-row state is in `TRACKER.md`. The scored catalogue is in `measure/`.
 
 ## Measured score (source coverage, 1,419 catalogue rows)
 
@@ -14,35 +14,27 @@ Updated 2026-11-15, 17:15 UTC. The full row-by-row state is in `TRACKER.md`. The
 
 ## Lines and builds
 
-- Node line (`backend/m12-node`), head **1c762ccf**:
-  - Gate 52 green on all 18 steps: Rust 2,550 passed / 0 failed / 12 ignored; web unit 464; browser end-to-end 80; forge 4.
-  - Protocol 25: the project and workspace registry's six metadata calls (list, get, rename, pin, release automation, registry). Minimum protocol 2, store schema 20.
-  - Since this morning: diagnostics (protocol 24), project admission and fixed ids, the shared Settings writer, the guarded handler boxing that fixed a worker-stack overflow, the web toast width correction, and the registry assignment.
-  - Gate 53 runs next on the session lifecycle package (store schema 21).
-- App line (`backend/m12-package-base`), package base **9** at **db42d9c5**:
-  - Green: native 1,510 passed / 0 failed / 2 ignored, with the locked dependency set unchanged.
-  - Contents: node 9c150c6e, the shared search field, the general translation words, GPUI zoom, the glyph inventory, inbox attention values, the picker admission and the workspace-tab owner hooks.
-  - Gating next: the dialog header actions; then the timeline resident seam, the git control patch and node 1c762ccf (base 10 candidate).
-- Published build: 0.0.0.0.21 (preview feed, 14:02 UTC).
-
-## Reviewed and waiting for a base (not yet in a scored head)
-
-- Shared controls: dialog header actions; git control patch 7; the timeline resident seam; message-search navigation hooks; the import window correction.
-- Node packages: workspace file I/O (W13); MCP tools and browser values (W18); worktree setup progress and cancel (W8, its own handoff); the session lifecycle package (gate 53).
+- Node line (`backend/m12-node`), head **27502436**:
+  - Gate 54 green on all 18 steps: Rust 2,635 passed / 0 failed / 12 ignored; web unit 464; browser end-to-end 80; forge 4.
+  - Protocol 25 (the project and workspace registry's six metadata calls), minimum protocol 2, store schema 21 (session listing).
+  - Landed since the morning: diagnostics (protocol 24), project admission, the shared Settings writer, the registry assignment, the session lifecycle package, workspace file I/O, the MCP tool and browser values carrier, and the timeline notice values.
+  - Gate 55 (RPC caller-drop fence, schedule edits on ended runs, relay lifetime, the migrations file split) was 17/18. Its one browser test failed on the intermittent sign-in refusal described below. Gate 56b carries the same changes plus the sign-in fix and two more packages.
+- App line (`backend/m12-package-base`), package base **12** at **b5b46357**:
+  - Green: native 1,614 passed / 0 failed / 2 ignored, with the locked dependency set unchanged.
+  - Since base 9: node 27502436, the import window for earlier conversations, the toolbar button and file-close guard, panel glyphs, the shared window registry, the narrow-width sidebar policy (compared against Paseo captures), the Explorer and lazy agent-sheet body, the translation generator, and wasm32 isolation for the app link crate.
+- Published build: **0.0.0.0.22** (preview feed, 19:35 UTC). It was smoke-tested on Linux against a real node. It is the first update downloaded compressed and resumable from 0.0.0.0.21; both a fresh and an interrupted download were verified.
 
 ## Open work, by owner
 
-- Project registry (W11): protocol 25 is assigned. The supported-wire test matrix on that head is next. Workspace membership reads for inbox read/unread are in checks.
-- Settings (nodectl with N5): one shared owner for the settings record and its writer. The contract is reviewed. The restart-recovery hook and the implementation are next, followed by one joint gate.
-- Provider preparation (W22): one shared seam keeps the caller's permit until blocking preparation actually ends. It also keeps the create exclusion through registration. The source is settled and the checks are owed.
-- Terminal (C2, W17):
-  - The screen engine's history-cell fix is reviewed.
-  - The node's query responder has a written failure policy. A full reply queue never blocks output.
-  - The responder stays off until the engine passes.
-- Changes and git (W13, G1): a shown-Changes producer that carries the original context is being written. Git writes on data without that context stay refused.
-- Voice (W19): the inference runtime dependency is decided (dynamic loading, no build-time download). Provisioning into the offline index and the compile come next.
-- Web sign-in (N2): a timed-out sign-in wait now closes as "try again" instead of "unauthorized". The source is reviewed and the checks are owed.
-- Wasm build of the app link (G4): failing; being classified against the base.
+- Sign-in (N2): a timed-out sign-in wait now closes as "try again" instead of "unauthorized". A retained browser error page confirmed that this refusal caused the intermittent test failures of the day. The fix is in the node integration gate now.
+- Settings (nodectl with N5): one shared owner for the settings record, its writer and a pre-spawn admission fence. The contract and the first lane are reviewed. The joint gate is next. Restart recovery stays off until its own conditions are met.
+- Provider preparation (W22): one shared seam keeps the caller's permit until blocking preparation ends, and keeps the create exclusion through registration. Corrections are in review.
+- Terminal (C2, W17): the screen engine now matches the reference on alternate-screen entry and exit, cursor carry and soft reset (55 reference checkpoints). Its final full gate is running. The query responder stays off until then.
+- Voice (W19): the inference runtime dependency is provisioned offline (dynamic loading, no build-time download). The values carrier and the compile are next.
+- Desktop ownership (W15): the app owns a local node only after proving the peer: kernel peer credentials on Unix, and on Windows a one-use challenge over a private per-launch pipe. Mutual proof for the shared Windows pipe is a separate open item.
+- Changes and git (W13, G1): the shown-Changes producer that carries the original context is in progress. Git writes on data without that context stay refused.
+- App wasm32 build: 7 native-only references remain (TRACKER 768).
+- On 2026-11-15 at 19:05 UTC the night's model credit ran out. Most worker tracks are paused until it is renewed, and each track records its resume point.
 
 ## Rules settled on 2026-11-15 that affect the remaining work
 
