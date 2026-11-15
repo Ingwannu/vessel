@@ -250,6 +250,7 @@ mod tests {
         options.push(ChoiceOption {
             value: "other".to_owned(),
             title: "Left".to_owned(),
+            description: None,
             preview: None,
         });
         assert!(matches!(
