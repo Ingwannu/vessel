@@ -22,3 +22,10 @@ cardinality for both the live authority and its immutable snapshot, including
 an entirely compacted empty history row. It also asserts out-of-frame refusal
 and that the physical buffer API is not silently widened. Narrow checks remain
 owed. The frozen2807 source/whole is unchanged and cannot prove this repair.
+
+Exact06f3 narrow verification executed38 tests with no failures and strict
+all-target Clippy passed. Additional review coverage checks every selected
+cell through wider/narrower resize, alternate/reset transitions, preserved
+wide/continuation ink and unchanged snapshot geometry, and directly checks
+that a nonexistent physical row remains unavailable. That strengthened test
+head still needs its own narrow result and changed-source enclosing gate.
