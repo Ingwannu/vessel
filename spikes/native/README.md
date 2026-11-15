@@ -638,6 +638,20 @@ Environment:
   `VESSEL_UPDATE_KEY` too (track R's `build.sh` sets them), the build
   updates itself; without them it never does.
 
+## Composed sections in one bounded viewport
+
+`kit::ScrollViewport` is the shared scrolling body for already rendered
+sections. Keep its `ScrollState` across renders and add sections in order;
+they retain natural heights while the viewport fills only available flex
+space with a zero minimum height. Keep fixed header/footer siblings outside
+it. `SectionIndex` queries measured section bounds before the body's own
+scroll offset; `bounds` and `offset` report the viewport and current position.
+The state also supplies a minimal focus/reveal wrapper for an existing focus
+target. It provides no button activation or complete row accessibility.
+Wheel handling and clamping remain GPUI's, with no new scrolling physics.
+`VirtualList` remains for indexed, virtualized row delegates. Existing dialog
+and autocomplete internals are not migrated by this control-only change.
+
 ## Trying it against fake nodes, and capturing a screen
 
 ```bash
