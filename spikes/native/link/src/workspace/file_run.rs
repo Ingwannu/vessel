@@ -26,7 +26,7 @@ pub(super) async fn run(client: &Client<'_>, ask: FileAsk) -> FileAnswer {
             ticket,
         },
         FileAsk::Read { ask, ticket } => FileAnswer::Read {
-            result: client.call(ask.clone()).await,
+            result: source_read(client, ask.clone()).await,
             ask,
             ticket,
         },
@@ -103,4 +103,18 @@ async fn path_change(client: &Client<'_>, change: PathChange) -> Result<(), Prob
             .await
             .map(drop),
     }
+}
+
+/// Bound the complete acquisition as well as each original selected call.
+async fn source_read(
+    client: &Client<'_>,
+    ask: ReadFile,
+) -> Result<vessel_proto::workspace::FileRead, Problem> {
+    const SOURCE_DEADLINE: std::time::Duration = std::time::Duration::from_secs(30);
+    tokio::time::timeout(
+        SOURCE_DEADLINE,
+        vessel_app_view::workspace::source::read_source(ask, |page| client.call(page)),
+    )
+    .await
+    .map_err(|_elapsed| Problem::Gone("source acquisition deadline elapsed".into()))?
 }

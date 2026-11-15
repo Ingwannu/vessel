@@ -161,6 +161,7 @@ enum Shown {
         more: bool,
     },
     Binary,
+    TooLarge,
     Failed(String),
 }
 

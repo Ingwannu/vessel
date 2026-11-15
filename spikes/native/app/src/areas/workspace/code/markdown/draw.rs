@@ -67,7 +67,11 @@ pub(in crate::areas::workspace::code) fn body(
     if preview.mode == Mode::Source {
         return None;
     }
-    if matches!(viewer.text, Shown::Failed(_) | Shown::Binary) && viewer.edit.is_none() {
+    if matches!(
+        viewer.text,
+        Shown::Failed(_) | Shown::Binary | Shown::TooLarge
+    ) && viewer.edit.is_none()
+    {
         return None;
     }
     if viewer.edit.as_ref().is_some_and(|editing| {

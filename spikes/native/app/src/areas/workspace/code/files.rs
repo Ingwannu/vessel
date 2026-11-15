@@ -291,11 +291,22 @@ impl Shell {
             preview.invalidate();
         }
         viewer.text = match result {
+            Ok(read)
+                if read.version.size > vessel_app_view::workspace::source::MAX_SOURCE_BYTES =>
+            {
+                Shown::TooLarge
+            }
             Ok(read) => match read.content {
                 FileContent::Text { text, next, .. } => {
                     let lines: Vec<String> = text.lines().map(str::to_owned).collect();
                     let language = language_of(ask.path.as_str());
-                    let states = line_states(lines.iter().map(String::as_str), language);
+                    let states = if read.version.size
+                        <= vessel_app_view::workspace::source::MAX_HIGHLIGHTED_BYTES
+                    {
+                        line_states(lines.iter().map(String::as_str), language)
+                    } else {
+                        Vec::new()
+                    };
                     Shown::Text {
                         source: std::sync::Arc::from(text),
                         lines,
@@ -311,7 +322,7 @@ impl Shell {
         };
         let rows = match &viewer.text {
             Shown::Text { lines, more, .. } => lines.len().saturating_add(usize::from(*more)),
-            Shown::Loading | Shown::Binary | Shown::Failed(_) => 0,
+            Shown::Loading | Shown::Binary | Shown::TooLarge | Shown::Failed(_) => 0,
         };
         viewer.list.reset(rows);
         if let Some(location) = viewer.goto.take() {
@@ -350,6 +361,18 @@ impl Shell {
         }
         if let Some(viewer) = self.areas.workspace.code.viewer_for(key) {
             viewer.edit = None;
+        }
+        if matches!(&result, Ok(read) if read.version.size <= vessel_app_view::workspace::source::MAX_SOURCE_BYTES
+            && matches!(read.content, FileContent::Text { next: Some(_), .. }))
+        {
+            self.read_viewer_for(
+                key,
+                ReadFile {
+                    offset: 0,
+                    ..ask.clone()
+                },
+            );
+            return;
         }
         self.file_read_for(key, ask, result, cx);
         self.reconcile_watched_file(key, cx);

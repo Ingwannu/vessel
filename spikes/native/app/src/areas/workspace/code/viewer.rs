@@ -134,6 +134,7 @@ fn read_only_body(
     match &viewer.text {
         Shown::Loading => note(labels.loading, tokens).into_any_element(),
         Shown::Binary => note(labels.binary_file, tokens).into_any_element(),
+        Shown::TooLarge => note(labels.too_large, tokens).into_any_element(),
         Shown::Failed(why) => failed(labels.read_failed, why, 16.0, tokens).into_any_element(),
         Shown::Text { .. } => viewer
             .list
@@ -160,7 +161,7 @@ fn code_line(
         lines,
         states,
         more,
-        ..
+        source,
     }) = shell
         .areas
         .workspace
@@ -184,7 +185,15 @@ fn code_line(
         .code
         .viewer_at(key)
         .map_or("", |viewer| viewer.path.as_str());
-    let language = language_of(path);
+    let language = language_of(
+        if u64::try_from(source.len()).unwrap_or(u64::MAX)
+            <= vessel_app_view::workspace::source::MAX_HIGHLIGHTED_BYTES
+        {
+            path
+        } else {
+            ""
+        },
+    );
     let state = states.get(index).copied().unwrap_or_default();
     let (runs, _) = tokenize(text, language, state);
     let colours = CodeTokens::of(tokens.scheme);

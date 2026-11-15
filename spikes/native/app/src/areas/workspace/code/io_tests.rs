@@ -400,3 +400,52 @@ fn deferred_editor_creation_stays_with_its_original_retained_owner(cx: &mut Test
         assert_eq!(shell.areas.workspace.code.file_key(), Some(b));
     });
 }
+
+#[gpui::test]
+fn initial_large_editor_source_reacquires_whole_readonly_instead_of_installing_a_prefix(
+    cx: &mut TestAppContext,
+) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update(cx, |shell, cx| {
+        let root = root();
+        target(shell, root);
+        shell.open_file_at("large.rs".parse().unwrap(), None, cx);
+        let key = shell.areas.workspace.code.file_key().unwrap();
+        let ticket = shell.editing_for(&key).unwrap().reading.unwrap().0;
+        let mut prefix = text("first page");
+        prefix.version.size = 2 * 1024 * 1024;
+        prefix.content = FileContent::Text { text: "first page".into(), next: Some(10) };
+        let ask = read(root, "large.rs");
+        shell.editor_read_answered_for(&key, ticket, &ask, Ok(prefix), cx);
+        let viewer = shell.areas.workspace.code.viewer_at(&key).unwrap();
+        assert!(viewer.edit.is_none());
+        assert!(matches!(viewer.text, Shown::Loading));
+        let whole_ticket = viewer.reading.unwrap();
+        let source = "x".repeat(2 * 1024 * 1024);
+        shell.file_read_answered_for(&key, &ask, whole_ticket, Ok(text(&source)), cx);
+        assert!(matches!(&shell.areas.workspace.code.viewer_at(&key).unwrap().text,
+            Shown::Text { source: whole, states, more: false, .. } if whole.as_ref() == source && states.is_empty()));
+    });
+}
+
+#[gpui::test]
+fn oversize_source_has_an_explicit_fallback_without_a_second_acquisition(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update(cx, |shell, cx| {
+        let root = root();
+        target(shell, root);
+        shell.open_file_at("huge.txt".parse().unwrap(), None, cx);
+        let key = shell.areas.workspace.code.file_key().unwrap();
+        let ticket = shell.editing_for(&key).unwrap().reading.unwrap().0;
+        let mut oversized = text("x");
+        oversized.version.size =
+            vessel_app_view::workspace::source::MAX_SOURCE_BYTES.saturating_add(1);
+        shell.editor_read_answered_for(&key, ticket, &read(root, "huge.txt"), Ok(oversized), cx);
+        let viewer = shell.areas.workspace.code.viewer_at(&key).unwrap();
+        assert!(matches!(viewer.text, Shown::TooLarge));
+        assert!(viewer.edit.is_none());
+        assert!(viewer.reading.is_none());
+    });
+}

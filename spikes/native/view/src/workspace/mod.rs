@@ -37,6 +37,7 @@ pub mod root;
 pub mod save;
 pub mod setup_log;
 pub mod size;
+pub mod source;
 pub mod start;
 pub mod syntax;
 pub mod text_format;
