@@ -48,3 +48,19 @@ Existing idle-release fixtures explicitly use mcp=None after merging the
 additive settings field. Their parking values and assertions are unchanged.
 The controller keeps its previous node-settings call; the new orchestration
 owner patches only mcp.inject, so neither owner erases the other's setting.
+
+The host Overview now renders Tools and Skills through kit cards/switches,
+with EN/KO Fluent messages. Disconnected tools are hidden; skills explain
+unavailability. Unsupported capabilities are never invoked. Each drawn
+button/dismiss handler captures its original Scope before dispatch, rejecting
+a stale opener as well as stale replies. One adaptive dialog is reused for
+picker/removal confirmation, with captured return-focus dismissal; a pending
+save cannot close it. Maintenance excludes deletes; confirmation names remain
+data rows rather than formatted peer diagnostics. Controls select the shared
+Pointer/Touch sizing at the app edge. Native accessibility retains the kit's
+known lack of a focusable/labelled button tree; no new renderer is introduced.
+
+The shared owner Event is registered in shell dispatch. W15 must attach its
+onboarding consumer to the unclaimed Consumer::Onboarding answer; no active
+onboarding caller is imported or claimed wired in this tree. Existing idle
+settings stay on their prior path; no copied settings storage is added.

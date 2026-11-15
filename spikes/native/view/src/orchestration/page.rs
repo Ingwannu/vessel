@@ -59,6 +59,7 @@ impl Page {
         }
     }
     /// Focus refresh reads tools; it never writes a default.
+    #[must_use]
     pub fn read_tools(&mut self, ticket: Ticket) -> Option<Task> {
         if self.tools.pending() {
             return None;
@@ -68,6 +69,7 @@ impl Page {
         Some(task)
     }
     /// Focus refresh preserves an already-open picker draft.
+    #[must_use]
     pub fn read_skills(&mut self, ticket: Ticket) -> Option<Task> {
         if self.skills.pending() {
             return None;
@@ -77,6 +79,7 @@ impl Page {
         Some(task)
     }
     /// Change only the injection switch after its current value was read.
+    #[must_use]
     pub fn toggle_tools(&mut self, ticket: Ticket) -> Option<Task> {
         if self.tools.pending() {
             return None;
@@ -91,6 +94,7 @@ impl Page {
         Some(task)
     }
     /// An installed switch opens confirmation; an uninstalled switch installs.
+    #[must_use]
     pub fn toggle_skills(&mut self, ticket: Ticket) -> Option<Task> {
         if self.skills.pending() || self.picker.is_some() {
             return None;
@@ -141,6 +145,7 @@ impl Page {
         self.confirmation = None;
     }
     /// First save never preconfirms deletions from a stale UI status.
+    #[must_use]
     pub fn save_picker(&mut self, ticket: Ticket) -> Option<Task> {
         if self.skills.pending() || self.confirmation.is_some() {
             return None;
@@ -154,6 +159,7 @@ impl Page {
         self.begin_skills(Action::Save(request), ticket)
     }
     /// Confirm only the action actually shown, on this fixed visit's target.
+    #[must_use]
     pub fn confirm(&mut self, ticket: Ticket) -> Option<Task> {
         if self.skills.pending() {
             return None;
@@ -180,6 +186,7 @@ impl Page {
         Some(task)
     }
     /// Ignore other targets, visits, consumers and superseded attempts.
+    #[must_use]
     pub fn answered(&mut self, answer: Answer) -> bool {
         if answer.task.scope != self.scope {
             return false;

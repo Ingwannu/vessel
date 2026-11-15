@@ -16,6 +16,9 @@ impl Shell {
             Event::Machines(answer) => self.machines_answer(answer, cx),
             Event::Sync(answer) => self.sync_answer(answer),
             Event::NodeSettings(answer) => self.node_settings_answer(answer),
+            Event::Orchestration(answer) => {
+                let _unclaimed = self.orchestration_answer(answer);
+            }
             Event::Fleet(fleet) => {
                 // The link reads the fleet every 2 s; a read that changed
                 // nothing draws nothing (an idle window repainted every
