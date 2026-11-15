@@ -35,6 +35,7 @@ pub mod labels;
 pub mod lifecycle_version;
 pub mod limits;
 pub mod lsp;
+pub mod mcp;
 mod model;
 mod name;
 mod node;

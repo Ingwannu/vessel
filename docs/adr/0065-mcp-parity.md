@@ -565,3 +565,18 @@ bound. `reloadPersisted`'s diff loop was not re-read. This commit
 changes documents only, so its check is `cargo fmt --all --check`,
 the size script and the boundary script. Clippy and the tests are
 not part of that check.
+
+
+## Package implementation amendment
+
+The tool identifier table lives in `vessel-proto::mcp`, shared by the node
+and MCP adapter. This avoids a second denylist vocabulary. Moving the
+existing parser is behavior-preserving; the MCP adapter retains its unknown
+LSP-prefix refusal. No protocol method or settings field is registered by
+this move. There is no new dependency. The original proposed HTTP listener
+is deferred: no consumer requires it, so no transport or port is added.
+
+Skills management uses the same typed node boundary as other host settings;
+its explicit homes and filesystem transaction rules are recorded in the
+package plan before implementation. The skill service is Admin-only and
+never an MCP tool: agents cannot install or remove their own instructions.
