@@ -459,3 +459,28 @@ operations (plus DuplicateFileEntry), after its announced node head lands. Avoid
 an extra comparison Jobs queue or inverted permit order. The external draft is
 not a checked producer. C5 shown-context and W11 runtime root mapping still wait.
 C3 remains skeleton/incomplete, C4 unstarted; no owned fleets/displays/app run.
+
+## 18:32 UTC: exact current App source and queue correction
+
+Latest Rust9f1cef07b includes new edadefab6 summary-receipt fencing for empty-mode
+callbacks and the six redundant owner-fixture qualification removals. The exact
+7bf four-crate Clippy reached App and returned101 only on those six own fixture
+qualifications; do not report it green. AD9 selected View/Link200/0/0 remains
+its original source, not a result for the later getter/callback fixtures.
+
+Exact registered replacements, both short/no priority, one each:
+- wp-git-narrow-20261115T183043Z-9f1cef07: all4-crate all-target strict Clippy;
+  OUT summary-owner-9f1-clippy.
+- wp-git-consumer-tests-20261115T183048Z-9f1cef07: App --bin vessel-app, filter
+  areas::git::panel; OUT summary-owner-9f1-app-tests. The previous eda --lib
+  selection was invalid for bin-only App and cancelled143 while still queued,
+  before any compile/test. Keep its logs, no compiler failure/pass inferred.
+The older ordinary480 all-target git run and Node4be TS run remain untouched.
+No latest App consumer, whole package, captures, real authority or UI pass yet.
+
+W13 explicitly agrees the same existing file-work owner join; its constructor
+refinement can capture root_snapshot synchronously before admission and return
+an owned future resolving that SAME snapshot when polled. It remains external,
+uninstalled and uncompiled, awaiting the announced C5 node head. Include the
+new DuplicateFileEntry mutation, preserve one physical permit through cleanup,
+and do not install the superseded extra comparison Jobs queue draft.
