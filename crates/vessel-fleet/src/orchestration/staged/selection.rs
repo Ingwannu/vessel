@@ -35,7 +35,7 @@ impl SkillService {
     pub(super) fn recover(
         &mut self,
         state: &SkillRoot,
-        durable: &Option<SkillSelection>,
+        durable: Option<&SkillSelection>,
     ) -> Result<(), SkillError> {
         deletion::recover(&self.homes, state, durable)
     }
@@ -48,7 +48,7 @@ impl SkillService {
         confirmed: &SkillNames,
         persist: impl FnOnce(&SkillSelection) -> Result<(), E>,
     ) -> Result<SkillsSaved, SelectionError<E>> {
-        self.recover(state, &previous)?;
+        self.recover(state, previous.as_ref())?;
         let mut plan = self.status(next)?;
         for _attempt in 0..MAX_SAVE_ATTEMPTS {
             let removals = SkillNames::new(

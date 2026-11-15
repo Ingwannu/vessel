@@ -1863,3 +1863,27 @@ on every negotiated connection. This also covers a terminal-bearing prior
 approval and script/worktree approval replies. Older nodes omit the field;
 new readers treat omission as no terminal commands. Parsing and approval are
 staged ahead of automatic terminal creation, which is not implemented yet.
+
+
+## Pending MCP/skills parity (ADR 0065)
+
+`settings::NodeSettings.mcp` reports injection and exact-provider tool policy;
+`SetNodeSettings.mcp` is a partial edit. Omission preserves the prior choice.
+While `mcp::MCP_PARITY` is `None`, every connection hides the response field
+and rejects edits, including carried calls in fleet envelopes. Fresh data
+starts with injection off; an existing `node.id` upgrades with injection on.
+The explicit choice is persisted before identity creation under the node lock.
+Launches snapshot the exact provider once; changes apply on the next launch.
+
+The same pending constant gates Admin-only unary `skills.status`,
+`skills.reconcile`, `skills.uninstall`, `skills.save_selection`, and
+`skills.import_selection`. All are local-node administration, not agent tools
+or forwardable methods. `SkillsSnapshot` distinguishes selected, available,
+installed and actual file state. Saving a selection may return the unchanged
+snapshot with `confirmation_required` names; retry confirms deletions from a
+fresh plan, not an earlier UI snapshot. Successful save persists the selection
+last; interrupted transactions recover before later operations. Explicit
+uninstall preserves the saved selection; import only establishes an unset
+selection. Private `skills.json` follows settings-file backup rules and adds
+no SQLite schema. `PROTOCOL_VERSION` is unchanged; integration assigns the
+single pending feature requirement.

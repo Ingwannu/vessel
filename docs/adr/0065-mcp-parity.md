@@ -612,3 +612,16 @@ A bounded tracked task owns each admitted settings write through apply, even
 after request cancellation. Shutdown prevents new jobs and drains admitted
 ones. Each new process takes one policy snapshot before credential creation;
 profile-move failure restores the previous credential, including absence.
+
+
+## Implementation of host skill administration
+
+The node owns both the typed pending calls and their single writer. This
+extends the contract above without adding an HTTP listener or changing agent
+grants. Five Admin-only unary `skills.*` calls are non-forwardable and refused
+to agents. Fleet supplies safe filesystem/transaction mechanisms; store owns
+`skills.json`; node captures explicit homes, serializes blocking operations,
+tracks admitted work through cancellation/shutdown, and persists the selection
+last. `MCP_PARITY` now exists as `None`; the integrator assigns its version.
+The earlier "no code in this commit" describes the original ADR proposal;
+current implementation details and remaining gaps are in `plans/wp-mcp.md`.

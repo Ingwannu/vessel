@@ -35,6 +35,7 @@ pub(super) struct Patch {
     pub(super) root: std::path::PathBuf,
     name: SkillName,
     existed: bool,
+    #[serde(deserialize_with = "super::limits::decode::<_, _, {super::limits::MAX_CHANGES}>")]
     changes: Vec<Change>,
 }
 
@@ -167,28 +168,25 @@ impl Change {
         {
             return Err(SkillError::RecoveryConflict);
         }
-        match &self.previous {
-            Some(backup) => {
-                let bytes = filesystem::read(journal, &backup_path(backup.hash)?)?
-                    .ok_or(SkillError::Recovery)?;
-                if filesystem::hash(&bytes) != backup.hash {
-                    return Err(SkillError::Recovery);
-                }
-                filesystem::restore(
-                    dir,
-                    &self.path,
-                    &filesystem::FileState {
-                        bytes,
-                        mode: backup.mode,
-                    },
-                )
+        if let Some(backup) = &self.previous {
+            let bytes = filesystem::read(journal, &backup_path(backup.hash)?)?
+                .ok_or(SkillError::Recovery)?;
+            if filesystem::hash(&bytes) != backup.hash {
+                return Err(SkillError::Recovery);
             }
-            None => {
-                if let Some(hash) = self.applied {
-                    filesystem::remove_unchanged(dir, &self.path, hash)?;
-                }
-                Ok(())
+            filesystem::restore(
+                dir,
+                &self.path,
+                &filesystem::FileState {
+                    bytes,
+                    mode: backup.mode,
+                },
+            )
+        } else {
+            if let Some(hash) = self.applied {
+                filesystem::remove_unchanged(dir, &self.path, hash)?;
             }
+            Ok(())
         }
     }
 }

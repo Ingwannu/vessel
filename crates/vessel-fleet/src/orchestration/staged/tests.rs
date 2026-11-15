@@ -113,7 +113,7 @@ fn updates_keep_user_files_and_modified_obsolete_managed_files() {
     use vessel_proto::skills::{SkillNames, SkillSelection, SkillsState};
     let home = tempfile::tempdir().unwrap();
     let mut initial = service(home.path(), catalogue("one", Some(("old.md", b"owned"))));
-    initial.reconcile(&SkillSelection::All).unwrap();
+    let _installed = initial.reconcile(&SkillSelection::All).unwrap();
     let shared = home.path().join("agents/skills/vessel");
     std::fs::write(shared.join("old.md"), b"user edit").unwrap();
     std::fs::write(shared.join("notes.md"), b"user extra").unwrap();
@@ -165,7 +165,7 @@ fn update_preflights_every_asset_before_replacing_a_declaration() {
     let home = tempfile::tempdir().unwrap();
     let outside = tempfile::tempdir().unwrap();
     let mut initial = service(home.path(), catalogue("one", None));
-    initial.reconcile(&SkillSelection::All).unwrap();
+    let _installed = initial.reconcile(&SkillSelection::All).unwrap();
     let shared = home.path().join("agents/skills/vessel");
     let original = std::fs::read(shared.join("SKILL.md")).unwrap();
     std::os::unix::fs::symlink(outside.path(), shared.join("sub")).unwrap();
@@ -204,25 +204,20 @@ fn deletion_journal_restores_a_staged_directory_after_restart() {
     use vessel_proto::skills::{SkillNames, SkillSelection};
     let home = tempfile::tempdir().unwrap();
     let mut service = service(home.path(), catalogue("one", None));
-    service.reconcile(&SkillSelection::All).unwrap();
+    let _installed = service.reconcile(&SkillSelection::All).unwrap();
     let previous = Some(SkillSelection::All);
     let next = SkillSelection::Custom {
         skills: SkillNames::default(),
     };
     let plan = service.status(&next).unwrap();
     let state = SkillRoot::new(home.path().join("state")).unwrap();
-    let transaction = super::deletion::DeletionTransaction::begin(
-        &service.homes,
-        &state,
-        previous.clone(),
-        next,
-        &plan,
-    )
-    .unwrap();
+    let transaction =
+        deletion::DeletionTransaction::begin(&service.homes, &state, previous.clone(), next, &plan)
+            .unwrap();
     transaction.apply().unwrap();
     assert!(!home.path().join("agents/skills/vessel").exists());
     drop(transaction);
-    super::deletion::recover(&service.homes, &state, &previous).unwrap();
+    deletion::recover(&service.homes, &state, previous.as_ref()).unwrap();
     assert!(home.path().join("agents/skills/vessel/SKILL.md").exists());
     assert!(home.path().join("claude/skills/vessel/SKILL.md").exists());
     assert_eq!(
@@ -238,7 +233,7 @@ fn committed_deletion_can_remove_extra_files_only_after_the_explicit_action() {
     use vessel_proto::skills::{SkillNames, SkillSelection};
     let home = tempfile::tempdir().unwrap();
     let mut service = service(home.path(), catalogue("one", None));
-    service.reconcile(&SkillSelection::All).unwrap();
+    let _installed = service.reconcile(&SkillSelection::All).unwrap();
     std::fs::write(
         home.path().join("agents/skills/vessel/extra.md"),
         b"user file",
@@ -249,7 +244,7 @@ fn committed_deletion_can_remove_extra_files_only_after_the_explicit_action() {
     };
     let plan = service.status(&next).unwrap();
     let state = SkillRoot::new(home.path().join("state")).unwrap();
-    let transaction = super::deletion::DeletionTransaction::begin(
+    let transaction = deletion::DeletionTransaction::begin(
         &service.homes,
         &state,
         Some(SkillSelection::All),
@@ -273,13 +268,13 @@ fn recreated_live_directories_keep_both_versions_on_rollback() {
     use vessel_proto::skills::{SkillNames, SkillSelection};
     let home = tempfile::tempdir().unwrap();
     let mut service = service(home.path(), catalogue("one", None));
-    service.reconcile(&SkillSelection::All).unwrap();
+    let _installed = service.reconcile(&SkillSelection::All).unwrap();
     let next = SkillSelection::Custom {
         skills: SkillNames::default(),
     };
     let plan = service.status(&next).unwrap();
     let state = SkillRoot::new(home.path().join("state")).unwrap();
-    let transaction = super::deletion::DeletionTransaction::begin(
+    let transaction = deletion::DeletionTransaction::begin(
         &service.homes,
         &state,
         Some(SkillSelection::All),

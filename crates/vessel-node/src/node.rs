@@ -293,19 +293,6 @@ struct Core {
     relays: Arc<Relays>,
 }
 
-/// The LSP manager's configuration with the operator's roots filled in:
-/// executables and toolchains inside any configured root are not trusted
-/// for conservative analysis, so the registry needs the full list.
-fn lsp_config(config: &Config) -> vessel_lsp::Config {
-    let mut lsp = config.lsp.clone();
-    lsp.registry.configured_roots = config
-        .lsp_roots
-        .iter()
-        .map(|root| root.path.clone())
-        .collect();
-    lsp
-}
-
 /// Build the session runtime, the lifecycle, the devices and the service.
 #[expect(
     clippy::too_many_lines,
@@ -391,7 +378,7 @@ async fn core(
         transfers::IDLE,
     ));
     transfers.sweep(&tasks, &stop);
-    let lsp = vessel_lsp::Manager::start(lsp_config(config), stop.child_token());
+    let lsp = vessel_lsp::Manager::start(setup::lsp_config(config), stop.child_token());
     let lsp_shutdown = lsp.clone();
     drop(tasks.spawn(async move {
         lsp_shutdown.stopped().await;
@@ -495,6 +482,7 @@ async fn core(
         schedules,
         push,
         settings,
+        skills: crate::skills::Skills::start(config, tasks.clone(), stop.clone()),
         limits,
     })));
     automation::schedules::start(

@@ -190,7 +190,7 @@ impl Launcher {
     /// Freeze before credential creation, so a live settings change cannot mix
     /// one launch's injection decision with another launch's visibility policy.
     pub(crate) fn tools_for(&self, harness: &HarnessRef) -> Option<ToolPolicy> {
-        self.tools.as_ref()?;
+        let _configured = self.tools.as_ref()?;
         let Some(source) = &self.tool_policy else {
             return Some(ToolPolicy::default());
         };

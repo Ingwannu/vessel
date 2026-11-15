@@ -255,3 +255,26 @@ failure after successful persistence retains the journal and reports the save
 as committed, following Paseo's controller semantics. Synthetic-home tests
 exercise confirmation, persistence failure and external-edit conflicts; their
 execution remains pending.
+
+
+## Pending node skill administration
+
+Quality B permits the five typed `skills.*` rows. They use the existing
+`MCP_PARITY: None` requirement, Admin scope, unary shape, and explicit
+non-forwardable/agent-refused classifications. Client convenience methods
+call the same typed rows; no protocol or SQLite schema number is assigned.
+The node owns one bounded blocking writer for all status and mutation work,
+including startup repair. A cancelled RPC retains its admitted permit, writer
+and shutdown tracking until the operation finishes. Roots come from the
+already captured `HarnessEnv`: shared `.agents/skills`, configured Claude
+home's `skills`, and configured legacy Codex home's `skills`. No library reads
+ordinary environment, and initial startup never installs absent skills.
+Selection import only fills an unset preference. Uninstall keeps that
+preference for a later explicit install. Changes made by other processes are
+not serialized by this actor; journal rollback detects conflicts and retains
+the live content plus recovery material.
+
+Implementation checkpoint: the staged service is now product-wired behind
+pending methods. Narrow compilation and tests, TS generation, cross-node
+finish notifications and the whole package gate/review remain outstanding.
+This supersedes earlier progress bullets describing the service as test-only.

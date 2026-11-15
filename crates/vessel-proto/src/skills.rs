@@ -139,16 +139,20 @@ pub struct SkillsSaved {
 }
 
 /// Read host-level state; Admin only, never an agent tool.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct GetSkillsStatus;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct GetSkillsStatus {}
 /// Explicit non-destructive install/update of selected bundled skills.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct ReconcileSkills;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct ReconcileSkills {}
 /// Explicit whole-directory uninstall, confirmed by the human-facing client.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct UninstallSkills;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct UninstallSkills {}
 /// Save only after the fresh deletion plan has been explicitly confirmed.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct SaveSkillsSelection {
     /// New desired set; all picks up future bundled additions.
     pub selection: SkillSelection,
@@ -157,13 +161,15 @@ pub struct SaveSkillsSelection {
     pub confirmed_removals: SkillNames,
 }
 /// Import older client selection only if the host has never stored one.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ImportSkillsSelection {
     /// Validated legacy preference, never arbitrary input paths.
     pub selection: SkillSelection,
 }
 /// Import never overwrites an explicit current choice.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct SkillsImported {
     /// The durable choice after import or refusal to replace.
     pub selection: SkillSelection,
@@ -171,7 +177,8 @@ pub struct SkillsImported {
     pub outcome: SkillImportOutcome,
 }
 /// Import acknowledgement without an ambiguous boolean result.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
 pub enum SkillImportOutcome {
     /// Stored because no earlier selection existed.
@@ -190,6 +197,7 @@ pub enum InvalidSkills {
 
 #[cfg(test)]
 mod tests {
+    mod admission;
     use super::*;
     use serde_json::json;
 

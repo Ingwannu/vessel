@@ -3,11 +3,13 @@
 use super::{SkillService, filesystem, manifest};
 use crate::dir::{Dir, Entry};
 use crate::orchestration::{SkillBundle, SkillError};
-use vessel_proto::skills::{
-    SkillName, SkillOperation, SkillSelection, SkillsSnapshot, SkillsState,
-};
+use vessel_proto::skills::{SkillName, SkillOperation, SkillsSnapshot};
+
+#[cfg(test)]
+use vessel_proto::skills::{SkillSelection, SkillsState};
 
 impl SkillService {
+    #[cfg(test)]
     pub(super) fn reconcile(
         &mut self,
         selection: &SkillSelection,
@@ -41,6 +43,7 @@ impl SkillService {
         self.retire_legacy(&names, &roots)
     }
 
+    #[cfg(test)]
     pub(super) fn maintain(
         &mut self,
         selection: &SkillSelection,

@@ -61,7 +61,5 @@ pub enum SkillError {
     RecoveryConflict,
 }
 
-// Staged while skill RPCs await the shared pending-row method table. The wiring
-// commit removes this attribute and mounts the node's serialized controller.
-#[cfg(test)]
 mod staged;
+pub use staged::{SelectionError, SkillLocations, SkillManager};

@@ -55,7 +55,9 @@ struct Document {
     phase: Phase,
     previous: Option<SkillSelection>,
     next: SkillSelection,
+    #[serde(deserialize_with = "super::limits::decode::<_, _, {super::limits::MAX_PATCHES}>")]
     removals: Vec<Removal>,
+    #[serde(deserialize_with = "super::limits::decode::<_, _, {super::limits::MAX_PATCHES}>")]
     patches: Vec<Patch>,
 }
 
@@ -215,7 +217,7 @@ impl DeletionTransaction {
 pub(super) fn recover(
     homes: &SkillHomes,
     state: &SkillRoot,
-    durable: &Option<SkillSelection>,
+    durable: Option<&SkillSelection>,
 ) -> Result<(), SkillError> {
     let Some(state) = state.read()? else {
         return Ok(());
@@ -279,11 +281,11 @@ pub(super) fn recover(
             document,
         };
         if transaction.document.phase == Phase::Committed
-            || (durable.as_ref() == Some(&transaction.document.next)
+            || (durable == Some(&transaction.document.next)
                 && transaction.document.previous.as_ref() != Some(&transaction.document.next))
         {
             transaction.finish()?;
-        } else if durable == &transaction.document.previous {
+        } else if durable == transaction.document.previous.as_ref() {
             transaction.rollback()?;
         } else {
             return Err(SkillError::Recovery);

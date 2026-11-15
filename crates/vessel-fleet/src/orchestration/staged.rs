@@ -3,7 +3,11 @@
 
 mod deletion;
 mod filesystem;
+mod limits;
+mod manager;
 mod manifest;
+pub use manager::{SkillLocations, SkillManager};
+pub use selection::SelectionError;
 mod mode;
 mod patches;
 mod reconcile;

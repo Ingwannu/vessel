@@ -6,7 +6,7 @@ use crate::orchestration::staged::tests::{catalogue, service};
 fn confirmation_leaves_directories_and_preference_untouched() {
     let temp = tempfile::tempdir().unwrap();
     let mut service = service(temp.path(), catalogue("one", None));
-    service.reconcile(&SkillSelection::All).unwrap();
+    let _installed = service.reconcile(&SkillSelection::All).unwrap();
     let state = SkillRoot::new(temp.path().join("transactions")).unwrap();
     let next = SkillSelection::Custom {
         skills: SkillNames::default(),
@@ -40,7 +40,7 @@ fn confirmation_leaves_directories_and_preference_untouched() {
 fn failed_preference_write_restores_overwritten_and_obsolete_files() {
     let temp = tempfile::tempdir().unwrap();
     let mut old = service(temp.path(), catalogue("one", Some(("old.md", b"owned"))));
-    old.reconcile(&SkillSelection::All).unwrap();
+    let _installed = old.reconcile(&SkillSelection::All).unwrap();
     let shared = temp.path().join("agents/skills/vessel");
     std::fs::write(shared.join("user.md"), b"user").unwrap();
     let original = std::fs::read(shared.join("SKILL.md")).unwrap();
@@ -76,7 +76,7 @@ fn failed_preference_write_restores_overwritten_and_obsolete_files() {
 fn outside_edit_survives_rollback_and_keeps_its_backup() {
     let temp = tempfile::tempdir().unwrap();
     let mut old = service(temp.path(), catalogue("one", None));
-    old.reconcile(&SkillSelection::All).unwrap();
+    let _installed = old.reconcile(&SkillSelection::All).unwrap();
     let shared = temp.path().join("agents/skills/vessel/SKILL.md");
     let mut new = service(temp.path(), catalogue("two", None));
     let state = SkillRoot::new(temp.path().join("transactions")).unwrap();

@@ -79,6 +79,7 @@ mod parking;
 mod search;
 mod settings;
 mod side_questions;
+mod skills;
 
 /// The node's protocol implementation.
 #[derive(Debug)]
@@ -144,6 +145,7 @@ pub(crate) struct NodeService {
     listings: tokio::sync::Semaphore,
     /// The node's settings (protocol 12, `crate::settings`).
     settings: Arc<crate::settings::Settings>,
+    skills: Arc<crate::skills::Skills>,
     limits: crate::limits::Limits,
     /// Turns followed for their starters (protocol 11,
     /// `automation::notices`).
@@ -179,6 +181,7 @@ pub(crate) struct Parts {
     pub(crate) catalogue: crate::catalogue::Catalogues,
     pub(crate) schedules: Schedules,
     pub(crate) settings: Arc<crate::settings::Settings>,
+    pub(crate) skills: Arc<crate::skills::Skills>,
     pub(crate) push: Arc<crate::push::Push>,
     pub(crate) limits: crate::limits::Limits,
 }
@@ -210,6 +213,7 @@ impl NodeService {
             catalogue,
             schedules,
             settings,
+            skills,
             push,
             limits,
         } = parts;
@@ -248,6 +252,7 @@ impl NodeService {
             searches: tokio::sync::Semaphore::new(search::AT_ONCE),
             listings: tokio::sync::Semaphore::new(history::AT_ONCE),
             settings,
+            skills,
             limits,
             notices: Arc::default(),
             side_opening: Arc::default(),

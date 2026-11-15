@@ -100,6 +100,7 @@ mod sessions;
 mod settings;
 mod shutdown;
 mod side_questions;
+mod skills;
 mod subscribe;
 mod terminals;
 mod tidying;

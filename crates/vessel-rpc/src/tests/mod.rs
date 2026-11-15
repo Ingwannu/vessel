@@ -638,6 +638,11 @@ impl Handler for Fake {
         search_messages: vessel_proto::search::SearchMessages => vessel_proto::search::SearchPage;
         park_session: vessel_proto::parking::ParkSession => SessionInfo;
         wake_session: vessel_proto::parking::WakeSession => SessionInfo;
+        skills_status: vessel_proto::skills::GetSkillsStatus => vessel_proto::skills::SkillsSnapshot;
+        reconcile_skills: vessel_proto::skills::ReconcileSkills => vessel_proto::skills::SkillsSnapshot;
+        uninstall_skills: vessel_proto::skills::UninstallSkills => vessel_proto::skills::SkillsSnapshot;
+        save_skills_selection: vessel_proto::skills::SaveSkillsSelection => vessel_proto::skills::SkillsSaved;
+        import_skills_selection: vessel_proto::skills::ImportSkillsSelection => vessel_proto::skills::SkillsImported;
         node_settings: vessel_proto::settings::GetNodeSettings => vessel_proto::settings::NodeSettings;
         set_node_settings: vessel_proto::settings::SetNodeSettings => vessel_proto::settings::NodeSettings;
         fork_session: vessel_proto::forking::ForkSession => SessionInfo;

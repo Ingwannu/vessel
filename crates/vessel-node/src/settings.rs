@@ -144,7 +144,7 @@ impl Settings {
         let initial_policy = saved
             .mcp
             .as_ref()
-            .map(|patch| patch.settings())
+            .map(vessel_proto::mcp::McpSettingsPatch::settings)
             .unwrap_or_default();
         let (tool_policy, _reader) = watch::channel(initial_policy);
         let settings = Self {
@@ -185,7 +185,7 @@ impl Settings {
             saved
                 .mcp
                 .as_ref()
-                .map(|patch| patch.settings())
+                .map(vessel_proto::mcp::McpSettingsPatch::settings)
                 .unwrap_or_default(),
         );
         let saved = saved.drivers.unwrap_or_default();

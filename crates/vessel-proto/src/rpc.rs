@@ -45,10 +45,12 @@ use crate::node::ProtocolVersion;
 
 mod frames;
 mod older;
+mod outcome;
 mod requests;
 #[cfg(test)]
 pub(crate) mod samples;
 mod shape;
+pub use outcome::Outcome;
 mod since;
 
 pub use frames::{ClientFrame, ClientInfo, Hello, ServerFrame, SubscriptionEnd, Welcome};
@@ -467,6 +469,16 @@ macro_rules! method_table {
             GetNodeSettings / node_settings / "node.settings" [Read, 12, unary]: $crate::settings::GetNodeSettings => $crate::settings::NodeSettings;
             /// Change the node's settings; kept across restarts (protocol 12).
             SetNodeSettings / set_node_settings / "node.set_settings" [Admin, 12, unary]: $crate::settings::SetNodeSettings => $crate::settings::NodeSettings;
+            /// Host orchestration skills (pending ADR 0065, Admin only).
+            GetSkillsStatus / skills_status / "skills.status" [Admin, (pending $crate::mcp::MCP_PARITY), unary]: $crate::skills::GetSkillsStatus => $crate::skills::SkillsSnapshot;
+            /// Host orchestration skills (pending ADR 0065, Admin only).
+            ReconcileSkills / reconcile_skills / "skills.reconcile" [Admin, (pending $crate::mcp::MCP_PARITY), unary]: $crate::skills::ReconcileSkills => $crate::skills::SkillsSnapshot;
+            /// Host orchestration skills (pending ADR 0065, Admin only).
+            UninstallSkills / uninstall_skills / "skills.uninstall" [Admin, (pending $crate::mcp::MCP_PARITY), unary]: $crate::skills::UninstallSkills => $crate::skills::SkillsSnapshot;
+            /// Host orchestration skills (pending ADR 0065, Admin only).
+            SaveSkillsSelection / save_skills_selection / "skills.save_selection" [Admin, (pending $crate::mcp::MCP_PARITY), unary]: $crate::skills::SaveSkillsSelection => $crate::skills::SkillsSaved;
+            /// Host orchestration skills (pending ADR 0065, Admin only).
+            ImportSkillsSelection / import_skills_selection / "skills.import_selection" [Admin, (pending $crate::mcp::MCP_PARITY), unary]: $crate::skills::ImportSkillsSelection => $crate::skills::SkillsImported;
             /// A new session continuing another's conversation from a turn's end (protocol 14, ADR 0052).
             ForkSession / fork_session / "session.fork" [Operate, 14, unary]: $crate::forking::ForkSession => $crate::SessionInfo;
             /// Take a session back to a turn's end (protocol 14, ADR 0052).
@@ -478,22 +490,6 @@ macro_rules! method_table {
 }
 
 crate::method_table!(rpc_methods);
-
-/// Result of a call.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-#[serde(rename_all = "snake_case")]
-#[expect(
-    clippy::large_enum_variant,
-    reason = "one Outcome per call, moved once to the writer and never stored in bulk; \
-              boxing the reply would add an allocation to every call to save a copy"
-)]
-pub enum Outcome {
-    /// Success.
-    Ok(Reply),
-    /// Failure.
-    Err(WireError),
-}
 
 #[cfg(test)]
 mod tests;

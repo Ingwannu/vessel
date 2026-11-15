@@ -98,7 +98,7 @@ impl Dir {
     }
 
     /// Iterate names from the held directory; callers enforce their domain budget.
-    #[cfg(all(test, unix))]
+    #[cfg(unix)]
     pub(crate) fn each_name(
         &self,
         mut visit: impl FnMut(&str) -> io::Result<()>,
@@ -114,7 +114,7 @@ impl Dir {
     }
 
     /// Windows follows the existing directory API's checked-path limitation.
-    #[cfg(all(test, not(unix)))]
+    #[cfg(not(unix))]
     pub(crate) fn each_name(
         &self,
         mut visit: impl FnMut(&str) -> io::Result<()>,
@@ -131,7 +131,6 @@ impl Dir {
     }
 
     /// Staging a directory beside its live name retains the same filesystem.
-    #[cfg(test)]
     pub(crate) fn move_entry(&self, from: &str, to: &str) -> io::Result<()> {
         self.rename(from, to)
     }
