@@ -130,7 +130,7 @@ impl Reply {
                 (adapted!=*page).then_some(Self::ListInbox(adapted))
             }
             Self::GetInboxEntry(entry) => entry.as_ref().and_then(|entry|crate::timeline::compat::inbox_with_reference(entry,protocol,context)).map(|entry|Self::GetInboxEntry(Some(entry))),
-            Self::ChangeQueue(changed)=>crate::timeline::compat::queue(&changed.queue,protocol,crate::timeline::TIMELINE_PARITY).map(|queue| {
+            Self::ChangeQueue(changed)=>crate::timeline::compat::queue(&changed.queue,protocol,context.assigned).map(|queue| {
                 let mut changed=changed.clone();changed.queue=queue;Self::ChangeQueue(changed)
             }),
             Self::CreateSession(session) => info(session).map(Self::CreateSession),

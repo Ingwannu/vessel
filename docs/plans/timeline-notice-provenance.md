@@ -193,3 +193,13 @@ addition. The helper now returns the closed value and its callers wrap the
 optional field explicitly; fixture numbering uses checked_add. No assertion,
 product bound or wire shape changes. The failed strict remains failed and the
 separate e2c9 runtime result does not prove this corrected source.
+
+The first executed provenance timeline run at e2c9 produced 39 passed / 1 failed.
+The unchanged modern-modern assertion exposed a boundary reset in existing queue
+paths: SessionEvent::QueueChanged and Reply::ChangeQueue read the global pending
+constant rather than the enclosing traversal's assigned boundary. Event payloads
+already honored that context. Both queue paths now use context.assigned in the
+same traversal, and the obsolete queue branch is removed from the unrelated
+title-origin helper. The assertion remains unchanged; a new queue snapshot
+fixture also covers GetConversation/ChangeQueue direct and encoded fleet hops.
+The e2c9 run remains RED and does not prove this correction or the newer base.

@@ -13,12 +13,6 @@ impl SessionEvent {
         if let Some(projected) = self.composer_commands_for_protocol(protocol) {
             return Some(projected);
         }
-        if let Self::QueueChanged { queue } = self
-            && let Some(queue) =
-                crate::timeline::compat::queue(queue, protocol, crate::timeline::TIMELINE_PARITY)
-        {
-            return Some(Self::QueueChanged { queue });
-        }
         if let Self::Renamed { title, origin } = self {
             let adapted = origin.for_protocol(protocol, assigned);
             return (adapted != *origin).then(|| Self::Renamed {

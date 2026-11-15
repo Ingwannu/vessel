@@ -288,3 +288,51 @@ fn typed_reader_leaves_keep_the_link_and_identity_without_an_extra_privacy_walk(
     ordinary.clear_internal_notice_words();
     assert_eq!(ordinary, original);
 }
+
+#[test]
+fn queue_snapshots_share_the_walks_assigned_boundary_on_direct_and_encoded_hops() {
+    let snapshot = crate::Conversation {
+        through: None,
+        queue: queue(),
+        commands: vec![],
+        usage: None,
+        permissions: vec![],
+        questions: vec![],
+        abilities: None,
+        limits: crate::AttachmentLimits::DEFAULT,
+    };
+    let replies = [
+        Reply::GetConversation(snapshot),
+        Reply::ChangeQueue(crate::conversation::QueueChanged {
+            queue: queue(),
+            delivered: None,
+        }),
+    ];
+    for original in replies {
+        for wrap in [Reply::Forward, Reply::Relay, Reply::Deliver] {
+            let canonical = Forwarded {
+                reference_origin: None,
+                reply: Box::new(original.clone()),
+            };
+            let supporting = hop(canonical.clone(), wrap, MODERN, Some(MODERN));
+            assert_eq!(*supporting.reply, original);
+            for assigned in [None, Some(MODERN)] {
+                let first = hop(canonical.clone(), wrap, OLD, assigned);
+                let second = hop(first.clone(), wrap, MODERN, assigned);
+                assert_eq!(first.reply, second.reply);
+                let encoded = serde_json::to_string(&second.reply).unwrap();
+                assert!(!encoded.contains("bounded private notice body"));
+                assert!(!encoded.contains("provenance"));
+                let entry = if let Reply::GetConversation(value) = second.reply.as_ref() {
+                    &value.queue.entries[0]
+                } else if let Reply::ChangeQueue(value) = second.reply.as_ref() {
+                    &value.queue.entries[0]
+                } else {
+                    panic!("fixture");
+                };
+                assert_eq!(entry.revision, 0);
+                assert!(entry.content.is_empty());
+            }
+        }
+    }
+}

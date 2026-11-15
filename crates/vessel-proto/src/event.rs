@@ -211,6 +211,10 @@ impl SessionEvent {
         {
             return Some(Self::UsageChanged { usage });
         }
+        if readable && let Self::QueueChanged { queue } = self {
+            return crate::timeline::compat::queue(queue, protocol, context.assigned)
+                .map(|queue| Self::QueueChanged { queue });
+        }
         if readable {
             return self.origin_for_protocol(protocol, crate::GENERATED_NAMES);
         }
