@@ -667,3 +667,12 @@ preference bands (472 vs249). No lint exemption or field boxing is installed;
 coordinator asked for the minimal boxed command-boundary seam across callers.
 The priority allowance was used once; subsequent tests/checks remain ordinary.
 No App adapter or full F4 pass is claimed from this run.
+
+
+Coordinator approved isolated native SavePrefs boxing. Lead first adopted exact
+b8390c605c05d7469cb45e92001a62be4a6725c0 onto line41eee587 (combined gate pending).
+Merge that exact mechanical producer only into this F4 tree: one Box<Prefs>
+command variant and ten constructors, no preference representation/JSON/store
+change. The broader ungated line is not pulled for this seam. Combined F4
+source remains unverified; next strict four-crate narrow is ordinary, not a
+second use of the consumed priority authorization.

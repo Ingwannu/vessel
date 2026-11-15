@@ -33,7 +33,7 @@ impl Shell {
         match self.prefs.prefer(change) {
             Ok(()) => {
                 self.areas.settings.refused = None;
-                self.command(Command::SavePrefs(self.prefs.clone()));
+                self.command(Command::SavePrefs(Box::new(self.prefs.clone())));
                 match change {
                     PreferenceChange::Language(_) => {
                         if let Some(words) = language {
