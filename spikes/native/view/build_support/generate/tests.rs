@@ -120,7 +120,7 @@ fn fixture(count: usize, many_areas: bool) -> String {
         };
         let key = format!("{area}-{local}");
         writeln!(
-            files.entry(area.clone()).or_insert_with(String::new),
+            files.entry(area.clone()).or_default(),
             "# Short fixture message.\n{key} = Value {index}"
         )
         .unwrap();
@@ -134,7 +134,7 @@ fn fixture(count: usize, many_areas: bool) -> String {
     if !many_areas {
         // A real area may look like an implementation type's name. Private
         // chunk types must live in their own namespace rather than collide.
-        files.insert(
+        let _previous = files.insert(
             "stress-node0".to_owned(),
             "# Short alias fixture.\nstress-node0-title = Other".to_owned(),
         );

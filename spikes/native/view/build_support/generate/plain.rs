@@ -123,7 +123,7 @@ impl Layout {
         } else {
             for field in &self.fields {
                 writeln!(output, "r#{}: {},", field.name, field.storage(false))?;
-                paths.insert(field.key().to_owned(), Projection::Direct);
+                let _previous = paths.insert(field.key().to_owned(), Projection::Direct);
             }
         }
         writeln!(output, "}}")?;
@@ -271,7 +271,7 @@ fn node(
                 field.name,
                 field.storage(true)
             )?;
-            paths.insert(field.key().to_owned(), Projection::Nested(path.to_vec()));
+            let _previous = paths.insert(field.key().to_owned(), Projection::Nested(path.to_vec()));
         }
     } else {
         for (index, (child, _)) in children.iter().enumerate() {
