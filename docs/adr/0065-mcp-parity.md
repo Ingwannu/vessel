@@ -1,18 +1,19 @@
 # ADR 0065: MCP parity — the tool catalogue, per-kind policy, and HTTP
 
-Status: proposed, 2026-11-14. Not accepted. This records the
-contract. No code in this commit. The plan is
-`docs/plans/mcp-parity.md`. It extends ADR 0013 (an agent principal,
-a credential per session, grants that only shrink) and does not widen
-what that principal may call. The protocol number for the new
-settings fields, and for a read of pending permissions if one is
-added, is given at merge. This document does not choose it.
-`PROTOCOL_VERSION` is unchanged from the protocol-23 integration base. Those additions
-are gated on one constant, `MCP_PARITY`, in `vessel-proto`: the
-integrator sets that constant and no other line. The constant is not
-in the code of this commit. `docs/PROTOCOL.md` is updated in the
-slice that adds the fields, not here. `docs/ARCHITECTURE.md` does not
-change: no new crate edge.
+Status: implementation in progress, 2026-11-15; not accepted or consumer-ready.
+The original 2026-11-14 proposal below is retained as historical design context.
+Its HTTP and permit CLI proposals are not retained implementations. The
+"Package implementation amendment" and "Implementation of host skill
+administration" sections describe the current source; `docs/plans/wp-mcp.md`
+is the current correspondence, decisions, verification ledger and gap list.
+
+This extends ADR 0013 without widening agent grants. The Quality B method
+table is present and MCP_PARITY exists as None. PROTOCOL_VERSION remains
+protocol 23; the integrator assigns the feature number at the wiring merge.
+Skills selection uses settings-style JSON persistence, with no SQLite schema
+number. No passing whole gate, accepted ADR or callable handover is implied.
+
+## Original proposal context (2026-11-14)
 
 ## Purpose and intent
 

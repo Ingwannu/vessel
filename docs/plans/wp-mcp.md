@@ -117,14 +117,12 @@ No writes to the operator's actual agent configuration are part of testing.
 Baseline inventory correction: `session.conversation` already returns current
 pending permissions (`conversation/mod.rs:43-66`); an aggregate MCP read can
 reuse it rather than adding a second node permission store or read call.
-Missing node capabilities (one package-level report): cross-node finish
-subscriptions, reloadable MCP launch policy and
-inject setting, and skills status/reconcile/uninstall/save-selection/import
-plus durable selection. Existing provider discovery/launch-bundle additions
+The initial package-level gap report led to this package owning exact-turn
+remote receipts, reloadable MCP launch policy/injection and skills status,
+reconcile, uninstall, selection save/import and durable selection. Existing provider discovery/launch-bundle additions
 belong to the provider package; workspace registry additions belong to the
 workspace package. This package wraps only merged typed contracts, retaining
-typed unsupported results while a dependency is pending. New methods remain
-unregistered until the shared pending-row method table arrives. Protocol
+typed unsupported results while a dependency is pending. New methods now use the shared pending-row method table. Protocol
 assignment is requested once at integration; file-backed skills need no
 SQLite schema change.
 
@@ -139,8 +137,7 @@ requests through the same grant intersection locally and across nodes.
 No new crate/dependency edge is planned. Fleet's portable skill directory-name
 value is moved down to `vessel-proto::skills`; its frontmatter parser stays in
 fleet. This reuses exactly the existing bundle-path check instead of creating
-a second directory-name rule. Skill selection/status/request values add no
-registered call or filesystem side effect. Invalid selections are refused,
+a second directory-name rule. Protocol selection/status/request values perform no filesystem I/O. Invalid selections are refused,
 where Paseo coerces malformed inputs to all: silently broadening installation
 on malformed wire input is not accepted.
 
@@ -149,325 +146,219 @@ root gate at package end on the exact commit through the remote gate. All
 fixtures use temporary synthetic homes and fake harnesses. No native UI
 changes or captures are required by this node-only package.
 
-## Resume point
+## Current implementation and integration boundary
 
-- Implemented in source: the 41-row source correspondence, shared tool IDs,
-  existing-call session/schedule/provider wrappers, machine alias, immutable
-  listing/direct-call policy, typed launch metadata and current permissions,
-  matching JSON text/structured results.
-- Implemented in source: private settings migration (fresh injection off,
-  existing identity on, partial policy retained), partial MCP edits, exact
-  provider launch snapshots and credential Mint/Omit rollback.
-- Implemented in source: six embedded skills, private selection persistence,
-  safe directory-relative sync, confirmed/frozen-plan deletion and patch
-  recovery, serialized cancellation-independent node writer and five pending
-  Admin-only local skill methods. This machinery is no longer test-only.
-- Implemented in source: default completion notices and exact-turn remote
-  receipt/follower calls. Their version, and all new settings/skills calls,
-  remain MCP_PARITY=None; no protocol/schema number is chosen here.
-- Checked: protocol tests 289/0/0 (a694cda2), store tests 85/0/0 (ee3be73e),
-  fleet library tests 32/0/0 (b4736cfab), node library tests 250/0/0
-  (2055feb36), repeated fmt/size/boundary checks. Strict Clippy and MCP
-  integration execution remain incomplete; failed and queued checks are
-  recorded separately.
-- Pending: TS generation, strict and functional checks on the final integrated
-  head, full root gate once, V3 review and the numbered consumer handover.
-- Dependencies: W3's principal-bound agent creation receipts, N3's named launch
-  bundles, W22's provider catalogue, W17's permitted agent host-directory view,
-  and browser/voice producer readiness. No staged foreign contract is consumed.
-  Gate40 ba45a6e3 is merged; the nine pending method rows are at the end
-  of its single rpc/table.rs.
+Gate40 ba45a6e3 is merged. Nine pending rows are at the end of the single
+`rpc/table.rs`: five local Admin skills calls and four forwardable prompt
+tracking calls. `MCP_PARITY=None`; the integrator assigns the number at the
+wiring merge. Skills JSON needs no SQLite schema number. No HTTP listener,
+agent grant expansion, browser engine or voice playback is enabled here.
 
-## Bundled asset decision
+| Area | Current source | Remaining boundary |
+| --- | --- | --- |
+| Existing-call MCP facade | get_session with current permissions; cancel_turn; rename_session; set_session_option; get/update_schedule; list_harnesses; account list_profiles; harness_options; list_pending_permissions | Provider catalogue, named launch bundles and lifecycle query/update contracts remain with their owners |
+| Tool edge | Typed ToolId, immutable exact-provider policy for list/direct call, machine alias, selector refusal, identical structured/text JSON success | Browser/voice producers must add their own admission and readiness |
+| Launch | Title, typed bounded options, existing labels; default notify; steer when supported, otherwise interrupt | W3 owns asynchronous creation receipt acknowledgement; no parallel receipt store here |
+| Settings | Partial mcp edits, private fresh/upgrade migration, snapshot before credential creation, cancellation-independent bounded persistence | Pending feature assignment, reviewed consumer handover |
+| Skills | Shipped bundle, safe filesystem sync/recovery, single node writer, typed client calls, selection persistence/import | Pending feature assignment; human-facing confirmation belongs to the client |
+| Remote notices | Origin-side exact-turn tracking and bounded receipt calls | Two-node runtime wiring is unverified while the feature is unassigned |
 
-The existing fleet file/path/name machinery supplies validation and hashing.
-A small standard-library build script embeds the release's skill directory,
-rather than reading a developer checkout at runtime or hardcoding another
-list for all-selection. The bundle ships Vessel, advisor, committee, handoff,
-help and plugin guidance written for Vessel's contracts. Paseo's text is not
-copied. No build script installs files. Asset construction enforces named
-file, count and total byte budgets before any destination writes.
+W3's principal-bound agent creation namespace, N3's named launch bundles,
+W22's provider catalogue and W17's permitted agent host-directory view are
+not consumer-ready. Person-only receipts and Owner/Device-only host
+registrations do not become agent authorization. Account profiles and model
+routing are not substitutes for launch bundles or provider discovery. The
+lifecycle gate in Call::since is the sole label admission gate; there is no
+second MCP-specific protocol check. Label mutation/query facades wait for
+reviewed types. No unreviewed foreign runtime is adopted.
 
-## Cancellation and launch decision
+## Settings, cancellation and launch decision
 
-Settings choices are validated before spawning. An admitted change owns a
-bounded permit and a task tracked by node shutdown through file write and
-in-memory apply; cancelling the requesting RPC cannot release either early.
-The session launcher reads one exact-provider snapshot before credential
-creation. A profile move can create or omit the next credential on the
-existing grant, and failure restores its prior credential state, including
-no credential. The node's data lock is acquired before migration and identity
-creation. Startup configuration I/O runs on the blocking worker.
+Settings validate the complete new policy before admission. A permit and
+shutdown-tracked task own each admitted write through blocking persistence
+and in-memory/watch apply, even if its requesting RPC is cancelled. There are
+at most eight admitted settings changes. Saved fields retain precedence over
+flags, and omitted mcp subfields preserve existing policy and future stored
+names. Unknown new denylist names are refused; unknown saved names survive.
 
-## Voice and browser consumer seams
+Migration runs under the node lock before node.id creation, preserving an
+explicit switch. Only an explicit inject value is a migration marker: a
+policy-only saved object receives the fresh/upgrade switch without losing its
+policy. Settings links and nonregular files refuse; unreadable/future files
+reuse store's private atomic replacement and protective set-aside rules.
+Startup configuration I/O runs on a blocking worker.
 
-Voice remains outside the core tool ID/denylist. `VoiceTools` is transient,
-not deserializable from ordinary environment or prompts; the MCP constructor
-accepts an explicit context. No voice handler is registered by that hook.
-The voice producer must combine Enabled with readiness and an authenticated
-exact-session active lease; core injection off must not suppress an explicit
-voice-only attachment once that producer is integrated. Browser policy will
-use `ToolId::Browser(BrowserTool)` when the browser contract is ready, reusing
-its one name table; browser enable/qualified-engine/Operate/lease checks stay
-with the browser producer. These are consumer seams, not runtime proof.
+Each process freezes one exact-provider policy before credential creation.
+Injection off or a disabled provider omits the core server; a later settings
+edit cannot mix a new policy with an older launch decision. Credential
+Mint/Omit uses the existing grant, parentage and depth. A returned profile
+move failure restores prior credential presence or absence. Cancellation of
+the older profile-move runtime is not newly proven by these changes.
 
-Reconciliation now applies only the additions/updates in its frozen status plan.
-It does not rescan after a transaction captured paths, and it does not rewrite
-selected directories outside that plan. Mutations borrow the service mutably
-to express the single-writer requirement before node actor serialization.
+## Bundled assets and host skill commands
 
-Selection deletion staging now writes an owned, bounded journal before moving
-confirmed directories beside their original names. A rollback refuses to
-replace any recreated live name and retains the original staged directory.
-Recovery binds the recorded canonical roots and durable selection; equal old
-and new choices roll back unless the commit marker was written. Tree cleanup
-preflights a named depth/entry budget and refuses special files. This remains
-staged code: selection-save file backups and the node controller are not yet
-wired, so it is not a completed transactional API.
+Fleet's existing file/path/name rules and hashing are reused. SkillName is
+shared through proto; fleet retains frontmatter decoding. A standard-library
+build script derives the catalogue from directories and embeds six independently
+written Vessel guides: Vessel, advisor, committee, handoff, help and plugin.
+No build script installs files, no developer checkout is read at runtime, and
+no second all-selection name list is maintained.
 
-The staged selection controller now captures the exact union of bundled,
-previously managed and manifest paths before applying its frozen plan. Its
-private per-transaction backups retain original bytes and permission bits,
-with a total backup budget. Persistence runs last. Failed persistence restores
-only paths still matching this transaction's own applied state; conflicting
-external content retains both live data and backups. Recreated delete names
-also refuse rollback rather than overwriting. Save retries convergence at most
-three times and rechecks deletion confirmation on each fresh plan. A cleanup
-failure after successful persistence retains the journal and reports the save
-as committed, following Paseo's controller semantics. Synthetic-home tests
-exercise confirmation, persistence failure and external-edit conflicts; their
-execution remains pending.
+The guides preserve profile discovery/fallback, one analysis-only advisor,
+two contrasting analysis-only committee members, notification waiting,
+forwarded skills, persistent follow-ups, task-preserving handoff without
+agent detach, topology-specific help, and version/trust-aware plugin work.
+They use current Vessel tools and do not invent creation/profile/plugin APIs.
+Paseo's SDK/CLI text is a behavior reference, not copied implementation text.
 
+A bundle enforces portable names/paths, matching frontmatter, reserved
+manifest and case-folding collision checks, 1 MiB per file, 256 files per skill,
+16 MiB total and 128 skills. Whole selection files are capped at 256 KiB.
+Malformed selections refuse rather than broadening installation to all.
 
-## Pending node skill administration
+The node captures explicit HarnessEnv homes: shared .agents/skills, configured
+Claude home's skills and configured legacy Codex home's skills. Libraries do
+not read HOME. One bounded blocking writer serializes startup maintenance,
+status, reconcile, uninstall, save and import. At most eight commands are
+admitted; cancellation cannot release their writer permit or shutdown task
+early. This service is product-wired; the historical private module name
+`staged` does not mean it is still behind cfg(test).
 
-Quality B permits the five typed `skills.*` rows. They use the existing
-`MCP_PARITY: None` requirement, Admin scope, unary shape, and explicit
-non-forwardable/agent-refused classifications. Client convenience methods
-call the same typed rows; no protocol or SQLite schema number is assigned.
-The node owns one bounded blocking writer for all status and mutation work,
-including startup repair. A cancelled RPC retains its admitted permit, writer
-and shutdown tracking until the operation finishes. Roots come from the
-already captured `HarnessEnv`: shared `.agents/skills`, configured Claude
-home's `skills`, and configured legacy Codex home's `skills`. No library reads
-ordinary environment, and initial startup never installs absent skills.
-Selection import only fills an unset preference. Uninstall keeps that
-preference for a later explicit install. Changes made by other processes are
-not serialized by this actor; journal rollback detects conflicts and retains
-the live content plus recovery material.
+Fresh startup never installs absent skills. Reconcile/startup apply only
+Add/Update operations in their captured plan and never remove unselected
+directories. Import only fills an unset preference. Uninstall preserves the
+saved choice for later explicit install. Status distinguishes selected,
+available, installed and actual content, including releases that only remove
+an owned asset. Modified obsolete and user-added files remain.
 
-Implementation checkpoint: the staged service is now product-wired behind
-pending methods. Narrow compilation and tests, TS generation, cross-node
-finish notifications and the whole package gate/review remain outstanding.
-This supersedes earlier progress bullets describing the service as test-only.
+## Transaction and filesystem decision
 
+The existing safe directory handles reject symlinks and special entries
+below explicit roots; Unix operations use directory-relative no-follow I/O.
+Windows retains the existing checked-path implementation and does not claim
+Unix's open-handle race guarantees. State and skill roots must be disjoint,
+checked lexically and after canonical opening. The node derives state from
+the canonical prepared DataDir so supported relative data directories work.
 
-## Completion notifications and exact remote turns
+A selection change confirms fresh removal names before staging whole
+directories beside their original names. The durable owner/version/id journal
+binds canonical roots and previous/next selections. It captures the exact
+union of bundled, formerly managed and manifest paths, retaining bytes and
+ordinary permissions in private per-transaction backups capped at 32 MiB.
+Decoded journals, patches and changes have named count limits. Whole-directory
+cleanup preflights depth 32 and 8192 entries before unlinking.
 
-A structured own-session tool context now defaults `notify` on and hides
-`wait_turn` from the advertised catalogue. The old direct wait adapter remains
-for compatibility; it still passes through the same tool policy. Send defaults
-to steer when the current canonical conversation permits it, otherwise
-interrupt; explicit delivery keeps its original meaning. Create validates all
-prompt/notify options before starting a session. A notifying remote create
-first calls pending `session.check_prompt_tracking` across the whole route,
-so an older/unsupported hop refuses before the creation side effect.
+Persistence runs last. A failed apply/save restores only content and modes
+still matching this transaction's own applied state, or already-original
+state. Recreated live names and outside edits retain both live data and
+recovery material. New directories are pruned only if empty. Save makes at
+most three convergence attempts and reconfirms each fresh removal plan.
+Recovery rolls back equal old/new selections unless the commit marker was
+written. After durable selection save, cleanup failure retains a journal but
+acknowledges the committed choice. Unknown/future manifests refuse rather
+than erasing another writer's ownership information.
 
-The existing `Delivered` result does not identify the exact turn started by a
-queued/steered prompt. Guessing the next log turn could report a different
-concurrent prompt as complete. Three pending typed receipt calls reuse the
-existing `Sessions::prompt_tracked` oneshot: `session.prompt_tracked`,
-`session.prompt_receipt`, `session.close_prompt_receipt`. Operate ownership
-checks still act on the target session. Receipts also bind the authenticated
-opener (including delegated device and origin), with 32 per opener, 256 per
-node, 32 long-poll readers and a fixed 30-minute expiry while waiting to start.
-No receipt is an authority token; no receipt or notification is durable over
-node restart. Closing/expiry cannot grant another caller access.
+## Notifications and exact remote turns
 
-The calling node derives the parent only from its direct Agent principal,
-reserves the existing notification budget, and follows that receipt's exact
-turn through the normal grant-intersected fleet route. It reuses the local
-fenced completion/permission wording, interrupted-parent rule, rate bound and
-parent-end/shutdown cancellation. The setup and follower are tracked across
-RPC cancellation. Read failure reports notification unavailability rather than
-success. Receipt closure after an interrupted route may defer to expiry.
-No new callback can choose or prompt an arbitrary parent. Typed pending rows
-and nested call admission share MCP_PARITY=None until integration.
+A structured own-session MCP context defaults notify on and hides wait_turn
+from the advertised list. Direct legacy waits still pass through ToolPolicy.
+Explicit delivery is preserved; absent delivery chooses steer only when the
+canonical conversation reports support, otherwise interrupt. Create decodes
+prompt, notify, title, options and labels before creating a session. Structured
+option IDs are nonempty/unique and bounded to 128; terminals refuse structured
+model/options values.
 
-Narrow strict feedback from the security checkpoint was corrected without
-lint suppression. TS also found an inherent SkillOperation::name collision
-with the TS trait, so the shared identity accessor is now `skill()`.
-Current checks are still pending; none of these source changes claims a
-cross-node runtime or whole-package PASS.
+A notifying remote create first negotiates session.check_prompt_tracking
+across the full route, refusing unsupported hops or a stopping destination
+before creating anything. This is capability negotiation, not an atomic
+reservation of all subsequent effects. The existing Delivered value cannot
+identify which concurrent queued prompt started a turn. Three typed calls
+therefore reuse Sessions::prompt_tracked's exact oneshot:
+session.prompt_tracked, session.prompt_receipt and
+session.close_prompt_receipt.
 
+Operate ownership applies to the target session. A receipt additionally
+binds its authenticated opener, including delegated device and origin. Limits
+are 32 per opener, 256 per node, 32 waiting readers, a 30-second read wait and
+30-minute retention. Checked platform deadline construction refuses before
+allocating a receipt if that finite expiry cannot be represented. IDs are
+not authority tokens. Storage is ephemeral, with no restart delivery promise.
 
-## Existing-call launch/status refinements
+The origin derives the notification parent only from its direct Agent
+principal, reserves the existing follow budget, and uses normal fleet grant
+intersection to follow that exact turn's log. It reuses fenced output,
+completion/permission wording, rate bounds and interrupted-parent behavior.
+Parent end and node shutdown cancel following. Setup and accepted following
+outlive requester cancellation. A read failure reports unavailability rather
+than success; lost receipt closure leaves only fixed-expiry bounded state.
+Local notify retains protocol 11; forwarded notify additionally needs
+MCP_PARITY. No callback may choose an arbitrary parent.
 
-`create_session` accepts a validated title, typed structured option choices and
-the existing bounded label map. These populate SessionSpec rather than a new
-launch API; the shared client admission refuses unassigned lifecycle labels and checks
-assigned field requirements before transmission. Options are bounded, nonempty and unique by ID, and
-terminal sessions refuse structured model/options inputs before creation.
-`get_session` retains its existing metadata fields and adds current structured
-`permissions` from GetConversation, with a finite complete-result cap. The two
-reads are sequential, not an atomic snapshot. Provider-discovery/launch-bundle
-and non-fleet host-directory facades remain dependent on their owners'
-reviewed contracts. Account profiles do not stand in for launch bundles, and
-an agent never reads an Owner's private host directory by default.
+## Browser, voice and display seams
 
+ToolId::Browser wraps the browser producer's one closed catalogue. The proto
+subtree is unchanged from reviewed d6898cb5 plus the reviewed RFC-variant
+identity correction a833243c. Provenance hashes cover all 16 copied files.
+No later human-input changes, proxy, browser crate, engine or RPC is imported.
+Browser names are not listed by this server; allowed direct names return
+engine-unavailable, and disabled names fail policy first. The producer owns
+future schemas/dispatch plus enabled-session/qualified-engine/Operate/lease
+checks. Its scoped source/check evidence is not this package's whole gate.
 
-Successful MCP results now reuse rmcp's structured-result constructor, which
-carries the same value as JSON text and structuredContent. The shared protocol
-owns the SessionDetails serializable output; the MCP adapter adds no serde
-dependency or parallel wire shape. Regression helpers compare both result
-channels on every successful integration call. Malformed creation tests assert
-the adapter's actual invalid-params response and unchanged node session count.
+VoiceTools is transient, not deserializable from ordinary environment or
+prompts, and independent of core ToolId/denylisting. The explicit constructor
+hook grants no playback authority and registers no handler. Voice needs its
+producer's protocol/readiness/exact-session active lease checks. Core-off
+voice-only launcher attachment still awaits the shared launch/reload context.
 
+The MCP edge returns matching model-visible JSON and structured content.
+Canonical semantic timeline action presentation belongs to the provider
+edge; native's humanized-name plus Input/Output fallback remains a stated
+difference. This package does not make native inspect arbitrary MCP JSON.
 
-The first pure protocol run executed 289 tests: 286 passed and three failed
-on pinned policy expectations. The exact Admin and forwardable expected lists
-now add only this package's named methods. Local notification remains protocol
-11, while the forwarded-notify test explicitly expects MCP_PARITY rather
-than inheriting 11. The failure logs are retained. A new synthetic-home
-interruption test recovers applied patches against the unchanged durable
-choice; persistence-failure coverage also pins Unix permission restoration.
-These changes do not constitute a successful rerun yet.
+The dead track's proposed vessel permit CLI is not retained or advertised.
+The original allow/deny argument behavior remains a proposal; no missing-ID
+shortcut ships here. Existing answer_permission requires one exact request
+and session ownership. The unused HTTP transport also remains deferred.
 
+## Verification ledger
 
-Migration now treats only an explicit `mcp.inject` value as the migration
-marker. A partial provider-policy object does not silently turn tools off on
-an existing identity: the missing switch receives the fresh/upgrade default
-while the exact stored policy remains. Synthetic fresh/existing cases pin
-both policy retention and absence of accidental identity creation.
+Every source commit has format, size and crate-boundary checks; the current
+size record is lowered to 626 for node.rs. No size debt is raised. Builds and
+tests use serialized prescribed lanes, fake harnesses and synthetic homes.
+There are no native UI changes/captures or operator-home/service mutations.
 
+| Exact source | Check and outcome | Evidence under /tmp/work/wp-mcp |
+| --- | --- | --- |
+| a694cda2 | proto 289 passed, 0 failed | value-tests-a694 |
+| ee3be73e | store 85 passed, 0 failed | store-tests-ee3be73 |
+| b4736cfab | fleet library 32 passed, 0 failed | fleet-tests-b4736 |
+| 2055feb36 | node library 250 passed, 0 failed | node-tests-2055 |
+| ba5bc191 | node command stopped compiling MCP Option abilities; no node tests executed; fixed 2055 | node-tests-ba5bc |
+| ee3be73e | strict failed client import/docs lints; fixed b473 | strict-ee3be73 |
+| 2055feb36 | strict failed eight source lints; fixed cb836 | strict-2055 |
+| cb836083a | strict failed unused synchronous receiver; fixed c7f0 with shutdown negotiation | strict-cb836 |
+| cb836083a | MCP suite stopped compiling a borrowed ID assertion; fixed c7f0; no MCP tests executed | mcp-tests-cb836 |
+| 7bfc7f72e | TS failed three unclassified aliases; fixed 146c83 | ts-7bfc7 |
+| 9e2be4d25 | TS regeneration queued, not a freshness pass | ts-9e2be |
+| c7f0c5df1 | Changed-crate strict and functional suite queued, not passed | strict-c7f0, functional-c7f0 |
 
-A settings cancellation fixture now holds the actual settings writer lock,
-admits an injection edit, cancels only its requesting task and verifies the
-permit/shutdown tracking remain held. After releasing the writer it checks
-both persisted choice and launch watch state. It creates no session or agent
-process. The selection rollback mode fixture explicitly sets its source mode
-before asserting restoration; execution is still pending.
+The alias registry brands node-minted PromptReceiptId; SkillName and
+StoredTool remain plain names validated at the Rust boundary. Generated TS
+will be applied from verified remote artifacts, not hand-written.
 
+New unexecuted regression coverage includes delegated identity separation on
+both receipt read/close, cancellation returning long-poll reader budget,
+paused-time expiry reclaiming admission, default MCP create/send delivering
+notices into the actual parent queue without wait tools, and actual shipped
+skill install/confirmed removal/uninstall/restart/import/reinstall through
+the node worker/store. Those fixtures do not claim two-node runtime or
+process-kill crash proof.
 
-Exact a694cda2 protocol tests pass 289/0/0. Store tests pass 84 and fail
-one new migration fixture because it used the human alias `claude` instead
-of the canonical settings-wire value `claude-code`. The fixture now uses the
-wire value; policy retention/default/identity assertions are unchanged. A
-store rerun is required; the earlier failed evidence remains intact.
-
-
-Status also compares the current owned-file manifest with the compiled asset
-set. A release that only removes an asset must still produce an update even
-if SKILL.md and every remaining asset are unchanged. The regression preserves
-an edited obsolete file while removing the unchanged copy in the other home.
-Future manifest versions refuse before declaring an install current.
-
-
-The private transaction root is derived from the prepared data directory's
-canonical path, so a supported relative node data directory is not rejected
-as a relative skill root. Manifest unknown fields are refused rather than
-being erased by an older writer. Unknown skill selections remain invalid
-requests through both direct validation and the transactional save error.
-
-
-Exact ee3be73e store tests pass 85/0/0. Its strict check stopped in the new
-client adapter on a wildcard import and a documentation backtick lint; those
-are corrected explicitly, without suppressions. Protocol's earlier 289/0/0
-result is retained separately from that strict failure.
-
-
-The reviewed gate40 landing now makes Call::since the sole lifecycle field
-gate, including pending None. The temporary MCP-specific label refusal is
-removed; the adapter only decodes/validates the typed value. Label mutation
-and query facades still wait for the lifecycle owner's reviewed request types.
-
-
-## Browser identity extraction
-
-The shared ToolId now wraps BrowserTool and delegates exact name parsing and
-formatting to its one closed catalogue. The protocol-only subtree is copied
-unchanged from the reviewed browser foundation d6898cb5, with its reviewed
-RFC-variant identity correction a833243c. No later human-input additions,
-proxy, browser crate, RPC, settings or runtime are imported. The browser
-producer's scoped strict/tests evidence does not substitute for this
-package's own checks. Browser names remain absent from this server's list;
-a direct allowed browser name returns a typed engine-unavailable failure.
-A disabled name still fails the shared policy first. The producer will mount
-its schemas/dispatch only with its own enable/readiness/lease checks.
-
-
-The gate40 merge preserves settings task tracking, provider launch watch and
-skill actor registration. All nine MCP pending rows are at the end of
-rpc/table.rs; the node file's size record decreases to 626. The first node
-unit command actually stopped compiling its MCP dependency on optional
-Conversation.abilities; default steer selection now handles absence as
-unsupported before falling back to interrupt. No failed command is counted
-as a node test execution.
-
-The bundled guides now preserve the reference workflows rather than only
-naming them: profile discovery/fallback, one analysis-only advisor, two
-contrasting analysis-only committee members, notification waiting, forwarded
-skills, persistent follow-ups, task-preserving handoff without agent detach,
-topology-specific help and version/trust-aware plugin work. Their instructions
-use current Vessel tool names and do not invent unavailable creation/profile/
-plugin APIs. Text is independently written for Vessel, not a renamed copy of
-Paseo's implementation-specific SDK/CLI instructions. Build still embeds and
-validates the directory catalogue without installing anything.
-
-
-Exact 2055feb36 node library tests pass 250/0/0, including cancellation and
-receipt authority fixtures. Its strict run found eight source lints after
-the gate40 merge: redundant qualifications, borrowed error mapping, two
-synchronous RPC adapters and unchecked receipt expiry. The synchronous
-adapters now follow the existing ready-future RPC pattern; checked expiry
-refuses before allocating a receipt if the finite platform deadline cannot
-be represented. No lint suppression or assertion change is used. This is
-not yet a successful strict rerun or whole-package gate.
-
-
-The TypeScript alias registry follows its existing distinction: the
-node-minted PromptReceiptId is branded, while selected skill/tool names
-remain plain text validated at the Rust boundary. No protocol representation
-changes. The initial queued TS run predates this registry correction and is
-retained as an earlier-source result, not a final freshness check.
-
-Receipt regressions additionally distinguish a delegated origin from the
-delivering device, another origin, and a direct local agent, on both read
-and close. A manually polled long read proves cancellation returns the
-reader permit; paused-time expiry proves old reservations no longer consume
-the opener's admission budget. These tests do not claim a two-node runtime
-check while MCP_PARITY remains pending.
-
-The default-notification MCP regression speaks JSON-RPC over the actual
-server pipe, creates a fake child without a notify option, and observes
-its completion prompt in the authenticated parent's log. It then sends a
-second prompt without delivery/notify options and expects the second exact
-reply's notice. It never calls a wait tool to receive those notices. This
-checks the local default adapter and queue, not pending cross-node wiring.
-
-The node skill-command integration fixture uses the actual shipped bundle
-and synthetic homes. It checks explicit install, deletion confirmation
-without premature persistence, confirmed custom selection, uninstall that
-retains the preference, restart without accidental reinstall, legacy import
-that cannot replace an existing choice, and explicit selected reinstall.
-This exercises the node's serialized worker and store with real files; it
-does not assert pending RPC availability or a process-kill crash experiment.
-
-The dead track's proposed `vessel permit` CLI is not retained or advertised
-in this package. The original ADR's allow/deny argument behavior remains a
-proposal; no missing-request-ID shortcut is introduced. Existing MCP
-answer_permission continues to require one exact request and enforce session
-ownership. There is no unused HTTP server/permit implementation claimed as
-completed parity.
-
-Strict cb836083a found one remaining unused receiver in the synchronous
-tracking-capability handler. Negotiation now consults the existing node
-shutdown token and refuses a stopping destination before a notifying create.
-The pending feature gate remains unchanged; this adds no authority, polling
-or lint suppression. The earlier strict failure remains recorded.
-
-MCP tests at cb836083a stopped before execution on one new assertion that
-compared owned and borrowed SDK values. The assertion now compares two
-references to the same exact ID value; no assertion is removed. Unneeded
-dead-code expectations are removed from test modules that use the complete
-shared fixture. The failed compile is not counted as a passing MCP suite.
+Failed logs are retained. Canceled own local waiters never reached compilation
+and are not evidence. V3's earlier security checkpoint of 504161f9 returned
+one strict-source finding; subsequent runtime wiring and the changed exact
+strict result still need source review. Strict success, generated TS freshness,
+final functional checks, one whole root A12 gate and package review remain
+required before a numbered consumer handover. Source review, scoped test
+success, runtime behavior and integration readiness are reported separately.
