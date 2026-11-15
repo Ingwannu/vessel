@@ -59,7 +59,7 @@ fn pairs(model: &DiffDocument) -> Vec<(Option<&str>, Option<&str>)> {
     let text = |cell: Option<DiffCell>| {
         cell.map(|cell| match model.source(cell.source()).unwrap() {
             DiffRow::Line { text, .. } => text.as_ref(),
-            other => panic!("{other:?}"),
+            other @ (DiffRow::Hunk { .. } | DiffRow::Cut { .. }) => panic!("{other:?}"),
         })
     };
     model
@@ -167,7 +167,7 @@ fn hunk_boundaries_flush_runs_restart_numbers_and_never_pair_across_hunks() {
         0,
     )
     .into();
-    let document = DiffDocument::new(&ticket("src/a.rs"), source.clone(), Layout::Split);
+    let document = DiffDocument::new(&ticket("src/a.rs"), Arc::clone(&source), Layout::Split);
     assert_eq!(pairs(&document), [(Some("old"), None), (None, Some("new"))]);
     let keys: Vec<_> = document
         .rows()
@@ -184,7 +184,10 @@ fn hunk_boundaries_flush_runs_restart_numbers_and_never_pair_across_hunks() {
     let DisplayRow::Header(index) = document.rows()[0] else {
         panic!("no header")
     };
-    assert!(std::ptr::eq(document.source(index).unwrap(), &source[0]));
+    assert!(std::ptr::eq(
+        document.source(index).unwrap(),
+        source.first().unwrap()
+    ));
 }
 
 #[test]
@@ -200,7 +203,7 @@ fn explicit_newline_and_truncation_notices_survive_both_layouts_without_review_t
     hunk.new_lines = 2;
     let source: Arc<[DiffRow]> = diff_rows(&[hunk], 0).into();
     for layout in [Layout::Unified, Layout::Split] {
-        let document = DiffDocument::new(&ticket("a.rs"), source.clone(), layout);
+        let document = DiffDocument::new(&ticket("a.rs"), Arc::clone(&source), layout);
         let notices = document
             .rows()
             .iter()
@@ -213,7 +216,7 @@ fn explicit_newline_and_truncation_notices_survive_both_layouts_without_review_t
 #[test]
 fn canonical_keys_retain_path_punctuation_and_refuse_source_line_zero() {
     let key = ReviewKey {
-        path: "a:old:1/file with spaces.rs".parse().unwrap(),
+        path: "src/a:old:1/file with spaces.rs".parse().unwrap(),
         side: ReviewSide::New,
         line: SourceLine::new(10).unwrap(),
     };
@@ -237,16 +240,36 @@ fn a_retained_cell_cannot_become_a_review_target_in_a_new_file_read() {
     let mut reads = PanelReads::new(root, Comparison::default());
     let old = reads.begin_file("same.rs".parse().unwrap(), keys.issue().unwrap());
     let source: Arc<[DiffRow]> = diff_rows(&[hunk(1, 1, &[(LineKind::Context, "same")])], 0).into();
-    let before = DiffDocument::new(&old, source.clone(), Layout::Unified);
+    let before = DiffDocument::new(&old, Arc::clone(&source), Layout::Unified);
     let DisplayRow::Unified(cell) = before.rows()[1] else {
         panic!("not a source cell")
     };
-    let split_same_read = DiffDocument::new(&old, source.clone(), Layout::Split);
+    let split_same_read = DiffDocument::new(&old, Arc::clone(&source), Layout::Split);
     assert_eq!(before.review_key(cell), split_same_read.review_key(cell));
     let new = reads.begin_file("same.rs".parse().unwrap(), keys.issue().unwrap());
     let after = DiffDocument::new(&new, source, Layout::Unified);
     assert!(
         after.review_key(cell).is_none(),
         "a new read cannot use an old row index as authority"
+    );
+}
+
+#[test]
+fn context_flushes_replacement_runs_and_unmatched_removals_stay_on_the_old_side() {
+    let document = model(
+        &[
+            (LineKind::Removed, "old"),
+            (LineKind::Context, "same"),
+            (LineKind::Added, "new"),
+        ],
+        Layout::Split,
+    );
+    assert_eq!(
+        pairs(&document),
+        [
+            (Some("old"), None),
+            (Some("same"), Some("same")),
+            (None, Some("new"))
+        ]
     );
 }

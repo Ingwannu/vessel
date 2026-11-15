@@ -227,3 +227,11 @@ Typed-local-failure source c0eb84e5 passed view all-target clippy in
 Split dd6ad9c5 kit tests passed117/0/0 in
 `wp-git-narrow-20261115T075426Z-dd6ad9c5`, with the changed kit compiled.
 No unchanged-tree whole gate was run, and no first-use pixels are approved.
+
+The initial document narrow check at48004f62 compiled production view code;
+six test-only style lints returned (explicit enum arms, Arc clone spelling and
+reference-to-pointer syntax). Those are corrected without allowances. The
+punctuation fixture now uses a colon below a directory, preserving the existing
+relative-path rule that an initial single-letter drive prefix is invalid.
+Added a replacement-run/context boundary case. Changed-source checks and test
+execution are still pending; no visual or review publication claim.
