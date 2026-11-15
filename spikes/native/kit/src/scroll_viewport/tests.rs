@@ -202,7 +202,7 @@ fn wheel_reaches_the_last_item_and_a_fold_clamps_the_same_offset(cx: &mut TestAp
 fn tab_focus_reveals_the_offscreen_last_target_and_then_the_fixed_footer(cx: &mut TestAppContext) {
     for (width, height) in [(800.0, 600.0), (1280.0, 800.0)] {
         let (view, cx) = setup(cx, width, height, 11);
-        cx.update(|window, cx| view.read(cx).nav_focus.focus(window));
+        cx.update(|window, cx| view.read(cx).nav_focus.focus(window, cx));
         cx.run_until_parked();
         cx.simulate_keystrokes("tab");
         cx.run_until_parked();
@@ -218,6 +218,14 @@ fn tab_focus_reveals_the_offscreen_last_target_and_then_the_fixed_footer(cx: &mu
             })
         });
         assert_frame(&view, cx, height, 11);
+        let viewport = view.read_with(cx, |probe, _| probe.scroll.bounds());
+        cx.simulate_event(ScrollEvent {
+            position: viewport.center(),
+            delta: ScrollDelta::Pixels(point(px(0.0), px(2000.0))),
+            ..ScrollEvent::default()
+        });
+        cx.run_until_parked();
+        view.read_with(cx, |probe, _| assert_eq!(probe.scroll.offset().y, px(0.0)));
         cx.simulate_keystrokes("tab");
         cx.run_until_parked();
         cx.update(|window, cx| {
@@ -226,6 +234,14 @@ fn tab_focus_reveals_the_offscreen_last_target_and_then_the_fixed_footer(cx: &mu
             })
         });
         assert_frame(&view, cx, height, 11);
+        cx.simulate_keystrokes("shift-tab");
+        cx.run_until_parked();
+        cx.update(|window, cx| {
+            view.read_with(cx, |probe, _| {
+                assert!(probe.last_focus.is_focused(window));
+                assert!(probe.scroll.offset().y < px(0.0));
+            })
+        });
     }
 }
 

@@ -5,9 +5,13 @@
 //! control deliberately does not flatten another area's renderer into rows,
 //! prescribe section heights, or implement scrolling physics.
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use gpui::prelude::*;
 use gpui::{
-    AnyElement, Bounds, Div, ElementId, FocusHandle, Pixels, Point, ScrollHandle, Stateful, div, px,
+    AnyElement, Bounds, Div, ElementId, FocusHandle, Pixels, Point, ScrollHandle, Stateful,
+    WeakFocusHandle, div, px,
 };
 
 /// A section's position in this viewport's current composition. Missing or
@@ -27,6 +31,7 @@ impl SectionIndex {
 #[derive(Debug, Clone, Default)]
 pub struct ScrollState {
     handle: ScrollHandle,
+    revealed_focus: Rc<RefCell<Option<WeakFocusHandle>>>,
 }
 
 impl ScrollState {
@@ -67,17 +72,28 @@ impl ScrollState {
         let state = self.clone();
         let target = focus.clone();
         div()
-            .id(id)
-            .track_focus(focus)
             .child(content)
             .on_children_prepainted(move |children, window, cx| {
-                if target.contains_focused(window, cx)
-                    && let Some(bounds) = children.first().copied()
-                    && state.reveal_bounds(bounds)
-                {
-                    window.refresh();
+                let focused = window.focused(cx).map(|handle| handle.downgrade());
+                if *state.revealed_focus.borrow() == focused {
+                    return;
+                }
+                // A retained focus must not pull the wheel back on every frame.
+                // Observing focus outside a target permits revealing it again
+                // when keyboard navigation subsequently returns to it.
+                if target.contains_focused(window, cx) {
+                    if let Some(bounds) = children.first().copied() {
+                        *state.revealed_focus.borrow_mut() = focused;
+                        if state.reveal_bounds(bounds) {
+                            window.refresh();
+                        }
+                    }
+                } else {
+                    *state.revealed_focus.borrow_mut() = None;
                 }
             })
+            .id(id)
+            .track_focus(focus)
     }
 
     fn reveal_bounds(&self, target: Bounds<Pixels>) -> bool {
