@@ -1224,8 +1224,14 @@ separate checkout while its local capture checkout stays frozen. The only
 merge conflict is the architecture document: the head's process-mechanism
 paragraph and the page-feedback section are both retained unchanged.
 Exact incoming-blob claims apply to code and tests; the architecture, this
-plan and ADR 0075 retain head text plus local page additions. All three
-have additive differences against the head. This clarifies the broader
-exactness wording in the merge commit without changing executable code.
+plan and ADR 0075 retain head text plus local page additions. The plan
+and ADR match Git's automatic merge; the architecture conflict retains
+both incoming and local paragraphs unchanged. Their full differences
+against the head include earlier wording and status updates, so they are
+not described as exclusively additive. The earlier audit used that overly
+broad comparison and its shell continued after the failed check. A separate
+merge-tree reconstruction verifies the actual resolutions and all 106
+incoming non-document changed blobs. This corrects the evidence claim
+without changing executable code.
 Captures still identify their original renderer commit; the merged tree
 requires its own whole gate, and no rendered latest-head claim is inferred.
