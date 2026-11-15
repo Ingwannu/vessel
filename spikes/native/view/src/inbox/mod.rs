@@ -3,6 +3,7 @@
 //! It never reconstructs an inbox entry from a session's status.
 
 pub mod admission;
+pub mod badges;
 pub mod buckets;
 pub mod delivery;
 mod detail;

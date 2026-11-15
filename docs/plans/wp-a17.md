@@ -361,3 +361,11 @@ only when the feature constant has been assigned and the original selected
 peer supports it. Otherwise basic session/elsewhere/background presence still
 uses its existing call; an unassigned optional field must not disable the
 ordinary heartbeat. The older-peer projection regression checks both fields.
+
+Coordinator ruling (11:2x): GPUI 0.3.10 has no dock/taskbar badge API. This remains
+a stated native difference; the small fork host seam belongs to W19b after core
+packages, alongside permission/delivery status. `view::inbox::badges` retains the
+reference workspace aggregation, distinct global icon priority and per-workspace
+badge count for that future adapter. It consumes eligible workspace facts rather
+than guessing membership from a path or counting tabs. Native favicon is absent
+as in Paseo native; the existing window title remains the current count surface.

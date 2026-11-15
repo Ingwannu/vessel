@@ -8,18 +8,18 @@ impl Shell {
         machine: &str,
         session: SessionId,
     ) -> Option<SessionAttention> {
-        let node = self
+        let context = self
             .fleet
             .machines
             .iter()
             .find(|item| item.name == machine)?
-            .node?;
+            .connection_context()?;
         self.areas
             .inbox
             .store
             .nodes()
             .iter()
-            .find(|item| item.source.node() == node && item.source.name().as_str() == machine)?
+            .find(|item| *item.source.context() == context)?
             .snapshot
             .as_ref()?
             .attention
