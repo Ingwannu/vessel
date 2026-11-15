@@ -845,3 +845,12 @@ prove the actual node Store callback join, power-failure ordering, every
 journal-write crash edge, arbitrary concurrent filesystem writers, current
 gate54 union, cross-node flow, durable finish intents or package whole gate.
 No unchanged rerun is needed for this test slice.
+
+
+The first gate54 union strict returned one more automatic same-arm duplication:
+all five Skills variants occurred twice in rpc/older.rs's content-free None
+projection. That produced unreachable-pattern and unnested-pattern errors.
+One copy remains, preserving the exact projection and refusal; no lint is
+suppressed. The failed strict log is retained. Already queued unit/generation
+runs remain meaningful for unchanged behavior/wire bytes, with their exact
+source scope. Only the changed strict is replaced.
