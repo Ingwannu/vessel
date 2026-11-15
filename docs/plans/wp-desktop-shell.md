@@ -415,6 +415,14 @@ test-only std Wake/park helper with a10s deadline. It intentionally does not pum
 GPUI foreground observers while waiting for the actual writer, preserving the
 pending-before-observe race being tested without any runtime/dependency change.
 No Windows runtime or corrected-source typecheck result is inferred yet.
+Unit19 exact8c compiled all selected App/Kit/Link/View tests and executed
+1396passed/1failed/2ignored. The sole failure was GPUI's strict single-thread test
+scheduler rejecting the real preference writer's wake into its foreground watch
+observer. The specific real-I/O case now uses GPUI's documented allow_parking
+mode on its own test context; receipts and the non-pumping std waiter still order
+the observation boundary. No production scheduler, lint, timeout or assertion is
+relaxed. Link141/0, Kit193/0 and the App receipt/cache/menu regressions passed on
+that older source; the newer writer fix and corrected case still need execution.
 The new control producer uses the clean dd13 base separately.
 Current source-size checks passed708 files/14 existing exceptions; no allowance
 increased. Direct rustfmt checks the Rust files changed from dd13ce37; this

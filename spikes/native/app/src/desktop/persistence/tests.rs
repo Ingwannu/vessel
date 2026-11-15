@@ -38,6 +38,10 @@ fn owner(cx: &mut TestAppContext) -> (Temp, Store) {
 
 #[gpui::test]
 fn app_fence_rejects_late_geometry_and_unreconciled_preference_edits(cx: &mut TestAppContext) {
+    // This case deliberately connects GPUI's actual foreground observer to a
+    // real std-thread file owner. GPUI's mixed-I/O test mode admits that wake;
+    // writer receipts still order each step, and wait() never pumps the UI.
+    cx.executor().allow_parking();
     let (_root, store) = owner(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, crate::desktop::preferences::start);
