@@ -6,15 +6,11 @@
 
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
-use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
     ParentElement as _, Stateful, StatefulInteractiveElement as _, Styled, Window, div, px,
 };
-use vessel_app_kit::{
-    CardLook, CardState, Tokens, Type, TypeExt as _, breakpoint, card_button, chat_markdown,
-    version_of,
-};
+use vessel_app_kit::{CardLook, CardState, Tokens, Type, TypeExt as _, breakpoint, card_button};
 use vessel_app_link::ActKind;
 use vessel_app_view::ConversationWords;
 use vessel_app_view::timeline::{
@@ -23,7 +19,7 @@ use vessel_app_view::timeline::{
 };
 use vessel_proto::Question;
 
-use super::{Answering, ResponseAction, waiting};
+use super::{Answering, waiting};
 use crate::areas::conversation::Place;
 use crate::shell::Shell;
 
@@ -64,8 +60,7 @@ pub(crate) fn card<P: Place>(
         .as_ref()
         .filter(|(kind, _)| *kind == ActKind::Answer)
         .map(|(_, message)| message.clone());
-    let sending = answering.sending.filter(|_| refused.is_none());
-    let waiting_on_node = sending.is_some() || P::busy(shell);
+    let waiting_on_node = (answering.sent && refused.is_none()) || P::busy(shell);
     let last = answering.step.saturating_add(1) >= steps.len();
     let ready = ready(&steps, step, answering);
     let block = answers::<P>(
@@ -77,16 +72,6 @@ pub(crate) fn card<P: Place>(
         cx,
     );
     let said = said(refused, &question, step, answering, *words);
-    let prompt = step_prompt(&question, step);
-    let prompt_body = chat_markdown(
-        "question-prompt",
-        &prompt,
-        version_of(&prompt),
-        None,
-        tokens,
-        window,
-        cx,
-    );
     Some(
         div()
             .flex()
@@ -105,7 +90,7 @@ pub(crate) fn card<P: Place>(
                     .px(px(12.0))
                     .pb(px(4.0))
                     .text_color(neutral.foreground)
-                    .child(prompt_body),
+                    .child(step_prompt(&question, step)),
             )
             .child(block)
             .children(said.map(|said| said_row(said, tokens)))
@@ -117,7 +102,6 @@ pub(crate) fn card<P: Place>(
                     words.question_next()
                 },
                 (ready && !waiting_on_node, !waiting_on_node),
-                sending,
                 narrow,
                 tokens,
                 cx,
@@ -355,7 +339,6 @@ fn actions<P: Place>(
     dismiss_words: &'static str,
     primary_words: &'static str,
     (primary, dismiss): (bool, bool),
-    sending: Option<ResponseAction>,
     narrow: bool,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
@@ -365,9 +348,7 @@ fn actions<P: Place>(
         Glyph::Remove,
         dismiss_words,
         CardLook::Muted,
-        if sending == Some(ResponseAction::Dismiss) {
-            CardState::Sending
-        } else if dismiss {
+        if dismiss {
             CardState::Ready
         } else {
             CardState::Waiting
@@ -384,11 +365,7 @@ fn actions<P: Place>(
         Glyph::Check,
         primary_words,
         CardLook::Accent,
-        if sending == Some(ResponseAction::Submit) {
-            CardState::Sending
-        } else if sending.is_some() {
-            CardState::Waiting
-        } else if primary {
+        if primary {
             CardState::Ready
         } else {
             CardState::Faded
@@ -402,7 +379,7 @@ fn actions<P: Place>(
     });
     div()
         .flex()
-        .gap(px(spacing::S2))
+        .gap(px(8.0))
         .map(|row| {
             if narrow {
                 row.flex_col()

@@ -1,6 +1,6 @@
 # Conversation stream parity
 
-Status: skeleton committed; question interactions implemented, narrow checks pending. Updated 2026-11-15T05:47:13Z.
+Status: stream skeleton committed; approvals and questions handed to their package owner. Updated 2026-11-15T05:47:13Z.
 
 ## Reference and asset check
 
@@ -144,3 +144,13 @@ and locale change. Default values supplied by generic typed fields remain honore
 Skeleton narrow run: native-fonts rc 0; clippy found one doc backtick omission in
 plan_card.rs, fixed with the question implementation. This was a narrow check,
 not the package gate. No whole gate or capture has been run yet.
+
+### Scope correction
+
+The canonical package table now assigns this plan **A7 only**: all timeline kinds,
+tool details, plan/todo/compaction, and turn footer. The approvals/questions package
+owns pending cards, actions, mode policy, question forms and CLI permit; composer
+owns send behavior. Prior question changes have been handed off as a patch and
+removed here with a forward commit. Their narrow clippy passed; no test or capture
+claim transfers with the handoff. The stream exposes one reusable Plan Markdown
+renderer so the pending approval card and settled plan have one body.

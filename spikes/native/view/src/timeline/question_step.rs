@@ -15,7 +15,7 @@
 use vessel_proto::Question;
 use vessel_proto::conversation::{FieldKind, QuestionField};
 
-use super::question::{Draft, Drafts, Step, step_ready};
+use super::question::{Draft, Drafts, Step};
 
 /// One row of a step's options: what it sends, its words.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -193,27 +193,3 @@ pub fn pick(step: Step<'_>, drafts: &mut Drafts, value: &str) -> Pick {
     }
     Pick::Picked
 }
-
-/// A single selection advances to the next question, never submits the
-/// final answer. A deselection or checkbox change stays on its own step.
-#[must_use]
-pub fn step_after_pick(steps: &[Step<'_>], current: usize, drafts: &Drafts) -> Option<usize> {
-    let step = *steps.get(current)?;
-    let single = matches!(
-        step.field.kind,
-        FieldKind::Choice {
-            multiple: false,
-            ..
-        } | FieldKind::Boolean { .. }
-    );
-    let selected = match drafts.get(&step.field.name) {
-        Some(Draft::Picked(values)) => !values.is_empty(),
-        Some(Draft::Boolean(value)) => value.is_some(),
-        Some(Draft::Text(_)) | None => false,
-    };
-    let next = current.checked_add(1)?;
-    (single && selected && step_ready(step, drafts) && next < steps.len()).then_some(next)
-}
-
-#[cfg(test)]
-mod tests;
