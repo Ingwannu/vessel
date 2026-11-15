@@ -65,3 +65,13 @@ new arrow, and pin its entire loaded SVG string, including literal1.5 stroke,
 in the raster test. Every other vector and the95-entry consumer inventory stay
 unchanged; no per-area adjustment. Exact corrected narrow is pending. The039c
 queued narrow is old-source evidence only and cannot close this source return.
+
+
+Exact corrected c40714c1 Kit narrow: Clippy0 and170/0/0 runtime tests,
+0 doc tests, both native-fonts and native-cargo steps0 in both runs, no skip.
+Runs agents-20261115T122009Z-c40714c1 (Clippy) and
+agents-20261115T122055Z-c40714c1 (tests). Changed Kit Checking/Compiling and
+all three external_link cases explicitly verified in raw logs. The cancelled
+039c control run had no compiler result and is not reused as a pass. Corrected
+source is submitted to V1; neither consumer UI nor the whole A9 package is
+approved by this narrow. Actual first-use captures remain owed.
