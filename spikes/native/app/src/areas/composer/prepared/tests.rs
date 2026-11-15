@@ -159,7 +159,7 @@ fn background_completion_moves_only_captured_files_and_reads_its_own_capabilitie
     });
 }
 
-fn history(text: &str) -> vessel_app_view::composer::context::ChatHistory {
+pub(super) fn history(text: &str) -> vessel_app_view::composer::context::ChatHistory {
     use vessel_app_view::composer::context::{
         ChatHistory, ContextId, ContextText, ContextTitle, Payload,
     };

@@ -90,7 +90,7 @@ impl Shell {
         {
             return Err(ContextProblem::Scope);
         }
-        self.areas.composer.contexts.tray(target).reattach(item)?;
+        self.context_intake_tray(target)?.reattach(item)?;
         if let Some(field) = self.composer_field(target) {
             field.focus(window, cx);
         }
@@ -112,10 +112,7 @@ impl Shell {
         if self.composer_draft_has_payload(target, cx) {
             return Err(ContextProblem::Busy);
         }
-        self.areas
-            .composer
-            .contexts
-            .tray(target)
+        self.context_intake_tray(target)?
             .reattach(history.into_attachment())?;
         if target == DraftKey::New
             && let Some(field) = self.composer_field(target)
@@ -129,6 +126,19 @@ impl Shell {
     pub(crate) fn draft_has_payload(&self, cx: &vessel_app_kit::ui::App) -> bool {
         self.composer_draft_has_payload(DraftKey::New, cx)
             || !self.areas.draft.creation.flow.may_submit()
+    }
+
+    fn context_intake_tray(
+        &mut self,
+        target: DraftKey,
+    ) -> Result<&mut vessel_app_view::composer::context::ContextTray, ContextProblem> {
+        let contexts = &mut self.areas.composer.contexts;
+        if contexts.get(target).is_none()
+            && contexts.len() >= vessel_app_view::composer::trays::Trays::MAX
+        {
+            return Err(ContextProblem::Capacity);
+        }
+        Ok(contexts.tray(target))
     }
 
     /// A scoped seed cannot replace text, suppressed source context or pending bytes.
