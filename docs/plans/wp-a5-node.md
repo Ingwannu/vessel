@@ -113,3 +113,14 @@ only, not immutable-source evidence. It exposed two test warnings after the
 ProcessLifetime base merge: unnecessary TimeDelta qualification and an ignored
 TaskTracker::close boolean. Both are corrected without changing runtime logic.
 All new compilation remains VM-only; immutable strict checks are still pending.
+
+## Generated TypeScript evidence
+
+Remote named TS run `wp-inbox-ts-20261115T112026Z-294d9cca` executed four selected
+Rust generator tests successfully (3 proto + 1 web). The step returned rc1 only
+because generated `web/src/wire/proto.ts` differed from the tracked baseline.
+Its retained source commit, status, tracked patch and every SHA256SUMS entry were
+verified locally; that exact generated patch is applied without hand edits.
+Proto/web generator sources are unchanged between 294d9cca3 and 158056295.
+The generated file retains the generator's whitespace. This establishes the
+artifact's origin/content, not a whole root gate or assigned-wire behavior.
