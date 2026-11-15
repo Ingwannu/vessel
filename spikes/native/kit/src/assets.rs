@@ -183,6 +183,21 @@ pub enum Glyph {
     Split,
     /// Pinned.
     Pin,
+    /// A vertical kebab, for a row's actions (horizontal More stays unchanged).
+    MoreVertical,
+    /// Pause a recurring action.
+    Pause,
+    /// Resume an action.
+    Play,
+    /// Run again now: one clockwise rotation arrow.
+    RotateCw,
+    /// Original combined activity asset, retained for compatibility. Use the
+    /// loading control to apply track alpha after monochrome mask correction.
+    ActivityIndicator,
+    /// Opaque activity track; its renderer applies the source alpha after masking.
+    ActivityTrack,
+    /// Opaque activity foreground, rotated independently of its invariant track.
+    ActivityArc,
     /// Work going on: three quarters of a ring, turned by `spinner`.
     Spinner,
     /// The board (three lanes of cards).
@@ -214,20 +229,10 @@ pub enum Glyph {
     PanelLeft,
     /// The compact sidebar's two full bars and one short bar, painted 16 by 12.
     MenuCompact,
-    /// Session history (Paseo's Lucide History alias).
-    History,
-    /// Move a sidebar preference down one row.
-    ArrowDown,
-    /// A plugin contribution without its own icon.
-    Blocks,
-    /// Add a registered project from the fixed footer.
-    FolderPlus,
-    /// Open sidebar help (Paseo's CircleHelp alias).
-    CircleHelp,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 90] = [
+const ALL: [Glyph; 92] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -299,6 +304,13 @@ const ALL: [Glyph; 90] = [
     Glyph::Undo2,
     Glyph::Split,
     Glyph::Pin,
+    Glyph::MoreVertical,
+    Glyph::Pause,
+    Glyph::Play,
+    Glyph::RotateCw,
+    Glyph::ActivityIndicator,
+    Glyph::ActivityTrack,
+    Glyph::ActivityArc,
     Glyph::Spinner,
     Glyph::Board,
     Glyph::Sun,
@@ -313,11 +325,6 @@ const ALL: [Glyph; 90] = [
     Glyph::PanelRight,
     Glyph::PanelLeft,
     Glyph::MenuCompact,
-    Glyph::History,
-    Glyph::ArrowDown,
-    Glyph::Blocks,
-    Glyph::FolderPlus,
-    Glyph::CircleHelp,
 ];
 
 impl Glyph {
@@ -380,11 +387,6 @@ impl Glyph {
             Self::PanelRight => "kit/panel-right.svg",
             Self::PanelLeft => "kit/panel-left.svg",
             Self::MenuCompact => "kit/menu-compact.svg",
-            Self::History => "kit/history.svg",
-            Self::ArrowDown => "kit/arrow-down.svg",
-            Self::Blocks => "kit/blocks.svg",
-            Self::FolderPlus => "kit/folder-plus.svg",
-            Self::CircleHelp => "kit/circle-help.svg",
             Self::PullRequest => "kit/pull-request.svg",
             Self::PullRequestDraft => "kit/pull-request-draft.svg",
             Self::PullRequestClosed => "kit/pull-request-closed.svg",
@@ -406,6 +408,13 @@ impl Glyph {
             Self::Undo2 => "kit/undo-2.svg",
             Self::Split => "kit/split.svg",
             Self::Pin => "kit/pin.svg",
+            Self::MoreVertical => "kit/more-vertical.svg",
+            Self::Pause => "kit/pause.svg",
+            Self::Play => "kit/play.svg",
+            Self::RotateCw => "kit/rotate-cw.svg",
+            Self::ActivityIndicator => "kit/activity-indicator.svg",
+            Self::ActivityTrack => "kit/activity-track.svg",
+            Self::ActivityArc => "kit/activity-arc.svg",
             Self::Spinner => "kit/spinner.svg",
             Self::Board => "kit/board.svg",
             Self::Sun => "kit/sun.svg",
@@ -721,24 +730,52 @@ mod settings_nav_glyph_tests {
 }
 
 #[cfg(test)]
-mod sidebar_glyph_tests {
-    use super::{ALL, Assets, Glyph, view_box};
+mod activity_indicator_asset_tests {
+    use super::{Assets, Glyph, view_box};
     use gpui::AssetSource as _;
+    fn paint(dimension: u16, degrees: f32) -> image::RgbaImage {
+        let bytes = Assets
+            .load(Glyph::ActivityIndicator.path())
+            .unwrap()
+            .unwrap();
+        let tree = resvg::usvg::Tree::from_data(&bytes, &resvg::usvg::Options::default()).unwrap();
+        let side = u32::from(dimension);
+        let mut pixels = resvg::tiny_skia::Pixmap::new(side, side).unwrap();
+        let scale = f32::from(dimension).mul_add(32.0_f32.recip(), 0.0);
+        let transform = resvg::tiny_skia::Transform::from_scale(scale, scale).pre_concat(
+            resvg::tiny_skia::Transform::from_rotate_at(degrees, 16.0, 16.0),
+        );
+        resvg::render(&tree, transform, &mut pixels.as_mut());
+        image::RgbaImage::from_raw(side, side, pixels.take()).unwrap()
+    }
     #[test]
-    fn reserved_sidebar_glyphs_use_one_shared_path_and_paseo_stroke() {
-        for glyph in [
-            Glyph::History,
-            Glyph::ArrowDown,
-            Glyph::Blocks,
-            Glyph::FolderPlus,
-            Glyph::CircleHelp,
+    fn activity_profile_keeps_alpha_and_foreground_arc_at_each_quarter_phase() {
+        assert_eq!(
+            Glyph::ActivityIndicator.path(),
+            "kit/activity-indicator.svg"
+        );
+        assert_eq!(
+            view_box(Glyph::ActivityIndicator.svg()),
+            Some([0.0, 0.0, 32.0, 32.0])
+        );
+        assert_eq!(view_box(Glyph::Spinner.svg()), Some([0.0, 0.0, 24.0, 24.0]));
+        for (phase, foreground, background) in [
+            (0.0, (25, 25), (16, 2)),
+            (90.0, (6, 25), (29, 16)),
+            (180.0, (6, 6), (16, 29)),
+            (270.0, (25, 6), (2, 16)),
         ] {
-            assert_eq!(ALL.iter().filter(|known| **known == glyph).count(), 1);
-            assert_eq!(view_box(glyph.svg()), Some([0.0, 0.0, 24.0, 24.0]));
-            assert!(glyph.svg().contains(r#"stroke-width="1.5""#));
-            assert!(glyph.svg().contains(r#"stroke-linecap="round""#));
-            let bytes = Assets.load(glyph.path()).unwrap().unwrap();
-            assert_eq!(bytes.as_ref(), glyph.svg().as_bytes());
+            let image = paint(32, phase);
+            assert_eq!(image.get_pixel(foreground.0, foreground.1).0[3], 255);
+            assert_eq!(image.get_pixel(background.0, background.1).0[3], 51);
+            assert_eq!(image.get_pixel(16, 16).0[3], 0);
+            assert_eq!(image.get_pixel(0, 0).0[3], 0);
+        }
+        for side in [10_u16, 16, 20, 36] {
+            let image = paint(side, 0.0);
+            assert_eq!(image.dimensions(), (u32::from(side), u32::from(side)));
+            assert!(image.pixels().any(|pixel| pixel.0[3] == 255));
+            assert!(image.pixels().any(|pixel| pixel.0[3] == 51));
         }
     }
 }

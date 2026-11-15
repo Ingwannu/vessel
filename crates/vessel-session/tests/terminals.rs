@@ -516,3 +516,6 @@ async fn the_nodes_stop_interrupts_them() {
     })
     .await;
 }
+
+#[path = "terminals/lifetime.rs"]
+mod lifetime;

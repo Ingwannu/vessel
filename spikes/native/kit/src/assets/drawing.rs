@@ -8,8 +8,7 @@
 use super::{Glyph, MARK};
 
 /// A line glyph on Lucide's grid (24 units, a stroke of 1.5, round ends),
-/// as Paseo's icons are drawn. Most paths are the kit's own; the five
-/// F4 sidebar paths retain Lucide's license in docs/design/brand/lucide-LICENSE.txt.
+/// as Paseo's icons are drawn; the paths are the kit's own.
 macro_rules! line_glyph {
     ($body:literal) => {
         concat!(
@@ -193,6 +192,25 @@ impl Glyph {
             Self::Reset => line_glyph!(
                 r#"<path d="M4.75 12a7.25 7.25 0 1 0 2.12-5.13L4.75 9"/><path d="M4.75 4.75V9H9"/>"#
             ),
+            Self::MoreVertical => line_glyph!(
+                r#"<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>"#
+            ),
+            Self::Pause => line_glyph!(
+                r#"<rect x="6.5" y="4.5" width="3.5" height="15" rx="0.5"/><rect x="14" y="4.5" width="3.5" height="15" rx="0.5"/>"#
+            ),
+            Self::Play => line_glyph!(r#"<path d="M7.5 4.5 19.5 12 7.5 19.5z"/>"#),
+            Self::RotateCw => {
+                line_glyph!(r#"<path d="M20 10a8.25 8.25 0 1 0-1.1 6.5M20 4.5V10h-5.5"/>"#)
+            }
+            Self::ActivityIndicator => {
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="4"><circle cx="16" cy="16" r="14" opacity="0.2"/><path d="M30 16A14 14 0 0 1 17.984442561589 29.858643069210"/></svg>"#
+            }
+            Self::ActivityTrack => {
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="4"><circle cx="16" cy="16" r="14"/></svg>"#
+            }
+            Self::ActivityArc => {
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="4"><path d="M30 16A14 14 0 0 1 17.984442561589 29.858643069210"/></svg>"#
+            }
             Self::Spinner => {
                 line_glyph!(r#"<path d="M12 3.75A8.25 8.25 0 1 1 3.75 12" stroke-width="2"/>"#)
             }
@@ -276,22 +294,6 @@ impl Glyph {
             ),
             Self::Monitor => line_glyph!(
                 r#"<rect x="3" y="4.125" width="18" height="12.75" rx="2.25"/><path d="M8.25 21h7.5M12 16.875V21"/>"#
-            ),
-            // Lucide 1.50.0 sidebar icons, with Paseo's explicit 1.5 stroke.
-            // History and CircleHelp are its deprecated named aliases of
-            // rotate-ccw-clock and circle-question-mark; keep one native name.
-            Self::History => line_glyph!(
-                r#"<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>"#
-            ),
-            Self::ArrowDown => line_glyph!(r#"<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>"#),
-            Self::Blocks => line_glyph!(
-                r#"<path d="M10 22V7a1 1 0 0 0-1-1H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5a1 1 0 0 0-1-1H2"/><rect x="14" y="2" width="8" height="8" rx="1"/>"#
-            ),
-            Self::FolderPlus => line_glyph!(
-                r#"<path d="M12 10v6"/><path d="M9 13h6"/><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>"#
-            ),
-            Self::CircleHelp => line_glyph!(
-                r#"<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>"#
             ),
         }
     }
