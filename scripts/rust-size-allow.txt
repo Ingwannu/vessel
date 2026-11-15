@@ -6,7 +6,7 @@
 #
 # <path> <lines of product code>, sorted by path. Listed 2026-11-14.
 crates/vessel-agent/src/codex/asks.rs 612
-crates/vessel-agent/src/codex/session.rs 939
+crates/vessel-agent/src/codex/session.rs 937
 crates/vessel-client/src/client.rs 723
 crates/vessel-fleet/src/plan.rs 524
 crates/vessel-llm/src/client.rs 786

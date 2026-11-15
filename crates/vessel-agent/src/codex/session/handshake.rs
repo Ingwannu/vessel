@@ -27,6 +27,9 @@ impl Session {
             version: response.user_agent.as_deref().and_then(version_of),
             methods: Vec::new(),
         };
+        self.version_policy =
+            super::super::policy::CodexVersionPolicy::observed(introduction.version.as_ref());
+        self.mode = Mode::default_for(self.version_policy);
         self.output(AgentOutput::Introduced(Box::new(introduction)))
             .await;
         if !self.out.notify("initialized", &serde_json::json!({})).await {
@@ -36,7 +39,7 @@ impl Session {
         // choice fails the handshake, as an ACP agent's unknown option
         // does, rather than run without it unannounced.
         for choice in &self.setup.options {
-            match Mode::chosen(choice) {
+            match Mode::chosen(choice, self.version_policy) {
                 Ok(mode) => self.mode = mode,
                 Err(error) => return Some(handshake_failed(error.to_string())),
             }
@@ -97,8 +100,10 @@ impl Session {
             return Some(Disconnect::Closed);
         }
         // The mode alone until slice 3 (`model/list`).
-        self.output(AgentOutput::Options(vec![self.mode.option()]))
-            .await;
+        self.output(AgentOutput::Options(vec![
+            self.mode.option(self.version_policy),
+        ]))
+        .await;
         self.emit(AgentEvent::Ready {
             harness_session: HarnessSessionId::new(opened.thread.id),
             abilities: Some(abilities),

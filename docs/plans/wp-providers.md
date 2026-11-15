@@ -389,3 +389,33 @@ handshake allowance; none is raised. The new MCP integration AgentSetup literal
 gains only system_prompt:None. No further existing assertion changes occur in
 the merge; the real capability commitf6403fa48 contains the authorized omission
 expectation narrowing and positive proof. Combined checks remain pending.
+
+## Native Codex mode policy preparation
+
+Paseo codex-app-server-agent.ts255-278,316-340,7272-7295,7476-7495 offers
+`auto`/`auto-review`/`full-access`; `read-only` is accepted but unoffered.
+Auto-review is offered/default only at observed0.115.0, otherwise auto. Reuse
+vessel_harness::Version::find rather than another parser or subprocess. The
+shared CodexVersionPolicy also exposes goals'0.128.0 version floor explicitly
+without claiming the required launch flag. Native legacy spellings retain only
+their original preset; an unavailable reviewer is refused before thread mutation,
+never downgraded or escalated. ACP observations are unchanged opaque values.
+
+Coordinator explicitly authorized the corresponding offered/default-id assertion
+narrowing under A8 only alongside real policy and positive exact fake tests.
+Preparation adds three dedicated integration proofs: observed old/unknown/new
+version defaults, start/resume legacy aliases with exact thread+turn policy,
+and unavailable-reviewer refusal before any thread audit. Old existing native
+expectations remain until those proofs pass. A frozen preparation source may be
+checked remotely; the final adoption commit will carry both implementation and
+the authorized expectation change without rewriting that evidence history.
+
+Native catalogue preparation also charges decoded owned metadata across pages
+against4MiB before accumulating it. Model-count/per-frame limits alone permit
+large multi-page retention; the new counter includes native strings, option
+vector storage and cursor bytes, with a cumulative valid-small-fields test.
+Configured default model metadata now overrides native defaults only when that
+id is actually in the native model list, as Paseo's hasConfiguredDefaultModel
+check specifies. A retired configured id must not erase the real native default.
+These new unit cases run with the immutable mode preparation's agent-lib checks;
+no additional model process or selected-choice mutation is introduced.

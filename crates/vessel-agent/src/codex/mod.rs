@@ -30,6 +30,7 @@ mod commands;
 mod mapper;
 mod mcp;
 mod mode;
+pub(crate) mod policy;
 mod protocol;
 mod session;
 mod wire;

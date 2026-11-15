@@ -13,7 +13,7 @@ use std::time::Duration;
 use tokio::{sync::mpsc, task::JoinSet};
 use vessel_harness::providers::{ProviderDefinition, catalogue_from_options};
 use vessel_proc::{CommandSpec, Signal};
-use vessel_proto::{agents::AgentVersion, providers::MAX_CATALOGUE_ENTRIES};
+use vessel_proto::providers::MAX_CATALOGUE_ENTRIES;
 
 const INCOMING: usize = 16;
 const MAX_PAGES: usize = 64;
@@ -126,8 +126,12 @@ impl Transaction {
         if !self.out.notify("initialized", &serde_json::json!({})).await {
             return Err(CatalogueProbeError::Protocol);
         }
-        let version = initialized.user_agent.as_deref().and_then(version);
+        let version = initialized
+            .user_agent
+            .as_deref()
+            .and_then(super::policy::version_of);
         let mut native = Vec::new();
+        let mut budget = catalogue_data::MetadataBudget::default();
         let mut cursor: Option<String> = None;
         for _page in 0..MAX_PAGES {
             let params = serde_json::json!({ "cursor": cursor });
@@ -135,6 +139,7 @@ impl Transaction {
             if native.len().saturating_add(page.data.len()) > MAX_CATALOGUE_ENTRIES {
                 return Err(CatalogueProbeError::Invalid);
             }
+            budget.admit(&page)?;
             native.extend(page.data);
             match page.next_cursor {
                 None => {
@@ -157,8 +162,10 @@ impl Transaction {
         let defaults = saved
             .map_or_else(Defaults::default, |saved| saved.config)
             .fallback(config.map_or_else(Defaults::default, |config| config.config));
-        let mut catalogue = catalogue_from_options(definition, &[Mode::DEFAULT.option()])
-            .map_err(|_invalid| CatalogueProbeError::Invalid)?;
+        let policy = super::policy::CodexVersionPolicy::observed(version.as_ref());
+        let mut catalogue =
+            catalogue_from_options(definition, &[Mode::default_for(policy).option(policy)])
+                .map_err(|_invalid| CatalogueProbeError::Invalid)?;
         catalogue.models = catalogue_data::models(native, &defaults)?;
         Ok(ProviderObservation { catalogue, version })
     }
@@ -225,10 +232,4 @@ impl Transaction {
         }
         Err(CatalogueProbeError::Protocol)
     }
-}
-
-fn version(user_agent: &str) -> Option<AgentVersion> {
-    let word = user_agent.split_whitespace().next()?;
-    let text = word.split_once('/').map_or(word, |(_, text)| text);
-    text.parse().ok()
 }

@@ -1677,3 +1677,11 @@ plugin session execution and atomic creation integration remain separate work. E
 settings retain their current behaviour. No crate edge or external dependency
 is added by this stage.
 Composer catalogs (ADR 0085) use `vessel-proto::composer_commands` for typed draft configuration, command kind and pending protocol projection. Provider-edge conversion belongs to `vessel-agent`; the existing workspace root and option validation remain the node's authority boundary. This adds no crate dependency.
+
+Native Codex version projections are centralized in CodexVersionPolicy and reuse
+vessel-harness's existing Version parser over already observed AgentVersion.
+Native permission presets use Paseo identities and its version floor, while
+legacy native spellings retain only their previous policy. ACP option identities
+are never translated here. A goals-capable version does not establish the actual
+launch flag, so command availability must also consume the transport's launch
+proof. No external dependency, wire field or process probe is added by this helper.
