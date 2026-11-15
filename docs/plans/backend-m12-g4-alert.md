@@ -82,5 +82,22 @@ The earlier producer gate (1045 passed, zero failed, one ignored) remains
 old-source evidence. It does not validate this correction or the consumer.
 Under A14 this correction receives narrow Kit checks; G2's final F1 package
 supplies the whole gate and first-use captures. No extra whole producer
-run is added. Corrected-source verification is pending below; no installed
-service, production permission or runtime configuration changed.
+run is added. No installed service, production permission or runtime
+configuration changed.
+
+
+Corrected-source narrow results on `7f9c6d19`: remote Kit Clippy exited zero
+(run `devices-narrow-20261115T065437Z-7f9c6d19`); remote Kit tests exited
+zero, 112 passed / zero failed / zero ignored (run
+`devices-narrow-20261115T070735Z-7f9c6d19`). Both ran native-fonts then the
+one requested native Cargo command with no skipped step. The Kit was
+actually checked and compiled; the exact HostErrors both-theme regression
+passed. Evidence folders are `host-errors-radius-remote-clippy-02` and
+`host-errors-radius-remote-test-01` in the resumed track evidence. Their
+steps-log SHA-256 values are respectively
+`b51d6e346c05ae1abacb9df083805997054ff663c176409e79628980a0c984c4` and
+`bf25872563171ae129ddde4553ae75f4f46adcf984c29af930fb2c93a2825730`.
+The first unregistered submission was interrupted by the build-tool cleanup;
+the single retry authorized by its owner is the Clippy run above, not a
+second compiler attempt after failure. No consumer screenshot or visual
+approval is claimed. The unchanged API is `kit::alert::host_errors`.
