@@ -92,6 +92,7 @@ mod tests {
 /// A mismatched write receipt is uncertain: creation may already have committed.
 pub(super) fn created(info: &SessionInfo, scope: &Scope, entry: &Entry) -> Result<(), Problem> {
     if info.spec.harness != scope.harness
+        || info.harness_session.as_ref().is_some_and(|id| id != &entry.id)
         || info.spec.cwd.as_ref() != Some(&entry.cwd)
         || !matches!(&info.spec.mode, vessel_proto::SessionMode::Structured {resume:Some(id),..} if id == &entry.id)
         || !same_account(
