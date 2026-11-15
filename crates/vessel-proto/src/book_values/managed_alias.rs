@@ -10,7 +10,7 @@ const UUID_DISPLAY_BYTES: usize = 36;
 ///
 /// This seals syntax only. A legacy book entry can have this spelling and
 /// still remains a book entry. Callers require explicit provenance and apply
-/// their ordinary name validation separately; None is not a valid-name proof.
+/// their ordinary name validation separately; `None` is not a valid-name proof.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ManagedLocalAlias(String);
 
