@@ -105,8 +105,9 @@ pub use harness::{Harness, HarnessKind, StructuredSupport, UnknownHarness};
 pub use id::{
     AgentMessageId, AttachmentId, DeviceId, EventSeq, HarnessSessionId, HookId, InstallId, ModelId,
     NodeId, OptionId, OptionValueId, PermissionId, PermissionOptionId, ProjectId, QuestionId,
-    QueueEntryId, RequestId, SavedPromptId, ScheduleId, SessionId, SubscriptionId, TerminalId,
-    ToolCallId, TransferId, UploadId, WorkspaceId, WorkspaceOperationId, WorktreeId,
+    QueueEntryId, RequestId, SavedPromptId, ScheduleId, SessionId, SetupRevision, SetupRunId,
+    SubscriptionId, TerminalId, ToolCallId, TransferId, UploadId, WorkspaceId,
+    WorkspaceOperationId, WorktreeId,
 };
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
 pub use labels::{InvalidLabel, LabelKey, LabelValue, SessionLabels};

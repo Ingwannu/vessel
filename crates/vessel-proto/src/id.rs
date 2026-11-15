@@ -358,3 +358,13 @@ mod workspace_identity_tests {
         );
     }
 }
+
+uuid_id! {
+    /// One setup invocation, independent of worktree path and node restart.
+    SetupRunId
+}
+
+counter_id! {
+    /// Snapshot revision within a single setup invocation.
+    SetupRevision
+}

@@ -148,6 +148,8 @@ const fn forwardable(method: Method) -> bool {
         | Method::CreateWorktree
         | Method::SetupOutput
         | Method::RunSetup
+        | Method::SetupProgress
+        | Method::CancelSetup
         | Method::RemoveWorktree
         | Method::ListSnapshots
         | Method::DropSnapshot

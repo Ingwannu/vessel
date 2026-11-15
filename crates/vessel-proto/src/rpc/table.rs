@@ -378,6 +378,10 @@ macro_rules! method_table {
             RewindSession / rewind_session / "session.rewind" [Operate, 14, unary]: $crate::forking::RewindSession => $crate::SessionInfo;
             /// A page of an agent's own conversations, to import one (protocol 17, ADR 0053).
             GetAgentHistory / agent_history / "agent.history" [Operate, 17, unary]: $crate::history::GetAgentHistory => $crate::history::AgentHistoryPage;
+            /// Observe actual setup command results and bounded output.
+            SetupProgress / setup_progress / "worktree.setup_progress" [Read, (pending $crate::workspace::WORKTREE_SETUP_OBSERVATION), unary]: $crate::workspace::ReadSetupProgress => $crate::workspace::SetupProgressReply;
+            /// Signal cancellation only for the observed setup generation.
+            CancelSetup / cancel_setup / "worktree.cancel_setup" [Operate, (pending $crate::workspace::WORKTREE_SETUP_OBSERVATION), unary]: $crate::workspace::CancelSetup => $crate::workspace::CancelSetupOutcome;
         }
     };
 }

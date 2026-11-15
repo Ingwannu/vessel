@@ -124,6 +124,8 @@ struct ProjectEntry {
 #[derive(Debug)]
 struct WorktreeEntry {
     info: WorktreeInfo,
+    /// Structured setup facts of this node process; never rebuilt from log text.
+    observation: Option<setup::Observation>,
     /// The setup log's length, for `worktree.output` to wait on.
     written: Arc<watch::Sender<u64>>,
     /// Stops its setup or teardown, while one runs.
@@ -131,6 +133,19 @@ struct WorktreeEntry {
     /// Sessions that passed `place` (or `session.resume`'s check) and are
     /// not live yet (ADR 0030): a removal counts them as sessions in it.
     starting: usize,
+}
+
+impl WorktreeEntry {
+    fn new(info: WorktreeInfo) -> Self {
+        let (written, _) = watch::channel(0);
+        Self {
+            info,
+            observation: None,
+            written: Arc::new(written),
+            running: None,
+            starting: 0,
+        }
+    }
 }
 
 #[derive(Debug, Default)]

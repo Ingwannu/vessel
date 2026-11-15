@@ -334,6 +334,8 @@ impl Method {
             | Self::CreateWorktree
             | Self::SetupOutput
             | Self::RunSetup
+            | Self::SetupProgress
+            | Self::CancelSetup
             | Self::RemoveWorktree
             | Self::ListSnapshots
             | Self::DropSnapshot
