@@ -7657,6 +7657,7 @@ dependencies = [
  "futures-util",
  "serde",
  "serde_json",
+ "serde_path_to_error",
  "thiserror 2.0.21",
  "tokio",
  "tokio-util",
