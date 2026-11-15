@@ -115,6 +115,7 @@ impl Panels {
         }
     }
 }
+pub(super) use draw::owner_notice;
 pub(crate) use draw::render_panel;
 
 #[cfg(test)]

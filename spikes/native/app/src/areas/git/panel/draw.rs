@@ -20,8 +20,8 @@ pub(crate) fn render_panel(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    if let Some(why) = shell.areas.git.panels.registration.problem() {
-        return failure(shell, &why, tokens, window, cx);
+    if let Some(notice) = owner_notice(shell, tokens, window, cx) {
+        return notice;
     }
     let address = PanelAddress {
         workspace: panel.workspace.clone(),
@@ -77,6 +77,18 @@ pub(crate) fn render_panel(
         .child(div().flex_1().min_h_0().child(body))
         .children(entry.and_then(|entry| entry.tips.render(tokens)))
         .into_any_element()
+}
+
+/// The legacy header shares the pane's startup refusal, before scheduling any
+/// repository follow/read; this adds no second notice renderer.
+pub(in crate::areas::git) fn owner_notice(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    let why = shell.areas.git.panels.owner_problem()?;
+    Some(failure(shell, &why, tokens, window, cx))
 }
 
 fn summary(

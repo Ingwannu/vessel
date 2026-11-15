@@ -991,3 +991,28 @@ The existing f1ab test run remains prior-source and must not cover this change.
   Changes Explorer is unmounted. This callback cannot invalidate C5's source
   until that exact delegated helper is consumed. Legacy writes remain refused;
   C4 PullRequest is also unmounted, so no forge ownership cutover is claimed.
+
+## Exact owner-union check return and startup boundary
+
+The713 union's four-crate Clippy stops in View with two unused borrowed results
+in file_target; App checking was not reached. Replace the discarded ready/file
+references with explicit existence predicates, preserving the accepted-generation
+rule. No warning is suppressed and no result from713 is claimed as green.
+
+The legacy Changes header now shares the existing owner refusal renderer before
+scheduling its deferred follow. Follow/status/branches/stashes also refuse while
+the Git owner is uninitialized or registration failed. This matters because an
+old deferred follow could otherwise replace the target and clear an existing
+pending payload even though pane admission is closed. The real negative-startup
+fixture installs a target and pending payload, then attempts a different-root
+follow and all three reads: target, payload and intention must remain unchanged,
+and the detached Link must receive no command. These assertions are unexecuted
+until the successor batch; normal Ready legacy follow remains an incomplete
+lifecycle, and unstamped legacy writes remain refused. No C5 source is stamped.
+
+Exact1541 View git tests completed142/0/0 with872 filtered and actual View
+compilation, including the four accepted-summary generation regressions. This
+is prior source, not a result for the new owner/startup union. Node34bb TS
+generation stopped on the missing CommitAbbreviation classification; the
+4be successor adds the display-only alias and a filter-matching regression.
+Its one TS run is queued; no generated artifact or freshness is claimed yet.

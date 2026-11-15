@@ -46,6 +46,9 @@ pub(crate) fn slot(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
+    if let Some(notice) = super::panel::owner_notice(shell, tokens, window, cx) {
+        return Some(notice);
+    }
     let target = Target {
         machine: machine.to_owned(),
         root: *root,

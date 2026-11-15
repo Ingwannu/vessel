@@ -3,11 +3,46 @@ use super::*;
 use crate::shell::{Shell, language_tests};
 use gpui::TestAppContext;
 use vessel_app_kit::ui::Context;
+use vessel_app_link::workspace::GitWrite;
 use vessel_app_link::{Command, Link};
 use vessel_app_view::layout::{AgentRole, LayoutError, OpenIntent, RetargetRequest, Target};
-use vessel_app_view::workspace::git::WriteIntent;
+use vessel_app_view::workspace::git::{RequestKey, WriteIntent};
 use vessel_app_view::workspace::git_quick::GitAction;
-use vessel_proto::workspace::Push;
+use vessel_proto::workspace::{Push, WorkspaceRoot};
+
+struct StoredWrite {
+    key: RequestKey,
+    payload: GitWrite,
+    intent: WriteIntent,
+}
+fn pending(shell: &mut Shell, root: WorkspaceRoot) -> StoredWrite {
+    let stored = StoredWrite {
+        key: shell.areas.git.keys.issue().unwrap(),
+        payload: GitWrite::Push(Push {
+            root,
+            remote: None,
+            set_upstream: false,
+        }),
+        intent: WriteIntent::Quick(GitAction::Push),
+    };
+    assert!(
+        shell
+            .areas
+            .git
+            .writing
+            .begin_action(stored.key, stored.intent.clone())
+    );
+    shell.areas.git.pending = Some((stored.key, stored.payload.clone()));
+    stored
+}
+fn retained(shell: &Shell, stored: &StoredWrite) {
+    assert_eq!(
+        shell.areas.git.pending,
+        Some((stored.key, stored.payload.clone()))
+    );
+    assert_eq!(shell.areas.git.writing.intent(), Some(&stored.intent));
+    assert!(shell.areas.git.writing.busy());
+}
 
 fn retarget(
     shell: &mut Shell,
@@ -46,6 +81,12 @@ fn missing_startup_refuses_a_valid_visible_pane_before_any_new_read(cx: &mut Tes
     shell.update_in(cx, |shell, window, cx| {
         let (old, _) = super::target_tests::prepare_uninitialized(shell, window, cx);
         while inbox.try_recv().is_ok() {}
+        let prior = crate::areas::git::Target {
+            machine: "fixture".to_owned(),
+            root: old.repository.root,
+        };
+        shell.areas.git.target = Some(prior.clone());
+        let stored = pending(shell, old.repository.root);
         assert!(shell.layout_panel_visible(&old.address.workspace, old.address.tab, window));
         assert_eq!(
             shell.areas.git.panels.owner_problem(),
@@ -53,6 +94,20 @@ fn missing_startup_refuses_a_valid_visible_pane_before_any_new_read(cx: &mut Tes
         );
         shell.git_panel_refresh(old.address.clone(), old.target.clone(), window, cx);
         shell.git_panel_compare(&old, ComparisonMode::Committed, window, cx);
+        shell.git_follow(
+            crate::areas::git::Target {
+                machine: "fixture".to_owned(),
+                root: WorkspaceRoot::Project {
+                    project: vessel_proto::ProjectId::random(),
+                },
+            },
+            cx,
+        );
+        shell.git_read_status();
+        shell.git_read_branches();
+        shell.git_read_stashes();
+        assert_eq!(shell.areas.git.target.as_ref(), Some(&prior));
+        retained(shell, &stored);
         assert_eq!(
             shell.areas.git.panels.entries[&old.address].instance,
             Some(old.instance)
@@ -165,20 +220,10 @@ fn failed_transaction_keeps_the_live_git_entry_and_committed_retirement_keeps_pe
             old.address.tab,
             &Target::WorkingDiff
         ));
-        let key = shell.areas.git.keys.issue().unwrap();
-        let payload = vessel_app_link::workspace::GitWrite::Push(Push {
-            root: old.repository.root,
-            remote: None,
-            set_upstream: false,
-        });
-        let intent = WriteIntent::Quick(GitAction::Push);
-        assert!(shell.areas.git.writing.begin_action(key, intent.clone()));
-        shell.areas.git.pending = Some((key, payload.clone()));
+        let stored = pending(shell, old.repository.root);
         retarget(shell, &old.address, Target::Scripts, cx);
         assert!(!shell.areas.git.panels.entries.contains_key(&old.address));
-        assert_eq!(shell.areas.git.pending, Some((key, payload)));
-        assert_eq!(shell.areas.git.writing.intent(), Some(&intent));
-        assert!(shell.areas.git.writing.busy());
+        retained(shell, &stored);
     });
 }
 

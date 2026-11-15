@@ -414,3 +414,20 @@ runs are terminal RED: tests15/1/0, Clippy unused size import only.
 - Node merge diff-check flags ONLY generated proto.ts trailing spaces inherited
   BYTE-EXACT from9c150 (blob77e50dfd2). It was not hand-normalized; non-generated
   merge source diff-check passes. Own history TS regeneration remains owed.
+
+## Owner-union successor after the actual713 return
+
+71367441c is committed but not checked green: its Clippy stops at two discarded
+View references before reaching App. The successor uses explicit predicates
+and guards the legacy header/follow/read entry points while owner registration
+is unavailable. Its negative fixture starts with an actual prior target and
+pending payload, so the no-command/retained-payload assertion is counterfactual.
+Normal Ready legacy lifecycle and C5 drawn-origin integration stay incomplete.
+The713 App git tests were still queued when supersession was prepared; retain
+all original evidence and cancel only if still queued, then one same-lane
+replacement. The successor's exact source and actual batch results must be
+recorded after they arrive. No package/whole gate/capture pass is implied.
+
+Prior1541 View142/0/0 is complete, with four generation cases actually run.
+The4be Node TS run is still the sole queued replacement for34bb's real alias
+classification failure; do not duplicate it or claim a fresh wire patch.

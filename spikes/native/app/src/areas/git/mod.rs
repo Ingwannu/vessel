@@ -176,6 +176,9 @@ impl Shell {
     /// The Changes tab shows `target` now: follow it, reading its status
     /// once; what belonged to another repository is let go.
     fn git_follow(&mut self, target: Target, cx: &mut Context<'_, Self>) {
+        if self.areas.git.panels.owner_problem().is_some() {
+            return;
+        }
         let git = &mut self.areas.git;
         if git.target.as_ref() == Some(&target) {
             return;
@@ -252,6 +255,9 @@ impl Shell {
     /// Ask for the followed repository's status, what is shown kept until
     /// the answer replaces it.
     pub(crate) fn git_read_status(&mut self) {
+        if self.areas.git.panels.owner_problem().is_some() {
+            return;
+        }
         let Some(target) = self.areas.git.target.clone() else {
             return;
         };
@@ -266,6 +272,9 @@ impl Shell {
 
     /// Ask for the branch list (the switcher opened).
     pub(crate) fn git_read_branches(&mut self) {
+        if self.areas.git.panels.owner_problem().is_some() {
+            return;
+        }
         let Some(target) = self.areas.git.target.clone() else {
             return;
         };
@@ -280,6 +289,9 @@ impl Shell {
 
     /// Ask for the saved entries (their list opened, or one changed).
     fn git_read_stashes(&mut self) {
+        if self.areas.git.panels.owner_problem().is_some() {
+            return;
+        }
         let Some(target) = self.areas.git.target.clone() else {
             return;
         };
