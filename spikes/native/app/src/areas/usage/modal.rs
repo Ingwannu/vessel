@@ -60,12 +60,7 @@ pub(super) fn hosts(shell: &Shell) -> Vec<UsageHost> {
         .machines
         .iter()
         .filter_map(|machine| {
-            let binding = shell
-                .areas
-                .usage
-                .hosts
-                .iter()
-                .find(|host| host.machine.as_str() == machine.name)?;
+            let node = machine.node?;
             let support = if machine
                 .protocol
                 .is_some_and(|protocol| protocol >= vessel_proto::Method::GetUsageLimits.since())
@@ -75,7 +70,7 @@ pub(super) fn hosts(shell: &Shell) -> Vec<UsageHost> {
                 HostSupport::Unsupported
             };
             Some(UsageHost {
-                node: binding.node,
+                node,
                 label: machine.name.clone(),
                 availability: match machine.reach {
                     Reach::Online => HostAvailability::Connected,
@@ -95,13 +90,12 @@ pub(super) fn selected(shell: &Shell) -> Option<NodeId> {
         .as_ref()
         .and_then(|open| {
             shell
-                .areas
-                .usage
-                .hosts
+                .fleet
+                .machines
                 .iter()
-                .find(|host| host.machine.as_str() == open.machine)
+                .find(|machine| machine.name == open.machine)
         })
-        .map(|host| host.node);
+        .and_then(|machine| machine.node);
     HostChoice {
         picked: shell.prefs.settings.usage.host,
         active,
@@ -117,13 +111,14 @@ pub(super) fn target(shell: &Shell) -> Target {
         return Target::NoMachines;
     };
     shell
-        .areas
-        .usage
-        .hosts
+        .fleet
+        .machines
         .iter()
-        .find(|host| host.node == node)
-        .map_or(Target::NoMachines, |host| {
-            Target::Online(host.machine.clone())
+        .find(|machine| machine.node == Some(node) && matches!(machine.reach, Reach::Online))
+        .map_or(Target::NoMachines, |machine| {
+            Target::Online(vessel_app_view::devices::MachineKey::from_book(
+                &machine.name,
+            ))
         })
 }
 pub(crate) fn dialogs(
@@ -206,7 +201,7 @@ fn host_list(
     let handlers = ComboHandlers {
         state: |shell: &mut Shell| &mut shell.areas.usage.host_list,
         chose: Rc::new(|shell: &mut Shell, index, window, cx| {
-            shell.choose_usage_host(index, window, cx)
+            shell.choose_usage_host(index, window, cx);
         }),
         back: None,
     };

@@ -21,6 +21,8 @@ pub enum PreferenceChange {
     UsageDisplay(crate::usage::DisplayAs),
     /// Explicit usage host selected by handshake identity.
     UsageHost(Option<NodeId>),
+    /// Explicit quota windows shared by settings and the summary.
+    UsagePins(crate::usage::PinSelection<vessel_proto::HarnessRef, vessel_proto::limits::LimitKey>),
     /// The app language; applies at once on every screen.
     Language(crate::localization::LanguagePreference),
     /// The theme.
@@ -177,6 +179,7 @@ impl Preferences {
         match change {
             PreferenceChange::UsageDisplay(display) => self.usage.display = *display,
             PreferenceChange::UsageHost(host) => self.usage.host = *host,
+            PreferenceChange::UsagePins(pins) => self.usage.pins = pins.clone(),
             PreferenceChange::Language(language) => self.language = *language,
             PreferenceChange::Theme(theme) => self.appearance.theme = *theme,
             PreferenceChange::InterfaceSize(size) => self.appearance.interface_size = *size,

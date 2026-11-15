@@ -30,7 +30,6 @@ impl Shell {
                 }
                 let earlier = std::mem::replace(&mut self.fleet, fleet);
                 self.offers_fleet(&earlier);
-                self.usage_fleet();
                 if !self.loaded {
                     self.loaded = true;
                     // With no machine there is nothing to type to: pairing

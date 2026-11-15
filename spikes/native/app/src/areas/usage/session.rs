@@ -48,22 +48,22 @@ impl Shell {
             return;
         }
         reader.close();
-        if let Some(selected) = selected {
-            if let Some(request) = reader.request(selected) {
-                self.command(Command::Usage(Ask::Session {
-                    request,
-                    refresh: LimitRefresh::Cached,
-                }));
-            }
+        if let Some(selected) = selected
+            && let Some(request) = reader.request(selected)
+        {
+            self.command(Command::Usage(Ask::Session {
+                request,
+                refresh: LimitRefresh::Cached,
+            }));
         }
     }
     pub(crate) fn usage_records(&mut self, session: SessionId, records: &[EventRecord]) {
-        if !self
+        if self
             .areas
             .session
             .open
             .as_ref()
-            .is_some_and(|open| open.session == session)
+            .is_none_or(|open| open.session != session)
         {
             return;
         }
@@ -73,11 +73,11 @@ impl Shell {
             self.areas.usage.session_owner = Some(session);
         }
         let epoch = vessel_app_view::usage::binding_epoch(records);
-        if let Some(epoch) = epoch {
-            if self.areas.usage.session_epoch.is_none_or(|old| epoch > old) {
-                self.areas.usage.session_epoch = Some(epoch);
-                self.areas.usage.session.close();
-            }
+        if let Some(epoch) = epoch
+            && self.areas.usage.session_epoch.is_none_or(|old| epoch > old)
+        {
+            self.areas.usage.session_epoch = Some(epoch);
+            self.areas.usage.session.close();
         }
     }
     fn usage_refresh_session(&mut self) {
@@ -102,7 +102,7 @@ pub(crate) fn session_card(
     let state = &shell.areas.usage;
     let text = shell.words.usage();
     if state.session.phase().observation().is_none() {
-        state.session.selection()?;
+        let _selected = state.session.selection()?;
         return Some(
             div()
                 .min_w_0()

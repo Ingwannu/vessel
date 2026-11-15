@@ -59,6 +59,7 @@ impl Shell {
                     }
                     // Read where they are drawn, on the next frame.
                     PreferenceChange::UsageDisplay(_)
+                    | PreferenceChange::UsagePins(_)
                     | PreferenceChange::UsageHost(_)
                     | PreferenceChange::SidebarPanel(_)
                     | PreferenceChange::InspectorPanel(_)

@@ -30,12 +30,6 @@ pub(super) struct PolicyPending {
     pub(super) policy: ExternalLookup,
 }
 
-#[derive(Debug)]
-pub(super) struct HostBinding {
-    pub(super) machine: MachineKey,
-    pub(super) node: vessel_proto::NodeId,
-}
-
 /// All requests live as long as their selected machine, never a visible label.
 #[derive(Debug)]
 pub(crate) struct State {
@@ -43,7 +37,6 @@ pub(crate) struct State {
     pub(super) dialog: vessel_app_kit::DialogState,
     pub(super) host_list: vessel_app_kit::ComboboxState,
     pub(super) host_anchor: vessel_app_kit::select::Anchor,
-    pub(super) hosts: Vec<HostBinding>,
     pub(super) target: Target,
     pub(super) range: Range,
     pub(super) session: Reader<SessionSelection, UsageLimits>,
@@ -67,7 +60,6 @@ impl State {
             dialog: vessel_app_kit::DialogState::new(cx),
             host_list: vessel_app_kit::ComboboxState::new(window, cx),
             host_anchor: vessel_app_kit::select::Anchor::default(),
-            hosts: Vec::new(),
             target: Target::Hidden,
             range: Range::default(),
             session: Reader::default(),

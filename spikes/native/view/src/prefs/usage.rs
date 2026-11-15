@@ -1,7 +1,7 @@
 //! Usage choices reuse field-wise fallback; sidebar visibility has one separate owner.
-use crate::usage::DisplayAs;
+use crate::usage::{DisplayAs, PinSelection};
 use serde::{Deserialize, Serialize};
-use vessel_proto::NodeId;
+use vessel_proto::{HarnessRef, NodeId, limits::LimitKey};
 /// A host is persisted by handshake identity, never by a mutable human label.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
@@ -12,6 +12,9 @@ pub struct UsagePreferences {
     /// Explicit host pick; absent follows the active host and then the first eligible one.
     #[serde(deserialize_with = "super::lenient")]
     pub host: Option<NodeId>,
+    /// None follows source defaults; an explicit empty list pins nothing.
+    #[serde(deserialize_with = "super::lenient")]
+    pub pins: PinSelection<HarnessRef, LimitKey>,
 }
 #[cfg(test)]
 mod tests {

@@ -37,6 +37,22 @@ impl DisplayPercent {
             DisplayAs::Remaining => FULL_PERCENT - used,
         })
     }
+    /// Each mode prefers its explicitly supplied percentage before complementing the other.
+    #[must_use]
+    pub fn from_reported(
+        used: Option<FiniteNumber>,
+        remaining: Option<FiniteNumber>,
+        display: DisplayAs,
+    ) -> Option<Self> {
+        match display {
+            DisplayAs::Used => used
+                .map(|value| Self::reported(value, DisplayAs::Used))
+                .or_else(|| remaining.map(|value| Self::reported(value, DisplayAs::Remaining))),
+            DisplayAs::Remaining => remaining
+                .map(|value| Self::reported(value, DisplayAs::Used))
+                .or_else(|| used.map(|value| Self::reported(value, DisplayAs::Remaining))),
+        }
+    }
     /// Integer drawing shares avoid a float-to-integer cast at the kit boundary.
     #[must_use]
     pub fn whole(self) -> u8 {

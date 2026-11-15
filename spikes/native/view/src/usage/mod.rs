@@ -32,3 +32,12 @@ pub use session::{SessionSelection, binding_epoch};
 
 mod quota;
 pub use quota::{quota_facts, reset_label, window_label};
+
+mod summary;
+pub use summary::{PinnedWindow, SummaryAccount, SummaryWindow, default_pins, pinned_windows};
+
+mod summary_layout;
+pub use summary_layout::{
+    MIN_SUMMARY_METER_WIDTH, SUMMARY_METER_GAP, SummaryLayout, SummaryMeasurements, SummaryWidth,
+    SummaryWindowCount, summary_layout,
+};

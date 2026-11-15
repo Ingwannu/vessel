@@ -15,14 +15,6 @@ use vessel_app_view::{
 use vessel_proto::limits::{ExternalLookup, LimitAccount};
 
 impl Shell {
-    pub(crate) fn usage_fleet(&mut self) {
-        self.areas.usage.hosts.retain(|host| {
-            self.fleet
-                .machines
-                .iter()
-                .any(|machine| machine.name == host.machine.as_str())
-        });
-    }
     pub(crate) fn settle_usage(&mut self, window: &Window) {
         self.settle_session_usage();
         let visible = self.route == Route::Settings
@@ -132,15 +124,7 @@ impl Shell {
     pub(crate) fn usage_answer(&mut self, answer: Answer, _cx: &mut Context<'_, Self>) {
         let state = &mut self.areas.usage;
         let next = match answer {
-            Answer::Connected { machine, node } => {
-                if let Some(host) = state.hosts.iter_mut().find(|host| host.machine == machine) {
-                    host.node = node;
-                } else {
-                    state.hosts.push(super::HostBinding {
-                        machine: machine.clone(),
-                        node,
-                    });
-                }
+            Answer::Connected { machine, node: _ } => {
                 if state.inventory.selection() == Some(&machine) {
                     state.inventory.close();
                     state.ledger.close();
