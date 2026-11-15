@@ -94,7 +94,6 @@ impl Button {
     }
     /// Attach only when enabled, even if a consumer supplies a callback while
     /// pending. View must still guard its own state transition at dispatch.
-    #[must_use]
     pub fn on_click(
         mut self,
         listener: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,

@@ -219,7 +219,7 @@ mod tests {
             after: None,
         };
         let call = request.clone().into_call();
-        assert!(call.since() <= PROTOCOL_VERSION);
+        assert!(call.since() <= Some(PROTOCOL_VERSION));
         assert_eq!(call.method().scope(), Some(Scope::Read));
         assert_eq!(MIN_PROTOCOL_VERSION, ProtocolVersion::new(2));
         assert_eq!(
@@ -276,7 +276,12 @@ mod tests {
         let six = ProtocolVersion::new(6);
         assert_eq!(
             envelopes(crate::GetNode.into_call()).map(|call| call.since()),
-            [crate::GetNode::METHOD.since(), six, six, six]
+            [
+                crate::GetNode::METHOD.since(),
+                Some(six),
+                Some(six),
+                Some(six)
+            ]
         );
         let fields = crate::settings::SetNodeSettings {
             drivers: Some(crate::settings::SetAgentDrivers::default()),
@@ -284,7 +289,7 @@ mod tests {
         };
         assert_eq!(
             envelopes(fields.into_call()).map(|call| call.since()),
-            [ProtocolVersion::new(18); 4]
+            [Some(ProtocolVersion::new(18)); 4]
         );
     }
 }

@@ -64,18 +64,31 @@ pub fn outline_button(
     enabled: bool,
     tokens: &Tokens,
 ) -> Stateful<Div> {
-    button_with_kind(
-        id,
-        label,
-        ButtonKind::Outline,
-        if enabled {
-            ButtonState::Enabled
-        } else {
-            ButtonState::Disabled
-        },
-        tokens,
-    )
-    .flex_shrink_0()
+    button::outline_label(id, label.into(), enabled, tokens)
+}
+
+/// Outline pill with a leading14-point vector and words in the caller's tone.
+/// Preserves the published Remove-machine API and its immediate-child geometry.
+#[must_use]
+pub fn outline_button_with_glyph(
+    id: impl Into<gpui::ElementId>,
+    glyph: crate::assets::Glyph,
+    label: impl Into<SharedString>,
+    tone: Hsla,
+    enabled: bool,
+    tokens: &Tokens,
+) -> Stateful<Div> {
+    button::outline_pressable(glyph_body(glyph, label, tone, enabled, tokens), id, enabled)
+}
+
+fn glyph_body(
+    glyph: crate::assets::Glyph,
+    label: impl Into<SharedString>,
+    tone: Hsla,
+    enabled: bool,
+    tokens: &Tokens,
+) -> Div {
+    button::outline_glyph_body(glyph, label.into(), tone, enabled, tokens)
 }
 
 /// A status dot (its word goes beside it: state is never colour alone).

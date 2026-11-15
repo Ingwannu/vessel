@@ -29,7 +29,7 @@ impl Render for Probe {
 }
 
 impl Shell {
-    fn without_io(window: &mut Window, cx: &mut Context<'_, Self>) -> Self {
+    pub(crate) fn without_io(window: &mut Window, cx: &mut Context<'_, Self>) -> Self {
         Self {
             link: None,
             // No receiver: a command given back goes nowhere in these tests.

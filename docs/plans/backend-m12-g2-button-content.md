@@ -45,9 +45,10 @@ Step3 unifies the existing outline compatibility wrapper with the same renderer.
 All five variants now share the measured Small/Medium geometry, icon-only width,
 text size/medium weight and pressed/disabled paint. Literal both-theme matrices
 cover every variant/size/layout/content state. No area caller is edited.
-The old outline wrapper retains its no-shrink behavior, but its label now uses
-the shared wrapping policy rather than a separate text subtree; affected existing
-caller files are listed below. Other legacy label behavior stays unchanged.
+The published outline compatibility wrappers retain direct text, no-shrink,
+caller-selected tone and immediate-child bounds. They use the same frame/content
+renderer through a private published-outline presentation. Typed entries retain
+their wrapping labels. Existing caller files are listed below.
 
 The signature-compatible button_with_kind and outline_button receive no Window
 or App. Their Stateful<Div> is constructed before layout, so there is no reliable
@@ -72,21 +73,34 @@ Existing outline caller inventory (source scan at this change):
 - `spikes/native/app/src/areas/settings/agents/detail/facts.rs`: 1 call(s).
 - `spikes/native/app/src/areas/settings/agents/detail/sign_in.rs`: 1 call(s).
 
-## Isolated producer boundary
+## Package-base4 integration checkpoint
 
-This control-only producer is directly on6036eeb8, with no F1 app/View/Link/menu
-changes. The ControlSizing module is included because the assigned base lacks
-it. The full F1 branch retains its menu alias regression; only that nonexistent
-producer alias assertion is excluded here. Step2 reuses exact434933b3 loader,
-asset and legacy spinner blobs; the base size record only lowers719 to711.
-No old Link size entry is revived. Only the final range head is to be narrowed;
-no independent stage1/stage2 gate or UI approval is claimed from that result.
+The A8 merge of3cd0d3fc preserves its new outline_button_with_glyph signature,
+its explicit glyph/text tone, and its exact actual-layout regression. A private
+PublishedOutline presentation in the one frame/content renderer preserves the
+published direct-label bounds and outline typography, rather than silently
+changing the lead's Remove-machine action. The public typed APIs remain the
+ordered content/loading/sizing extension; no area call is migrated. The canonical
+incoming palette (including GREEN_500) is retained byte for byte. Both language
+refresh hooks and all incoming kit exports are kept.
 
+The earlier isolated6036 producer narrow run schedules-narrow-20261115T081346Z-b0948720
+failed: native-fonts0, native-cargo101; no tests ran. It found one nonexistent
+popup touch-target alias assertion, two redundant must_use attributes, an
+unexhaustive button border match and a documentation lint. The original result
+is retained as old-source failure. The base4 checkpoint corrects these; a new
+minimal base4 producer must pass narrow checks before consumer handoff. No whole
+F1 gate or UI pass is claimed here.
 
-Producer scope correction:6036 has no public popup::TOUCH_TARGET alias either.
-Remove that out-of-scope alias assertion from this isolated producer along with
-its menu alias assertion; retain the actual ControlSizing-to-breakpoint44 check.
-Both old aliases remain tested in the full F1 branch where they really exist.
-No production code or actual supported-button assertion changes. The immutable
-b094 queued run predates this discovery, stays unchanged, and its actual outcome
-must be retained; it cannot prove this correction. No new known-red run is sent.
+## Minimal base4 producer handoff boundary
+
+This merge integrates the three ordered control-only producer commits onto the
+assigned3cd0d3fc base, with no F1 area/View/Link/menu chain. It keeps the incoming
+outline_button_with_glyph API, explicit tone and unchanged actual child-bounds
+regression through the same body renderer. The producer excludes only the menu
+TriggerSizing assertion because that alias is not defined on this base; the
+canonical ControlSizing Touch44 check remains. Existing ActivityIndicator code
+and its three vectors are exact434933b3; all prior vectors remain unchanged.
+The only size record change is slider719 to711. Its alias/lint corrections are
+included; the original b094 red check is retained. Narrow checks of this exact
+integrated head are owed, with no consumer/UI/full-feature approval yet.

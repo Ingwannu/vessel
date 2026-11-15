@@ -89,6 +89,29 @@ pub(crate) struct Push {
     test_origin: Option<url::Url>,
 }
 impl Push {
+    /// The node's push service from its configuration, started: the node
+    /// assembly's one step for push (protocol 22), so `node.rs` does not
+    /// carry push's test hooks.
+    pub(crate) async fn started(
+        config: &crate::Config,
+        store: Store,
+        tasks: &tokio_util::task::TaskTracker,
+        stop: tokio_util::sync::CancellationToken,
+    ) -> Result<Arc<Self>, vessel_store::StoreError> {
+        let push = Self::new(store, config.data_dir.clone());
+        #[cfg(test)]
+        let push = if let Some(origin) = &config.push_test_origin {
+            push.test_at(origin.clone())
+        } else {
+            push
+        };
+        #[cfg(test)]
+        let push = push.pausing_at(config.push_preparation.clone());
+        let push = Arc::new(push);
+        start(Arc::clone(&push), tasks, stop).await?;
+        Ok(push)
+    }
+
     pub(crate) fn new(store: Store, dir: DataDir) -> Self {
         Self {
             store,
