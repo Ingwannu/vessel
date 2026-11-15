@@ -78,7 +78,7 @@ fn tool_events() -> Vec<AgentEvent> {
         }),
         AgentEvent::PermissionRequested(PermissionRequest {
             plan_proposal: None,
-            delivery_state: Default::default(),
+            delivery_state: crate::timeline::PermissionDeliveryState::Pending,
             tool_scope: None,
             id: PermissionId::random(),
             tool_call: Some(ToolCallId::new("call")),
