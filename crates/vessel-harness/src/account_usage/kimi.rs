@@ -9,9 +9,7 @@ use std::collections::HashSet;
 use vessel_proto::{
     conversation::FiniteNumber,
     limits::LimitPercent,
-    usage_reports::{
-        AvailableUsageReport, MAX_USAGE_WINDOWS, UsageCompleteness, UsageSummary, UsageWindow,
-    },
+    usage_reports::{AvailableUsageReport, MAX_USAGE_WINDOWS, UsageCompleteness, UsageSummary},
 };
 #[derive(Deserialize)]
 #[serde(untagged)]
@@ -163,8 +161,8 @@ fn identity(
             .unwrap_or_else(|| format!("Limit {index}")),
     )
 }
-fn unique(base: String, seen: &mut HashSet<String>) -> String {
-    let mut id = base.clone();
+fn unique(base: &str, seen: &mut HashSet<String>) -> String {
+    let mut id = base.to_owned();
     for suffix in 2..=MAX_USAGE_WINDOWS.saturating_add(1) {
         if !seen.contains(&id) {
             break;
@@ -192,7 +190,7 @@ pub(super) fn decode(body: &[u8]) -> Result<AccountUsageOutcome, AccountUsageErr
                     })
                     .unwrap_or_else(|| "Usage limit".to_owned());
                 windows.push(common::window(
-                    &unique("coding_usage".to_owned(), &mut seen),
+                    &unique("coding_usage", &mut seen),
                     &label,
                     None,
                     fields.percent(),
@@ -229,7 +227,7 @@ pub(super) fn decode(body: &[u8]) -> Result<AccountUsageOutcome, AccountUsageErr
             index.saturating_add(1),
         );
         windows.push(common::window(
-            &unique(id, &mut seen),
+            &unique(&id, &mut seen),
             &label,
             None,
             fields.percent(),

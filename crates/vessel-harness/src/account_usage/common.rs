@@ -95,14 +95,14 @@ impl Timestamp {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(untagged)]
 pub(super) enum Text {
-    Text(String),
+    Literal(String),
     Number(FiniteNumber),
     Bool(bool),
 }
 impl Text {
     pub(super) fn value(self) -> String {
         match self {
-            Self::Text(value) => value,
+            Self::Literal(value) => value,
             Self::Number(value) => value.get().to_string(),
             Self::Bool(value) => value.to_string(),
         }
@@ -206,22 +206,20 @@ impl<'de, T: Deserialize<'de>, const N: usize> Deserialize<'de> for Rows<T, N> {
                         None => return Ok(Rows(values)),
                     }
                 }
-                struct Excess;
-                impl<'de> serde::de::DeserializeSeed<'de> for Excess {
-                    type Value = ();
-                    fn deserialize<D: serde::Deserializer<'de>>(
-                        self,
-                        _decoder: D,
-                    ) -> Result<(), D::Error> {
-                        Err(serde::de::Error::custom(
-                            "too many account usage source rows",
-                        ))
-                    }
-                }
                 let _end = rows.next_element_seed(Excess)?;
                 Ok(Rows(values))
             }
         }
         decoder.deserialize_seq(Visitor::<T, N>(std::marker::PhantomData))
+    }
+}
+
+struct Excess;
+impl<'de> serde::de::DeserializeSeed<'de> for Excess {
+    type Value = ();
+    fn deserialize<D: serde::Deserializer<'de>>(self, _decoder: D) -> Result<(), D::Error> {
+        Err(serde::de::Error::custom(
+            "too many account usage source rows",
+        ))
     }
 }

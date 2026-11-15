@@ -1,13 +1,26 @@
-//! The one SQLite owner supplies Cursor's fixed read-only credential query to the source adapter.
+//! The one `SQLite` owner supplies Cursor's fixed read-only credential query to the source adapter.
 use crate::StoreError;
 use rusqlite::{Connection, OpenFlags, OptionalExtension as _};
 use std::{io, path::Path};
 use zeroize::Zeroizing;
 const MAX_CURSOR_SIGN_IN_BYTES: usize = 65_536;
+#[derive(serde::Deserialize)]
+struct Legacy {
+    #[serde(rename = "accessToken")]
+    access_token: Option<Secret>,
+}
+#[derive(serde::Deserialize)]
+#[serde(from = "String")]
+struct Secret(Zeroizing<String>);
+impl From<String> for Secret {
+    fn from(value: String) -> Self {
+        Self(Zeroizing::new(value))
+    }
+}
 /// Read only Cursor's known `ItemTable` keys; never create, migrate or modify the database.
 ///
 /// Active WAL is refused because immutable read-only mode cannot safely see it. The source
-/// may try its separately disclosed headless store. No SQLite dependency crosses this seam.
+/// may try its separately disclosed headless store. No `SQLite` dependency crosses this seam.
 /// # Errors
 /// Unsafe location, active WAL, invalid database/schema or oversized credential value.
 pub fn read_cursor_usage_sign_in(path: &Path) -> Result<Option<Zeroizing<String>>, StoreError> {
@@ -50,19 +63,6 @@ pub fn read_cursor_usage_sign_in(path: &Path) -> Result<Option<Zeroizing<String>
     let Some(value) = row(&connection, path, "cursorAuthStatus")? else {
         return Ok(None);
     };
-    #[derive(serde::Deserialize)]
-    struct Legacy {
-        #[serde(rename = "accessToken")]
-        access_token: Option<Secret>,
-    }
-    #[derive(serde::Deserialize)]
-    #[serde(from = "String")]
-    struct Secret(Zeroizing<String>);
-    impl From<String> for Secret {
-        fn from(value: String) -> Self {
-            Self(Zeroizing::new(value))
-        }
-    }
     let mut legacy: Legacy = serde_json::from_slice(&value)
         .map_err(|cause| StoreError::io(path)(io::Error::other(cause)))?;
     Ok(legacy
@@ -81,7 +81,7 @@ fn row(
 ) -> Result<Option<Zeroizing<Vec<u8>>>, StoreError> {
     let maximum = i64::try_from(MAX_CURSOR_SIGN_IN_BYTES)
         .map_err(|cause| StoreError::io(path)(io::Error::other(cause)))?;
-    let result:Option<(i64,Vec<u8>)>=connection.query_row("SELECT length(CAST(value AS BLOB)), substr(CAST(value AS BLOB), 1, ?2) FROM ItemTable WHERE key = ?1",rusqlite::params![key,maximum+1],|row|Ok((row.get(0)?,row.get(1)?))).optional().map_err(|cause|StoreError::io(path)(io::Error::other(cause)))?;
+    let result:Option<(i64,Vec<u8>)>=connection.query_row("SELECT length(CAST(value AS BLOB)), substr(CAST(value AS BLOB), 1, ?2) FROM ItemTable WHERE key = ?1",rusqlite::params![key,maximum.saturating_add(1)],|row|Ok((row.get(0)?,row.get(1)?))).optional().map_err(|cause|StoreError::io(path)(io::Error::other(cause)))?;
     let Some((length, bytes)) = result else {
         return Ok(None);
     };

@@ -35,7 +35,7 @@ impl AccountSourceAccess {
             cursor: Arc::new(|_path| Err(LimitFailure::Unsupported)),
         }
     }
-    /// The single SQLite owner's fixed read-only adapter; never an arbitrary query from a client.
+    /// The single `SQLite` owner's fixed read-only adapter; never an arbitrary query from a client.
     #[must_use]
     pub fn with_cursor_reader(
         mut self,

@@ -14,7 +14,8 @@ use vessel_proto::{
 const MAX_MODELS: usize = 64;
 #[derive(Deserialize)]
 struct Model {
-    model_name: Option<Text>,
+    #[serde(rename = "model_name")]
+    name: Option<Text>,
     end_time: Option<Number>,
     weekly_end_time: Option<Number>,
     current_interval_total_count: Option<Number>,
@@ -61,7 +62,7 @@ fn tone(status: Option<Number>, used: LimitPercent) -> UsageTone {
     }
 }
 fn windows(model: Model) -> Result<Vec<UsageWindow>, AccountUsageError> {
-    let label = common::optional(model.model_name)?.unwrap_or(common::name("MiniMax")?);
+    let label = common::optional(model.name)?.unwrap_or(common::name("MiniMax")?);
     let mut windows = Vec::new();
     for (period, title, used, status, reset) in [
         (

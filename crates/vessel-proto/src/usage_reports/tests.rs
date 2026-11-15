@@ -289,18 +289,27 @@ fn unknown_selector_fields_cannot_smuggle_report_ids_into_a_session_query() {
         refresh: crate::limits::LimitRefresh::Cached,
     };
     let mut wire = serde_json::to_value(query).unwrap();
-    wire.as_object_mut()
-        .unwrap()
-        .insert("report_ids".to_owned(), serde_json::json!(["example:one"]));
+    assert!(
+        wire.as_object_mut()
+            .unwrap()
+            .insert("report_ids".to_owned(), serde_json::json!(["example:one"]))
+            .is_none()
+    );
     assert!(serde_json::from_value::<ListUsageReports>(wire).is_err());
     let mut inspect = serde_json::to_value(InspectUsageReport {
         id: "example:one".parse().unwrap(),
         refresh: crate::limits::LimitRefresh::Cached,
     })
     .unwrap();
-    inspect.as_object_mut().unwrap().insert(
-        "session".to_owned(),
-        serde_json::json!(crate::SessionId::random()),
+    assert!(
+        inspect
+            .as_object_mut()
+            .unwrap()
+            .insert(
+                "session".to_owned(),
+                serde_json::json!(crate::SessionId::random())
+            )
+            .is_none()
     );
     assert!(serde_json::from_value::<InspectUsageReport>(inspect).is_err());
 }
