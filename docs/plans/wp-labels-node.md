@@ -189,3 +189,10 @@ checking at two owned lints: a catch-all StoreError mapping and missing doc
 backticks. No tests ran and Node strict acceptance was not reached. The mapper
 now lists every current error variant, preserving unrelated sources while making
 future additions require a compiler decision; no allowance was added.
+
+Merged announced node `1c762ccf` (gate 52, all 18 steps green) at the next
+natural point after the prior strict run completed. Its six registry metadata
+methods are now assigned protocol 25; this package's five label calls remain
+None. W11's later membership read leaf is source-only and was not adopted;
+the held-read-transaction label hydration is retained. Current merged source
+still owes its own narrow/tests/TS/whole evidence.
