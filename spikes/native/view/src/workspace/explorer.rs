@@ -68,7 +68,9 @@ pub fn replace_prefix(path: &RelPath, from: &RelPath, to: &RelPath) -> Option<Re
         .as_str()
         .strip_prefix(from.as_str())?
         .strip_prefix('/')?;
-    to.child(suffix).ok()
+    suffix
+        .split('/')
+        .try_fold(to.clone(), |parent, part| parent.child(part).ok())
 }
 
 /// Whether revealing a path must also enable hidden entries.
@@ -120,6 +122,10 @@ mod tests {
         assert_eq!(
             replace_prefix(&path("src/a.rs"), &path("src"), &path("lib")),
             Some(path("lib/a.rs"))
+        );
+        assert_eq!(
+            replace_prefix(&path("src/sub/a.rs"), &path("src"), &path("lib")),
+            Some(path("lib/sub/a.rs"))
         );
         assert_eq!(
             replace_prefix(&path("src-old/a.rs"), &path("src"), &path("lib")),

@@ -409,3 +409,5 @@ A failed initial read is retryable on explicit reopen/refresh with a new read se
 
 
 Exact a3d7b3a1 strict four-crate all-target narrow15 finished rc1: `file_scope.rs` rustdoc backticks and captured-submit regression trailing semicolon only; both corrected. Kit library/type checking reached the captured Fn callback seam, but the all-target run is not green and Link/App checking remains owed. Latest canonical ownership/observation code was not part of that older immutable run.
+
+Deep directory rename rewrites now join each already-validated suffix component individually. Passing an entire multi-component suffix to `RelPath::child` was incorrect because that API deliberately accepts one basename; clean deep descendants could otherwise disappear from the retained map. Pure nested-path and actual retained-owner rename regressions pin preservation and component boundaries.

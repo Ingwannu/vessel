@@ -126,3 +126,30 @@ fn old_root_delete_settles_its_resources_without_closing_current_file(cx: &mut T
         assert_eq!(shell.editing_for(&active).unwrap().model.content(), "saved");
     });
 }
+
+#[gpui::test]
+fn directory_rename_preserves_deep_clean_retained_descendants(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update(cx, |shell, cx| {
+        let root = io_tests::root();
+        io_tests::target(shell, root);
+        let before = load(shell, root, "src/nested/deeper/a.rs", cx);
+        let other = load(shell, root, "other.rs", cx);
+        let change = PathChange::Rename(RenamePath {
+            root,
+            from: "src".parse().unwrap(),
+            to: "lib".parse().unwrap(),
+        });
+        shell.begin_file_mutation("node", change.clone(), cx);
+        let ticket = shell.areas.workspace.code.mutation.as_ref().unwrap().ticket;
+        shell.file_mutation_answered("node", &change, ticket, Ok(()), cx);
+        let after = FileKey {
+            path: "lib/nested/deeper/a.rs".parse().unwrap(),
+            ..before.clone()
+        };
+        assert!(shell.editing_for(&before).is_none());
+        assert_eq!(shell.editing_for(&after).unwrap().model.content(), "saved");
+        assert_eq!(shell.areas.workspace.code.file_key(), Some(other));
+    });
+}
