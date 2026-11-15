@@ -547,3 +547,162 @@ unverified. No service, live file permission or deployment changed.
 The fake UI served the current static JavaScript and favicon byte for byte.
 All five recorded fake-fleet processes were gone after teardown; no virtual
 display was started. Both local Cargo build configurations remain local.
+
+### Quota continuation contract (implementation pending)
+
+ADR 0042 now fixes the next node contract: cached `usage.limits` reads,
+operate-only explicit refresh, admin-only `usage.lookup`, a launch-pinned
+session association, current-profile account selection, token-wide vendor
+cooldown and cancellation-safe ownership of every blocking phase. No new
+wire or executable implementation is included in this contract commit.
+The next implementation must prove these boundaries against synthetic
+vendor-shaped testkit data; live credentials and endpoints remain excluded.
+
+### Opt-in limits continuation: implementation and acceptance boundary
+
+The continuation implements the ADR's saved-sign-in contract in
+`vessel-proto::limits`, `vessel-harness::limits`, `vessel-session::limits`,
+`vessel-store::usage_lookup`, `vessel-node::limits` / `service::limits`,
+`vessel-client::usage`, and the CLI's `usage::limits` / `limits_render`.
+The testkit exports the shared synthetic Claude/ChatGPT response shapes from
+`vessel-testkit::limits`; parser and real-node tests use those same bytes.
+No native renderer, control or page is included.
+
+Additional source references read for this continuation are Paseo
+`plugins/claude-usage-source/server/{usage,stores}.ts` and its usage/keychain
+fixtures, `plugins/codex-usage-source/server/{usage,stores}.ts` and fixtures,
+plus `packages/server/src/server/plugins/usage-sources/index.test.ts` for
+identity, stale observation and refresh coalescing. The already listed GOAT
+recovery banner remains a reference, not a claim that recovery shipped.
+
+Visible node/CLI acceptance implemented, subject to the results below:
+
+1. Start off; retained usage remains available. The CLI explains exactly
+   which saved access token/account identifier a refresh reads here and
+   which fixed vendor receives it. An admin can save on/off; cancellation
+   of the requesting RPC does not abandon the independent owner's choice.
+2. Select a configured harness/profile, request a refresh, then read it
+   from cache without credential/vendor I/O. Independent periods and scopes,
+   unknown/missing/zero values, paid use and credits remain distinct.
+3. Read the actual live session binding even after profile reload; preserve
+   it through park/wake and replace it only after a successful move. A stored
+   session after node restart refuses to guess a current login.
+4. A read-only paired device can see cached sanitized facts but no balance,
+   cannot refresh and cannot change opt-in. An agent can request only its
+   own local session. Fleet delivery applies the existing destination and
+   origin scope intersection. Pre-19 direct and wrapped calls are refused
+   before sending/dispatch.
+5. A failed refresh labels the previous observation as stale only for the
+   same observed login. Missing/changed login clears it. Retry-After applies
+   across aliases of the same token and Codex/OpenCode. Queued/running
+   blocking work retains bounded admission after cancellation.
+6. Full general windows produce factual notice identities and an optional
+   latest known future reset. Paid-use eligibility suppresses a false stop
+   notice. A screen can draw these facts in the viewer's language. A failed
+   turn's cause, durable wait-and-resume and switching accounts are NOT
+   implemented by this slice; original acceptance for those remains open.
+
+Wire additions beyond the accounting stack are `usage.limits` and
+`usage.lookup`, both provisional protocol 19 (protocol 23 on the node line,
+after `usage.query`'s 21 and the inbox's 22). No additional event or database
+schema change. A screen enumerates profiles with the existing call, requests
+`GetUsageLimits` cached/refresh, toggles `SetUsageLookup` with admin authority,
+uses the returned source for disclosure, and formats the returned timestamps
+locally. It must not interpret a full bar as proof of a stopped turn or offer
+a non-working automatic continuation action.
+
+Live vendor accounts, real credential stores, macOS Keychain execution,
+Windows/macOS runtime behavior and every native screen remain unverified.
+Automated checks use temporary synthetic logins, recorded vendor shapes and
+fake agents only. No live permission, service or deployment change.
+
+#### Limits verification checkpoint
+
+The relevant nine crates' all-target Clippy check passed. The focused `limit`
+run passed 43 tests with no failures or ignored cases, including real-node
+profile reload/wake/move/restart and fleet grant tests, parser/source admission
+and cancellation cases, both new methods' old-peer refusal and full CLI output.
+Both TypeScript generation checks passed. The fixture policy file's mode/bound
+regression and an added rewind-association assertion await the whole run.
+This checkpoint does not claim a clean whole gate or integration readiness.
+The earlier accounting stack still has its disclosed grant fixture gate hold;
+a standalone pass did not erase that whole-run failure. No vendor, real-login,
+macOS runtime or native screen check was performed.
+
+#### First whole limits run and correction
+
+The frozen `6fb685d0` whole run executed 110 Rust sections: 1,840 passed,
+four failed, ten ignored. Fmt, whole Clippy and two TypeScript checks passed;
+web lint, types, 417 unit tests, bundle, fresh binaries and all 62 browser tests
+passed. Contemporary selected-input pre/post identities matched, and served
+assets matched the bundle. The five recorded browser-fleet processes ended.
+The whole Rust failure is retained, not described as an integration pass.
+
+Two failures are this slice's tests: the fixed forwardable-method list omitted
+the two new intentional methods, and doing a move after a fake rewind hit the
+correct filename guard for its deliberately non-file-safe fake id. The
+correction adds precisely those expected methods and tests rewind last, after
+the successful move; no production guard, assertion or deadline is relaxed.
+Two existing remote tests timed out during node startup. Their logs stopped
+after migration, before the quota owner starts; cause and integration
+disposition are unverified. All previously named grant cases passed in this
+new run, without erasing their earlier failure record.
+
+Source review also adds the reference's OpenCode provider check: account
+lookup remains supported, while session lookup requires current native
+OpenAI model evidence before any login read and rechecks it afterwards.
+Absent/ambiguous model evidence is not guessed. The new correction and provider
+regressions await their focused and whole runs.
+
+#### Correction focus and next whole gate
+
+After the fixture-order and pinned-method corrections, relevant all-target
+Clippy passed. The full harness/node/proto library run passed 451 tests;
+all nine limits real-node tests passed, including the OpenCode model-provider
+guard before credential access. Each previously failing remote test passed
+once alone on SSD temporary storage (35.83 s and 16.27 s), with unchanged
+timeouts and assertions. This does not erase the earlier whole-run failures.
+
+The following compatibility cleanup centralizes usage methods and replay
+provenance on one named boundary; its final number is assigned at merge.
+That cleanup awaits the next whole run. The next gate uses SSD test data,
+records load/memory before and after, and prebuilds both testkit binaries and
+`vesseld` in the same environment and enclosing build slot before tests.
+It retains contemporary selected-source pre/post identities. The whole gate
+and review are pending; no integration-ready pass is claimed.
+
+#### Immutable corrected whole run, 2026-11-14
+
+Executed source: `32b404f8e6a5664f201cd0a4801d9f10c8613945`. Both prescribed
+prebuilds, fmt/check, workspace all-target Clippy, two TypeScript declaration
+checks and the complete workspace test command passed. The Rust log contains
+110 result sections: **1,846 passed, zero failed, ten ignored**. The corrected
+move/rewind and forwardable-list cases, current-provider refusal before login
+access, both remote cases and the previously named grant cases passed in this
+whole run. No assertion, deadline or test selection was relaxed.
+
+Web lint, types, all 417 unit tests in 81 files, bundle, post-bundle Rust binary
+build and all 62 headless browser tests passed (3.3 minutes; the large timeline
+case took 24.6 seconds). The binary build actually recompiled `vessel-web`,
+and six served asset hashes matched the new bundle on the isolated fake
+fleet. This proves that regression suite, not a new Usage screen or native UI.
+
+The gate held one build slot throughout and prebuilt testkit binaries and
+`vesseld` with the same environment before tests. Test data used owned mode-0700
+SSD temporary storage, with two Rust test threads. One-minute load before/after
+was 24.67/11.75; memory records were retained. Build outputs and logs remained
+on the build disk. All five independently recorded browser-fleet process
+identities were gone afterwards; the owned test directory was emptied.
+
+Contemporary pre/post selection covered 2,346 inputs: every tracked file, both
+local Cargo configs, the bundle link and its files, the installed npm lock,
+tool versions, gate/generator identities and recorded environment flags. Both
+identities were
+`7c5e8ab56876e9142beb30c5defbd2b9b207f6c35104d1b135c1f38e9de67009`,
+with no changed selected path. This is evidence for this immutable run only;
+it does not retrospectively pin or erase any earlier failed/unpinned run.
+
+The corrected stack is submitted for review; no reviewer or integration
+approval is inferred. The ADR remains proposed. Live credentials/vendors,
+platform Keychain, non-Linux runtime behavior, native screens and automatic
+wait/resume/account switching remain unverified or unfinished as stated above.

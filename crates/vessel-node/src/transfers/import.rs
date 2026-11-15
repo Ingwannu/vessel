@@ -254,6 +254,7 @@ impl Importer<'_> {
         else {
             return Err(to_wire(TransferError::WrongKind("memory")));
         };
+        crate::label_ingress::starting_import(&info, request)?;
         // The exporting node refuses an added agent's session (ADR 0032);
         // one that sends it anyway is refused here.
         let harness = info.spec.harness.known().ok_or_else(|| {
@@ -302,8 +303,8 @@ impl Importer<'_> {
         )
         .with_cwd(to_cwd.clone());
         spec.profile.clone_from(&named_profile);
-        // It keeps its name.
         spec.title.clone_from(&info.title);
+        spec.labels.clone_from(&info.labels);
         tracing::info!(%transfer, written = placed.written, same = placed.same, "session imported");
         Ok(SessionPlaced {
             imported: SessionImported {

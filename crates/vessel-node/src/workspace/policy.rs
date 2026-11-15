@@ -185,6 +185,10 @@ const fn refused(method: Method) -> bool {
         | Method::RunSchedule
         | Method::DeleteSchedule
         | Method::ListRuns
+        // Session-scoped reads are held to their own service rule;
+        // lookup policy needs admin, which no agent holds.
+        | Method::GetUsageLimits
+        | Method::SetUsageLookup
         | Method::QueryUsage
         | Method::ListPrompts
         | Method::CreatePrompt
@@ -284,7 +288,14 @@ const fn refused(method: Method) -> bool {
         | Method::RenameTerminal
         | Method::KillTerminal
         | Method::CloseTerminal
-        | Method::ListPorts => false,
+        | Method::ListPorts
+        | Method::ListInbox
+        | Method::GetInboxEntry
+        | Method::MarkInbox
+        | Method::GetPushKey
+        | Method::SubscribePush
+        | Method::UnsubscribePush
+        | Method::ReportPushPresence => false,
     }
 }
 

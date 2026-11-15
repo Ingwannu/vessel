@@ -1,6 +1,6 @@
 # ADR 0042: Reported usage and account limits
 
-Status: accepted for implementation, 2026-11-13 (milestone 12, track N2).
+Status: proposed (milestone 12).
 
 ## Context
 
@@ -97,6 +97,8 @@ notifications. Its recovery banner offers resume and snooze at reset.
   the ledger is schema 15. The minimum stays 2. Older clients see the
   existing conversation reports. New clients on older nodes receive the
   existing version refusal and show that usage is not available there.
+- Protocol 23 adds `usage.limits` and `usage.lookup` (the track proposed
+  them as 19 with `usage.query`; the inbox took 22 at its merge first).
 
 ## Alternatives
 
@@ -168,3 +170,145 @@ usage call on an older negotiated connection. The same central calculation
 guards client sending and server dispatch; no second version checker is
 introduced in the node or renderer. Regression tests cover local refusal,
 raw forced requests before dispatch and supported older envelopes.
+
+### Saved-sign-in lookup contract (node-only continuation)
+
+This section defines the saved-sign-in implementation contract. Its node,
+client and CLI implementation is under verification; source presence is not
+a gate, integration, native-screen or live-account approval.
+
+`usage.limits` selects one configured account binding or the selected profile
+of one session. An omitted account profile selects the configured default; it
+does not mean all historical profiles, as in `usage.query`. The existing
+`profile.list` supplies the bounded enumeration to a Usage screen. Results
+explicitly describe the last observation of a saved sign-in, not proof of
+which credential an already-running process remembers. Profile reload or an
+external login swap can make those different. No percentage alone is accepted
+as the cause of a failed turn.
+
+A cached read requires `read` and performs no credential or vendor I/O. An
+explicit refresh additionally requires `operate`, because it initiates
+credential use and network egress; this deliberate restriction does not hide
+already obtained limits from read-only devices. `usage.lookup` requires
+`admin`. Cost and credit balances require `operate`; eligibility flags remain
+visible, so paid continuation is not mistaken for a hard stop. Agents may
+select only their own local session. The destination checks these rules after
+delegated-scope intersection, as for usage aggregates.
+
+Session-scoped lookup uses a nonsecret binding captured with the actual launch
+profile. A catalogue reload cannot redirect it to a different home; a
+successful move replaces it, a failed move preserves it, and park, wake and
+rewind keep it. The binding includes its account label atomically, so it
+cannot be labelled using a separately read pre-move profile. Use the existing
+per-session state, not another mutable registry. This binding is RAM-only and
+contains no credential. If a stored session no longer has a known launch
+binding, return an explicit unassociated state rather than look up a possibly
+different current profile. Account-scoped lookup always uses the current
+configured profile, which a Settings page deliberately selected. A file at
+either location may still have been replaced while a process remembers its old
+token; the response makes that limitation clear.
+
+An owning actor serializes policy changes across RPC cancellation. Only Off/On
+is stored in an owner-only atomic `usage-lookup.json`; no token, fingerprint
+or snapshot is persisted or synchronized. A malformed or unreadable choice
+fails off. The command queue holds at most 32 messages, there are at most two
+probe jobs and 256 latest account entries in RAM, and each response holds at
+most 128 independent windows. A cancelled RPC cannot drop a job's admission
+while its blocking local read is queued or running. Turning lookup off cancels
+the current generation and clears its cache before acknowledgement. Old
+generation results never publish after Off or a later On. The actor drains
+rather than aborts blocked reads.
+
+The harness descriptor selects the supported source. Claude reads its
+configured `.credentials.json`, preferring the matching macOS Keychain item
+under Claude Code's account/service convention. Custom config paths use the
+NFC-normalized directory's SHA-256 prefix and never fall back to the default
+service. Codex reads its configured `auth.json`; OpenCode's OpenAI OAuth login
+uses its XDG data store. No refresh token is requested or used. Known foreign
+routes, API-key-only logins, unknown agents and unsupported stores answer an
+explicit safe category. The harness remains responsible for refreshing or
+replacing a sign-in.
+
+Only a bounded GET to Anthropic's `/api/oauth/usage` or ChatGPT's
+`/backend-api/wham/usage` is allowed. Origins, headers and methods are fixed
+in the harness crate, redirects and inherited proxies are disabled, connect
+timeout is ten seconds, request timeout fifteen, and each local file/response
+is bounded to one MiB. Headers are sensitive and raw bodies are zeroed on
+release. Raw credential/parser/HTTP details never reach logs, replies or
+diagnostics. Vendor Retry-After limits forced refreshes too. A bounded
+per-node vendor/token cooldown applies across profile aliases and policy
+toggles; known active deadlines cannot be silently evicted to bypass the
+vendor. Use response receipt time for relative Retry-After seconds. A failed
+refresh retains a snapshot only after matching the observed saved-login
+fingerprint, including the selected account identifier; missing or changed
+logins discard it. Internal equality keys stay in RAM and never leave the
+harness/node boundary. A credential-free HTTP client can be cached per node;
+its certificate loading is blocking work owned by the same admitted job.
+Cancellation never detaches a queued/running file or certificate reader: await
+these phases, check cancellation, and select cancellation only around
+asynchronous network I/O.
+
+Unlike Paseo's default-on behavior, Vessel starts off. A screen should show
+`usage.query` observations while off and one working admin opt-in row: "Read
+this agent's saved sign-in on this machine and send its access token (and
+Codex account identifier, when present) only to Anthropic or ChatGPT to read
+account limits." It can name the typed source without exposing a private local
+path. It calls `usage.lookup` to change the policy, then `usage.limits` with
+refresh; subsequent cached reads perform no I/O.
+
+The wire keeps provider-reported periods separate, leaves unknown lengths
+unknown, preserves zero versus missing percentages, scopes model/surface/
+feature/code-review allowances independently, and preserves explicit
+paid-use/credits/allowed flags. A full-window notice reports identities and
+the latest future reset only when every selected full general window has one.
+It does not assert that a turn failed because of those windows, or offer an
+unimplemented resume/switch action. Persistent automatic recovery remains a
+separate unfinished item of the original acceptance list.
+
+The library default backend is Disabled. Binaries explicitly select Local,
+while the persisted policy remains off. Test builds with fakes refuse Local
+even if accidentally selected. Recorded fixtures are confined to one canonical
+temporary root and contain only synthetic vendor-shaped data. No check in this
+slice may read a real credential or call a vendor. Actual login, vendor
+authorization, macOS Keychain and live reset behavior remain unverified until
+an operator checks them.
+
+This continuation deliberately exposes factual notices only. A full window is
+not a stopped-turn diagnosis, and no automatic resume or account switch is
+advertised before its persisted intent and authority checks exist. The
+original recovery acceptance remains unfinished. Native app screens, controls
+and page work belong to their own tracks.
+
+The implementation reuses workspace chrono, reqwest/TLS, zeroize, SHA-256 and
+Unicode normalization. The latter reproduces Claude's Keychain service
+identity; std alone cannot normalize NFC. No new third-party package is
+selected. Harness-specific decoding and endpoint choice stay in
+vessel-harness; the node owns authorization and lifetime, and vessel-store
+owns atomic policy persistence. This avoids teaching the client a vendor
+format or moving credentials across a fleet link.
+
+Launch bindings share immutable nonsecret configuration through `Arc`. This
+avoids copying path/account-selection strings through each launch future and
+cache lookup; it also keeps existing launch futures within their stack-size
+bound without weakening tests. Equality compares the captured values rather
+than allocation identity. The tradeoff is one allocation per resolved binding;
+credential contents remain ephemeral and outside that allocation.
+
+A multi-provider agent's saved login is not evidence of its current provider.
+OpenCode account lookup reads its saved OpenAI OAuth login; session lookup
+additionally requires exactly one current model selection with the native
+`openai/` prefix, as Paseo's Codex source `sessionRoutes` does. Missing or
+ambiguous evidence is unassociated, and a known different provider is refused.
+The node checks the existing in-memory agent options before local credential
+I/O and again after waiting for the probe, including cached reads and parked
+sessions. A concurrent provider change cannot publish that account's report as
+facts of the changed session. This adds no prompt, credential discovery or
+model default inference; account lookup remains independently available.
+
+### Compatibility integration
+
+The accounting query, account-limit methods and replay provenance share the
+named usage protocol boundary in `vessel-proto::usage`. The final number is
+given at merge. The method table accepts constant expressions so changing
+that one boundary cannot accidentally leave replay provenance behind. This
+changes no wire shape or supported behavior at the current boundary.

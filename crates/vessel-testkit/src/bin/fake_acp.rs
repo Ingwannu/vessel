@@ -682,6 +682,9 @@ async fn serve() -> ExitCode {
                         return responder
                             .respond(PromptResponse::new(StopReason::EndTurn).usage(usage));
                     }
+                    if prompt == "limit" {
+                        return responder.respond(PromptResponse::new(StopReason::MaxTokens));
+                    }
                     if prompt == "fail" {
                         // The agent stays up: only this turn's request
                         // answers an error, as an agent's failed model

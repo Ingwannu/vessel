@@ -63,8 +63,11 @@ mod terminals;
 // Protocol 11's calls: schedules (`automation`), and the runs they make
 // through the service's own checks; protocol 13's previews of them.
 mod followed;
+mod inbox;
+mod limits;
 mod notices;
 mod prompts;
+mod push;
 mod schedule_preview;
 mod scheduled;
 mod schedules;
@@ -141,11 +144,13 @@ pub(crate) struct NodeService {
     listings: tokio::sync::Semaphore,
     /// The node's settings (protocol 12, `crate::settings`).
     settings: Arc<crate::settings::Settings>,
+    limits: crate::limits::Limits,
     /// Turns followed for their starters (protocol 11,
     /// `automation::notices`).
     notices: Arc<Notices>,
     /// Creation/reset lease also held by a detached creation task.
     side_opening: Arc<tokio::sync::Mutex<()>>,
+    push: Arc<crate::push::Push>,
 }
 
 /// The parts a [`NodeService`] serves.
@@ -174,6 +179,8 @@ pub(crate) struct Parts {
     pub(crate) catalogue: crate::catalogue::Catalogues,
     pub(crate) schedules: Schedules,
     pub(crate) settings: Arc<crate::settings::Settings>,
+    pub(crate) push: Arc<crate::push::Push>,
+    pub(crate) limits: crate::limits::Limits,
 }
 
 impl NodeService {
@@ -203,6 +210,8 @@ impl NodeService {
             catalogue,
             schedules,
             settings,
+            push,
+            limits,
         } = parts;
         let store = sessions.store().clone();
         Self {
@@ -239,8 +248,10 @@ impl NodeService {
             searches: tokio::sync::Semaphore::new(search::AT_ONCE),
             listings: tokio::sync::Semaphore::new(history::AT_ONCE),
             settings,
+            limits,
             notices: Arc::default(),
             side_opening: Arc::default(),
+            push,
         }
     }
 
@@ -285,6 +296,7 @@ pub(crate) struct Connection {
     protocol: ProtocolVersion,
     /// Its waiting reads, against its share (`waits`).
     waiting: ConnectionWaits,
+    presence_id: crate::push::PresenceId,
 }
 
 impl Connection {
@@ -300,6 +312,7 @@ impl Connection {
             principal,
             protocol: peer.protocol,
             waiting: ConnectionWaits::default(),
+            presence_id: crate::push::PresenceId::new(),
         }
     }
 
@@ -326,6 +339,7 @@ impl Connection {
             principal,
             protocol: self.protocol,
             waiting: Arc::clone(&self.waiting),
+            presence_id: self.presence_id,
         }
     }
 }

@@ -1,0 +1,1 @@
+{"rate_limit":{"primary_window":{"used_percent":0,"reset_at":1700000000},"secondary_window":null},"additional_rate_limits":[{"limit_name":"Large model","metered_feature":"large-model","rate_limit":{"primary_window":{"used_percent":100,"limit_window_seconds":3600,"reset_at":1700003600}}}]}

@@ -20,7 +20,7 @@ use crate::error::StoreError;
 /// Store a new session with an empty log.
 ///
 /// Only the session's identity, spec, profile, creator, origin, model
-/// route and title come from `info`. Its status is
+/// route, title and current labels come from `info`. Its status is
 /// stored as `Starting` and live, and everything else is derived from the
 /// records appended later: `info` is a snapshot the runtime took after the
 /// process started, and a session that ends within milliseconds would
@@ -35,8 +35,8 @@ pub(crate) fn create_session(
             "INSERT INTO sessions
                  (id, spec, status, live, created_at, ended_at, next_seq, first_seq,
                   retained_bytes, harness_session, profile, created_by, via, origin, model,
-                  title)
-             VALUES (?1, ?2, ?3, 1, ?4, NULL, 0, 0, 0, NULL, ?5, ?6, ?7, ?8, ?9, ?10)
+                  title, labels)
+             VALUES (?1, ?2, ?3, 1, ?4, NULL, 0, 0, 0, NULL, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
              ON CONFLICT (id) DO NOTHING",
         )?
         .execute(params![
@@ -50,6 +50,9 @@ pub(crate) fn create_session(
             info.origin.as_ref().map(encode).transpose()?,
             info.model.as_ref().map(encode).transpose()?,
             info.title.as_ref().map(SessionTitle::as_str),
+            (!info.labels.is_empty())
+                .then(|| encode(&info.labels))
+                .transpose()?,
         ])?;
     if inserted == 0 {
         return Err(StoreError::SessionExists(info.id));
@@ -208,6 +211,7 @@ pub(crate) fn append<'a>(
         ])?;
         crate::usage::note_profile(connection, session, record)?;
         crate::usage::observe(connection, session, record)?;
+        crate::inbox::observe(connection, session, record)?;
         projection.observe(record, event.len());
         // Records past u64::MAX cannot exist: the runtime ends a session
         // before its counter would wrap.

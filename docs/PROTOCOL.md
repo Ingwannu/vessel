@@ -30,6 +30,101 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+Unassigned protocol numbers use `Option<ProtocolVersion>`, not a numeric
+stand-in. A connection admits calls through `Call::required_protocol()`;
+the existing numeric `since()` API is unchanged. Assigned requests default
+to `Some(self.since())`, and fleet envelopes propagate the inner requirement.
+The client refuses `None` before allocating an id or queuing a frame with
+`CallError::UnassignedProtocol { method }` (code `Unsupported`); the server
+refuses before dispatch. Each future feature supplies its optional
+threshold, assigned by integration only after its clients can read or
+approve the new data. No pending feature is registered by this foundation.
+
+## Version 23 (2026-11-14, milestone 12): saved-sign-in limits (N2, ADR 0042)
+
+N2 proposed 19 for these together with `usage.query`; `usage.query` took
+21 and the inbox 22 at the merges, so these two calls are 23 and
+`usage.query` keeps 21. The minimum protocol remains 2.
+
+Protocol 23 introduces `usage.limits(GetUsageLimits) -> UsageLimits`
+and `usage.lookup(SetUsageLookup) -> ExternalLookup`. These are separate from
+retained `usage.query` history. For `LimitsScope::Account`, omitted profile
+selects the configured default, and the reply names the selected profile.
+For `LimitsScope::Session`, the node uses the nonsecret binding of the actual
+live launch, including successful profile moves. Reloading profiles does not
+retarget it. Stored sessions without a live binding return `unassociated`.
+
+Cached reads require read and perform no credential/vendor I/O; `refresh`
+additionally requires operate and observes admission and Retry-After. Only
+admin can change the machine-wide policy, saved before acknowledgement.
+Agents may read only their own local session. Forwarded calls retain the
+existing destination/intersected-origin authorization. All three envelopes
+require the maximum of envelope and inner method/field versions, so a pre-23
+hop refuses both methods before sending or dispatching them.
+
+`UsageLimits` carries `policy`, canonical `account`, typed source disclosure,
+`AccountLimitState`, `cost_visibility` and optional `LimitNotice`. Off clears
+external observations; enabling does not poll. State distinguishes not yet
+requested, in progress with a retained observation, ready, and safe failure
+with optional same-login retained observation and actual cooldown. The
+snapshot's timestamp remains its observation time after a failed refresh.
+No credential, credential path, account fingerprint, email, raw API body or
+vendor error is serialized. Credit balances require operate; eligibility
+booleans remain visible without claiming a monetary unit.
+
+Each window has a bounded stable id, explicitly reported period (unknown when
+absent), provider slot, independent account/model/surface/feature/review scope,
+optional finite reported percentage, and optional reported reset time. Zero
+and missing are distinct; consumers clamp only for drawing. No duration is
+inferred from the plan or primary/secondary slot. `incomplete` prevents a
+partial response being presented as a complete set. Additional paid-use and
+credits/allowed flags remain distinct from subscription fullness.
+
+A notice names reported full general windows and gives their latest future
+reset only when all selected full windows have one. Explicit paid/credit/
+allowed permission suppresses the notice. It is not a stopped-turn diagnosis
+or an automatic recovery action. Screens localize and format these facts,
+show retained observations as stale, and offer only implemented operations.
+
+## Version 22 (2026-11-14, milestone 12): the inbox and push (N1, ADRs 0040 and 0041)
+
+N1 proposed 19; side questions took 19, `device.self` 20 and `usage.query`
+21 at the merge. Nodes speak 2..=22. Inbox and push are additive; older
+clients receive no new unsolicited frame and new calls are refused locally
+below 22. The inbox's tables are store schema 16.
+
+`inbox.list {before?}` requires Read and returns exact whole-node counts
+(`total`, `waiting`, `unread`), at most 16 `entries`, and an exclusive `next`
+cursor. An entry has its session and source sequence, timestamp, current
+session/project labels, shared read state and typed permission/question or
+finished/failed/limit item. `inbox.get {key,fetch?:"summary"|"live_request"}` returns that exact current entry
+or null. `inbox.mark {key,read}` changes shared attention; agent origins,
+including delegated agents, are forbidden. Answers still use Operate-scoped
+`session.send` / question answer calls and their existing validation. No
+request disappears merely because it is read. Oversized forms are explicit
+`in_session` references, never shortened option sets.
+
+`push.key` (unit request, `params: null`) returns the node's public VAPID identity. `push.subscribe
+{subscription:{endpoint,p256dh,auth}}` replaces this authenticated paired
+device's subscription and returns its 48-hour `expires_at`; `push.unsubscribe`
+(unit request, `params: null`) removes it. These Read-scoped calls refuse owner-token, agent and delegated
+principals and accept no supplied device identity. Endpoint/key/auth parsing
+is bounded; diagnostics redact capability material. Registration and sending
+both check current authority, revocation and expiry. `push.presence
+{focus,activity}` is connection-scoped: focus is session/elsewhere/background,
+activity is active/unchanged, with time assigned by the server. Agent and
+delegated origins cannot report a person's activity. Closed connections lose
+presence; an idle open connection does not prevent push indefinitely.
+
+All additions negotiate through `Call::since`; minimum protocol is unchanged.
+An older client receives no unsolicited new frame. ADRs 0040 and 0041 specify
+cursor movement, lifecycle, limits, notification watermarks and relay privacy.
+
+Opt-in inbox live-request fetch recovers one actor-owned pending form after
+history pruning. Summary is the compatible default. Expanded replies are
+capped at 15 MiB; larger forms remain exact compact references with no clipped
+choices, and an answered or withdrawn live request returns absence.
+
 ## Version 21 (2026-11-14, milestone 12): reported usage (N2, ADR 0042)
 
 N2 proposed 19; side questions took 19 and `device.self` 20 at the merge.
@@ -1376,8 +1471,12 @@ every method.)
   with its delivering device's scopes intersected with `origin.scopes`,
   and applies ownership and the agent limits to the origin. Subscriptions
   and the envelope's own methods cannot be forwarded
-  (`Method::forwardable`). A call needs protocol 6 on the connection it is
-  sent on; the inner call's version is checked where it is delivered.
+  (`Method::forwardable`). Each connection must understand the envelope
+  (at least protocol 6) and the full inner call, including newer fields:
+  `Call::since` recursively takes their maximum. Both client and server
+  check this before sending or dispatching, including a forward to the
+  welcomed node itself. Thus the protocol 22 inbox cannot cross a hop
+  negotiated at 21, even when that hop is also the final target.
 - Fleet: `fleet.grant { link }` (sync) hands the home a pairing link made
   on the member, so the home holds a credential there (a member's node
   sends it when it connects, with the scopes chosen at join, `read` and
@@ -1740,3 +1839,15 @@ Nodes speak 2..=3. Version 3 only adds, so version 2 peers keep working.
 
 REST routes and one websocket per session stream. Replaced entirely by
 version 2.
+
+## Staged project-file terminal approvals (ADR 0066)
+
+`CommandSet` and `ProjectCommands::Listed` gain a default-empty `terminals`
+list (`FileTerminal`: optional validated title, validated command). No call
+is added. The version is assigned at integration through
+`workspace::PROJECT_FILE_KEYS`, currently `None`; `PROTOCOL_VERSION` stays
+unchanged. Until assigned, any set naming terminals is returned as `invalid`
+on every negotiated connection. This also covers a terminal-bearing prior
+approval and script/worktree approval replies. Older nodes omit the field;
+new readers treat omission as no terminal commands. Parsing and approval are
+staged ahead of automatic terminal creation, which is not implemented yet.

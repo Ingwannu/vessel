@@ -479,6 +479,7 @@ pub(crate) fn commands_text(commands: &ProjectCommands) -> String {
             setup,
             teardown,
             scripts,
+            terminals,
             digest,
             approved,
             last_approved,
@@ -489,8 +490,7 @@ pub(crate) fn commands_text(commands: &ProjectCommands) -> String {
                     let _written = writeln!(text, "{name}: {}", command.as_str());
                 }
             }
-            // Protocol 11: the approval covers the scripts and services
-            // too, so they are shown with the rest (ADR 0031).
+            text.push_str(&crate::file_terminals::text(terminals));
             for script in scripts {
                 let _written = writeln!(
                     text,
@@ -512,7 +512,6 @@ pub(crate) fn commands_text(commands: &ProjectCommands) -> String {
                 "digest: {digest}\napproved: {}",
                 if *approved { "yes" } else { "no" }
             );
-            // Protocol 11: what was approved last, when this set is not.
             if let Some(last) = last_approved {
                 let _written = writeln!(
                     text,

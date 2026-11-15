@@ -82,10 +82,11 @@ logged.
 trusted, or checked again, everywhere it goes. "Parse, don't validate"
 makes an invalid value impossible to hold.
 **Check.** Review.
-**Today.** Not measurable by a tool. Known cases:
-`vessel-store/src/codec.rs` round-trips a string through a
-`serde_json::Value` three times to reuse serde's validation where a
-`FromStr` would say it directly.
+**Today.** Not measurable by a tool. The former three bare-text adapters in
+`vessel-store/src/codec.rs` now consume SQL strings through serde's string
+deserializer, reusing the validating types without a JSON tree or string
+round trip. Column-specific corruption errors remain; this is not a count
+of other parse-at-the-edge violations.
 
 ### T3. No stringly-typed dispatch
 
@@ -147,9 +148,10 @@ files (clippy's count; the audit counted 149 lines mentioning either:
 Documented edges: `vessel-agent/src/claude/wire.rs`, `codex/protocol.rs`,
 `mapper.rs`, `vessel-mcp/src/tools/conversation.rs`. Not documented:
 `vessel-node/src/catalogue/registry.rs`, `vessel-llm/src/client.rs`,
-`vessel-agent/src/handshake.rs` (builds `_meta` as a `Value`),
-`vessel-store/src/codec.rs`, the MCP tools' `Result<Value, ToolError>`
-returns.
+`vessel-agent/src/handshake.rs` (builds `_meta` as a `Value`), the MCP tools'
+`Result<Value, ToolError>` returns. The former three adapters in
+`vessel-store/src/codec.rs` have since been removed; the audit totals above
+have not been remeasured.
 
 ### T7. Numeric conversions say what they lose
 
