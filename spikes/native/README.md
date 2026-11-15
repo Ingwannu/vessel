@@ -313,6 +313,15 @@ returns `view::alert::Variant`, mapped once by `app::badge::alert_variant`.
 Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
 
 
+`kit/dialog.rs` accepts a clonable close closure so Escape, the scrim and
+the close glyph retain the caller's decision identity. Function-item callers
+keep their existing behavior; stale-decision policy stays with the feature.
+
+`kit/focus.rs` provides one weak, once-per-open return policy for controls.
+`DialogState::dismissed` acknowledges an actual close after the feature's
+pending/stale guards; it preserves a newer focus and clears the old cycle.
+Unadopted unit-close callers keep their prior behavior until they call it.
+
 `kit/dialog.rs` keeps a fitting dialog at its natural size. When its
 content exceeds the card's existing height limit, only the body scrolls;
 the heading and footer actions retain their size and remain reachable.
@@ -1195,3 +1204,28 @@ input audit of the shared rename action: ordinary, disabled, adjacent
 button and clipped-parent cases. Counters distinguish the action, its
 parent's mouse-down/release and the neighbour. It starts no node and adds no app
 route. The fixed grid is an audit fixture; the action itself is unchanged.
+
+Shared typed button content/loading/sizing is documented in
+`docs/plans/backend-m12-g2-button-content.md`. Label/Icon/IconAndLabel share one
+renderer; ButtonIcon::muted keeps the explicit source icon tone. button_control
+adds guarded disabled/loading callbacks and Small28/px12 in both layouts with
+Small20 ActivityIndicator. Medium is Pointer32/px16 or Touch44/px24; legacy
+no-Window signatures remain Pointer. The published outline glyph API retains
+its explicit tone and immediate-child geometry in the same shared renderer.
+
+Action menus retain one published renderer (menu_right/TopRight, QUICK appear,
+fill_in) and add typed leading14/16, Pending/Success, selectable Muted, KeepOpen,
+measured open_end and caller width. See docs/plans/backend-m12-g2-menu-base4.md
+for exact source, focus limits and consumer integration. The canonical palette
+GREEN_500 and existing CircleCheck own success ink/art; no second palette.
+
+### Allocation block approval boundary (base 5 adapter)
+
+`command_changes::Listed` projects every `ServicePortsView` field explicitly.
+Until the approval card displays and compares the full allocation block, it
+refuses any current or last-approved block, even with zero named services or
+when the current set removes the old block. The approved-folder comparison
+fallback also retains that refusal. A typed refusal has separate EN/KO
+Fluent copy; it does not enable allocation, helpers or `PROJECT_FILE_KEYS`.
+This keeps an unseen setting out of an approval digest while the native display
+is implemented. Existing terminal refusal and head test cases remain intact.
