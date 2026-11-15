@@ -5,7 +5,7 @@
 
 use chrono::Utc;
 use vessel_proto::workspace::{
-    MAX_SETUP_PROGRESS_COMMANDS, ProjectCommand, SetupCommandIndex, SetupCommandProgress,
+    MAX_PROJECT_COMMANDS, ProjectCommand, SetupCommandIndex, SetupCommandProgress,
     SetupCommandResult, SetupCommandState, SetupCursor, SetupProgress, SetupRunState,
 };
 use vessel_proto::{DurationMs, SetupRevision, SetupRunId, TerminalBytes, WorktreeId};
@@ -25,7 +25,7 @@ pub(crate) struct Observation {
 
 impl Observation {
     pub(super) fn new(worktree: WorktreeId, commands: &[ProjectCommand]) -> Option<Self> {
-        if commands.len() > usize::try_from(MAX_SETUP_PROGRESS_COMMANDS).ok()? {
+        if commands.len() > MAX_PROJECT_COMMANDS {
             return None;
         }
         let commands = commands
@@ -33,7 +33,8 @@ impl Observation {
             .enumerate()
             .map(|(index, command)| {
                 Some(SetupCommandProgress {
-                    index: SetupCommandIndex::try_from(u32::try_from(index).ok()?).ok()?,
+                    index: SetupCommandIndex::try_from(u32::try_from(index.checked_add(1)?).ok()?)
+                        .ok()?,
                     command: command.clone(),
                     state: SetupCommandState::Waiting,
                     output: TerminalBytes::default(),

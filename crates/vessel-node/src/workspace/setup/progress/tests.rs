@@ -2,7 +2,7 @@ use super::*;
 
 fn row() -> SetupCommandProgress {
     SetupCommandProgress {
-        index: SetupCommandIndex::try_from(0).unwrap(),
+        index: SetupCommandIndex::try_from(std::num::NonZeroU32::MIN.get()).unwrap(),
         command: "echo setup".parse().unwrap(),
         state: SetupCommandState::Running,
         output: TerminalBytes::default(),
@@ -48,9 +48,19 @@ fn an_empty_approved_setup_can_complete_but_an_oversized_plan_is_refused() {
     let mut empty = Observation::new(WorktreeId::random(), &[]).unwrap();
     empty.finish(true);
     assert_eq!(empty.snapshot.state, SetupRunState::Succeeded);
-    let count = usize::try_from(MAX_SETUP_PROGRESS_COMMANDS)
-        .unwrap()
-        .saturating_add(1);
+    let count = MAX_PROJECT_COMMANDS.checked_add(1).unwrap();
     let commands = vec!["echo bounded".parse().unwrap(); count];
     assert!(Observation::new(WorktreeId::random(), &commands).is_none());
+}
+
+#[test]
+fn every_approved_position_gets_the_source_compatible_display_ordinal() {
+    let commands = vec!["echo bounded".parse().unwrap(); MAX_PROJECT_COMMANDS];
+    let observation = Observation::new(WorktreeId::random(), &commands).unwrap();
+    assert_eq!(observation.snapshot.commands.len(), MAX_PROJECT_COMMANDS);
+    for (position, row) in observation.snapshot.commands.iter().enumerate() {
+        let ordinal = u32::try_from(position.checked_add(1).unwrap()).unwrap();
+        assert_eq!(row.index.get(), ordinal);
+        assert_eq!(commands.get(position), Some(&row.command));
+    }
 }

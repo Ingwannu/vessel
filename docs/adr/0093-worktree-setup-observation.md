@@ -155,3 +155,10 @@ vector and generic TerminalBytes do not enforce list length, unique contiguous
 ordinals, ordering, individual output or aggregate limits. The later runtime
 and decoder must enforce and test those boundaries before any wire renderer
 may treat a snapshot as validated. No such enforcement is claimed here.
+
+The node adapter constructs those ordinals by checked position+1 from its
+zero-based CommandEvent position. CommandEvent remains an internal array cursor;
+its direct row lookup is unchanged. A full-limit producer regression checks
+every approved row and the actual-runner cancellation test checks observed
+ordinals. The merged node44 head supplies ProcessLifetime but this setup
+observation does not treat that producer as workspace/Preview authority.
