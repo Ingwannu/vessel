@@ -7,6 +7,8 @@ use std::fmt::Write as _;
 
 use super::{BuildError, Coverage, Kind, Language, source, validate::expanded};
 
+mod plain;
+
 pub(crate) fn generate(
     languages: &[Language],
     coverage: &[Coverage],
@@ -17,94 +19,23 @@ pub(crate) fn generate(
         .ok_or_else(|| source("en", "missing English"))?;
     let mut output = String::new();
     registry(&mut output, languages, coverage)?;
-    let contracts: BTreeMap<_, _> = english
-        .messages
-        .keys()
-        .map(|key| Ok((key.clone(), expanded(english, key)?)))
-        .collect::<Result<_, BuildError>>()?;
-    plain(&mut output, english, &contracts)?;
-    for area_name in english.files.keys() {
-        area(&mut output, english, area_name, &contracts)?;
-    }
+    api(&mut output, english)?;
     Ok(output)
 }
 
 type Contracts = BTreeMap<String, super::Shape>;
 
-#[derive(Debug)]
-struct PlainEntry {
-    key: String,
-    local: String,
-}
-type PlainAreas = BTreeMap<String, Vec<PlainEntry>>;
-
-fn plain_areas(english: &Language, contracts: &Contracts) -> Result<PlainAreas, BuildError> {
-    let mut areas: PlainAreas = BTreeMap::new();
-    for (key, message) in &english.messages {
-        let shape = contracts
-            .get(key)
-            .ok_or_else(|| source(key, "missing generated shape"))?;
-        if shape.variables.is_empty() {
-            let prefix = format!("{}-", message.area);
-            let local = key
-                .strip_prefix(&prefix)
-                .ok_or_else(|| source(key, "missing area prefix"))?;
-            areas
-                .entry(message.area.clone())
-                .or_default()
-                .push(PlainEntry {
-                    key: key.clone(),
-                    local: snake(local),
-                });
-        }
-    }
-    Ok(areas)
-}
-
-fn plain(output: &mut String, english: &Language, contracts: &Contracts) -> Result<(), BuildError> {
-    let areas = plain_areas(english, contracts)?;
-    writeln!(output, "#[derive(Debug)]\nstruct Plain {{")?;
-    for area in areas.keys() {
-        writeln!(output, "r#{}: Plain{},", snake(area), pascal(area))?;
-    }
-    writeln!(output, "}}")?;
-    for (area, entries) in &areas {
-        writeln!(output, "#[derive(Debug)]\nstruct Plain{} {{", pascal(area))?;
-        for entry in entries {
-            writeln!(output, "r#{}: Box<str>,", entry.local)?;
-        }
-        writeln!(output, "}}")?;
-    }
-    // One resolver per area, and one call per area here: a single
-    // function with a line per plain message of every area outgrew the
-    // workspace's function length as areas were added.
-    writeln!(
-        output,
-        "impl Plain {{\nfn resolve(bundle: &Bundle, english: &Bundle) -> Result<Self, InitError> {{\nOk(Self {{"
-    )?;
-    for area in areas.keys() {
-        writeln!(
-            output,
-            "r#{}: Plain{}::resolve(bundle, english)?,",
-            snake(area),
-            pascal(area)
-        )?;
-    }
-    writeln!(output, "}})\n}}\n}}")?;
-    for (area, entries) in &areas {
-        writeln!(
-            output,
-            "impl Plain{} {{\nfn resolve(bundle: &Bundle, english: &Bundle) -> Result<Self, InitError> {{\nOk(Self {{",
-            pascal(area)
-        )?;
-        for entry in entries {
-            writeln!(
-                output,
-                "r#{}: resolve(bundle, english, {:?}, None)?.into_boxed_str(),",
-                entry.local, entry.key
-            )?;
-        }
-        writeln!(output, "}})\n}}\n}}")?;
+// The same production emitter is compiled in isolation by the compiler-contract
+// regression; registry discovery is tested independently by the catalog gate.
+pub(super) fn api(output: &mut String, english: &Language) -> Result<(), BuildError> {
+    let contracts: BTreeMap<_, _> = english
+        .messages
+        .keys()
+        .map(|key| Ok((key.clone(), expanded(english, key)?)))
+        .collect::<Result<_, BuildError>>()?;
+    let paths = plain::generate(output, english, &contracts)?;
+    for area_name in english.files.keys() {
+        area(output, english, area_name, &contracts, &paths)?;
     }
     Ok(())
 }
@@ -114,6 +45,7 @@ fn area(
     english: &Language,
     area: &str,
     contracts: &Contracts,
+    paths: &plain::Paths,
 ) -> Result<(), BuildError> {
     let area_type = pascal(area);
     writeln!(
@@ -193,7 +125,7 @@ fn area(
         let Some(method) = key.strip_prefix(&prefix) else {
             continue;
         };
-        emit_message(output, key, method, message, contracts)?;
+        emit_message(output, key, method, message, contracts, paths)?;
     }
     writeln!(output, "}}")?;
     Ok(())
@@ -205,6 +137,7 @@ fn emit_message(
     method: &str,
     message: &super::Message,
     contracts: &Contracts,
+    paths: &plain::Paths,
 ) -> Result<(), BuildError> {
     let shape = contracts
         .get(key)
@@ -215,10 +148,9 @@ fn emit_message(
     if shape.variables.is_empty() {
         writeln!(
             output,
-            "#[must_use]\npub fn r#{}(self) -> &'a str {{ &self.translator.plain.r#{}.r#{} }}",
+            "#[must_use]\npub fn r#{}(self) -> &'a str {{ &self.translator.plain{} }}",
             snake(method),
-            snake(&message.area),
-            snake(method)
+            paths.projection(&message.area, key)?
         )?;
     } else {
         writeln!(
@@ -372,3 +304,6 @@ fn pascal(value: &str) -> String {
         })
         .collect()
 }
+
+#[cfg(test)]
+mod tests;

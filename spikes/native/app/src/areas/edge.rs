@@ -68,12 +68,6 @@ impl Panel {
         self.limits.width(self.asked(shell), room)
     }
 
-    /// The width drawn in `room` points leaving `beside` to the rest (see
-    /// `Limits::width_leaving`).
-    pub(crate) fn width_leaving(self, shell: &Shell, room: f32, beside: f32) -> f32 {
-        self.limits.width_leaving(self.asked(shell), room, beside)
-    }
-
     /// The width asked for: being dragged, else kept.
     pub(crate) fn asked(self, shell: &Shell) -> Option<f32> {
         (self.edge)(shell)
@@ -85,7 +79,7 @@ impl Panel {
     /// Keep `width` in the layout and save the preferences.
     fn save(self, shell: &mut Shell, width: Option<u16>) {
         (self.keep)(&mut shell.prefs.settings.layout, width);
-        shell.command(Command::SavePrefs(shell.prefs.clone()));
+        shell.command(Command::SavePrefs(Box::new(shell.prefs.clone())));
     }
 
     /// The measure and the handle, to put inside the panel (`relative`),

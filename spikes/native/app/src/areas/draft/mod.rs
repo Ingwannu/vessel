@@ -373,7 +373,7 @@ impl Shell {
         } else {
             let _earlier = self.prefs.folders.insert(machine.clone(), folder.clone());
         }
-        self.command(Command::SavePrefs(self.prefs.clone()));
+        self.command(Command::SavePrefs(Box::new(self.prefs.clone())));
         // In a project, track F's start (a new worktree made first, its
         // steps on the session's screen); else in the folder.
         if !self.start_in_place(&machine, &harness, &options, &text) {
@@ -437,7 +437,6 @@ pub(crate) fn render(
     let shown = shell.shown();
     let touch = compact(window);
     let neutral = tokens.neutral;
-
     let typed = !draft.composer.text(cx).trim().is_empty() || shell.draft_has_files();
     let can_send = typed && draft.agent.is_some();
     let attach = attach_button(true, touch, tokens, cx);
@@ -483,7 +482,8 @@ pub(crate) fn render(
                 .child(t.welcome),
         )
         .child(card)
-        .child(pickers::place(shell, &online, touch, tokens, cx).self_start());
+        .child(pickers::place(shell, &online, touch, tokens, cx).self_start())
+        .child(super::import::entry(shell, tokens, cx));
     if let Some(error) = &draft.error {
         column = column.child(note(error.clone(), neutral.destructive));
     }

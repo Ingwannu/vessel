@@ -49,7 +49,14 @@ impl Shell {
             fleet: Fleet::default(),
             route: Route::Draft,
             brand: crate::brand::Brand::default(),
-            areas: Areas::new(window, cx),
+            areas: Areas::new(
+                areas::settings::PreparedGeneral::new(
+                    Translator::get(ENGLISH).unwrap(),
+                    &Prefs::default().kept,
+                ),
+                window,
+                cx,
+            ),
             prefs: Prefs::default(),
             notice: None,
             notice_detail: None,
@@ -63,6 +70,18 @@ impl Shell {
             sidebar_sheet: None,
         }
     }
+}
+
+/// A command queue without a node/runtime task lets area tests supply typed replies.
+pub(crate) fn with_commands(
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> (Shell, mpsc::Receiver<Command>) {
+    const ROOM: usize = 64;
+    let (link, commands) = Link::detached(ROOM).unwrap();
+    let mut shell = Shell::without_io(window, cx);
+    shell.link = Some(link);
+    (shell, commands)
 }
 
 pub(crate) fn init(cx: &mut TestAppContext) {
