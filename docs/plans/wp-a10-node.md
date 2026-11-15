@@ -14,15 +14,21 @@ not this package's skeleton, completion, product review or whole gate.
 Results are in `backend-m12-launch-profiles.md` and checkpoint `82776280`.
 The original failed Clippy log remains retained.
 
-Five pending rows, bounded catalogue values and real service/retained-job
-routing are now implemented in source, with no assigned callable protocol.
-No consumer, legacy helper or app screen is built. The storage CAS, shared
-agent mutation owner and service stage await selected compilation/tests;
-this does not yet constitute the full package skeleton or passed behavior. The feature protocol remains None. The integrator
-allocated the store schema after title origin; consume the announced
-baseline before appending its single predecessor-relative constant.
-The announced Quality B head `29eebb8b` is consumed in merge `bfb945de`;
-pending rows may now use its one table/accessor.
+The isolated node package contains the five pending rows, validated values,
+store CAS, retained node jobs/probes, shared agent mutation/read owner,
+session adapters, typed client/materialization/migration helpers, CLI and
+shared fake inputs. New runtime tests are written but have not yet executed
+successfully. Selected compilation and lint correction remain in progress;
+generated TypeScript, the complete package gate and implementation review
+remain outstanding. App screens and the MCP facade belong to their consumer
+packages. These source additions are not a completion or runtime claim.
+
+The announced node baseline `d432ef0f` is the package's direct base and
+contains Quality B's canonical table/accessor. The store migration is the
+allocated schema 19, expressed relative to title-origin schema 18. All five
+rows use the pending named feature; its protocol remains None until the
+integrator assigns it. Pending refusal and assigned happy-wire evidence
+are deliberately separate obligations.
 
 ## Existing owners and structure
 
