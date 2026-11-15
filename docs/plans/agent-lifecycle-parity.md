@@ -278,6 +278,37 @@ No row of the crate table changes.
   and a bad `--since` fail before connect. Follow's first print is the
   last 10 matching records when `--tail` is omitted.
 
+## Existing interrupt-loop repair
+
+- The read-only script output path in `attach/mod.rs::print_output` and
+  `terminals.rs::ports` recreate `ctrl_c()` within each select. As with the
+  corrected log loop, the receiver disappears during an awaited write.
+- Decision: modify each loop using the existing Tokio dependency: construct
+  and pin one future before the loop, polling interruption first. Keep script
+  detach, port revisions, rendering, reconnects and watched resources intact.
+  A shared controller or a new dependency would add no needed behavior.
+- This is a separate corrective slice from log follow. Tests use owned CLI
+  children and real signals against temporary fakes/scripts. A claimed
+  signal-during-write case must acknowledge that write deterministically;
+  otherwise report the unforced interleaving explicitly, without adding a
+  product-only test hook or using sleeps as synchronization.
+
+## Shared base defects and deferred wiring
+
+- The existing move stop helper (`vessel-session/src/moving.rs::stop_agent`
+  and its local `signal`) logs `SignalError` and continues. This is a base
+  defect relative to the reload contract's refusal when stopping fails. It
+  must be corrected by the shared runtime owner before reload can reuse it;
+  copying it would risk starting a replacement while the old process lives.
+- `SessionEvent::since` currently returns a plain protocol version. The shared
+  protocol owner must define how a new event represents unassigned availability
+  before `LabelsChanged` or `Reloaded` is put on the wire. Reuse the existing
+  gap-free redacted stand-ins once that shape exists, with no base-version or
+  maximum-version fallback and no second projection technique.
+- The newly merged node head still predates the shared request accessor.
+  Value types and storage queries may progress; call registration and client
+  field wiring remain deferred until the designated accessor head arrives.
+
 ## Resume point
 
 - Reviewed: slice 1 contract and slice 2a validating types. Bounds,
@@ -380,7 +411,11 @@ No row of the crate table changes.
   step and left conflict markers in an unverified follow commit. A new
   follow-up repaired both owned files with every prior scenario retained.
   That intermediate commit was never compiled or used as gate evidence.
-- Next: check and fully gate the corrected follow slice 5c while
+- The corrected follow gate passed 1992/0/12 plus its two TS freshness tests,
+  with no waiver or rerun, and was submitted for review. The next clean slice
+  begins on the newly announced node head. The older attach/ports interrupt
+  repair is planned separately and has not yet changed behavior.
+- Next: repair and gate the older interrupt loops while
   label call wiring awaits the shared accessor. No new wire call or dependency
   is added by log options. All slices include the caller-to-projection
   citations and retain the raw-chunk test; the selection render context changes
