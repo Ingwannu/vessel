@@ -2,7 +2,8 @@
 
 Status: staged parser, typed selection, complete read-only collection/preflight,
 question-input decoding and exact-outcome confirmation. Product registration
-waits for the reviewed ADR 0084 rich response contract and W17 output helper.
+waits for the reviewed ADR0084 response contract; the reviewed W17 output seam
+is now adopted from announced node82ae7c91.
 W4 owns these CLI files; W23 owns permission/question proto and node runtime.
 
 References read: Paseo 0.15.4
@@ -41,12 +42,11 @@ provider validation, including scalar/null values; it is not silently
 dropped by JavaScript truthiness. Unsupported shapes must refuse before
 effects. Root/native runtime proof is still owed.
 
-The list model reuses the existing inbox's authoritative request ids and
-source keys. Payload-budget references remain visible. The page state
-machine refuses nonadvancing cursors, repeated request identities and
-unknown item kinds, and only releases rows after the final page. This
-prevents an invalid traversal being printed as a complete result. Ordinary
-outcome items are excluded. Rich presentation labels await ADR 0084.
+The list model uses canonical session.list plus structured session.conversation,
+including archived/stored sessions. Session/request ids stay typed; no synthetic
+InboxKey or record sequence is created. Duplicate session/request identities and
+collection bounds refuse the whole read without publishing partial output.
+Rich presentation labels await the checked ADR0084 values.
 
 Next: wire snapshot/list output, W23's durable response call, bounded
 confirmation and reconciliation, batch partial-result reporting and tests
@@ -54,13 +54,14 @@ against the in-memory node. Use W17's reviewed output helpers, not a second
 table/JSON/YAML formatter. No real agents or production nodes.
 
 
-Read-only collection now uses a typed Source seam implemented directly by
-NodeClient::inbox and inbox_request, with in-memory page/form fixtures. Listing
-returns rows only after all pages succeed. A maximum of 10,000 pending rows or
-4,096 pages explicitly refuses the command without publishing partial output.
-Every selected form is reloaded by its exact InboxKey before a response batch;
-resolved, substituted and still-compact forms refuse preflight. The response
-runtime is intentionally absent until W23's reviewed rich receipt contract.
+Read-only collection uses Source implemented by NodeClient::sessions and
+conversation. The existing session list contains all sessions; only structured
+sessions need conversation reads. Archived marks do not filter retained questions.
+A maximum of10,000 sessions/10,000 pending rows and64MiB aggregate encoded forms
+explicitly refuses oversized work. Selected rows must all belong to one resolved
+agent with no duplicate ids. Re-read that agent's canonical snapshot once, recover
+every selected complete body and check the aggregate budget before response work.
+The response runtime waits for W23's reviewed rich receipt contract.
 
 Selection is scoped to the resolved agent SessionId before request-prefix lookup.
 An ambiguous prefix refuses before form lookup or mutation, including a future
@@ -82,7 +83,7 @@ provider-side unsupported-input refusal; a scalar is not silently discarded.
 
 
 Preflight also caps aggregate retained encoded forms at64MiB, in addition to the
-listing's10,000-row/4,096-page limits. Otherwise a valid large form per request
+listing's10,000-session/10,000-row limits. Otherwise a valid large form per request
 could make an all-request batch retain many node-frame budgets at once. A private
 checked writer accounts the actual encoded request/question without allocating
 another JSON payload; oversized batches fail before any response effect. Existing
@@ -179,7 +180,33 @@ real consuming permit handlers in presentation::check before connection effects.
 Pending Row now implements the reviewed shared output::Row trait. It supplies
 only AGENT/REQ_ID/TOOL/DESCRIPTION cells (7/8-character table captions), while
 quiet output uses the full exact request id and JSON/YAML keep full typed ids.
-The source InboxKey remains serde-skipped. No formatter or escaping logic is
+Only canonical agent/request identity is serialized; no synthetic source key exists. No formatter or escaping logic is
 copied. The consumer regression runs the actual shared render_list to verify
 prefix/full-id fidelity, one escaping pass and provenance omission. Product
 registration/admission still waits for complete real response handlers.
+
+
+## Canonical archived-request read join (supersedes the initial Inbox approach)
+
+The source audit found store/inbox.rs suppresses archived inserts and marks.rs
+removes their attention rows. W23 confirmed Session-lifetime questions survive
+archive/log pruning; only authorized whole-session removal releases their rows.
+Therefore Inbox pagination was not a complete permit listing. Its staged A8
+paginator/tests were removed from the active design rather than retained as a
+second read path (the prior code remains in Git at97f470d81).
+
+Reuse existing session.list and session.conversation. The latter overlays stored
+pending questions without starting a provider, including for archived sessions.
+Stored responses remain server-validated: Pending may return Unavailable,
+Answering/OutcomeUnknown retain those states, absent returns Vanished. Listing
+scope is not mutation authority and must not implicitly wake a stored provider.
+Ordinary turn permissions and synthetic plan capabilities do not survive driver
+loss. No new RPC, event, InboxKey or timestamp is fabricated by this client join.
+
+Replacement source regressions cover archived/stored inclusion, terminal skipping,
+a later snapshot failure with no partial success, duplicate sessions/requests,
+exact-owner fresh preflight, disappearance, mixed/duplicate scope refusal before
+reads, collection bounds and private diagnostics. These are in-memory client
+adapter evidence pending VM execution, not stored-runtime/provider proof. The
+legacy snapshot has only generic Permission labels; checked presentation fields
+will supply richer title/description after base8 adoption.

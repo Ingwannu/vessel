@@ -1,8 +1,7 @@
 //! Resolve exact and ambiguous prefixes before any form lookup or mutation.
 use super::*;
 use crate::permit::pending::{PendingId, Row};
-use vessel_proto::inbox::InboxKey;
-use vessel_proto::{EventSeq, PermissionId, SessionId};
+use vessel_proto::{PermissionId, SessionId};
 
 fn row(session: SessionId, id: &str) -> Row {
     Row {
@@ -11,10 +10,6 @@ fn row(session: SessionId, id: &str) -> Row {
         agent_short_id: session.to_string(),
         name: "Permission".into(),
         description: String::new(),
-        source: InboxKey {
-            session,
-            seq: EventSeq::ZERO,
-        },
     }
 }
 #[test]
