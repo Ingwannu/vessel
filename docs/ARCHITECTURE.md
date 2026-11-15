@@ -1659,3 +1659,5 @@ unsupported override before process spawn, with a typed Unsupported mapping.
 The field does not enter SessionSpec, user messages, argv or environment.
 Reload orchestration and actual native override/restore transports are separate
 work; see docs/plans/provider-transient-context.md. No dependency edge changes.
+
+Native command values live once in `vessel-proto::native_commands` (B2/W12b). They contain validated objectives, intents, a shared original-text parser and closed localizable success statuses. This independent value module has no I/O, method row or activation and adds no crate edge. W23 owns the single keyed receipt/actor acceptance; W22 owns provider transport and real launch/version/autonomous-turn capability. No command is represented as a fabricated model turn. See `docs/plans/native-command-values.md`.

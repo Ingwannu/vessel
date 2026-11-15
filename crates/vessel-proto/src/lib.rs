@@ -38,6 +38,7 @@ pub mod limits;
 pub mod lsp;
 mod model;
 mod name;
+pub mod native_commands;
 mod node;
 mod options;
 mod pairing;
