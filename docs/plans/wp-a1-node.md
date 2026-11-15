@@ -249,6 +249,13 @@ another operation, or an entry already used by an agent cannot release count.
 The actual spawner must still prove the no-effect classification before
 writing that failure; receipt metadata alone is not a process-state oracle.
 
+A focused old-writer fixture retains the closed Store clone across recovery:
+it may read Accepted, but its attempted Begin fails Closed and the fake effect
+trace stays empty; the new writer can continue the same reserved ids. This
+tests pre-Begin writer fencing only. It does not prove that an already-begun
+old process/task cannot produce a late effect; tracked shutdown, current
+generation checks and the actual runtime adapter still owe that separate proof.
+
 The internal refused outcome carries the canonical creation Certainty value
 explicitly. Generic backing refusals currently retain Uncertain reservations
 and return Unknown, so a future caller cannot mistake the typed refusal reason

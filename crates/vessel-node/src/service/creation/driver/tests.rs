@@ -189,3 +189,47 @@ async fn crash_after_begin_before_effect_is_unknown_but_idle_accepted_retains_or
         store.close().await;
     }
 }
+
+#[tokio::test]
+async fn an_old_closed_writer_cannot_begin_after_a_new_store_recovers_accepted() {
+    let (_temp, dir, old, reserved) = fixture().await;
+    let old_runtime = fake(&old, reserved.clone(), false, false);
+    old.close().await;
+    let current = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    let observed = current
+        .creation_operation(reserved.operation)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(observed.snapshot().phase, Phase::Accepted);
+    assert_eq!(observed.in_flight(), None);
+    // Old clones can still read. They cannot obtain a new committed Begin,
+    // so this pre-effect continuation must not dispatch anything late.
+    assert!(matches!(
+        drive(&old, reserved.operation, &old_runtime).await,
+        Err(StoreError::Closed)
+    ));
+    assert!(old_runtime.trace.lock().unwrap().is_empty());
+    assert_eq!(
+        current
+            .creation_operation(reserved.operation)
+            .await
+            .unwrap()
+            .unwrap(),
+        observed
+    );
+    let current_runtime = fake(&current, reserved.clone(), false, false);
+    let completed = drive(&current, reserved.operation, &current_runtime)
+        .await
+        .unwrap();
+    assert_eq!(completed.phase, Phase::Completed);
+    assert_eq!(completed.reserved, reserved);
+    assert_eq!(
+        *current_runtime.trace.lock().unwrap(),
+        [Stage::Workspace, Stage::Resource, Stage::Prompt]
+    );
+    current.close().await;
+}
