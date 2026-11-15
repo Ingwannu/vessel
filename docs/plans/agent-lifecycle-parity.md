@@ -882,3 +882,17 @@ are still owed.
 The legacy schema fixture reads SQLite's user_version as its supported i64
 representation and converts the migration length with TryFrom for comparison.
 The earlier usize read did not compile; no schema value or expectation changes.
+
+### Peer-safe export before metadata projection
+
+Source review found a remote-import gap: an unreadable export reply hides
+metadata before the destination's dynamic manifest check can identify it. The
+source guard will reuse lifecycle visibility on its original current labels and
+classification, after ownership and before provider history/transfer work.
+Forward and Relay will apply the same guard to the returned session manifest
+before their connection's projection, preserving the three-hop case with a new
+source/home and old importer. No request, origin, shared accessor, schema or
+reply projection changes. The ADR states the necessary non-starting export
+refusal and the difference from Paseo's caller-labelled history import.
+Tests precede the fix: real-node source refusal, default metadata unchanged,
+synthetic assignment/older visibility and the three-hop return boundary.

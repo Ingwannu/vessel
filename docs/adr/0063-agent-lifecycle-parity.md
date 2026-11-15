@@ -119,6 +119,31 @@ import must still check its source metadata before export/placement, because
 the caller does not carry those labels. No new method is registered by this
 admission change. Refusal avoids accepting data that no client can see.
 
+### Export classification before peer projection
+
+An export must not silently lose its current labels or Background classification
+on the way to a later import. After the existing ownership guard, the source
+reads the original session info and checks the same lifecycle visibility rule
+used by reply projection, before reading provider history or opening a transfer.
+Default metadata needs no feature support. Nonempty current labels or a
+Background listing require an assigned threshold readable by that connection;
+otherwise export returns typed Unsupported. No metadata values enter the error.
+
+Forward and Relay apply that same check to an ExportSession manifest before
+returning it to their connection. A newer source and home must not let an older
+importing node receive a silently projected classification. They use the returned
+manifest, without another remote lookup or a new Origin field. Requests, shared
+call admission and all reply projections remain unchanged.
+
+This deliberately also refuses a non-starting history export when its current
+metadata cannot travel: the existing export request carries no import-start
+intent, so the source cannot promise preservation only for one future consumer.
+Paseo's provider-history import (`agent/import.ts:110-123`) supplies labels from
+its caller and has no corresponding fleet transfer route. Vessel's refusal
+protects the source classification instead of silently making the import Shown.
+While the assignment is None it applies to every peer; afterwards it applies
+only below the assigned threshold. Ordinary metadata-free transfers are kept.
+
 ### Stop failure before a restart
 
 The existing profile-move stop helper is the candidate for reload reuse. Its
