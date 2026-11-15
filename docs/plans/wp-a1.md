@@ -279,3 +279,10 @@ admission on the same node and retirement after selection before first poll.
 This does not establish final queued-delivery validity or a safe resident follow.
 W21's standalone started_at proposal remains held pending W12/G4's live slot
 and delivery capability; the app has not introduced a second resident registry.
+
+The exact scoped mode accessor reuses B2's canonical surface::Mode leaf:
+Chat maps to Chat; blank shell and configured profiles map to Terminal.
+Resolved read-only profiles remain terminal mode. The renderer consumes this
+same getter; missing node/workspace/draft identity yields None without a
+global selected-agent fallback. This is presentation policy, not a root/config
+or connection authority snapshot. B2's remaining controls use this seam.
