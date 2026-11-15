@@ -76,7 +76,7 @@ fn same_node_new_epoch_keeps_cached_facts_but_blocks_actions_until_admitted() {
 #[test]
 fn a_forged_context_echo_cannot_release_the_expected_tickets_capacity() {
     let mut page = Page::default();
-    super::tests::bound(&mut page, &[key("laptop")]);
+    tests::bound(&mut page, &[key("laptop")]);
     let original = page.due(now()).remove(0);
     let wrong = Request::on(rebound(&key("laptop")), original.ticket, original.ask);
     assert!(!page.accept_list(&wrong, Ok(snapshot(vec![info()]))));

@@ -37,9 +37,9 @@ fn options() -> HarnessOptions {
 }
 fn choice(id: &str, value: &str) -> OptionChoice {
     OptionChoice {
-        id: id.parse().unwrap(),
+        id: vessel_proto::OptionId::new(id),
         value: ChoiceValue::Select {
-            value: value.parse().unwrap(),
+            value: vessel_proto::OptionValueId::new(value),
         },
     }
 }
@@ -152,7 +152,7 @@ fn explicit_option_changes_preserve_other_choices_and_full_spec_metadata() {
     assert!(!model.option(opened.visit, choice("future", "not-offered")));
     assert!(!model.option(opened.visit, choice("custom", "wrong-kind")));
     let toggle = OptionChoice {
-        id: "custom".parse().unwrap(),
+        id: vessel_proto::OptionId::new("custom"),
         value: ChoiceValue::Toggle { on: true },
     };
     assert!(model.option(opened.visit, toggle.clone()));

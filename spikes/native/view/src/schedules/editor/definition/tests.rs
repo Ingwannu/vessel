@@ -152,3 +152,16 @@ fn borrowed_issues_delegate_existing_tables_and_new_target_copy_in_both_language
         }
     }
 }
+
+#[test]
+fn borrowed_validation_keeps_the_original_typed_error_source() {
+    let fields = Fields::empty();
+    let error = fields.values().err().unwrap();
+    let issue = Issue::Field(error);
+    let source = std::error::Error::source(&issue)
+        .unwrap()
+        .downcast_ref::<FieldError>()
+        .unwrap();
+    assert!(std::ptr::eq(source, error));
+    assert!(matches!(source, FieldError::Prompt(_)));
+}

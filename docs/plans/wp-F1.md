@@ -847,3 +847,19 @@ The constructor/SendOn move lowers field.rs to485 product lines, removing its
 record instead of raising it. Scope and new unexecuted keyboard/Unicode/readonly
 cases are in shared-multiline-source.md. G3 remains waiting until the exact
 minimal producer is narrow-green and handed off; no parallel field writer.
+
+
+### c41 actual narrow outcome and repair
+
+The exact c41dd30e four-crate all-target Clippy run
+schedules-narrow-20261115T124502Z-c41dd30e ended cargo101 after fonts0.
+It did not execute tests; it is not later-source evidence. The complete View
+batch found borrowed thiserror source lifetimes, two unnecessary qualifications,
+four sibling fixture visibility errors, three option-id FromStr assumptions,
+and the test-only caller boundary of the private target transition. Repair
+uses a manual Error/Display impl so borrowed cached errors retain their typed
+source (no reparsing, diagnostic or localized phrase change), the existing
+OptionId/OptionValueId::new constructors, and narrowly scoped visibility for
+existing internal/test helpers. No lint policy or behavior test assertion is
+weakened. A borrowed-source regression checks the original error address.
+The later corrected head still needs its requested narrow/package proof.

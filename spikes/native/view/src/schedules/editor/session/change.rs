@@ -46,7 +46,7 @@ impl Model {
     }
     /// Target changes preserve the full spec supplied by the existing form,
     /// rather than reconstructing it from a few visible selectors.
-    fn target(&mut self, expected: Visit, target: NewTarget) -> bool {
+    pub(super) fn target(&mut self, expected: Visit, target: NewTarget) -> bool {
         if self.visit() != Some(expected) || self.blocked() {
             return false;
         }

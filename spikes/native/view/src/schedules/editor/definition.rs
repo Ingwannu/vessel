@@ -95,23 +95,42 @@ pub enum Save {
     Update(UpdateSchedule),
 }
 /// Borrowed validation meaning; typed sources remain in their field cache.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum Issue<'a> {
     /// A cached invalid name/prompt/run count.
-    #[error("invalid schedule field: {0}")]
-    Field(#[source] &'a FieldError),
+    Field(&'a FieldError),
     /// A cached invalid cadence input.
-    #[error("invalid schedule cadence: {0}")]
-    Cadence(#[source] &'a super::CadenceError),
+    Cadence(&'a super::CadenceError),
     /// No valid structured new-chat target was selected.
-    #[error("a scheduled chat target is required")]
     Target,
     /// No complete current node preview or explicit older-node fallback yet.
-    #[error("preview the current schedule rule before saving")]
     Preview,
     /// An existing definition cannot be replaced safely.
-    #[error("cannot edit schedule: {0}")]
-    Edit(#[source] EditError),
+    Edit(EditError),
+}
+// The cache owns these errors; borrowing them avoids reparsing or cloning a
+// form merely to prepare a save. `thiserror` rejects borrowed source fields,
+// while their concrete error types are static and can be exposed unchanged.
+impl std::fmt::Display for Issue<'_> {
+    fn fmt(&self, out: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Field(error) => write!(out, "invalid schedule field: {error}"),
+            Self::Cadence(error) => write!(out, "invalid schedule cadence: {error}"),
+            Self::Target => out.write_str("a scheduled chat target is required"),
+            Self::Preview => out.write_str("preview the current schedule rule before saving"),
+            Self::Edit(error) => write!(out, "cannot edit schedule: {error}"),
+        }
+    }
+}
+impl std::error::Error for Issue<'_> {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Field(error) => Some(*error),
+            Self::Cadence(error) => Some(*error),
+            Self::Edit(error) => Some(error),
+            Self::Target | Self::Preview => None,
+        }
+    }
 }
 impl Issue<'_> {
     /// Use the accepted cadence/edit table and new form catalog once each.

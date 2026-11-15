@@ -81,7 +81,7 @@ mod tests {
     }
 }
 
-impl super::Page {
+impl Page {
     /// Grant evidence for this exact admission. New forms reuse the host's
     /// self-report; edits also keep any actual refusal recorded for that row.
     #[must_use]

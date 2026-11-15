@@ -4,13 +4,13 @@ use crate::schedules::Action;
 use crate::schedules::tests::info;
 use vessel_proto::automation::{ScheduleInfo, ScheduleState};
 use vessel_proto::{ErrorCode, WireError};
-pub(super) fn now() -> DateTime<Utc> {
+pub(crate) fn now() -> DateTime<Utc> {
     "2026-11-13T00:00:00Z".parse().unwrap()
 }
 pub(super) fn key(name: &str) -> MachineKey {
     MachineKey::of(name).unwrap()
 }
-pub(super) fn snapshot(schedules: Vec<ScheduleInfo>) -> Snapshot {
+pub(crate) fn snapshot(schedules: Vec<ScheduleInfo>) -> Snapshot {
     Snapshot {
         scopes: Err(Failure::Older),
         schedules,
@@ -43,7 +43,7 @@ pub(crate) fn bound(page: &mut Page, keys: &[MachineKey]) {
         let _changed = page.admitted(context(key));
     }
 }
-pub(super) fn loaded() -> (Page, RowKey) {
+pub(crate) fn loaded() -> (Page, RowKey) {
     let mut page = Page::default();
     bound(&mut page, &[key("laptop")]);
     let request = page.due(now()).remove(0);
