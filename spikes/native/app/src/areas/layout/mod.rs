@@ -12,6 +12,9 @@ mod queries;
 pub(crate) mod registry;
 mod rename;
 mod resize;
+// Cutover removes this attribute together with legacy global resources/follow.
+#[cfg(test)]
+pub(crate) mod residents;
 mod sheets;
 
 use crate::shell::Shell;

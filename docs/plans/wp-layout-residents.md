@@ -4,6 +4,18 @@ Status: contract-only review passed. Registry implementation and runtime evidenc
 remain separate work; this approval does not establish two-pane behavior.
 It extends the workspace layout contract; it does not add another panel manager.
 
+The staged concrete owner is `app::areas::layout::residents::SessionResidents`,
+behind a literal `cfg(test)` module while legacy globals remain the only product
+path. Its private map holds each `SessionView` and `ConversationArea` exactly once;
+the existing pure `Residents` table is its admission component, not another live
+manager. Claim validates capacity before a scoped owner factory, view borrows check
+the full current context, hidden stream ingress checks `FollowBinding`, and effect
+settlement consumes the owner ticket before mutation. Clean retirement retires
+metadata before returning resources to snapshot/cancel/drop. This foundation does
+not authorize a transport or implement the production cutover. W1's window-global
+search extraction and scoped composer constructors are prerequisites; the legacy
+selected-session composer callback must never become a resident input callback.
+
 ## Decision Log
 
 - Purpose and intent: two agent panes must own independent conversation, scroll,
