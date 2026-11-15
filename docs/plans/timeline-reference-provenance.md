@@ -130,3 +130,11 @@ native spellings, late A versus B, modern preservation, old ingress and unknown
 origin. These are drafted tests until the exact remote run completes. Existing
 owned/borrowed live regression fixtures remain in place. Whole package/runtime,
 TS freshness and final review remain owed.
+
+The private node e2e fixture now also seeds an ended synthetic canonical session
+through Store before node startup, then uses the existing authenticated relay/home/
+two-member helpers. It compares actual direct, self-forward, home-forward and
+member→home→target reads and folds their decoded legacy ids (same native id in
+A/B, late A update, permission reference and hostile reserved spelling). No agent
+is launched by this fixture. This exercises actual Links ingress and server masks,
+not only manually classified proto fixtures. Execution/whole evidence remains owed.

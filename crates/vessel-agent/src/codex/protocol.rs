@@ -450,6 +450,10 @@ pub(super) struct PermissionsApproval {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct UserInputRequest {
+    #[serde(default)]
+    pub(super) thread_id: Option<vessel_proto::timeline::ExternalThreadId>,
+    #[serde(default)]
+    pub(super) turn_id: Option<vessel_proto::timeline::ExternalTurnId>,
     pub(super) item_id: String,
     pub(super) questions: Vec<UserInputQuestion>,
 }

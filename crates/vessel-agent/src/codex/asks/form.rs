@@ -95,7 +95,13 @@ fn assembled(
         return Err("custom companions exceed the complete form bound");
     }
     let question = Question {
-        tool_scope: None,
+        tool_scope: asked
+            .thread_id
+            .clone()
+            .zip(asked.turn_id.clone())
+            .map(|(thread, turn)| {
+                Box::new(vessel_proto::timeline::ToolCallScope::ProviderTurn { thread, turn })
+            }),
         id: QuestionId::random(),
         message: cut(
             asked

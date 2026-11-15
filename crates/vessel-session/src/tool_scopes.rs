@@ -50,12 +50,18 @@ impl ToolScopes {
                     request.tool_scope = Some(Box::new(self.lookup(&request.tool_call, seq)));
                 }
             }
+            AgentEvent::QuestionAsked(question) => {
+                if question.tool_scope.is_none()
+                    && let Some(call) = &question.tool_call
+                {
+                    question.tool_scope = Some(Box::new(self.lookup(call, seq)));
+                }
+            }
             AgentEvent::Ready { .. }
             | AgentEvent::UserMessageChunk { .. }
             | AgentEvent::MessageChunk { .. }
             | AgentEvent::ThoughtChunk { .. }
             | AgentEvent::PermissionResolved { .. }
-            | AgentEvent::QuestionAsked(_)
             | AgentEvent::QuestionResolved { .. }
             | AgentEvent::Plan { .. }
             | AgentEvent::Notification(_)

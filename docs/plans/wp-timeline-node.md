@@ -392,3 +392,10 @@ before acknowledging success. There is no new RPC, plugin runtime or independent
 plugin store. W16's append remains unsupported until its broker and this seam are
 checked together. A private fake fixture awaits the real store barrier, reads the
 exact committed Plugin record and checks that no turn is running; execution owed.
+
+Blocking native Codex question DTOs now keep actual threadId/turnId from the pinned
+ToolRequestUserInputParams schema. Their related-tool scope is explicit when both
+are reported. Otherwise the ordinary actor association map may retain a unique
+known old scope or an unassociated Record, never whichever turn happens to run.
+No request/answer authority is inferred from that display scope. This complements
+the existing exact native async scope requirement and durable SourceKey storage.

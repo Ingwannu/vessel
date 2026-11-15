@@ -52,3 +52,48 @@ fn saturation_never_evicts_old_associations_or_creates_a_current_turn_guess() {
     );
     assert_eq!(tracker.bytes, before);
 }
+
+#[test]
+fn question_tool_evidence_uses_actual_or_unique_known_scope_and_never_current_turn_guess() {
+    let mut tracker = ToolScopes::default();
+    let id = ToolCallId::new("question-tool");
+    tracker.remember(&id, &scope(1));
+    tracker.turn = Some(EventSeq::new(9));
+    let question = || vessel_proto::Question {
+        id: vessel_proto::QuestionId::random(),
+        message: "Choose".into(),
+        fields: vec![],
+        tool_call: Some(id.clone()),
+        tool_scope: None,
+        lifetime: vessel_proto::timeline::QuestionLifetime::Turn,
+        delivery_state: vessel_proto::timeline::QuestionDeliveryState::Pending,
+    };
+    let mut first = SessionEvent::Agent {
+        event: AgentEvent::QuestionAsked(question()),
+    };
+    tracker.observe(&mut first, EventSeq::new(10));
+    let SessionEvent::Agent {
+        event: AgentEvent::QuestionAsked(first),
+    } = first
+    else {
+        panic!("question")
+    };
+    assert_eq!(first.tool_scope.as_deref(), Some(&scope(1)));
+    tracker.remember(&id, &scope(9));
+    let mut second = SessionEvent::Agent {
+        event: AgentEvent::QuestionAsked(question()),
+    };
+    tracker.observe(&mut second, EventSeq::new(11));
+    let SessionEvent::Agent {
+        event: AgentEvent::QuestionAsked(second),
+    } = second
+    else {
+        panic!("question")
+    };
+    assert_eq!(
+        second.tool_scope.as_deref(),
+        Some(&ToolCallScope::Record {
+            seq: EventSeq::new(11)
+        })
+    );
+}

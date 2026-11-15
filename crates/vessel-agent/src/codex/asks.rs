@@ -419,6 +419,8 @@ mod tests {
 
     fn user_input(questions: Vec<UserInputQuestion>) -> UserInputRequest {
         UserInputRequest {
+            thread_id: None,
+            turn_id: None,
             item_id: "q".to_owned(),
             questions,
         }
