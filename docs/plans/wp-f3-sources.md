@@ -271,3 +271,14 @@ inside its named safety budget rather than requiring nanosecond-exact wake timin
 After explicit Admin consent, run `python3 scripts/usage-fixture.py ROOT hold`, start an explicit Operate refresh, and wait for `USAGE_FIXTURE_GATE_WAITING` on the fixture's stdout. Cached Read from another connection can now observe Refreshing without starting a read. A second explicit additional-source refresh joins the owner; local request pending remains distinct from that cached phase. Run `python3 scripts/usage-fixture.py ROOT release` before the 20-second source deadline for a successful outcome. `USAGE_FIXTURE_GATE_RELEASED` acknowledges the actual callback release, not publication. Legacy `usage.limits` refresh retains its existing immediate snapshot behavior when already refreshing and does not promise a join. No new event or passive vendor polling is introduced. Python FIFO/mode/duplicate-hold checks are local standard-library probes; the Rust executable and end-to-end join proof still require remote build and execution.
 
 Managed exports can additionally use the tool owner's fixed `--root-fleet vessel-usage-fixture vessel` combination when the same source's daemon and fake harnesses are required. This combines already approved names, ordinary lane only, with no app build. It does not replace or duplicate any existing run; manifests must still match each executable actually used.
+
+The gate sequence first needs an actual successful seeded report: grant/refresh once
+without a hold, then hold its next refresh to inspect that account's Refreshing
+state. An initial credential discovery cannot invent an account id before its
+binding is known. Strict run `wp-usage-consent-values-20261115T121135Z-a8fb5218`
+reached every changed crate and returned only two source lints: the service
+regression exceeded the function budget and fixture preparation borrowed its Args
+without consuming them. Extracting its passive-read/consent phase preserves the
+same one-Node sequence, all assertions and the outer safety deadline; preparation
+now borrows Args inside its owned blocking closure. This is a correction pending
+the changed-source strict run, not a Clippy or package pass.

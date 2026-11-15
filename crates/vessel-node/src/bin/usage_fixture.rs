@@ -47,7 +47,7 @@ fn within(root: &Path, name: &str) -> Result<PathBuf, Error> {
     }
     Ok(path)
 }
-fn prepare(args: Args) -> Result<Config, Error> {
+fn prepare(args: &Args) -> Result<Config, Error> {
     if !args.bind.ip().is_loopback() || matches!(args.bind.port(), 7077 | 18_220 | 18_221) {
         return Err(Error::Unsafe);
     }
@@ -98,7 +98,7 @@ fn ready(address: SocketAddr) -> Result<(), Error> {
     Ok(())
 }
 async fn run(args: Args) -> Result<(), Error> {
-    let config = tokio::task::spawn_blocking(move || prepare(args)).await??;
+    let config = tokio::task::spawn_blocking(move || prepare(&args)).await??;
     let node = Node::start(config).await?;
     let Some(address) = node.address() else {
         node.stop().await?;

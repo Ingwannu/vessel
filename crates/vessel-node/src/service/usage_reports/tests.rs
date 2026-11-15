@@ -15,64 +15,65 @@ fn cursor(reports: &UsageReports) -> &SourceReportEntry {
         .find(|report| report.source().as_str() == "cursor")
         .unwrap()
 }
+async fn passive_reads_and_consent(fixture: &Fixture) {
+    let off = fixture.list(&fixture.reader, LimitRefresh::Cached).await;
+    assert_eq!(off.policy, ExternalLookup::Off);
+    assert!(off.reports.is_empty());
+    assert_eq!(fixture.reads(), 0);
+    assert!(
+        off.sources
+            .as_slice()
+            .iter()
+            .any(|source| source.id.as_str() == "cursor"
+                && source.availability == UsageSourceAvailability::GlobalOff)
+    );
+    assert_eq!(
+        fixture
+            .service()
+            .set_usage_source_lookup(&fixture.reader, Fixture::source_request(ExternalLookup::On))
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::Forbidden
+    );
+    fixture.allow().await;
+    assert_eq!(
+        fixture.reads(),
+        0,
+        "global/source consent must not discover a login"
+    );
+    let cached = fixture.list(&fixture.reader, LimitRefresh::Cached).await;
+    assert!(
+        cached
+            .reports
+            .as_slice()
+            .iter()
+            .all(|entry| entry.source().as_str() != "cursor")
+    );
+    assert_eq!(fixture.reads(), 0, "a Read miss must remain a miss");
+    assert_eq!(
+        fixture
+            .service()
+            .list_usage_reports(
+                &fixture.reader,
+                ListUsageReports {
+                    scope: UsageReportScope::Machine,
+                    refresh: LimitRefresh::Refresh
+                }
+            )
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::Forbidden
+    );
+    assert_eq!(fixture.reads(), 0);
+}
+
 #[tokio::test]
 async fn real_service_enforces_consent_refresh_and_redaction_without_read_discovery() {
     tokio::time::timeout(SERVICE_TEST_BUDGET, async {
         let fixture = Fixture::start().await;
-        let off = fixture.list(&fixture.reader, LimitRefresh::Cached).await;
-        assert_eq!(off.policy, ExternalLookup::Off);
-        assert!(off.reports.is_empty());
-        assert_eq!(fixture.reads(), 0);
-        assert!(
-            off.sources
-                .as_slice()
-                .iter()
-                .any(|source| source.id.as_str() == "cursor"
-                    && source.availability == UsageSourceAvailability::GlobalOff)
-        );
-        assert_eq!(
-            fixture
-                .service()
-                .set_usage_source_lookup(
-                    &fixture.reader,
-                    Fixture::source_request(ExternalLookup::On)
-                )
-                .await
-                .unwrap_err()
-                .code,
-            ErrorCode::Forbidden
-        );
-        fixture.allow().await;
-        assert_eq!(
-            fixture.reads(),
-            0,
-            "global/source consent must not discover a login"
-        );
-        let cached = fixture.list(&fixture.reader, LimitRefresh::Cached).await;
-        assert!(
-            cached
-                .reports
-                .as_slice()
-                .iter()
-                .all(|entry| entry.source().as_str() != "cursor")
-        );
-        assert_eq!(fixture.reads(), 0, "a Read miss must remain a miss");
-        assert_eq!(
-            fixture
-                .service()
-                .list_usage_reports(
-                    &fixture.reader,
-                    ListUsageReports {
-                        scope: UsageReportScope::Machine,
-                        refresh: LimitRefresh::Refresh
-                    }
-                )
-                .await
-                .unwrap_err()
-                .code,
-            ErrorCode::Forbidden
-        );
-        assert_eq!(fixture.reads(), 0);
+        passive_reads_and_consent(&fixture).await;
         let current = fixture.list(&fixture.owner, LimitRefresh::Refresh).await;
         let entry = cursor(&current);
         let id = entry.id().clone();
