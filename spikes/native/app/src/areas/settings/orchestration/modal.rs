@@ -144,39 +144,7 @@ fn picker(
     Some(DialogContent {
         title: words.choose().into(),
         body: body.into_any_element(),
-        footer: vec![
-            action(
-                "orchestration-picker-cancel",
-                words.cancel(),
-                config(ButtonKind::Secondary, !working, compact),
-                &captured,
-                Intent::Cancel,
-                tokens,
-                cx,
-            ),
-            action(
-                "orchestration-picker-save",
-                if working {
-                    words.saving()
-                } else {
-                    words.save()
-                },
-                if working {
-                    config(ButtonKind::Primary, false, compact).loading()
-                } else {
-                    config(
-                        ButtonKind::Primary,
-                        !shell.areas.settings.orchestration.exhausted
-                            && !page.skills.requires_read(),
-                        compact,
-                    )
-                },
-                &captured,
-                Intent::Save,
-                tokens,
-                cx,
-            ),
-        ],
+        footer: picker_footer(shell, &captured, tokens, compact, cx),
         size: DialogSize::Wide,
     })
 }
@@ -300,4 +268,57 @@ fn action(
     )
     .on_click(intent_handler(captured, intent, cx))
     .into_any_element()
+}
+
+fn picker_footer(
+    shell: &Shell,
+    captured: &DialogScope,
+    tokens: &Tokens,
+    compact: bool,
+    cx: &mut Context<'_, Shell>,
+) -> Vec<AnyElement> {
+    let words = shell.words.orchestration();
+    let working = shell
+        .areas
+        .settings
+        .orchestration
+        .page
+        .as_ref()
+        .is_some_and(|page| page.skills.pending());
+    let blocked = shell.areas.settings.orchestration.exhausted
+        || shell
+            .areas
+            .settings
+            .orchestration
+            .page
+            .as_ref()
+            .is_none_or(|page| page.skills.requires_read());
+    vec![
+        action(
+            "orchestration-picker-cancel",
+            words.cancel(),
+            config(ButtonKind::Secondary, !working, compact),
+            captured,
+            Intent::Cancel,
+            tokens,
+            cx,
+        ),
+        action(
+            "orchestration-picker-save",
+            if working {
+                words.saving()
+            } else {
+                words.save()
+            },
+            if working {
+                config(ButtonKind::Primary, false, compact).loading()
+            } else {
+                config(ButtonKind::Primary, !blocked, compact)
+            },
+            captured,
+            Intent::Save,
+            tokens,
+            cx,
+        ),
+    ]
 }

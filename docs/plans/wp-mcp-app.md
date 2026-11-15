@@ -31,10 +31,11 @@ Uninstall confirms whole folders including user additions. Maintenance confirms
 only non-delete ops, sorted add then update/name. Controls are disabled while
 working; no selected skills disables install but leaves the gear available.
 
-Next: in-memory fake owner tests, bounded actual link adapter (pending gate),
-Fluent EN/KO, host rows and dialogs, focus/identity/rejection tests. One whole
-native gate and the required private captures at package close; root gate is
-separate. No cargo/rustc executes locally under the coordinator's VM-only rule.
+The source includes in-memory fake owner tests, the bounded link adapter,
+Fluent EN/KO, host rows/dialogs and focus/identity/rejection fixtures. Actual
+controller execution, shared preflight/queued-delivery integration, one whole
+native gate and private captures remain pending. The root gate is separate.
+No cargo/rustc executes locally under the coordinator's VM-only rule.
 
 The link now owns bounded tasks (eight, including answer sends), one named
 15-second deadline and exact welcome NodeId preflight. The Node trait fake
@@ -157,3 +158,13 @@ IntoElement import used by the Probe's return type: importing it as underscore
 made the trait name unavailable. It now uses the named trait import. No UI
 runtime test had started in that failed batch; the earlier pure9/0 remains
 the scoped older evidence, not a controller or delivery-guard proof.
+
+
+The exact d7e4 strict batch reached link: adding the owner registration crossed
+State::handle's function budget (101/100), and a test helper lacked explicit
+cfg(test), plus one test used get().unwrap(). Dispatch now delegates its
+unchanged preference persistence body to a private module function, keeping
+ordering/error handling and all limits unchanged. The helper is test-only and
+the fixture uses an explicit missing-connection failure. The picker footer is
+also a separate pure builder so owned drawing functions stay below the same
+function budget. No size record or lint allowance is raised.

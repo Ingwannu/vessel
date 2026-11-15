@@ -28,6 +28,7 @@ impl Node for Fake {
         Ok(Output::Tools(McpSettings::default()))
     }
 }
+#[cfg(test)]
 fn task(id: NodeId) -> Task {
     let mut tickets = Tickets::default();
     Task {
@@ -121,7 +122,10 @@ async fn retired_original_connection_cannot_poll_a_read_or_follow_a_new_alias() 
     // The async method is constructed before retirement and first polled
     // afterwards, exercising the actual shared guard rather than a mock flag.
     let pending = selected.execute(Action::ReadTools);
-    actor.clients.get("host").unwrap().retire();
+    let Some(original) = actor.clients.get("host") else {
+        panic!("the original test connection is missing");
+    };
+    original.retire();
     assert_eq!(pending.await, Err(Problem::Changed));
     assert!(peer.calls.lock().unwrap().is_empty());
     assert!(actor.selected_connection(&context).is_err());
