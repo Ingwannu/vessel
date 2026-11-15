@@ -68,9 +68,8 @@ impl State {
         match files {
             attachments::Files::Capabilities(ask) => {
                 let client = self
-                    .clients
-                    .get(ask.machine.as_str())
-                    .map(|connected| connected.client.clone());
+                    .attachment_client(&ask.machine, ask.expected_node)
+                    .map_err(attachments::CapabilityFailure::Target);
                 attachments::spawn_capabilities(client, ask, self.events.clone());
             }
             attachments::Files::Send(attach) => self.attach(attach),
@@ -96,16 +95,15 @@ impl State {
     /// (`attachments::spawn`).
     fn attach(&self, attach: attachments::Attach) {
         let client = self
-            .client(&attach.machine)
-            .cloned()
-            .map_err(|error| error.to_string());
+            .attachment_client(&attach.machine, attach.expected_node)
+            .map_err(LinkError::AttachmentTarget);
         attachments::spawn(client, attach, self.events.clone());
     }
 
     /// The attachment prompt follows only once capability records are read.
     async fn wake_files(&mut self, wake: attachments::Wake) {
         let result = async {
-            let client = self.client(wake.machine.as_str())?.clone();
+            let client = self.attachment_client(&wake.machine, wake.expected_node)?;
             tokio::time::timeout(WAKE_FILES_DEADLINE, client.resume_session(wake.session))
                 .await
                 .map_err(|_elapsed| LinkError::AttachmentRead(attachments::ReadProblem::TimedOut))?
@@ -167,14 +165,21 @@ impl State {
         delivery: Delivery,
     ) {
         let content = vec![ContentBlock::Text { text }];
-        self.deliver(machine, session, content, delivery).await;
+        self.deliver(machine, session, content, delivery, None)
+            .await;
     }
 
     /// A prompt with its files (track P's row c).
     async fn prompt_files(&self, prompt: attachments::WithFiles) {
         let content = attachments::content(prompt.text, prompt.attachments);
-        self.deliver(&prompt.machine, prompt.session, content, prompt.delivery)
-            .await;
+        self.deliver(
+            prompt.machine.as_str(),
+            prompt.session,
+            content,
+            prompt.delivery,
+            Some(prompt.expected_node),
+        )
+        .await;
     }
 
     async fn deliver(
@@ -183,12 +188,27 @@ impl State {
         session: SessionId,
         content: Vec<ContentBlock>,
         delivery: Delivery,
+        expected_node: Option<vessel_proto::NodeId>,
     ) {
         let Some(client) = self.clients.get(machine).map(|connected| &connected.client) else {
             let why = LinkError::NotConnected(machine.to_owned()).to_string();
             self.emit(Event::SessionLost { session, why }).await;
             return;
         };
+        if let Some(expected) = expected_node {
+            let actual = client.node().id;
+            if actual != expected {
+                self.emit(Event::Failed(
+                    LinkError::AttachmentTarget(attachments::TargetProblem::Changed {
+                        expected,
+                        actual,
+                    })
+                    .to_string(),
+                ))
+                .await;
+                return;
+            }
+        }
         match client.prompt(session, content, delivery).await {
             Ok(_delivered) => self.emit(Event::Sent { session }).await,
             Err(error) => {

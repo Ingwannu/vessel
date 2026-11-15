@@ -23,8 +23,10 @@
 
 use std::sync::Arc;
 
+pub use vessel_app_view::composer::attach::TargetProblem;
 use vessel_app_view::composer::sent::Sent;
 use vessel_app_view::composer::tray::{Again, Begun, ItemKey, Origin, Problem};
+use vessel_app_view::machine_book::Name;
 use vessel_proto::conversation::MimeType;
 use vessel_proto::{AttachmentName, AttachmentRef, Delivery, HarnessRef, OptionChoice, SessionId};
 
@@ -34,6 +36,8 @@ use vessel_proto::{AttachmentName, AttachmentRef, Delivery, HarnessRef, OptionCh
 mod capabilities;
 #[cfg(not(target_arch = "wasm32"))]
 mod read;
+#[cfg(not(target_arch = "wasm32"))]
+mod target;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use capabilities::spawn as spawn_capabilities;
 #[cfg(not(target_arch = "wasm32"))]
@@ -117,7 +121,9 @@ pub struct Create {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Attach {
     /// The machine.
-    pub machine: String,
+    pub machine: Name,
+    /// The immutable welcome identity admitted before preparation.
+    pub expected_node: vessel_proto::NodeId,
     /// The session it goes to.
     pub session: SessionId,
     /// Its place in the composer's tray.
@@ -155,7 +161,9 @@ pub enum Step {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WithFiles {
     /// The machine.
-    pub machine: String,
+    pub machine: Name,
+    /// The immutable welcome identity admitted before preparation.
+    pub expected_node: vessel_proto::NodeId,
     /// The session.
     pub session: SessionId,
     /// What was typed (may be empty when files go alone).
@@ -187,7 +195,9 @@ pub enum ReadProblem {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Wake {
     /// Validated book identity, rather than a display label.
-    pub machine: vessel_app_view::machine_book::Name,
+    pub machine: Name,
+    /// The immutable welcome identity admitted before preparation.
+    pub expected_node: vessel_proto::NodeId,
     /// The original conversation, whose log continues after resume.
     pub session: SessionId,
 }
@@ -205,7 +215,9 @@ pub enum WakeOutcome {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CapabilityAsk {
     /// The validated node book key.
-    pub machine: vessel_app_view::machine_book::Name,
+    pub machine: Name,
+    /// The immutable welcome identity admitted before preparation.
+    pub expected_node: vessel_proto::NodeId,
     /// The actual created session, even when it is not selected.
     pub session: SessionId,
     /// The local creation which retained the files.
@@ -214,6 +226,9 @@ pub struct CapabilityAsk {
 /// Read failures do not fabricate an agent capability or erase retained files.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum CapabilityFailure {
+    /// The captured address no longer reaches the admitted peer.
+    #[error(transparent)]
+    Target(#[from] TargetProblem),
     /// All bounded preparation slots are retained by other submissions.
     #[error("attachment preparation capacity reached")]
     Capacity,

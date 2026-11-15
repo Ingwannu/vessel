@@ -16,6 +16,9 @@ use crate::Event;
 /// Something the link could not do.
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum LinkError {
+    /// A queued attachment address did not match its captured welcome identity.
+    #[error(transparent)]
+    AttachmentTarget(#[from] crate::attachments::TargetProblem),
     /// Preserve the node or transport cause of a failed preview read.
     #[cfg(not(target_arch = "wasm32"))]
     #[error(transparent)]

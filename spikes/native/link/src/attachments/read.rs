@@ -107,4 +107,4 @@ impl Collector {
 }
 
 #[cfg(test)]
-mod tests;
+pub(in crate::attachments) mod tests;

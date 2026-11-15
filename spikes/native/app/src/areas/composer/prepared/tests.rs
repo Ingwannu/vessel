@@ -6,7 +6,7 @@ use vessel_app_view::{
     Attention, Phrase,
     composer::tray::{ItemState, Target},
 };
-use vessel_proto::{AgentAbilities, AttachmentLimits, SessionId};
+use vessel_proto::{AgentAbilities, AttachmentLimits, NodeId, SessionId};
 
 fn card(machine: &str) -> Card {
     Card {
@@ -28,9 +28,10 @@ fn stale_ticket_and_wrong_machine_cannot_consume_prepared_files(cx: &mut TestApp
     language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, _window, cx| {
+        let node = NodeId::random();
         assert_eq!(
             shell
-                .prepare_draft_files(Ticket::new(1), "fixture", "text")
+                .prepare_draft_files_on(Ticket::new(1), node, "fixture", "text")
                 .unwrap(),
             None
         );
@@ -40,12 +41,12 @@ fn stale_ticket_and_wrong_machine_cannot_consume_prepared_files(cx: &mut TestApp
             cx,
         );
         let prepared = shell
-            .prepare_draft_files(Ticket::new(2), "fixture", "first")
+            .prepare_draft_files_on(Ticket::new(2), node, "fixture", "first")
             .unwrap()
             .unwrap();
         assert_eq!(prepared.ticket(), Ticket::new(2));
         assert_eq!(
-            shell.prepare_draft_files(Ticket::new(3), "fixture", "second"),
+            shell.prepare_draft_files_on(Ticket::new(3), node, "fixture", "second"),
             Err(PrepareProblem::Busy)
         );
         shell.rejected_draft_files(Ticket::new(1), cx);
@@ -65,6 +66,7 @@ fn background_completion_moves_only_captured_files_and_reads_its_own_capabilitie
     language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, _window, cx| {
+        let node = NodeId::random();
         let ticket = Ticket::new(1);
         shell.composer_add(
             DraftKey::New,
@@ -72,7 +74,7 @@ fn background_completion_moves_only_captured_files_and_reads_its_own_capabilitie
             cx,
         );
         let _prepared = shell
-            .prepare_draft_files(ticket, "fixture", "captured")
+            .prepare_draft_files_on(ticket, node, "fixture", "captured")
             .unwrap()
             .unwrap();
         shell.composer_add(
@@ -108,6 +110,7 @@ fn background_completion_moves_only_captured_files_and_reads_its_own_capabilitie
         assert!(shell.areas.composer.capabilities.blocked(card.session));
         let ask = vessel_app_link::attachments::CapabilityAsk {
             ticket,
+            expected_node: node,
             machine: vessel_app_view::machine_book::Name::parse("fixture").unwrap(),
             session: card.session,
         };

@@ -46,7 +46,7 @@ fn changed_total_stall_and_overrun_do_not_mutate_a_partial_image() {
     }
 }
 
-mod peer;
+pub(in crate::attachments) mod peer;
 
 #[tokio::test]
 async fn the_real_client_reads_chunks_from_an_in_memory_peer_and_delivers_one_answer() {
