@@ -61,6 +61,24 @@ pub enum Column {
 /// Anything that can go wrong in the store.
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
+    /// Semantic label refusals remain structured at the RPC boundary.
+    #[error("workspace label operation was refused ({0:?})")]
+    WorkspaceLabelRefused(vessel_proto::workspace_labels::WorkspaceLabelFailure),
+    /// A persisted label name no longer satisfies the validated grammar.
+    #[error("stored workspace label name is invalid")]
+    WorkspaceLabelName(#[source] vessel_proto::workspace_labels::LabelNameError),
+    /// A stored color cannot be decoded; its raw data is never displayed.
+    #[error("stored workspace label color is invalid")]
+    WorkspaceLabelColor(#[source] serde_json::Error),
+    /// A stored normalized key disagrees with the definition or a join is missing.
+    #[error("stored workspace label identity is inconsistent")]
+    WorkspaceLabelIdentity,
+    /// A SQLite count did not fit the checked public count type.
+    #[error("workspace label count is outside its representation")]
+    WorkspaceLabelCount(#[source] std::num::TryFromIntError),
+    /// Appending must never wrap and reorder an existing assignment.
+    #[error("workspace label assignment order is exhausted")]
+    WorkspaceLabelOrder,
     /// A file in the data directory could not be read or written.
     #[error("{}: {source}", path.display())]
     Io {
@@ -264,7 +282,22 @@ impl StoreError {
     /// The wire error code for this failure.
     #[must_use]
     pub const fn code(&self) -> ErrorCode {
+        use vessel_proto::workspace_labels::WorkspaceLabelFailure;
         match self {
+            Self::WorkspaceLabelRefused(reason) => match reason {
+                WorkspaceLabelFailure::NameTaken | WorkspaceLabelFailure::WorkspaceInactive => {
+                    ErrorCode::Conflict
+                }
+                WorkspaceLabelFailure::LabelNotFound | WorkspaceLabelFailure::WorkspaceNotFound => {
+                    ErrorCode::NotFound
+                }
+                WorkspaceLabelFailure::Unknown => ErrorCode::Internal,
+            },
+            Self::WorkspaceLabelName(_)
+            | Self::WorkspaceLabelColor(_)
+            | Self::WorkspaceLabelIdentity
+            | Self::WorkspaceLabelCount(_)
+            | Self::WorkspaceLabelOrder => ErrorCode::Internal,
             // A row without its file: removed under the node.
             Self::PushDenied => ErrorCode::Forbidden,
             Self::InboxGone

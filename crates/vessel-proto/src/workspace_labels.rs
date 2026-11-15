@@ -6,8 +6,9 @@ mod sync;
 mod values;
 
 pub use requests::{
-    CatalogRead, DeleteWorkspaceLabel, InspectWorkspaceLabelDelete, ListWorkspaceLabels,
-    UpdateWorkspaceLabel, WorkspaceLabelDeleted, WorkspaceLabelFailure, WorkspaceLabelUpdated,
+    AssignWorkspaceLabel, CatalogRead, DeleteWorkspaceLabel, InspectWorkspaceLabelDelete,
+    ListWorkspaceLabels, UpdateWorkspaceLabel, WorkspaceLabelAssigned, WorkspaceLabelDeleted,
+    WorkspaceLabelFailure, WorkspaceLabelUpdated,
 };
 pub use sync::{CatalogCursor, CatalogDelta, CatalogList, CatalogMode, CatalogUpdate};
 pub use values::{Assignment, Label, LabelColor, LabelCount, LabelKey, LabelName, LabelNameError};

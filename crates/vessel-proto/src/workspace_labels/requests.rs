@@ -2,7 +2,30 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::{CatalogCursor, Label, LabelColor, LabelCount, LabelName};
+use super::{Assignment, CatalogCursor, Label, LabelColor, LabelCount, LabelName};
+use crate::WorkspaceId;
+
+/// Assignment targets the reviewed registry identity, never a session or cwd.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct AssignWorkspaceLabel {
+    /// Stable independent workspace identity.
+    pub workspace: WorkspaceId,
+    /// Existing host spelling/color wins for a known normalized name.
+    pub label: Label,
+    /// Creating a definition is allowed only for Assigned.
+    pub assignment: Assignment,
+}
+
+/// A committed assignment reply carries names; color remains in the catalog.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct WorkspaceLabelAssigned {
+    /// Authoritative host definition, or requested definition on unknown removal.
+    pub label: Label,
+    /// Ordered committed assignments after this operation.
+    pub labels: Vec<LabelName>,
+}
 
 /// One-shot list or bounded observation; no second subscription protocol.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]

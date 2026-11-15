@@ -2,3 +2,4 @@
 //! reviewed registry helpers wire these plans into the single store writer.
 
 mod plans;
+mod sql;

@@ -109,6 +109,16 @@ conflict was the id reexport list: kept every head export and appended the
 two catalog generation/sequence types. Registry/store code was not adopted;
 ownership lookup remains behind a typed staged boundary/fake pending review.
 
+Staged SQL now uses the existing SQLite transaction model: catalog keys and
+ordered assignments, cascade rename/delete, typed row decoding and refusal,
+atomic affected counts, and revision invalidation in the same transaction.
+The registry trait has an explicit test fake with only the agreed parent id
+key; it does not copy unreviewed registry lifecycle SQL. Eight real-SQL tests
+cover admission, collision, archived assignments, advisory deletion, rollback,
+ordinal exhaustion and corrupt rows. Their execution is pending. The SQL is
+not appended to the production migration list and no production registry
+adapter, writer command or RPC is registered yet.
+
 Next: reviewed ADR 0082 registry adoption and single-writer
 persistence. Node journal/planner tests, protocol wiring/old-peer/forwarded
 coverage and generated TypeScript remain owed. The native skeleton lives on
