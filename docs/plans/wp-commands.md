@@ -435,7 +435,7 @@ regression checks the empty defaults, Settings rank and searchable Appearance.
 | Workspace rows, navigation, project create | W11 registry plus S2 visible projection | WorkspaceId present; withdrawn registry carrier absent; runtime registry waits announced base9 and checked native activation packet |
 | Numeric sidebar badges/order/grouping | S2 owner handler and projection | One effective modifier timer written; targets and both-sidebar adapter pending |
 | Pane palette actions / focus-mode exit | W12 LayoutActionContext/run_at | Checked30a context/exit source adopted in sharedline; native owner source and dispatcher wired, union checks pending |
-| Root Import | W2 open_import | Current c625 strict + App/Link checks pending; root registration reserved and blocked on a checked portable owner range; not adopted |
+| Root Import | W2 open_import | Bounded e1b..b270 candidate:031f strict App/View/Link0 + App import2pass, V1 source clear; wait announced lead adoption before rank2 import-session contribution |
 | Root History | W21 Route::Sessions | Screen owner packet pending; no Archive substitute |
 | Root Schedules | G2 Route::Schedules | Source-only, physical admission repair pending; no Settings substitute |
 | Files search/open | W13 FileScope + FileLocation | Pure UI state and existing C5 acquisition available; checked actual connection-scoped opener pending |
@@ -930,3 +930,15 @@ It now refuses through the existing unavailable notice. A retained-target
 regression checks route, draft machine and unsent text all remain unchanged.
 Thus neither current projection nor an old typed legacy callback can bypass
 A1's admitted opener. No new handler, creation route or machine resolver is added.
+
+Exact547b2d72e56deefd27ff62d59e257a4b65f1ab95 App strict R20 rc0 and App
+BIN R13 actual139pass/0fail/2ignore. The new first-root Enter and retained
+legacy creation target tests both executed and passed. No current canonical
+creation owner, whole gate, capture or V4 approval is inferred.
+
+W2 now provides checked bounded Import e1b73c9e..b27021b4 with actual031f
+App/View/Link strict0 and import App2pass, V1 source clear; lead adoption is
+still required before consumer activation. Primary reference root inventory
+uses import-session rank2 (Home is rank3); an earlier coordination message
+incorrectly said rank3, corrected before any implementation. Existing owner
+modal/title/callback is reused; popup/automatic open stay parked.
