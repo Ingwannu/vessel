@@ -156,14 +156,14 @@ resident-cutover approval remain outstanding.
 | Native3e all-kit |137passed/2failed: duplicate inferred-code source and compact double newline. Their corrections passed in the later d4ca Kit execution. |
 | Natived4ca Kit library |179passed/1failed: the retained raw-code drag-copy assertion. App was not selected by the mistaken combined `--lib` command because it is binary-only. |
 | Native44c pure view | Compile failed on an erroneous LifecycleTarget fixture field. Corrected at a809; its replacement has not returned. |
-| Native40aa all-kit | Queued after adding an intermediate glyph-hit event to the same drag endpoints; every copy assertion is retained. No current-source pass yet. |
+| Native40aa all-kit |195/0/0, run `wp-composer-copy-diagnostic-20261115T141044Z-40aaab5d`. Every raw-code/clipboard assertion is retained; the drag now hits a glyph between the same padded endpoints. Later strict lint corrections remain separate source. |
 | Native8ceb App binary | Correct target `--bin vessel-app` queued after incoming Open-fixture adaptations. Earlier queued App requests were cancelled before execution. No App runtime evidence yet. |
 | Independent native valuesb7b | Strict proto+TS all-target Clippy0; exact TS-enabled four-test run4/0 in `wp-composer-native-command-values-20261115T133831Z-b7b4e87e`. Prior dd06 also ran4/0; b7 fixes only naming, documentation and boundary arithmetic. |
 | Independent catalog carrier6988 / ce50 | Strict proto/agent/session+TS all-target Clippy0 at6988; commands-filter tests10/0 at ce50. Separate source scopes, no runtime activation. |
 | Node237 TS generation | Actual proto3/0 and web1/0; gate1 solely for the generated diff. Exact verified artifact applied, with no manual TypeScript edits. Exact dee4 generation equality passed proto3/0 and web1/0 with zero generated differences. |
 | Node67c Codex schema | Exact installed-schema test1/0/0, step/gate0; run `tools-codex-contract-20261115T124102Z-67c5eb77`. Schema-only evidence for that older source. |
 
-Base8 composer model tests passed30/0 on a809. Four-crate strict Clippy is queued on8ceb after incoming Open-fixture adaptations; the earlier a809 strict request was cancelled before execution.
+Base8 composer model tests passed30/0 on a809. Four-crate strict Clippy on8ceb failed View/Kit lint before an App strict result: explicit unit pattern, borrowed code text, doc backticks, semicolons, test geometry arithmetic and UTF8 slicing. The successor keeps all expectations, uses checked string access and the same integral pixel coordinates without lint suppressions. The earlier a809 strict request was cancelled before execution.
 Current source and the whole package remain unverified. All compilation runs on
 the build VM; no local Cargo/Rustc is started. Static size/boundary/token checks
 pass for the prepared source. The native values and catalog carriers are
@@ -187,7 +187,7 @@ Pure-view run `wp-composer-shell-view-tests-20261115T131112Z-44c50564` failed be
 
 Actual d4ca Kit library run `wp-composer-shell-markdown-tests-20261115T124320Z-d4ca2f95` executed Kit180 tests:179 passed, one code-copy drag regression failed (expected raw inline code, query returned None). The combined command incorrectly used `--lib`; App has only the `vessel-app` binary target, so App tests were never selected. The previously failing inferred-source duplication and compact double newline regressions now passed in that Kit execution. The failed assertion is retained with source/selection diagnostics for a targeted reproduction; no product debug logging or weakened expectation is added. The queued App-only command had the same target error and was cancelled before execution. Its replacement explicitly selects `--bin vessel-app`; App execution remains unverified. The isolated Codex schema contract on67c passed1/0/0 in `tools-codex-contract-20261115T124102Z-67c5eb77`; this is older schema-only evidence, not current transport or package approval.
 
-Copy-regression source analysis: the synthetic full-code drag started in inline-code left padding and jumped directly to right padding. The existing window selection controller retains a gesture only after an event hits text; no intermediate glyph hit was supplied. The test now traverses a glyph point between the same endpoints and retains every raw-code and clipboard assertion, including Select All first. Production selection code is unchanged. A targeted actual-engine rerun is required before attributing the failure solely to fixture geometry.
+Copy-regression source analysis: the synthetic full-code drag started in inline-code left padding and jumped directly to right padding. The existing window selection controller retains a gesture only after an event hits text; no intermediate glyph hit was supplied. The test now traverses a glyph point between the same endpoints and retains every raw-code and clipboard assertion, including Select All first. Production selection code is unchanged. Exact40aa actual Kit195/0/0 verifies the unchanged raw-code/clipboard assertions after this fixture correction; no production selection change was needed.
 
 Fullscreen selection boundary:
 

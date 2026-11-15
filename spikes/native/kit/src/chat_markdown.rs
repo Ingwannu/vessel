@@ -276,7 +276,7 @@ pub fn chat_markdown_with(
         })
         .style(presentation(look, cx))
         .code_block_actions(move |code, window, cx| {
-            corner(code.code(), code.lang(), look, window, cx)
+            corner(code.code().as_ref(), code.lang(), look, window, cx)
         });
     actions::finish(view, state, options.actions, options.copy)
 }
@@ -393,13 +393,13 @@ fn table_cell() -> StyleRefinement {
 
 /// The block's corner: its language and the copy button.
 fn corner(
-    text: SharedString,
+    text: &str,
     lang: Option<SharedString>,
     look: Look,
     window: &mut Window,
     cx: &mut App,
 ) -> AnyElement {
-    let text: SharedString = gpui_base::text::trim_code_line_breaks(&text)
+    let text: SharedString = gpui_base::text::trim_code_line_breaks(text)
         .to_owned()
         .into();
     div()

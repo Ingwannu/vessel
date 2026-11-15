@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 
 use gpui::{
     AppContext as _, Context, Entity, IntoElement, Modifiers, MouseButton, ParentElement as _,
-    Render, Styled as _, TestAppContext, Window, div, point, px,
+    Pixels, Point, Render, Styled as _, TestAppContext, Window, div, point, px,
 };
 use gpui_base::text::{TextView, TextViewState};
 
@@ -31,6 +31,15 @@ use super::{Actions, CopyStyle, InlineLinkKind, RecognizedLink, Source, finish};
 
 const PATH: &str = "src/lib.rs:4";
 
+// Translate measured test geometry without suppressing workspace arithmetic
+// checks. All offsets below retain the same integral pixel endpoints.
+fn offset(origin: Point<Pixels>, x: f32, y: f32) -> Point<Pixels> {
+    point(
+        px(f32::from(origin.x).mul_add(1.0, x)),
+        px(f32::from(origin.y).mul_add(1.0, y)),
+    )
+}
+
 fn recognize(text: &str, _: InlineLinkKind) -> Vec<RecognizedLink> {
     text.find(PATH)
         .and_then(|start| RecognizedLink::new(text, start..start.saturating_add(PATH.len()), PATH))
@@ -49,7 +58,7 @@ impl Render for Probe {
             clicks
                 .lock()
                 .unwrap()
-                .push((href.as_str().to_owned(), href.source()))
+                .push((href.as_str().to_owned(), href.source()));
         })
         .with_inline_links(recognize);
         div()
@@ -85,8 +94,8 @@ fn inferred_token_keeps_partial_selection_and_find_source_offsets(cx: &mut TestA
         });
         let state = probe.read_with(window, |probe, _| probe.state.clone());
         let bounds = state.read_with(window, |state, _| state.bounds());
-        let start = bounds.origin + point(px(12.0), px(4.0));
-        let end = bounds.bottom_right() - point(px(4.0), px(4.0));
+        let start = offset(bounds.origin, 12.0, 4.0);
+        let end = offset(bounds.bottom_right(), -4.0, -4.0);
         window.simulate_mouse_down(start, MouseButton::Left, Modifiers::default());
         window.simulate_mouse_move(end, MouseButton::Left, Modifiers::default());
         window.simulate_mouse_up(end, MouseButton::Left, Modifiers::default());
@@ -100,7 +109,11 @@ fn inferred_token_keeps_partial_selection_and_find_source_offsets(cx: &mut TestA
             let found = rendered
                 .range_for_source(path_start..path_start.saturating_add(PATH.len()))
                 .unwrap();
-            assert_eq!(&rendered.as_str()[found], PATH, "find offsets did not move");
+            assert_eq!(
+                rendered.as_str().get(found),
+                Some(PATH),
+                "find offsets did not move"
+            );
             let selected = state
                 .selected_source_range()
                 .expect("drag selection maps to source");
@@ -115,10 +128,8 @@ fn inferred_token_keeps_partial_selection_and_find_source_offsets(cx: &mut TestA
                 "overlapping code/emphasis/link marks must not copy bytes twice"
             );
             if !source.starts_with("**") {
-                assert_eq!(
-                    state.selected_text().trim_end_matches('\n'),
-                    &source[selected]
-                );
+                let copied = state.selected_text();
+                assert_eq!(Some(copied.trim_end_matches('\n')), source.get(selected));
             }
             assert!(
                 !state.selected_text().contains("](src/lib.rs:4)"),
@@ -180,7 +191,7 @@ fn code_copy_uses_parsed_inline_and_fenced_regions(cx: &mut TestAppContext) {
             let _paint = window.draw(cx);
         });
         let state = probe.read_with(window, |probe, _| probe.state.clone());
-        window.update(|_, cx| state.update(cx, |state, cx| state.select_all(cx)));
+        window.update(|_, cx| state.update(cx, TextViewState::select_all));
         state.read_with(window, |state, _| {
             assert_eq!(
                 state.selected_code_text(),
@@ -204,19 +215,19 @@ fn code_copy_uses_parsed_inline_and_fenced_regions(cx: &mut TestAppContext) {
             // Stay within the rendered code, including every character. Message
             // Select All above instead crosses the code's semantic boundary.
             let bounds = state.read_with(window, |state, _| state.bounds());
-            let start = bounds.origin
-                + if source.starts_with('`') && !source.starts_with("```") {
-                    point(px(1.0), px(8.0))
-                } else {
-                    point(px(17.0), px(40.0))
-                };
-            let end = point(bounds.right() - px(2.0), start.y);
+            let (x, y) = if source.starts_with('`') && !source.starts_with("```") {
+                (1.0, 8.0)
+            } else {
+                (17.0, 40.0)
+            };
+            let start = offset(bounds.origin, x, y);
+            let end = offset(point(bounds.right(), start.y), -2.0, 0.0);
             window.simulate_mouse_down(start, MouseButton::Left, Modifiers::default());
             // A real drag crosses glyphs between the padded endpoints. The
             // window controller correctly discards a padding-only teleport
             // whose down/move/up events never hit text at all.
             window.simulate_mouse_move(
-                point(bounds.left() + px(24.0), start.y),
+                offset(point(bounds.left(), start.y), 24.0, 0.0),
                 MouseButton::Left,
                 Modifiers::default(),
             );

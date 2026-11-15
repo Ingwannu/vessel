@@ -107,7 +107,7 @@ fn plugin_arguments_are_trimmed_once_and_attachments_disable_local_execution() {
 fn shared_javascript_whitespace_keeps_plugin_and_inline_boundaries_exact() {
     let name: CommandName = "plug".parse().unwrap();
     let entries = merge(Target::Session, [Entry::plugin(&name, &())], []);
-    let (_, args) = plugin_call(
+    let ((), args) = plugin_call(
         "\u{feff}/plug\u{feff} hello\u{feff}",
         Context::TextOnly,
         &entries,

@@ -232,7 +232,7 @@ seam listed below is also marked in each changed file.
   added for unlinked images.
 - Check: kit `chat_markdown::actions::image_tests` covers plain images, mixed
   inline-flow images and linked images with a host handler, plus absence of a
-  handler. These tests are pending; no visual approval is implied.
+  handler. These tests passed in Kit run `wp-composer-copy-diagnostic-20261115T141044Z-40aaab5d` (195/0 overall); no visual approval is implied.
 
 ### Optional inferred text links without source rewriting
 
@@ -251,7 +251,7 @@ seam listed below is also marked in each changed file.
 - Changed files: private `text/inline_links.rs`, extension configuration, Markdown
   parsing, existing link marks/copy, and existing inline/image activation adapters.
   The native kit tests partial selection across a recognized token, source-to-find
-  offsets, authored-link priority, and fenced-code exclusion. Tests are pending.
+  offsets, authored-link priority, and fenced-code exclusion. They passed in the same exact40aa Kit run; strict and later source checks remain separate.
 - Compatibility: the kit calls the same Base TextView directly because the pinned
   Component facade does not forward these optional callbacks. The existing
   `TextViewDefaults::style` accessor is public so kit refinements start from the

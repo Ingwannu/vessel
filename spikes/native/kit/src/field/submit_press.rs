@@ -1,4 +1,4 @@
-//! Synchronous metadata from the existing PressEnter callback, not another listener.
+//! Synchronous metadata from the existing `PressEnter` callback, not another listener.
 //!
 //! Enter's modifier chooses an alternate composer action only after the caller
 //! applies its send setting and current admission. It cannot be guessed later

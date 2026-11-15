@@ -76,7 +76,7 @@ fn compact_preference_reapply_cannot_send_and_fullscreen_retains_the_same_editor
                 panic!("composer");
             };
             state.update(cx, |state, cx| {
-                state.set_selected_range("한글".len().."한글".len(), cx)
+                state.set_selected_range("한글".len().."한글".len(), cx);
             });
             probe.field.set_send_on(SendOn::Enter);
             assert_eq!(probe.field.send.get(), SendOn::ButtonOnly);
@@ -97,7 +97,7 @@ fn compact_preference_reapply_cannot_send_and_fullscreen_retains_the_same_editor
             probe.field.set_editability(Editability::ReadOnly, cx);
             probe.layout = ComposerLayout::fullscreen(px(400.0), ComposerFont::Terminal);
             cx.notify();
-        })
+        });
     });
     window.run_until_parked();
     probe.read_with(window, |probe, cx| {
