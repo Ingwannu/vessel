@@ -19,6 +19,8 @@ mod callback;
 mod device;
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 mod dsp;
+#[cfg(all(test, any(target_os = "linux", target_os = "windows")))]
+mod duplex;
 mod format;
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 mod owner;

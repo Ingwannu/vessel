@@ -1313,3 +1313,10 @@ stream/callback queue is separate from capture-only DSP so a duplex bundle can
 reuse that constructor with one capture/render processor. Stream disposal still
 precedes retirement of the process-wide capture guard. Conversation acquisition
 remains unavailable until that bundle/controller is connected.
+
+The staged `link::audio::duplex` bundle constructs both streams on that device
+thread and shares one processor with the existing playback Pump. Its input
+wait handles actual output references/completions and receipt deadlines before
+capture; partial startup failure/Drop closes the shared local fence. This is
+test-only source pending controller wiring and checks. It does not enable the
+public Conversation acquisition path or attest any physical device/AEC quality.

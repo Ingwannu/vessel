@@ -36,7 +36,10 @@ fn run<D: CaptureDevice>(
     }
     match open(owner.fence(), owner.budget(), owner.upload_gate()) {
         Ok(mut device) => {
-            let result = match tokio::runtime::Builder::new_current_thread().build() {
+            let result = match tokio::runtime::Builder::new_current_thread()
+                .enable_time()
+                .build()
+            {
                 Ok(runtime) => runtime.block_on(capture(&owner, sender, &mut device)),
                 Err(_private) => Err(DeviceFailure::Thread),
             };

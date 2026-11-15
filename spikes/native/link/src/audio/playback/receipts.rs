@@ -2,7 +2,10 @@
 
 use std::{
     collections::BTreeMap,
-    sync::Arc,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
     time::{Duration, Instant},
 };
 
@@ -63,11 +66,12 @@ pub(in crate::audio) enum Refusal {
 pub(super) struct Receipt {
     stop: Fence,
     conversation: Arc<Fence>,
+    terminal: AtomicBool,
     state: watch::Sender<State>,
 }
 impl Receipt {
     pub(super) fn stopped(&self) -> bool {
-        self.cancelled() || self.state.borrow().terminal()
+        self.cancelled() || self.terminal.load(Ordering::Acquire)
     }
     fn cancelled(&self) -> bool {
         self.stop.is_closed() || self.conversation.is_closed()
@@ -82,6 +86,9 @@ impl Receipt {
             } else {
                 requested
             };
+            if state.terminal() {
+                self.terminal.store(true, Ordering::Release);
+            }
             true
         });
     }
@@ -158,6 +165,7 @@ impl Book {
         let receipt = Arc::new(Receipt {
             stop: Fence::default(),
             conversation: Arc::clone(&self.conversation),
+            terminal: AtomicBool::new(false),
             state,
         });
         let _previous = self.entries.insert(

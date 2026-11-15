@@ -16,7 +16,9 @@ use super::{
     upload_access::Gate,
 };
 use crate::cancel::Fence;
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
+
+pub(super) const DEVICE_OPEN_TIMEOUT: Duration = Duration::from_secs(1);
 
 pub(super) trait CaptureDevice {
     fn start(&self) -> Result<(), DeviceFailure>;

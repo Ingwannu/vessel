@@ -81,8 +81,22 @@ fn exercise_transitions() {
         book.scheduled(failed.lease(), now, None),
         Err(Refusal::Clock)
     );
+    let receipt = Arc::clone(&failed.receipt);
+    let (entered, held) = std::sync::mpsc::sync_channel(1);
+    let (release, released) = std::sync::mpsc::sync_channel(1);
+    let writer = std::thread::spawn(move || {
+        let _changed = receipt.state.send_if_modified(|_state| {
+            entered.send(()).unwrap();
+            released.recv_timeout(PROBE_DEADLINE).unwrap();
+            false
+        });
+    });
+    held.recv_timeout(PROBE_DEADLINE).unwrap();
+    // The real callback/reader stop predicate must not borrow the watch lock.
     assert!(reader.stopped());
     assert!(matches!(reader.next(), Err(Refusal::Stopped)));
+    release.send(()).unwrap();
+    writer.join().unwrap();
     assert_eq!(*failed.status().borrow(), State::Failed);
     book.advance(now);
     let interrupted = book.submit(packet(&[0, 0])).unwrap();

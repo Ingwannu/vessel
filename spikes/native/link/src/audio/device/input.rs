@@ -3,7 +3,7 @@
 //! It owns raw callback frames only; the enclosing device thread owns the DSP
 //! and destroys this stream before retiring its process-wide microphone guard.
 
-use super::{DeviceFailure, validated_format};
+use super::{DEVICE_OPEN_TIMEOUT, DeviceFailure, validated_format};
 use crate::{
     audio::{
         budget::Budget,
@@ -18,10 +18,7 @@ use std::sync::{
     Arc,
     atomic::{AtomicBool, Ordering},
 };
-use std::time::Duration;
 use tokio::sync::mpsc;
-
-const DEVICE_OPEN_TIMEOUT: Duration = Duration::from_secs(1);
 
 pub(in crate::audio) struct Input {
     stream: cpal::Stream,

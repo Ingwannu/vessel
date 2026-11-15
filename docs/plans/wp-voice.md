@@ -455,3 +455,20 @@ previously unchecked shared Circle composition and Fluent overlay labels.
 - Choice: device::input owns the native stream/callback queue, while Native retains the capture-only processor. Device metadata validation stays in device and can serve output too.
 - Why: the forthcoming duplex bundle can feed actual output references to its one processor without another microphone constructor or engine.
 - Impact: Dictation's public API, raw format conversion, bounded queues and stream-before-owner destruction stay the same. The raw constructor now also refuses an already-closed local fence before device discovery. Conversation stays unavailable. No device is opened by tests or this source change; remote compilation and lifecycle fakes remain required.
+
+### Native duplex stream bundle
+
+[Decision Log]
+- Purpose: actual output references and capture processing must share one DSP owner.
+- Existing assets: shared raw Input, output Callback/Ports, Pump and process capture guard.
+- Alternatives: second audio engine or independent playback DSP; a device-thread bundle using these existing pieces.
+- Choice: staged generic duplex Streams owns raw input/output, one Processor and one Pump. Its CaptureDevice receive waits on output references/completions, capture, cancellation and exact receipt deadlines; references are handled before capture when both are ready. Native output uses CPAL default ALSA/WASAPI metadata and the same validation/redacted error policy as input.
+- Why: callback queueing/preparation is distinct from actual output and DAC completion, and Stop must wake even when input is silent. Both streams remain in the worker's device bundle until destruction, ahead of the capture guard.
+- Impact: fake sources exercise ordering/drain/start failures without opening devices. The native constructor remains staged, public Conversation acquisition still refuses, and controller command/mute/barge-in wiring remains owed. This is not physical AEC, OS permission, microphone or playback proof. No dependency or runtime/model is added.
+
+The duplex integration audit also removed watch reads from callback/reader
+stop predicates. Receipt keeps an atomic terminal bit published alongside its
+watch transition; only the worker/UI uses watch state. This preserves failure
+fencing without a potentially blocked callback read. The finite child probe
+now deliberately holds the watch write lock while the failed reader must stop
+and refuse its next block. New source and fakes have not executed yet.
