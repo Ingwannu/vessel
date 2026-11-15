@@ -1785,3 +1785,11 @@ Toasts retain the existing host and lifetime rules. The viewport sits below
 the header and centres existing cards, with responsive width and a bounded
 scrolling stack. It no longer occupies the lower composer/dock region.
 The layer's tokens, status roles, colors and dismiss actions are unchanged.
+
+The common terminal screen inbox services at most one queued control before each
+live actor's existing stop/exit/output selection; idle requests remain selectable
+when output is absent. This bounds capture work without letting a refilling inbox
+starve PTY/pipe drain, and preserves one output interpreter for both target kinds.
+At EOF the original Silent engine moves once into a sealed final owner: no feed,
+resize or scrollback mutation is exposed there. Capture stays readonly; future
+bounded marker metadata is separate from decoder state and transport authority.

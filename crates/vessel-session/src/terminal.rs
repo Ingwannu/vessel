@@ -46,10 +46,10 @@ impl TerminalActor {
         let mut output_open = true;
         let mut quiet = Quiet::new();
         let code = loop {
+            self.screen.poll_one();
             tokio::select! {
                 biased;
                 step = self.life.stop.next() => self.life.apply(&mut self.pty, step),
-                Some(command) = self.screen.next() => self.screen.command(command),
                 code = self.pty.wait() => break code,
                 chunk = self.output.next(), if output_open => match chunk {
                     Some(bytes) => {
@@ -66,6 +66,7 @@ impl TerminalActor {
                 }
                 Ok(()) = self.life.forge.changed() => self.life.forge_changed(),
                 () = quiet.elapsed() => self.life.out.quiet(),
+                Some(command) = self.screen.next() => self.screen.command(command),
             }
         };
         if output_open {

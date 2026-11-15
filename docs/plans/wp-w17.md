@@ -1557,3 +1557,27 @@ through GetWorkspace and verify the emitted workspaceId/title receipt. No derive
 name is invented. The prior negative process case remains meaningful after feature
 assignment: nonexistent targets are NotFound instead of a fabricated success.
 All newly added positive runtime evidence and latest strict remain unexecuted.
+
+### Bound screen-inbox work without starving ready output
+
+[Decision Log]
+- Purpose: both capture/control requests and output must progress under a continuously refilled inbox.
+- Existing constraint: the new screen branch preceded output in biased TUI/shell/script
+  selects. A ready refilling inbox could starve output despite finite queue capacity.
+- Alternatives: draining all queued commands retains starvation; removing select bias
+  changes existing stop/exit priorities; a separate worker breaks actor ordering.
+- Choice: the common helper handles at most one immediately queued command per actor
+  loop, then existing stop/exit/output branches precede the idle screen-receive branch.
+  Apply the same bounded polling wrapper to standalone and session actors; keep unbiased
+  drain/backoff loops unchanged. No new task, queue, parser or routing authority.
+- Impact: FIFO within the screen inbox remains; ready output progresses before a command
+  burst can drain, while a flooded output stream still admits one control per loop.
+
+A Unix actual-TUI regression holds startup on a one-record durable channel, waits
+for the child to flush a128KiB banner through the real PTY before its separate local
+ready acknowledgement, then fills all8 inbox slots. At first published output the
+last command barrier must still be pending; the prior biased ordering resolves all8
+before reading ready output. Shutdown drains the real actor. The fake's optional
+ready-port argument only synchronizes this test; default held-input behavior is unchanged.
+Explicit Tokio net test feature reuses the workspace dependency, with no new package.
+This source and real regression are unexecuted; do not claim fairness from code alone.

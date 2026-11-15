@@ -83,6 +83,9 @@ fn spec(root: &Path) -> SessionSpec {
 }
 
 fn runtime(root: &Path) -> SessionRuntime {
+    with_capacity(root, DEFAULT_DURABLE_CAPACITY)
+}
+fn with_capacity(root: &Path, durable_capacity: NonZeroUsize) -> SessionRuntime {
     let bin = root.join("bin");
     std::fs::create_dir(&bin).unwrap();
     drop(
@@ -99,7 +102,7 @@ fn runtime(root: &Path) -> SessionRuntime {
             harness_lookup: vessel_harness::Lookup::new([bin]),
             harness_env: vessel_harness::HarnessEnv::new(root.join("user")),
             ring_capacity: NonZeroUsize::new(2).unwrap(),
-            durable_capacity: DEFAULT_DURABLE_CAPACITY,
+            durable_capacity,
             agent_handshake_timeout: DEFAULT_HANDSHAKE_TIMEOUT,
             park_after: None,
             private_dir: None,
@@ -134,4 +137,67 @@ async fn until_text(durable: &mut mpsc::Receiver<Arc<EventRecord>>, expected: &s
     })
     .await
     .expect("fake TUI did not emit expected text");
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn a_full_screen_inbox_cannot_run_ahead_of_already_ready_tui_output() {
+    vessel_testkit::within(
+        Duration::from_secs(60),
+        Box::pin(async {
+            use tokio::io::AsyncReadExt as _;
+            let root = tempfile::tempdir().unwrap();
+            let listener = tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))
+                .await
+                .unwrap();
+            let port = listener.local_addr().unwrap().port();
+            let runtime = with_capacity(root.path(), NonZeroUsize::new(1).unwrap());
+            let mut spec = spec(root.path());
+            spec.mode = SessionMode::Terminal {
+                args: vec!["--held-input".to_owned(), port.to_string()],
+                size: TerminalSize { rows: 3, cols: 40 },
+            };
+            let created = runtime.create(spec).await.unwrap();
+            let handle = created.handle;
+            let endpoint = match &handle.0.input {
+                Input::Terminal { screen, .. } => screen.clone(),
+                Input::Structured(_) => panic!("fake TUI used structured routing"),
+            };
+            // The actor cannot leave startup until its one-slot durable channel
+            // is drained. The child flushes real output before this separate ack.
+            let (mut ready, _) = listener.accept().await.unwrap();
+            let mut control_port = [0_u8; 2];
+            ready.read_exact(&mut control_port).await.unwrap();
+            assert_ne!(u16::from_be_bytes(control_port), 0);
+            for _ in 1..crate::terminal_screen::CAPTURE_QUEUE {
+                endpoint.resize(TerminalSize { rows: 3, cols: 40 }).unwrap();
+            }
+            let (reply, mut barrier) = oneshot::channel();
+            // A private last-command acknowledgement observes scheduling only;
+            // text capture still rejects the session target when eventually handled.
+            endpoint
+                .commands
+                .try_send(CaptureCommand::Capture {
+                    options: CaptureOptions::default(),
+                    reply,
+                })
+                .unwrap();
+            let mut durable = created.durable;
+            loop {
+                let record = durable.recv().await.expect("TUI ended before ready output");
+                if matches!(record.event, SessionEvent::Terminal(_)) {
+                    break;
+                }
+            }
+            assert!(matches!(
+                barrier.try_recv(),
+                Err(oneshot::error::TryRecvError::Empty)
+            ));
+            handle.kill();
+            while durable.recv().await.is_some() {}
+            runtime.shutdown().await;
+        }),
+    )
+    .await
+    .unwrap();
 }

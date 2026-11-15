@@ -101,6 +101,13 @@ impl ScreenAuthority {
             self.screen = Err(error);
         }
     }
+    /// Admit at most one control before polling output. Draining the whole inbox
+    /// or putting it first in a biased select lets refillers starve PTY output.
+    pub(super) fn poll_one(&mut self) {
+        if let Ok(command) = self.inbox.try_recv() {
+            self.command(command);
+        }
+    }
     pub(super) async fn next(&mut self) -> Option<CaptureCommand> {
         self.inbox.recv().await
     }

@@ -113,18 +113,19 @@ impl ShellActor {
         let session = self.pty.pid();
         let mut output_open = true;
         let code = loop {
+            self.log.poll_capture();
             tokio::select! {
                 biased;
                 step = self.stop.next() => {
                     self.pty.stop(step);
                     self.stop.advance(step);
                 }
-                Some(request) = self.log.capture_command() => self.log.reply_capture(request),
                 code = self.pty.wait() => break code,
                 chunk = self.output.next(), if output_open => match chunk {
                     Some(bytes) => self.log.output(bytes),
                     None => output_open = false,
                 },
+                Some(request) = self.log.capture_command() => self.log.reply_capture(request),
             }
         };
         // The jobs an interactive shell put in groups of their own are

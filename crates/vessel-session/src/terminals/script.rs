@@ -289,6 +289,7 @@ impl<A: Fn() -> bool> ScriptActor<A> {
         let mut restart = false;
         let mut force_at: Option<Instant> = None;
         let code = loop {
+            self.log.poll_capture();
             tokio::select! {
                 biased;
                 step = self.stop.next() => {
@@ -301,7 +302,6 @@ impl<A: Fn() -> bool> ScriptActor<A> {
                     force_at = Some(Instant::now().checked_add(SCRIPT_GRACE).unwrap_or_else(Instant::now));
                 }
                 code = child.wait() => break code.ok().flatten(),
-                Some(request) = self.log.capture_command() => self.log.reply_capture(request),
                 chunk = output.recv(), if output_open => match chunk {
                     Some(bytes) => self.log.output(bytes),
                     None => output_open = false,
@@ -310,6 +310,7 @@ impl<A: Fn() -> bool> ScriptActor<A> {
                     signal(&mut child, Step::Force);
                     force_at = None;
                 }
+                Some(request) = self.log.capture_command() => self.log.reply_capture(request),
             }
         };
         self.log.running(None);

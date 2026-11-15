@@ -29,7 +29,8 @@ tracing.workspace = true
 [dev-dependencies]
 criterion.workspace = true
 # `test-util`: the quiet timer is checked on a paused clock.
-tokio = { workspace = true, features = ["rt-multi-thread", "test-util"] }
+# `net`: a separate fake readiness acknowledgement proves real output is queued.
+tokio = { workspace = true, features = ["rt-multi-thread", "test-util", "net"] }
 vessel-harness = { workspace = true, features = ["fakes"] }
 vessel-testkit.workspace = true
 # The terminals' tests: a folder each, and whether a job's pid is alive.

@@ -73,7 +73,7 @@ fn main() -> ExitCode {
             }
         }
         #[cfg(unix)]
-        Some("--held-input") => held_input::run(),
+        Some("--held-input") => held_input::run(args.next().as_deref()),
         Some("--sleeper") => loop {
             // Parked forever; `park` may return spuriously, hence the loop.
             std::thread::park();

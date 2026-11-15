@@ -60,6 +60,10 @@ impl TermLog {
         });
     }
 
+    pub(super) fn poll_capture(&mut self) {
+        self.screen.poll_one();
+    }
+
     pub(super) async fn capture_command(
         &mut self,
     ) -> Option<crate::terminal_screen::CaptureCommand> {
