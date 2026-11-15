@@ -190,7 +190,7 @@ or Store operation can delay drain; no forced-cancellation deadline is promised.
 
 First review this docs-only shape. After acceptance the coordinator names the
 exact joint base; recovery supplies its hook and field logic against that shape,
-nodectl implements the common owner/record/boot join, and the union gets changed
+the settings owner implements the common operation/record/boot join, and the union gets changed
 strict/tests and one joint enclosing gate. A prior branch's green gate or a
 source-only verdict does not qualify the new producer. Existing source-returned
 recovery behavior stays out until its independent findings are corrected.
