@@ -1,7 +1,7 @@
 //! Per-window observations contain no child handle or process lifetime authority.
 
 mod render;
-pub(crate) use render::{dialog, section};
+pub(crate) use render::{dialog, overview, section};
 
 use crate::shell::Shell;
 use gpui::{Context, Window};
@@ -13,7 +13,7 @@ use vessel_app_link::{
     },
 };
 use vessel_app_view::devices::{Ticket, Tickets};
-use vessel_app_view::local_node::{AfterQuit, LocalTarget, Management, Status};
+use vessel_app_view::local_node::{AdmissionProblem, AfterQuit, LocalTarget, Management, Status};
 
 pub(crate) struct LocalNodeArea {
     pub(crate) snapshot: Option<Snapshot>,
@@ -197,8 +197,19 @@ impl Shell {
         // Keep the ticket so a later saved-name collision invalidates this target.
         self.areas.local_node.target = match answer.result {
             Ok(target) => target,
-            Err(_failure) => {
-                self.notice = Some(self.words.local_node().registration_failed().to_owned());
+            Err(problem) => {
+                let words = self.words.local_node();
+                let message = match problem {
+                    AdmissionProblem::BookCollision => words.name_collision(),
+                    AdmissionProblem::LocalOccupied => words.already_registered(),
+                    AdmissionProblem::IdentityChanged => words.identity_changed(),
+                    AdmissionProblem::SourceRetired => words.transport_retired(),
+                    AdmissionProblem::Unsent
+                    | AdmissionProblem::AdmissionExhausted
+                    | AdmissionProblem::BookRead
+                    | AdmissionProblem::Unavailable => words.registration_failed(),
+                };
+                self.notice = Some(message.to_owned());
                 None
             }
         };

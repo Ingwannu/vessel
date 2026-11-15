@@ -78,3 +78,12 @@ local-node-cancel = Cancel
 local-node-confirm-update = Restart Vessel to update?
 # Explicitly authorize interrupting the captured owned node before app-update restart.
 local-node-interrupt-update = Interrupt sessions and restart to update
+
+# Exact generated local destination collides with an existing saved book entry.
+local-node-name-collision = A saved machine already uses this local node's generated name. Rename or remove that saved entry to register the local node.
+# The canonical registry's one-local-source cap refused a distinct second source.
+local-node-already-registered = Another managed local connection is already registered.
+# The original authenticated source differs from the controller's expected node.
+local-node-identity-changed = The managed local node's authenticated identity changed. Reconnect it before continuing.
+# The controller withdrew its original transport; this is not proof of OS exit.
+local-node-transport-retired = The managed local connection is no longer available. Reconnect it before continuing.

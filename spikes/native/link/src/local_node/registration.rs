@@ -3,8 +3,8 @@
 use super::Connection;
 use crate::{Connected, Event, State};
 use vessel_app_view::devices::Ticket;
-use vessel_app_view::local_node::LocalTarget;
-use vessel_app_view::machine_book::{Failure, Name};
+use vessel_app_view::local_node::{AdmissionProblem, LocalTarget};
+use vessel_app_view::machine_book::Name;
 use vessel_app_view::{Card, Machine, NodeVersion, Reach};
 
 /// Every registration response carries the window's own current ticket.
@@ -22,7 +22,7 @@ pub struct Answer {
     /// Original ticket; stale replies cannot republish a stopped connection.
     pub ticket: Ticket,
     /// Ephemeral destination or typed refusal; never remote book contents.
-    pub result: Result<Option<LocalTarget>, Failure>,
+    pub result: Result<Option<LocalTarget>, AdmissionProblem>,
 }
 
 impl Ask {
@@ -31,7 +31,7 @@ impl Ask {
     pub fn refused(self) -> Answer {
         Answer {
             ticket: self.ticket,
-            result: Err(Failure::Unsent),
+            result: Err(AdmissionProblem::Unsent),
         }
     }
 }
@@ -57,7 +57,7 @@ impl State {
         &mut self,
         ticket: Ticket,
         connection: Option<Connection>,
-    ) -> Result<Option<LocalTarget>, Failure> {
+    ) -> Result<Option<LocalTarget>, AdmissionProblem> {
         if let Some(previous) = self.local_registration.take() {
             let _old = self.clients.remove(previous.target.machine.as_str());
         }
@@ -65,13 +65,16 @@ impl State {
             return Ok(None);
         };
         let name = Name::parse(&format!("desktop-{}", connection.client.node().id))
-            .map_err(|_invalid| Failure::Taken)?;
-        let book = self.saved_entries().await?;
+            .map_err(|_invalid| AdmissionProblem::Unavailable)?;
+        let book = self
+            .saved_entries()
+            .await
+            .map_err(|_read| AdmissionProblem::BookRead)?;
         if book
             .iter()
             .any(|(saved, _entry)| saved.as_str() == name.as_str())
         {
-            return Err(Failure::Taken);
+            return Err(AdmissionProblem::BookCollision);
         }
         let target = LocalTarget {
             node: connection.client.node().id,
@@ -102,7 +105,7 @@ impl State {
             let _old = self.clients.remove(local.target.machine.as_str());
             self.emit(Event::LocalNode(Answer {
                 ticket: local.ticket,
-                result: Err(Failure::Taken),
+                result: Err(AdmissionProblem::BookCollision),
             }))
             .await;
         }

@@ -7,6 +7,40 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Tokens, outline_button, settings};
 
+/// Host-context navigation does not authorize a process operation.
+pub(crate) fn overview(
+    shell: &Shell,
+    target: &LocalTarget,
+    tokens: &Tokens,
+    compact: bool,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let words = shell.words.local_node();
+    let provenance = match target.provenance {
+        vessel_app_view::local_node::LocalProvenance::OwnedChild => words.owned(),
+        vessel_app_view::local_node::LocalProvenance::AttachedManagedHome => words.attached(),
+    };
+    let navigation = outline_button("local-node-general", words.manage(), true, tokens)
+        .on_click(cx.listener(|shell, _event, _window, cx| {
+            shell.settings_section(vessel_app_view::settings::Section::General, cx);
+        }))
+        .into_any_element();
+    settings::section(
+        words.title(),
+        settings::card(tokens).child(settings::row_at(
+            words.status(),
+            Some(provenance.into()),
+            None,
+            Some(navigation),
+            false,
+            compact,
+            tokens,
+        )),
+        tokens,
+    )
+    .into_any_element()
+}
+
 pub(crate) fn section(
     shell: &Shell,
     tokens: &Tokens,

@@ -338,3 +338,12 @@ Update failure releases the app-wide finalization phase before attempting to
 notify the initiating weak Shell. A window disappearing while I/O awaits must
 not leave every surviving window permanently frozen. Notice delivery remains
 best-effort; it does not own the phase or controller cleanup authority.
+
+Managed-local admission now has a dedicated safe refusal vocabulary rather than
+reusing book-write failures. Generated-name collision, a second local source,
+identity change and withdrawn transport have distinct EN/KO notices. Their
+canonical actor enforcement still belongs to the reserved third-slot source.
+The local Overview contribution is read-only provenance plus navigation to
+General; it no longer embeds stop/restart or policy controls under host context.
+Canonical Machine provenance/Unknown and Book-only edit fences remain the E2/G4
+integration contract; no alias-only locality inference is introduced.

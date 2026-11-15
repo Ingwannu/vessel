@@ -56,6 +56,27 @@ pub struct LocalTarget {
     pub provenance: LocalProvenance,
 }
 
+/// Safe admission refusals expose no saved credential, remote text or PID.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AdmissionProblem {
+    /// The bounded link queue did not accept the operation.
+    Unsent,
+    /// Actual authenticated identity differs from the fixed controller source.
+    IdentityChanged,
+    /// An explicit saved destination already owns the generated name.
+    BookCollision,
+    /// A distinct source cannot displace the one active local admission.
+    LocalOccupied,
+    /// The canonical allocator cannot mint another non-reused admission.
+    AdmissionExhausted,
+    /// The saved book could not be checked authoritatively.
+    BookRead,
+    /// The controller withdrew or lost the original transport.
+    SourceRetired,
+    /// This client cannot represent the requested local destination.
+    Unavailable,
+}
+
 /// Local-node status displayed independently of the remote fleet.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Status {

@@ -78,3 +78,12 @@ local-node-cancel = 취소
 local-node-confirm-update = 업데이트를 위해 Vessel을 다시 시작할까요?
 # Explicitly authorize interrupting the captured owned node before app-update restart.
 local-node-interrupt-update = 세션을 중단하고 업데이트 재시작
+
+# Exact generated local destination collides with an existing saved book entry.
+local-node-name-collision = 저장된 머신이 이 로컬 노드의 생성 이름을 사용하고 있습니다. 해당 저장 항목의 이름을 바꾸거나 제거한 뒤 로컬 노드를 연결하세요.
+# The canonical registry's one-local-source cap refused a distinct second source.
+local-node-already-registered = 다른 관리 로컬 연결이 이미 등록되어 있습니다.
+# The original authenticated source differs from the controller's expected node.
+local-node-identity-changed = 관리 로컬 노드의 인증된 식별자가 바뀌었습니다. 다시 연결한 뒤 계속하세요.
+# The controller withdrew its original transport; this is not proof of OS exit.
+local-node-transport-retired = 관리 로컬 연결을 더 이상 사용할 수 없습니다. 다시 연결한 뒤 계속하세요.
