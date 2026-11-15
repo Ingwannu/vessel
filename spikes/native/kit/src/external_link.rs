@@ -1,14 +1,14 @@
-//! Paseo's inline ExternalLink: a label and outward arrow, not a button pill.
+//! Paseo's inline `ExternalLink`: a label and outward arrow, not a button pill.
 //!
 //! [Decision Log]
-//! - Purpose: CatalogTile's install instructions need their own shared link.
+//! - Purpose: `CatalogTile`'s install instructions need their own shared link.
 //! - Constraint: ui/external-link.tsx has label12, arrow12, gap4, hitSlop8,
 //!   muted ink changing to foreground on hover, no fill or pressed palette.
 //! - Alternatives: area-owned pressables, a Ghost button, or OS calls in kit.
 //! - Choice: one label/optional-label renderer and expanded target. The caller
 //!   owns its typed URL/opener and may use the existing Tooltips wrapper.
 //! - Why: drawing is shared; opening a URL is application policy, not layout.
-//! - Difference: native Type::Meta supplies its existing12/16 regular metrics;
+//! - Difference: native `Type::Meta` supplies its existing12/16 regular metrics;
 //!   the reference specifies size12 and leaves line height to the platform.
 //! - Cost: accessibility/keyboard link semantics remain the kit-wide gap; this
 //!   control does not claim to supply an accessibility tree or an OS opener.
