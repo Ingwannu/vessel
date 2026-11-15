@@ -255,7 +255,7 @@ impl Engine {
         if let Some(reason) = &self.kept {
             return Err(SettingsError::Kept(Arc::clone(reason)));
         }
-        let effective = self.in_force(&next);
+        let effective = self.in_force(next);
         self.policy.begin_write(&effective.restart_recovery);
         let data_dir = self.data_dir.clone();
         let later = self.later.load(Ordering::Relaxed);

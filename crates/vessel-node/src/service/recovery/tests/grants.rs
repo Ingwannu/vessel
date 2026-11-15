@@ -91,15 +91,11 @@ async fn invalidated(change: Invalidate) {
             drop(load);
             done(&node).await;
             let records = owner
-                .read(original.id, EventSeq::ZERO, super::EVENT_PAGE)
+                .read(original.id, EventSeq::ZERO, EVENT_PAGE)
                 .await
                 .unwrap()
                 .records;
-            assert!(
-                !records
-                    .iter()
-                    .any(|record| super::restart::continuation(record))
-            );
+            assert!(!records.iter().any(|record| restart::continuation(record)));
             assert!(!owner.session(original.id).await.unwrap().status.is_live());
             // A completed boot owner cannot later stop a manual takeover.
             f.profile(None);

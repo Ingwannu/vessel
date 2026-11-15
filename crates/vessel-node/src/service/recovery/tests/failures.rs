@@ -29,13 +29,13 @@ async fn a_missing_folder_fails_without_blocking_an_independent_working_session_
             if matches!(record.event, SessionEvent::Agent { event: AgentEvent::TurnEnded { .. } }) { break; }
         }
         assert_eq!(prompts, 1);
-        let failed = owner.read(removed.id, EventSeq::ZERO, super::EVENT_PAGE).await.unwrap();
+        let failed = owner.read(removed.id, EventSeq::ZERO, EVENT_PAGE).await.unwrap();
         assert!(!failed.records.iter().any(|record| matches!(&record.event, SessionEvent::Agent { event: AgentEvent::TurnStarted { content } } if content == &vec![ContentBlock::Text { text: "loaded".into() }])));
         node.stop().await.unwrap();
         let node = f.start().await;
         let owner = f.client(&node).await;
         done(&node).await;
-        assert_eq!(owner.read(removed.id, EventSeq::ZERO, super::EVENT_PAGE).await.unwrap().records, failed.records);
+        assert_eq!(owner.read(removed.id, EventSeq::ZERO, EVENT_PAGE).await.unwrap().records, failed.records);
         node.stop().await.unwrap();
     })).await.unwrap();
 }
@@ -55,13 +55,13 @@ async fn unsupported_resume_load_failure_and_unavailable_provider_are_not_retrie
             let owner = f.client(&node).await;
             done(&node).await;
             assert!(matches!(owner.session(original.id).await.unwrap().status, SessionStatus::Failed { .. }), "{variable}");
-            let failed = owner.read(original.id, EventSeq::ZERO, super::EVENT_PAGE).await.unwrap();
+            let failed = owner.read(original.id, EventSeq::ZERO, EVENT_PAGE).await.unwrap();
             assert!(!failed.records.iter().any(|record| matches!(&record.event, SessionEvent::Agent { event: AgentEvent::TurnStarted { content } } if content == &vec![ContentBlock::Text { text: "loaded".into() }])));
             node.stop().await.unwrap();
             let node = f.start().await;
             let owner = f.client(&node).await;
             done(&node).await;
-            assert_eq!(owner.read(original.id, EventSeq::ZERO, super::EVENT_PAGE).await.unwrap().records, failed.records, "{variable}");
+            assert_eq!(owner.read(original.id, EventSeq::ZERO, EVENT_PAGE).await.unwrap().records, failed.records, "{variable}");
             node.stop().await.unwrap();
         }
     })).await.unwrap();

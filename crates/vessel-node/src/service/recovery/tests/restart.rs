@@ -28,14 +28,14 @@ async fn a_clean_stop_continues_the_same_conversation_once_and_keeps_pending_inp
         let conversation = owner.conversation(original.id).await.unwrap();
         assert_eq!(conversation.queue.held, Some(vessel_proto::QueueHold::Ended));
         assert_eq!(conversation.queue.entries.len(), 1);
-        let before = owner.read(original.id, EventSeq::ZERO, super::EVENT_PAGE).await.unwrap().records;
+        let before = owner.read(original.id, EventSeq::ZERO, EVENT_PAGE).await.unwrap().records;
         assert_eq!(before.iter().filter(|record| continuation(record)).count(), 1);
         assert!(!before.iter().any(|record| matches!(&record.event, SessionEvent::Agent { event: AgentEvent::TurnStarted { content } } if content == &vec![ContentBlock::Text { text: "not sent".into() }])));
         node.stop().await.unwrap();
         let node = f.start().await;
         let owner = f.client(&node).await;
         done(&node).await;
-        let after = owner.read(original.id, EventSeq::ZERO, super::EVENT_PAGE).await.unwrap().records;
+        let after = owner.read(original.id, EventSeq::ZERO, EVENT_PAGE).await.unwrap().records;
         assert_eq!(after.iter().filter(|record| continuation(record)).count(), 1);
         node.stop().await.unwrap();
     })).await.unwrap();
@@ -60,7 +60,7 @@ async fn acknowledged_person_stop_is_not_recovered_at_the_next_start() {
             let owner = f.client(&node).await;
             done(&node).await;
             let records = owner
-                .read(original.id, EventSeq::ZERO, super::EVENT_PAGE)
+                .read(original.id, EventSeq::ZERO, EVENT_PAGE)
                 .await
                 .unwrap()
                 .records;

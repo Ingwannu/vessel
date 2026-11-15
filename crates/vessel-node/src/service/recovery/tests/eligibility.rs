@@ -60,6 +60,27 @@ async fn imported(
             .unwrap(),
         vessel_proto::Delivered::Started
     );
+    loop {
+        let record = stream.next().await.unwrap().unwrap();
+        if matches!(
+            record.event,
+            SessionEvent::Agent {
+                event: AgentEvent::TurnStarted { .. }
+            }
+        ) {
+            break;
+        }
+    }
+    let kept = owner
+        .read(info.id, EventSeq::ZERO, EVENT_PAGE)
+        .await
+        .unwrap();
+    assert!(kept.records.iter().any(|record| matches!(
+        record.event,
+        SessionEvent::Agent {
+            event: AgentEvent::TurnStarted { .. }
+        }
+    )));
     info.id
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

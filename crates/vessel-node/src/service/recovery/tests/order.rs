@@ -112,12 +112,12 @@ async fn only_two_auto_loads_start_and_a_manual_queued_resume_consumes_its_inten
 }
 
 type Candidate = (
-    chrono::DateTime<chrono::Utc>,
-    vessel_proto::SessionId,
+    chrono::DateTime<Utc>,
+    SessionId,
     vessel_proto::HarnessSessionId,
-    vessel_proto::EventSeq,
+    EventSeq,
 );
-async fn active_candidates(owner: &vessel_client::NodeClient, f: &Fixture) -> Vec<Candidate> {
+async fn active_candidates(owner: &NodeClient, f: &Fixture) -> Vec<Candidate> {
     let mut candidates = Vec::new();
     for _ in 0..CANDIDATES {
         let info = f.active(owner).await;

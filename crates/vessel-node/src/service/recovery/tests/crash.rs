@@ -1,12 +1,12 @@
 //! Kill a real node process after its active turn is durably acknowledged.
 use super::{CASE_DEADLINE, Fixture, done};
+use crate::{Config, DataDir, Node};
 use std::io::Write as _;
 use std::path::PathBuf;
 use std::process::Stdio;
 use tokio::io::{AsyncBufReadExt as _, BufReader};
 use vessel_client::{NodeClient, NodeUrl};
 use vessel_harness::{HarnessEnv, Lookup};
-use vessel_node::{Config, DataDir, Node};
 use vessel_proto::{AgentEvent, EventSeq, SessionEvent};
 
 const CHILD: &str = "VESSEL_RECOVERY_KILL_CHILD";
@@ -203,7 +203,7 @@ async fn a_killed_node_resumes_only_its_committed_active_turn() {
     .unwrap();
 }
 
-async fn step<T>(label: &str, work: impl std::future::Future<Output = T>) -> T {
+async fn step<T>(label: &str, work: impl Future<Output = T>) -> T {
     tokio::time::timeout(super::WAIT, work)
         .await
         .unwrap_or_else(|_| panic!("recovery crash step timed out: {label}"))
