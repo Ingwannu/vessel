@@ -198,11 +198,13 @@ mod tests {
             ChoiceOption {
                 value: "other".to_owned(),
                 title: "Left".to_owned(),
+                description: None,
                 preview: None,
             },
             ChoiceOption {
                 value: "Left".to_owned(),
                 title: "Different".to_owned(),
+                description: None,
                 preview: None,
             },
         ] {
