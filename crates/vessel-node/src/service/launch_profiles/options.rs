@@ -49,14 +49,16 @@ impl NodeService {
                     )
                     .await;
                 models.retire(id);
+                // A failure from the retired definitions is stale too: it must
+                // not replace a newer editor state with an old account error.
+                if !Arc::ptr_eq(&snapshot, &profiles.current()) {
+                    return Err(ServiceError::LaunchChanged);
+                }
                 let probed = result.map_err(structured)?;
                 let options = LaunchCatalogueOptions::try_from(probed.options)
                     .map_err(ServiceError::LaunchValues)?;
                 let result = LaunchCatalogue::new(selection, account, options, Utc::now())
                     .map_err(ServiceError::LaunchValues)?;
-                if !Arc::ptr_eq(&snapshot, &profiles.current()) {
-                    return Err(ServiceError::LaunchChanged);
-                }
                 Ok(result)
             })
             .await

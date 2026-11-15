@@ -283,3 +283,9 @@ fixture delta. The separately staged project-pull service and unrelated
 native ancestry are excluded. Source-stage histories remain preserved;
 this packaging does not authorize that separate service for the node head.
 The assigned-protocol integration and consumer screens remain separate.
+
+The isolated package additionally checks the retained NodeProfiles identity
+before publishing probe failures as well as successful catalogues. The
+real startup-barrier reload fixture covers both default choices and a fake
+agent's actual rejected locked mode; both must return configuration-changed
+and a fresh probe must recover. Existing phase/outer deadlines are retained.

@@ -38,61 +38,67 @@ async fn reload_during_actual_selected_probe_refuses_publication_then_recovers()
     vessel_testkit::within(
         SAFETY,
         Box::pin(async {
-            let (fixture, listener) = gated().await;
-            let owner = fixture.context(Principal::Owner).await;
-            let service = fixture.service();
-            let context = owner.connection.acting_as(Principal::Owner);
-            let running = Arc::clone(&service);
-            let probe = tokio::spawn(async move {
-                running
-                    .launch_profile_options(
-                        &context,
-                        GetLaunchProfileOptions {
-                            selection: selection(),
-                        },
-                    )
-                    .await
-            });
-            let (mut gate, _pid) = accepted(&listener).await;
-            let profiles = Arc::clone(&service.0.profiles);
-            phase(
-                "reload retained account generation",
-                tokio::task::spawn_blocking(move || profiles.reload()),
-            )
-            .await
-            .unwrap()
-            .unwrap();
-            phase("release actual fake initialization", gate.write_all(&[1]))
-                .await
-                .unwrap();
-            let error = phase("old probe cannot publish", probe)
+            for choices in [LaunchChoices::default(), bundle(&[("mode", "locked")])] {
+                let (fixture, listener) = gated().await;
+                let owner = fixture.context(Principal::Owner).await;
+                let service = fixture.service();
+                let context = owner.connection.acting_as(Principal::Owner);
+                let running = Arc::clone(&service);
+                let probe = tokio::spawn(async move {
+                    running
+                        .launch_profile_options(
+                            &context,
+                            GetLaunchProfileOptions {
+                                selection: LaunchSelection::new(
+                                    HarnessKind::ClaudeCode.into(),
+                                    Some("gated".parse().unwrap()),
+                                    choices,
+                                ),
+                            },
+                        )
+                        .await
+                });
+                let (mut gate, _pid) = accepted(&listener).await;
+                let profiles = Arc::clone(&service.0.profiles);
+                phase(
+                    "reload retained account generation",
+                    tokio::task::spawn_blocking(move || profiles.reload()),
+                )
                 .await
                 .unwrap()
-                .unwrap_err();
-            assert!(matches!(
-                error.detail,
-                Some(ErrorDetail::LaunchProfile {
-                    problem: LaunchProfileRefusal::ConfigurationChanged
-                })
-            ));
-            let fresh = phase(
-                "fresh default probe recovers",
-                service.launch_profile_options(
-                    &owner.connection,
-                    GetLaunchProfileOptions {
-                        selection: LaunchSelection::new(
-                            HarnessKind::ClaudeCode.into(),
-                            None,
-                            LaunchChoices::default(),
-                        ),
-                    },
-                ),
-            )
-            .await
-            .unwrap();
-            assert_eq!(fresh.account().kind(), LaunchAccountKind::Default);
-            owner.finish().await;
-            fixture.finish().await;
+                .unwrap();
+                phase("release actual fake initialization", gate.write_all(&[1]))
+                    .await
+                    .unwrap();
+                let error = phase("old probe cannot publish", probe)
+                    .await
+                    .unwrap()
+                    .unwrap_err();
+                assert!(matches!(
+                    error.detail,
+                    Some(ErrorDetail::LaunchProfile {
+                        problem: LaunchProfileRefusal::ConfigurationChanged
+                    })
+                ));
+                let fresh = phase(
+                    "fresh default probe recovers",
+                    service.launch_profile_options(
+                        &owner.connection,
+                        GetLaunchProfileOptions {
+                            selection: LaunchSelection::new(
+                                HarnessKind::ClaudeCode.into(),
+                                None,
+                                LaunchChoices::default(),
+                            ),
+                        },
+                    ),
+                )
+                .await
+                .unwrap();
+                assert_eq!(fresh.account().kind(), LaunchAccountKind::Default);
+                owner.finish().await;
+                fixture.finish().await;
+            }
         }),
     )
     .await

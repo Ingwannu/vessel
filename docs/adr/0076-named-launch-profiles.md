@@ -537,3 +537,9 @@ must not disappear from the returned prefix merely because shutdown was
 observed in the same poll. Further steps still refuse on closure. The same
 rule preserves an already delivered fenced-read answer; its session-actor
 consumer must still perform the independent same-run/lifetime check.
+
+The retained definitions identity is checked after actual probe cleanup and
+before publishing either success or failure. A failure from a retired
+account/agent definition must not replace the editor's new configuration
+state with a stale authentication/choice error. The same configuration-
+changed refusal therefore takes precedence for both outcomes.
