@@ -51,7 +51,7 @@ impl LineSyntax for Plain {
 struct Probe {
     editor: DiffEditor,
 }
-impl gpui::Render for Probe {
+impl Render for Probe {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         self.editor
             .element(&Tokens::of(crate::theme::Scheme::Dark), cx)

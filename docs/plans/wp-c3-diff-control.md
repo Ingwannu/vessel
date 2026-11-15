@@ -55,3 +55,8 @@ and actual changed-crate compilation. Do not label older App fa1/0af checks as
 this producer's pass. The coordinator/lead alone integrates the reviewed minimal
 control range; never the moving G1 package branch. No whole C3 gate/review or UI
 pass is inferred from a bounded control handoff.
+
+The package's prior fa1 Clippy reached Kit and found a partial doc span,
+redundant Render qualification and two fixture API spellings. The exact same
+three corrected source blobs are installed here. This does not relabel fa1 as
+a pass or execute any window test; the isolated producer still needs its gate.
