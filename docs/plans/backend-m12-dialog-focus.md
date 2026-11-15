@@ -72,6 +72,11 @@ no skip; 118 passed, 0 failed, 0 ignored. Changed Kit compilation is in
 the cargo logs. Evidence under `/tmp/work/m12-g4/resumed-20261115/`:
 `dialog-focus-remote-clippy-03` and `dialog-focus-remote-test-02`.
 Earlier `42bde0bf` tests (117) are old-source evidence, not this run.
-Source review is pending; existing unrelated callers remain unadopted,
+V1 reviewed exact11 source and requested narrow evidence (audit
+`/tmp/work/m12-review/g4-11fba709-dialog-focus.json`): source/narrow pass.
+The four rendered paths prove root-focus behavior; descendant semantics
+were checked against GPUI source, without a separate focused-child runtime
+fixture. Consumers retain that focused-field/subtree obligation.
+Existing unrelated callers remain unadopted,
 and final E2 feature gate/captures remain owed. No permission or service
 configuration changed; build jobs ran as the existing ubuntu account.
