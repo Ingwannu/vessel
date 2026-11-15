@@ -15,6 +15,10 @@
 //!   pixel; it changes when the owner gives it a reference.
 
 mod acts;
+
+/// The board's question about a card (kill, archive, delete), for a screen
+/// that asks it while the board is not drawn (the sidebar's row menu).
+pub(crate) use acts::confirm as card_question;
 pub(crate) mod card;
 
 use std::cell::RefCell;

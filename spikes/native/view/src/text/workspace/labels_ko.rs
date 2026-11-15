@@ -99,6 +99,7 @@ pub const KO: Labels = Labels {
     tip_isolation: "프로젝트 폴더에서 바로 실행하거나, 새 브랜치의 워크트리에서 실행합니다",
     tip_base: "새 워크트리의 브랜치가 시작할 브랜치",
     all_projects: "모든 프로젝트",
+    fewer_projects: "간단히 보기",
     panel_changes: "변경 사항",
     panel_files: "파일",
     panel_toggle: "변경 사항과 파일",
