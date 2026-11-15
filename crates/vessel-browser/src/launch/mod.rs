@@ -96,6 +96,13 @@ impl Plan {
     pub(crate) fn verify_started(&self, child: &Child) -> Result<(), LaunchError> {
         self.identity.verify_started(child)
     }
+    /// Test-only fixed-plan launch; the diagnostic retains this Plan and actual
+    /// Child. This exposes neither a generic command nor a ready-engine token.
+    pub(crate) fn spawn_for_diagnostic(
+        &self,
+    ) -> Result<vessel_proc::Spawned, vessel_proc::SpawnError> {
+        vessel_proc::spawn(&self.command)
+    }
     /// The supervisor must retain both values; caller cancellation cannot release the profile.
     pub(crate) fn into_supervised_parts(self) -> (CommandSpec, Profile) {
         (self.command, self.profile)

@@ -2,7 +2,8 @@
 use super::*;
 use crate::cdp::{requests, transport};
 use tokio::io::{AsyncBufReadExt as _, AsyncReadExt as _, AsyncWriteExt as _, BufReader};
-const FIXTURE_TIMEOUT: Duration = Duration::from_secs(20);
+// Shared diagnostic outer deadline; the real-candidate sibling reuses this owner.
+pub(super) const FIXTURE_TIMEOUT: Duration = Duration::from_secs(20);
 #[tokio::test]
 async fn typed_driver_uses_the_owned_nul_pipe_without_discovering_a_socket() {
     tokio::time::timeout(FIXTURE_TIMEOUT,async {

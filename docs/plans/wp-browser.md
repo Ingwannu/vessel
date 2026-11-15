@@ -1221,3 +1221,31 @@ binding and the assignment terminates explicitly. Cases and assertions are
 unchanged. Functional and TS jobs remain exact191 because this correction changes
 only test declaration/statement layout, not wire or runtime behavior; no later
 whole/union acceptance is inferred. A new strict check is still owed.
+
+
+## Prepared real Rust child-pipe component fixture
+
+[Decision Log]
+- Purpose: Python/CFT diagnostics and fake Rust byte peers do not prove the
+  actual Rust CDP driver can communicate through the approved child's pipes.
+- Reuse: the existing fixed candidate Plan, Proc-owned Spawned handles, finite
+  Preparation scope and Client's private Pipe/start path; no new decoder, socket
+  endpoint, generic raw-CDP constructor, runtime install or external dependency.
+- Choice: a Linux-only ignored diagnostic fixture inspects the actual candidate,
+  launches only that plan, keeps Plan/Child through read-only version observation
+  and post-start identity check, and then closes/drains the owned resources.
+- Impact: normal VM suites never launch Chrome; only the fixed exact-SHA lib-test
+  artifact may run the selected fixture on the approved service-account host.
+  Its synthetic private profile is kept at a unique quarantine path, never used
+  as General/Preview storage. No shared profile, capacity token or engine is
+  released/granted from a leader/accepted-group receipt. That receipt is not
+  proof of every descendant's death; product supervision remains unimplemented.
+  The fixture reuses existing CDP shutdown and test outer deadlines and discards
+  stderr without retaining browser text. No source or execution pass yet.
+
+Exact429 strict then reached the new MCP snapshot test and found one constructor
+argument mismatch: PageText::capped takes &str, not an owned String. The fixture
+now borrows its literal; expected output and assertions are unchanged. The old
+queued191 functional source shares this compiler error and must be superseded
+only after terminal queued cancellation. The191 TS source is unchanged by these
+MCP/CDP test corrections and keeps its separate exact job.
