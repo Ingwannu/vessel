@@ -229,16 +229,11 @@ impl Workspaces {
 
     /// Preserve the existing publication order; durability and setup stay with the tracked creator.
     fn remember_created_worktree(&self, info: &WorktreeInfo) {
-        let (written, _) = tokio::sync::watch::channel(0);
-        drop(self.state().worktrees.insert(
-            info.id,
-            WorktreeEntry {
-                info: info.clone(),
-                written: Arc::new(written),
-                running: None,
-                starting: 0,
-            },
-        ));
+        drop(
+            self.state()
+                .worktrees
+                .insert(info.id, WorktreeEntry::new(info.clone())),
+        );
     }
 
     /// Run setup again with the commands of the worktree's file as it is.
