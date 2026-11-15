@@ -53,16 +53,16 @@ fn root_docks_workspace_at_six_fifty_and_keeps_sheet_preference_independent(
                 SidebarLayout::Docked { .. }
             ));
             assert!(shell.areas.sidebar.layout.scroll.bounds().size.height > px(0.0));
-        })
+        });
     });
-    shell.update_in(cx, |shell, window, cx| shell.toggle_sidebar(window, cx));
+    shell.update_in(cx, Shell::toggle_sidebar);
     cx.run_until_parked();
     shell.read_with(cx, |shell, _| {
-        assert_eq!(shell.prefs.settings.layout.sidebar, Panel::Hidden)
+        assert_eq!(shell.prefs.settings.layout.sidebar, Panel::Hidden);
     });
     cx.simulate_resize(size(px(590.0), px(600.0)));
     cx.run_until_parked();
-    shell.update_in(cx, |shell, window, cx| shell.toggle_sidebar(window, cx));
+    shell.update_in(cx, Shell::toggle_sidebar);
     cx.run_until_parked();
     shell.read_with(cx, |shell, _| {
         assert!(shell.sidebar_open());
@@ -89,7 +89,7 @@ fn settings_keeps_current_phone_form_and_wide_navigation_until_frame_fallback(
                     matches!(arrangement(shell, window), SidebarLayout::Sheet),
                     sheet
                 );
-            })
+            });
         });
     }
 }

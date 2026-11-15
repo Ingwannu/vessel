@@ -60,3 +60,9 @@ all-row accessibility, OS keyboard or latest combined application pass is
 claimed. W11/W12 runtime workspace projection and W21 guarded mutations remain
 separate dependencies. Freeze source, run exact isolated narrow checks/tests,
 then hand this small range to E2/W22; do not pull the moving whole F4 branch.
+
+Exact isolated c8dbce21 strict reached App test compilation and returned101 on
+five style diagnostics in policy_tests only (semicolons and redundant closures).
+Use the existing Shell::toggle_sidebar method directly and terminate unit
+statements; assertions, panel values and product logic remain unchanged.
+This corrects the actual failed run, not a claimed successful check.
