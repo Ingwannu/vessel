@@ -11,11 +11,13 @@ use vessel_app_link::{
     sessions::lifecycle::{Answer, Failure},
 };
 use vessel_app_view::machine_book::Name;
-use vessel_app_view::sessions::{Lifecycle, LifecycleAction, LifecycleTarget};
+use vessel_app_view::sessions::{Lifecycle, LifecycleAction, LifecycleTarget, LifecycleTicket};
 use vessel_proto::SessionInfo;
 
 pub(super) struct State {
     running: Lifecycle,
+    /// Independent monotonic tickets for UI decisions; never sent to the link.
+    confirming: Lifecycle,
     asking: Option<Prepared>,
     dialog: DialogState,
     after: Option<Prepared>,
@@ -43,6 +45,7 @@ impl State {
     pub(super) fn new(cx: &mut Context<'_, Shell>) -> Self {
         Self {
             running: Lifecycle::default(),
+            confirming: Lifecycle::default(),
             asking: None,
             dialog: DialogState::new(cx),
             after: None,
@@ -51,6 +54,9 @@ impl State {
         }
     }
     pub(super) fn navigation_changed(&mut self) {
+        if let Some(ticket) = self.confirming.pending().map(|pending| pending.ticket) {
+            let _cancelled = self.confirming.finish(ticket);
+        }
         self.asking = None;
         self.after = None;
         self.ready = None;
@@ -86,7 +92,8 @@ impl Shell {
         self.prepare_session_lifecycle(LifecycleAction::Fresh, window, cx);
     }
     pub(crate) fn sessions_lifecycle_busy(&self) -> bool {
-        self.areas.sessions.lifecycle.running.pending().is_some()
+        let state = &self.areas.sessions.lifecycle;
+        state.running.pending().is_some() || state.confirming.pending().is_some()
     }
     pub(crate) fn prepare_session_lifecycle(
         &mut self,
@@ -102,8 +109,14 @@ impl Shell {
         };
         match action {
             LifecycleAction::Archive | LifecycleAction::Delete => {
-                self.areas.sessions.lifecycle.asking = Some(prepared);
-                self.areas.sessions.lifecycle.dialog.focus(window, cx);
+                let state = &mut self.areas.sessions.lifecycle;
+                match state.confirming.begin(prepared.target.clone(), action) {
+                    Ok(_) => {
+                        state.asking = Some(prepared);
+                        state.dialog.focus(window, cx);
+                    }
+                    Err(_) => state.error = Some((prepared.target, Problem::Busy)),
+                }
             }
             LifecycleAction::Unarchive
             | LifecycleAction::Resume
@@ -334,12 +347,38 @@ impl Shell {
         }
         cx.notify();
     }
-    fn dismiss_session_lifecycle(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
-        self.areas.sessions.lifecycle.asking = None;
+    fn dismiss_session_lifecycle(
+        &mut self,
+        ticket: LifecycleTicket,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let state = &mut self.areas.sessions.lifecycle;
+        if state.confirming.finish(ticket).is_none() {
+            return;
+        }
+        state.asking = None;
+        state.dialog.dismissed(window, cx);
         cx.notify();
     }
-    fn confirm_session_lifecycle(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
+    fn confirm_session_lifecycle(
+        &mut self,
+        ticket: LifecycleTicket,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if self
+            .areas
+            .sessions
+            .lifecycle
+            .confirming
+            .finish(ticket)
+            .is_none()
+        {
+            return;
+        }
         if let Some(prepared) = self.areas.sessions.lifecycle.asking.take() {
+            self.areas.sessions.lifecycle.dialog.dismissed(window, cx);
             self.send_session_lifecycle(prepared, cx);
         }
     }

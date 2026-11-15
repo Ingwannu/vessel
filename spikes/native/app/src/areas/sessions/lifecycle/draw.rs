@@ -1,5 +1,5 @@
 //! One kit dialog renders the retained lifecycle decision and target error.
-use super::{LifecycleAction, Problem, Shell};
+use super::{LifecycleAction, LifecycleTicket, Problem, Shell};
 use vessel_app_kit::ui::{
     AnyElement, Context, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
     Styled as _, Window, div,
@@ -17,6 +17,7 @@ pub(crate) fn overlay(
 ) -> Option<AnyElement> {
     let state = &shell.areas.sessions.lifecycle;
     let asking = state.asking.as_ref()?;
+    let ticket = state.confirming.pending()?.ticket;
     let words = shell.t.lang.conversation();
     let destructive = asking.action == LifecycleAction::Delete;
     let title = if destructive {
@@ -46,13 +47,13 @@ pub(crate) fn overlay(
         DialogContent {
             title: title.into(),
             body: div().type_(Type::Body).child(body).into_any_element(),
-            footer: footer(shell, asking.action, tokens, cx),
+            footer: footer(shell, asking.action, ticket, tokens, cx),
             size: DialogSize::Normal,
         },
         tokens,
         window,
         breakpoint::phone(window),
-        Shell::dismiss_session_lifecycle,
+        move |shell, window, cx| shell.dismiss_session_lifecycle(ticket, window, cx),
         cx,
     ))
 }
@@ -87,6 +88,7 @@ pub(crate) fn error(shell: &Shell, tokens: &Tokens) -> Option<AnyElement> {
 fn footer(
     shell: &Shell,
     action: LifecycleAction,
+    ticket: LifecycleTicket,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Vec<AnyElement> {
@@ -94,9 +96,9 @@ fn footer(
     vec![
         button("sessions-lifecycle-cancel", words.cancel(), false, tokens)
             .min_h(vessel_app_kit::ui::px(breakpoint::TOUCH_TARGET))
-            .on_click(
-                cx.listener(|shell, _, window, cx| shell.dismiss_session_lifecycle(window, cx)),
-            )
+            .on_click(cx.listener(move |shell, _, window, cx| {
+                shell.dismiss_session_lifecycle(ticket, window, cx);
+            }))
             .into_any_element(),
         button_with_kind(
             "sessions-lifecycle-confirm",
@@ -110,7 +112,9 @@ fn footer(
             tokens,
         )
         .min_h(vessel_app_kit::ui::px(breakpoint::TOUCH_TARGET))
-        .on_click(cx.listener(|shell, _, window, cx| shell.confirm_session_lifecycle(window, cx)))
+        .on_click(cx.listener(move |shell, _, window, cx| {
+            shell.confirm_session_lifecycle(ticket, window, cx);
+        }))
         .into_any_element(),
     ]
 }

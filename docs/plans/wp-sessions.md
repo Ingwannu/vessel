@@ -181,3 +181,12 @@ not current attachment. Until reviewed W2 Parentage and W12 role/context adapter
 are connected, legacy Close reports unavailable and sends no archive or local
 hide. Explicit Archive and slash /exit retain their explicit user intent. This
 is unfinished close parity, not a claim that an older node proves a root.
+
+Lifecycle confirmation uses the shared kit's captured dismissal and weak return
+focus. Its separate `Lifecycle` ticket sequence identifies UI decisions only;
+network operations keep their existing independent tickets. Escape, scrim, close,
+Cancel and Confirm retain the rendered confirmation ticket. A stale callback
+cannot cancel or confirm a later decision, even on the same session. Actual
+accepted dismissal calls `DialogState::dismissed`; navigation invalidates the
+pending decision without recycling its ticket. The renderer remains the one kit
+dialog. This addresses delayed UI events without a second modal or identity map.

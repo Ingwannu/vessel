@@ -118,3 +118,81 @@ fn late_archive_ack_cannot_update_a_replacement_or_close_its_session(cx: &mut Te
         );
     });
 }
+
+#[gpui::test]
+fn stale_confirmation_callbacks_cannot_dismiss_or_submit_a_newer_decision(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let (_, _, _, pending) = pending_exit(shell);
+        let _cancelled = shell.areas.sessions.lifecycle.running.finish(pending);
+        shell.areas.sessions.lifecycle.after = None;
+        shell.prepare_session_lifecycle(LifecycleAction::Archive, window, cx);
+        let first = shell
+            .areas
+            .sessions
+            .lifecycle
+            .confirming
+            .pending()
+            .unwrap()
+            .ticket;
+        shell.dismiss_session_lifecycle(first, window, cx);
+        shell.prepare_session_lifecycle(LifecycleAction::Delete, window, cx);
+        let second = shell
+            .areas
+            .sessions
+            .lifecycle
+            .confirming
+            .pending()
+            .unwrap()
+            .ticket;
+        assert_ne!(first, second);
+        shell.dismiss_session_lifecycle(first, window, cx);
+        shell.confirm_session_lifecycle(first, window, cx);
+        assert_eq!(
+            shell
+                .areas
+                .sessions
+                .lifecycle
+                .confirming
+                .pending()
+                .unwrap()
+                .ticket,
+            second
+        );
+        assert_eq!(
+            shell
+                .areas
+                .sessions
+                .lifecycle
+                .asking
+                .as_ref()
+                .unwrap()
+                .action,
+            LifecycleAction::Delete
+        );
+        assert!(shell.areas.sessions.lifecycle.running.pending().is_none());
+        shell.confirm_session_lifecycle(second, window, cx);
+        assert!(shell.areas.sessions.lifecycle.asking.is_none());
+        assert!(
+            shell
+                .areas
+                .sessions
+                .lifecycle
+                .confirming
+                .pending()
+                .is_none()
+        );
+        assert_eq!(
+            shell
+                .areas
+                .sessions
+                .lifecycle
+                .running
+                .pending()
+                .unwrap()
+                .action,
+            LifecycleAction::Delete
+        );
+    });
+}
