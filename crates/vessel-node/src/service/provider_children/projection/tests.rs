@@ -140,3 +140,52 @@ fn gaps_and_descriptor_saturation_are_honest_and_never_evict_existing_children()
         matches!(p.list().unwrap().history,ChildHistory::Partial {reason:ChildGap::Nesting,from} if from==EventSeq::new(50))
     );
 }
+
+#[test]
+fn resumed_metadata_omission_keeps_known_facts_and_explicit_empty_text_clears() {
+    let mut p = Projection::new(None, EventSeq::ZERO, EventSeq::new(4));
+    let mut known = child("child");
+    known.title = Some("known kind".parse().unwrap());
+    known.description = Some("earlier description".parse().unwrap());
+    known.status = Some(ChildStatus::Completed);
+    p.observe(record(
+        0,
+        ProviderObservation::Descriptor { descriptor: known },
+    ));
+    let mut resumed = child("child");
+    resumed.description = Some("".parse().unwrap());
+    p.observe(record(
+        1,
+        ProviderObservation::Descriptor {
+            descriptor: resumed,
+        },
+    ));
+    let list = p.list().unwrap();
+    let retained = &list.children.as_slice()[0];
+    assert_eq!(retained.title.as_ref().unwrap().as_str(), "known kind");
+    assert_eq!(retained.description.as_ref().unwrap().as_str(), "");
+    assert_eq!(retained.status, Some(ChildStatus::Completed));
+}
+#[test]
+fn interrupted_metadata_prefix_never_regresses_a_forward_cursor() {
+    let mut p = Projection::new(
+        Some(request(Some(ChildCursor::After(EventSeq::new(500))), 1)),
+        EventSeq::new(100),
+        EventSeq::new(600),
+    );
+    p.observe(record(100, ProviderObservation::Supported));
+    p.truncated();
+    let page = p.page().unwrap();
+    assert_eq!(page.next, EventSeq::new(500));
+    assert!(!page.at_end);
+    assert!(
+        matches!(page.history, ChildHistory::Partial { from, .. } if from == EventSeq::new(100))
+    );
+}
+#[test]
+fn oversized_first_decoded_record_reports_its_real_boundary() {
+    let mut p = Projection::new(None, EventSeq::new(90), EventSeq::new(100));
+    p.refused_record(EventSeq::new(93));
+    assert!(matches!(p.list().unwrap().history,
+        ChildHistory::Partial { reason: ChildGap::ScanBudget, from } if from == EventSeq::new(93)));
+}

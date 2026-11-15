@@ -189,3 +189,17 @@ reported. Resume emits a retained-prefix gap because native replay before this
 runtime is unproven. Native Claude remains unselectable until its provider owner
 lands the real permissions/transport floor; pure wire fixtures do not prove that
 runtime or enable it.
+
+### Bounded rescan and resume metadata
+
+A forward query may scan an older retained prefix to recover provider descriptors.
+If its scan budget ends before the caller's cursor, the reply preserves that input
+cursor and reports partial coverage, never a backward continuation. A decoded first
+record refused for size contributes its real sequence to partial coverage; a
+pre-read deadline instead refuses without inventing a sequence.
+
+Durable descriptor projection keeps known optional facts when a resumed driver
+omits them. `Some` replaces the earlier fact; an explicit empty text clears text.
+This follows provider sticky metadata semantics without a second provider store.
+Unknown fields do not erase prior observed lifecycle or timestamps on restart;
+provider parentage remains read-only metadata and never managed authorization.

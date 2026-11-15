@@ -84,7 +84,13 @@ impl Projection {
     fn descriptor(&mut self, descriptor: ChildDescriptor) {
         let mut proposed = self.descriptors.clone();
         if let Some(row) = proposed.iter_mut().find(|row| row.id == descriptor.id) {
-            *row = descriptor;
+            row.parent = descriptor.parent.or_else(|| row.parent.take());
+            row.title = descriptor.title.or_else(|| row.title.take());
+            row.description = descriptor.description.or_else(|| row.description.take());
+            row.subtitle = descriptor.subtitle.or_else(|| row.subtitle.take());
+            row.status = descriptor.status.or(row.status);
+            row.created_at = descriptor.created_at.or(row.created_at);
+            row.updated_at = descriptor.updated_at.or(row.updated_at);
         } else {
             proposed.push(descriptor);
         }
@@ -112,6 +118,11 @@ impl Projection {
     pub(super) fn truncated(&mut self) {
         self.gap = Some(ChildGap::ScanBudget);
     }
+    /// A decoded record proves a real boundary even when its bytes exceed the budget.
+    pub(super) fn refused_record(&mut self, seq: EventSeq) {
+        self.first.get_or_insert(seq);
+        self.truncated();
+    }
     fn history(&self, missing: bool) -> ChildHistory {
         if let (Some(reason), Some(from)) = (self.gap, self.first) {
             return ChildHistory::Partial { reason, from };
@@ -138,9 +149,14 @@ impl Projection {
             .as_ref()
             .is_none_or(|request| !self.descriptors.iter().any(|d| d.id == request.child));
         let history = self.history(missing);
+        // Prefix metadata scanning must not move an existing continuation backward.
+        let next = match self.request.as_ref().and_then(|request| request.cursor) {
+            Some(ChildCursor::After(from)) => self.next.max(from),
+            Some(ChildCursor::Before(_)) | None => self.next,
+        };
         Ok(ProviderChildPage {
             records: self.activity.into_iter().collect::<Vec<_>>().try_into()?,
-            next: self.next,
+            next,
             at_end: self.at_end && self.next >= self.end,
             history,
         })

@@ -153,7 +153,7 @@ fn observe_page(
             return Ok(false);
         }
         if budget.admit(&record).is_err() {
-            projection.truncated();
+            projection.refused_record(record.seq);
             return Ok(false);
         }
         if !projection.observe(record) {
