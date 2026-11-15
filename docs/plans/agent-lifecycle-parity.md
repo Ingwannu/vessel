@@ -447,8 +447,9 @@ no request id, enqueues nothing and grants no node authority; send-time checking
 remains mandatory. A raw-memory peer test checks exact refusal and that the next
 valid request is its first frame with id zero. No wire type, number, threshold,
 message or dependency changes. This small seam lands independently of pending
-background work so other callers can reuse it. Its narrow and whole checks
-remain owed.
+background work so other callers can reuse it. Its strict crate lint and complete root gate passed. The first-frame
+regression passed with the unchanged send path; platform-specific consumers
+and actual preparatory-work callers remain separate integration.
 
 Before adding the preflight delegate, the SDK's existing `protocol()` accessor
 moves unchanged into `client::protocol`. This behavior-preserving extraction
@@ -456,5 +457,6 @@ keeps endpoint calls within their shrinking size budget; it changes no public
 signature, value or assertion. The preflight wrapper follows as its own commit.
 
 The following commit adds the thin wrappers and the exact first-frame test.
-The shared checker, allocator and writer behavior are unchanged. Execution
-results are still pending; this is not a claim of a passed package gate.
+The shared checker, allocator and writer behavior are unchanged. The complete root gate passed on this implementation, including the first-frame
+regression, TypeScript freshness, web checks and the forge fixture. This API
+adds no CLI behavior until its separate consumer calls it.
