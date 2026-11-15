@@ -120,7 +120,7 @@ fn saved_cursor_held_runs_wide_padding_and_colors_match_paseo_server() {
 
 fn check_corpus(input: &str, count: usize) {
     let corpus: Corpus = serde_json::from_str(input).unwrap();
-    let mut checked = 0;
+    let mut checked = 0_usize;
     for program in corpus.programs {
         let mut screen = Screen::new(
             Size::new(program.cols, program.rows).unwrap(),
@@ -173,7 +173,7 @@ fn check_corpus(input: &str, count: usize) {
                         "{} {checkpoint} all raw cells",
                         program.name
                     );
-                    checked += 1;
+                    checked = checked.saturating_add(1);
                 }
             }
         }
@@ -226,4 +226,55 @@ fn shrinking_history_preserves_newest_and_increase_never_revives_eviction() {
         .unwrap();
     feed(&mut screen, b"\r\n6\r\n7");
     assert_eq!(screen.history_len(), 0);
+}
+
+#[test]
+fn capture_budget_refuses_without_changing_retained_screen_or_shorter_reads() {
+    let width = 1024_u16;
+    let mut screen = Screen::new(Size::new(width, 2).unwrap(), ScrollbackLines::default()).unwrap();
+    let line = format!("{}\r\n", "x".repeat(usize::from(width)));
+    for _ in 0..=MAX_CAPTURE_BYTES.checked_div(usize::from(width)).unwrap() {
+        feed(&mut screen, line.as_bytes());
+    }
+    let cursor = screen.cursor();
+    let history = screen.history_len();
+    assert_eq!(
+        screen.capture(CaptureRange::default()),
+        Err(ScreenError::CaptureTooLarge)
+    );
+    assert_eq!(screen.cursor(), cursor);
+    assert_eq!(screen.history_len(), history);
+    assert_eq!(
+        screen
+            .capture(CaptureRange {
+                start: Some((-1).into()),
+                end: None
+            })
+            .unwrap()
+            .lines,
+        vec![""]
+    );
+}
+
+#[test]
+fn geometry_reserves_both_screens_and_split_utf8_remains_original() {
+    assert_eq!(Size::new(0, 2), Err(ScreenError::Geometry));
+    assert_eq!(Size::new(2, 0), Err(ScreenError::Geometry));
+    assert_eq!(Size::new(2000, 1001), Err(ScreenError::Geometry));
+    assert!(Size::new(2000, 1000).is_ok());
+    assert_eq!(
+        ScrollbackLines::new(ScrollbackLines::MAX.checked_add(1).unwrap()),
+        Err(ScreenError::Scrollback)
+    );
+    let mut screen = Screen::new(Size::new(20, 2).unwrap(), ScrollbackLines::default()).unwrap();
+    let text = "한글 cafe\u{301} ❤️";
+    for byte in text.as_bytes() {
+        let feed = screen.feed(&[*byte]);
+        assert_eq!(feed.consumed.get(), 1);
+        assert!(feed.replies.unwrap().as_bytes().is_empty());
+    }
+    assert_eq!(
+        screen.capture(CaptureRange::default()).unwrap().lines,
+        vec![text, ""]
+    );
 }

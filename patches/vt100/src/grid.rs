@@ -84,6 +84,15 @@ impl Grid {
     where
         F: FnMut(&crate::row::Row),
     {
+        self.resize_impl(size, &mut on_row);
+    }
+
+    // The same callback type is reborrowed through the height-first pass;
+    // recursively wrapping F in another &mut would grow monomorphizations.
+    fn resize_impl<F>(&mut self, size: Size, on_row: &mut F)
+    where
+        F: FnMut(&crate::row::Row),
+    {
         if size == self.size {
             return;
         }
@@ -94,7 +103,7 @@ impl Grid {
             // The reference resizes height before deciding which logical run
             // contains the cursor during width reflow.
             if size.rows() != self.size.rows() {
-                self.set_size(Size { rows: size.rows, cols: self.size.cols }, &mut on_row);
+                self.resize_impl(Size { rows: size.rows, cols: self.size.cols }, on_row);
             }
             self.reflow_primary(size, on_row);
             return;

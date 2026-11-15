@@ -67,3 +67,10 @@ first, process narrowing groups from the bottom while updating the current
 viewport/cursor, retain pending inserted rows even when the old tail is
 popped, and adjust saved positions with the viewport. Widening adjusts by the
 total removed rows. No expected cell, line, position or hash is changed.
+
+The height-first pass reborrows the same generic callback through a private
+implementation method; recursively introducing another reference type would
+grow monomorphizations. Added refusal tests exercise the capture allocation
+ceiling without mutating the retained screen, both-screen geometry admission,
+and original Unicode text supplied one byte at a time. These introduce no I/O
+or runtime test dependencies. Changed-source checks remain owed.
