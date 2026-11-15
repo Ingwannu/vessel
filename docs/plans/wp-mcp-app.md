@@ -117,3 +117,11 @@ profile or invent a prior Vessel path. An explicitly supplied legacy selection
 can use the node owner's typed import-only-if-unset acknowledgement/AlreadySet
 contract after it is reviewed and numbered. Its restart/import tests belong to
 the node package; this app does not claim an automatic migration consumer.
+
+The b819 strict run stopped before compilation because the remote helper uses
+--locked and package base6's native lock lacked vessel-rpc's serde_path_to_error
+entry (the coordinator had flagged that stale base). The line's committed
+lock fix dd13ce378 and shared menu seam were merged; no dependency version was
+selected locally and no Cargo ran on dev-host. This failure is retained and is
+not an app compiler/runtime outcome. The current dialog-ticket union still
+requires its actual strict and controller tests.
