@@ -55,6 +55,10 @@ impl Data {
                 &answer.request,
                 answer.result.map_err(|error| error.read_failure()),
             ),
+            Message::SessionReplied(answer) => self.history.lookup_settled(
+                &answer.request,
+                answer.result.map_err(|error| error.read_failure()),
+            ),
             Message::FormReplied(answer) => {
                 let result = answer
                     .result

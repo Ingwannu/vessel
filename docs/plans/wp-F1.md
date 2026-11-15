@@ -911,3 +911,16 @@ EN/KO generated phrase explaining that this rule can be saved without projected
 times. It changes neither the accepted cadence/error tables nor the explicit
 Older-only fallback; busy/refused/mismatched results still cannot authorize it.
 The frozen current narrow does not cover this later catalog/source change.
+
+
+### Historical session metadata joins the existing actor pool
+
+A run's typed Lookup now routes GetSession through the same selected admission,
+permit/deadline and schedules event fan-in as list/form/history, with original
+context/visit/run/session/ticket echoed even on local refusal. The reader checks
+that exact pending envelope and SessionInfo.id; archived/non-Fleet metadata is
+retained as a candidate only. A framed source regression checks GetSession and
+the original archived result. No resident, follow or layout slot is allocated,
+and no legacy alias-only opener is called. W12's checked context-bound live
+opener and post-queue delivery capability are still required before an Open chat
+control can be enabled. New source is not the frozen c79 narrow's evidence.

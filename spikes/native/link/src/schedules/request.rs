@@ -13,6 +13,8 @@ pub enum Request {
     Form(io::Request),
     /// Read-only run history from the explicitly selected physical machine.
     History(reader::Request),
+    /// Metadata for a run's actual session; this does not open a live panel.
+    Lookup(reader::Lookup),
 }
 impl From<RowRequest> for Request {
     fn from(value: RowRequest) -> Self {
@@ -29,6 +31,11 @@ impl From<reader::Request> for Request {
         Self::History(value)
     }
 }
+impl From<reader::Lookup> for Request {
+    fn from(value: reader::Lookup) -> Self {
+        Self::Lookup(value)
+    }
+}
 impl Request {
     /// Every family is fenced by its original physical admission.
     #[must_use]
@@ -37,6 +44,7 @@ impl Request {
             Self::Row(request) => request.connection(),
             Self::Form(request) => request.connection(),
             Self::History(request) => request.connection(),
+            Self::Lookup(request) => request.connection(),
         }
     }
     /// Unsent/browser/deadline refusals settle the original family and ticket.
@@ -52,6 +60,10 @@ impl Request {
                 result: Err(error),
             }),
             Self::History(request) => Message::HistoryReplied(HistoryAnswer {
+                request,
+                result: Err(error),
+            }),
+            Self::Lookup(request) => Message::SessionReplied(SessionAnswer {
                 request,
                 result: Err(error),
             }),
@@ -74,4 +86,13 @@ pub struct HistoryAnswer {
     pub request: reader::Request,
     /// Node-authored list or a source-preserving typed failure.
     pub result: Result<vessel_proto::automation::RunList, ScheduleError>,
+}
+
+/// Original run/session lookup outcome; never an instruction to open a panel.
+#[derive(Debug)]
+pub struct SessionAnswer {
+    /// Full original admission/visit/run/session/ticket on success and refusal.
+    pub request: reader::Lookup,
+    /// Authoritative metadata, still requiring the live owner's admission.
+    pub result: Result<vessel_proto::SessionInfo, ScheduleError>,
 }
