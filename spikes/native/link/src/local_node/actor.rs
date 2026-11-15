@@ -258,6 +258,34 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn stale_stop_and_restart_confirmation_never_enter_the_control_path() {
+        let node_id = NodeId::random();
+        let original = snapshot(Status::Owned(node_id));
+        let confirmation = original.confirmation().unwrap();
+        let (published, _receiver) = watch::channel(snapshot(Status::Owned(node_id)));
+        let config = Configuration {
+            launch: None,
+            home: vessel_local_node::NodeHome::new(
+                std::env::temp_dir().join("unused-stale-local-confirmation-fixture"),
+            )
+            .unwrap(),
+            preferences: Preferences::default(),
+        };
+        let mut node = None;
+        let mut logs = None;
+        for action in [
+            Action::InterruptConfirmed(confirmation.clone()),
+            Action::RestartInterruptConfirmed(confirmation.clone()),
+        ] {
+            assert!(matches!(
+                perform_action(action, &config, &mut node, &mut logs, &published).await,
+                Err(ManagerError::StaleConfirmation)
+            ));
+            assert_eq!(published.borrow().status, Status::Owned(node_id));
+        }
+    }
+
+    #[tokio::test]
     async fn a_missing_companion_never_leaves_an_admitted_start_spinning() {
         let config = Configuration {
             launch: None,
