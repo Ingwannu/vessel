@@ -256,3 +256,12 @@ stale receipt before any mutation, then invokes `DialogState::dismissed` only fo
 an actual close. A pure lifetime regression checks repeated show and retained old
 close versus reopen. The shared footer `open_usage` signature is unchanged. Native
 compilation and actual focus/capture proof remain owed for this correction.
+
+The corrected quota expectations passed with all scoped view/link usage tests:
+`wp-usage-native-context-20261115T142558Z-32393b0c` reports 49 passed, zero
+failed or ignored. This snapshot predates the wording and modal lifetime deltas.
+The ordinary compiler run `wp-usage-native-clock-20261115T140611Z-88084ca7`
+reached the app and found three missing InteractiveElement imports and one stale
+Navigation.resolve call. The consumer now uses Entries.resolve and imports the
+existing element trait; no new preference or rendering mechanism is added.
+Its changed-source check and the later modal/wording tests remain pending.
