@@ -1,9 +1,9 @@
 use super::*;
 use crate::timeline::{ClientMessageId, ReferenceContext, SubmissionDelivery, SubmitPrompt};
 use crate::{
-    ContentBlock, CreateSession, Creator, EventPage, EventRecord, Forwarded, HarnessKind, NodeId,
-    Outcome, PromptQueue, ProtocolVersion, QueueChange, QueueEntryId, QueuedPrompt, Reply,
-    RequestId, ServerFrame, SessionEvent, SessionId, SessionInput, SessionMode, SessionSpec,
+    ContentBlock, CreateSession, Creator, EventPage, EventRecord, Forwarded, HarnessKind, Outcome,
+    PromptQueue, ProtocolVersion, QueueChange, QueueEntryId, QueuedPrompt, Reply, RequestId,
+    ServerFrame, SessionEvent, SessionId, SessionInput, SessionMode, SessionSpec,
 };
 use serde_json::json;
 
@@ -203,7 +203,6 @@ fn one_walk_masks_private_payloads_across_real_encoded_old_middle_hops() {
         for wrap in [Reply::Forward, Reply::Relay, Reply::Deliver] {
             let original = page();
             let value = Forwarded {
-                node: NodeId::random(),
                 reference_origin: None,
                 reply: Box::new(Reply::ReadEvents(original.clone())),
             };
@@ -239,7 +238,6 @@ fn one_walk_masks_private_payloads_across_real_encoded_old_middle_hops() {
     }
     let original = page();
     let value = Forwarded {
-        node: NodeId::random(),
         reference_origin: None,
         reply: Box::new(Reply::ReadEvents(original.clone())),
     };
