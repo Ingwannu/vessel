@@ -135,6 +135,11 @@ const fn refused(method: Method) -> bool {
         | Method::GitRenameBranch
         | Method::GitStash
         | Method::ListDir
+        | Method::InspectDirectory
+        | Method::ReadFileBytes
+        | Method::DuplicateFileEntry
+        | Method::ObserveFile
+        | Method::SuggestEntries
         | Method::ReadFile
         | Method::WriteFile
         | Method::CreateDir

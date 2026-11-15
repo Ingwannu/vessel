@@ -51,7 +51,7 @@ pub(crate) const ON_NODE: usize = 256;
 /// dropped and logged.
 pub(crate) const HOURLY: usize = 60;
 /// `needs_you` notices about one turn, at most.
-pub(crate) const NEEDS_YOU_MAX: u32 = 8;
+pub(crate) use vessel_proto::timeline::admission::NEEDS_YOU_MAX;
 /// The end of a reply a `finished` notice carries, in characters.
 pub(crate) const REPLY_TAIL: usize = 1_500;
 /// Tool call titles remembered while following one turn (a permission

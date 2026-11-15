@@ -1,7 +1,7 @@
 # Agent tools and orchestration skills
 
 Contract: ADR 0065, extending ADR 0013. Status: implementation in progress.
-Baseline: announced gate-53 node head `93970acb`, with the shared pending method table. This package selects no protocol or schema number.
+Baseline: announced gate-54 node head `275024369`, with the shared pending method table. This package selects no protocol or schema number.
 Browser tools belong to the browser package; voice output belongs to voice.
 
 ## Reference and reuse decision
@@ -792,3 +792,38 @@ or retry to the product and does not prove arbitrary concurrent-writer races.
 The shared old-install preparation is reused. The prior four-boundary suite
 continues on its original immutable source; this new case remains unexecuted
 until the next changed-source batch.
+
+
+## Gate-54 checked carrier and notice-values join
+
+The integrator announced `275024369` green (Rust 2635/0/12, web 464, e2e 80,
+forge 4, regenerated wire difference zero). It carries the exact policy/browser/
+Skills carrier a30 through 49bac0081 and W23 notice values through f1b4038f3.
+Those values are now adopted in this node runtime tree; app adoption remains
+through the next announced app base, never this whole runtime branch.
+
+The union keeps incoming file methods and their projections, then this tree's
+nine pending MCP methods at the table end. The five Skills rows are pending in
+this runtime tree because it already supplies their real node handlers/targets;
+the separately landed values-only carrier remains staged. No feature constant
+is assigned or flipped: MCP_PARITY and BROWSER_PROTOCOL remain None. Typed
+Admin/nonforwardable admission remains pinned, and the staged-status assertion
+is deliberately the runtime tree's negative assertion. Prompt receipt types,
+strict direct/nested projections and canonical alias entries are retained.
+Duplicate same-arm Skills refusal classifications from the automatic merge are
+collapsed to one occurrence, not dropped or changed.
+
+The existing automation notices watcher now reexports the checked shared
+NEEDS_YOU_MAX definition (still eight); there is no second budget or watcher.
+This is only the shared value join. Full original-request/binding DTOs, current
+parent/grant admission fence, private queue/event/receipt transaction and
+durable intent implementation are still unavailable. No row618 activation,
+restart authority or provenance producer is inferred. The provenance body-clear
+helpers remain unreviewed source and are not adopted here.
+
+Current merged-source strict, relevant union tests and full runtime wire
+generation/freshness remain owed. The incoming generated union is kept exactly
+until the VM generates this larger runtime tree's own output. The actual
+pre-merge four-boundary fleet crash tests passed 35/0/0 (one entry is the child
+harness), with all four step hashes checked; the later post-kill edit case
+remains pending its own changed-source execution.

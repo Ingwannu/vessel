@@ -19,6 +19,8 @@ fn skill_management_is_pending_admin_local_and_unary() {
     ];
     for call in calls {
         let method = call.method();
+        // This runtime tree supplies real handlers; the portable carrier stays staged.
+        assert!(!method.is_staged());
         assert_eq!(method.scope(), Some(Scope::Admin));
         assert_eq!(method.since(), crate::mcp::MCP_PARITY);
         assert!(!method.forwardable());
