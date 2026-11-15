@@ -56,7 +56,9 @@ pub enum Source<'a, Plugin> {
     Plugin(&'a Plugin),
     /// Provider commands are sent as normal prompt text.
     Provider {
+        /// The provider's unchanged descriptor and argument hint.
         command: &'a AgentCommand,
+        /// Only explicitly classified skills can complete inline.
         inline: Inline,
     },
 }
