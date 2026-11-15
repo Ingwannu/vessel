@@ -3,8 +3,8 @@
 use crate::shell::Shell;
 use vessel_app_kit::theme::spacing::{S0, S2, S3};
 use vessel_app_kit::ui::{
-    AnyElement, Context, ElementId, InteractiveElement as _, IntoElement as _, ParentElement as _,
-    Styled as _, div, px,
+    AnyElement, Context, ElementId, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, outline_button};
 use vessel_app_link::inbox::terminals::Action;
