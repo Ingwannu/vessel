@@ -1,10 +1,10 @@
-//! Staged successor of the Copy fn-pointer Seat. A concrete context travels
+//! Staged successor of the `Copy` fn-pointer Seat. A concrete context travels
 //! unchanged into a row closure; resolution never reacquires a selected session.
 use super::{ConversationArea, SessionContext, Shell};
 
 /// Derived local views share their parent's admission, not a fabricated session.
 /// Product rendering adopts this in W12's storage/follow cutover, not alongside
-/// the old main-session Seat::SESSION path.
+/// the old main-session `Seat::SESSION` path.
 #[derive(Debug, Clone)]
 pub(crate) enum ResidentSeat {
     Main(SessionContext),

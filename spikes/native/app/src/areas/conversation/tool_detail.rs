@@ -142,7 +142,7 @@ pub(super) enum DetailState {
 }
 
 /// Shared borrowed body for canonical timeline and permission presentation DTOs.
-/// The caller retains identity/disclosure/approval; no ToolView or log is needed.
+/// The caller retains identity/disclosure/approval; no `ToolView` or log is needed.
 pub(super) struct BorrowedDetail<'a> {
     pub(super) detail: &'a ToolCallDetail,
     pub(super) state: DetailState,
