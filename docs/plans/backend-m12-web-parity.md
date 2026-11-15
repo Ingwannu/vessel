@@ -1388,7 +1388,7 @@ comparison with local dist. Both helper exe/start identities are recorded
 immediately at launch, as are five runtime identities after setup. All seven
 are gone, the owned-runtime scan is empty and the private mode-0700 fixture
 root is emptied by its original owner after normal teardown. No additional
-signals or live-service permission changes are made. Two completed export/
+signals or live-service permission changes are made. Completed export/
 log OUT top directories are restored to private 0700 without changing
 source, log or binary bytes.
 
