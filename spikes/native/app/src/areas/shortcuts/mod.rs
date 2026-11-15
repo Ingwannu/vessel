@@ -1,7 +1,7 @@
 //! One native key interceptor over view's canonical binding registry. It owns
 //! event admission, chord state and capture; feature callbacks own all effects.
 //! The default predicates protect editing/terminal/center scopes, while native
-//! editing, CharacterInput and IME guards remain effective after rebinding.
+//! editing, `CharacterInput` and IME guards remain effective after rebinding.
 //!
 //! Settings, help and hint chips read the same effective registry. Menu/dialog
 //! ownership comes from the kit key-context marker, not inferred open flags.

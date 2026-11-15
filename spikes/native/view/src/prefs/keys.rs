@@ -76,7 +76,7 @@ impl fmt::Display for ActionId {
 /// space, at most 256 bytes. Each chord joins modifiers and one key with `+`.
 /// The shared grammar canonicalizes Cmd/Meta, arrow names and Digit templates.
 /// Matching prefers logical characters (including `?`); permitted physical
-/// fallbacks belong to shortcuts::input, never to persisted preference data.
+/// fallbacks belong to `shortcuts::input`, never to persisted preference data.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct KeyBinding(String);

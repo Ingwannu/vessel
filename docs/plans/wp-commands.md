@@ -390,3 +390,12 @@ rollback and per-window rebase path (source71e2c94ec, not checked at this point)
 F4 does not introduce another writer or interpret SavePrefs queueing as disk
 success. The checked common coordinator and rollback invalidation hook remain
 a required dependency before claiming persistence-failure parity.
+
+
+The bc790536 remote suite failed doc_markdown in the updated key-preference
+comment, before reaching App checks; that comment is corrected, with the same
+formatting applied to the interceptor's CharacterInput name. This is not an
+App compile result. Its replacement will also verify the official2e95 union.
+The two10:35 cancelled jobs are confirmed infrastructure interruption (VM
+resize/restart), not source failures. Per T/coordinator ruling, the latest-source
+Clippy and View tests each have one replacement; old143 logs remain retained.
