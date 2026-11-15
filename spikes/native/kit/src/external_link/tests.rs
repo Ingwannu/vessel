@@ -70,6 +70,7 @@ impl Render for Probe {
         let seen = Rc::clone(&self.seen);
         div().size_full().p(px(24.0)).child(
             div()
+                .on_children_prepainted(move |bounds, _, _| *seen.borrow_mut() = bounds)
                 .id("parent")
                 .on_click(cx.listener(|this, _, _, _| this.parent = this.parent.saturating_add(1)))
                 .flex()
@@ -80,8 +81,7 @@ impl Render for Probe {
                         cx.listener(|this, _, _, _| this.clicks = this.clicks.saturating_add(1)),
                     ),
                 )
-                .child(external_link("icon", None, &tokens))
-                .on_children_prepainted(move |bounds, _, _| *seen.borrow_mut() = bounds),
+                .child(external_link("icon", None, &tokens)),
         )
     }
 }
