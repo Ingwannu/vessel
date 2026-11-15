@@ -107,7 +107,7 @@ impl Archive {
             AtFlags::empty(),
         ) {
             Ok(()) => {}
-            Err(rustix::io::Errno::EXIST) => self.verify(digest, bytes)?,
+            Err(rustix::io::Errno::EXIST) => self.verify(digest, bytes, cancellation)?,
             Err(error) => return Err(std::io::Error::from(error).into()),
         }
         self.folder.sync_all()?;
@@ -131,27 +131,27 @@ impl Archive {
             return Err(CheckpointError::UnsafeEntry.into());
         }
         refuse_attributes(&source)?;
+        if super::rooted::MountId::of(&source)? != super::rooted::MountId::of(&self.folder)? {
+            return Err(CheckpointError::UnsafeEntry.into());
+        }
         Ok(source)
     }
-    fn verify(&self, digest: BlobHash, bytes: FileBytes) -> Result<(), Error> {
-        let mut source = File::from(
-            rustix::fs::openat(&self.folder, digest.to_string(), READ_FILE, Mode::empty())
-                .map_err(std::io::Error::from)?,
-        );
+    pub(super) fn verify(
+        &self,
+        digest: BlobHash,
+        bytes: FileBytes,
+        cancellation: &CancellationToken,
+    ) -> Result<(), Error> {
+        let mut source = self.open_blob(digest)?;
         let before = source.metadata()?;
-        if !before.is_file()
-            || before.nlink() != 1
-            || before.len() != bytes.get()
-            || before.uid() != self.folder.metadata()?.uid()
-            || before.mode() & PERMISSION_BITS != PRIVATE_MODE
-        {
-            return Err(CheckpointError::UnsafeEntry.into());
+        if before.len() != bytes.get() {
+            return Err(CheckpointError::CaptureUnstable.into());
         }
         let (found, _bytes) = content::transfer(
             &mut source,
             &mut std::io::sink(),
             Budget::Exact(bytes),
-            &CancellationToken::new(),
+            cancellation,
         )?;
         if found != digest || Identity::of(&source.metadata()?) != Identity::of(&before) {
             return Err(CheckpointError::CaptureUnstable.into());

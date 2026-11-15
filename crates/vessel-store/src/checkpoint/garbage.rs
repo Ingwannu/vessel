@@ -63,7 +63,7 @@ pub(crate) fn retire_session(
     }
     let pinned:bool=connection.query_row(
         "SELECT EXISTS(SELECT 1 FROM checkpoint_plans p JOIN checkpoint_captures c ON c.id=p.capture WHERE c.session=?1 AND p.expires_at>?2 AND p.consumed_by IS NULL)
-         OR EXISTS(SELECT 1 FROM checkpoint_captures WHERE session=?1 AND (state='candidate' OR worker='active'))
+         OR EXISTS(SELECT 1 FROM checkpoint_captures WHERE session=?1 AND (state='candidate' OR worker!='settled'))
          OR EXISTS(SELECT 1 FROM checkpoint_allocations a JOIN checkpoint_captures c ON c.id=a.capture WHERE c.session=?1 AND a.phase='reserved')",
         params![session,at.timestamp_millis()],|row|row.get(0),
     )?;

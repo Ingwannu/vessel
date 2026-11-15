@@ -174,3 +174,57 @@ fn checkpoint_success_waits_for_metadata_even_after_its_preview_expired() {
     transaction.commit().unwrap();
     assert_eq!(garbage::pending(&db).unwrap().len(), 1);
 }
+
+#[test]
+fn checkpoint_startup_orphan_scan_excludes_current_workers_and_preserves_ready_identity() {
+    use crate::checkpoint::{
+        orphans::{self, OrphanedCapture},
+        quota,
+    };
+    let mut db = database();
+    let session = info();
+    crate::log::create_session(&db, &session).unwrap();
+    let retained = make_plan(session.id);
+    journal::candidate(
+        &db,
+        retained.key,
+        quota::CAPTURE_BYTES,
+        DateTime::UNIX_EPOCH,
+    )
+    .unwrap();
+    journal::keep_candidate(
+        &db,
+        retained.key,
+        &super::super::tests::observed(retained.desired.image().clone()),
+    )
+    .unwrap();
+    let checkpoint = CheckpointId::random();
+    publication::activate(&db, retained.key, checkpoint).unwrap();
+    let mut failed = retained.key;
+    failed.capture = vessel_proto::checkpoint::CaptureId::random();
+    journal::candidate(&db, failed, quota::CAPTURE_BYTES, DateTime::UNIX_EPOCH).unwrap();
+    startup(&mut db).unwrap();
+    let mut current = retained.key;
+    current.capture = vessel_proto::checkpoint::CaptureId::random();
+    journal::candidate(&db, current, quota::CAPTURE_BYTES, DateTime::UNIX_EPOCH).unwrap();
+    let page = orphans::page(&db, None).unwrap();
+    assert_eq!(page.captures.len(), 2);
+    assert!(page.captures.contains(&OrphanedCapture::Retained {
+        key: retained.key,
+        checkpoint
+    }));
+    assert!(
+        page.captures
+            .contains(&OrphanedCapture::Discard { key: failed })
+    );
+    assert!(!page.captures.iter().any(|capture| capture.key() == current));
+    // SQL-only model of a collector's later physical cleanup acknowledgement.
+    quota::capture_settled(&db, failed).unwrap();
+    assert_eq!(
+        orphans::page(&db, None).unwrap().captures,
+        vec![OrphanedCapture::Retained {
+            key: retained.key,
+            checkpoint
+        }]
+    );
+}

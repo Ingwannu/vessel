@@ -105,6 +105,21 @@ impl Tree {
     }
 }
 impl Archive {
+    /// Verify every retained payload before settling an orphan's capture escrow.
+    /// This reads private immutable blobs only; it never touches project files.
+    /// # Errors
+    /// Missing/corrupt or unsafe private blobs, cancellation or actual I/O failure.
+    pub fn verify_image(&self, image: &FileImage, cancel: &CancellationToken) -> Result<(), Error> {
+        for entry in image.entries() {
+            match entry.state {
+                vessel_proto::checkpoint::FileState::Present { digest, bytes, .. } => {
+                    self.0.verify(digest, bytes, cancel)?
+                }
+                vessel_proto::checkpoint::FileState::Absent => {}
+            }
+        }
+        Ok(())
+    }
     /// Open an existing service-owned 0700 directory; never loosen its policy.
     /// # Errors
     /// Unsafe directory/access metadata or filesystem I/O failure.
@@ -255,6 +270,25 @@ mod tests {
             );
             assert_eq!(fs::read(dir.join("README.md")).unwrap(), b"later edit");
             admitted.revalidate().unwrap();
+            selected_archive
+                .verify_image(selected.image(), &cancel)
+                .unwrap();
+            let digest = selected
+                .image()
+                .entries()
+                .iter()
+                .find_map(|entry| match entry.state {
+                    vessel_proto::checkpoint::FileState::Present { digest, .. } => Some(digest),
+                    vessel_proto::checkpoint::FileState::Absent => None,
+                })
+                .unwrap();
+            let blob = sandbox.path().join("selected").join(digest.to_string());
+            fs::write(&blob, b"corrupt retained archive").unwrap();
+            assert!(
+                selected_archive
+                    .verify_image(selected.image(), &cancel)
+                    .is_err()
+            );
         })
         .await
         .unwrap();

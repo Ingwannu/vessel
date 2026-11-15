@@ -827,3 +827,19 @@ was raised. Registration/writer barrier and real-node/fake-ACP turn fixtures
 were added, including stored image reads after node shutdown/reopen. They have
 not executed yet. Runtime Busy timing, startup GC/recovery and the full node
 gate remain owed. No runtime capability, product completion or review is claimed.
+
+### Previous-process capture reconciliation identity (source; unverified)
+
+Store startup now marks prior active workers as orphaned in the same FULL
+transaction that invalidates candidates. New runtime captures remain active;
+the bounded internal orphan keyset scan cannot return them. Orphaned ready
+rows retain their exact published checkpoint identity and must have all private
+payloads verified before settlement; unavailable rows require actual private
+namespace cleanup. Retirement pins both active and orphaned workers. This
+prevents a background startup collector from sweeping a new live capture.
+The SQL fixture checks retained/discard identities and excludes a new worker;
+it models physical cleanup acknowledgement explicitly, without claiming I/O.
+Archive verification reuses the existing bounded hashing loop, now checking
+opened private blob mount identity and metadata too. The actual-worker fixture
+checks valid retained payloads and refuses later corruption. Node collection
+and shared capture/restore/GC worker admission remain the next integration step.

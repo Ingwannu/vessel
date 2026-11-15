@@ -48,6 +48,12 @@ pub(crate) fn startup(connection: &mut Connection) -> Result<(), StoreError> {
     let result: Result<(), StoreError> = (|| {
         let transaction = connection.transaction()?;
         super::journal::invalidate_candidates(&transaction)?;
+        // The node lock proves old process I/O cannot still own these rows.
+        // Future live captures remain active and never enter this startup scan.
+        let _fenced = transaction.execute(
+            "UPDATE checkpoint_captures SET worker='orphaned' WHERE worker='active'",
+            [],
+        )?;
         while super::recovery::pending(&transaction)?
             == vessel_proto::checkpoint::CHECKPOINT_PAGE_ENTRIES
         {}

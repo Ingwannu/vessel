@@ -81,7 +81,7 @@ fn operation_page(
     Ok(OperationPage { operations, next })
 }
 
-fn text<T: serde::de::DeserializeOwned>(raw: &str) -> Result<T, CheckpointStoreError> {
+pub(super) fn text<T: serde::de::DeserializeOwned>(raw: &str) -> Result<T, CheckpointStoreError> {
     Ok(T::deserialize(serde::de::value::StrDeserializer::<
         serde_json::Error,
     >::new(raw))?)

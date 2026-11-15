@@ -1818,3 +1818,10 @@ objects. The staged node capture backend joins that mechanism to the existing
 writer and managed-worktree lookup. Its real-worktree fixture does not launch
 a provider. Linux bootstrap now installs the actor bridge; its real-node/fake-ACP
 fixture is unrun pending remote verification.
+
+Checkpoint startup distinguishes previous-process orphaned workers from current
+active captures. Only the internal orphan keyset scan feeds reconciliation;
+retention pins both until actual cleanup/verification and settlement. Ready
+archives retain their immutable checkpoint identity and are verified through
+the workspace's existing bounded hash reader, including private mount and
+metadata checks. No live-worker cleanup authority comes from this scan.
