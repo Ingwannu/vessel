@@ -82,7 +82,7 @@ pub use error::{ConnectError, StreamError};
 pub use local::{LocalConnectError, LocalCredential};
 pub use pinned::{Pinned, PinnedError};
 pub use resume::{Backoff, ResumingStream, follow_resuming, follow_terminal_resuming};
-pub use stream::{Log, LogStream, SessionLog, SessionStream, TerminalLog, TerminalStream};
+pub use stream::{Log, LogEnd, LogStream, SessionLog, SessionStream, TerminalLog, TerminalStream};
 pub use token::{BearerToken, InvalidToken};
 pub use url::{InvalidNodeUrl, NodeUrl};
 pub use vessel_rpc::{

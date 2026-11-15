@@ -8,6 +8,7 @@ mod pinned;
 mod resume;
 mod secure;
 mod stream;
+mod stream_end;
 mod websocket;
 
 use std::num::NonZeroUsize;
@@ -103,6 +104,7 @@ fn client_info() -> ClientInfo {
 
 /// A node with one session whose log is `oldest..LOG_LEN`.
 struct FakeNode {
+    end_probe: Option<stream_end::Probe>,
     /// The id new connections are welcomed with (change it to play a
     /// reinstalled machine).
     id: Mutex<NodeId>,
@@ -121,6 +123,7 @@ struct FakeNode {
 impl FakeNode {
     fn new(oldest: u64) -> Self {
         Self {
+            end_probe: None,
             id: Mutex::new(NodeId::random()),
             oldest,
             subscribes: AtomicUsize::new(0),
@@ -225,6 +228,9 @@ impl Handler for FakeNode {
     ) -> Result<Subscribed, WireError> {
         if request.session != session_id() || self.forgotten.load(Ordering::Relaxed) {
             return Err(WireError::new(ErrorCode::NotFound, "no such session"));
+        }
+        if let Some(probe) = self.end_probe.clone() {
+            return stream_end::subscribe(context, request, probe).await;
         }
         let first = self.subscribes.fetch_add(1, Ordering::Relaxed) == 0;
         let mut sink = context
