@@ -246,3 +246,11 @@ limit retained file/provider input and never evict older choices. A refusal
 leaves the prior state intact and must be surfaced by the caller; the source
 provider facts and final persistence hooks remain outside this pure module.
 This model is not a claim that setup/update/Rosetta admission is wired.
+
+Alphabetical ties reuse the one shared `view::alphabetical::compare` helper
+introduced in449fe38b, adopted as exact source/test blobs without the provider
+package's unrelated history. Its producer narrow check76557b9b passed all-target
+Clippy. The coordinator's approved Unicode-lowercase then original-scalar order
+is deterministic; it deliberately differs from locale/numeric tailored
+collation. Sidebar status/time/relevance precedence is preserved before this
+name tie. No second comparator or normalization layer is introduced.

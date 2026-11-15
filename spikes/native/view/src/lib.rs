@@ -9,6 +9,7 @@
 //! thing. Nothing of a UI toolkit's may be used here (ADR 0035): the
 //! screens draw these values through Vessel's kit, whatever is under it.
 
+pub mod alphabetical;
 pub mod about;
 pub mod agent_mark;
 pub mod agent_status;
