@@ -308,3 +308,24 @@ The Proc child stores its private guard as observation, keeping that name
 separate from a release-capability lifetime policy in the lifecycle work.
 The public lifetime() accessor and all revocation points are unchanged;
 this private rename changes no test expectation or runtime behavior.
+
+## Process carrier qualification checkpoint
+
+The four changed crates passed all-target Clippy and their full tests at
+3d982ce9: 334 passed, none failed, two ignored across 27 result groups.
+All fourteen new PID/watch/child/PTY/session/terminal cases ran. The first
+compile-error and later test-documentation lint checks remain recorded as
+failures rather than test passes. No deadline or assertion was weakened.
+
+The composed carrier now includes the designated shared base 6c782cb6 and
+the reviewed receipt fix c5da5305. The incoming native, proto, store, node,
+workspace, testkit and web trees are unchanged. The only later product edit
+is the private observation-field rename, with the same public API and
+revocation behavior. Qualification of this composition requires the whole
+root gate and security review before integration. It introduces no D2
+helper/allocator caller, protocol field, number or dependency.
+
+Release-capable child integration, durable process identity and the actual
+service/Preview consumers remain separate work. This carrier cannot prove
+OS death, persistent ownership or socket/workspace authority. Windows and
+native execution are outside this checkpoint's evidence.
