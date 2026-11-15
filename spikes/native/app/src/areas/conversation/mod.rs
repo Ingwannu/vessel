@@ -86,6 +86,7 @@ mod tail;
 /// Its rows, for another area's conversation too ([`timeline::rows`]).
 pub(crate) mod timeline;
 mod tool;
+mod tool_body;
 mod tool_detail;
 mod tool_sheet;
 mod turns;

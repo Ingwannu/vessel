@@ -7,11 +7,10 @@ use crate::shell::Shell;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, ElementId, IntoElement as _, ParentElement as _, Styled as _, Window, div,
-    px, size,
+    px,
 };
 use vessel_app_kit::{
     DialogContent, DialogSize, Start, Tokens, Type, TypeExt as _, breakpoint, dialog, output_box,
-    skeleton,
 };
 use vessel_app_view::prefs::ReasoningExpansion;
 use vessel_app_view::timeline::{EntryKey, EntryKind, Folds, Timeline, plan_text};
@@ -367,39 +366,11 @@ fn run_content(
 
 /// Empty legacy details follow the same loading/empty contract as canonical bodies.
 pub(super) fn empty(paint: &Paint<'_>, index: usize, working: bool) -> AnyElement {
-    empty_at(
+    super::tool_body::empty(
         paint,
         ElementId::NamedInteger("tool-details-loading".into(), id(index)),
         working,
     )
-}
-
-/// A request supplies its own stable identity; it never fabricates a timeline row.
-pub(super) fn empty_at(paint: &Paint<'_>, id: ElementId, working: bool) -> AnyElement {
-    if !working {
-        return div()
-            .type_(Type::Body)
-            .text_color(paint.look.secondary)
-            .child(paint.catalog.timeline_tool().empty())
-            .into_any_element();
-    }
-    let tokens = *paint.tokens;
-    skeleton::pulse(id, move |opacity| {
-        div().flex().flex_col().gap(px(spacing::S2)).children(
-            [spacing::S24, spacing::S32, spacing::S16]
-                .into_iter()
-                .map(|width| {
-                    skeleton::shape(
-                        skeleton::Shape {
-                            size: size(px(width), px(spacing::S2)),
-                            rounding: skeleton::Rounding::Small,
-                        },
-                        opacity,
-                        &tokens,
-                    )
-                }),
-        )
-    })
 }
 
 #[cfg(test)]

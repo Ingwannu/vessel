@@ -1093,3 +1093,18 @@ with geometry/licence unchanged. The complete merged inventory is99. W2's event
 accessor prerequisite arrived only through this official app base, not a copied
 accessor or direct node-head adoption. W23's portable checked values cut is still
 pending; no canonical field/receipt runtime activation is inferred from base8.
+
+### Portable borrowed-body boundary extraction
+
+The single body implementation now lives in conversation::tool_body, separate
+from ToolDetailSource/header, provenance wrapper and compact sheet lifetime.
+tool_detail reexports BorrowedDetail, DetailContentState and borrowed_body, keeping
+A8's agreed interface unchanged. Timeline/provenance/legacy failure wrappers call
+that same kernel; sheet loading delegates its empty presentation there too.
+The structural-ID test moves with its implementation rather than being copied.
+
+This extraction prepares a minimal portable native prerequisite for W4 on base8.
+It does not declare a ready packet: W4 has no ToolCallDetail, so the canonical
+standalone-values dependency must be identified/approved by W23 under the current
+integrator disposition. No proto source, ToolView, Entry or response is fabricated.
+The native-only source cut still needs exact narrow validation before handoff.
