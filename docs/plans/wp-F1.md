@@ -168,3 +168,14 @@ No tests ran. The option-leading fix is904948fc; the remaining repairs use the
 existing status() accessor, the interactive trait and shared ICON_SIZE.lg20
 constant (the spacing scale intentionally has no key5). These diagnostics are
 retained in the cb96 run, never presented as later-source test evidence.
+
+## Fleet schedule shapes
+
+The fleet now sources schedule-fixtures.sh after creating its ordinary projects
+and fake-agent sessions. All definitions and twelve historical sessions use CLI
+calls, including exact90s/Korean, weekday cron/long name, paused, failed, and
+recurring-prompt targets. Checks fail if list, run outcome or history shapes are
+missing. Admission is not settlement: the seed waits on actual schedule runs
+before asking for the next run. Only bash syntax/source inspection is checked
+so far; execution against the rebuilt fake fleet remains owed. No store files
+are edited and no real agent is involved.

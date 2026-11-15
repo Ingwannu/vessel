@@ -25,6 +25,7 @@
 set -euo pipefail
 umask 077
 source "$(dirname "${BASH_SOURCE[0]}")/agent-fixtures.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/schedule-fixtures.sh"
 
 command=${1:?start or stop}
 root=${2:?a scratch directory}
@@ -433,6 +434,8 @@ waiting=$(cli --node laptop session queue "$queued" | grep -cE '^ *[0-9]+  ' || 
   echo "fleet: session $queued lacks its three queued prompts (got: $waiting)" >&2
   exit 1
 }
+
+schedule_fixture_seed "$root"
 
 python3 "$(dirname "$0")/shell-fixtures.py" seed "$root" "$target"
 

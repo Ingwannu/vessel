@@ -1181,3 +1181,8 @@ empty rows. Active countdowns keep a minute tier. Metadata ticks never query
 the node; Fleet's unrelated session changes do not turn a stale cache into
 periodic schedule/list calls. Changed-source and frame verification remain in
 F1's final evidence boundary.
+
+Schedule shapes in the fake fleet are seeded by `scripts/schedule-fixtures.sh`,
+through the CLI: an exact interval, weekday cron, paused and failed schedules,
+a recurring prompt, and twelve past runs with session links. The seed checks
+those shapes and fails when one is missing; it never writes schedule storage.
