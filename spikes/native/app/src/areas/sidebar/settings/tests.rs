@@ -155,6 +155,15 @@ fn actual_reorder_buttons_obey_boundaries_and_source_row_density(cx: &mut TestAp
                         before
                     )
                 });
+                show(&probe, cx, Surface::Row(Builtin::Schedules));
+                click_control(&probe, cx, Control::Down, width);
+                probe.read_with(cx, |probe, cx| {
+                    assert_eq!(
+                        super::super::navigation::items(probe.shell.read(cx), Section::Header),
+                        before
+                    );
+                });
+                show(&probe, cx, Surface::Row(Builtin::NewWorkspace));
                 click_control(&probe, cx, Control::Down, width);
                 probe.read_with(cx, |probe, cx| {
                     let items =
@@ -175,16 +184,6 @@ fn actual_visibility_switch_hides_and_restores_the_shared_search_opener(cx: &mut
         for lang in [Lang::En, Lang::Ko] {
             for (width, height) in [(700.0, 28.0), (390.0, 36.0)] {
                 let (probe, cx) = setup(cx, width, scheme, lang, Builtin::Search);
-                let before = probe.read_with(cx, |probe, cx| {
-                    super::super::navigation::items(probe.shell.read(cx), Section::Header)
-                });
-                click_control(&probe, cx, Control::Down, width);
-                probe.read_with(cx, |probe, cx| {
-                    assert_eq!(
-                        super::super::navigation::items(probe.shell.read(cx), Section::Header),
-                        before
-                    )
-                });
                 click_control(&probe, cx, Control::Toggle, width);
                 show(&probe, cx, Surface::Search);
                 probe.read_with(cx, |probe, _| {

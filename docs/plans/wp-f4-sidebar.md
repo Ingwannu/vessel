@@ -650,3 +650,10 @@ native size/boundaries/tokens0. Import scan completed; doc scan found four
 unquoted Rust identifiers (PreferenceChange, primary_keys, MenuState, MenuItem),
 corrected in comments only before requesting the exact revised priority head.
 No runtime code changed by this preflight correction.
+
+
+Pre-execution fixture correction: Header order is NewWorkspace, History, Search,
+Schedules. The last-row disabled Down assertion now uses Schedules, not Search;
+the Search case retains actual visibility/hide/restore/opener checks. Runtime
+source is unchanged from the priority bd9 snapshot; ordinary tests use this
+corrected fixture head. No source/gate pass inferred from the pending check.
