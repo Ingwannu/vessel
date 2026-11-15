@@ -332,6 +332,11 @@ async fn watchers_only_wake_after_a_committed_registry_change() {
             .await
             .unwrap();
         changes.changed().await.unwrap();
+        let fresh = store.registry_changes();
+        assert!(
+            !fresh.has_changed().unwrap(),
+            "a fresh subscriber must not inherit historical invalidations"
+        );
         assert_eq!(
             store
                 .registry_workspace(record.descriptor.id)
