@@ -6,6 +6,7 @@ mod colors;
 mod draw;
 mod form;
 mod hosts;
+mod surface;
 
 use vessel_app_kit::ui::{Context, IntoElement as _, Window};
 use vessel_app_kit::{ButtonKind, ButtonState, DialogState, TextField, Tokens, button_with_kind};
@@ -14,7 +15,7 @@ use vessel_app_view::labels::{EditAccess, Failure, Host, HostState, Manager};
 use crate::shell::Shell;
 
 pub(crate) struct Labels {
-    open: bool,
+    opening: Option<surface::Opening>,
     manager: Manager,
     hosts: Vec<Host>,
     search: TextField,
@@ -30,7 +31,7 @@ pub(crate) struct Labels {
 impl Labels {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
-            open: false,
+            opening: None,
             manager: Manager::default(),
             hosts: Vec::new(),
             search: TextField::with_change(
@@ -98,8 +99,21 @@ impl Shell {
 
     fn labels_open(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let state = &mut self.areas.labels;
+        if state.opening.is_some() {
+            state.dialog.focus(window, cx);
+            cx.notify();
+            return;
+        }
+        let opening = match state.tickets.issue() {
+            Ok(ticket) => surface::Opening::new(ticket),
+            Err(failure) => {
+                state.error = Some(failure);
+                cx.notify();
+                return;
+            }
+        };
         if state.manager.state().busy() {
-            state.open = true;
+            state.opening = Some(opening);
             state.dialog.focus(window, cx);
             cx.notify();
             return;
@@ -118,29 +132,45 @@ impl Shell {
         state
             .name
             .set_placeholder(self.words.labels().name(), window, cx);
-        state.open = true;
+        state.opening = Some(opening);
         state.dialog.focus(window, cx);
         state.search.focus(window, cx);
         cx.notify();
     }
 
-    fn labels_close(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
+    fn labels_close(
+        &mut self,
+        expected: surface::Dismiss,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
         let state = &mut self.areas.labels;
-        state.open = false;
-        // Surface lifetime is independent of a committed/in-flight mutation.
-        if !state.manager.state().busy() {
-            match state.manager.reset() {
-                Ok(()) => state.error = None,
-                Err(failure) => state.error = Some(failure),
+        match expected.decide(state.opening, state.manager.state()) {
+            surface::Outcome::Stale => return,
+            surface::Outcome::CancelConfirmation => {
+                let _cancelled = state.manager.cancel_delete();
+                state.name.focus(window, cx);
+            }
+            surface::Outcome::Close => {
+                state.opening = None;
+                state.dialog.dismissed(window, cx);
+                // Accepted writes keep their owner even while hidden.
+                if !state.manager.state().busy() {
+                    match state.manager.reset() {
+                        Ok(()) => state.error = None,
+                        Err(failure) => state.error = Some(failure),
+                    }
+                }
             }
         }
+        self.settle_labels(cx);
         cx.notify();
     }
 
     /// Apply the shared editor policy only on transitions; no render-notify loop.
     pub(crate) fn settle_labels(&mut self, cx: &mut Context<'_, Self>) {
         let state = &mut self.areas.labels;
-        if !state.open {
+        if state.opening.is_none() {
             return;
         }
         let host = state

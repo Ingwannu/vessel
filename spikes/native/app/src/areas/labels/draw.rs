@@ -19,9 +19,8 @@ pub(crate) fn overlay(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let state = &shell.areas.labels;
-    if !state.open {
-        return None;
-    }
+    let opening = state.opening?;
+    let dismiss = super::surface::Dismiss::capture(opening, state.manager.state());
     let body = body(shell, tokens, cx);
     Some(dialog(
         &state.dialog,
@@ -34,7 +33,7 @@ pub(crate) fn overlay(
         tokens,
         window,
         vessel_app_kit::breakpoint::phone(window),
-        Shell::labels_close,
+        move |shell, window, cx| shell.labels_close(dismiss, window, cx),
         cx,
     ))
 }

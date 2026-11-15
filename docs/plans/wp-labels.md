@@ -192,3 +192,13 @@ peer advertising the assigned feature version; pending None still refuses
 every peer, and reconnect begins Loading. An unresolved alias cannot duplicate
 or demote an answered route to the same node, regardless of route order. Added
 regressions cover that mixed known/unknown identity case and capability gating.
+
+Merged the current announced line `e5e654b47` (dialog seam `074ade16`) after
+reading WORKER BASES. The label area consumes shared `DialogState::dismissed`
+only after actual close. A nominal opening identity and captured inspection
+ticket bind Escape/scrim/close to the displayed surface and decision; stale
+callbacks do nothing. Dismissing confirmation returns to the retained editor,
+while hiding an accepted write leaves it owned until its result arrives.
+Two pure regressions cover old openings, replaced inspections, confirmation
+cancellation and hidden in-flight work. Focus restoration remains the shared
+kit's weak-opener policy, not a feature-local focus engine. Checks are pending.
