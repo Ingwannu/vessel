@@ -13,6 +13,8 @@ mod cdp;
 #[cfg(test)]
 mod network;
 #[cfg(test)]
+mod page;
+#[cfg(test)]
 mod preparation;
 #[cfg(test)]
 mod proxy;

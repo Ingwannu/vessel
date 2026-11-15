@@ -324,3 +324,19 @@ monotonic command id. A mismatched response closes the transport and refuses
 the result; it cannot be used as the selected page's reply. A scripted peer
 regression sends a correct command id from a different target. No actual
 browser/runtime qualification follows from that transport-only fixture.
+
+
+## Staged actual-target controller
+
+The page controller consumes only sealed CDP requests and engine responses; it
+cannot construct an engine or grant workspace/network authority. Creation sets
+up observed Page/Runtime/Network domains and a bounded surface before returning
+a target. Partial setup attempts target close and remains an error; the future
+profile owner must still retain process cleanup responsibility. Commands are
+serialized through mutable page ownership; any failed CDP exchange quarantines
+the target for close instead of allowing automatic mutation replay. History is
+read from Chromium and checked before selecting a real entry id. Unsupported
+file/debug/internal history entries refuse, a deliberate HTTP(S)-only safety
+difference. Raster admission checks the existing 32MiB RGBA cap before metrics
+change, in addition to the wire side limits. No script echo or test PNG is
+published as a page. Controller fixtures are protocol tests, not qualification.

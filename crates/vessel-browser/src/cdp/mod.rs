@@ -15,3 +15,4 @@ mod wire;
 
 pub(crate) use client::{CdpError, Client};
 pub(crate) use endpoint::Endpoint;
+pub(crate) use identity::{SessionId, TargetId};
