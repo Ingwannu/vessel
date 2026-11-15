@@ -856,10 +856,15 @@ borrow retained fields, while messages with values are formatted when those
 values change. The allocation-counting test covers warmed plain access.
 
 `LANGUAGES` exposes each embedded tag, own name and completeness; the
-checking locale `en-XA` is excluded. `resolve_language` applies an override,
-a typed preference, or the system tag, with exact/base/English fallback.
-The source API is English, Korean must be complete with the same variables,
-and a contributed folder may be partial. Run the shared validator/report:
+checking locale `en-XA` is excluded. `resolve_languages` applies the checking
+override, a typed preference, or the host provider's preferred system tags in
+order. Each tag tries exact then base; English is the final fallback after the
+list is exhausted. `resolve_language` remains the single-tag adapter. The app
+uses sys-locale's existing native/browser list at startup or preference events,
+with no locale I/O during drawing. English/Korean are the shipped languages;
+a partial candidate stays outside the shipped directory. The source API is
+English and Korean must be complete with the same variables. Run the shared
+validator/report:
 
 ```bash
 scripts/locale-coverage.sh
