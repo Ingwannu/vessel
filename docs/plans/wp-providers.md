@@ -757,8 +757,9 @@ and strict-check evidence remain owed until the VM runs on this source finish.
   own admission. A second quota would only hide the ownership defect.
 - Choice: one `runtime::preparation` entry retains a runtime tracker token and
   `Arc<T>` caller owner inside each actual blocking closure. Native version
-  lookup uses it too. Normal settlement awaits each closure; an externally
-  dropped waiter leaves those physical owners until actual closure settlement.
+  lookup uses it too. A surrounding runtime token also tracks the normal
+  continuation between blocking phases, including the version process wait.
+  Normal settlement awaits each closure; an externally dropped waiter leaves those physical owners until actual closure settlement.
 - Claim lifetime: the same claims registry is now shared by owned guards;
   borrowed `keep` publishes held profiles and the last guard drop releases the
   starting claim. A restart and resumed creation pass this actual guard through

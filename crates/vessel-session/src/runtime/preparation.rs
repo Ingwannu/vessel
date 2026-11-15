@@ -46,6 +46,13 @@ impl SessionRuntime {
         proxy: Option<ModelProxy>,
         ownership: Arc<T>,
     ) -> Result<AgentCommand, SessionError> {
+        // Keep normal preparation tracked between blocking phases too (the
+        // native version process may be awaited between its two lookups).
+        // Each closure additionally owns its token if this waiter is dropped.
+        let _preparing = self.tasks_token();
+        if self.is_shutting_down() {
+            return Err(SessionError::ShuttingDown);
+        }
         let chosen = self
             .choose_driver(&spec, &profile, Arc::clone(&ownership))
             .await;
