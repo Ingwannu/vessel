@@ -3,6 +3,15 @@ union checks, full source review and owning whole gate. The next section is the
 integrated values-only carrier's preserved scope; the worker runtime continuation
 below it is separate and has not been adopted by that source verdict.
 
+Current source: canonical93970acb merged830d89e4; the worker claims append is
+schema22 after listing21. Five attention methods remain None. Current830 strict,
+5-library and rollback integration checks are in progress; earlier4ad strict and
+b028955+42 tests remain exact prior-source evidence. The later docs correction
+clarifies server error recipient admission versus native OS error suppression;
+no node runtime rule changed. Workspace marks are design-only pending canonical
+membership, workspace-relative roles and lifecycle-owned updatedAt. Historical
+checkpoints below do not grant current whole, assigned-wire or A5 approval.
+
 # A5: existing node inbox and push boundary
 
 ## Ownership and scope
