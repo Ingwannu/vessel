@@ -985,3 +985,8 @@ lifecycle record from checkpoint metadata appended after that run. This permits
 a separately implemented ended-session file restore to report its checkpoint
 without starting an agent. No event, accessor, stream implementation or assertion
 changes here; log follow still has its previously reviewed run-EOF behavior.
+
+New retained-cleanup tests use the existing testkit safety net for channel and
+filesystem waits. The virtual-time case separately bounds its join after advancing
+the production idle deadline; an absent timeout fails instead of hanging forever.
+This changes no existing deadline or assertion.
