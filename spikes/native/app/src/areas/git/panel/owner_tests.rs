@@ -153,8 +153,19 @@ fn real_retarget_away_and_back_requires_a_fresh_git_owner_instance(cx: &mut Test
         let (old, ticket) = target_tests::prepare(shell, window, cx);
         while inbox.try_recv().is_ok() {}
         retarget(shell, &old.address, Target::Scripts, cx);
+        let away = shell.prefs.clone();
         assert!(!shell.areas.git.panels.entries.contains_key(&old.address));
         retarget(shell, &old.address, Target::WorkingDiff, cx);
+        let returned = shell.prefs.clone();
+        // Each successful layout transaction deliberately persists its result.
+        // Assert both exact side effects rather than skipping arbitrary commands.
+        for expected in [away, returned] {
+            let Command::SavePrefs(prefs) = inbox.try_recv().unwrap() else {
+                panic!("retarget must publish exactly its saved layout");
+            };
+            assert_eq!(*prefs, expected);
+        }
+        empty(&mut inbox);
         assert!(shell.layout_tab_matches(
             &old.address.workspace,
             old.address.tab,
@@ -164,10 +175,13 @@ fn real_retarget_away_and_back_requires_a_fresh_git_owner_instance(cx: &mut Test
         let fresh = shell.areas.git.panels.entries[&old.address].instance;
         assert_ne!(fresh, Some(old.instance));
         assert!(fresh.is_some());
-        assert!(matches!(
-            inbox.try_recv().unwrap(),
-            Command::GitPanel(vessel_app_link::git_panel::Ask::Locate(_))
-        ));
+        let Command::GitPanel(vessel_app_link::git_panel::Ask::Locate(located)) =
+            inbox.try_recv().unwrap()
+        else {
+            panic!("reopening must request one original-context location");
+        };
+        assert_eq!(located.address(), &old.address);
+        assert_eq!(located.context(), &old.context);
         shell.git_panel_compare(&old, ComparisonMode::Committed, window, cx);
         empty(&mut inbox);
         shell.git_panel_answer(
@@ -185,7 +199,7 @@ fn real_retarget_away_and_back_requires_a_fresh_git_owner_instance(cx: &mut Test
         assert_eq!(entry.instance, fresh);
         assert!(entry.problem.is_none());
         assert!(entry.reads.is_none());
-        assert!(matches!(&entry.binding, PanelBinding::Locating(_)));
+        assert!(matches!(&entry.binding, PanelBinding::Locating(ticket) if ticket == &located));
     });
 }
 

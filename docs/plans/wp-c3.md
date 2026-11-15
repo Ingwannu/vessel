@@ -1121,3 +1121,21 @@ bin-only crate. Its queued run is cancelled before execution and replaced once
 with --bin vessel-app on the coherent corrected source, in the same short lane.
 Keep the original queued/cancelled evidence; do not call it a compiler failure
 or a test pass. The older ordinary 480 all-target git run remains untouched.
+
+## Exact 9f App runtime return, separate from its green lint check
+
+Exact 9f strict all-target View/Link/Kit/App Clippy is GREEN, fonts/cargo0 and
+all four crates actually checked. Its App pane tests are separately RED:12/1/0,
+112 filtered. Startup/refusal, real retirement, rollback/pending payload, close,
+workspace isolation, actual narrow path list and the new summary round-trip
+case all ran ok. The fresh-owner reopen test fails because its first queued
+command is not Locate; the failing assertion did not record its concrete value.
+
+The source contract shows each successful retarget publishes SavePrefs. The
+fixture now asserts both exact persisted Prefs snapshots, then an empty queue,
+then exactly one Locate with the original context/address. Its final retained
+binding must equal that emitted ticket, not merely any Locating value. This is
+a stronger complete command assertion, not a drain/filter that hides unknown
+side effects. Production is unchanged. The correction remains unexecuted until
+its exact new App batch; do not call the earlier 12/1 a pass or combine it with
+prior View/Link200 as one current-source runtime result.
