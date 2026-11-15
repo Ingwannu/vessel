@@ -109,7 +109,21 @@ async fn deliver(client: &NodeClient, session: SessionId, text: &str) -> Result<
 /// Transport loss may hide a committed side effect; never turn it into retry.
 fn failure(error: &CallError) -> Failure {
     match error {
-        CallError::Remote(error) => Failure::Refused(error.code),
+        CallError::Remote(error) => match error.code {
+            // Session persistence can fail after the process starts. A generic
+            // internal error is not evidence that its side effects never ran.
+            vessel_proto::ErrorCode::Internal => Failure::OutcomeUnknown,
+            vessel_proto::ErrorCode::InvalidRequest
+            | vessel_proto::ErrorCode::Unauthorized
+            | vessel_proto::ErrorCode::Forbidden
+            | vessel_proto::ErrorCode::ProtocolMismatch
+            | vessel_proto::ErrorCode::NotFound
+            | vessel_proto::ErrorCode::Conflict
+            | vessel_proto::ErrorCode::Unsupported
+            | vessel_proto::ErrorCode::HarnessNotInstalled
+            | vessel_proto::ErrorCode::SpawnFailed
+            | vessel_proto::ErrorCode::Unavailable => Failure::Refused(error.code),
+        },
         CallError::NotInProtocol { .. }
         | CallError::UnassignedProtocol { .. }
         | CallError::RequestIdsExhausted => Failure::Unsupported,

@@ -178,3 +178,12 @@ empty catalog is advertised as the server's settings. The shared composer
 renderer moved to draft/draw.rs to preserve the file budget; its existing
 four literal allowances moved with the unchanged drawing, without increases.
 Submission still reports unsupported while the registry driver is pending.
+
+Legacy creation Internal errors are outcome-unknown rather than a proven
+refusal. Existing node sessions::start launches/registers the process before
+store.create_session and can return a generic store error afterwards; cleanup
+cannot prove that the process had no external effect. The link retains the
+original draft and blocks replacement/replay in that case. Duplex-peer tests
+cover Internal at registration and at first-prompt delivery, with no success
+or automatic repeated create. Typed pre-effect refusals retain their existing
+retry behavior. Durable reconciliation still waits for the new receipt driver.

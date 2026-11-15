@@ -4,9 +4,9 @@ use super::{Scenario, TestResult};
 use chrono::DateTime;
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _, DuplexStream};
 use vessel_proto::{
-    Call, ClientFrame, Delivered, ErrorCode, HarnessKind, NodeId, NodeInfo, NodeState, Outcome,
-    ProtocolRange, Reply, RequestId, ServerFrame, SessionId, SessionInfo, SessionMode, SessionSpec,
-    Welcome, WireError,
+    Call, ClientFrame, Delivered, HarnessKind, NodeId, NodeInfo, NodeState, Outcome, ProtocolRange,
+    Reply, RequestId, ServerFrame, SessionId, SessionInfo, SessionMode, SessionSpec, Welcome,
+    WireError,
 };
 
 async fn read(stream: &mut DuplexStream) -> TestResult<Option<ClientFrame>> {
@@ -77,19 +77,16 @@ async fn register(stream: &mut DuplexStream, scenario: Scenario) -> TestResult<O
         (
             Call::CreateSession(request),
             Scenario::Accept
-            | Scenario::RefusePrompt
+            | Scenario::RefusePrompt(_)
             | Scenario::DisconnectPrompt
-            | Scenario::RefuseCreate,
+            | Scenario::RefuseCreate(_),
         ) => {
-            if matches!(scenario, Scenario::RefuseCreate) {
+            if let Scenario::RefuseCreate(code) = scenario {
                 write(
                     stream,
                     ServerFrame::Response {
                         id,
-                        outcome: Outcome::Err(WireError::new(
-                            ErrorCode::Forbidden,
-                            "private diagnostics",
-                        )),
+                        outcome: Outcome::Err(WireError::new(code, "private diagnostics")),
                     },
                 )
                 .await?;
@@ -115,11 +112,9 @@ async fn prompt(stream: &mut DuplexStream, id: RequestId, scenario: Scenario) ->
         Scenario::Accept | Scenario::Retry(_) => {
             Outcome::Ok(Reply::PromptSession(Delivered::Started))
         }
-        Scenario::RefusePrompt => {
-            Outcome::Err(WireError::new(ErrorCode::Conflict, "private diagnostics"))
-        }
+        Scenario::RefusePrompt(code) => Outcome::Err(WireError::new(code, "private diagnostics")),
         Scenario::DisconnectPrompt => return Ok(()),
-        Scenario::RefuseCreate | Scenario::WrongNode => {
+        Scenario::RefuseCreate(_) | Scenario::WrongNode => {
             return Err(std::io::Error::other("no prompt allowed").into());
         }
     };
