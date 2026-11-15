@@ -210,6 +210,39 @@ mod tests {
     }
 
     #[test]
+    fn completed_expiry_only_relaxes_the_future_window_not_definition_validation() {
+        let zones = Zones::default();
+        let now = at("2026-01-01T10:00:00Z");
+        let expiry = at("2026-01-01T09:30:00Z");
+        let mut completed = definition(Cadence::Every {
+            seconds: EverySeconds::try_from(600).unwrap(),
+            anchor: None,
+        });
+        completed.ends_at = Some(expiry);
+        assert!(settle(&zones, &mut completed, now).is_err());
+        assert_eq!(
+            settle_completed(&zones, &mut completed, now).unwrap(),
+            at("2026-01-01T10:10:00Z")
+        );
+        assert_eq!(completed.ends_at, Some(expiry));
+        let mut unknown_policy = completed.clone();
+        unknown_policy.catch_up = CatchUp::Unknown;
+        let mut unknown_target = completed.clone();
+        unknown_target.target = ScheduleTarget::Unknown;
+        let mut unknown_zone = completed;
+        unknown_zone.cadence = Cadence::Cron {
+            expr: "0 9 * * *".parse().unwrap(),
+            zone: "Mars/Olympus".parse().unwrap(),
+        };
+        for mut invalid in [unknown_policy, unknown_target, unknown_zone] {
+            assert!(matches!(
+                settle_completed(&zones, &mut invalid, now),
+                Err(AutomationError::Invalid(_))
+            ));
+        }
+    }
+
+    #[test]
     fn what_would_never_run_is_refused() {
         let zones = Zones::default();
         let now = at("2026-01-01T10:00:00Z");

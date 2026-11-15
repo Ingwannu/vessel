@@ -154,3 +154,8 @@ FutureRun. State never reactivates. The real scheduler fixture now carries its
 past expiry and asserts it is retained, rather than using an Expired marker
 without an expiry. No wire/schema/number change. Source-found before execution;
 prior queued runs must stay pinned to their older source.
+
+The same validator test explicitly contrasts ordinary future-window rejection
+with completed-edit acceptance of the identical expiry, then refuses unknown
+catch-up, unknown target and unavailable zone under CompletedEdit. Existing
+ordinary validation cases remain unchanged. All are authored, not executed.
