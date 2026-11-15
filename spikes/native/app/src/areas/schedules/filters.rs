@@ -1,4 +1,4 @@
-//! HostFilter and Active/Ended segments use the shared selector surfaces.
+//! `HostFilter` and Active/Ended segments use the shared selector surfaces.
 use crate::shell::Shell;
 use std::rc::Rc;
 use vessel_app_kit::{

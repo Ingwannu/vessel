@@ -25,7 +25,7 @@ use vessel_app_view::schedules::page::RowKey;
 
 #[derive(Debug)]
 pub(crate) struct Area {
-    pub(super) data: Data,
+    data: Data,
     pub(super) ui: Ui,
     pub(super) tick: Option<Tick>,
 }

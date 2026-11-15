@@ -1,4 +1,4 @@
-//! SchedulesScreen frames and cached body states. Shared controls draw every
+//! `SchedulesScreen` frames and cached body states. Shared controls draw every
 //! surface; no formatting, system lookup or node call runs during painting.
 use crate::shell::Shell;
 use std::sync::Arc;

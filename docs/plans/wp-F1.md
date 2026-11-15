@@ -226,3 +226,16 @@ following G1's returned API-shape condition. This replaces only the inherited
 private tuple, keeps menu_right TopRight and measured-end behavior, and adds no
 second renderer or offset policy. Existing placement/input tests remain intact;
 current narrow/runtime proof remains owed.
+
+The immutable f42 narrow ended red after all four changed crates compiled:
+32 View unused-bool diagnostics and three analogous App calls were already
+addressed by76ee303b's unit-return compatibility wrapper; five additional App
+findings (Data visibility, unconditional Option sidebar adapter, three doc names)
+are now repaired without lint exceptions. No tests ran. The original run stays
+red and is not evidence for these corrections. The waiting local View test on
+cd4d92e7 was cancelled by verified own helper PID before Cargo (rc143/no tests)
+to leave its inputs unfrozen for the actual machine-binding correction. That
+correction is not implemented yet: requests currently lack an admitted physical
+node/connection binding at dispatch. It remains a security blocker before F1
+handoff; the coordinator's new shared-button priority precedes the F1 remainder.
+Prepared form source outside the repository is uninstalled and unverified.

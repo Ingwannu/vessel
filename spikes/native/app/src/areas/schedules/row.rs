@@ -1,4 +1,4 @@
-//! ScheduleRow parts in reference order. No edit click is exposed until the
+//! `ScheduleRow` parts in reference order. No edit click is exposed until the
 //! editor is wired; the shared menu owns the currently available actions.
 use crate::shell::Shell;
 use kit::ui::FluentBuilder as _;

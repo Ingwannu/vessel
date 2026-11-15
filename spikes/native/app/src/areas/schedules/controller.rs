@@ -173,20 +173,18 @@ pub(crate) fn sidebar(
     tokens: &vessel_app_kit::Tokens,
     touch: bool,
     cx: &mut Context<'_, Shell>,
-) -> Option<vessel_app_kit::ui::AnyElement> {
+) -> vessel_app_kit::ui::AnyElement {
     use vessel_app_kit::ui::{IntoElement as _, StatefulInteractiveElement as _};
-    Some(
-        crate::areas::sidebar::nav_row(
-            "nav-schedules",
-            shell.t.lang.schedules().title,
-            Some(vessel_app_kit::assets::Glyph::CalendarClock),
-            shell.route == Route::Schedules,
-            touch,
-            tokens,
-        )
-        .on_click(cx.listener(|shell, _, window, cx| shell.go(Route::Schedules, window, cx)))
-        .into_any_element(),
+    crate::areas::sidebar::nav_row(
+        "nav-schedules",
+        shell.t.lang.schedules().title,
+        Some(vessel_app_kit::assets::Glyph::CalendarClock),
+        shell.route == Route::Schedules,
+        touch,
+        tokens,
     )
+    .on_click(cx.listener(|shell, _, window, cx| shell.go(Route::Schedules, window, cx)))
+    .into_any_element()
 }
 pub(crate) fn leaving(
     route: Route,
