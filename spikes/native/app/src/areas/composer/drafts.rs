@@ -93,6 +93,25 @@ impl Shell {
         self.keep_draft(DraftKey::Session { session }, draft, cx);
     }
 
+    /// The scoped editor owner supplies its captured key and current text.
+    /// Persist through the existing bounded document; late callbacks cannot
+    /// replace a removed editor or a sibling's different current contents.
+    pub(crate) fn composer_keep_workspace_text(
+        &mut self,
+        target: DraftKey,
+        text: &str,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if !matches!(target, DraftKey::Workspace { .. })
+            || self
+                .composer_field(target)
+                .is_none_or(|field| field.text(cx) != text)
+        {
+            return;
+        }
+        self.keep_draft(target, text, cx);
+    }
+
     fn keep_draft(&mut self, key: DraftKey, text: &str, cx: &mut Context<'_, Self>) {
         let before = self.areas.composer.drafts.text(key) == text;
         if before {

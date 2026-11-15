@@ -16,14 +16,18 @@ mod context;
 mod drafts;
 mod files;
 mod lightbox;
+mod local;
 mod mentions;
 pub(crate) mod modes;
 pub(crate) mod offers;
 mod pictures;
 mod prepared;
+mod retention;
 pub(crate) mod running;
 mod sent;
 mod slash;
+mod transmission;
+mod workspace;
 
 use std::cell::{OnceCell, RefCell};
 use std::collections::HashMap;
@@ -32,7 +36,13 @@ use std::time::Instant;
 pub(crate) use drafts::keep_drafts;
 pub(crate) use files::{attach_button, draft_card, session_card};
 pub(crate) use lightbox::overlay;
+pub(crate) use local::restore_local;
 pub(crate) use prepared::PrepareProblem;
+#[expect(
+    unused_imports,
+    reason = "W3 keyed creation consumer is staged; fixtures use the local request type"
+)]
+pub(crate) use prepared::WorkspaceInput;
 pub(crate) use running::ControlsTarget;
 pub(crate) use sent::SentFiles;
 pub(crate) use slash::{draft_menu, draft_text, menu, text};
@@ -45,6 +55,7 @@ use vessel_app_view::composer::sent::Pictures as SentPictures;
 use vessel_app_view::composer::trays::Trays;
 use vessel_app_view::offers::Offers;
 use vessel_proto::SessionId;
+pub(crate) use workspace::workspace_card;
 
 /// The composer's own state.
 #[derive(Debug)]
@@ -72,24 +83,36 @@ pub(crate) struct ComposerArea {
     pub(crate) contexts: vessel_app_view::composer::trays::DraftTrays<
         vessel_app_view::composer::context::ContextTray,
     >,
+    /// Local byte ownership and serialized persistence belong to this composer area.
+    local: local::LocalState,
     /// Prompts waiting for their files, per session.
     pub(crate) sends: HashMap<SessionId, attach::Waiting>,
     /// A new chat started for its files, until its session exists (set
     /// while the start is made, which reads the shell only).
     pub(crate) starting: RefCell<Option<attach::Starting>>,
+    workspace_starting: HashMap<
+        (
+            vessel_app_view::composer::drafts::DraftKey,
+            vessel_app_view::creation::Ticket,
+        ),
+        attach::Starting,
+    >,
     /// The attach button's menu.
     pub(crate) attach_menu: MenuState,
     /// Whether the attach menu is open for the new chat (else the open
     /// session).
-    pub(crate) attach_for: Option<bool>,
+    pub(crate) attach_for: Option<vessel_app_view::composer::drafts::DraftKey>,
     /// Pasted and sent images' pictures, decoded.
     pub(crate) pictures: pictures::Pictures,
     /// Sent images' bytes: read back when a message showing them is drawn
     /// (which reads the shell only), or kept from the composer.
     pub(crate) sent: RefCell<SentPictures>,
     lightbox: lightbox::Lightbox,
-    session_files: RefCell<mentions::FileMenu>,
-    draft_files: RefCell<mentions::FileMenu>,
+    session_files: std::rc::Rc<RefCell<mentions::FileMenu>>,
+    draft_files: std::rc::Rc<RefCell<mentions::FileMenu>>,
+    workspace_files: RefCell<
+        vessel_app_view::composer::trays::DraftTrays<std::rc::Rc<RefCell<mentions::FileMenu>>>,
+    >,
     mention_root: RefCell<mentions::Root>,
     mention_root_token: RefCell<Option<vessel_app_view::composer::mentions::Mention>>,
     mention_dismissed: RefCell<
@@ -98,6 +121,7 @@ pub(crate) struct ComposerArea {
             vessel_app_view::composer::mentions::Mention,
         )>,
     >,
+    mention_query_clock: std::cell::Cell<vessel_app_view::composer::mentions::Ticket>,
     mention_root_clock: std::cell::Cell<vessel_app_view::composer::mentions::Ticket>,
     context_preview: context::Preview,
     capabilities: capabilities::Capabilities,
@@ -117,18 +141,22 @@ impl ComposerArea {
             recall: Recall::default(),
             trays: Trays::default(),
             contexts: vessel_app_view::composer::trays::DraftTrays::default(),
+            local: local::LocalState::default(),
             sends: HashMap::new(),
             starting: RefCell::new(None),
+            workspace_starting: HashMap::new(),
             attach_menu: MenuState::new(cx),
             attach_for: None,
             pictures: pictures::Pictures::default(),
             sent: RefCell::new(SentPictures::default()),
             lightbox: lightbox::Lightbox::new(cx),
-            session_files: RefCell::default(),
-            draft_files: RefCell::default(),
+            session_files: std::rc::Rc::default(),
+            draft_files: std::rc::Rc::default(),
+            workspace_files: RefCell::default(),
             mention_root: RefCell::default(),
             mention_root_token: RefCell::default(),
             mention_dismissed: RefCell::default(),
+            mention_query_clock: std::cell::Cell::default(),
             mention_root_clock: std::cell::Cell::default(),
             context_preview: context::Preview::new(cx),
             capabilities: capabilities::Capabilities::default(),

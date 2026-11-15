@@ -14,3 +14,9 @@ This isolated cut starts at the consumer-pinned B2 source44b7b55f, which include
 Root files are unchanged by this cut. The pinned B2 source already contains provisional terminal-profile values, but that is not canonical root-adoption proof. The W3 profile producer69c5ad389 and W23 minimal ClientMessageId carrier d596635d7/62d8743c8 are being integrated in batch13; native adoption waits for the integrator's checked announcement. The latter identity bytes equal the earlier development allocator0be6f4b10. Do not reconstruct an identity producer, import a private App-parent root range, or infer that this packet activates SubmitPrompt/receipts/events/RPCs.
 
 The source-equivalent strict309 receipt excludes this consumer's B2 changes. No fresh exact-packet compilation or execution pass is claimed.
+
+## App adapter preparation
+
+B1 App adapters come from strict309's owned modules; B2 slash/input/fullscreen/client modules are preserved. The two inline text calls still pass Window and the existing fullscreen overlay registration remains. The B1 route bridge does not introduce A1's top-level NewWorkspace form/NAV. Session context uses its existing captured RootAsk fallback directly rather than importing C5's cached root adapter. Session submit retains the B2 client-command guard before its one ID allocation. Production Areas::new restores the existing local byte store; test Areas::with_drafts remains isolated.
+
+These differences from309 require the actual B2 consumer-union check. W3's scoped editor/caller producer must accompany this cut; missing Workspace cases must not map to the global New composer. Root method/event files, plugin/image/runtime code and unrelated C5 files are unchanged.

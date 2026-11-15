@@ -23,9 +23,10 @@ impl Shell {
         {
             return;
         }
+        let message = vessel_proto::timeline::ClientMessageId::random();
         if !open.live && self.session_has_files() {
             self.conversation_sending(&text, cx);
-            self.resume_attachment_prompt(&text, window, cx);
+            self.resume_attachment_prompt(message, &text, window, cx);
             return;
         }
         if open.live {
@@ -34,7 +35,7 @@ impl Shell {
             if shows_at_once(delivery, self.areas.session.conversation.turn_running()) {
                 self.conversation_sending(&text, cx);
             }
-            if self.session_sends_files(&text, delivery, window, cx) {
+            if self.session_sends_files(message, &text, delivery, window, cx) {
                 return;
             }
             let Some(open) = &self.areas.session.open else {

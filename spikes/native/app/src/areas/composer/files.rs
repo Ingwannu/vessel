@@ -12,7 +12,7 @@
 use gpui::ExternalPaths;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::attachment::{
-    Body, PillClick, PillHandlers, Standing, attachment_pill, attachment_tray,
+    Body, ScopedPillClick, Standing, attachment_pill_scoped, attachment_tray,
 };
 use vessel_app_kit::breakpoint::TOUCH_TARGET;
 use vessel_app_kit::picker::glyph;
@@ -47,20 +47,36 @@ pub(crate) fn session_card(
     let files = shell
         .session_tray_key()
         .and_then(|key| tray(shell, key, tokens, touch, cx));
-    let attach = (shell.areas.composer.attach_for == Some(false))
-        .then(|| attach_menu(shell, tokens, touch, cx))
-        .flatten();
-    dropped_on(composer_card(tokens, touch), false, tokens, cx)
-        .relative()
-        .children(menu)
-        .children(attach)
-        .children(files)
-        .children(
-            shell
-                .session_tray_key()
-                .and_then(|target| super::context::tray(shell, target, tokens, touch, cx)),
-        )
-        .child(super::text(shell, tokens, touch, window, cx))
+    let attach = (shell.areas.composer.attach_for.is_some()
+        && shell.areas.composer.attach_for == shell.session_tray_key())
+    .then(|| attach_menu(shell, tokens, touch, cx))
+    .flatten();
+    dropped_on(
+        composer_card(tokens, touch),
+        shell.session_tray_key(),
+        tokens,
+        cx,
+    )
+    .relative()
+    .children(menu)
+    .children(attach)
+    .children(files)
+    .children(
+        shell
+            .session_tray_key()
+            .and_then(|target| super::local::notice(shell, target, tokens)),
+    )
+    .children(
+        shell
+            .session_tray_key()
+            .and_then(|target| super::transmission::notice(shell, target, tokens, cx)),
+    )
+    .children(
+        shell
+            .session_tray_key()
+            .and_then(|target| super::context::tray(shell, target, tokens, touch, cx)),
+    )
+    .child(super::text(shell, tokens, touch, window, cx))
 }
 
 /// The new chat's card: its `/` menu, its files, its text.
@@ -74,34 +90,60 @@ pub(crate) fn draft_card(
     let menu = super::mentions::menu(shell, DraftKey::New, tokens, window, cx)
         .or_else(|| super::draft_menu(shell, tokens, window, cx));
     let files = tray(shell, DraftKey::New, tokens, touch, cx);
-    let attach = (shell.areas.composer.attach_for == Some(true))
+    let attach = (shell.areas.composer.attach_for == Some(DraftKey::New))
         .then(|| attach_menu(shell, tokens, touch, cx))
         .flatten();
-    dropped_on(composer_card(tokens, touch), true, tokens, cx)
-        .relative()
-        .children(menu)
-        .children(attach)
-        .children(files)
-        .children(super::context::tray(
-            shell,
-            DraftKey::New,
-            tokens,
-            touch,
-            cx,
-        ))
-        .child(super::draft_text(shell, tokens, touch, window, cx))
+    dropped_on(
+        composer_card(tokens, touch),
+        Some(DraftKey::New),
+        tokens,
+        cx,
+    )
+    .relative()
+    .children(menu)
+    .children(attach)
+    .children(files)
+    .children(super::local::notice(shell, DraftKey::New, tokens))
+    .children(super::context::tray(
+        shell,
+        DraftKey::New,
+        tokens,
+        touch,
+        cx,
+    ))
+    .child(super::draft_text(shell, tokens, touch, window, cx))
 }
 
 /// Files dropped on `card` join its composer; the card's edge takes the
 /// accent while files are dragged over it.
-fn dropped_on(card: Div, new_chat: bool, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
+pub(super) fn dropped_on(
+    card: Div,
+    target: Option<DraftKey>,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    use vessel_app_view::composer::context::{ContextAttachment, WorkspaceFile};
     let accent = tokens.neutral.accent;
     card.drag_over::<ExternalPaths>(move |style, _paths, _window, _cx| style.border_color(accent))
+        .drag_over::<WorkspaceFile>(move |style, _file, _window, _cx| style.border_color(accent))
         .on_drop(
             cx.listener(move |shell, paths: &ExternalPaths, _window, cx| {
-                shell.composer_paths(new_chat, paths.paths().to_vec(), cx);
+                if let Some(target) = target {
+                    shell.composer_paths_into(target, paths.paths().to_vec(), cx);
+                }
             }),
         )
+        .on_drop(cx.listener(move |shell, file: &WorkspaceFile, window, cx| {
+            let Some(target) = target else {
+                return;
+            };
+            let item = ContextAttachment::WorkspaceFile(file.clone());
+            if let Err(problem) =
+                shell.composer_attach_context(target, &file.scope, item, window, cx)
+            {
+                shell.composer_context_refused(problem, cx);
+            }
+        }))
 }
 
 /// The attach button across (Paseo's `TOOLBAR_CONTROL_SIZES.pointer`;
@@ -118,6 +160,25 @@ const TRAY_GAP: f32 = spacing::S1;
 /// The attach button (Paseo's `+`), opening its menu where it was
 /// pressed.
 pub(crate) fn attach_button(
+    new_chat: bool,
+    touch: bool,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    attach_button_with(None, new_chat, touch, tokens, cx)
+}
+
+pub(super) fn attach_button_at(
+    target: DraftKey,
+    touch: bool,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    attach_button_with(Some(target), false, touch, tokens, cx)
+}
+
+fn attach_button_with(
+    target: Option<DraftKey>,
     new_chat: bool,
     touch: bool,
     tokens: &Tokens,
@@ -144,7 +205,18 @@ pub(crate) fn attach_button(
         .on_mouse_down(
             MouseButton::Left,
             cx.listener(move |shell, event: &MouseDownEvent, window, cx| {
-                shell.areas.composer.attach_for = Some(new_chat);
+                let target = target.or_else(|| {
+                    if new_chat {
+                        Some(DraftKey::New)
+                    } else {
+                        shell.session_tray_key()
+                    }
+                });
+                let Some(target) = target.filter(|target| shell.composer_field(*target).is_some())
+                else {
+                    return;
+                };
+                shell.areas.composer.attach_for = Some(target);
                 shell
                     .areas
                     .composer
@@ -156,23 +228,24 @@ pub(crate) fn attach_button(
         .into_any_element()
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+const CHOICES: &[select::Acquire] = &[
+    select::Acquire::Image,
+    select::Acquire::ClipboardImage,
+    select::Acquire::File,
+];
+#[cfg(target_arch = "wasm32")]
+const CHOICES: &[select::Acquire] = &[select::Acquire::Image, select::Acquire::File];
+
 /// The attach menu, when open (Paseo's rows: an image, a file; the forge's
 /// issues and the plugins' rows are not Vessel's yet).
-fn attach_menu(
+pub(super) fn attach_menu(
     shell: &Shell,
     tokens: &Tokens,
     touch: bool,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let words = shell.words.composer();
-    #[cfg(not(target_arch = "wasm32"))]
-    const CHOICES: &[select::Acquire] = &[
-        select::Acquire::Image,
-        select::Acquire::ClipboardImage,
-        select::Acquire::File,
-    ];
-    #[cfg(target_arch = "wasm32")]
-    const CHOICES: &[select::Acquire] = &[select::Acquire::Image, select::Acquire::File];
     let items: Vec<_> = CHOICES
         .iter()
         .map(|choice| {
@@ -207,64 +280,16 @@ fn attach_menu(
 
 impl Shell {
     // The kit's pill takes a plain function per click; one per composer.
-    fn session_pill_removed(
-        &mut self,
-        index: usize,
-        _window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        if let Some(key) = self.session_tray_key() {
-            self.composer_remove(key, index, cx);
+    fn composer_retry(&mut self, key: DraftKey, index: usize, cx: &mut Context<'_, Self>) {
+        let DraftKey::Session { session } = key else {
+            return;
+        };
+        let tray = self.areas.composer.trays.tray(key);
+        if let Some(item) = tray.items().get(index).map(|item| item.key) {
+            let _retried = tray.retry(item);
         }
-    }
-
-    fn draft_pill_removed(
-        &mut self,
-        index: usize,
-        _window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        self.composer_remove(DraftKey::New, index, cx);
-    }
-
-    fn session_pill_retried(
-        &mut self,
-        index: usize,
-        _window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        if let Some(DraftKey::Session { session }) = self.session_tray_key() {
-            let tray = self
-                .areas
-                .composer
-                .trays
-                .tray(DraftKey::Session { session });
-            if let Some(key) = tray.items().get(index).map(|item| item.key) {
-                let _retried = tray.retry(key);
-            }
-            self.retry_creation_capabilities(session, cx);
-            self.composer_pump(session, cx);
-        }
-    }
-
-    fn session_image_opened(
-        &mut self,
-        index: usize,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        if let Some(key) = self.session_tray_key() {
-            self.tray_image_opened(key, index, window, cx);
-        }
-    }
-
-    fn draft_image_opened(
-        &mut self,
-        index: usize,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        self.tray_image_opened(DraftKey::New, index, window, cx);
+        self.retry_creation_capabilities(session, cx);
+        self.composer_pump(session, cx);
     }
 
     fn tray_image_opened(
@@ -284,25 +309,40 @@ impl Shell {
             return;
         };
         if item.kind == AttachmentKind::Image {
-            let source = picture(self, &item.origin, &item.mime);
-            self.open_local_image(source, window, cx);
+            if let vessel_app_view::composer::tray::Origin::Stored(file) = &item.origin {
+                self.open_stored_image(std::sync::Arc::clone(file), window, cx);
+            } else {
+                let source = picture(self, &item.origin, &item.mime);
+                self.open_local_image(source, window, cx);
+            }
         }
     }
 
     fn composer_remove(&mut self, key: DraftKey, index: usize, cx: &mut Context<'_, Self>) {
+        if let DraftKey::Session { session } = key
+            && self
+                .areas
+                .composer
+                .sends
+                .get(&session)
+                .is_some_and(|waiting| waiting.phase != super::transmission::Phase::Preparing)
+        {
+            return;
+        }
         let tray = self.areas.composer.trays.tray(key);
         if let Some(item) = tray.items().get(index).map(|item| item.key) {
             let _removed = tray.remove(item);
         }
+        self.local_files_changed(cx);
         match key {
             DraftKey::Session { session } => self.composer_pump(session, cx),
-            DraftKey::New => cx.notify(),
+            DraftKey::New | DraftKey::Workspace { .. } => cx.notify(),
         }
     }
 }
 
 /// `key`'s tray, when it holds files.
-fn tray(
+pub(super) fn tray(
     shell: &Shell,
     key: DraftKey,
     tokens: &Tokens,
@@ -313,23 +353,6 @@ fn tray(
     if tray.is_empty() {
         return None;
     }
-    let new_chat = key == DraftKey::New;
-    let id = if new_chat {
-        "draft-file"
-    } else {
-        "session-file"
-    };
-    let retried: PillClick<Shell> = Shell::session_pill_retried;
-    let removed: PillClick<Shell> = if new_chat {
-        Shell::draft_pill_removed
-    } else {
-        Shell::session_pill_removed
-    };
-    let opened: PillClick<Shell> = if new_chat {
-        Shell::draft_image_opened
-    } else {
-        Shell::session_image_opened
-    };
     let pills = tray.items().iter().enumerate().map(|(index, item)| {
         let retry = matches!(
             item.state,
@@ -337,22 +360,31 @@ fn tray(
                 again: Again::Resume(_) | Again::Restart,
                 ..
             }
-        ) && !new_chat;
-        let handlers = PillHandlers {
-            on_open: if retry {
-                Some(retried)
-            } else {
-                (item.kind == AttachmentKind::Image).then_some(opened)
-            },
-            on_remove: removed,
+        ) && matches!(key, DraftKey::Session { .. });
+        let open: Option<ScopedPillClick<Shell>> = if retry {
+            Some(std::rc::Rc::new(move |shell, index, _window, cx| {
+                shell.composer_retry(key, index, cx);
+            }))
+        } else if item.kind == AttachmentKind::Image {
+            Some(std::rc::Rc::new(move |shell, index, window, cx| {
+                shell.tray_image_opened(key, index, window, cx);
+            }))
+        } else {
+            None
         };
+        let remove = std::rc::Rc::new(
+            move |shell: &mut Shell, index, _window: &mut Window, cx: &mut Context<'_, Shell>| {
+                shell.composer_remove(key, index, cx);
+            },
+        );
         let body = body(shell, item);
-        attachment_pill(
-            id,
+        attachment_pill_scoped(
+            "composer-file",
             index,
             &body,
             standing(item),
-            &handlers,
+            open,
+            remove,
             touch,
             tokens,
             cx,

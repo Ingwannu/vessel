@@ -70,7 +70,9 @@ pub(crate) struct Areas {
 
 impl Areas {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
-        Self::with_drafts(vessel_app_link::drafts::load(), window, cx)
+        let mut areas = Self::with_drafts(vessel_app_link::drafts::load(), window, cx);
+        composer::restore_local(&mut areas);
+        areas
     }
 
     /// Accept decoded drafts explicitly so UI tests do not read user state.

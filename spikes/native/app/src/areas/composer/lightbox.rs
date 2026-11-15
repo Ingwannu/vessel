@@ -50,6 +50,7 @@ enum Gesture {
 /// Window-only state; bytes remain owned by the bounded picture cache.
 pub(super) struct Lightbox {
     preview: Option<Preview>,
+    local_lease: Option<std::sync::Arc<vessel_app_view::composer::local::LocalFile>>,
     focus: FocusHandle,
     previous: Option<FocusHandle>,
     viewport: Option<Viewport>,
@@ -70,6 +71,7 @@ impl Lightbox {
     pub(super) fn new(cx: &mut App) -> Self {
         Self {
             preview: None,
+            local_lease: None,
             focus: cx.focus_handle(),
             previous: None,
             viewport: None,
@@ -83,6 +85,7 @@ impl Lightbox {
         if self.preview.is_none() {
             self.previous = window.focused(cx);
         }
+        self.local_lease = None;
         self.preview = Some(preview);
         self.viewport = None;
         self.gesture = None;
@@ -104,6 +107,16 @@ impl Shell {
             .lightbox
             .open(Preview::Local(image.into()), window, cx);
         cx.notify();
+    }
+
+    pub(super) fn open_stored_image(
+        &mut self,
+        file: std::sync::Arc<vessel_app_view::composer::local::LocalFile>,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.open_local_image(ImageSource::from(file.path.clone()), window, cx);
+        self.areas.composer.lightbox.local_lease = Some(file);
     }
 
     pub(super) fn open_local_image(
@@ -147,6 +160,7 @@ impl Shell {
         let lightbox = &mut self.areas.composer.lightbox;
         lightbox.tips = vessel_app_kit::Tooltips::new();
         lightbox.preview = None;
+        drop(lightbox.local_lease.take());
         lightbox.viewport = None;
         lightbox.gesture = None;
         if let Some(focus) = lightbox.previous.take() {
@@ -164,7 +178,7 @@ impl Shell {
                 ScrollDelta::Pixels(p) => f32::from(p.y),
                 ScrollDelta::Lines(p) => p.y.mul_add(vessel_app_kit::theme::spacing::S4, 0.0),
             };
-            viewport.wheel(-delta, at);
+            viewport.scroll(delta, at);
             cx.notify();
         }
         cx.stop_propagation();
