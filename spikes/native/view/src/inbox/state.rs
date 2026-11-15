@@ -83,7 +83,10 @@ impl Inbox {
     /// Expand a node's loaded prefix only between reads.
     #[must_use]
     pub fn expand(&mut self, id: NodeId) -> Option<Source> {
-        let node = self.nodes.iter_mut().find(|node| node.source.node == id)?;
+        let node = self
+            .nodes
+            .iter_mut()
+            .find(|node| node.source.node() == id)?;
         if node.pending.is_some() {
             return None;
         }
@@ -94,7 +97,10 @@ impl Inbox {
     /// Return to the newest window without replaying its notice watermark.
     #[must_use]
     pub fn newest(&mut self, id: NodeId) -> Option<Source> {
-        let node = self.nodes.iter_mut().find(|node| node.source.node == id)?;
+        let node = self
+            .nodes
+            .iter_mut()
+            .find(|node| node.source.node() == id)?;
         if node.pending.is_some() {
             return None;
         }
@@ -107,9 +113,9 @@ impl Inbox {
         if let Some(node) = self
             .nodes
             .iter_mut()
-            .find(|node| node.source.node == source.node)
+            .find(|node| node.source.node() == source.node())
         {
-            if node.source.connection != source.connection {
+            if node.source.context() != source.context() {
                 node.pending = None;
                 node.hydrated = false;
                 node.listing = Listing::Loading;
@@ -130,7 +136,7 @@ impl Inbox {
 
     /// Offline invalidates inflight reads and silences the next hydration.
     pub fn disconnect(&mut self, id: NodeId) {
-        if let Some(node) = self.nodes.iter_mut().find(|node| node.source.node == id) {
+        if let Some(node) = self.nodes.iter_mut().find(|node| node.source.node() == id) {
             node.pending = None;
             node.hydrated = false;
             node.listing = Listing::Failed(Problem::Offline);
@@ -152,7 +158,7 @@ impl Inbox {
     /// # Errors
     /// The identity counter can never be reused after exhaustion.
     pub fn begin(&mut self, id: NodeId) -> Result<Option<Request>, Problem> {
-        let Some(node) = self.nodes.iter_mut().find(|node| node.source.node == id) else {
+        let Some(node) = self.nodes.iter_mut().find(|node| node.source.node() == id) else {
             return Ok(None);
         };
         if node.pending.is_some() {
@@ -172,25 +178,39 @@ impl Inbox {
         ticket: Request,
         result: Result<Snapshot, Problem>,
     ) -> Vec<Key> {
-        let Some(node) = self.nodes.iter_mut().find(|node| node.source.node == id) else {
-            return Vec::new();
+        self.receive_visible(id, ticket, result).1
+    }
+
+    /// Receive a snapshot and report only changes to visible state. Polling
+    /// tickets and identical heartbeats must not request a new window frame.
+    pub fn receive_visible(
+        &mut self,
+        id: NodeId,
+        ticket: Request,
+        result: Result<Snapshot, Problem>,
+    ) -> (bool, Vec<Key>) {
+        let Some(node) = self.nodes.iter_mut().find(|node| node.source.node() == id) else {
+            return (false, Vec::new());
         };
         if node.pending != Some(ticket) {
-            return Vec::new();
+            return (false, Vec::new());
         }
         node.pending = None;
         let snapshot = match result {
             Ok(snapshot) => snapshot,
             Err(problem) => {
+                let changed = node.listing != Listing::Failed(problem);
                 node.listing = Listing::Failed(problem);
-                return Vec::new();
+                return (changed, Vec::new());
             }
         };
         if !valid(id, &snapshot) {
+            let changed = node.listing != Listing::Failed(Problem::InvalidReply);
             node.listing = Listing::Failed(Problem::InvalidReply);
-            return Vec::new();
+            return (changed, Vec::new());
         }
 
+        let changed = node.listing != Listing::Ready || node.snapshot.as_ref() != Some(&snapshot);
         let notices = fresh_notices(node, &snapshot);
         node.high_water = snapshot
             .entries
@@ -201,12 +221,13 @@ impl Inbox {
         node.snapshot = Some(snapshot);
         node.hydrated = true;
         node.listing = Listing::Ready;
-        notices
+        (changed, notices)
     }
 
     /// A node-book removal discards its attention and invalidates selection.
     pub fn retain(&mut self, nodes: &[NodeId]) {
-        self.nodes.retain(|node| nodes.contains(&node.source.node));
+        self.nodes
+            .retain(|node| nodes.contains(&node.source.node()));
         if self.selected.is_some_and(|key| !nodes.contains(&key.node)) {
             self.selected = None;
         }
@@ -226,7 +247,7 @@ impl Inbox {
     pub fn entry(&self, key: Key) -> Option<&Entry> {
         self.nodes
             .iter()
-            .filter(|node| node.source.node == key.node)
+            .filter(|node| node.source.node() == key.node)
             .flat_map(|node| node.snapshot.iter())
             .flat_map(|data| &data.entries)
             .find(|entry| entry.key == key)
@@ -236,7 +257,7 @@ impl Inbox {
     #[must_use]
     pub fn may_answer(&self, key: Key) -> bool {
         self.nodes.iter().any(|node| {
-            node.source.node == key.node
+            node.source.node() == key.node
                 && node.listing == Listing::Ready
                 && node
                     .snapshot

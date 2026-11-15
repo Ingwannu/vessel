@@ -43,9 +43,9 @@ fn authority() -> Outcome {
         scopes: vec![Scope::Read],
     }))
 }
-fn key(client: &vessel_client::NodeClient, entry: &InboxEntry) -> Key {
+fn key(client: &super::transport::Client, entry: &InboxEntry) -> Key {
     Key {
-        node: client.node().id,
+        node: client.node(),
         session: entry.key.session,
         seq: entry.key.seq,
     }
@@ -223,7 +223,7 @@ async fn stale_answer_is_never_sent_and_remote_text_is_not_exposed() {
     ));
     assert_eq!(node::problem(error), Problem::Refused(ErrorCode::Forbidden));
     assert!(matches!(
-        node::project(peer.client.node().id, source).content,
+        node::project(peer.client.node(), source).content,
         Content::Finished
     ));
 }

@@ -95,10 +95,19 @@ impl Link {
             Command::Inbox(ask) => self.emit(Event::Inbox(ask.refused(
                 vessel_app_view::inbox::Problem::Refused(vessel_proto::ErrorCode::Unsupported),
             ))),
-            Command::Devices { ticket, ask, .. } => self.emit(Event::Devices(ask.refused(
+            Command::Devices {
+                context,
                 ticket,
-                vessel_app_view::devices::Problem::Refused(vessel_proto::ErrorCode::Unsupported),
-            ))),
+                ask,
+            } => self.emit(Event::Devices(crate::devices::Answer {
+                context,
+                outcome: ask.refused(
+                    ticket,
+                    vessel_app_view::devices::Problem::Refused(
+                        vessel_proto::ErrorCode::Unsupported,
+                    ),
+                ),
+            })),
             Command::Machines(ask) => self.emit(Event::Machines(
                 ask.refused(vessel_app_view::machine_book::Failure::Unavailable),
             )),
@@ -113,6 +122,7 @@ impl Link {
                     vessel_proto::ErrorCode::Unsupported,
                 ),
             ))),
+            Command::RetireConnection(_tag) => {}
             Command::Reload => self.emit(Event::Fleet(self.demo.borrow().fleet(now))),
             Command::Open { session, .. } => {
                 let records = self.demo.borrow().records(&session);

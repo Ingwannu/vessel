@@ -1,9 +1,9 @@
 //! Existing inbox calls only. The node is the durable lifecycle authority;
 //! projection here keeps exact source identity and safe failures for the view.
+use super::transport::Client;
 use vessel_app_view::inbox::{
     Authority, Content, Counts, Entry, Extent, Key, Pages, Position, Problem, Read, Snapshot,
 };
-use vessel_client::NodeClient;
 use vessel_proto::NodeId;
 use vessel_proto::inbox::{InboxDetail, InboxEntry, InboxItem, InboxRead, ListInbox};
 
@@ -11,8 +11,14 @@ use vessel_proto::inbox::{InboxDetail, InboxEntry, InboxItem, InboxRead, ListInb
 /// turn a bounded prefix into unbounded app allocation.
 const PAGE_ENTRIES: usize = 16;
 
-pub(super) async fn list(client: &NodeClient, pages: Pages) -> Result<Snapshot, Problem> {
-    let authority = Authority::of(&client.device_self().await.map_err(problem)?.scopes);
+pub(super) async fn list(client: &Client, pages: Pages) -> Result<Snapshot, Problem> {
+    let authority = Authority::of(
+        &client
+            .call(vessel_proto::GetDeviceSelf {})
+            .await
+            .map_err(problem)?
+            .scopes,
+    );
     let head = read_page(client, None).await?;
     let counts = Counts::new(
         head.counts.total.get(),
@@ -25,7 +31,7 @@ pub(super) async fn list(client: &NodeClient, pages: Pages) -> Result<Snapshot, 
     let mut entries: Vec<_> = head
         .entries
         .into_iter()
-        .map(|entry| project(client.node().id, entry))
+        .map(|entry| project(client.node(), entry))
         .collect();
     let next = if let Some(before) = pages.before() {
         let older = read_page(
@@ -39,7 +45,7 @@ pub(super) async fn list(client: &NodeClient, pages: Pages) -> Result<Snapshot, 
             older
                 .entries
                 .into_iter()
-                .map(|entry| project(client.node().id, entry))
+                .map(|entry| project(client.node(), entry))
                 .filter(|entry| keys.insert(entry.key)),
         );
         entries.sort_by_key(|entry| std::cmp::Reverse(entry.position));
@@ -62,10 +68,10 @@ pub(super) async fn list(client: &NodeClient, pages: Pages) -> Result<Snapshot, 
 }
 
 async fn read_page(
-    client: &NodeClient,
+    client: &Client,
     before: Option<vessel_proto::inbox::InboxCursor>,
 ) -> Result<vessel_proto::inbox::InboxPage, Problem> {
-    let page = client.inbox(ListInbox { before }).await.map_err(problem)?;
+    let page = client.call(ListInbox { before }).await.map_err(problem)?;
     if page.entries.len() > PAGE_ENTRIES || (page.entries.is_empty() && page.next.is_some()) {
         return Err(Problem::InvalidReply);
     }
@@ -83,15 +89,18 @@ async fn read_page(
     Ok(page)
 }
 
-pub(super) async fn get(client: &NodeClient, key: Key) -> Result<Option<Entry>, Problem> {
+pub(super) async fn get(client: &Client, key: Key) -> Result<Option<Entry>, Problem> {
     client
-        .inbox_request(wire_key(key))
+        .call(vessel_proto::inbox::GetInboxEntry {
+            key: wire_key(key),
+            fetch: vessel_proto::inbox::InboxFetch::LiveRequest,
+        })
         .await
         .map_err(problem)
         .and_then(|entry| {
             entry
                 .map(|entry| {
-                    let entry = project(client.node().id, entry);
+                    let entry = project(client.node(), entry);
                     if entry.key == key {
                         Ok(entry)
                     } else {
@@ -149,7 +158,13 @@ pub(super) const fn wire_key(key: Key) -> vessel_proto::inbox::InboxKey {
     }
 }
 
-pub(super) fn problem(error: vessel_client::CallError) -> Problem {
+pub(super) fn problem(error: impl Into<crate::connections::RequestFailure>) -> Problem {
+    match error.into() {
+        crate::connections::RequestFailure::Refused(_) => Problem::Offline,
+        crate::connections::RequestFailure::Call(error) => call_problem(error),
+    }
+}
+fn call_problem(error: vessel_client::CallError) -> Problem {
     match error {
         vessel_client::CallError::Disconnected => Problem::Offline,
         vessel_client::CallError::Remote(error) => Problem::Refused(error.code),
@@ -163,7 +178,7 @@ pub(super) fn problem(error: vessel_client::CallError) -> Problem {
 }
 
 async fn attention(
-    client: &NodeClient,
+    client: &Client,
 ) -> Result<Option<Vec<vessel_proto::inbox_attention::SessionAttention>>, Problem> {
     use vessel_proto::inbox_attention::ATTENTION_BATCH;
     if !vessel_proto::Method::GetInboxAttention
@@ -172,12 +187,17 @@ async fn attention(
     {
         return Ok(None);
     }
-    let sessions = client.sessions().await.map_err(problem)?;
+    let sessions = client
+        .call(vessel_proto::ListSessions)
+        .await
+        .map_err(problem)?;
     let ids: Vec<_> = sessions.into_iter().map(|session| session.id).collect();
     let mut attention = Vec::with_capacity(ids.len());
     for chunk in ids.chunks(ATTENTION_BATCH) {
         let badges = client
-            .inbox_attention(chunk.to_vec())
+            .call(vessel_proto::inbox_attention::GetInboxAttention {
+                sessions: chunk.to_vec(),
+            })
             .await
             .map_err(problem)?;
         let mut seen = std::collections::HashSet::new();

@@ -19,7 +19,7 @@ impl Shell {
             .store
             .nodes()
             .iter()
-            .find(|item| item.source.node == node && item.source.name.as_str() == machine)?
+            .find(|item| item.source.node() == node && item.source.name().as_str() == machine)?
             .snapshot
             .as_ref()?
             .attention

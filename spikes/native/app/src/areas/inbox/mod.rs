@@ -10,6 +10,7 @@ mod presence;
 mod reading;
 pub(crate) use reading::start;
 mod receive;
+mod retirement;
 pub(crate) mod settings;
 pub(crate) use draw::render;
 
@@ -26,6 +27,7 @@ pub(crate) struct InboxArea {
     pub(crate) admission: vessel_app_view::inbox::admission::Gate,
     pub(crate) granted: Vec<vessel_app_view::inbox::admission::Pending>,
     pub(crate) detail: Detail,
+    pub(crate) detail_source: Option<vessel_app_view::inbox::Source>,
     pub(crate) conversation: ConversationArea,
     pub(crate) targets: Vec<Target>,
     pub(crate) problem: Option<Problem>,
@@ -57,6 +59,7 @@ impl InboxArea {
             admission: vessel_app_view::inbox::admission::Gate::default(),
             granted: Vec::new(),
             detail: Detail::default(),
+            detail_source: None,
             conversation: ConversationArea::new(cx),
             targets: Vec::new(),
             problem: None,

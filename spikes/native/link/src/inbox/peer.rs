@@ -1,5 +1,6 @@
 //! Bounded framed peer for inbox boundary tests; no app implementation here.
 use std::num::NonZeroUsize;
+const FRAME_CAPACITY: usize = 65_536;
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _, DuplexStream};
 use vessel_client::{ClientConfig, NodeClient};
 use vessel_proto::{
@@ -8,7 +9,8 @@ use vessel_proto::{
 };
 
 pub(super) struct Peer {
-    pub client: NodeClient,
+    pub client: super::transport::Client,
+    _admission: crate::connections::Connected,
     task: tokio::task::JoinHandle<()>,
 }
 impl Drop for Peer {
@@ -27,8 +29,9 @@ async fn read(stream: &mut DuplexStream) -> Option<ClientFrame> {
         Err(error) if error.kind() == std::io::ErrorKind::UnexpectedEof => return None,
         Err(error) => panic!("test peer read: {error}"),
     };
-    assert!(length <= 65_536);
-    let mut bytes = vec![0; usize::try_from(length).unwrap()];
+    let size = usize::try_from(length).unwrap();
+    assert!(size <= FRAME_CAPACITY);
+    let mut bytes = vec![0; size];
     let _read = stream.read_exact(&mut bytes).await.unwrap();
     Some(serde_json::from_slice(&bytes).unwrap())
 }
@@ -52,7 +55,7 @@ async fn write(stream: &mut DuplexStream, frame: ServerFrame) -> bool {
     reason = "test-only handshake and fixed frame capacity must be valid"
 )]
 pub(super) async fn connect(mut answer: impl FnMut(Call) -> Outcome + Send + 'static) -> Peer {
-    let (local, mut remote) = tokio::io::duplex(65_536);
+    let (local, mut remote) = tokio::io::duplex(FRAME_CAPACITY);
     let protocol = vessel_proto::Method::ListInbox.since().unwrap();
     let task = tokio::spawn(async move {
         assert!(matches!(
@@ -94,7 +97,7 @@ pub(super) async fn connect(mut answer: impl FnMut(Call) -> Outcome + Send + 'st
     });
     let (reader, writer) = tokio::io::split(local);
     let client = NodeClient::over(
-        vessel_rpc::Framed::new(reader, writer, NonZeroUsize::new(65_536).unwrap()),
+        vessel_rpc::Framed::new(reader, writer, NonZeroUsize::new(FRAME_CAPACITY).unwrap()),
         ClientInfo {
             name: "inbox-tests".to_owned(),
             version: "0".to_owned(),
@@ -103,5 +106,27 @@ pub(super) async fn connect(mut answer: impl FnMut(Call) -> Outcome + Send + 'st
     )
     .await
     .unwrap();
-    Peer { client, task }
+    let home = crate::testing::Home::new();
+    let (mut state, _events) = crate::testing::state(&home);
+    let binding = vessel_client::book::BookEntry {
+        address: "ws://127.0.0.1:1/rpc".parse().unwrap(),
+        token: None,
+        credential: None,
+        id: None,
+    };
+    let protocol = client.protocol();
+    let connected = state
+        .admit_connection("inbox-tests", &binding, client, Vec::new())
+        .unwrap();
+    let context = connected.context.clone();
+    let _old = state
+        .clients
+        .insert("inbox-tests".to_owned(), connected.clone());
+    let selected = state.selected_connection(&context).unwrap();
+    let client = super::transport::Client::new(selected, context, protocol);
+    Peer {
+        client,
+        task,
+        _admission: connected,
+    }
 }

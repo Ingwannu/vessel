@@ -16,6 +16,8 @@ mod node;
 mod presence;
 #[cfg(not(target_arch = "wasm32"))]
 mod reading;
+#[cfg(not(target_arch = "wasm32"))]
+mod transport;
 pub use input::Input;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use presence::PresenceHub;
@@ -38,7 +40,7 @@ impl Target {
     #[must_use]
     pub fn route(&self) -> &Name {
         match self {
-            Self::Online(source) => &source.name,
+            Self::Online(source) => source.name(),
             Self::Offline(route) => route,
         }
     }
@@ -46,15 +48,10 @@ impl Target {
     #[must_use]
     pub fn node(&self) -> Option<NodeId> {
         match self {
-            Self::Online(source) => Some(source.node),
+            Self::Online(source) => Some(source.node()),
             Self::Offline(_) => None,
         }
     }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-pub(crate) fn connection_id() -> vessel_app_view::inbox::ConnectionId {
-    vessel_app_view::inbox::ConnectionId::new(uuid::Uuid::new_v4().into_bytes())
 }
 
 /// User or refresh operation, never an untyped method name.
@@ -149,13 +146,13 @@ pub enum Answer {
         Result<vessel_app_view::inbox::admission::Admission, Problem>,
     ),
     /// A confirmed form or withdrawal after a load, mark or answer.
-    Detail(Key, Request, Result<Option<Entry>, Problem>),
+    Detail(Source, Key, Request, Result<Option<Entry>, Problem>),
 }
 impl Ask {
     fn validate(&self) -> Result<(), Problem> {
         match self {
             Self::Claim(pending) => {
-                if pending.source.node == pending.key.node {
+                if pending.source.node() == pending.key.node {
                     Ok(())
                 } else {
                     Err(Problem::InvalidReply)
@@ -168,7 +165,7 @@ impl Ask {
             Self::Get { source, key, .. }
             | Self::Mark { source, key, .. }
             | Self::Answer { source, key, .. } => {
-                if source.node == key.node {
+                if source.node() == key.node {
                     Ok(())
                 } else {
                     Err(Problem::Refused(vessel_proto::ErrorCode::InvalidRequest))
@@ -196,9 +193,23 @@ impl Ask {
             Self::List {
                 source, request, ..
             } => Answer::Listed(source, request, Err(problem)),
-            Self::Get { key, request, .. }
-            | Self::Mark { key, request, .. }
-            | Self::Answer { key, request, .. } => Answer::Detail(key, request, Err(problem)),
+            Self::Get {
+                source,
+                key,
+                request,
+            }
+            | Self::Mark {
+                source,
+                key,
+                request,
+                ..
+            }
+            | Self::Answer {
+                source,
+                key,
+                request,
+                ..
+            } => Answer::Detail(source, key, request, Err(problem)),
         }
     }
 }
@@ -218,12 +229,11 @@ impl crate::State {
     }
 
     fn inbox_target(&self, route: Name) -> Target {
-        if let Some(connected) = self.clients.get(route.as_str()) {
-            Target::Online(Source {
-                name: route,
-                node: connected.client.node().id,
-                connection: connected.inbox_connection,
-            })
+        if let Some(connected) = self.clients.get(route.as_str())
+            && connected.matches(&connected.context)
+            && let Ok(source) = Source::new(connected.context.clone())
+        {
+            Target::Online(source)
         } else {
             Target::Offline(route)
         }
@@ -262,21 +272,28 @@ impl crate::State {
             | Ask::Mark { source, .. }
             | Ask::Answer { source, .. } => source,
         };
-        let Some(connected) = self.clients.get(source.name.as_str()).filter(|connected| {
-            connected.client.node().id == source.node
-                && connected.inbox_connection == source.connection
-        }) else {
+        let selected = match self.selected_connection(source.context()) {
+            Ok(selected) => selected,
+            Err(_refused) => {
+                self.emit(crate::Event::Inbox(ask.refused(Problem::Offline)))
+                    .await;
+                return;
+            }
+        };
+        let Some(connected) = self.clients.get(source.name().as_str()) else {
             self.emit(crate::Event::Inbox(ask.refused(Problem::Offline)))
                 .await;
             return;
         };
+        let client = transport::Client::new(
+            selected,
+            source.context().clone(),
+            connected.client.protocol(),
+        );
         if let Ask::Presence { source, report } = ask {
-            connected.inbox_presence.report(
-                connected.client.clone(),
-                source,
-                report,
-                self.events.clone(),
-            );
+            connected
+                .inbox_presence
+                .report(client, source, report, self.events.clone());
             return;
         }
         let Ok(permit) = std::sync::Arc::clone(&self.inbox_calls.0).try_acquire_owned() else {
@@ -286,7 +303,6 @@ impl crate::State {
             .await;
             return;
         };
-        let client = connected.client.clone();
         let events = self.events.clone();
         drop(tokio::spawn(async move {
             let answer = bounded(&client, ask).await;
@@ -313,7 +329,7 @@ const MAX_CALLS: usize = 8;
 const DEADLINE: std::time::Duration = std::time::Duration::from_secs(15);
 
 #[cfg(not(target_arch = "wasm32"))]
-async fn bounded(client: &vessel_client::NodeClient, ask: Ask) -> Answer {
+async fn bounded(client: &transport::Client, ask: Ask) -> Answer {
     let timeout = match &ask {
         Ask::Claim(pending) => Answer::Claimed(
             pending.source.clone(),
@@ -346,9 +362,24 @@ async fn bounded(client: &vessel_client::NodeClient, ask: Ask) -> Answer {
             *request,
             Err(Problem::Refused(vessel_proto::ErrorCode::Unavailable)),
         ),
-        Ask::Get { key, request, .. }
-        | Ask::Mark { key, request, .. }
-        | Ask::Answer { key, request, .. } => Answer::Detail(
+        Ask::Get {
+            source,
+            key,
+            request,
+        }
+        | Ask::Mark {
+            source,
+            key,
+            request,
+            ..
+        }
+        | Ask::Answer {
+            source,
+            key,
+            request,
+            ..
+        } => Answer::Detail(
+            source.clone(),
             *key,
             *request,
             Err(Problem::Refused(vessel_proto::ErrorCode::Unavailable)),
@@ -359,7 +390,7 @@ async fn bounded(client: &vessel_client::NodeClient, ask: Ask) -> Answer {
         .unwrap_or(timeout)
 }
 #[cfg(not(target_arch = "wasm32"))]
-async fn call(client: &vessel_client::NodeClient, ask: Ask) -> Answer {
+async fn call(client: &transport::Client, ask: Ask) -> Answer {
     match ask {
         Ask::Claim(pending) => {
             let result = admission::claim(client, &pending).await;
@@ -383,25 +414,38 @@ async fn call(client: &vessel_client::NodeClient, ask: Ask) -> Answer {
             pages,
             request,
         } => Answer::Listed(source, request, node::list(client, pages).await),
-        Ask::Get { key, request, .. } => Answer::Detail(key, request, node::get(client, key).await),
+        Ask::Get {
+            source,
+            key,
+            request,
+        } => Answer::Detail(source, key, request, node::get(client, key).await),
         Ask::Mark {
-            key, read, request, ..
+            source,
+            key,
+            read,
+            request,
         } => {
             let read = match read {
                 Read::Read => vessel_proto::inbox::InboxRead::Read,
                 Read::Unread => vessel_proto::inbox::InboxRead::Unread,
             };
-            let result = match client.mark_inbox(node::wire_key(key), read).await {
-                Ok(()) => node::get(client, key).await,
+            let result = match client
+                .call(vessel_proto::inbox::MarkInbox {
+                    key: node::wire_key(key),
+                    read,
+                })
+                .await
+            {
+                Ok(_ack) => node::get(client, key).await,
                 Err(error) => Err(node::problem(error)),
             };
-            Answer::Detail(key, request, result)
+            Answer::Detail(source, key, request, result)
         }
         Ask::Answer {
+            source,
             key,
             input,
             request,
-            ..
-        } => Answer::Detail(key, request, answer::send(client, key, input).await),
+        } => Answer::Detail(source, key, request, answer::send(client, key, input).await),
     }
 }

@@ -22,7 +22,8 @@ impl Place for InboxPlace {
         cx.notify();
     }
     fn busy(shell: &Shell) -> bool {
-        shell.areas.inbox.detail.pending().is_some()
+        !shell.areas.inbox.detail.confirmed()
+            || shell.areas.inbox.detail.pending().is_some()
             || shell
                 .areas
                 .inbox

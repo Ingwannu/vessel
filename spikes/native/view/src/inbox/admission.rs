@@ -53,18 +53,20 @@ impl Gate {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::inbox::{ConnectionId, Inbox};
-    use crate::machine_book::Name;
+    use crate::inbox::Inbox;
     #[test]
     fn another_transport_or_ticket_cannot_authorize_a_current_source() {
         let mut inbox = Inbox::default();
-        let source = Source {
-            node: vessel_proto::NodeId::random(),
-            connection: ConnectionId::new([1; 16]),
-            name: Name::parse("node").unwrap(),
-        };
+        let mut epochs = crate::connection::ConnectionEpochs::default();
+        let context = epochs
+            .admit(
+                crate::connection::MachineKey::from_book("node"),
+                vessel_proto::NodeId::random(),
+            )
+            .unwrap();
+        let source = Source::new(context).unwrap();
         let key = Key {
-            node: source.node,
+            node: source.node(),
             session: vessel_proto::SessionId::random(),
             seq: vessel_proto::EventSeq::new(5),
         };
@@ -78,10 +80,12 @@ mod tests {
         let mut gate = Gate::default();
         assert!(gate.begin(pending.clone()));
         assert!(!gate.begin(pending.clone()));
-        let changed = Source {
-            connection: ConnectionId::new([2; 16]),
-            ..source.clone()
-        };
+        let changed = Source::new(
+            epochs
+                .admit(source.context().machine().clone(), source.node())
+                .unwrap(),
+        )
+        .unwrap();
         assert!(gate.take(&changed, key, request).is_none());
         assert!(gate.take(&source, key, inbox.ticket().unwrap()).is_none());
         assert_eq!(gate.take(&source, key, request), Some(pending.clone()));

@@ -54,7 +54,7 @@ impl Shell {
             .store
             .nodes()
             .iter()
-            .find(|node| node.source.node == target.node)?
+            .find(|node| node.source.node() == target.node)?
             .source;
         if self
             .fleet
@@ -62,7 +62,7 @@ impl Shell {
             .iter()
             .find(|machine| machine.name == open.machine)
             .and_then(|machine| machine.node)
-            != Some(source.node)
+            != Some(source.node())
         {
             return None;
         }
@@ -70,7 +70,7 @@ impl Shell {
         let info = area.info.as_ref().filter(|info| info.id == open.session)?;
         Some(Observation {
             target: Target {
-                node: source.node,
+                node: source.node(),
                 session: open.session,
             },
             focus: if window.is_window_active() && window.is_visible() {
@@ -79,7 +79,7 @@ impl Shell {
                 Focus::Inactive
             },
             read: if self
-                .inbox_session_attention(source.name.as_str(), open.session)
+                .inbox_session_attention(source.name().as_str(), open.session)
                 .map_or(info.marks.unread, |attention| attention.unread.get() != 0)
             {
                 vessel_app_view::inbox::Read::Unread
@@ -109,11 +109,11 @@ impl Shell {
             .store
             .nodes()
             .iter()
-            .find(|node| node.source.name.as_str() == machine)
+            .find(|node| node.source.name().as_str() == machine)
         {
             self.areas.inbox.reading.hold(
                 Target {
-                    node: node.source.node,
+                    node: node.source.node(),
                     session,
                 },
                 self.areas.conversation.timeline.next(),
@@ -127,7 +127,7 @@ impl Shell {
             .store
             .nodes()
             .iter()
-            .find(|node| node.source.node == action.target.node)
+            .find(|node| node.source.node() == action.target.node)
             .map(|node| node.source.clone())
         else {
             return;

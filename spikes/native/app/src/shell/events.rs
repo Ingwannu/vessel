@@ -12,8 +12,18 @@ use super::{Context, Event, Route, Shell};
 impl Shell {
     pub(super) fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
-            Event::Inbox(answer) => self.inbox_answer(answer, cx),
+            Event::Inbox(answer) => {
+                if !self.inbox_answer(answer, cx) {
+                    return;
+                }
+            }
             Event::Devices(answer) => self.devices_answer(answer, cx),
+            Event::DeviceRetired(context) => {
+                let inbox_changed = self.inbox_retired(&context);
+                if !self.devices_retired(&context) && !inbox_changed {
+                    return;
+                }
+            }
             Event::Machines(answer) => self.machines_answer(answer, cx),
             Event::Sync(answer) => self.sync_answer(answer),
             Event::NodeSettings(answer) => self.node_settings_answer(answer),
@@ -29,6 +39,7 @@ impl Shell {
                     return;
                 }
                 let earlier = std::mem::replace(&mut self.fleet, fleet);
+                self.devices_fleet();
                 self.offers_fleet(&earlier);
                 if !self.loaded {
                     self.loaded = true;

@@ -1,18 +1,21 @@
 //! Only the node elects a recipient. A grant is followed by an exact projection
 //! recheck; uncertainty or a lost reply never authorizes local retry/display.
 use super::node::{problem, wire_key};
+use super::transport::Client;
 use vessel_app_view::inbox::{
     Problem,
     admission::{Admission, Pending},
 };
-use vessel_client::NodeClient;
 use vessel_proto::inbox::{InboxEntry, InboxItem, InboxRead};
 use vessel_proto::notifications::{NotificationClaim, NotificationSource};
 
-pub(super) async fn claim(client: &NodeClient, pending: &Pending) -> Result<Admission, Problem> {
+pub(super) async fn claim(client: &Client, pending: &Pending) -> Result<Admission, Problem> {
     if !current(
         client
-            .inbox_entry(wire_key(pending.key))
+            .call(vessel_proto::inbox::GetInboxEntry {
+                key: wire_key(pending.key),
+                fetch: vessel_proto::inbox::InboxFetch::Summary,
+            })
             .await
             .map_err(problem)?
             .as_ref(),
@@ -21,9 +24,11 @@ pub(super) async fn claim(client: &NodeClient, pending: &Pending) -> Result<Admi
         return Ok(Admission::Suppressed);
     }
     let decision = client
-        .claim_notification(NotificationSource::Session {
-            key: wire_key(pending.key),
-            cursor: vessel_proto::inbox::InboxCursor::new(pending.position.get()),
+        .call(vessel_proto::notifications::ClaimNotification {
+            source: NotificationSource::Session {
+                key: wire_key(pending.key),
+                cursor: vessel_proto::inbox::InboxCursor::new(pending.position.get()),
+            },
         })
         .await
         .map_err(problem)?;
@@ -31,7 +36,10 @@ pub(super) async fn claim(client: &NodeClient, pending: &Pending) -> Result<Admi
         NotificationClaim::Admitted => {
             if current(
                 client
-                    .inbox_entry(wire_key(pending.key))
+                    .call(vessel_proto::inbox::GetInboxEntry {
+                        key: wire_key(pending.key),
+                        fetch: vessel_proto::inbox::InboxFetch::Summary,
+                    })
                     .await
                     .map_err(problem)?
                     .as_ref(),

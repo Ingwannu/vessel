@@ -107,7 +107,7 @@ fn list(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> AnyEleme
         ));
     }
     for (source, entry) in rows {
-        body = body.child(row(source.name.as_str(), entry, shell, tokens, cx));
+        body = body.child(row(source.name().as_str(), entry, shell, tokens, cx));
     }
     body = body.child(more_buttons(shell, tokens, cx));
     body.into_any_element()
@@ -293,7 +293,11 @@ fn machine_notes(
             .is_some_and(|snapshot| snapshot.attention.is_none())
         {
             body = body.child(note(
-                &format!("{} · {}", node.source.name.as_str(), labels.badges_legacy()),
+                &format!(
+                    "{} · {}",
+                    node.source.name().as_str(),
+                    labels.badges_legacy()
+                ),
                 tokens,
             ));
         }
@@ -301,7 +305,7 @@ fn machine_notes(
             body = body.child(note(
                 &format!(
                     "{} · {}",
-                    node.source.name.as_str(),
+                    node.source.name().as_str(),
                     words::problem(problem, shell.words)
                 ),
                 tokens,
@@ -315,7 +319,7 @@ fn more_buttons(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> 
     let mut buttons = div().flex().flex_col().gap(px(S2));
     for node in shell.areas.inbox.store.nodes() {
         if node.pages.before().is_some() {
-            let id = node.source.node;
+            let id = node.source.node();
             buttons = buttons.child(
                 outline_button(
                     ElementId::Name(format!("inbox-newest-{id}").into()),
@@ -336,7 +340,7 @@ fn more_buttons(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> 
             .as_ref()
             .is_some_and(|snapshot| snapshot.extent == vessel_app_view::inbox::Extent::More)
         {
-            let id = node.source.node;
+            let id = node.source.node();
             buttons = buttons.child(
                 outline_button(
                     ElementId::Name(format!("inbox-more-{id}").into()),

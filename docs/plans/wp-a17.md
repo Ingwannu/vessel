@@ -316,3 +316,23 @@ only after explicit device.self Operate and a live conversation request veto.
 The observed exclusive watermark still excludes new attention. Read-only peers
 remain unsupported for this fallback; the new Read-scoped ingress is used only
 when actually assigned and supported. No offline write is replayed.
+
+## Shared connection adoption
+
+Reuse decision: modify the existing Inbox adapter to consume G4's exact reviewed
+producer `074ade16..95c256bce` (result documentation `72f081c35`), rather than
+maintaining an Inbox-specific incarnation allocator. `Source` now retains the
+canonical `view::connection::ConnectionContext`; the actor selects that exact
+admission and every typed RPC passes `SelectedConnection::call`, including
+presence, detail loads, marks, answers, long-poll confirmations and claims.
+No raw client is exposed by the private Inbox facade. Original context and local
+ticket accompany every response; retirement invalidates grants and pending detail
+responses before a replacement fleet snapshot. Reconfirming the same exact item
+keeps its draft but disables actions until the new admission confirms its form.
+
+Identical list snapshots and presence results request no window frame. Pure
+regressions cover repeated successful/failed polls and retained-but-unconfirmed
+forms after retirement. G4's own evidence remains bounded source/Link evidence;
+this adoption still needs its own exact changed-source native checks and final
+package gate. The private follow staging remains unused; no live-stream adoption
+or whole-package approval is implied.

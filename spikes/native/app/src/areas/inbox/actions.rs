@@ -24,7 +24,7 @@ impl Shell {
             .store
             .nodes()
             .iter()
-            .find(|node| node.source.node == id)
+            .find(|node| node.source.node() == id)
             .map(|node| node.pages)
             .unwrap_or_default();
         match self.areas.inbox.store.begin(id) {
@@ -44,7 +44,7 @@ impl Shell {
             .store
             .nodes()
             .iter()
-            .find(|node| node.source.node == key.node)
+            .find(|node| node.source.node() == key.node)
             .map(|node| node.source.clone())
     }
 
@@ -63,10 +63,14 @@ impl Shell {
                 return;
             }
         };
+        let same_key = self.areas.inbox.detail.key() == Some(key);
+        self.areas.inbox.detail_source = Some(source.clone());
         self.areas.inbox.store.select(key);
         self.areas.inbox.detail.select(key, request);
         self.areas.inbox.tool = None;
-        self.areas.inbox.conversation = super::super::conversation::ConversationArea::new(cx);
+        if !same_key {
+            self.areas.inbox.conversation = super::super::conversation::ConversationArea::new(cx);
+        }
         self.command(Command::Inbox(Ask::Get {
             source,
             key,
@@ -80,6 +84,9 @@ impl Shell {
     ) -> Option<(Source, Key, vessel_app_view::inbox::Request)> {
         let key = self.areas.inbox.detail.key()?;
         let source = self.inbox_source(key)?;
+        if self.areas.inbox.detail_source.as_ref() != Some(&source) {
+            return None;
+        }
         let request = match self.areas.inbox.store.ticket() {
             Ok(request) => request,
             Err(problem) => {
@@ -137,7 +144,7 @@ impl Shell {
             .fleet
             .machines
             .iter()
-            .filter(|machine| machine.name == source.name.as_str())
+            .filter(|machine| machine.name == source.name().as_str())
             .flat_map(|machine| &machine.sessions)
             .find(|card| card.session == key.session)
             .map(Open::of);

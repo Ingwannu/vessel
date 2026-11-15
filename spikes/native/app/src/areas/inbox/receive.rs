@@ -10,10 +10,13 @@ use vessel_app_view::inbox::Content;
 use vessel_app_view::timeline::{Live, ToolView};
 
 impl Shell {
-    pub(crate) fn inbox_answer(&mut self, answer: Answer, cx: &mut Context<'_, Self>) {
+    pub(crate) fn inbox_answer(&mut self, answer: Answer, cx: &mut Context<'_, Self>) -> bool {
+        let mut changed = true;
         match answer {
             Answer::Claimed(source, key, request, result) => {
+                changed = false;
                 if let Some(pending) = self.areas.inbox.admission.take(&source, key, request) {
+                    changed = true;
                     match result {
                         Ok(vessel_app_view::inbox::admission::Admission::Admitted) => {
                             if self.areas.inbox.granted.len()
@@ -26,13 +29,18 @@ impl Shell {
                         Err(problem) => self.areas.inbox.problem = Some(problem),
                     }
                 }
-                self.inbox_notice_update(cx);
+                if changed {
+                    self.inbox_notice_update(cx);
+                }
             }
-            Answer::Targets(Ok(targets)) => self.inbox_targets(targets, cx),
+            Answer::Targets(Ok(targets)) => {
+                changed = self.areas.inbox.targets != targets || self.areas.inbox.problem.is_some();
+                self.inbox_targets(targets, cx);
+            }
             Answer::Targets(Err(problem)) => self.areas.inbox.problem = Some(problem),
             Answer::ReadSession(source, session, request, result) => {
                 let target = vessel_app_view::inbox::reading::Target {
-                    node: source.node,
+                    node: source.node(),
                     session,
                 };
                 if self.areas.inbox.read_last == Some((request, target))
@@ -49,6 +57,7 @@ impl Shell {
                 }
             }
             Answer::Presence(source, result) => {
+                changed = false;
                 if self
                     .areas
                     .inbox
@@ -57,33 +66,67 @@ impl Shell {
                     .iter()
                     .any(|node| node.source == source)
                 {
+                    changed = self
+                        .areas
+                        .inbox
+                        .presence_problems
+                        .iter()
+                        .find(|(id, _)| *id == source.node())
+                        .map(|(_, problem)| *problem)
+                        != result.as_ref().err().copied();
                     self.areas
                         .inbox
                         .presence_problems
-                        .retain(|(id, _)| *id != source.node);
+                        .retain(|(id, _)| *id != source.node());
                     if let Err(problem) = result {
                         self.areas
                             .inbox
                             .presence_problems
-                            .push((source.node, problem));
+                            .push((source.node(), problem));
                     }
                 }
             }
             Answer::Listed(source, request, result) => {
-                let notices = self.areas.inbox.store.receive(source.node, request, result);
+                if !self
+                    .areas
+                    .inbox
+                    .targets
+                    .iter()
+                    .any(|target| matches!(target, Target::Online(known) if *known == source))
+                {
+                    return false;
+                }
+                let (visible, notices) =
+                    self.areas
+                        .inbox
+                        .store
+                        .receive_visible(source.node(), request, result);
+                changed = visible;
                 let area = &mut self.areas.inbox;
                 area.notices.retain(|key| area.store.entry(*key).is_some());
                 area.notices.extend(notices);
-                self.inbox_notice_update(cx);
+                if changed {
+                    self.inbox_notice_update(cx);
+                }
             }
-            Answer::Detail(key, request, result) => {
-                if self.areas.inbox.detail.receive(key, request, result) {
+            Answer::Detail(source, key, request, result) => {
+                changed = false;
+                if self.areas.inbox.detail_source.as_ref() == Some(&source)
+                    && self
+                        .areas
+                        .inbox
+                        .targets
+                        .iter()
+                        .any(|target| matches!(target, Target::Online(known) if *known == source))
+                    && self.areas.inbox.detail.receive(key, request, result)
+                {
+                    changed = true;
                     self.inbox_cards();
                     self.inbox_refresh();
                 }
             }
         }
-        cx.notify();
+        changed
     }
 
     fn inbox_targets(&mut self, targets: Vec<Target>, cx: &mut Context<'_, Self>) {
@@ -93,8 +136,8 @@ impl Shell {
             .filter_map(|target| {
                 target.node().or_else(|| {
                     old.iter()
-                        .find(|node| node.source.name == *target.route())
-                        .map(|node| node.source.node)
+                        .find(|node| node.source.name() == target.route())
+                        .map(|node| node.source.node())
                 })
             })
             .collect();
@@ -117,9 +160,9 @@ impl Shell {
         for target in &targets {
             if let Target::Online(source) = target {
                 let source = source.clone();
-                let id = source.node;
+                let id = source.node();
                 let changed = self.areas.inbox.store.nodes().iter().any(|node| {
-                    node.source.node == id && node.source.connection != source.connection
+                    node.source.node() == id && node.source.context() != source.context()
                 });
                 let connected = self
                     .areas
@@ -138,7 +181,7 @@ impl Shell {
                 if changed
                     && let Some(key) = self.areas.inbox.detail.key().filter(|key| key.node == id)
                 {
-                    self.areas.inbox.detail = vessel_app_view::inbox::Detail::default();
+                    self.areas.inbox.detail.retire();
                     self.inbox_select(key, cx);
                 }
                 match self.areas.inbox.store.begin(id) {
@@ -149,7 +192,7 @@ impl Shell {
                             .store
                             .nodes()
                             .iter()
-                            .find(|node| node.source.node == id)
+                            .find(|node| node.source.node() == id)
                             .map(|node| node.pages)
                             .unwrap_or_default();
                         self.command(Command::Inbox(Ask::List {
@@ -167,9 +210,9 @@ impl Shell {
                 .store
                 .nodes()
                 .iter()
-                .find(|node| node.source.name == *target.route())
+                .find(|node| node.source.name() == target.route())
             {
-                let id = node.source.node;
+                let id = node.source.node();
                 self.areas.inbox.store.disconnect(id);
             }
         }
@@ -189,12 +232,12 @@ impl Shell {
             .store
             .nodes()
             .iter()
-            .find(|node| node.source.node == entry.key.node)
+            .find(|node| node.source.node() == entry.key.node)
         else {
             return;
         };
         area.conversation
-            .open(source.source.name.as_str(), entry.key.session);
+            .open(source.source.name().as_str(), entry.key.session);
         area.conversation.live = match &entry.content {
             Content::Permission { request, tool, .. } => {
                 area.tool = tool.as_ref().map(ToolView::announced);

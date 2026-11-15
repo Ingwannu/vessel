@@ -19,6 +19,7 @@ pub enum Operation {
 #[derive(Debug, Default)]
 pub struct Detail {
     key: Option<Key>,
+    confirmed: bool,
     entry: Option<Entry>,
     pending: Option<(Request, Operation)>,
     problem: Option<Problem>,
@@ -26,15 +27,18 @@ pub struct Detail {
 impl Detail {
     /// Select and confirm one exact attention source.
     pub fn select(&mut self, key: Key, request: Request) {
+        if self.key != Some(key) {
+            self.entry = None;
+        }
+        self.confirmed = false;
         self.key = Some(key);
-        self.entry = None;
         self.pending = Some((request, Operation::Load));
         self.problem = None;
     }
     /// Start a user action only when this exact entry has been confirmed.
     #[must_use]
     pub fn begin(&mut self, request: Request, operation: Operation) -> Option<Key> {
-        if self.pending.is_some() || self.entry.is_none() {
+        if self.pending.is_some() || !self.confirmed || self.entry.is_none() {
             return None;
         }
         let key = self.key?;
@@ -57,6 +61,7 @@ impl Detail {
         self.pending = None;
         match result {
             Ok(entry) if entry.as_ref().is_none_or(|entry| entry.key == key) => {
+                self.confirmed = true;
                 self.entry = entry;
                 self.problem = None;
             }
@@ -64,6 +69,18 @@ impl Detail {
             Err(problem) => self.problem = Some(problem),
         }
         true
+    }
+    /// End an old admission without discarding the retained form or draft.
+    /// A replacement confirmation gets a fresh ticket before controls reopen.
+    pub fn retire(&mut self) {
+        self.confirmed = false;
+        self.pending = None;
+        self.problem = Some(Problem::Offline);
+    }
+    /// Whether a full form was confirmed on the current selected admission.
+    #[must_use]
+    pub const fn confirmed(&self) -> bool {
+        self.confirmed
     }
     /// Source currently shown, including resolved entries.
     #[must_use]

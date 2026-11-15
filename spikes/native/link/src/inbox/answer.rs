@@ -1,11 +1,11 @@
 //! Answer exactly once, then await durable session events before confirming
 //! projection withdrawal. No sleeps, guessed delay or automatic resend.
+use super::transport::Client;
 use super::{
     Input,
     node::{get, problem, wire_key},
 };
 use vessel_app_view::inbox::{Entry, Key, Problem};
-use vessel_client::NodeClient;
 use vessel_proto::{PermissionOutcome, ReadEvents, SessionInput};
 
 /// Long polls wait for real session events rather than spinning on the inbox.
@@ -15,7 +15,7 @@ const CONFIRM_WAIT_SECONDS: u32 = 10;
 const CONFIRM_PAGE_RECORDS: u32 = 32;
 
 pub(super) async fn send(
-    client: &NodeClient,
+    client: &Client,
     key: Key,
     input: Input,
 ) -> Result<Option<Entry>, Problem> {
@@ -23,7 +23,13 @@ pub(super) async fn send(
         return Ok(None);
     };
     input.validate(&entry)?;
-    let from = client.session(key.session).await.map_err(problem)?.next_seq;
+    let from = client
+        .call(vessel_proto::GetSession {
+            session: key.session,
+        })
+        .await
+        .map_err(problem)?
+        .next_seq;
     let input = match input {
         Input::Permission(id, option) => SessionInput::AnswerPermission {
             id,
@@ -31,18 +37,27 @@ pub(super) async fn send(
         },
         Input::Question(id, answer) => SessionInput::AnswerQuestion { id, answer },
     };
-    client.send(key.session, input).await.map_err(problem)?;
+    let _sent = client
+        .call(vessel_proto::SendInput {
+            session: key.session,
+            input,
+        })
+        .await
+        .map_err(problem)?;
     confirmed(client, key, from).await
 }
 
 async fn confirmed(
-    client: &NodeClient,
+    client: &Client,
     key: Key,
     mut from: vessel_proto::EventSeq,
 ) -> Result<Option<Entry>, Problem> {
     loop {
         if client
-            .inbox_entry(wire_key(key))
+            .call(vessel_proto::inbox::GetInboxEntry {
+                key: wire_key(key),
+                fetch: vessel_proto::inbox::InboxFetch::Summary,
+            })
             .await
             .map_err(problem)?
             .is_none()

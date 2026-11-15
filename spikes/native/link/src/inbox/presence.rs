@@ -1,5 +1,6 @@
 //! One coalescing presence worker per authenticated transport. Real input is
 //! never replaced by a focus-only report while the previous RPC is pending.
+use super::transport::Client;
 use super::{Answer, node::problem};
 use std::sync::{Arc, Mutex, PoisonError};
 use tokio::sync::{Notify, watch};
@@ -7,7 +8,6 @@ use vessel_app_view::inbox::{
     Problem, Source,
     presence::{Activity, Focus, Report},
 };
-use vessel_client::NodeClient;
 use vessel_proto::push::{PushActivity, PushFocus, ReportPushPresence};
 
 #[derive(Debug, Default)]
@@ -37,7 +37,7 @@ impl Default for PresenceHub {
 impl PresenceHub {
     pub(super) fn report(
         &self,
-        client: NodeClient,
+        client: Client,
         source: Source,
         report: Report,
         events: tokio::sync::mpsc::Sender<crate::Event>,
@@ -78,7 +78,7 @@ impl PresenceHub {
 async fn run(
     inner: Arc<Inner>,
     mut closed: watch::Receiver<()>,
-    client: NodeClient,
+    client: Client,
     source: Source,
     events: tokio::sync::mpsc::Sender<crate::Event>,
 ) {
@@ -95,24 +95,28 @@ async fn run(
         };
         let call = async {
             let report = wire(&source, report);
-            client.report_push_presence(report).await.map_err(problem)
+            client.call(report).await.map_err(problem)
         };
         let result = tokio::select! {
             biased;
             _closed = closed.changed() => return,
             result = tokio::time::timeout(super::DEADLINE,call) => result.unwrap_or(Err(Problem::Refused(vessel_proto::ErrorCode::Unavailable))),
         };
+        let retired = result == Err(Problem::Offline);
         tokio::select! {
             biased;
             _closed = closed.changed() => return,
             _sent = events.send(crate::Event::Inbox(Answer::Presence(source.clone(),result))) => {}
         }
+        if retired {
+            return;
+        }
     }
 }
 fn wire(source: &Source, report: Report) -> ReportPushPresence {
     let focus = match report.focus {
-        Focus::Session { node, session } if node == source.node => PushFocus::Session { session },
-        Focus::Terminal { node, terminal } if node == source.node => {
+        Focus::Session { node, session } if node == source.node() => PushFocus::Session { session },
+        Focus::Terminal { node, terminal } if node == source.node() => {
             PushFocus::Terminal { terminal }
         }
         Focus::Session { .. } | Focus::Terminal { .. } | Focus::Elsewhere => PushFocus::Elsewhere,
@@ -135,11 +139,16 @@ mod tests {
     use super::*;
     #[test]
     fn focus_is_node_local_and_never_fabricates_activity_or_a_terminal_session() {
-        let source = Source {
-            node: vessel_proto::NodeId::random(),
-            connection: vessel_app_view::inbox::ConnectionId::new([1; 16]),
-            name: vessel_app_view::machine_book::Name::parse("test").unwrap(),
-        };
+        let mut epochs = vessel_app_view::connection::ConnectionEpochs::default();
+        let source = Source::new(
+            epochs
+                .admit(
+                    vessel_app_view::connection::MachineKey::from_book("test"),
+                    vessel_proto::NodeId::random(),
+                )
+                .unwrap(),
+        )
+        .unwrap();
         let foreign = Report {
             focus: Focus::Session {
                 node: vessel_proto::NodeId::random(),
@@ -156,7 +165,7 @@ mod tests {
                 &source,
                 Report {
                     focus: Focus::Terminal {
-                        node: source.node,
+                        node: source.node(),
                         terminal
                     },
                     activity: Activity::Active,

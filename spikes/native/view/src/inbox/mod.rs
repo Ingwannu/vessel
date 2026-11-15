@@ -26,28 +26,37 @@ use vessel_proto::{
 
 use crate::machine_book::Name;
 
-/// An authenticated transport incarnation, generated at connection setup.
-/// A reconnect to the same node must still invalidate an older queued read.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ConnectionId([u8; 16]);
-impl ConnectionId {
-    /// Opaque random bytes supplied by the link's connection boundary.
-    #[must_use]
-    pub const fn new(bytes: [u8; 16]) -> Self {
-        Self(bytes)
-    }
-}
-
-/// A node identity and its already validated book route. The identity, rather
-/// than a reused name, separates one machine's attention from another's.
+/// Exact shared admission plus its parsed display/book label. Admission identity stays
+/// in `ConnectionContext`; no inbox-owned epoch or identity cache exists.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Source {
-    /// This authenticated connection, distinct after every reconnect.
-    pub connection: ConnectionId,
-    /// The authenticated reporting node.
-    pub node: NodeId,
-    /// Its route in the local node book.
-    pub name: Name,
+    context: crate::connection::ConnectionContext,
+    name: Name,
+}
+impl Source {
+    /// Project the existing shared admission, never a label-derived node.
+    /// # Errors
+    /// An invalid book alias cannot be used as an Inbox route.
+    pub fn new(context: crate::connection::ConnectionContext) -> Result<Self, Problem> {
+        let name =
+            Name::parse(context.machine().as_str()).map_err(|_invalid| Problem::InvalidReply)?;
+        Ok(Self { context, name })
+    }
+    /// The authenticated source node from that exact shared context.
+    #[must_use]
+    pub const fn node(&self) -> NodeId {
+        self.context.node()
+    }
+    /// Parsed local book label, not an authority or a connection lookup.
+    #[must_use]
+    pub const fn name(&self) -> &Name {
+        &self.name
+    }
+    /// One canonical connection fence shared with the link actor.
+    #[must_use]
+    pub const fn context(&self) -> &crate::connection::ConnectionContext {
+        &self.context
+    }
 }
 
 /// An exact attention source, safe across machines and repeated requests.
