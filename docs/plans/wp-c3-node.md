@@ -3,7 +3,8 @@
 Status: unadmitted runtime implementation. No new method has an assigned protocol
 number. ADR0087 defines the contract. Announced82ae7c91 is merged as e103946f;
 latest owned source af78f4aed includes the shared-project cache correction and
-queued-root test lint fixes. Its changed-source Clippy is queued. Earlier860
+queued-root test lint fixes. Its exact changed-source four-crate all-target Clippy passed (60s, actual Node
+Checking); later6e history fixture execution remains queued. Earlier860
 library proof stays on860, e103 Clippy is red on the corrected test lints, and
 no final whole package gate/review has passed.
 
@@ -488,3 +489,14 @@ Conflict detail, then cancels shutdown and asserts Closed even with the root sti
 missing. Both requirements remain covered without weakening an assertion or
 changing production ordering. The new source also includes the later sibling-cache
 scope and still needs execution. Prior e103 remains65/1; no red is relabeled green.
+
+## Exact shared-project correction Clippy result
+
+wp-git-writes-narrow-20261115T135839Z-af78f4ae finished cargo0 in60s on exact
+af78f4aedb1fdbff0adbc97fe18310c38f792dd9. The command selects Node/Proto/Workspace/
+Client all targets with -D warnings; actual changed Node Checking is in the log.
+This closes the known e103 fixture lints and compiles the later project-key/cache
+scope. It does not execute that scope's regression or later6e927990 fixture,
+assign a number, admit a runtime, or replace the required whole package gate.
+Full spec/log artifact digests are retained in the track's external evidence
+packet af78-root-narrow.json; no unchanged rerun is needed.
