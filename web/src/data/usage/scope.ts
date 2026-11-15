@@ -14,6 +14,19 @@ export type RollingUsageScope = Exclude<UsageScope, { kind: "session" }>;
 export const MACHINE_USAGE = { kind: "machine" } as const;
 type UsageName = Readonly<Pick<AgentUsage, "harness" | "profile">>;
 
+export interface UsageTarget {
+  node: NodeKey;
+  scope: RollingUsageScope;
+}
+
+/** A machine change forgets the old scope, including on a return trip. */
+export function usageTargetFor(
+  target: UsageTarget,
+  node: NodeKey,
+): UsageTarget {
+  return target.node === node ? target : { node, scope: MACHINE_USAGE };
+}
+
 /** One bounded set of names from this machine's last all-agent report. */
 export interface UsageNames {
   node: NodeKey;

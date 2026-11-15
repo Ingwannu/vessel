@@ -16,7 +16,11 @@ import {
   type UsageFact,
 } from "../../data/usage/facts";
 import type { UsageRead } from "../../data/usage/reader";
-import { MACHINE_USAGE, type RollingUsageScope } from "../../data/usage/scope";
+import {
+  MACHINE_USAGE,
+  usageTargetFor,
+  type UsageTarget,
+} from "../../data/usage/scope";
 import { Button, Row, RowList, Select, Skeleton } from "../../ui/kit";
 import type { NodeKey, NodeStatus } from "../../wire/bridge";
 import { MachinePicker } from "../machines/machine-picker";
@@ -60,11 +64,15 @@ export function UsageSection({ machine }: { machine: NodeKey | undefined }) {
 
 function MachineUsage({ node, label }: { node: NodeKey; label: string }) {
   const [period, setPeriod] = useState<UsageRange>("day");
-  const [target, setTarget] = useState<{
-    node: NodeKey;
-    scope: RollingUsageScope;
-  }>({ node, scope: MACHINE_USAGE });
-  const scope = target.node === node ? target.scope : MACHINE_USAGE;
+  const [target, setTarget] = useState<UsageTarget>({
+    node,
+    scope: MACHINE_USAGE,
+  });
+  const next = usageTargetFor(target, node);
+  // Persist the reset before effects: an effect-only reset could issue
+  // the old profile query when returning to the previous machine.
+  if (target.node !== node) setTarget(next);
+  const scope = next.scope;
   const { status, read, refresh, names } = useUsage(node, period, scope);
   const pending =
     status?.state !== "connected" ||

@@ -8,9 +8,27 @@ import {
   usageChoices,
   usageNames,
   usageScopeKey,
+  usageTargetFor,
 } from "./scope";
 
 describe("historical usage scopes", () => {
+  it("forgets a selected profile on both legs of a machine round trip", () => {
+    const laptop = fixtureId("NodeKey", "laptop");
+    const gpu = fixtureId("NodeKey", "gpu-box");
+    const chosen = {
+      node: laptop,
+      scope: { kind: "agent", harness: "claude-code", profile: "work" },
+    } as const;
+    expect(usageTargetFor(chosen, laptop)).toBe(chosen);
+    const away = usageTargetFor(chosen, gpu);
+    expect(away).toEqual({ node: gpu, scope: MACHINE_USAGE });
+    expect(usageTargetFor(away, gpu)).toBe(away);
+    expect(usageTargetFor(away, laptop)).toEqual({
+      node: laptop,
+      scope: MACHINE_USAGE,
+    });
+  });
+
   it("offers all profiles for unnamed reports, never a current-default interpretation", () => {
     const choices = usageChoices(
       [

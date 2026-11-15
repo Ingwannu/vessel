@@ -118,5 +118,21 @@ test("Usage selects reported agent/profile totals, retains the scope across peri
   const other = page.getByRole("list", { name: "Usage scope" });
   await expect(other).toContainText("All agents");
   await expect(other).not.toContainText("claude-qwen");
+  await choose(
+    page,
+    page.getByRole("combobox", { name: "Machine", exact: true }),
+    /^laptop$/,
+  );
+  await expect
+    .poll(() => seen.selection)
+    .toEqual({ node: "laptop", period: "week" });
+  await expectInput(
+    page,
+    await selectedReport(page, seen, { kind: "machine" }),
+  );
+  await expect(scope).toHaveText("All agents");
+  await expect(page.getByRole("combobox", { name: "Usage period" })).toHaveText(
+    "Past 7 days",
+  );
   expect(errors()).toBe(0);
 });
