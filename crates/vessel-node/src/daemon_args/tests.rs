@@ -107,3 +107,14 @@ fn parsing_keeps_entrypoints_defaults_ranges_and_conflicting_modes() {
         assert!(Args::try_parse_from(argv).is_err());
     }
 }
+
+#[test]
+fn both_tool_suppression_spellings_are_process_start_options_only() {
+    for flag in ["--no-mcp", "--no-inject-mcp"] {
+        let args = Args::try_parse_from(["vesseld", flag]).unwrap();
+        assert!(args.run.no_mcp);
+        assert!(args.command.is_none());
+        assert!(Args::try_parse_from(["vesseld", flag, "version"]).is_err());
+    }
+    assert!(!Args::try_parse_from(["vesseld"]).unwrap().run.no_mcp);
+}

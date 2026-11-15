@@ -27,6 +27,9 @@ pub(super) struct Args {
 /// Running the node (the default).
 #[derive(Debug, clap::Args)]
 pub(super) struct Run {
+    /// Omit this process's agent tools server without changing saved injection.
+    #[arg(long, visible_alias = "no-inject-mcp")]
+    pub(super) no_mcp: bool,
     /// Operator-owned LSP roots and trusted executable overrides (JSON).
     #[arg(long)]
     pub(super) lsp_config: Option<PathBuf>,

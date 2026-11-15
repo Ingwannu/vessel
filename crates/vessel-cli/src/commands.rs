@@ -105,12 +105,24 @@ pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
 async fn node(target: &Target, command: NodeCommand) -> Result<(), CliError> {
     match command {
         NodeCommand::Start {
+            no_mcp,
             bind,
             name,
             lsp_config,
             lsp_roots,
             lsp_full_roots,
-        } => node_start(target, bind, name, lsp_config, lsp_roots, lsp_full_roots).await,
+        } => {
+            node_start(
+                target,
+                bind,
+                name,
+                lsp_config,
+                lsp_roots,
+                lsp_full_roots,
+                no_mcp,
+            )
+            .await
+        }
         NodeCommand::Install(install) => remote::install(target, install).await,
         NodeCommand::Update(update) => remote::update(target, update).await,
         NodeCommand::Stop(args) => crate::node_ctl::stop(target, args).await,
@@ -242,6 +254,7 @@ async fn node_start(
     lsp_config: Option<PathBuf>,
     lsp_roots: Vec<PathBuf>,
     lsp_full_roots: Vec<PathBuf>,
+    no_mcp: bool,
 ) -> Result<(), CliError> {
     // The binary, so the account it runs as comes from its own environment
     // (`HarnessEnv`; the library never reads it).
@@ -280,7 +293,11 @@ async fn node_start(
     );
     // Sessions' agents reach this node through this executable's `mcp`
     // command (ADR 0013).
-    config.vessel_mcp = std::env::current_exe().ok().map(VesselMcp::vessel);
+    config.vessel_mcp = if no_mcp {
+        None
+    } else {
+        std::env::current_exe().ok().map(VesselMcp::vessel)
+    };
     // Pull requests (ADR 0029): this environment's tokens and the
     // machine's `gh`, found here (the library reads no environment).
     config.forge =

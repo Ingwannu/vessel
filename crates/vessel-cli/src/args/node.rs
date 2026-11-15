@@ -15,6 +15,9 @@ use super::{Stop, ttl_secs};
 pub(crate) enum NodeCommand {
     /// Start a node and serve until Ctrl-C.
     Start {
+        /// Omit this process's agent tools server without changing saved injection.
+        #[arg(long, visible_alias = "no-inject-mcp")]
+        no_mcp: bool,
         /// Operator-owned LSP roots and executable overrides (JSON).
         #[arg(long)]
         lsp_config: Option<PathBuf>,
@@ -168,6 +171,29 @@ pub(crate) enum DevicesCommand {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn tool_suppression_aliases_only_apply_to_node_start() {
+        use crate::args::{Cli, Command};
+        use clap::Parser as _;
+        for flag in ["--no-mcp", "--no-inject-mcp"] {
+            let cli = Cli::try_parse_from(["vessel", "node", "start", flag]).unwrap();
+            assert!(matches!(
+                cli.command,
+                Command::Node {
+                    command: NodeCommand::Start { no_mcp: true, .. }
+                }
+            ));
+            assert!(Cli::try_parse_from(["vessel", "node", "status", flag]).is_err());
+        }
+        let cli = Cli::try_parse_from(["vessel", "node", "start"]).unwrap();
+        assert!(matches!(
+            cli.command,
+            Command::Node {
+                command: NodeCommand::Start { no_mcp: false, .. }
+            }
+        ));
+    }
 
     #[test]
     fn park_after_takes_minutes_or_never() {

@@ -207,7 +207,11 @@ async fn run(dir: DataDir, args: Run) -> ExitCode {
     config.public = args.public;
     config.client_address_header = args.client_address_header;
     config.trusted_proxies = args.trusted_proxies;
-    config.vessel_mcp = vessel_beside_me();
+    config.vessel_mcp = if args.no_mcp {
+        None
+    } else {
+        vessel_beside_me()
+    };
     // Pull requests (ADR 0029): this environment's tokens and the
     // machine's `gh`, found here (the library reads no environment).
     config.forge =

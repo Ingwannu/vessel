@@ -418,3 +418,15 @@ variants. Failed logs remain under /tmp/work/wp-mcp/{strict,functional}-01cc.
 The node tree also merged the green ede20014 base with no whole gate running;
 that union is not covered by the older batch. Native UI compilation is queued
 separately, and the pure view/link transition and fake-owner tests passed 9/0.
+
+## Process-only CLI suppression
+
+Both `vesseld --no-mcp` and `vessel node start --no-mcp` accept the visible
+`--no-inject-mcp` alias. They omit this process's existing VesselMcp launcher
+without writing the saved injection choice or changing provider policies. A
+later normal start follows the saved decision. In Paseo, --no-mcp also disables
+the HTTP endpoint; Vessel has no such endpoint, so both spellings suppress the
+stdio attachment. Parser regressions keep the flags out of non-start commands.
+The independent cd25ddd1c binary-parser extraction is on the clean node head
+for early integration, separate from these behavior changes. Its strict/help
+checks and the flags' merged-head checks are pending VM execution.
