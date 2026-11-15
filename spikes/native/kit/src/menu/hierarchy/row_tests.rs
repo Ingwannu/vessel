@@ -27,8 +27,7 @@ impl Render for Probe {
             .flex_col()
             .on_children_prepainted(move |bounds, _, _| *seen_row.borrow_mut() = bounds)
             .child(
-                row::enhanced(
-                    "source-row".into(),
+                row::frame(
                     0,
                     &item,
                     paint,
@@ -40,7 +39,8 @@ impl Render for Probe {
                         ..row::Content::default()
                     },
                 )
-                .on_children_prepainted(move |bounds, _, _| *seen_children.borrow_mut() = bounds),
+                .on_children_prepainted(move |bounds, _, _| *seen_children.borrow_mut() = bounds)
+                .id("source-row"),
             )
     }
 }

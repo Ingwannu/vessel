@@ -88,6 +88,17 @@ pub(super) fn enhanced(
     surfaces: &popup::Surfaces,
     content: Content,
 ) -> gpui::Stateful<gpui::Div> {
+    frame(index, item, paint, narrow, surfaces, content).id(id)
+}
+
+pub(super) fn frame(
+    index: usize,
+    item: &MenuItem,
+    paint: super::item::Paint,
+    narrow: bool,
+    surfaces: &popup::Surfaces,
+    content: Content,
+) -> gpui::Div {
     let leading_content = if matches!(item.status, super::ItemStatus::Idle) {
         content
             .leading
@@ -126,7 +137,6 @@ pub(super) fn enhanced(
         Check::None | Check::Leading(_) | Check::Trailing(false) => None,
     });
     div()
-        .id(id)
         .flex()
         .items_center()
         .gap(px(spacing::S2))

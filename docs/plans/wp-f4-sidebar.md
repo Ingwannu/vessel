@@ -732,3 +732,18 @@ sidebar frame; width/share now comes from the single view::panels::sidebar_layou
 decision. Keep Panel::asked, width, drag/save/handle and the public pure
 Limits::width_leaving unchanged. No lint exemption or second budget decision.
 This is source inspection, not evidence from the still-queued033 strict run.
+
+Ordinary strict033 completed RED: shell2-narrow-20261115T134605Z-033aad21,
+native-fonts0/native-cargo101; Kit blocked App. Correct the row measurement
+fixture by using the same private Div frame before assigning its stateful id;
+GPUI's child-prepaint observer belongs to Div, not Stateful<Div>. The production
+row still renders once through this frame. Borrow callout header/action-row ids
+and move its owned dismiss callback instead of cloning then discarding the
+wrapper. No geometry, callback policy or public API change.
+
+The remaining Glyph::path102-line diagnostic needs the separately authorized
+one-inventory refactor. Coordinator approved a lead-first isolated95 inventory
+and exact old snapshot, then the same producer plus the five F4-only glyphs and
+the pre-change100 snapshot in this union. No exemption, fallback, glyph
+promotion or vector/path/order change; source approval of that registry refactor
+is separate from the still-incomplete F4 package.

@@ -156,7 +156,7 @@ pub fn sidebar_callout<V: 'static>(
     let id = id.into();
     let mut body = div().flex().flex_col().gap(px(spacing::S2));
     if let Some(header) = header(
-        id.clone(),
+        &id,
         content.title,
         content.icon,
         content.dismiss,
@@ -168,7 +168,7 @@ pub fn sidebar_callout<V: 'static>(
     if let Some(description) = description(content.description, tokens) {
         body = body.child(description);
     }
-    if let Some(actions) = action_row(id, content.actions, tokens, cx) {
+    if let Some(actions) = action_row(&id, content.actions, tokens, cx) {
         body = body.child(actions);
     }
     div()
@@ -184,7 +184,7 @@ pub fn sidebar_callout<V: 'static>(
         .child(body)
 }
 fn header<V: 'static>(
-    id: SharedString,
+    id: &SharedString,
     title: Option<SharedString>,
     icon: Option<AnyElement>,
     dismiss: Option<Dismiss<V>>,
@@ -238,7 +238,7 @@ fn header<V: 'static>(
     Some(top)
 }
 fn action_row<V: 'static>(
-    id: SharedString,
+    id: &SharedString,
     actions: Actions<V>,
     tokens: &Tokens,
     cx: &mut Context<'_, V>,
@@ -299,7 +299,7 @@ fn dismiss_button<V: 'static>(
     tokens: &Tokens,
     cx: &mut Context<'_, V>,
 ) -> Div {
-    let press = Rc::clone(&dismiss.press);
+    let press = dismiss.press;
     let group = id.clone();
     let icon = glyph(Glyph::Close, DISMISS_SIZE, tokens.neutral.foreground_muted)
         .group_hover(group.clone(), |style| {
