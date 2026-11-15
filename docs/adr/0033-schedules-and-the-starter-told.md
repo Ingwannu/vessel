@@ -349,7 +349,7 @@ contains these typed fields:
 | target | Exact `{ NodeId, SessionId }`; a route name is never target identity or durable authority. |
 | ownership | Descendant ownership for prompt follow-up, or exact creation-parent ownership for creation callbacks; rechecked against authoritative parentage, including detach. |
 | grant ceiling | Captured Read/Operate scopes only, intersected with the current authenticated parent grant at every effect. No credential, route token or provider secret is saved. |
-| binding | Original W23 submission identity and fingerprint, then the actor's authoritative queued-entry/actual-turn binding. A remote binding also retains its exact destination and origin. |
+| binding | Original bounded canonical W23 request, authenticated creator identity and fingerprint, then the actor's authoritative queued-entry/actual-turn binding. A remote binding also retains its exact destination and origin. |
 | phase | PendingDispatch, Active, CapturedNotice or Acknowledged, with retained uncertain observations distinct from confirmed refusal/admission. |
 | checkpoint | Authoritative source record/request identity and immutable captured notice payload, not a scan heuristic or next-turn guess. |
 
@@ -369,11 +369,40 @@ the existing bounded prompt type and `REPLY_TAIL` (1500 characters), with a
 separately checked aggregate encoded-byte bound beside its storage owner.
 Durable rate accounting must not reset the hourly allowance on restart.
 
-Acknowledged tombstones use the same finite retention/admission owner as W23's
-receipts. No unresolved receipt or intent is silently evicted to make room;
-full capacity refuses new work. The implementation must define named retention
-and aggregate-byte limits before storage is enabled. It must not invent a
-schema number: the integrator assigns migration/protocol numbers at wiring.
+The proposed canonical reservation definitions belong beside W23's existing
+`timeline/admission.rs` limits, not in a second accounting store:
+
+| Named definition | Proposed value / charge |
+| --- | --- |
+| `MAX_NOTICE_KEY_BYTES` | 512 encoded UTF-8 bytes, checked before persistence. The actual key contains only fixed-size UUIDs, an EventSeq and closed enum tags. |
+| `MAX_NOTICE_PAYLOAD_BYTES` | 16 KiB of canonical encoded captured payload, including its fixed text and randomized fence. Reject excess before capture/admission, never truncate an id or synthesize a source. |
+| `MAX_NOTICE_STATE_BYTES` | 32 KiB for the complete key, source, payload, fingerprint, lifetime/provenance metadata and largest accepted/refused/uncertain/tombstone result. |
+| `MAX_FINISH_INTENT_STATE_BYTES` | 128 KiB for the original canonical request (subject to W23's existing 64 KiB validation), parent/target/grant/binding and every non-payload intent field. The stored input permits exact read-only recovery without reconstructing pruned content. |
+| `MAX_FINISH_CHECKPOINTS` | `NEEDS_YOU_MAX + 1`, using checked arithmetic: all allowed needs-you checkpoints plus one terminal/unavailable checkpoint. |
+
+Before any intent storage or original prompt effect, the same writer transaction
+reserves the full intent envelope plus `MAX_FINISH_CHECKPOINTS` complete notice
+envelopes, each with `ADMISSION_ROW_CHARGE_BYTES`. It charges one intent record
+and that many checkpoint record slots against the existing
+`MAX_SESSION_ADMISSIONS`/`MAX_NODE_ADMISSIONS` and corresponding byte limits.
+Unused slots are reserved, not invented checkpoint keys; later capture binds a
+slot to one exact key. All captured payload/receipt growth must fit those
+already charged envelopes before any queue/event effect. Overflow refuses with
+typed Capacity and leaves the original work unadmitted. Existing-key replay or
+observation still works when fresh admission is full. Shared accounting may
+refuse below the separate 32/256 active watcher maxima; those are ceilings,
+not guarantees of free durable capacity.
+
+Acknowledgement, uncertainty, replacement and log pruning never release these
+retained reservations. Settled state becomes a compact replay tombstone within
+its original charge. Only the same authorized whole-parent-session deletion or
+retention that releases W23 receipts may cascade its intent/checkpoint rows and
+accounting atomically. No new TTL or unbounded retention choice is introduced.
+On startup verify the worst-case encoded envelope and derived accounting before
+admission; inconsistent rows refuse rather than reset/drop replay protection.
+SQLite page/WAL overhead and the ordinary queue's existing content limits remain
+separate; these charges bound logical retained admission state. The integrator
+assigns migration/protocol numbers at wiring, not this proposal.
 
 ### Exact private notice key and W23 admission boundary
 
@@ -396,7 +425,10 @@ sequences belong to the intent's exact target and authoritative actual turn;
 `ObservationUnavailable` is a singleton for that intent. It is an explicit
 unknown outcome, never a fabricated terminal sequence or a claim of finish.
 The first captured payload, reason and randomized output fence are persisted
-before admission; retries use that same payload/fingerprint and key.
+within the reserved slot before admission; retries use that same payload/
+fingerprint and key. A pruned current snapshot with no original source EventSeq
+cannot mint a NeedsYou checkpoint: use an already retained exact checkpoint or
+an explicitly uncertain/unavailable outcome. No synthetic sequence is allowed.
 
 This is a **trusted internal namespace in W23's existing receipt/store owner**.
 Public `SubmitPrompt` must neither accept nor select it. It must not reuse the
@@ -412,12 +444,21 @@ Current `Started`/`Steered` are unit variants and interrupted disposition names
 only the interrupted turn. Echoed client ids in history cannot recover this
 binding after pruning. No history scan, tool-name branch or next-event guess
 substitutes for it. Likewise, `SubmitPrompt` is read-or-admit: observing a
-missing result must remain Unobserved, never authorize resend. A read-only
-same-fingerprint/creator observation, if needed, belongs to W23 and requires
-its separate coordinator ruling; this amendment silently adds no node RPC.
+missing result must remain Unobserved, never authorize resend. The coordinator separately approved W23's one staged read-only
+`ObservePromptReceipt { request: SubmitPrompt }` under `TIMELINE_PARITY=None`.
+Its complete original request and authenticated Creator must match. The reply
+is Unobserved, OutcomeUnknown, KeyConflict, Refused or Accepted with the
+immutable original receipt and separate binding. That binding is Unobserved,
+Queued, Turn, Withdrawn or Command; none authorizes resending. This amendment
+adds no further node RPC and does not consume that unreviewed implementation.
 
-Internal admission must durably return or replay the **same canonical parent
-EventSeq** for the same NoticeKey and fingerprint. It must record queue/event,
+Internal admission must durably return or replay **both the same canonical
+parent notice EventSeq and the exact accepted QueueEntryId** for the same
+NoticeKey and fingerprint. Subsequent queue-to-turn binding is separate metadata
+and cannot rewrite that immutable acceptance. The same key with a different
+fingerprint returns typed KeyConflict without overwrite or effects. Fresh
+reservation exhaustion returns typed Capacity/no-admission, never a retained
+Accepted or an instruction to resend. It must record queue/event,
 receipt outcome and internal provenance atomically, or provide an equivalent
 recoverable transaction in the same owner. The result must distinguish
 Accepted, Refused, Unobserved and OutcomeUnknown; no timeout is confirmed

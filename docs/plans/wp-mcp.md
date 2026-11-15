@@ -585,3 +585,13 @@ SubmitPrompt cannot select it and Unobserved cannot license resend. W10's
 canonical notification body remains unchanged. No persistence, schema number,
 RPC or duplicate watcher is implemented. W23 alignment and V3 contract review
 precede implementation; row 618 remains pending those dependencies.
+
+
+W23 alignment adds explicit same-key fingerprint conflict/Capacity semantics,
+immutable accepted notice EventSeq plus QueueEntryId, and no synthetic source
+sequence for a pruned pending snapshot. The proposed private intent reserves
+its entire original-request envelope and every bounded notice envelope/record
+slot before storage or dispatch, through the existing W23 admission accounting.
+Acknowledged/uncertain tombstones retain that charge until authorized whole
+parent-session removal; there is no new eviction/TTL. The separately approved
+ObservePromptReceipt remains W23-owned under its existing None gate.
