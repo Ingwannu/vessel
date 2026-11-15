@@ -1,6 +1,6 @@
 //! One visible project's state. Keys survive screen reopen; no write is retried.
 use super::{PreviewHost, PreviewProblem, PreviewUrl, latest_run};
-use crate::machine_book::Name;
+use crate::connection::ConnectionContext;
 use crate::workspace::command_changes::Listed;
 use crate::workspace::git::{Reading, RequestKey, RequestKeys};
 use crate::workspace::problem::Problem;
@@ -11,10 +11,18 @@ use vessel_proto::{ProjectId, TerminalId};
 /// A displayed project's identity, never just a mutable selection index.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Target {
-    /// Validated node-book name.
-    pub machine: Name,
+    /// Exact authenticated alias, node and admission captured by the screen.
+    pub context: ConnectionContext,
     /// Project whose folder runs these commands.
     pub project: ProjectId,
+}
+
+impl Target {
+    /// Original alias; it never resolves a replacement admission.
+    #[must_use]
+    pub fn machine(&self) -> &str {
+        self.context.machine().as_str()
+    }
 }
 
 /// Facts read independently; an unavailable port scanner does not hide scripts.

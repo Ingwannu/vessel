@@ -222,3 +222,30 @@ App compilation follows the shared B0 line. The temporary own node runtime merge
 was reverted; the complete node implementation remains in its separate tree. A
 values-only carrier441f71013 is under V3 review and cannot be consumed before source
 pass and integrator adoption. The app's crate tree equals B0's approved root.
+
+## Shared connection admission for scripts
+
+[Decision Log]
+- Purpose: captured Run/Restart/Stop and system-browser actions must retain the
+  exact authenticated node admission even if a saved alias reconnects.
+- Existing assets: base6 supplies Machine.connection_context and the actor-owned
+  SelectedConnection before-poll/after-result fence. A raw NodeClient selected by
+  alias cannot prove that it is the admission the user saw.
+- Alternatives: per-area epochs or another node-id cache would duplicate G4's
+  authority. Neither is introduced.
+- Choice: Target carries the shared immutable ConnectionContext; settings keeps
+  a separate navigation-only project selection. The actor admits the exact
+  alias/context and each typed RPC uses SelectedConnection. Controls capture
+  their Target, recheck the current fleet admission at dispatch/open, and stale
+  receipts cannot hydrate a replacement admission.
+- Effects: background reads may rebind only after the new shared snapshot;
+  mutations never replay. A disconnected/legacy snapshot has no operation
+  authority. Script discovery itself supplies fresh project commands after a
+  write, avoiding a duplicate unscoped ProjectAsk read. Peer failures retain
+  structured codes without forwarding raw peer diagnostic strings.
+
+Regressions use the existing in-memory framed peer and actor admission factory.
+They exercise retirement after capture before first poll (zero script frames),
+all existing lifecycle IDs/refusals, and same-node reconnect rejecting an old
+read receipt. These checks do not establish canonical WorkspaceId service
+authority, which remains the separate node runtime dependency.

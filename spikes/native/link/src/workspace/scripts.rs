@@ -1,12 +1,12 @@
 //! Existing protocol-11 calls for the native project script surface.
 //! No local shell or automatic write retry lives in the client. Every call
 //! has a deadline; a timed-out write is uncertain and requires a fresh read.
-use super::calls::call;
+use crate::connections::{RequestFailure, SelectedConnection};
 use std::time::Duration;
 use vessel_app_view::workspace::git::RequestKey;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::scripts::{Action, Snapshot, Target};
-use vessel_client::{NodeClient, Unary};
+use vessel_client::{CallError, Unary};
 use vessel_proto::ports::ListPorts;
 use vessel_proto::scripts::{ListScripts, RestartScript, RunScript, ScriptPlace, ScriptRunOutcome};
 use vessel_proto::terminals::KillTerminal;
@@ -56,7 +56,7 @@ pub enum ScriptAnswer {
 /// Bound a hung peer without repeating a possibly-applied mutation.
 const CALL_DEADLINE: Duration = Duration::from_secs(15);
 
-pub(super) async fn run(client: &NodeClient, ask: ScriptAsk) -> ScriptAnswer {
+pub(super) async fn run(client: &SelectedConnection, ask: ScriptAsk) -> ScriptAnswer {
     match ask {
         ScriptAsk::Read { target, key } => {
             let (scripts, ports) = tokio::join!(
@@ -113,13 +113,42 @@ pub(super) async fn run(client: &NodeClient, ask: ScriptAsk) -> ScriptAnswer {
     }
 }
 
-async fn bounded<R: Unary>(client: &NodeClient, request: R) -> Result<R::Response, Problem> {
-    match tokio::time::timeout(CALL_DEADLINE, call(client, request)).await {
-        Ok(result) => result,
+async fn bounded<R: Unary>(
+    client: &SelectedConnection,
+    request: R,
+) -> Result<R::Response, Problem> {
+    match tokio::time::timeout(CALL_DEADLINE, client.call(request)).await {
+        Ok(result) => result.map_err(problem),
         Err(_deadline) => Err(Problem::Node {
             code: vessel_proto::ErrorCode::Unavailable,
             message: String::new(),
         }),
+    }
+}
+
+fn problem(failure: RequestFailure) -> Problem {
+    match failure {
+        RequestFailure::Refused(_) => Problem::Gone(String::new()),
+        RequestFailure::Call(CallError::Remote(error)) => Problem::Node {
+            code: error.code,
+            message: String::new(),
+        },
+        RequestFailure::Call(
+            CallError::NotInProtocol { .. } | CallError::UnassignedProtocol { .. },
+        ) => Problem::Older,
+        RequestFailure::Call(
+            CallError::Disconnected
+            | CallError::UnexpectedReply(_)
+            | CallError::RequestIdsExhausted,
+        ) => Problem::Gone(String::new()),
+    }
+}
+
+impl ScriptAsk {
+    pub(super) fn target(&self) -> &Target {
+        match self {
+            Self::Read { target, .. } | Self::Write { target, .. } => target,
+        }
     }
 }
 

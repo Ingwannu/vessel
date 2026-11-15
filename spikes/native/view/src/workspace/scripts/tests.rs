@@ -1,6 +1,6 @@
 //! Rules exercised without UI, a real node or a real agent.
 use super::*;
-use crate::machine_book::Name;
+use crate::connection::{ConnectionEpochs, MachineKey};
 use chrono::{TimeZone as _, Utc};
 use vessel_proto::ports::{ListeningPort, PortList, PortOwner, PortScan};
 use vessel_proto::scripts::{ScriptEntry, ScriptKind, ScriptList};
@@ -10,7 +10,12 @@ use vessel_proto::{ProjectId, SessionId, TerminalId};
 
 fn target() -> Target {
     Target {
-        machine: Name::parse("laptop").unwrap(),
+        context: ConnectionEpochs::default()
+            .admit(
+                MachineKey::from_book("laptop"),
+                vessel_proto::NodeId::random(),
+            )
+            .unwrap(),
         project: ProjectId::random(),
     }
 }
@@ -143,7 +148,7 @@ fn retained_rows_survive_reconciliation_without_authorizing_actions_or_other_own
     assert!(model.accept_read(&target, fresh, Ok(snapshot(&target))));
     assert!(model.permits(&action));
     model.select(Some(Target {
-        machine: target.machine,
+        context: target.context,
         project: ProjectId::random(),
     }));
     assert!(model.shown().is_none());
@@ -353,4 +358,26 @@ fn a_service_restart_cannot_reuse_an_old_preview_callback_even_with_the_same_id_
         model.preview_url(&now, "localhost"),
         Err(PreviewProblem::Stale)
     );
+}
+
+#[test]
+fn reconnecting_the_same_node_never_accepts_a_previous_admission_reply() {
+    let mut epochs = ConnectionEpochs::default();
+    let node = vessel_proto::NodeId::random();
+    let old = Target {
+        context: epochs.admit(MachineKey::from_book("laptop"), node).unwrap(),
+        project: ProjectId::random(),
+    };
+    let mut model = Model::default();
+    model.select(Some(old.clone()));
+    let old_key = model.begin_read().unwrap();
+    let fresh = Target {
+        context: epochs.admit(MachineKey::from_book("laptop"), node).unwrap(),
+        project: old.project,
+    };
+    model.select(Some(fresh.clone()));
+    let fresh_key = model.begin_read().unwrap();
+    assert!(!model.accept_read(&old, old_key, Ok(snapshot(&old))));
+    assert!(model.read.ready().is_none());
+    assert!(model.accept_read(&fresh, fresh_key, Ok(snapshot(&fresh))));
 }

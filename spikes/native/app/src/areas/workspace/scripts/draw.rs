@@ -28,10 +28,10 @@ pub(in crate::areas::workspace) fn render(
     let words = shell.words.scripts();
     let scripts = &shell.areas.workspace.scripts;
     let model = &scripts.model;
-    if !model
-        .target
+    if !scripts
+        .selection
         .as_ref()
-        .is_some_and(|target| target.machine.as_str() == machine && target.project == project)
+        .is_some_and(|(selected, id)| selected.as_str() == machine && *id == project)
     {
         return div();
     }
@@ -49,10 +49,15 @@ pub(in crate::areas::workspace) fn render(
     )
     .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET));
     if !busy {
-        refresh =
-            refresh.on_click(cx.listener(|shell, _event, _window, cx| shell.refresh_scripts(cx)));
+        let expected = model.target.clone();
+        refresh = refresh.on_click(
+            cx.listener(move |shell, _event, _window, cx| shell.refresh_scripts(&expected, cx)),
+        );
     }
     let mut body = div().flex().flex_col().gap(px(spacing::S3));
+    if model.target.is_none() {
+        body = body.child(ports::notice(words.read_failed(), tokens));
+    }
     if let Some(issue) = &model.issue {
         body = body.child(ports::notice(words::issue(shell.words, issue), tokens));
     }
@@ -273,7 +278,11 @@ fn action(
     tokens: &Tokens,
     cx: &Context<'_, Shell>,
 ) -> Div {
-    let enabled = shell.areas.workspace.scripts.model.permits(&action);
+    let target = shell.areas.workspace.scripts.model.target.clone();
+    let enabled = target
+        .as_ref()
+        .is_some_and(|target| shell.scripts_target_is_current(target))
+        && shell.areas.workspace.scripts.model.permits(&action);
     let control = button_with_kind(
         ElementId::Name(id.into()),
         label.to_owned(),
@@ -287,9 +296,11 @@ fn action(
     )
     .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET));
     div().child(if enabled {
-        control.on_click(
-            cx.listener(move |shell, _event, _window, cx| shell.script_action(action.clone(), cx)),
-        )
+        control.on_click(cx.listener(move |shell, _event, _window, cx| {
+            if let Some(target) = &target {
+                shell.script_action(target, action.clone(), cx);
+            }
+        }))
     } else {
         control
     })

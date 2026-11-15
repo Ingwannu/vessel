@@ -77,10 +77,17 @@ pub(super) fn for_run(
             continue;
         };
         let preview_request = Preview::observed(run, port.clone());
-        let destination = model.preview_url(
-            &preview_request,
-            &shell.areas.workspace.scripts.host.text(cx),
-        );
+        let target = model.target.clone();
+        let destination = target
+            .as_ref()
+            .filter(|target| shell.scripts_target_is_current(target))
+            .ok_or(vessel_app_view::workspace::scripts::PreviewProblem::Stale)
+            .and_then(|_| {
+                model.preview_url(
+                    &preview_request,
+                    &shell.areas.workspace.scripts.host.text(cx),
+                )
+            });
         let mut preview = button_with_kind(
             ElementId::Name(format!("script-preview-{}-{index}", port.port).into()),
             words.preview(),
@@ -95,7 +102,9 @@ pub(super) fn for_run(
         .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET));
         if destination.is_ok() {
             preview = preview.on_click(cx.listener(move |shell, _event, _window, cx| {
-                shell.script_preview(&preview_request, cx);
+                if let Some(target) = &target {
+                    shell.script_preview(target, &preview_request, cx);
+                }
             }));
         }
         match destination {

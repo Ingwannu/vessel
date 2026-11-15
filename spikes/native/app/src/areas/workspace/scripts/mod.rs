@@ -9,18 +9,19 @@ use vessel_app_kit::{
     TextField,
     ui::{Context, Window},
 };
-use vessel_app_link::workspace::{Ask, ProjectAsk, ScriptAnswer, ScriptAsk};
+use vessel_app_link::workspace::{Ask, ScriptAnswer, ScriptAsk};
 use vessel_app_view::machine_book::Name;
 use vessel_app_view::settings::Section;
 use vessel_app_view::workspace::scripts::{Action, Issue, Model, Preview, REFRESH_EVERY, Target};
 use vessel_proto::ProjectId;
-use vessel_proto::workspace::GetProjectCommands;
 
 /// Controls survive a detail refresh, while model keys survive every reopen.
 pub(super) struct Scripts {
     pub(super) model: Model,
     pub(super) host: TextField,
     polling: bool,
+    // Navigation intent only. This pair grants no RPC admission.
+    selection: Option<(Name, ProjectId)>,
 }
 impl Scripts {
     pub(super) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
@@ -33,6 +34,7 @@ impl Scripts {
                 cx,
             ),
             polling: false,
+            selection: None,
         }
     }
 }
@@ -53,11 +55,8 @@ impl Shell {
             window,
             cx,
         );
-        self.areas
-            .workspace
-            .scripts
-            .model
-            .select(Some(Target { machine, project }));
+        self.areas.workspace.scripts.selection = Some((machine, project));
+        self.areas.workspace.scripts.model.select(None);
         self.read_scripts();
         if !self.areas.workspace.scripts.polling {
             self.areas.workspace.scripts.polling = true;
@@ -65,23 +64,50 @@ impl Shell {
         }
     }
     fn scripts_visible(&self) -> bool {
-        let model = &self.areas.workspace.scripts.model;
         self.route == Route::Settings
             && self.areas.settings.pushed
             && self.areas.settings.section == Section::Projects
-            && model.target.as_ref().is_some_and(|target| {
-                self.projects_machine().as_deref() == Some(target.machine.as_str())
-                    && self
-                        .areas
-                        .workspace
-                        .page
-                        .detail
-                        .as_ref()
-                        .is_some_and(|detail| detail.project == target.project)
-            })
+            && self
+                .areas
+                .workspace
+                .scripts
+                .selection
+                .as_ref()
+                .is_some_and(|(machine, project)| {
+                    self.projects_machine().as_deref() == Some(machine.as_str())
+                        && self
+                            .areas
+                            .workspace
+                            .page
+                            .detail
+                            .as_ref()
+                            .is_some_and(|detail| detail.project == *project)
+                })
+    }
+    fn selected_scripts_target(&self) -> Option<Target> {
+        let (machine, project) = self.areas.workspace.scripts.selection.as_ref()?;
+        let context = self
+            .fleet
+            .machines
+            .iter()
+            .find(|snapshot| snapshot.name == machine.as_str())?
+            .connection_context()?;
+        Some(Target {
+            context,
+            project: *project,
+        })
+    }
+    fn scripts_target_is_current(&self, expected: &Target) -> bool {
+        self.scripts_visible()
+            && self.selected_scripts_target().as_ref() == Some(expected)
+            && self.areas.workspace.scripts.model.target.as_ref() == Some(expected)
     }
     fn read_scripts(&mut self) {
+        let current = self.selected_scripts_target();
         let model = &mut self.areas.workspace.scripts.model;
+        if model.target != current {
+            model.select(current);
+        }
         let Some(target) = model.target.clone() else {
             return;
         };
@@ -89,7 +115,7 @@ impl Shell {
             return;
         };
         self.ask(
-            target.machine.as_str(),
+            target.machine(),
             Ask::Scripts(ScriptAsk::Read {
                 target: target.clone(),
                 key,
@@ -115,7 +141,13 @@ impl Shell {
         .detach();
     }
     pub(super) fn scripts_answer(&mut self, answer: ScriptAnswer, cx: &mut Context<'_, Self>) {
-        let (accepted, written, target) = match answer {
+        let returned = match &answer {
+            ScriptAnswer::Read { target, .. } | ScriptAnswer::Written { target, .. } => target,
+        };
+        if !self.scripts_target_is_current(returned) {
+            return;
+        }
+        let (accepted, written) = match answer {
             ScriptAnswer::Read {
                 target,
                 key,
@@ -135,14 +167,9 @@ impl Shell {
                     && self.scripts_visible()
                     && let Some(commands) = commands
                 {
-                    self.project_commands(
-                        target.machine.as_str(),
-                        target.project,
-                        None,
-                        Ok(commands),
-                    );
+                    self.project_commands(target.machine(), target.project, None, Ok(commands));
                 }
-                (accepted, false, target)
+                (accepted, false)
             }
             ScriptAnswer::Written {
                 target,
@@ -155,18 +182,11 @@ impl Shell {
                     .scripts
                     .model
                     .accept_write(&target, key, result);
-                (accepted, true, target)
+                (accepted, true)
             }
         };
         if accepted {
             if written {
-                self.ask(
-                    target.machine.as_str(),
-                    Ask::Project(ProjectAsk::Commands(GetProjectCommands {
-                        project: target.project,
-                        base: None,
-                    })),
-                );
                 if self.scripts_visible() {
                     self.read_scripts();
                 }
@@ -174,8 +194,13 @@ impl Shell {
             cx.notify();
         }
     }
-    pub(super) fn script_action(&mut self, action: Action, cx: &mut Context<'_, Self>) {
-        if !self.scripts_visible() {
+    pub(super) fn script_action(
+        &mut self,
+        expected: &Target,
+        action: Action,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if !self.scripts_target_is_current(expected) {
             tracing::debug!("script action ignored after its view changed");
             return;
         }
@@ -189,7 +214,7 @@ impl Shell {
         };
         tracing::debug!("script lifecycle request dispatched");
         self.ask(
-            target.machine.as_str(),
+            target.machine(),
             Ask::Scripts(ScriptAsk::Write {
                 target: target.clone(),
                 key,
@@ -198,8 +223,13 @@ impl Shell {
         );
         cx.notify();
     }
-    pub(super) fn script_preview(&mut self, preview: &Preview, cx: &mut Context<'_, Self>) {
-        if !self.scripts_visible() {
+    pub(super) fn script_preview(
+        &mut self,
+        expected: &Target,
+        preview: &Preview,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if !self.scripts_target_is_current(expected) {
             return;
         }
         let scripts = &mut self.areas.workspace.scripts;
@@ -216,8 +246,12 @@ impl Shell {
         }
         cx.notify();
     }
-    pub(super) fn refresh_scripts(&mut self, cx: &mut Context<'_, Self>) {
-        if self.scripts_visible() {
+    pub(super) fn refresh_scripts(
+        &mut self,
+        expected: &Option<Target>,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if self.scripts_visible() && &self.areas.workspace.scripts.model.target == expected {
             self.read_scripts();
             cx.notify();
         }
