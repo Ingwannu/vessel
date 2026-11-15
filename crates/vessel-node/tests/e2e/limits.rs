@@ -30,6 +30,14 @@ fn setup(fixture: &Fixture) -> LimitProbe {
         retry_after: None,
     }
 }
+/// A node with `probe` that can pair a read-only viewer: a node refuses
+/// an invitation it has no route for (N3's row 4), so it advertises the
+/// head's placeholder route; the viewer dials its real address.
+fn pairable(config: &mut vessel_node::Config, probe: LimitProbe) {
+    config.limits = probe;
+    crate::secure::advertise_placeholder_route(config);
+}
+
 fn remote<T: std::fmt::Debug>(result: Result<T, CallError>) -> ErrorCode {
     match result {
         Err(CallError::Remote(error)) => error.code,
@@ -42,12 +50,7 @@ async fn limits_are_opt_in_private_readable_and_forgettable_on_a_real_node() {
         let fixture = Fixture::new();
         let probe = setup(&fixture);
         let node = fixture
-            .start_with(|config| {
-                config.limits = probe.clone();
-                // It pairs a read-only viewer: a node refuses an
-                // invitation it has no route for (N3's row 4).
-                crate::secure::advertise_placeholder_route(config);
-            })
+            .start_with(|config| pairable(config, probe.clone()))
             .await;
         let owner = fixture.connect(&node).await;
         assert_eq!(
