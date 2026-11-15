@@ -5,8 +5,6 @@
 //! An item that does not fit Vessel's types (a command name with white
 //! space, a cost in a unit that is not one word) is left out with a trace,
 //! never passed on unchecked: the rest of the report still counts.
-//! ACP metadata is decoded here, at its JSON edge. Only the namespaced
-//! `vessel.commandKind` extension controls kind; other keys remain opaque.
 
 use agent_client_protocol::v1::schema as acp;
 use vessel_proto::TokenCount;
@@ -49,17 +47,10 @@ fn command(command: acp::AvailableCommand) -> Option<AgentCommand> {
         }
         Some(_) | None => None,
     };
-    let kind = command.meta.as_ref().and_then(|meta| {
-        meta.get("vessel.commandKind").map(|value| {
-            serde_json::from_value(value.clone())
-                .unwrap_or(vessel_proto::composer_commands::CommandKind::Unknown)
-        })
-    });
     Some(AgentCommand {
         name,
         description: cut(command.description, AgentCommand::MAX_DESCRIPTION),
         hint: hint.filter(|hint| !hint.is_empty()),
-        kind,
     })
 }
 
@@ -144,40 +135,5 @@ mod tests {
         )
         .unwrap();
         assert_eq!(super::usage(odd).cost, None);
-    }
-}
-
-#[cfg(test)]
-mod command_kind_tests {
-    use super::*;
-    use vessel_proto::composer_commands::CommandKind;
-
-    #[test]
-    fn metadata_kind_is_explicit_and_unknown_metadata_cannot_enable_inline_skills() {
-        let update: acp::AvailableCommandsUpdate = serde_json::from_str(
-            r#"{
-            "availableCommands":[
-              {"name":"skill-one","description":"one","_meta":{"vessel.commandKind":"skill"}},
-              {"name":"root","description":"two","_meta":{"vessel.commandKind":"command"}},
-              {"name":"future","description":"three","_meta":{"vessel.commandKind":"later"}},
-              {"name":"malformed","description":"four","_meta":{"vessel.commandKind":42}},
-              {"name":"unmarked-skill","description":"five","_meta":{"kind":"skill"}}
-            ]}"#,
-        )
-        .unwrap();
-        let commands = commands(update);
-        assert_eq!(
-            commands
-                .iter()
-                .map(|command| command.kind)
-                .collect::<Vec<_>>(),
-            [
-                Some(CommandKind::Skill),
-                Some(CommandKind::Command),
-                Some(CommandKind::Unknown),
-                Some(CommandKind::Unknown),
-                None
-            ]
-        );
     }
 }

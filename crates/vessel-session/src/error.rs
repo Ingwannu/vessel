@@ -288,13 +288,10 @@ impl SessionError {
                 | AttachmentError::NotTaken { .. }
                 | AttachmentError::NotKept(_),
             ) => ErrorCode::InvalidRequest,
-            Self::Probe(vessel_agent::ProbeError::CatalogUnsupported { .. }) => ErrorCode::Unsupported,
-            Self::Probe(vessel_agent::ProbeError::CatalogTimedOut { .. }) => ErrorCode::Unavailable,
             Self::Spawn(_)
             | Self::StartAgent(_)
             | Self::McpFile(_)
-            | Self::Probe(vessel_agent::ProbeError::Spawn(_) | vessel_agent::ProbeError::Disconnected { .. }
-                | vessel_agent::ProbeError::TimedOut { .. })
+            | Self::Probe(_)
             | Self::History(
                 vessel_agent::HistoryError::Spawn(_)
                 | vessel_agent::HistoryError::Failed { .. }

@@ -26,6 +26,9 @@
 //!   the old registration when the new one proves the key); a refused
 //!   ticket is tried again as soon as a newer one arrives.
 
+mod diagnostics;
+pub use diagnostics::observation as diagnostic_observation;
+
 use std::sync::Arc;
 use std::time::Duration;
 

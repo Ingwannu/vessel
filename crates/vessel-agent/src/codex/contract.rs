@@ -88,10 +88,6 @@ const FIELDS: &[(&str, &[&str])] = &[
     ("Turn", &["id", "status", "error"]),
     ("TurnError", &["message"]),
     ("UserInput", &["type", "text", "name", "path"]),
-    ("SkillsListParams", &["cwds"]),
-    ("SkillsListResponse", &["data"]),
-    ("SkillsListEntry", &["skills"]),
-    ("SkillMetadata", &["name", "description", "path", "enabled"]),
     ("TurnStartedNotification", &["threadId", "turn"]),
     ("TurnCompletedNotification", &["threadId", "turn"]),
     ("ItemStartedNotification", &["threadId", "item"]),
@@ -241,7 +237,7 @@ const VALUES: &[(&str, &[&str])] = &[
             "webSearch",
         ],
     ),
-    ("UserInput", &["text", "mention", "skill"]),
+    ("UserInput", &["text", "mention"]),
 ];
 
 fn definitions(schema: &Value) -> &serde_json::Map<String, Value> {

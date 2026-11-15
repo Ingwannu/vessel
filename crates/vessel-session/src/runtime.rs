@@ -7,13 +7,14 @@
 //! handles and its lifetime.
 
 mod agent;
-pub use agent::ProbeChoices;
 mod claims;
 mod drivers;
 mod launch;
 mod parts;
 #[cfg(test)]
 mod private_dir;
+
+mod diagnostics;
 
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;

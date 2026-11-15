@@ -43,8 +43,6 @@ pub(crate) struct ProbeKey {
     pub(crate) harness: HarnessRef,
     /// `None` is the harness's default profile.
     pub(crate) profile: Option<ProfileName>,
-    /// The full draft configuration, hashed without retaining user option text.
-    pub(crate) draft: Option<crate::service::composer_commands::DraftConfigHash>,
 }
 
 /// The harness's `--version` line when it was probed; `None` when it did
@@ -57,10 +55,8 @@ pub(crate) type HarnessVersion = Option<String>;
 pub(crate) struct Probes {
     /// The working directory of every probe (`DataDir::probe_dir`).
     dir: PathBuf,
-    slots: Mutex<HashMap<ProbeKey, SlotHandle>>,
+    slots: Mutex<HashMap<ProbeKey, Arc<tokio::sync::Mutex<Slot>>>>,
 }
-
-type SlotHandle = Arc<tokio::sync::Mutex<Slot>>;
 
 /// One key's last probe.
 #[derive(Debug, Default)]
@@ -83,8 +79,6 @@ struct Probed {
 pub(crate) struct Answer {
     pub(crate) options: Result<HarnessOptions, WireError>,
     pub(crate) said: Said,
-    /// None means the provider has not reported commands, never an empty success.
-    pub(crate) commands: Option<Vec<vessel_proto::AgentCommand>>,
 }
 
 impl Probes {
@@ -109,32 +103,6 @@ impl Probes {
             .retain(|key, _slot| key.harness != *harness);
     }
 
-    fn slot(&self, key: ProbeKey) -> Result<SlotHandle, WireError> {
-        let mut slots = self.slots.lock().unwrap_or_else(PoisonError::into_inner);
-        if key.draft.is_some() {
-            let another = |other: &ProbeKey| {
-                other.harness == key.harness
-                    && other.profile == key.profile
-                    && other.draft.is_some()
-                    && other != &key
-            };
-            if slots
-                .iter()
-                .any(|(other, slot)| another(other) && Arc::strong_count(slot) > 1)
-            {
-                return Err(WireError::new(
-                    vessel_proto::ErrorCode::Unavailable,
-                    "another draft command probe for this provider/profile is active",
-                ));
-            }
-            // Keep only the latest draft configuration per provider/profile;
-            // concurrent identical callers share it, rather than growing a map
-            // for every keystroke or model/option change.
-            slots.retain(|other, _slot| !another(other));
-        }
-        Ok(Arc::clone(slots.entry(key).or_default()))
-    }
-
     /// `key`'s answer: a recent one for the same `version`, the answer of
     /// a probe that finished while this caller waited, or `probe`'s.
     pub(crate) async fn answer(
@@ -144,16 +112,13 @@ impl Probes {
         probe: impl AsyncFnOnce() -> Answer,
     ) -> Answer {
         let asked = Instant::now();
-        let slot = match self.slot(key) {
-            Ok(slot) => slot,
-            Err(error) => {
-                return Answer {
-                    options: Err(error),
-                    said: Err(crate::readiness::HandshakeFailure::Spawn),
-                    commands: None,
-                };
-            }
-        };
+        let slot = Arc::clone(
+            self.slots
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .entry(key)
+                .or_default(),
+        );
         // A `tokio` lock held across the probe on purpose: it is what makes
         // concurrent callers of one key share one probe (see the module's
         // Decision Log). Each key has its own, so other keys never wait.
@@ -201,7 +166,6 @@ mod tests {
         ProbeKey {
             harness: vessel_proto::HarnessKind::ClaudeCode.into(),
             profile: None,
-            draft: None,
         }
     }
 
@@ -216,7 +180,6 @@ mod tests {
     fn ok() -> Answer {
         Answer {
             options: Ok(answer()),
-            commands: None,
             said: Ok(vessel_agent::Introduction::default()),
         }
     }
@@ -260,7 +223,6 @@ mod tests {
             tokio::time::sleep(Duration::from_secs(3)).await;
             Answer {
                 options: Err(WireError::new(ErrorCode::SpawnFailed, "not signed in")),
-                commands: None,
                 said: Err(crate::readiness::HandshakeFailure::Exited),
             }
         };
@@ -272,70 +234,5 @@ mod tests {
         assert_eq!(started.load(Ordering::SeqCst), 1, "waiters share it");
         let _again = probes.answer(key(), None, failing).await;
         assert_eq!(started.load(Ordering::SeqCst), 2, "a later caller retries");
-    }
-    fn draft_key(model: &str) -> ProbeKey {
-        let config = vessel_proto::composer_commands::DraftCommandConfig {
-            harness: vessel_proto::HarnessKind::ClaudeCode.into(),
-            profile: None,
-            root: vessel_proto::workspace::WorkspaceRoot::Project {
-                project: "00000000-0000-4000-8000-000000000001".parse().unwrap(),
-            },
-            directory: None,
-            model: Some(vessel_proto::ModelId::new(model)),
-            options: Vec::new(),
-        };
-        ProbeKey {
-            draft: Some(crate::service::composer_commands::DraftConfigHash::of(&config).unwrap()),
-            ..key()
-        }
-    }
-
-    #[tokio::test]
-    async fn a_different_inflight_draft_is_refused_and_idle_configurations_replace_each_other() {
-        let probes = Arc::new(Probes::new(PathBuf::new()));
-        let (started, observing) = tokio::sync::oneshot::channel();
-        let (finish, finished) = tokio::sync::oneshot::channel();
-        let first = Arc::clone(&probes);
-        let pending = tokio::spawn(async move {
-            first
-                .answer(draft_key("first"), None, async || {
-                    started.send(()).unwrap();
-                    finished.await.unwrap();
-                    ok()
-                })
-                .await
-        });
-        observing.await.unwrap();
-        let different = probes
-            .answer(draft_key("second"), None, async || {
-                panic!("must not start another provider")
-            })
-            .await;
-        assert_eq!(different.options.unwrap_err().code, ErrorCode::Unavailable);
-        finish.send(()).unwrap();
-        assert!(pending.await.unwrap().options.is_ok());
-        assert!(
-            probes
-                .answer(draft_key("second"), None, async || ok())
-                .await
-                .options
-                .is_ok()
-        );
-        let slots = probes.slots.lock().unwrap();
-        assert_eq!(slots.len(), 1, "only the latest draft remains cached");
-        assert!(slots.contains_key(&draft_key("second")));
-    }
-
-    #[tokio::test]
-    async fn ordinary_option_probes_are_not_evicted_by_draft_changes() {
-        let probes = Probes::new(PathBuf::new());
-        let _ordinary = probes.answer(key(), None, async || ok()).await;
-        for model in ["first", "second", "third"] {
-            let _draft = probes.answer(draft_key(model), None, async || ok()).await;
-        }
-        let slots = probes.slots.lock().unwrap();
-        assert_eq!(slots.len(), 2);
-        assert!(slots.contains_key(&key()));
-        assert!(slots.contains_key(&draft_key("third")));
     }
 }

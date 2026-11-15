@@ -74,6 +74,12 @@ macro_rules! guarded {
     };
 }
 
+// Each guarded call runs boxed (`Box::pin`): one allocation per call. In
+// debug builds the per-call dispatch future, sized by the largest handler
+// once every handler gained the diagnostics wrapper, overflowed tokio's
+// 2 MiB worker stack beside batch 11's handlers (gate 49b, 2026-11-15).
+// Boxing keeps that future a pointer; raising stack sizes would hide it.
+//
 // A staged row (`(staged FEATURE)`: values without a runtime) gets nothing
 // here: the protocol's `Handler` answers it `Unsupported` by default, and
 // no `NodeService` method exists to forward to. The package that wires it
@@ -87,14 +93,21 @@ macro_rules! guarded_method {
             connection: &Connection,
             request: $request,
         ) -> Result<$response, WireError> {
-            connection
-                .principal()
-                .permit(<$request as Request>::METHOD)?;
-            if let Some(session) = Target::target(&request) {
-                self.0.check_owner(connection.principal(), session).await?;
-                self.0.refuse_older(connection, session).await?;
-            }
-            self.0.$handler(connection, request, self).await
+            let result = Box::pin(async {
+                connection
+                    .principal()
+                    .permit(<$request as Request>::METHOD)?;
+                if let Some(session) = Target::target(&request) {
+                    self.0.check_owner(connection.principal(), session).await?;
+                    self.0.refuse_older(connection, session).await?;
+                }
+                self.0.$handler(connection, request, self).await
+            })
+            .await;
+            self.0
+                .diagnostics
+                .completed(<$request as Request>::METHOD, &result);
+            result
         }
     };
     ($protocol:tt, $shape:ident, $handler:ident, $request:ty, $response:ty) => {
@@ -103,15 +116,25 @@ macro_rules! guarded_method {
             connection: &Connection,
             request: $request,
         ) -> Result<$response, WireError> {
-            connection
-                .principal()
-                .permit(<$request as Request>::METHOD)?;
-            crate::workspace::refuse_agents(connection.principal(), <$request as Request>::METHOD)?;
-            if let Some(session) = Target::target(&request) {
-                self.0.check_owner(connection.principal(), session).await?;
-                self.0.refuse_older(connection, session).await?;
-            }
-            self.0.$handler(connection, request).await
+            let result = Box::pin(async {
+                connection
+                    .principal()
+                    .permit(<$request as Request>::METHOD)?;
+                crate::workspace::refuse_agents(
+                    connection.principal(),
+                    <$request as Request>::METHOD,
+                )?;
+                if let Some(session) = Target::target(&request) {
+                    self.0.check_owner(connection.principal(), session).await?;
+                    self.0.refuse_older(connection, session).await?;
+                }
+                self.0.$handler(connection, request).await
+            })
+            .await;
+            self.0
+                .diagnostics
+                .completed(<$request as Request>::METHOD, &result);
+            result
         }
     };
 }
@@ -171,6 +194,7 @@ targets!(
     vessel_proto::conversation::ResumeSession,
     vessel_proto::conversation::MarkSession,
     vessel_proto::conversation::DeleteSession,
+    vessel_proto::subagents::DetachSession,
     vessel_proto::conversation::BeginUpload,
     // Protocol 11: opening, merging and the feedback switch act on a
     // session's branch and its conversation.
@@ -192,6 +216,7 @@ untargeted!(
     vessel_proto::inbox::ListInbox,
     vessel_proto::inbox::MarkInbox,
     vessel_proto::inbox::GetInboxEntry,
+    vessel_proto::diagnostics::GetDiagnostics,
     vessel_proto::push::GetPushKey,
     vessel_proto::push::SubscribePush,
     vessel_proto::push::UnsubscribePush,
@@ -206,7 +231,6 @@ untargeted!(
     // An agent's own history (ADR 0053): no session's, and refused to
     // agents (`workspace::policy`).
     vessel_proto::history::GetAgentHistory,
-    vessel_proto::composer_commands::GetDraftCommands,
     vessel_proto::automation::ListPrompts,
     vessel_proto::automation::CreatePrompt,
     vessel_proto::automation::UpdatePrompt,
@@ -282,6 +306,12 @@ untargeted!(
     vessel_proto::lsp::IncomingCalls,
     vessel_proto::lsp::OutgoingCalls,
     vessel_proto::lsp::Diagnostics,
+    vessel_proto::registry::ReleaseWorkspaceAutomation,
+    vessel_proto::registry::GetRegistry,
+    vessel_proto::registry::ListWorkspaces,
+    vessel_proto::registry::GetWorkspace,
+    vessel_proto::registry::RenameWorkspace,
+    vessel_proto::registry::PinWorkspace,
     vessel_proto::workspace::ListProjects,
     vessel_proto::workspace::GetProject,
     vessel_proto::workspace::AddProject,

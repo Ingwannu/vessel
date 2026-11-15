@@ -16,7 +16,6 @@ use super::{Descriptor, Home, Structured};
 use crate::layout::HarnessLayout;
 
 pub(super) const DESCRIPTOR: Descriptor = Descriptor {
-    command_kind: None,
     binary: "opencode",
     profile: "opencode",
     structured: Structured::Native { args: &["acp"] },

@@ -89,6 +89,32 @@ async fn turns(client: &NodeClient, session: SessionId) -> Vec<Vec<vessel_proto:
         })
         .collect()
 }
+/// Wait until `session`'s turn has ended (fake "plain" ends normally).
+/// Seeing its `TurnStarted` live is not enough: the publisher broadcasts a
+/// record before it moves the readable end past it, so only a later record
+/// guarantees that a read holds the turn's start (N5's note, as in V1's
+/// 9d3a30c6 review).
+async fn turn_ended(owner: &NodeClient, session: SessionId) {
+    // Imported here, not beside the module's: the test modules under it
+    // take the module's names (`use super::*`) and spell these out.
+    use crate::support::read_until;
+    use vessel_proto::{AgentEvent, EventRecord, SessionEvent};
+
+    let mut stream = owner.follow(session, EventSeq::ZERO).await.unwrap();
+    step(
+        "the turn's end",
+        read_until(&mut stream, &mut Vec::<EventRecord>::new(), |record| {
+            matches!(
+                &record.event,
+                SessionEvent::Agent {
+                    event: AgentEvent::TurnEnded { .. }
+                }
+            )
+        }),
+    )
+    .await;
+}
+
 async fn changed(job: &ComparisonJob, predicate: impl Fn(&Snapshot) -> bool) -> Arc<Snapshot> {
     let mut updates = job.updates();
     step("comparison checkpoint", async {

@@ -50,6 +50,10 @@ impl Shell {
             route: Route::Draft,
             brand: crate::brand::Brand::default(),
             areas: Areas::with_drafts(
+                areas::settings::PreparedGeneral::new(
+                    Translator::get(ENGLISH).unwrap(),
+                    &Prefs::default().kept,
+                ),
                 vessel_app_view::composer::drafts::Drafts::default(),
                 window,
                 cx,
