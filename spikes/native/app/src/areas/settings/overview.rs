@@ -17,11 +17,9 @@
 //! - Not shown, nothing behind them yet: Paseo's colour and sidebar-badge
 //!   rows (the app keeps no machine appearance), "Restart daemon" and
 //!   "Update daemon" (no such call; the node-control track brings them).
-//! - Stand-ins until the shared controls land: the pencil is a plain
-//!   glyph button here, not G2's `host_rename_button` (taken once it
-//!   passes review). The field is focused when the dialog opens but its
-//!   text is not selected (the kit's field has no select-all yet; it waits
-//!   on `kit/src/field.rs` being split).
+//! - The name action uses the kit's shared `host_rename_button` unchanged.
+//!   The editor remains here. Its text is focused but not selected on open;
+//!   select-all waits on the kit field module's split.
 //! - Difference: the badges are the kit's (the pills on `surface3`, where
 //!   Paseo's are bare outlines).
 
@@ -31,11 +29,12 @@ use vessel_app_kit::badge::{self, badge};
 use vessel_app_kit::dialog::DialogState;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, Div, FluentBuilder as _, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
-    TextField, Tokens, Type, TypeExt as _, dot, glyph, outline_button_with_glyph, settings,
+    ButtonState, TextField, Tokens, Type, TypeExt as _, dot, host_rename_button,
+    outline_button_with_glyph, settings,
 };
 use vessel_app_link::Command;
 use vessel_app_link::machines::{self, Answer};
@@ -48,10 +47,6 @@ use crate::shell::Shell;
 
 mod dialogs;
 pub(crate) use dialogs::dialogs;
-
-/// The pencil's hover corner: six points, between the kit's `R1` and
-/// `R2`; the kit has no radius of this size yet.
-const PENCIL_RADIUS: f32 = 6.0;
 
 /// The page's state.
 pub(crate) struct State {
@@ -289,16 +284,11 @@ fn name_row(
     let words = shell.t.lang.overview();
     let neutral = tokens.neutral;
     let pencil = Name::parse(&machine.name).ok().map(|name| {
-        div()
-            .id("settings-overview-rename")
-            .p(px(spacing::S1))
-            .rounded(px(PENCIL_RADIUS))
-            .cursor_pointer()
-            .hover(move |style| style.bg(neutral.surface2))
-            .child(glyph(Glyph::Pencil, 14.0, neutral.foreground_muted))
-            .on_click(cx.listener(move |shell, _event, window, cx| {
+        host_rename_button("settings-overview-rename", ButtonState::Enabled, tokens).on_click(
+            cx.listener(move |shell, _event, window, cx| {
                 shell.overview_open_rename(name.clone(), window, cx);
-            }))
+            }),
+        )
     });
     let value = div()
         .flex()

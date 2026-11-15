@@ -1007,3 +1007,9 @@ rename/removal dialogs and delegates actions to that parent. The browser
 demo's fixed agent and ACP-option catalog is `link/src/demo/catalog.rs`;
 `demo.rs` retains session state and event generation. These boundaries do
 not add another edit rule or another node implementation.
+
+`cargo run -p vessel-app-kit --example host_rename_audit` opens an isolated
+input audit of the shared rename action: ordinary, disabled, adjacent
+button and clipped-parent cases. Counters distinguish the action, its
+parent's mouse-down and the neighbour. It starts no node and adds no app
+route. The fixed grid is an audit fixture; the action itself is unchanged.

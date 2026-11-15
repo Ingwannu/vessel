@@ -600,9 +600,9 @@ original entry file budgets now measure link 988 and demo 523.
 [Decision Log]
 - Purpose: replace Overview's temporary pencil with the existing shared
   host rename action, preserving the editor and book-edit rules.
-- Reference: `screens/settings/host-appearance-section.tsx:31-71,319-321`
+- Reference: `screens/settings/host-appearance-section.tsx:31-71,310-318`
   uses the static Pencil action with eight points of hit slop; the name
-  row is at 276-284. `components/rename-modal.tsx` owns the editor.
+  row is at 279-288. `components/rename-modal.tsx` owns the editor.
 - Existing assets: the native line already contains `host_rename_button`
   and its token geometry (`d103ab39`); another area-owned action or a new
   dependency would duplicate it.
@@ -624,3 +624,11 @@ original entry file budgets now measure link 988 and demo 523.
   bounds separately from screenshots and reviewer approval.
 - Select-all remains waiting for the field module split; do not enlarge
   that file for this consumer change.
+
+The shared-action consumer and audit are now installed. The baseline
+Overview action's actual pointer hit measured 22 points on each axis. An
+initial probe used display coordinates and therefore sampled outside the
+centred window; it is invalid evidence. The corrected probe uses the
+window belonging to the capture process. Next: finish the narrow check,
+commit and run the native gate while collecting the new action's bounds
+and the isolated audit's results. No editor rule changed.
