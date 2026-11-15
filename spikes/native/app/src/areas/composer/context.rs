@@ -3,7 +3,7 @@
 //! does not mutate another panel's registry or fetch its URL during send.
 use crate::shell::Shell;
 use gpui::FocusHandle;
-use vessel_app_kit::attachment::{Body, PillHandlers, Standing, attachment_pill, attachment_tray};
+use vessel_app_kit::attachment::{Body, Standing, attachment_pill_scoped, attachment_tray};
 use vessel_app_kit::dialog::{DialogContent, DialogSize, DialogState, dialog};
 use vessel_app_kit::ui::{
     AnyElement, Context, IntoElement as _, ParentElement as _, SharedString, Styled as _, Window,
@@ -106,10 +106,10 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> Result<(), ContextProblem> {
-        if target != DraftKey::New {
+        if matches!(target, DraftKey::Session { .. }) || self.composer_field(target).is_none() {
             return Err(ContextProblem::Scope);
         }
-        if self.draft_has_payload(cx) {
+        if self.composer_draft_has_payload(target, cx) {
             return Err(ContextProblem::Busy);
         }
         self.areas
@@ -125,18 +125,37 @@ impl Shell {
     }
     /// Seeding must not overwrite whitespace, suppressed context, or pending work.
     pub(crate) fn draft_has_payload(&self, cx: &vessel_app_kit::ui::App) -> bool {
-        !self.areas.draft.composer.text(cx).is_empty()
-            || !self.areas.composer.drafts.text(DraftKey::New).is_empty()
-            || self.composer_has_files(DraftKey::New)
+        self.composer_draft_has_payload(DraftKey::New, cx)
+            || !self.areas.draft.creation.flow.may_submit()
+    }
+
+    /// A scoped seed cannot replace text, suppressed source context or pending bytes.
+    pub(crate) fn composer_draft_has_payload(
+        &self,
+        target: DraftKey,
+        cx: &vessel_app_kit::ui::App,
+    ) -> bool {
+        self.composer_field(target)
+            .is_none_or(|field| !field.text(cx).is_empty())
+            || !self.areas.composer.drafts.text(target).is_empty()
+            || self.composer_has_files(target)
             || self
                 .areas
                 .composer
                 .contexts
-                .get(DraftKey::New)
+                .get(target)
                 .is_some_and(vessel_app_view::composer::context::ContextTray::has_retained)
-            || self.composer_attachments_blocked(DraftKey::New)
-            || self.areas.composer.starting.borrow().is_some()
-            || !self.areas.draft.creation.flow.may_submit()
+            || self.composer_attachments_blocked(target)
+            || match target {
+                DraftKey::New => self.areas.composer.starting.borrow().is_some(),
+                DraftKey::Workspace { .. } => self
+                    .areas
+                    .composer
+                    .workspace_starting
+                    .keys()
+                    .any(|(held, _)| *held == target),
+                DraftKey::Session { session } => self.areas.composer.sends.contains_key(&session),
+            }
     }
 
     pub(super) fn prepare_session_context(
@@ -220,42 +239,6 @@ impl Shell {
         }
         cx.notify();
     }
-    fn draft_context_removed(
-        &mut self,
-        index: usize,
-        _window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        self.context_removed(DraftKey::New, index, cx);
-    }
-    fn session_context_removed(
-        &mut self,
-        index: usize,
-        _window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        if let Some(target) = self.session_tray_key() {
-            self.context_removed(target, index, cx);
-        }
-    }
-    fn draft_context_opened(
-        &mut self,
-        index: usize,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        self.context_opened(DraftKey::New, index, window, cx);
-    }
-    fn session_context_opened(
-        &mut self,
-        index: usize,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        if let Some(target) = self.session_tray_key() {
-            self.context_opened(target, index, window, cx);
-        }
-    }
 }
 
 pub(super) fn tray(
@@ -269,27 +252,22 @@ pub(super) fn tray(
         return None;
     }
     let tray = shell.areas.composer.contexts.get(target)?;
-    let (id, open, remove): (
-        &str,
-        vessel_app_kit::attachment::PillClick<Shell>,
-        vessel_app_kit::attachment::PillClick<Shell>,
-    ) = match target {
-        DraftKey::New => (
-            "draft-context",
-            Shell::draft_context_opened,
-            Shell::draft_context_removed,
-        ),
-        DraftKey::Session { .. } => (
-            "session-context",
-            Shell::session_context_opened,
-            Shell::session_context_removed,
-        ),
-    };
     let pills = tray.visible().enumerate().map(|(index, item)| {
-        let handlers = PillHandlers {
-            on_open: (!matches!(item, ContextAttachment::WorkspaceFile(_))).then_some(open),
-            on_remove: remove,
-        };
+        let open = (!matches!(item, ContextAttachment::WorkspaceFile(_))).then(|| {
+            std::rc::Rc::new(
+                move |shell: &mut Shell,
+                      index,
+                      window: &mut Window,
+                      cx: &mut Context<'_, Shell>| {
+                    shell.context_opened(target, index, window, cx)
+                },
+            ) as vessel_app_kit::attachment::ScopedPillClick<Shell>
+        });
+        let remove = std::rc::Rc::new(
+            move |shell: &mut Shell, index, _window: &mut Window, cx: &mut Context<'_, Shell>| {
+                shell.context_removed(target, index, cx)
+            },
+        );
         let words = shell.words.composer();
         let (icon, subtitle) = match item {
             ContextAttachment::WorkspaceFile(file) => {
@@ -309,8 +287,8 @@ pub(super) fn tray(
                 ContextKind::PluginResource => (Glyph::Boxes, words.context_plugin().to_owned()),
             },
         };
-        attachment_pill(
-            id,
+        attachment_pill_scoped(
+            "composer-context",
             index,
             &Body::Label {
                 icon,
@@ -318,7 +296,8 @@ pub(super) fn tray(
                 subtitle: subtitle.into(),
             },
             Standing::Quiet,
-            &handlers,
+            open,
+            remove,
             touch,
             tokens,
             cx,

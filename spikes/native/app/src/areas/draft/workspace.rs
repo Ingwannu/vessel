@@ -63,13 +63,6 @@ impl Shell {
             .map(|entry| &entry.composer)
     }
     /// None remains explicit until the registry can resolve an authorized file root.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "W6 keyed intake consumer is staged next; remove with its adoption"
-        )
-    )]
     pub(crate) fn workspace_draft_context_scope(
         &self,
         workspace: &LayoutKey,

@@ -400,6 +400,16 @@ impl Shell {
         let Some(starting) = self.areas.composer.starting.borrow_mut().take() else {
             return;
         };
+        self.composer_started_from(DraftKey::New, starting, card, cx);
+    }
+
+    pub(super) fn composer_started_from(
+        &mut self,
+        source: DraftKey,
+        starting: Starting,
+        card: &Card,
+        cx: &mut Context<'_, Self>,
+    ) {
         let session = card.session;
         let local_files = starting
             .files
@@ -411,14 +421,14 @@ impl Shell {
             })
             .collect();
         let composer = &mut self.areas.composer;
-        if let Some(draft) = composer.trays.get_mut(DraftKey::New) {
+        if let Some(draft) = composer.trays.get_mut(source) {
             for captured in starting.files.items() {
                 let _removed = draft.remove(captured.key);
             }
         }
         *composer.trays.tray(DraftKey::Session { session }) = starting.files;
         if let Some(context) = &starting.context {
-            if let Some(draft) = composer.contexts.get_mut(DraftKey::New) {
+            if let Some(draft) = composer.contexts.get_mut(source) {
                 let _settled = draft.settle(
                     context,
                     vessel_app_view::composer::context::SubmissionOutcome::Sent,

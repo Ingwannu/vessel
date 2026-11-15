@@ -152,7 +152,7 @@ pub fn autocomplete<V: 'static>(
     listing: &Listing,
     chosen: Option<usize>,
     state: &AutocompleteState,
-    on_choose: fn(&mut V, usize, &mut Window, &mut Context<'_, V>),
+    on_choose: impl Fn(&mut V, usize, &mut Window, &mut Context<'_, V>) + Clone + 'static,
     motion: Motion,
     tokens: &Tokens,
     cx: &mut Context<'_, V>,
@@ -200,6 +200,7 @@ pub fn autocomplete<V: 'static>(
         .track_scroll(&state.scroll)
         .py(px(spacing::S1))
         .children(rows.iter().enumerate().map(|(index, row)| {
+            let on_choose = on_choose.clone();
             let number = u64::try_from(index).unwrap_or(u64::MAX);
             let element = row_element(ElementId::NamedInteger(id.clone(), number), row, tokens)
                 .on_click(cx.listener(move |view, _event: &ClickEvent, window, cx| {
