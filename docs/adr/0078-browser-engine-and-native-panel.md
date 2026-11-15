@@ -808,3 +808,59 @@ prototype changes, realm destruction/navigation, replaced elements/fingerprints,
 deep/wide/long-Unicode documents, script timeout/cancellation and stale refs from
 older snapshots. A static script/graph fixture is not a supported page or proof
 of process/network/Preview isolation. No engine or tools become visible here.
+
+
+## Proposed persisted browser-tools setting (review before implementation)
+
+[Decision Log]
+- Purpose: a person must explicitly enable agent browser tools; a missing,
+  downgraded or unknown saved choice must never grant page/credential access.
+- Existing asset: node.settings/node.set_settings and the settings.json owner
+  already provide field-wise atomic persistence, private files and preservation
+  of unreadable/later-build data. BrowserTools is already a default-Off enum.
+- Alternatives: an independent browser config file/RPC, or extend that existing
+  settings object and reuse its compatibility/admission rules.
+- Choice: add browser_tools to NodeSettings (default/omitted Off) and optional
+  browser_tools to SetNodeSettings; keep the one BROWSER_PROTOCOL=None constant.
+  The existing settings/file owner is extended; no second writer or new method.
+- Reason: one atomic owner prevents concurrent settings changes from losing this
+  choice and preserves future values consistently with all other node settings.
+- Impact: this is storage/admission plumbing only. It qualifies no engine,
+  creates no session-start tool lease and offers no browser tool by itself.
+
+A change naming this field requires its assigned browser protocol on every
+local/forward/relay/deliver hop, including Off. While unassigned, the request is
+refused before side effects rather than an older peer silently ignoring it.
+Replies project the field to omitted Off for peers without that feature. Older
+files read as Off. Unknown saved choices are effectively Off and remain subject
+to settings.json's existing later-build preservation/backup rules. An unknown
+requested choice is Invalid and performs no write; only explicit supported On
+can enable the saved preference. Changes omitting the field preserve it.
+
+Read uses existing settings Read authority. Any mutation naming browser_tools
+additionally requires a direct human Owner or Device with Admin, including
+turning Off. Agent and Delegated principals cannot use the generic settings
+method to enable, disable or delegate this feature, even with other Admin scopes.
+The existing guard and typed field protocol check still run before this check.
+No warning text, origin, file path or credential is accepted as an authority token.
+
+The native enable flow must show the already required warning about agent access
+to signed-in content, General cookies shared across workspaces/devices, and agent
+tool input/results retained in harness history. The user explicitly changes the
+setting after that warning; an app read/restore cannot write On. Until the real
+qualified backend and reviewed UI flow exist, the visible supported feature stays
+NoEngine/hidden. Human control/watch remains separately authorized and is not
+turned into an agent tool by this preference.
+
+Engine qualification, shared ToolPolicy, Operate, local authenticated agent scope,
+workspace/Preview ownership and a session-start offered-tool lease remain ANDed
+with the live saved preference on every call. Turning On does not retroactively
+add a tool lease to an existing provider process. Turning Off refuses subsequent
+and not-yet-dispatched agent calls; already delivered effects remain uncertain,
+not undone or silently replayed. It does not clear credentials or close separately
+authorized human controls. Actual lease/revocation wiring is still owed.
+
+Qualification includes absent/unknown/On restart persistence, concurrent unrelated
+updates, failed-write atomicity, later-build backup and private service-account
+files; direct/delegated/agent authority; pending/old-peer and nested-envelope
+refusals before writes; and no session offer/engine claim from a saved On alone.
