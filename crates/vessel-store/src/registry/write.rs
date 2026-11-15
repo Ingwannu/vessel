@@ -65,7 +65,11 @@ pub(crate) fn apply(
             resource,
             expected,
         } => membership(connection, *workspace, *resource, *expected)?,
-        RegistryWrite::Reserve(reservation) => reserve(connection, reservation)?,
+        RegistryWrite::Reserve(reservation) => {
+            if reserve(connection, reservation)? == RegistryChange::Unchanged {
+                return Ok(RegistryChange::Unchanged);
+            }
+        }
         RegistryWrite::Stage {
             workspace,
             expected,
@@ -164,17 +168,24 @@ fn membership(
     put(connection, &record, Some(expected))
 }
 
-fn reserve(connection: &Connection, reservation: &RegistryReservation) -> Result<(), StoreError> {
+fn reserve(
+    connection: &Connection,
+    reservation: &RegistryReservation,
+) -> Result<RegistryChange, StoreError> {
     super::capacity::workspace(connection, reservation.workspace)?;
     let intent = encode(&reservation.intent)?;
     super::capacity::bytes(&intent, super::MAX_INTENT_BYTES)?;
-    let _inserted = connection.execute("INSERT INTO workspace_registry_reservations(id,intent,worktree,stage) VALUES (?1,?2,?3,?4) ON CONFLICT(id) DO NOTHING",params![reservation.workspace.to_string(),intent,reservation.worktree.map(|id|id.to_string()),reservation.stage.sql()])?;
+    let inserted = connection.execute("INSERT INTO workspace_registry_reservations(id,intent,worktree,stage) VALUES (?1,?2,?3,?4) ON CONFLICT(id) DO NOTHING",params![reservation.workspace.to_string(),intent,reservation.worktree.map(|id|id.to_string()),reservation.stage.sql()])?;
     let found = read::reservation(connection, reservation.workspace)?
         .ok_or(StoreError::RegistryConflict)?;
     if found.intent != reservation.intent || found.worktree != reservation.worktree {
         return Err(StoreError::RegistryConflict);
     }
-    Ok(())
+    Ok(if inserted == 0 {
+        RegistryChange::Unchanged
+    } else {
+        RegistryChange::Changed
+    })
 }
 
 fn stage(

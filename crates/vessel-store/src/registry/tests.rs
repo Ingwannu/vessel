@@ -182,7 +182,9 @@ fn reserved_backing_identity_is_idempotent_but_changed_intent_is_refused() {
         stage: ReservationStage::Reserved,
     };
     apply(&mut db, &RegistryWrite::Reserve(reservation.clone())).unwrap();
+    let before_replay = load(&db).unwrap();
     apply(&mut db, &RegistryWrite::Reserve(reservation.clone())).unwrap();
+    assert_eq!(load(&db).unwrap(), before_replay);
     let mut conflict = reservation.clone();
     conflict.intent.project = ProjectId::random();
     assert!(matches!(
