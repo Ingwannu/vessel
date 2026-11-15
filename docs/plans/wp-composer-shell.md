@@ -1,6 +1,6 @@
 # Composer shell and commands
 
-Status: skeleton in progress; independent view transitions/parsers tested, integration pending. Base: `1d1f11df`; merge the announced app package base before final verification.
+Status: skeleton in progress; independent view transitions/parsers tested, integration pending. Package base `8d5513e4` merged at `9e8e2164`.
 
 ## Existing assets and decision
 
@@ -37,7 +37,7 @@ Paths below are relative to the reference checkout's `packages/app/src/`.
 
 - Vessel's existing queue is node-owned and durable; Paseo's composer queue is client-only. Preserve the node contract and document the resulting cross-client visibility rather than adding a second queue.
 - Native assistant selection copy will use source markdown/code; Paseo's web implementation reconstructs markdown from DOM selection.
-- Provider skill metadata and draft command queries are unavailable on this base: do not infer skills from names or start an agent to list commands.
+- Provider skill metadata and draft command queries are pending under ADR 0085 on the node branch. Discovery uses the existing bounded handshake without a prompt; native-driver catalog ingress and app consumption are not complete.
 - Plugin slash commands await their contribution owner's typed API.
 - Assistant links/images await timeline and file navigation seams; attachment image lightbox stays shared.
 - The current editor caps growth at twelve lines; the shell extension will replace this cap with reference viewport capacity when the existing-control seam is approved.
@@ -50,7 +50,7 @@ Narrow checks through the shared build lane (ordinary while the short lane is sa
 
 Done: read package and architecture rules, inspect reference and existing code, agree attachment/input ownership, create isolated worktree and target.
 In progress: ordered client/plugin/provider catalog and send gesture projection added to the view skeleton; Clippy and expanded tests are still queued. The markdown callback/copy extension is a separate uncompiled draft. No native app integration has landed.
-Next: native input integration, command source APIs and exact submit interception; then complete package checks, capture matrix and reviewer handoff. The announced package base is still awaited.
+Next: native input integration, command source APIs and exact submit interception; then complete package checks, capture matrix and reviewer handoff. The announced package base is merged; shared field work awaits the W4 events/Editability base and E2's presentation split.
 
 ## Integration seams agreed
 
@@ -69,3 +69,7 @@ App state skeleton now registers `areas::composer_shell` by existing DraftKey an
 The first remote view Clippy on `9e8e2164` compiled the models and returned only missing field documentation on provider catalog entries. Those comments are fixed; a new narrow run is required. Earlier independent tests were 10/10; expanded catalog/sending/private-controller tests have not run yet. Package base `8d5513e4` merged without conflicts at `9e8e2164`; the editor split is still held until its owner reports narrow-green.
 
 Strict file-fragment parsing now rejects repeated markers, signed line numbers and malformed column markers. The earlier view-test submission did not receive a run id during the shared submit-tool incident; it is not test evidence. New checks use an explicit commit hash after the tool repair.
+
+Assistant image cache reference correction: `assistant-image/acquisition-cache.ts:70-86` enforces a soft capacity, stopping eviction if every entry has active consumers. The pure image cache reproduces that rule, one flight per key, unique retention tokens, idempotent release, failed-entry retry and late-result fencing. Payload fan-out is Arc-based; resource ownership drops on eviction. Added tests remain unrun. New English/Korean `composer-shell.ftl` words are prepared for the shell/menu integration.
+
+The second view Clippy (`52648a3c`) found two collapsible conditionals in strict link-location validation; these are corrected without changing parsing behavior. Both remote failures remain recorded as failures; expanded view/cache tests are the next narrow check. W4 supplies the sole shared Editability type/setter, E2 supplies select-all and the presentation move, and this package supplies composer layout and ButtonOnly after that lineage is announced.

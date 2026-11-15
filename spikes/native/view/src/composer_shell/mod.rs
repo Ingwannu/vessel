@@ -3,6 +3,7 @@
 
 pub mod catalog;
 pub mod commands;
+pub mod images;
 pub mod links;
 pub mod sending;
 pub mod surface;

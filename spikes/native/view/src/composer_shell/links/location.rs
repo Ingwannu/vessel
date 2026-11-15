@@ -60,10 +60,10 @@ fn parse_range(value: &str, column_separator: char) -> Option<Lines> {
 fn line_without_column(value: &str, separator: char) -> Option<&str> {
     let mut parts = value.split(separator);
     let line = parts.next()?;
-    if let Some(column) = parts.next() {
-        if !super::digits(column) {
-            return None;
-        }
+    if let Some(column) = parts.next()
+        && !super::digits(column)
+    {
+        return None;
     }
     if parts.next().is_some() {
         return None;
@@ -78,10 +78,10 @@ fn fragment_line(value: &str) -> Option<&str> {
         .unwrap_or(value);
     let mut parts = value.split(['C', 'c']);
     let line = parts.next()?;
-    if let Some(column) = parts.next() {
-        if !super::digits(column) {
-            return None;
-        }
+    if let Some(column) = parts.next()
+        && !super::digits(column)
+    {
+        return None;
     }
     if parts.next().is_some() || !super::digits(line) {
         return None;
