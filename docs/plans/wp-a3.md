@@ -190,6 +190,11 @@ by that find target. The link also refuses an unknown welcome identity until
 the shared fleet projection supplies one, so a reused book name alone is never
 read authority for metadata.
 
+Native focus difference: Paseo's web close focuses its stream viewport. The
+current kit VirtualList has no focus target, so native retains and restores the
+opening control's FocusHandle, consistent with its shared modal controls. This
+keeps keyboard ownership explicit without adding a second viewport controller.
+
 ### Resident integration
 
 The existing `Searching` object now belongs to `PaletteArea.messages_search`,
