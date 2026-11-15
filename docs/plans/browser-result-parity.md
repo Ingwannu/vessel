@@ -36,7 +36,7 @@ caller-selected cwd or control endpoint.
 | Forward | Completed traversal id | Same boundary as Back; no invented empty-history success. |
 | Reload | Completed reload id | Controller model exists, no qualified actor/result flow. |
 | Screenshot | PNG metadata plus one image block | Staged projection omits duplicate image bytes as intended. Actual first paint/capture, full-page handling, codec/paint and source fencing remain owed. |
-| Upload | Current file input ref and successful file selection names | Applied has only id. Confined staged regular files and selection results remain owed. Internal private staging paths must never be exposed. |
+| Upload | Current file input ref and successful file selection names | Applied has only id. Confined staged regular files and selection results remain owed. The current nonempty path-list DTO has no item/aggregate path budget; settle named decoding and staged-copy count/byte owners before real wiring, rather than treating lexical values or the transport cap as staging admission. Internal private staging paths must never be exposed. |
 | Select | Current select ref and selected value | Applied has only id; actual selection, events and result remain owed. |
 | Hover | Current ref and optional actual point | Applied has only id; hit testing/actionability and result remain owed. |
 | Drag | Both current refs and optional actual source/drop points | Applied has only id; full trusted drag sequence and result remain owed. |
