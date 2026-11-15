@@ -3,8 +3,8 @@ use super::*;
 use crate::areas::git::panel::Entry;
 use crate::shell::language_tests;
 use gpui::prelude::*;
-use gpui::{AppContext as _, Render, TestAppContext};
-use vessel_app_kit::ui::{Entity, IntoElement, size};
+use gpui::{Render, TestAppContext, size};
+use vessel_app_kit::ui::{Entity, IntoElement};
 use vessel_app_view::layout::{HostAlias, LayoutKey};
 use vessel_app_view::workspace::git::RequestKeys;
 use vessel_app_view::workspace::git::panel::{Comparison, PanelReads, RepositoryKey};
@@ -84,7 +84,7 @@ fn the_actual_narrow_list_draws_a_long_code_path_without_nested_list_borrows(
                 machine: HostAlias::parse("fixture").unwrap(),
                 session: SessionId::random(),
             },
-            tab: serde_json::from_str("1").unwrap(),
+            tab: super::super::settlement_tests::tab(),
         };
         let shell = cx.new(|cx| {
             let mut shell = Shell::without_io(window, cx);

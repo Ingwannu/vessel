@@ -875,3 +875,14 @@ currently puts its remaining actions in one caret menu. These need the existing
 shared control/pure Git policy integration, not an area-owned replacement menu.
 No Busy opacity/shape/source callback change is installed by this audit. It is
 not part of the isolated patch7/diff-style producer or its checks.
+
+## Actual15a fixture compilation corrections
+
+The four-crate15a strict check reaches App and returns101. The new fixtures
+incorrectly imported size from kit::ui, and manufactured TabIds through an
+undeclared serde_json dependency. They now import gpui::size and allocate
+fixture TabIds through the existing Layout::open, with no new dependency or
+raw counter. Remove two unused AppContext imports and a redundant qualified
+ConnectionContext, add the requested unit callback semicolon, and collapse the
+identical summary let/finish condition. No gate, assertion, caller admission
+or target/data semantics is weakened. This successor still needs checking.

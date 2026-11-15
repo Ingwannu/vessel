@@ -27,7 +27,7 @@ pub(crate) fn render_panel(
     let entry = shell.areas.git.panels.entries.get(&address);
     if entry.is_none_or(|entry| entry.target != target) {
         cx.defer_in(window, move |shell, window, cx| {
-            shell.git_panel_open(address, target, window, cx)
+            shell.git_panel_open(address, target, window, cx);
         });
         return loading(Some(shell.words.git_panel().checking()), tokens);
     }

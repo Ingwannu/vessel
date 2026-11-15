@@ -2,7 +2,7 @@
 use super::comparison::ComparisonChange;
 use super::*;
 use crate::shell::{Shell, language_tests};
-use gpui::{AppContext as _, TestAppContext};
+use gpui::TestAppContext;
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::{Command, Link};
 use vessel_app_view::connection::{ConnectionEpochs, MachineKey};
@@ -11,7 +11,7 @@ use vessel_app_view::workspace::git::panel::{RepositoryKey, StatusTicket};
 use vessel_app_view::workspace::git::{ReadState, RequestKeys};
 use vessel_proto::{NodeId, ProjectId, SessionId};
 
-fn install_context(shell: &mut Shell) -> vessel_app_view::connection::ConnectionContext {
+fn install_context(shell: &mut Shell) -> ConnectionContext {
     let mut epochs = ConnectionEpochs::default();
     let context = epochs
         .admit(MachineKey::from_book("fixture"), NodeId::random())

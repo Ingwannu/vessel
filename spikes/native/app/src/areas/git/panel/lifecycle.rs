@@ -130,15 +130,15 @@ impl Shell {
                 false
             }
             Outcome::Summary(ticket, result) => {
-                if let Some(reads) = &mut entry.reads {
-                    if reads.finish_summary(&ticket, result) {
-                        entry.files.reset(
-                            reads
-                                .summary()
-                                .shown()
-                                .map_or(0, |summary| summary.files.len()),
-                        );
-                    }
+                if let Some(reads) = &mut entry.reads
+                    && reads.finish_summary(&ticket, result)
+                {
+                    entry.files.reset(
+                        reads
+                            .summary()
+                            .shown()
+                            .map_or(0, |summary| summary.files.len()),
+                    );
                 }
                 false
             }

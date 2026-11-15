@@ -1,7 +1,9 @@
 //! A real bounded Link rejection settles the same pane's pending status.
 use vessel_app_link::{Command, Event, Link};
 use vessel_app_view::connection::{ConnectionEpochs, MachineKey};
-use vessel_app_view::layout::{HostAlias, LayoutKey};
+use vessel_app_view::layout::{
+    AgentRole, HostAlias, Layout, LayoutKey, LayoutMode, OpenIntent, Placement, TabId, Target,
+};
 use vessel_app_view::workspace::git::panel::{
     Comparison, ComparisonMode, PanelAddress, PanelReads, ReadFailure, RepositoryKey, Whitespace,
 };
@@ -9,6 +11,20 @@ use vessel_app_view::workspace::git::{ReadState, RequestKeys};
 use vessel_app_view::workspace::problem::Problem;
 use vessel_proto::workspace::WorkspaceRoot;
 use vessel_proto::{NodeId, ProjectId, SessionId};
+
+// Test identities come from the sole layout allocator, never a raw JSON counter
+// or a new serialization dependency just for fixtures.
+pub(super) fn tab() -> TabId {
+    Layout::default()
+        .open(
+            Target::WorkingDiff,
+            OpenIntent::Reveal,
+            Placement::Focused,
+            AgentRole::Unknown,
+            LayoutMode::SplitPanes,
+        )
+        .unwrap()
+}
 
 #[test]
 fn a_full_link_settles_the_exact_status_without_an_endless_spinner() {
@@ -34,7 +50,7 @@ fn a_full_link_settles_the_exact_status_without_an_endless_spinner() {
             machine: HostAlias::parse("fixture").unwrap(),
             session: SessionId::random(),
         },
-        tab: serde_json::from_str("1").unwrap(),
+        tab: tab(),
     };
     let rejected = link
         .submit(Command::GitPanel(vessel_app_link::git_panel::Ask::Status {
@@ -75,7 +91,7 @@ fn retirement_reports_changed_only_for_the_original_admission() {
             machine: HostAlias::parse("fixture").unwrap(),
             session: SessionId::random(),
         },
-        tab: serde_json::from_str("1").unwrap(),
+        tab: tab(),
     };
     let mut entry = super::Entry::new(super::PanelTarget::WorkingDiff, Some(context.clone()));
     let mut keys = RequestKeys::default();
@@ -144,7 +160,7 @@ fn empty_mode_callback_refuses_another_root_epoch_comparison_or_commit_target() 
                 machine: HostAlias::parse("fixture").unwrap(),
                 session: SessionId::random(),
             },
-            tab: serde_json::from_str("1").unwrap(),
+            tab: tab(),
         },
         context: context.clone(),
         repository,
