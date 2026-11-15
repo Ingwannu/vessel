@@ -16,11 +16,15 @@ use vessel_proto::{
 const FRAME_CAP: usize = 65_536;
 const NO_RETRY_PROBE: Duration = Duration::from_secs(1);
 async fn read(stream: &mut DuplexStream) -> ClientFrame {
-    let length = usize::try_from(stream.read_u32().await.unwrap()).unwrap();
+    read_frame(stream).await.unwrap()
+}
+async fn read_frame(stream: &mut DuplexStream) -> std::io::Result<ClientFrame> {
+    let length = usize::try_from(stream.read_u32().await?).unwrap();
     assert!(length <= FRAME_CAP);
     let mut data = vec![0; length];
-    assert_eq!(stream.read_exact(&mut data).await.unwrap(), data.len());
-    serde_json::from_slice(&data).unwrap()
+    assert_eq!(stream.read_exact(&mut data).await?, data.len());
+    serde_json::from_slice(&data)
+        .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidData, error))
 }
 async fn write(stream: &mut DuplexStream, frame: ServerFrame) {
     let data = serde_json::to_vec(&frame).unwrap();
@@ -133,23 +137,27 @@ async fn deadline_is_uncertain_and_never_sends_a_second_input_or_denial() {
     let ask = ask();
     let pending = ask.pending.clone();
     let task = tokio::spawn(async move { run(&client, ask).await });
-    assert!(matches!(
-        read(&mut remote).await,
-        ClientFrame::Request {
-            call: Call::SendInput(_),
-            ..
-        }
-    ));
+    let ClientFrame::Request {
+        id: original,
+        call: Call::SendInput(_),
+    } = read(&mut remote).await
+    else {
+        panic!("one typed input")
+    };
     tokio::time::advance(RESPONSE_DEADLINE).await;
     let answer = task.await.unwrap();
     assert_eq!(answer.pending, pending);
     assert_eq!(answer.result, Err(Problem::Unconfirmed));
-    // The only client handle was dropped; any extra frame before EOF would
-    // prove a retry/denial was sent after the unconfirmed result.
-    match tokio::time::timeout(NO_RETRY_PROBE, remote.read_u32()).await {
-        Err(_no_more_frames) => {}
-        Ok(Err(error)) if error.kind() == std::io::ErrorKind::UnexpectedEof => {}
-        other => panic!("unexpected frame or read failure after timeout: {other:?}"),
+    // Dropping a timed-out call may abandon that exact RPC. This is transport
+    // cancellation, not another session input or a permission denial.
+    let mut canceled = false;
+    loop {
+        match tokio::time::timeout(NO_RETRY_PROBE, read_frame(&mut remote)).await {
+            Err(_no_more_frames) => break,
+            Ok(Err(error)) if error.kind() == std::io::ErrorKind::UnexpectedEof => break,
+            Ok(Ok(ClientFrame::Cancel { id })) if !canceled && id == original => canceled = true,
+            other => panic!("unexpected frame or read failure after timeout: {other:?}"),
+        }
     }
 }
 

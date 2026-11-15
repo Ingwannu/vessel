@@ -311,3 +311,13 @@ ids and never infer an implementation prompt from a label. W23 is coordinating
 that prerequisite; A8 remains incomplete until it is implemented or explicitly
 scoped by the operator. W12 producer1720 was withdrawn before adoption; no pane
 or resident producer has been brought into this branch.
+
+
+Exact62c library runwp-side-narrow-20261115T092542Z-62c17767 compiled and ran
+kit128/0/0, then link64pass/1fail (cargo stopped before view). Failure was the
+no-retry probe treating the normal 24-byte ClientFrame::Cancel for the timed-out
+RPC as a second input. The corrected test decodes the framed protocol and permits
+at most one Cancel naming the original RPC id; every new input, different-id
+control frame or repeated Cancel still fails. EOF or a bounded no-frame interval
+ends the probe. Product timeout behavior is unchanged. App tests are bin targets
+and were excluded by the --lib filter; no app runtime pass is claimed.
