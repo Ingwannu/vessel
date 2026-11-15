@@ -81,3 +81,6 @@ fn line_count(bytes: &[u8]) -> u32 {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod comparison_tests;

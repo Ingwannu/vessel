@@ -10,6 +10,57 @@ use super::Resolved;
 use crate::git::{Git, GitError};
 
 impl Git {
+    /// ADR 0087's staged comparison resolver. Quality B wiring removes this
+    /// staging flag when the new read methods are admitted; old calls cannot
+    /// accidentally send a new enum variant to a peer that cannot decode it.
+    #[cfg(test)]
+    pub(crate) async fn resolve_comparison(
+        &self,
+        dir: &Path,
+        comparison: &vessel_proto::workspace::GitComparison,
+        base: Option<&WorktreeBase>,
+    ) -> Result<Option<Resolved>, GitError> {
+        use vessel_proto::workspace::GitComparison;
+
+        let scope = match comparison {
+            GitComparison::Uncommitted => DiffScope::Uncommitted,
+            GitComparison::All { base: asked } => {
+                if asked.as_ref().or(base).is_none() {
+                    return Ok(None);
+                }
+                DiffScope::Base {
+                    base: asked.clone(),
+                }
+            }
+            GitComparison::Commit { id } => DiffScope::Commit { id: id.clone() },
+            GitComparison::Committed { base: asked } => {
+                let Some(base) = asked.as_ref().or(base) else {
+                    return Ok(None);
+                };
+                let commit = self
+                    .resolve(dir, base)
+                    .await?
+                    .ok_or(GitError::Unexpected { what: "base" })?;
+                let head = self.head(dir).await?;
+                let Some(head) = head else {
+                    let empty = self.empty_tree(dir).await?;
+                    return Ok(Some(Resolved {
+                        sides: vec![empty.clone(), empty],
+                        from: None,
+                        untracked: false,
+                    }));
+                };
+                let fork = self.merge_base(dir, &commit).await?.unwrap_or(commit);
+                return Ok(Some(Resolved {
+                    sides: vec![fork.to_string(), head.to_string()],
+                    from: Some(fork),
+                    untracked: false,
+                }));
+            }
+        };
+        self.resolve_scope(dir, &scope, base).await.map(Some)
+    }
+
     /// What `scope` compares in the repository at `dir`. `base` is the
     /// base to use when the scope names none (a worktree's own, or the
     /// project's default branch).
