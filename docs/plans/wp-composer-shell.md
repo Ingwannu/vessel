@@ -144,23 +144,30 @@ parity is explicitly unavailable.
 
 ## Evidence and next validation
 
-Evidence is scoped to the exact source cited; it is not a package/UI pass.
+Evidence applies only to the cited source and selected targets. Package, UI and
+resident-cutover approval remain outstanding.
 
-| Source/check | Actual result |
+| Source/check | Actual result and scope |
 |---|---|
 | Old840 native kit+view strict Clippy; view models | Clippy0, view23/0. |
-| Later unchanged parser/cache/sending/surface view slice | Actual27/0; later BOM/NEL changes unverified. |
-| Node d9 combined catalog/probes | Strict5crates0; cache tests4/0. Earlier command units14/0 and fake Codex/options29/0. |
-| Node67 gate44 union | Strict5crates0, run `wp-composer-shell-node-narrow-20261115T114725Z-67c5eb77`. Later native metadata is not covered. |
-| Native3e all-kit |137passed/2failed: duplicate inferred-code source and compact double newline. Both source corrections are prepared; failed evidence is retained. |
-| Native519 | Lock-file refusal before compilation; exact lead dd13 fix adopted. |
-| Nativec151 strict / kit | Strict failed lifecycle/base6 union constructor fields; kit compile failed missing App argument to focus. Corrected atd4ca; no pass inferred. |
-| Independent native valuesdd06 +TS |4/0/0; strict failed doc, integer-division fixture and generated-TS name collision. Corrected b7b4 successor check queued; JSON unchanged. |
-| Node67 TS generation | Compile failed missing web Method arm before generation; empty artifacts. Corrected policy and metadata rerun queued. |
+| Later parser/cache/sending/surface view slice | Actual27/0; later BOM/NEL changes await the base8 run. |
+| Node d9 catalog/probe union | Strict5crates0; cache4/0. Earlier commands14/0 and fake Codex/options29/0 remain prior-source results. |
+| Node57f consumer union | Strict all-target Clippy0 for proto/harness/agent/session/node/client/RPC/web with TS; run `wp-composer-shell-node-narrow-20261115T125346Z-57f69672`. This includes both fake-handler registrations and browser unary policy, but excludes the later profile-cache patch and Node82 merge. |
+| Native3e all-kit |137passed/2failed: duplicate inferred-code source and compact double newline. Their corrections passed in the later d4ca Kit execution. |
+| Natived4ca Kit library |179passed/1failed: the retained raw-code drag-copy assertion. App was not selected by the mistaken combined `--lib` command because it is binary-only. |
+| Native44c pure view | Compile failed on an erroneous LifecycleTarget fixture field. Corrected at a809; its replacement has not returned. |
+| Native40aa all-kit | Queued after adding an intermediate glyph-hit event to the same drag endpoints; every copy assertion is retained. No current-source pass yet. |
+| Native88be App binary | Correct target `--bin vessel-app` queued. The earlier queued App `--lib` request was cancelled before execution. No App runtime evidence yet. |
+| Independent native valuesb7b | Strict proto+TS all-target Clippy0; exact four-test run queued. Prior dd06 ran4/0; b7 fixes only naming, documentation and boundary arithmetic. |
+| Independent catalog carrier6988 / ce50 | Strict proto/agent/session+TS all-target Clippy0 at6988; commands-filter tests10/0 at ce50. Separate source scopes, no runtime activation. |
+| Node237 TS generation | Actual proto3/0 and web1/0; gate1 solely for the generated diff. Exact verified artifact applied, with no manual TypeScript edits. Generation equality remains queued. |
+| Node67c Codex schema | Exact installed-schema test1/0/0, step/gate0; run `tools-codex-contract-20261115T124102Z-67c5eb77`. Schema-only evidence for that older source. |
 
-Current d4ca strict4crate and kit+app library tests are registered on the build VM.
-Later shared-value carriers have their own pending checks. No local Cargo/Rustc is
-started. Static size/boundary/token checks pass for the source prepared so far.
+Base8 four-crate strict Clippy and composer model tests are queued on a809.
+Current source and the whole package remain unverified. All compilation runs on
+the build VM; no local Cargo/Rustc is started. Static size/boundary/token checks
+pass for the prepared source. The native values and catalog carriers are
+independent values/metadata checkpoints and grant no provider transport authority.
 
 After required adapters are complete: one whole native gate, root gate for root
 changes, regenerated TS committed from VM artifacts, isolated fake-fleet captures
