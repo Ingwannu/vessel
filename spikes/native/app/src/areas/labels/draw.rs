@@ -72,6 +72,11 @@ fn body(
     if let Some(message) = availability(host.state, shell) {
         body = body.child(notice(message, tokens));
     }
+    if matches!(state.manager.state(), ManagerState::Confirming { .. })
+        && state.confirmation.as_ref() != host.connection.as_ref()
+    {
+        body = body.child(notice(words.changed(), tokens));
+    }
     if let Some(failure) = state.error.or_else(|| state.manager.error()) {
         body = body.child(notice(failure_text(failure, shell), tokens));
     }
