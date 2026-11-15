@@ -183,9 +183,9 @@ fn scoped_submit_survives_moves_and_refuses_hidden_or_released_claims(cx: &mut T
                 .resources(&current)
                 .unwrap()
                 .session
-                .composer_retention
-                .surface,
-            vessel_app_view::composer_shell::surface::Surface::default()
+                .composer
+                .id(),
+            harness.field.id()
         );
     });
     window.simulate_keystrokes("left shift-left");
