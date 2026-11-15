@@ -179,7 +179,9 @@ TUI Unsupported remains an explicit refusal. Detach cannot publish between paren
 validation and stop/mark completion. Unknown future outcomes never count as success.
 
 The method's feature threshold remains None, so pending admission blocks wire use
-until integration. Real fake-backed tests cover committed timestamps, repeated
+until integration. Call admission additionally requires W2 SUBAGENT_RELATIONS;
+assigning the A2 method alone cannot enable an unlanded parentage dependency.
+Real fake-backed tests cover committed timestamps, repeated
 archive skip, full remote parent mismatch, a committed detach ahead of its live
 publication and active turns without forced stop. Execution and final V3 evidence
 are still owed for this new union. The ordinary explicit ArchiveSession remains

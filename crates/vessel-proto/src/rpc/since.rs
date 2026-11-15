@@ -36,6 +36,9 @@ impl Call {
     pub fn since(&self) -> Option<ProtocolVersion> {
         let method = self.method().since()?;
         let fields = match self {
+            // A2's method admission also needs W2's current-parent contract;
+            // assigning archive alone must not enable an unlanded relation API.
+            Self::ArchiveChildSession(_) => Some(crate::subagents::SUBAGENT_RELATIONS?.get()),
             // Every hop decodes the typed inner call. It must know its
             // method and fields too; an older hop could otherwise drop a
             // newer field before the target sees it (ADR 0044), as a
@@ -165,7 +168,6 @@ impl Call {
             | Self::ResumeSession(_)
             | Self::MarkSession(_)
             | Self::ArchiveSession(_)
-            | Self::ArchiveChildSession(_)
             | Self::DeleteSession(_)
             | Self::BeginUpload(_)
             | Self::WriteUpload(_)
