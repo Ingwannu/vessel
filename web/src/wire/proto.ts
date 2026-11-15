@@ -8434,12 +8434,12 @@ policy: ExternalLookup, };
 export type SetupChoice = "run" | "skip";
 
 /**
- * A zero-based command position within an approved setup list.
+ * A one-based ordinal within an approved setup list, matching Paseo events.
  */
 export type SetupCommandIndex = number;
 
 /**
- * Bounded per-command display, including output after the legacy log fills.
+ * A per-command display value. This DTO alone does not validate output limits.
  */
 export type SetupCommandProgress = { 
 /**
@@ -8455,7 +8455,7 @@ command: ProjectCommand,
  */
 state: SetupCommandState, 
 /**
- * At most the node's per-command output budget, preserving head and tail.
+ * The producer must enforce its output budget; this generic byte value does not.
  */
 output: TerminalBytes, 
 /**
@@ -8559,7 +8559,8 @@ state: SetupRunState,
  */
 started_at: string, 
 /**
- * Commands in approved order, at most `MAX_SETUP_PROGRESS_COMMANDS`.
+ * Approved-order rows. A later producer/decoder must validate count, order,
+ * unique ordinals and output budgets; this public vector is not validated.
  */
 commands: Array<SetupCommandProgress>, };
 
