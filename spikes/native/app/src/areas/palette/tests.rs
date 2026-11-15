@@ -460,3 +460,59 @@ fn root_defaults_keep_canonical_settings_and_search_only_legacy_destinations(
         );
     });
 }
+
+#[gpui::test]
+fn center_navigation_precedes_global_rebinding_and_escape_closes_nested_page(
+    cx: &mut TestAppContext,
+) {
+    use vessel_app_view::prefs::{Bindings, ShortcutEdit, ShortcutEdits, ShortcutTarget};
+    use vessel_app_view::shortcuts::{Action, Platform, binding_id, default_context};
+    let (view, cx) = harness(cx);
+    update(&view, cx, |shell, window, cx| {
+        crate::areas::shortcuts::listen(shell, window, cx);
+        let edits = ShortcutEdits::try_from(vec![ShortcutEdit {
+            action: binding_id(Action::Palette, default_context(Platform::native())).unwrap(),
+            to: ShortcutTarget::Bindings {
+                keys: Bindings::try_from(vec!["Down".parse().unwrap()]).unwrap(),
+            },
+        }])
+        .unwrap();
+        shell.prefer(&PreferenceChange::Shortcuts { edits }, window, cx);
+    });
+    cx.run_until_parked();
+    let before = update(&view, cx, |shell, _, _| {
+        shell
+            .areas
+            .palette
+            .cursor
+            .resolved_identity(&snapshot::project(shell).ids())
+            .cloned()
+    });
+    cx.simulate_keystrokes("down");
+    cx.run_until_parked();
+    update(&view, cx, |shell, window, cx| {
+        assert!(
+            shell.areas.palette.is_open(),
+            "Down must navigate, never toggle"
+        );
+        let snapshot = snapshot::project(shell);
+        let after = shell
+            .areas
+            .palette
+            .cursor
+            .resolved_identity(&snapshot.ids())
+            .cloned();
+        assert_ne!(before, after);
+        shell.palette_page(
+            vessel_app_view::palette::pages::ChoiceLocation::group("native-Theme".parse().unwrap()),
+            window,
+            cx,
+        );
+    });
+    cx.run_until_parked();
+    cx.simulate_keystrokes("escape");
+    cx.run_until_parked();
+    update(&view, cx, |shell, _, _| {
+        assert!(!shell.areas.palette.is_open())
+    });
+}

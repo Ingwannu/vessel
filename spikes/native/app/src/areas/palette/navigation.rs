@@ -59,10 +59,27 @@ pub(super) fn key(
         return;
     }
     if event.keystroke.key == "backspace"
-        && shell.areas.palette.query.is_empty()
+        && shell.areas.palette.query.trim().is_empty()
         && shell.areas.palette.page.is_some()
     {
         shell.palette_back(window, cx);
         cx.stop_propagation();
+    }
+}
+
+impl Shell {
+    /// The open center's existing kit controls run before global rebinding,
+    /// matching the top-overlay priority in Paseo. This only yields the event;
+    /// the existing frame/search remains its sole navigation controller.
+    pub(crate) fn command_center_owns_key(&self, event: &gpui::KeystrokeEvent) -> bool {
+        let modifiers = event.keystroke.modifiers;
+        self.areas.palette.is_open()
+            && !(modifiers.control || modifiers.alt || modifiers.shift || modifiers.platform)
+            && (matches!(
+                event.keystroke.key.as_str(),
+                "up" | "down" | "enter" | "escape"
+            ) || (event.keystroke.key == "backspace"
+                && self.areas.palette.query.trim().is_empty()
+                && self.areas.palette.page.is_some()))
     }
 }

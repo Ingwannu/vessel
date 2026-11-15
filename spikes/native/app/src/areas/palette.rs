@@ -290,13 +290,7 @@ impl Shell {
                     self.activate_command(target, window, cx);
                 }
             }
-            CommandKey::Escape => {
-                if self.areas.palette.page.is_some() {
-                    self.palette_back(window, cx);
-                } else {
-                    self.close_palette(window, cx);
-                }
-            }
+            CommandKey::Escape => self.close_palette(window, cx),
         }
     }
 

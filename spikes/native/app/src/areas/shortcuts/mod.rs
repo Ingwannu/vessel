@@ -213,6 +213,11 @@ impl Shell {
             }
             self.areas.shortcuts.page.capture = None;
         }
+        if self.command_center_owns_key(event) {
+            self.areas.shortcuts.engine.reset();
+            self.areas.shortcuts.held.release();
+            return;
+        }
         let context = self.shortcut_context(event, window, cx);
         let listener = &mut self.areas.shortcuts;
         match listener.compiled.refresh(&self.prefs.settings.shortcuts) {

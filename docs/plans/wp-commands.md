@@ -441,3 +441,12 @@ regression checks the empty defaults, Settings rank and searchable Appearance.
 
 All rows remain skeleton. View/Kit/App source and behavioral tests must pass on
 the combined actual head before the final frozen gate/captures/V4 submission.
+
+
+The command center's existing frame/search receives bare Up/Down/Enter/Escape
+and empty-page Backspace before global rebinding, matching the reference top
+overlay priority. The interceptor yields those events and clears prefixes; it
+does not create another controller. A user override of Palette to Down cannot
+close the list instead of navigating. Escape always closes the center, including
+nested pages; Back and blank-query Backspace handle parent navigation. A real
+key-event regression covers that override and nested Escape closure.
