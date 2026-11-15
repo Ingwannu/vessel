@@ -45,9 +45,12 @@ impl ConversationArea {
     /// the same registry. Their forms/confirmations are never inferred from text.
     pub(crate) fn snapshot_readiness(&self, navigation: OwnerReadiness) -> OwnerReadiness {
         match navigation {
-            OwnerReadiness::Hold(_) => return navigation,
-            OwnerReadiness::Ready => {}
+            OwnerReadiness::Hold(_) => navigation,
+            OwnerReadiness::Ready => self.local_snapshot_readiness(),
         }
+    }
+
+    fn local_snapshot_readiness(&self) -> OwnerReadiness {
         if self.find.is_some() || self.rename.is_some() || self.queue_edit.is_some() {
             return OwnerReadiness::Hold(HoldReason::ActiveEditor);
         }

@@ -1,16 +1,20 @@
 //! Populated owner state crosses the sole registry, never selected globals.
-use super::*;
+use super::{ConversationArea, Origin};
+use crate::areas::conversation::ResidentSeat;
 use crate::areas::{layout::residents::SessionResources, session::SessionView};
-use crate::shell::language_tests;
+use crate::shell::{Shell, language_tests};
 use gpui::TestAppContext;
 use vessel_app_kit::Reveal;
 use vessel_app_view::layout::{
     AgentRole, Layout, LayoutKey, LayoutMode, OpenIntent, PaneId, Placement, Target,
 };
-use vessel_app_view::residents::{PanelClaim, SessionAddress};
+use vessel_app_view::residents::{
+    HoldReason, OperationKind, OwnerReadiness, PanelClaim, ResidentProblem, SessionAddress,
+    SessionContext, Visibility,
+};
 use vessel_app_view::timeline::EntryKind;
 use vessel_proto::{
-    AgentEvent, ContentBlock, EventSeq, NodeId, SessionEvent, SessionId, WorkspaceId,
+    AgentEvent, ContentBlock, EventRecord, EventSeq, NodeId, SessionEvent, SessionId, WorkspaceId,
 };
 
 fn record(seq: u64, text: &str) -> EventRecord {
@@ -108,7 +112,7 @@ fn scoped_hidden_records_and_effect_settlement_reach_only_the_admitted_timeline(
                 .conversation_records_scoped(binding_b, &[record(1, "B")])
                 .unwrap()
         );
-        let seat = crate::areas::conversation::ResidentSeat::main(a.clone());
+        let seat = ResidentSeat::main(a.clone());
         let captured = seat.clone();
         seat.get_mut(shell).unwrap().list.reveal(0, Reveal::Top);
         assert_eq!(text(captured.get(shell).unwrap()), "A");
@@ -118,13 +122,15 @@ fn scoped_hidden_records_and_effect_settlement_reach_only_the_admitted_timeline(
             "absent origin is not main"
         );
         let mut origin = ConversationArea::new(cx);
-        origin.fold_records(&[record(1, "Origin")]);
+        assert!(origin.fold_records(&[record(1, "Origin")]));
         seat.get_mut(shell).unwrap().origin = Origin::Shown(Box::new(origin));
         assert_eq!(text(origin_seat.get(shell).unwrap()), "Origin");
-        origin_seat
-            .get_mut(shell)
-            .unwrap()
-            .fold_records(&[record(2, " retained")]);
+        assert!(
+            origin_seat
+                .get_mut(shell)
+                .unwrap()
+                .fold_records(&[record(2, " retained")])
+        );
         assert_eq!(text(origin_seat.get(shell).unwrap()), "Origin retained");
         assert_eq!(text(seat.get(shell).unwrap()), "A");
         assert!(matches!(
