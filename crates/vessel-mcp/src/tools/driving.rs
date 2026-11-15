@@ -102,7 +102,7 @@ fn choice(args: &JsonObject) -> Result<OptionChoice, ToolError> {
                 "give `value` or `on`, not both".into(),
             ));
         }
-        (Some(value), None) if value.is_empty() => {
+        (Some(""), None) => {
             return Err(ToolError::Arguments("`value` is empty".into()));
         }
         (Some(value), None) => ChoiceValue::Select {
