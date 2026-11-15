@@ -3739,6 +3739,7 @@ dependencies = [
  "vessel-relay",
  "vessel-rpc",
  "vessel-secure",
+ "vessel-testkit",
 ]
 
 [[package]]
@@ -3962,6 +3963,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.21",
+ "toml_edit",
  "ts-rs",
  "url",
  "uuid",
@@ -4041,6 +4043,7 @@ dependencies = [
  "tokio-util",
  "tracing",
  "vessel-proto",
+ "vessel-testkit",
 ]
 
 [[package]]
@@ -4103,6 +4106,7 @@ dependencies = [
  "rustix",
  "serde",
  "serde_json",
+ "serde_path_to_error",
  "sha2 0.11.1",
  "subtle",
  "tempfile",
@@ -4111,6 +4115,7 @@ dependencies = [
  "tracing",
  "vessel-proc",
  "vessel-proto",
+ "vessel-testkit",
  "zeroize",
 ]
 

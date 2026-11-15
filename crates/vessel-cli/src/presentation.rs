@@ -2,7 +2,7 @@
 //! Raw attach/log streams keep their contract by refusing data-format selection.
 
 use crate::{
-    args::{Cli, Command, ConversationCommand, SessionCommand, parity::Presentation},
+    args::{Cli, Command, ConversationCommand, NodeCommand, SessionCommand, parity::Presentation},
     error::CliError,
 };
 
@@ -29,6 +29,15 @@ pub(crate) fn check(cli: &Cli) -> Result<(), CliError> {
     {
         return Ok(());
     }
+    // Diagnostics owns its JSON switch too (protocol 24): its handler writes
+    // the validated report itself, so JSON is the one format it admits.
+    if let Command::Node {
+        command: NodeCommand::Diagnostics { json: true },
+    } = &cli.command
+        && requested == Presentation::Json
+    {
+        return Ok(());
+    }
     Err(CliError::UnsupportedPresentation)
 }
 
@@ -51,7 +60,10 @@ mod tests {
             let cli = Cli::try_parse_from(args).unwrap();
             assert!(check(&cli).is_ok());
         }
+        let diagnostics = Cli::try_parse_from(["vessel", "node", "diagnostics", "--json"]).unwrap();
+        assert!(check(&diagnostics).is_ok());
         for args in [
+            vec!["vessel", "node", "diagnostics", "-o", "yaml"],
             vec!["vessel", "sessions", "--json"],
             vec!["vessel", "status", "--quiet"],
             vec!["vessel", "status", "-o", "table"],
