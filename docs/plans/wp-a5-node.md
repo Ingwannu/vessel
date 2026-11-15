@@ -438,3 +438,13 @@ addition. The own notification claim arm is extracted into a private helper,
 retaining its identical isolated savepoint, typed answer and commit boundary.
 No head branch, transaction, assertion or deadline changes. Existing immutable
 unit/TS/rollback runs retain b028 scope; changed-source strict remains owed.
+
+Merged-source generation wp-inbox-ts-20261115T163510Z-b028853c actually
+compiled the affected Rust tree and passed all five TS/alias tests (proto3,
+web2). The step returned1 only because generated proto.ts differed from the
+provisional canonical snapshot, as expected. The exact VM patch and every
+artifact SHA were verified and applied without manual generated edits; bridge
+and calls snapshots are unchanged. Rust proto/web source is byte-identical to
+the tested commit. This settles the earlier named LimitPercent alias defect
+via announced9c, not an A5 assertion change. A clean-diff confirmation remains
+part of the owning whole gate; no whole/runtime/adoption result is implied.
