@@ -7,7 +7,7 @@ mod rows;
 use crate::shell::Shell;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, IntoElement as _, ParentElement as _,
+    AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, breakpoint, outline_button};

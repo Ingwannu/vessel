@@ -32,7 +32,7 @@ sessions-archive = 보관
 # Keep short; session history or lifecycle control.
 sessions-unarchive = 보관 해제
 # Keep short; session history or lifecycle control.
-sessions-host-failed = { $host }에서 세션을 불러오지 못했습니다.
+sessions-host-failed = 이 호스트에서 세션을 불러오지 못했습니다.
 # Keep short; session history or lifecycle control.
 sessions-close = 세션 닫기
 # Keep short; session history or lifecycle control.

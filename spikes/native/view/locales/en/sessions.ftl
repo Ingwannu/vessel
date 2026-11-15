@@ -32,7 +32,7 @@ sessions-archive = Archive
 # Keep short; session history or lifecycle control.
 sessions-unarchive = Unarchive
 # Keep short; session history or lifecycle control.
-sessions-host-failed = Unable to load sessions from { $host }
+sessions-host-failed = Unable to load sessions from this host.
 # Keep short; session history or lifecycle control.
 sessions-close = Close session
 # Keep short; session history or lifecycle control.

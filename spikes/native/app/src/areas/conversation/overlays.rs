@@ -4,8 +4,8 @@
 
 use vessel_app_kit::output::Lines;
 use vessel_app_kit::ui::{
-    AnyElement, Context, FluentBuilder as _, IntoElement as _, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
+    Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
     DialogContent, DialogSize, Start, Tokens, Type, TypeExt as _, breakpoint, button, dialog,

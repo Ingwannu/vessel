@@ -3,7 +3,7 @@ use crate::shell::Shell;
 use chrono::Local;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, ElementId, IntoElement as _, ParentElement as _,
+    AnyElement, Context, ElementId, InteractiveElement as _, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, outline_button};
@@ -25,7 +25,8 @@ pub(super) fn failures(shell: &Shell, tokens: &Tokens) -> Vec<AnyElement> {
                 div()
                     .type_(Type::Body)
                     .text_color(tokens.neutral.destructive)
-                    .child(shell.words.sessions().host_failed(&machine.name))
+                    .child(machine.name.clone())
+                    .child(div().child(shell.words.sessions().host_failed()))
                     .into_any_element(),
             ),
         })
