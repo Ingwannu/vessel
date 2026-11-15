@@ -19,6 +19,8 @@ mod conversation;
 #[cfg(test)]
 mod devices;
 #[cfg(test)]
+mod diagnostics;
+#[cfg(test)]
 mod fleet;
 #[cfg(test)]
 mod inbox;
@@ -31,6 +33,8 @@ mod mcp;
 #[cfg(test)]
 mod node_stop;
 mod nodes;
+#[cfg(test)]
+mod output;
 #[cfg(test)]
 mod reconnect;
 #[cfg(test)]

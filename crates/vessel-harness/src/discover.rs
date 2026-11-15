@@ -1,5 +1,8 @@
 //! [`discover`]: which harnesses are installed, and their versions.
 
+mod diagnostics;
+pub use diagnostics::{AgentMetadata, added_metadata, builtin_metadata};
+
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 

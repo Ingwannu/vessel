@@ -62,6 +62,11 @@ pub enum ErrorDetail {
         /// Stable label reason; clients never parse the diagnostic message.
         reason: crate::workspace_labels::WorkspaceLabelFailure,
     },
+    /// Content-free diagnostic collection admission.
+    Diagnostics {
+        /// Resource refusal, never a source error message.
+        reason: crate::diagnostics::DiagnosticRefusal,
+    },
     /// A schedule preview could not be computed.
     SchedulePreview {
         /// The stable preview reason.
