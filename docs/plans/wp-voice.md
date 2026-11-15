@@ -334,3 +334,28 @@ canonical outbound receipt adapter and product speak registration remain owed.
 Spoken-input wrapper prose is independently authored; only the spoken-input
 and instruction framing/behavior is retained from the reference. No Paseo
 source, embedded cue PCM or native bundle is imported into this package.
+
+### Silero postprocessing pre-code decision
+
+[Decision Log]
+- Purpose: a raw model probability is not Sherpa's detected-speech observation consumed by the outer800ms/1000ms boundary.
+- Existing assets: fixed512-sample input and outer Boundary exist; no linked model runtime exists. The pinned Paseo runtime uses Sherpa1.12.28 with100ms minimum speech,200ms silence and its default negative-threshold hysteresis.
+- Alternatives: passing probability>0.5 directly changes interruption timing; a local RMS/peak gate substitutes a different detector and is not accepted.
+- Choice: independently express the pinned probability policy as a closed Rust state machine with finite validated probability input and checked sample positions. Keep it test-only and separate from inference. Reset must also reset the actual recurrent model once one is approved.
+- Effect: fake score sequences can prove policy edges but cannot prove Silero inference, model licensing, speech recognition or readiness. Also preserve the source's strict >512 buffered lookahead instead of emitting an exactly-full final window early.
+
+The fixed-window adapter now retains an exactly-full final512-sample window
+until a real subsequent sample arrives, matching the pinned runtime's strict
+buffer-size >window condition. Partition tests retain the same five processed
+windows for a six-window input and a new exact-boundary test supplies one real
+following sample. Stop still discards retained lookahead without padding.
+
+The separate probability policy has validated finite0..1 inputs,100ms/200ms
+sample-count filters and the pinned0.5/0.35 threshold behavior. Equality does
+not invent a new speech start, and mid-band continuation preserves an existing
+silence start until a score above the speech threshold clears it. Independent
+closed enum states replace reference flags/sentinels; checked u64 clocks refuse
+exhaustion. Synthetic probability sequences test these edges and composition
+with the outer turn boundary. There is still no runtime, model load, microphone
+probe or recognition/quality proof. Runtime+model distribution requires its
+separate reviewed ADR amendment before activation.

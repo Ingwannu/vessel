@@ -12,6 +12,7 @@ mod fixture;
 mod http;
 mod input_buffer;
 
+mod probability;
 mod prompt;
 mod receipts;
 mod registry;

@@ -71,7 +71,9 @@ fn capture_chunk_partition_does_not_change_inference_samples() {
             .unwrap();
     }
     assert_eq!(actual, expected);
-    assert_eq!(actual.len(), source.len());
+    // The exact six-window tail retains the sixth window as reference lookahead.
+    assert_eq!(actual.len(), 2_560);
+    assert_eq!(windows.filled, WINDOW_SAMPLES);
 }
 
 #[test]
@@ -92,4 +94,34 @@ fn cancellation_during_a_chunk_fences_later_inference_and_discards_the_partial()
         )),
         Err(InputError::Cancelled)
     ));
+}
+
+#[test]
+fn an_exact_full_window_waits_for_a_real_following_sample() {
+    let mut windows = Windows::default();
+    let token = CancellationToken::new();
+    let mut observed = Vec::new();
+    windows
+        .push(&pcm([8_192; 512]), &token, |window| {
+            observed.push(window.samples().to_vec())
+        })
+        .unwrap();
+    assert!(observed.is_empty());
+    assert_eq!(windows.filled, 512);
+    windows
+        .push(&pcm([-8_192; 1]), &token, |window| {
+            observed.push(window.samples().to_vec())
+        })
+        .unwrap();
+    assert_eq!(observed.len(), 1);
+    assert!(
+        observed[0]
+            .iter()
+            .all(|sample| sample.to_bits() == 0.25_f32.to_bits())
+    );
+    assert_eq!(windows.filled, 1);
+    assert_eq!(
+        windows.partial.samples()[0].to_bits(),
+        (-0.25_f32).to_bits()
+    );
 }

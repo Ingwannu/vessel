@@ -1,7 +1,7 @@
 //! Fixed16k PCM-to-inference window adaptation; no VAD or resampler is invented here.
 //!
 //! The shared PCM view owns byte alignment. This model edge owns exactly512
-//! normalized samples per inference call, carrying only a partial window across
+//! normalized samples per inference call, retaining one lookahead window across
 //! client chunks. Detector implementation/distribution remains a separate gate.
 
 use crate::speech_audio::{CodecError, Pcm16};
@@ -69,6 +69,15 @@ impl Windows {
                 self.clear();
                 return Err(InputError::Cancelled);
             }
+            // The pinned runtime consumes while buffered >512, not >=512:
+            // retain a full final window until another sample actually arrives.
+            if self.filled == WINDOW_SAMPLES {
+                observe(&self.partial);
+                self.clear();
+                if stop.is_cancelled() {
+                    return Err(InputError::Cancelled);
+                }
+            }
             let slot = self
                 .partial
                 .0
@@ -76,14 +85,6 @@ impl Windows {
                 .ok_or(InputError::Order)?;
             *slot = f32::from(i16::from_le_bytes(*bytes)).mul_add(32_768.0_f32.recip(), 0.0);
             self.filled = self.filled.saturating_add(1);
-            if self.filled == WINDOW_SAMPLES {
-                if stop.is_cancelled() {
-                    self.clear();
-                    return Err(InputError::Cancelled);
-                }
-                observe(&self.partial);
-                self.clear();
-            }
         }
         if stop.is_cancelled() {
             self.clear();
@@ -91,7 +92,7 @@ impl Windows {
         }
         Ok(())
     }
-    /// Stop and detector reset discard incomplete inference input, never pad speech.
+    /// Stop/reset discard retained lookahead, never pad or invent model input.
     pub(super) fn clear(&mut self) {
         self.partial.0.fill(0.0);
         self.filled = 0;
