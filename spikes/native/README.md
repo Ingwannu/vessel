@@ -293,6 +293,15 @@ returns `view::alert::Variant`, mapped once by `app::badge::alert_variant`.
 Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
 
 
+`kit/dialog.rs` accepts a clonable close closure so Escape, the scrim and
+the close glyph retain the caller's decision identity. Function-item callers
+keep their existing behavior; stale-decision policy stays with the feature.
+
+`kit/focus.rs` provides one weak, once-per-open return policy for controls.
+`DialogState::dismissed` acknowledges an actual close after the feature's
+pending/stale guards; it preserves a newer focus and clears the old cycle.
+Unadopted unit-close callers keep their prior behavior until they call it.
+
 `kit/dialog.rs` keeps a fitting dialog at its natural size. When its
 content exceeds the card's existing height limit, only the body scrolls;
 the heading and footer actions retain their size and remain reachable.
