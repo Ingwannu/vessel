@@ -47,6 +47,7 @@ pub(crate) fn set_document_guard(guard: DocumentGuard, cx: &mut App) {
 }
 
 /// Editor mutating handlers and editability consult the same app-wide phase.
+#[must_use]
 pub(crate) fn is_finalizing(cx: &App) -> bool {
     cx.try_global::<Documents>()
         .is_some_and(|documents| matches!(documents.phase, Phase::Finalizing))
@@ -71,46 +72,29 @@ pub(crate) fn finish(cx: &mut App) {
     }
 }
 
-/// No writes/discards occur here. The final call must have no subsequent await.
-pub(crate) fn admit(cx: &mut App) -> bool {
-    let Some(guard) = cx
-        .try_global::<Documents>()
-        .map(|documents| documents.guard)
-    else {
-        return true;
-    };
-    let blocked = crate::desktop::shells(cx)
-        .into_iter()
-        .filter_map(|weak| weak.upgrade())
-        .map(|shell| guard(shell.read(cx)))
-        .find(|readiness| *readiness != DocumentReadiness::Ready);
-    let Some(blocked) = blocked else {
-        return true;
-    };
-    crate::desktop::with_focused_shell(cx, |shell, _window, cx| {
-        if admit_shell(shell, cx) {
-            let _refused = report(shell, blocked, cx);
-        }
-    });
-    false
+/// One registered owner reports facts; callers cannot manufacture save success.
+#[must_use]
+pub(crate) fn readiness(shell: &Shell, cx: &App) -> DocumentReadiness {
+    cx.try_global::<Documents>()
+        .map_or(DocumentReadiness::Ready, |documents| {
+            (documents.guard)(shell)
+        })
 }
 
 /// The same owner guards additional-window/macOS close before removal.
+#[must_use]
 pub(crate) fn admit_shell(shell: &mut Shell, cx: &mut gpui::Context<'_, Shell>) -> bool {
-    let readiness = cx
-        .try_global::<Documents>()
-        .map_or(DocumentReadiness::Ready, |documents| {
-            (documents.guard)(shell)
-        });
+    let readiness = readiness(shell, cx);
     report(shell, readiness, cx)
 }
 
-fn report(
+/// Render a shared policy refusal without changing any document.
+pub(crate) fn report(
     shell: &mut Shell,
     readiness: DocumentReadiness,
     cx: &mut gpui::Context<'_, Shell>,
 ) -> bool {
-    let words = shell.words.local_node();
+    let words = shell.words.quit();
     let message = match readiness {
         DocumentReadiness::Ready => return true,
         DocumentReadiness::Dirty => words.documents_dirty(),

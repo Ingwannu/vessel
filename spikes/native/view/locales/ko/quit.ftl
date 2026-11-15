@@ -1,0 +1,6 @@
+# Ordinary quit/update admission; editor retains all unsaved buffers.
+quit-documents-dirty = 종료하거나 다시 시작하기 전에 저장하지 않은 문서를 저장하거나 변경을 취소하세요.
+# Ordinary quit/update admission; original editor write tickets are unsettled.
+quit-documents-pending = 문서 쓰기가 끝난 뒤 다시 시도하세요.
+# Ordinary quit/update admission; failed writes retain their modified buffers.
+quit-documents-failed = 저장하지 못한 문서가 있습니다. 편집기에서 해결한 뒤 종료하거나 다시 시작하세요.

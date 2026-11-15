@@ -78,10 +78,3 @@ local-node-cancel = Cancel
 local-node-confirm-update = Restart Vessel to update?
 # Explicitly authorize interrupting the captured owned node before app-update restart.
 local-node-interrupt-update = Interrupt sessions and restart to update
-
-# Ordinary quit/update admission; editor retains all unsaved buffers.
-local-node-documents-dirty = Save or discard your unsaved documents before quitting or restarting.
-# Ordinary quit/update admission; original editor write tickets are unsettled.
-local-node-documents-pending = Wait for document writes to finish, then try again.
-# Ordinary quit/update admission; failed writes retain their modified buffers.
-local-node-documents-failed = A document could not be saved. Resolve it in the editor before quitting or restarting.

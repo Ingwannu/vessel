@@ -272,3 +272,10 @@ It now uses the ordinary client path alongside session/worktree operations;
 layout's existing handler checks its own captured NodeId. Onboarding's stricter
 control guard remains on project mutations and reused settings controls, and the
 generic pinned-alias replacement fence still applies to every client lookup.
+
+The reusable control-only producer is now app/src/quit.rs plus the canonical
+view::desktop::quit enum and quit.ftl words. It has no desktop-shell/controller
+calls. All-window registry traversal is in local_node/documents.rs, the host
+adapter. C5 can consume the control blobs without importing the provisional E3
+branch; the adapter still uses the one existing desktop registry. The policy and
+callback signatures are unchanged, including direct admit_shell for E3 closes.

@@ -287,7 +287,7 @@ impl Shell {
         );
         let flush = crate::desktop::flush_preferences(cx);
         cx.spawn(async move |this, cx| {
-            if !cx.update(crate::quit::admit) {
+            if !cx.update(crate::local_node::admit_documents) {
                 cx.update(crate::local_node::end_finalization);
                 return;
             }
@@ -314,7 +314,7 @@ impl Shell {
             cx.update(|cx| {
                 // No Shell entity is mutably borrowed during the all-window
                 // guard, and there is no await before spawning the update.
-                if !crate::quit::admit(cx) {
+                if !crate::local_node::admit_documents(cx) {
                     crate::local_node::end_finalization(cx);
                     return;
                 }

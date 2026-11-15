@@ -1,5 +1,8 @@
 //! Process-wide local-node ownership and the asynchronous quit boundary.
 
+mod documents;
+pub(crate) use documents::admit as admit_documents;
+
 use gpui::{App, Global};
 use std::rc::Rc;
 use vessel_app_link::local_node::{Configuration, Confirmation, Controller, ManagerError};
@@ -148,7 +151,7 @@ fn quit(after: Option<AfterQuit>, confirmation: Option<Confirmation>, cx: &mut A
     let before = crate::desktop::flush_preferences(cx);
     cx.spawn(async move |cx| {
         // App-level admission runs after a menu/button's Shell borrow ends.
-        if !cx.update(crate::quit::admit) {
+        if !cx.update(admit_documents) {
             cx.update(end_finalization);
             return;
         }
@@ -164,7 +167,7 @@ fn quit(after: Option<AfterQuit>, confirmation: Option<Confirmation>, cx: &mut A
         match result {
             Ok(()) => match cx.update(|cx| crate::desktop::flush_preferences(cx)).await {
                 Ok(()) => cx.update(|cx| {
-                    if crate::quit::admit(cx) {
+                    if admit_documents(cx) {
                         cx.quit();
                     } else {
                         end_finalization(cx);
