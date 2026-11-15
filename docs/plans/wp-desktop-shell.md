@@ -383,6 +383,23 @@ optimistic live trim or lost-history recovery is claimed.
 
 ## Updates and changelog
 
+Paseo desktop/settings/desktop-settings.ts:9-40 groups release channel, sound,
+managed-daemon and keep-running choices in a separate desktop JSON file. Native
+keeps the existing single private Prefs writer instead: daemon management / after
+quit are W15's local-node policy, sound is W7's notification policy, and channel is
+the signed updater's compile-time preview feed. No unhonored stable/beta choice
+or second settings file is added. W15's Enabled/Stop defaults match the reference;
+the actual node consumer remains a separate pending owner union.
+
+W7 represents independent sound and desktop delivery compositionally through
+Alerts::{Off,System,Sound,SystemAndSound}. Its Sound toggle preserves desktop,
+and Desktop preserves sound, both through the existing PreferenceChange::Alerts
+and canonical writer. W7 owns the approved missing/new SystemAndSound default;
+explicit stored modes are retained. That unannounced receiving source is not
+copied into E3 here. Native visual notifications suppress their own sound and
+use Window::play_system_bell for the separate sound channel; W7's private D-Bus
+probe confirms the hint, not actual audibility or OS permission/delivery success.
+
 The app starts exactly one existing updater before its first window. Each window
 uses a fresh watch receiver; closing the first window cannot stop updates. Focus
 checks respect automatic-update preference. Keep the signed preview feed, key,
