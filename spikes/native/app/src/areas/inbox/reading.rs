@@ -86,8 +86,9 @@ impl Shell {
             },
             read: if self
                 .inbox_session_attention(source.name().as_str(), open.session)
-                .map_or(info.marks.unread, |attention| attention.unread.get() != 0)
-            {
+                .map_or(info.marks.unread, |attention| {
+                    attention.explicit_unread || attention.unread.get() != 0
+                }) {
                 vessel_app_view::inbox::Read::Unread
             } else {
                 vessel_app_view::inbox::Read::Read

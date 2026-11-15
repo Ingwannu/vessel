@@ -390,3 +390,9 @@ the same read transaction as the counts. These small carrier adaptations match
 the node tree; no whole node branch/runtime merge, wire registration, protocol
 number, recipient capability or new authority is introduced. Root build/tests
 on this app tree remain owed and cannot be inferred from native checks.
+
+Passive read observation also preserves explicit_unread independently of Inbox
+counts, matching the sidebar. An empty/pruned Inbox with a deliberate unread
+mark must still enter the existing deferred read policy and whole-session Read
+transaction; exact-entry Seen never clears that flag. This fixes the remaining
+app observation that checked only the count. Native union checks remain owed.
