@@ -28,7 +28,13 @@ mod linux {
         assert!(!paths.iter().any(|path| path.to_string() == "ignored"));
         let archive = archive(&sandbox);
         let root = Root::open(&dir).unwrap();
-        let captured = capture::image(&root, &archive, &paths).unwrap();
+        let captured = capture::image(
+            &root,
+            &archive,
+            &paths,
+            &tokio_util::sync::CancellationToken::new(),
+        )
+        .unwrap();
         let state = captured
             .entries()
             .iter()
@@ -39,7 +45,13 @@ mod linux {
         };
         assert_eq!(bytes.get(), u64::try_from(b"dirty\0binary".len()).unwrap());
         assert_eq!(fs::read(archive.path(digest)).unwrap(), b"dirty\0binary");
-        let second = capture::image(&root, &archive, &paths).unwrap();
+        let second = capture::image(
+            &root,
+            &archive,
+            &paths,
+            &tokio_util::sync::CancellationToken::new(),
+        )
+        .unwrap();
         assert_eq!(captured, second);
     }
     #[tokio::test]
@@ -49,7 +61,13 @@ mod linux {
         let git = sandbox.git().await;
         fs::remove_file(dir.join("README.md")).unwrap();
         let paths = enumeration::paths(&git, &dir).await.unwrap();
-        let image = capture::image(&Root::open(&dir).unwrap(), &archive(&sandbox), &paths).unwrap();
+        let image = capture::image(
+            &Root::open(&dir).unwrap(),
+            &archive(&sandbox),
+            &paths,
+            &tokio_util::sync::CancellationToken::new(),
+        )
+        .unwrap();
         assert_eq!(image.entries().first().unwrap().state, FileState::Absent);
     }
     #[tokio::test]

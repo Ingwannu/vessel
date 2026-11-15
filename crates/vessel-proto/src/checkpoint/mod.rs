@@ -4,6 +4,7 @@
 //! integration assigns a protocol. Conversation rewind is never a fallback.
 
 mod bounds;
+mod changes;
 mod image;
 mod metadata;
 mod state;
@@ -16,6 +17,7 @@ pub use bounds::{
     CHECKPOINT_QUEUE, CHECKPOINT_RESTORE_DEADLINE, CHECKPOINT_WORKERS, CHECKPOINTS_PER_SESSION,
     CheckpointPath, FileBytes, ImageBytes, PathCount,
 };
+pub use changes::{Change, ChangeKind};
 pub use image::{EffectiveDesiredImage, Entry, FileImage, FileState};
 pub use metadata::{FileMetadata, GroupId, OrdinaryMode, OwnerId};
 pub use state::{Boundary, CaptureGeneration, CaptureKey, CheckpointError, RestoreOutcome};

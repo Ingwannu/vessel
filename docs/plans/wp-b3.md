@@ -67,7 +67,19 @@ workspace/checkpoint named ignored filesystem proof obligations. Service,
 store and session mechanisms remain `cfg(test)` (A10). Existing crate edges
 are unchanged. Ignored tests represent missing behavior, never a pass.
 
-Next: narrow skeleton compile/clippy and behavior tests, then implement private
-capture storage, durable journal/idempotency and asynchronous worker seams.
+Current staged implementation also contains real SQLite candidate/plan/restore
+admission and idempotency operations, strict Git path enumeration, Linux
+handle-relative private raw blobs, aggregate streaming budgets, canonical
+image fingerprints, effective-target change classification and asynchronous
+capture deadline/publication/cleanup seams. Scope is still staged: there is
+no registered RPC, service auth path or real prompt-boundary wiring.
+
+Narrow checks so far found and prompted fixes to serde macro attributes,
+public error documentation and a migration-fixture item placement. No green
+compiled gate or runtime pass is claimed yet. Filtered tests are queued.
+Next: obtain narrow green; fill durable publication activation/recovery and
+per-file journal restore/rollback, real session/workspace exclusion, bounded
+preview pagination/quota/retention and service authorization. Replace remaining
+ignored proof obligations only when the corresponding behavior exists.
 The app stays untouched until the shared app base is announced. Runtime
 permissions, held I/O and crash proof remain owed.

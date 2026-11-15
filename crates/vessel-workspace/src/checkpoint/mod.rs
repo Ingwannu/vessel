@@ -8,6 +8,7 @@ mod archive;
 #[cfg(target_os = "linux")]
 mod capture;
 mod enumeration;
+mod fingerprint;
 #[cfg(target_os = "linux")]
 mod rooted;
 

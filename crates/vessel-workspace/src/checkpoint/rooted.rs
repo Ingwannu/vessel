@@ -31,6 +31,9 @@ pub(super) struct Identity {
     modified: (i64, i64),
     changed: (i64, i64),
     mode: u32,
+    owner: u32,
+    group: u32,
+    links: u64,
 }
 impl Identity {
     pub(super) fn of(metadata: &Metadata) -> Self {
@@ -41,6 +44,9 @@ impl Identity {
             modified: (metadata.mtime(), metadata.mtime_nsec()),
             changed: (metadata.ctime(), metadata.ctime_nsec()),
             mode: metadata.mode(),
+            owner: metadata.uid(),
+            group: metadata.gid(),
+            links: metadata.nlink(),
         }
     }
 }
@@ -48,6 +54,7 @@ impl Identity {
 pub(super) struct Root {
     file: File,
     identity: Identity,
+    path: std::path::PathBuf,
 }
 impl Root {
     pub(super) fn open(path: &Path) -> Result<Self, Error> {
@@ -58,7 +65,15 @@ impl Root {
         Ok(Self {
             identity: Identity::of(&metadata),
             file,
+            path: path.to_path_buf(),
         })
+    }
+    pub(super) fn revalidate(&self) -> Result<(), Error> {
+        let current = Self::open(&self.path)?;
+        if current.identity != self.identity {
+            return Err(CheckpointError::CaptureUnstable.into());
+        }
+        Ok(())
     }
     pub(super) fn file(&self, path: &CheckpointPath) -> Result<Option<File>, Error> {
         let mut parent = self.file.try_clone()?;
@@ -112,7 +127,7 @@ pub(super) fn metadata(file: &File) -> Result<FileMetadata, Error> {
     })
 }
 /// Replacing a file cannot preserve ACL/xattr semantics; never silently drop them.
-fn refuse_attributes(file: &File) -> Result<(), Error> {
+pub(super) fn refuse_attributes(file: &File) -> Result<(), Error> {
     let mut names = [0_u8; ATTRIBUTE_NAMES_BYTES];
     match rustix::fs::flistxattr(file, &mut names[..]) {
         Ok(0) => Ok(()),

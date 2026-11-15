@@ -13,8 +13,9 @@ use vessel_store::StoreConfig;
 )]
 mod fixtures;
 
-// Roll back checkpoint tables and then title origin on this base.
-const MIGRATIONS_REMOVED: i64 = 2;
+// The rollback targets title origin's actual predecessor even after later appends.
+#[path = "../src/schema/migrations.rs"]
+mod migrations;
 
 #[tokio::test]
 async fn origins_follow_renames_and_survive_reopening() {
@@ -108,9 +109,6 @@ async fn pre_origin_schema_titles_are_unknown_including_explicit_ones() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    let latest: i64 = connection
-        .pragma_query_value(None, "user_version", |row| row.get(0))
-        .unwrap();
     connection
         .execute_batch("DROP TABLE checkpoint_paths; DROP TABLE checkpoint_restores; DROP TABLE checkpoint_plans; DROP TABLE checkpoint_captures; ALTER TABLE sessions DROP COLUMN title_origin;")
         .unwrap();
@@ -118,7 +116,7 @@ async fn pre_origin_schema_titles_are_unknown_including_explicit_ones() {
         .pragma_update(
             None,
             "user_version",
-            latest.checked_sub(MIGRATIONS_REMOVED).unwrap(),
+            i64::try_from(migrations::TITLE_ORIGIN_SCHEMA.saturating_sub(1)).unwrap(),
         )
         .unwrap();
     drop(connection);
