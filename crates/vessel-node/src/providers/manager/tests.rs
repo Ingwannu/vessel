@@ -124,7 +124,7 @@ async fn prepared_product_owners_stop_under_the_node_task_tracker_with_retained_
     let registrations = manager.registrations();
     let id: ProviderId = "claude".parse().unwrap();
     assert!(matches!(
-        let _ = registrations
+        registrations
             .cached(id.clone(), CatalogueScope::Global)
             .await
             .unwrap()
