@@ -113,7 +113,9 @@ mod tests {
             .glyph()
         {
             Glyph::Scalar(ch) => ch,
-            other => panic!("expected a row label: {other:?}"),
+            other @ (Glyph::Empty | Glyph::Continuation) => {
+                panic!("expected a row label: {other:?}");
+            }
         }
     }
 

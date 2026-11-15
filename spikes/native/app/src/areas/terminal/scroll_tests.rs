@@ -133,7 +133,7 @@ fn replay_keeps_pointer_and_touch_intent_in_both_directions(cx: &mut TestAppCont
         });
         cx.run_until_parked();
         shell.read_with(cx, |shell, cx| {
-            assert!(words(shell, cx).contains("row-000"))
+            assert!(words(shell, cx).contains("row-000"));
         });
         shell.update(cx, |shell, cx| {
             shell
