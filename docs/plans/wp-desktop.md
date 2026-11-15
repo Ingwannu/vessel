@@ -246,11 +246,16 @@ remains unverified.
 | currentd2f477b2 / link-current145243 | strict RED at Link: obsolete test State field, needless context borrow, let-and-return; App not reached |
 | current754056bb / link-current151900 | strict RED: Link test lints; App flush callback type and missing command-forward arm, fixture qualification; corrected source follows |
 | current1d08f88e / link-current155530 | strict RED at App: three formatting/closure lints and a test-only Reach import; corrected source follows |
+| rebuilt rootef01b4d4 / wp-desktop-node-portable-20261115T162337Z-ef01b4d4 | strict all-target Clippy0 for Proc/local-node/node/Store/Proto/testkit; runtime and later broken-pipe regression remain separate |
 
 Root docs-only095f38c23 records the approved integration-test dev edge; prepared
 3d2128ae5 adds real Keep→Attached authority regression. Those additions do not
-borrow runtime proof from root54. The root must be rebuilt on an announced head
-containing portable b37 checked-wait, not land the earlier 622 ancestry.
+borrow runtime proof from root54. The independent root implementation is now
+rebuilt directly on announced9c150c6e with portable b37 checked-wait and no old622
+ancestry. Its frozen combined source4cb3581b adds the legacy broken-pipe
+regression; the updated whole gate and V3 implementation approval remain owed.
+This app has merged announced82ca07a7. It must receive the reviewed controller
+through an announced app base, rather than merge the root branch directly.
 
 The desktop-shell source552 receipt packet, later b0cef test-only portable
 waiter, source15ffa serial geometry checkpoint fix and the bounded ec90 initial
@@ -262,7 +267,10 @@ owner-held trees rather than keeping another cache or copying layout policy.
 The writer fix retains newer accepted geometry when an older captured flush is
 enqueued late, including after debounce; explicit Final still forces its supplied
 snapshot and closes before acknowledgement. The immediate App currentness fence
-remains mandatory. Its deterministic late-enqueue regression is not yet executed. Existing merge/layout behavior and this
+remains mandatory. The desktop owner executed the producer's late-enqueue,
+receipt and initial-subscription cases in sourceec90 (1420/0/2 across its four
+crates); that result does not qualify this package's real lifecycle consumer or
+its later union. Existing merge/layout behavior and this
 package's own fields remain intact. The wait fixture does not pump GPUI foreground
 observers, preserving its receipt-before-observe race. Only tests starting the
 real foreground preference watch permit scheduler parking for external writer
