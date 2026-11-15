@@ -267,3 +267,39 @@ node cancellation, abort failure, restore failure and project-wide writer/cache
 invalidation. Fake commands use the existing testkit executable helper. These
 are required tests, not executed claims. No merge RPC, method row, protocol
 assignment or successful merge implementation is added by this amendment.
+
+## Purpose-specific text units and prompt boundaries
+
+Source rechecked: `packages/server/src/server/session/checkout/git-metadata-generator.ts`
+(commit schema63–71, patch budgets81–82, caller139–187 and truncation247–252),
+plus `utils/build-metadata-prompt.ts` (style replacement and fixed contract).
+These are planned caller constraints, not an implemented generation service.
+
+- The72 message/title schema limit is JavaScript UTF-16 code units. It is not
+ 72 Unicode scalar values, graphemes or bytes:36 supplementary characters fit,
+ 37 do not. Root callers validate the generated value against the typed native
+ message/title too. A schema correction counts as another model attempt, never
+ an HTTP retry; title generation remains private and one attempt.
+- Patch budgets are120000 UTF-16 units for commit text and200000 for PR text.
+ They must not accidentally inherit the title producer's smaller scalar input
+ budget. The ONE Models owner will supply purpose-specific workspace budgets.
+ Root callers still bound file-list/style overhead and retain truncation facts;
+ a patch cap alone is not a bound on the entire prompt or its token count.
+- Rust strings cannot retain an unpaired UTF-16 surrogate created by JS slice.
+ If a patch boundary bisects a supplementary character, native preparation
+ stops before that character, at most one unit short; it never corrupts UTF-8.
+ This is a deliberate representation difference, not byte-exact JS slicing.
+- An allowed nonblank project style replaces the default style wholesale. It
+ never replaces the fixed purpose contract, JSON shape, root/path admission or
+ safety rules. Generated values carry wording only, never command/root authority.
+- No second provider/key stack, borrowed/fake session, private title caller or
+ fallback-only parity. GKS confirms the workspace service/API is still pending;
+ G1 owns bounded original diff/style input, schema and72-unit validation and
+ root/write revalidation only after the checked seam exists. No paid provider,
+ real agent, runtime call, protocol assignment or generation test is claimed.
+
+Required future fixtures include BMP/supplementary boundaries at72 units,
+120000/200000 patch boundaries with a supplementary character, style replacement
+versus default (fixed contract preserved), initial plus two schema corrections
+per candidate, provider fallback versus HTTP retry, and original-root/cancel/
+usage settlement. These obligations do not relabel title-service results.
