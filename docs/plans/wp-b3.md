@@ -48,3 +48,20 @@ No product edits, merge, runtime test, fake fleet, capture or compiled gate.
 Next: central owners assign baseline, implementation, schema and protocol
 integration. Contract acceptance does not assign that work or prove runtime
 capability; no package UI or node implementation starts before that sequence.
+
+## Current producer/consumer boundary
+
+The app tree has consumed package base 6 (18eedad4) through its own line merge.
+The node producer remains on its separate checkpoint branch. Its latest source
+includes physical admission for ordinary writers and retained startup/lifecycle
+operations, actor pause and turn hooks, and pending checkpoint metadata. These
+are source changes under validation, not a reviewed runtime capability. The
+FILE_CHECKPOINTS protocol requirement remains None and no checkpoint UI has been
+implemented or captured in this app tree.
+
+The app will consume the reviewed node contract through the package line, using
+Machine.node and the shared pane/dialog/preflight APIs already on this base.
+Remaining app work is per-turn marks, all-page changed-file confirmation, typed
+busy/stale/limit outcomes, verified result presentation and durable reconnect
+status. No local Rust compilation is used; the base's native gate is baseline
+evidence only and does not validate this unfinished checkpoint package.
