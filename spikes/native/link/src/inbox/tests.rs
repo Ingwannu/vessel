@@ -227,3 +227,21 @@ async fn stale_answer_is_never_sent_and_remote_text_is_not_exposed() {
         Content::Finished
     ));
 }
+
+#[tokio::test]
+async fn terminal_actions_on_an_older_peer_never_send_a_wire_call() {
+    let peer =
+        peer::connect(|_call| panic!("a pending/newer terminal method reached an old peer")).await;
+    let terminal = vessel_proto::TerminalId::random();
+    let revision = vessel_proto::notifications::TerminalAttentionRevision::new(1);
+    for action in [
+        super::terminals::Action::Claim { terminal, revision },
+        super::terminals::Action::Clear { terminal, revision },
+    ] {
+        assert!(matches!(
+            action.run(&peer.client).await,
+            Err(Problem::Refused(ErrorCode::Unsupported))
+        ));
+    }
+    assert_eq!(super::terminals::list(&peer.client).await.unwrap(), None);
+}
