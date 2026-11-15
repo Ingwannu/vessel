@@ -19,6 +19,7 @@ mod inbox;
 mod log;
 mod node;
 mod nodes;
+pub(crate) mod parity;
 mod search;
 mod terminals;
 mod usage;
@@ -44,6 +45,8 @@ pub(crate) use workspace::{ProjectCommand, WorktreeCommand};
 #[derive(Debug, Parser)]
 #[command(name = "vessel", version, about)]
 pub(crate) struct Cli {
+    #[command(flatten)]
+    pub(crate) output: parity::OutputOptions,
     #[command(flatten)]
     pub(crate) target: Target,
     #[command(subcommand)]
