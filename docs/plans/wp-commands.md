@@ -522,3 +522,11 @@ compatibility migration and other View tests passed in this immutable run.
 This is NOT a full green View result and excludes later source; current fixed
 model and App/Kit GPUI changes still require execution. Composition extraction
 lowers field.rs allowance635→587; no file budget is raised.
+
+
+Git contribution fingerprints and activation now use the shared MenuItem
+selectable() query, not only disabled: Pending/Success rows can be nonselectable
+without setting disabled. Activation rereads that same owner-provided item and
+then delegates run_git_command; no availability policy or RPC is copied. This
+is UI admission only, not physical connection before-poll/post-await fencing;
+G1's checked isolated connection-admission correction remains pending.

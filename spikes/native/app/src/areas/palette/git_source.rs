@@ -28,7 +28,7 @@ struct Signature {
 struct Entry {
     action: MenuEntry,
     title: String,
-    disabled: bool,
+    selectable: bool,
 }
 #[derive(Default)]
 pub(super) struct State {
@@ -90,7 +90,7 @@ fn signature(shell: &Shell) -> Option<Signature> {
             Some(Entry {
                 action,
                 title: item.label.to_string(),
-                disabled: item.disabled,
+                selectable: item.selectable(),
             })
         })
         .collect();
@@ -103,7 +103,7 @@ fn signature(shell: &Shell) -> Option<Signature> {
 
 fn contributions(signature: &Signature) -> Result<Vec<Contribution<Command>>, RegistrationError> {
     signature.entries.iter().enumerate().map(|(at, entry)| {
-        let promoted = matches!(&entry.action, MenuEntry::Git(row) if signature.primary == Some(row.action) && row.unavailable.is_none()) && !entry.disabled;
+        let promoted = matches!(&entry.action, MenuEntry::Git(row) if signature.primary == Some(row.action) && row.unavailable.is_none()) && entry.selectable;
         let at = i16::try_from(at).map_err(|_overflow| RegistrationError::InvalidId)?;
         let rank = if promoted { 1 } else { SECONDARY_START.checked_add(at).ok_or(RegistrationError::InvalidId)? };
         let target = signature.target.clone();
@@ -113,7 +113,10 @@ fn contributions(signature: &Signature) -> Result<Vec<Contribution<Command>>, Re
             section_title: None, rank: Rank::new(rank), keywords: vec![identity(&entry.action).to_owned(), "git".to_owned()],
             visibility: if promoted { Visibility::Always } else { Visibility::Query },
             presentation: Presentation::Action { title: entry.title.clone(), subtitle: None },
-            target: Command::callback(Some(glyph(&entry.action)), None, move |shell, window, cx| shell.run_git_command(&target, &action, window, cx)),
+            target: Command::callback(Some(glyph(&entry.action)), None, move |shell, window, cx| {
+                shell.git_command_item(&action).is_some_and(|item| item.selectable())
+                    && shell.run_git_command(&target, &action, window, cx)
+            }),
         })
     }).collect()
 }
