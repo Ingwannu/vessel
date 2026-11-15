@@ -6,8 +6,8 @@ use std::rc::Rc;
 use vessel_app_kit::menu::{MenuHandlers, MenuItem, menu};
 use vessel_app_kit::theme::spacing::S1;
 use vessel_app_kit::ui::{
-    AnyElement, Context, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
+    Styled as _, Window, div, px,
 };
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, button_with_kind};
 use vessel_app_view::shortcuts::desktop::DesktopAction;

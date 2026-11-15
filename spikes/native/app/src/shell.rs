@@ -100,7 +100,7 @@ impl Shell {
             updates: crate::update_words::UpdateUi::new(words),
             sidebar_sheet: None,
         };
-        crate::areas::desktop::start(&mut shell, window, cx);
+        areas::desktop::start(&mut shell, window, cx);
         #[cfg(not(target_arch = "wasm32"))]
         areas::local_node::start(&mut shell, window, cx);
         crate::update::start(&mut shell, cx);
@@ -116,7 +116,7 @@ impl Shell {
     /// answer would reach (`crate::unsent`: callers that set what waits
     /// after sending settle too).
     pub(crate) fn command(&self, command: Command) {
-        let taken = match crate::areas::desktop::preferences::submit(self, command) {
+        let taken = match areas::desktop::preferences::submit(self, command) {
             Ok(None) => return,
             Err(unsent) => Err(unsent),
             Ok(Some(command)) => match &self.link {
@@ -137,7 +137,7 @@ impl Shell {
     /// app's words. Without a link at all, the foot keeps saying why the
     /// link did not start.
     pub(crate) fn unsent(&mut self, unsent: vessel_app_link::Unsent, cx: &mut Context<'_, Self>) {
-        crate::areas::desktop::preferences::refused(self, &unsent);
+        areas::desktop::preferences::refused(self, &unsent);
         tracing::warn!(why = %unsent.why, "the link did not take a command");
         let words = self.t.unsent;
         match crate::unsent::settle(unsent, words) {
@@ -301,7 +301,7 @@ impl Render for Shell {
         if std::mem::take(&mut self.arrive_pending) {
             routes::arrive(self.route, self, window, cx);
         }
-        crate::areas::desktop::pending(self, window, cx);
+        areas::desktop::pending(self, window, cx);
         self.settle_settings(window);
         areas::onboarding::prepare(self, window, cx);
         areas::local_node::prepare(self, window, cx);

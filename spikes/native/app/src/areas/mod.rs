@@ -18,10 +18,10 @@ pub(crate) mod desktop;
 pub(crate) mod draft;
 pub(crate) mod edge;
 pub(crate) mod git;
+pub(crate) mod layout;
 #[cfg_attr(target_arch = "wasm32", path = "local_node_off.rs")]
 pub(crate) mod local_node;
 pub(crate) mod onboarding;
-pub(crate) mod layout;
 pub(crate) mod pair;
 pub(crate) mod palette;
 pub(crate) mod pulls;

@@ -42,7 +42,7 @@ use vessel_app_kit::ui::{
     div, px,
 };
 use vessel_app_kit::{
-    ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button, button_with_kind, glyph, markdown,
+    ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button, button_with_kind, glyph,
     outline_button, settings,
 };
 
