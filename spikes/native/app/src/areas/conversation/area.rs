@@ -214,7 +214,7 @@ impl ConversationArea {
             live: Live::default(),
             reveal: None,
             outline: Vec::new(),
-            outline_pointer: outline::Pointer::default(),
+            outline_pointer: outline::Pointer::new(cx),
             find: None,
             find_cache: FindCache::default(),
             bench: bench::Bench::default(),
@@ -279,7 +279,7 @@ impl ConversationArea {
         self.plan_folded = false;
         self.live = Live::default();
         self.reveal = None;
-        self.outline_pointer = outline::Pointer::default();
+        self.outline_pointer.clear();
     }
 
     /// Bring record `seq` into view (the inbox opening a session at the

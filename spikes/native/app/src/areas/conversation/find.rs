@@ -30,17 +30,19 @@
 //!   holds no mark.
 
 use std::hash::{DefaultHasher, Hash as _, Hasher as _};
+use std::rc::Rc;
 use std::time::Duration;
 
 use gpui::FocusHandle;
 use vessel_app_kit::ui::{Context, Pixels, Window, px};
 use vessel_app_kit::{Reveal, TextField, VirtualList};
-use vessel_app_view::timeline::{Finder, MAX_QUERY, Match, start_at, step};
+use vessel_app_view::timeline::{FindFailure, FindPhase, Finder, MAX_QUERY, Match, start_at, step};
 use vessel_proto::EventSeq;
 
 use crate::shell::Shell;
 
 mod bar;
+mod status;
 
 pub(super) use bar::bar;
 
@@ -56,10 +58,15 @@ const CLEAR: f32 = 56.0;
 /// The pause between two slices of a search: long enough for a frame to
 /// be drawn between them.
 const BETWEEN_STEPS: Duration = Duration::from_millis(1);
+/// Paseo waits for typing to settle before beginning its timeline search.
+const DEBOUNCE: Duration = Duration::from_millis(120);
+/// A search hit must arrive in the followed log within Paseo's reveal deadline.
+const REVEAL_DEADLINE: Duration = Duration::from_millis(5_000);
 
 /// The find bar, while it is open.
 pub(crate) struct FindBar {
     field: TextField,
+    phase: FindPhase,
     /// Closing returns the keys to the surface that opened find.
     prior: Option<FocusHandle>,
     query: String,
@@ -71,8 +78,8 @@ pub(crate) struct FindBar {
     /// screen reader, as the page says it (not drawn, as the page does
     /// not show it either); the screen-reader buffer will read it.
     pub(crate) said: Option<&'static str>,
-    /// Bumped by every new search: an older one stops at its next step.
-    generation: u64,
+    /// Identity survives neither an edit nor a close/reopen (no counter ABA).
+    generation: Rc<()>,
     /// Whether the search under way is a refresh of the same query.
     refreshing: bool,
     /// Whether the session grew again during a refresh.
@@ -83,6 +90,7 @@ pub(crate) struct FindBar {
     /// matched message"): the record it starts at, until the search has
     /// read that far and made the first match there current.
     at: Option<EventSeq>,
+    target: Rc<()>,
 }
 
 /// What find marks on screen: its query, and the current match.
@@ -121,7 +129,7 @@ impl FindBar {
         list: &'a VirtualList,
         narrow: bool,
     ) -> Option<Marking<'a>> {
-        (self.finder.is_none() && !self.matches.is_empty()).then(|| Marking {
+        (self.phase.ready() && !self.matches.is_empty()).then(|| Marking {
             query: &self.query,
             current: self.matches.get(self.index).copied(),
             list,
@@ -183,17 +191,19 @@ impl Shell {
         field.focus(window, cx);
         self.areas.conversation.find = Some(FindBar {
             field,
+            phase: FindPhase::Idle,
             prior,
             query: String::new(),
             finder: None,
             matches: Vec::new(),
             index: 0,
             said: None,
-            generation: 0,
+            generation: Rc::new(()),
             refreshing: false,
             again: false,
             keep: None,
             at: None,
+            target: Rc::new(()),
         });
         cx.notify();
     }
@@ -212,9 +222,13 @@ impl Shell {
         let Some(bar) = self.areas.conversation.find.as_mut() else {
             return;
         };
-        bar.at = Some(at);
+        let unchanged = bar.query == query;
         bar.field.set_text(query, window, cx);
         self.find_changed(query.to_owned(), cx);
+        if unchanged {
+            self.start_search(false, cx);
+        }
+        self.find_target(at, cx);
     }
 
     /// Close the bar.
@@ -226,6 +240,19 @@ impl Shell {
                 window.blur(cx);
             }
             cx.notify();
+        }
+    }
+
+    /// A panel deactivation ends find before the destination takes focus.
+    pub(crate) fn conversation_arrived(
+        &mut self,
+        route: crate::routes::Route,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if route != crate::routes::Route::Session {
+            self.close_find(window, cx);
+            self.areas.conversation.outline_pointer.leave();
         }
     }
 
@@ -246,6 +273,8 @@ impl Shell {
             return;
         }
         bar.query = query;
+        bar.at = None;
+        bar.target = Rc::new(());
         bar.matches.clear();
         bar.index = 0;
         bar.said = None;
@@ -261,6 +290,9 @@ impl Shell {
             return;
         };
         if bar.query.trim().is_empty() {
+            return;
+        }
+        if matches!(bar.phase, FindPhase::Failed(_)) {
             return;
         }
         if bar.finder.is_some() {
@@ -279,16 +311,24 @@ impl Shell {
             return;
         };
         bar.finder = Some(Finder::new(&bar.query));
+        bar.phase = if bar.query.trim().is_empty() {
+            FindPhase::Idle
+        } else {
+            FindPhase::Searching
+        };
         bar.refreshing = refresh;
         bar.again = false;
         bar.keep = refresh
             .then(|| bar.matches.get(bar.index).copied())
             .flatten();
-        bar.generation = bar.generation.wrapping_add(1);
-        let generation = bar.generation;
+        bar.generation = Rc::new(());
+        let generation = Rc::clone(&bar.generation);
         cx.spawn(async move |this, cx| {
+            if !refresh {
+                cx.background_executor().timer(DEBOUNCE).await;
+            }
             loop {
-                let Ok(done) = this.update(cx, |shell, cx| shell.find_step(generation, cx)) else {
+                let Ok(done) = this.update(cx, |shell, cx| shell.find_step(&generation, cx)) else {
                     break;
                 };
                 if done {
@@ -302,12 +342,12 @@ impl Shell {
 
     /// One slice of the search for `generation`; whether it is over (done,
     /// or overtaken by a newer query, or the bar closed).
-    fn find_step(&mut self, generation: u64, cx: &mut Context<'_, Self>) -> bool {
+    fn find_step(&mut self, generation: &Rc<()>, cx: &mut Context<'_, Self>) -> bool {
         let area = &mut self.areas.conversation;
         let Some(bar) = area.find.as_mut() else {
             return true;
         };
-        if bar.generation != generation {
+        if !Rc::ptr_eq(&bar.generation, generation) {
             return true;
         }
         let Some(finder) = bar.finder.as_mut() else {
@@ -319,6 +359,11 @@ impl Shell {
         // What a rewind left behind is not drawn, so find skips it.
         matches.retain(|found| !area.timeline.rewound(found.entry));
         bar.finder = None;
+        bar.phase = if bar.query.trim().is_empty() {
+            FindPhase::Idle
+        } else {
+            FindPhase::Ready
+        };
         let start = bar
             .at
             .and_then(|at| start_at(area.timeline.entries(), area.timeline.next(), &matches, at));
@@ -348,7 +393,16 @@ impl Shell {
             if bar.at.is_none() || start.is_some() {
                 bar.at = None;
                 self.find_reveal(cx);
+            } else if let Some(bar) = self.areas.conversation.find.as_mut() {
+                bar.phase = FindPhase::Loading;
             }
+        }
+        if let Some(bar) = self.areas.conversation.find.as_mut()
+            && bar.at.is_some()
+            && bar.finder.is_none()
+            && bar.phase.ready()
+        {
+            bar.phase = FindPhase::Loading;
         }
         cx.notify();
         true
@@ -360,7 +414,7 @@ impl Shell {
         let Some(bar) = self.areas.conversation.find.as_mut() else {
             return;
         };
-        if bar.finder.is_some() || bar.matches.is_empty() {
+        if !bar.phase.ready() || bar.matches.is_empty() {
             return;
         }
         let stepped = step(bar.matches.len(), bar.index, forward);
@@ -394,6 +448,8 @@ impl Shell {
         let area = &self.areas.conversation;
         if let Some(row) = area.rows.row_index(found, area.folds.as_ref(), &area.logs) {
             area.list.reveal(area.at(row), Reveal::Nearest);
+        } else {
+            self.find_failed(FindFailure::Reveal);
         }
     }
 }

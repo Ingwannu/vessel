@@ -119,7 +119,7 @@ fn escape_returns_the_keys_to_the_composer_that_opened_find(cx: &mut gpui::TestA
                     .focus_handle(cx)
                     .is_focused(window)
             );
-        })
+        });
     });
     cx.run_until_parked();
     cx.simulate_keystrokes("escape");
@@ -135,6 +135,161 @@ fn escape_returns_the_keys_to_the_composer_that_opened_find(cx: &mut gpui::TestA
                     .focus_handle(cx)
                     .is_focused(window)
             );
-        })
+        });
+    });
+}
+
+#[gpui::test]
+fn a_cancelled_search_cannot_run_against_a_reopened_bar(cx: &mut gpui::TestAppContext) {
+    use gpui::AppContext as _;
+    language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(|window, cx| FocusProbe {
+        shell: cx.new(|cx| Shell::without_io(window, cx)),
+    });
+    probe.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            shell.open_find(window, cx);
+            shell.find_changed("old query".to_owned(), cx);
+            let old =
+                std::rc::Rc::clone(&shell.areas.conversation.find.as_ref().unwrap().generation);
+            shell.close_find(window, cx);
+            shell.open_find(window, cx);
+            shell.find_changed("new query".to_owned(), cx);
+            assert!(
+                shell.find_step(&old, cx),
+                "the old task must stop immediately"
+            );
+            let new = shell.areas.conversation.find.as_ref().unwrap();
+            assert_eq!(new.query, "new query");
+            assert!(
+                new.finder.is_some(),
+                "the old task did not finish the new search"
+            );
+            crate::routes::arrive(crate::routes::Route::Board, shell, window, cx);
+            assert!(
+                shell.areas.conversation.find.is_none(),
+                "deactivation closes find"
+            );
+        });
+    });
+    cx.run_until_parked();
+}
+
+#[gpui::test]
+fn history_and_connection_failures_disable_navigation_until_retry_or_edit(
+    cx: &mut gpui::TestAppContext,
+) {
+    use gpui::AppContext as _;
+    use vessel_app_view::timeline::{FindFailure, FindPhase};
+    language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(|window, cx| FocusProbe {
+        shell: cx.new(|cx| Shell::without_io(window, cx)),
+    });
+    probe.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            shell.open_find(window, cx);
+            shell.find_changed("needle".to_owned(), cx);
+            shell.find_failed(FindFailure::HistoryChanged);
+            shell.find_grew(cx);
+            assert_eq!(
+                shell.areas.conversation.find.as_ref().unwrap().phase,
+                FindPhase::Failed(FindFailure::HistoryChanged)
+            );
+            assert!(
+                shell
+                    .areas
+                    .conversation
+                    .find
+                    .as_ref()
+                    .unwrap()
+                    .finder
+                    .is_none()
+            );
+            shell.find_retry(window, cx);
+            assert_eq!(
+                shell.areas.conversation.find.as_ref().unwrap().phase,
+                FindPhase::Searching
+            );
+            shell.find_failed(FindFailure::Connection);
+            shell.find_changed("replacement".to_owned(), cx);
+            assert_eq!(
+                shell.areas.conversation.find.as_ref().unwrap().phase,
+                FindPhase::Searching
+            );
+            shell.find_changed(String::new(), cx);
+            assert_eq!(
+                shell.areas.conversation.find.as_ref().unwrap().phase,
+                FindPhase::Idle
+            );
+        });
+    });
+    cx.run_until_parked();
+}
+
+#[gpui::test]
+fn a_missing_destination_loads_then_fails_and_a_closed_target_cannot_fail_a_new_bar(
+    cx: &mut gpui::TestAppContext,
+) {
+    use gpui::AppContext as _;
+    use vessel_app_view::timeline::{FindFailure, FindPhase};
+    language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(|window, cx| {
+        let shell = cx.new(|cx| Shell::without_io(window, cx));
+        cx.observe(&shell, |_probe, _shell, cx| cx.notify())
+            .detach();
+        FocusProbe { shell }
+    });
+    probe.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            shell.find_at("needle", vessel_proto::EventSeq::new(10), window, cx)
+        });
+    });
+    cx.run_until_parked();
+    cx.executor().advance_clock(super::DEBOUNCE);
+    cx.run_until_parked();
+    probe.update(cx, |probe, cx| {
+        assert_eq!(
+            probe
+                .shell
+                .read(cx)
+                .areas
+                .conversation
+                .find
+                .as_ref()
+                .unwrap()
+                .phase,
+            FindPhase::Loading
+        );
+    });
+    cx.executor().advance_clock(super::REVEAL_DEADLINE);
+    cx.run_until_parked();
+    probe.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            assert_eq!(
+                shell.areas.conversation.find.as_ref().unwrap().phase,
+                FindPhase::Failed(FindFailure::Reveal)
+            );
+            shell.find_at("needle", vessel_proto::EventSeq::new(20), window, cx);
+            shell.close_find(window, cx);
+            shell.open_find(window, cx);
+            shell.find_changed("new".to_owned(), cx);
+        });
+    });
+    cx.run_until_parked();
+    cx.executor().advance_clock(super::REVEAL_DEADLINE);
+    cx.run_until_parked();
+    probe.update(cx, |probe, cx| {
+        assert_eq!(
+            probe
+                .shell
+                .read(cx)
+                .areas
+                .conversation
+                .find
+                .as_ref()
+                .unwrap()
+                .phase,
+            FindPhase::Ready
+        );
     });
 }

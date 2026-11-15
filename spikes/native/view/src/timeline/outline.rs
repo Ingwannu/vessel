@@ -2,8 +2,13 @@
 //! mark per prompt, with what the agent last said in reply, to jump
 //! between turns of a long conversation (the page's `data/outline.ts`).
 
-use super::entry::{Entry, EntryKind};
+use super::entry::{Entry, EntryKind, Prompt};
 use super::find::{is_space, readable_text};
+
+mod hover;
+pub use hover::{
+    HoverChange, HoverTicket, OUTLINE_INTENT, OutlineHover, OutlinePoint, OutlineSlot,
+};
 
 /// One prompt in the outline.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -59,17 +64,16 @@ pub fn outline(entries: &[Entry]) -> Vec<OutlineItem> {
     };
     for (index, entry) in entries.iter().enumerate() {
         match &entry.kind {
-            EntryKind::Prompt(prompt) => {
+            EntryKind::Prompt(Prompt { text, .. }) | EntryKind::Steer { text, .. } => {
                 close(&mut items, last.take());
                 items.push(OutlineItem {
                     entry: index,
-                    prompt: preview(&prompt.text, PREVIEW),
+                    prompt: preview(text, PREVIEW),
                     reply: None,
                 });
             }
             EntryKind::Message { text } if !items.is_empty() => last = Some(text),
             EntryKind::Ready { .. }
-            | EntryKind::Steer { .. }
             | EntryKind::Question { .. }
             | EntryKind::Message { .. }
             | EntryKind::Thought { .. }

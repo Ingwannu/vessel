@@ -57,9 +57,9 @@ impl Shell {
                         crate::motion::animations(animations.on(), cx);
                         window.refresh();
                     }
+                    PreferenceChange::ChatOutline(_) => self.conversation_outline_changed(),
                     // Read where they are drawn, on the next frame.
-                    PreferenceChange::ChatOutline(_)
-                    | PreferenceChange::SidebarPanel(_)
+                    PreferenceChange::SidebarPanel(_)
                     | PreferenceChange::InspectorPanel(_)
                     | PreferenceChange::Delivery(_)
                     | PreferenceChange::Alerts(_)

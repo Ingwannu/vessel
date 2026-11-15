@@ -4,12 +4,14 @@
 
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
     KeyDownEvent, ParentElement as _, Stateful, StatefulInteractiveElement as _, Styled as _,
     Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, breakpoint, popup};
+use vessel_app_view::timeline::{FindFailure, FindPhase};
 
 use crate::shell::Shell;
 
@@ -26,16 +28,15 @@ pub(crate) fn bar(
     let words = shell.t.lang.conversation();
     let surfaces = popup::Surfaces::of(tokens);
     let narrow = breakpoint::phone(window);
-    let has_query = !bar.query.trim().is_empty();
-    let none = has_query && bar.finder.is_none() && bar.matches.is_empty();
-    let count = if !has_query {
-        String::new()
-    } else if bar.finder.is_some() {
-        words.count_pending().to_owned()
-    } else {
-        words.count_text(bar.matches.len(), bar.index)
+    let find_words = shell.words.chat_find();
+    let none = bar.phase.ready() && bar.matches.is_empty();
+    let count = match bar.phase {
+        FindPhase::Idle | FindPhase::Failed(_) => String::new(),
+        FindPhase::Searching => find_words.searching().to_owned(),
+        FindPhase::Loading => find_words.loading().to_owned(),
+        FindPhase::Ready => words.count_text(bar.matches.len(), bar.index),
     };
-    let can_move = bar.finder.is_none() && !bar.matches.is_empty();
+    let can_move = bar.phase.ready() && !bar.matches.is_empty();
     let shell_row = div()
         .flex()
         .flex_row()
@@ -50,6 +51,9 @@ pub(crate) fn bar(
         .rounded(px(popup::MENU_RADIUS))
         .shadow(popup::shadow_md(tokens))
         .on_key_down(cx.listener(|shell, event: &KeyDownEvent, window, cx| {
+            if vessel_app_kit::TextField::focused_composing(window, cx) {
+                return;
+            }
             match event.keystroke.key.as_str() {
                 "escape" => {
                     shell.close_find(window, cx);
@@ -77,7 +81,39 @@ pub(crate) fn bar(
             .right(px(INSET))
             .w(px(WIDTH))
     };
-    Some(frame.child(shell_row).into_any_element())
+    let failure = match bar.phase {
+        FindPhase::Failed(FindFailure::Connection) => Some(find_words.connection()),
+        FindPhase::Failed(FindFailure::HistoryChanged) => Some(find_words.history_changed()),
+        FindPhase::Failed(FindFailure::Reveal) => Some(find_words.reveal()),
+        FindPhase::Idle | FindPhase::Searching | FindPhase::Loading | FindPhase::Ready => None,
+    };
+    let failure = failure.map(|message| {
+        div()
+            .flex()
+            .flex_col()
+            .gap(px(spacing::TWO))
+            .p(px(spacing::TWO))
+            .bg(surfaces.surface1)
+            .rounded(px(popup::MENU_RADIUS))
+            .type_(Type::Meta)
+            .text_color(tokens.neutral.destructive)
+            .child(message)
+            .child(
+                vessel_app_kit::outline_button("find-retry", find_words.retry(), true, tokens)
+                    .on_click(
+                        cx.listener(|shell, _event, window, cx| shell.find_retry(window, cx)),
+                    ),
+            )
+    });
+    Some(
+        frame
+            .flex()
+            .flex_col()
+            .gap(px(spacing::ONE))
+            .child(shell_row)
+            .children(failure)
+            .into_any_element(),
+    )
 }
 
 /// The count of matches (or that find is still looking), in the danger

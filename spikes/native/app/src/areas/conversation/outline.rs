@@ -15,20 +15,22 @@
 //! answers the pointer, none after; shown from two prompts, and only in
 //! a panel at least 918 wide.
 //!
-//! Differences, kept: the pills change size at once (Paseo eases over 140
-//! ms); the pointer's sideways sweep that also starts the intent is not
-//! followed, only its entering a slot.
-
-use std::time::Duration;
+//! Hover intent is the pure view model: vertical travel keeps its deadline;
+//! horizontal transit postpones activation. A cancelled ticket cannot reopen
+//! a preview after the pointer leaves or the session changes.
 
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, ParentElement as _,
+    AnyElement, App, Context, Div, InteractiveElement as _, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, Window, div, px, relative,
 };
 use vessel_app_kit::{Reveal, Tokens, Type, TypeExt as _, popup};
-use vessel_app_view::timeline::OutlineItem;
+use vessel_app_view::timeline::{
+    HoverChange, OUTLINE_INTENT, OutlineHover, OutlineItem, OutlinePoint, OutlineSlot,
+};
 
 use crate::shell::Shell;
+
+mod motion;
 
 /// The rail's width and its distance from the conversation's left.
 const RAIL: f32 = 36.0;
@@ -58,58 +60,127 @@ const CARD_HEIGHT: f32 = 48.0;
 const CARD_LEFT: f32 = 40.0;
 const CARD_TOP: f32 = -24.0;
 
-/// How long the pointer rests on the rail before the pills answer it.
-const INTENT: Duration = Duration::from_millis(150);
-
-/// Where the pointer is on the rail.
-#[derive(Debug, Default)]
+/// The screen owns focus and motion only; hover intent is the pure view model.
+#[derive(Debug)]
 pub(crate) struct Pointer {
-    /// The slot under the pointer, answered or not.
-    candidate: Option<usize>,
-    /// The slot the pills answer: magnified around, its card shown.
-    attention: Option<usize>,
-    /// Whether the pills answer at once (the first wait is over).
-    active: bool,
-    /// Bumped whenever the wait is cancelled or started again.
-    wait: u64,
+    hover: OutlineHover,
+    focus: gpui::FocusHandle,
+    keyboard: Option<usize>,
+    shown: Option<usize>,
+    before: Option<usize>,
+    turn: u64,
+}
+
+impl Pointer {
+    pub(super) fn new(cx: &App) -> Self {
+        Self {
+            hover: OutlineHover::default(),
+            focus: cx.focus_handle(),
+            keyboard: None,
+            shown: None,
+            before: None,
+            turn: 0,
+        }
+    }
+
+    /// Preserve ticket identity across session changes, so an old timer stays old.
+    pub(super) fn clear(&mut self) {
+        let _cancelled = self.hover.leave();
+        self.keyboard = None;
+        self.shown = None;
+        self.before = None;
+        self.turn = 0;
+    }
+
+    pub(super) fn leave(&mut self) {
+        let _cancelled = self.hover.leave();
+        self.shown = None;
+    }
 }
 
 impl Shell {
-    /// The pointer came onto slot `index`.
-    fn outline_point(&mut self, index: usize, cx: &mut Context<'_, Self>) {
-        let pointer = &mut self.areas.conversation.outline_pointer;
-        pointer.candidate = Some(index);
-        if pointer.active {
-            pointer.attention = Some(index);
-            cx.notify();
-            return;
-        }
-        pointer.wait = pointer.wait.wrapping_add(1);
-        let wait = pointer.wait;
-        cx.spawn(async move |this, cx| {
-            cx.background_executor().timer(INTENT).await;
-            let _gone = this.update(cx, |shell, cx| {
-                let pointer = &mut shell.areas.conversation.outline_pointer;
-                if pointer.wait == wait && pointer.candidate.is_some() {
-                    pointer.active = true;
-                    pointer.attention = pointer.candidate;
-                    cx.notify();
-                }
-            });
-        })
-        .detach();
+    /// Changing the preference cancels a preview even while the rail is hidden.
+    pub(crate) fn conversation_outline_changed(&mut self) {
+        self.areas.conversation.outline_pointer.clear();
     }
 
-    /// The pointer left the rail.
-    fn outline_left(&mut self, cx: &mut Context<'_, Self>) {
-        let pointer = &mut self.areas.conversation.outline_pointer;
-        let was = pointer.attention.is_some();
-        *pointer = Pointer {
-            wait: pointer.wait.wrapping_add(1),
-            ..Pointer::default()
+    fn outline_point(&mut self, index: usize, cx: &mut Context<'_, Self>) {
+        let area = &mut self.areas.conversation;
+        let Some(slot) = OutlineSlot::new(index, area.outline.len()) else {
+            return;
         };
-        if was {
-            cx.notify();
+        let change = area.outline_pointer.hover.point_at(slot);
+        self.outline_effect(change, cx);
+    }
+
+    fn outline_effect(&mut self, change: HoverChange, cx: &mut Context<'_, Self>) {
+        match change {
+            HoverChange::None => {}
+            HoverChange::Changed => {
+                let pointer = &mut self.areas.conversation.outline_pointer;
+                pointer.before = pointer.shown;
+                pointer.shown = pointer.hover.attention().map(OutlineSlot::index);
+                pointer.turn = pointer.turn.saturating_add(1);
+                cx.notify();
+            }
+            HoverChange::Schedule(ticket) => {
+                cx.spawn(async move |this, cx| {
+                    cx.background_executor().timer(OUTLINE_INTENT).await;
+                    let _gone = this.update(cx, |shell, cx| {
+                        let change = shell
+                            .areas
+                            .conversation
+                            .outline_pointer
+                            .hover
+                            .activate(ticket);
+                        if change == HoverChange::Changed
+                            && (!shell.prefs.settings.appearance.chat_outline.on()
+                                || shell.areas.conversation.list.width() < px(MIN_PANEL))
+                        {
+                            shell.areas.conversation.outline_pointer.leave();
+                            return;
+                        }
+                        shell.outline_effect(change, cx);
+                    });
+                })
+                .detach();
+            }
+        }
+    }
+
+    /// The pointer left the rail; delayed activations lose their ticket.
+    fn outline_left(&mut self, cx: &mut Context<'_, Self>) {
+        let change = self.areas.conversation.outline_pointer.hover.leave();
+        self.outline_effect(change, cx);
+    }
+
+    fn outline_key(&mut self, event: &gpui::KeyDownEvent, cx: &mut Context<'_, Self>) {
+        let area = &mut self.areas.conversation;
+        if area.outline.is_empty() {
+            return;
+        }
+        let current = area
+            .outline_pointer
+            .keyboard
+            .unwrap_or(0)
+            .min(area.outline.len().saturating_sub(1));
+        match event.keystroke.key.as_str() {
+            "up" | "down" => {
+                let next = vessel_app_view::timeline::step(
+                    area.outline.len(),
+                    current,
+                    event.keystroke.key == "down",
+                )
+                .index;
+                area.outline_pointer.keyboard = Some(next);
+                cx.notify();
+                cx.stop_propagation();
+            }
+            "enter" | "space" => {
+                self.outline_jump(current, cx);
+                cx.stop_propagation();
+            }
+            _ => {}
         }
     }
 
@@ -138,7 +209,7 @@ fn lit(outline: &[OutlineItem], top_entry: usize) -> Option<usize> {
 pub(super) fn rail(
     shell: &Shell,
     tokens: &Tokens,
-    _window: &Window,
+    window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let area = &shell.areas.conversation;
@@ -154,19 +225,18 @@ pub(super) fn rail(
         .checked_sub(area.head())
         .and_then(|own| area.rows.entry(own))
         .and_then(|top| lit(&area.outline, top));
-    let attention = area.outline_pointer.attention;
+    let pointer = &area.outline_pointer;
+    let attention = pointer.shown.or_else(|| {
+        pointer
+            .focus
+            .is_focused(window)
+            .then_some(pointer.keyboard.unwrap_or(0))
+    });
     let neutral = tokens.neutral;
     let slots = area.outline.iter().enumerate().map(|(index, item)| {
-        let near = attention.map(|at| at.abs_diff(index));
         let is_lit = lit == Some(index);
-        let (widths, rest) = if is_lit {
-            (&WIDE_FROM_LIT, LIT_WIDE)
-        } else {
-            (&WIDE_FROM_REST, REST_WIDE)
-        };
-        let (wide, high) = near
-            .and_then(|near| Some((*widths.get(near)?, *HIGH.get(near)?)))
-            .unwrap_or((rest, REST_HIGH));
+        let to = motion::size(index, is_lit, attention, cx.reduce_motion());
+        let from = motion::size(index, is_lit, pointer.before, cx.reduce_motion());
         let color = if attention == Some(index) {
             neutral.foreground
         } else if is_lit {
@@ -194,12 +264,15 @@ pub(super) fn rail(
             .on_click(cx.listener(move |shell, _event, _window, cx| {
                 shell.outline_jump(index, cx);
             }))
-            .child(div().w(px(wide)).h(px(high)).rounded_full().bg(color))
+            .child(motion::pill(from, to, color, pointer.turn))
             .children(card)
     });
     Some(
         div()
             .id("outline-rail")
+            .track_focus(&pointer.focus)
+            .tab_group()
+            .on_key_down(cx.listener(|shell, event, _window, cx| shell.outline_key(event, cx)))
             .absolute()
             .left(px(RAIL_LEFT))
             .top(relative(0.1))
@@ -208,11 +281,26 @@ pub(super) fn rail(
             .flex()
             .flex_col()
             .justify_center()
-            .on_hover(cx.listener(|shell, hovered: &bool, _window, cx| {
-                if !*hovered {
+            .on_hover(cx.listener(|shell, hovered: &bool, window, cx| {
+                if *hovered {
+                    let position = window.mouse_position();
+                    if let Some(point) = OutlinePoint::new(position.x.into(), position.y.into()) {
+                        shell.areas.conversation.outline_pointer.hover.enter(point);
+                    }
+                } else {
                     shell.outline_left(cx);
                 }
             }))
+            .on_mouse_move(
+                cx.listener(|shell, event: &gpui::MouseMoveEvent, _window, cx| {
+                    if let Some(point) =
+                        OutlinePoint::new(event.position.x.into(), event.position.y.into())
+                    {
+                        let change = shell.areas.conversation.outline_pointer.hover.moved(point);
+                        shell.outline_effect(change, cx);
+                    }
+                }),
+            )
             .children(slots)
             .into_any_element(),
     )

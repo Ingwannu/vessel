@@ -1,0 +1,61 @@
+//! Failure/retry and target lifetime; no second search or timeline owner.
+use super::REVEAL_DEADLINE;
+use crate::shell::Shell;
+use std::rc::Rc;
+use vessel_app_kit::ui::{Context, Window};
+use vessel_app_link::Command;
+use vessel_app_view::timeline::{FindFailure, FindPhase};
+use vessel_proto::EventSeq;
+
+impl Shell {
+    pub(in crate::areas::conversation) fn find_failed(&mut self, failure: FindFailure) {
+        let Some(bar) = self.areas.conversation.find.as_mut() else {
+            return;
+        };
+        if bar.query.trim().is_empty() {
+            return;
+        }
+        bar.phase = FindPhase::Failed(failure);
+        bar.finder = None;
+        bar.generation = Rc::new(());
+        bar.at = None;
+        bar.target = Rc::new(());
+    }
+
+    pub(super) fn find_target(&mut self, at: EventSeq, cx: &mut Context<'_, Self>) {
+        let Some(bar) = self.areas.conversation.find.as_mut() else {
+            return;
+        };
+        bar.at = Some(at);
+        let target = Rc::clone(&bar.target);
+        cx.spawn(async move |this, cx| {
+            cx.background_executor().timer(REVEAL_DEADLINE).await;
+            let _gone = this.update(cx, |shell, cx| {
+                if shell
+                    .areas
+                    .conversation
+                    .find
+                    .as_ref()
+                    .is_some_and(|bar| Rc::ptr_eq(&bar.target, &target) && bar.at == Some(at))
+                {
+                    shell.find_failed(FindFailure::Reveal);
+                    cx.notify();
+                }
+            });
+        })
+        .detach();
+    }
+
+    pub(super) fn find_retry(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
+        if self.areas.conversation.lost.is_some()
+            && let Some(shown) = &self.areas.conversation.shown
+        {
+            self.command(Command::Open {
+                machine: shown.machine.clone(),
+                session: shown.session,
+            });
+        }
+        self.start_search(false, cx);
+        cx.notify();
+    }
+}

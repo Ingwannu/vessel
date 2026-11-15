@@ -62,7 +62,14 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         if self.areas.conversation.take(session, records) {
-            self.find_grew(cx);
+            if records
+                .iter()
+                .any(|record| matches!(record.event, vessel_proto::SessionEvent::Rewound { .. }))
+            {
+                self.find_failed(vessel_app_view::timeline::FindFailure::HistoryChanged);
+            } else {
+                self.find_grew(cx);
+            }
             // A fork's `forked` line came: its origin is read (`origin`).
             self.origin_read();
         }
@@ -158,6 +165,7 @@ impl Shell {
             .is_some_and(|shown| shown.session == session)
         {
             area.lost = Some(why);
+            self.find_failed(vessel_app_view::timeline::FindFailure::Connection);
         }
     }
 
