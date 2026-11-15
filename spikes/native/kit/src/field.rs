@@ -24,7 +24,9 @@ use gpui_base::input::{InputState, TextareaState};
 pub mod composer_hooks;
 pub mod composer_layout;
 mod send;
+mod submit_press;
 pub use send::SendOn;
+pub use submit_press::SubmitPress;
 mod editability;
 mod events;
 pub use editability::Editability;
@@ -104,6 +106,7 @@ pub struct TextField {
     /// submits).
     send: Rc<Cell<SendOn>>,
     composer_rows: Rc<Cell<Option<composer_layout::Rows>>>,
+    submit_press: Rc<Cell<Option<SubmitPress>>>,
 }
 
 impl TextField {
@@ -184,6 +187,7 @@ impl TextField {
                 .placeholder(placeholder)
         });
         let focused = Rc::new(Cell::new(false));
+        let submit_press = Rc::new(Cell::new(None));
         let shortcut = match style {
             MultilineStyle::Composer => SendOn::Enter,
             MultilineStyle::Form => SendOn::ModEnter,
@@ -193,6 +197,7 @@ impl TextField {
             &state,
             Handlers {
                 on_submit,
+                submit_press: Rc::clone(&submit_press),
                 // A growing form changes the surrounding dialog's layout
                 // and submit availability; its owner must see each edit.
                 on_change: match style {
@@ -208,6 +213,7 @@ impl TextField {
         register(Known::Lines(state.downgrade()));
         Self {
             composer_rows: Rc::new(Cell::new(None)),
+            submit_press,
             kind: Kind::Lines(state, style),
             focused,
             send,
@@ -224,10 +230,12 @@ impl TextField {
         let placeholder = placeholder.to_owned();
         let state = cx.new(|cx| InputState::new(window, cx).placeholder(placeholder));
         let focused = Rc::new(Cell::new(false));
+        let submit_press = Rc::new(Cell::new(None));
         listen(
             &state,
             Handlers {
                 on_submit,
+                submit_press: Rc::clone(&submit_press),
                 on_change,
                 focused: Rc::clone(&focused),
                 send: None,
@@ -238,6 +246,7 @@ impl TextField {
         register(Known::Line(state.downgrade()));
         Self {
             composer_rows: Rc::new(Cell::new(None)),
+            submit_press,
             kind: Kind::Line(state),
             focused,
             send: Rc::new(Cell::new(SendOn::Enter)),

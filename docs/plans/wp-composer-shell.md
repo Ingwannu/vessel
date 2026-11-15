@@ -162,3 +162,13 @@ and W11 authoritative WorkspaceLookup is not live. COMPOSER_COMMANDS remainsNone
 No cwd-derived authority or Workspace-to-New fallback is used. Native clipboard
 supports text/image/files but no HTML representation, so copy currently supplies
 semantic Markdown/raw code as text; rich text/html clipboard parity is unavailable.
+
+Typed SubmitPress metadata is scoped around the existing synchronous PressEnter
+callback and shared by clones of the same field. No second subscription, submit
+callback or global modifier read is used. A guard restores nested scope and clears
+metadata after callback return. Buttons/asynchronous work see None; adapters must
+copy it into their own typed events. This is control preparation for alternate
+send and scoped callbacks, not activation of another delivery policy. K's later
+Legacy/Windowed notification arms and W13 captured-submit widening must preserve
+the same one guarded invocation. Real-engine modifier/newline and nested guard
+fixtures are prepared; compilation remains pending.

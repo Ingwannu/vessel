@@ -16,6 +16,7 @@ use std::{cell::Cell, rc::Rc};
 /// What a field's events call.
 pub(super) struct Handlers<V: 'static> {
     pub(super) on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+    pub(super) submit_press: Rc<Cell<Option<super::SubmitPress>>>,
     pub(super) on_change: Option<fn(&mut V, String, &mut Context<'_, V>)>,
     pub(super) focused: Rc<Cell<bool>>,
     /// A composer's send press; `None` for a form field (Enter submits).
@@ -30,6 +31,7 @@ pub(super) fn listen<V: 'static, M: gpui_base::input::InputModeKind>(
 ) {
     let Handlers {
         on_submit,
+        submit_press,
         on_change,
         focused,
         send,
@@ -51,6 +53,7 @@ pub(super) fn listen<V: 'static, M: gpui_base::input::InputModeKind>(
                     state.update(cx, |state, cx| state.replace("\n", window, cx));
                 } else {
                     let text = state.read(cx).value().to_string();
+                    let _press = super::submit_press::Scope::enter(&submit_press, *secondary);
                     on_submit(owner, text, window, cx);
                 }
             }
