@@ -1118,3 +1118,32 @@ The reviewer checked each original image, dimension and hash, with no
 additional visual return. A fresh independent Draft+Mergeable/Unstable seed
 and changed-tree native gate are the remaining verification for this fix.
 No old screenshot or old passing gate is claimed as proof of this correction.
+
+
+#### Draft correction verification result
+
+`6406211c` passed one changed-tree whole native gate: fonts, fmt, quality,
+clippy, build and tests all exit zero; 1140 passed, none failed, one ignored.
+The changed crates actually recompiled and the corrected regression ran.
+The narrow clippy check and fresh local debug build also passed.
+
+The copied complete fake-forge seed independently admits Open+Draft with
+Mergeable (#301) and Unstable (#306), verified through `pr.show --refresh`.
+Sixteen additional original captures were individually inspected: facts and
+complete menus for both shapes at 800×600 and 390×844 in dark English and
+light Korean. They retain Draft/check/review facts without current readiness
+or merge rows. Their manifest pins source, executable and image hashes.
+The old 41 images, their source assignments and their gate logs are intact.
+They were neither redone nor presented as proof of the draft correction.
+
+An initial title-query capture did not identify the intended PR and opened
+a branch chooser; it is excluded diagnostic evidence, with cause undetermined.
+The retake selected the session by its stable ID and verified the PR number.
+A restart blocked by an owned stale display lock was also stopped safely;
+cleanup followed dead-process and refused-socket checks. Neither diagnostic
+was addressed by changing product code or weakening an assertion.
+
+The disposable fleet, app and display have stopped. No node/wire/shared-control
+or other-area source changed. The same real-forge/OS/Exists/pending/closed-state
+UI limits remain. Source and visual re-review is pending; this result is not
+final approval or a release.

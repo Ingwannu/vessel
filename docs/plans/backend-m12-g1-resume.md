@@ -1,14 +1,14 @@
 # Git and pull-request resume record — 2026-11-15
 
-The prior reviewed source is the committed `54b8aaa1` base plus `175491aa`
-and `d230934a`. The draft-readiness correction described below supersedes
-its permissive draft wording; it is awaiting fresh verification. The current result is in
+Current code is the committed `54b8aaa1` base plus `175491aa`, `d230934a`
+and draft-readiness correction `6406211c`. The correction has its own whole
+native gate and independently admitted fake-node evidence; re-review is pending. The current result is in
 [the plan's PR closeout section](backend-m12-g1.md#pr-closeout-result-and-resume-point-2026-11-15).
 The older stop record below is historical, not a statement that the current
 registered Git/PR screen remains an uncommitted prototype.
 
 - Latest whole native gate: all six steps passed; 1140 tests passed,
-  none failed, one ignored on `d230934a`. The earlier wording commit also
+  none failed, one ignored on `6406211c`. The earlier wording commit also
   passed its whole gate (1139 passed, none failed, one ignored).
 - Remaining assigned verification completed: 800×600 info-window retakes,
   fixture PR creation and squash merge, board outcomes, duplicate review
@@ -18,9 +18,12 @@ registered Git/PR screen remains an uncommitted prototype.
   longer says it is ready to merge. Existing review facts remain visible.
 - Review returned only the draft-readiness wording: the correction now
   suppresses readiness for every draft, preserves header/check/review facts,
-  and retains explicit non-draft and terminal/unknown assertions. A new
-  independent fake-node Draft seed and one changed-tree gate are pending.
-  The old 41 image/source assignments stay intact.
+  and retains explicit non-draft and terminal/unknown assertions. One
+  changed-tree gate passed. Sixteen new inspected facts/menu captures use
+  independently admitted Open+Draft+Mergeable and Open+Draft+Unstable node
+  responses at 800/390 in dark English and light Korean. The old 41 image/
+  source assignments stay intact. Invalid initial capture probes are separate;
+  stable-ID retakes verify the intended PR. All new owned processes stopped.
 - Re-review is the next step, followed by native-lead integration for
   0.0.0.0.19. No release/push was made. The original checkout is unchanged;
   the finishing checkout has its own build target. All owned fleet/display
