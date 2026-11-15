@@ -114,3 +114,46 @@ fn mounted_rows_request_frames_only_for_backlog_and_motion_policy_completes(
     assert_eq!(observed.borrow().len(), 308);
     assert_eq!(cx.update(|window, cx| window.simulate_next_frame(cx)), 0);
 }
+
+#[gpui::test]
+fn readonly_history_with_an_open_turn_never_paces_or_hides_a_trailing_fragment(
+    cx: &mut TestAppContext,
+) {
+    use vessel_proto::{AgentEvent, ContentBlock, EventRecord, EventSeq, SessionEvent};
+    cx.update(|cx| {
+        let mut area = ConversationArea::new(cx);
+        let records = [
+            (
+                1,
+                AgentEvent::TurnStarted {
+                    content: Vec::new(),
+                },
+            ),
+            (
+                2,
+                AgentEvent::MessageChunk {
+                    content: ContentBlock::Text {
+                        text: "flag🇺".to_owned(),
+                    },
+                },
+            ),
+        ]
+        .map(|(seq, event)| EventRecord {
+            seq: EventSeq::new(seq),
+            at: chrono::DateTime::UNIX_EPOCH,
+            event: SessionEvent::Agent { event },
+        });
+        assert!(area.fold_records(&records));
+        let entry = area.timeline.entries().last().unwrap();
+        assert!(
+            area.timeline.in_turn(),
+            "snapshot may omit its later closing record"
+        );
+        assert_eq!(phase(&area, entry), TextPhase::Complete);
+        let reveal = TextReveal::begin("flag🇺");
+        assert_eq!(
+            reveal.visible_end("flag🇺", phase(&area, entry)),
+            "flag🇺".len()
+        );
+    });
+}

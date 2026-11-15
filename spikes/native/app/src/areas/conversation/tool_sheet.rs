@@ -354,7 +354,7 @@ fn run_content(
             index,
             entry,
             area.entry_expanded(index),
-            super::pacing::phase(area.timeline.turn(), entry),
+            super::pacing::phase(area, entry),
             window,
             cx,
         ));

@@ -1249,3 +1249,10 @@ The resident module stays literal cfg(test); no product resource/follow path is
 enabled. Its real lazy visibility/same-claim synchronization remains W12's
 coordinated cutover. View-only exact d2ea72814 strict and tests are submitted as
 separate immutable runs; no current result is presumed.
+Readonly history explicitly uses Complete even when its bounded projection ends
+inside an open turn. A provider-child/origin page must not hide its final regional
+indicator forever waiting for a live delta it does not follow. The source guard
+uses the existing managed shown identity, without creating a child SessionId.
+A GPUI regression folds an intentionally open readonly snapshot and verifies full
+fragment visibility. The eventual resident hydration still owns managed identity;
+no selected-session or guessed-provider fallback is added by this phase rule.

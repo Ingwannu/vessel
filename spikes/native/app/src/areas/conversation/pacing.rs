@@ -1,9 +1,9 @@
 //! Mounted-row presentation only: the canonical text, identity and copy stay with
 //! Timeline. No task/timer lives in a hidden session or crosses a resident epoch.
+use super::ConversationArea;
 use std::time::{Duration, Instant};
 use vessel_app_kit::ui::{App, ElementId, Window};
 use vessel_app_view::timeline::{Entry, RevealClock, TextPhase, TextReveal};
-use vessel_proto::EventSeq;
 
 struct Kept {
     reveal: TextReveal,
@@ -48,9 +48,10 @@ impl Kept {
     }
 }
 
-/// A closing/status record clears Timeline::turn; older turns never reanimate.
-pub(super) fn phase(turn: Option<EventSeq>, entry: &Entry) -> TextPhase {
-    if turn.is_some_and(|turn| entry.seq >= turn) {
+/// Read-only snapshots are history. A closing/status record clears the managed
+/// Timeline::turn; older turns never reanimate.
+pub(super) fn phase(area: &ConversationArea, entry: &Entry) -> TextPhase {
+    if area.shown.is_some() && area.timeline.turn().is_some_and(|turn| entry.seq >= turn) {
         TextPhase::Streaming
     } else {
         TextPhase::Complete
