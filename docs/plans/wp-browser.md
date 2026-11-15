@@ -1287,3 +1287,38 @@ are unchanged; no lint allowance or runtime permission was added. New strict
 evidence remains owed; the888 normal functional job is retained as older-source
 evidence because these were Clippy findings, not a demonstrated cargo-test
 compiler failure. It is not receiving-union/current-source acceptance.
+
+
+## Announced gate54 receiving-union join
+
+Merged2750243693543a8469477a3586eda472423079c3 as8c7dd894f4ec35067e924ff46f16d7edb692779b.
+Its reviewed MCP ToolId::Browser wrapper remains the single canonical tool-ID
+seam; W14 adds no second name table. Twelve conflicts were inspected. Eight
+browser value files retain W14's later bounded input, modifier set, human input/
+watch, same-document result and strict string-only preference changes: the
+incoming differences were the older foundation without unique new API behavior.
+BrowserId's corrected RFC variant predicate remains byte-identical. Shared
+file/skills calls, samples and ordered expectations are retained, with W14's four
+pending rows last, after skills.import_selection. Both skills and browser
+channels remain explicitly denied by the legacy web bridge. No InputText::new
+or EmptyBrowserInput caller remains, and no protocol number was assigned.
+
+The incoming generated wire file is retained byte-for-byte. A staged whitespace
+check against the old parent reported its already-generated trailing spaces;
+the scoped own diff against the announced275 source is clean. Generated output
+was not trimmed or reconstructed locally. Correct merged-head generation is
+owed through the VM's fixed TS route.
+
+The older888 functional and TS jobs were both still queued; each was cancelled
+through queued-only control and terminal cancelled/143 was verified before its
+one receiving-union replacement. They produced no execution evidence. This
+choice supersedes the earlier plan to retain888 baseline tests: the announced
+MCP/browser/skills/file union now needs one actual combined-source suite instead
+of spending an extra build on the pre-carrier head. Whole gates, runtime,
+Preview, renderer and supported-engine acceptance remain separate and owed.
+
+Reference creation default rechecked at packages/app/src/desktop/browser/
+automation/handler.ts:350: omitted tool new_tab URL selects https://example.com.
+It does not select a private dev-server origin or expose the launcher's internal
+about:blank as an invented tool default. Preview authority remains a separate
+explicit opening; the real creation executor still remains owed.
