@@ -94,9 +94,8 @@ mod native {
             fn catalog(
                 &self,
                 _node: NodeId,
-            ) -> impl Future<
-                Output = Result<Vec<vessel_app_view::plugins::Installation>, Problem>,
-            > + Send {
+            ) -> impl Future<Output = Result<Vec<vessel_app_view::plugins::Installation>, Problem>> + Send
+            {
                 std::future::ready(Ok(vec![]))
             }
         }
