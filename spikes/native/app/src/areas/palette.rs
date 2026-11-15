@@ -151,7 +151,7 @@ impl Shell {
         let sections: Vec<(Section, &str)> = Section::ALL
             .into_iter()
             .filter(|section| settings::drawn(*section))
-            .map(|section| (section, words.section(section)))
+            .map(|section| (section, words.section(section, self.words)))
             .collect();
         let selected = if self.route == Route::Draft {
             self.areas.draft.machine.clone()

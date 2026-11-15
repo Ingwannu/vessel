@@ -795,6 +795,10 @@ the answer boundary for live retranslation. Typed fork/origin-read failures and
 unknown empty-fork reasons choose whole recovery sentences; original diagnostics
 remain in logs/session state. An uncertain fork asks to check the session list
 before retrying.
+Settings Diagnostics controls use `diagnostics.ftl`. Its copied notice rewords
+on a language change while the collected report and clipboard data stay fixed.
+The technical report keeps its stable English schema and existing redaction,
+as in the reference; collecting/refreshing remains an explicit action.
 General's Language row uses System first, then each embedded language's own
 name. Its typed preference goes through `Prefs::prefer`; labels, retained
 field placeholders and pairing outcomes update at once, without restarting

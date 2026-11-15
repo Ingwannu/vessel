@@ -1,3 +1,47 @@
+## Diagnostics vocabulary (source ready; whole gate/UI owed)
+
+The lead released Diagnostics and Chat; Sidebar Display/palette vocabulary
+remain held for the layout repair, Agents and Overview stay with their owners.
+`1d1f11df` is merged as `df11d9d5` without conflicts before this next slice.
+Root crates/lock still match `56a7cbd3`; the required `d30804b2` fixture is
+already an ancestor. Proven shared root binaries were hash-checked before a
+fresh isolated standard fleet finished successfully. The older failed attempt
+remains rejected; its processes were stopped without using it for UI evidence.
+
+Decision: reuse generated plain getters and the retained-notice ownership
+pattern. Seven Diagnostics interface messages move intact from the mixed
+Settings table to `diagnostics.ftl`: navigation/page title, report title/hint,
+Run/Copy/Refresh and copied notice. The report schema/data remains unchanged,
+including its original English labels and redaction tests: this is Paseo's
+fixed technical report, not interface labels. A live language change rewords
+only the still-owned copy notice; it never recollects, translates or replaces
+the collected report or clipboard contents. Existing geometry is unchanged.
+
+References read: Paseo `components/app-diagnostic-sheet.tsx`,
+`diagnostics/app-diagnostic-report.ts` and `DiagnosticsSection` in
+`screens/settings-screen.tsx`; the existing view report's decision log.
+Unlike Paseo's host probes/progress, Vessel's existing Run collects already
+held facts synchronously; that behavior stays unchanged.
+
+The Settings owner approved the mixed-table seam: `SettingsText::section`
+takes the already prepared static catalog, and only Diagnostics uses its new
+getter in this slice. Remaining section labels keep their exact old sentences.
+Actual mechanical callers are General, Settings title/frame, navigation,
+host-agents and palette (the latter separately approved by its owner);
+Diagnostics reads its generated title directly. Existing four section-test
+expressions gain the catalog argument, with cases/expected labels unchanged.
+The language dispatcher adds the one-purpose copied-notice refresh. No other
+Settings/Sidebar/Palette strings, behavior or styles are changed.
+
+Narrow app all-target Clippy passes. View library tests (854), catalog-contract
+tests (10), and both actual native copy-handler/language/input tests pass; the
+clipboard retains the same report bytes and a later unrelated notice is not
+replaced. Native format/size/boundaries/tokens pass without new allowances;
+explicit-root source coverage reports zero missing keys in en/ko. The whole
+native gate and before/after screen checks of this slice remain owed. The
+existing technical-report/redaction suite is unchanged.
+
+
 ## Current checkpoint: full native batch gate passed
 
 Product source is fixed at `0ca69edeb5846944b7aa9394e21553883ed4a005`.
@@ -11,9 +55,13 @@ recompiled; the run took 59 seconds after its queue, load 10.85 to 10.36.
 The prior failed run remains a failure; its one Copy-argument lint is fixed
 by this final commit. No unchanged gate rerun is required by these notes.
 
-Independent source/gate review was requested first, before coordinator/lead
-acceptance. The previously accepted About move/role pair is separate from
-this follow-up inventory/update/rewind/fork batch. The native tests now
+Independent review passed SOURCE/NATIVE GATE ONLY for exact `0ca69ede`,
+before coordinator/lead acceptance. No blocker was found in the member
+inventory, updater cache/typed errors, rewind/fork notices or caption cache.
+The reviewer verified the six-step log and totals independently and inspected
+zero new capture PNGs: this is no UI, real-node, platform, security or
+independent licence-audit approval. The previously accepted About move/role
+pair is separate from this follow-up inventory/update/rewind/fork batch. The native tests now
 execute the added updater, rewind and fork/origin language-retention paths;
 they are synthetic inner-handler inputs, not real-node or parent-routing proof.
 
@@ -31,9 +79,10 @@ verified owned node/fake processes stopped. No production node was used.
 Windows, real GPU, full browser, current standalone wasm and actual updater
 network/install/restart behavior were not verified in this batch.
 
-The next source area needs its active owner's release. The requested
-sidebar Display or small Settings ownership has not yet arrived; those
-files have not been edited. The PR title change remains on its own area's
+Sidebar Display remains held for its layout repair. Settings Diagnostics and
+Chat were subsequently released by the lead and Settings owner, with narrow
+shared caller seams agreed before editing; this later work is outside the
+exact reviewed `0ca69ede` snapshot. The PR title change remains on its own area's
 line: `175491aa`, reported final `3c48fd4b`/gate `d230934a`. Its supplied
 Korean 390/800 captures were independently opened and both heading and
 button say “PR 생성”; its independent review is pending, not merged here.

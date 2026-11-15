@@ -64,12 +64,6 @@ pub struct SettingsText {
     pub wide: &'static str,
     pub full: &'static str,
     pub chat_display: &'static str,
-    pub app_diagnostic: &'static str,
-    pub app_diagnostic_note: &'static str,
-    pub run: &'static str,
-    pub copy: &'static str,
-    pub refresh: &'static str,
-    pub diagnostic_copied: &'static str,
     pub chat_display_note: &'static str,
     pub collapse_tools: &'static str,
     // About.
@@ -127,15 +121,6 @@ const EN: SettingsText = SettingsText {
     wide: "Wide",
     full: "Full",
     chat_display: "Chat display",
-    // Diagnostics (Paseo's `settings.diagnostics.app`); the hint names
-    // Vessel's machines and agents where Paseo's names its daemon and
-    // providers. Short labels: buttons.
-    app_diagnostic: "App diagnostic",
-    app_diagnostic_note: "Collect connection, machine, agent, and log details",
-    run: "Run",
-    copy: "Copy",
-    refresh: "Refresh",
-    diagnostic_copied: "Diagnostic copied.",
     chat_display_note: "How much of an agent's work the chat shows",
     collapse_tools: "Collapse tool calls",
     about_lead: "This app's version and licence, and each machine's.",
@@ -200,12 +185,6 @@ const KO: SettingsText = SettingsText {
     wide: "넓게",
     full: "전체",
     chat_display: "채팅 표시",
-    app_diagnostic: "앱 진단",
-    app_diagnostic_note: "연결, 머신, 에이전트 및 로그 세부 정보를 수집합니다.",
-    run: "실행",
-    copy: "복사",
-    refresh: "새로 고침",
-    diagnostic_copied: "진단을 복사했습니다.",
     chat_display_note: "채팅에 표시할 에이전트 작업의 양",
     collapse_tools: "도구 호출 접기",
     about_lead: "이 앱과 각 머신의 버전과 라이선스.",
@@ -252,7 +231,11 @@ impl SettingsText {
     /// Terminals (the machine's), as Paseo's Korean does; they are under
     /// different headings.
     #[must_use]
-    pub const fn section(&self, section: Section) -> &'static str {
+    pub fn section(
+        &self,
+        section: Section,
+        catalog: &'static crate::localization::Translator,
+    ) -> &'static str {
         match (self.lang, section) {
             (Lang::En, Section::General) => "General",
             (Lang::En, Section::Appearance) => "Appearance",
@@ -266,7 +249,7 @@ impl SettingsText {
             (Lang::En, Section::Integrations) => "Integrations",
             (Lang::En, Section::Notifications) => "Notifications",
             (Lang::En, Section::Permissions) => "Permissions",
-            (Lang::En, Section::Diagnostics) => "Diagnostics",
+            (_, Section::Diagnostics) => catalog.diagnostics().title(),
             (Lang::En, Section::About) => "About",
             (Lang::En, Section::Overview) => "Overview",
             (Lang::En, Section::Projects) => "Projects",
@@ -293,7 +276,6 @@ impl SettingsText {
             (Lang::Ko, Section::Integrations) => "통합",
             (Lang::Ko, Section::Notifications) => "알림",
             (Lang::Ko, Section::Permissions) => "권한",
-            (Lang::Ko, Section::Diagnostics) => "진단",
             (Lang::Ko, Section::About) => "정보",
             (Lang::Ko, Section::Overview) => "개요",
             (Lang::Ko, Section::Projects) => "프로젝트",
