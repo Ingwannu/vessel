@@ -527,3 +527,14 @@ local counter or speculative SetLabels DTO fills that unresolved contract.
 G2 now owns the coordinator-assigned ordered preference-save outcome helper.
 The completed shared SavePrefs extraction is preserved; A6 adds no second
 helper and its metadata work does not change preference-save behavior.
+
+
+The lifecycle owner subsequently confirmed that reviewed `c88066f2` contains no
+LabelsChanged/SetLabels implementation or ordering guarantee, and `22a85a91`
+only prepares values and the existing rename queue. No new event/DTO shape is
+frozen. Its newly assigned durable session mutation clock is an ADR-first shared
+producer; neither updatedAt nor arbitrary EventSeq is assumed to be a label-map
+revision. Current-label apply/Ready remains held until tested source proves the
+atomic labels/cursor snapshot, including initial creation's live-to-store edge,
+or establishes a typed watermark/causal-read contract. W10/W12/C2 share this
+hold, and no native compile leaf has been installed.
