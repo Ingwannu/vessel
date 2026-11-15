@@ -523,3 +523,25 @@ classify them with the future NodeSettings integration. The generated artifact
 commit and all6 SHA pins were verified before applying exact proto.ts bytes.
 No declaration is handwritten and no standalone DTO is artificially added to
 the wire just to satisfy the inventory. Corrected-head named ts proof is owed.
+
+
+### Checked scope after the node-base join (2026-11-15)
+
+The isolated `c8c25474` Node/Proto/Web all-target strict check passed with the
+Proto TS feature enabled. This is source/type evidence, not voice activation.
+The named TS regeneration on exact `cd2372c1` passed all four Proto and two
+Web TS tests, including the existing alias inventory, with zero generated
+wire changes. Every retrieved artifact hash and all three tracked wire files
+were checked; no declaration was edited manually. The three standalone TTS
+identifiers stay out of the global alias table until their containing settings
+enter the actual wire graph; local DTO export tests retain their shape checks.
+The subsequent announced `1c762ccf` node-base merge assigns only upstream
+registry methods; voice feature numbers remain pending.
+
+The full Proto runtime suite on the new joined head is still pending. In
+particular the bounded SpeechText visitor's new scalar-redaction/escaped-input
+regressions are not covered by the earlier 340-test run. RPC caller-drop has a
+separate isolated prerequisite review: its 58 memory-transport tests passed,
+strict review is owed, and real voice upload remains disconnected until node
+integration. These scoped receipts do not replace final package gates or
+physical-device, Windows, model/provider or user-interface evidence.
