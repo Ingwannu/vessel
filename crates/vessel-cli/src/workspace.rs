@@ -118,9 +118,33 @@ pub(crate) async fn project(target: &Target, command: ProjectCommand) -> Result<
 }
 
 pub(crate) async fn worktree(target: &Target, command: WorktreeCommand) -> Result<(), CliError> {
+    match &command {
+        WorktreeCommand::Create(args) => {
+            args.validate()?;
+            return Err(CliError::ParityBlocked(
+                "path-based worktree creation awaits W11's reviewed workspace source/registry contract",
+            ));
+        }
+        WorktreeCommand::Archive { .. } | WorktreeCommand::List { cwd: Some(_), .. } => {
+            return Err(CliError::ParityBlocked(
+                "repository-scoped worktree list/archive awaits W11's reviewed workspace ownership contract",
+            ));
+        }
+        WorktreeCommand::List { cwd: None, .. }
+        | WorktreeCommand::New { .. }
+        | WorktreeCommand::Output { .. }
+        | WorktreeCommand::Setup { .. }
+        | WorktreeCommand::Remove { .. }
+        | WorktreeCommand::Snapshots { .. } => {}
+    }
     let client = connect(target).await?.client;
     match command {
-        WorktreeCommand::List { project } => {
+        WorktreeCommand::Create(_) | WorktreeCommand::Archive { .. } => {
+            Err(CliError::ParityBlocked(
+                "worktree source/archival awaits the canonical workspace registry",
+            ))
+        }
+        WorktreeCommand::List { project, cwd: _cwd } => {
             let project = match project {
                 Some(project) => Some(find_project(&client, &project).await?.id),
                 None => None,

@@ -78,9 +78,19 @@ pub(crate) enum ProjectCommand {
 /// `vessel worktree …`. A worktree is named by its id or a unique prefix.
 #[derive(Debug, Subcommand)]
 pub(crate) enum WorktreeCommand {
+    /// Create from a repository path through the canonical workspace registry.
+    Create(super::parity::WorktreeCreate),
+    /// Archive a named owned worktree through the canonical workspace registry.
+    Archive {
+        name: String,
+        #[arg(long)]
+        cwd: Option<PathBuf>,
+    },
     /// List worktrees, or a project's.
     #[command(alias = "ls")]
     List {
+        #[arg(long, conflicts_with = "project")]
+        cwd: Option<PathBuf>,
         /// Only this project's.
         #[arg(long)]
         project: Option<String>,

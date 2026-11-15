@@ -42,7 +42,7 @@ The Vessel column names the baseline equivalent, including meaningful difference
 | `import <id>` | `--label <key=value>`: Add label(s) to the agent (can be used multiple times); default=[]<br>`--cwd <path>`: Working directory for providers that require it<br>`--provider <provider>` **required**: Agent provider id | run PROVIDER --structured --resume ID | W17 | Different argument/output contract; not full parity. | W; agentRunSchema; 0/1 | `packages/cli/src/cli.ts:71` |
 | `clone <repo>` | `--dir <path>` **required**: Parent directory to clone into (for example: ~/workspace)<br>`new Option("--protocol <protocol>", "Protocol for owner/repo shorthand repositories").choices(["https", "ssh"])` | project clone URL PARENT | W17 | Different argument/output contract; not full parity. | W; cloneSchema; 0/1 | `packages/cli/src/cli.ts:75` |
 | `attach <id>` | — | attach ID | W17 | Different argument/output contract; not full parity. | R: human transcript/event text only; --json/--format do not change this handler; 0/1 | `packages/cli/src/cli.ts:89` |
-| `logs <id>` | `--since <time>`: Show logs since timestamp<br>`--filter <type>`: Filter by event type (tools, text, errors, permissions)<br>`--tail <n>`: Show last n entries<br>`-f, --follow`: Follow log output (streaming) | log ID | W17 | Different argument/output contract; not full parity. | R: human transcript/event text only; --json/--format do not change this handler; 0/1 | `packages/cli/src/cli.ts:93` |
+| `logs <id>` | `--since <time>`: Show logs since timestamp<br>`--filter <type>`: Filter by event type (tools, text, errors, permissions)<br>`--tail <n>`: Show last n entries<br>`-f, --follow`: Follow log output (streaming) | log ID | lifecycle (logs) | Owned elsewhere; W17 does not modify this handler. | R: human transcript/event text only; --json/--format do not change this handler; 0/1 | `packages/cli/src/cli.ts:93` |
 | `stop [id]` | `--cwd <path>`: Stop all agents in directory<br>`--all`: Stop all agents | send ID TEXT --interrupt (requires a new prompt) | W17 | Different argument/output contract; not full parity. | W; stopSchema; 0/1 | `packages/cli/src/cli.ts:97` |
 | `delete [id]` | `--cwd <path>`: Delete all agents in directory<br>`--all`: Delete all agents | session delete ID --yes | W17 | Different argument/output contract; not full parity. | W; deleteSchema; 0/1 | `packages/cli/src/cli.ts:101` |
 | `send [prompt] <id>` | `--no-wait`: Return immediately without waiting for completion<br>`new Option("--behavior <behavior>", "Active-turn behavior (agent default: steer; otherwise: interrupt)").choices(["interrupt", "steer"])`<br>`--image <path>`: Attach image(s) to the message; default=[]<br>`--prompt-file <path>`: Read the message from a UTF-8 text file<br>`--prompt <text>`: Provide the message inline as a flag | send ID TEXT | W17 | Different argument/output contract; not full parity. | W; agentSendSchema; 0/1 | `packages/cli/src/cli.ts:105` |
@@ -214,7 +214,7 @@ locked dependency version was updated.
 ## Implemented/staged status over the baseline
 
 - Added typed `agent` handlers plus root ls/inspect/wait/stop/delete/archive. Root run/send
-  retain their original Vessel syntax; their Paseo invocation forms are not yet aliases.
+  retain their original Vessel syntax; Paseo root run/send forms route through the agent grammar.
 - Agent list uses current-directory scope by default, excludes archived, supports global/all,
   validated label filters and advertised thinking choices. The provider field currently uses
   Vessel's HarnessRef; created is an RFC3339 timestamp, not Paseo's relative-time string.
@@ -249,7 +249,7 @@ locked dependency version was updated.
 ## Structural extraction before pending registration
 
 The unchanged Request/UnexpectedReply contracts move from rpc.rs to rpc/contract.rs;
-node model client/listener setup moves unchanged to node/model_setup.rs. This behavior-preserving
+node model client/listener setup moves unchanged to the existing node/setup.rs. This behavior-preserving
 refactor keeps the method table and node assembly within their existing shrinking budgets
 without raising either record. Public imports and tests retain their original meaning.
 
@@ -365,3 +365,9 @@ and checks invalid timezone refusal against the fake-only node. Three further na
 findings (borrowed registry error, optional boot admission and a test Ack qualification)
 were corrected without changing registry behavior. Input tests cover bounded UTF-8 files
 and logged option snapshots after process exit.
+
+Hidden worktree create/archive and worktree ls --cwd now parse their reference flags.
+Creation mode conflicts are checked before connecting. They remain explicit pending
+W11 registry/ownership consumers: a legacy WorktreeId is not substituted for a WorkspaceId,
+and removing an owned worktree cannot bypass workspace reference archival. Existing
+project-ID based worktree list/new/remove remain available with their native contract.

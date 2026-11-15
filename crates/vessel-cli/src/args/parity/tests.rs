@@ -63,3 +63,109 @@ fn global_precedence_and_connection_alias_conflicts_are_explicit() {
         .is_ok()
     );
 }
+
+#[test]
+fn pending_consumers_parse_complete_forms_and_keep_scope_conflicts_explicit() {
+    for args in [
+        vec![
+            "vessel",
+            "run",
+            "prompt",
+            "--provider",
+            "codex/team/model",
+            "--new-workspace",
+            "worktree",
+            "--worktree-mode",
+            "checkout-pr",
+            "--pr-number",
+            "12",
+            "--forge",
+            "github",
+            "-d",
+        ],
+        vec![
+            "vessel",
+            "import",
+            "provider-conversation",
+            "--provider",
+            "codex",
+        ],
+        vec!["vessel", "usage", "--agent", "ab12", "--refresh", "--json"],
+        vec!["vessel", "usage", "ls", "--agent", "ab12", "--refresh"],
+        vec!["vessel", "usage", "inspect", "quota-id", "--refresh"],
+        vec![
+            "vessel",
+            "provider",
+            "models",
+            "future-provider",
+            "--thinking",
+        ],
+        vec![
+            "vessel",
+            "worktree",
+            "create",
+            "--mode",
+            "checkout-pr",
+            "--pr-number",
+            "1",
+            "--cwd",
+            "/repo",
+        ],
+        vec!["vessel", "worktree", "archive", "branch", "--cwd", "/repo"],
+        vec![
+            "vessel",
+            "schedule",
+            "create",
+            "prompt",
+            "--provider",
+            "codex/model",
+            "--cwd",
+            "/repo",
+            "--every",
+            "15m",
+            "--run-now",
+            "--expires-in",
+            "1h",
+        ],
+        vec![
+            "vessel",
+            "schedule",
+            "update",
+            "name",
+            "--name",
+            "",
+            "--no-max-runs",
+            "--no-expires-in",
+        ],
+    ] {
+        let args = args.into_iter().map(std::ffi::OsString::from).collect();
+        assert!(Cli::try_parse_from(super::normalize(args)).is_ok());
+    }
+    for args in [
+        vec!["vessel", "usage", "--agent", "ab12", "inspect", "quota"],
+        vec!["vessel", "usage", "inspect", "quota", "--agent", "ab12"],
+        vec![
+            "vessel",
+            "schedule",
+            "update",
+            "name",
+            "--no-max-runs",
+            "--max-runs",
+            "1",
+        ],
+        vec![
+            "vessel",
+            "agent",
+            "run",
+            "prompt",
+            "--provider",
+            "codex",
+            "--workspace",
+            "id",
+            "--new-workspace",
+            "local",
+        ],
+    ] {
+        assert!(Cli::try_parse_from(args).is_err());
+    }
+}

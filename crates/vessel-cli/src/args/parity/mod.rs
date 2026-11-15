@@ -14,6 +14,7 @@ mod provider_argument;
 mod schedule;
 mod terminal;
 mod workspace;
+mod worktree;
 
 pub(crate) use agent::{AgentCommand, AgentList, AgentRun, AgentSend, Selection, Wait};
 pub(crate) use clone::{Clone, CloneProtocol};
@@ -26,6 +27,7 @@ pub(crate) use output::{ConnectionOptions, OutputOptions, Presentation};
 pub(crate) use schedule::ScheduleParityArgs;
 pub(crate) use terminal::{TerminalCommand, TerminalSelector};
 pub(crate) use workspace::WorkspaceCommand;
+pub(crate) use worktree::WorktreeCreate;
 
 use crate::selector::SessionSelector;
 use clap::Subcommand;

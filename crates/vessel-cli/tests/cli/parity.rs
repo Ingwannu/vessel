@@ -189,3 +189,48 @@ async fn list_defaults_to_cwd_and_structured_refusals_have_no_creation_side_effe
     })
     .await;
 }
+
+#[derive(Deserialize)]
+struct FailureEnvelope {
+    error: Failure,
+}
+#[derive(Deserialize)]
+struct Failure {
+    code: vessel_proto::ErrorCode,
+    message: String,
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn pending_contracts_refuse_before_network_and_leave_structured_stdout_empty() {
+    within(async {
+        let fixture = Fixture::start().await;
+        for args in [
+            vec!["workspace", "create", "--isolation", "local", "--json"],
+            vec!["provider", "ls", "--json"],
+            vec!["usage", "inspect", "quota-id", "--json"],
+            vec!["terminal", "create", "--json"],
+            vec!["host", "ls", "--json"],
+            vec![
+                "agent",
+                "run",
+                "prompt",
+                "--provider",
+                "claude",
+                "--env",
+                "TEST=private-fixture-value",
+                "--json",
+            ],
+        ] {
+            // A connection attempt would produce unavailable, not this typed refusal.
+            let ran = fixture
+                .vessel_at("127.0.0.1:1", fixture.data(), &args, b"")
+                .await;
+            assert!(!ran.ok);
+            assert!(ran.stdout.is_empty(), "{}", ran.stdout);
+            let error: FailureEnvelope = serde_json::from_str(&ran.stderr).unwrap();
+            assert_eq!(error.error.code, vessel_proto::ErrorCode::Unsupported);
+            assert!(!error.error.message.contains("private-fixture-value"));
+        }
+        fixture.stop().await;
+    })
+    .await;
+}
