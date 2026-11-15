@@ -368,3 +368,13 @@ Readiness additionally requires a verified project-cache peer binding; a current
 fleet welcome cannot authenticate a previously unbound cached list by itself.
 The existing readiness fixture now enters its list through the same correlated
 hydration path, rather than assigning unscoped display state directly.
+
+
+The project-settings entry now reuses the existing Settings/detail renderer
+through Shell::open_project_settings(&ProjectTarget, ProjectId, window, cx).
+It verifies authenticated peer, project-cache provenance, settled read and exact
+project membership before changing the screen. Unavailable/NotHydrated/Missing
+are typed refusals, preserving the previous route and selection. Existing
+project rows capture the verified target rather than consulting Settings' host
+at click time. This is source-only; workspace activation remains W12's separate
+sink and the complete shared registry projection is still pending.

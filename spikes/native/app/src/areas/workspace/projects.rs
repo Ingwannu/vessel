@@ -128,23 +128,6 @@ impl Shell {
             }
         }
     }
-
-    fn open_project(&mut self, project: &ProjectInfo, cx: &mut Context<'_, Self>) {
-        let page = &mut self.areas.workspace.page;
-        if page
-            .detail
-            .as_ref()
-            .is_some_and(|open| open.project == project.id)
-        {
-            page.detail = None;
-        } else {
-            page.detail = Some(Detail::new(project.id));
-            if let Some(machine) = self.projects_machine() {
-                self.load_detail(&machine, project);
-            }
-        }
-        cx.notify();
-    }
 }
 
 /// The facts under a project's name: its folder, then its state or its
@@ -352,7 +335,15 @@ fn project_row(
     cx: &mut Context<'_, Shell>,
 ) -> Stateful<Div> {
     let words = shell.words();
-    let opened = project.clone();
+    let opened = project.id;
+    let target = shell.projects_machine().and_then(|host| {
+        Some(
+            vessel_app_view::workspace::projects::navigation::ProjectTarget::new(
+                vessel_app_view::machine_book::Name::parse(&host).ok()?,
+                shell.areas.workspace.project_reads.node(&host)?,
+            ),
+        )
+    });
     let name = project.name.to_string();
     // Paseo's project row: the project's mark (its initial on a tile, 16),
     // its name, its state as a badge, a chevron; the whole row opens the
@@ -401,7 +392,16 @@ fn project_row(
             index,
             tokens,
         ))
-        .on_click(cx.listener(move |this, _event, _window, cx| this.open_project(&opened, cx)))
+        .on_click(cx.listener(move |this, _event, window, cx| {
+            let result = match &target {
+                Some(target) => this.open_project_settings(target, opened, window, cx),
+                None => Err(super::project_navigation::ProjectSettingsRefusal::Unavailable),
+            };
+            if result.is_err() {
+                this.notice = Some(this.words().problem(&Problem::Unsent));
+            }
+            cx.notify();
+        }))
 }
 
 #[cfg(test)]

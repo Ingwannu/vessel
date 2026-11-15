@@ -16,6 +16,7 @@ mod place;
 mod place_rows;
 mod project_actions;
 pub(crate) mod project_form;
+pub(crate) mod project_navigation;
 mod project_readiness;
 mod project_reads;
 mod projects;

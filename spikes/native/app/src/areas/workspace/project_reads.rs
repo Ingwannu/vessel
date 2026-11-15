@@ -83,7 +83,7 @@ mod tests {
     ) {
         language_tests::init(cx);
         let (shell, cx) = cx.add_window_view(Shell::without_io);
-        shell.update_in(cx, |shell, _, _| {
+        shell.update_in(cx, |shell, window, cx| {
             let host = Name::parse("laptop").unwrap();
             let old = NodeId::random();
             let node = NodeId::random();
@@ -129,12 +129,55 @@ mod tests {
                 shell.areas.workspace.projects[host.as_str()].project(&project.id),
                 Some(&project)
             );
+            let selected = ProjectTarget::new(host.clone(), node);
+            assert_eq!(
+                shell.open_project_settings(&selected, project.id, window, cx),
+                Ok(())
+            );
+            assert_eq!(shell.areas.settings.machine.as_deref(), Some(host.as_str()));
+            assert_eq!(
+                shell
+                    .areas
+                    .workspace
+                    .page
+                    .detail
+                    .as_ref()
+                    .map(|detail| detail.project),
+                Some(project.id)
+            );
+            assert_eq!(
+                shell.open_project_settings(&selected, ProjectId::random(), window, cx),
+                Err(super::super::project_navigation::ProjectSettingsRefusal::Missing)
+            );
+            assert_eq!(
+                shell.open_project_settings(
+                    &ProjectTarget::new(host.clone(), old),
+                    project.id,
+                    window,
+                    cx
+                ),
+                Err(super::super::project_navigation::ProjectSettingsRefusal::Unavailable)
+            );
+            assert_eq!(
+                shell
+                    .areas
+                    .workspace
+                    .page
+                    .detail
+                    .as_ref()
+                    .map(|detail| detail.project),
+                Some(project.id)
+            );
             let newest = shell
                 .areas
                 .workspace
                 .project_reads
                 .begin(ProjectTarget::new(host.clone(), node))
                 .unwrap();
+            assert_eq!(
+                shell.open_project_settings(&selected, project.id, window, cx),
+                Err(super::super::project_navigation::ProjectSettingsRefusal::NotHydrated)
+            );
             assert_eq!(
                 shell.setup_readiness(&host, node),
                 vessel_app_view::workspace::projects::actions::ProjectSetupReadiness::Pending
