@@ -1141,3 +1141,19 @@ interface cannot execute the vendor-private test with its absent dev-dependency
 lock, so it remains explicitly unexecuted. A Kit result cannot be relabelled as
 execution of that private vendor case. Vendor review/adoption and the real
 quit/finalization consumer remain separate pending joins.
+
+## Announced base11 alignment and browser isolation
+
+The owner merged announced bb5e5541 after the exact node package landed. Root
+crates, root lock and generated wire files now have no difference from that
+common base. Conflict resolution takes its canonical ADR0083 SDK, method table
+and original client assertions rather than retaining provisional copies.
+
+The same merge preserves both History and FileOperation dispatch, the shared
+field presentation split, captured Plain callbacks, Identified callbacks and
+the single composition registry. File runtime modules and LSP client helpers
+are native-only. The browser demo retains the same typed request/reply values
+and returns a correlated unsupported response with dispatched=false; it has no
+file transport. This extends the common platform boundary without adding a
+second resolver or changing native call behavior. The current union, including
+its browser boundary, has not executed its required checks yet.

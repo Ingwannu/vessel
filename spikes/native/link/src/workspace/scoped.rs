@@ -5,8 +5,12 @@
 //! - Constraint: session metadata is the existing root source; no cwd fallback.
 //! - Choice: G4 admits once and fences every typed call; replies keep its context.
 //! - Cost: retirement refuses old work, including reads; it never retries writes.
-use super::{FileAnswer, FileAsk, file_call::Client};
+#[cfg(not(target_arch = "wasm32"))]
+use super::file_call::Client;
+use super::{FileAnswer, FileAsk};
+#[cfg(not(target_arch = "wasm32"))]
 use std::sync::Arc;
+#[cfg(not(target_arch = "wasm32"))]
 use tokio::sync::Semaphore;
 use vessel_app_view::connection::ConnectionContext;
 use vessel_app_view::workspace::{
@@ -14,7 +18,9 @@ use vessel_app_view::workspace::{
 };
 use vessel_proto::{SessionId, SessionInfo, workspace::WorkspaceRoot};
 
+#[cfg(not(target_arch = "wasm32"))]
 const MAX_FILE_OPERATIONS: usize = 16;
+#[cfg(not(target_arch = "wasm32"))]
 const MAX_FILE_OBSERVATIONS: usize = 64;
 
 /// One request captured before submission. Constructors cannot change its root.
@@ -63,6 +69,12 @@ impl Request {
     #[must_use]
     pub fn refused(self) -> Reply {
         self.failed(&Problem::Unsent)
+    }
+    /// The browser demo has no file transport; settle without dispatch.
+    #[cfg(target_arch = "wasm32")]
+    #[must_use]
+    pub(crate) fn unsupported(self) -> Reply {
+        self.failed(&Problem::Older)
     }
     fn failed(self, problem: &Problem) -> Reply {
         let outcome = match self.work {
@@ -131,11 +143,13 @@ impl Reply {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug, Clone)]
 pub(super) struct Hub {
     slots: Arc<Semaphore>,
     observations: Arc<Semaphore>,
 }
+#[cfg(not(target_arch = "wasm32"))]
 impl Default for Hub {
     fn default() -> Self {
         Self {
@@ -144,6 +158,7 @@ impl Default for Hub {
         }
     }
 }
+#[cfg(not(target_arch = "wasm32"))]
 impl crate::State {
     pub(crate) fn scoped_file(&self, request: Request) {
         let selected = self.selected_connection(&request.context);

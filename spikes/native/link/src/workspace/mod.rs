@@ -37,7 +37,9 @@ mod ask;
 #[cfg(not(target_arch = "wasm32"))]
 mod calls;
 mod file_answer;
+#[cfg(not(target_arch = "wasm32"))]
 mod file_call;
+#[cfg(not(target_arch = "wasm32"))]
 mod file_run;
 #[cfg(not(target_arch = "wasm32"))]
 mod follow;
@@ -47,7 +49,7 @@ mod pulls;
 #[cfg(not(target_arch = "wasm32"))]
 mod run;
 pub mod scoped;
-#[cfg(test)]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 mod scoped_tests;
 mod start;
 

@@ -1,19 +1,23 @@
 //! Existing read-only node LSP calls with finite deadlines and request
 //! correlation. Repository execution/trust remains the node's policy.
 
+#[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
 
 use vessel_app_view::workspace::file_ticket::FileTicket;
 use vessel_app_view::workspace::intelligence::{IntelligenceAction, IntelligenceFailure};
+#[cfg(not(target_arch = "wasm32"))]
 use vessel_client::Unary;
 use vessel_proto::{
     lsp,
     workspace::{RelPath, WorkspaceRoot},
 };
 
+#[cfg(not(target_arch = "wasm32"))]
 use super::file_call::Client;
 
 /// A cold language server can initialize without blocking the link task.
+#[cfg(not(target_arch = "wasm32"))]
 const QUERY_DEADLINE: Duration = Duration::from_secs(30);
 
 /// A file-owned query, using only the node's existing LSP request types.
@@ -42,6 +46,7 @@ pub enum IntelligenceResult {
     Diagnostics(Result<lsp::Page<lsp::Diagnostic>, IntelligenceFailure>),
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub(super) async fn run(client: &Client<'_>, ask: &IntelligenceAsk) -> IntelligenceResult {
     match ask.action {
         IntelligenceAction::Hover => {
@@ -76,6 +81,7 @@ pub(super) fn refused(
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 async fn query<R: Unary>(
     client: &Client<'_>,
     request: R,
