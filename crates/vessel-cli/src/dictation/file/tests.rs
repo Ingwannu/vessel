@@ -1,5 +1,6 @@
 //! Synthetic regular files exercise preflight and bounded reads without a node.
 use super::*;
+use std::io::Write as _;
 
 fn format(rate: SampleRate) -> Vec<u8> {
     let width = u16::try_from(SAMPLE_BYTES).unwrap();
@@ -73,7 +74,7 @@ async fn preflight_accepts_chunk_order_padding_extensions_and_one_second_plus_ta
         assert_eq!(input.format().rate(), rate);
         let full = input.next().await.unwrap().unwrap();
         assert_eq!(full.as_slice().len(), second);
-        assert!(full.as_slice() == audio.get(..second).unwrap());
+        assert!(full.as_slice() == &audio[..second]);
         let tail = input.next().await.unwrap().unwrap();
         assert_eq!(tail.as_slice().len(), SAMPLE_BYTES);
         assert!(input.next().await.unwrap().is_none());
@@ -284,7 +285,6 @@ async fn growth_is_ignored_and_a_later_truncation_is_an_io_failure() {
     let original = wave(&[(b"fmt ", &fmt), (b"data", &short())]);
     let (_directory, path) = file(&original);
     let mut input = FileInput::open(&path).await.unwrap();
-    use std::io::Write as _;
     std::fs::OpenOptions::new()
         .append(true)
         .open(&path)

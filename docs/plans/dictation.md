@@ -572,3 +572,7 @@ bounded segment changes. The duplicated private owner module is removed; the
 shared connection_life keeps its two passing identity/lifetime cases. Real context
 setup and transport observation still await the service caller. This consumer
 adaptation has not yet passed its own narrow check or product gate.
+
+The first file-decoder Clippy check compiled the new paths and found only two
+test-style lints (get/unwrap and a local import after statements). They are fixed
+without changing assertions, format rules or limits. Runtime checks remain owed.
