@@ -112,3 +112,11 @@ specific private retention tests have a scoped expectation because inspecting
 the deliberately opaque owned field is their purpose; product field ownership,
 public formatting/source behavior and every identity/lifetime/OS/wire assertion
 remain unchanged. No product lint is suppressed or raw accessor introduced.
+
+
+The corrected strict run then reached the Node wire fixture and found its
+missing direct test dependency on vessel-pty. Node production reaches PTY errors
+through vessel-session; Rust intentionally does not expose that transitive crate
+for constructing the concrete Thread case. A test-only direct edge now names the
+already-present workspace crate. No production crate edge, package/version,
+error mapping or assertion changes; the manifest/lock addition is test wiring.

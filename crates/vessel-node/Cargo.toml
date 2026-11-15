@@ -111,6 +111,8 @@ uuid.workspace = true
 web-push-native.workspace = true
 
 [dev-dependencies]
+# Construct the concrete PTY Thread cause for the existing session/wire error edge.
+vessel-pty.workspace = true
 # portable-pty uses log; exercise that actual bridge, not only tracing events.
 log.workspace = true
 # `test-util`: the probes' cache is checked on a paused clock. Without it

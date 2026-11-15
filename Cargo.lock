@@ -3915,6 +3915,7 @@ dependencies = [
  "vessel-mcp",
  "vessel-proc",
  "vessel-proto",
+ "vessel-pty",
  "vessel-relay",
  "vessel-rpc",
  "vessel-secure",
