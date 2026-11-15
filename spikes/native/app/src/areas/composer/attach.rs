@@ -17,7 +17,7 @@ use vessel_app_link::Command;
 use vessel_app_link::attachments::{Attach, Create, Files, Step, WithFiles};
 use vessel_app_view::Card;
 use vessel_app_view::composer::drafts::DraftKey;
-use vessel_app_view::composer::tray::{ItemKey, Origin, Readiness, Target};
+use vessel_app_view::composer::tray::{ItemKey, ItemState, Origin, Readiness, Target};
 use vessel_proto::{AttachmentLimits, Delivery, HarnessRef, OptionChoice, SessionId};
 
 use crate::shell::Shell;
@@ -119,6 +119,28 @@ impl Shell {
         self.composer_has_files(DraftKey::New)
     }
 
+    /// Whether Send goes in the open session's composer with `text`: there
+    /// is something to send, no file in it is refused (the prompt would
+    /// wait on a file that can never go; the pill says why), and no earlier
+    /// prompt still waits for its files (the files shown are that prompt's,
+    /// and a second send would take its place). The text stays in the
+    /// composer until it may go.
+    pub(crate) fn session_may_send(&self, text: &str) -> bool {
+        let Some(session) = self.areas.session.open.as_ref().map(|open| open.session) else {
+            return false;
+        };
+        let composer = &self.areas.composer;
+        let tray = composer.trays.get(DraftKey::Session { session });
+        let files = tray.is_some_and(|tray| !tray.is_empty());
+        let refused = tray.is_some_and(|tray| {
+            tray.items()
+                .iter()
+                .any(|item| matches!(item.state, ItemState::Refused(_)))
+        });
+        let waiting = composer.sends.contains_key(&session);
+        (files || !text.trim().is_empty()) && !refused && !waiting
+    }
+
     /// The session composer's tray key, when a session is open.
     pub(crate) fn session_tray_key(&self) -> Option<DraftKey> {
         let session = self.areas.session.open.as_ref()?.session;
@@ -182,7 +204,7 @@ impl Shell {
             delivery,
         };
         drop(self.areas.composer.sends.insert(session, waiting));
-        self.areas.session.composer.clear(window, cx);
+        self.session_composer_sent(window, cx);
         self.composer_pump(session, cx);
         true
     }
@@ -217,11 +239,13 @@ impl Shell {
         files_start(machine, harness, folder, options)
     }
 
-    /// A session started from the app: opened as before (`started`), and
-    /// when it was started for the new chat's files, the files become its
-    /// tray and the prompt waits for them.
+    /// A session started from the app: opened as before (`started`), the
+    /// new chat's draft made what its composer now holds (`new_chat_kept`),
+    /// and when it was started for the new chat's files, the files become
+    /// its tray and the prompt waits for them.
     pub(crate) fn started_with_files(&mut self, card: &Card, cx: &mut Context<'_, Self>) {
         self.started(card, cx);
+        self.new_chat_kept(cx);
         self.composer_started(card, cx);
     }
 

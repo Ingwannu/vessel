@@ -292,7 +292,7 @@ impl Shell {
         let Some(open) = &self.areas.session.open else {
             return;
         };
-        if (text.trim().is_empty() && !self.session_has_files())
+        if !self.session_may_send(&text)
             || self.areas.session.resuming.is_some()
             || self.conversation_cannot_resume()
         {
@@ -335,7 +335,7 @@ impl Shell {
             self.areas.session.resuming = Some(text);
             self.areas.session.resume_error = None;
         }
-        self.areas.session.composer.clear(window, cx);
+        self.session_composer_sent(window, cx);
         cx.notify();
     }
 
@@ -584,7 +584,7 @@ fn composer(
         } else {
             vessel_app_kit::SendKind::Send
         },
-        stop || typed,
+        stop || shell.session_may_send(&field.text(cx)),
         touch,
         tokens,
     )
