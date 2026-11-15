@@ -11,6 +11,7 @@ fn command(name: &str) -> AgentCommand {
         name: name.parse().unwrap(),
         description: format!("What {name} does"),
         hint: None,
+        kind: None,
     }
 }
 

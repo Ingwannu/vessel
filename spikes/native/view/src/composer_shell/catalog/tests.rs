@@ -7,6 +7,7 @@ fn provider(name: &str) -> AgentCommand {
         name: name.parse().unwrap(),
         description: "description".to_owned(),
         hint: None,
+        kind: None,
     }
 }
 

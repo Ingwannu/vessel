@@ -278,6 +278,7 @@ fn command(name: &str) -> AgentCommand {
         name: name.parse().unwrap(),
         description: format!("{name}, as the agent says"),
         hint: None,
+        kind: None,
     }
 }
 

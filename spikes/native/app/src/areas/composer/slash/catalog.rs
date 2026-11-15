@@ -5,6 +5,7 @@ use vessel_app_view::composer::slash::{Chosen, SlashRange, drawn};
 use vessel_app_view::composer_shell::catalog::{self, Entry, Inline, Position, Source, Target};
 use vessel_app_view::composer_shell::commands::ClientCommand;
 use vessel_proto::AgentCommand;
+use vessel_proto::composer_commands::CommandKind;
 
 #[derive(Debug, Clone, Copy)]
 pub(super) enum Choice<'a> {
@@ -40,12 +41,22 @@ impl<'a> Menu<'a> {
         chosen: &Chosen,
     ) -> Option<Self> {
         let active = catalog::active(text, caret)?;
-        // An older peer has no reliable skill kind. The canonical node metadata
-        // adapter replaces RootOnly when the gated producer is adopted.
+        // Only canonical provider metadata enables inline completion. Older and
+        // future/unknown peer kinds retain the root-only behavior.
         let providers: Vec<Entry<'a, Infallible>> = commands
             .unwrap_or_default()
             .iter()
-            .map(|command| Entry::provider(command, Inline::RootOnly))
+            .map(|command| {
+                Entry::provider(
+                    command,
+                    match command.kind {
+                        Some(CommandKind::Skill) => Inline::Skill,
+                        Some(CommandKind::Command | CommandKind::Unknown) | None => {
+                            Inline::RootOnly
+                        }
+                    },
+                )
+            })
             .collect();
         // Inline matching starts from provider entries directly in the reference;
         // a provider skill may share a root-only built-in/plugin name.
@@ -108,6 +119,7 @@ mod tests {
             name: "q".parse().unwrap(),
             description: String::new(),
             hint: None,
+            kind: None,
         }];
         let choice = Chosen::default();
         assert!(
@@ -130,5 +142,37 @@ mod tests {
                 .client(),
             Some(ClientCommand::Exit)
         );
+    }
+
+    #[test]
+    fn explicit_skill_can_complete_inline_even_when_its_name_is_reserved_at_root() {
+        let choice = Chosen::default();
+        for kind in [
+            Some(CommandKind::Skill),
+            Some(CommandKind::Command),
+            Some(CommandKind::Unknown),
+            None,
+        ] {
+            let commands = [AgentCommand {
+                name: "q".parse().unwrap(),
+                description: String::new(),
+                hint: None,
+                kind,
+            }];
+            let inline = Menu::of("use /q", 6, Target::Session, Some(&commands), &choice).unwrap();
+            assert_eq!(
+                inline.rows.len(),
+                usize::from(kind == Some(CommandKind::Skill))
+            );
+            if let Some(row) = inline.taken(&choice) {
+                assert_eq!(row.name(), "q");
+                assert_eq!(row.client(), None);
+            }
+            let root = Menu::of("/q", 2, Target::Session, Some(&commands), &choice).unwrap();
+            assert_eq!(
+                root.taken(&choice).unwrap().client(),
+                Some(ClientCommand::Exit)
+            );
+        }
     }
 }
