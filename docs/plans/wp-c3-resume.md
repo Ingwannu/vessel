@@ -298,3 +298,13 @@ was started. C3 remains skeleton; C4 has not started.
 - Patch7 carry README now distinguishes actual08b1 13/3 result from pending0813
   corrections and explicitly excludes full-width split header/source-copy.
   Isolated faa0a9931 and app f4089666f are docs-only; no gate replay is needed.
+
+## 16:00 UTC: announced base merge
+
+Merged announced greenc3429952 into the APP tree while no App whole gate is
+active; the isolated control0813 jobs remain immutable in their own worktree.
+Only README conflicted: retained both the mapped audit note and the incoming
+identified textarea section. S2's boxed SavePrefs constructors and W12's staged
+resident source are preserved, with no resource promotion. This is not adoption
+of an unannounced moving line. W10b's dispatch extraction still waits for its
+announced checked line before the next coherent App compile.
