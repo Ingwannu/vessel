@@ -43,8 +43,11 @@ Contract revision295281a2 passed row129. The earlier count-only store slice
 b4353ae6 passed five real-writer tests; those results do not validate the new
 byte accounting. Exact5bc's four-library suite executed 750 passing tests,
 including the current capacity/restart/namespace coverage, and one failed
-completed-resource deletion fixture. That fixture is corrected in5244; its
-rerun and the later exact-ack/redaction checks are queued. No runtime driver,
+completed-resource deletion fixture. That fixture is corrected in5244;
+run wp-create-node-narrow-20261115T120447Z-5244c045 executed 31 focused tests
+with no failures, including exact acknowledgement, safe errors, namespaces,
+restart and retained keys. Later strict test-lint fixes remain under a queued
+narrow check. No runtime driver,
 public protocol assignment or receipt/launch source acceptance is claimed.
 
 Approved shared identitye45a5d89 is merged. Unreviewed registry producer code
@@ -187,4 +190,7 @@ and one bridge declaration test). The remote step then refused freshness
 because its generated proto.ts differed from the checkout. The authenticated
 post-step artifact manifest was verified and that exact generated patch is
 now applied; no hand-written wire types or invented feature version is used.
-The earlier Snapshot name-clash failure remains preserved separately.
+The earlier Snapshot name-clash failure remains preserved separately. The
+freshness rerun wp-create-node-wire-20261115T123918Z-d97f3429 passed; generated
+declarations now match the checked source. That does not assign a protocol
+version or activate the missing creation/launch methods.
