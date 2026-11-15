@@ -21,6 +21,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        if self.composer_attachments_blocked(vessel_app_view::composer::drafts::DraftKey::New) {
+            return;
+        }
         if self.route == Route::NewWorkspace {
             self.submit_workspace_form(&text, cx);
             return;
@@ -50,7 +53,9 @@ impl Shell {
             cx.notify();
             return;
         };
-        let Some(input) = self.prepare_creation_input(ticket, expected_node, &machine, &text, cx)
+        let message = self.areas.draft.creation.message(ticket);
+        let Some(input) =
+            self.prepare_creation_input(ticket, message, expected_node, &machine, &text, cx)
         else {
             return;
         };
@@ -72,6 +77,7 @@ impl Shell {
         }
         let ask = Ask {
             ticket,
+            message,
             machine: machine.clone(),
             expected_node,
             target,
@@ -114,12 +120,13 @@ impl Shell {
     fn prepare_creation_input(
         &mut self,
         ticket: Ticket,
+        message: vessel_proto::timeline::ClientMessageId,
         expected_node: vessel_proto::NodeId,
         machine: &Name,
         text: &str,
         cx: &mut Context<'_, Self>,
     ) -> Option<FirstInput> {
-        match self.prepare_draft_files_on(ticket, expected_node, machine.as_str(), text) {
+        match self.prepare_draft_input(ticket, message, expected_node, machine.as_str(), text) {
             Ok(Some(prepared)) => {
                 if prepared.ticket() == ticket {
                     Some(FirstInput::Deferred)

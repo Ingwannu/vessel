@@ -54,6 +54,7 @@ async fn execute(scenario: Scenario, input: FirstInput) -> TestResult<Vec<Answer
     );
     let ask = Ask {
         ticket: TICKET,
+        message: vessel_proto::timeline::ClientMessageId::random(),
         expected_node: if matches!(scenario, Scenario::WrongNode) {
             vessel_proto::NodeId::random()
         } else {
