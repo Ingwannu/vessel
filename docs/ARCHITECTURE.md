@@ -1619,3 +1619,17 @@ selected-file kernel query to proc through `lock/query`. Its public
 this dependency inside that lock boundary. Proc still has no internal
 normal dependency; its snapshot alone grants no signal authority. The later
 CLI signal edge remains proposed and is not added by this move.
+The staged node `speech_audio` module is shared by dictation and spoken
+conversation (ADR 0067 / ADR 0080). It owns a borrowed aligned PCM16 view,
+fixed-provider-rate conversion and checked in-memory WAV framing. Recording
+budgets, silence, segmentation, prompts and multipart fields stay with callers.
+It adds no crate edge or dependency; consumers remove its test gate when wiring
+real product callers. Payload-bearing Debug is redacted and no audio file is
+created by the codec.
+
+The staged node `connection_life` primitive owns an opaque Arc identity and
+context-lifetime close/drop signal. It contains no quota, presence id, transport
+or worker. The real connection setup will own one instance and acting-as contexts
+will clone it; resources retain only its identity/close observer and observe
+transport closure as well. Dictation, spoken conversation and later resources
+consume that connection accessor rather than creating another ownership key.
