@@ -1,12 +1,8 @@
-//! Tail selection through the real CLI after a fake terminal's final record.
+//! Log selection through the CLI with fake sessions and event-driven follow transitions.
 
-<<<<<<< HEAD
 use crate::support::{Captured, Fixture, within};
-=======
-use crate::support::{Fixture, within};
 use std::time::Duration;
 
->>>>>>> backend/m12-gk-lifecycle-log-select-fix
 use vessel_client::NodeClient;
 use vessel_proto::{
     AgentEvent, ContentBlock, EventRecord, EventSeq, HarnessKind, SessionEvent, SessionId,

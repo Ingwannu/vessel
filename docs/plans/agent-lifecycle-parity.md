@@ -150,15 +150,12 @@ Read first, and reproduced except for the differences ADR 0063 lists.
   terminal and status records, before rendering. This preserves the existing
   `--from` and retention cursor unit in both modes. Tail can begin inside a
   streamed message; it does not count visible lines or complete messages.
-<<<<<<< HEAD
   The same raw-record predicate order applies to timestamps and kinds.
-=======
 - `activity-curator.ts:200-207` returns "No activity to display." when
   curation has no entries; one-shot prints that result (`logs.ts:314-315`).
   Vessel's existing renderer emits only selected records and real retention
   notices. A filter with no match is quiet, preserving stdout capture rather
   than synthesizing an activity banner. A CLI case checks both streams.
->>>>>>> backend/m12-gk-lifecycle-log-select-fix
 - Paseo waits for an explicit stop even after timeline activity ends
   (`logs.ts:401-407`). Vessel follows through the current session run,
   ending at the stream's final status or Ctrl-C. This preserves the existing
@@ -320,34 +317,25 @@ No row of the crate table changes.
   the existing tail window. Sequence gaps separate message chunks, but only
   raw page gaps generate retention notices. Parser, predicate, render-boundary
   and fake-node selection tests have not run yet. Existing render expectations
-<<<<<<< HEAD
-  stay unchanged.
+  stay unchanged. A no-match CLI assertion also checks that no banner is
+  fabricated.
+  The inherited stream-end wait and the new turn-end wait share one named
+  event budget; their expected records and output remain unchanged.
 - Implementation slice 5c, verification pending: follow reuses these predicates,
   the tail window and the raw history cursor. Its omitted history count has
   one constant, also used by the CLI help. EOF, interruption and stream notices
   finish an open text line; terminal bytes stay untouched. The event-driven
-  history-to-live test and follow parser tests have not run yet. All three
-  implementation slices still owe compilation and their separate whole gates.
+  history-to-live test and follow parser tests have not run yet. Selection and follow
+  still owe compilation and separate whole gates; tail's whole gate is pending.
 - The contract's follow bullet and EOF explanation now name the same end.
   Parser and command-level checks are documented together: an invalid tail
   is refused by both products, with earlier validation in Vessel.
-- Source review additionally confirmed and documented the raw-record tail
-  unit versus Paseo's projected items. The chunk-boundary test is added to
-  first-tail verification but remains unrun; no runtime parity is claimed.
-- Next: report the independent decoder gate, then gate tail slice 5a and
-  selection slice 5b and follow slice 5c in order while
-=======
-  stay unchanged. A no-match CLI assertion also checks that no banner is
-  fabricated. Follow and its transition test remain a protected draft for
-  slice 5c, which must reuse these predicates and the raw history cursor.
-  The inherited stream-end wait and the new turn-end wait share one named
-  event budget; their expected records and output remain unchanged.
-- The contract's follow bullet and EOF explanation now name the same end.
-  Parser and command-level checks are documented together: an invalid tail
-  is refused by both products, with earlier validation in Vessel.
-- Next: finish the tail slice's whole gate, then run narrow checks and the
-  whole gate for selection slice 5b while
->>>>>>> backend/m12-gk-lifecycle-log-select-fix
+- A source-preparation script continued after a failed conflict-resolution
+  step and left conflict markers in an unverified intermediate commit. The
+  follow-up repairs both owned files with every prior scenario retained.
+  No completed tail gate or product verification is claimed for that draft.
+- Next: finish the tail slice's whole gate, then run narrow checks and separate
+  whole gates for selection slice 5b and follow slice 5c while
   label call wiring awaits the shared accessor. No new wire call or dependency
   is added by log options. All slices include the caller-to-projection
   citations and retain the raw-chunk test; the selection render context changes
