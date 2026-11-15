@@ -8,7 +8,8 @@ slice order. The docs commit adds both and no command.
 
 - Contract fast checks passed before code. A source re-read additionally pins
   Paseo's invalid-JSON-to-literal-string fallback; this typed input refuses it.
-  Get/set source and fixtures are drafted and formatted but not compiled yet.
+  Get/set source and fixtures are committed and formatted; narrow compilation
+  and runtime checks are pending. Unset/reload wiring is still separate.
 
 - Config get/set uses the existing RPCs and a shared exhaustive key adapter.
   Strict JSON, a named input cap and safe category/location diagnostics are

@@ -24,6 +24,7 @@ mod inbox;
 mod init;
 mod io;
 mod log;
+mod node_config;
 mod node_ctl;
 mod nodes;
 mod pair;

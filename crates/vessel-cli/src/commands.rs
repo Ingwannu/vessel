@@ -114,6 +114,7 @@ async fn node(target: &Target, command: NodeCommand) -> Result<(), CliError> {
         NodeCommand::Install(install) => remote::install(target, install).await,
         NodeCommand::Update(update) => remote::update(target, update).await,
         NodeCommand::Stop(args) => crate::node_ctl::stop(target, args).await,
+        NodeCommand::Config { command } => crate::node_config::run(target, command).await,
         NodeCommand::Status => {
             let client = connect(target).await?.client;
             let node = client.node_info().await?;

@@ -13,6 +13,15 @@ use vessel_remote::{
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum CliError {
+    /// Only typed settings are encoded; command input is never an error payload.
+    #[error("could not encode the settings value")]
+    SettingsEncode(#[source] serde_json::Error),
+    /// Strict settings JSON never echoes its untrusted values or serde messages.
+    #[error(transparent)]
+    SettingInput(#[from] vessel_proto::settings::InvalidSettingInput),
+    /// A newer key is display-only and cannot be changed or read here.
+    #[error(transparent)]
+    SettingKey(#[from] vessel_proto::settings::UnknownSettingKey),
     /// Service input and reads must never expose unit environment contents.
     #[error(transparent)]
     Service(#[from] crate::init::ServiceError),

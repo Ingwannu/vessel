@@ -15,6 +15,11 @@
 //!   agent that has one of its own. A node of 17 answers without it, which
 //!   reads as ACP for every agent, what it runs.
 
+mod control;
+mod input;
+pub use control::{NodeSettingKey, SettingValue, UnknownSettingKey};
+pub use input::{InvalidSettingInput, SettingDecodeFailure};
+
 mod metadata;
 pub use metadata::{
     InvalidMetadata, MAX_METADATA_PROVIDERS, MetadataEffort, MetadataProvider, MetadataSettings,

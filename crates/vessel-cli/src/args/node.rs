@@ -11,6 +11,8 @@ use vessel_proto::settings::AgentDriver;
 
 use super::{Stop, ttl_secs};
 
+use super::config::ConfigCommand;
+
 #[derive(Debug, Subcommand)]
 pub(crate) enum NodeCommand {
     /// Start a node and serve until Ctrl-C.
@@ -40,6 +42,11 @@ pub(crate) enum NodeCommand {
     Update(Update),
     /// Stop gracefully; live sessions require --when-idle or --now.
     Stop(Stop),
+    /// Read or change typed whole-field settings on the selected node.
+    Config {
+        #[command(subcommand)]
+        command: ConfigCommand,
+    },
     /// Show the node: version, state (serving or draining), live sessions.
     Status,
     /// Make a single-use link that pairs a new device with the node (needs
