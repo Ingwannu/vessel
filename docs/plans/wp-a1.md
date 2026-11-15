@@ -230,3 +230,12 @@ exact committed source. This moves the existing functions verbatim and keeps
 the same four token exceptions under their new path, with no budget increase
 or launch/form behavior change. It allows the scoped editor owner to remain
 under the existing file limit while retaining the composer's current card.
+
+The legacy placement walk's generic failure can follow a successful worktree
+creation or setup command. It no longer converts such node/transport failures
+into a known creation refusal permitting another worktree. The flow retains
+its payload and reports outcome unknown until durable reconciliation exists.
+Only an unsent ask or protocol preflight remains a no-dispatch refusal; an
+explicit user cancellation keeps its existing stop behavior. This conservative
+difference avoids blind duplication without claiming receipt recovery for the
+legacy path. Pure transition tests cover both classes.
