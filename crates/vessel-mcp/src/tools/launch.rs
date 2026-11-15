@@ -2,7 +2,7 @@
 use super::{ToolError, text};
 use rmcp::model::JsonObject;
 use serde_json::{Value, json};
-use vessel_proto::{OptionChoice, SessionMode, SessionSpec};
+use vessel_proto::{OptionChoice, SessionLabels, SessionMode, SessionSpec};
 
 const MAX_OPTIONS: usize = 128;
 
@@ -23,10 +23,14 @@ pub(super) fn configure(
         );
     }
     if let Some(labels) = args.get("labels").filter(|value| !value.is_null()) {
-        spec = spec.with_labels(
-            serde_json::from_value(labels.clone())
-                .map_err(|_bad| ToolError::Arguments("invalid session label map".into()))?,
-        );
+        let labels: SessionLabels = serde_json::from_value(labels.clone())
+            .map_err(|_bad| ToolError::Arguments("invalid session label map".into()))?;
+        if !labels.is_empty() && vessel_proto::lifecycle_version::SINCE.is_none() {
+            return Err(ToolError::Arguments(
+                "session labels await their assigned lifecycle protocol".into(),
+            ));
+        }
+        spec = spec.with_labels(labels);
     }
     if let Some(value) = args.get("options").filter(|value| !value.is_null()) {
         let Some(items) = value.as_array().filter(|items| items.len() <= MAX_OPTIONS) else {
@@ -94,10 +98,15 @@ mod tests {
                 options: Vec::new(),
             },
         );
-        let args = json!({"title":"worker","labels":{"purpose":"audit"},"options":[{"id":"mode","kind":"select","value":"plan"}]});
+        let args =
+            json!({"title":"worker","options":[{"id":"mode","kind":"select","value":"plan"}]});
         let selected = configure(spec.clone(), args.as_object().unwrap()).unwrap();
         assert_eq!(selected.title.unwrap().as_str(), "worker");
-        assert!(!selected.labels.is_empty());
+        assert!(selected.labels.is_empty());
+        if vessel_proto::lifecycle_version::SINCE.is_none() {
+            let labels = json!({"labels":{"purpose":"audit"}});
+            assert!(configure(spec.clone(), labels.as_object().unwrap()).is_err());
+        }
         for args in [
             json!({"labels":{"vessel.private":"bad"}}),
             json!({"options":[{"id":"mode","kind":"toggle","on":true,"value":"plan"}]}),

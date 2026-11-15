@@ -323,8 +323,8 @@ cross-node runtime or whole-package PASS.
 
 `create_session` accepts a validated title, typed structured option choices and
 the existing bounded label map. These populate SessionSpec rather than a new
-launch API; the shared client admission still refuses pending lifecycle labels
-before transmission. Options are bounded, nonempty and unique by ID, and
+launch API; the adapter refuses nonempty labels while the lifecycle version is pending;
+assigned versions are still checked by shared client admission. Options are bounded, nonempty and unique by ID, and
 terminal sessions refuse structured model/options inputs before creation.
 `get_session` retains its existing metadata fields and adds current structured
 `permissions` from GetConversation, with a finite complete-result cap. The two
@@ -392,3 +392,12 @@ Exact ee3be73e store tests pass 85/0/0. Its strict check stopped in the new
 client adapter on a wildcard import and a documentation backtick lint; those
 are corrected explicitly, without suppressions. Protocol's earlier 289/0/0
 result is retained separately from that strict failure.
+
+
+Until the lifecycle landing updates the shared pending-field gate, MCP itself
+refuses nonempty launch labels at the decoder. The earlier base's label
+version flattening did not refuse None at the client, although the node's
+temporary label guard did refuse before effects. This prevents the adapter
+from sending labels that an older peer could silently ignore. No foreign
+lifecycle request or version is introduced; mutation/list APIs await that
+owner's reviewed landing.
