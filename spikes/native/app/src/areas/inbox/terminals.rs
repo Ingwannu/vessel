@@ -118,8 +118,7 @@ impl Shell {
                 area.problem = Some(problem)
             }
             (Action::Clear { .. }, Ok(ResultState::Claim(_)))
-            | (Action::Claim { .. }, Ok(ResultState::Cleared(_)))
-            | (Action::Clear { .. }, Ok(ResultState::Cleared(_))) => {
+            | (Action::Claim { .. } | Action::Clear { .. }, Ok(ResultState::Cleared(_))) => {
                 area.problem = Some(Problem::InvalidReply)
             }
         }

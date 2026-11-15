@@ -407,6 +407,14 @@ mark must still enter the existing deferred read policy and whole-session Read
 transaction; exact-entry Seen never clears that flag. This fixes the remaining
 app observation that checked only the count. Native union checks remain owed.
 
+Exact4c6ea79a View/Link library suite passed1090/0/0, run
+wp-inbox-tests-20261115T150422Z-4c6ea79a (cargo56s). The same-source strict run
+reached App: its AppContext trait import incorrectly used the kit reexport,
+which does not expose it. The import now uses gpui directly as other app owners
+do; this also restores AsyncApp::update_window. One terminal reply tuple pattern
+is nested without changing accepted cases. Changed App checks remain owed;
+the View/Link result is not an app runtime/whole/OS proof.
+
 Root union preflight found the retained activity capability fixture still had
 the already-corrected node-tree length/default lints. Only the test section is
 aligned after checking the entire product prefix is byte-identical; the narrow

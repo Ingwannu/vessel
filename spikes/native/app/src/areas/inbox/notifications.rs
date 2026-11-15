@@ -3,7 +3,8 @@
 //! is requested through the current window, without shell helpers or new deps.
 use crate::routes::Route;
 use crate::shell::Shell;
-use vessel_app_kit::ui::{AppContext as _, Context, SystemNotification, Window};
+use gpui::AppContext as _;
+use vessel_app_kit::ui::{Context, SystemNotification, Window};
 use vessel_app_link::{Command, inbox::Ask};
 use vessel_app_view::inbox::delivery::{Channel, Delivery, Visibility};
 use vessel_app_view::inbox::notices::DeliveryTag;
