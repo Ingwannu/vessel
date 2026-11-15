@@ -15,6 +15,7 @@
 pub mod builtins;
 mod contribution_projection;
 mod cursor;
+pub mod files;
 pub mod registration;
 
 pub use contribution_projection::{ContributionResult, ContributionSection, contribution_sections};

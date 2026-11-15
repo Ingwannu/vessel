@@ -321,3 +321,14 @@ capture, help opener and shortcut chips share available(window); pointer-opened
 command center remains usable compact. Tests cover390 refusal and600 admission,
 and a real Mod+W refusal reaching the pane owner rather than window fallback.
 These new tests are written but not executed at this checkpoint.
+
+
+## Files UI lifetime preparation
+
+C5's file_search module remains the one allocator/acquisition/cancellation path.
+The new pure palette::files model owns only UI debounce (100ms, zero for empty
+files scope), typed owner-supplied scope, retained same-scope rows and monotonic
+UI tickets. Query edits invalidate old results before dispatch; A→B→A and
+close→reopen cannot revive old callbacks. It is not a connection lease or a
+workspace resolver. Native file scope getter/opener integration is still held
+for W13's checked owner packet; no duplicate I/O or legacy opener is added.
