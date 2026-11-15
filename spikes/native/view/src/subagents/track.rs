@@ -107,6 +107,23 @@ pub struct TrackCounts {
     pub finished: usize,
 }
 
+/// Active source status groups, in the same failed-before-working order as Paseo.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PillKind {
+    /// An explicit managed/provider failure.
+    Failed,
+    /// An actual active managed turn or running provider task.
+    Working,
+}
+/// Each status keeps its own count; a mixed fan-out never adopts one urgent state.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PillCount {
+    /// Status whose mark accompanies this count.
+    pub kind: PillKind,
+    /// Exact visible root-row count in this group.
+    pub count: usize,
+}
+
 /// One parent's track; provider hide is local and never archives/stops anything.
 #[derive(Debug)]
 pub struct Track {
@@ -300,6 +317,46 @@ impl Track {
         for id in ids {
             self.hide_provider(&id);
         }
+    }
+    /// Unknown, idle and completed children contribute no invented active mark.
+    #[must_use]
+    pub fn pill_counts(&self) -> Vec<PillCount> {
+        use vessel_proto::{Activity, SessionStatus};
+        let mut failed = 0;
+        let mut working = 0;
+        for row in &self.managed {
+            if matches!(row.info.status, SessionStatus::Failed { .. }) {
+                failed += 1;
+            } else if matches!(row.info.status, SessionStatus::Running)
+                && row
+                    .info
+                    .board
+                    .as_ref()
+                    .is_some_and(|board| board.activity == Activity::Active)
+            {
+                working += 1;
+            }
+        }
+        for row in self.providers(None) {
+            match row.status {
+                Some(ChildStatus::Failed) => failed += 1,
+                Some(ChildStatus::Running) => working += 1,
+                Some(ChildStatus::Completed | ChildStatus::Canceled) | None => {}
+            }
+        }
+        [
+            PillCount {
+                kind: PillKind::Failed,
+                count: failed,
+            },
+            PillCount {
+                kind: PillKind::Working,
+                count: working,
+            },
+        ]
+        .into_iter()
+        .filter(|segment| segment.count > 0)
+        .collect()
     }
     /// Counts come from exactly the same visible rows as navigation.
     #[must_use]

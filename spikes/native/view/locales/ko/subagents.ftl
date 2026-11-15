@@ -75,3 +75,8 @@ subagents-exhausted = 하위 에이전트 요청을 계속하려면 앱을 다�
 subagents-count = 하위 에이전트 { NUMBER($count) }개
 # Retained page budget; existing history remains visible.
 subagents-retention-limit = 이전 제공자 기록이 이 화면의 보관 한도에 도달했습니다.
+
+# Active fan-out segments keep their own count and status; $count is a visible-row count.
+subagents-pill-failed = { NUMBER($count) }개 실패
+# Active fan-out segments keep their own count and status; $count is a visible-row count.
+subagents-pill-working = { NUMBER($count) }개 작업 중

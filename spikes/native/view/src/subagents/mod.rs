@@ -13,6 +13,6 @@ pub use managed::{
 };
 pub use pane::{ChildPane, ChildQuery, ChildRead};
 pub use track::{
-    DetachChoice, Host, ManagedChild, Target, Track, TrackCounts, TrackLoad, TrackProblem,
-    TrackRead,
+    DetachChoice, Host, ManagedChild, PillCount, PillKind, Target, Track, TrackCounts, TrackLoad,
+    TrackProblem, TrackRead,
 };

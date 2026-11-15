@@ -4,6 +4,7 @@ mod actions;
 mod answers;
 mod breadcrumbs;
 mod draw;
+mod pill;
 mod rows;
 pub(crate) use draw::{render, with_header};
 
@@ -48,6 +49,7 @@ pub(crate) struct SubagentArea {
     pub(super) failure: Option<TrackProblem>,
     pub(super) partial: bool,
     pub(super) pill: String,
+    pub(super) segments: Vec<(vessel_app_view::subagents::PillKind, String)>,
     pub(super) prior: Option<FocusHandle>,
     pub(super) pending_open: Option<crate::areas::session::Open>,
 }
@@ -74,6 +76,7 @@ impl SubagentArea {
             failure: None,
             partial: true,
             pill: String::new(),
+            segments: Vec::new(),
             prior: None,
             pending_open: None,
         }
@@ -99,6 +102,24 @@ impl SubagentArea {
             self.list.reset(rows.len());
             self.rows = rows;
         }
+        self.segments = track
+            .pill_counts()
+            .into_iter()
+            .filter_map(|segment| {
+                let count = u32::try_from(segment.count).ok()?;
+                let count = vessel_app_view::localization::Number::count(count);
+                let text = match segment.kind {
+                    vessel_app_view::subagents::PillKind::Failed => {
+                        words.subagents().pill_failed(count)
+                    }
+                    vessel_app_view::subagents::PillKind::Working => {
+                        words.subagents().pill_working(count)
+                    }
+                }
+                .ok()?;
+                Some((segment.kind, text))
+            })
+            .collect();
         self.pill = u32::try_from(track.counts().total)
             .ok()
             .and_then(|count| {

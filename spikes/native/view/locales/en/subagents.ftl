@@ -78,3 +78,8 @@ subagents-count = { NUMBER($count) ->
 }
 # Retained page budget; existing history remains visible.
 subagents-retention-limit = Earlier provider history exceeds this pane’s retained-history limit.
+
+# Active fan-out segments keep their own count and status; $count is a visible-row count.
+subagents-pill-failed = { NUMBER($count) } failed
+# Active fan-out segments keep their own count and status; $count is a visible-row count.
+subagents-pill-working = { NUMBER($count) } working

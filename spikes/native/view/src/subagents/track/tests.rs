@@ -203,3 +203,41 @@ fn nested_navigation_uses_the_same_observed_path_and_missing_parent_stays_visibl
     );
     assert_eq!(track.providers(Some(&"root".parse().unwrap())).count(), 1);
 }
+
+#[test]
+fn mixed_fanout_retains_separate_failed_and_working_counts_without_unknown_status_invention() {
+    let mut track = Track::new(target(NodeId::random()));
+    listed(
+        &mut track,
+        vec![
+            provider("failed", Some(ChildStatus::Failed)),
+            provider("running", Some(ChildStatus::Running)),
+            provider("unknown", None),
+            provider("completed", Some(ChildStatus::Completed)),
+        ],
+    );
+    assert_eq!(
+        track.pill_counts(),
+        vec![
+            PillCount {
+                kind: PillKind::Failed,
+                count: 1
+            },
+            PillCount {
+                kind: PillKind::Working,
+                count: 1
+            }
+        ]
+    );
+    track.hide_provider(&"failed".parse().unwrap());
+    assert_eq!(
+        track.pill_counts(),
+        vec![PillCount {
+            kind: PillKind::Working,
+            count: 1
+        }]
+    );
+    track.hide_provider(&"running".parse().unwrap());
+    assert!(track.pill_counts().is_empty());
+    assert_eq!(track.counts().total, 2);
+}

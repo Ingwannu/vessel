@@ -163,3 +163,13 @@ an audit field. Lifecycle consumers must still hydrate current authority before
 mutation. A changed capable fleet relation clears stale parent navigation and
 requests the same authoritative lookup rather than keeping a detached child's
 Back link indefinitely. No workspace identity or visibility is inferred here.
+
+## Mixed fan-out status pill
+
+Paseo track-presentation.ts79–147 reports each active state separately, failed
+before working, then falls back to the total once no active state remains.
+Track::pill_counts uses the same visible root rows, explicit failed session/provider
+facts and active managed turns/provider running reports. Unknown/idle/completed
+states gain no invented active mark. Prepared localized segments pair their own
+kit status dot and count; a mixed fan-out is never collapsed into an urgent color
+that would imply all work stopped. Labels use whole Fluent messages in EN/KO.

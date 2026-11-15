@@ -53,16 +53,7 @@ fn header(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Option
             .items_center()
             .gap(px(S2))
             .px(px(S3))
-            .child(
-                button_with_kind(
-                    "subagents-open",
-                    shell.areas.subagents.pill.clone(),
-                    ButtonKind::Ghost,
-                    ButtonState::Enabled,
-                    tokens,
-                )
-                .on_click(cx.listener(|shell, _, window, cx| shell.open_subagents(window, cx))),
-            )
+            .child(super::pill::render(shell, tokens, cx))
             .when(parent.is_some(), |row| {
                 row.child(
                     button_with_kind(
