@@ -1563,7 +1563,7 @@ events. Their feature version remains unassigned; `pr.list` continues to
 mean watched sessions. Project resolution, provider listing and client/CLI
 transport are a following stage, not exposed by these value definitions.
 
-### Startup recovery values (ADR 0059)
+### Startup recovery values (ADR 0098)
 
 `vessel-proto::restart` defines the disabled/reference-prompt policy and partial
 patch values using the existing bounded `PromptText`. The feature protocol is
@@ -1788,3 +1788,32 @@ The portable body kernel has no event/RPC attachment or execution path; native
 renderers borrow it without creating a competing provider model. No dependency
 edge changes. See docs/plans/timeline-body-values.md for exact source provenance
 and pending consumer-adoption checks.
+
+
+## Restart recovery ownership join (ADR 0098)
+
+The recovery package extends the existing Session-to-Node-to-Store ordered
+persistence path with typed internal JournalEntry checkpoints. Store commits
+preceding event records and its bounded restart projection in the same writer
+transaction. Checkpoints have no public event sequence and never enter the
+conversation. Creation-time provenance, stop generation and consumed intent
+remain independent of transcript retention. No dependency edge is added.
+
+RecoveryApply is concrete field logic inside the canonical settings operation,
+not a settings writer. The one opaque disk Document, safe decoder, accepted
+operation lane and Opening adapter stay with the shared settings owner. The
+same pre-Store snapshot supplies candidate policy and subsequent settings;
+no recovery-specific SavedNodeSettings or compatibility parser is retained.
+The shared final Policy mutex serializes actual effect admission, Off and an
+irreversible stopping seal. A later saved On cannot reopen a stopping owner.
+
+The boot coordinator retains its attempt and Store obligation through actual
+preparation and admitted request settlement. Physical lookup uses the shared
+runtime preparation owner, original conversation claim and tracker; a dropped
+async waiter is not completion. Native version helpers need the same fresh
+no-late-effect boundary after lookup. A person's post-prompt Kill targets the
+exact admitted run without releasing the unresolved attempt, while Off does
+not kill an already admitted turn. These joins remain under implementation
+review; source ports and earlier green predecessor gates do not qualify the
+combined runtime. New request fields retain the single unassigned protocol
+constant and canonical recursive admission/projection.
