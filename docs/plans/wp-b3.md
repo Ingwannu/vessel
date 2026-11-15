@@ -677,3 +677,13 @@ A gate fixture checks old physical key blocking, new inode/same managed id block
 and a genuinely independent root's admission. It has not run. Runtime pin/guarded
 recovery-claim/completion APIs and the actual restore controller remain owed; no
 raw production force-unlock or new lock owner is introduced by this slice.
+
+
+### VM behavior compile result 56eff914
+
+wp-checkpoints-node-20261115T114927Z-56eff914 finished rc1 at12:40 UTC.
+web-ci/nested-fakes/nested-vesseld passed; cargo stopped compiling store unit tests
+on E0308, the CheckpointWrite apply error conversion already corrected in69ed6d563.
+The emitted inbox fixture qualification warning is now corrected too. No behavior
+test executed in this run, and the preceding node prebuild is not runtime proof.
+Current storage/FS/admission source remains ahead of that failed immutable head.

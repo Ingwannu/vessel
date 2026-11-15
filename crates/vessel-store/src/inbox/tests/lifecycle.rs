@@ -270,7 +270,7 @@ fn checkpoint_metadata_keeps_branch_attention_instead_of_rewinding_it() {
             at: now(),
             event: SessionEvent::Checkpoint { event },
         };
-        crate::log::append(&db, id, [&record]).unwrap();
+        log::append(&db, id, [&record]).unwrap();
     }
     assert_eq!(
         super::super::list(&db, ListInbox::default())
