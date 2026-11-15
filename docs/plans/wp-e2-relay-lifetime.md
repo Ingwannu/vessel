@@ -130,3 +130,13 @@ and run the full whole once. The first red log remains retained.
 V3 extended SOURCE PASS to498, including the public-run callback fixture and
 lint-only changes, with GATE OWED. This is separate from the unreviewed
 settings runtime370, and does not waive physical DNS-work lifetime/bounds.
+
+## Approved base-only TS correction
+
+The coordinator subsequently allowed exactly9dfdf0a1 without waiting for the
+larger gate49 batch. Its one-line primitive alias removal was cherry-picked
+as6a0d9d873; no other node-base work is imported. All relay implementation
+and fixture bytes remain the reviewed498 source. One full whole is now due
+on this corrected frozen tree; the partial run is not upgraded by that intent.
+When the announced gate49 head arrives, its identical fix must merge cleanly;
+an unexpected conflict is reported instead of rewriting shared source.
