@@ -278,3 +278,9 @@ canonical pending values589d3c723 receive V3/integrator handoff. That DTO separa
 explicit Untracked from lost/missing/future Unknown. The standalone projection
 API is valid independently; only a proven explicit fact may use its Untracked
 variant. The native mapper is not advertised as ready or wire-complete.
+
+Exact native strict run wp-inbox-adapter-20261115T124704Z-24178c54 reached the
+view build script and failed on an own duplicate inbox-combined locale key.
+Both EN/KO now retain only the later in-app coalescing message. A static key
+check found unique identical key sets in those two files; this does not replace
+the Rust Fluent parser/build check. The failed immutable evidence is retained.

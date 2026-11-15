@@ -70,9 +70,6 @@ inbox-partial = Older entries are available on this machine.
 # Explanation above disabled permission/question controls.
 inbox-read-only = This connection can read attention but cannot answer requests.
 
-# Notification-center body when the bounded delivery queue coalesces.
-inbox-combined = Several desktop alerts were combined. Open the inbox to see every entry.
-
 # Generic OS text: no source title, content, path or identifier may be exposed.
 inbox-notification-body = Something needs your attention. Open Vessel to view your inbox.
 

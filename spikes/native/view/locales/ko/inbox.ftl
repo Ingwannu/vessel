@@ -70,9 +70,6 @@ inbox-partial = 이 머신에 이전 알림이 더 있습니다.
 # Explanation above disabled permission/question controls.
 inbox-read-only = 이 연결에서는 알림을 읽을 수 있지만 요청에 답할 권한은 없습니다.
 
-# Notification-center body when the bounded delivery queue coalesces.
-inbox-combined = 여러 데스크톱 알림을 하나로 묶었습니다. 받은 알림에서 모든 항목을 확인하세요.
-
 # Generic OS text: no source title, content, path or identifier may be exposed.
 inbox-notification-body = 확인이 필요한 일이 있습니다. Vessel을 열어 받은 알림을 확인하세요.
 
