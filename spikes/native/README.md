@@ -762,9 +762,10 @@ Environment:
   frame before the renderer rasterises (on a software renderer the
   process's CPU is mostly rasterising and grows with the pixels).
 - `VESSEL_BUILD_LABEL` (at build time): the label in the title bar and
-  the sidebar's foot, `dev` without it. With `VESSEL_UPDATE_FEED` and
-  `VESSEL_UPDATE_KEY` too (track R's `build.sh` sets them), the build
-  updates itself; without them it never does.
+  the sidebar's foot, `dev` without it. With `VESSEL_UPDATE_KEY` too and
+  the feed's address written into the built executable afterwards (track
+  R's `build.sh` does both; ADR 0099), the build updates itself; without
+  them it never does.
 
 ## Composed sections in one bounded viewport
 
