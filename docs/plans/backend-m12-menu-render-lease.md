@@ -39,8 +39,9 @@ hierarchy work, not part of this defect correction.
 ## Data flow and verification
 
 MenuState creates the lease; draw captures it independently for key, outside,
-row mouse-down and row click handlers. Each checks admission before changing
-state or propagation. The existing key routing moves into menu/input.rs to keep
+row mouse-down and row click handlers. Each checks admission before state,
+focus or action changes. Stale menu-owned keys and nested outside presses still
+retain their input containment so the old path cannot dismiss a parent. The existing key routing moves into menu/input.rs to keep
 the one draw module
 below its size budget; it is not another renderer. GPUI track_focus installs a
 default pointer-focus listener: the same panel uses capture_any_mouse_down to
@@ -110,6 +111,20 @@ A's real key listener (both themes, Close/KeepOpen, all eight recognized keys).
 Assertions require parent and B/focus to survive, no ancestor key/action, no
 redraw between B and A's listener; valid B Escape closes only B and next Escape
 reaches the parent. Old pointer/outside presses also preserve both layers.
-Latest correction source and these regressions are unverified until the next
-remote narrow results. The earlier47d171/0/0 is prior-source evidence only;
-V1 cycle-safe handoff HOLD and historical native F5 HOLD remain open.
+Exact corrected source d0954f4bb7061ada6857502961b160a09dd13284 now has:
+- Kit --lib 173 passed / 0 failed / 0 ignored, run
+  shell2-lease-20261115T124555Z-d0954f4b, folder
+  /tmp/work/m12-shell-s2/menu-lease-tests-3; actual Kit Compiling, both nested
+  tests and all seven new lease tests explicitly ok.
+- Strict Kit all-target Clippy rc0, run
+  shell2-lease-20261115T124818Z-d0954f4b, folder
+  /tmp/work/m12-shell-s2/menu-lease-clippy-4; actual changed Kit Checking.
+  Fonts and command steps both rc0. Registration lock delay was awaited;
+  no duplicate submit. Platform dependencies were rechecked in this run.
+- Previous Clippy3 stopped on three fixture-style lints, fixed in d095; no
+  product change after00c. Its failure log is retained separately.
+
+The documentation-only final result does not change checked native source.
+The earlier47d171/0/0 remains prior-source evidence. V1 cycle-safe handoff HOLD
+awaits this correction review; historical native F5 HOLD stays separate open.
+No whole gate, new geometry/capture matrix, OS or full F4 approval is claimed.
