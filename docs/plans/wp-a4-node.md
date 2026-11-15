@@ -95,3 +95,7 @@ are staged source/tests pending narrow execution; no live-provider claim.
 - Effect: ordinary main timeline/status/search/inbox projections ignore these wrappers; a dedicated child projection unwraps canonical activity. Supported wrappers still project optional inner fields for older peers.
 
 ChildDescriptors validates count, actual escaped JSON bytes, unique ids and nesting. ChildRecords validates canonical read-only content, strict sparse parent sequence order, count and serialized byte size. Wire sequence decoding checks before retaining each additional row, ignores untrusted size hints and counts escaping without allocating a serialized copy. Missing provider parents remain missing rather than being invented. Typed coverage accompanies empty responses. These are source/tests under construction; no actual provider extraction or projection claimed yet.
+
+## Collection check correction
+
+Exacta511 collection check failed at the test vector's ambiguous collect type and two strict map_err_ignore lints, before product/shared-consumer completion. The vector now explicitly collects Vec<_>; intentionally sanitized bound/encoding failures use named ignored errors. No bound or assertion is weakened. No test execution is claimed from that red run.

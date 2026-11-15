@@ -76,7 +76,7 @@ impl TryFrom<Vec<EventRecord>> for ChildRecords {
     type Error = InvalidChildCollection;
     fn try_from(rows: Vec<EventRecord>) -> Result<Self, Self::Error> {
         let max = usize::try_from(u32::from(ChildLimit::default()))
-            .map_err(|_| InvalidChildCollection::Count)?;
+            .map_err(|_error| InvalidChildCollection::Count)?;
         check_size(&rows, max, bounds::MAX_SCAN_BYTES)?;
         let mut previous = None;
         for row in &rows {
@@ -207,7 +207,7 @@ pub(crate) fn serialized_bytes<T: Serialize>(
     max: usize,
 ) -> Result<usize, InvalidChildCollection> {
     let mut sink = ByteBudget { used: 0, max };
-    serde_json::to_writer(&mut sink, value).map_err(|_| InvalidChildCollection::Bytes)?;
+    serde_json::to_writer(&mut sink, value).map_err(|_error| InvalidChildCollection::Bytes)?;
     Ok(sink.used)
 }
 fn check_size<T: Serialize>(
