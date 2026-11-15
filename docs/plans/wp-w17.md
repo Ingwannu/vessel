@@ -1332,3 +1332,23 @@ and whole proof. W17 owns the node responder contract for BOTH typed target kind
 Normal NodeAuthority activation requires that contract plus C2 whole PASS; current
 capture/helper remains Silent and OFF. No universal exactly-once claim or speculative
 ticket-based proof is made, and no unreviewed engine extension has been adopted.
+
+### Common screen adapter identity foundation
+
+[Decision Log]
+- Purpose: share the existing one-engine actor/channel boundary with session TUIs
+  without fabricating a TerminalId from a SessionId or copying a parser.
+- Existing assets: standalone terminal_screen already owns bounded command admission,
+  Silent feed, resize, immutable final snapshot and capture projection. Reuse it.
+- Alternatives: a second session parser or an implicit ID reinterpretation (rejected).
+- Choice: move that module from terminals/screen to crate-private terminal_screen;
+  add canonical proto TerminalAddress::{Session(SessionId),Standalone(TerminalId)}.
+  The two UUID domains remain explicitly tagged, with no conversion API.
+- Reason/consequences: standalone shell/script/log callers now use that one helper.
+  CLI capture still requires Standalone, refusing Session before queue/projection
+  and after final state too. Session actor and D1 frame/mode/marker wiring remain
+  the next stage; no frame row or unreviewed pure API is introduced in this step.
+
+Added adversarial tagged-identity wire and session-capture refusal regressions.
+They are source only; queued5738 checks the preceding host fixture correction,
+not this new extraction. Latest changed-source strict/unit/CLI checks remain owed.

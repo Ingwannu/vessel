@@ -2,9 +2,16 @@
 use super::CaptureError;
 use vessel_proto::{
     TerminalId,
-    terminals::{CaptureLineCount, CaptureOptions, CaptureStyle, TerminalCapture},
+    terminals::{CaptureLineCount, CaptureOptions, CaptureStyle, TerminalAddress, TerminalCapture},
 };
 use vessel_terminal_screen::{Capture, CaptureRange, LineOffset, ScreenError};
+
+pub(super) const fn standalone(target: TerminalAddress) -> Result<TerminalId, CaptureError> {
+    match target {
+        TerminalAddress::Standalone(id) => Ok(id),
+        TerminalAddress::Session(_) => Err(CaptureError::WrongTarget),
+    }
+}
 
 pub(super) fn range(options: CaptureOptions) -> CaptureRange {
     // Both reference modes return translateToString/trimEnd rows, not synthesized SGR.

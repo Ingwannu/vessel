@@ -1,5 +1,6 @@
 use super::*;
-use vessel_proto::terminals::{CaptureLine, CaptureRange};
+use vessel_proto::terminals::{CaptureLine, CaptureRange, TerminalAddress};
+use vessel_proto::{SessionId, TerminalId};
 fn options(start: &str, end: &str) -> CaptureOptions {
     CaptureOptions {
         range: CaptureRange {
@@ -12,8 +13,10 @@ fn options(start: &str, end: &str) -> CaptureOptions {
 #[test]
 fn split_utf8_ansi_cursor_rewrites_and_history_are_screen_rows() {
     let id = TerminalId::random();
-    let (_endpoint, mut authority) =
-        ScreenAuthority::channel(id, TerminalSize { rows: 2, cols: 8 });
+    let (_endpoint, mut authority) = ScreenAuthority::channel(
+        TerminalAddress::Standalone(id),
+        TerminalSize { rows: 2, cols: 8 },
+    );
     let bytes = "한글".as_bytes();
     authority.output(&bytes[..2]);
     authority.output(&bytes[2..]);
@@ -36,8 +39,10 @@ fn split_utf8_ansi_cursor_rewrites_and_history_are_screen_rows() {
 }
 #[test]
 fn resizing_retains_geometry_and_oversized_geometry_refuses_explicitly() {
-    let (_endpoint, mut authority) =
-        ScreenAuthority::channel(TerminalId::random(), TerminalSize { rows: 2, cols: 8 });
+    let (_endpoint, mut authority) = ScreenAuthority::channel(
+        TerminalAddress::Standalone(TerminalId::random()),
+        TerminalSize { rows: 2, cols: 8 },
+    );
     authority.output(b"first\r\nsecond");
     authority.resize(TerminalSize { rows: 3, cols: 12 });
     assert_eq!(
@@ -57,8 +62,10 @@ fn resizing_retains_geometry_and_oversized_geometry_refuses_explicitly() {
 }
 #[test]
 fn shared_engine_feed_advances_each_prefix_once_even_across_split_utf8() {
-    let (_endpoint, mut authority) =
-        ScreenAuthority::channel(TerminalId::random(), TerminalSize { rows: 2, cols: 8 });
+    let (_endpoint, mut authority) = ScreenAuthority::channel(
+        TerminalAddress::Standalone(TerminalId::random()),
+        TerminalSize { rows: 2, cols: 8 },
+    );
     let mut bytes = vec![b'a'; vessel_terminal_screen::FEED_BUDGET.saturating_sub(1)];
     bytes.extend_from_slice("한".as_bytes());
     bytes.extend_from_slice(b"\r\nend");
@@ -70,8 +77,10 @@ fn shared_engine_feed_advances_each_prefix_once_even_across_split_utf8() {
 }
 #[test]
 fn capture_observer_stays_silent_and_preserve_does_not_synthesize_style_bytes() {
-    let (_endpoint, mut authority) =
-        ScreenAuthority::channel(TerminalId::random(), TerminalSize { rows: 2, cols: 8 });
+    let (_endpoint, mut authority) = ScreenAuthority::channel(
+        TerminalAddress::Standalone(TerminalId::random()),
+        TerminalSize { rows: 2, cols: 8 },
+    );
     authority.output(b"\x1b[31mred\x1b[0m\x1b[6n\x1b[c");
     let plain = authority.capture(CaptureOptions::default()).unwrap();
     let preserved = authority
@@ -87,8 +96,10 @@ fn capture_observer_stays_silent_and_preserve_does_not_synthesize_style_bytes() 
 }
 #[tokio::test]
 async fn final_screen_survives_actor_shutdown_without_replaying_the_ring() {
-    let (endpoint, mut authority) =
-        ScreenAuthority::channel(TerminalId::random(), TerminalSize { rows: 2, cols: 8 });
+    let (endpoint, mut authority) = ScreenAuthority::channel(
+        TerminalAddress::Standalone(TerminalId::random()),
+        TerminalSize { rows: 2, cols: 8 },
+    );
     authority.output(b"final");
     authority.finish();
     drop(authority);
@@ -103,8 +114,10 @@ async fn final_screen_survives_actor_shutdown_without_replaying_the_ring() {
 }
 #[tokio::test]
 async fn capture_request_and_resize_share_the_actor_inbox_order() {
-    let (endpoint, mut authority) =
-        ScreenAuthority::channel(TerminalId::random(), TerminalSize { rows: 2, cols: 8 });
+    let (endpoint, mut authority) = ScreenAuthority::channel(
+        TerminalAddress::Standalone(TerminalId::random()),
+        TerminalSize { rows: 2, cols: 8 },
+    );
     endpoint.resize(TerminalSize { rows: 3, cols: 8 }).unwrap();
     let task = tokio::spawn(async move {
         let resized = authority.next().await.unwrap();
@@ -122,4 +135,26 @@ async fn capture_request_and_resize_share_the_actor_inbox_order() {
         3
     );
     task.await.unwrap();
+}
+
+#[tokio::test(start_paused = true)]
+async fn session_target_cannot_be_reinterpreted_as_a_standalone_capture() {
+    let (endpoint, mut authority) = ScreenAuthority::channel(
+        TerminalAddress::Session(SessionId::random()),
+        TerminalSize { rows: 2, cols: 8 },
+    );
+    authority.output(b"session TUI");
+    assert_eq!(
+        endpoint.capture(CaptureOptions::default()).await,
+        Err(CaptureError::WrongTarget)
+    );
+    assert!(matches!(
+        authority.inbox.try_recv(),
+        Err(tokio::sync::mpsc::error::TryRecvError::Empty)
+    ));
+    authority.finish();
+    assert_eq!(
+        endpoint.capture(CaptureOptions::default()).await,
+        Err(CaptureError::WrongTarget)
+    );
 }

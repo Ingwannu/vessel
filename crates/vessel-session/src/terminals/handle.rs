@@ -16,7 +16,7 @@ use crate::ring::{Follow, FollowError, Ring};
 #[derive(Debug)]
 pub(crate) struct Shared {
     pub(crate) info: watch::Sender<TerminalInfo>,
-    pub(super) screen: super::screen::CaptureEndpoint,
+    pub(super) screen: crate::terminal_screen::CaptureEndpoint,
     pub(crate) ring: Mutex<Ring>,
     /// A shell's input; scripts take none.
     pub(crate) input: Option<PtyInput>,

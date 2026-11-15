@@ -32,8 +32,10 @@ use crate::terminal::TerminalSize;
 use crate::title::SessionTitle;
 use crate::workspace::{ProjectCommand, RelPath};
 
+mod address;
 mod capture;
 mod requests;
+pub use address::TerminalAddress;
 pub use capture::{
     CaptureLine, CaptureLineCount, CaptureOptions, CaptureRange, CaptureStyle, CaptureTerminal,
     TerminalCapture,

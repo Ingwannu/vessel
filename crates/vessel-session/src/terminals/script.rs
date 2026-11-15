@@ -82,8 +82,10 @@ where
     let kill = shutdown.child_token();
     // One restart at a time: a second one while the first is taken waits.
     let (restarts, restarting) = mpsc::channel(1);
-    let (screen, authority) =
-        super::screen::ScreenAuthority::channel(id, info.size.unwrap_or_default());
+    let (screen, authority) = crate::terminal_screen::ScreenAuthority::channel(
+        vessel_proto::terminals::TerminalAddress::Standalone(id),
+        info.size.unwrap_or_default(),
+    );
     let shared = Arc::new(Shared {
         screen,
         info: watch::Sender::new(info),

@@ -32,10 +32,9 @@
 mod backoff;
 mod handle;
 mod log;
-mod screen;
 mod script;
 mod shell;
-pub use screen::CaptureError;
+pub use crate::terminal_screen::CaptureError;
 
 use std::num::NonZeroUsize;
 use std::path::PathBuf;

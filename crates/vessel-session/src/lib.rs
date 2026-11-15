@@ -137,6 +137,7 @@ mod side_questions;
 mod stop;
 mod structured;
 mod terminal;
+mod terminal_screen;
 pub mod terminals;
 
 pub use again::{Ended, Gate, NotResumable, Relaunch, Reopening, resumable};

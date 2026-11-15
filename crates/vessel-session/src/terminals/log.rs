@@ -18,11 +18,14 @@ use super::handle::Shared;
 pub(super) struct TermLog {
     shared: Arc<Shared>,
     next: EventSeq,
-    screen: super::screen::ScreenAuthority,
+    screen: crate::terminal_screen::ScreenAuthority,
 }
 
 impl TermLog {
-    pub(super) const fn new(shared: Arc<Shared>, screen: super::screen::ScreenAuthority) -> Self {
+    pub(super) const fn new(
+        shared: Arc<Shared>,
+        screen: crate::terminal_screen::ScreenAuthority,
+    ) -> Self {
         Self {
             shared,
             next: EventSeq::ZERO,
@@ -57,11 +60,13 @@ impl TermLog {
         });
     }
 
-    pub(super) async fn capture_command(&mut self) -> Option<super::screen::CaptureCommand> {
+    pub(super) async fn capture_command(
+        &mut self,
+    ) -> Option<crate::terminal_screen::CaptureCommand> {
         self.screen.next().await
     }
 
-    pub(super) fn reply_capture(&mut self, command: super::screen::CaptureCommand) {
+    pub(super) fn reply_capture(&mut self, command: crate::terminal_screen::CaptureCommand) {
         self.screen.command(command);
     }
 

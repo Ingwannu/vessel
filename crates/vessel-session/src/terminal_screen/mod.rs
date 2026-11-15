@@ -1,4 +1,4 @@
-//! Persistent screen authority belongs to the output actor, not its bounded event ring.
+//! One node screen adapter for standalone and session PTYs, independent of their event rings.
 //! The shared pure engine is Silent here; this module owns only actor/DTO glue.
 
 mod channel;
@@ -6,8 +6,8 @@ mod render;
 pub(super) use channel::{CaptureCommand, CaptureEndpoint};
 use tokio::sync::{mpsc, watch};
 use vessel_proto::{
-    TerminalId, TerminalSize,
-    terminals::{CaptureOptions, TerminalCapture},
+    TerminalSize,
+    terminals::{CaptureOptions, TerminalAddress, TerminalCapture},
 };
 use vessel_terminal_screen::{Screen, ScreenError, ScrollbackLines, Size, Snapshot};
 
@@ -28,6 +28,9 @@ pub enum CaptureError {
     /// A dropped or slow authority cannot hold the CLI indefinitely.
     #[error("terminal screen capture exceeded its response deadline")]
     Timeout,
+    /// CLI text capture has no session-TUI target or invented standalone id.
+    #[error("text capture requires a standalone terminal target")]
+    WrongTarget,
 }
 
 impl From<ScreenError> for CaptureError {
@@ -44,33 +47,33 @@ pub(super) struct ScreenAuthority {
     screen: Result<Screen, CaptureError>,
     inbox: mpsc::Receiver<CaptureCommand>,
     final_screen: watch::Sender<Option<FinalScreen>>,
-    terminal: TerminalId,
+    target: TerminalAddress,
 }
 #[derive(Debug, Clone)]
 struct FinalScreen {
-    terminal: TerminalId,
+    target: TerminalAddress,
     screen: Result<Snapshot, CaptureError>,
 }
 impl std::fmt::Debug for ScreenAuthority {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ScreenAuthority")
-            .field("terminal", &self.terminal)
+            .field("target", &self.target)
             .finish_non_exhaustive()
     }
 }
 impl ScreenAuthority {
-    pub(super) fn channel(terminal: TerminalId, size: TerminalSize) -> (CaptureEndpoint, Self) {
+    pub(super) fn channel(target: TerminalAddress, size: TerminalSize) -> (CaptureEndpoint, Self) {
         let (commands, inbox) = mpsc::channel(CAPTURE_QUEUE);
         let (final_screen, final_receiver) = watch::channel(None);
         (
-            CaptureEndpoint::new(commands, final_receiver),
+            CaptureEndpoint::new(target, commands, final_receiver),
             Self {
                 screen: geometry(size).and_then(|size| {
                     Screen::new(size, ScrollbackLines::DEFAULT).map_err(Into::into)
                 }),
                 inbox,
                 final_screen,
-                terminal,
+                target,
             },
         )
     }
@@ -108,8 +111,9 @@ impl ScreenAuthority {
         }
     }
     fn capture(&self, options: CaptureOptions) -> Result<TerminalCapture, CaptureError> {
+        let terminal = render::standalone(self.target)?;
         match &self.screen {
-            Ok(screen) => render::capture(self.terminal, screen.capture(render::range(options))),
+            Ok(screen) => render::capture(terminal, screen.capture(render::range(options))),
             Err(error) => Err(*error),
         }
     }
@@ -120,7 +124,7 @@ impl ScreenAuthority {
             .map(Screen::snapshot)
             .map_err(|error| *error);
         let _previous = self.final_screen.send_replace(Some(FinalScreen {
-            terminal: self.terminal,
+            target: self.target,
             screen,
         }));
     }

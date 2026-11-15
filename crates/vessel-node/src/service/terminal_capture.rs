@@ -21,7 +21,9 @@ impl NodeService {
             .await
             .map_err(|error| {
                 let code = match error {
-                    CaptureError::Geometry | CaptureError::TooLarge => ErrorCode::InvalidRequest,
+                    CaptureError::Geometry | CaptureError::TooLarge | CaptureError::WrongTarget => {
+                        ErrorCode::InvalidRequest
+                    }
                     CaptureError::Unavailable | CaptureError::Timeout => ErrorCode::Unavailable,
                 };
                 WireError::new(code, error.to_string())

@@ -1592,6 +1592,11 @@ snapshots remain available independently of the pruned event ring. C2 row217 sou
 partial gate is accepted, but full consumer qualification remains open until the enclosing
 W17 whole is green on the announced gate49 base carrying9dfdf0a1. NodeAuthority stays OFF;
 the unreviewed attach/modes/markers follow-up is excluded. No decoder restore is inferred.
+The adapter now lives in session's crate-private terminal_screen module, with a typed
+proto TerminalAddress::Session/Standalone identity instead of a standalone-only parser
+module. Existing shell/script actors consume that helper. Session-TUI actor wiring and
+D1 frame rows are the next stage, not claimed implemented by this extraction. Text capture
+rejects a Session target before queueing or projecting cells; no id conversion is made.
 The staged node `speech_audio` module is shared by dictation and spoken
 conversation (ADR 0067 / ADR 0080). It owns a borrowed aligned PCM16 view,
 fixed-provider-rate conversion and checked in-memory WAV framing. Recording

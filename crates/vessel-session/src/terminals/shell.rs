@@ -68,7 +68,10 @@ pub async fn start_shell(start: ShellStart) -> Result<TerminalHandle, TerminalEr
     let id = info.id;
     let ring = Ring::bounded(scrollback.records, scrollback.bytes, info.next_seq);
     let kill = shutdown.child_token();
-    let (screen, authority) = super::screen::ScreenAuthority::channel(id, size);
+    let (screen, authority) = crate::terminal_screen::ScreenAuthority::channel(
+        vessel_proto::terminals::TerminalAddress::Standalone(id),
+        size,
+    );
     let shared = Arc::new(Shared {
         screen,
         info: watch::Sender::new(info),
