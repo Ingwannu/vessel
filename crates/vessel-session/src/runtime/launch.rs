@@ -345,7 +345,7 @@ impl SessionRuntime {
         let parts = self.parts(
             begin,
             notices,
-            (Input::Terminal(pty.input()), pty.pid()),
+            (Input::Terminal(pty.input()), pty.lifetime()),
             (None, Driver::Acp),
         );
         let actor = TerminalActor {
@@ -379,6 +379,7 @@ impl SessionRuntime {
             handshake_timeout: self.config.agent_handshake_timeout,
             questions: start.questions,
             fork: start.fork.as_ref().map(|fork| Box::new(fork.agent.clone())),
+            system_prompt: None,
             private_dir: self.private_dir(),
         };
         let (begin, mut notices) = record.begin(spec);

@@ -42,6 +42,11 @@ pub struct OptionsText {
     // "Agent" option is (moved to the model's list).
     pub fast_mode: &'static str,
     pub effort_reset: &'static str,
+    // The bolt's tooltip (the Codex app's two lines), and the warning over
+    // the card's title while the slider is dragged onto the top stop.
+    pub fast_speed: &'static str,
+    pub fast_usage: &'static str,
+    pub maximum_warning: &'static str,
     // The options at the top of the model's list (`extras`), each with what
     // it does; an agent that is not installed.
     pub answering_agent: &'static str,
@@ -87,6 +92,9 @@ const EN: OptionsText = OptionsText {
     default_model: "Default",
     fast_mode: "Fast mode",
     effort_reset: "Back to the agent's default",
+    fast_speed: "1.5x speed",
+    fast_usage: "More usage",
+    maximum_warning: "Consumes usage limits faster",
     answering_agent: "Answering agent",
     answering_agent_note: "Which of this machine's agent definitions (its agents folder) answers. By default, Claude Code itself.",
     plan_mode: "Plan mode",
@@ -129,6 +137,9 @@ const KO: OptionsText = OptionsText {
     default_model: "기본값",
     fast_mode: "빠른 모드",
     effort_reset: "에이전트 기본값으로",
+    fast_speed: "1.5배 속도",
+    fast_usage: "사용량 증가",
+    maximum_warning: "사용 한도를 더 빨리 씁니다",
     answering_agent: "답하는 에이전트",
     answering_agent_note: "이 머신의 에이전트 정의(agents 폴더) 가운데 어느 것이 답할지 고릅니다. 기본으로는 Claude Code 자신이 답합니다.",
     plan_mode: "계획 모드",

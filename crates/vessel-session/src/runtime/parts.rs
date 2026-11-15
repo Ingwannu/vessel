@@ -10,6 +10,7 @@ use tokio::sync::{mpsc, oneshot, watch};
 use tokio_util::sync::CancellationToken;
 use tracing::Instrument as _;
 use vessel_agent::Driver;
+use vessel_proc::ProcessLifetime;
 use vessel_proto::{EventSeq, ModelCall, SessionInfo};
 
 use super::{Created, SessionRuntime};
@@ -95,7 +96,7 @@ impl SessionRuntime {
         &self,
         begin: Begin,
         notices: Vec<String>,
-        (input, pid): (Input, u32),
+        (input, process): (Input, ProcessLifetime),
         control: (Option<mpsc::Sender<Control>>, Driver),
     ) -> Parts {
         let Begin {
@@ -118,7 +119,7 @@ impl SessionRuntime {
         let (durable_sender, durable) = mpsc::channel(self.config.durable_capacity.get());
         let journal = crate::journal::Control::new(self.restart_journal, durable_sender.clone());
         let (info, kill, shared) =
-            self.shared(info, (input, pid), control, channels, state, journal);
+            self.shared(info, (input, process), control, channels, state, journal);
         let _previous = shared.limits.send_replace(limits);
         Parts {
             life: Lifecycle {
@@ -139,7 +140,7 @@ impl SessionRuntime {
     fn shared(
         &self,
         info: SessionInfo,
-        (input, pid): (Input, u32),
+        (input, process): (Input, ProcessLifetime),
         (control, driver): (Option<mpsc::Sender<Control>>, Driver),
         (model_calls, renames, forge): Channels,
         (seen, marks): (Seen, Marks),
@@ -170,7 +171,8 @@ impl SessionRuntime {
             // store's once its row is reopened.
             marks: Mutex::new(marks),
             forge,
-            pid: AtomicU32::new(pid),
+            pid: AtomicU32::new(process.pid().get()),
+            process: Mutex::new(Some(process)),
         });
         (info, kill, shared)
     }
