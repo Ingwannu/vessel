@@ -58,6 +58,9 @@ pub enum ManagerError {
     /// The controller stopped or cannot accept more work.
     #[error("local node command queue is unavailable")]
     Unavailable,
+    /// Earlier released children still occupy the bounded observation history.
+    #[error("released child observations must settle before another reconnect")]
+    ObservationLimit,
     /// The displayed process state changed after a confirmation was shown.
     #[error("local node confirmation is stale")]
     StaleConfirmation,
@@ -80,6 +83,7 @@ impl ManagerError {
             | Self::Runtime(_)
             | Self::NotInstalled
             | Self::Unavailable
+            | Self::ObservationLimit
             | Self::StaleConfirmation
             | Self::StaleControl
             | Self::Logs(_) => None,

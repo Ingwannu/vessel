@@ -171,7 +171,7 @@ async fn perform_action(
     history: &mut History,
 ) -> Result<Snapshot, ManagerError> {
     if matches!(action, Action::Start) && !history.has_capacity() {
-        return Err(ManagerError::Unavailable);
+        return Err(ManagerError::ObservationLimit);
     }
     if let Action::Stop(lease) | Action::Restart(lease) = &action
         && !valid_control(published, lease)
