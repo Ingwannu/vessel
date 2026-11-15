@@ -141,7 +141,7 @@ fn child_pages_keep_sparse_parent_sequence_and_reject_control_or_reordering() {
         ChildRecords::try_from(vec![control]),
         Err(InvalidChildCollection::Timeline)
     );
-    let rows = (0..=u64::from(bounds::MAX_TIMELINE_ITEMS))
+    let rows: Vec<_> = (0..=u64::from(bounds::MAX_TIMELINE_ITEMS))
         .map(record)
         .collect();
     assert_eq!(

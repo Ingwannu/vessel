@@ -23,7 +23,7 @@ impl NodeService {
         self.provider_projection(request.session, None)
             .await?
             .list()
-            .map_err(|_| invalid_projection())
+            .map_err(|_error| invalid_projection())
     }
     pub(crate) async fn read_provider_child(
         &self,
@@ -33,18 +33,21 @@ impl NodeService {
         self.provider_projection(request.session, Some(request))
             .await?
             .page()
-            .map_err(|_| invalid_projection())
+            .map_err(|_error| invalid_projection())
     }
     async fn provider_projection(
         &self,
         session: SessionId,
         request: Option<ReadProviderChild>,
     ) -> Result<projection::Projection, WireError> {
-        let _place = self.child_reads.try_acquire().map_err(|_| unavailable())?;
+        let _place = self
+            .child_reads
+            .try_acquire()
+            .map_err(|_error| unavailable())?;
         let deadline = tokio::time::Instant::now() + bounds::READ_DEADLINE;
         let info = tokio::time::timeout_at(deadline, self.sessions.get(session))
             .await
-            .map_err(|_| unavailable())?
+            .map_err(|_error| unavailable())?
             .map_err(|error| wire(&error))?;
         let end = info.next_seq;
         let (start, upper) = window(request.as_ref().and_then(|r| r.cursor), end)?;
@@ -114,7 +117,7 @@ fn window(cursor: Option<ChildCursor>, end: EventSeq) -> Result<(EventSeq, Event
         Some(ChildCursor::Before(seq)) => seq.min(end),
         Some(ChildCursor::After(_)) | None => end,
     };
-    let records = u64::try_from(bounds::MAX_SCAN_RECORDS).map_err(|_| invalid_projection())?;
+    let records = u64::try_from(bounds::MAX_SCAN_RECORDS).map_err(|_error| invalid_projection())?;
     let start = match cursor {
         Some(ChildCursor::After(seq)) if seq > end => {
             return Err(WireError::new(
