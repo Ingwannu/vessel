@@ -147,3 +147,11 @@ now have one named 120-second testkit safety owner covering setup and cleanup;
 fake prebuild precedes that clock. These new cases and the safety-wrapper change
 are authored only until their exact changed-source VM run, not inherited from
 the older receipt/store or header results.
+
+Current owner checks at 4fb8cc99 were RED before runtime: the new observer was
+missing explicit Reply-agent masking, Method forwarding and Call field-version
+classification, plus one inherited Forwarded test constructor's omitted default.
+Those exhaustive arms/default are now completed without a new authority/version.
+The actor barrier's test module also moves last and gains a named local testkit
+safety bound. Old run results remain failed; no generated wire artifact or
+runtime pass is inferred from them. Corrected execution is still owed.

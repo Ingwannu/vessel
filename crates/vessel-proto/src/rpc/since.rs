@@ -113,6 +113,7 @@ impl Call {
             Self::RespondQuestion(_)
             | Self::RespondPermission(_)
             | Self::SubmitPrompt(_)
+            | Self::ObservePromptReceipt(_)
             | Self::OpenSideQuestion(_)
             | Self::PromptSideQuestion(_)
             | Self::ResetSideQuestion(_)

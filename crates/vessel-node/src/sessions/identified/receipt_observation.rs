@@ -64,79 +64,6 @@ pub(super) async fn target_barrier(
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn direct_barrier_uses_the_ticket_and_closed_tickets_stay_uncertain() {
-        let (sent, received) = oneshot::channel();
-        sent.send(SubmissionTarget::Turn {
-            started: EventSeq::new(17),
-        })
-        .unwrap();
-        let accepted = SubmissionAcceptedKind::Prompt {
-            disposition: PromptDisposition::Started,
-        };
-        let barrier = target_barrier(accepted, received, EventSeq::new(999))
-            .await
-            .unwrap();
-        assert_eq!(barrier.through, EventSeq::new(18));
-        let (sent, received) = oneshot::channel();
-        drop(sent);
-        assert!(
-            target_barrier(accepted, received, EventSeq::new(999))
-                .await
-                .is_none()
-        );
-    }
-
-    #[tokio::test]
-    async fn a_replacement_never_binds_the_turn_that_was_interrupted() {
-        let accepted = SubmissionAcceptedKind::Prompt {
-            disposition: PromptDisposition::InterruptedAndStarted {
-                interrupted: EventSeq::new(17),
-            },
-        };
-        let (sent, received) = oneshot::channel();
-        sent.send(SubmissionTarget::Turn {
-            started: EventSeq::new(17),
-        })
-        .unwrap();
-        assert!(
-            target_barrier(accepted, received, EventSeq::new(999))
-                .await
-                .is_none()
-        );
-    }
-
-    #[tokio::test]
-    async fn queued_and_command_acceptance_do_not_wait_for_a_model_turn() {
-        let (sent, received) = oneshot::channel();
-        let queued = SubmissionAcceptedKind::Prompt {
-            disposition: PromptDisposition::Queued {
-                entry: vessel_proto::QueueEntryId::random(),
-            },
-        };
-        let barrier = target_barrier(queued, received, EventSeq::new(27))
-            .await
-            .unwrap();
-        assert_eq!(barrier.through, EventSeq::new(27));
-        assert!(matches!(barrier.target, Some(ReceiptTarget::Queued(_))));
-        drop(sent);
-        let (_held, received) = oneshot::channel();
-        let command = SubmissionAcceptedKind::Command {
-            status: vessel_proto::native_commands::NativeCommandStatus::CompactStarted,
-            echo: EventSeq::new(32),
-        };
-        let barrier = target_barrier(command, received, EventSeq::new(999))
-            .await
-            .unwrap();
-        assert_eq!(barrier.through, EventSeq::new(33));
-        assert!(barrier.target.is_none());
-    }
-}
-
 impl Sessions {
     pub(crate) async fn observe_prompt_receipt(
         &self,
@@ -184,5 +111,92 @@ impl Sessions {
                 tracing::warn!(%session, %error, "receipt target remains unobserved after commit failure");
             }
         }));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const BARRIER_TEST_BOUND: std::time::Duration = std::time::Duration::from_secs(3);
+
+    #[tokio::test]
+    async fn direct_barrier_uses_the_ticket_and_closed_tickets_stay_uncertain() {
+        vessel_testkit::within(BARRIER_TEST_BOUND, async {
+            let (sent, received) = oneshot::channel();
+            sent.send(SubmissionTarget::Turn {
+                started: EventSeq::new(17),
+            })
+            .unwrap();
+            let accepted = SubmissionAcceptedKind::Prompt {
+                disposition: PromptDisposition::Started,
+            };
+            let barrier = target_barrier(accepted, received, EventSeq::new(999))
+                .await
+                .unwrap();
+            assert_eq!(barrier.through, EventSeq::new(18));
+            let (sent, received) = oneshot::channel();
+            drop(sent);
+            assert!(
+                target_barrier(accepted, received, EventSeq::new(999))
+                    .await
+                    .is_none()
+            );
+        })
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn a_replacement_never_binds_the_turn_that_was_interrupted() {
+        vessel_testkit::within(BARRIER_TEST_BOUND, async {
+            let accepted = SubmissionAcceptedKind::Prompt {
+                disposition: PromptDisposition::InterruptedAndStarted {
+                    interrupted: EventSeq::new(17),
+                },
+            };
+            let (sent, received) = oneshot::channel();
+            sent.send(SubmissionTarget::Turn {
+                started: EventSeq::new(17),
+            })
+            .unwrap();
+            assert!(
+                target_barrier(accepted, received, EventSeq::new(999))
+                    .await
+                    .is_none()
+            );
+        })
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn queued_and_command_acceptance_do_not_wait_for_a_model_turn() {
+        vessel_testkit::within(BARRIER_TEST_BOUND, async {
+            let (sent, received) = oneshot::channel();
+            let queued = SubmissionAcceptedKind::Prompt {
+                disposition: PromptDisposition::Queued {
+                    entry: vessel_proto::QueueEntryId::random(),
+                },
+            };
+            let barrier = target_barrier(queued, received, EventSeq::new(27))
+                .await
+                .unwrap();
+            assert_eq!(barrier.through, EventSeq::new(27));
+            assert!(matches!(barrier.target, Some(ReceiptTarget::Queued(_))));
+            drop(sent);
+            let (_held, received) = oneshot::channel();
+            let command = SubmissionAcceptedKind::Command {
+                status: vessel_proto::native_commands::NativeCommandStatus::CompactStarted,
+                echo: EventSeq::new(32),
+            };
+            let barrier = target_barrier(command, received, EventSeq::new(999))
+                .await
+                .unwrap();
+            assert_eq!(barrier.through, EventSeq::new(33));
+            assert!(barrier.target.is_none());
+        })
+        .await
+        .unwrap();
     }
 }

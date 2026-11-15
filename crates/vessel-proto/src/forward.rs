@@ -320,6 +320,7 @@ impl Method {
             | Self::RespondQuestion
             | Self::RespondPermission
             | Self::SubmitPrompt
+            | Self::ObservePromptReceipt
             | Self::PromptSession
             | Self::ChangeQueue
             | Self::GetConversation

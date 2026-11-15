@@ -101,6 +101,7 @@ mod tests {
                 assert!(!encoded.contains("detach_receipt"));
                 assert!(encoded.contains("created_by"));
                 reply = wrap(Forwarded {
+                    reference_origin: None,
                     reply: Box::new(reply),
                 });
             }

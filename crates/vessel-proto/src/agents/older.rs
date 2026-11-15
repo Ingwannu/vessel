@@ -165,6 +165,7 @@ impl Reply {
             | Self::RespondQuestion(_)
             | Self::RespondPermission(_)
             | Self::SubmitPrompt(_)
+            | Self::ObservePromptReceipt(_)
             | Self::PromptSession(_)
             | Self::ChangeQueue(_)
             | Self::GetConversation(_)
