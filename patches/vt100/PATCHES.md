@@ -28,6 +28,10 @@ Numbered patch list (implementation in progress):
    bold and dim independent until SGR22 clears intensity, matching xterm's
    separate bits and the existing native attribute contract. Independent
    server-handler/raw-cell golden cases cover both corrections.
+5. A wide glyph wrapping with one padding cell still marks a soft-wrapped
+   logical line. Upstream deliberately used tmux's unlinked behavior here;
+   xterm links it. The independent wide-padding shrink/grow golden catches
+   the extra history row caused by losing that link.
 
 Wide-continuation attributes are corrected by the facade, not another parser.
 No byte parser, runtime, PTY, toolkit, or harness is added to the upstream crate.

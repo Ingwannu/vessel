@@ -911,41 +911,11 @@ impl Screen {
         Some(width)
     }
 
-    // if this is the initial codepoint in a new cell, we need to determine
-    // whether wrapping that character to the next row should set the row's
-    // wrapping flag
+    // Vessel patch: xterm records a soft wrap even when a wide glyph
+    // leaves one padding cell. Without that link, resize splits one logical
+    // line into unrelated runs and invents an extra history row.
     fn new_character_should_wrap(&self, width: u16) -> bool {
-        let pos = self.grid().pos();
-        let size = self.grid().size();
-
-        // it doesn't make any sense to wrap if the last column in a row
-        // didn't already have contents. don't try to handle the case
-        // where a character wraps because there was only one column left
-        // in the previous row - literally everything handles this case
-        // differently, and this is tmux behavior (and also the
-        // simplest). i'm open to reconsidering this behavior, but only
-        // with a really good reason (xterm handles this by introducing
-        // the concept of triple width cells, which i really don't want
-        // to do).
-        let mut wrap = false;
-        if pos.col + width > size.cols() {
-            let last_cell = self
-                .grid()
-                .drawing_cell(crate::grid::Pos {
-                    row: pos.row,
-                    col: size.cols() - 1,
-                })
-                // pos.row is valid, since it comes directly from
-                // self.grid().pos() which we assume to always have a
-                // valid row value. size.cols - 1 is also always a valid
-                // column.
-                .unwrap();
-            if last_cell.has_contents() || last_cell.is_wide_continuation() {
-                wrap = true;
-            }
-        }
-
-        wrap
+        self.grid().pos().col.saturating_add(width) > self.grid().size().cols()
     }
 
     // if we already have a character in a cell, but adding a continuation

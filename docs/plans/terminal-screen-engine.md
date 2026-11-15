@@ -113,6 +113,13 @@ The synthetic resize corpus still failed on a retained-history count. The
 assertion now includes its checkpoint and actual rows so the next diagnostic
 run identifies the precise state; no expected value or assertion is weakened.
 
+The diagnostic identified the wide-padding case: upstream deliberately leaves
+that wrap unlinked (its comment names tmux), so reflow treated the two halves
+as separate logical lines and produced one extra history row. The reference
+InputHandler links every actual soft wrap, including a wide glyph leaving
+one padding cell. The narrow engine correction records that link; no row text,
+expected history, cursor, fixture or hash is changed.
+
 The strict changed-package check caught a collapsible nested slice match in
 query decoding. A single nested slice pattern keeps the exact accepted shape;
 no parameter acceptance or expected reply changes. The original lint failure
