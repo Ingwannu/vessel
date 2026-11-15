@@ -19,7 +19,7 @@ use std::collections::BTreeMap;
 
 use serde::Deserialize;
 use sha2::{Digest as _, Sha256};
-use vessel_proto::scripts::{ScriptEntry, ScriptKind, ScriptName};
+use vessel_proto::scripts::{InvalidScriptEntry, ScriptEntry, ScriptKind, ScriptName};
 use vessel_proto::workspace::{InvalidRelPath, InvalidText, ProjectCommand, RelPath};
 
 /// The most scripts and services one file names, together (GOAT allows 50).
@@ -38,12 +38,15 @@ pub(super) type RawTable = BTreeMap<String, RawScript>;
 /// What is wrong with a file's scripts. Nothing in the file runs then.
 #[derive(Debug, thiserror::Error)]
 pub enum ScriptsError {
+    /// A declaration cannot be represented as a valid script or service.
+    #[error("`vessel.toml` script declaration: {0}")]
+    Declaration(#[source] InvalidScriptEntry),
     /// More than [`MAX_SCRIPTS`] together.
     #[error("`vessel.toml` names more than {MAX_SCRIPTS} scripts and services")]
     TooMany,
     /// A name that is not 1 to 64 letters, digits, `-`, `_` or `.`.
     #[error("`vessel.toml`: {0}")]
-    Name(vessel_proto::scripts::InvalidScriptName),
+    Name(#[source] vessel_proto::scripts::InvalidScriptName),
     /// The same name in `[scripts]` and `[services]`.
     #[error("`vessel.toml` names `{0}` as both a script and a service")]
     Both(ScriptName),
@@ -126,12 +129,7 @@ fn entry(kind: ScriptKind, name: &str, raw: RawScript) -> Result<ScriptEntry, Sc
             name: name.clone(),
             source,
         })?;
-    Ok(ScriptEntry {
-        name,
-        kind,
-        command,
-        dir,
-    })
+    ScriptEntry::new(name, kind, command, dir, None).map_err(ScriptsError::Declaration)
 }
 
 /// Add `bytes` to `hash` with its length first (8 bytes little-endian), so
@@ -159,7 +157,7 @@ pub(super) fn digest(hash: &mut Sha256, scripts: &[ScriptEntry], fields: DigestF
     );
     for script in scripts {
         field(hash, script.name.as_str().as_bytes());
-        field(hash, script.kind.table().as_bytes());
+        field(hash, script.kind().table().as_bytes());
         field(hash, script.command.as_str().as_bytes());
         field(
             hash,
@@ -167,7 +165,10 @@ pub(super) fn digest(hash: &mut Sha256, scripts: &[ScriptEntry], fields: DigestF
         );
         match fields {
             DigestFields::Original => {}
-            DigestFields::WithPorts => field(hash, b""),
+            DigestFields::WithPorts => {
+                let port = script.port().map(|port| port.to_string());
+                field(hash, port.as_deref().unwrap_or("").as_bytes());
+            }
         }
     }
 }

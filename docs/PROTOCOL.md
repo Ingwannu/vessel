@@ -1752,3 +1752,12 @@ on every negotiated connection. This also covers a terminal-bearing prior
 approval and script/worktree approval replies. Older nodes omit the field;
 new readers treat omission as no terminal commands. Parsing and approval are
 staged ahead of automatic terminal creation, which is not implemented yet.
+
+
+The same unassigned `PROJECT_FILE_KEYS` also gates a declared `ScriptEntry.port`
+(nonzero TCP port, optional/absent by default). A current or previous approval
+with one is invalid for every peer while unassigned, through every direct and
+nested approval reply. `ScriptEntry` keeps its JSON kind string and validates
+kind and port together; a plain script with a port is refused. This stage adds
+the declaration and approval boundary before the file parser starts reading
+`services.<name>.port`; it assigns no number and starts no allocator or process.

@@ -360,8 +360,10 @@ does not add a filesystem probe to either decoding or hashing.
   or refuse approval, including a port-only change and its removal from
   `last_approved`. This does not assign `PROJECT_FILE_KEYS`; the web dialog,
   web command-changes and native card must display all approved terminal
-  and port data before it is assigned. This is a contract for the later
-  field integration; the value preparation has not changed `ScriptEntry`.
+  and port data before it is assigned. The declaration boundary now implements
+  the constructor, serde, digest slot, reply gates and client refusal before
+  file parsing or execution can produce or honor the new field. Native
+  constructor/getter/card adaptation remains an integration prerequisite.
 
 Relative program resolution is a deliberate difference from Paseo. Its
 allocator passes the trimmed command to the plugin's `execFile` wrapper

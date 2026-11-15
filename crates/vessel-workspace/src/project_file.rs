@@ -229,13 +229,15 @@ impl ProjectFile {
     }
 
     /// What a person approves: SHA-256 over both lists, and over the
-    /// scripts when there are any (version 2), or terminals (version 3,
+    /// scripts when there are any (version 2), or terminals or declared ports (version 3,
     /// ADR 0066). The module's Decision Log
     /// says why earlier digests stay for a file without new keys.
     #[must_use]
     pub fn digest(&self) -> CommandsDigest {
         let mut hash = Sha256::new();
-        if !self.terminals.is_empty() {
+        let version_three =
+            !self.terminals.is_empty() || self.scripts.iter().any(|script| script.port().is_some());
+        if version_three {
             hash.update(b"vessel.toml commands 3\n");
         } else if self.scripts.is_empty() {
             hash.update(b"vessel.toml worktree commands 1\n");
@@ -249,7 +251,7 @@ impl ProjectFile {
                 scripts::field(&mut hash, command.as_str().as_bytes());
             }
         }
-        if !self.terminals.is_empty() {
+        if version_three {
             scripts::digest(&mut hash, &self.scripts, scripts::DigestFields::WithPorts);
             terminals::digest(&mut hash, &self.terminals);
             // ADR 0066 fixes these slots now so later port keys cannot change
@@ -419,7 +421,7 @@ mod tests {
         let names: Vec<&str> = file.scripts.iter().map(|s| s.name.as_str()).collect();
         assert_eq!(names, ["build", "test", "web"]);
         let web = file.script(&"web".parse().unwrap()).unwrap();
-        assert_eq!(web.kind, vessel_proto::scripts::ScriptKind::Service);
+        assert_eq!(web.kind(), vessel_proto::scripts::ScriptKind::Service);
         assert_eq!(web.dir.as_ref().map(RelPath::as_str), Some("web"));
 
         for bad in [
@@ -501,3 +503,6 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod declared_ports_tests;
