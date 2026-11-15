@@ -137,3 +137,10 @@ mapping arms. They are combined without changing classification or error text.
 The failed exact0f8097f3 log remains retained; a new immutable strict check is
 required. The independent directory/config node test run at28950f795 passed77/0
 with its web/fake/node prerequisites, still not a complete C1 gate or review.
+
+The continuation now merges the complete announced gate44 node head ede20014.
+Its existing process, service, plugin-value and protocol accessor changes stay
+intact; the architecture merge appends the project sections after the head's new
+sections. Current strict/config checks are owed on this union, and generated
+wire freshness will be checked remotely before a whole C1 gate. No real actor,
+editor, service or filesystem outside isolated tests was started.

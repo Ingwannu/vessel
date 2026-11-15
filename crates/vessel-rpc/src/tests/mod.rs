@@ -740,5 +740,6 @@ async fn start(config: ClientConfig) -> Running {
 
 mod calls;
 mod lifecycle;
+mod preflight;
 mod protocol;
 mod subscriptions;
