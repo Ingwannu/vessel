@@ -58,7 +58,7 @@ fn result(call: Call) -> Outcome {
     if let Call::CreateSession(spec) = call {
         Outcome::Ok(Reply::CreateSession(SessionInfo::new(
             SessionId::random(),
-            spec,
+            spec.spec,
             chrono::DateTime::UNIX_EPOCH,
         )))
     } else if let Call::ListProfiles(_) = call {

@@ -40,7 +40,7 @@ async fn answer(client: &vessel_client::NodeClient, ask: Ask) -> Reply {
         Ask::Profiles { scope, ticket } => {
             let result = tokio::time::timeout(
                 READ_DEADLINE,
-                client.call(vessel_proto::profile::ListProfiles {
+                client.call(vessel_proto::ListProfiles {
                     harness: Some(scope.harness.clone()),
                 }),
             )

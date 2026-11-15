@@ -48,9 +48,10 @@ async fn batch_resumes_each_native_id_in_its_original_directory_and_account() {
     let calls = peer.calls.lock().unwrap();
     assert_eq!(calls.len(), batch.entries.len());
     for (call, entry) in calls.iter().zip(&batch.entries) {
-        let Call::CreateSession(spec) = call else {
+        let Call::CreateSession(request) = call else {
             panic!("only existing session.create is used");
         };
+        let spec = &request.spec;
         assert_eq!(spec.profile, batch.scope.profile);
         assert_eq!(spec.cwd.as_ref(), Some(&entry.cwd));
         assert_eq!(spec.title, entry.title);
