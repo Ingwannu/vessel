@@ -264,3 +264,5 @@ Portable consumer packet: this isolated commit composes only the Node-pinned rea
 Creation now calls prepare_draft_input_on with its original ConnectionContext directly. The name/node compatibility wrapper is literal cfg(test) for the two recovered-intake refusal fixtures; no product caller can rehydrate an admission through it.
 
 Shared input strict run wp-composer-shared-input-20261115T132829Z-d5200d04 stopped in Link on one redundant closure and three fixture unwrap lints. The literal cfg(test) fixture constructor records its fixed address, fresh allocator capacity and just-inserted context invariants at the smallest item; no product panic or global lint relaxation is introduced. This corrected two-source-file delta requires a fresh changed-source strict result before adoption.
+
+Earlier composer-test compilation identified a stale SessionId import and redundant HashMap/WorkspaceInput qualification. This isolated correction keeps scoped behavior unchanged. The newer async clipboard fixture correction is separate and is not a prerequisite of this packet.
