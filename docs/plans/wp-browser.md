@@ -1006,3 +1006,13 @@ or profile close triggers the same retained stop/drain. One controlled fixture
 holds that exact receipt after backend success, confirms Busy/capacity retention,
 then abandons it and confirms cleanup before capacity returns. This source is
 unexecuted until the required announced-head union permits changed-source tests.
+
+
+The input lane's ordering fixture does not prove cross-callback key isolation.
+A tool chord must be supplied as one transaction. Human down/up callbacks remain
+separate transactions, so the actual Driver.activate must release the previous
+target's held keys/buttons with real acknowledgements before changing targets;
+an uncertain release stops the profile. This is an explicit trusted-driver
+obligation, not behavior supplied by the generic mutex or its fake fixture.
+Actual held-key/pointer multi-target/connection/focus tests and the W22 owner
+transaction remain required before raw forwarding or an engine can be enabled.

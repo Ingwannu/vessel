@@ -24,6 +24,10 @@ pub(crate) trait Driver: Send + Sync + 'static {
     type Target: Send + Sync + 'static;
     type Command: Send + 'static;
     type Error: std::error::Error + Send + Sync + 'static;
+    /// Before changing targets, settle the previous target's held keys/buttons
+    /// through their real ACKs. Separate human down/up callbacks are separate
+    /// transactions: this mutex alone cannot make them an indivisible chord.
+    /// Failure or an uncertain release must refuse activation and stop the profile.
     fn activate(
         &self,
         target: &Self::Target,
@@ -225,8 +229,9 @@ async fn worker<D: Driver>(
         mut answer,
         consumed,
     } = response;
-    // The Tokio guard covers activation and the whole input transaction: a
-    // different target must not become active between a key down and key up.
+    // The Tokio guard covers activation and the entire supplied transaction.
+    // A tool chord must be one command; separate human callbacks additionally
+    // rely on Driver::activate settling previous held input before switching.
     let _serial = tokio::select! {
         biased;
         ()=shared.closing.cancelled()=>return,
