@@ -179,12 +179,15 @@ impl Shell {
                 let token = vessel_app_view::inbox::notices::DeliveryTag::new(
                     uuid::Uuid::new_v4().into_bytes(),
                 );
-                self.areas.inbox.notice_routes.remember(
+                super::notification_routes::remember(
                     token,
+                    source.clone(),
                     vessel_app_view::inbox::notices::Destination::Terminal(Key {
                         node: source.node(),
                         terminal: state.terminal,
                     }),
+                    window,
+                    cx,
                 );
                 cx.show_system_notification(vessel_app_kit::ui::SystemNotification {
                     tag: super::notifications::tag(token).into(),

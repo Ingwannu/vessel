@@ -4,6 +4,7 @@ mod actions;
 mod badges;
 mod draw;
 mod idle;
+mod notification_routes;
 mod notifications;
 mod place;
 mod presence;
@@ -46,7 +47,6 @@ pub(crate) struct InboxArea {
     pub(crate) test_notice: vessel_app_view::inbox::settings::TestNotice,
     pub(crate) presence_problems: Vec<(vessel_proto::NodeId, Problem)>,
     pub(crate) tool: Option<ToolView>,
-    pub(crate) notice_routes: vessel_app_view::inbox::notices::NoticeRoutes,
     pub(crate) notices: vessel_app_view::inbox::notices::NoticeQueue,
     pub(super) coalescing: vessel_app_view::inbox::notices::Coalescing,
 }
@@ -55,7 +55,7 @@ impl InboxArea {
         window: &mut vessel_app_kit::ui::Window,
         cx: &mut Context<'_, Shell>,
     ) -> Self {
-        notifications::listen(window, cx);
+        notification_routes::listen(cx);
         presence::listen(window, cx);
         idle::listen(window, cx);
         Self {
@@ -78,7 +78,6 @@ impl InboxArea {
             read_problem: None,
             test_notice: vessel_app_view::inbox::settings::TestNotice::Idle,
             tool: None,
-            notice_routes: vessel_app_view::inbox::notices::NoticeRoutes::default(),
             notices: vessel_app_view::inbox::notices::NoticeQueue::default(),
             coalescing: vessel_app_view::inbox::notices::Coalescing::Individual,
         }

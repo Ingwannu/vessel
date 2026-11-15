@@ -106,3 +106,36 @@ added there; no field or authority semantics change. Session rollups now also
 carry current failed outcomes, independently of unread, so native five-bucket
 status cannot confuse a read failure with a finished result. A regression marks
 a failure read and verifies failure persists until a new turn removes it.
+
+
+## Native original-recipient routing continuation
+
+[Decision Log]
+- Purpose: GPUI has one process notification callback; registering once per
+  Shell overwrites an earlier window's recipient and fails after it closes.
+- Existing assets: the existing opaque DeliveryTag, canonical ConnectionContext,
+  GPUI AnyWindowHandle and WeakEntity, and the kit root ownership boundary.
+- Alternatives: one independent window list, embedding source identity in the
+  OS payload, or alias lookup after activation. Each loses privacy or authority.
+- Choice: one App Global installs the callback once and stores at most the
+  existing MAX_PENDING_NOTICES recipient records for the whole process. Every
+  record retains original window, weak Shell, exact Source and destination.
+- Why: entering that handle and checking current root content prevents an old
+  retained Shell, closed-window successor or newer same-alias connection from
+  receiving a source action. A retired context opens only its original Inbox.
+- Impact: generic activation after unknown/consumed/evicted/dead recipients is
+  explicitly GenericUnavailable until W19's reviewed sole host registry API is
+  adopted. No second window manager or full open-route success is claimed.
+
+Four GPUI consumer regressions exercise the actual registered platform callback
+with kit-wrapped real windows, second-window registration, once-only consumption,
+close/reopen, retained old Shell with replaced root, exact context replacement,
+process-wide bounds and explicit unavailable outcomes. Execution remains owed.
+The helper is a separate bounded commit for W19; it alone grants no source or
+host-selection authority. Actual D-Bus delivery/silent-hint evidence remains owed.
+
+Before this continuation, exact6cb55fcb passed four-crate all-target native
+Clippy (run wp-inbox-adapter-20261115T161638Z-6cb55fcb, rc0), the prior Inbox
+App test (one case, not the new routing tests), and actual root vesseld build
+plus260 node library tests (wp-inbox-app-root-20261115T161638Z-6cb55fcb).
+Those checks do not verify the new callback source or a whole A5 gate.

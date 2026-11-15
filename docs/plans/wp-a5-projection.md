@@ -1,7 +1,8 @@
 # A5 shared attention projection
 
-Status: 911438d2 HOLD after two bounded source findings; corrected successor
-awaits changed-source narrow checks and re-review.
+Status: bounded checked source adoption passed V4 row234 for corrected246f1ba28;
+exact view strict rc0 and tests3/0/0. Old911438d2 remains HOLD history. The identical
+producer is included in announced green package base6ebdf8e8 (1473/0/2).
 This is a pure view policy producer, not the Inbox, node contract, registry
 runtime, resource lifecycle, terminal resident or native host badge API.
 

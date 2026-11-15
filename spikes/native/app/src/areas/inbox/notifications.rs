@@ -9,37 +9,8 @@ use vessel_app_link::{Command, inbox::Ask};
 use vessel_app_view::inbox::delivery::{Channel, Delivery, Visibility};
 use vessel_app_view::inbox::notices::DeliveryTag;
 
-const SUMMARY_TAG: &str = "vessel-inbox-summary";
+pub(super) const SUMMARY_TAG: &str = "vessel-inbox-summary";
 const TAG_PREFIX: &str = "vessel-desktop-notice/";
-
-pub(super) fn listen(window: &Window, cx: &mut Context<'_, Shell>) {
-    let shell = cx.entity().downgrade();
-    let handle = window.window_handle();
-    cx.on_system_notification_response(move |response, cx| {
-        let key = parse_tag(response.tag.as_ref());
-        if key.is_none() && response.tag.as_ref() != SUMMARY_TAG {
-            return;
-        }
-        let _closed = shell.update(cx, |shell, cx| {
-            shell.route_to(Route::Inbox);
-            if let Some(key) = key.and_then(|tag| shell.areas.inbox.notice_routes.take(tag)) {
-                match key {
-                    vessel_app_view::inbox::notices::Destination::Session(key) => {
-                        shell.inbox_select(key, cx);
-                    }
-                    vessel_app_view::inbox::notices::Destination::Terminal(key) => {
-                        shell.areas.inbox.terminals.selected = Some(key);
-                    }
-                }
-            }
-            // A consumed/evicted tag still changes the route to Inbox. An
-            // already-active window must redraw that generic fallback too.
-            cx.notify();
-            cx.activate(true);
-        });
-        let _closed = handle.update(cx, |_root, window, _cx| window.activate_window());
-    });
-}
 
 impl Shell {
     pub(crate) fn inbox_window(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
@@ -147,7 +118,7 @@ impl Shell {
             }
             if delivery.desktop == Channel::Enabled {
                 let token = DeliveryTag::new(uuid::Uuid::new_v4().into_bytes());
-                self.areas.inbox.notice_routes.remember(token, key);
+                super::notification_routes::remember(token, pending.source, key, window, cx);
                 cx.show_system_notification(SystemNotification {
                     tag: tag(token).into(),
                     title: self.t.app.into(),
@@ -211,7 +182,7 @@ impl Shell {
 pub(super) fn tag(token: DeliveryTag) -> String {
     format!("{TAG_PREFIX}{}", uuid::Uuid::from_bytes(token.bytes()))
 }
-fn parse_tag(text: &str) -> Option<DeliveryTag> {
+pub(super) fn parse_tag(text: &str) -> Option<DeliveryTag> {
     uuid::Uuid::parse_str(text.strip_prefix(TAG_PREFIX)?)
         .ok()
         .map(|id| DeliveryTag::new(id.into_bytes()))
