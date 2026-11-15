@@ -540,3 +540,11 @@ IntoElement return trait explicitly and use the existing imported renderer
 without redundant qualification. The new settings types are outside this native
 check. Root189e2cc0 strict(node/proto/web) separately passed; it predates shared
 patch adoption/new voice settings and does not prove their runtime.
+
+### Duplex command admission before conversation activation
+
+[Decision Log]
+- Existing assets: one global Capture Owner/Fence, bounded Packet/Pump/Book, receipt atomics and the shared upload mute interval. Streams already drives one processor and actual callback references.
+- Choice: add a two-admission command plane whose semaphore permit follows every retained raw-PCM Packet/Reader alias, not merely the data queue. Per-request and speech-interval fences travel into the existing receipt; callbacks only read atomics. No second renderer, capture engine or AEC processor.
+- Why: a queue of two plus a separate Book of two would retain four full segments. Barge-in must fence queued and prepared old speech immediately, even if the device worker is waiting, while a late wake must not interrupt a newer interval.
+- Impact: Pending cancellation and local Stop notify independently of the full command/data queue. The worker prunes closed receipts rather than performing a delayed interrupt-all. Mute retains its independent capture-origin upload policy. This stays staged against fakes; public Conversation acquisition and product routes remain unavailable.

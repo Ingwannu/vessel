@@ -9,6 +9,7 @@
 //! - Cost: a missing/invalid device clock fails the segment rather than claiming
 //!   completion. Native callback timing and physical output remain separate proof.
 
+pub(in crate::audio) mod control;
 pub(super) mod cue;
 pub(super) mod output;
 pub(super) mod packet;

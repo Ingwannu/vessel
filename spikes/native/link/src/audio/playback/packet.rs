@@ -7,6 +7,7 @@ use cpal::Sample as _;
 
 use super::{
     Refusal,
+    control::{Access, Reservation},
     receipts::{Lease, Receipt},
 };
 use crate::audio::format::RateHz;
@@ -20,6 +21,8 @@ pub(in crate::audio) struct Packet {
     pcm: Bytes,
     rate: RateHz,
     duration: Duration,
+    access: Option<Access>,
+    reservation: Option<Reservation>,
 }
 
 impl Packet {
@@ -46,9 +49,26 @@ impl Packet {
             pcm,
             rate,
             duration,
+            access: None,
+            reservation: None,
         })
     }
 
+    pub(super) fn admit(
+        mut self,
+        access: Access,
+        permit: tokio::sync::OwnedSemaphorePermit,
+    ) -> Self {
+        self.access = Some(access);
+        self.reservation = Some(Arc::new(permit));
+        self
+    }
+    pub(super) fn access(&self) -> Option<Access> {
+        self.access.clone()
+    }
+    pub(super) fn stopped(&self) -> bool {
+        self.access.as_ref().is_some_and(Access::stopped)
+    }
     pub(super) fn duration(&self) -> Duration {
         self.duration
     }
@@ -58,6 +78,7 @@ impl Packet {
             pcm: self.pcm.clone(),
             rate: self.rate,
             receipt,
+            _reservation: self.reservation.clone(),
         }
     }
 }
@@ -78,6 +99,7 @@ pub(in crate::audio) struct Reader {
     pcm: Bytes,
     rate: RateHz,
     receipt: Arc<Receipt>,
+    _reservation: Option<Reservation>,
 }
 
 impl Reader {

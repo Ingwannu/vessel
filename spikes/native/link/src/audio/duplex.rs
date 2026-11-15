@@ -14,6 +14,7 @@ use super::{
     format::Format,
     owner::Owner,
     playback::{
+        control::{Control, Inbox},
         output::Ports,
         packet::Packet,
         pump::{Failure, Pump},
@@ -60,6 +61,8 @@ struct Streams<I: CaptureSource, O: SpeakerSource> {
     pump: Pump,
     ports: Ports,
     fence: Arc<Fence>,
+    controls: Control,
+    commands: Inbox,
 }
 impl<I: CaptureSource, O: SpeakerSource> fmt::Debug for Streams<I, O> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -91,6 +94,7 @@ impl<I: CaptureSource, O: SpeakerSource> Streams<I, O> {
             .map_err(|_private| DeviceFailure::Processing)?;
         let pump = Pump::new(lease, Arc::clone(&fence), output.format())
             .map_err(|_private| DeviceFailure::Processing)?;
+        let (controls, commands) = Control::channel(Arc::clone(&fence));
         Ok(Self {
             input,
             output,
@@ -98,7 +102,12 @@ impl<I: CaptureSource, O: SpeakerSource> Streams<I, O> {
             pump,
             ports,
             fence,
+            controls,
+            commands,
         })
+    }
+    fn controls(&self) -> Control {
+        self.controls.clone()
     }
     fn submit(&mut self, packet: Packet) -> Result<Handle, Refusal> {
         self.pump.submit(packet)
@@ -115,6 +124,9 @@ impl<I: CaptureSource, O: SpeakerSource> Streams<I, O> {
             let deadline = self.pump.next_deadline();
             tokio::select! { biased;
                 () = self.fence.closed() => return Err(DeviceFailure::Interrupted),
+                command = self.commands.next() => {
+                    if let Some(command) = command { command.apply(&mut self.pump); }
+                },
                 reference = self.ports.references.recv() => {
                     let reference = reference.ok_or(DeviceFailure::Interrupted)?;
                     self.pump.reference(&mut self.processor, &reference).map_err(|failure| playback_failure(&failure))?;

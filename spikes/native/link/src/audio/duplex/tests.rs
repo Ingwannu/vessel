@@ -265,3 +265,58 @@ async fn generated_cue_uses_the_speech_callback_reference_and_drain_receipt_path
     }
     assert_eq!(*played.status().borrow(), State::Played);
 }
+
+#[tokio::test]
+async fn duplex_consumes_the_bounded_control_plane_without_owning_a_second_processor() {
+    let mut fixture = setup();
+    let controls = fixture.streams.controls();
+    let pending = controls.submit(packet()).unwrap();
+    fixture.input.accept(&[0_i16; 160]);
+    let captured = tokio::time::timeout(TEST_WAIT, fixture.streams.receive())
+        .await
+        .unwrap()
+        .unwrap();
+    drop(captured);
+    let played = tokio::time::timeout(TEST_WAIT, pending.ready())
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(*played.status().borrow(), State::Rendering);
+    controls.interrupt().unwrap();
+    let mut silence = [1_i16; 960];
+    fixture.output.render(&mut silence, &timestamp());
+    assert!(silence.iter().all(|sample| *sample == 0));
+    fixture.input.accept(&[0_i16; 160]);
+    let captured = tokio::time::timeout(TEST_WAIT, fixture.streams.receive())
+        .await
+        .unwrap()
+        .unwrap();
+    drop(captured);
+    assert_eq!(*played.status().borrow(), State::Interrupted);
+    // Fill the command plane while the input is silent, then stop out of band.
+    let first = controls.submit(packet()).unwrap();
+    let second = controls.submit(packet()).unwrap();
+    controls.stop();
+    assert_eq!(
+        tokio::time::timeout(TEST_WAIT, fixture.streams.receive())
+            .await
+            .unwrap()
+            .unwrap_err(),
+        DeviceFailure::Interrupted
+    );
+    assert!(matches!(
+        tokio::time::timeout(TEST_WAIT, first.ready())
+            .await
+            .unwrap(),
+        Err(Refusal::Stopped)
+    ));
+    assert!(matches!(
+        tokio::time::timeout(TEST_WAIT, second.ready())
+            .await
+            .unwrap(),
+        Err(Refusal::Stopped)
+    ));
+    let drops = Arc::clone(&fixture.drops);
+    drop(fixture);
+    assert_eq!(drops.load(Ordering::Acquire), 2);
+}

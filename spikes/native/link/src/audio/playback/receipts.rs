@@ -12,7 +12,10 @@ use std::{
 use tokio::sync::watch;
 use vessel_app_view::audio::{CaptureLease, CapturePurpose};
 
-use super::packet::{Packet, Reader};
+use super::{
+    control::Access,
+    packet::{Packet, Reader},
+};
 use crate::cancel::Fence;
 
 pub(super) const MAX_SEGMENTS: usize = 2;
@@ -66,6 +69,7 @@ pub(in crate::audio) enum Refusal {
 pub(super) struct Receipt {
     stop: Fence,
     conversation: Arc<Fence>,
+    access: Option<Access>,
     terminal: AtomicBool,
     state: watch::Sender<State>,
 }
@@ -74,7 +78,9 @@ impl Receipt {
         self.cancelled() || self.terminal.load(Ordering::Acquire)
     }
     fn cancelled(&self) -> bool {
-        self.stop.is_closed() || self.conversation.is_closed()
+        self.stop.is_closed()
+            || self.conversation.is_closed()
+            || self.access.as_ref().is_some_and(Access::stopped)
     }
     fn settle(&self, requested: State) {
         let _changed = self.state.send_if_modified(|state| {
@@ -150,7 +156,7 @@ impl Book {
         })
     }
     pub(in crate::audio) fn submit(&mut self, packet: Packet) -> Result<Handle, Refusal> {
-        if self.conversation.is_closed() {
+        if self.conversation.is_closed() || packet.stopped() {
             return Err(Refusal::Stopped);
         }
         if self.entries.len() >= MAX_SEGMENTS {
@@ -165,6 +171,7 @@ impl Book {
         let receipt = Arc::new(Receipt {
             stop: Fence::default(),
             conversation: Arc::clone(&self.conversation),
+            access: packet.access(),
             terminal: AtomicBool::new(false),
             state,
         });

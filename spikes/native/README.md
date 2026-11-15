@@ -1342,3 +1342,11 @@ with the shared view duration and ordinary speech Packet/Pump path. It has no
 copied recording, decoder or separate audio engine. The new quiet three-note
 waveform differs from the reference asset; actual perceptual/device validation
 and controller/timer activation are still owed.
+
+The staged duplex command plane admits at most two raw PCM segments across
+both its queue and the Pump. The admission permit survives Packet/Reader
+aliases and is not held by a completed receipt. Per-request cancellation and
+speech-interval barge-in fences reach the existing callback receipt immediately;
+a coalesced late wake only prunes closed work and preserves a newer interval.
+This source is exercised through fake input/output callbacks and remains behind
+the conversation staging boundary; actual command/device quality tests are owed.
