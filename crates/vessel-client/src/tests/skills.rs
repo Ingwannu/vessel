@@ -1,10 +1,11 @@
 //! Staged Skills SDK refuses before transport work or request-id allocation.
 use super::*;
+use futures_util::{SinkExt as _, StreamExt as _};
 use vessel_proto::skills::{
     ImportSkillsSelection, SaveSkillsSelection, SkillNames, SkillSelection,
 };
 use vessel_proto::{ClientFrame, Method, Outcome, Reply, RequestId, ServerFrame, Welcome};
-use vessel_rpc::{CallError, Transport as _};
+use vessel_rpc::CallError;
 
 #[tokio::test]
 async fn staged_skills_wrappers_leave_the_first_real_request_at_id_zero() {
