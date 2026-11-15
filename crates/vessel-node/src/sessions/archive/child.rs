@@ -30,21 +30,14 @@ impl Sessions {
                 // The existing metadata lock orders the full parent check, actor
                 // IfIdle stop, durable mark and cancellation-safe cleanup together.
                 let _admission = sessions.marking.lock().await;
-                let info = sessions.get(request.child.session).await?;
                 let skipped = |reason| {
                     Ok(ChildArchiveOutcome::Skipped {
                         child: request.child,
                         reason,
                     })
                 };
-                if sessions.current_parent(&info).await? != Some(request.parent) {
-                    return skipped(ChildArchiveSkip::ParentChanged);
-                }
-                if info.marks.archived_at.is_some() {
-                    return skipped(ChildArchiveSkip::AlreadyArchived);
-                }
-                if !finished_child_candidate(&info) {
-                    return skipped(ChildArchiveSkip::NotFinished);
+                if let Some(reason) = sessions.ineligible_child(request).await? {
+                    return skipped(reason);
                 }
                 let archived = match sessions
                     .archive_locked(
@@ -71,5 +64,23 @@ impl Sessions {
             })
             .await
             .map_err(ServiceError::Task)?
+    }
+
+    /// Only the admitted caller above may use the current-parent evidence.
+    async fn ineligible_child(
+        &self,
+        request: ArchiveChildSession,
+    ) -> Result<Option<ChildArchiveSkip>, ServiceError> {
+        let info = self.get(request.child.session).await?;
+        let reason = if self.current_parent(&info).await? != Some(request.parent) {
+            Some(ChildArchiveSkip::ParentChanged)
+        } else if info.marks.archived_at.is_some() {
+            Some(ChildArchiveSkip::AlreadyArchived)
+        } else if !finished_child_candidate(&info) {
+            Some(ChildArchiveSkip::NotFinished)
+        } else {
+            None
+        };
+        Ok(reason)
     }
 }
