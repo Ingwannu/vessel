@@ -5,7 +5,7 @@ use super::{
 use vessel_app_kit::{
     ButtonKind, ButtonState, Type, TypeExt as _, button, button_with_kind,
     dialog::{DialogContent, DialogSize, dialog as render_dialog},
-    ui::{ParentElement as _, Styled as _, div},
+    ui::{ParentElement as _, StatefulInteractiveElement as _, Styled as _, div},
 };
 
 pub(super) fn dialog(
