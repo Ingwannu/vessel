@@ -17,6 +17,7 @@ use crate::attachments::Attachments;
 use crate::automation::notices::Notices;
 use crate::automation::prompts::SavedPrompts;
 use crate::automation::schedules::Schedules;
+use crate::connection_life::ConnectionLife;
 use crate::devices::Devices;
 use crate::error::ServiceError;
 use crate::fleet::{Home, Links};
@@ -39,6 +40,7 @@ mod fleet;
 mod fleet_control;
 mod profiles;
 mod sessions;
+mod subagents;
 mod transfers;
 // Protocol 9's calls: what a session runs with, and titles.
 mod options;
@@ -53,6 +55,7 @@ mod status;
 mod files;
 mod git;
 mod projects;
+mod registry;
 mod worktrees;
 // Protocol 11's calls: pull requests (`forge`, ADR 0029).
 mod forge;
@@ -62,6 +65,7 @@ mod scripts;
 mod terminals;
 // Protocol 11's calls: schedules (`automation`), and the runs they make
 // through the service's own checks; protocol 13's previews of them.
+mod diagnostics;
 mod followed;
 mod inbox;
 mod limits;
@@ -81,20 +85,13 @@ mod search;
 mod settings;
 mod side_questions;
 
-/// The node owns both trackers; services distinguish real work from reply grace.
-pub(crate) struct ServiceTasks {
-    work: TaskTracker,
-    forwarders: TaskTracker,
-}
-impl ServiceTasks {
-    /// Background work must finish before the store closes; subscriptions get grace.
-    pub(crate) fn new(work: &TaskTracker, forwarders: &TaskTracker) -> Self {
-        Self {
-            work: work.clone(),
-            forwarders: forwarders.clone(),
-        }
-    }
-}
+#[cfg(test)]
+mod connection_life_tests;
+#[cfg(test)]
+mod dispatch_tests;
+
+mod tasks;
+pub(crate) use tasks::ServiceTasks;
 
 /// The node's protocol implementation.
 #[derive(Debug)]
@@ -140,7 +137,8 @@ pub(crate) struct NodeService {
     /// The ports their trees and the sessions' listen on (protocol 11).
     ports: Arc<Ports>,
     /// What `agent.status` found (protocol 11, `readiness`).
-    readiness: crate::readiness::Readiness,
+    readiness: Arc<crate::readiness::Readiness>,
+    pub(crate) diagnostics: crate::diagnostics::State,
     /// The node's copy of the ACP registry (protocol 11, `catalogue`).
     catalogue: crate::catalogue::Catalogues,
     /// The last install (protocol 11, `install`).
@@ -172,6 +170,7 @@ pub(crate) struct NodeService {
 
 /// The parts a [`NodeService`] serves.
 pub(crate) struct Parts {
+    pub(crate) diagnostics: crate::diagnostics::Setup,
     pub(crate) lsp: vessel_lsp::Manager,
     pub(crate) lsp_roots: Vec<crate::LspRoot>,
     pub(crate) lifecycle: Lifecycle,
@@ -205,6 +204,7 @@ impl NodeService {
     /// those owners rather than in the connection bootstrap.
     pub(crate) fn new(parts: Parts) -> Self {
         let Parts {
+            diagnostics,
             lsp,
             lsp_roots,
             lifecycle,
@@ -233,6 +233,14 @@ impl NodeService {
             limits,
         } = parts;
         let store = sessions.store().clone();
+        let readiness = Arc::new(crate::readiness::Readiness::default());
+        let diagnostics = crate::diagnostics::State::new(
+            diagnostics,
+            lookup.clone(),
+            Arc::clone(&profiles),
+            Arc::clone(&readiness),
+            store.clone(),
+        );
         let dictation = crate::dictation::Service::new(
             Arc::clone(&settings),
             &lifecycle.stopping(),
@@ -261,7 +269,8 @@ impl NodeService {
             forges,
             terminals,
             ports,
-            readiness: crate::readiness::Readiness::default(),
+            readiness,
+            diagnostics,
             catalogue,
             installs: crate::install::Installs::default(),
             schedules,
@@ -322,7 +331,9 @@ pub(crate) struct Connection {
     /// Its waiting reads, against its share (`waits`).
     waiting: ConnectionWaits,
     presence_id: crate::push::PresenceId,
-    life: crate::connection_life::ConnectionLife,
+    /// Its identity and close observer, one per connection
+    /// (`connection_life`).
+    life: ConnectionLife,
     dictation: crate::dictation::Resources,
 }
 
@@ -334,24 +345,13 @@ impl Connection {
             ?principal,
             "client connected"
         );
-        let life = crate::connection_life::ConnectionLife::default();
-        let closed = life.closed();
-        let outbound = peer.outbound.clone();
-        // Calls can retain their context through close grace. This observer
-        // holds no guard, does no I/O and exits on transport or context close.
-        drop(tokio::spawn(async move {
-            tokio::select! {
-                () = outbound.closed() => closed.cancel(),
-                () = closed.cancelled() => {},
-            }
-        }));
         Self {
+            life: ConnectionLife::within(peer.outbound.closing_token()),
             outbound: peer.outbound,
             principal,
             protocol: peer.protocol,
             waiting: ConnectionWaits::default(),
             presence_id: crate::push::PresenceId::new(),
-            life,
             dictation: crate::dictation::Resources::default(),
         }
     }
@@ -376,11 +376,6 @@ impl Connection {
         )
     }
 
-    /// Per-connection resources share identity/closure without owning this guard.
-    pub(crate) const fn life(&self) -> &crate::connection_life::ConnectionLife {
-        &self.life
-    }
-
     /// The protocol the client speaks.
     pub(crate) const fn protocol(&self) -> ProtocolVersion {
         self.protocol
@@ -398,6 +393,14 @@ impl Connection {
             life: self.life.clone(),
             dictation: self.dictation.clone(),
         }
+    }
+
+    /// This connection's identity and close observer, the same for every
+    /// context acting for it. A resource the connection owns keeps
+    /// `owner()` and `closed()`, never the life: holding the life keeps the
+    /// connection's last context from ending it.
+    pub(crate) const fn life(&self) -> &ConnectionLife {
+        &self.life
     }
 }
 

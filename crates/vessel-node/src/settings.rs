@@ -45,10 +45,15 @@
 //!   copy fails, the change fails and nothing changes.
 
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
 
 use crate::dictation::{ReadError, Reader};
 use tokio::sync::Mutex;
+use tokio_util::task::TaskTracker;
+
+mod writer;
+#[cfg(test)]
+mod writer_tests;
 use vessel_proto::HarnessKind;
 use vessel_proto::dictation::{DictationChange, DictationDecodeError, KeyPresence};
 use vessel_proto::parking::ParkAfter;
@@ -61,6 +66,9 @@ use vessel_store::{DataDir, SetAside};
 /// Why a change was refused or not kept.
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum SettingsError {
+    /// Shutdown has closed mutation admission, so no late writer may start.
+    #[error("the node is stopping; settings cannot be changed")]
+    Stopping,
     /// A choice this node does not know.
     #[error("this node does not know that park_after; send never or idle with minutes")]
     Unknown,
@@ -104,7 +112,11 @@ pub(crate) struct Settings {
     /// `--park-after`, or its default.
     flag: ParkAfter,
     /// What a person changed, as kept; held over write and apply.
-    saved: Mutex<SetNodeSettings>,
+    saved: Arc<Mutex<SetNodeSettings>>,
+    /// Writes outlive a cancelled RPC and are joined at node shutdown.
+    writers: TaskTracker,
+    #[cfg(test)]
+    gate: writer_tests::GateSlot,
     /// Why `settings.json` must not be replaced: it could not be used at
     /// start, and moving it aside failed. `None` when changes may write.
     kept: Option<Arc<str>>,
@@ -116,6 +128,17 @@ pub(crate) struct Settings {
 }
 
 impl Settings {
+    /// Keep the node startup adapter beside saved-value precedence, not in its
+    /// already large composition function. This reads only the passed config.
+    pub(crate) fn for_config(config: &crate::Config, runtime: Arc<SessionRuntime>) -> Self {
+        Self::open(
+            config.data_dir.clone(),
+            runtime,
+            ParkAfter::from_duration(config.park_after),
+            config.park_after_given,
+        )
+    }
+
     /// Hold the real write boundary after validation for deterministic races.
     #[cfg(test)]
     pub(crate) fn hold_writes(&mut self) -> Arc<WriteGate> {
@@ -188,7 +211,10 @@ impl Settings {
             data_dir,
             runtime,
             flag,
-            saved: Mutex::new(saved.clone()),
+            saved: Arc::new(Mutex::new(saved.clone())),
+            writers: TaskTracker::new(),
+            #[cfg(test)]
+            gate: writer_tests::GateSlot::default(),
             kept,
             later: AtomicBool::new(later),
             #[cfg(test)]
@@ -247,7 +273,7 @@ impl Settings {
     /// Change what `change` names, keep it, then apply it; answers what is
     /// in force.
     pub(crate) async fn change(
-        &self,
+        self: &Arc<Self>,
         change: SetNodeSettings,
     ) -> Result<NodeSettings, SettingsError> {
         self.change_with(change, None).await
@@ -255,7 +281,7 @@ impl Settings {
 
     /// Feature-aware writes share the legacy lock, atomic writer and apply order.
     pub(crate) async fn change_dictation(
-        &self,
+        self: &Arc<Self>,
         change: SetNodeSettings,
         reader: &Reader,
     ) -> Result<NodeSettings, SettingsError> {
@@ -263,7 +289,7 @@ impl Settings {
     }
 
     async fn change_with(
-        &self,
+        self: &Arc<Self>,
         change: SetNodeSettings,
         reader: Option<&Reader>,
     ) -> Result<NodeSettings, SettingsError> {
@@ -275,7 +301,7 @@ impl Settings {
             .dictation
             .as_ref()
             .is_some_and(|patch| matches!(patch.key.as_ref(), Some(DictationChange::Set(_))));
-        let mut saved = self.saved.lock().await;
+        let saved = Arc::clone(&self.saved).lock_owned().await;
         let next = merged(change, saved.clone())?;
         let presence = match reader {
             Some(reader) => Some(
@@ -295,46 +321,17 @@ impl Settings {
             return Err(SettingsError::DictationKeyAbsent);
         }
         let reply = self.projected(&next, presence);
-        if next != *saved {
-            self.persist(&mut saved, next).await?;
-        }
-        Ok(reply)
-    }
-
-    async fn persist(
-        &self,
-        saved: &mut SetNodeSettings,
-        next: SetNodeSettings,
-    ) -> Result<(), SettingsError> {
-        if let Some(reason) = &self.kept {
-            return Err(SettingsError::Kept(Arc::clone(reason)));
-        }
         #[cfg(test)]
-        if let Some(gate) = &self.write_gate {
+        if next != *saved
+            && let Some(gate) = &self.write_gate
+        {
             gate.entered.notify_one();
             gate.release.notified().await;
         }
-        let data_dir = self.data_dir.clone();
-        let later = self.later.load(Ordering::Relaxed);
-        let writing = next.clone();
-        let aside = tokio::task::spawn_blocking(move || {
-            let aside = later
-                .then(|| data_dir.set_aside_settings(chrono::Utc::now(), SetAside::Later))
-                .transpose()?;
-            data_dir.write_settings(&writing).map(|()| aside)
-        })
-        .await
-        .map_err(SettingsError::Lost)?
-        .map_err(SettingsError::Write)?;
-        if let Some(aside) = aside {
-            tracing::info!(aside = %aside.display(), "settings.json held a later build's settings; a copy was kept before this change");
-            self.later.store(false, Ordering::Relaxed);
-        }
-        *saved = next;
-        let in_force = self.in_force(saved);
-        self.runtime.set_park_after(in_force.park_after.duration());
-        self.runtime.set_drivers(in_force.drivers);
-        Ok(())
+        // Even a no-op must pass the shared writer's closed-admission check.
+        // The owned guard spans validation, real I/O and runtime publication.
+        let _applied = self.persist(saved, next).await?;
+        Ok(reply)
     }
 }
 

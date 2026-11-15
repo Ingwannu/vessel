@@ -402,20 +402,25 @@ fresh-reader admission, five pending RPC rows and file CLI. Product modules now
 have callers; older staged helper checks do not establish product readiness.
 The CLI drains next concurrently and prints only a final after finish acceptance.
 Current protocol numbers remain unassigned. Earlier narrow checks found product
-and test lints that are corrected in source; current strict and runtime evidence
-is still owed. No actor/registry/settings/CLI package pass is claimed.
+and test lints that are corrected in source. Strict checks passed on preceding
+owned snapshots; current merged strict and runtime evidence is still owed. No actor/registry/settings/CLI package pass is claimed.
 
 The announced node head and designated package base are merged. The native lock
 is identical to that package base. A focused view compatibility check initially
 stopped at the older lock before compilation; its retained failure is not a test
-result, and one check on the adopted lock is pending. Native changes remain only
+result. The adopted-lock check compiled view/proto and passed all five selected
+idle-release tests. Native changes remain only
 the three omitted dictation fields in existing view fixtures.
 
-Next: adopt the announced common settings-writer and canonical connection-life
-head when available. Preserve their single persistence and close owners, adapt
-the non-Copy settings candidate, and remove the superseded close observer. Then
-run focused package runtime checks, regenerate the final TypeScript snapshot and
-run the package's one whole product gate before combined review. The historical
+The current node head is merged with its canonical real ConnectionLife and
+tracked settings writer. The former observer task and both unused-code
+expectations are removed. Whole-candidate/key validation stays under its owned
+guard, with the same persist operation even on no-op; only bounded candidate
+cloning and saved-view borrowing adapt its prior Copy implementation.
+
+Next: run the one focused package runtime, including the shared writer's existing
+cancellation/shutdown cases. Regenerate the final TypeScript snapshot and run the
+package's one whole product gate before combined review. The historical
 checks below remain scoped to their exact sources. Settings compatibility,
 deletion/atomic failure, failed-root-cache recreation, registry and physical
 transport-close cases exist in source but still need current execution evidence.
@@ -424,6 +429,9 @@ The feature package gets one whole product gate and one combined review;
 credential/path changes keep their security review. No current result claims a
 live service, real HTTPS/ASR, platform microphone, credential or service-account
 verification. Local engines, app capture and TTS remain deferred.
+
+The following sections retain implementation history; this resume point owns
+current status and the next action.
 
 ## Input ordering implementation
 
@@ -897,10 +905,10 @@ branch or other native file changes. One focused native view check is owed on th
 compatibility commit after a prescribed remote label is idle. Root checks do not
 establish native compilation.
 
-The next announced shared head will supply the canonical real connection life
-carrier; that head will replace the earlier connection-factory observer choice,
-with both staging expectations removed at the first real resource consumer.
-It is not merged early. Focused root runtime and current CLI strict are still
+The later shared head supplied the canonical real connection life carrier. Its
+adoption, described at the resume point, replaces the earlier connection-factory
+observer choice and removes both staging expectations as the first real consumer.
+It was adopted only after announcement. Focused root runtime and current CLI strict are still
 pending on the prior immutable snapshot, so neither proves this merged head.
 
 
@@ -949,3 +957,28 @@ a clone into the reader, as before this correction. Cancellation changes read
 admission only; it must not shorten the factory's reservation lifetime. The
 isolated reader tests on the preceding snapshot still exercise identical reader
 code, while the combined product gate must include this preservation detail.
+
+
+### Shared writer and canonical life integration
+
+The designated head's constants, migrations, rows, boxed guard, diagnostics and
+shared tests are retained. Its method rows precede the five dictation pending
+rows. Its corrected alias inventory stays intact; only the declared speech
+aliases are added in sorted positions. Both architecture section additions stay.
+Diagnostics CLI modules/errors/tests coexist with dictation's additions.
+
+Connection setup and acting-as use the head's exact shared carrier. The old
+observer task and duplicate accessor are removed, and the real consumer removes
+both temporary unused-code expectations. The node's original teardown joins the
+same tracked settings writer. Dictation validates under its OwnedMutexGuard and
+calls that writer even on no-op; Stopping retains the head's Conflict mapping.
+The writer's only ownership adaptations are bounded candidate cloning and
+borrowing the saved view. Its existing test cases, assertions and deadlines stay
+unchanged. The older selection gate remains before persist, distinct from the
+shared blocking writer gate. Current product execution and final TS freshness
+remain owed until the ensuing checks complete.
+
+The service assembly exceeded its existing file budget after both constructor
+additions met. Only the owned ServiceTasks bundle moves to service/tasks.rs; its
+constructor, existing trackers and call sites are unchanged. No head handler or
+shared guard is split, and no budget exception is raised.

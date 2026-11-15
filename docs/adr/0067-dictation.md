@@ -1149,29 +1149,48 @@ no resend, cancellation/cleanup failure precedence, bounded waits and a marker
 in a retained remote cause absent from every public diagnostic/source.
 
 
-### Connection close projection at wiring
+### Canonical connection closure at wiring
 
-The real connection factory maps Outbound::closed into its one canonical
-ConnectionLife signal. A small observer owns only that outbound and a close-token
-clone, never the lifetime guard; it ends on transport close or last-context drop.
-This lets later resources consume life().closed() without each copying the
-transport mapping. Calls retaining a context through close grace cannot hide
-physical closure. The pure identity primitive and recording quota remain separate.
-
+The earlier connection-factory observer proposal is superseded by the shared
+connection carrier. Connection setup uses
+ConnectionLife::within(Outbound::closing_token()), and acting-as contexts clone
+that same life. Resources retain only life().owner() and life().closed(), never
+the guard. Closing transport or dropping the last context closes the observer,
+even when a running call retains another context during close grace. No second
+identity, observer task or push presence id is introduced by dictation.
 
 [Decision Log]
-- Purpose and intent: every connection-owned resource must observe physical
-  closure even when another RPC still holds its context.
-- Existing implementation and constraints: ConnectionLife is pure and must not
-  own RPC, quota or a worker; Outbound already exposes a closing future.
-- Alternatives considered: repeat an Outbound wait in every future consumer, or
-  add another RPC token accessor just for this node-level projection.
-- Choice: the real connection factory creates one guard-free observer and maps
-  the existing future into its canonical life signal.
-- Why this choice: consumers need only the shared accessor, and neither the pure
-  identity primitive nor RPC gains another transport/cancellation capability.
-- Advantages, costs and effects: one small async task per admitted connection;
-  it holds only observers and has no I/O or await after either close wins. It
-  cannot prolong the context guard. Unlike real preparation/writer work, it
-  carries no blocking operation that shutdown must join. Resource workers still
-  retain their separate tracked retirement and reservation obligations.
+- Purpose and intent: connection-owned resources observe physical closure and
+  context retirement through one canonical owner.
+- Existing implementation and constraints: the RPC owner now exposes its existing
+  closing token, and the shared node carrier projects it with last-context drop.
+  The pure identity primitive must not own RPC, recording quota or a worker.
+- Alternatives considered: keep the earlier per-connection observer task, or
+  duplicate transport waits at every later resource boundary.
+- Choice: consume the shared accessor and remove its two temporary unused-code
+  expectations when this first product consumer reads both observers.
+- Why this choice: the transport owner already defines closure, so a second task
+  would duplicate that policy and could disagree during close grace.
+- Advantages, costs and effects: no extra per-connection observer task. Resources
+  still own their bounded reservations and tracked work retirement; observing
+  closure does not allow a permit to be released before physical work ends.
+
+### Shared settings writer at wiring
+
+The existing settings owner provides one tracked writer holding an
+OwnedMutexGuard through atomic replacement and runtime publication. Dictation
+builds and validates the complete candidate and selected-key presence under that
+same guard, before delegating to its existing persist operation. A no-op also
+passes that operation so closed mutation admission remains authoritative. Caller
+cancellation drops only the waiter; node teardown joins admitted writers after
+RPC connections finish, as ADR 0064 defines.
+
+The settings patch now contains bounded owned speech metadata and is Clone
+rather than Copy. The writer clones that candidate for its blocking file write
+and retains the original for publication; the saved view is borrowed. This is a
+small bounded metadata-copy cost, with no credential value or audio in settings.
+Moving the original back from the blocking worker was considered, but would
+change the common writer's result contract. Reusing its established guard/task
+and applying only these ownership adaptations avoids a second persistence path.
+The selection-before-write test gate stays separate from the common writer's
+real blocking-I/O cancellation test gate.

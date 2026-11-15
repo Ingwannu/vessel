@@ -69,6 +69,7 @@ mod catalogue;
 pub mod cleanup;
 mod config;
 mod devices;
+mod diagnostics;
 mod dictation;
 mod envelope;
 mod error;
@@ -133,5 +134,6 @@ pub use vessel_store::{KernelLock, KernelProbe, NodeLock};
 // Speech consumers share conversion/framing without recording policy.
 mod speech_audio;
 
-// Real connection setup owns one identity and close signal for all resources.
+// Every connection owns the canonical identity and close observer.
+// Dictation retains only owner() and closed(), never this lifetime guard.
 mod connection_life;

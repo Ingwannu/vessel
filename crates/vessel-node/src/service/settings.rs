@@ -45,7 +45,9 @@ fn refusal(error: &SettingsError) -> WireError {
             ErrorCode::InvalidRequest
         }
         SettingsError::NoDirect(_) | SettingsError::DictationUnavailable => ErrorCode::Unsupported,
-        SettingsError::Kept(_) | SettingsError::DictationKeyAbsent => ErrorCode::Conflict,
+        SettingsError::Kept(_) | SettingsError::Stopping | SettingsError::DictationKeyAbsent => {
+            ErrorCode::Conflict
+        }
         SettingsError::Write(_) | SettingsError::Lost(_) | SettingsError::DictationSecret(_) => {
             ErrorCode::Internal
         }

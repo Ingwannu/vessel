@@ -137,7 +137,8 @@ impl NodeClient {
     ///
     /// # Errors
     /// `not_found` for an unknown session; `conflict` while it is live, or
-    /// while its log is still being written (a retry works);
+    /// while its log is still being written after the node waited for it
+    /// (a retry works);
     /// `unsupported` for a terminal session, an agent that cannot resume,
     /// a session that never had a conversation to resume, or a node
     /// before protocol 10; `invalid_request` when its profile is gone;
