@@ -30,6 +30,7 @@ Option 2, with this map and only these dependency edges:
 vessel-proto    (wire contract; no I/O, no tokio)
 vessel-rpc      -> proto
 vessel-proc     (process spawning, process groups, kill tree)
+vessel-plugin   -> proto, proc             (milestone 12, ADR 0079)
 vessel-harness  -> proto, proc
 vessel-pty      -> proc
 vessel-agent    -> proto, harness, proc   (harness: milestone 12)
@@ -345,3 +346,12 @@ held-file fixture in proc; store keeps its data-directory, owner-byte and
 damaged-record assertions. That fixture uses standard-library exclusive
 creation, adding no external dependency. No signal, descriptor/generation
 verification or CLI edge is introduced. Those remain separate phases.
+
+
+Milestone 12 (ADR 0079) adds `vessel-plugin -> proto, proc`: the private
+helper envelopes and declarative graph remain in proto; the new crate owns
+bounded pipe workers, callback cancellation/settlement and one supervised
+process-group lifetime. Reusing proc avoids a second Unix/Windows cleanup
+implementation. This crate cannot authenticate a caller, select an install
+source or parse a vendor provider. The node policy edge is added only with
+its later actual caller, not inferred from this supervision foundation.
