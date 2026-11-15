@@ -7,7 +7,9 @@
 //! Rules this crate keeps (see `AGENTS.md`):
 //! - no I/O and no async runtime, so any client can depend on it;
 //! - no untyped JSON: open-ended payloads are [`RawJson`], never a `Value`;
-//! - it is the only place wire types are defined.
+//! - it is the only place wire types are defined;
+//! - documented local client-book values also live here so client and view
+//!   share types without an I/O/UI edge. They add no RPC/version/TS field.
 
 mod agent;
 pub mod agents;
@@ -15,6 +17,7 @@ pub mod automation;
 mod base64_bytes;
 mod board;
 mod book_route;
+pub mod book_values;
 pub mod conversation;
 mod device;
 pub mod diagnostics;

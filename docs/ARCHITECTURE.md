@@ -1672,6 +1672,15 @@ native view share it without a dependency between those layers. Checked
 allocation exposes exhaustion. This additive value changes no method,
 protocol version, book format or current consumer.
 
+The coordinator-approved local client-book appearance values live in
+vessel-proto::book_values (Label/EmptyLabel, Color, BadgePreference). They
+are copied from the exact source-reviewed pure move ccedd4860, without
+algorithm changes, tokens or locality inference. This lower boundary
+avoids a client/view dependency edge. It adds no RPC/method/version/TS,
+file format or storage limit behavior. E1 retains the native compatibility
+re-exports and consumer tests on its consuming branch; base6 itself never
+contained that unreleased hosts module.
+
 ### Checked owned group cleanup
 
 Proc's additive Child::wait_checked distinguishes leader exit from the first
