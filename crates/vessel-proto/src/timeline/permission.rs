@@ -35,7 +35,7 @@ pub struct PermissionPresentation {
     pub description: Option<String>,
     /// Canonical proposed work, when reported separately from the tool item.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub detail: Option<ToolCallDetail>,
+    pub detail: Option<Box<ToolCallDetail>>,
     /// Proposed plan Markdown, never inferred from an allow button.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub plan_text: Option<String>,

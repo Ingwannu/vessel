@@ -103,7 +103,7 @@ pub struct ToolCall {
     pub content: Vec<ToolCallContent>,
     /// Canonical provider-decoded body; absence retains the legacy raw display.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub detail: Option<ToolCallDetail>,
+    pub detail: Option<Box<ToolCallDetail>>,
     /// Provider failure explanation, independent of generic output.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub failure: Option<ToolFailure>,
@@ -139,7 +139,7 @@ pub struct ToolCallUpdate {
     pub content: Option<Vec<ToolCallContent>>,
     /// Replacement canonical body; None and Unknown cannot erase a known body.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub detail: Option<ToolCallDetail>,
+    pub detail: Option<Box<ToolCallDetail>>,
     /// A reported failure, when this update includes one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub failure: Option<ToolFailure>,

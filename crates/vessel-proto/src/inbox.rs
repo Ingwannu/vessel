@@ -95,7 +95,7 @@ pub enum InboxItem {
         /// Request the session actor still owns.
         request: PermissionRequest,
         /// Last announced tool state, when available.
-        tool: Option<ToolCall>,
+        tool: Option<Box<ToolCall>>,
         /// Large tool bodies stay in the session.
         detail: InboxDetail,
     },

@@ -217,8 +217,8 @@ mod tests {
                 field("later", FieldKind::Unknown),
             ],
 
-            lifetime: Default::default(),
-            delivery_state: Default::default(),
+            lifetime: vessel_proto::timeline::QuestionLifetime::Turn,
+            delivery_state: vessel_proto::timeline::QuestionDeliveryState::Pending,
         }
     }
 

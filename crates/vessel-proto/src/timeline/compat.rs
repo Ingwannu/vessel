@@ -180,7 +180,7 @@ pub(crate) fn event(
             content,
             client_message_id,
         } => {
-            client_message_id.as_ref()?;
+            let _identity = client_message_id.as_ref()?;
             AgentEvent::TurnStarted {
                 content: content.clone(),
                 client_message_id: None,
@@ -190,7 +190,7 @@ pub(crate) fn event(
             content,
             client_message_id,
         } => {
-            client_message_id.as_ref()?;
+            let _identity = client_message_id.as_ref()?;
             AgentEvent::Steered {
                 content: content.clone(),
                 client_message_id: None,
@@ -203,6 +203,10 @@ pub(crate) fn event(
         | AgentEvent::PermissionResolved { .. }
         | AgentEvent::TurnEnded { .. }
         | AgentEvent::TurnFailed { .. }
+        | AgentEvent::Notification(_)
+        | AgentEvent::Compaction(_)
+        | AgentEvent::Plugin(_)
+        | AgentEvent::Error { .. }
         | AgentEvent::HarnessLog { .. }
         | AgentEvent::QuestionResolved { .. } => return None,
     };
@@ -253,7 +257,7 @@ pub(crate) fn inbox(
     }
     let changed = match &entry.item {
         InboxItem::Permission { request, tool, .. } => {
-            permission_changed(request) || tool.as_ref().is_some_and(tool_changed)
+            permission_changed(request) || tool.as_deref().is_some_and(tool_changed)
         }
         InboxItem::Question { question } => question_changed(question),
         InboxItem::InSession { .. }
@@ -273,7 +277,7 @@ pub(crate) fn inbox(
             detail,
         } => InboxItem::Permission {
             request: permission(request),
-            tool: body.as_ref().map(tool),
+            tool: body.as_deref().map(|value| Box::new(tool(value))),
             detail: *detail,
         },
         InboxItem::Question { question: request } => match question(request) {

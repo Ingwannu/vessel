@@ -52,8 +52,8 @@ fn assert_exact_form(question: &Question) {
             message: "Choose every field, including the final option.".to_owned(),
             tool_call: None,
             fields,
-            lifetime: Default::default(),
-            delivery_state: Default::default(),
+            lifetime: vessel_proto::timeline::QuestionLifetime::Turn,
+            delivery_state: vessel_proto::timeline::QuestionDeliveryState::Pending,
         }
     );
 }

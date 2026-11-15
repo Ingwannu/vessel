@@ -120,6 +120,17 @@ pub enum AgentEvent {
         /// Human-readable reason.
         message: String,
     },
+    /// A non-terminal provider error; it does not settle the current turn.
+    Error {
+        /// Human-readable failure explanation.
+        message: String,
+    },
+    /// Provider status with explicit severity, independent of turn completion.
+    Notification(crate::timeline::TimelineNotification),
+    /// Context maintenance progress, independent of turn completion.
+    Compaction(crate::timeline::Compaction),
+    /// Bounded opaque contribution interpreted only by its owning plugin.
+    Plugin(crate::timeline::PluginTimelineItem),
     /// A line the harness wrote to stderr. Kept because login and
     /// configuration problems surface only there.
     HarnessLog {

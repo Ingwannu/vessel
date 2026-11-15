@@ -208,8 +208,8 @@ fn agent_events_of_ten_reach_older_clients_too() {
         tool_call: None,
         fields: Vec::new(),
 
-        lifetime: Default::default(),
-        delivery_state: Default::default(),
+        lifetime: crate::timeline::QuestionLifetime::Turn,
+        delivery_state: crate::timeline::QuestionDeliveryState::Pending,
     }));
     assert_eq!(
         asked.for_protocol(V9),

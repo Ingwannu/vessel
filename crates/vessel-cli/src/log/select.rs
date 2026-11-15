@@ -80,13 +80,17 @@ const fn agent_kind(event: &AgentEvent) -> Option<Filter> {
         | AgentEvent::MessageChunk { .. }
         | AgentEvent::ThoughtChunk { .. }
         | AgentEvent::Steered { .. } => Some(Filter::Text),
-        AgentEvent::TurnFailed { .. } => Some(Filter::Errors),
+        AgentEvent::TurnFailed { .. } | AgentEvent::Error { .. } => Some(Filter::Errors),
         AgentEvent::PermissionRequested(_) | AgentEvent::PermissionResolved { .. } => {
             Some(Filter::Permissions)
         }
         AgentEvent::Ready { .. }
         | AgentEvent::Plan { .. }
         | AgentEvent::TurnEnded { .. }
+        | AgentEvent::Notification(_)
+        | AgentEvent::Compaction(_)
+        | AgentEvent::Plugin(_)
+        | AgentEvent::Error { .. }
         | AgentEvent::HarnessLog { .. }
         | AgentEvent::QuestionAsked(_)
         | AgentEvent::QuestionResolved { .. } => None,

@@ -43,9 +43,9 @@ fn permission() -> PermissionRequest {
             kind: PermissionKind::Plan,
             title: Some("Plan".to_owned()),
             description: None,
-            detail: Some(ToolCallDetail::Plan(PlanDetail {
+            detail: Some(Box::new(ToolCallDetail::Plan(PlanDetail {
                 text: "Plan".to_owned(),
-            })),
+            }))),
             plan_text: Some("Plan".to_owned()),
         }),
     }
@@ -159,14 +159,14 @@ fn direct_records_pages_and_every_nested_envelope_use_the_same_optional_field_ma
             })),
         });
         let masked = nested.for_protocol(protocol).unwrap();
-        let inner = match masked {
-            Reply::Forward(value) | Reply::Relay(value) | Reply::Deliver(value) => value.reply,
-            other => panic!("unexpected {other:?}"),
+        let (Reply::Forward(value) | Reply::Relay(value) | Reply::Deliver(value)) = masked else {
+            panic!("outer envelope");
         };
-        let inner = match *inner {
-            Reply::Forward(value) | Reply::Relay(value) | Reply::Deliver(value) => value.reply,
-            other => panic!("unexpected {other:?}"),
+        let (Reply::Forward(inner) | Reply::Relay(inner) | Reply::Deliver(inner)) = *value.reply
+        else {
+            panic!("inner envelope");
         };
+        let inner = inner.reply;
         assert_eq!(*inner, expected);
     }
     let queue_reply = Reply::ChangeQueue(crate::conversation::QueueChanged {
@@ -196,7 +196,7 @@ fn inbox_page_and_live_recovery_strip_metadata_and_hide_async_actionability() {
         read: InboxRead::Unread,
         item: InboxItem::Permission {
             request: permission(),
-            tool: Some(rich_tool()),
+            tool: Some(Box::new(rich_tool())),
             detail: InboxDetail::Complete,
         },
     };

@@ -132,8 +132,8 @@ fn a_turn_that_asks_tells_each_ask_up_to_its_bound() {
         tool_call: None,
         fields: Vec::new(),
 
-        lifetime: Default::default(),
-        delivery_state: Default::default(),
+        lifetime: vessel_proto::timeline::QuestionLifetime::Turn,
+        delivery_state: vessel_proto::timeline::QuestionDeliveryState::Pending,
     }));
     let told = (0..20).filter_map(|_| turn.take(&question)).count();
     assert_eq!(

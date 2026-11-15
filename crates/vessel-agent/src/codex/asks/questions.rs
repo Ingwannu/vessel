@@ -262,8 +262,8 @@ fn user_input_question(asked: &UserInputRequest) -> Result<Question, &'static st
         tool_call: Some(ToolCallId::new(asked.item_id.as_str())),
         fields,
 
-        lifetime: Default::default(),
-        delivery_state: Default::default(),
+        lifetime: vessel_proto::timeline::QuestionLifetime::Turn,
+        delivery_state: vessel_proto::timeline::QuestionDeliveryState::Pending,
     })
 }
 

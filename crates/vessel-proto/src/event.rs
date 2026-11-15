@@ -263,6 +263,9 @@ impl AgentEvent {
     #[must_use]
     pub fn required_protocol(&self) -> Option<ProtocolVersion> {
         match self {
+            Self::Notification(_) | Self::Compaction(_) | Self::Plugin(_) | Self::Error { .. } => {
+                crate::timeline::TIMELINE_PARITY
+            }
             Self::Steered { .. } | Self::QuestionAsked(_) | Self::QuestionResolved { .. } => {
                 Some(ProtocolVersion::new(10))
             }
@@ -307,6 +310,18 @@ impl AgentEvent {
         }
         let log = |line: String| Some(Self::HarnessLog { line });
         match self {
+            Self::Notification(notice) => {
+                log(format!("vessel: {:?}: {}", notice.level, notice.message))
+            }
+            Self::Compaction(compaction) => log(format!(
+                "vessel: context compaction {:?}",
+                compaction.status
+            )),
+            Self::Plugin(item) => log(format!(
+                "vessel: plugin {} contribution {}",
+                item.plugin, item.id
+            )),
+            Self::Error { message } => log(format!("vessel: error: {message}")),
             Self::Steered { content, .. } => log(match first_line(content) {
                 Some(line) => format!("vessel: steered: {line}"),
                 None => "vessel: steered".to_owned(),
@@ -479,3 +494,6 @@ mod admission_tests;
 mod protocol_tests;
 
 mod optional;
+
+#[cfg(test)]
+mod timeline_tests;

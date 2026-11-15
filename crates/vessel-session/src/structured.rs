@@ -209,7 +209,11 @@ impl StructuredActor {
                     .publish(&mut self.agent, SessionEvent::Agent { event })
                     .await;
             }
-            AgentEvent::TurnStarted { .. }
+            AgentEvent::Notification(_)
+            | AgentEvent::Compaction(_)
+            | AgentEvent::Plugin(_)
+            | AgentEvent::Error { .. }
+            | AgentEvent::TurnStarted { .. }
             | AgentEvent::UserMessageChunk { .. }
             | AgentEvent::MessageChunk { .. }
             | AgentEvent::ThoughtChunk { .. }

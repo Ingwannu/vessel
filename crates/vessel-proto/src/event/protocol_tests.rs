@@ -97,8 +97,8 @@ fn newer_events() -> Vec<AgentEvent> {
             tool_call: None,
             fields: vec![],
 
-            lifetime: Default::default(),
-            delivery_state: Default::default(),
+            lifetime: crate::timeline::QuestionLifetime::Turn,
+            delivery_state: crate::timeline::QuestionDeliveryState::Pending,
         }),
         AgentEvent::QuestionResolved {
             id: QuestionId::random(),
@@ -109,8 +109,12 @@ fn newer_events() -> Vec<AgentEvent> {
 
 // This exhaustive match makes a new variant choose a test fixture/requirement
 // deliberately instead of silently missing the all-variant contract test.
-fn expected(event: &AgentEvent) -> ProtocolVersion {
+fn expected(event: &AgentEvent) -> Option<ProtocolVersion> {
     match event {
+        AgentEvent::Notification(_)
+        | AgentEvent::Compaction(_)
+        | AgentEvent::Plugin(_)
+        | AgentEvent::Error { .. } => crate::timeline::TIMELINE_PARITY,
         AgentEvent::Ready { .. }
         | AgentEvent::TurnStarted { .. }
         | AgentEvent::UserMessageChunk { .. }
@@ -123,10 +127,10 @@ fn expected(event: &AgentEvent) -> ProtocolVersion {
         | AgentEvent::PermissionResolved { .. }
         | AgentEvent::TurnEnded { .. }
         | AgentEvent::TurnFailed { .. }
-        | AgentEvent::HarnessLog { .. } => ProtocolVersion::new(2),
+        | AgentEvent::HarnessLog { .. } => Some(ProtocolVersion::new(2)),
         AgentEvent::Steered { .. }
         | AgentEvent::QuestionAsked(_)
-        | AgentEvent::QuestionResolved { .. } => ProtocolVersion::new(10),
+        | AgentEvent::QuestionResolved { .. } => Some(ProtocolVersion::new(10)),
     }
 }
 
@@ -137,7 +141,7 @@ fn every_agent_variant_propagates_its_assigned_requirement() {
         .chain(tool_events())
         .chain(newer_events())
     {
-        let requirement = expected(&event);
+        let requirement = expected(&event).expect("legacy variant has an assigned version");
         assert_eq!(event.required_protocol(), Some(requirement), "{event:?}");
         assert_eq!(event.for_protocol(requirement), None);
         let enclosing = SessionEvent::Agent {

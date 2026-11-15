@@ -160,3 +160,20 @@ and snapshots rather than cloning tool bodies for each subscriber. Durable
 question delivery state is projected from the store's authoritative claim state;
 providers cannot assert Answering/OutcomeUnknown on a new offer. These source
 follow-ups remain unverified until the queued narrow checks and storage tests run.
+
+## Non-tool event integration
+
+The shared optional AgentEvent requirement accessor is merged with the newer
+head's page masking and title-origin rules. Notification(TimelineNotification),
+Compaction(Compaction), Plugin(PluginTimelineItem), and Error { message } are
+explicit AgentEvent variants. None use a second cursor/projection union. Their
+requirement is TIMELINE_PARITY, still None, so outgoing records become readable
+HarnessLog stand-ins without changing sequence/timestamp/page position. Opaque
+plugin data is never copied to the legacy stand-in. These events do not settle
+a turn or a pending human request. Provider emissions remain pending.
+
+Canonical detail bodies and inbox tool snapshots use Box internally to keep
+legacy event/reply enums small; serde and generated consumer shapes are
+unchanged. Strict clippy found the enum growth, ambiguous default access and
+unconsumed optional-key lookup expressions in the earlier integration; this
+follow-up corrects those source defects. Combined compilation remains owed.

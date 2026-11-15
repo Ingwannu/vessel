@@ -209,6 +209,14 @@ impl Conversation {
                 self.line(format!("[turn ended: {}]", stop_reason(*reason)))
             }
             AgentEvent::TurnFailed { message } => self.line(format!("[turn failed: {message}]")),
+            AgentEvent::Error { message } => self.line(format!("[error] {message}")),
+            AgentEvent::Notification(notice) => {
+                self.line(format!("[{:?}] {}", notice.level, notice.message))
+            }
+            AgentEvent::Compaction(compaction) => {
+                self.line(format!("[context compaction {:?}]", compaction.status))
+            }
+            AgentEvent::Plugin(item) => self.line(format!("[plugin {}: {}]", item.plugin, item.id)),
             AgentEvent::HarnessLog { line } => self.line(format!("[harness] {line}")),
             AgentEvent::Steered { content, .. } => self.line(format!(">> {}", text(content))),
             AgentEvent::QuestionAsked(question) => self.line(render::question(question)),

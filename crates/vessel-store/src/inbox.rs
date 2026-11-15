@@ -108,7 +108,7 @@ fn agent(
                 Some(&format!("p{}", request.id)),
                 &InboxItem::Permission {
                     request: request.clone(),
-                    tool,
+                    tool: tool.map(Box::new),
                     detail,
                 },
             )
@@ -148,6 +148,10 @@ fn agent(
         | AgentEvent::MessageChunk { .. }
         | AgentEvent::ThoughtChunk { .. }
         | AgentEvent::Plan { .. }
+        | AgentEvent::Notification(_)
+        | AgentEvent::Compaction(_)
+        | AgentEvent::Plugin(_)
+        | AgentEvent::Error { .. }
         | AgentEvent::HarnessLog { .. }
         | AgentEvent::Steered { .. } => Ok(()),
     }

@@ -108,7 +108,7 @@ pub(super) fn update(
     };
     if let Some(detail) = &update.detail {
         tool.detail = Some(match tool.detail.take() {
-            Some(previous) => previous.updated(Some(detail.clone())),
+            Some(previous) => Box::new((*previous).updated(Some((**detail).clone()))),
             None => detail.clone(),
         });
     }

@@ -152,6 +152,10 @@ impl Seen {
             | AgentEvent::ToolCall(_)
             | AgentEvent::ToolCallUpdate(_)
             | AgentEvent::Plan { .. }
+            | AgentEvent::Notification(_)
+            | AgentEvent::Compaction(_)
+            | AgentEvent::Plugin(_)
+            | AgentEvent::Error { .. }
             | AgentEvent::HarnessLog { .. }
             | AgentEvent::Steered { .. } => {}
         }

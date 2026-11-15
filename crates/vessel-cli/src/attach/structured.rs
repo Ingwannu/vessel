@@ -50,6 +50,10 @@ impl Turns {
                 | AgentEvent::Plan { .. }
                 | AgentEvent::PermissionRequested(_)
                 | AgentEvent::PermissionResolved { .. }
+                | AgentEvent::Notification(_)
+                | AgentEvent::Compaction(_)
+                | AgentEvent::Plugin(_)
+                | AgentEvent::Error { .. }
                 | AgentEvent::HarnessLog { .. }
                 | AgentEvent::Steered { .. }
                 | AgentEvent::QuestionAsked(_)
