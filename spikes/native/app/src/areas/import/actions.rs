@@ -141,7 +141,24 @@ impl Shell {
         if self.areas.import.model.answer(reply) {
             self.areas.import.reproject();
             let outcomes = self.areas.import.model.outcomes();
+            let identity = source.as_ref().and_then(|source| {
+                self.fleet
+                    .machines
+                    .iter()
+                    .find(|machine| machine.name == source.as_str())
+                    .and_then(|machine| machine.node)
+            });
+            let pinned = self.areas.import.model.listed_node();
+            let matches_node = identity.is_some() && identity == pinned;
+            if source.is_some() && !matches_node {
+                self.areas.import.failure = Some(if identity.is_some() {
+                    Problem::IdentityChanged
+                } else {
+                    Problem::Offline
+                });
+            }
             let imported = source
+                .filter(|_| matches_node)
                 .filter(|_| {
                     !outcomes.is_empty() && outcomes.iter().all(|outcome| outcome.result.is_ok())
                 })

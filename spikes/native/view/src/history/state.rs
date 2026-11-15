@@ -55,6 +55,11 @@ impl History {
     pub fn scope(&self) -> Option<&Scope> {
         self.scope.as_ref()
     }
+    /// Authenticated identity pinned by the history page, not the live book alias.
+    #[must_use]
+    pub const fn listed_node(&self) -> Option<vessel_proto::NodeId> {
+        self.node
+    }
     /// Rows are sorted once when a page arrives, not in rendering.
     #[must_use]
     pub fn entries(&self) -> &[Entry] {
