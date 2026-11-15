@@ -388,7 +388,7 @@ impl Shell {
         let Some(finder) = bar.finder.as_mut() else {
             return true;
         };
-        let Some(mut matches) = finder.step_timeline(&mut area.find_cache, &area.timeline) else {
+        let Some(mut matches) = finder.step(&mut area.find_cache, area.timeline.entries()) else {
             return false;
         };
         // What a rewind left behind is not drawn, so find skips it.

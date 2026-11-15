@@ -365,33 +365,12 @@ impl Finder {
     /// One slice searched; every match once the search reached the end
     /// of `entries`, `None` while it has not.
     pub fn step(&mut self, cache: &mut FindCache, entries: &[Entry]) -> Option<Vec<Match>> {
-        self.step_visible(cache, entries, |_| true)
-    }
-
-    /// Search the canonical visible conversation, retaining stable entry indices.
-    /// Rewind keeps old entries for other controllers; they must not be matches.
-    pub fn step_timeline(
-        &mut self,
-        cache: &mut FindCache,
-        timeline: &super::fold::Timeline,
-    ) -> Option<Vec<Match>> {
-        self.step_visible(cache, timeline.entries(), |index| !timeline.rewound(index))
-    }
-
-    fn step_visible(
-        &mut self,
-        cache: &mut FindCache,
-        entries: &[Entry],
-        visible: impl Fn(usize) -> bool,
-    ) -> Option<Vec<Match>> {
         if self.needle.is_empty() {
             return Some(Vec::new());
         }
         let end = self.at.saturating_add(SLICE).min(entries.len());
         for index in self.at..end {
-            if visible(index)
-                && let Some(entry) = entries.get(index)
-            {
+            if let Some(entry) = entries.get(index) {
                 cache.collect(index, entry, &self.needle, &mut self.matches);
             }
         }
