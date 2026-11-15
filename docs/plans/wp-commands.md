@@ -442,6 +442,7 @@ regression checks the empty defaults, Settings rank and searchable Appearance.
 | Composer actions and choices | W12b admitted setters + canonical view::options classification | Controls consumes actual owner reports only; choose constructs without validating fresh membership; real target/report/pending/editability validation and adapter pending |
 | Plugin items | W16 exact contribution registry + transport | Canonical values and narrow registry source exist; executable product adapter absent |
 | Browser focus/forwarding | W14 exact resident browser revision | Owner renderer/admission callback pending, no guessed browser context |
+| Terminal composition admission | C2 actual terminal IME/preedit owner | No production EntityInputHandler/marked-text query yet; keep existing InputPreference + shared Kit guard, no composing=false proof |
 | Desktop shortcuts and persistence receipts | W19b shared dispatcher and preferences coordinator | Recorder admission/helper8c052697 and receipts remain unchecked; no second writer or duplicate failure toast |
 | Git/PR command effects | G1 captured owner target, row policy and physical admission | Existing47e compiled adapter is explicitly unpassed; checked original-connection/root/ticket admission correction still pending |
 | Messages mode | W1 existing Searching controller + W12 session-open admission | Base8b window lifetime adopted; prepared selection is UI-only; checked original-connection opening carrier absent, activation acceptance blocked |
@@ -912,3 +913,13 @@ Superseded queued R11 exact062a was verified by its exact ticket/local PID256068
 canceled queued-only and observed terminal cancelled143 before replacement.
 Its old source would not test this projection correction. No failed build or
 passing test is inferred from that cancellation; no extra whole gate begins.
+
+C2 confirmed no checked production terminal IME/preedit owner, composing query
+or registration seam exists yet. Its current pure frame/CLI byte serializer
+does not provide EntityInputHandler/marked text. Existing terminal_focused is
+actual route/shown/focus evidence only, not composition permission. Keep the
+original CharacterInput guard and ONE Kit/CodeEditor registry; do not derive
+terminal composition from phase/focus/session or add a false stub as proof.
+A real future terminal owner must expose its scoped composition seam before
+terminal-specific IME acceptance. No parser/clipboard/terminal edits or build
+were added for this owner status; current App source check remains unchanged.
