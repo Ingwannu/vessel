@@ -18,7 +18,7 @@ pub fn source_login_errors(state: &SourceReportState, words: &'static Translator
             let label = login
                 .harness
                 .as_ref()
-                .map_or(login.label.as_str(), agent_name);
+                .map_or_else(|| login.label.as_str().to_owned(), agent_name);
             let reason = match &login.failure {
                 UsageAttemptFailure::Unavailable { problem } => {
                     super::source_problem(problem, words)

@@ -122,3 +122,9 @@ the shared producer's intermediate-navigation operation; leaving it here could
 leave keyboard focus on the retired picker. Parent/NodeId admission is unchanged.
 The parent's close already uses the same actual-dismiss acknowledgment before
 its own dialog focus restoration. Consumer interaction verification remains owed.
+
+The f80dad10 consumer narrow returned RED during view compilation: agent_name's
+existing presentation API returns String, while the new login-error fallback had
+selected &str through Option::map_or. The correction uses map_or_else with an
+owned public-label fallback, preserving the same identity/reason text. No tests
+executed in that failed run; the current query/pin/focus deltas also remain owed.
