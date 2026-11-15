@@ -986,3 +986,51 @@ retain namespace references. The existing
 still applies. Paseo's owner-PID/replacement checks and polling remain the
 reference difference already recorded above; these added checks are Vessel's
 explicit conservative floor.
+
+## Service-file observations before shutdown (slice 2h)
+
+[Decision Log]
+- Purpose and intent: warn before shutdown when a personal or older service
+  file may restart the node, without equating disk text with loaded state.
+- Existing implementation and constraints: the installer owns both renderers,
+  their locations, path validation and escaping. Paseo `packages/cli/src/
+  commands/daemon/stop.ts` 44–57 budgets its shutdown connection and 95–98
+  reports remote exit as unverified; `restart.ts` 20–21 and 118 retains a
+  supervisor launch. Vessel's direct services have no such supervisor.
+- Alternatives considered: execute a unit's command, trust its undo comment,
+  parse every manager directive, or infer a loaded service from matching text.
+  These either grant authority to editable text or confuse different evidence.
+- Selected approach: reuse the current installer renderers and location rule.
+  Match every byte against the invoking executable and the authenticated
+  directory, decoding only the saved PATH needed to regenerate that template.
+  A mismatch produces one fixed warning, without echoing the file or PATH.
+  Older unconditional launchd agents get that same conservative warning;
+  removal and recreation guidance remains in the README and initializer.
+- Why this approach: a file's own executable or comment must not validate
+  itself. Another CLI installation can therefore produce a conservative
+  mismatch even when it talks to the same node. A full match still grants
+  no manager authority: drop-ins, stale loaded configuration and the actual
+  running job have not been inspected.
+- Advantages, costs and effects: a missing file is harmless; unreadable,
+  invalid-Unicode or oversized files refuse before the RPC with typed errors
+  retaining safe causes. ServiceFile::MAX_BYTES is the single read cap,
+  checked before Unicode decoding. The existing dedicated reader handoff
+  bounds process exit when file opening blocks. No new dependency or call.
+
+Only a directory whose stored identity matches the authenticated greeting
+may supply this observation, including when draining. Remote connections,
+other local directories and platforms without an installer service remain
+RPC-only. Reads use the invoking OS account and its HOME/XDG location;
+no other account's credentials or process environment are read. No file is
+created or rewritten and no service manager is invoked. Matching text does
+not authorize future manager control. That needs a separate implementation
+and review of loaded-state evidence.
+
+Tests owed with the implementation: current templates for both managers;
+wrong executable/directory or edited bytes; older launchd policy; bounded
+and malformed byte readers with no file contents in errors; isolated CLI
+warnings, invalid-file refusal before shutdown, a draining live session,
+and a blocked service FIFO with child exit. Stand-in manager executables
+must record zero invocations. All fixtures isolate HOME and XDG before
+service lookup. Actual manager behavior and macOS/Windows execution remain
+unverified by Linux fixtures.
