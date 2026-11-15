@@ -50,6 +50,7 @@ mod layout_adapter;
 mod line_syntax;
 mod markdown;
 mod mutation;
+mod scope;
 mod search;
 mod tree;
 mod tree_memory;
@@ -63,9 +64,8 @@ use vessel_app_kit::{ComboboxState, VirtualList};
 use vessel_app_view::workspace::changes::{ChangeRow, FileState, ScopeKind, change_rows};
 use vessel_app_view::workspace::file_tree::{Listing, TreeRow};
 use vessel_app_view::workspace::problem::Problem;
-use vessel_app_view::workspace::root::session_root;
+use vessel_proto::SessionId;
 use vessel_proto::workspace::{DiffSummary, RelPath, WorkspaceRoot};
-use vessel_proto::{SessionId, SessionInfo};
 
 pub(crate) use elsewhere::FindRefused;
 pub(crate) use file_search::FileSearchRequest;
@@ -73,7 +73,6 @@ pub(crate) use frame::{code_beside, code_toggle, frame_row};
 pub(crate) use layout_adapter::{ExplorerKind, render_explorer, show_layout_explorer};
 
 use crate::shell::Shell;
-use vessel_app_link::workspace::Ask;
 
 /// Which tab.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -97,6 +96,7 @@ enum Place {
 
 /// The session the panel shows.
 struct Target {
+    admission: Option<scope::Acquisition>,
     machine: String,
     session: SessionId,
     place: Place,
@@ -338,78 +338,6 @@ impl Shell {
             let _asked = self.code_reread_shown();
         }
         cx.notify();
-    }
-
-    /// Follow the open session: read where it runs when it is not the one
-    /// shown (the panel open only).
-    pub(crate) fn code_follow(&mut self) {
-        if !self.areas.workspace.code.open {
-            return;
-        }
-        let Some((machine, session)) = self.code_session() else {
-            return;
-        };
-        let same = self
-            .areas
-            .workspace
-            .code
-            .target
-            .as_ref()
-            .is_some_and(|target| target.machine == machine && target.session == session);
-        if same {
-            return;
-        }
-        // The file edited in the session left is written first (Paseo
-        // flushes an editor when its panel goes).
-        self.flush_file();
-        if !self.park_file() {
-            return;
-        }
-        let panel = &mut self.areas.workspace.code;
-        panel.files.actions.invalidate();
-        panel.target = Some(Target {
-            machine: machine.clone(),
-            session,
-            place: Place::Reading,
-            cwd: None,
-        });
-        panel.files.options = self.prefs.explorer;
-        // A new session is read whole: nothing it shows is stale.
-        panel.stale = Stale::default();
-        panel.changes.summary = Summary::Loading;
-        panel.changes.states.clear();
-        panel.changes.closed.clear();
-        panel.changes.relist();
-        panel.files.listings.clear();
-        panel.files.open.clear();
-        panel.files.viewer = None;
-        panel.files.relist();
-        self.ask(&machine, Ask::Session(session));
-    }
-
-    /// Where a session runs arrived.
-    pub(super) fn code_session_read(
-        &mut self,
-        session: SessionId,
-        result: Result<Box<SessionInfo>, Problem>,
-    ) {
-        self.finder_session_read(session, &result);
-        let words = self.words();
-        let panel = &mut self.areas.workspace.code;
-        let Some(target) = panel
-            .target
-            .as_mut()
-            .filter(|target| target.session == session)
-        else {
-            return;
-        };
-        target.place = match &result {
-            Ok(info) => session_root(info).map_or(Place::Outside, Place::Root),
-            Err(problem) => Place::Failed(words.problem(problem)),
-        };
-        target.cwd = result.ok().and_then(|info| info.spec.cwd);
-        self.restore_file_tree();
-        self.code_read_tab();
     }
 
     /// Track G1's call after a git write it made succeeded (a commit, a

@@ -5,13 +5,13 @@ use std::time::Duration;
 
 use vessel_app_view::workspace::file_ticket::FileTicket;
 use vessel_app_view::workspace::intelligence::{IntelligenceAction, IntelligenceFailure};
-use vessel_client::{NodeClient, Unary};
+use vessel_client::Unary;
 use vessel_proto::{
     lsp,
     workspace::{RelPath, WorkspaceRoot},
 };
 
-use super::calls::call;
+use super::file_call::Client;
 
 /// A cold language server can initialize without blocking the link task.
 const QUERY_DEADLINE: Duration = Duration::from_secs(30);
@@ -42,7 +42,7 @@ pub enum IntelligenceResult {
     Diagnostics(Result<lsp::Page<lsp::Diagnostic>, IntelligenceFailure>),
 }
 
-pub(super) async fn run(client: &NodeClient, ask: &IntelligenceAsk) -> IntelligenceResult {
+pub(super) async fn run(client: &Client<'_>, ask: &IntelligenceAsk) -> IntelligenceResult {
     match ask.action {
         IntelligenceAction::Hover => {
             IntelligenceResult::Hover(query(client, lsp::GetHover(ask.at.clone())).await)
@@ -77,10 +77,10 @@ pub(super) fn refused(
 }
 
 async fn query<R: Unary>(
-    client: &NodeClient,
+    client: &Client<'_>,
     request: R,
 ) -> Result<R::Response, IntelligenceFailure> {
-    tokio::time::timeout(QUERY_DEADLINE, call(client, request))
+    tokio::time::timeout(QUERY_DEADLINE, client.call(request))
         .await
         .map_err(|_expired| IntelligenceFailure::Deadline)?
         .map_err(IntelligenceFailure::Call)

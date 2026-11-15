@@ -2,17 +2,16 @@
 
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::projects::is_cloning;
-use vessel_app_view::workspace::save::save_text;
 use vessel_client::NodeClient;
 use vessel_proto::workspace::{
-    GetStatus, ListBranches, ListProjects, ListSnapshots, ListStashes, ProjectInfo, ReadFile,
-    RemoveProject, RunSetup, WriteExpect, WriteFile,
+    GetStatus, ListBranches, ListProjects, ListSnapshots, ListStashes, ProjectInfo, RemoveProject,
+    RunSetup,
 };
 
 use super::calls::call;
 use super::{
-    Answer, Ask, FileAsk, Form, GitAsk, GitWrite, GitWritten, Hub, PathChange, ProjectAsk, Reply,
-    Save, WorktreeAsk, follow, start,
+    Answer, Ask, Form, GitAsk, GitWrite, GitWritten, Hub, ProjectAsk, Reply, WorktreeAsk, follow,
+    start,
 };
 
 /// Run one ask to its answer.
@@ -22,7 +21,9 @@ pub(super) async fn run(hub: &Hub, client: &NodeClient, reply: &Reply, ask: Ask)
         Ask::Project(ask) => project(hub, client, reply, ask).await,
         Ask::Worktree(ask) => worktree(client, ask).await,
         Ask::Git(ask) => git_ask(client, ask).await,
-        Ask::File(ask) => file(client, ask).await,
+        Ask::File(ask) => {
+            super::file_run::run(&super::file_call::Client::Legacy(client), ask).await
+        }
         Ask::Start(start) => {
             start::walk(client, reply, *start).await;
             return;
@@ -127,85 +128,6 @@ async fn git_ask(client: &NodeClient, ask: GitAsk) -> Answer {
     }
 }
 
-async fn file(client: &NodeClient, ask: FileAsk) -> Answer {
-    match ask {
-        FileAsk::Intelligence(ask) => Answer::Intelligence {
-            result: super::intelligence::run(client, &ask).await,
-            ask,
-        },
-        FileAsk::List(ask) => Answer::Listed {
-            result: call(client, ask.clone()).await,
-            ask,
-        },
-        FileAsk::Read { ask, ticket } => Answer::Read {
-            result: call(client, ask.clone()).await,
-            ask,
-            ticket,
-        },
-        FileAsk::EditorRead { ask, ticket } => Answer::EditorRead {
-            result: call(client, ask.clone()).await,
-            ask,
-            ticket,
-        },
-        FileAsk::Save(save) => saved(client, save).await,
-        FileAsk::Find(ask) => Answer::Found {
-            result: call(client, ask.clone()).await,
-            ask,
-        },
-        FileAsk::TrackedFind { ask, ticket } => Answer::TrackedFound {
-            result: call(client, ask.clone()).await,
-            ask,
-            ticket,
-        },
-        FileAsk::Grep(ask) => Answer::Grepped {
-            result: call(client, ask.clone()).await,
-            ask,
-        },
-        FileAsk::Path { change, ticket } => Answer::PathChanged {
-            result: path_change(client, change.clone()).await,
-            change,
-            ticket,
-        },
-    }
-}
-
-/// A guarded save, at most one write.
-async fn saved(client: &NodeClient, save: Save) -> Answer {
-    let saved = save_text(
-        |expect, text| {
-            call(
-                client,
-                WriteFile {
-                    root: save.root,
-                    path: save.path.clone(),
-                    text,
-                    expect,
-                },
-            )
-        },
-        || {
-            call(
-                client,
-                ReadFile {
-                    root: save.root,
-                    path: save.path.clone(),
-                    offset: 0,
-                    limit: None,
-                },
-            )
-        },
-        save.text,
-        save.base.as_ref(),
-    )
-    .await;
-    Answer::Saved {
-        ticket: save.ticket,
-        root: save.root,
-        path: save.path,
-        saved,
-    }
-}
-
 /// A project the node answered with, into an answer; followed when it is
 /// being cloned.
 fn took(
@@ -236,23 +158,4 @@ async fn git(client: &NodeClient, write: GitWrite) -> Result<GitWritten, Problem
         GitWrite::RenameBranch(ask) => GitWritten::Rename(call(client, ask).await?),
         GitWrite::Stash(ask) => GitWritten::Stash(call(client, ask).await?),
     })
-}
-
-async fn path_change(client: &NodeClient, change: PathChange) -> Result<(), Problem> {
-    match change {
-        PathChange::CreateDir(ask) => call(client, ask).await.map(drop),
-        PathChange::Rename(ask) => call(client, ask).await.map(drop),
-        PathChange::Delete(ask) => call(client, ask).await.map(drop),
-        PathChange::CreateFile { root, path } => call(
-            client,
-            WriteFile {
-                root,
-                path,
-                text: String::new(),
-                expect: WriteExpect::Absent,
-            },
-        )
-        .await
-        .map(drop),
-    }
 }

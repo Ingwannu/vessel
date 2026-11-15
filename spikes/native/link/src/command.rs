@@ -23,6 +23,8 @@ use vessel_proto::{
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// C5 request retains its original admitted connection and file root.
+    FileOperation(workspace::scoped::Request),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.

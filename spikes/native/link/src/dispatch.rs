@@ -17,6 +17,7 @@ use vessel_proto::{PermissionOutcome, SessionInput};
 impl State {
     pub(super) async fn handle(&mut self, command: Command) {
         match command {
+            Command::FileOperation(request) => self.scoped_file(request),
             Command::Reload => self.reload().await,
             Command::RetireConnection(tag) => self.closed_connection(&tag).await,
             Command::Agents {

@@ -32,11 +32,16 @@
 mod answer;
 mod ask;
 mod calls;
+mod file_call;
+mod file_run;
 mod follow;
 mod intelligence;
 pub mod layout;
 mod pulls;
 mod run;
+pub mod scoped;
+#[cfg(test)]
+mod scoped_tests;
 mod start;
 
 use std::collections::HashMap;
@@ -64,6 +69,7 @@ pub(crate) struct Hub {
     /// Each clone followed, by machine and project, with its task (each
     /// task holds a clone of the machine's client until it ends).
     following: Arc<Mutex<HashMap<(String, ProjectId), AbortHandle>>>,
+    file_calls: scoped::Hub,
 }
 
 impl Hub {

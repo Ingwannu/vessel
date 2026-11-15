@@ -348,3 +348,14 @@ above field.rs's existing 635-line record. The original one-line/multiline
 construction moved to field/construct.rs, leaving the public constructors in
 place and using the same event subscription. The listed budget is not raised;
 this separation keeps construction and input event delivery in their own modules.
+
+
+## Original-connection cutover checkpoint
+
+[Decision Log]
+- Purpose: root metadata must belong to the original authenticated node and admission, including when the same book name is reused.
+- Existing assets: G4 `ConnectionContext` and `State::selected_connection`, the one workspace file/LSP runner, W12 file targets. These are extended rather than adding a connection registry or filesystem client.
+- Choice: a closed `workspace::scoped::Request` carries an exact metadata ticket or validated `FileScope` plus existing `FileAsk`. Admission happens on the shared actor; every selected unary call has a finite 30-second deadline and the G4 before/after fence. Sixteen operation slots bound detached tasks. File requests reject a root mismatch before dispatch. Safe error projection retains only the closed node code.
+- Why: cloning a client by a mutable alias cannot preserve old intent. The shared file runner still performs exactly one write and at most one conflict readback. Old workspace consumers retain a private legacy adapter while C5 migrates.
+- Cost/remaining: the root metadata path is migrated first. Canonical NodeId/root/path buffer keys, original-ticket settlement after retirement, all file request callsites, Finder cache, and the pane renderer remain unfinished; this checkpoint is not an approved consumer opener or complete live resource cutover. No dirty/uncertain preservation claim is added.
+- Integration: merged the official shared app line `2e95b7d3`, preserving C5 Intelligence registrations. It supplies the existing `service_ports` approval adapter that the earlier app/root union lacked. The prior exact `267d036c` Clippy run stopped on that missing field before C5 compile validation; no tests or full gate are claimed.

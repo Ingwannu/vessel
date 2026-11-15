@@ -15,6 +15,7 @@ pub(super) fn root() -> WorkspaceRoot {
 
 pub(super) fn target(shell: &mut Shell, root: WorkspaceRoot) {
     shell.areas.workspace.code.target = Some(Target {
+        admission: None,
         machine: "node".to_owned(),
         session: SessionId::random(),
         place: Place::Root(root),
