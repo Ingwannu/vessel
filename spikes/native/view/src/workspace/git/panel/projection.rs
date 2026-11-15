@@ -1,7 +1,6 @@
 //! Body-state precedence and empty-state navigation, never decided in drawing.
 
-use super::{Comparison, ComparisonMode, Whitespace};
-use crate::workspace::problem::Problem;
+use super::{Comparison, ComparisonMode, ReadFailure, Whitespace};
 use vessel_proto::workspace::{DiffSummary, GitStatus};
 
 /// Demand belongs to the retained pane and connection, not a render timer.
@@ -23,7 +22,7 @@ pub enum RepositoryRead<'a> {
     /// The authoritative project descriptor says this is not a repository.
     NotGit,
     /// The current status read failed; retry is a person action.
-    Failed(&'a Problem),
+    Failed(&'a ReadFailure),
     /// Facts from the current root's successful read.
     Ready(&'a GitStatus),
 }
@@ -36,7 +35,7 @@ pub enum DiffRead<'a> {
     /// The node refused the whole document's size.
     TooLarge,
     /// The current comparison failed.
-    Failed(&'a Problem),
+    Failed(&'a ReadFailure),
     /// A bounded summary, possibly incomplete.
     Ready(&'a DiffSummary),
 }
@@ -60,7 +59,7 @@ pub enum Body<'a> {
     /// Repository facts must arrive before choosing a diff state.
     CheckingRepository,
     /// Status failed, even if a prior diff succeeded.
-    RepositoryFailed(&'a Problem),
+    RepositoryFailed(&'a ReadFailure),
     /// The authoritative root has files but no git.
     NotRepository,
     /// The repository is usable; comparison has not answered yet.
@@ -68,7 +67,7 @@ pub enum Body<'a> {
     /// A bounded preview cannot fit this comparison.
     DiffTooLarge,
     /// The comparison failed after repository facts succeeded.
-    DiffFailed(&'a Problem),
+    DiffFailed(&'a ReadFailure),
     /// A complete summary is empty, with a possible alternative mode.
     Empty(Option<EmptyAction>),
     /// Data or a partial result; neither may be labelled empty.

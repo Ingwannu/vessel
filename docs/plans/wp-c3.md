@@ -176,3 +176,27 @@ Rust type name and a borrowed-only label passed by value). The control now
 borrows its content/label naturally; these corrections do not change geometry
 or action policy. No unchecked allow/expectation was added. Its changed-source
 narrow check is required; no combined UI pass is claimed.
+
+
+## Typed local read failures
+
+The existing correlated lifecycle now has a generic `ReadState<T,E>` and a
+source-compatible `Reading<T> = ReadState<T,Problem>` alias. It remains in the
+same module so other workspace readers can reuse it instead of copying the
+late-answer logic. Panel reads select a typed local failure in addition to the
+unaltered node/transport Problem: selected connection retired, actual node
+identity mismatch, wrong returned file path, or unavailable comparison. No
+node ErrorCode is manufactured for an app admission failure. The connection
+owner's exact-route/epoch preflight remains the only resolver; this adds none.
+
+Retiring a connection settles pending state immediately and rejects old replies;
+a returned file must name the requested relative path before installation.
+Whole-sentence EN/KO recoveries explain local faults without interpreting git
+output. Added tests exercise the production read store, including old/new
+requests after retirement and duplicate wrong-file replies. Existing fixed-error
+Reading callers are unchanged. These changes are not yet checked or wired to
+the connection owner's still-pending actor seam.
+
+Split source atdd6ad9c5 passed all-target App+Kit narrow clippy (run
+`wp-git-narrow-20261115T075117Z-dd6ad9c5`); kit library tests are separately
+running. This is no rendered first-use or package approval.

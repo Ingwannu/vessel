@@ -123,7 +123,7 @@ fn committed_comparison_is_never_sent_as_the_legacy_all_changes_scope() {
 
 #[test]
 fn body_precedence_keeps_connection_and_repository_failures_above_diff_results() {
-    let problem = Problem::Unsent;
+    let problem = ReadFailure::Call(Problem::Unsent);
     let comparison = Comparison::default();
     let repository = status(Vec::new());
     let diff = summary();

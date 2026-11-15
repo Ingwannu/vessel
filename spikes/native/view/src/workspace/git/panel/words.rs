@@ -5,7 +5,7 @@ use crate::localization::{GitPanel, Translator};
 use crate::workspace::problem::Problem;
 use vessel_proto::ErrorCode;
 
-use super::{ComparisonMode, EmptyAction};
+use super::{ComparisonMode, EmptyAction, ReadFailure};
 
 /// Honest recovery after a failed read, independent of diagnostic language.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -24,6 +24,10 @@ pub enum ReadIssue {
     Missing,
     /// A transient refusal allows a person to retry.
     Unavailable,
+    /// The selected connection changed; never silently choose another route.
+    DestinationChanged,
+    /// The returned body belongs to another path and cannot be shown here.
+    UnexpectedFile,
     /// Unclassified read failure retains its diagnostic separately.
     Failed,
 }
@@ -51,6 +55,19 @@ impl ReadIssue {
         }
     }
 
+    /// Include local validation outcomes without pretending they came from git.
+    #[must_use]
+    pub fn for_failure(failure: &ReadFailure) -> Self {
+        match failure {
+            ReadFailure::Call(problem) => Self::of(problem),
+            ReadFailure::ComparisonUnavailable => Self::Version,
+            ReadFailure::DestinationChanged | ReadFailure::UnexpectedNode { .. } => {
+                Self::DestinationChanged
+            }
+            ReadFailure::UnexpectedFile { .. } => Self::UnexpectedFile,
+        }
+    }
+
     /// Borrow a whole recovery sentence from the prepared language catalog.
     #[must_use]
     pub fn words(self, catalog: &Translator) -> &str {
@@ -63,6 +80,8 @@ impl ReadIssue {
             Self::Unsupported => words.problem_unsupported(),
             Self::Missing => words.problem_missing(),
             Self::Unavailable => words.problem_unavailable(),
+            Self::DestinationChanged => words.problem_destination(),
+            Self::UnexpectedFile => words.problem_file(),
             Self::Failed => words.problem_failed(),
         }
     }
@@ -138,6 +157,16 @@ mod tests {
                 ReadIssue::Unavailable,
                 "The machine cannot read these changes right now. Refresh and try again.",
                 "지금은 머신에서 변경 사항을 읽을 수 없습니다. 새로고침하고 다시 시도하세요.",
+            ),
+            (
+                ReadIssue::DestinationChanged,
+                "The connection changed. Reopen this workspace and refresh the changes.",
+                "연결이 변경되었습니다. 이 워크스페이스를 다시 열고 변경 사항을 새로고침하세요.",
+            ),
+            (
+                ReadIssue::UnexpectedFile,
+                "The machine returned another file’s changes. Refresh and try again.",
+                "머신에서 다른 파일의 변경 사항을 보냈습니다. 새로고침하고 다시 시도하세요.",
             ),
             (
                 ReadIssue::Failed,

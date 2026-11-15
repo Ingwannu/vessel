@@ -1,9 +1,8 @@
 //! Read identity for a pane: transport replies may outlive repository, mode,
 //! base and whitespace changes. Reuse the accepted monotonic request issuer.
 
-use super::{Comparison, RepositoryKey};
-use crate::workspace::git::{Reading, RequestKey};
-use crate::workspace::problem::Problem;
+use super::{Comparison, PanelRead, ReadFailure, RepositoryKey};
+use crate::workspace::git::RequestKey;
 use std::collections::HashMap;
 use vessel_proto::workspace::{DiffSummary, FileDiff, GitStatus, RelPath};
 
@@ -70,9 +69,9 @@ impl FileTicket {
 pub struct PanelReads {
     repository: RepositoryKey,
     comparison: Comparison,
-    status: Reading<GitStatus>,
-    summary: Reading<DiffSummary>,
-    files: HashMap<RelPath, Reading<FileDiff>>,
+    status: PanelRead<GitStatus>,
+    summary: PanelRead<DiffSummary>,
+    files: HashMap<RelPath, PanelRead<FileDiff>>,
 }
 
 impl PanelReads {
@@ -82,8 +81,8 @@ impl PanelReads {
         Self {
             repository,
             comparison,
-            status: Reading::Empty,
-            summary: Reading::Empty,
+            status: PanelRead::Empty,
+            summary: PanelRead::Empty,
             files: HashMap::new(),
         }
     }
@@ -100,11 +99,19 @@ impl PanelReads {
         &self.comparison
     }
 
+    /// Retiring a selected connection settles loading at once. Replies from
+    /// its old epoch cannot restore facts, even after returning to this node.
+    pub fn retire(&mut self) {
+        self.status = PanelRead::Failed(ReadFailure::DestinationChanged);
+        self.summary = PanelRead::Failed(ReadFailure::DestinationChanged);
+        self.files.clear();
+    }
+
     /// Selecting another mode/base/filter invalidates dependent reads at once.
     pub fn select(&mut self, comparison: Comparison) {
         if self.comparison != comparison {
             self.comparison = comparison;
-            self.summary = Reading::Empty;
+            self.summary = PanelRead::Empty;
             self.files.clear();
         }
     }
@@ -124,7 +131,7 @@ impl PanelReads {
     pub fn finish_status(
         &mut self,
         ticket: StatusTicket,
-        answer: Result<GitStatus, Problem>,
+        answer: Result<GitStatus, ReadFailure>,
     ) -> bool {
         ticket.repository == self.repository && self.status.accept(ticket.key, answer)
     }
@@ -147,7 +154,7 @@ impl PanelReads {
     pub fn finish_summary(
         &mut self,
         ticket: &ComparisonTicket,
-        answer: Result<DiffSummary, Problem>,
+        answer: Result<DiffSummary, ReadFailure>,
     ) -> bool {
         if !self.matches(ticket) || !self.summary.accept(ticket.key, answer) {
             return false;
@@ -172,29 +179,44 @@ impl PanelReads {
 
     /// The path and echoed identity must both match, including on send failure.
     #[must_use]
-    pub fn finish_file(&mut self, ticket: &FileTicket, answer: Result<FileDiff, Problem>) -> bool {
-        self.matches(&ticket.comparison)
-            && self
-                .files
-                .get_mut(&ticket.path)
-                .is_some_and(|read| read.accept(ticket.comparison.key, answer))
+    pub fn finish_file(
+        &mut self,
+        ticket: &FileTicket,
+        answer: Result<FileDiff, ReadFailure>,
+    ) -> bool {
+        if !self.matches(&ticket.comparison) {
+            return false;
+        }
+        let answer = answer.and_then(|file| {
+            if file.path == ticket.path {
+                Ok(file)
+            } else {
+                Err(ReadFailure::UnexpectedFile {
+                    requested: ticket.path.clone(),
+                    received: file.path,
+                })
+            }
+        });
+        self.files
+            .get_mut(&ticket.path)
+            .is_some_and(|read| read.accept(ticket.comparison.key, answer))
     }
 
     /// Read lifecycle for ordered body-state projection.
     #[must_use]
-    pub const fn status(&self) -> &Reading<GitStatus> {
+    pub const fn status(&self) -> &PanelRead<GitStatus> {
         &self.status
     }
 
     /// Summary lifecycle for ordered body-state projection.
     #[must_use]
-    pub const fn summary(&self) -> &Reading<DiffSummary> {
+    pub const fn summary(&self) -> &PanelRead<DiffSummary> {
         &self.summary
     }
 
     /// No entry means not requested; it never means unchanged or empty.
     #[must_use]
-    pub fn file(&self, path: &RelPath) -> Option<&Reading<FileDiff>> {
+    pub fn file(&self, path: &RelPath) -> Option<&PanelRead<FileDiff>> {
         self.files.get(path)
     }
 

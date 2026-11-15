@@ -82,3 +82,8 @@ git-panel-problem-failed = The machine could not read these changes. Refresh and
 git-panel-problem-unsupported = This machine cannot provide these changes. Check Git and Vessel on the machine, then refresh.
 # Alert heading for a failed status or comparison read; recovery and git output follow separately.
 git-panel-failed-title = Changes could not be read
+
+# Complete recovery when the selected authenticated connection changed; never choose another alias.
+git-panel-problem-destination = The connection changed. Reopen this workspace and refresh the changes.
+# Complete recovery when a file body names a different path; never install it under the requested file.
+git-panel-problem-file = The machine returned another file’s changes. Refresh and try again.

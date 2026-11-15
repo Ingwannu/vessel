@@ -67,7 +67,7 @@ pub use repository::{Repository, matching_repository};
 pub use scopes::{CommitScope, commit_scopes};
 pub use stash::{StashChoice, stash_request};
 pub use stash_subject::{StashSubject, stash_subject};
-pub use state::{KeysExhausted, Reading, RequestKey, RequestKeys};
+pub use state::{KeysExhausted, ReadState, Reading, RequestKey, RequestKeys};
 pub use step::{DirectWrite, Step, step};
 pub use submit::{can_branch, can_commit};
 pub use switch_stash::{offers_stash, saved, stash_for};
