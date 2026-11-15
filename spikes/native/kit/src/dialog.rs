@@ -46,6 +46,8 @@ use gpui::{
     SharedString, Window, anchored, deferred, div, point, px, relative, svg,
 };
 
+mod return_focus;
+
 use crate::assets::Glyph;
 use crate::fonts::Type;
 use crate::popup::{self, Surfaces};
@@ -74,6 +76,7 @@ pub enum DialogSize {
 #[derive(Debug)]
 pub struct DialogState {
     focus: FocusHandle,
+    opener: crate::focus::ReturnFocus,
 }
 
 impl DialogState {
@@ -81,12 +84,8 @@ impl DialogState {
     pub fn new(cx: &mut App) -> Self {
         Self {
             focus: cx.focus_handle(),
+            opener: crate::focus::ReturnFocus::default(),
         }
-    }
-
-    /// Take the keys (when the dialog opens).
-    pub fn focus(&self, window: &mut Window, cx: &mut App) {
-        self.focus.focus(window, cx);
     }
 }
 
