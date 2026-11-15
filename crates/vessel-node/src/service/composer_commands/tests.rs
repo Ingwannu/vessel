@@ -120,7 +120,7 @@ fn profile_selection_uses_the_supplied_snapshot_and_keeps_harness_validation() {
 #[test]
 fn secret_backed_added_catalogs_wait_for_the_separate_runtime_secret_proof() {
     let agents = vessel_harness::parse_agents(
-        "[agents.custom]\nprogram = \"custom-acp\"\nenv = { KEY = { secret = \"fixture-key\" } }\n",
+        "[agents.custom]\nprogram = \"custom-acp\"\nenv = { KEY = { secret = \"fixture_key\" } }\n",
         None,
     )
     .unwrap();
