@@ -2,7 +2,7 @@
 use crate::{routes::Route, shell::Shell};
 use vessel_app_kit::ui::{
     AnyElement, Context, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
-    Window, div,
+    Styled as _, Window, div,
 };
 use vessel_app_kit::{
     ButtonKind, ButtonState, DialogContent, DialogSize, DialogState, Tokens, Type, TypeExt as _,
@@ -369,6 +369,9 @@ pub(crate) fn overlay(
             body: div().type_(Type::Body).child(body).into_any_element(),
             footer: vec![
                 button("sessions-lifecycle-cancel", words.cancel(), false, tokens)
+                    .min_h(vessel_app_kit::ui::px(
+                        vessel_app_kit::breakpoint::TOUCH_TARGET,
+                    ))
                     .on_click(cx.listener(|shell, _, window, cx| {
                         shell.dismiss_session_lifecycle(window, cx)
                     }))
@@ -401,7 +404,6 @@ pub(crate) fn overlay(
 
 /// Only the session whose operation failed shows the retained refusal.
 pub(crate) fn error(shell: &Shell, tokens: &Tokens) -> Option<AnyElement> {
-    use vessel_app_kit::ui::Styled as _;
     let (target, problem) = shell.areas.sessions.lifecycle.error.as_ref()?;
     let open = shell.areas.session.open.as_ref()?;
     if open.machine != target.host.as_str() || open.session != target.session {

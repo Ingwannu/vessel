@@ -1,6 +1,7 @@
 //! Date buckets and session rows keep archived, active and failed sessions visible.
 use crate::shell::Shell;
 use chrono::Local;
+use vessel_app_kit::agent_mark::{Size, Space};
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, ElementId, InteractiveElement as _, IntoElement as _, ParentElement as _,
@@ -76,11 +77,6 @@ fn row(shell: &Shell, card: &Card, tokens: &Tokens, cx: &mut Context<'_, Shell>)
     let open = crate::areas::session::Open::of(card);
     let target = (*card).clone();
     let archived = card.detail.marks.archived_at.is_some();
-    let state = if archived {
-        shell.words.sessions().archived().to_owned()
-    } else {
-        shell.t.phrase(&card.phrase)
-    };
     let action = if archived {
         shell.words.sessions().unarchive()
     } else {
@@ -103,19 +99,8 @@ fn row(shell: &Shell, card: &Card, tokens: &Tokens, cx: &mut Context<'_, Shell>)
                 .on_click(cx.listener(move |shell, _, window, cx| {
                     shell.open_session(open.clone(), window, cx)
                 }))
-                .child(
-                    div()
-                        .truncate()
-                        .type_(Type::Label)
-                        .child(shell.t.title(&card.title).to_owned()),
-                )
-                .child(
-                    div()
-                        .truncate()
-                        .type_(Type::Meta)
-                        .text_color(tokens.neutral.foreground_muted)
-                        .child(format!("{} · {} · {state}", card.machine, card.agent)),
-                ),
+                .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
+                .child(content(shell, card, tokens)),
         )
         .child(
             outline_button(
@@ -124,6 +109,7 @@ fn row(shell: &Shell, card: &Card, tokens: &Tokens, cx: &mut Context<'_, Shell>)
                 true,
                 tokens,
             )
+            .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
             .on_click(cx.listener(move |shell, _, window, cx| {
                 if archived {
                     shell.act_on_card(
@@ -137,4 +123,47 @@ fn row(shell: &Shell, card: &Card, tokens: &Tokens, cx: &mut Context<'_, Shell>)
             })),
         )
         .into_any_element()
+}
+
+fn content(shell: &Shell, card: &Card, tokens: &Tokens) -> vessel_app_kit::ui::Div {
+    let state = if card.detail.marks.archived_at.is_some() {
+        shell.words.sessions().archived().to_owned()
+    } else {
+        shell.t.phrase(&card.phrase)
+    };
+    div()
+        .min_w_0()
+        .child(
+            div()
+                .flex()
+                .items_center()
+                .gap(px(spacing::S2))
+                .child(crate::agent_mark::mark_muted(
+                    card.detail.harness.as_ref(),
+                    Size::Sixteen,
+                    Space::Compact,
+                    tokens,
+                ))
+                .child(
+                    div()
+                        .flex_1()
+                        .min_w_0()
+                        .truncate()
+                        .type_(Type::Body)
+                        .text_color(tokens.neutral.foreground_muted)
+                        .child(shell.t.title(&card.title).to_owned()),
+                ),
+        )
+        .child(
+            div()
+                .truncate()
+                .type_(Type::Meta)
+                .text_color(tokens.neutral.foreground_muted)
+                .child(format!(
+                    "{} · {} · {state} · {}",
+                    card.machine,
+                    card.folder(),
+                    shell.t.since(card.minutes_since(chrono::Utc::now()))
+                )),
+        )
 }

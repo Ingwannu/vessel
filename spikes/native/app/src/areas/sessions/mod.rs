@@ -108,12 +108,12 @@ pub(crate) fn render(
         .when(found.is_empty(), |body| body.child(empty(shell, tokens)))
         .when(area.page.has_more(found.len()), |body| {
             body.child(
-                outline_button("sessions-more", words.load_more(), true, tokens).on_click(
-                    cx.listener(|shell, _, _, cx| {
+                outline_button("sessions-more", words.load_more(), true, tokens)
+                    .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
+                    .on_click(cx.listener(|shell, _, _, cx| {
                         shell.areas.sessions.page = shell.areas.sessions.page.next();
                         cx.notify();
-                    }),
-                ),
+                    })),
             )
         });
     div()
@@ -130,22 +130,24 @@ pub(crate) fn render(
                 .flex()
                 .flex_wrap()
                 .items_center()
+                .when(narrow, |bar| bar.flex_col().items_stretch())
                 .gap(px(spacing::S2))
                 .p(px(spacing::S4))
                 .child(
                     div()
                         .flex_1()
                         .min_w_0()
+                        .when(narrow, |query| query.w_full().flex_none())
                         .child(area.query.element(tokens, narrow, cx)),
                 )
                 .children(filters::trigger(shell, tokens, narrow, cx))
                 .child(
-                    outline_button("sessions-refresh", words.refresh(), true, tokens).on_click(
-                        cx.listener(|shell, _, _, cx| {
+                    outline_button("sessions-refresh", words.refresh(), true, tokens)
+                        .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
+                        .on_click(cx.listener(|shell, _, _, cx| {
                             shell.reload();
                             cx.notify();
-                        }),
-                    ),
+                        })),
                 ),
         )
         .child(body)
