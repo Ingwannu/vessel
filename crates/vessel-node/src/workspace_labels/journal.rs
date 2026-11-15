@@ -174,7 +174,7 @@ mod tests {
                 labels: vec![label("Waiting", LabelColor::Red)]
             }
         );
-        journal.committed(CatalogDelta::Remove {
+        let _removed = journal.committed(CatalogDelta::Remove {
             name: "waiting".parse().unwrap(),
         });
         assert_eq!(
@@ -188,7 +188,7 @@ mod tests {
         let mut journal = Journal::new(Vec::new());
         let initial = journal.cursor();
         for index in 0..JOURNAL_ENTRIES {
-            journal.committed(CatalogDelta::Upsert {
+            let _appended = journal.committed(CatalogDelta::Upsert {
                 label: label(&format!("Label {index}"), LabelColor::Teal),
                 previous: None,
             });
@@ -197,7 +197,7 @@ mod tests {
             matches!(journal.synchronize(Some(initial)).data, CatalogMode::Changes { updates, .. } if updates.len() == JOURNAL_ENTRIES)
         );
         let earliest_retained = journal.journal.front().unwrap().cursor;
-        journal.committed(CatalogDelta::Remove {
+        let _evicted = journal.committed(CatalogDelta::Remove {
             name: "Label 0".parse().unwrap(),
         });
         assert_eq!(journal.journal.len(), JOURNAL_ENTRIES);

@@ -124,8 +124,9 @@ Value contract and test-only SQL/service implementations are staged. Eight
 real-SQL tests passed with an explicit fake registry. The new service core
 serializes accepted writes independently of caller lifetime; scripted timing
 regressions cover cancellation after acceptance, failure/no-op publication,
-observer wakeup/timeout and observer receiver cleanup. Their execution is
-still pending. This does not establish the real registry/store adapter.
+observer wakeup/timeout and observer receiver cleanup. All four passed in the
+26-test narrow run on `29c075fa8`; strict clippy on the merged head is still
+pending. This does not establish the real registry/store adapter.
 
 Registry identity alone is reviewed; transaction helpers are not yet
 consumer-ready. Session-label calls remain owned by ADR 0063. No RPC, whole

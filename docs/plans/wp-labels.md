@@ -141,6 +141,12 @@ channels; no new framework or runtime is introduced. Observer watches are
 subscribed and marked seen before the actor snapshot, preventing lost wakes
 and repeated immediate polls from a previously unseen watch version. Polls
 time out after a named limit and cancellation drops the receiver directly.
-Four timing regressions use an explicit scripted backend and await execution.
+Four timing regressions use an explicit scripted backend.
+All 26 scoped label tests passed on `29c075fa8`: node 10, proto 4, store 12
+(`wp-labels-node-narrow-20261115T084513Z-29c075fa`). That includes the four
+timing regressions; four unused-result warnings in the fixtures were then
+corrected, without suppressions. This is test evidence only; strict clippy
+on the merged head remains owed. Announced gate-40 head `ba45a6e3` merged
+cleanly after that snapshot. The real registry producer is still unreviewed.
 The real backend remains blocked on the reviewed registry/store producer;
 this core is cfg(test), not a fake installed into product dispatch.

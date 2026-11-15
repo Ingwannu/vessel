@@ -177,7 +177,7 @@ async fn observation_has_no_lost_wake_and_no_repeated_immediate_poll_after_a_com
     let caller = service.clone();
     let pending = tokio::spawn(async move { caller.list(observe(initial.head)).await });
     tokio::task::yield_now().await;
-    service.assign(assign()).await.unwrap();
+    let _assigned = service.assign(assign()).await.unwrap();
     let current = pending.await.unwrap().unwrap();
     assert_eq!(initial.head.after.next(), Some(current.head.after));
     let started = tokio::time::Instant::now();
