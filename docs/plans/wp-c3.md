@@ -11,7 +11,7 @@ Status: skeleton in progress. Source specification: Paseo 0.15.4,
   `workspace::changes`/`diff_rows`, the existing git area, workspace RPC calls,
   kit virtual list/code rows/menu/dialog/tooltip, and the node's protected git
   runner. File explorer/editor state remains its owner's; no pane manager is
-  introduced. W12 supplies layout and W11 supplies registry identity.
+  introduced. The shared layout and workspace registry supply those identities.
 - Alternatives: another session-bound code panel; parsing patch text in the
   app; a new diff/docking dependency. These duplicate ownership or bypass the
   typed node boundary. Standard collections and existing dependencies suffice.
@@ -20,7 +20,7 @@ Status: skeleton in progress. Source specification: Paseo 0.15.4,
   hidden staged screen until real calls work. Node additions are ADR 0087 in
   a separate node checkout. No user-visible placeholder or false empty state.
 - Effects: root I/O correlation uses NodeId + WorkspaceRoot; persistence uses
-  W11 WorkspaceId and W12 TabId only. The current selected session is not a
+  registry WorkspaceId and layout TabId only. The current selected session is not a
   workspace identity. B0 is merged only after its announced green base.
 
 ## Reference and defaults
@@ -62,7 +62,7 @@ Status: skeleton in progress. Source specification: Paseo 0.15.4,
 `view::workspace::git::panel` holds target/comparison/preferences/read projection,
 commits/tree/document state. `link::git_panel` holds typed commands/results and
 finite deadlines. `areas::git::panel` draws through existing kit controls and
-W12's registry. ADR 0087 owns committed-only queries, merge to/from base,
+the shared panel registry. ADR 0087 owns committed-only queries, merge to/from base,
 atomic generated commit, status/diff observation/cache, classified history and
 owned branch-stash metadata. Pending calls stay unregistered until Quality B.
 No second transport, WorkspaceId, layout tree, file editor or attachment format.

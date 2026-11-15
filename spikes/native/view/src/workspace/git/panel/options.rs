@@ -89,7 +89,8 @@ pub struct PanelState {
     pub commits: Fold,
 }
 
-/// Git content identity. W12 adapts its shared Target rather than copying it.
+/// Git content identity, adapted from the shared layout target, never a second
+/// layout manager or independently persisted tab identity.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PanelTarget {
     /// Explorer Changes target.
