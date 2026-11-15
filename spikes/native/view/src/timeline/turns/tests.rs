@@ -92,3 +92,45 @@ fn previous_assistant_prose_folds_and_a_partial_history_never_gets_a_fake_host()
             .is_none()
     );
 }
+
+#[test]
+fn row_projection_keeps_identity_and_reports_the_earliest_disappearing_row() {
+    use crate::timeline::{Logs, Rows};
+    use std::collections::HashSet;
+
+    let timeline = timeline(vec![prompt(), tool(), reply("Done"), end()]);
+    let entries = timeline.entries();
+    let turns = TurnFolds::of(entries, TurnActivity::Closed);
+    let rows = Rows::of(entries.len(), None, &Logs::default(), &HashSet::new());
+    let closed = rows.clone().fold_turns(entries, &turns, &HashSet::new());
+    assert_eq!(closed, Rows::Some(vec![0, 2, 3]));
+    assert_eq!(rows.first_difference(&closed), 1);
+    let opened = rows
+        .clone()
+        .fold_turns(entries, &turns, &HashSet::from([0]));
+    assert_eq!(opened, Rows::Some(vec![0, 1, 2, 3]));
+    assert_eq!(rows.first_difference(&opened), rows.len());
+}
+
+#[test]
+fn a_human_steer_stays_visible_inside_the_folded_work() {
+    use crate::timeline::{Logs, Rows};
+    use std::collections::HashSet;
+
+    let timeline = timeline(vec![
+        prompt(),
+        tool(),
+        json!({"event":"steered","content":[{"type":"text","text":"Also test it"}]}),
+        tool(),
+        reply("Done"),
+        end(),
+    ]);
+    let entries = timeline.entries();
+    let turns = TurnFolds::of(entries, TurnActivity::Closed);
+    let rows = Rows::of(entries.len(), None, &Logs::default(), &HashSet::new()).fold_turns(
+        entries,
+        &turns,
+        &HashSet::new(),
+    );
+    assert_eq!(rows, Rows::Some(vec![0, 2, 4, 5]));
+}

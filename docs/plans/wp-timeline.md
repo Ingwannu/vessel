@@ -245,3 +245,16 @@ not Paseo's files. The ISC notice is retained in `kit/licenses/lucide.txt` and t
 only adaptation is the existing kit stroke width. No control or screen asset is
 introduced. Pending canonical tool rendering keeps its explicit fallback until
 its typed consumer is integrated.
+
+### Turn projection and virtualization
+
+Paseo `agent-stream/turn-collapse/model.ts:76-159` retains the trigger and final
+reply, never folds an open latest turn, and keeps compaction visible. Native
+`TurnFolds` computes disjoint work ranges from the same complete followed log;
+`Rows::fold_turns` filters only mounted rows. Human steering remains visible
+inside a native turn: its authoritative `TurnStarted`/`TurnEnded` records retain
+one response boundary. A closed turn can remove rows earlier than the footer
+that just arrived, so `Rows::first_difference` identifies the first measurement
+that must be replaced. Two regression tests pin entry identity, that earlier
+invalidation, reopening and human-steer visibility. Compaction retention waits
+for the reviewed canonical event contract rather than inventing a placeholder.

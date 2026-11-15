@@ -15,6 +15,7 @@ use std::collections::HashSet;
 
 use super::logs::Logs;
 use super::runs::Folds;
+use super::{Entry, EntryKind, TurnFolds};
 
 /// The entries drawn as the window's rows, by entry index.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -51,6 +52,36 @@ impl Rows {
                 })
                 .collect(),
         )
+    }
+
+    /// Apply whole-turn disclosure after tool/log grouping. Entries keep their
+    /// original indices, so an outline or find result still names the same row.
+    /// Human steer messages stay readable even when earlier work folds away.
+    #[must_use]
+    pub fn fold_turns(self, entries: &[Entry], turns: &TurnFolds, open: &HashSet<usize>) -> Self {
+        Self::Some(
+            (0..self.len())
+                .filter_map(|row| self.entry(row))
+                .filter(|index| {
+                    entries.get(*index).is_some_and(|entry| {
+                        matches!(entry.kind, EntryKind::Steer { .. })
+                            || turns
+                                .containing(*index)
+                                .is_none_or(|turn| open.contains(&turn.host))
+                    })
+                })
+                .collect(),
+        )
+    }
+
+    /// First row whose entry changed between two projections. A completed turn
+    /// can hide rows before the newly appended footer; invalidating from the
+    /// appended record alone would leave stale virtual-list measurements.
+    #[must_use]
+    pub fn first_difference(&self, next: &Self) -> usize {
+        (0..self.len().min(next.len()))
+            .find(|row| self.entry(*row) != next.entry(*row))
+            .unwrap_or(self.len().min(next.len()))
     }
 
     /// How many rows there are.
