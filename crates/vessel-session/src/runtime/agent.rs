@@ -217,7 +217,7 @@ impl SessionRuntime {
             options: choices.options.clone(),
         };
         let profile = profile.map_or_else(|| Profile::default_of(&harness), Ok)?;
-        let mut spec = SessionSpec::new(harness, mode).with_cwd(cwd);
+        let mut spec = SessionSpec::new(harness.clone(), mode).with_cwd(cwd);
         if !profile.is_default() {
             spec = spec.with_profile(profile.name().clone());
         }
@@ -230,12 +230,16 @@ impl SessionRuntime {
         let mut setup = probe_setup(cwd, self.config.agent_handshake_timeout);
         setup.model = choices.model;
         setup.options = choices.options;
-        Ok(match purpose {
+        let mut probed = match purpose {
             ProbePurpose::Options => vessel_agent::probe_with(driver, &command, setup).await?,
             ProbePurpose::Catalog => {
                 vessel_agent::probe_catalog_with(driver, &command, setup).await?
             }
-        })
+        };
+        if let Some(commands) = probed.commands.as_mut() {
+            vessel_harness::classify_commands(&harness, commands);
+        }
+        Ok(probed)
     }
 
     /// A page of `harness`'s own conversations (protocol 17's
