@@ -1,6 +1,6 @@
 # Transient provider system context
 
-Status: proposed
+Status: field/capability prerequisite adopted in node d432ef0f; native transport unavailable
 
 ## Reference and Decision Log
 
@@ -35,8 +35,8 @@ values. No live agent, account file or network is needed to test the refusal.
 ## Resume point
 
 Implementation, narrow checks and the corrected-base whole gate are complete.
-Next: V3 source/security review and the integrator's combined proof after the
-required package-base merge. Lifecycle owns reload orchestration;
+V3 source/security review passed and the integrator's changed combined proof
+landed in d432ef0f. Lifecycle owns reload orchestration;
 voice owns text and enable/restore state.
 
 ## Launch contract extraction
@@ -141,3 +141,14 @@ wp-providers-narrow-20261115T085155Z-b05bf2e7 (cargo rc0, 22 seconds). The whole
 gate remains the exact b7e8c329 evidence above; no combined whole-gate claim is
 made for the later required merges. The following clarification changes only
 comments and this contract document.
+
+## Adoption receipt
+
+V3 row168 reviewed ba45a6e3..0a375a50e as SOURCE PASSED, GATE OWED with no source
+finding. The later changed integration head d432ef0f (gate42: Rust2348/0/12,
+web464, browser67, forge4) includes the exact0a375a50 prerequisite. Coordinator
+and integrator announced that adoption on2026-11-15. This discharges that
+combined-head debt for the bounded field, capability policy and refusal only.
+No unchanged whole rerun was used. Lifecycle and voice consumers received the
+announced head, preserving the all-Unsupported limitation. Actual native
+installation/captured-base/restoration and voice behavior remain separate work.
