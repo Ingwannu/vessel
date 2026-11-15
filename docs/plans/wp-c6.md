@@ -208,3 +208,8 @@ seven sources' actual-launch provider/environment/sign-in proof to W22. Until th
 reviewed executable producers arrive, those cases remain Unsupported. Configured
 metadata and data-only launch values cannot replace that proof. Current native
 and node checks are still narrow pending results, with no full package acceptance.
+
+The legacy account observation builder and the summary test's successful fixture
+are extracted before the strict consumer check to keep functions within the same
+size budget. The produced element tree, source values, test sequence and assertions
+are unchanged. No additional control, preference or transport call is introduced.

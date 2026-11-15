@@ -191,8 +191,7 @@ mod tests {
         }
         assert_eq!(builtin_source_mark(None), AgentMark::Generic);
     }
-    #[test]
-    fn equal_labels_do_not_merge_accounts_and_retained_failures_never_enter_summary() {
+    fn observed_window() -> SuccessfulUsageReport {
         let report = AvailableUsageReport {
             windows: vec![UsageWindow {
                 id: "week".parse().unwrap(),
@@ -210,10 +209,14 @@ mod tests {
             .unwrap(),
             ..Default::default()
         };
-        let observed = SuccessfulUsageReport {
+        SuccessfulUsageReport {
             at: chrono::DateTime::UNIX_EPOCH,
             report,
-        };
+        }
+    }
+    #[test]
+    fn equal_labels_do_not_merge_accounts_and_retained_failures_never_enter_summary() {
+        let observed = observed_window();
         let mut entries = Vec::new();
         for account in ["first", "second"] {
             entries.push(SourceReportEntry::new(

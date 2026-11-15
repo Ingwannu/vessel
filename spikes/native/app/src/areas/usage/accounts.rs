@@ -144,6 +144,46 @@ fn account_card(
         agent_name(account.harness()),
         account.label().unwrap_or(account.profile().as_str())
     );
+    let body = account_observation(shell, report, density, tokens, cx);
+    let binding = account_binding(account);
+    let machine = state.inventory.selection().cloned();
+    let refresh = outline_button(
+        vessel_app_kit::ui::SharedString::from(format!(
+            "usage-account-refresh-{}-{}",
+            account.harness(),
+            account.profile()
+        )),
+        text.refresh(),
+        enabled,
+        tokens,
+    )
+    .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
+    .when(enabled, |button| {
+        button.on_click(cx.listener(move |shell, _, _, cx| {
+            if let Some(machine) = &machine {
+                shell.usage_refresh_account(machine.clone(), binding.clone());
+            }
+            cx.notify();
+        }))
+    });
+    settings::section_with_trailing(
+        title,
+        settings::card(tokens).child(body),
+        Some(refresh.into_any_element()),
+        tokens,
+    )
+}
+
+fn account_observation(
+    shell: &Shell,
+    report: &AccountReport,
+    density: Density,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let text = shell.words.usage();
+    let state = &shell.areas.usage;
+    let account = &report.account;
     let mut body = div()
         .min_w_0()
         .flex()
@@ -210,31 +250,5 @@ fn account_card(
             }
         }
     }
-    let binding = account_binding(account);
-    let machine = state.inventory.selection().cloned();
-    let refresh = outline_button(
-        vessel_app_kit::ui::SharedString::from(format!(
-            "usage-account-refresh-{}-{}",
-            account.harness(),
-            account.profile()
-        )),
-        text.refresh(),
-        enabled,
-        tokens,
-    )
-    .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
-    .when(enabled, |button| {
-        button.on_click(cx.listener(move |shell, _, _, cx| {
-            if let Some(machine) = &machine {
-                shell.usage_refresh_account(machine.clone(), binding.clone());
-            }
-            cx.notify();
-        }))
-    });
-    settings::section_with_trailing(
-        title,
-        settings::card(tokens).child(body),
-        Some(refresh.into_any_element()),
-        tokens,
-    )
+    body
 }
