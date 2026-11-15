@@ -374,7 +374,7 @@ fn ring_path(bounds: Bounds<Pixels>, percent: f32) -> Option<gpui::Path<Pixels>>
         // The last point is the first again: drawn and then closed, the
         // joint at twelve was stroked twice and the translucent track
         // showed a brighter tick there (0.0.0.0.19 smoke).
-        points.pop();
+        points.truncate(points.len().saturating_sub(1));
     }
     let (first, rest) = points.split_first()?;
     let mut path = PathBuilder::stroke(px(STROKE));
