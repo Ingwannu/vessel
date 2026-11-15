@@ -1,5 +1,6 @@
 //! Independent project/workspace registry contracts (ADR 0082).
-//! No IO or inferred cwd identity; calls remain unavailable until integration.
+//! No IO or inferred cwd identity. The six metadata calls are protocol 25;
+//! the other values here have no method row and remain unavailable.
 
 mod automation;
 mod config;
@@ -27,10 +28,18 @@ pub use snapshot::{GetRegistry, RegistrySnapshot, WorkspaceMembership, Workspace
 
 use crate::ProtocolVersion;
 
-/// Assign only after the node lifecycle, durable receipts and all UI/CLI
-/// consumers validate workspace ownership and partial cleanup outcomes.
-/// None refuses registry calls before dispatch, including forwarded calls.
-pub const PROJECT_WORKSPACE_REGISTRY: Option<ProtocolVersion> = None;
+/// Protocol 25 (2026-11-15): the six metadata methods only, `workspace.registry`,
+/// `.list`, `.get`, `.rename`, `.pin` and `.release_automation` (Read for the
+/// first three, Operate for the rest, all unary and fleet-forwardable). Their
+/// effects are complete: reads, a title or pin compare-and-set, and clearing
+/// the retained blocked-source gate. The earlier threshold, every lifecycle,
+/// receipt and UI/CLI effect validated before any call ships, is superseded
+/// for these six alone. Filesystem provisioning, generation, resource start
+/// and exit, archive, restore and deletion, config IO, editor launch and D2
+/// effects stay out: `CreateWorkspace`, `ArchiveWorkspace`, `RestoreWorkspace`
+/// and the config and directory values have no row and stay unavailable.
+/// Assigned in merge order at the node line; it was None while reviewed.
+pub const PROJECT_WORKSPACE_REGISTRY: Option<ProtocolVersion> = Some(ProtocolVersion::new(25));
 
 #[cfg(test)]
 mod tests {

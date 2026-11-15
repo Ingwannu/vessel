@@ -1,3 +1,4 @@
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: optional line presentation (spikes/release/patches/README.md, "gpui-base", change 7)
 use crate::input::{InputExtras as _, InputModeKind};
 use gpui::Corners;
 use gpui::Half;
@@ -26,6 +27,11 @@ use super::{
     mode::LayoutMode,
     tab_stops::{expand_tabs, expanded_width, tab_stop_width},
 };
+
+// Vessel patch: one geometry path for painting and real-window assertions.
+fn mapped_number_origin(left: Pixels, gutter: Pixels, label: Pixels, y: Pixels) -> Point<Pixels> {
+    point(left + gutter - LINE_NUMBER_RIGHT_MARGIN - label, y)
+}
 
 fn diagnostic_highlight_style(
     severity: crate::input::DiagnosticSeverity,
@@ -1109,7 +1115,16 @@ impl<M: InputModeKind> TextElement<M> {
         state: &InputBaseState<M>,
         line_height: Pixels,
         input_height: Pixels,
+        // Vessel patch: only mapped readonly documents opt into parent clipping.
+        document_viewport: Option<Range<Pixels>>,
     ) -> (Range<usize>, Vec<usize>, Pixels) {
+        // Vessel patch: clipping never changes the full layout or scroll metrics.
+        if document_viewport
+            .as_ref()
+            .is_some_and(|visible| visible.is_empty())
+        {
+            return (0..0, Vec::new(), px(0.));
+        }
         // Add extra rows to avoid showing empty space when scroll to bottom.
         let extra_rows = 1;
         if state.is_single_line() {
@@ -1144,6 +1159,12 @@ impl<M: InputModeKind> TextElement<M> {
         // directly to a display-row range.
         let viewport_top = (-scroll_top).max(px(0.));
         let viewport_bottom = viewport_top + input_height;
+        // Vessel patch: retain the original viewport above for every ordinary
+        // editor; only the opted-in document narrows which rows get shaped.
+        let (viewport_top, viewport_bottom) = match document_viewport {
+            Some(visible) => (viewport_top + visible.start, viewport_top + visible.end),
+            None => (viewport_top, viewport_bottom),
+        };
         let line_height_f = f32::from(line_height);
         let first_display =
             ((f32::from(viewport_top) / line_height_f).floor() as usize).min(display_count - 1);
@@ -1183,6 +1204,36 @@ impl<M: InputModeKind> TextElement<M> {
         style: &TextStyle,
         window: &mut Window,
     ) -> (Pixels, usize) {
+        // Vessel patch: measure a caller's mapped labels with the same font.
+        // The ordinary path below stays unchanged when no mapping is installed.
+        if state.mode.line_number() {
+            if let Some(presentation) = state.editor_style.line_presentation() {
+                let sample = presentation.gutter_sample();
+                let sample_len = sample.len();
+                let shaped = window.text_system().shape_line(
+                    sample,
+                    font_size,
+                    &[TextRun {
+                        len: sample_len,
+                        font: style.font(),
+                        color: gpui::black(),
+                        background_color: None,
+                        underline: None,
+                        strikethrough: None,
+                    }],
+                    None,
+                );
+                let folding = if state.mode.is_folding() {
+                    FOLD_ICON_HITBOX_WIDTH
+                } else {
+                    px(0.)
+                };
+                return (
+                    shaped.width + LINE_NUMBER_RIGHT_MARGIN + folding,
+                    sample_len,
+                );
+            }
+        }
         let total_lines = text.lines_len();
         // Reserve three digits for small documents, then follow the actual
         // line count up to seven digits.
@@ -1770,7 +1821,7 @@ impl<M: InputModeKind> TextElement<M> {
                     .iter()
                     .any(|span| !cache.widths.contains_key(span.token()))
         });
-        let (visible, _, _) = self.calculate_visible_range(state, line_height, viewport);
+        let (visible, _, _) = self.calculate_visible_range(state, line_height, viewport, None);
         let start = state.text.line_start_offset(visible.start);
         let end = state.text.line_end_offset(visible.end.saturating_sub(1));
         let spans = state.token_spans();
@@ -2438,6 +2489,8 @@ pub(super) struct PrepaintState {
     ///
     /// The child is the soft lines.
     line_numbers: Option<Vec<SmallVec<[ShapedLine; 1]>>>,
+    // Vessel patch: one immutable visible-row projection shared by every paint pass.
+    line_paints: Option<Vec<crate::input::InputLinePaint>>,
     /// Size of the scrollable area by entire lines.
     scroll_size: Size<Pixels>,
     /// Caret bounds for every selection, active flagged.
@@ -2617,6 +2670,20 @@ fn snap_frame_outline(
     )
 }
 
+// Vessel patch: use the intersection in both axes. An offscreen file shapes no
+// rows, even when the parent's vertical mask happens to overlap another column.
+fn mapped_document_viewport(bounds: Bounds<Pixels>, mask: Bounds<Pixels>) -> Range<Pixels> {
+    if bounds.right() <= mask.left() || mask.right() <= bounds.left() {
+        return px(0.)..px(0.);
+    }
+    let top = bounds.top().max(mask.top());
+    let bottom = bounds.bottom().min(mask.bottom());
+    if bottom <= top {
+        return px(0.)..px(0.);
+    }
+    (top - bounds.top())..(bottom - bounds.top())
+}
+
 fn clamp_frame_to_content_mask(
     points: Vec<Point<Pixels>>,
     stroke_width: Pixels,
@@ -2770,8 +2837,24 @@ impl<M: InputModeKind> Element for TextElement<M> {
         );
         let state = self.state.read(cx);
 
-        let (visible_range, visible_buffer_lines, visible_top) =
-            self.calculate_visible_range(&state, line_height, bounds.size.height);
+        // Vessel patch: a mapped readonly editor is one full-height file inside
+        // the owner's scrolling document. The parent mask limits shaping only;
+        // ordinary inputs retain their original full-viewport projection.
+        let document_viewport =
+            if state.readonly && state.editor_style.line_presentation().is_some() {
+                Some(mapped_document_viewport(
+                    bounds,
+                    window.content_mask().bounds,
+                ))
+            } else {
+                None
+            };
+        let (visible_range, visible_buffer_lines, visible_top) = self.calculate_visible_range(
+            &state,
+            line_height,
+            bounds.size.height,
+            document_viewport,
+        );
         let visible_start_offset = state.text.line_start_offset(visible_range.start);
         let visible_end_offset = state
             .text
@@ -3109,6 +3192,15 @@ impl<M: InputModeKind> Element for TextElement<M> {
         );
 
         let state = self.state.read(cx);
+        // Vessel patch: one callback per visible row per frame, so number,
+        // body tint and gutter tint are facts from the same projection.
+        let line_paints = state.editor_style.line_presentation().map(|mapping| {
+            last_layout
+                .visible_buffer_lines
+                .iter()
+                .map(|&row| mapping.line(crate::input::BufferRow::new(row)))
+                .collect::<Vec<_>>()
+        });
         let line_numbers = if state.mode.line_number() {
             let mut line_numbers = Vec::with_capacity(last_layout.visible_buffer_lines.len());
             let other_line_runs = vec![TextRun {
@@ -3129,17 +3221,23 @@ impl<M: InputModeKind> Element for TextElement<M> {
             }];
 
             // build line numbers
-            for (line, &buffer_line) in last_layout
+            for (visible, (line, &buffer_line)) in last_layout
                 .lines
                 .iter()
                 .zip(last_layout.visible_buffer_lines.iter())
+                .enumerate()
             {
-                let line_no: SharedString = format!(
-                    "{:>width$}",
-                    displayed_line_number(buffer_line + 1),
-                    width = line_number_len
-                )
-                .into();
+                // Vessel patch: mapping changes only the label/ink being shaped.
+                let presented = line_paints.as_ref().and_then(|rows| rows.get(visible));
+                let line_no: SharedString = match presented {
+                    Some(paint) => paint.number.clone().unwrap_or_default(),
+                    None => format!(
+                        "{:>width$}",
+                        displayed_line_number(buffer_line + 1),
+                        width = line_number_len
+                    )
+                    .into(),
+                };
 
                 let runs = if current_row == Some(buffer_line) {
                     &current_line_runs
@@ -3147,6 +3245,22 @@ impl<M: InputModeKind> Element for TextElement<M> {
                     &other_line_runs
                 };
 
+                // Vessel patch: labels may be blank or have fewer bytes than
+                // the widest label. Shape the exact label, then right-align it.
+                let mapped_runs = presented.map(|paint| {
+                    vec![TextRun {
+                        len: line_no.len(),
+                        font: style.font(),
+                        color: paint.number_color.unwrap_or_else(|| {
+                            runs.first()
+                                .map_or(state.editor_style.muted_foreground, |run| run.color)
+                        }),
+                        background_color: None,
+                        underline: None,
+                        strikethrough: None,
+                    }]
+                });
+                let runs = mapped_runs.as_deref().unwrap_or(runs);
                 let mut sub_lines: SmallVec<[ShapedLine; 1]> = SmallVec::new();
                 sub_lines.push(
                     window
@@ -3195,6 +3309,7 @@ impl<M: InputModeKind> Element for TextElement<M> {
             last_layout,
             scroll_size,
             line_numbers,
+            line_paints, // Vessel patch: paint uses only this frame’s captured facts.
             cursor_infos,
             cursor_scroll_offset,
             current_row,
@@ -3264,13 +3379,28 @@ impl<M: InputModeKind> Element for TextElement<M> {
             offset_y += invisible_top_padding;
 
             // Each item is the normal lines.
-            for (lines, &buffer_line) in line_numbers
+            for (visible, (lines, &buffer_line)) in line_numbers
                 .iter()
                 .zip(prepaint.last_layout.visible_buffer_lines.iter())
+                .enumerate()
             {
                 let is_active = prepaint.current_row == Some(buffer_line);
                 let p = point(input_bounds.origin.x, origin.y + offset_y);
                 let height = line_height * lines.len() as f32;
+                // Vessel patch: row tint sits below glyph backgrounds,
+                // selections and text, and covers wrapped continuations.
+                if let Some(paint) = prepaint
+                    .line_paints
+                    .as_ref()
+                    .and_then(|rows| rows.get(visible))
+                {
+                    if let Some(color) = paint.background {
+                        window.paint_quad(fill(
+                            Bounds::new(p, size((bounds.right() - p.x).max(px(0.)), height)),
+                            if disabled { color.opacity(0.5) } else { color },
+                        ));
+                    }
+                }
                 // Paint the current line background
                 if is_active {
                     if let Some(bg_color) = active_line_color {
@@ -3474,14 +3604,32 @@ impl<M: InputModeKind> Element for TextElement<M> {
             window.paint_quad(fill(gutter_bounds, gutter_bg));
 
             // Each item is the normal lines.
-            for (lines, &buffer_line) in line_numbers
+            for (visible, (lines, &buffer_line)) in line_numbers
                 .iter()
                 .zip(prepaint.last_layout.visible_buffer_lines.iter())
+                .enumerate()
             {
                 let p = point(input_bounds.origin.x, origin.y + offset_y);
                 let is_active = prepaint.current_row == Some(buffer_line);
 
                 let height = line_height * lines.len() as f32;
+                // Vessel patch: the fixed opaque gutter must retain its
+                // row tint after covering horizontally scrolling code.
+                if let Some(paint) = prepaint
+                    .line_paints
+                    .as_ref()
+                    .and_then(|rows| rows.get(visible))
+                {
+                    if let Some(color) = paint.background {
+                        window.paint_quad(fill(
+                            Bounds::new(
+                                point(gutter_bounds.origin.x, p.y),
+                                size(gutter_bounds.size.width, height),
+                            ),
+                            if disabled { color.opacity(0.5) } else { color },
+                        ));
+                    }
+                }
                 // paint active line number background
                 if is_active {
                     if let Some(bg_color) = active_line_color {
@@ -3496,7 +3644,26 @@ impl<M: InputModeKind> Element for TextElement<M> {
                 }
 
                 for line in lines {
-                    _ = line.paint(p, line_height, TextAlign::Left, None, window, cx);
+                    // Vessel patch: ordinary left-aligned numbers already
+                    // contain padding; mapped labels use measured right alignment.
+                    let number_origin = if editor_style.line_presentation().is_some() {
+                        mapped_number_origin(
+                            input_bounds.origin.x,
+                            prepaint.last_layout.line_number_width,
+                            line.width,
+                            p.y,
+                        )
+                    } else {
+                        p
+                    };
+                    _ = line.paint(
+                        number_origin,
+                        line_height,
+                        TextAlign::Left,
+                        None,
+                        window,
+                        cx,
+                    );
                     offset_y += line_height;
                 }
 
