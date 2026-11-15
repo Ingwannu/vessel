@@ -133,3 +133,21 @@ additional provider fetchers remain required; the pending constant stays None.
 The V3 checkpoint on 604717fd returned both issues; that immutable checkpoint
 remains failed. Its TS tests passed four cases but freshness failed. This correction
 requires its own narrow checks and generated-wire freshness proof before reuse.
+
+### Additional vendor format boundaries
+
+The pure account_usage module reuses vessel-proto's report values and the existing
+finite/limit text validators. It owns additional vendor schemas, not credential
+lookup, HTTP or a second report model. Sources inspected directly: Paseo plugins/
+{copilot,cursor,grok,kimi,minimax,opencode-go,zai}-usage-source/server/usage.ts.
+One 1 MiB body bound precedes parsing; collection visitors refuse first excess.
+Fixture-only tests preserve explicit pool percentages, independent balances and
+period metadata, unknown denominators, scalar numeric text and same-source tone.
+
+Differences: unfamiliar MiniMax application errors remain changed-response rather
+than displaying raw vendor text or guessing no subscription. Its missing/unknown
+status uses the percentage fallback, not an assertion of healthy quota. Malformed
+Kimi rows mark a partial observation; an oversized or non-array limits collection
+refuses the complete response instead of bypassing bounds via a fallback decoder.
+These parsers alone do not implement discovery, local sign-in reads, real fetch,
+consent or launch association. Those remain required and unverified.

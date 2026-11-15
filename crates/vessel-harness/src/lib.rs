@@ -103,3 +103,8 @@ pub use setup::{
     AccountHome, AddProfileError, Install, InstallPart, account_homes, add_profile, binary,
     home_variable, installs, login_command, missing,
 };
+
+mod account_usage;
+pub use account_usage::{
+    AccountUsageError, AccountUsageOutcome, MAX_USAGE_VENDOR_BYTES, decode_account_usage,
+};
