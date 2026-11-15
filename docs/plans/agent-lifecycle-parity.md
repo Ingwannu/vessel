@@ -144,6 +144,15 @@ Read first, and reproduced except for the differences ADR 0063 lists.
   before checking the count. Early validation avoids that unnecessary work.
   Paseo uses `Date.parse`; Vessel uses
   RFC 3339 with an explicit offset so machine locale cannot alter selection.
+- The `--since` unit also differs: CLI `utils/timeline.ts:16-26` fetches
+  projected history, then compares each item's timestamp; under the server's
+  `agent/timeline-projection.ts:156,234,286`, that is the last merged tool,
+  reasoning or assistant fragment's time. Paseo keeps or drops the whole
+  projected item. Vessel compares raw records, the same unit as `--from`,
+  `--tail` and retention, so output can start inside a message or tool
+  lifecycle without its earlier fragments. No CLI projection is added:
+  history and live use the same predicate, while Paseo's live path already
+  compares each event (`logs.ts:385-386`).
 - Follow prints the tail of what exists (default 10 when `--tail` is
   omitted, `:334-335`) and then streams. One-shot with no `--tail` prints
   the whole selection. Follow joins assistant and reasoning fragments
@@ -314,9 +323,13 @@ No row of the crate table changes.
 - Selection slice 5b's first narrow compile found two test-only errors: a
   failure fixture bypassed the existing status constructor, and a turn cursor
   was unused. Both are corrected without changing assertions; the narrow
-  clippy, ten log units and two fake-node CLI cases now pass. The complete
-  gate is the remaining verification.
-- Implementation slice 5b, verification pending: time/kind predicates precede
+  clippy, ten log units and two fake-node CLI cases passed. The complete
+  Rust gate passed 1989/0/12, with two TS freshness tests and all applicable
+  checks passing. No waiver or rerun was needed; forge checks were explicitly
+  skipped because the base has no forge-fixture feature. The review's
+  documentation-only correction now states the raw `--since` unit and effect;
+  no selection logic or assertion changes.
+- Slice 5b passed its complete code gate: time/kind predicates precede
   the existing tail window. Sequence gaps separate message chunks, but only
   raw page gaps generate retention notices. Parser, predicate, render-boundary
   and fake-node selection tests passed in the narrow runs. Existing render
@@ -328,8 +341,8 @@ No row of the crate table changes.
 - The contract's follow bullet and EOF explanation now name the same end.
   Parser and command-level checks are documented together: an invalid tail
   is refused by both products, with earlier validation in Vessel.
-- Next: run the complete Rust gate for selection slice 5b on the independent
-  build runner, then check the follow draft against the verified predicates while
+- Next: submit the documentation correction with fast checks, then continue
+  checking the follow draft against the verified predicates while
   label call wiring awaits the shared accessor. No new wire call or dependency
   is added by log options. Both slices include the caller-to-projection
   citations and retain the raw-chunk test; the selection render context changes

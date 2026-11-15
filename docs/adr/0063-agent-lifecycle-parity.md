@@ -229,7 +229,13 @@ person reloads. There is no MCP tool for it.
   `failed` status; `permissions` is a request and its resolution.
   `HarnessLog` is not an error.
 - `--since` an RFC 3339 timestamp. Unparseable is a usage error. A
-  record's `at` must be greater than or equal to it.
+  record's `at` must be greater than or equal to it. Paseo's history keeps
+  whole projected items by their final merged fragment's time
+  (`utils/timeline.ts:23-26`, `timeline-projection.ts:156,234,286`). Vessel
+  selects raw records, the same unit as `--from`, `--tail` and retention,
+  without CLI projection; output can start inside a message or tool lifecycle.
+  This keeps one predicate for history and live records, whereas Paseo's live
+  path already compares individual events (`logs.ts:385-386`).
 - `-f` / `--follow`. After the selection, wait on the session stream
   for later matching records until the session's log ends (its final status
   record) or the person interrupts. No sleep.
