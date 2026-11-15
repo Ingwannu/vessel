@@ -79,7 +79,7 @@ async fn reads_share_the_existing_bound_and_refuse_binary_and_missing_roots() {
     std::fs::write(&path, [0xff]).unwrap();
     assert!(matches!(
         read(root.clone()).await,
-        Err(ConfigEditError::NotText)
+        Err(ConfigEditError::NotText(_))
     ));
     assert!(matches!(
         read(root.join("absent")).await,

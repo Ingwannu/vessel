@@ -32,7 +32,7 @@ pub enum ConfigEditError {
     Read(#[source] ProjectFileError),
     /// Binary documents cannot be edited as TOML source.
     #[error("the project configuration is not UTF-8 text")]
-    NotText,
+    NotText(#[source] str::Utf8Error),
     /// The wire and filesystem share the same source bound.
     #[error("the project configuration text is invalid")]
     Text(#[source] ConfigTextError),
@@ -70,7 +70,7 @@ fn read_now(folder: &Path) -> Result<ConfigDocument, ConfigEditError> {
             validity: ConfigValidity::Valid,
         });
     };
-    let source = str::from_utf8(&bytes).map_err(|_| ConfigEditError::NotText)?;
+    let source = str::from_utf8(&bytes).map_err(ConfigEditError::NotText)?;
     let text = ConfigText::parse(source).map_err(ConfigEditError::Text)?;
     let validity = if ProjectFile::parse(&bytes).is_ok() {
         ConfigValidity::Valid

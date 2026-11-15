@@ -50,7 +50,7 @@ impl Workspaces {
 fn edit_error(error: &ConfigEditError) -> WireError {
     let code = match error {
         ConfigEditError::Invalid
-        | ConfigEditError::NotText
+        | ConfigEditError::NotText(_)
         | ConfigEditError::Text(_)
         | ConfigEditError::Read(_) => ErrorCode::InvalidRequest,
         ConfigEditError::Root(_) => ErrorCode::NotFound,

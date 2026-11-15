@@ -123,3 +123,11 @@ The generated web/src/wire/proto.ts is committed with the canonical pending
 registration/directory/config requests, responses and aliases. The config IO
 functional tests and strict proto/workspace check remain queued; no live config
 file, provider, editor or node was accessed for these checks.
+
+
+The preexisting local config check finished with a strict lint failure after
+TS generation 3/0 and config substrate tests 4/0 passed: the UTF-8 refusal
+discarded its decoding cause. ConfigEditError now retains Utf8Error as a source,
+while public text remains redacted; the node mapping and existing binary-input
+regression match the payload variant. This changes no permission or validation
+policy. Corrected strict workspace/proto/node checks move to the remote gate.
