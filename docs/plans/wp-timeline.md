@@ -186,3 +186,14 @@ library and adds review cost. Use bounded input and output line counts; no I/O,
 wall-clock timeout, new crate edge or provider-specific matching in the screen.
 Difference: word-level syntax segments remain a later enhancement; line changes
 and blank/context lines must be correct first.
+
+### Turn collapse skeleton
+
+Read `agent-stream/turn-collapse/model.ts:1-150` directly. Closed turns fold the
+work before the last assistant message into the loaded trigger; trigger, last reply
+and footer remain visible. A live newest turn and a turn with only reasoning do
+not fold. Earlier assistant prose is foldable; partial history without a loaded
+trigger does not invent one. `TurnFolds` publishes a single host/range map for rows,
+find and prompt reveal. Preferences will use the existing Appearance/PreferenceChange
+path: reasoning (default collapsed), Full / Collapse tool calls / Collapse turns,
+then the outline setting. No row is exposed before its behavior consumes it.

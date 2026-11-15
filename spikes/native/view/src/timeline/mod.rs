@@ -51,6 +51,7 @@ mod question_step;
 mod rewind;
 mod rows;
 mod runs;
+mod turns;
 mod usage;
 mod window;
 
@@ -85,6 +86,7 @@ pub use question_step::{
 pub use rewind::rewind_point;
 pub use rows::Rows;
 pub use runs::{Folds, RunSummary, Tally, ToolRun};
+pub use turns::{TurnActivity, TurnFold, TurnFolds};
 pub use usage::ModelUsage;
 pub use window::{
     Align, FOLLOW, INSET, MARGIN, Span, at_end, covers, guess, off_by, offsets, scroll_for, span,
