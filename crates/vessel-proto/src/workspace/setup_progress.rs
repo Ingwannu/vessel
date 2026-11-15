@@ -1,22 +1,21 @@
 //! Additive setup observations. Legacy combined output remains available.
 
+use std::num::NonZeroU32;
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use super::ProjectCommand;
+use super::{MAX_PROJECT_COMMANDS, ProjectCommand};
 use crate::{DurationMs, ProtocolVersion, SetupRevision, SetupRunId, TerminalBytes, WorktreeId};
 
 /// Assigned only when the integrator merges the complete setup feature.
 pub const WORKTREE_SETUP_OBSERVATION: Option<ProtocolVersion> = None;
 
-/// The parser's bound on one setup list, also bounding observation rows.
-pub const MAX_SETUP_PROGRESS_COMMANDS: u32 = 32;
-
-/// A zero-based command position within an approved setup list.
+/// A one-based ordinal within an approved setup list, matching Paseo events.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(try_from = "u32", into = "u32")]
-pub struct SetupCommandIndex(u32);
+pub struct SetupCommandIndex(NonZeroU32);
 
 /// A command index outside the setup list bound.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
@@ -24,10 +23,10 @@ pub struct SetupCommandIndex(u32);
 pub struct InvalidSetupCommandIndex;
 
 impl SetupCommandIndex {
-    /// The raw zero-based position.
+    /// The displayed ordinal: the first approved command is 1.
     #[must_use]
     pub const fn get(self) -> u32 {
-        self.0
+        self.0.get()
     }
 }
 
@@ -35,8 +34,11 @@ impl TryFrom<u32> for SetupCommandIndex {
     type Error = InvalidSetupCommandIndex;
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
-        (value < MAX_SETUP_PROGRESS_COMMANDS)
-            .then_some(Self(value))
+        NonZeroU32::new(value)
+            .filter(|ordinal| {
+                usize::try_from(ordinal.get()).is_ok_and(|value| value <= MAX_PROJECT_COMMANDS)
+            })
+            .map(Self)
             .ok_or(InvalidSetupCommandIndex)
     }
 }
@@ -102,7 +104,7 @@ pub enum SetupCommandState {
     Unknown,
 }
 
-/// Bounded per-command display, including output after the legacy log fills.
+/// A per-command display value. This DTO alone does not validate output limits.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct SetupCommandProgress {
@@ -112,7 +114,7 @@ pub struct SetupCommandProgress {
     pub command: ProjectCommand,
     /// Current structured state.
     pub state: SetupCommandState,
-    /// At most the node's per-command output budget, preserving head and tail.
+    /// The producer must enforce its output budget; this generic byte value does not.
     pub output: TerminalBytes,
     /// Bytes were omitted from the middle, independently of the global log cap.
     pub truncated: bool,
@@ -149,7 +151,8 @@ pub struct SetupProgress {
     pub state: SetupRunState,
     /// Wall-clock start for display.
     pub started_at: DateTime<Utc>,
-    /// Commands in approved order, at most `MAX_SETUP_PROGRESS_COMMANDS`.
+    /// Approved-order rows. A later producer/decoder must validate count, order,
+    /// unique ordinals and output budgets; this public vector is not validated.
     pub commands: Vec<SetupCommandProgress>,
 }
 

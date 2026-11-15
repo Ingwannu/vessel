@@ -134,3 +134,24 @@ sends no input and starts no later terminal. Terminal-only sets require approval
 before any start claim. Independent terminal failures leave the worktree and
 allow later specifications to be attempted. These are staged policy obligations,
 not evidence that durable workspace trust or actor registration is implemented.
+
+## Canonical values followup (V3 row194 source scope)
+
+The ordinal is one-based, matching Paseo utils/worktree.ts657-665 and
+server/worktree-bootstrap.ts240-255. Ordinal 1 identifies the first command in
+the approved list; ordinal n maps to approved-list position n-1. Consumers must
+render the supplied ordinal without adding one. A runtime with zero-based event
+positions must use a checked position+1 conversion when constructing this value.
+The first/last/order roundtrip regression checks the scalar mapping only; it
+does not establish runner or UI equivalence.
+
+`vessel_proto::workspace::MAX_PROJECT_COMMANDS` is the single lower-layer owner
+of the unchanged command-list limit. The project parser retains its existing
+`MAX_COMMANDS` name as a re-export, so errors, admission and observation index
+conversion derive from the same value without a dependency back to the parser.
+
+These are descriptive DTOs, not validated observation snapshots. The public row
+vector and generic TerminalBytes do not enforce list length, unique contiguous
+ordinals, ordering, individual output or aggregate limits. The later runtime
+and decoder must enforce and test those boundaries before any wire renderer
+may treat a snapshot as validated. No such enforcement is claimed here.
