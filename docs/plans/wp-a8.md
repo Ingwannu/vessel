@@ -423,3 +423,10 @@ PermissionId instead of the inherited shared `permit-card` id. Descendant
 button/detail ids remain scoped beneath that root. This reuses GPUI's normal
 identity tree; there is no new UI state registry. A distinct/stable root identity
 regression accompanies the fix; actual remote execution is still owed.
+
+The two-editor Enter fixture explicitly opens its owning session before typing.
+Without a shown session the response boundary correctly refuses to admit any
+answer, so the intended exact-second-question offline result would never occur.
+The test retains the real session boundary instead of bypassing it to manufacture
+an expected error. This correction has source/static evidence only until the
+queued native suite can execute.

@@ -40,6 +40,10 @@ fn simultaneous_fields_keep_their_own_draft_and_enter_targets_the_second_request
         let mut ids = None;
         let shell = cx.new(|cx| {
             let mut shell = Shell::without_io(window, cx);
+            shell
+                .areas
+                .conversation
+                .open("scratch", vessel_proto::SessionId::random());
             super::language_tests::prepare(&mut shell, false, window, cx);
             let first = shell.areas.conversation.answering.as_ref().unwrap().id;
             let mut second = waiting_at::<SessionPlace>(&shell, first).unwrap();
