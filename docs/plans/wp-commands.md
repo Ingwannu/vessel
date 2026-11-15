@@ -641,3 +641,12 @@ palette::files re-exports the owner value and keeps parse_query UI-local. No
 FileScope, transport, root query or opener blobs came with this pure handoff.
 Combined current-head checks remain owed; no standalone Clippy/whole/runtime C5
 approval is inferred from that single producer test.
+
+Adopted S2's exact isolated menu producer dd13ce378..2599d051c by merge95555d7aa,
+preserving its original commits. V1 bounded source/Kit narrow pass covers private
+opening leases, stale recognized-key/AboveDialog containment and pointer default
+focus fencing (Kit173/0/0 +Clippy0). The only Kit delta against the producer's
+five source/test files is F4's existing one-line VesselOverlay marker on the
+actual focused root; both that marker and S2's new capture focus fence survive.
+README retains both independent additions. This does not import S2's unready
+Main F4 branch or activate ToggleSidebars. Current F4 union checks remain owed.
