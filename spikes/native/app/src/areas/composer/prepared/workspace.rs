@@ -223,6 +223,7 @@ mod tests {
             shell.fleet.machines.push(Machine {
                 name: "fixture".to_owned(),
                 node: Some(node),
+                connection_epoch: None,
                 reach: Reach::Online,
                 sessions: Vec::new(),
                 agents: Vec::new(),
@@ -294,6 +295,7 @@ mod tests {
             shell.fleet.machines.push(Machine {
                 name: "fixture".to_owned(),
                 node: Some(node),
+                connection_epoch: None,
                 reach: Reach::Online,
                 sessions: Vec::new(),
                 agents: Vec::new(),
