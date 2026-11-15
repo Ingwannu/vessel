@@ -117,6 +117,15 @@ restores before dispatch; a replaced app-menu cycle refuses old row actions.
 The separate strong saved opener was removed. Real-field action tests remain
 part of the pending combined evidence.
 
+Source audit found a distinct stale-dismissal gap: handlers rendered for cycle A
+can close or restore the newer cycle B before the app's chosen-action guard runs.
+G2 confirmed the shared producer has no per-open render lease. The coordinator
+assigned S2, sole menu writer, an opaque per-open token checked before pointer,
+key, highlight, outside, close and focus mutations, with retained-render A-to-B
+regressions. V1 reviews and the lead lands that shared fix before consumption.
+The app action guard is retained but is not claimed to protect dismissal; this
+package does not edit a second menu renderer or work around it by reopening.
+
 Shell::run_desktop_shortcut is shared by menu and keyboard consumers. Pure
 half-level zoom rules remain modeled, but production Zoom is unsupported and
 hidden from menus under the coordinator ruling: set_scale_factor is test-only,
@@ -257,7 +266,9 @@ receipt tests in that source passed. Because --lib selects library targets,
 the binary-only app tests were not run: no menu-field or window-guard GPUI result
 is claimed. The next app check must select --bin vessel-app or --bins. The newer
 base6 broadcast and project-delivery acknowledgment also need their union checks.
-Source-size checks passed694 files/14 existing exceptions; no allowance increased.
+Current source-size checks passed705 files/14 existing exceptions; no allowance
+increased. Direct rustfmt checked all108 Rust files changed from dd13ce37; this
+is formatting evidence only, without a local Cargo/Rustc invocation.
 
 All new cargo/rustc, clippy, tests, whole gates and capture builds run through the
 prescribed remote gate tool. No local compilation or metadata-Cargo invocation is
