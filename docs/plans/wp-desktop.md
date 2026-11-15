@@ -569,3 +569,7 @@ inventory/readiness and controlled forms wait for the full canonical registry
 handlers in the announced app base. WorkspaceId already on the line is unchanged;
 no alternate registry identity, pending wire row or cache-based empty decision is
 introduced to bypass that owner handoff.
+
+Persistence deadlines and timers use the same GPUI executor clock, so the total
+budget follows the platform clock in production and controlled time in fixtures;
+wall-clock Instant is not mixed with a simulated executor timer.

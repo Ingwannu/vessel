@@ -4,7 +4,7 @@ use gpui::{App, AsyncApp};
 use std::future::{Future as _, poll_fn};
 use std::sync::Arc;
 use std::task::Poll;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use vessel_app_link::desktop::DesktopError;
 
 const MAX_STATE_ATTEMPTS: usize = 4;
@@ -43,10 +43,12 @@ pub(crate) async fn flush_then<T>(
     cx: &AsyncApp,
     effect: impl FnOnce(&mut App) -> T,
 ) -> Result<T, StateFailure> {
-    let started = Instant::now();
+    let executor = cx.background_executor();
+    let started = executor.now();
     let mut effect = Some(effect);
     for _attempt in 0..MAX_STATE_ATTEMPTS {
-        let remaining = STATE_DEADLINE.saturating_sub(started.elapsed());
+        let remaining =
+            STATE_DEADLINE.saturating_sub(executor.now().saturating_duration_since(started));
         if remaining.is_zero() {
             return Err(StateFailure::Deadline);
         }
@@ -54,14 +56,14 @@ pub(crate) async fn flush_then<T>(
         let timer = cx.background_executor().timer(remaining);
         let mut flush = std::pin::pin!(flush);
         let mut timer = std::pin::pin!(timer);
-        let receipt: crate::desktop::StateReceipt = poll_fn(|cx| {
-            if started.elapsed() >= STATE_DEADLINE {
+        let receipt: crate::desktop::StateReceipt = poll_fn(|task| {
+            if executor.now().saturating_duration_since(started) >= STATE_DEADLINE {
                 return Poll::Ready(Err(StateFailure::Deadline));
             }
-            if let Poll::Ready(result) = flush.as_mut().poll(cx) {
+            if let Poll::Ready(result) = flush.as_mut().poll(task) {
                 return Poll::Ready(result.map_err(|error| StateFailure::Write(Arc::new(error))));
             }
-            if timer.as_mut().poll(cx).is_ready() {
+            if timer.as_mut().poll(task).is_ready() {
                 return Poll::Ready(Err(StateFailure::Deadline));
             }
             Poll::Pending
