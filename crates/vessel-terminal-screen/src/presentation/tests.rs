@@ -1,6 +1,7 @@
 //! Raw-client and replay regressions use a silent copy of the sole shared engine.
 use super::*;
 use crate::{CaptureRange, Column, Row};
+use vt100::DecodedParameter::{Explicit, Omitted};
 
 fn mux() -> Multiplexer {
     Multiplexer::new(Size::new(80, 24).unwrap(), ScrollbackLines::default()).unwrap()
@@ -161,7 +162,6 @@ fn decoded_parameter_presence_distinguishes_bare_and_explicit_zero_without_a_sca
         Parameters::default(),
     );
     parser.process(b"\x1b[>u\x1b[>0u\x1b[=;0u\x1b[=0;u");
-    use vt100::DecodedParameter::{Explicit, Omitted};
     assert_eq!(
         parser.callbacks().0,
         vec![

@@ -132,18 +132,45 @@ fn check_corpus(input: &str, count: usize) {
             ScrollbackLines::default(),
         )
         .unwrap();
+        let mut mux = Multiplexer::new(screen.size(), ScrollbackLines::default()).unwrap();
+        let mut raw_client = Screen::new(screen.size(), ScrollbackLines::default()).unwrap();
         for event in program.events {
             match event {
-                Event::Output { output } => feed(
-                    &mut screen,
-                    &base64::engine::general_purpose::STANDARD
+                Event::Output { output } => {
+                    let bytes = base64::engine::general_purpose::STANDARD
                         .decode(output)
-                        .unwrap(),
-                ),
-                Event::Resize { resize } => screen
-                    .resize(Size::new(resize.cols, resize.rows).unwrap())
-                    .unwrap(),
+                        .unwrap();
+                    feed(&mut screen, &bytes);
+                    let mut remaining = bytes.as_slice();
+                    while !remaining.is_empty() {
+                        let result = mux.feed(remaining);
+                        assert_eq!(result.outcome, Ok(()));
+                        assert!(result.consumed.get() > 0);
+                        feed(&mut raw_client, result.presentation.as_bytes());
+                        remaining = &remaining[result.consumed.get()..];
+                    }
+                }
+                Event::Resize { resize } => {
+                    let size = Size::new(resize.cols, resize.rows).unwrap();
+                    screen.resize(size).unwrap();
+                    mux.resize(size).unwrap();
+                    raw_client.resize(size).unwrap();
+                }
                 Event::Checkpoint { checkpoint } => {
+                    for presented in [mux.screen(), &raw_client] {
+                        assert_eq!(
+                            golden_cells(presented),
+                            golden_cells(&screen),
+                            "{} {checkpoint} byte decoder/presentation cells",
+                            program.name
+                        );
+                        assert_eq!(presented.cursor(), screen.cursor());
+                        assert_eq!(presented.buffer_kind(), screen.buffer_kind());
+                        assert_eq!(
+                            presented.capture(CaptureRange::default()),
+                            screen.capture(CaptureRange::default())
+                        );
+                    }
                     let expected = program
                         .snapshots
                         .iter()

@@ -34,7 +34,7 @@ impl KittyFlags {
 pub struct InputModes {
     /// Current Kitty flags; stack ownership stays with the engine.
     pub kitty: KittyFlags,
-    /// ConPTY's optional Win32 input reporting.
+    /// `ConPTY`'s optional Win32 input reporting.
     pub win32: ModeState,
     /// DEC application cursor keys, independent from Kitty and Win32.
     pub application_cursor: ModeState,

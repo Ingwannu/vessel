@@ -79,3 +79,19 @@ Verification: exact791ec973 presentation stage strict0 and18/0/0; its earlier
 metadata had presence-only scalars. New u32 metadata/mode changes and239-step
 fixture still owe exact checks. Node actor/output-ordering/input integration,
 frames/anchors, CLI/native consumers and activation remain unverified.
+
+### Canonical oracle correction after actual red
+
+585d4ad8 executed23/1/0: the actual per-byte reference trace loses the standalone
+ESC before Kitty push. The existing raw fixture is preserved byte-for-byte in
+paseo-chunk-loss-behaviour.json and scratch evidence; the original failed log
+remains. Approved stated difference: VTE retains chunk-invariant mode state.
+A fresh actual reference tracker receives the accumulated original prefix once
+per checkpoint for the canonical239-step comparison. All its raw output fields
+remain unmodified; the historical raw trace is a separate named regression,
+not a claim that Vessel reproduces the bug. Strict585 stopped at ConPTY doc
+backticks; correction also retains both previously-unused test reply results.
+
+The31 existing cell checkpoints now also compare the byte-wise multiplexer
+and its query-stripped old raw client against the unchanged golden authority,
+including resize. New exact test/strict checks are owed.

@@ -44,7 +44,7 @@ fn screen(duty: ReplyDuty) -> Screen {
     Screen::with_replies(Size::new(80, 24).unwrap(), ScrollbackLines::default(), duty).unwrap()
 }
 #[test]
-fn actual_reference_tracker_matches_all_239_whole_and_split_steps() {
+fn canonical_reference_tracker_matches_all_239_original_prefix_steps() {
     let corpus: Corpus = serde_json::from_str(include_str!("paseo-modes.json")).unwrap();
     assert_eq!(
         corpus.source.path,
@@ -156,13 +156,24 @@ fn stack_capacity_refuses_without_replacing_the_saved_modes() {
 #[test]
 fn mode_like_osc_data_and_encoded_input_are_not_negotiation() {
     let mut engine = screen(ReplyDuty::NodeAuthority);
-    engine.feed(b"\x1b]2;title \x1b[>7u").replies.unwrap();
+    assert!(
+        engine
+            .feed(b"\x1b]2;title \x1b[>7u")
+            .replies
+            .unwrap()
+            .as_bytes()
+            .is_empty()
+    );
     // ESC cancels OSC and really starts a CSI: that valid command is decoded once.
     assert_eq!(engine.input_modes().kitty.get(), 7);
-    engine
-        .feed(b"\x1b[<u\x1bPq\x1b[>9u\x1b\\\x1b[13;2u")
-        .replies
-        .unwrap();
+    assert!(
+        engine
+            .feed(b"\x1b[<u\x1bPq\x1b[>9u\x1b\\\x1b[13;2u")
+            .replies
+            .unwrap()
+            .as_bytes()
+            .is_empty()
+    );
     // DCS also ends at ESC, so the embedded command is a real parser command here.
     assert_eq!(engine.input_modes().kitty.get(), 9);
     let result = engine.feed(b"\x1b[>1:2u\x1b[13;2u");
@@ -187,4 +198,31 @@ fn authority_reset_is_new_construction_not_an_in_band_ris_tracker_reset() {
         screen(ReplyDuty::Silent).input_modes(),
         InputModes::default()
     );
+}
+
+#[test]
+fn recorded_paseo_chunk_loss_behaviour_is_an_explicit_difference() {
+    let raw: Corpus =
+        serde_json::from_str(include_str!("paseo-chunk-loss-behaviour.json")).unwrap();
+    let trace = raw.cases.iter().find(|case| case.name == "0-byte").unwrap();
+    let mut engine = screen(ReplyDuty::NodeAuthority);
+    let steps = &trace.steps[..4];
+    for step in steps {
+        let bytes = base64::engine::general_purpose::STANDARD
+            .decode(&step.bytes)
+            .unwrap();
+        assert!(engine.feed(&bytes).replies.unwrap().as_bytes().is_empty());
+        assert_eq!(step.state.kitty_keyboard_flags, 0);
+    }
+    assert_eq!(engine.input_modes().kitty.get(), 1);
+    let mut whole = screen(ReplyDuty::NodeAuthority);
+    assert!(
+        whole
+            .feed(b"\x1b[>u")
+            .replies
+            .unwrap()
+            .as_bytes()
+            .is_empty()
+    );
+    assert_eq!(engine.input_modes(), whole.input_modes());
 }

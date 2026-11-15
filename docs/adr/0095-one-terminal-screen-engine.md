@@ -163,3 +163,17 @@ are stated type/resource floors versus the reference's unconstrained Number/
 array tracker. No runtime dependency or second scanner is introduced. The
 reference tracker resets only when disposed, so an in-band RIS does not reset
 this negotiated state; new authority construction does.
+
+## Stated difference: chunk-invariant input modes
+
+The actual reference TerminalInputModeTracker loses a standalone ESC chunk:
+its raw regex cannot retain a prefix before ESC[ exists. Thus ESC / [ / > / u
+leaves its flags0, whereas the same original stream in one chunk gives1.
+Vessel keeps the sole VTE decoder's chunk-invariant flags1. Reproducing the
+reference's chunk-loss defect would require the forbidden second raw boundary
+tracker. The raw239-step oracle and its failing log remain unchanged evidence;
+a separate named chunk-loss regression records this deliberate difference.
+The parity oracle freshly invokes the real reference tracker on the accumulated
+original prefix once at every239 checkpoints. Its outputs are not edited, and
+no expected value is deleted or flipped. This is reference observation, not
+ANSI replay into a Vessel engine.
