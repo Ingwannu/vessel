@@ -1,5 +1,9 @@
 # E2 isolated relay registration lifetime
 
+Current disposition: V3 SOURCE PASS through498; all seven new runtime cases
+passed on corrected ef78, but the full gate is RED on one session-start E2E.
+No consumer-ready or full relay-consent claim. Physical DNS work remains open.
+
 Modify the existing NodeLink runner and node Relays accept closure; use std,
 Tokio JoinSet and existing cancellation tokens. A second relay runner or a
 second gateway would have the wrong lifetime. Existing data carriers become
@@ -140,3 +144,33 @@ and fixture bytes remain the reviewed498 source. One full whole is now due
 on this corrected frozen tree; the partial run is not upgraded by that intent.
 When the announced gate49 head arrives, its identical fix must merge cleanly;
 an unexpected conflict is reported instead of rewriting shared source.
+
+
+## Corrected full gate: runtime exercised, E2E red
+
+The approved alias-only correction ran as the frozen whole
+`devices-relay-life-20261115T152818Z-ef78d0fd`. All18 stages actually ran:
+17 returned0; web-e2e returned1. Main Rust totals are2396 passed,0 failed,
+12 ignored, including each of the five pending-owner unit cases and both
+actual secure-carrier/public-run integration cases. Web unit tests464 and
+forge4 passed. TS and all three strict variants passed; this is actual runtime
+evidence, unlike the first partial gate. It is not a green full gate.
+
+The one E2E failure was `app.spec.ts:61`, the terminal session case. It failed
+inside `kit.ts:137` waiting for the new-session route after creating a session;
+key echo was never reached. The other67 E2E cases passed. No web source or
+session-start source was changed by this isolated package. That observation
+alone does not prove a base race, and no test/assertion/deadline is changed.
+Keep both full/partial red logs. No third whole rerun is inferred or submitted.
+The coordinator receives the actual named failure for the next gate decision.
+
+The integrator has now announced gated node9c150c6e (gate50c, protocol24,
+schema20), which includes the identical9df alias change. Its first clean-point
+merge attempt had no alias conflict, but independent pending/diagnostics module
+registrations overlapped in link.rs, plus two appended documentation sections.
+The merge was aborted back to exact ef78 after preserving a private conflict
+patch. The additive registrations and both documentation sections will be kept
+when merging again; no foreign diagnostics behavior will be replaced.
+This does not turn ef78 results into a combined9c source pass. Physical DNS
+worker and repeated-toggle resource bounds remain unproved; settings/consent
+UI remains outside this lifetime seam.
