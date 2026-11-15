@@ -130,3 +130,23 @@ fn retained_runs_show_the_actual_directory_without_claiming_the_project_root() {
         crate::workspace::command_changes::Listed::of(&data.scripts.commands).unwrap();
     assert_eq!(Entry::of(&scripts[0]).observed_dir, None);
 }
+
+#[test]
+fn changed_declarations_do_not_relabel_the_command_a_recorded_run_restarts() {
+    let base = target();
+    let previous = run(&base);
+    let changed = ScriptEntry::new(
+        "dev".parse().unwrap(),
+        ScriptKind::Script,
+        "new approved command".parse().unwrap(),
+        None,
+        None,
+    )
+    .unwrap();
+    let declared = Entry::of(&changed);
+    let observed = Entry::retained(&previous).unwrap();
+    assert_eq!(declared.command.as_str(), "new approved command");
+    assert_eq!(observed.command.as_str(), "serve");
+    assert_eq!(observed.kind, ScriptKind::Service);
+    assert_eq!(observed.observed_dir, Some(previous.folder.as_path()));
+}

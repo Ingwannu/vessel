@@ -257,9 +257,54 @@ fn script_row(
                     |folder| folder.display().to_string(),
                 )),
         )
+        .children(if observed_dir.is_none() {
+            actual_run(shell, run, tokens)
+        } else {
+            None
+        })
+        .children(run.filter(|run| run.status.is_live()).map(|_run| {
+            div()
+                .type_(Type::Meta)
+                .text_color(tokens.neutral.foreground_muted)
+                .child(words.restart_uses_run().to_owned())
+        }))
         .child(actions)
         .child(ports::for_run(card, run, tokens, cx))
 }
+fn actual_run(shell: &Shell, run: Option<&TerminalInfo>, tokens: &Tokens) -> Option<Div> {
+    let Entry {
+        name: _,
+        kind,
+        command,
+        dir: _,
+        port: _,
+        observed_dir,
+    } = Entry::retained(run?)?;
+    let words = shell.words.scripts();
+    let kind = match kind {
+        ScriptKind::Script => words.script(),
+        ScriptKind::Service => words.service(),
+    };
+    Some(
+        div()
+            .flex()
+            .flex_col()
+            .gap(px(spacing::S1_5))
+            .child(
+                div()
+                    .type_(Type::Meta)
+                    .text_color(tokens.neutral.foreground_muted)
+                    .child(words.observed_run().to_owned()),
+            )
+            .child(div().type_(Type::Meta).child(kind.to_owned()))
+            .child(div().type_(Type::Mono).child(command.to_string()))
+            .children(
+                observed_dir
+                    .map(|folder| div().type_(Type::Meta).child(folder.display().to_string())),
+            ),
+    )
+}
+
 fn row_actions(
     card: &Card<'_>,
     name: &vessel_proto::scripts::ScriptName,

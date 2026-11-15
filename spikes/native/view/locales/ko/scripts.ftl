@@ -156,3 +156,8 @@ scripts-terminal-approval-pending = 터미널 정의를 확인할 수 있습니�
 
 # Passive reveal of this exact script TerminalId in the same workspace layout.
 scripts-open-terminal = 터미널 열기
+
+# Runtime facts are distinct from the current project file declaration.
+scripts-observed-run = 기록된 실행 명령 및 디렉터리
+# Existing script.restart repeats its captured run plan, even if the file changed.
+scripts-restart-uses-run = 재시작은 이 실행에 저장된 명령과 작업 디렉터리를 다시 사용합니다.

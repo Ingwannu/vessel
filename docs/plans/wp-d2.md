@@ -317,3 +317,10 @@ Retained processes render TerminalInfo.folder as their observed directory. A
 session-placed terminal or an omitted TerminalPlace.dir does not prove that an
 old command ran at the project root. Current configured rows still render the
 exact approved relative dir; observed cwd is a separate presentation field.
+
+Existing service/scripts.rs216-242 restarts the stored run plan and approved
+digest, not the newly displayed file command. Configured rows now show both the
+current declaration and recorded TerminalKind command/kind plus actual folder;
+the explicit Restart note states which command/directory are repeated. Retained
+rows already show that recorded plan. A changed file therefore cannot silently
+relabel the command a Restart action will execute.

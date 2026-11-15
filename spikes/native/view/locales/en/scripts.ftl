@@ -156,3 +156,8 @@ scripts-terminal-approval-pending = These terminal definitions are shown for ins
 
 # Passive reveal of this exact script TerminalId in the same workspace layout.
 scripts-open-terminal = Open terminal
+
+# Runtime facts are distinct from the current project file declaration.
+scripts-observed-run = Recorded run command and directory
+# Existing script.restart repeats its captured run plan, even if the file changed.
+scripts-restart-uses-run = Restart repeats this run's command and working directory.
