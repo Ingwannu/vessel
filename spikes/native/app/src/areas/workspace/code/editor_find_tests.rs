@@ -201,3 +201,31 @@ fn source_navigation_uses_scalars_and_clamps_stale_line_targets(cx: &mut TestApp
         });
     });
 }
+
+#[gpui::test]
+fn global_find_yields_to_actual_editor_focus_but_not_its_displayed_path(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(Probe::new);
+    probe.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            shell.route = crate::routes::Route::Session;
+            shell.areas.workspace.code.open = true;
+            shell.areas.workspace.code.tab = super::super::Tab::Files;
+            let editor = editing(shell).editor.as_ref().unwrap().clone();
+            editor.focus(window, cx);
+            assert!(shell.file_find_at_focus(window, cx));
+            assert!(matches!(editor.find_state(cx), FindState::Open { .. }));
+            shell.areas.session.composer.focus(window, cx);
+            assert!(
+                !shell.file_find_at_focus(window, cx),
+                "a displayed editor cannot steal the composer's Find"
+            );
+            shell.areas.workspace.code.open = false;
+            editor.focus(window, cx);
+            assert!(
+                !shell.file_find_at_focus(window, cx),
+                "an unmounted legacy owner does not route keys"
+            );
+        });
+    });
+}

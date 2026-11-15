@@ -217,6 +217,9 @@ impl Shell {
             Action::PreviousSession => return self.step_to(Step::Previous, window, cx),
             Action::JumpSession => return self.jump_to(index, window, cx),
             Action::Find => {
+                if self.file_find_at_focus(window, cx) {
+                    return true;
+                }
                 if self.route != Route::Session {
                     return false;
                 }

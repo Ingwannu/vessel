@@ -72,6 +72,11 @@ impl FindPanel {
         })
     }
 
+    pub(super) fn has_focus(&self, window: &Window, cx: &gpui::App) -> bool {
+        self.query.focus_handle(cx).is_focused(window)
+            || self.replacement.focus_handle(cx).is_focused(window)
+    }
+
     fn move_match(&mut self, direction: FindDirection, cx: &mut Context<'_, Self>) {
         self.editor.find_move(direction, cx);
         cx.notify();
@@ -235,5 +240,48 @@ impl FindPanel {
                     this.replace(ReplaceScope::All, window, cx);
                 })),
             )
+    }
+}
+
+impl Shell {
+    /// The existing global Find dispatcher yields only to this actual focused
+    /// source owner. Displayed path or selected-session state alone cannot win.
+    pub(crate) fn file_find_at_focus(
+        &mut self,
+        window: &Window,
+        cx: &mut Context<'_, Self>,
+    ) -> bool {
+        let panel = &self.areas.workspace.code;
+        if self.route != crate::routes::Route::Session
+            || !panel.open
+            || panel.tab != super::Tab::Files
+        {
+            return false;
+        }
+        let Some(key) = panel.file_key() else {
+            return false;
+        };
+        let Some(viewer) = &panel.files.viewer else {
+            return false;
+        };
+        if panel.scope().as_ref() != Some(&viewer.scope) {
+            return false;
+        }
+        let Some(editing) = &viewer.edit else {
+            return false;
+        };
+        let Some(editor) = &editing.editor else {
+            return false;
+        };
+        let focused = editor.has_focus(window, cx)
+            || editing.find.as_ref().is_some_and(|find| {
+                let find = find.read(cx);
+                find.key == key && find.has_focus(window, cx)
+            });
+        if !focused {
+            return false;
+        }
+        editor.open_find(cx);
+        true
     }
 }

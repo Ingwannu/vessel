@@ -2,7 +2,7 @@
 //! matching implementation or a component-owned search box/theme.
 
 use super::CodeEditor;
-use gpui::{App, Window};
+use gpui::{App, Focusable as _, Window};
 
 /// Literal search case policy.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -59,6 +59,12 @@ pub enum FindState {
 }
 
 impl CodeEditor {
+    /// Query the existing engine's actual focus without another registry.
+    #[must_use]
+    pub fn has_focus(&self, window: &Window, cx: &App) -> bool {
+        self.state.read(cx).focus_handle(cx).is_focused(window)
+    }
+
     /// Snapshot the existing search session without rescanning the document.
     #[must_use]
     pub fn find_state(&self, cx: &App) -> FindState {
