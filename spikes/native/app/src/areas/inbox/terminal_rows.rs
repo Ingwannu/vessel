@@ -55,7 +55,7 @@ pub(super) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
                 .child(
                     div()
                         .type_(Type::Meta)
-                        .child(words::bucket(row.bucket(), shell.words)),
+                        .child(words::terminal(row, shell.words)),
                 );
             if let Some(state) = row
                 .attention

@@ -119,3 +119,8 @@ inbox-bucket-done = Done
 inbox-terminals = Terminals
 # Fallback name for a terminal without a user-supplied title.
 inbox-terminal-untitled = Untitled terminal
+
+# Explicit terminal producer reports idle.
+inbox-terminal-idle = Idle
+# Plain shells and unsupported activity producers remain unknown.
+inbox-terminal-unknown = Activity unknown

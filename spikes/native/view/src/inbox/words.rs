@@ -51,3 +51,34 @@ pub fn bucket(bucket: super::buckets::Bucket, words: &Translator) -> &str {
         Bucket::Done => words.bucket_done(),
     }
 }
+
+/// A plain shell has unknown activity, even though it contributes no active
+/// workspace bucket. Aggregate Done must not be displayed as a completed job.
+#[must_use]
+pub fn terminal<'a>(row: &super::terminals::Row, words: &'a Translator) -> &'a str {
+    use vessel_proto::notifications::{TerminalActivity, TerminalAttentionReason};
+    let words = words.inbox();
+    if row.bucket() == super::buckets::Bucket::NeedsInput {
+        return words.waiting();
+    }
+    if row.failed {
+        return words.failed();
+    }
+    match row.attention.map(|state| state.activity) {
+        Some(TerminalActivity::Idle) => words.terminal_idle(),
+        Some(TerminalActivity::Working) => words.bucket_working(),
+        Some(TerminalActivity::Attention {
+            reason: TerminalAttentionReason::Finished,
+        }) => words.finished(),
+        Some(TerminalActivity::Attention {
+            reason: TerminalAttentionReason::NeedsInput,
+        }) => words.waiting(),
+        Some(
+            TerminalActivity::Unknown
+            | TerminalActivity::Attention {
+                reason: TerminalAttentionReason::Unknown,
+            },
+        )
+        | None => words.terminal_unknown(),
+    }
+}

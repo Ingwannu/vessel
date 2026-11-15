@@ -119,3 +119,8 @@ inbox-bucket-done = 완료
 inbox-terminals = 터미널
 # Fallback name for a terminal without a user-supplied title.
 inbox-terminal-untitled = 이름 없는 터미널
+
+# Explicit terminal producer reports idle.
+inbox-terminal-idle = 대기 중
+# Plain shells and unsupported activity producers remain unknown.
+inbox-terminal-unknown = 활동 상태를 알 수 없음
