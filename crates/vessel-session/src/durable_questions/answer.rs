@@ -71,16 +71,13 @@ impl StructuredActor {
         let Some(owner) = self.questions.clone() else {
             return self.answer_blocking_question(id, answer).await;
         };
-        let claim = match owner
+        let Ok(claim) = owner
             .claim(self.life.out.session(), id, answer.clone(), target)
             .await
-        {
-            Ok(claim) => claim,
-            Err(_) => {
-                return Ok(unchanged(QuestionResponseState::Refused(
-                    QuestionResponseRefusal::Unavailable,
-                )));
-            }
+        else {
+            return Ok(unchanged(QuestionResponseState::Refused(
+                QuestionResponseRefusal::Unavailable,
+            )));
         };
         let prepared = match claim {
             QuestionClaim::Ready(prepared) => prepared,
