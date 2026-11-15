@@ -1,4 +1,4 @@
-# Expected stream end while a stop completion is pending
+# Expected stream end while stop or Window completion is pending
 
 Status: contract amendment for review before source. No live carrier, stop call,
 ticket or ingress rule changes are enabled by this document.
@@ -34,12 +34,14 @@ pre-send rejection settles the original ticket without fabricating success.
 On an actual normal stream end, W21 first validates the same original delivery
 guard/context at App installation, then passes its exact FollowBinding to W12:
 
-- Without an eligible current stop ticket, the existing full-retirement rule
+- Without an eligible current prearmed stop expectation, the full-retirement rule
   applies. The event cannot create a binding or operation.
 - With that exact current ticket, the same binding becomes sealed. No further
   records, snapshot ingress or new operation admission is accepted from it.
   All other pending operations retire with typed owner notifications; the exact
   stop completion alone remains pending under its existing bounded deadline.
+  If its typed ACK was already consumed, only its exact acknowledged Window work
+  remains held; the consumed wire ticket does not become pending again.
 - Sealing grants no close, archive, fresh-target, draft-clear or retry authority.
   Resident resources, input, selection/IME and owner holds remain retained.
 - The original typed stop completion or correlated refusal settles its ticket
@@ -88,6 +90,40 @@ even a newer metadata read is not an archive acknowledgement.
 Exact method and notice names belong to the reviewed source amendment. There is
 no public bypass flag, second completion map, raw client or admission-from-reply.
 W21 and W12 must consume the same policy in one checked carrier/call-site union.
+
+### ACK before normal end, with Window work still held
+
+The prearmed expectation belongs to the same original binding from prewire
+admission through the final Window disposition. Its bounded state distinguishes
+wire-pending from acknowledged-but-Window-held work. This is one existing
+binding's lifecycle state, not another operation map or a second ticket issuer.
+The original opaque ticket remains correlation evidence after consumption; it
+can never settle a second network reply or authorize a different Window action.
+
+An actual ordered normal End may arrive after the typed ACK but before its
+Window callback. That order seals the same original binding and retires other
+operations while retaining only the already acknowledged, still-held Window
+work. It must not manufacture a pending wire operation, consume another ACK,
+mark the owner Ready, or fully retire solely because the wire ticket was already
+consumed. The same original guard is still required at End installation and
+immediately before the Window commit. W21 retains that guard and original
+context in the existing bounded owner work; neither is reconstructed by alias.
+
+Full retirement always invalidates this expectation and its Window authority,
+including after ACK when no Lifecycle operation remains in the pending ledger.
+The exact binding retirement notification must therefore reach acknowledged
+owner work even when its consumed ticket is absent from the retired-operation
+list. Reattach cannot inherit it. A successful exact Window commit consumes the
+remaining local expectation once. A definitive refusal, original deadline or
+stale/missing Window leaves the typed retained/refused owner state without a new
+wire admission, retry or extended deadline; there is no live expectation that
+could authorize a later Window callback. Protected values remain retained.
+
+Required paired orderings are End -> ACK -> Window commit and ACK -> End ->
+Window commit, with duplicate ACK/End, original deadline, and full retirement
+between every pair. A callback queued before retirement must still fail its
+original guard and current-binding checks. This clarification is contract-only;
+source and real carrier/owner/Window proof remain required.
 
 ### Bilateral owner confirmation
 
