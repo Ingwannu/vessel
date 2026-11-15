@@ -94,6 +94,11 @@ reuses the existing machine-page tickets. Agent snapshots retain the
 reporting `NodeId`, so a reused book name cannot stand in for identity.
 The prepared request is not yet connected to a destructive call or control.
 
+The kit field keeps its editor factories, weak IME registry and events in
+`field.rs`; `field/presentation.rs` draws the existing form/composer shells
+and `field/styles.rs` projects tokens onto the same engines. Original public
+entry points are re-exported unchanged; composer hooks retain their contract.
+
 The existing agent-option query/cache method lives in private native
 `link/src/options.rs`; the root actor still calls it for `Command::Options`.
 Its module split changes no request, cache order or event.
@@ -1379,3 +1384,9 @@ capture obligation. Vendor patch7 and its precise source/runtime/paint limitatio
 spikes/release/patches/README.md. The optional `mapped_diff_audit` example is a
 control-only capture surface, unbuilt/unrun; it cannot prove C3 first-use. This
 isolated producer does not include C3 View/Link/app or any root-runtime changes.
+
+`TextField::select_all` uses the existing engine for line and multiline
+fields. Rename consumes the shared typed `Editability` at dispatch/answer;
+its `rename_element` profile wraps the same bare editor. The kit-internal
+`field::settings_frame` shares only the inset-focus bridge with Appearance
+profiles, leaving chrome to each profile and all events in the one engine.
