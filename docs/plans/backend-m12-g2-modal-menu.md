@@ -39,3 +39,11 @@ routing and no underlying action. A literal default/layer regression pins1/3.
 Existing menu tests are unchanged. Source is committed before narrow checks;
 no compile/runtime/UI/consumer proof is claimed yet. Actual focused TextField,
 long/scroll/clip/overlap and G1 saved-entry first-use captures remain owed.
+
+Exact1bb priority Kit Clippy reached the changed Kit and stopped before tests:
+the new Content builder was incorrectly const despite ElementId destruction,
+the literal-priority helper was private to draw instead of its parent test
+module, and two imported paths were redundantly qualified. The correction
+uses an ordinary builder, parent-only priority visibility and short imported
+names. No geometry/input/expected value or old test changes; old run stays red.
+Corrected narrow/source/actual first-use proof remains owed.
