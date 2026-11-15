@@ -152,3 +152,17 @@ plan itself is not an implementation approval.
 No profile service call, controller, editor, marker or draft/live mutation has
 been enabled. A9 and A10 remain unfinished; no whole package gate, captures or
 feature approval follows from this document.
+
+
+## Resume order
+
+Wait for N3's reviewed, assigned canonical implementation/schema handoff and
+the checked real queued-delivery producer; do not consume staged814/current DTOs.
+Reconcile the combined base9/A9 tree with a narrow check before resuming code.
+Coordinate B2 for the actual draft/live target and option owner, and F5 before
+any local migration marker schema/write. Then build the pure rules and their
+source fixtures, followed by link/area consumers through existing shared controls.
+All private fake nodes/display and their captured children are stopped; no
+background build/capture job or legacy-data/credential read is left running.
+Only own six tracker rows were annotated with this documentation status; all
+remain skeleton with consumers/markers unimplemented.

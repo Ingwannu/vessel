@@ -679,3 +679,10 @@ ADR0076's contract/document pass, but no assigned/callable A10 implementation
 exists either. The separate wp-A10.md records only its app contract/dependency
 audit; neither package is marked built/passed. No final whole gate or capture
 family is spent while these required producers are unavailable.
+
+
+Owned private runtime cleanup completed under UID/GID1000: both fake nodes,
+the authenticated virtual display and their14 captured child processes exited
+after reverified PID/start-time/executable ownership checks. No live preview,
+service or production permission changed. Private fleet directory0700 and
+display authority0600 were preserved. No own gate/capture job is left waiting.
