@@ -257,6 +257,33 @@ fn production_zoom_runs_after_shell_borrow_and_preserves_dpi_bounds_and_saved_st
 }
 
 #[gpui::test]
+fn queued_half_steps_reach_both_native_zoom_limits_without_changing_platform_bounds(
+    cx: &mut TestAppContext,
+) {
+    use vessel_app_view::shortcuts::desktop::DesktopAction;
+    crate::shell::language_tests::init(cx);
+    cx.update(|cx| cx.set_global(test_desktop()));
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, watch_window);
+    let bounds = cx.update(|window, _cx| window.window_bounds());
+    for (action, limit) in [
+        (DesktopAction::ZoomOut, Window::MIN_ZOOM),
+        (DesktopAction::ZoomIn, Window::MAX_ZOOM),
+    ] {
+        shell.update_in(cx, |shell, window, cx| {
+            for _ in 0..100 {
+                assert!(shell.run_desktop_shortcut(action, window, cx));
+            }
+        });
+        cx.run_until_parked();
+        cx.update(|window, _cx| {
+            assert_eq!(window.zoom().to_bits(), limit.to_bits());
+            assert_eq!(window.window_bounds(), bounds);
+        });
+    }
+}
+
+#[gpui::test]
 fn extra_window_zoom_is_independent_and_replaced_root_refuses_a_queued_zoom(
     cx: &mut TestAppContext,
 ) {

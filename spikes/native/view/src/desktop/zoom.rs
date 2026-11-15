@@ -3,7 +3,7 @@
 use serde::{Deserialize, Deserializer, Serialize};
 
 const MIN_STEP: i8 = -16;
-const MAX_STEP: i8 = 16;
+const MAX_STEP: i8 = 18;
 const HALF_LEVEL: f32 = 0.5;
 const ZOOM_BASE: f32 = 1.2;
 
@@ -35,7 +35,7 @@ impl<'de> Deserialize<'de> for ZoomLevel {
 }
 
 impl ZoomLevel {
-    /// Repeated input saturates at the reference's minimum and maximum levels.
+    /// Half-steps span the native host's zoom limits without unbounded counters.
     pub fn adjust(&mut self, change: ZoomChange) {
         self.0 = match change {
             ZoomChange::In => self.0.saturating_add(1).min(MAX_STEP),
@@ -62,7 +62,7 @@ mod tests {
         let encoded = serde_json::to_string(&zoom).unwrap();
         assert_eq!(encoded, "1");
         assert_eq!(serde_json::from_str::<ZoomLevel>(&encoded).unwrap(), zoom);
-        for invalid in ["17", "-17", "1.5", "null"] {
+        for invalid in ["19", "-17", "1.5", "null"] {
             assert!(serde_json::from_str::<ZoomLevel>(invalid).is_err());
         }
     }

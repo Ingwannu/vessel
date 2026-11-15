@@ -187,7 +187,7 @@ package does not edit a second menu renderer or work around it by reopening.
 Shell::run_desktop_shortcut is shared by menu and keyboard consumers. Base9 now
 contains the lead's production Window::set_zoom/zoom API for layout, paint and
 hit testing on top of native DPI. The app uses its existing half-level model;
-the fork clamps the extreme lower step to its0.25 minimum (maximum5). No rem
+the fork clamps the extreme steps to its0.25 minimum and5 maximum. No rem
 or test-only scale substitute is used. Native/window menu zoom entries now use
 the same adapter, with per-window state; additional windows start at actual size.
 The first window remembers its validated integer step in window-state version2;
