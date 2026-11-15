@@ -378,3 +378,9 @@ and release the permit. Comparison and history must both settle GitTargetChanged
 snapshot or follow the replacement. Test-only permit/Notify access adds no
 production wakeup, map or second queue. Prior860 and c840 remote runs exclude
 this correction; changed-source remote checks are still required.
+
+The V3 values-leaf review also applies to the runtime branch's family fixture:
+unassigned git.compare, git.compare_file and git.history stay outside
+WORKSPACE_FAMILIES_LATER. The shared family guard and the package's explicit
+Read/unary/None fixtures both remain active until assignment. This changes only
+the test guard, not node admission or a pending runtime row.
