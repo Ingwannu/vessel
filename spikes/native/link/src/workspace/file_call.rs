@@ -12,6 +12,15 @@ impl Client<'_> {
     pub(super) async fn call<R: Unary>(&self, request: R) -> Result<R::Response, Problem> {
         self.timed(request, FILE_CALL_DEADLINE).await
     }
+    // A local deadline can lose the only terminal answer while filesystem
+    // work still runs. Keep this original call alive until its response or
+    // connection retirement; the owner retains uncertainty on the latter.
+    pub(super) async fn write(
+        &self,
+        request: vessel_proto::workspace::WriteFile,
+    ) -> Result<vessel_proto::workspace::FileVersion, Problem> {
+        self.0.call(request).await.map_err(problem_of)
+    }
     // Server observation has a 30-second heartbeat and a 60-second task
     // admission deadline. Headroom avoids cancelling its ordinary heartbeat.
     pub(super) async fn observe(
@@ -29,10 +38,14 @@ impl Client<'_> {
         tokio::time::timeout(deadline, selected.call(request))
             .await
             .map_err(|_expired| Problem::Gone("file request deadline elapsed".to_owned()))?
-            .map_err(|error| match error {
-                RequestFailure::Refused(why) => Problem::Gone(why.to_string()),
-                RequestFailure::Call(error) => closed_problem(&error),
-            })
+            .map_err(problem_of)
+    }
+}
+
+fn problem_of(error: RequestFailure) -> Problem {
+    match error {
+        RequestFailure::Refused(why) => Problem::Gone(why.to_string()),
+        RequestFailure::Call(error) => closed_problem(&error),
     }
 }
 

@@ -75,8 +75,8 @@ worktree's temporary equivalent must not become a feature commit.
 The SDK exposes `read_workspace_byte_page`, `inspect_workspace_directory`,
 `duplicate_workspace_entry`, `observe_workspace_file` and
 `suggest_workspace_entries`, with a 70-second call deadline above the node's
-60-second operation deadline. Timeouts explicitly do not prove that a write
-failed: refresh before retrying. The node's tracked task owns its operation
+60-second operation deadline. Timeouts do not prove that a mutation failed or ended. A later refresh
+cannot release an original effect with no terminal evidence; never blindly retry. The node's tracked task owns its operation
 permit until actual completion, even if its caller disconnects or times out.
 Observer tasks likewise retain their bounded principal wait and observer
 slot until they finish. No second task registry or store is introduced.
@@ -126,3 +126,37 @@ BOM/space-only queries become blank child listings; interior BOM stays literal.
 These cap/control rules are explicit Vessel resource/one-line differences,
 not Paseo parity claims. Direct and serde fixtures cover Unicode scalars, raw
 length boundaries, BOM-wrapped input and edge/interior prohibited characters.
+
+### Source write terminal evidence
+
+The existing direct file.write path awaits Workspaces::write_file, then
+vessel-workspace's blocking write closure, before sending success or an error.
+Conflict is rejected before replacement; an Internal I/O error can also follow
+a successful replacement while acquiring the final version. Authentication and
+policy refusals precede filesystem invocation. No new terminal-fence protocol
+is added: this reasoning applies only to that original direct handler response,
+not a forwarded operation, timed-out task or generic remote error.
+
+The native owner therefore distinguishes Pending, terminal-but-unreconciled
+Ended, and no-terminal-evidence Uncertain within its existing original attempt.
+A read asked only after Ended can reconcile the saved baseline; earlier reads
+are fenced by their original ticket/sequence. A failed confirmation retains the
+original cause; baseline equality never schedules an automatic retry. Later
+local edits require a new save/edit intent before implicit flushing resumes.
+
+There is no client deadline on the original direct write. Losing its terminal
+answer to disconnect, unexpected reply or connection retirement leaves the
+uncertain obligation sticky across reads, reconnect and undo. A still-running
+blocking write can otherwise publish after any reassuring read. Such an owner
+may remain held for the app run; there is no recovery journal or forced-exit
+preservation claim. This availability cost is accepted rather than inventing
+termination from content equality. Source/owner/framed regressions are added
+on the native side and require its own exact changed-source execution receipt.
+
+### Pending git cache writer connection
+
+The git comparison owner will join its single before/after mutation invalidator
+to the existing Workspaces writers, preserving invalidation on partial failure.
+No second git cache or watcher is introduced by file observation. The proposed
+C3 runtime hook is not yet an admitted dependency; this is a pending integration
+connection rather than a claim that comparison-cache invalidation is installed.

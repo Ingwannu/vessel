@@ -158,7 +158,7 @@ impl Shell {
         let Some((_, sequence)) = editing.reading.take_if(|(at, _)| *at == ticket) else {
             return true;
         };
-        let first = editing.editor.is_none();
+        let first = editing.model.version().is_none();
         let read = match result {
             Ok(read) => match &read.content {
                 FileContent::Text { text, next: None }
@@ -170,14 +170,27 @@ impl Shell {
                     if first {
                         return false;
                     }
-                    Read::Failed(words.labels().read_failed.to_owned())
+                    Read::Unverified
                 }
             },
             Err(problem) if problem.code() == Some(ErrorCode::NotFound) => Read::Deleted,
             Err(problem) => Read::Failed(words.problem(problem)),
         };
         let before = editing.model.content().to_owned();
+        let ended = (editing.model.write_state()
+            == Some(vessel_app_view::workspace::editor::WriteState::Ended))
+        .then(|| editing.model.writing())
+        .flatten();
         let step = editing.model.read(sequence, read);
+        if let Some(original) = ended
+            && editing.model.writing().is_none()
+            && editing
+                .writing
+                .as_ref()
+                .is_some_and(|attempt| attempt.sequence == original)
+        {
+            editing.writing = None;
+        }
         editing.stale = editing.editor.is_some() && editing.model.content() != before;
         if let Some(viewer) = self.areas.workspace.code.viewer_for(key)
             && let Some(preview) = &mut viewer.markdown
@@ -214,11 +227,12 @@ impl Shell {
         if !current {
             editing.model.retire_observations();
         }
-        if !matches!(saved, Saved::Uncertain(_)) {
+        if !matches!(saved, Saved::Uncertain(_) | Saved::Ended(_)) {
             editing.writing = None;
         }
         let written = match saved {
             Saved::Uncertain(problem) => Written::Uncertain(words.problem(&problem)),
+            Saved::Ended(problem) => Written::Ended(words.problem(&problem)),
             Saved::Saved(version) if current => Written::Saved(version),
             Saved::Saved(_) => Written::UnverifiedConflict,
             Saved::Missing { .. } if current => Written::Deleted,
@@ -228,12 +242,43 @@ impl Shell {
             Saved::Failed(failure) => Written::Failed(words.save_failure(&failure)),
         };
         let step = editing.model.saved(sequence, written);
+        if editing.model.write_state()
+            == Some(vessel_app_view::workspace::editor::WriteState::Ended)
+        {
+            // Step::Read is one effect, so retire pre-error autosave timers
+            // here before sending that read; only a new user intent resumes.
+            editing.autosave = editing.autosave.wrapping_add(1);
+        }
+        let step = if !current && matches!(&step, Step::Read { .. }) {
+            Step::None
+        } else {
+            step
+        };
         self.run_step_for(key.clone(), step, cx);
         self.reconcile_watched_file(key, cx);
     }
 
-    /// Conflict actions keep the originating buffer rather than looking up a
-    /// selected file again when their queued click is dispatched.
+    /// Only a terminal original response permits a new confirmation read. The
+    /// original write ticket remains held until that keyed read can reconcile it.
+    pub(super) fn editor_confirm_saved_for(
+        &mut self,
+        key: &super::buffers::FileKey,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let Some(editing) = self.editing_for(key) else {
+            return;
+        };
+        if editing.model.write_state()
+            != Some(vessel_app_view::workspace::editor::WriteState::Ended)
+            || editing.reading.is_some()
+        {
+            return;
+        }
+        let step = editing.model.reconcile();
+        self.run_step_for(key.clone(), step, cx);
+    }
+
+    /// Conflict actions keep the originating buffer when their click is queued.
     pub(super) fn editor_overwrite(
         &mut self,
         key: &super::buffers::FileKey,

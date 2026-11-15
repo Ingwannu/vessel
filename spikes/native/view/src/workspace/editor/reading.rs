@@ -13,11 +13,11 @@ impl EditorModel {
         if !self.loaded() {
             return match read {
                 Read::Text(text, version) => self.apply(&text, version),
-                Read::Deleted | Read::Failed(_) => {
+                Read::Deleted | Read::Unverified | Read::Failed(_) => {
                     self.status = EditorStatus::Failed;
                     self.error = match read {
                         Read::Failed(sentence) => Some(sentence),
-                        Read::Deleted | Read::Text(..) => None,
+                        Read::Deleted | Read::Unverified | Read::Text(..) => None,
                     };
                     Step::None
                 }
@@ -27,6 +27,9 @@ impl EditorModel {
         // Do not replay such an observation when definitive completion arrives.
         if self.write_state() == Some(super::WriteState::Uncertain) {
             return Step::None;
+        }
+        if self.write_state() == Some(super::WriteState::Ended) {
+            return self.read_ended(read);
         }
         if self.writing.is_some() {
             self.read_during_write = Some(read);
@@ -39,6 +42,7 @@ impl EditorModel {
         }
         match read {
             Read::Deleted => self.enter_conflict(ConflictKind::Deleted),
+            Read::Unverified => self.enter_conflict(ConflictKind::Unverified),
             // A reload that fails keeps the buffer (Paseo: a loaded editor
             // ignores a failed read).
             Read::Failed(_) => Step::None,
@@ -72,6 +76,7 @@ impl EditorModel {
     pub(super) fn apply(&mut self, text: &str, version: FileVersion) -> Step {
         let (format, text) = TextFormat::decode(text);
         self.format = format;
+        self.flush_after_recovery = super::FlushAfterRecovery::Automatic;
         self.write_sequence = self.write_sequence.saturating_add(1);
         self.writing = None;
         self.persisted.clone_from(&text);

@@ -61,7 +61,7 @@ pub(super) async fn run(client: &Client<'_>, ask: FileAsk) -> FileAnswer {
 async fn saved(client: &Client<'_>, save: Save) -> FileAnswer {
     let saved = save_existing_text(
         |expect, text| {
-            client.call(WriteFile {
+            client.write(WriteFile {
                 root: save.root,
                 path: save.path.clone(),
                 text,
@@ -94,7 +94,7 @@ async fn path_change(client: &Client<'_>, change: PathChange) -> Result<(), Prob
         PathChange::Rename(ask) => client.call(ask).await.map(drop),
         PathChange::Delete(ask) => client.call(ask).await.map(drop),
         PathChange::CreateFile { root, path } => client
-            .call(WriteFile {
+            .write(WriteFile {
                 root,
                 path,
                 text: String::new(),

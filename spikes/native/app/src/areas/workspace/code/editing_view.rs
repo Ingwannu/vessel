@@ -76,8 +76,42 @@ pub(super) fn body(
         )
         .children(editing.find.clone())
         .children(conflict_bar(shell, editing, key.clone(), tokens, cx))
+        .children(write_recovery(shell, editing, key.clone(), tokens, cx))
         .child(div().flex_1().min_h_0().child(editor.element(tokens, cx)))
         .into_any_element()
+}
+
+/// Recovery reads are offered only after a terminal original-handler reply.
+fn write_recovery(
+    shell: &Shell,
+    editing: &Editing,
+    key: super::buffers::FileKey,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Option<Div> {
+    use vessel_app_view::workspace::editor::WriteState;
+    let labels = shell.words().labels();
+    let state = editing.model.write_state()?;
+    let content = match state {
+        WriteState::Pending => return None,
+        WriteState::Uncertain => div().child(labels.editor_write_unconfirmed),
+        WriteState::Ended if editing.reading.is_some() => div().child(labels.loading),
+        WriteState::Ended => div().child(
+            button(
+                "source-confirm-saved",
+                labels.editor_confirm_saved,
+                false,
+                tokens,
+            )
+            .on_click(cx.listener(move |shell, _, _, cx| shell.editor_confirm_saved_for(&key, cx))),
+        ),
+    };
+    Some(
+        content
+            .p(px(spacing::S2))
+            .type_(Type::Meta)
+            .text_color(tokens.neutral.foreground_muted),
+    )
 }
 
 /// The size and lines; the save state; the caret and the selection's

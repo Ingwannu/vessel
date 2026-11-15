@@ -1273,8 +1273,13 @@ one original obligation across undo, reads and reconnect, including when parked.
 Readonly source acquisition reuses existing typed file.read pages with one
 original scope, consistent returned versions, exact byte continuation, finite
 round trips and deadline. Native display budgets are 1 MiB highlighted/10 MiB
-plain; oversized files are explicit. Thirty-two retained owners and 32 MiB
-logical readonly source payload bound the cache; this is not a process-heap
+plain; oversized files are explicit. The original direct write has no local
+timeout. A terminal handler error
+requires a new keyed confirmation read; losing the original answer leaves a
+sticky uncertain write that no read or reconnect releases. Confirmation never
+automatically replays later edits. Forced exit has no recovery journal.
+Thirty-two retained owners and 32 MiB logical readonly source payload bound
+the cache; this is not a process-heap
 bound. Only disposable parked sources can make room. The legacy node's separate
 version and text reads are not an immutable snapshot guarantee.
 

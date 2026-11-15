@@ -39,6 +39,8 @@ impl Shell {
                 || viewer.edit.as_ref().is_some_and(|editing| {
                     editing.model.status()
                         == vessel_app_view::workspace::editor::EditorStatus::Failed
+                        || editing.model.write_state()
+                            == Some(vessel_app_view::workspace::editor::WriteState::Ended)
                 });
             let rebound = viewer.scope != scope;
             if rebound {
@@ -63,6 +65,7 @@ impl Shell {
                         let step = editing.model.reconcile();
                         if matches!(step, vessel_app_view::workspace::editor::Step::None)
                             && editing.editor.is_none()
+                            && editing.model.write_state().is_none()
                         {
                             vessel_app_view::workspace::editor::Step::Read {
                                 sequence: editing.model.reading(),

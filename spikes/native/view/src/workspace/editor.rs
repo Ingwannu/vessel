@@ -24,9 +24,10 @@
 //!   can admit observation, disk changes require a save or explicit reread.
 
 mod reading;
+mod settled;
 mod write_attempt;
-use write_attempt::WriteAttempt;
 pub use write_attempt::WriteState;
+use write_attempt::{FlushAfterRecovery, WriteAttempt};
 
 use super::text_format::{TextFormat, normalize_lines};
 use vessel_proto::workspace::FileVersion;
@@ -100,6 +101,8 @@ pub enum Written {
     UnverifiedConflict,
     /// Not written, for another reason (the panel's sentence).
     Failed(String),
+    /// Original direct handler ended; request a new read before settling its effect.
+    Ended(String),
     /// Possibly sent; only definitive original completion can release its hold.
     Uncertain(String),
 }
@@ -111,6 +114,8 @@ pub enum Read {
     Text(String, FileVersion),
     /// The file is gone.
     Deleted,
+    /// Existing saved content could not be represented as whole editable text.
+    Unverified,
     /// Not read (the panel's sentence).
     Failed(String),
 }
@@ -134,6 +139,7 @@ pub struct EditorModel {
     read_during_write: Option<Read>,
     /// The read out is a reload: its text replaces the buffer.
     reloading: bool,
+    flush_after_recovery: FlushAfterRecovery,
 }
 
 /// Paseo's autosave delay.
@@ -177,6 +183,7 @@ impl EditorModel {
             writing: None,
             read_during_write: None,
             reloading: false,
+            flush_after_recovery: FlushAfterRecovery::Automatic,
         }
     }
 
@@ -274,10 +281,14 @@ impl EditorModel {
             return Step::None;
         }
         self.content = content;
-        if self.write_state() == Some(WriteState::Uncertain) {
+        if matches!(
+            self.write_state(),
+            Some(WriteState::Uncertain | WriteState::Ended)
+        ) {
             self.status = EditorStatus::Error;
             return Step::StopAutosave;
         }
+        self.flush_after_recovery = FlushAfterRecovery::Automatic;
         self.error = None;
         if self.status == EditorStatus::Conflict {
             return Step::None;
@@ -329,7 +340,9 @@ impl EditorModel {
     /// after a git write): a clean buffer follows it, a modified one
     /// conflicts (Paseo's `reconcile`).
     pub fn reconcile(&mut self) -> Step {
-        if !self.loaded() && self.status != EditorStatus::Failed {
+        if (!self.loaded() && self.status != EditorStatus::Failed)
+            || self.write_state() == Some(WriteState::Uncertain)
+        {
             return Step::None;
         }
         self.read_sequence = self.read_sequence.saturating_add(1);
@@ -343,6 +356,7 @@ impl EditorModel {
     /// first, guarded (Paseo's `dispose({ flush: true })`).
     pub fn flush(&mut self) -> Step {
         if self.writing.is_none()
+            && self.flush_after_recovery == FlushAfterRecovery::Automatic
             && self.modified()
             && self.loaded()
             && self.status != EditorStatus::Conflict
@@ -354,6 +368,7 @@ impl EditorModel {
     }
 
     fn write(&mut self, base: Option<FileVersion>) -> Step {
+        self.flush_after_recovery = FlushAfterRecovery::Automatic;
         self.write_sequence = self.write_sequence.saturating_add(1);
         let sequence = self.write_sequence;
         self.writing = Some(WriteAttempt {
@@ -390,6 +405,24 @@ impl EditorModel {
             self.read_sequence = self.read_sequence.saturating_add(1);
             return Step::StopAutosave;
         }
+        if let Written::Ended(sentence) = &written {
+            let Some(attempt) = self
+                .writing
+                .as_mut()
+                .filter(|attempt| attempt.sequence == sequence)
+            else {
+                return Step::None;
+            };
+            attempt.state = WriteState::Ended;
+            self.flush_after_recovery = FlushAfterRecovery::NewIntentRequired;
+            self.status = EditorStatus::Error;
+            self.error = Some(sentence.clone());
+            self.read_during_write = None;
+            self.read_sequence = self.read_sequence.saturating_add(1);
+            return Step::Read {
+                sequence: self.read_sequence,
+            };
+        }
         let Some(WriteAttempt { text, .. }) =
             self.writing.take_if(|attempt| attempt.sequence == sequence)
         else {
@@ -407,7 +440,7 @@ impl EditorModel {
                     Step::None
                 }
             }
-            Written::Uncertain(_) => Step::StopAutosave,
+            Written::Uncertain(_) | Written::Ended(_) => Step::StopAutosave,
             Written::UnverifiedConflict => self.enter_conflict(ConflictKind::Unverified),
             Written::Changed => self.enter_conflict(ConflictKind::Changed),
             Written::Deleted => self.enter_conflict(ConflictKind::Deleted),

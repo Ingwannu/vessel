@@ -52,7 +52,10 @@ pub enum Saved {
     },
     /// Not written, for another reason.
     Failed(SaveFailure),
-    /// The write may have happened. Retain its original obligation; do not retry.
+    /// The original direct write handler ended with an error. A later read
+    /// may reconcile its effect; the draft is not yet known to be saved.
+    Ended(Problem),
+    /// The write may still be running. Retain its original obligation; do not retry.
     Uncertain(Problem),
 }
 
@@ -81,12 +84,12 @@ pub fn save_guard(base: Option<&FileVersion>) -> Option<WriteExpect> {
 
 /// A refused write, read back for the banner.
 #[derive(Clone, Copy)]
-enum MissingReadback {
-    LegacyConflict,
-    Deleted,
+enum SaveProfile {
+    Generic,
+    Source,
 }
 
-fn conflict_of(read: Result<FileRead, Problem>, mine: String, missing: MissingReadback) -> Saved {
+fn conflict_of(read: Result<FileRead, Problem>, mine: String, profile: SaveProfile) -> Saved {
     match read {
         Ok(read) => {
             // Only a file read whole in its first page is compared line by
@@ -108,7 +111,7 @@ fn conflict_of(read: Result<FileRead, Problem>, mine: String, missing: MissingRe
         }
         Err(problem)
             if problem.code() == Some(ErrorCode::NotFound)
-                && matches!(missing, MissingReadback::Deleted) =>
+                && matches!(profile, SaveProfile::Source) =>
         {
             Saved::Missing { mine }
         }
@@ -136,7 +139,7 @@ where
     R: FnOnce() -> RF,
     RF: Future<Output = Result<FileRead, Problem>>,
 {
-    save_guarded(write, read, text, base, MissingReadback::LegacyConflict).await
+    save_guarded(write, read, text, base, SaveProfile::Generic).await
 }
 
 async fn save_guarded<W, WF, R, RF>(
@@ -144,7 +147,7 @@ async fn save_guarded<W, WF, R, RF>(
     read: R,
     text: String,
     base: Option<&FileVersion>,
-    missing: MissingReadback,
+    profile: SaveProfile,
 ) -> Saved
 where
     W: FnOnce(WriteExpect, String) -> WF,
@@ -161,9 +164,12 @@ where
         // Only a guarded write's refusal is a conflict to show; an
         // Overwrite's failure is said as the node said it.
         Err(problem) if guarded && problem.code() == Some(ErrorCode::Conflict) => {
-            conflict_of(read().await, text, missing)
+            conflict_of(read().await, text, profile)
         }
         Err(problem) if known_not_written(&problem) => Saved::Failed(SaveFailure::Call(problem)),
+        Err(problem) if matches!(profile, SaveProfile::Source) && problem.code().is_some() => {
+            Saved::Ended(problem)
+        }
         Err(problem) => Saved::Uncertain(problem),
     }
 }
@@ -188,6 +194,13 @@ pub fn known_not_written(problem: &Problem) -> bool {
 ///
 /// The returned outcome preserves the draft on missing, uneditable, unknown,
 /// or changed files. At most one write is attempted and none is replayed.
+///
+/// `write` must be the original direct `file.write` call: that handler awaits
+/// filesystem completion before answering, including errors after publication.
+/// An actual node error therefore proves termination, not absence of effects;
+/// `Saved::Ended` requires a new read after that answer. A transport failure
+/// proves neither and stays `Saved::Uncertain`. This is not a contract for a
+/// forwarded mutation or for a timeout response from another task.
 pub async fn save_existing_text<W, WF, R, RF>(
     write: W,
     read: R,
@@ -201,7 +214,7 @@ where
     RF: Future<Output = Result<FileRead, Problem>>,
 {
     if base.is_some() {
-        return save_guarded(write, read, text, base, MissingReadback::Deleted).await;
+        return save_guarded(write, read, text, base, SaveProfile::Source).await;
     }
     let current = match read().await {
         Ok(current) => current,
@@ -232,6 +245,7 @@ where
             mine: text,
         },
         Err(problem) if known_not_written(&problem) => Saved::Failed(SaveFailure::Call(problem)),
+        Err(problem) if problem.code().is_some() => Saved::Ended(problem),
         Err(problem) => Saved::Uncertain(problem),
     }
 }
@@ -486,7 +500,7 @@ mod tests {
     }
 
     #[test]
-    fn a_post_publication_node_failure_keeps_the_original_effect_uncertain() {
+    fn a_direct_post_publication_node_error_requires_later_reconciliation() {
         assert!(matches!(
             now(save_existing_text(
                 |_, _| ready(Err(refused(ErrorCode::Internal, "result version failed"))),
@@ -494,7 +508,7 @@ mod tests {
                 "mine".into(),
                 Some(&read_version()),
             )),
-            Saved::Uncertain(_)
+            Saved::Ended(_)
         ));
     }
 

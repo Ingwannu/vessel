@@ -41,6 +41,10 @@ pub struct Labels {
     pub files_refresh: &'static str,
     /// A failed observation keeps the last source; writes retain their own guards.
     pub file_watch_paused: &'static str,
+    /// Read-only confirmation after the original handler has ended.
+    pub editor_confirm_saved: &'static str,
+    /// No final original result; a new read cannot end this obligation.
+    pub editor_write_unconfirmed: &'static str,
     /// Never offer overwrite when conflict readback failed or became uneditable.
     pub editor_conflict_unverified: &'static str,
     /// File sort and visibility actions.

@@ -12,6 +12,13 @@ impl Viewer {
         if editing.model.write_state() == Some(WriteState::Uncertain) {
             return DocumentReadiness::Failed;
         }
+        if editing.model.write_state() == Some(WriteState::Ended) {
+            return if editing.reading.is_some() {
+                DocumentReadiness::Pending
+            } else {
+                DocumentReadiness::Failed
+            };
+        }
         if editing.writing.is_some() || editing.model.writing().is_some() {
             return DocumentReadiness::Pending;
         }

@@ -121,7 +121,7 @@ pub fn tree_rows_with_metadata<S: std::hash::BuildHasher>(
     listings: &HashMap<RelPath, Listing, S>,
     open: &HashSet<RelPath, S>,
     options: ExplorerOptions,
-    modified: &HashMap<RelPath>,
+    modified: &HashMap<RelPath, FileModifiedMillis>,
 ) -> Vec<TreeRow> {
     let mut rows = Vec::new();
     rows_under(
@@ -142,7 +142,7 @@ fn rows_under<S: std::hash::BuildHasher>(
     dir: &RelPath,
     depth: usize,
     options: ExplorerOptions,
-    modified: &HashMap<RelPath>,
+    modified: &HashMap<RelPath, FileModifiedMillis>,
     rows: &mut Vec<TreeRow>,
 ) {
     let listing = match listings.get(dir) {

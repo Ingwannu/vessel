@@ -484,8 +484,9 @@ node service/files delegates to workspace/files, whose filesystem error mapper
 workspace/error emits Internal for I/O, including after publication, rather
 than these authentication codes. Such proven policy rejection and local request
 id exhaustion settle known not sent. A G4 call refusal, disconnect, unexpected
-reply, timeout or unclassified filesystem error remains sticky uncertain.
-Neither a later read nor reconnection releases an original unknown effect.
+reply or timeout remains sticky uncertain. A direct handler error has the
+method-specific terminal recovery described below; an ordinary read or
+reconnection never releases a no-terminal-evidence effect.
 
 ### Readonly line storage
 
@@ -592,3 +593,59 @@ those holds while retaining invoked connection failures as uncertain. It does
 not discharge any other original obligation. A GPUI source regression pins
 Unsent/Older/Forbidden release versus post-poll Gone retention, with the original
 source key/text unchanged. This avoids both phantom holds and blind retries.
+
+## Original write termination and explicit reconciliation
+
+[Decision Log]
+- Purpose and intent: preserve drafts without falsely reporting Ready while an
+  original blocking write might still publish, and recover when that exact
+  operation is known to have ended.
+- Existing constraint: the direct node file.write handler awaits the workspace
+  write, which awaits its blocking closure. A successful rename can precede a
+  failing final version read. A node error is therefore not proof of no effect.
+  Transport retirement can discard even a completed successful response.
+- Alternatives: clear uncertainty after any read (unsafe: a blocked old write
+  can publish afterward); block every error forever (safe but unnecessarily
+  loses availability when the original direct handler has actually answered).
+- Choice: keep one original attempt in EditorModel with Pending, Ended, or
+  Uncertain. Its submitted text, original baseline, sequence and owner scope/
+  ticket survive local edit/undo. Only the direct original file.write node
+  response establishes Ended. This is not inferred for forwarded mutations,
+  arbitrary remote tasks, local deadlines or connection refusals.
+- Why: terminal response ordering comes from the existing direct handler, not
+  from read/hash equality. Only after that answer does a separately ticketed
+  fresh read reconcile the effect. A read started earlier cannot confirm it.
+- Costs and effects: the original direct write has no client-side timeout, so
+  a slow live call remains Saving and retains its admission slot. Disconnect,
+  unexpected reply, and any G4 call refusal retain Uncertain; reconnect, equal
+  content, elapsed time and undo cannot release it. Lost terminal evidence can
+  block saves, close, eviction and ordinary quit for the rest of the app run.
+  There is no forced-exit recovery journal or restart preservation claim.
+
+Ended confirmation retains the original cause on failed acquisition and offers
+an explicit Check saved file action. A whole text read matching the attempt
+establishes the new baseline; later local edits remain Dirty without automatic
+replay. A read matching the old baseline retains Error and does not autosave a
+persistent rejection. Leaving the file cannot implicitly flush either recovered
+case until a new edit or explicit Save; pre-error autosave timers are retired
+before the confirmation read. Third content, confirmed deletion, or noneditable data
+preserves the draft as the corresponding conflict. The original ticket is
+released only when that exact subsequent read resolves the Ended state.
+Unknown writes never enter this recovery path. Existing disk observers cannot
+settle either state independently of those original tickets.
+
+Source regressions cover stale reads, all three text outcomes, failed retry,
+later edits, deletion/nontext, open-write read immunity, keyed owner correlation,
+and a real framed direct Internal reply versus post-dispatch retirement. These
+new cases have not yet executed. The prior strict18 run failed on two malformed
+HashMap type arguments in the earlier metadata tree source; those signatures
+now use the canonical FileModifiedMillis value, preserving its existing tests.
+No strict or whole-package pass is claimed for this changed source.
+
+### Pending C3 comparison-cache connection
+
+The git owner plans one before/after mutation invalidation hook around the
+existing Workspaces file writers, including partial failures. C5 adds no second
+comparison cache or git watcher. Its finite single-file observation concerns
+saved-file invalidation only. C3's RAII cache writer is not yet an admitted
+producer and is a pending integration connection, not implemented parity here.

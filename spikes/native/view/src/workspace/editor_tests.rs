@@ -388,3 +388,121 @@ fn unverified_conflict_preserves_draft_and_requires_reload_before_overwrite() {
     assert_eq!(model.save(), Step::None);
     assert!(matches!(model.reload(), Step::Read { .. }));
 }
+
+#[test]
+fn a_read_started_before_terminal_error_cannot_confirm_the_ended_attempt() {
+    let mut model = loaded("baseline");
+    let stale = read_of(&model.reconcile());
+    let _step = model.edit("submitted");
+    let (sequence, _, _) = write_of(&model.save());
+    let confirm = read_of(&model.saved(sequence, Written::Ended("node error".into())));
+    assert_eq!(
+        model.read(stale, Read::Text("submitted".into(), version(2))),
+        Step::None
+    );
+    assert!(model.writing().is_some());
+    assert_eq!(model.save(), Step::None);
+    assert_eq!(model.reload(), Step::None);
+    assert_eq!(
+        model.read(confirm, Read::Text("submitted".into(), version(2))),
+        Step::StopAutosave
+    );
+    assert!(model.writing().is_none());
+    assert_eq!(model.status(), EditorStatus::Clean);
+}
+
+#[test]
+fn ended_read_baseline_never_automatically_retries_a_persistent_rejection() {
+    let mut model = loaded("baseline");
+    let _step = model.edit("draft");
+    let (sequence, _, _) = write_of(&model.save());
+    let confirm = read_of(&model.saved(sequence, Written::Ended("rejected".into())));
+    assert_eq!(model.edit("later draft"), Step::StopAutosave);
+    assert_eq!(
+        model.read(confirm, Read::Text("baseline".into(), version(3))),
+        Step::StopAutosave
+    );
+    assert_eq!(model.status(), EditorStatus::Error);
+    assert_eq!(model.content(), "later draft");
+    assert_eq!(model.error(), Some("rejected"));
+    assert!(model.writing().is_none());
+    assert_eq!(
+        model.flush(),
+        Step::None,
+        "leaving is not a new retry intent"
+    );
+    assert!(
+        matches!(model.save(), Step::Write { .. }),
+        "a new explicit save is a new intent"
+    );
+}
+
+#[test]
+fn failed_ended_read_keeps_the_original_cause_until_explicit_confirmation() {
+    let mut model = loaded("baseline");
+    let _step = model.edit("submitted");
+    let (sequence, _, _) = write_of(&model.save());
+    let confirm = read_of(&model.saved(sequence, Written::Ended("original error".into())));
+    assert_eq!(
+        model.read(confirm, Read::Failed("reader offline".into())),
+        Step::None
+    );
+    assert_eq!(model.error(), Some("original error"));
+    assert!(model.writing().is_some());
+    let retry = read_of(&model.reconcile());
+    assert_eq!(
+        model.read(retry, Read::Text("third party".into(), version(4))),
+        Step::StopAutosave
+    );
+    assert_eq!(model.conflict(), Some((ConflictKind::Changed, true)));
+    assert_eq!(model.content(), "submitted");
+    assert!(model.writing().is_none());
+}
+
+#[test]
+fn an_unconfirmed_running_write_cannot_be_resolved_by_any_fresh_read() {
+    let mut model = loaded("baseline");
+    let _step = model.edit("submitted");
+    let (sequence, _, _) = write_of(&model.save());
+    let _step = model.saved(sequence, Written::Uncertain("lost terminal reply".into()));
+    assert_eq!(model.reconcile(), Step::None);
+    for text in ["baseline", "submitted", "third party"] {
+        assert_eq!(
+            model.read(model.reading(), Read::Text(text.into(), version(5))),
+            Step::None
+        );
+        assert!(model.writing().is_some());
+    }
+}
+
+#[test]
+fn ended_confirmation_never_replays_later_draft_and_nontext_or_deletion_preserves_it() {
+    let mut model = loaded("baseline");
+    let _step = model.edit("submitted");
+    let (sequence, _, _) = write_of(&model.save());
+    let _step = model.edit("later draft");
+    let confirm = read_of(&model.saved(sequence, Written::Ended("node error".into())));
+    assert_eq!(
+        model.read(confirm, Read::Text("submitted".into(), version(6))),
+        Step::StopAutosave
+    );
+    assert_eq!(model.status(), EditorStatus::Dirty);
+    assert_eq!(model.content(), "later draft");
+    assert!(model.writing().is_none());
+    assert_eq!(model.flush(), Step::None);
+    assert_eq!(model.edit("new intent"), Step::Autosave);
+    assert!(matches!(model.flush(), Step::Write { .. }));
+    for (read, kind) in [
+        (Read::Deleted, ConflictKind::Deleted),
+        (Read::Unverified, ConflictKind::Unverified),
+    ] {
+        let mut model = loaded("baseline");
+        let _step = model.edit("draft");
+        let (sequence, _, _) = write_of(&model.save());
+        let confirm = read_of(&model.saved(sequence, Written::Ended("node error".into())));
+        let _step = model.read(confirm, read);
+        assert_eq!(model.conflict(), Some((kind, false)));
+        assert_eq!(model.content(), "draft");
+        assert!(model.writing().is_none());
+    }
+}

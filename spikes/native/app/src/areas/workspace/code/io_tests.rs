@@ -488,3 +488,72 @@ fn readonly_payload_reservation_evicts_only_disposable_parked_sources(cx: &mut T
         assert!(shell.areas.workspace.code.viewer_at(&b).is_some());
     });
 }
+
+#[gpui::test]
+fn terminal_write_error_requires_its_new_read_ticket_before_settling_the_owner(
+    cx: &mut TestAppContext,
+) {
+    use vessel_app_view::workspace::{problem::Problem, save::Saved};
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update(cx, |shell, cx| {
+        let root = root();
+        target(shell, root);
+        shell.open_file_at("a.txt".parse().unwrap(), None, cx);
+        let key = shell.areas.workspace.code.file_key().unwrap();
+        let initial = shell.editing_for(&key).unwrap().reading.unwrap().0;
+        let ask = read(root, "a.txt");
+        let mut baseline = text("baseline");
+        baseline.version.hash = Some(vessel_proto::workspace::ContentHash::from_sha256([0; 32]));
+        shell.editor_read_answered_for(&key, initial, &ask, Ok(baseline), cx);
+        let _step = shell.editing_for(&key).unwrap().model.edit("submitted");
+        shell.editor_save_for(&key, cx);
+        let original = shell
+            .editing_for(&key)
+            .unwrap()
+            .writing
+            .as_ref()
+            .unwrap()
+            .ticket;
+        let scope = shell
+            .editing_for(&key)
+            .unwrap()
+            .writing
+            .as_ref()
+            .unwrap()
+            .scope
+            .clone();
+        shell.editor_saved_for(
+            &key,
+            &scope,
+            original,
+            true,
+            Saved::Ended(Problem::Node {
+                code: vessel_proto::ErrorCode::Internal,
+                message: String::new(),
+            }),
+            cx,
+        );
+        let confirm = shell.editing_for(&key).unwrap().reading.unwrap().0;
+        assert_ne!(initial, confirm);
+        shell.editor_read_answered_for(&key, initial, &ask, Ok(text("submitted")), cx);
+        assert_eq!(
+            shell
+                .editing_for(&key)
+                .unwrap()
+                .writing
+                .as_ref()
+                .unwrap()
+                .ticket,
+            original
+        );
+        shell.editor_read_answered_for(&key, confirm, &ask, Ok(text("submitted")), cx);
+        let editing = shell.editing_for(&key).unwrap();
+        assert!(editing.writing.is_none());
+        assert!(editing.model.writing().is_none());
+        assert_eq!(
+            editing.model.status(),
+            vessel_app_view::workspace::editor::EditorStatus::Clean
+        );
+    });
+}

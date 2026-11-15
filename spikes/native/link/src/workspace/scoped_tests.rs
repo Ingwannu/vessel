@@ -116,3 +116,84 @@ async fn retirement_after_write_dispatch_returns_original_uncertainty_without_re
         assert_eq!(original.calls.lock().unwrap().len(), 1, "never replay a write");
     }).await;
 }
+
+#[tokio::test]
+async fn a_direct_node_write_error_is_terminal_but_never_triggers_a_second_write() {
+    use vessel_app_view::workspace::save::Saved;
+    use vessel_proto::{ErrorCode, Outcome as WireOutcome, WireError};
+    within(async {
+        let home = Home::new();
+        let (mut state, mut events) = state(&home);
+        let mut original = peer::controlled("fixture").await;
+        let client = original.client.take().unwrap();
+        let context = state
+            .admissions
+            .admit(MachineKey::from_book("fixture"), client.node().id)
+            .unwrap();
+        let entry = vessel_client::book::BookEntry {
+            address: "ws://127.0.0.1:0/rpc".parse().unwrap(),
+            token: None,
+            credential: None,
+            id: None,
+        };
+        let _old = state.clients.insert(
+            "fixture".into(),
+            Connected::new(client, Vec::new(), entry, context.clone()),
+        );
+        let scope = FileScope::new(
+            context.clone(),
+            WorkspaceRoot::Project {
+                project: ProjectId::random(),
+            },
+        );
+        let ticket = FileTickets::default().issue().unwrap();
+        let ask = FileAsk::Save(super::Save {
+            ticket,
+            root: scope.root(),
+            path: "a.txt".parse().unwrap(),
+            text: "submitted".into(),
+            base: Some(vessel_proto::workspace::FileVersion {
+                size: 8,
+                modified: 0,
+                hash: Some(vessel_proto::workspace::ContentHash::from_sha256([0; 32])),
+            }),
+        });
+        state.scoped_file(Request::file(scope.clone(), ask).unwrap());
+        let dispatched = phase(
+            "observe direct write frame",
+            original.requests.as_mut().unwrap().recv(),
+        )
+        .await
+        .unwrap();
+        assert!(matches!(dispatched.call, vessel_proto::Call::WriteFile(_)));
+        let _answer = dispatched.answer.send(WireOutcome::Err(WireError::new(
+            ErrorCode::Internal,
+            "synthetic-private-detail",
+        )));
+        let event = phase("settle terminal direct write error", events.recv())
+            .await
+            .unwrap();
+        let crate::Event::FileOperation(reply) = event else {
+            panic!("file owner receipt")
+        };
+        let (original_context, outcome) = reply.into_parts();
+        assert_eq!(original_context, context);
+        let Outcome::File(reply) = outcome else {
+            panic!("file outcome")
+        };
+        let (original_scope, answer, may_have_run) = (*reply).into_parts();
+        assert_eq!(original_scope, scope);
+        assert!(may_have_run);
+        assert!(
+            matches!(answer, super::FileAnswer::Saved { ticket: original,
+            saved: Saved::Ended(Problem::Node { code: ErrorCode::Internal, ref message }), .. }
+            if original == ticket && message.is_empty())
+        );
+        assert_eq!(
+            original.calls.lock().unwrap().len(),
+            1,
+            "owner must request a later read separately, never replay a write"
+        );
+    })
+    .await;
+}
