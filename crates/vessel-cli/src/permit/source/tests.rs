@@ -328,3 +328,18 @@ async fn a_stalled_current_form_cannot_finish_preflight() {
     ));
     assert_eq!(source.read, [owner]);
 }
+
+#[tokio::test]
+async fn selected_agent_rows_do_not_query_the_node_wide_session_list_or_other_forms() {
+    let owner = SessionId::random();
+    let request = permission();
+    let mut source = Memory {
+        sessions: Some(Err(CallError::Disconnected)),
+        snapshots: VecDeque::from([(owner, Ok(held(vec![request.clone()], Vec::new())))]),
+        ..Memory::default()
+    };
+    let rows = for_session(&mut source, owner).await.unwrap();
+    assert_eq!(rows, [Row::permission(owner, &request)]);
+    assert_eq!(source.read, [owner]);
+    assert!(source.sessions.is_some(), "no hidden node-wide query");
+}

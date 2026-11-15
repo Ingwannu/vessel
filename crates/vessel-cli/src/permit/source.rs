@@ -131,24 +131,49 @@ async fn collect(source: &mut impl Source) -> Result<Vec<Row>, SourceError> {
             SessionMode::Structured { .. } => {}
         }
         let held = source.conversation(session.id).await?;
-        for request in held.permissions {
-            budget.charge(&request)?;
-            append(
-                &mut rows,
-                &mut seen_requests,
-                Row::permission(session.id, &request),
-            )?;
-        }
-        for question in held.questions {
-            budget.charge(&question)?;
-            append(
-                &mut rows,
-                &mut seen_requests,
-                Row::question(session.id, &question),
-            )?;
-        }
+        append_snapshot(session.id, held, &mut rows, &mut seen_requests, &mut budget)?;
     }
     Ok(rows)
+}
+/// Mutating commands resolve their agent first, then read only that agent's
+/// current rows. An unrelated session's snapshot failure must not block them.
+pub(crate) async fn for_session(
+    source: &mut impl Source,
+    session: SessionId,
+) -> Result<Vec<Row>, SourceError> {
+    bounded(session_rows(source, session), READ_DEADLINE).await
+}
+async fn session_rows(
+    source: &mut impl Source,
+    session: SessionId,
+) -> Result<Vec<Row>, SourceError> {
+    let held = source.conversation(session).await?;
+    let mut rows = Vec::new();
+    append_snapshot(
+        session,
+        held,
+        &mut rows,
+        &mut HashSet::new(),
+        &mut budget::Budget::default(),
+    )?;
+    Ok(rows)
+}
+fn append_snapshot(
+    session: SessionId,
+    held: Conversation,
+    rows: &mut Vec<Row>,
+    seen: &mut HashSet<(SessionId, PendingId)>,
+    budget: &mut budget::Budget,
+) -> Result<(), SourceError> {
+    for request in held.permissions {
+        budget.charge(&request)?;
+        append(rows, seen, Row::permission(session, &request))?;
+    }
+    for question in held.questions {
+        budget.charge(&question)?;
+        append(rows, seen, Row::question(session, &question))?;
+    }
+    Ok(())
 }
 fn append(
     rows: &mut Vec<Row>,

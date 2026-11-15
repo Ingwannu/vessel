@@ -251,3 +251,12 @@ come from that input. The same opaque diagnostic boundary used for DecodeFailure
 must cover these cases when handlers activate, with a private-canary cause-chain
 regression. This is a remaining integration requirement, not a current claim that
 unconsumed shared codec errors already pass through the product command.
+
+Allow/deny snapshot collection is distinct from node-wide permit ls. After the
+existing selector resolves one agent, for_session reads that exact conversation
+without querying other sessions' forms; fresh selected-body preflight remains
+agent-scoped. Otherwise an unrelated archived session's failure or size could
+incorrectly prevent an explicitly targeted answer. Both paths reuse one bounded
+snapshot-to-row collector and exact typed identities. An in-memory fixture makes
+the node-wide session query fail and requires the selected read to succeed without
+consuming that query. This remains staged source pending VM execution/handlers.
