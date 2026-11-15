@@ -343,7 +343,7 @@ async fn an_ended_handle_cannot_recreate_its_retired_call_limit() {
         let (handle, _token, records) = fixture.session("sonnet").await;
         drop(fixture.models.slot(&handle).unwrap());
         handle.kill();
-        handle.ended().await;
+        let _ended = handle.ended().await;
         fixture.models.retire(handle.id());
         assert!(fixture.models.slot(&handle).is_none());
         assert!(
