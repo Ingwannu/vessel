@@ -1392,3 +1392,34 @@ it does not admit host-registry forwarding or add an Admin entry. The unassigned
 feature gate still blocks direct/enveloped calls before dispatch, and all existing
 Admin expectations retain only the three previously approved host additions.
 Changed-source protocol/strict/consumer execution remains owed; the old red run is retained.
+
+### Gate-50c merge and startup-services adaptation
+
+Merge announced9c150c6e (gate50c18 steps0, Rust2549/0/12 as reported by
+integrator), which carries the gate49 TypeScript alias fix required by C2 row217.
+This is base evidence, not a W17 combined-head pass. Preserve diagnostics' private
+failure projection and JSON-only presentation admission, new startup diagnostics,
+all upstream method inventories and the six W17 pending rows at the table end.
+The generated wire remains the announced base copy until fresh named generation.
+
+[Decision Log]
+- Purpose: keep node assembly below its ratcheted file budget without hiding host startup.
+- Existing constraint: the merged node.rs was674 product lines against672; raising the record is forbidden.
+- Alternatives: crowding statements or relocating registry authority would hide responsibilities.
+- Choice: coordinator-approved move-only7489af9ed on9c introduces RuntimeServices/runtime_services.
+  The exact Push::started then Limits::configured statements, arguments and Store error path remain identical.
+- Reason: these are adjacent runtime services using the same store/task/cancellation handles;
+  the helper preserves startup ordering and push failure before limits I/O.
+- Impact: lower the measured node.rs record672→669. In a separate feature commit,
+  start the optional host registry after limits inside that helper and project its Parts field.
+  Condense the scheduler ownership comment without changing its weak-service relationship.
+  The production protocol-None gate and cfg(test)-only fixture injection are unchanged.
+
+The integrator received7489af9ed before the corrected strict. V3 reads it with the
+package; it is not independently consumer-qualified. The by-value task/cancellation
+helper parameters retain identical moved statements; strict must confirm their lint
+admission. Old queuedcf252 strict was cancelled before a slot, terminal143 retained;
+no compilation ran. One corrected same-lane replacement is authorized after this
+merge adaptation. Common/TUI actor, latest CLI process and named TS proof remain owed.
+C2's newer2807 source-only frame/mode/marker contract is not adopted here; frozen
+Silent capture remains the sole interpretation, with NodeAuthority OFF.

@@ -437,12 +437,10 @@ async fn core(
         &tasks,
         stop.clone(),
     );
-    // The scheduler (protocol 11): its handle goes into the service, and
-    // it makes runs through the service (`NodeRunner` holds it weakly).
+    // Schedules run through the guarded service; NodeRunner keeps only a weak reference.
     let (schedules, commands) = Schedules::channel();
     let ended = sessions.ends();
     let services = setup::runtime_services(config, store, tasks.clone(), stop.clone()).await?;
-    let host_registry = setup::host_registry(config, stop.clone(), &tasks).await;
     let service = Arc::new(Guarded(NodeService::new(Parts {
         lsp,
         lsp_roots: config.lsp_roots.clone(),
@@ -479,7 +477,7 @@ async fn core(
         push: services.push,
         settings: Arc::clone(&settings),
         limits: services.limits,
-        host_registry,
+        host_registry: services.host_registry,
     })));
     automation::schedules::start(
         commands,

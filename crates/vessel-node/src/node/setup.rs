@@ -178,6 +178,7 @@ impl Startup {
 pub(super) struct RuntimeServices {
     pub(super) push: Arc<crate::push::Push>,
     pub(super) limits: crate::limits::Limits,
+    pub(super) host_registry: Option<crate::host_registry::HostRegistry>,
 }
 
 pub(super) async fn runtime_services(
@@ -190,7 +191,12 @@ pub(super) async fn runtime_services(
         .await
         .map_err(NodeError::Store)?;
     let limits = crate::limits::Limits::configured(config, stop.clone(), &tasks).await;
-    Ok(RuntimeServices { push, limits })
+    let host_registry = host_registry(config, stop.clone(), &tasks).await;
+    Ok(RuntimeServices {
+        push,
+        limits,
+        host_registry,
+    })
 }
 
 /// A failed registry never resets saved data or prevents unrelated node operations.

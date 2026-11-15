@@ -1,8 +1,9 @@
 # W17 current invocation map
 
-Product checkpoint: `257fc41c637f4bb7a998caf434bf21e270fbd104`, after node head
-`82ae7c91`, reviewed W7 values-only carrier `c2dcebea`, and conditional C2 source
-integration (`0d7cf46e` product, `c0abda32` docs; full consumer qualification open).
+Product checkpoint: gate-50c merge adaptation on node head
+`9c150c6efbff583762d02e6a8576b3fa66cc7ae9`, with move-only startup seam
+`7489af9ed` and conditional C2 source integration (`0d7cf46e` product,
+`c0abda32` docs; full consumer qualification open).
 This is a source/ownership map, **not a passing parity checklist**. All 117 paths are
 listed; flags/defaults, reference output/exits and exact Paseo registration references
 remain in [the full inventory](wp-w17.md#complete-command-inventory-baseline).
@@ -24,11 +25,20 @@ at `85454788`. Its changed-source strict run 134749 then failed E0603 before tes
 the node service imported Method through private rpc instead of its public re-export.
 The import is fixed. Run wp-cli-narrow-20261115T143928Z-e4e4ea0a then rejected
 the author's unselected vessel-web/ts feature before tests; no runtime test ran.
-Changed-source run wp-cli-narrow-20261115T151233Z-257fc41c is queued for seven
-affected libraries with the proper proto TS feature and --locked. It skips the
-separate TypeScript generation check; fresh named generation is still owed.
-The earlier strict sources predate corrected send/version/hooks/fence and guard tests. Full package,
-actual public-host authorization/DTO/client tests, latest CLI processes and A12 remain owed.
+Run wp-cli-narrow-20261115T151233Z-257fc41c finished337 passed/1 failed:
+its real host fixture incorrectly assumed the unassigned production registry starts.
+The cfg(test)-only actor injection correction5738a012 then executed800 passed/1 failed:
+node258/0, proto329/1, rpc53/0, session72/0, store77/0, frozen screen11/0.
+Only the pinned forwardable inventory missed terminal.capture; ea9fc2fe adds that
+name without weakening the assertion. These runs predate the shared TUI adapter.
+The cf252 strict run was cancelled while queued before compilation (terminal143)
+for the announced9c base adaptation. Corrected combined-head strict is still owed,
+as are latest CLI processes, common/TUI actor units, fresh named TypeScript generation,
+full package and A12. Neither scoped library results nor source review qualifies C2
+row217 or activates NodeAuthority. Actual Guarded/actor fixture proof is distinct
+from credentials or a callable pending RPC. The new base's diagnostics privacy and
+JSON-only admission are preserved; all six own pending rows stay at the table end.
+
 
 | Paseo path | Vessel source entry | State | Existing call / owner boundary | Limitation |
 | --- | --- | --- | --- | --- |
