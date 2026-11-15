@@ -342,12 +342,30 @@ fn hooked_text(
     let weak = cx.entity().downgrade();
     let pasting = weak.clone();
     let new_chat = over == Over::Draft;
+    let target = match over {
+        Over::Draft => Some(DraftKey::New),
+        Over::Session => shell
+            .areas
+            .session
+            .open
+            .as_ref()
+            .map(|open| DraftKey::Session {
+                session: open.session,
+            }),
+    };
     hooked(
         field,
         element,
         move |key, window: &mut Window, cx: &mut App| {
-            weak.update(cx, |shell, cx| shell.slash_key(over, key, window, cx))
-                .unwrap_or(KeyAnswer::Pass)
+            weak.update(cx, |shell, cx| {
+                if let Some(target) = target
+                    && shell.composer_file_key(target, key, window, cx) == KeyAnswer::Taken
+                {
+                    return KeyAnswer::Taken;
+                }
+                shell.slash_key(over, key, window, cx)
+            })
+            .unwrap_or(KeyAnswer::Pass)
         },
         // Pasted images and files are the composer's attachments.
         move |pasted, _window, cx: &mut App| {
