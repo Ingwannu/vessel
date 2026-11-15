@@ -153,6 +153,17 @@ async fn revoked_without_setter_continuation(held: Held) {
         2
     };
     assert_eq!(control.polls.load(Ordering::SeqCst), expected);
+    recover_after_revocation(&fixture, &control, &original_id, expected).await;
+    fixture.finish().await;
+}
+
+async fn recover_after_revocation(
+    fixture: &Fixture,
+    control: &Control,
+    original_id: &vessel_proto::usage_reports::UsageReportId,
+    expected: usize,
+) {
+    let service = fixture.handler();
     control.credential.store(false, Ordering::SeqCst);
     control.http.store(false, Ordering::SeqCst);
     let _on = service
@@ -195,7 +206,7 @@ async fn revoked_without_setter_continuation(held: Held) {
         "On is not a fetch"
     );
     let fresh = fixture.list(&fixture.owner, LimitRefresh::Refresh).await;
-    assert_ne!(cursor(&fresh).id(), &original_id);
+    assert_ne!(cursor(&fresh).id(), original_id);
     assert!(matches!(
         cursor(&fresh).state,
         SourceReportState::Available { .. }
@@ -204,7 +215,6 @@ async fn revoked_without_setter_continuation(held: Held) {
         control.polls.load(Ordering::SeqCst),
         expected.checked_add(1).unwrap()
     );
-    fixture.finish().await;
 }
 
 async fn cancel_setter_after_durable_off(fixture: &Fixture) {
