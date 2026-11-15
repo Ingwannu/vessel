@@ -79,14 +79,6 @@ fn last_window_stays_open_until_quit_finishes_but_additional_windows_close(
     });
 }
 
-struct GuardProbe {
-    shell: gpui::Entity<Shell>,
-}
-impl Render for GuardProbe {
-    fn render(&mut self, _window: &mut Window, _cx: &mut Context<'_, Self>) -> impl IntoElement {
-        div()
-    }
-}
 struct AdmissionAttempts(usize);
 impl Global for AdmissionAttempts {}
 fn refuse_documents(_shell: &mut Shell, cx: &mut Context<'_, Shell>) -> bool {
@@ -111,15 +103,7 @@ fn window_document_admission_defers_entity_reborrow_coalesces_and_keeps_refused_
         cx.set_global(test_desktop());
         super::super::set_window_close_handler(refuse_documents, cx);
     });
-    let (view, cx) = cx.add_window_view(|window, cx| {
-        let shell = cx.new(|cx| crate::shell::language_tests::shell_without_io(window, cx));
-        cx.default_global::<Registry>().records.push(WindowRecord {
-            window: window.window_handle(),
-            shell: shell.downgrade(),
-            close: WindowClose::Idle,
-        });
-        GuardProbe { shell }
-    });
+    let (view, cx) = cx.add_window_view(registered_probe);
     let _extra = cx.update(|_window, cx| {
         cx.open_window(gpui::WindowOptions::default(), |_window, cx| {
             cx.new(|_| Empty)
@@ -127,11 +111,9 @@ fn window_document_admission_defers_entity_reborrow_coalesces_and_keeps_refused_
         .unwrap()
     });
     cx.run_until_parked();
-    view.update_in(cx, |probe, window, cx| {
-        probe.shell.update(cx, |_shell, cx| {
-            request_close(window, cx);
-            request_close(window, cx);
-        });
+    view.update_in(cx, |_shell, window, cx| {
+        request_close(window, cx);
+        request_close(window, cx);
     });
     cx.run_until_parked();
     view.read_with(cx, |_probe, cx| {
@@ -140,11 +122,7 @@ fn window_document_admission_defers_entity_reborrow_coalesces_and_keeps_refused_
         assert_eq!(cx.global::<QuitAttempts>().0, 0);
     });
     cx.update(|_window, cx| super::super::set_window_close_handler(allow_documents, cx));
-    view.update_in(cx, |probe, window, cx| {
-        probe
-            .shell
-            .update(cx, |_shell, cx| request_close(window, cx));
-    });
+    view.update_in(cx, |_shell, window, cx| request_close(window, cx));
     cx.run_until_parked();
     view.read_with(cx, |_probe, cx| {
         assert_eq!(cx.windows().len(), 1);
@@ -170,13 +148,11 @@ fn two_window_close_requests_recheck_the_last_window_before_removal(cx: &mut Tes
         .unwrap()
     });
     cx.run_until_parked();
-    first.update_in(cx, |probe, window, cx| {
-        probe.shell.update(cx, |_shell, cx| {
-            request_close(window, cx);
-            second
-                .update(cx, |_view, window, cx| request_close(window, cx))
-                .unwrap();
-        });
+    first.update_in(cx, |_shell, window, cx| {
+        request_close(window, cx);
+        second
+            .update(cx, |_view, window, cx| request_close(window, cx))
+            .unwrap();
     });
     cx.run_until_parked();
     first.read_with(cx, |_probe, cx| {
@@ -190,14 +166,14 @@ fn two_window_close_requests_recheck_the_last_window_before_removal(cx: &mut Tes
     });
 }
 
-fn registered_probe(window: &mut Window, cx: &mut Context<'_, GuardProbe>) -> GuardProbe {
-    let shell = cx.new(|cx| crate::shell::language_tests::shell_without_io(window, cx));
+fn registered_probe(window: &mut Window, cx: &mut Context<'_, Shell>) -> Shell {
+    let shell = Shell::without_io(window, cx);
     cx.default_global::<Registry>().records.push(WindowRecord {
         window: window.window_handle(),
-        shell: shell.downgrade(),
+        shell: cx.entity().downgrade(),
         close: WindowClose::Idle,
     });
-    GuardProbe { shell }
+    shell
 }
 
 #[gpui::test]
@@ -339,3 +315,5 @@ fn extra_window_zoom_is_independent_and_replaced_root_refuses_a_queued_zoom(
         assert_eq!(cx.global::<Desktop>().saved, Some(saved));
     });
 }
+
+mod root_aba;

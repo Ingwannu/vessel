@@ -64,16 +64,27 @@ fn guarded_close(window: &Window, cx: &mut App) -> bool {
     // Shortcut/menu close can run while its Shell is mutably borrowed. Reading
     // its documents here would reborrow and panic, so admission runs next turn.
     cx.defer(move |cx| {
+        let current = record
+            .window
+            .update(cx, |root, _window, cx| current_record(&record, &root, cx))
+            .unwrap_or(false);
+        if !current {
+            reset_close(&record, cx);
+            return;
+        }
         if !cfg!(target_os = "macos") && cx.windows().len() <= 1 {
             reset_close(&record, cx);
             super::request_quit(cx);
             return;
         }
-        let result = record.window.update(cx, |_root, window, cx| {
+        let result = record.window.update(cx, |root, window, cx| {
+            if !current_record(&record, &root, cx) {
+                return;
+            }
             let admitted = record
                 .shell
                 .upgrade()
-                .is_none_or(|shell| shell.update(cx, handler));
+                .is_some_and(|shell| shell.update(cx, handler));
             if admitted {
                 if !cfg!(target_os = "macos") && cx.windows().len() <= 1 {
                     super::request_quit(cx);
@@ -90,12 +101,24 @@ fn guarded_close(window: &Window, cx: &mut App) -> bool {
     false
 }
 
+fn current_record(record: &WindowRecord, root: &gpui::AnyView, cx: &App) -> bool {
+    cx.try_global::<Registry>().is_some_and(|registry| {
+        registry.records.iter().any(|current| {
+            current.window == record.window && current.shell.entity_id() == record.shell.entity_id()
+        })
+    }) && record.shell.upgrade().is_some()
+        && vessel_app_kit::root_contains_view(root, record.shell.entity_id(), cx)
+}
+
 fn reset_close(record: &WindowRecord, cx: &mut App) {
     if let Some(retained) = cx
         .default_global::<Registry>()
         .records
         .iter_mut()
-        .find(|retained| retained.window == record.window)
+        .find(|retained| {
+            retained.window == record.window
+                && retained.shell.entity_id() == record.shell.entity_id()
+        })
     {
         retained.close = WindowClose::Idle;
     }

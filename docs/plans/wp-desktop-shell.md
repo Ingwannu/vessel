@@ -215,6 +215,15 @@ the initiating Shell borrow ends, coalesces Idle/Checking, retains a refused
 window and rechecks last-window status before actual removal. It owns no second
 save/discard or quit policy. W15 owns registration and finalization integration.
 
+Deferred close also retains the original weak Shell identity. Before deciding
+that the window is last, and again before document admission, it verifies both
+the sole registry record and the current direct/wrapped root. Clearing a pending
+check matches the same handle and Shell identity, so old callback A cannot clear
+replacement B's queued check. Two retained-root replacement regressions cover
+that coalescing boundary and A becoming stale before B becomes the last window.
+This new-source hardening awaits its own App test run; earlier unit totals do
+not qualify it.
+
 ## Environment and CLI
 
 Shell capture uses vessel-proc's existing groups/jobs and cancellation behavior,
@@ -487,6 +496,11 @@ recipient tests all explicitly passed. This closes their older pending execution
 notes, not the newer two-window fixture or later handler-disable/base8d union.
 The12 App warnings are pending real owner APIs, so this is not App strict Clippy,
 V4, a whole native gate or any OS/consumer safety verdict.
+Unit25 exactb5cf516a on announced base9/headera7 completed1476/0/2 across the
+selected App/Kit/Link/View tests. The production zoom adapter, both native limits,
+independent additional window, queued root replacement and version1→2 window
+store migration all explicitly passed. This is not App strict, Windows execution,
+physical IME/window-menu positioning or the later close-admission change.
 Windows run wp-desktop-shell-win-check-20261115T151309Z-b0cef8c4 completed
 fonts0 and MSVC all-target App check0 on exactb0cef8c4. This compiled the UTF-16
 registry bridge and cross-platform test waiter. The normal/test binaries still
