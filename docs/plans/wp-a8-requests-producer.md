@@ -1,8 +1,10 @@
 # A8 Requests resource owner prerequisite
 
-Status: source preparation on announced package base 82ca07a7. Exact new-source
-strict compilation and runtime tests are owed. No product staging attribute is
-removed. This is not the whole A8 package or a response-port handoff.
+Status: bounded staged source and requested narrow checks passed on executable
+3eaa330f0, parent line82ca07a7. This successor changes documentation only; every
+Rust blob stays identical. No product staging attribute is removed. V1 final
+bounded evidence review and the consumer union remain separate from whole A8
+completion or a reviewed live response-port handoff.
 
 [Decision Log]
 - Purpose: W12 needs one concrete Requests owner per SessionResources, so a
@@ -91,11 +93,27 @@ baseline accessors and staged tests differ from that runtime source, so those
 ## Verification
 
 Use the remote build VM for all Cargo, including boundary checks. Locally only
-pinned rustfmt, size, tokens and diff checks are allowed. Requested narrow scope:
-strict all-target View/App Clippy and actual App requests_tests GPUI execution.
-Tests use the existing private in-memory registry and actual retained TextField;
-no provider, fleet, browser, live configuration or service is started.
-Final product union, full package gate, captures and V4 review remain owed.
+pinned rustfmt, size, tokens and diff checks are allowed. Exact executable
+3eaa330f0 passed:
+
+- Strict run wp-side-narrow-20261115T170412Z-3eaa330f: fonts0/cargo0,
+  locked View/App all-target Clippy with warnings denied. Actual Kit/App
+  Checking; View was cached. Its Rust blobs are unchanged from the previous
+  c3d run, and the subsequent actual test build compiles View too.
+- Runtime run wp-side-narrow-20261115T180719Z-3eaa330f: fonts0/cargo0,
+  actual App binary requests_tests filter, test-threads1, 4passed/0failed/
+  0ignored, 105filtered. View/Link/Kit/App all actually compiled. No --lib
+  omission hides the App tests.
+
+The four cases check wrong-node refusal without mint, abandoned prepare and
+stale-binding refusal; only an actual offered permission option; retained real
+FieldId/text/drafts through retirement and exact resolution; stale-editor,
+foreign and duplicate ticket refusal. The controller remains fixture-local.
+These results do not prove actual bundle lifetime, snapshot/readiness vote,
+delivery-guard authority, populated timeline, painting, keyboard/IME, live wire,
+rich delivery-state admission or whole-feature completion. No provider, fleet,
+browser, live configuration or service was started. Consumer union, whole
+package gate, captures and V4 review remain owed.
 
 ### Staged harness limit
 
