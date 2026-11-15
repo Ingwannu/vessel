@@ -62,6 +62,8 @@ enum Error {
     Message(#[from] serde_json::Error),
     #[error("fixture control closed before stop")]
     Closed,
+    #[error("fixture control command is out of phase")]
+    Phase,
     #[error("fixture control timed out")]
     Deadline(#[from] tokio::time::error::Elapsed),
     #[error("fixture process identity is invalid")]
@@ -104,7 +106,17 @@ fn announce(node: vessel_proto::NodeId) -> Result<(), Error> {
     Ok(())
 }
 
-async fn controlled(node: &Node) -> Result<(), Error> {
+type Control =
+    Framed<tokio::io::ReadHalf<tokio::net::TcpStream>, tokio::io::WriteHalf<tokio::net::TcpStream>>;
+
+async fn command(frames: &mut Control) -> Result<control::Command, Error> {
+    let frame = tokio::time::timeout(CONTROL_DEADLINE, frames.next())
+        .await?
+        .ok_or(Error::Closed)??;
+    Ok(serde_json::from_str(&frame)?)
+}
+
+async fn controlled(node: &Node) -> Result<Control, Error> {
     let address: SocketAddr = std::env::var(control::CONTROL_ENV)?
         .parse()
         .map_err(Error::Parse)?;
@@ -116,26 +128,35 @@ async fn controlled(node: &Node) -> Result<(), Error> {
     let mut frames = Framed::new(reader, writer, control::FRAME_LIMIT);
     announce(node.info().id)?;
     frames
-        .send(serde_json::to_string(&control::Notice {
+        .send(serde_json::to_string(&control::Notice::Ready {
             process: std::process::id().try_into()?,
             node: node.info().id,
         })?)
         .await?;
-    let frame = tokio::time::timeout(CONTROL_DEADLINE, frames.next())
-        .await?
-        .ok_or(Error::Closed)??;
-    match serde_json::from_str::<control::Command>(&frame)? {
-        control::Command::Stop => Ok(()),
+    match command(&mut frames).await? {
+        control::Command::Stop => Ok(frames),
+        control::Command::Exit => Err(Error::Phase),
     }
 }
 
 async fn run(args: Args) -> Result<(), Error> {
     let node = Node::start(config(args)?).await?;
-    let result = controlled(&node).await;
+    let control = controlled(&node).await;
     // Even a vanished test driver must stop this real isolated node.
     let stopped = node.stop().await;
-    result?;
+    let mut control = control?;
     stopped?;
+    control
+        .send(serde_json::to_string(&control::Notice::Stopped {
+            process: std::process::id().try_into()?,
+        })?)
+        .await?;
+    // The process deliberately remains unreaped after its server releases the
+    // home lock, so a replacement can serve before the final exit barrier.
+    match command(&mut control).await? {
+        control::Command::Exit => {}
+        control::Command::Stop => return Err(Error::Phase),
+    }
     Ok(())
 }
 

@@ -10,17 +10,24 @@ pub(super) const HOME_ENV: &str = "VESSEL_LOCAL_FIXTURE_HOME";
 pub(super) const PROGRAMS_ENV: &str = "VESSEL_LOCAL_FIXTURE_PROGRAMS";
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub(super) struct Notice {
-    #[serde(with = "pid")]
-    pub(super) process: ProcessId,
-    pub(super) node: NodeId,
+#[serde(tag = "event", rename_all = "snake_case", deny_unknown_fields)]
+pub(super) enum Notice {
+    Ready {
+        #[serde(with = "pid")]
+        process: ProcessId,
+        node: NodeId,
+    },
+    Stopped {
+        #[serde(with = "pid")]
+        process: ProcessId,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub(super) enum Command {
     Stop,
+    Exit,
 }
 
 mod pid {
