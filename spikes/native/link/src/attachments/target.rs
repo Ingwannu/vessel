@@ -1,11 +1,9 @@
 //! A book label is an address; only the welcome `NodeId` pins the destination.
 use super::TargetProblem;
-use crate::State;
-use vessel_app_view::machine_book::Name;
 use vessel_client::NodeClient;
 use vessel_proto::NodeId;
 
-pub(super) fn check(client: &NodeClient, expected: NodeId) -> Result<(), TargetProblem> {
+fn check(client: &NodeClient, expected: NodeId) -> Result<(), TargetProblem> {
     let actual = client.node().id;
     if actual == expected {
         Ok(())
@@ -13,22 +11,6 @@ pub(super) fn check(client: &NodeClient, expected: NodeId) -> Result<(), TargetP
         Err(TargetProblem::Changed { expected, actual })
     }
 }
-impl State {
-    pub(crate) fn attachment_client(
-        &self,
-        machine: &Name,
-        expected: NodeId,
-    ) -> Result<NodeClient, TargetProblem> {
-        let client = self
-            .clients
-            .get(machine.as_str())
-            .map(|connected| &connected.client)
-            .ok_or(TargetProblem::Offline)?;
-        check(client, expected)?;
-        Ok(client.clone())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

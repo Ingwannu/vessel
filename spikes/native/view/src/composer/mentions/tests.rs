@@ -9,6 +9,12 @@ use vessel_proto::{
 };
 fn scope() -> Scope {
     Scope {
+        connection: crate::connection::ConnectionEpochs::default()
+            .admit(
+                crate::connection::MachineKey::from_book("laptop"),
+                "00000000-0000-4000-8000-000000000002".parse().unwrap(),
+            )
+            .unwrap(),
         draft: DraftKey::New,
         machine: Name::parse("laptop").unwrap(),
         root: WorkspaceRoot::Project {
@@ -145,4 +151,87 @@ fn empty_failure_and_oversized_replies_remain_distinct() {
         assert_eq!(matches!(menu.phase(), Phase::Empty(_)), expected_empty);
         assert!(menu.rows().is_empty());
     }
+}
+
+#[test]
+fn previous_candidates_never_cross_workspace_scope() {
+    let mut menu = Menu::default();
+    let first = menu
+        .observe(Some(scope()), "@src", 4, Duration::ZERO)
+        .unwrap()
+        .unwrap();
+    assert!(menu.begin(first.ticket).is_some());
+    assert!(menu.arrived(
+        first.ticket,
+        Ok(vec![row("private-a", SuggestionKind::File)]),
+        Duration::ZERO
+    ));
+    let mut other = scope();
+    other.root = WorkspaceRoot::Project {
+        project: ProjectId::random(),
+    };
+    let next = menu
+        .observe(Some(other), "@src", 4, Duration::ZERO)
+        .unwrap()
+        .unwrap();
+    assert!(
+        menu.rows().is_empty(),
+        "keep-previous-data must retain its workspace authority"
+    );
+    assert_eq!(menu.selected(), None);
+    assert!(menu.begin(next.ticket).is_some());
+    assert!(!menu.arrived(
+        first.ticket,
+        Ok(vec![row("late-a", SuggestionKind::File)]),
+        Duration::ZERO
+    ));
+}
+
+#[test]
+fn invalid_query_outside_a_registered_scope_remains_hidden() {
+    let text = format!("@{}", "x".repeat(4096));
+    let mut menu = Menu::default();
+    assert!(
+        menu.observe(Some(scope()), &text, text.len(), Duration::ZERO)
+            .is_err()
+    );
+    assert!(matches!(menu.phase(), Phase::Invalid(_)));
+    assert!(
+        menu.observe(None, &text, text.len(), Duration::ZERO)
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(menu.phase(), &Phase::Hidden);
+}
+
+#[test]
+fn a_recreated_presentation_cannot_accept_a_late_ticket_from_its_previous_incarnation() {
+    let mut first = Menu::default();
+    let old = first
+        .observe(Some(scope()), "@src", 4, Duration::ZERO)
+        .unwrap()
+        .unwrap();
+    let clock = first.ticket_clock();
+    let mut replacement = Menu::default();
+    replacement.inherit_ticket_clock(clock);
+    let current = replacement
+        .observe(Some(scope()), "@src", 4, Duration::ZERO)
+        .unwrap()
+        .unwrap();
+    assert_ne!(old.ticket, current.ticket);
+    assert!(replacement.begin(current.ticket).is_some());
+    assert!(!replacement.arrived(
+        old.ticket,
+        Ok(vec![row("src/stale.rs", SuggestionKind::File)]),
+        Duration::ZERO
+    ));
+    assert!(replacement.arrived(
+        current.ticket,
+        Ok(vec![row("src/current.rs", SuggestionKind::File)]),
+        Duration::ZERO
+    ));
+    assert_eq!(
+        replacement.rows(),
+        [row("src/current.rs", SuggestionKind::File)]
+    );
 }

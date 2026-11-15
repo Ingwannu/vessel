@@ -157,11 +157,45 @@ pub fn attachment_pill<V: 'static>(
     tokens: &Tokens,
     cx: &mut Context<'_, V>,
 ) -> AnyElement {
+    attachment_pill_scoped(
+        id,
+        index,
+        body,
+        standing,
+        handlers.on_open.map(|callback| {
+            let callback: ScopedPillClick<V> = std::rc::Rc::new(callback);
+            callback
+        }),
+        std::rc::Rc::new(handlers.on_remove),
+        touch,
+        tokens,
+        cx,
+    )
+}
+
+/// A retained callback captures its exact pane or draft address; it never reads
+/// whichever composer happens to be selected when a delayed click arrives.
+pub type ScopedPillClick<V> = std::rc::Rc<dyn Fn(&mut V, usize, &mut Window, &mut Context<'_, V>)>;
+
+/// Same pill and renderer, with explicitly scoped callback ownership.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "same visual inputs as attachment_pill plus its two callbacks"
+)]
+pub fn attachment_pill_scoped<V: 'static>(
+    id: impl Into<SharedString>,
+    index: usize,
+    body: &Body,
+    standing: Standing,
+    open: Option<ScopedPillClick<V>>,
+    remove: ScopedPillClick<V>,
+    touch: bool,
+    tokens: &Tokens,
+    cx: &mut Context<'_, V>,
+) -> AnyElement {
     let id: SharedString = id.into();
     let number = u64::try_from(index).unwrap_or(u64::MAX);
     let group: SharedString = format!("{id}-{number}").into();
-    let open = handlers.on_open;
-    let remove = handlers.on_remove;
     let frame = frame(body, standing, tokens)
         .id(ElementId::NamedInteger(id.clone(), number))
         .when_some(open, |frame, open| {
