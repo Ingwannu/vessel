@@ -47,6 +47,22 @@ be reconstructed from wire data or EventSeq. Buffer clear/RIS invalidation and
 reflow movement belong only to the engine. Eviction may project the oldest row
 with an explicit reason; it does not silently rewrite the retained anchor.
 
+
+Pending reads use the existing canonical node Waits owner, not a frame-specific
+permit map. Before a read may wait, acquire the same connection share and
+Waiter::of(effective principal, actual local NodeId) origin shares through the
+existing terminal_wait/Waits.take mechanism (connection32, origin8 and existing
+node/relay shares). A forwarded frame call is refused, never assigned a synthetic
+local owner. In addition, each view admits at most one pending read by a checked
+slot held through reply/cancellation; all views share a proposed node-wide128
+pending-read ceiling. No acquisition waits or spawns a waiter: if any share/slot
+is unavailable, answer the current full frame/Unchanged immediately with explicit
+WaitNotAdmitted, or the applicable typed projection failure. Release every share
+on deadline, disconnect, view close, cancellation or reply completion. The30s
+wait timer starts only after successful admission. One view cannot bypass the
+origin/connection shares by replacing itself or changing viewport; view mutation
+answers immediately and cannot take an additional pending read.
+
 ScreenRevision changes on admitted screen output, resize, modes and finalization;
 ViewRevision changes on successful viewport/row selection. A read compares both:
 a viewport mutation must not incorrectly return Unchanged just because screen

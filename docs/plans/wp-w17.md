@@ -1446,3 +1446,18 @@ occur. A regression checks original owner identity, cells and geometry after tho
 calls; the actual fake TUI fixture reads its test-only readonly snapshot. No new
 pure API, marker/frame call or NodeAuthority is activated. Changed-source tests and
 strict are owed; queued exactece8 strict predates this final-owner foundation.
+
+### V3 responder contract return and finite admission correction
+
+V3 returned one design item: existing PtyInput::write awaits queue capacity, so a
+full live writer can stall indefinitely without reaching an error branch. Queue
+size is not a wait bound. Amend ADR0095 with canonical REPLY_ADMISSION_WAIT250ms,
+one actor-owned existing-queue reservation, timer-first admission race, bounded
+pending reply bytes and continued output while pending. Timeout cancels before
+any enqueue, latches Silent and cannot write expired bytes later; admitted bytes
+are never retried. Required actual held-queue fake-PTY regression precedes responder
+implementation. Frame read design also now accounts through existing Waits
+connection/origin shares, one pending read per view and a finite global ceiling;
+no permit acquisition waits or new task map. These are contract corrections only,
+not approval of a new public API or executed responder evidence. Resend to V3;
+NodeAuthority remains OFF, and C2 whole/full consumer qualification remains open.

@@ -165,6 +165,48 @@ frame/mode/marker API and typed candidate are not adopted by this frozen prerequ
   AmbiguousOverlap candidates remain outside the writer in both postures. No stdin
   filtering, other-terminal mutation or exclusive legacy-client routing is added.
 
+
+### Finite, actor-owned reply admission
+
+One canonical node-adapter constant, REPLY_ADMISSION_WAIT =250 milliseconds,
+bounds admission to the existing PTY control queue. The PTY output actor owns
+the deadline, pending bytes and admission state; no detached writer, worker queue,
+retry task or client responder is introduced. A full queue is Pending, not an
+immediate error. Do not await PtyInput::write inline in the output/feed path.
+
+The adapter must poll one cancel-safe capacity reservation on that same existing
+queue as an actor-select branch, beside output, stop and the deadline. It retains
+that single reservation future between selections; feeding/publishing healthy
+output continues while capacity is pending. Ordered normal replies waiting for
+that reservation share one bounded aggregate capped by the pure MAX_REPLY_BYTES;
+new replies never extend the oldest admission deadline. Capacity overflow also
+latches the typed Silent failure and drops all still-unadmitted bytes. This is
+bounded admission state inside the one actor, not a second writer/control queue.
+A small extension to the existing PtyInput queue-admission facade may be needed;
+it must not expose Control, create a writer or change ordinary input delivery.
+
+Deadline/stop is checked before committing a ready permit. If deadline and queue
+capacity become ready together, deadline wins: drop the reservation/permit and
+pending bytes, record AdmissionTimedOut and latch zero later reply attempts. No
+message containing those bytes exists in the PTY queue, so they cannot be written
+later. There is no await between the final deadline/stop check and the existing
+queue's synchronous permit send. After that send, record Admitted and retire that
+pending state; a later deadline/cancellation cannot retract it and must never
+resend it. Eventual write_all/flush failure or partial OS I/O remains uncertain
+actual delivery. Pure UnansweredReplies candidates never enter this admission state.
+
+The actor must prove continued presentation during pending admission and after its
+bounded expiry, not merely recover when the process exits. Before responder code,
+write/run a real fake-PTY regression: a live child deliberately does not consume
+stdin while still producing recognizable output; fill the actual OS/input writer
+and existing control queue, observe pending capacity, advance/wait the named bound,
+and prove Silent transition, retained typed failure, unchanged process liveness,
+continued output, no later reply attempt and no expired payload written when the
+child eventually drains. An immediate fake Err is not this test. Admission before
+deadline, simultaneous-ready deadline precedence, stop cancellation, independent
+PTY and partial-I/O/no-retry cases remain separate required evidence. This contract
+and the future implementation remain gated; no runtime admission exists here.
+
 Required node tests separately cover healthy-presentation reply admission refusal
 (shell remains live, later output survives, zero later writes, final responder
 failure retained), presentation failure after progress (complete bytes/empty record
