@@ -44,6 +44,7 @@ const SLICE = 200;
 /** The kinds of entry a find looks in. */
 export function searchable(entry: Entry): string | null {
   switch (entry.kind) {
+    case "command":
     case "prompt":
     case "message":
     case "steer":

@@ -38,7 +38,11 @@ export function PermissionDock({
 }) {
   const fleet = useFleet();
   const answers = answersOf(entry.request.options);
+  const blocked =
+    entry.request.delivery_state !== undefined &&
+    entry.request.delivery_state !== "pending";
   const answer = (option: PermissionOptionId) => {
+    if (blocked) return;
     void answerPermission(fleet, node, session, entry.request.id, option).then(
       (outcome) => {
         if (!outcome.ok) {
@@ -79,6 +83,7 @@ export function PermissionDock({
       <span className="permission-actions">
         {answers.decline === null ? null : (
           <Button
+            disabled={blocked}
             size="xs"
             onClick={() => {
               if (answers.decline !== null) {
@@ -91,6 +96,7 @@ export function PermissionDock({
         )}
         {answers.approve === null ? null : (
           <Button
+            disabled={blocked}
             size="xs"
             variant="primary"
             onClick={() => {
@@ -109,6 +115,7 @@ export function PermissionDock({
             trigger={
               <Tooltip label="More answers">
                 <IconButton
+                  disabled={blocked}
                   label="More answers"
                   icon="more"
                   size="xs"
@@ -119,6 +126,7 @@ export function PermissionDock({
           >
             {answers.more.map((option) => (
               <MenuItem
+                disabled={blocked}
                 key={option.id}
                 onSelect={() => {
                   answer(option.id);

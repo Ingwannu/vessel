@@ -126,3 +126,9 @@ never route through interrupt/start and never fabricate TurnStarted or Steered.
 Prepared tests cover command receipt/wire echo distinction, no-offer refusal
 without a turn, stable refusal restart replay, and a changed intent conflicting
 with a retained identity. No positive native provider transport is claimed.
+
+Web source fold now keeps CommandAccepted as a separate caller-identified row,
+leaving turn count/running turn unchanged. Permission delivery-state refreshes
+replace the existing exact PermissionId row instead of duplicating it; Answering
+and OutcomeUnknown disable action controls. Generated TS and execution of these
+web regressions are still owed. Native A7/A8 remain separate consumer owners.

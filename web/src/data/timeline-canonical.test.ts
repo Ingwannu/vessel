@@ -124,3 +124,23 @@ test("unrecognised permission resolution never claims an allowance", async () =>
     }).state,
   ).toBe("unknown");
 });
+
+test("command acceptance retains caller identity without changing the running turn", () => {
+  const message = fixtureId("ClientMessageId", "command");
+  const model = fold([
+    {
+      event: "command_accepted",
+      client_message_id: message,
+      content: [{ type: "text", text: "/compact" }],
+      status: "compact_started",
+    },
+  ]);
+  expect(model.turns).toBe(0);
+  expect(model.inTurn).toBe(false);
+  expect(model.turn).toBeNull();
+  const entry = model.entries[0];
+  expect(entry?.kind).toBe("command");
+  if (entry?.kind !== "command") throw new Error("command echo");
+  expect(entry.item.client_message_id).toBe(message);
+  expect(entry.text).toBe("/compact");
+});

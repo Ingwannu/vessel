@@ -7,6 +7,7 @@
 // (features/session/use-window.ts): rows drawn as the reader scrolls
 // would be announced as if they were new.
 
+import { commandStatus } from "./native-command";
 import { settled, settledLine } from "./approval";
 import { turnTokens } from "./context-meter";
 import type { Entry } from "./timeline-model";
@@ -14,6 +15,8 @@ import type { Entry } from "./timeline-model";
 /** `entry` as a line to announce. */
 export function spoken(entry: Entry): string {
   switch (entry.kind) {
+    case "command":
+      return `${entry.text} · ${commandStatus(entry.item.status)}`;
     case "ready":
       return "Agent ready";
     case "prompt":

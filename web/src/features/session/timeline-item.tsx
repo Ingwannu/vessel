@@ -5,6 +5,7 @@
 
 import { memo, type ReactNode } from "react";
 
+import { commandStatus } from "../../data/native-command";
 import { settled, settledLine } from "../../data/approval";
 import { turnTokens } from "../../data/context-meter";
 import { when } from "../../data/format";
@@ -45,6 +46,13 @@ export const TimelineItem = memo(function TimelineItem({
 
 function Item({ entry }: { entry: Entry }) {
   switch (entry.kind) {
+    case "command":
+      return (
+        <Meta>
+          <p>{entry.text}</p>
+          <p className="t-meta">{commandStatus(entry.item.status)}</p>
+        </Meta>
+      );
     case "ready":
       return (
         <Meta>

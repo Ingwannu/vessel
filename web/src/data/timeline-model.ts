@@ -34,6 +34,11 @@ export interface Base {
 export type Entry =
   | (Base & { kind: "ready"; harnessSession: string })
   | (Base & {
+      kind: "command";
+      item: Extract<AgentEvent, { event: "command_accepted" }>;
+      text: string;
+    })
+  | (Base & {
       kind: "prompt";
       text: string;
       replayed: boolean;

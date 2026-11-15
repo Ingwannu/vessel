@@ -54,6 +54,14 @@ export function applyAgent(
         harnessSession: event.harness_session,
       });
       return;
+    case "command_accepted":
+      work.entries.push({
+        ...base,
+        kind: "command",
+        item: event,
+        text: promptParts(event.content).text,
+      });
+      return;
     case "turn_started": {
       work.turns += 1;
       work.inTurn = true;
@@ -92,6 +100,17 @@ export function applyAgent(
       const call = event.tool_call
         ? work.findTool(event.tool_call, event.tool_scope)
         : undefined;
+      const existingIndex = work.permissions.get(event.id);
+      const existing = entryAt(work.entries, existingIndex);
+      if (existingIndex !== undefined && existing?.kind === "permission") {
+        work.entries[existingIndex] = {
+          ...existing,
+          request: event,
+          title:
+            event.presentation?.title ?? call?.tool.title ?? existing.title,
+        };
+        return;
+      }
       work.permissions.set(event.id, work.entries.length);
       work.attention = base.seq;
       work.entries.push({
