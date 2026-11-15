@@ -22,7 +22,6 @@ use std::collections::HashMap;
 use std::hash::Hash;
 
 use vessel_app_kit::ui::Context;
-use vessel_app_link::workspace::{Ask, ProjectAsk};
 use vessel_app_view::machine_book::Edit;
 
 use crate::shell::Shell;
@@ -72,6 +71,7 @@ impl Shell {
 
     fn workspace_renamed(&mut self, from: &str, to: &str) {
         self.project_host_detached(from);
+        self.areas.workspace.project_reads.detach(from);
         let workspace = &mut self.areas.workspace;
         let listed = workspace.projects.contains_key(from);
         rekey(&mut workspace.projects, from, to);
@@ -85,12 +85,13 @@ impl Shell {
         }
         workspace.code.machine_renamed(from, to);
         if listed {
-            self.ask(to, Ask::Project(ProjectAsk::List));
+            self.read_projects(to);
         }
     }
 
     fn workspace_forgot(&mut self, name: &str) {
         self.project_host_detached(name);
+        self.areas.workspace.project_reads.detach(name);
         let workspace = &mut self.areas.workspace;
         let _was = workspace.projects.remove(name);
         workspace.place.machine_forgot(name);

@@ -33,8 +33,8 @@ mod answer;
 mod ask;
 mod calls;
 mod follow;
-mod project_flow;
 pub mod layout;
+mod project_flow;
 mod pulls;
 mod run;
 mod start;
@@ -63,7 +63,7 @@ use crate::Event;
 pub(crate) struct Hub {
     /// Each clone followed, by machine and project, with its task (each
     /// task holds a clone of the machine's client until it ends).
-    following: Arc<Mutex<HashMap<(String, ProjectId), AbortHandle>>>,
+    following: Arc<Mutex<HashMap<(String, vessel_proto::NodeId, ProjectId), AbortHandle>>>,
 }
 
 impl Hub {
@@ -86,8 +86,22 @@ impl Hub {
         let Ok(mut following) = self.following.lock() else {
             return;
         };
-        following.retain(|(on, _), task| {
+        following.retain(|(on, _, _), task| {
             let keep = on != machine;
+            if !keep {
+                task.abort();
+            }
+            keep
+        });
+    }
+
+    /// Rebinding a route cannot retain an old peer through clone-follow clients.
+    pub(super) fn select_project_peer(&self, machine: &str, node: vessel_proto::NodeId) {
+        let Ok(mut following) = self.following.lock() else {
+            return;
+        };
+        following.retain(|(host, peer, _), task| {
+            let keep = host != machine || *peer == node;
             if !keep {
                 task.abort();
             }
@@ -175,11 +189,10 @@ mod book_tests {
             std::future::pending::<()>().await;
             drop(kept);
         });
-        let _was = hub
-            .following
-            .lock()
-            .expect("the registry")
-            .insert((machine.to_owned(), id), task.abort_handle());
+        let _was = hub.following.lock().expect("the registry").insert(
+            (machine.to_owned(), vessel_proto::NodeId::random(), id),
+            task.abort_handle(),
+        );
         task
     }
 
@@ -200,7 +213,7 @@ mod book_tests {
             .lock()
             .expect("the registry")
             .keys()
-            .cloned()
+            .map(|(host, _node, project)| (host.clone(), *project))
             .collect();
         assert_eq!(left, vec![("build-server".to_owned(), project(3))]);
         assert_eq!(

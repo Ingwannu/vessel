@@ -330,3 +330,36 @@ navigation result under unused-results. Those setup results are now explicitly
 bound; the existing state, draft, capacity and refusal assertions are unchanged.
 The checked run did not reach a successful app/link result or runtime tests.
 A corrected immutable-head strict check remains required before consumer handoff.
+
+
+## Project list provenance before registry projection (staged)
+
+The legacy project list was indexed by alias while its replies carried neither
+node identity nor request order. A delayed read or clone follow from a replaced
+peer could therefore hydrate that alias with another node's ProjectId facts.
+This is unsafe input for shared project placement, even though mutation tickets
+already check their authenticated peer.
+
+[Decision Log]
+- Purpose: make the existing project display cache safe to join with the registry.
+- Existing assets: ProjectTarget already captures Name+NodeId; ProjectsView holds
+  display data; the link already authenticates NodeClient and follows clones.
+- Alternatives: infer the response node from the alias at completion, or duplicate
+  the project list in each row owner. Neither retains the actual response source.
+- Choice: modify the existing list request with a typed read key, echo it in the
+  result, and check the authenticated client before dispatch and current peer
+  before hydration. Clone updates carry their actual NodeId. Each alias retains
+  only its latest read ticket; disconnect/forget/rebinding revokes old reads.
+- Reason: same-peer refresh reordering and different-peer alias reuse are distinct
+  races; both must be rejected before data enters the shared display cache.
+- Effects: at most 256 host read slots, no eviction, checked monotonic ticket
+  allocation with no wrap. Exhaustion refuses dispatch. Readiness waits for a
+  pending authoritative refresh. The link cancels old-peer clone follows when a
+  route is rebound; project revisions keep reordered progress/list replies from
+  regressing clone completion. No new RPC, dependency or workspace identity.
+
+New pure tests cover refresh/rebind/forget/reconnect/capacity/exhaustion and clone
+revision ordering. A headless app test exercises delayed old-node list/progress
+and readiness; a framed in-memory link test checks refusal before sending to a
+rebound peer. These changes have not compiled or run. They do not provide the
+registry snapshot, workspace activation, status join or full C1 acceptance.

@@ -177,7 +177,16 @@ mod tests {
     fn list() -> Command {
         Command::Workspace {
             machine: "laptop".to_owned(),
-            ask: Ask::Project(ProjectAsk::List),
+            ask: Ask::Project(ProjectAsk::List(
+                vessel_app_view::workspace::projects::reads::ProjectReads::default()
+                    .begin(
+                        vessel_app_view::workspace::projects::navigation::ProjectTarget::new(
+                            vessel_app_view::machine_book::Name::parse("laptop").unwrap(),
+                            vessel_proto::NodeId::random(),
+                        ),
+                    )
+                    .unwrap(),
+            )),
         }
     }
 
@@ -194,7 +203,7 @@ mod tests {
         };
         let Event::Workspace {
             machine,
-            answer: Answer::Projects(result),
+            answer: Answer::Projects { result, .. },
         } = *event
         else {
             panic!("a project list settles as a project list");

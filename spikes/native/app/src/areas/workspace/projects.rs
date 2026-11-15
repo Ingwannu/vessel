@@ -14,7 +14,6 @@ use vessel_app_kit::ui::{
     ParentElement as _, Stateful, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, button};
-use vessel_app_link::workspace::{Ask, ProjectAsk};
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::projects::ProjectsView;
 use vessel_app_view::workspace::words::AddForm;
@@ -248,7 +247,7 @@ pub(crate) fn render(
             tokens,
         )
         .on_click(cx.listener(move |this, _event, _window, cx| {
-            this.ask(&refresh_host, Ask::Project(ProjectAsk::List));
+            this.read_projects(&refresh_host);
             cx.notify();
         })),
     );

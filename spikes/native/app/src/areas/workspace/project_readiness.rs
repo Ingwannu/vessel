@@ -21,6 +21,9 @@ impl Shell {
         if self.project_node(host.as_str()) != Some(node) {
             return ProjectSetupReadiness::Failed;
         }
+        if self.areas.workspace.project_reads.pending(host, node) {
+            return ProjectSetupReadiness::Pending;
+        }
         let page = &self.areas.workspace.page;
         let activity = page.actions.setup_readiness(host, node);
         if activity != ProjectSetupReadiness::Ready {

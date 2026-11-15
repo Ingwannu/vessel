@@ -17,6 +17,7 @@ mod place_rows;
 mod project_actions;
 pub(crate) mod project_form;
 mod project_readiness;
+mod project_reads;
 mod projects;
 mod remove;
 mod sidebar;
@@ -29,7 +30,7 @@ use std::collections::HashMap;
 use vessel_app_kit::TextField;
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::Command;
-use vessel_app_link::workspace::{Answer, Ask, ProjectAsk};
+use vessel_app_link::workspace::{Answer, Ask};
 use vessel_app_view::workspace::projects::ProjectsView;
 use vessel_app_view::workspace::words::WorkspaceWords;
 
@@ -47,6 +48,8 @@ use crate::shell::Shell;
 pub(crate) struct Workspace {
     /// Each machine's projects as last read, by machine.
     pub(crate) projects: HashMap<String, ProjectsView>,
+    /// Request-order and peer binding for the separate project display cache.
+    pub(crate) project_reads: vessel_app_view::workspace::projects::reads::ProjectReads,
     /// Settings > Projects.
     pub(crate) page: projects::Page,
     /// The composer tray's place.
@@ -66,6 +69,7 @@ impl Workspace {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
             projects: HashMap::new(),
+            project_reads: vessel_app_view::workspace::projects::reads::ProjectReads::default(),
             page: projects::Page::new(window, cx),
             place: place::DraftPlace::new(window, cx),
             start: None,
@@ -100,19 +104,40 @@ impl Shell {
     /// (the fleet was read again): the sidebar's group and the composer's
     /// tray show them without a visit to Settings first.
     pub(crate) fn workspace_fleet(&mut self) {
-        let unread: Vec<String> = self
+        use vessel_app_view::{machine_book::Name, workspace::projects::navigation::ProjectTarget};
+        let online: Vec<_> = self
             .fleet
             .online()
-            .filter(|machine| !self.areas.workspace.projects.contains_key(&machine.name))
-            .map(|machine| machine.name.clone())
+            .filter_map(|machine| {
+                Some(ProjectTarget::new(
+                    Name::parse(&machine.name).ok()?,
+                    machine.node?,
+                ))
+            })
             .collect();
-        for machine in unread {
-            let _was = self
+        for target in &online {
+            let host = target.host().as_str();
+            if self
                 .areas
                 .workspace
-                .projects
-                .insert(machine.clone(), ProjectsView::Loading);
-            self.ask(&machine, Ask::Project(ProjectAsk::List));
+                .project_reads
+                .node(host)
+                .is_some_and(|old| old != target.node())
+            {
+                self.project_host_detached(host);
+            }
+        }
+        self.areas.workspace.project_reads.retain_online(&online);
+        for target in online {
+            if self
+                .areas
+                .workspace
+                .project_reads
+                .node(target.host().as_str())
+                != Some(target.node())
+            {
+                self.read_projects(target.host().as_str());
+            }
         }
     }
 
@@ -129,18 +154,8 @@ impl Shell {
         match answer {
             Answer::ProjectChanged { key, result } => self.project_changed(machine, &key, result),
             Answer::Layout(answer) => self.layout_renamed(answer, cx),
-            Answer::Projects(result) => {
-                let _was = self
-                    .areas
-                    .workspace
-                    .projects
-                    .insert(machine.to_owned(), ProjectsView::listed(result));
-            }
-            Answer::Project(project) => {
-                if let Some(view) = self.areas.workspace.projects.get_mut(machine) {
-                    view.replace(project);
-                }
-            }
+            Answer::Projects { key, result } => self.projects_read(machine, &key, result),
+            Answer::Project { node, project } => self.project_followed(machine, node, project),
             Answer::Took { form, result } => self.took_project(machine, form, result),
             Answer::Forgot { project, result } => self.forgot_project(machine, project, result),
             Answer::Commands {

@@ -8,7 +8,7 @@ use vessel_app_kit::ui::{
     Context, Div, ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button_with_kind};
-use vessel_app_link::workspace::{Ask, ProjectAsk, ProjectChange, ProjectFailure};
+use vessel_app_link::workspace::{Ask, ProjectChange, ProjectFailure};
 use vessel_app_view::machine_book::Name;
 use vessel_app_view::workspace::projects::actions::{
     ProjectAction, ProjectActionError, ProjectActionKey, ProjectChanged, ProjectReply,
@@ -74,7 +74,7 @@ impl Shell {
                 }
             }
         }
-        self.ask(machine, Ask::Project(ProjectAsk::List));
+        self.read_projects(machine);
     }
 
     /// Settlement never grants a rebound alias authority to hydrate an old node's payload.
@@ -105,7 +105,7 @@ impl Shell {
         if !current {
             // A book alias may now name a different node: never hydrate from an old reply.
             if self.areas.workspace.projects.contains_key(machine) {
-                self.ask(machine, Ask::Project(ProjectAsk::List));
+                self.read_projects(machine);
             }
             return false;
         }

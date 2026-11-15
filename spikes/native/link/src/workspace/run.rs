@@ -41,14 +41,23 @@ pub(super) async fn run(hub: &Hub, client: &NodeClient, reply: &Reply, ask: Ask)
 
 async fn project(hub: &Hub, client: &NodeClient, reply: &Reply, ask: ProjectAsk) -> Answer {
     match ask {
-        ProjectAsk::List => {
+        ProjectAsk::List(key) => {
+            if client.node().id != key.target().node()
+                || reply.machine != key.target().host().as_str()
+            {
+                return Answer::Projects {
+                    key,
+                    result: Err(Problem::Unsent),
+                };
+            }
+            hub.select_project_peer(&reply.machine, client.node().id);
             let result = call(client, ListProjects {}).await;
             if let Ok(list) = &result {
                 for cloning in list.projects.iter().filter(|project| is_cloning(project)) {
                     follow::clone_of(hub, client, reply, cloning.clone());
                 }
             }
-            Answer::Projects(result)
+            Answer::Projects { key, result }
         }
         ProjectAsk::Add(ask) => took(hub, client, reply, Form::Folder, call(client, ask).await),
         ProjectAsk::Clone(ask) => took(hub, client, reply, Form::Clone, call(client, ask).await),

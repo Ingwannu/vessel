@@ -15,7 +15,7 @@ use super::{Answer, Hub, Reply};
 
 /// Follow `project` on its own task, unless it is followed already.
 pub(super) fn clone_of(hub: &Hub, client: &NodeClient, reply: &Reply, project: ProjectInfo) {
-    let key = (reply.machine.clone(), project.id);
+    let key = (reply.machine.clone(), client.node().id, project.id);
     // The registry stays locked while the task is made and recorded, so a
     // task that ends at once removes itself only after it was recorded.
     let Ok(mut following) = hub.following.lock() else {
@@ -54,7 +54,12 @@ async fn follow(client: &NodeClient, reply: &Reply, project: ProjectInfo) {
         let cloning = matches!(now.state, ProjectState::Cloning { .. });
         let unchanged = now.revision == revision;
         revision = now.revision;
-        reply.send(Answer::Project(now)).await;
+        reply
+            .send(Answer::Project {
+                node: client.node().id,
+                project: now,
+            })
+            .await;
         if !cloning {
             return;
         }

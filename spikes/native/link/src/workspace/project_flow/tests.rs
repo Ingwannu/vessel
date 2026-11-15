@@ -238,3 +238,48 @@ async fn a_rebound_alias_never_sends_the_old_projects_mutation_to_another_node()
     .await
     .expect("bounded refused in-memory RPC");
 }
+
+#[tokio::test]
+async fn a_project_read_refuses_a_rebound_peer_before_any_frame_is_sent() {
+    use vessel_app_view::workspace::projects::{navigation::ProjectTarget, reads::ProjectReads};
+    tokio::time::timeout(TEST_WAIT, async {
+        let (client, peer) = peer(Outcome::Ok(WireReply::RemoveProject(Ack))).await;
+        let key = ProjectReads::default()
+            .begin(ProjectTarget::new(
+                Name::parse("laptop").unwrap(),
+                NodeId::random(),
+            ))
+            .unwrap();
+        assert_ne!(key.target().node(), client.node().id);
+        let (events, mut received) = tokio::sync::mpsc::channel(1);
+        let reply = Reply {
+            machine: "laptop".to_owned(),
+            events,
+        };
+        crate::workspace::run::run(
+            &Hub::default(),
+            &client,
+            &reply,
+            super::super::Ask::Project(super::super::ProjectAsk::List(key.clone())),
+        )
+        .await;
+        let crate::Event::Workspace {
+            answer:
+                Answer::Projects {
+                    key: returned,
+                    result,
+                },
+            ..
+        } = received.recv().await.unwrap()
+        else {
+            panic!("wrong answer kind")
+        };
+        assert_eq!(returned, key);
+        assert_eq!(result, Err(Problem::Unsent));
+        assert!(!peer.is_finished(), "no request reached the rebound peer");
+        peer.abort();
+        assert!(peer.await.unwrap_err().is_cancelled());
+    })
+    .await
+    .expect("bounded refused in-memory project read");
+}

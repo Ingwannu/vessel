@@ -54,9 +54,19 @@ pub enum Answer {
     /// Correlated backing-entity action result.
     Layout(super::layout::Answer),
     /// The machine's projects.
-    Projects(Result<ProjectList, Problem>),
+    Projects {
+        /// Exact target and latest read ticket captured by the screen.
+        key: vessel_app_view::workspace::projects::reads::ProjectReadKey,
+        /// Current list or typed refusal.
+        result: Result<ProjectList, Problem>,
+    },
     /// A project as it is now (a clone's progress, or its end).
-    Project(ProjectInfo),
+    Project {
+        /// Actual authenticated peer producing clone progress.
+        node: vessel_proto::NodeId,
+        /// A monotonic project revision on that peer.
+        project: ProjectInfo,
+    },
     /// A project added, cloned or started (or why not).
     Took {
         /// Which form asked.
@@ -288,7 +298,10 @@ pub(super) fn refused(ask: Ask, problem: &Problem) -> Answer {
 
 fn project_refused(ask: ProjectAsk, problem: &Problem) -> Answer {
     match ask {
-        ProjectAsk::List => Answer::Projects(no(problem)),
+        ProjectAsk::List(key) => Answer::Projects {
+            key,
+            result: no(problem),
+        },
         ProjectAsk::Add(_) => took_failed(Form::Folder, problem),
         ProjectAsk::Clone(_) => took_failed(Form::Clone, problem),
         ProjectAsk::Init(_) => took_failed(Form::New, problem),

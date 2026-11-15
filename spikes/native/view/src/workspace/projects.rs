@@ -21,6 +21,8 @@
 pub mod actions;
 /// Pure Add Project page stack and target-scoped in-flow drafts; screen wiring is separate.
 pub mod navigation;
+/// Authenticated peer and request-order correlation for cached project reads.
+pub mod reads;
 
 use std::path::Path;
 
@@ -54,6 +56,23 @@ impl ProjectsView {
         }
     }
 
+    /// Merge a fresh list without regressing a newer clone progress revision.
+    pub fn listed_after(&mut self, mut answer: Result<ProjectList, Problem>) {
+        if let (Self::Ready(previous), Ok(next)) = (&*self, &mut answer) {
+            for project in &mut next.projects {
+                if let Some(known) = previous
+                    .projects
+                    .iter()
+                    .find(|known| known.id == project.id)
+                    && known.revision > project.revision
+                {
+                    *project = known.clone();
+                }
+            }
+        }
+        *self = Self::listed(answer);
+    }
+
     /// The list, when it was read.
     #[must_use]
     pub const fn list(&self) -> Option<&ProjectList> {
@@ -80,6 +99,7 @@ impl ProjectsView {
                 .projects
                 .iter_mut()
                 .find(|known| known.id == project.id)
+            && project.revision >= known.revision
         {
             *known = project;
         }
@@ -224,6 +244,24 @@ mod tests {
         assert_eq!(view.list().map(|list| list.projects.len()), Some(2));
         view.forgot(&P1.parse().unwrap());
         assert_eq!(view.list().map(|list| list.projects.len()), Some(1));
+    }
+
+    #[test]
+    fn reordered_list_and_follow_responses_cannot_regress_clone_completion() {
+        let mut ready = project(P1, "/fixture");
+        ready.revision = 3;
+        let mut view = ProjectsView::Ready(list(vec![ready.clone()]));
+        let mut stale = ready.clone();
+        stale.revision = 1;
+        stale.state = ProjectState::Cloning {
+            stage: CloneStage::Receiving,
+            percent: Some(50),
+        };
+        view.replace(stale.clone());
+        assert_eq!(view.project(&ready.id), Some(&ready));
+        view.listed_after(Ok(list(vec![stale])));
+        assert_eq!(view.project(&ready.id), Some(&ready));
+        assert_eq!(view.cloning().count(), 0);
     }
 
     #[test]

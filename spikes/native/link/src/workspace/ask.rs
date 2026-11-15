@@ -38,7 +38,7 @@ pub enum Ask {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProjectAsk {
     /// `project.list`; then each project being cloned is followed.
-    List,
+    List(vessel_app_view::workspace::projects::reads::ProjectReadKey),
     /// `project.add`.
     Add(AddProject),
     /// `project.clone`; followed until the clone ends.
