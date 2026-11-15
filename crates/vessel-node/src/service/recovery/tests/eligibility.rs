@@ -86,7 +86,7 @@ async fn imported(
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn a_delegated_import_stays_excluded_while_a_local_import_can_resume_after_a_local_turn() {
     vessel_testkit::within(
-        Duration::from_secs(60),
+        CASE_DEADLINE,
         Box::pin(async {
             let fixture = Fixture::new();
             let node = fixture.start().await;

@@ -7,6 +7,7 @@ use crate::recovery::{Claim, Recovery};
 use tokio::net::TcpStream;
 use vessel_proto::SessionInfo;
 
+const PROMPT: &str = "recovery held reply";
 const CANDIDATES: usize = Recovery::MAX_ATTEMPTS.saturating_add(1);
 struct Scenario {
     fixture: Fixture,
@@ -25,7 +26,18 @@ impl Scenario {
         let fixture = Fixture::new();
         let node = fixture.start().await;
         let owner = fixture.client(&node).await;
-        set(&node, true).await;
+        let mut policy = change(true);
+        policy.restart_recovery.as_mut().unwrap().prompt = Some(PROMPT.parse().unwrap());
+        let installed = node
+            .secure
+            .service
+            .0
+            .settings
+            .change(policy.into())
+            .await
+            .unwrap();
+        assert!(installed.restart_recovery.enabled);
+        assert_eq!(installed.restart_recovery.prompt.as_str(), PROMPT);
         let mut originals = Vec::new();
         for _ in 0..CANDIDATES {
             originals.push(fixture.active(&node, &owner).await);
@@ -203,7 +215,7 @@ async fn guarded_kill_reaches_suppression_while_the_admitted_delivery_reply_is_h
                     .iter()
                     .filter(|record| matches!(&record.event,
                         SessionEvent::Agent { event: AgentEvent::TurnStarted { content } }
-                            if content == &vec![ContentBlock::Text { text: "loaded".into() }]
+                            if content == &vec![ContentBlock::Text { text: PROMPT.into() }]
                     ))
                     .count(),
                 1,

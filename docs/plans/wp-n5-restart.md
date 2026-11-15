@@ -261,3 +261,11 @@ The test uses authenticated KillSession, checks retained attempt capacity and
 no third launch until real settlement, then checks replacement survival and no
 reconstructed restart intent. It is prepared for execution against the
 unchanged recovery admission before the repair; no reproduction is claimed yet.
+
+
+The first forcing execution stopped before the Kill assertion: the fixture's
+`loaded` report shortcut returned before the fake provider response barrier.
+It supplies no causal reproduction. The fixture now chooses an ordinary
+prompt that traverses that barrier; product admission remains unchanged for
+the next forcing run. The three repeated test deadlines now reference the
+existing CASE_DEADLINE with no duration or assertion change.

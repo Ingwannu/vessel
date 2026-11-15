@@ -3,7 +3,7 @@ use super::*;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn a_missing_folder_fails_without_blocking_an_independent_working_session_or_retrying() {
-    vessel_testkit::within(Duration::from_secs(60), Box::pin(async {
+    vessel_testkit::within(CASE_DEADLINE, Box::pin(async {
         let mut f = Fixture::new();
         let node = f.start().await;
         let owner = f.client(&node).await;
@@ -42,7 +42,7 @@ async fn a_missing_folder_fails_without_blocking_an_independent_working_session_
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn unsupported_resume_load_failure_and_unavailable_provider_are_not_retried() {
-    vessel_testkit::within(Duration::from_secs(60), Box::pin(async {
+    vessel_testkit::within(CASE_DEADLINE, Box::pin(async {
         for variable in ["FAKE_ACP_NO_LOAD", "FAKE_ACP_LOAD_FAILS", "FAKE_ACP_EXIT_EARLY"] {
             let f = Fixture::new();
             let node = f.start().await;
