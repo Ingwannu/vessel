@@ -880,3 +880,10 @@ The owner supplies actual metadata policy directly to background tasks, and
 file/reply optional decoding shares one lenient bounded entry point. Tests
 pin supported Automatic versus unassigned omission. New shape and all-current
 checks are pending before final package submission.
+
+
+Optional-capability followup: the head recovery fixture now uses the explicit
+None default for the added optional field, as Clippy requires. Current
+verification proceeds through changed-crate Clippy, protocol/store tests,
+actual generation tests and TypeScript regeneration in separate narrow tickets.
+No assertion, deadline or head recovery behavior changes.
