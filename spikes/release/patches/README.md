@@ -210,8 +210,10 @@ Upstream: gpui-kit's input base (`longbridge/gpui-kit`), Apache-2.0
 `Cargo.lock` (unused for a dependency). Only the app's workspace
 (`spikes/native`) uses it.
 
-Changed: `src/input/base/blink_cursor.rs`, marked `MODIFIED by Vessel`
-at the top and `Vessel patch` at the change.
+Changed: `src/input/base/blink_cursor.rs` (change 4),
+`src/input/base/state.rs` (changes 7 and 9), and the drawing files listed
+under change 7, marked `MODIFIED by Vessel` at the top and `Vessel patch`
+at each change.
 
 ### 4. A steady caret while motion is held
 
@@ -380,6 +382,24 @@ at the top and `Vessel patch` at the change.
   Private folded-array order remains source-only; the profile disables folding.
   No capture exists yet, and this example is not a substitute for an exact
   changed-source gate. Builds must use the prescribed remote VM path.
+
+### 9. Read the existing document revision before owner projection
+
+- Purpose: distinguish an unchanged old display from accepted A-to-X-to-A
+  edits while an owner's model-to-editor projection is pending. Equal text
+  cannot prove that no input occurred before a queued owner notification.
+- Choice: one readonly `InputBaseState::document_revision()` accessor over
+  the existing counter. No counter, setter, reset, subscription, event, undo
+  or editing-engine behavior is added. A regression edits the real EditorState
+  from A to X to A and retains a changed revision despite identical final text.
+- Why: the engine already advances its revision synchronously with edits;
+  another owner event listener would have the same queued-delivery limitation.
+- Costs: one accessor to preserve at the pin. The counter wraps and is only
+  comparable within the same live state; it is neither a file revision nor
+  durable identity, a terminal remote-effect fence, or write authority.
+- Changed: `src/input/base/state.rs`, accessor and regression only.
+- Checked: pending; the consumer's queued-input and lifecycle regressions are
+  separate from the vendor change and must be qualified on their actual union.
 
 ## `gpui-pre` 0.3.10
 
