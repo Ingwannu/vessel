@@ -4,7 +4,7 @@
 //! page" made "Vessel" where the app is meant.
 
 use super::Lang;
-use crate::prefs::{ContentWidth, ConversationDisplay, Kept, LaunchOnly, Theme, TurnDelivery};
+use crate::prefs::{ContentWidth, Kept, LaunchOnly, Theme, TurnDelivery};
 use crate::settings::{Group, Section};
 
 impl Lang {
@@ -51,6 +51,11 @@ pub struct SettingsText {
     pub system: &'static str,
     pub light: &'static str,
     pub dark: &'static str,
+    pub zinc: &'static str,
+    pub midnight: &'static str,
+    pub claude: &'static str,
+    pub ghostty: &'static str,
+    pub pure_black: &'static str,
     pub fonts: &'static str,
     pub interface_size: &'static str,
     pub interface_size_note: &'static str,
@@ -59,19 +64,9 @@ pub struct SettingsText {
     pub layout: &'static str,
     pub content_width: &'static str,
     pub content_width_note: &'static str,
-    pub detail_level: &'static str,
     pub comfortable: &'static str,
     pub wide: &'static str,
     pub full: &'static str,
-    pub chat_display: &'static str,
-    pub app_diagnostic: &'static str,
-    pub app_diagnostic_note: &'static str,
-    pub run: &'static str,
-    pub copy: &'static str,
-    pub refresh: &'static str,
-    pub diagnostic_copied: &'static str,
-    pub chat_display_note: &'static str,
-    pub collapse_tools: &'static str,
     // About.
     pub about_lead: &'static str,
     pub version: &'static str,
@@ -114,6 +109,11 @@ const EN: SettingsText = SettingsText {
     system: "System",
     light: "Light",
     dark: "Dark",
+    zinc: "Zinc",
+    midnight: "Midnight",
+    claude: "Claude",
+    ghostty: "Ghostty",
+    pure_black: "Pure black",
     fonts: "Fonts",
     interface_size: "Interface size",
     interface_size_note: "Used for navigation, controls, and labels",
@@ -122,22 +122,9 @@ const EN: SettingsText = SettingsText {
     layout: "Layout",
     content_width: "Content width",
     content_width_note: "Max width of chat and Markdown files on wide screens",
-    detail_level: "Detail level",
     comfortable: "Comfortable",
     wide: "Wide",
     full: "Full",
-    chat_display: "Chat display",
-    // Diagnostics (Paseo's `settings.diagnostics.app`); the hint names
-    // Vessel's machines and agents where Paseo's names its daemon and
-    // providers. Short labels: buttons.
-    app_diagnostic: "App diagnostic",
-    app_diagnostic_note: "Collect connection, machine, agent, and log details",
-    run: "Run",
-    copy: "Copy",
-    refresh: "Refresh",
-    diagnostic_copied: "Diagnostic copied.",
-    chat_display_note: "How much of an agent's work the chat shows",
-    collapse_tools: "Collapse tool calls",
     about_lead: "This app's version and licence, and each machine's.",
     version: "Version",
     licence: "Licence",
@@ -187,6 +174,11 @@ const KO: SettingsText = SettingsText {
     system: "시스템",
     light: "밝게",
     dark: "어둡게",
+    zinc: "Zinc",
+    midnight: "Midnight",
+    claude: "Claude",
+    ghostty: "Ghostty",
+    pure_black: "순수 검정",
     fonts: "글꼴",
     interface_size: "인터페이스 크기",
     interface_size_note: "탐색, 컨트롤 및 레이블에 사용됩니다",
@@ -195,19 +187,9 @@ const KO: SettingsText = SettingsText {
     layout: "레이아웃",
     content_width: "콘텐츠 너비",
     content_width_note: "와이드 화면에서 채팅과 Markdown 파일의 최대 너비",
-    detail_level: "세부 수준",
     comfortable: "편안하게",
     wide: "넓게",
     full: "전체",
-    chat_display: "채팅 표시",
-    app_diagnostic: "앱 진단",
-    app_diagnostic_note: "연결, 머신, 에이전트 및 로그 세부 정보를 수집합니다.",
-    run: "실행",
-    copy: "복사",
-    refresh: "새로 고침",
-    diagnostic_copied: "진단을 복사했습니다.",
-    chat_display_note: "채팅에 표시할 에이전트 작업의 양",
-    collapse_tools: "도구 호출 접기",
     about_lead: "이 앱과 각 머신의 버전과 라이선스.",
     version: "버전",
     licence: "라이선스",
@@ -252,12 +234,16 @@ impl SettingsText {
     /// Terminals (the machine's), as Paseo's Korean does; they are under
     /// different headings.
     #[must_use]
-    pub const fn section(&self, section: Section) -> &'static str {
+    pub fn section(
+        &self,
+        section: Section,
+        catalog: &'static crate::localization::Translator,
+    ) -> &'static str {
         match (self.lang, section) {
             (Lang::En, Section::General) => "General",
             (Lang::En, Section::Appearance) => "Appearance",
             (Lang::En, Section::Sidebar) => "Sidebar",
-            (Lang::En, Section::Chat) => "Chat",
+            (_, Section::Chat) => catalog.chat().title(),
             (Lang::En, Section::Terminal) => "Terminal",
             (Lang::En, Section::Browser) => "Browser",
             (Lang::En, Section::Editor) => "Editor",
@@ -266,7 +252,7 @@ impl SettingsText {
             (Lang::En, Section::Integrations) => "Integrations",
             (Lang::En, Section::Notifications) => "Notifications",
             (Lang::En, Section::Permissions) => "Permissions",
-            (Lang::En, Section::Diagnostics) => "Diagnostics",
+            (_, Section::Diagnostics) => catalog.diagnostics().title(),
             (Lang::En, Section::About) => "About",
             (Lang::En, Section::Overview) => "Overview",
             (Lang::En, Section::Projects) => "Projects",
@@ -285,7 +271,6 @@ impl SettingsText {
             (Lang::Ko, Section::General) => "일반",
             (Lang::Ko, Section::Appearance) => "모양",
             (Lang::Ko, Section::Sidebar) => "사이드바",
-            (Lang::Ko, Section::Chat) => "채팅",
             (Lang::Ko, Section::Browser) => "브라우저",
             (Lang::Ko, Section::Editor) => "편집기",
             (Lang::Ko, Section::Files) => "파일",
@@ -293,7 +278,6 @@ impl SettingsText {
             (Lang::Ko, Section::Integrations) => "통합",
             (Lang::Ko, Section::Notifications) => "알림",
             (Lang::Ko, Section::Permissions) => "권한",
-            (Lang::Ko, Section::Diagnostics) => "진단",
             (Lang::Ko, Section::About) => "정보",
             (Lang::Ko, Section::Overview) => "개요",
             (Lang::Ko, Section::Projects) => "프로젝트",
@@ -333,6 +317,11 @@ impl SettingsText {
             Theme::System => self.system,
             Theme::Light => self.light,
             Theme::Dark => self.dark,
+            Theme::Zinc => self.zinc,
+            Theme::Midnight => self.midnight,
+            Theme::Claude => self.claude,
+            Theme::Ghostty => self.ghostty,
+            Theme::PureBlack => self.pure_black,
         }
     }
 
@@ -378,15 +367,6 @@ impl SettingsText {
             ContentWidth::Comfortable => self.comfortable,
             ContentWidth::Wide => self.wide,
             ContentWidth::Full => self.full,
-        }
-    }
-
-    /// A display's name.
-    #[must_use]
-    pub const fn display(&self, display: ConversationDisplay) -> &'static str {
-        match display {
-            ConversationDisplay::Full => self.full,
-            ConversationDisplay::CollapseTools => self.collapse_tools,
         }
     }
 

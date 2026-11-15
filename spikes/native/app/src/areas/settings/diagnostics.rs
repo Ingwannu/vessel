@@ -30,6 +30,8 @@ use crate::shell::Shell;
 pub(crate) struct State {
     report: Option<String>,
     dialog: DialogState,
+    /// Last copy notice, retained while it may still own the global frame foot.
+    copied_notice: Option<&'static str>,
 }
 
 impl State {
@@ -37,11 +39,33 @@ impl State {
         Self {
             report: None,
             dialog: DialogState::new(cx),
+            copied_notice: None,
         }
     }
 }
 
 impl Shell {
+    /// Copy the report the button actually showed; retain only notice wording.
+    fn copy_diagnostic(&mut self, report: &str, cx: &mut Context<'_, Self>) {
+        cx.write_to_clipboard(ClipboardItem::new_string(report.to_owned()));
+        let copied = self.words.diagnostics().copied();
+        self.areas.settings.diagnostics.copied_notice = Some(copied);
+        self.notice = Some(copied.to_owned());
+        cx.notify();
+    }
+
+    /// Refresh an owned copy notice without recollecting or translating data.
+    pub(crate) fn translate_diagnostic_notice(&mut self) {
+        let state = &mut self.areas.settings.diagnostics;
+        if let Some(previous) = state.copied_notice {
+            let copied = self.words.diagnostics().copied();
+            if self.notice.as_deref() == Some(previous) {
+                self.notice = Some(copied.to_owned());
+            }
+            state.copied_notice = Some(copied);
+        }
+    }
+
     /// Collect the report (again) and show it.
     fn run_diagnostic(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let facts = app_facts(self, window);
@@ -93,24 +117,19 @@ pub(crate) fn render(
     compact: bool,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let words = shell.t.lang.settings();
-    let run = outline_button("settings-diagnostic-run", words.run, true, tokens)
+    let words = shell.words.diagnostics();
+    let run = outline_button("settings-diagnostic-run", words.run(), true, tokens)
         .on_click(cx.listener(|shell, _event, window, cx| shell.run_diagnostic(window, cx)));
     let card = settings::card(tokens).child(settings::row_at(
-        words.app_diagnostic,
-        Some(words.app_diagnostic_note.into()),
+        words.report_title(),
+        Some(words.description().into()),
         None,
         Some(run.into_any_element()),
         true,
         compact,
         tokens,
     ));
-    settings::section(
-        words.section(vessel_app_view::settings::Section::Diagnostics),
-        card,
-        tokens,
-    )
-    .into_any_element()
+    settings::section(words.title(), card, tokens).into_any_element()
 }
 
 /// The report's dialog, while it is open: the text as code, Copy and
@@ -123,16 +142,14 @@ pub(crate) fn dialogs(
 ) -> Option<AnyElement> {
     let state = &shell.areas.settings.diagnostics;
     let report = state.report.clone()?;
-    let words = shell.t.lang.settings();
+    let words = shell.words.diagnostics();
     let copied = report.clone();
-    let copy = outline_button("settings-diagnostic-copy", words.copy, true, tokens).on_click(
+    let copy = outline_button("settings-diagnostic-copy", words.copy(), true, tokens).on_click(
         cx.listener(move |shell, _event, _window, cx| {
-            cx.write_to_clipboard(ClipboardItem::new_string(copied.clone()));
-            shell.notice = Some(shell.t.lang.settings().diagnostic_copied.to_owned());
-            cx.notify();
+            shell.copy_diagnostic(&copied, cx);
         }),
     );
-    let refresh = outline_button("settings-diagnostic-refresh", words.refresh, true, tokens)
+    let refresh = outline_button("settings-diagnostic-refresh", words.refresh(), true, tokens)
         .on_click(cx.listener(|shell, _event, window, cx| shell.run_diagnostic(window, cx)));
     // The report as Paseo's sheet shows it: one block of code text that
     // wraps, on the code surface, selectable by copying the whole.
@@ -148,7 +165,7 @@ pub(crate) fn dialogs(
     Some(dialog(
         &state.dialog,
         DialogContent {
-            title: words.app_diagnostic.into(),
+            title: words.report_title().into(),
             body: body.into_any_element(),
             footer: vec![refresh.into_any_element(), copy.into_any_element()],
             size: DialogSize::Wide,
@@ -160,3 +177,6 @@ pub(crate) fn dialogs(
         cx,
     ))
 }
+
+#[cfg(test)]
+mod language_tests;

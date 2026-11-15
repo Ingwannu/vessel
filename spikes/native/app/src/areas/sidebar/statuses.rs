@@ -11,8 +11,9 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, kicker};
 use vessel_app_view::prefs::SidebarView;
-use vessel_app_view::sidebar::SIDEBAR_STATUS_SESSIONS;
+use vessel_app_view::sidebar::{SIDEBAR_STATUS_SESSIONS, SidebarStatus};
 
+use super::layout::EndTarget;
 use super::{INSET, more_row};
 use crate::routes::Route;
 use crate::shell::Shell;
@@ -38,25 +39,50 @@ pub(super) fn groups(
                 .child(words.no_sessions),
         );
     }
-    for group in groups {
-        let mut rows = div().flex().flex_col().gap(px(spacing::S0_5)).child(
-            div()
-                .px(px(INSET))
-                .pb(px(spacing::S0_5))
-                .child(kicker(words.mark(group.mark), tokens)),
+    let final_group = groups.len().checked_sub(1);
+    for (group_index, group) in groups.iter().enumerate() {
+        let end = EndTarget::at(group_index, final_group);
+        list = list.child(status_group(group, end, shell, tokens, touch, cx));
+    }
+    list
+}
+
+/// Retains one status renderer while the final existing row gains reveal.
+fn status_group(
+    group: &SidebarStatus<'_>,
+    end: EndTarget,
+    shell: &Shell,
+    tokens: &Tokens,
+    touch: bool,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let words = shell.t.lang.sidebar();
+    let mut rows = div().flex().flex_col().gap(px(spacing::S0_5)).child(
+        div()
+            .px(px(INSET))
+            .pb(px(spacing::S0_5))
+            .child(kicker(words.mark(group.mark), tokens)),
+    );
+    let last = group.sessions.len().checked_sub(1);
+    for (index, card) in group.sessions.iter().enumerate() {
+        let row = super::session_row::session_row(
+            card,
+            Some(card.machine.as_str()),
+            shell,
+            tokens,
+            touch,
+            cx,
         );
-        for card in &group.sessions {
-            rows = rows.child(super::session_row::session_row(
-                card,
-                Some(card.machine.as_str()),
-                shell,
-                tokens,
-                touch,
-                cx,
-            ));
-        }
-        if group.more > 0 {
-            rows = rows.child(
+        let target = if group.more == 0 {
+            end.and(EndTarget::at(index, last))
+        } else {
+            EndTarget::Earlier
+        };
+        rows = rows.child(target.wrap(row, &shell.areas.sidebar.layout));
+    }
+    if group.more > 0 {
+        rows = rows.child(
+            end.wrap(
                 more_row(
                     ElementId::Name(format!("more-{:?}", group.mark).into()),
                     group.more,
@@ -67,9 +93,9 @@ pub(super) fn groups(
                     this.scope_board(None, cx);
                     this.go(Route::Board, window, cx);
                 })),
-            );
-        }
-        list = list.child(rows);
+                &shell.areas.sidebar.layout,
+            ),
+        );
     }
-    list
+    rows
 }

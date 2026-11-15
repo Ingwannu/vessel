@@ -10,6 +10,7 @@ use super::area::Followup;
 
 fn answer(session: SessionId, kind: ActKind, result: Result<Acted, ActFailed>) -> ActAnswer {
     ActAnswer {
+        terminal: None,
         machine: "laptop".to_owned(),
         session,
         kind,
