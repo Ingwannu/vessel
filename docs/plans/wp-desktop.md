@@ -141,6 +141,15 @@ from a later observation. Cancel preserves the process. Generic failures never
 offer implicit interruption. Pause stops only Owned; Attached/Kept/Stopped are
 not sent an unauthorized stop.
 
+Two reference differences remain explicit: Vessel does not preserve terminal
+workers across an owned-node update/restart, and it offers no PID-confirmed stop
+of an Attached node. Existing live-session protection and owned-handle authority
+take precedence; no unreviewed service/signal API is inferred. Updating the app
+stops its owned node before restart and then launches the packaged binary set.
+There is no automatic binary-file replacement watcher or app-label comparison
+for a continuously running node; protocol compatibility remains the handshake
+contract, and replacement while this app keeps running requires explicit restart.
+
 The obsolete branch-only RawConnected registration is removed with lead approval.
 Until the canonical third writer slot, Some(connection) explicitly returns
 Unavailable, withdrawal acknowledges None, and Fleet publishes no local machine.
