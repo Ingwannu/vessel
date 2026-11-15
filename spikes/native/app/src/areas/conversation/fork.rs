@@ -351,9 +351,6 @@ impl Shell {
     }
 }
 
-#[cfg(test)]
-mod language_tests;
-
 // Owner snapshot preparation; no staged exemption in the product path.
 #[cfg(test)]
 impl Forking {
@@ -361,3 +358,6 @@ impl Forking {
         self.pending.is_some() || self.opening.is_some() || self.removing
     }
 }
+
+#[cfg(test)]
+mod language_tests;
