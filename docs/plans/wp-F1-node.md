@@ -159,3 +159,18 @@ The same validator test explicitly contrasts ordinary future-window rejection
 with completed-edit acceptance of the identical expiry, then refuses unknown
 catch-up, unknown target and unavailable zone under CompletedEdit. Existing
 ordinary validation cases remain unchanged. All are authored, not executed.
+
+
+## V3 bounded source disposition (2026-11-15)
+
+V3 ca067547 reviewed exact9c150c6e..d26b0b775, all eight changed paths, the
+full actor/validator/state changes, original Asker rules and pinned Paseo
+service458–509/row209–250/form-model545–565: SOURCE PASSED, GATE OWED.
+The four real scheduler/Store and one validator cases are authored source,
+not executed proof. Exact ordinary SHORT schedules-node-20261115T165717Z-d26b0b77
+strict plus automation::schedules tests remain queued/pending. Earlier265/6e
+queued-only143 records remain non-compiler evidence. No unchanged whole was
+requested or inferred. Integrator/lead adoption and App Ended permission
+changes wait for an actually checked producer. Per-run isolation stays excluded
+from this bounded correction and remains an unimplemented runtime dependency.
+No service/permission or scope/method/schema/protocol changes were made.
