@@ -80,3 +80,12 @@ those fixtures now write into the existing buffer without an extra allocation.
   boundary, not Windows process/group behavior. Child output, OS-visible argv,
   unscoped later backend diagnostics and another embedding's logger are not a
   whole-process confidentiality guarantee.
+
+
+The private-error subprocess fixture also installs the daemon's independent
+portable-pty warn ceiling for both modes. Otherwise a future Windows execution
+of the Standard control could itself trace real inherited registry environment
+values. This fixture ceiling still admits ERROR: Standard must expose the error
+canary and only the private scope may suppress it. The checked production95
+bodies are unchanged; this is a test-harness privacy correction before Windows
+execution, not Windows runtime evidence.

@@ -1,6 +1,10 @@
 //! The real synchronous spawn boundary, logger bridge and thread-local scope.
 use crate::{PtyProcess, WindowSize};
 use std::{process::Command, sync::OnceLock, thread::ThreadId};
+use tracing_subscriber::{
+    filter::{LevelFilter, Targets},
+    prelude::*,
+};
 use vessel_proc::{CommandDiagnostics, CommandSpec};
 
 const CHILD: &str = "VESSEL_PRIVATE_PTY_LOG_CANARY";
@@ -29,6 +33,12 @@ fn private_pty_backend_errors_use_the_real_bridge_and_restore_the_parent() {
             .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
             .with_writer(std::io::stderr)
             .with_ansi(false)
+            .finish()
+            // Match the daemon's inherited-environment ceiling in this fixture,
+            // including Standard mode on Windows. ERROR remains admitted, so
+            // only the private scoped wrapper can suppress the error canary.
+            .with(Targets::new().with_default(LevelFilter::TRACE)
+                .with_target("portable_pty", LevelFilter::WARN))
             .init();
         SPAWN_THREAD.set(std::thread::current().id()).unwrap();
         let private = mode == "private";
