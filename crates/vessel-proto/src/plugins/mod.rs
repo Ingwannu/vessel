@@ -4,12 +4,17 @@
 //! until their node service, clients and shared pending-method mechanism exist.
 
 mod address;
+mod attachment;
 mod identity;
 mod theme;
 
 pub use address::{
     ContributionAddress, ContributionKind, PanelLocation, PluginAddress, PluginPanelContext,
     RuntimeGeneration,
+};
+pub use attachment::{
+    AttachmentError, AttachmentItem, AttachmentItemId, AttachmentItemKey, AttachmentSearchResult,
+    AttachmentSourceAddress, AttachmentUrl, ContextAttachment, MAX_ATTACHMENT_ITEMS,
 };
 pub use identity::{
     Caption, ContentText, ContributionId, FileExtension, InvalidPluginValue, PluginId, RpcName,
