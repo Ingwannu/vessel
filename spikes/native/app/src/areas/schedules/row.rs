@@ -8,7 +8,6 @@ use kit::ui::{
 };
 use std::sync::Arc;
 use vessel_app_kit::{self as kit, Tokens, Type, TypeExt as _, theme::spacing};
-use vessel_app_view::schedules::page::RowKey;
 use vessel_app_view::schedules::presentation::{PreparedRow, TargetLine};
 
 pub(super) fn render(
@@ -132,11 +131,13 @@ fn trailing(
         .gap(px(spacing::S2))
         .flex_none()
         .child(badge);
-    if !row.menu.is_empty() {
+    if !row.menu.is_empty()
+        && let Some(intent) = &row.intent
+    {
         {
             let ui = &shell.areas.schedules.ui;
             if let Some(control) = ui.anchors.get(&row.key) {
-                let key: RowKey = row.key.clone();
+                let intent = intent.clone();
                 let anchor = std::rc::Rc::clone(&control.anchor);
                 controls = controls.child(
                     kit::menu::trigger(
@@ -147,7 +148,7 @@ fn trailing(
                     )
                     .on_click(cx.listener(move |shell, _, window, cx| {
                         cx.stop_propagation();
-                        shell.schedule_menu(&key, &anchor, window, cx);
+                        shell.schedule_menu(&intent, &anchor, window, cx);
                     })),
                 );
             }

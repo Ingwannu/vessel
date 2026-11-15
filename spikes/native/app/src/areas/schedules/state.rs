@@ -58,18 +58,27 @@ impl Area {
         self.data.local = local;
         {
             let ui = &mut self.ui;
-            if ui.selected.as_ref().is_some_and(|key| {
-                !self
-                    .data
-                    .rows
-                    .iter()
-                    .any(|row| row.key == *key && !row.menu.is_empty())
+            if ui.selected.as_ref().is_some_and(|intent| {
+                !intent.is_current(&self.data.page)
+                    || !self
+                        .data
+                        .rows
+                        .iter()
+                        .any(|row| row.key == *intent.key() && !row.menu.is_empty())
             }) {
                 ui.selected = None;
                 if ui.menu.is_open() {
                     ui.menu.close();
                     let _new = ui.pending_focus.insert(Popup::Actions);
                 }
+            }
+            if ui
+                .deleting
+                .as_ref()
+                .is_some_and(|prompt| !prompt.intent.is_current(&self.data.page))
+            {
+                ui.deleting = None;
+                let _new = ui.pending_focus.insert(Popup::Delete);
             }
             if ui.picker.is_open()
                 && (!self.data.page.filters_visible() || !self.data.page.multiple_machines())

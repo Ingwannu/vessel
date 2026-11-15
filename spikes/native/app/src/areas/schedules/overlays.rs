@@ -30,8 +30,15 @@ pub(super) fn menu(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let area = &shell.areas.schedules;
-    let key = area.ui.selected.as_ref()?;
-    let row = area.data.rows.iter().find(|row| row.key == *key)?;
+    let selected = area.ui.selected.as_ref()?;
+    if !selected.is_current(&area.data.page) {
+        return None;
+    }
+    let row = area
+        .data
+        .rows
+        .iter()
+        .find(|row| row.key == *selected.key())?;
     let items: Vec<_> = row
         .menu
         .iter()
@@ -58,15 +65,25 @@ pub(super) fn menu(
         })
         .collect();
     let actions: Vec<_> = row.menu.iter().map(|entry| entry.action).collect();
-    let key = key.clone();
+    let selected = Rc::clone(selected);
     let handlers = MenuHandlers {
         state: |shell: &mut Shell| &mut shell.areas.schedules.ui.menu,
         chose: Rc::new(move |shell, index, window, cx| {
+            if !shell
+                .areas
+                .schedules
+                .ui
+                .selected
+                .as_ref()
+                .is_some_and(|current| Rc::ptr_eq(current, &selected))
+            {
+                return;
+            }
             if let Some(action) = actions.get(index) {
                 if *action == Action::Delete {
-                    shell.schedule_delete_prompt(&key, window, cx);
+                    shell.schedule_delete_prompt(&selected, window, cx);
                 } else {
-                    shell.schedule_act(&key, *action, cx);
+                    shell.schedule_act(&selected, *action, cx);
                 }
             }
             cx.notify();
@@ -81,8 +98,22 @@ pub(super) fn menu(
         cx,
     )
 }
-fn close(shell: &mut Shell, _window: &mut Window, cx: &mut Context<'_, Shell>) {
-    shell.areas.schedules.ui.deleting = None;
+fn close(
+    expected: &Rc<super::DeletePrompt>,
+    shell: &mut Shell,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) {
+    let ui = &mut shell.areas.schedules.ui;
+    if !ui
+        .deleting
+        .as_ref()
+        .is_some_and(|current| Rc::ptr_eq(current, expected))
+    {
+        return;
+    }
+    ui.deleting = None;
+    ui.dialog.dismissed(window, cx);
     cx.notify();
 }
 pub(super) fn deletion(
@@ -94,11 +125,8 @@ pub(super) fn deletion(
 ) -> Option<AnyElement> {
     let area = &shell.areas.schedules;
     let prompt = area.ui.deleting.as_ref()?;
-    let enabled = area
-        .data
-        .page
-        .row(&prompt.key)
-        .is_some_and(|row| row.actions().contains(&Action::Delete));
+    let enabled = prompt.intent.allows(&area.data.page, Action::Delete);
+    let cancel_prompt = Rc::clone(prompt);
     let sizing = ControlSizing::from_compact(touch);
     let cancel = kit::button_with_kind_at(
         "schedules-keep",
@@ -108,7 +136,7 @@ pub(super) fn deletion(
         sizing,
         tokens,
     )
-    .on_click(cx.listener(|shell, _, window, cx| close(shell, window, cx)));
+    .on_click(cx.listener(move |shell, _, window, cx| close(&cancel_prompt, shell, window, cx)));
     let mut delete = kit::button_with_kind_at(
         "schedules-delete",
         shell.words.schedules().delete_confirm_action(),
@@ -122,13 +150,26 @@ pub(super) fn deletion(
         tokens,
     );
     if enabled {
-        let key = prompt.key.clone();
-        delete = delete.on_click(cx.listener(move |shell, _, _, cx| {
-            shell.areas.schedules.ui.deleting = None;
-            shell.schedule_act(&key, Action::Delete, cx);
+        let confirmed = Rc::clone(prompt);
+        delete = delete.on_click(cx.listener(move |shell: &mut Shell, _, window, cx| {
+            let area = &shell.areas.schedules;
+            if !area
+                .ui
+                .deleting
+                .as_ref()
+                .is_some_and(|current| Rc::ptr_eq(current, &confirmed))
+                || !confirmed.intent.allows(&area.data.page, Action::Delete)
+            {
+                return;
+            }
+            // Paseo confirms first, then dispatches the mutation. A refused
+            // stale callback neither starts work nor acknowledges dismissal.
+            close(&confirmed, shell, window, cx);
+            shell.schedule_act(&confirmed.intent, Action::Delete, cx);
             cx.notify();
         }));
     }
+    let dismissed = Rc::clone(prompt);
     Some(kit::dialog(
         &area.ui.dialog,
         DialogContent {
@@ -140,7 +181,7 @@ pub(super) fn deletion(
         tokens,
         window,
         touch,
-        close,
+        move |shell, window, cx| close(&dismissed, shell, window, cx),
         cx,
     ))
 }

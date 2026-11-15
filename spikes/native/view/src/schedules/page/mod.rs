@@ -14,6 +14,8 @@
 
 mod choices;
 mod connection;
+mod intent;
+pub use intent::Intent;
 #[cfg(test)]
 mod connection_tests;
 #[cfg(test)]

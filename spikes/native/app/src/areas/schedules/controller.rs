@@ -2,12 +2,13 @@
 //! schedule/list; reads follow arrival, reconnect and explicit invalidation.
 use super::{DeletePrompt, Popup, Tick};
 use crate::{routes::Route, shell::Shell};
+use std::rc::Rc;
 use vessel_app_kit::{
     select::Anchor,
     ui::{Context, Window},
 };
 use vessel_app_link::{Command, schedules::Message};
-use vessel_app_view::schedules::{Action, load::MachineKey, page::RowKey};
+use vessel_app_view::schedules::{Action, load::MachineKey, page::Intent};
 pub(crate) fn arrive(shell: &mut Shell, _window: &mut Window, cx: &mut Context<'_, Shell>) {
     shell.schedules_fleet(cx);
     shell.schedules_due();
@@ -97,23 +98,25 @@ impl Shell {
             match popup {
                 Popup::Actions => ui.menu.close_and_restore(window, cx),
                 Popup::Hosts => ui.picker.close_and_restore(window, cx),
+                Popup::Delete => ui.dialog.dismissed(window, cx),
             }
         }
     }
     pub(super) fn schedule_menu(
         &mut self,
-        key: &RowKey,
+        intent: &Intent,
         anchor: &Anchor,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        if !self
-            .areas
-            .schedules
-            .data
-            .rows
-            .iter()
-            .any(|row| row.key == *key && !row.menu.is_empty())
+        if !intent.is_current(&self.areas.schedules.data.page)
+            || !self
+                .areas
+                .schedules
+                .data
+                .rows
+                .iter()
+                .any(|row| row.key == *intent.key() && !row.menu.is_empty())
         {
             return;
         }
@@ -123,33 +126,33 @@ impl Shell {
         let ui = &mut self.areas.schedules.ui;
         let _removed = ui.pending_focus.remove(&Popup::Actions);
         ui.picker.close_and_restore(window, cx);
-        ui.selected = Some(key.clone());
+        ui.selected = Some(Rc::new(intent.clone()));
         ui.menu.open_end(bounds, window, cx);
         cx.notify();
     }
     pub(super) fn schedule_act(
         &mut self,
-        key: &RowKey,
+        intent: &Intent,
         action: Action,
         cx: &mut Context<'_, Self>,
     ) {
-        if let Some(request) = self.areas.schedules.data.page.act(key, action) {
+        if let Some(request) = self.areas.schedules.data.page.act_intent(intent, action) {
             self.command(Command::Schedules(request));
             let _changed = self.schedules_changed(cx);
         }
     }
     pub(super) fn schedule_delete_prompt(
         &mut self,
-        key: &RowKey,
+        intent: &Intent,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        let Some(row) = self.areas.schedules.data.page.row(key) else {
-            return;
-        };
-        if !row.actions().contains(&Action::Delete) {
+        if !intent.allows(&self.areas.schedules.data.page, Action::Delete) {
             return;
         }
+        let Some(row) = self.areas.schedules.data.page.row(intent.key()) else {
+            return;
+        };
         let title = self.t.lang.schedule_action(
             vessel_app_view::schedules::product(&row.schedule.definition.target),
             Action::Delete,
@@ -160,11 +163,15 @@ impl Shell {
             .delete_confirm(vessel_app_view::schedules::title(&row.schedule.definition))
             .unwrap_or_else(|_| self.words.schedules().display_unavailable().to_owned());
         let ui = &mut self.areas.schedules.ui;
-        ui.deleting = Some(DeletePrompt {
-            key: key.clone(),
+        let previously_unmounted = ui.pending_focus.remove(&Popup::Delete);
+        if ui.deleting.take().is_some() || previously_unmounted {
+            ui.dialog.dismissed(window, cx);
+        }
+        ui.deleting = Some(Rc::new(DeletePrompt {
+            intent: intent.clone(),
             title: title.into(),
             body: body.into(),
-        });
+        }));
         ui.dialog.focus(window, cx);
     }
 }
@@ -200,7 +207,9 @@ pub(crate) fn leaving(
         let ui = &mut shell.areas.schedules.ui;
         ui.menu.close_and_restore(window, cx);
         ui.picker.close_and_restore(window, cx);
-        ui.deleting = None;
+        if ui.deleting.take().is_some() || ui.pending_focus.contains(&Popup::Delete) {
+            ui.dialog.dismissed(window, cx);
+        }
         ui.pending_focus.clear();
     }
 }

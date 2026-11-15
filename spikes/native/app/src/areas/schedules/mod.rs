@@ -13,7 +13,10 @@ use crate::shell::Shell;
 pub(crate) use controller::{arrive, leaving, sidebar};
 use data::Data;
 pub(crate) use draw::render;
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    rc::Rc,
+};
 use vessel_app_kit::{
     ComboboxState,
     dialog::DialogState,
@@ -21,7 +24,7 @@ use vessel_app_kit::{
     select::Anchor,
     ui::{Context, SharedString, Window},
 };
-use vessel_app_view::schedules::page::RowKey;
+use vessel_app_view::schedules::page::{Intent, RowKey};
 
 #[derive(Debug)]
 pub(crate) struct Area {
@@ -34,8 +37,8 @@ pub(super) struct Ui {
     picker: ComboboxState,
     anchor: Anchor,
     menu: MenuState,
-    selected: Option<RowKey>,
-    deleting: Option<DeletePrompt>,
+    selected: Option<Rc<Intent>>,
+    deleting: Option<Rc<DeletePrompt>>,
     dialog: DialogState,
     anchors: BTreeMap<RowKey, RowControl>,
     pending_focus: BTreeSet<Popup>,
@@ -44,6 +47,7 @@ pub(super) struct Ui {
 pub(super) enum Popup {
     Actions,
     Hosts,
+    Delete,
 }
 #[derive(Debug)]
 pub(super) struct RowControl {
@@ -52,7 +56,7 @@ pub(super) struct RowControl {
 }
 #[derive(Debug)]
 pub(super) struct DeletePrompt {
-    key: RowKey,
+    intent: Intent,
     title: SharedString,
     body: SharedString,
 }

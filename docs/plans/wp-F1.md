@@ -390,3 +390,38 @@ to the pre-merge G2 source after direct rustfmt. Thus the incoming menu/button
 baselines and G2 additions retain their exact source while unrelated shared
 changes are adopted. Source-only connection binding5b69c58e still needs its
 View/Link/App checks and security review before real write/capture flows.
+
+## Captured row intent and delete dismissal
+
+[Decision Log]
+- Purpose: an old rendered trigger/menu/confirmation must not select a later
+  physical connection or an edited definition that reuses its composite key.
+- Existing assets: View's canonical admission and schedule revision, and G4's
+  reviewed weak DialogState focus/dismissed lifecycle. No new identity registry
+  or focus renderer is needed; standard-library Rc supplies an open-cycle token.
+- Choice: PreparedRow carries an immutable Intent (original key/context/revision).
+  Page::act_intent verifies that identity plus current authority/mutation before
+  issuing the original context-bound request. The trigger captures it before
+  paint; the menu additionally checks its specific Rc open cycle.
+- Why: a callback must not reinterpret an old rendered row using current alias
+  facts. A revision change requires reopening; it cannot silently change the
+  definition the person approved. Existing direct Page::act remains available
+  for pure clients; this app's activation path always uses act_intent.
+- Dismissal: DeletePrompt is a captured Rc token. Cancel, Escape, scrim, X and
+  confirmation accept only that token. Actual close calls DialogState::dismissed;
+  a stale or currently unavailable confirmation neither dispatches nor ACKs.
+  Node-driven identity invalidation unmounts the old prompt and queues its ACK
+  for the next Window frame. Route leave ACKs actual dismissal too.
+- Reference: pinned1c00 components/schedules/schedules-table.tsx114–127 confirms
+  first, closes confirmation, then invokes the mutation. That order is retained;
+  no extra pending dialog is invented. Connection/revision fencing is Vessel's
+  additional distributed-admission requirement, not attributed to reference code.
+- Costs and proof boundary: pure regressions cover same-node reconnect, edited
+  revision, pending repeat activation and offline rows. These new cases are not
+  executed yet. Remote narrow and final actual focused-field/old-dialog callback
+  consumer proof remain owed; no native F5/UI/OS pass follows from this source.
+
+The base6 merge's git diff --check reported four whitespace lines inherited
+unchanged from18eedad4 (vendored gpui accessibility comments and generated
+web/src/wire/proto.ts). They are not rewritten in this app package. The G2
+post-merge source diff itself has no whitespace error.

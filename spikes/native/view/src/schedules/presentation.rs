@@ -52,6 +52,8 @@ pub struct MenuEntry {
 pub struct PreparedRow {
     /// Stable machine/schedule identity.
     pub key: RowKey,
+    /// Original admitted row identity, captured before the trigger is painted.
+    pub intent: Option<super::page::Intent>,
     /// The accepted title precedence, intact for wrapping.
     pub title: Arc<str>,
     /// Reference target line.
@@ -114,6 +116,7 @@ fn prepare(
     let product = super::product(&row.schedule.definition.target);
     PreparedRow {
         key: row.key.clone(),
+        intent: row.intent(),
         title: super::title(&row.schedule.definition).into(),
         target: target_line(&target.line, catalog),
         agent: target.agent.cloned(),
