@@ -53,7 +53,7 @@ use std::time::{Duration, Instant};
 
 use bytes::Bytes;
 use serde_json::{Value, json};
-use tokio::io::{AsyncBufReadExt as _, AsyncWriteExt as _, BufReader};
+use tokio::io::{AsyncBufReadExt as _, AsyncReadExt as _, AsyncWriteExt as _, BufReader};
 use tokio::net::TcpListener;
 use tokio::process::Command;
 use tokio_util::sync::CancellationToken;
@@ -836,6 +836,7 @@ async fn agent_tools(env: &[(String, String)], captured: &mut Captured) {
         .stderr(Stdio::piped())
         .kill_on_drop(true);
     let mut child = command.spawn().unwrap();
+    let mut stderr = child.stderr.take().unwrap();
     let mut stdin = child.stdin.take().unwrap();
     let mut stdout = BufReader::new(child.stdout.take().unwrap()).lines();
     let messages = [
@@ -847,27 +848,39 @@ async fn agent_tools(env: &[(String, String)], captured: &mut Captured) {
         json!({ "jsonrpc": "2.0", "id": 3, "method": "tools/call",
             "params": { "name": "list_sessions", "arguments": {} } }),
     ];
-    for message in messages {
-        stdin
-            .write_all(format!("{message}\n").as_bytes())
-            .await
-            .unwrap();
-    }
-    let mut replies = String::new();
-    while let Some(line) = stdout.next_line().await.unwrap() {
-        replies.push_str(&line);
-        replies.push('\n');
-        if serde_json::from_str::<Value>(&line).is_ok_and(|reply| reply["id"] == json!(3)) {
-            break;
+    // Debug output includes the tool catalogue and can fill stderr's pipe
+    // before the next stdout reply. Drain both concurrently while retaining
+    // every diagnostic byte for the unchanged secret-canary scan.
+    let exchange = async move {
+        for message in messages {
+            stdin
+                .write_all(format!("{message}\n").as_bytes())
+                .await
+                .unwrap();
         }
-    }
-    assert!(replies.contains("\"id\":3"), "{replies}");
-    drop(stdin);
-    let output = child.wait_with_output().await.unwrap();
+        let mut replies = String::new();
+        while let Some(line) = stdout.next_line().await.unwrap() {
+            replies.push_str(&line);
+            replies.push('\n');
+            if serde_json::from_str::<Value>(&line).is_ok_and(|reply| reply["id"] == json!(3)) {
+                break;
+            }
+        }
+        assert!(replies.contains("\"id\":3"), "{replies}");
+        drop(stdin);
+        let _output = child.wait_with_output().await.unwrap();
+        replies
+    };
+    let diagnostics = async move {
+        let mut bytes = Vec::new();
+        let _read = stderr.read_to_end(&mut bytes).await.unwrap();
+        bytes
+    };
+    let (replies, diagnostics) = tokio::join!(exchange, diagnostics);
     captured.text("`vessel mcp` replies", &replies);
     captured.text(
         "`vessel mcp` stderr",
-        &String::from_utf8_lossy(&output.stderr),
+        &String::from_utf8_lossy(&diagnostics),
     );
 
     // The right secret for another session: refused, and not repeated.

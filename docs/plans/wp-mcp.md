@@ -470,3 +470,21 @@ legacy upgrade and would enable injection on the next start. An empty patch
 means preserve, not reset; ordinary toggle sends only inject and keeps policy.
 The typed reset shape and restart reason were sent to the config owner for
 planning, without offering an unassigned method or claiming its implementation.
+
+
+## Expanded catalogue and the CLI canary pipe
+
+The exact merged-base functional run reached the actual CLI canary, then its
+unchanged overall safety net expired in AgentTools. This was a timeout, not a
+reported canary match. Inspection found that its real `vessel mcp` child ran
+with debug logging while the fixture consumed stdout alone until reply 3;
+stderr was consumed only afterward by wait_with_output. The pinned MCP service
+logs its complete tool response at debug level. An expanded catalogue can fill
+that pipe and block the next reply while the parent waits on stdout.
+
+The fixture now drains stderr concurrently with the same request/reply exchange.
+Every diagnostic byte is still captured for the same secret scan. The secret
+assertions, stdin protocol, wrong-session refusal, child lifecycle and original
+safety net are unchanged. No product transport, logging or timeout is changed.
+The failed run and its logs remain preserved; exact corrected strict and canary
+execution are still owed, so this mechanism is not yet called runtime-proven.
