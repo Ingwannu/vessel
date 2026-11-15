@@ -1042,3 +1042,5 @@ MD pointer32/touch44, icon14, explicit muted vectors remain muted.
 Guarded button_control adds source Small28/px12 and Small20 loading,
 with disabled/pending callback refusal. The isolated previously reviewed
 ActivityIndicator producer is reused without a menu dependency.
+Outline delegates to the same renderer; legacy no-Window entries remain
+Pointer by the coordinator-approved compatibility limitation.

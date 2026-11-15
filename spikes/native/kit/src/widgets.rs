@@ -54,7 +54,7 @@ pub use button::{
 };
 
 /// Paseo's outline button (`variant="outline"`): no fill, a hairline of
-/// `borderAccent`, the foreground's words; the same pill as [`button`].
+/// `borderAccent`, the foreground's words; the same pill as [`button()`].
 /// `enabled` false fades it to half and leaves it without a pointer (the
 /// screen does not attach its click).
 #[must_use]
@@ -64,27 +64,18 @@ pub fn outline_button(
     enabled: bool,
     tokens: &Tokens,
 ) -> Stateful<Div> {
-    let neutral = tokens.neutral;
-    div()
-        .id(id)
-        .flex()
-        .flex_row()
-        .flex_shrink_0()
-        .items_center()
-        .justify_center()
-        .gap(px(8.0))
-        .min_h(px(32.0))
-        .px(px(16.0))
-        .rounded_full()
-        .border_1()
-        .border_color(neutral.border_accent)
-        .text_color(neutral.foreground)
-        .type_(Type::Label)
-        .when(enabled, |button| {
-            button.cursor_pointer().active(|style| style.opacity(0.85))
-        })
-        .when(!enabled, |button| button.opacity(0.5))
-        .child(label.into())
+    button_with_kind(
+        id,
+        label,
+        ButtonKind::Outline,
+        if enabled {
+            ButtonState::Enabled
+        } else {
+            ButtonState::Disabled
+        },
+        tokens,
+    )
+    .flex_shrink_0()
 }
 
 /// A status dot (its word goes beside it: state is never colour alone).
