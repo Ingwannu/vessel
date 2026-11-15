@@ -179,6 +179,10 @@ pub(crate) fn revoke(
             let _rows = connection
                 .prepare_cached("UPDATE devices SET revoked_at = ?2 WHERE id = ?1")?
                 .execute(params![id, time_to_sql(at)?])?;
+            let _push = connection.execute(
+                "DELETE FROM push_subscriptions WHERE device=?1",
+                [device.to_string()],
+            )?;
             Ok(())
         }
     }

@@ -3,10 +3,11 @@
 //! own starts (a terminal's program in a PTY, a structured session's
 //! agent through `agent`).
 
+use std::collections::BTreeSet;
 use std::path::PathBuf;
 
 use chrono::Utc;
-use vessel_agent::AgentSetup;
+use vessel_agent::{AgentSetup, Driver};
 use vessel_harness::{McpFile, ModelProxy, Profile};
 use vessel_proto::{
     Creator, HarnessSessionId, ModelId, NodeId, OptionChoice, ResolvedMcpServers, SessionEvent,
@@ -39,6 +40,8 @@ pub struct LaunchOptions {
     /// the spec's harness's default profile (the launch from before
     /// profiles), which is right only when the spec names no profile.
     pub profile: Option<Profile>,
+    /// Nonsecret quota binding captured with this actual profile choice.
+    pub limits: crate::LimitAssociation,
     /// MCP servers, values resolved. Structured sessions get them over ACP;
     /// terminal ones in the harness's launch-time form, when it has one.
     pub mcp_servers: ResolvedMcpServers,
@@ -71,6 +74,10 @@ pub struct LaunchOptions {
     /// node's proxy (protocol 7), recorded in `SessionInfo::model`; `None`
     /// for a session on its harness's own provider.
     pub model: Option<SessionModel>,
+    /// Who produced `spec.title` when it is set. Absent means a person typed
+    /// it. A fork's derived title is given, so generation does not treat it
+    /// as a name a person chose.
+    pub title_origin: Option<vessel_proto::TitleOrigin>,
     /// Where the harness of a profile with a model route sends its calls,
     /// with the session's token (ADR 0015); given exactly when `profile`
     /// has a route, or the launch is refused. Its `Debug` hides the token.
@@ -107,6 +114,8 @@ struct Record {
     via: Option<NodeId>,
     model: Option<SessionModel>,
     notices: Vec<String>,
+    limits: crate::LimitAssociation,
+    title_origin: Option<vessel_proto::TitleOrigin>,
 }
 
 impl Record {
@@ -119,13 +128,20 @@ impl Record {
             via,
             model,
             notices,
+            limits,
+            title_origin,
         } = self;
         let mut info = SessionInfo::new(id, spec, Utc::now()).with_creator(created_by);
+        if let Some(origin) = title_origin {
+            info.title_origin = origin;
+        }
         info.origin = origin;
         info.via = via;
         info.model = model;
         let since = info.created_at;
-        (Begin::new(info, since), notices)
+        let mut begin = Begin::new(info, since);
+        begin.limits = limits;
+        (begin, notices)
     }
 }
 
@@ -171,8 +187,21 @@ impl SessionRuntime {
     /// # Errors
     /// As [`create`](Self::create), and [`SessionError::Launch`] for a
     /// profile of another harness or servers the harness cannot take,
-    /// [`SessionError::McpFile`] when the MCP file cannot be written.
+    /// [`SessionError::McpFile`] when the MCP file cannot be written,
+    /// [`SessionError::ConversationTaken`] for a `resume` another live
+    /// session is on (protocol 17).
     pub async fn create_with(
+        &self,
+        spec: SessionSpec,
+        options: LaunchOptions,
+    ) -> Result<Created, SessionError> {
+        // Launch owns process setup and a full session specification.
+        // Keep that cold future off every caller's stack as the spec grows;
+        // one allocation per session avoids multiplying it in UI/test tasks.
+        Box::pin(self.launch(spec, options)).await
+    }
+
+    async fn launch(
         &self,
         spec: SessionSpec,
         options: LaunchOptions,
@@ -185,6 +214,7 @@ impl SessionRuntime {
         }
         let LaunchOptions {
             profile,
+            limits,
             mcp_servers,
             mcp_dir,
             created_by,
@@ -196,6 +226,7 @@ impl SessionRuntime {
             model_proxy,
             questions,
             fork,
+            title_origin,
         } = options;
         let id = id.unwrap_or_else(SessionId::random);
         if self.get(id).is_some() {
@@ -208,6 +239,8 @@ impl SessionRuntime {
             via,
             model,
             notices,
+            limits,
+            title_origin,
         };
         let profile = profile.map_or_else(|| Profile::default_of(&spec.harness), Ok)?;
         match spec.mode.clone() {
@@ -227,6 +260,16 @@ impl SessionRuntime {
                 resume,
                 options,
             } => {
+                // One agent per conversation (`claims`): held until the
+                // session is registered. A new session holds its profile
+                // alone, which the live check reads from its info.
+                let _claim = resume
+                    .as_ref()
+                    .map(|conversation| {
+                        let profiles = BTreeSet::from([spec.profile.clone()]);
+                        self.claim(id, &spec.harness, profiles, conversation)
+                    })
+                    .transpose()?;
                 let start = AgentStart {
                     model,
                     resume,
@@ -235,8 +278,9 @@ impl SessionRuntime {
                     questions,
                     fork,
                 };
-                self.create_structured(spec, (profile, model_proxy), start, record)
-                    .await
+                // Boxed: the claim held across it put every caller's future
+                // past clippy's `large_futures` bound.
+                Box::pin(self.create_structured(spec, (profile, model_proxy), start, record)).await
             }
         }
     }
@@ -298,7 +342,7 @@ impl SessionRuntime {
             begin,
             notices,
             (Input::Terminal(pty.input()), pty.pid()),
-            None,
+            (None, Driver::Acp),
         );
         let actor = TerminalActor {
             pty,
@@ -316,8 +360,12 @@ impl SessionRuntime {
         start: AgentStart,
         record: Record,
     ) -> Result<Created, SessionError> {
-        let AgentCommand { command, cwd } =
-            self.agent_command(spec.clone(), profile, proxy).await?;
+        let AgentCommand {
+            command,
+            cwd,
+            driver,
+            notices: chosen,
+        } = self.agent_command(spec.clone(), profile, proxy).await?;
         let setup = AgentSetup {
             cwd,
             model: start.model,
@@ -327,8 +375,10 @@ impl SessionRuntime {
             handshake_timeout: self.config.agent_handshake_timeout,
             questions: start.questions,
             fork: start.fork.as_ref().map(|fork| Box::new(fork.agent.clone())),
+            private_dir: self.private_dir(),
         };
-        let (begin, notices) = record.begin(spec);
+        let (begin, mut notices) = record.begin(spec);
+        notices.extend(chosen);
         // A fork's log starts by saying what it forked, and drops the
         // replay of its check (protocol 14): the conversation is the
         // source's log, not copied.
@@ -342,6 +392,16 @@ impl SessionRuntime {
                 })),
                 ..ActorStart::default()
             });
-        self.run_structured(Launch { command, setup }, begin, notices, actor)
+        self.run_structured(
+            Launch {
+                command,
+                setup,
+                driver,
+                limits: begin.limits.clone(),
+            },
+            begin,
+            notices,
+            actor,
+        )
     }
 }

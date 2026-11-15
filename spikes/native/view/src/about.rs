@@ -1,13 +1,14 @@
 //! What Settings › About lists: the software the app is built from and the
 //! licence each is under, as the page's (`web/src/data/about.ts`). A list
-//! kept by hand, checked against the workspace's `Cargo.toml` by its test,
+//! kept by hand, checked against shared and member manifests by its test,
 //! so a dependency added without a line here fails `cargo test` rather
 //! than going unlisted (the page's test checks `package.json`).
 //!
 //! [Decision Log]
 //! - Purpose: the page's licences, for the app's own parts.
-//! - Choice: the workspace's dependencies by their published names, in
-//!   the manifest's order, then the faces the kit bundles; each licence as
+//! - Choice: shared dependencies by their published names in manifest order,
+//!   member-local runtime declarations alphabetically, then the bundled faces;
+//!   each licence as
 //!   its crate declares it (`cargo metadata`), the faces' from their OFL
 //!   texts beside them.
 
@@ -40,6 +41,12 @@ pub enum Role {
     Identifiers,
     /// The system's language.
     Language,
+    /// The system's desktop settings.
+    Desktop,
+    /// Asynchronous tasks and change streams.
+    Tasks,
+    /// Raster images and vector drawing.
+    Images,
     /// Errors.
     Errors,
     /// The network and its tasks.
@@ -93,9 +100,9 @@ const fn face(name: &'static str, role: Role) -> Bundled {
     }
 }
 
-/// Every dependency of the workspace, in its manifest's order, then the
-/// faces.
-pub const BUNDLED: [Bundled; 28] = [
+/// Runtime dependencies in the shared manifest's order, then member-local
+/// external declarations alphabetically, then the faces.
+pub const BUNDLED: &[Bundled] = &[
     krate("fluent-bundle", "Apache-2.0 OR MIT", Role::Translations),
     krate("fluent-syntax", "Apache-2.0 OR MIT", Role::Translations),
     krate("fluent-pseudo", "Apache-2.0 OR MIT", Role::Translations),
@@ -125,6 +132,10 @@ pub const BUNDLED: [Bundled; 28] = [
     krate("vte", "Apache-2.0 OR MIT", Role::Terminal),
     krate("unicode-width", "MIT OR Apache-2.0", Role::Terminal),
     krate("qrcode", "MIT OR Apache-2.0", Role::QrCodes),
+    krate("ashpd", "MIT", Role::Desktop),
+    krate("futures-lite", "Apache-2.0 OR MIT", Role::Tasks),
+    krate("image", "MIT OR Apache-2.0", Role::Images),
+    krate("resvg", "Apache-2.0 OR MIT", Role::Images),
     face("Geist", Role::Face),
     face("Geist Mono", Role::CodeFace),
     face("Pretendard", Role::Hangul),

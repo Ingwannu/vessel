@@ -1,0 +1,1 @@
+{"five_hour":{"utilization":11,"resets_at":"2026-06-01T21:00:00Z"},"seven_day":{"utilization":1,"resets_at":"2026-06-04T00:00:00Z"},"seven_day_opus":{"utilization":0.5,"resets_at":"2026-06-04T00:00:00Z"},"limits":[{"kind":"weekly_scoped","percent":0,"resets_at":"2026-06-04T00:00:00Z","scope":{"model":{"id":"opus","display_name":"Opus"}}}],"extra_usage":{"is_enabled":false}}

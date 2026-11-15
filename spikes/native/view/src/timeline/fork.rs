@@ -44,14 +44,14 @@ pub fn fork_point(timeline: &Timeline, index: usize) -> Option<EventSeq> {
 /// Why a fork never held a conversation (protocol 14: a `failed` status
 /// with `empty_fork`, ADR 0052's addendum), in the person's terms. Nothing
 /// can be resumed; the screen offers to remove it.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EmptyFork {
     /// The agent did not fork at the turn chosen (it ignored the point).
     NotAtPoint,
     /// The agent cannot fork a conversation.
     CannotFork,
-    /// It did not start for another reason: the node's words.
-    Other(String),
+    /// It did not start for another reason; the session retains its diagnostic.
+    Other,
 }
 
 /// The node's sentences for a refused fork (`vessel-session`'s
@@ -72,6 +72,19 @@ pub fn empty_fork(status: &SessionStatus) -> Option<EmptyFork> {
     Some(match message.trim() {
         NOT_AT_POINT => EmptyFork::NotAtPoint,
         CANNOT_FORK => EmptyFork::CannotFork,
-        other => EmptyFork::Other(other.to_owned()),
+        _ => EmptyFork::Other,
     })
+}
+
+impl EmptyFork {
+    /// Borrow a safe whole sentence; no diagnostic or allocation enters a frame.
+    #[must_use]
+    pub fn words(self, catalog: &crate::localization::Translator) -> &str {
+        let words = catalog.fork();
+        match self {
+            Self::NotAtPoint => words.empty_not_at_point(),
+            Self::CannotFork => words.empty_cannot_fork(),
+            Self::Other => words.empty_other(),
+        }
+    }
 }
