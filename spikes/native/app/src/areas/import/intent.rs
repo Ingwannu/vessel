@@ -1,5 +1,4 @@
 //! Outgoing intentions bind to the rendered visit before any UI or RPC effect.
-use super::Picker;
 use crate::shell::Shell;
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_view::{
@@ -39,7 +38,6 @@ pub(super) enum Action {
         id: HarnessSessionId,
         selection: Selection,
     },
-    Picker(Picker),
 }
 
 pub(super) fn listener(
@@ -73,7 +71,6 @@ pub(super) fn listener(
             Action::More => shell.history_more(),
             Action::ShowAll => shell.history_show_all(),
             Action::Row { id, .. } => shell.history_row(id, window, cx),
-            Action::Picker(which) => shell.history_picker(*which, window, cx),
         }
         cx.notify();
     }

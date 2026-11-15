@@ -78,3 +78,17 @@ existing agent.history/session.create and existing-session get/resume calls.
 - The shared selected/export/actor files are untouched by this correction.
   Exact strict and affected tests remain pending. Earlier1220/0 and strict0 are
   immutable predecessor evidence; R223 remains RETURN until V1 rechecks.
+
+## R223 remaining popup path: first-use parked
+
+V1 accepted the source corrections for P2-1/3/4 at573071f7, with strict/tests
+still owed. P2-2 also covers the shared combobox engine's key/outside handlers,
+which mutate the current popup before the area's choice callback. The shared
+picker owner owns that per-open admission change. Per coordinator/lead ruling,
+this packet parks popup first-use completely: current machine/harness/account
+remain read-only labels, with no combobox registration, trigger, state accessor,
+choice callback or area interception. Import uses the existing current-draft
+machine/harness/default account. In-sheet scope selection is unavailable until
+a checked shared admission seam supports a separate follow-up. This is an
+explicit feature limitation, not an assertion that the engine issue is fixed.
+The row/footer/dialog captured-visit regressions remain applicable and required.
