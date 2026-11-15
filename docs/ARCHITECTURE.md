@@ -1820,3 +1820,32 @@ Toasts retain the existing host and lifetime rules. The viewport sits below
 the header and centres existing cards, with responsive width and a bounded
 scrolling stack. It no longer occupies the lower composer/dock region.
 The layer's tokens, status roles, colors and dismiss actions are unchanged.
+
+### Creation-only session discovery metadata (ADR 0063, wiring in progress)
+
+`SessionSpec.listing` keeps an omitted override distinct from explicit Shown.
+`SessionInfo.listing` is the immutable effective classification, independent of
+process state and archival. The store appends a default-Shown column (schema
+21, `vessel-store::schema::listing`); it does
+not rewrite original specs or change the migration runner. Protocol projection
+hides both fields while the lifecycle assignment is pending, including reusable
+templates and transfers. The existing creation and discovery service paths
+consume these types for legacy/unbound sessions; explicit inputs remain refused
+while assignment is pending. Canonical bound workspace mirroring and the
+separately integrated CLI/MCP consumers remain outside this node package.
+
+### Export metadata readiness (ADR 0063)
+
+The node's `metadata_export` policy shares protocol visibility with reply
+projection. The exporter validates its one owned info snapshot before reading
+provider history, so the checked classification is the one in the manifest.
+Local pulls have no wire projection and retain their existing import guards.
+Forward and Relay also validate returned export manifests against their next
+peer before projection; a new source/home cannot silently turn an old importer
+into a Shown session. This adds no crate edge, authority or wire shape.
+
+Rejected export manifests retain their original envelope route for CloseTransfer.
+The existing forwarding TaskTracker owns cleanup across caller cancellation;
+Links keeps direct/callback selection and the source guard keeps holder/scope
+checks. Cleanup waits no longer than the existing transfer idle lifetime, while
+normal shutdown grace and source expiry/restart remain unchanged.

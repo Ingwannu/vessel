@@ -109,6 +109,9 @@ async fn pre_origin_schema_titles_are_unknown_including_explicit_ones() {
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
     // Gate40's existing title-origin append is schema18. Later appends must not
     // turn this into a fixture for the newest migration instead of that one.
+    connection
+        .execute_batch("ALTER TABLE sessions DROP COLUMN listing;")
+        .unwrap();
     fixtures::undo_registry_schema(&connection);
     connection
         .execute_batch(

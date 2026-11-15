@@ -467,3 +467,10 @@ that extraction plus canonical protocol/registry metadata assignment25.
 Owning whole gate, positive assigned-wire/hook runtime and complete later
 security source adoption remain owed. The workspace mutation-clock requirement
 now belongs lifecycle; A5 introduces no duplicate clock/schema/RPC for it.
+
+## Canonical lifecycle listing base
+
+Merged green93970acb (gate53); canonical listing schema21 remains first,
+and the worker claims append follows it as schema22. No mutation clock or
+workspace mark operation is installed by this merge. Five A5 protocols remain
+None. Earlier1c strict/units are prior-source; merged checks remain owed.
