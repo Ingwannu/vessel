@@ -78,3 +78,21 @@ plus this cleanup regression and the inert self-probe test registration.
 These changed fixtures are still uncompiled/unexecuted until the next
 required remote strict and exact private_files selection. No deadline was
 extended and no product path, assertion or refusal was weakened.
+
+
+## Announced node-base convergence before receiving checks
+
+The finished Settings receiving run1516/0/2 is separate and now terminal.
+After committing the A7 test correction, merge-onlyac6b3ac6e incorporates
+announced node27502436 (gate54; protocol25/schema21). The only conflict was
+the Architecture append; all node sections and the client private-file
+ownership paragraph are retained. Current node client/lib registrations,
+lock and testkit dev dependency remain, alongside the approved Unix rustix
+edge. ListSessions::default() changes are inherited from the node merge,
+not a second E2 API implementation. No app/native ancestry is imported.
+
+The next exact-root strict run includes that merge and the A7 fixture fix.
+The new self-process helper must receive T's delta audit before its fixed
+private_files cargo-only selection is used. The previously audited297f
+recipe does not silently approve later helpers. Product file APIs and all
+format/writer/worker/Windows/upsert limits remain as stated above.
