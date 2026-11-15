@@ -347,7 +347,8 @@ the complete source chain. Theme names reuse the existing JavaScript-edge
 UTF-16 bound and the separately declared control refusal.
 
 
-The staged supervisor now consumes exact proc622465a9 during development.
+The staged supervisor now consumes portable proc b37a3ee8 during development,
+rebuilt directly on ede20014 without W15 release/desktop ancestry.
 Supervisor::shutdown returns the concrete OwnedGroupExit, retaining the first
 cleanup refusal as RuntimeError::Cleanup rather than flattening legacy wait.
 This adoption is not runtime or node lifecycle acceptance: proc execution,

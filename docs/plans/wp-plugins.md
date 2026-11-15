@@ -2,6 +2,14 @@
 
 ADR: 0079 (architecture CONTRACT PASS by V3; implementation unreviewed).
 Scope: F6/W16 in PLAN.md section 7, which supersedes duplicate assignments.
+
+Current node source is the clean export on ede20014 plus portable checked-wait
+b37a3ee8, with no W15 release/desktop ancestry. Its helper/manifest/catalog
+models are staged, not activated by node methods. Earlier checkpoints below
+name their historical bases and exact evidence; those passes do not prove this
+current combined source. The app remains on its separately merged shared line.
+F6 is still skeleton, with installer/management/public RPC/Hub/rendering and
+whole-package evidence outstanding.
 Reference source is Paseo 0.15.4. ADR 0079's source table and differences
 are the contract for this package; do not duplicate its protocol list.
 
@@ -236,3 +244,10 @@ shared-head proc, so the no-reactor path is a typed failure instead of relying
 on W15's unreviewed SpawnError::Runtime addition. A synchronous regression
 covers refusal before any helper is launched. A clean source export will use
 the portable checked-wait prerequisite and omit W15 ancestry entirely.
+
+
+Clean export hygiene: all owned plugin/proto/manifest source blobs through
+b5e1830b6 match prior2ecf5ef7c exactly. The only carried process prerequisite is
+portableb37 onede20014. No local-node crate, local_launch DTO, desktop store/bin
+support or Released/Releasable proc state is introduced. Public supervisor spawn
+has its own checked live-reactor admission, so it needs none of those APIs.
