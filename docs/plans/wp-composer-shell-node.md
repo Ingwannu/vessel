@@ -1,6 +1,6 @@
 # Composer command discovery on the node
 
-Status: implemented source with scoped checks; native integration, protocol assignment and whole-package review remain pending. ADR0085 records reference paths and capability limits.
+Status (2026-11-15 18:25 UTC): separate node development source with bounded checks, not adopted App runtime. Official App roots exclude this private discovery/RPC ancestry. The coordinator-approved minimal kind-only carrier on node93970 is a separate producer; native consumes it through an announced base. Protocol assignment, current whole-package review and native acceptance remain pending. ADR0085 records reference paths and capability limits.
 
 [Decision Log]
 - Purpose: preserve provider command/skill identity and list a complete draft's commands without sending a prompt.
@@ -26,9 +26,12 @@ Old/unassigned metadata projection covers direct conversations, events and neste
 
 - Values snapshot57f: remote proto tests4/0.
 - Exactbec742aa: strict all-target Clippy0 for proto, harness, agent, session and node.
-- Command-focused unit suite14/0; fake Codex/options integration29/0 (17 Codex,12 options). Logs: /tmp/work/wp-composer-shell/catalog-command-unit-tests.log and catalog-agent-integration.log.
+- Command-focused unit suite14/0; fake Codex/options integration29/0 (17 Codex,12 options). The retained command-unit and agent-integration logs name the exact selected source.
 - Base3 merged at a25e73d83. Gate41 canonical913f05d8 is now being merged; its combined source checks are pending. Cache tests were waiting, cancelled by verified owned PID before this merge, and must be requeued on the merged head.
-- Codex schema generation used installed0.169 with isolated HOME/CODEX_HOME and an otherwise empty environment except PATH. It sent no session, network or model request. The full generated primary schema is retained under /tmp/work/wp-composer-shell/codex-schema/generated; pinned contract rerun remains pending.
-- No TypeScript refresh, whole root/native gate, capture or final V3/V4 review has passed for this package.
+- Codex schema generation used installed0.169 with isolated HOME/CODEX_HOME and an otherwise empty environment except PATH. It sent no session, network or model request. The full generated primary schema is retained with the command survey evidence. The pinned schema-only contract on67c later passed1/0 in `tools-codex-contract-20261115T124102Z-67c5eb77`; that proves only the pinned schema, not current command transport.
+- Node52 wire equality on680a passed3 proto and2 web tests with zero generated-file changes in `wp-composer-shell-typescript-20261115T172034Z-680a966a`. No whole root/native gate, capture or final V3/V4 package approval has passed.
 
 Native custom prompt files, filesystem fallback and compact/goal execution remain explicit capability gaps. ClaudeStream/OpenCodeHttp native drivers remain unavailable. W22 owns model/config/provider coverage; no duplicate registry or guessed provider behavior is introduced here.
+
+
+Current execution limits: exact e319 eight-crate TS-enabled strict passed. Its full Node library execution passed311 and failed one diagnostics socket fixture under the runner's pre-fix long temporary directory; the runner owner confirmed that infrastructure defect. The original failure is retained, with no diagnostics guard/assertion edit or automatic unchanged rerun. Catalog Serde diagnostic privacy and physical blocking-preparation ownership have separate W22 corrections pending their actual strict/runtime handoff. A dropped probe waiter alone is not evidence that its blocking launch lookup released capacity. Native compact/goal offers remain unavailable until checked live provider transport and keyed W23 acceptance.
