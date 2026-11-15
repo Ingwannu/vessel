@@ -41,13 +41,13 @@
 ## Reference obligations
 
 Read the Git generator's raw min/max schemas and purpose prompts at
-server/session/checkout/git-metadata-generator.ts:63-83,125-228. Its 120,000 and
+packages/server/src/server/session/checkout/git-metadata-generator.ts:63-83,125-228. Its 120,000 and
 200,000 UTF-16 patch truncation belongs to the root prompt builder, while the
 producer validates the purpose schema's 72 UTF-16 subject/title bound. It does
 not trim successful Git wording. Initial plus two JSON/schema corrections per
-candidate is independent of transport retry, per agent/agent-response-loop.ts:
-307-345,398-483. Resolution follows agent/structured-generation-providers.ts:
-24-92,136-169,225-264. Paths are under packages/server/src/server in the reference.
+candidate is independent of transport retry, per packages/server/src/server/agent/agent-response-loop.ts:
+307-345,398-483. Resolution follows packages/server/src/server/agent/structured-generation-providers.ts:
+24-92,136-169,225-264. These are paths in the reference tree.
 
 Implementation tests must cover initial success, both corrections and no fourth
 same-candidate call, ordered/deduped candidates, unavailable candidates, no

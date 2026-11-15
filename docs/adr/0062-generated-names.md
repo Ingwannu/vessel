@@ -1046,12 +1046,11 @@ origins; the source/style contracts do not claim identical Unicode trimming.
   implementation, not silently copied from the title-only budget. No setting,
   method, assigned protocol or live root caller is enabled by this contract.
 
-Reference: server/session/checkout/git-metadata-generator.ts:63-83,125-228
-(raw Git schemas, patch bounds and purpose calls); agent/agent-response-loop.ts:
+Reference: packages/server/src/server/session/checkout/git-metadata-generator.ts:63-83,125-228
+(raw Git schemas, patch bounds and purpose calls); packages/server/src/server/agent/agent-response-loop.ts:
 307-345,398-483 (schema corrections, availability and candidate fallback);
-agent/structured-generation-providers.ts:24-92,136-169,225-264 (ordered resolution,
-current selection and defaults), all under packages/server/src/server in the
-reference tree. ADR 0087 owns the root caller and its fallback/authority rules.
+packages/server/src/server/agent/structured-generation-providers.ts:24-92,136-169,225-264 (ordered resolution,
+current selection and defaults) in the reference tree. ADR 0087 owns the root caller and its fallback/authority rules.
 
 The service remains unimplemented at this contract checkpoint. Its exact Rust
 API is announced only after implementation, isolated fake-provider tests and
