@@ -127,6 +127,13 @@ input, including equal bounds. A -> B -> A can otherwise equal an old receipt
 while the writer still has B in flight. The same App-level fence now requires
 the captured identity as well as value equality; no second writer or lifecycle
 manager is introduced. An actual App regression covers that equal-value cycle.
+The writer independently captures accepted geometry publication at flush() call
+time, before its blocking sender runs. If Changed(B) enters before an older
+checkpoint Write(A), the actor persists its newer state rather than clearing B
+and writing A. It retains that latest value after debounce too. Finalize keeps
+its explicit final-snapshot semantics and closes before acknowledgment. A
+deterministic capture-future/change/await disk regression is added; its new-source
+execution is pending. This is the same worker/file/API, not another quit phase.
 
 The active live window is preferred, then a visible window, then the first live
 window. Closed handles and expired Shell entities cannot be routing destinations.
