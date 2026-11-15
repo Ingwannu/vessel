@@ -90,6 +90,19 @@ impl Root {
         }
         Ok(())
     }
+    pub(in crate::checkpoint) fn revalidate_authority(&self) -> Result<(), Error> {
+        let current = Self::open(&self.path)?;
+        if current.physical != self.physical
+            || current.mount != self.mount
+            || current.fingerprint() != self.fingerprint()
+        {
+            return Err(CheckpointError::CaptureUnstable.into());
+        }
+        Ok(())
+    }
+    pub(in crate::checkpoint) fn path(&self) -> &Path {
+        &self.path
+    }
     pub(in crate::checkpoint) fn check_mount(&self, file: &File) -> Result<(), Error> {
         if MountId::of(file)? != self.mount {
             return Err(CheckpointError::UnsafeEntry.into());

@@ -11,6 +11,7 @@ use vessel_proto::checkpoint::{
 const ENUMERATION_BYTES: usize =
     CHECKPOINT_PATHS.saturating_mul(CHECKPOINT_PATH_BYTES.saturating_add(1));
 
+#[cfg(test)]
 pub(super) async fn paths(git: &Git, root: &Path) -> Result<Vec<CheckpointPath>, Error> {
     cancellable(git, root, &tokio_util::sync::CancellationToken::new()).await
 }

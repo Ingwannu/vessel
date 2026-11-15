@@ -3,9 +3,13 @@ use super::{Error, FileImage, FileState, Mode, PathCount, Prepared, Step, origin
 use vessel_proto::checkpoint::{CheckpointError, EffectiveDesiredImage, StagedPath, StagedPaths};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(in crate::checkpoint) enum RecoveryState {
+/// Reconstructed per-path observation; the node still verifies the whole scope.
+pub enum RecoveryState {
+    /// Original state and inode remain; no undo is needed.
     Original,
+    /// Our written state and inode remain; guarded undo may proceed.
     Desired,
+    /// Neither expected image/object matches; preserve current data.
     Conflict,
 }
 

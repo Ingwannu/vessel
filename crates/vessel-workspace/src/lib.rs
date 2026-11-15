@@ -13,9 +13,9 @@
 //! temporary folders, with the real `git`; nothing reaches the network.
 
 pub mod commands;
-// ADR 0077: Linux I/O staging only; other platforms remain unavailable.
-#[cfg(all(test, target_os = "linux"))]
-mod checkpoint;
+// ADR 0077: Linux admitted-worker I/O; node adapters refuse other platforms.
+#[cfg(target_os = "linux")]
+pub mod checkpoint;
 pub mod files;
 pub mod find;
 pub mod git;

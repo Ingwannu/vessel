@@ -23,10 +23,12 @@ tracing.workspace = true
 # `O_NONBLOCK | O_NOFOLLOW` for reads (`regular`); FIFOs in its tests.
 nix = { workspace = true, features = ["fs"] }
 
-[dev-dependencies]
-# ADR 0077 staged Linux no-follow/ACL preflight; already resolved and used
-# by the store's attachment implementation. No new crate version.
+[target.'cfg(target_os = "linux")'.dependencies]
+# ADR 0077: safe FD-relative metadata/xattr/rename operations and effective UID;
+# already resolved for store attachments. No new dependency version.
 rustix = { workspace = true, features = ["fs", "process"] }
+
+[dev-dependencies]
 tempfile.workspace = true
 # `write_executable`: scripts a test runs, written so running them never
 # meets ETXTBSY.

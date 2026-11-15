@@ -32,6 +32,7 @@ const READ_FILE: OFlags = OFlags::RDONLY
 #[derive(Debug)]
 pub(super) struct Archive {
     folder: File,
+    #[cfg(test)]
     path: PathBuf,
 }
 impl Archive {
@@ -44,7 +45,11 @@ impl Archive {
                 .map_err(std::io::Error::from)?,
         );
         super::account::private_directory(&folder)?;
-        Ok(Self { folder, path })
+        Ok(Self {
+            folder,
+            #[cfg(test)]
+            path,
+        })
     }
     /// Private per-capture folder, never a shared temporary filename namespace.
     pub(super) fn capture(
@@ -103,6 +108,7 @@ impl Archive {
         self.folder.sync_all()?;
         Ok((digest, bytes))
     }
+    #[cfg(test)]
     pub(super) fn path(&self, digest: BlobHash) -> PathBuf {
         self.path.join(digest.to_string())
     }

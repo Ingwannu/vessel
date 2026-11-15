@@ -126,6 +126,7 @@ impl Stage {
         refuse_attributes(&source)?;
         Ok(source)
     }
+    #[cfg(test)]
     pub(in crate::checkpoint) fn remove(&self, slot: Slot) -> Result<(), Error> {
         rustix::fs::unlinkat(&self.folder, slot.text(), AtFlags::empty())
             .map_err(std::io::Error::from)?;

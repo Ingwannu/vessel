@@ -19,8 +19,8 @@ Decision: extend session/workspace infrastructure with focused checkpoint
 modules. Reuse RelPath, Git probing, regular-file defenses, bounded channels,
 existing SHA-256 and SQLite. Strict enumeration refuses invalid paths rather
 than reusing an existing lossy listing. Existing rustix supplies Linux fd-based
-xattr refusal and rename exchange; the dependency stays dev-only during A10
-staging. No provider SDK, tool-call-count inference or new crate edge.
+xattr refusal, rename exchange and effective UID checks; after adding the
+admitted-worker API it is a Linux normal dependency, with no new version. No provider SDK, tool-call-count inference or new crate edge.
 
 ## Current implementation and boundaries
 
@@ -45,14 +45,14 @@ staging. No provider SDK, tool-call-count inference or new crate edge.
   Durable per-path intent and compare-and-advance phases constrain terminal
   outcomes; human-principal-bound change pages share the frozen target/expiry, enforce
   bounded offsets and refuse expired or consumed previews; admission enforces
-  the five-minute lifetime and four active previews per human principal; restart pins interrupted operations for recovery. A test-only adapter uses the existing writer, savepoint and durable reply;
+  the five-minute lifetime and four active previews per human principal; restart pins interrupted operations for recovery. The production storage API uses the existing writer, savepoint and durable reply;
   restore admission and all Pending path intents share that savepoint. Its
   real-writer commit/restart/failure-injection tests remain unverified. A durable garbage table transfers retired capture reservations out of session
   FKs; cleanup acknowledgement releases them, and active previews/recovery block
-  deletion. This is staged under the existing writer delete savepoint; retention
-  and the real filesystem garbage collector still need connecting. Public node
+  deletion. Startup and writer retention transfer accounting transactionally;
+  the real filesystem garbage collector still needs connecting. Node controller
   assembly and full physical quota reconciliation remain owed.
-- workspace/checkpoint: test-only strict enumeration, rooted nofollow reads,
+- workspace/checkpoint: production Linux admitted-worker API, strict enumeration, rooted nofollow reads,
   private immutable raw blobs, bounded streaming and canonical fingerprints.
   Files are fully staged before per-path mutation; rename exchange retains
   original inodes, no-replace creates avoid clobbering, and guarded rollback
@@ -60,24 +60,25 @@ staging. No provider SDK, tool-call-count inference or new crate edge.
   refusing an equal-content external replacement. Unsupported metadata on roots
   and intermediate directories refuses before file mutation. The node must
   durably journal each step
-  and verify the entire covered scope before claiming success. Linux is staged;
+  and verify the entire covered scope before claiming success. The Linux library is active;
   FD mount IDs also reject mount crossings on the same device; actual private
   fixture and missing-capability tests are written but not yet verified. Other
   platforms remain unavailable. Full enumeration/ignore/root revalidation
   at operation boundaries and crash-restart assembly remain owed.
-- session/checkpoint: test-only bounded acknowledgement prototype. Actual queue,
-  steer, prompt-delivery and persisted-turn-end integration remains owed.
+- session/checkpoint: production bounded hook bridge at actual prompt/TurnEnded
+  boundaries, plus owned actor pause/result metadata. Injected steers create no
+  checkpoint; queued prompts capture only on delivery. Node bridge installation
+  and a SQL-durability barrier before filesystem reads remain owed.
 
 ## Validation and remaining work
 
-Five-crate all-target clippy passed on `fa83036e`; checkpoint-filtered behavior
-tests passed on `79b3171b` (27 passed, zero failed, six ignored). These precede
-new filesystem restore and pending RPC registration and do not verify them.
-New tests cover effective permissions, guarded restore/undo, non-root owner,
-execute-only metadata, absent recreation, later-created deletion, path-journal
-phases and forged session/worktree/boundary/generation admission. They remain
-unverified until their exact compiled run completes. No package gate, code
-review, permission/platform/crash recovery or native capture pass is claimed.
+Earlier fe0c868b checkpoint tests passed 92/0/6; generator/prebuild source636
+passed 4/0/0. Those are scoped evidence for their immutable heads, not current
+runtime proof. Clippy420 failed seven session lints, corrected in9fe6c1d1; its
+current ten-crate replacement is queued. The older56eff914 behavior run remains
+queued; the current tree includes later storage/permission/recovery changes.
+No package gate, code review, current permission/platform/crash recovery or
+native capture pass is claimed. Original failed/interrupted logs are retained.
 
 Next: compile the new mechanisms, regenerate TypeScript, run real migration
 rollback tests, finish writer/coordinator assembly and durable Ready reconciliation,
@@ -619,3 +620,24 @@ its checkpoint module. The established closed output dispatcher remains together
 and shrinks below the prior function length. No lint allowance or size ratchet is
 added. This old source stopped before later node/store changes and establishes
 no runtime pass; its exact failed logs remain in actor-hooks-clippy.
+
+
+### Linux admitted-worker filesystem boundary (source; uncompiled)
+
+Root/Archive/IgnoreDefaults/Restore expose the existing filesystem mechanisms to
+the node without accepting RPC paths or owning auth/storage/session state. Tree
+opens against the actual admitted PhysicalRoot, capture preserves the opened-FD
+scope, and apply/undo recheck stable root authority before and after a mutation.
+Directory mtimes changed by our own renames do not mint another authority. Recovery
+reopens expected stable objects and refuses forward apply. Source errors remain
+owned and typed; public reason classification does not expose file paths/bytes.
+
+The already resolved rustix fs/process features move from dev-only to Linux normal
+dependency for safe FD/xattr/rename/UID operations; no new version or Vessel crate
+edge. The API exists only on Linux like the existing physical FD seam; node
+adapters must explicitly return UnsupportedPlatform elsewhere when activated.
+FILE_CHECKPOINTS stays None on every platform. Test-only convenience methods are
+not product bypasses. The public-worker fixture executes on spawn_blocking with
+isolated Git configuration, checks a wrong physical root, captures/restore/reopens
+rollback evidence and asserts the actual non-root UID. It is unrun, and models its
+evidence commit without a store, so it is not end-to-end restore/crash proof.

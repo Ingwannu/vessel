@@ -4,6 +4,7 @@
 //! Existing replacements exchange inodes, retaining the original inside the
 //! journal. Rollback refuses an external change rather than overwriting it.
 mod journal;
+pub use journal::RecoveryState;
 mod original;
 pub(super) mod stage;
 #[cfg(test)]
@@ -42,8 +43,11 @@ enum Mode {
     Recovery,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum Undo {
+/// Result of a guarded rollback of one path, never a whole-scope success.
+pub enum Undo {
+    /// The original state and object were verified.
     Restored,
+    /// External state prevents safe rollback; retain the journal.
     Conflict,
 }
 impl Prepared {
@@ -110,6 +114,7 @@ impl Prepared {
             mode: Mode::Fresh,
         })
     }
+    #[cfg(test)]
     pub(super) fn steps(&self) -> &[Step] {
         &self.steps
     }

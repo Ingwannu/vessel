@@ -744,3 +744,16 @@ and a computed charge larger than its escrow refuses rather than growing or
 returning unreserved capacity. Metadata length is bounded before row decoding.
 This accounts checkpoint reservations, not the total physical database/WAL size.
 Node callbacks still must prove actual completion before invoking settlement.
+
+
+### Implementation boundary update: Linux worker API
+
+The store boundary now compiles on the production writer and the Linux workspace
+mechanisms expose an admitted synchronous worker API. The existing rustix safe
+fs/process wrappers are a Linux normal dependency, not a new version or provider
+SDK. This implementation decision belongs to the package and does not derive
+dependency approval from this ADR's design acceptance. The node still must own
+physical admission, bounded workers, auth, durable staged evidence, cleanup and
+startup recovery; FILE_CHECKPOINTS remains None. Reconstructed recovery may undo
+verified written objects but cannot resume forward file application. These source
+changes await compilation, runtime proof and the package's V3 review.

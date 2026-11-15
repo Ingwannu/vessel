@@ -1620,9 +1620,9 @@ alone would otherwise expose the owner's unrelated process operations.
 
 `vessel-proto::checkpoint` holds validated immutable file images, metadata
 policy, boundary identities and typed outcomes; its protocol gate is None.
-The node capture coordinator and workspace filesystem mechanisms remain
-staged under A10. Session pause/turn hooks and the typed store boundary compile
-in production, without advertising a capability or installing a node controller. The node owns admission/fencing, store owns SQL, workspace owns
+The node capture coordinator remains staged under A10. Session pause/turn hooks,
+the typed store boundary and Linux admitted-worker filesystem API compile in
+production, without advertising a capability or installing a node controller. The node owns admission/fencing, store owns SQL, workspace owns
 filesystem operations and the session only waits for a bounded node
 acknowledgement. No dependency edge changes. After consuming Quality B, the
 five files-only unary methods are registered as pending in the canonical
@@ -1773,3 +1773,15 @@ reserves its private envelope and all Pending intents atomically. Fixed capture
 reservations cannot be bypassed through the test-only small accounting command.
 Actual filesystem ownership, physical GC and node controller activation remain
 separate integration work; this API does not authenticate RPC callers.
+
+
+The Linux workspace checkpoint API exposes opened-FD Tree/Archive/Restore values
+only to admitted workers; it owns no authentication, root lock or store state.
+Safe rustix fs/process operations are now a Linux normal dependency, reusing the
+resolved version for FD-relative mutation and effective service UID checks. Root
+authority ignores rename-generated timestamps but preserves stable inode/access/
+mount identity; apply/undo verify that authority before and after each mutation.
+The node must commit complete staged-object evidence before first apply, verify
+whole-scope postconditions and retain its physical/worker/quota leases throughout
+actual I/O. Other platforms require an explicit UnsupportedPlatform adapter;
+there is no supported-platform or end-to-end capability claim from this library.
