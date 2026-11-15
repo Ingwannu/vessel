@@ -32,7 +32,7 @@ impl CreateDraft {
     #[must_use]
     pub fn label(&self) -> Option<Label> {
         Some(Label {
-            name: Name::parse(&self.text).ok()?,
+            name: self.text.parse::<Name>().ok()?,
             color: self.color,
         })
     }

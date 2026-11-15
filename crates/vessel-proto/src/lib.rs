@@ -51,6 +51,7 @@ mod transfer;
 #[cfg(feature = "ts")]
 pub mod ts;
 pub mod workspace;
+pub mod workspace_labels;
 
 pub use agent::{
     AgentEvent, ContentBlock, PermissionOption, PermissionOptionKind, PermissionOutcome,
@@ -89,7 +90,7 @@ pub use id::{
     AgentMessageId, AttachmentId, DeviceId, EventSeq, HarnessSessionId, HookId, InstallId, ModelId,
     NodeId, OptionId, OptionValueId, PermissionId, PermissionOptionId, ProjectId, QuestionId,
     QueueEntryId, RequestId, SavedPromptId, ScheduleId, SessionId, SubscriptionId, TerminalId,
-    ToolCallId, TransferId, UploadId, WorktreeId,
+    ToolCallId, TransferId, UploadId, WorkspaceLabelGeneration, WorkspaceLabelSeq, WorktreeId,
 };
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
 pub use model::{

@@ -3,7 +3,7 @@
 use super::*;
 
 fn name(raw: &str) -> Name {
-    Name::parse(raw).unwrap()
+    raw.parse::<Name>().unwrap()
 }
 fn key(raw: &str) -> HostKey {
     HostKey::parse(raw).unwrap()
@@ -22,9 +22,9 @@ fn ticket(source: &mut Tickets) -> Ticket {
 fn identity_collapses_whitespace_without_changing_host_spelling() {
     let normalized = name("  In\tProgress\n ");
     assert_eq!(normalized.as_str(), "In Progress");
-    assert!(normalized.same(&name("in  progress")));
+    assert!(normalized.key() == name("in  progress").key());
     assert_ne!(normalized, name("in progress"));
-    assert!(Name::parse(" \t\n").is_err());
+    assert!(" \t\n".parse::<Name>().is_err());
     assert_eq!(name(&"가".repeat(2048)).as_str().chars().count(), 2048);
     assert_eq!(Color::default(), Color::Violet);
     assert_eq!(name("\u{feff}Ready\u{feff}").as_str(), "Ready");
@@ -219,14 +219,11 @@ fn delete_requires_matching_inspection_explicit_confirmation_and_online_host() {
         Ok(name("Ready"))
     );
     assert_eq!(manager.reset(), Err(Failure::Pending));
-    assert!(!manager.inspected(remove, Ok(Count(9))));
-    assert!(manager.inspected(inspect, Ok(Count(2))));
+    assert!(!manager.inspected(remove, Ok(Count::new(9))));
+    assert!(manager.inspected(inspect, Ok(Count::new(2))));
     assert!(matches!(
         manager.state(),
-        ManagerState::Confirming {
-            count: Count(2),
-            ..
-        }
+        ManagerState::Confirming { count, .. } if count.get() == 2
     ));
     assert_eq!(
         manager.delete(HostState::Offline, remove),
@@ -237,7 +234,7 @@ fn delete_requires_matching_inspection_explicit_confirmation_and_online_host() {
         manager.inspect(HostState::Online, inspect),
         Ok(name("Ready"))
     );
-    assert!(manager.inspected(inspect, Ok(Count(0))));
+    assert!(manager.inspected(inspect, Ok(Count::new(0))));
     assert_eq!(manager.delete(HostState::Online, remove), Ok(name("Ready")));
     assert!(!manager.completed(inspect, Ok(())));
     assert!(manager.completed(remove, Err(Failure::Update)));

@@ -30,10 +30,10 @@ impl Picker {
         let query = query.trim().to_lowercase();
         catalog
             .labels()
-            .filter(|label| label.name.key().contains(&query))
+            .filter(|label| label.name.key().as_str().contains(&query))
             .map(|label| PickerRow {
                 label: label.clone(),
-                assignment: if assigned.iter().any(|name| name.same(&label.name)) {
+                assignment: if assigned.iter().any(|name| name.key() == label.name.key()) {
                     Assignment::Assigned
                 } else {
                     Assignment::Unassigned

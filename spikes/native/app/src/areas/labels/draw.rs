@@ -78,7 +78,7 @@ fn body(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
         ManagerState::Inspecting { .. } => body.child(words.inspecting()),
         ManagerState::Confirming { count, .. } => body
             .child(words.confirm())
-            .child(div().child(words.affected()).child(count.0.to_string())),
+            .child(div().child(words.affected()).child(count.get().to_string())),
     }
 }
 

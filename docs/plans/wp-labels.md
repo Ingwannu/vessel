@@ -40,8 +40,10 @@ Reference sources read before implementation (relative to the reference source r
   colors; invent client RPC names; add a local catalog; wait without building
   the independent UI model.
 - Choice: new feature modules reusing existing kit/Fluent and std collections.
-  New UI value types express workspace labels only. The future node decoder
-  must convert its validated wire types at the boundary, once.
+  Workspace label values have one owner in `vessel-proto::workspace_labels`;
+  the view reexports those types rather than retaining a second grammar.
+  The additive value contract is shared from this package's own node branch,
+  not a merge of the old app base with an unannounced node head.
 - Why: overloading metadata loses host-local color ownership and atomic rename;
   a local catalog would claim persistence the node cannot provide. Independent
   state machines can be tested before RPC contracts land.
@@ -106,6 +108,11 @@ errors in the new view code (clone assignment and intentionally superseded
 collection entries); those were corrected without suppressing lints.
 The follow-up preserves behavior while typing private catalog identities
 and splitting list drawing out of the manager phase renderer.
+
+Proto name/color tests (2) and proto clippy passed on the node value commit
+`f767bc91`. Its additive value contract is now used by the native model;
+name/color/assignment/count definitions are no longer duplicated in view.
+The new root values make the root gate required at package close as well.
 
 Next: obtain narrow compile/test results, then consume the announced app base
 and reviewed registry/session-label contracts. ADR 0086 owns the node catalog

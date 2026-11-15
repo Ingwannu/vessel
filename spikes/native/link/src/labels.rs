@@ -79,7 +79,7 @@ mod tests {
 
     #[test]
     fn unsupported_refusals_preserve_operation_kinds() {
-        let name = Name::parse("Ready").unwrap();
+        let name = "Ready".parse::<Name>().unwrap();
         let label = Label {
             name: name.clone(),
             color: vessel_app_view::labels::Color::Violet,

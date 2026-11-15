@@ -52,7 +52,7 @@ impl Draft {
     /// No-change and whitespace-only drafts do not enable Save.
     #[must_use]
     pub fn replacement(&self) -> Option<Label> {
-        let name = Name::parse(&self.text).ok()?;
+        let name = self.text.parse::<Name>().ok()?;
         let label = Label {
             name,
             color: self.color,
