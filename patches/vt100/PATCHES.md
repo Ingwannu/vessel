@@ -44,3 +44,10 @@ No byte parser, runtime, PTY, toolkit, or harness is added to the upstream crate
 7. Read-only decoded CSI/control/ESC callbacks and single-byte boundary bridge
    to the same patched VTE dependency. Why: one pure facade tracks negotiated
    modes and presentation without a scanner or second terminal parser.
+
+8. Bounded physical marker tables inside each grid and actual reset callbacks.
+   Why: inspected rows follow the same trim/IL/DL/reflow edits without per-row
+   identity allocation or an unbounded remap log. Reflow returns physical-row
+   marker mappings while cell construction remains unchanged. Region scrolling
+   preserves marker coordinates as the pinned reference does; row contents may
+   change. Marker creation/replacement validates before retiring prior state.

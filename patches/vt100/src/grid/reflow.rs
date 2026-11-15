@@ -7,6 +7,8 @@ use alloc::vec::Vec;
 
 struct Layout {
     rows: Vec<Row>,
+    markers: super::markers::Markers,
+    original_len: usize,
     base: usize,
     cursor: usize,
     saved: usize,
@@ -26,6 +28,8 @@ impl Grid {
             .unwrap_or_default();
         rows.append(&mut self.rows);
         let mut layout = Layout {
+            original_len: rows.len(),
+            markers: core::mem::take(&mut self.markers),
             rows,
             base,
             cursor: usize::from(self.pos.row),
@@ -41,6 +45,7 @@ impl Grid {
             layout.narrow(self.size.cols(), size.cols());
         }
         let trimmed = layout.rows.len().saturating_sub(layout.limit);
+        layout.markers.trim(trimmed);
         for row in layout.rows.drain(..trimmed) {
             // Drain once so a large trim stays linear in the buffer length.
             on_row(&row);
@@ -62,6 +67,13 @@ impl Grid {
                 row.wrap(wrapped);
             }
         }
+        layout.markers.delete(
+            layout.base.saturating_add(layout.height),
+            layout
+                .rows
+                .len()
+                .saturating_sub(layout.base.saturating_add(layout.height)),
+        );
         self.rows = layout.rows.split_off(layout.base);
         self.rows.truncate(layout.height);
         for row in &mut self.rows {
@@ -89,19 +101,21 @@ impl Grid {
         self.scroll_top = 0;
         self.scroll_bottom = size.rows().saturating_sub(1);
         self.size = size;
+        self.markers = layout.markers;
     }
 }
 impl Layout {
     fn widen(&mut self, old_cols: u16, cols: u16) {
         let old_len = self.rows.len();
         let absolute_cursor = self.base.saturating_add(self.cursor);
-        let (rows, _) = crate::row::reflow_rows(
+        let (rows, mapping) = crate::row::reflow_rows(
             core::mem::take(&mut self.rows),
             Some(absolute_cursor),
             old_cols,
             cols,
         );
         self.rows = rows;
+        self.markers.remap(&mapping);
         let removed = old_len.saturating_sub(self.rows.len());
         let from_base = removed.min(self.base);
         self.base = self.base.saturating_sub(from_base);
@@ -164,16 +178,26 @@ impl Layout {
             .enumerate()
             .peekable();
         let mut rows = Vec::new();
+        let mut mapping = vec![None; self.original_len];
         for (at, extra) in inserts {
             while originals.peek().is_some_and(|(index, _)| *index < at) {
-                if let Some((_, row)) = originals.next() {
+                if let Some((index, row)) = originals.next() {
+                    if let Some(mapped) = mapping.get_mut(index) {
+                        *mapped = Some(rows.len());
+                    }
                     rows.push(row);
                 }
             }
             rows.extend(extra);
         }
-        rows.extend(originals.map(|(_, row)| row));
+        for (index, row) in originals {
+            if let Some(mapped) = mapping.get_mut(index) {
+                *mapped = Some(rows.len());
+            }
+            rows.push(row);
+        }
         self.rows = rows;
+        self.markers.remap(&mapping);
     }
 
     fn repack(

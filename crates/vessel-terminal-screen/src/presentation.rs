@@ -129,6 +129,37 @@ impl Multiplexer {
         }
         self.screen.set_scrollback(limit)
     }
+    /// Pin the same grid without exposing a mutable bulk-feed parser.
+    ///
+    /// # Errors
+    /// Refuses a fenced authority or the screen's validated marker limits.
+    pub fn create_marker(
+        &mut self,
+        row: crate::LineIndex,
+    ) -> Result<crate::ViewportAnchor, ScreenError> {
+        if let Some(error) = self.failure {
+            return Err(error);
+        }
+        self.screen.create_marker(row)
+    }
+    /// Replace an owned active marker without allocating another marker slot.
+    ///
+    /// # Errors
+    /// Refuses a fenced authority, stale/inactive handle or unavailable row.
+    pub fn replace_marker(
+        &mut self,
+        old: &crate::ViewportAnchor,
+        row: crate::LineIndex,
+    ) -> Result<crate::ViewportAnchor, ScreenError> {
+        if let Some(error) = self.failure {
+            return Err(error);
+        }
+        self.screen.replace_marker(old, row)
+    }
+    /// Cleanup remains available even after output admission has been fenced.
+    pub fn release_marker(&mut self, anchor: &crate::ViewportAnchor) -> crate::AnchorRelease {
+        self.screen.release_marker(anchor)
+    }
     /// Interpret a bounded prefix, withholding unfinished controls across calls.
     pub fn feed(&mut self, bytes: &[u8]) -> PresentationFeed {
         let mut result = PresentationFeed {

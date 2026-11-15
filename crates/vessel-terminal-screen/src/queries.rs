@@ -38,6 +38,7 @@ pub(crate) enum EscapeEffect {
 pub(crate) struct Queries {
     duty: ReplyDuty,
     pub(crate) modes: crate::modes::Modes,
+    pub(crate) epochs: crate::markers::Epochs,
     bytes: String,
     failure: Option<ScreenError>,
     budget: usize,
@@ -49,6 +50,7 @@ impl Queries {
         Self {
             duty,
             modes: crate::modes::Modes::default(),
+            epochs: crate::markers::Epochs::default(),
             bytes: String::new(),
             failure: None,
             budget: 0,
@@ -98,6 +100,17 @@ impl std::fmt::Write for Queries {
     }
 }
 impl vt100::Callbacks for Queries {
+    fn buffer_reset(&mut self, reset: vt100::BufferReset) {
+        let result = match reset {
+            vt100::BufferReset::Primary => self.epochs.advance(crate::BufferKind::Primary),
+            vt100::BufferReset::Alternate => self.epochs.advance(crate::BufferKind::Alternate),
+            vt100::BufferReset::All => self.epochs.reset(),
+        };
+        if let Err(error) = result {
+            self.failure = Some(error);
+        }
+    }
+
     fn decoded_control(&mut self, byte: u8) {
         self.executed = Some(byte);
     }

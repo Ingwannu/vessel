@@ -124,3 +124,19 @@ position. A marker is not a frozen text snapshot or logical-grapheme bookmark.
 The original raw outputs are retained in scratch marker-oracle.json.
 Implementation/tests remain owed. Node agreed this lifetime has no glue conflict;
 wire IDs alone never authorize a read/release or select another route.
+
+### Marker implementation resume
+
+The grid now stages64 marker slots per buffer, non-reused local identities,
+explicit release/replacement and physical row edits. The facade binds each
+handle to a Screen allocation/buffer/epoch; actual grid-reset callbacks advance
+epochs before reset. Readonly snapshots keep the same marker/cell/mode cut.
+New pure tests cover full-cap atomic replacement, stale/foreign/reset handles,
+alternate preservation, capacity/growth/eviction and11 unchanged actual xterm
+physical marker checkpoints. All15 oracle observations remain in the fixture;
+4 reset observations are separate from those11 position comparisons. Typed
+history-clear epochs intentionally reset all old handles, including visible
+markers; the reference disposes only removed-history markers at that operation.
+This stronger reset is the explicit frame/anchor invalidation contract.
+Exact marker tests/strict checks remain owed; modes6e remains25/0 plus strict0.
+No transport/view-slot ownership or renderer is implemented by this pure API.

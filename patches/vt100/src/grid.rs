@@ -1,3 +1,4 @@
+pub(crate) mod markers;
 mod reflow;
 
 use crate::term::BufWrite as _;
@@ -5,6 +6,7 @@ use alloc::{string::String, vec::Vec};
 
 #[derive(Clone, Debug)]
 pub struct Grid {
+    markers: markers::Markers,
     size: Size,
     pos: Pos,
     saved_pos: Pos,
@@ -44,6 +46,7 @@ impl Grid {
             }),
         };
         Self {
+            markers: markers::Markers::default(),
             size,
             pos: Pos::default(),
             saved_pos: Pos::default(),
@@ -65,6 +68,7 @@ impl Grid {
     }
 
     pub fn clear(&mut self) {
+        self.markers.clear();
         self.pos = Pos::default();
         self.saved_pos = Pos::default();
         for row in self.drawing_rows_mut() {
@@ -137,6 +141,11 @@ impl Grid {
             let num_excess_bottom = self.size.rows() - self.pos.row - 1;
             let num_pushed = diff.saturating_sub(num_excess_bottom);
             self.scroll_up(num_pushed, on_row);
+            self.markers.delete(
+                self.scrollback_len()
+                    .saturating_add(usize::from(size.rows())),
+                usize::from(self.size.rows().saturating_sub(size.rows())),
+            );
             self.rows.truncate(size.rows().into());
             num_pushed
         } else if let Some(scrollback) = &mut self.scrollback {
@@ -151,6 +160,7 @@ impl Grid {
             // an unbounded terminal would have.
             let num_pulled_blank =
                 usize::from(num_pulled) - num_pulled_scrollback;
+            self.markers.insert(0, num_pulled_blank);
             let pulled =
                 core::iter::repeat_with(new_row)
                     .take(num_pulled_blank)
@@ -280,6 +290,38 @@ impl Grid {
             .and_then(|r| r.get_mut(pos.col))
     }
 
+    pub fn create_marker(
+        &mut self,
+        row: usize,
+    ) -> Result<markers::Marker, markers::MarkerError> {
+        if self.buffer_row(row).is_none() {
+            return Err(markers::MarkerError::Row);
+        }
+        self.markers.create(row)
+    }
+    pub fn replace_marker(
+        &mut self,
+        marker: markers::Marker,
+        row: usize,
+    ) -> Result<markers::Marker, markers::MarkerError> {
+        if self.buffer_row(row).is_none() {
+            return Err(markers::MarkerError::Row);
+        }
+        self.markers.replace(marker, row)
+    }
+    pub fn resolve_marker(
+        &self,
+        marker: markers::Marker,
+    ) -> markers::MarkerPosition {
+        self.markers.resolve(marker)
+    }
+    pub fn release_marker(
+        &mut self,
+        marker: markers::Marker,
+    ) -> markers::MarkerRelease {
+        self.markers.release(marker)
+    }
+
     // Vessel patch 1: read the physical buffer without changing a viewer offset.
     pub fn buffer_row(&self, index: usize) -> Option<&crate::row::Row> {
         let history = self.scrollback_len();
@@ -294,6 +336,8 @@ impl Grid {
     pub fn set_scrollback_capacity(&mut self, capacity: usize) {
         if let Some(scrollback) = &mut self.scrollback {
             scrollback.capacity = capacity;
+            self.markers
+                .trim(scrollback.rows.len().saturating_sub(capacity));
             while scrollback.rows.len() > capacity {
                 drop(scrollback.rows.pop_front());
             }
@@ -646,6 +690,7 @@ impl Grid {
     where
         F: FnMut(&crate::row::Row),
     {
+        self.markers.clear();
         if let Some(scrollback) = &mut self.scrollback {
             for row in scrollback.rows.drain(..) {
                 on_row(&row);
@@ -707,10 +752,22 @@ impl Grid {
         if !(self.scroll_top..=self.scroll_bottom).contains(&self.pos.row) {
             return;
         }
+        let history = self.scrollback_len();
         let between = &mut self.rows
             [usize::from(self.pos.row)..=usize::from(self.scroll_bottom)];
         let num_between = between.len();
         let num_removed = usize::from(count).min(num_between);
+        self.markers.delete(
+            history
+                .saturating_add(usize::from(self.scroll_bottom))
+                .saturating_add(1)
+                .saturating_sub(num_removed),
+            num_removed,
+        );
+        self.markers.insert(
+            history.saturating_add(usize::from(self.pos.row)),
+            num_removed,
+        );
         between.rotate_right(num_removed);
         for row in &mut between[..num_removed] {
             row.reset();
@@ -723,10 +780,22 @@ impl Grid {
         if !(self.scroll_top..=self.scroll_bottom).contains(&self.pos.row) {
             return;
         }
+        let history = self.scrollback_len();
         let between = &mut self.rows
             [usize::from(self.pos.row)..=usize::from(self.scroll_bottom)];
         let num_between = between.len();
         let num_removed = usize::from(count).min(num_between);
+        self.markers.delete(
+            history.saturating_add(usize::from(self.pos.row)),
+            num_removed,
+        );
+        self.markers.insert(
+            history
+                .saturating_add(usize::from(self.scroll_bottom))
+                .saturating_add(1)
+                .saturating_sub(num_removed),
+            num_removed,
+        );
         for row in &mut between[..num_removed] {
             row.reset();
         }
@@ -769,6 +838,8 @@ impl Grid {
             // Number of rows that will simply be reset rather than pushed to
             // the scrollback.
             let num_reset = num_removed - num_pushed;
+            self.markers
+                .trim(scrollback_overflow.saturating_add(num_reset));
 
             for row in &mut between[..num_reset] {
                 on_row(row);
@@ -790,6 +861,9 @@ impl Grid {
             }
             Self::grow_visible_scrollback(scrollback, self.size);
         } else {
+            if scrollback_enabled {
+                self.markers.trim(num_removed);
+            }
             for row in &mut between[..num_removed] {
                 if scrollback_enabled {
                     on_row(row);

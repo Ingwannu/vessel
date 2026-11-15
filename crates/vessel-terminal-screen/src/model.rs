@@ -28,7 +28,8 @@ pub struct Feed {
 }
 /// Mutable screen authority, owned by exactly one terminal output actor.
 pub struct Screen {
-    parser: vt100::Parser<crate::queries::Queries>,
+    pub(crate) parser: vt100::Parser<crate::queries::Queries>,
+    pub(crate) identity: crate::markers::ScreenIdentity,
     size: Size,
     requested: ScrollbackLines,
     retained_columns: u16,
@@ -61,6 +62,7 @@ impl Screen {
         let capacity = size.capacity(scrollback)?;
         let (rows, cols) = size.engine();
         Ok(Self {
+            identity: crate::markers::ScreenIdentity::default(),
             parser: vt100::Parser::new_with_callbacks(
                 rows,
                 cols,
@@ -170,13 +172,17 @@ impl Screen {
             state: Arc::new(self.parser.screen().clone()),
             size: self.size,
             modes: self.input_modes(),
+            identity: self.identity.clone(),
+            epochs: self.parser.callbacks().epochs,
         }
     }
 }
 /// Read-only retained state; cloned handles share the same immutable engine snapshot.
 #[derive(Debug, Clone)]
 pub struct Snapshot {
-    state: Arc<vt100::Screen>,
+    pub(crate) state: Arc<vt100::Screen>,
+    pub(crate) identity: crate::markers::ScreenIdentity,
+    pub(crate) epochs: crate::markers::Epochs,
     size: Size,
     modes: crate::InputModes,
 }

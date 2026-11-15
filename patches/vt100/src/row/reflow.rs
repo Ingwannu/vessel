@@ -9,9 +9,9 @@ pub(crate) fn reflow_rows(
     cursor: Option<usize>,
     old_cols: u16,
     cols: u16,
-) -> (Vec<Row>, Vec<usize>) {
+) -> (Vec<Row>, Vec<Option<usize>>) {
     let held = cursor.map(|cursor| cursor_run(&rows, cursor));
-    let mut mapping = vec![0; rows.len()];
+    let mut mapping = vec![None; rows.len()];
     let mut out = Vec::with_capacity(rows.len());
     let mut joined = Vec::new();
     let mut marks = Vec::new();
@@ -28,7 +28,7 @@ pub(crate) fn reflow_rows(
                 );
             }
             if let Some(at) = mapping.get_mut(index) {
-                *at = out.len();
+                *at = Some(out.len());
             }
             let wrapped = row.wrapped;
             if row.cells.len() > usize::from(cols) {
@@ -100,12 +100,10 @@ fn cut(
     marks: Vec<(usize, usize)>,
     cols: u16,
     out: &mut Vec<Row>,
-    mapping: &mut [usize],
+    mapping: &mut [Option<usize>],
 ) {
-    let total = cells.len();
     let mut cells = cells.into_iter().peekable();
-    let mut marks = marks.into_iter().peekable();
-    let mut consumed = 0_usize;
+    let first = out.len();
     loop {
         let mut row = Vec::new();
         while row.len() < usize::from(cols) {
@@ -119,18 +117,8 @@ fn cut(
                 break;
             };
             row.push(cell);
-            consumed = consumed.saturating_add(1);
         }
         let wrapped = cells.peek().is_some();
-        while marks.peek().is_some_and(|(_, offset)| {
-            *offset < consumed || !wrapped && *offset <= total
-        }) {
-            if let Some((old, _)) = marks.next() {
-                if let Some(at) = mapping.get_mut(old) {
-                    *at = out.len();
-                }
-            }
-        }
         if wrapped {
             row.resize(usize::from(cols), crate::Cell::new());
         }
@@ -140,6 +128,12 @@ fn cut(
         });
         if !wrapped {
             break;
+        }
+    }
+    let retained = out.len().saturating_sub(first);
+    for (offset, (old, _)) in marks.into_iter().enumerate() {
+        if let Some(at) = mapping.get_mut(old) {
+            *at = (offset < retained).then_some(first.saturating_add(offset));
         }
     }
 }

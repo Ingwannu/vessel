@@ -67,11 +67,17 @@ pub use callbacks::Callbacks;
 pub use cell::Cell;
 pub use parser::Parser;
 pub use screen::{
-    CursorStyle, MouseProtocolEncoding, MouseProtocolMode, Screen,
+    Buffer, BufferReset, CursorStyle, MouseProtocolEncoding,
+    MouseProtocolMode, Screen,
 };
 
 // Decoder metadata is exposed only to the sole screen facade, never a second parser.
 pub use vte::{
     DecodedParameter, DecoderBoundary, DecoderStep, Params as DecodedParams,
     PrefixEnd,
+};
+
+/// Bounded grid marker types; the pure facade adds authority/buffer/reset ownership.
+pub use grid::markers::{
+    MAX_MARKERS, Marker, MarkerError, MarkerPosition, MarkerRelease,
 };

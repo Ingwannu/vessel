@@ -4,6 +4,9 @@
 /// don't have an impact on the terminal screen directly, as well as to emit
 /// other events like [`on_scroll`](Self::on_scroll).
 pub trait Callbacks {
+    /// Observe the actual reset mutation so marker epochs never guess from raw bytes.
+    fn buffer_reset(&mut self, _reset: crate::BufferReset) {}
+
     /// Observe decoded CSI with parameter presence before built-in screen handling.
     fn decoded_csi(
         &mut self,

@@ -1,3 +1,23 @@
+/// A named grid, independent from the currently presented buffer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Buffer {
+    /// Persistent primary history and live rows.
+    Primary,
+    /// Isolated alternate rows.
+    Alternate,
+}
+
+/// A reset observed at the actual grid mutation, not inferred from raw sequences.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BufferReset {
+    /// Primary retained rows were cleared.
+    Primary,
+    /// Alternate rows were cleared before entry.
+    Alternate,
+    /// RIS replaces both grids.
+    All,
+}
+
 use crate::term::BufWrite as _;
 use alloc::{string::String, string::ToString as _};
 use unicode_width::UnicodeWidthChar as _;
@@ -213,6 +233,44 @@ impl Screen {
     /// The value given will be clamped to the actual size of the scrollback.
     pub fn set_scrollback(&mut self, rows: usize) {
         self.grid_mut().set_scrollback(rows);
+    }
+
+    /// Pin a retained physical row in the active buffer without allocating per-row identities.
+    pub fn create_marker(
+        &mut self,
+        row: usize,
+    ) -> Result<crate::Marker, crate::MarkerError> {
+        self.grid_mut().create_marker(row)
+    }
+    /// Replace an active-buffer marker without requiring a temporary extra slot.
+    pub fn replace_marker(
+        &mut self,
+        marker: crate::Marker,
+        row: usize,
+    ) -> Result<crate::Marker, crate::MarkerError> {
+        self.grid_mut().replace_marker(marker, row)
+    }
+    /// Inspect either buffer so a hidden primary marker survives alternate-screen output.
+    pub fn resolve_marker(
+        &self,
+        buffer: Buffer,
+        marker: crate::Marker,
+    ) -> crate::MarkerPosition {
+        match buffer {
+            Buffer::Primary => self.grid.resolve_marker(marker),
+            Buffer::Alternate => self.alternate_grid.resolve_marker(marker),
+        }
+    }
+    /// Release is idempotent and does not create a buffer or marker.
+    pub fn release_marker(
+        &mut self,
+        buffer: Buffer,
+        marker: crate::Marker,
+    ) -> crate::MarkerRelease {
+        match buffer {
+            Buffer::Primary => self.grid.release_marker(marker),
+            Buffer::Alternate => self.alternate_grid.release_marker(marker),
+        }
     }
 
     /// Clears the scrollback history for the active screen and returns the
@@ -1215,6 +1273,7 @@ impl<CB: crate::Callbacks> WrappedScreen<CB> {
 
     // ESC c
     pub fn ris(&mut self) {
+        self.callbacks.buffer_reset(BufferReset::All);
         self.screen = Screen::new(
             self.screen.grid.size(),
             self.screen.grid.scrollback_capacity(),
@@ -1313,6 +1372,13 @@ impl<CB: crate::Callbacks> WrappedScreen<CB> {
             1 => self.screen.grid_mut().erase_all_backward(attrs),
             2 => self.screen.grid_mut().erase_all(attrs),
             3 => {
+                self.callbacks.buffer_reset(
+                    if self.screen.alternate_screen() {
+                        BufferReset::Alternate
+                    } else {
+                        BufferReset::Primary
+                    },
+                );
                 let on_row = Self::on_row(&self.screen, &mut self.callbacks);
                 self.screen.grid_mut().erase_all_scrollback(on_row);
             }
@@ -1407,6 +1473,7 @@ impl<CB: crate::Callbacks> WrappedScreen<CB> {
                 }
                 [1049] => {
                     self.decsc();
+                    self.callbacks.buffer_reset(BufferReset::Alternate);
                     self.screen.alternate_grid.clear();
                     self.screen.enter_alternate_grid();
                 }
