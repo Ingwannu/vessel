@@ -541,3 +541,9 @@ the desktop-shell owner's small without builder rather than mutating process
 globals or duplicating shell resolution. The existing immutable launch recipe
 still validates program, arguments and private home; only child environment
 changes. Its in-memory regression is prepared; new-source execution is owed.
+
+The earlier unconsumed native name-grammar draft is removed while the canonical
+lower ManagedLocalAlias value waits for an announced base. The unavailable local
+registration has no generated-name path. Native wrappers will be restored only
+as delegations to proto::book_values::ManagedLocalAlias; no duplicate prefix or
+UUID grammar is retained in product or test code.

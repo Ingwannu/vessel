@@ -4,8 +4,6 @@ use crate::machine_book::Name;
 use serde::{Deserialize, Serialize};
 use vessel_proto::NodeId;
 
-pub mod names;
-
 /// Deliberate desktop launch policy, persisted independently from node settings.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Management {
