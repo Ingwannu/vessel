@@ -331,10 +331,11 @@ No row of the crate table changes.
   mode; the selector module only owns predicates. Follow test turn cursors
   are explicitly ignored, without changing its output assertions. The ADR
   names the raw record cursor rather than the last visible match.
-  EOF, interruption and stream notices
-  finish an open text line; terminal bytes stay untouched. The event-driven
-  history-to-live test and follow parser tests have not run yet. Selection's
-  complete gate is queued; follow still owes narrow and complete checks.
+  EOF, interruption and stream notices finish an open text line; terminal
+  bytes stay untouched. Follow passed narrow clippy, eleven log units and
+  three fake-node CLI cases, including history-to-live output exactly once
+  and EOF. Selection's complete gate is queued; follow still owes its
+  separate complete gate.
 - The contract's follow bullet and EOF explanation now name the same end.
   Parser and command-level checks are documented together: an invalid tail
   is refused by both products, with earlier validation in Vessel.
@@ -342,8 +343,8 @@ No row of the crate table changes.
   step and left conflict markers in an unverified follow commit. A new
   follow-up repaired both owned files with every prior scenario retained.
   That intermediate commit was never compiled or used as gate evidence.
-- Next: finish selection slice 5b's complete gate, then run narrow checks and
-  the separate whole gate for follow slice 5c while
+- Next: finish selection slice 5b's complete gate, then run the separate
+  complete gate for follow slice 5c while
   label call wiring awaits the shared accessor. No new wire call or dependency
   is added by log options. All slices include the caller-to-projection
   citations and retain the raw-chunk test; the selection render context changes
