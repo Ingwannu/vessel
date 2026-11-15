@@ -1178,6 +1178,14 @@ reasons, the checks and the tests. Where it stands:
   - That gate also found two non-exhaustive matches in the app's update
     words on ADR 0094's new errors, fixed in e3ae1c1ae. Earlier heads of
     the branch do not build the app.
+  - The release workspace on e3ae1c1ae, through `--release-cargo`:
+    - `test -p vessel-app-updater -p vessel-app-feed`: 69 passed, 0 failed.
+    - `clippy --all-targets -- -D warnings`: clean.
+    - 0.0.0.0.21's source has the same release workspace, apart from the
+      vendored GPUI patches.
+  - The updater's own Windows-only test code is not checked yet: no gate
+    selection checks the release workspace for Windows. The app's Windows
+    check builds the updater's library only.
 - The first real compile was trial label 0.0.0.99.1, never published:
   - `--release-compile 0.0.0.99.1 linux-x64` of e3ae1c1ae took 605 s.
     The slot was found once, at 0xcc0da4.
