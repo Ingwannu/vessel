@@ -50,6 +50,8 @@ The node and declared-port merges are committed. Client/settings and
 terminal approval adaptations pass focused link/view clippy and library
 tests. Declared-port consumers and regression cases are implemented. Next:
 complete focused checks and both whole gates on the final committed head.
+The declared-port regression tests explicitly import the comparison types
+and function; a full native gate compiles these tests as well as the app.
 
 ### Client error and settings adaptation
 
