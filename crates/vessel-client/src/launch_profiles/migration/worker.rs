@@ -159,7 +159,6 @@ where
             }
             Err(error) if stale(&error) => {
                 last_stale = Some(error);
-                continue;
             }
             Err(error @ (CallError::Disconnected | CallError::UnexpectedReply(_))) => {
                 return reconcile(node, &favorites, &catalogues, error, &mut read).await;
@@ -252,7 +251,7 @@ where
             // This is the reference's external readiness backoff, never a
             // sleep used to coordinate internal task completion.
             LegacyCatalogueState::Loading | LegacyCatalogueState::Busy => {
-                tokio::time::sleep(delay).await
+                tokio::time::sleep(delay).await;
             }
         }
     }
