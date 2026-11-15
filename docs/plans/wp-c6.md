@@ -224,3 +224,12 @@ handling a bounded generator structure that preserves the typed getter API;
 neither generated-line packing nor a larger allowance is a valid correction.
 App rendering and later crates were not compiled by that failed run, so it is
 not consumer or package proof. The next changed-source check is still owed.
+
+Run `wp-usage-native-context-20261115T125652Z-ca10b2d6` compiled view/link and
+passed all six usage link tests; view passed 41 and failed two quota text
+assertions. The implementation preserved Fluent's intentional FSI/PDI isolation,
+while these new test literals omitted it. Only expectations are corrected to
+assert the full isolated output, including nested countdown components; the other
+duration check is strengthened from substring to the complete scoped label.
+Product formatting and Fluent's bidi protection remain unchanged. This test
+correction still needs its changed-source run; the earlier run remains red.

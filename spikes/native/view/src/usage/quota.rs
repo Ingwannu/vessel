@@ -170,12 +170,15 @@ mod tests {
         };
         assert_eq!(
             window_label(&window, words),
-            "Code review · Window duration not reported"
+            "\u{2068}Code review\u{2069} · \u{2068}Window duration not reported\u{2069}"
         );
         window.period = LimitPeriod::Other {
             duration: DurationMs::from_duration(std::time::Duration::from_secs(42)),
         };
-        assert!(window_label(&window, words).contains("42000 ms"));
+        assert_eq!(
+            window_label(&window, words),
+            "\u{2068}Code review\u{2069} · \u{2068}Reported window (\u{2068}42000\u{2069} ms)\u{2069}"
+        );
         assert_eq!(
             reset_label(
                 None,
@@ -200,11 +203,14 @@ mod tests {
         let words = Translator::get(ENGLISH).unwrap();
         let now = DateTime::UNIX_EPOCH;
         for (seconds, expected) in [
-            (59, "0m"),
-            (60, "1m"),
-            (3600, "1h"),
-            (3660, "1h 1m"),
-            (172_860, "2d"),
+            (59, "\u{2068}0\u{2069}m"),
+            (60, "\u{2068}1\u{2069}m"),
+            (3600, "\u{2068}1\u{2069}h"),
+            (
+                3660,
+                "\u{2068}\u{2068}1\u{2069}h\u{2069} \u{2068}\u{2068}1\u{2069}m\u{2069}",
+            ),
+            (172_860, "\u{2068}2\u{2069}d"),
         ] {
             assert_eq!(
                 reset_duration(now + chrono::TimeDelta::seconds(seconds), now, words),
