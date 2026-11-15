@@ -299,6 +299,13 @@ impl Sessions {
                 .collect()
         };
         for info in visible {
+            if !info.status.is_live()
+                && all
+                    .get(&info.id)
+                    .is_some_and(|stored| stored.next_seq > info.next_seq)
+            {
+                continue;
+            }
             drop(all.insert(info.id, info));
         }
         let mut list: Vec<SessionInfo> = all.into_values().collect();
@@ -369,13 +376,6 @@ impl Sessions {
     /// The live session `id`, when the runtime has it.
     pub(crate) fn live(&self, id: SessionId) -> Option<SessionHandle> {
         self.runtime.get(id).filter(|handle| !handle.has_ended())
-    }
-
-    pub(crate) async fn get(&self, id: SessionId) -> Result<SessionInfo, ServiceError> {
-        Ok(match self.find(id).await? {
-            Found::Live { handle, .. } => handle.info(),
-            Found::Stored(info) => info,
-        })
     }
 
     /// The live session `id`, for a call that acts on its agent (protocol

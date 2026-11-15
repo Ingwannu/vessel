@@ -76,6 +76,27 @@ impl Sessions {
         }
         self.read(id, from, limit).await
     }
+    pub(crate) async fn get(&self, id: SessionId) -> Result<SessionInfo, ServiceError> {
+        Ok(match self.find(id).await? {
+            Found::Live { handle, .. } => self.current_info(&handle).await?,
+            Found::Stored(info) => info,
+        })
+    }
+
+    /// Prefer metadata stored after a run ended while its handle awaits handover.
+    pub(super) async fn current_info(
+        &self,
+        handle: &SessionHandle,
+    ) -> Result<vessel_proto::SessionInfo, ServiceError> {
+        let info = handle.info();
+        if !info.status.is_live()
+            && let Some(stored) = self.store.session(info.id).await?
+            && stored.next_seq > info.next_seq
+        {
+            return Ok(stored);
+        }
+        Ok(info)
+    }
 }
 
 /// `page`, read from the store for a live session, unless retention pruned
@@ -100,7 +121,17 @@ impl Sessions {
 ///   is a gap-free suffix; no merge is needed.
 /// - Cost: one ring lookup per read of a live session whose store page has
 ///   a gap, which only happens after pruning.
-fn with_ring(page: EventPage, handle: &SessionHandle, from: EventSeq, limit: u32) -> EventPage {
+pub(super) fn with_ring(
+    page: EventPage,
+    handle: &SessionHandle,
+    from: EventSeq,
+    limit: u32,
+) -> EventPage {
+    // An ended run's ring is sealed. Storage-only checkpoint metadata may now
+    // follow it; the ring must not truncate the store's later result/history.
+    if !handle.info().status.is_live() {
+        return page;
+    }
     let stored_from = page.records.first().map(|record| record.seq);
     if stored_from == Some(from) {
         return page;

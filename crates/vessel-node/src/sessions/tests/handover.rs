@@ -114,3 +114,56 @@ async fn the_end_notification_follows_runtime_and_durability_removal() {
     .await
     .unwrap();
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn checkpoint_ended_ring_cannot_mask_metadata_after_the_final_status() {
+    use vessel_proto::{
+        EventPage, EventRecord, SessionEvent,
+        checkpoint::{CheckpointEvent, CheckpointId, PathCount, RestoreId},
+    };
+    vessel_testkit::within(Duration::from_secs(60), async {
+        let fixture = Fixture::new().await;
+        let (handle, persisted) = persisted_session(&fixture).await;
+        let info = handle.info();
+        assert!(!info.status.is_live());
+        assert!(matches!(
+            fixture.sessions.find(info.id).await.unwrap(),
+            Found::Live { .. }
+        ));
+        let final_seq = EventSeq::new(info.next_seq.get().checked_sub(1).unwrap());
+        // This is a page-selection fixture, not a fabricated store restore:
+        // the store's real result binding/restart contract is tested in store.
+        let page = EventPage {
+            records: vec![
+                EventRecord {
+                    seq: final_seq,
+                    at: chrono::DateTime::UNIX_EPOCH,
+                    event: SessionEvent::Status {
+                        status: info.status.clone(),
+                    },
+                },
+                EventRecord {
+                    seq: info.next_seq,
+                    at: chrono::DateTime::UNIX_EPOCH,
+                    event: SessionEvent::Checkpoint {
+                        event: CheckpointEvent::FilesRestored {
+                            restore: RestoreId::random(),
+                            checkpoint: CheckpointId::random(),
+                            paths: PathCount::new(1).unwrap(),
+                        },
+                    },
+                },
+            ],
+            next: info.next_seq.next().unwrap(),
+            at_end: true,
+        };
+        assert_eq!(
+            super::super::read::with_ring(page.clone(), &handle, EventSeq::ZERO, 100),
+            page
+        );
+        fixture.sessions.hand_over(handle, persisted).await;
+        fixture.stop().await;
+    })
+    .await
+    .unwrap();
+}

@@ -641,3 +641,17 @@ not product bypasses. The public-worker fixture executes on spawn_blocking with
 isolated Git configuration, checks a wrong physical root, captures/restore/reopens
 rollback evidence and asserts the actual non-root UID. It is unrun, and models its
 evidence commit without a store, so it is not end-to-end restore/crash proof.
+
+
+### Ended runtime cache visibility
+
+An ended handle can remain briefly in Sessions until persistence handover. Its
+ring is sealed; it cannot override a later stored FilesRestored page, and get/list
+retain a newer stored EventSeq instead of overwriting it with the stale ended
+SessionInfo. The existing read module owns that preference and get. The file
+budget check caught the added list branch pushing sessions.rs over500; moving its
+query method into the existing read module restores the budget without raising a
+ratchet. A real ended fake-runtime fixture checks page selection while handover
+is held, using an explicitly modeled store page; store tests separately validate
+the actual result-event binding and restart transaction. This is unrun and not a
+combined end-to-end restore/subscribe proof.
