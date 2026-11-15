@@ -517,3 +517,11 @@ strict result; future whole replacement waits for the corrected strict pass.
   No new I/O/task start or await is introduced. Existing bind/serve ordering
   remains in Node::start. Other corrections change no production policy and
   the fake handlers continue explicit Unsupported instead of pretending support.
+
+The explicit Handler inventory contains exactly the guarded node and two test
+fakes. The RPC test fake receives the same4explicit Unsupported handlers as
+the client fake, preserving its call-recording helper. This completes that
+inventory instead of waiting for the whole workspace compile to discover the
+second fixture. The already submitted seven-crate strict source remains
+immutable; RPC test compilation is an additional narrow check before any new
+whole submission. No existing assertion or method policy is changed.
