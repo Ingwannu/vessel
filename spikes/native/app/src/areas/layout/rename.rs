@@ -159,7 +159,7 @@ impl Shell {
                     if machine.name == form.machine.as_str() && machine.node == Some(form.node) {
                         for card in &mut machine.sessions {
                             if card.session == session {
-                                card.title = title.as_str().to_owned();
+                                title.as_str().clone_into(&mut card.title);
                             }
                         }
                     }
@@ -169,7 +169,7 @@ impl Shell {
                         && open.machine == form.machine.as_str()
                         && active_node == Some(form.node)
                 }) {
-                    open.title = title.as_str().to_owned();
+                    title.as_str().clone_into(&mut open.title);
                 }
             }
             self.areas.layout.rename = None;
@@ -202,7 +202,7 @@ pub(super) fn overlay(
     let invalid = form
         .invalid
         .as_ref()
-        .map(|error| shell.t.lang.conversation().title_refused(error.clone()));
+        .map(|error| shell.t.lang.conversation().title_refused(*error));
     let body = div()
         .flex()
         .flex_col()
@@ -227,7 +227,13 @@ pub(super) fn overlay(
         .on_click(cx.listener(|shell, _event, window, cx| shell.layout_cancel_rename(window, cx)))
         .into_any_element(),
     ];
-    if !busy {
+    if busy {
+        footer.push(
+            div()
+                .child(words.rename_busy().to_owned())
+                .into_any_element(),
+        );
+    } else {
         footer.push(
             button(
                 "layout-rename-save",
@@ -239,12 +245,6 @@ pub(super) fn overlay(
                 cx.listener(|shell, _event, window, cx| shell.layout_submit_rename(window, cx)),
             )
             .into_any_element(),
-        );
-    } else {
-        footer.push(
-            div()
-                .child(words.rename_busy().to_owned())
-                .into_any_element(),
         );
     }
     Some(dialog(

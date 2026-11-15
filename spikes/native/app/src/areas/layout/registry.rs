@@ -3,7 +3,7 @@ use crate::shell::Shell;
 use vessel_app_kit::Tokens;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement,
+    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement, IntoElement,
     ParentElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_view::layout::{LayoutKey, PaneId, TabId, Target};
@@ -80,7 +80,10 @@ pub(super) fn render(
         .size_full()
         .min_w_0()
         .min_h_0()
-        .when(panel.focus == PanelFocus::Focused, |frame| frame.occlude())
+        .when(
+            panel.focus == PanelFocus::Focused,
+            InteractiveElement::occlude,
+        )
         .child(body)
         .into_any_element()
 }
