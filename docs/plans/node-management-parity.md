@@ -92,6 +92,13 @@ slice order. The docs commit adds both and no command.
 
 ### Configuration work since this base
 
+- The next strict check reached the bounded reload reader and found an unused
+  byte-count result. Bind that count explicitly; the shared JSON edge still
+  checks the actual complete buffer before parsing. A new test's mechanical
+  formatting is also corrected. No input/error/validation behavior changes.
+  Other changed-crate compilation, TS and runtime tests remain pending; the
+  common cancellation-safe writer prerequisite is separate and not yet adopted.
+
 - The designated node head now includes service observations, the call
   preflight and plugin value prerequisites. The config package keeps its two
   methods unassigned; the iterator lint fix is ready for the next narrow check.

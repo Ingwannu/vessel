@@ -38,7 +38,8 @@ impl DataDir {
             .map_err(fail)?;
         let mut bytes = Vec::new();
         // One extra byte detects overflow without allocating the rest of a file.
-        file.take(limit.saturating_add(1))
+        let _bytes_read = file
+            .take(limit.saturating_add(1))
             .read_to_end(&mut bytes)
             .map_err(fail)?;
         SetNodeSettings::from_json(&bytes)

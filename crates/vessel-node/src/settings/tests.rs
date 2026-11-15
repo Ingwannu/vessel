@@ -15,12 +15,7 @@ fn settings(root: &std::path::Path, flag: ParkAfter) -> Settings {
         },
         tokio_util::sync::CancellationToken::new(),
     );
-    Settings::open(
-        DataDir::new(root),
-        Arc::new(runtime),
-        flag,
-        false,
-    )
+    Settings::open(DataDir::new(root), Arc::new(runtime), flag, false)
 }
 
 #[tokio::test]
