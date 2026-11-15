@@ -144,4 +144,6 @@ impl<V> std::fmt::Debug for Empty<V> {
     }
 }
 #[cfg(test)]
+mod input_tests;
+#[cfg(test)]
 mod tests;

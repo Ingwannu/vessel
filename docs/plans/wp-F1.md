@@ -1489,3 +1489,11 @@ not copied. Pure retry/pending/stale-response preservation tests are authored,
 not executed. Actual retained Retry/default-focus/consumer first-use and the
 new shared profile still await final F1 checks; queued20c proves prior source
 only when it finishes, not this later code.
+
+
+A real shared Dialog/TextField/combobox Retry regression is now authored for
+both schemes and390/1280: dispatch retained A's actual pointer path after B
+opens without redraw, assert render counter unchanged/B focus+parent survive/
+no retry fired; render B and assert its retry fires once without closing,
+Pending button cannot repeat, then B Escape and parent Escape work in order.
+This is NOT an executed pass. No old approved lifecycle test blob was edited.
