@@ -32,6 +32,9 @@ impl Shell {
         machine: &str,
         text: &str,
     ) -> Result<Option<PreparedSubmission>, PrepareProblem> {
+        if self.composer_attachments_blocked(DraftKey::New) {
+            return Err(PrepareProblem::Busy);
+        }
         let machine =
             vessel_app_view::machine_book::Name::parse(machine).map_err(PrepareProblem::Machine)?;
         if !self.draft_has_files() {

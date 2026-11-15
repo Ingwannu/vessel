@@ -52,6 +52,8 @@ pub enum Origin {
     File(PathBuf),
     /// An image pasted from the clipboard, held until it is sent.
     Pasted(Arc<[u8]>),
+    /// An immutable private managed snapshot; its Arc protects bytes from GC.
+    Stored(Arc<super::local::LocalFile>),
 }
 
 /// An upload the node holds, and how far it got (a retry goes on from

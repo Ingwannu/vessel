@@ -52,6 +52,15 @@ impl Incoming {
         })
     }
 
+    /// Restore or acquire a private immutable byte snapshot.
+    pub(super) fn stored(file: Arc<vessel_app_view::composer::local::LocalFile>) -> Self {
+        Self {
+            name: file.record.name.as_str().to_owned(),
+            size: file.record.size.value(),
+            origin: Origin::Stored(file),
+        }
+    }
+
     /// An image pasted as `mime` (named after its type: a clipboard has no
     /// file name).
     pub(crate) fn pasted(mime: &str, bytes: Vec<u8>) -> Self {
@@ -75,6 +84,8 @@ pub(super) enum LocalFileProblem {
     Read(std::io::Error),
     NotFile,
     NoName,
+    #[cfg(not(target_arch = "wasm32"))]
+    Storage(vessel_app_link::attachments::local::LocalFailure),
 }
 
 /// A prompt waiting for its files.
@@ -85,6 +96,7 @@ pub(crate) struct Waiting {
     pub(super) text: String,
     pub(super) context: Option<vessel_app_view::composer::context::Submission>,
     pub(super) phase: super::transmission::Phase,
+    pub(super) local_files: Vec<Arc<vessel_app_view::composer::local::LocalFile>>,
     pub(super) delivery: Delivery,
     pub(super) creation: Option<vessel_app_view::creation::Ticket>,
 }
@@ -124,6 +136,7 @@ impl Shell {
         for file in files {
             let _key = tray.add(&file.name, file.size, file.origin);
         }
+        self.local_files_changed(cx);
         cx.notify();
     }
 
@@ -157,6 +170,9 @@ impl Shell {
         let Some(session) = self.areas.session.open.as_ref().map(|open| open.session) else {
             return false;
         };
+        if self.composer_attachments_blocked(DraftKey::Session { session }) {
+            return false;
+        }
         let composer = &self.areas.composer;
         let tray = composer.trays.get(DraftKey::Session { session });
         let files = tray.is_some_and(|tray| !tray.is_empty());
@@ -257,6 +273,7 @@ impl Shell {
             return true;
         };
         let waiting = Waiting {
+            local_files: self.retained_local_files(DraftKey::Session { session }),
             phase: super::transmission::Phase::Preparing,
             context,
             machine,
@@ -266,6 +283,7 @@ impl Shell {
             creation: None,
         };
         drop(self.areas.composer.sends.insert(session, waiting));
+        self.local_files_changed(cx);
         self.session_composer_sent(window, cx);
         self.composer_pump(session, cx);
         true
@@ -304,9 +322,11 @@ impl Shell {
         let Ok(context) = self.prepare_session_context(session, cx) else {
             return;
         };
+        let local_files = self.retained_local_files(DraftKey::Session { session });
         drop(self.areas.composer.sends.insert(
             session,
             Waiting {
+                local_files,
                 phase: super::transmission::Phase::Preparing,
                 context,
                 machine: key.clone(),
@@ -316,6 +336,7 @@ impl Shell {
                 creation: None,
             },
         ));
+        self.local_files_changed(cx);
         self.areas.session.resuming = Some(text.to_owned());
         self.areas.session.resume_error = None;
         self.command(Command::Files(Files::Wake(
@@ -363,6 +384,15 @@ impl Shell {
             return;
         };
         let session = card.session;
+        let local_files = starting
+            .files
+            .items()
+            .iter()
+            .filter_map(|item| match &item.origin {
+                Origin::Stored(file) => Some(Arc::clone(file)),
+                Origin::File(_) | Origin::Pasted(_) => None,
+            })
+            .collect();
         let composer = &mut self.areas.composer;
         if let Some(draft) = composer.trays.get_mut(DraftKey::New) {
             for captured in starting.files.items() {
@@ -381,6 +411,7 @@ impl Shell {
                 vessel_app_view::composer::context::ContextTray::captured(context);
         }
         let waiting = Waiting {
+            local_files,
             phase: super::transmission::Phase::Preparing,
             context: starting.context,
             machine: starting.machine,
@@ -390,6 +421,7 @@ impl Shell {
             creation: starting.ticket,
         };
         drop(composer.sends.insert(session, waiting));
+        self.local_files_changed(cx);
         if starting.ticket.is_none() {
             self.composer_pump(session, cx);
         }

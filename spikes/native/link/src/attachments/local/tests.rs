@@ -39,6 +39,7 @@ fn bytes_and_manifest_survive_reopen_and_are_private_under_the_real_test_user() 
     let manifest = Manifest::new(vec![KeptFile {
         draft: DraftKey::New,
         record: local.record.clone(),
+        unconfirmed: false,
     }])
     .unwrap();
     store.save_manifest(&manifest).unwrap();
@@ -82,6 +83,7 @@ fn copied_bytes_are_immutable_and_dropping_a_lease_does_not_ignore_persisted_ret
     let manifest = Manifest::new(vec![KeptFile {
         draft: DraftKey::New,
         record: local.record.clone(),
+        unconfirmed: false,
     }])
     .unwrap();
     let future = SystemTime::now()
@@ -164,6 +166,7 @@ fn manifest_deserialization_enforces_duplicate_and_count_bounds() {
     let entry = KeptFile {
         draft: DraftKey::New,
         record: local.record.clone(),
+        unconfirmed: false,
     };
     assert!(Manifest::new(vec![entry.clone(), entry.clone()]).is_err());
     let invalid = serde_json::to_string(&vec![entry.clone(), entry]).unwrap();

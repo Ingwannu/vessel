@@ -121,6 +121,7 @@ impl Shell {
                 );
             }
         }
+        self.local_files_changed(cx);
         cx.notify();
     }
 }

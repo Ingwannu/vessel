@@ -121,6 +121,47 @@ impl Shell {
             mime,
             "image/png" | "image/jpeg" | "image/gif" | "image/webp"
         ) {
+            #[cfg(not(target_arch = "wasm32"))]
+            if self.areas.composer.local.production {
+                let Some(store) = self.areas.composer.local.store.clone() else {
+                    self.toast(
+                        self.words.composer().file_local_failed(),
+                        ToastTone::Error,
+                        cx,
+                    );
+                    return;
+                };
+                let incoming = Incoming::pasted(mime, bytes);
+                let Some(name) =
+                    vessel_app_view::composer::attach::attachment_name(&incoming.name, "image.png")
+                else {
+                    return;
+                };
+                let Some(mime) = vessel_app_view::composer::attach::mime_of(&incoming.name) else {
+                    return;
+                };
+                let vessel_app_view::composer::tray::Origin::Pasted(bytes) = incoming.origin else {
+                    return;
+                };
+                self.local_intake_started(key, cx);
+                let saved = cx
+                    .background_executor()
+                    .spawn(async move { store.put_bytes(name, mime, &bytes) });
+                cx.spawn(async move |this, cx| {
+                    let result = saved.await;
+                    let _closed = this.update(cx, |shell, cx| {
+                        shell.local_intake_finished(key, cx);
+                        match result {
+                            Ok(file) => shell.composer_add(key, vec![Incoming::stored(file)], cx),
+                            Err(problem) => {
+                                tracing::info!(%problem, "pasted image could not be retained locally");
+                                shell.toast(shell.words.composer().file_local_failed(), ToastTone::Error, cx);
+                            }
+                        }
+                    });
+                }).detach();
+                return;
+            }
             self.composer_add(key, vec![Incoming::pasted(mime, bytes)], cx);
         } else {
             self.toast(
@@ -148,12 +189,42 @@ impl Shell {
         paths: Vec<std::path::PathBuf>,
         cx: &mut Context<'_, Self>,
     ) {
-        let inspected = cx
-            .background_executor()
-            .spawn(async move { paths.into_iter().map(Incoming::file).collect::<Vec<_>>() });
+        #[cfg(not(target_arch = "wasm32"))]
+        let store = self.areas.composer.local.store.clone();
+        #[cfg(not(target_arch = "wasm32"))]
+        if self.areas.composer.local.production && store.is_none() {
+            self.toast(
+                self.words.composer().file_local_failed(),
+                ToastTone::Error,
+                cx,
+            );
+            return;
+        }
+        self.local_intake_started(key, cx);
+        let inspected = cx.background_executor().spawn(async move {
+            paths
+                .into_iter()
+                .map(|path| {
+                    let incoming = Incoming::file(path.clone())?;
+                    #[cfg(not(target_arch = "wasm32"))]
+                    if let Some(store) = &store {
+                        use vessel_app_view::composer::attach::{attachment_name, mime_of};
+                        let name = attachment_name(&incoming.name, "file.bin")
+                            .ok_or(LocalFileProblem::NoName)?;
+                        let mime = mime_of(&incoming.name).ok_or(LocalFileProblem::NoName)?;
+                        let file = store
+                            .copy_file(name, mime, &path)
+                            .map_err(LocalFileProblem::Storage)?;
+                        return Ok(Incoming::stored(file));
+                    }
+                    Ok(incoming)
+                })
+                .collect::<Vec<_>>()
+        });
         cx.spawn(async move |this, cx| {
             let results = inspected.await;
             let _closed = this.update(cx, |shell, cx| {
+                shell.local_intake_finished(key, cx);
                 let mut files = Vec::new();
                 for result in results {
                     match result {
@@ -162,7 +233,16 @@ impl Shell {
                             if let LocalFileProblem::Read(error) = &why {
                                 tracing::info!(kind = ?error.kind(), "an attached file could not be inspected");
                             }
-                            shell.toast(shell.words.composer().file_unreadable(), ToastTone::Error, cx);
+                            let words = shell.words.composer();
+                            let message = match &why {
+                                LocalFileProblem::Read(_) | LocalFileProblem::NoName | LocalFileProblem::NotFile => words.file_unreadable(),
+                                #[cfg(not(target_arch = "wasm32"))]
+                                LocalFileProblem::Storage(problem) => {
+                                    tracing::info!(%problem, "attached bytes could not be retained locally");
+                                    words.file_local_failed()
+                                }
+                            };
+                            shell.toast(message, ToastTone::Error, cx);
                         }
                     }
                 }

@@ -18,6 +18,8 @@ pub struct KeptFile {
     pub draft: DraftKey,
     /// Validated key, name, MIME and immutable length.
     pub record: LocalRecord,
+    /// A previous process may have sent this input; never automatically resend it.
+    pub unconfirmed: bool,
 }
 /// Validation runs for deserialization too, before any path can be opened.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -81,6 +83,7 @@ impl Store {
     /// Preserves malformed state on disk and returns a typed manifest/I/O error.
     pub fn load_manifest(&self) -> Result<Manifest, LocalFailure> {
         let inner = self.0.lock().map_err(|_poisoned| LocalFailure::Barrier)?;
+        private_entry(&inner.root, true)?;
         read(&inner.root)
     }
 

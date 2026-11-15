@@ -39,6 +39,7 @@ fn uncertainty_keeps_exact_payload_and_only_matching_completion_can_consume_it(
                 context,
                 delivery: Delivery::Start,
                 creation: None,
+                local_files: Vec::new(),
                 phase: Phase::Preparing,
             },
         );
