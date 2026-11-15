@@ -29,11 +29,12 @@ available until the node integrator assigns the feature constant.
   reaped. It does not know principals, registry identity, SQLite or RPC;
   those remain node/store/protocol responsibilities (ADR 0001).
 - Advantages, drawbacks and impact: old callers and approvals retain their
-  behavior, and observers cannot await or backpressure child pipes. A slow
-  callback still delays the runner, so callbacks only update bounded local
-  memory and wake readers. Snapshot persistence and network delivery happen
-  outside that callback. Runner events alone do not make observation a
-  supported public capability.
+  behavior. Observers never await or perform network/persistence work themselves.
+  A slow synchronous callback still delays the runner and can backpressure the
+  bounded output pumps, so this callback only updates bounded local memory and
+  wakes readers. Legacy state persistence and network delivery stay outside the
+  callback; structured observations remain volatile. Runner events alone do not
+  make observation a supported public capability.
 
 ## Reference behavior and remaining integration
 
