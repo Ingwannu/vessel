@@ -515,7 +515,7 @@ the earlier one. Withdrawal is explicit.
   inherited user variables and filesystem/network permissions remain those
   of the node user. The helper is not a sandbox.
 - Failure policy: one named time budget covers path resolution, spawn,
-  both pipe readers and child exit; cancellation before spawn starts no
+  both pipe readers and child exit; cancellation already observed before spawn starts no
   child. Each pipe has one named byte cap; read at most cap plus one byte
   to distinguish exact-cap EOF from overflow. Drain both concurrently with
   waiting, close stdin, and require a successful exit before decoding stdout.
@@ -525,7 +525,9 @@ the earlier one. Withdrawal is explicit.
 - Costs and effects: canonicalization can reach a Windows network share
   with the node user's credentials. Cancelling a blocking resolution
   cannot abort that OS operation, but its result cannot spawn a child.
-  This is stronger cleanup than Paseo's direct `execFile` timeout; no
+  The time budget includes Vessel's extra checked path I/O, whereas Paseo's
+  `execFile` timeout bounds its child operation. This is a deliberate bound on
+  the extra validation work. Cleanup is stronger than that direct timeout; no
   descendant is intentionally kept. Staged node code stays `cfg(test)`
   until the approval-checked allocator wiring removes it (A10). Its
   narrow checks prove the primitive only, not product execution.

@@ -285,3 +285,15 @@ gate passed; native full-view integration remains owed. Next implement and
 narrow-check one direct invocation with the path/cleanup/decoder cases in
 the ADR, then the plan owner and health. Auto terminals, archive and editor
 targets remain unimplemented. No new protocol number is assigned.
+
+Direct-helper primitive: staged under the node terminal module's test-only
+declaration. One owner resolves the approved program, supplies literal
+argument/environment pairs, and decodes bounded stdout only after successful
+exit. Both pipes are independently bounded. Unit and real fake-process tests
+cover the preparation/decoder and child-owner cancellation boundary; narrow
+results are recorded in the review report. No allocator caller or product
+execution is enabled, and the whole runtime package gate remains owed.
+The Windows classifier is portable-tested; actual Windows path resolution,
+symlink target checks and execution are not established on a Unix runner.
+The forthcoming workspace registry may replace the current project/worktree
+place-id mapping; that integration waits for its reviewed API.

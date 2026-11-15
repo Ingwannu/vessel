@@ -21,6 +21,9 @@
 
 mod env;
 mod ports;
+// Staged until the approval-checked service allocator connects one invocation.
+#[cfg(test)]
+mod port_script;
 mod registry;
 mod scripts;
 mod subscribe;
