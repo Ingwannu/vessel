@@ -375,7 +375,13 @@ impl SessionRuntime {
             driver,
             notices: chosen,
         } = self
-            .agent_command_owned(spec.clone(), profile, proxy, Arc::clone(&claim))
+            .agent_command_owned(
+                spec.clone(),
+                profile,
+                proxy,
+                Arc::clone(&claim),
+                self.preparation_gate(),
+            )
             .await?;
         #[cfg(test)]
         self.before_registration.wait().await;

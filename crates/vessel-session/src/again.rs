@@ -232,7 +232,13 @@ impl SessionRuntime {
             driver,
             notices: chosen,
         } = self
-            .agent_command_owned(spec, profile, model_proxy, Arc::clone(&claim))
+            .agent_command_owned(
+                spec,
+                profile,
+                model_proxy,
+                Arc::clone(&claim),
+                self.preparation_gate(),
+            )
             .await?;
         notices.extend(chosen);
         // The model it asked for at creation, as a move passes it on.

@@ -802,3 +802,46 @@ all three wire files match the artifact bytes. Node52 changes protocol/feature
 constants and tests, not emitted DTO shapes. Current combined-head generated
 wire consistency remains part of the owning whole gate, not inferred from this
 predecessor generation run. No generated whitespace was normalized by hand.
+
+## Version helper admission amendment
+
+[Decision Log]
+- Purpose: keeping a cancelled preparation alive fixes physical ownership but
+  can otherwise start a new `--version` helper after Stop, Off or expiration.
+- Existing constraint: version probing is a real process before session launch;
+  a final session grant check cannot authorize it retroactively. An eventual
+  cancellation watcher also cannot replace the host's synchronous arbiter.
+- Choice: a non-serializable `PreparationGate` retains the original caller token
+  and a static-dispatch host callback. It receives the effect kind and a borrowed
+  live cancellation check. The host subscribes its existing policy watch before
+  checking the same attempt/generation under its existing arbiter, and calls the
+  supplied cancellation check there beside deadline/stop checks. Admitted is
+  logical commit; dispatch follows without an await. No new quota or policy
+  registry is created and the callback does not grant session permissions.
+- Temporary pause: Wait carries the existing watch receiver. The runtime waits
+  inline for change or original caller/node cancellation and rechecks the same
+  gate. PendingOff can roll back without permanently cancelling an attempt.
+  Closed watch, Cancelled, Expired and Changed are typed terminal failures for
+  unadmitted work; none may be swallowed as an unreadable version/ACP fallback.
+- Physical settlement: every queued/running lookup retains the original guard,
+  callback context and runtime token. The same version operation runs under the
+  existing runtime task tracker, retaining those owners even if its waiter is
+  dropped. Its existing finite stdout/time bounds remain; timeout requests kill
+  through the existing process Child and then observes the original root wait.
+  Already-admitted helpers are not retroactively described as refused.
+- Uncertainty: a root-wait failure retains the exact child, private concrete
+  evidence and all owners in that same operation and withholds completion/hard
+  drain. It never retries a delayed numeric PID. A reaped-root sweep failure is
+  a typed unavailable result. An accepted group cleanup request is not evidence
+  of every descendant's death. No second reaper is introduced.
+
+The version-only testkit extension records only a fixed execution marker and
+optionally waits on its existing stdin. Actual kept-waiter lookup barriers test
+caller-only cancellation, node shutdown and fresh Changed/Expired refusal before
+any marker. The restored-pause control checks a version pause after real lookup;
+the admitted-process control drops the waiter while the real helper is held,
+then checks retained capacity/hard drain through release and root settlement.
+Generic host fixtures do not prove the node recovery policy integration; that
+consumer must use its actual attempt/policy fences and retain its original
+Attempt/Store obligations. Source and VM evidence for this amendment are owed;
+the older 043c nine-crate strict green does not cover these changes.

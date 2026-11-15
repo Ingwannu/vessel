@@ -29,23 +29,23 @@
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::process::Stdio;
 use std::sync::{Arc, Mutex, PoisonError};
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 
-use tokio::io::AsyncReadExt as _;
 use vessel_agent::Driver;
 use vessel_harness::{Direct, DirectProtocol, Profile, VersionFit};
 use vessel_proto::settings::{AgentDriver, AgentDrivers};
 use vessel_proto::{HarnessKind, HarnessRef, SessionMode, SessionSpec};
 
 use super::SessionRuntime;
+use super::preparation::PreparationError;
+use super::preparation_gate::{
+    PreparationAdmission, PreparationCancellation, PreparationEffect, PreparationGate,
+};
+use crate::SessionError;
 
-/// How long `--version` may take.
-const VERSION_TIMEOUT: Duration = Duration::from_secs(5);
-
-/// How much of its output is read: a version line, not a page.
-const VERSION_BYTES: u64 = 4096;
+pub(super) mod version;
+use version::read_version;
 
 /// The node's setting and what is known of the installed agents. Each
 /// lock is held for one read or one assignment, never across `.await`, so
@@ -118,75 +118,139 @@ impl SessionRuntime {
     }
 
     /// What drives a session of `spec` under `profile` started now.
-    pub(crate) async fn choose_driver<T: Send + Sync + 'static>(
+    pub(crate) async fn choose_driver<T, F>(
         &self,
         spec: &SessionSpec,
         profile: &Profile,
         ownership: Arc<T>,
-    ) -> Chosen {
+        gate: Arc<PreparationGate<F>>,
+    ) -> Result<Chosen, SessionError>
+    where
+        T: Send + Sync + 'static,
+        F: for<'a> Fn(PreparationEffect, PreparationCancellation<'a>) -> PreparationAdmission
+            + Send
+            + Sync
+            + 'static,
+    {
         let setting = *self
             .drivers
             .setting
             .lock()
             .unwrap_or_else(PoisonError::into_inner);
         let direct = match gate(spec, setting) {
-            Gate::Acp => return Chosen::acp(),
-            Gate::Refused(line) => return Chosen::acp_because(line),
+            Gate::Acp => return Ok(Chosen::acp()),
+            Gate::Refused(line) => return Ok(Chosen::acp_because(line)),
             Gate::Direct(direct) => direct,
         };
-        let line = self.version_line(profile, ownership).await;
-        fit(spec_kind(spec), direct, line.as_deref())
+        let line = self.version_line(profile, ownership, gate).await?;
+        Ok(fit(spec_kind(spec), direct, line.as_deref()))
     }
 
     /// The installed agent's `--version` line under `profile`, kept until
     /// its program changes; `None` when it could not be read.
-    async fn version_line<T: Send + Sync + 'static>(
+    async fn version_line<T, F>(
         &self,
         profile: &Profile,
         ownership: Arc<T>,
-    ) -> Option<String> {
+        gate: Arc<PreparationGate<F>>,
+    ) -> Result<Option<String>, SessionError>
+    where
+        T: Send + Sync + 'static,
+        F: for<'a> Fn(PreparationEffect, PreparationCancellation<'a>) -> PreparationAdmission
+            + Send
+            + Sync
+            + 'static,
+    {
         let lookup = self.config.harness_lookup.clone();
         let env = self.config.harness_env.clone();
         let owned = profile.clone();
-        let command = self
-            .prepare_blocking(ownership, move || {
-                vessel_harness::version_check(&lookup, &env, &owned)
-                    .map_err(crate::SessionError::Launch)
+        let prepared = self
+            .prepare_blocking(Arc::clone(&ownership), Arc::clone(&gate), move || {
+                let command = vessel_harness::version_check(&lookup, &env, &owned)
+                    .map_err(SessionError::Launch)?;
+                Ok(command.map(|command| {
+                    let modified = std::fs::metadata(&command.program)
+                        .and_then(|metadata| metadata.modified())
+                        .ok();
+                    (command, modified)
+                }))
             })
-            .await
-            .ok()??;
+            .await;
+        let command = match prepared {
+            Ok(command) => command,
+            Err(PreparationError::Refused(reason)) => return Err(reason.into()),
+            // Preserve the legacy unreadable-version fallback, never admission refusal.
+            Err(PreparationError::Failed(_error)) => return Ok(None),
+        };
+        let Some((command, modified)) = command else {
+            return Ok(None);
+        };
         let program = command.program.clone();
-        let modified = std::fs::metadata(&program)
-            .and_then(|metadata| metadata.modified())
-            .ok();
-        let kept = self
-            .drivers
-            .versions
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
-            .get(&program)
-            .cloned();
-        // Kept only while the file is the one read: an upgrade replaces it.
-        if let Some(kept) = kept
-            && modified.is_some()
-            && kept.modified == modified
-        {
-            return kept.line;
+        if let Some(kept) = self.drivers.kept(&program, modified) {
+            return Ok(kept.line);
         }
-        let line = read_version(command).await;
-        let _previous = self
-            .drivers
+        let line = self.version_owned(command, ownership, gate).await?;
+        self.drivers.remember(program, modified, line.clone());
+        Ok(line)
+    }
+
+    async fn version_owned<T, F>(
+        &self,
+        command: vessel_proc::CommandSpec,
+        ownership: Arc<T>,
+        gate: Arc<PreparationGate<F>>,
+    ) -> Result<Option<String>, SessionError>
+    where
+        T: Send + Sync + 'static,
+        F: for<'a> Fn(PreparationEffect, PreparationCancellation<'a>) -> PreparationAdmission
+            + Send
+            + Sync
+            + 'static,
+    {
+        // These original owners and tracker exist before the logical commit.
+        let tracked = self.tasks_token();
+        let held = (ownership, Arc::clone(&gate));
+        self.admit_preparation(&gate, PreparationEffect::Version)
+            .await?;
+        #[cfg(test)]
+        let control = Arc::clone(&self.version_control);
+        let running = self.tasks.spawn(async move {
+            let _tracked = tracked;
+            let _held = held;
+            #[cfg(not(test))]
+            let observed = read_version(command).await;
+            #[cfg(test)]
+            let observed =
+                version::read_version_with(command, move |stdin| control.publish(stdin)).await;
+            observed
+        });
+        running
+            .await
+            .map_err(SessionError::Internal)?
+            .map_err(SessionError::VersionCleanup)
+    }
+}
+
+impl Drivers {
+    fn kept(&self, program: &std::path::Path, modified: Option<SystemTime>) -> Option<VersionRead> {
+        let kept = self
             .versions
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
-            .insert(
-                program,
-                VersionRead {
-                    modified,
-                    line: line.clone(),
-                },
-            );
-        line
+            .get(program)
+            .cloned()?;
+        if modified.is_some() && kept.modified == modified {
+            Some(kept)
+        } else {
+            None
+        }
+    }
+    fn remember(&self, program: PathBuf, modified: Option<SystemTime>, line: Option<String>) {
+        let _previous = self
+            .versions
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .insert(program, VersionRead { modified, line });
     }
 }
 
@@ -254,37 +318,6 @@ fn fit(kind: Option<HarnessKind>, direct: &'static Direct, line: Option<&str>) -
             ))
         }
     }
-}
-
-/// Run `command` (an agent's `--version`) and keep its first line; `None`
-/// when it fails, says nothing or takes too long.
-async fn read_version(command: vessel_proc::CommandSpec) -> Option<String> {
-    let mut child = tokio::process::Command::from(command.to_command())
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .kill_on_drop(true)
-        .spawn()
-        .ok()?;
-    let stdout = child.stdout.take()?;
-    let read = async {
-        let mut text = String::new();
-        let _read = stdout
-            .take(VERSION_BYTES)
-            .read_to_string(&mut text)
-            .await
-            .ok()?;
-        let status = child.wait().await.ok()?;
-        status
-            .success()
-            .then(|| text.lines().next().map(str::trim).map(str::to_owned))
-            .flatten()
-            .filter(|line| !line.is_empty())
-    };
-    tokio::time::timeout(VERSION_TIMEOUT, read)
-        .await
-        .ok()
-        .flatten()
 }
 
 #[cfg(test)]
@@ -388,11 +421,11 @@ mod tests {
         let fake = vessel_testkit::Fake::CodexAppServer.path().unwrap();
         let version = vessel_proc::CommandSpec::new(fake.clone()).arg("--version");
         assert_eq!(
-            read_version(version).await.as_deref(),
+            read_version(version).await.unwrap().as_deref(),
             Some("codex-cli 0.166.0")
         );
         let refused = vessel_proc::CommandSpec::new(fake).arg("--no-such-flag");
-        assert_eq!(read_version(refused).await, None);
+        assert_eq!(read_version(refused).await.unwrap(), None);
     }
 
     /// Every driver the harness table offers is one this build runs: the

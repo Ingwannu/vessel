@@ -13,6 +13,11 @@ mod drivers;
 mod launch;
 mod parts;
 mod preparation;
+mod preparation_gate;
+pub use preparation_gate::{
+    PreparationAdmission, PreparationCancellation, PreparationEffect, PreparationGate,
+    PreparationRefusal,
+};
 #[cfg(test)]
 mod private_dir;
 #[cfg(test)]
@@ -77,6 +82,8 @@ pub struct SessionRuntime {
     drivers: drivers::Drivers,
     #[cfg(test)]
     before_registration: registration::RegistrationGate,
+    #[cfg(test)]
+    version_control: Arc<drivers::version::VersionControl>,
 }
 
 /// A session that was just started.
@@ -108,6 +115,8 @@ impl SessionRuntime {
             drivers: drivers::Drivers::default(),
             #[cfg(test)]
             before_registration: registration::RegistrationGate::default(),
+            #[cfg(test)]
+            version_control: Arc::new(drivers::version::VersionControl::default()),
         }
     }
 

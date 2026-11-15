@@ -291,3 +291,5 @@ mod stop_failure;
 mod preparation;
 
 mod registration;
+
+mod version_admission;

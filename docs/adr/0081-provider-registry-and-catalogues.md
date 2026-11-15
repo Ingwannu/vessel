@@ -44,3 +44,10 @@ the shared request accessor, and test nested/forwarded replies as well.
 No platform-specific service or signal operation is added by the policy layer.
 Command resolution uses the existing cross-platform Lookup. No provider is
 started, installed, authenticated or contacted by the manifest or resolver.
+
+The common session preparation seam also admits native version helpers before
+starting them. Its caller-owned non-serializable gate delegates fresh decisions
+to the host's existing arbiter and can wait on that host's existing policy watch.
+It preserves the original guard/token/context through actual lookup and version
+root settlement, including caller drop. This extends the existing runtime
+tracker; it adds no policy registry, quota, persistent identity or reaper.

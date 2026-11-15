@@ -126,8 +126,14 @@ impl SessionRuntime {
         profile: Profile,
         proxy: Option<ModelProxy>,
     ) -> Result<AgentCommand, SessionError> {
-        self.agent_command_owned(spec, profile, proxy, std::sync::Arc::new(()))
-            .await
+        self.agent_command_owned(
+            spec,
+            profile,
+            proxy,
+            std::sync::Arc::new(()),
+            self.preparation_gate(),
+        )
+        .await
     }
 
     /// What `harness`'s agent offers before any session of it exists
@@ -229,7 +235,13 @@ impl SessionRuntime {
             ..
         } = tokio::time::timeout(
             limit,
-            self.agent_command_owned(spec, profile, proxy, std::sync::Arc::clone(&ownership)),
+            self.agent_command_owned(
+                spec,
+                profile,
+                proxy,
+                std::sync::Arc::clone(&ownership),
+                self.preparation_gate(),
+            ),
         )
         .await
         .map_err(|_elapsed| vessel_agent::ProbeError::TimedOut {

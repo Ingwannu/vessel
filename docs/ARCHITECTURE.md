@@ -1861,3 +1861,11 @@ caller cancellation does not imply filesystem completion. Draft discovery uses
 this path with the node's same listing permit and model retirement guard. The
 fakes-only harness lookup barrier observes this boundary without granting quota
 or changing lookup results (provider plan, retained runtime preparation).
+
+`PreparationGate` is a non-wire library host boundary: an existing caller token
+plus a synchronous fresh admission callback, with temporary Wait on the host's
+existing watch channel. Each newly admitted lookup/version effect retains its
+original caller guard and runtime tracker. Native version execution has one
+tracked owner through bounded output, any kill request and actual root wait;
+root uncertainty withholds completion, and cleanup receipts do not attest all
+descendants. Recovery's final session/device grant remains a separate boundary.

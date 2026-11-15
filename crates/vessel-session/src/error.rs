@@ -123,6 +123,12 @@ pub enum SessionError {
     /// The runtime is shutting down and starts no new sessions.
     #[error("the node is shutting down")]
     ShuttingDown,
+    /// The version leader exited but its original cleanup request is unconfirmed.
+    #[error("native version helper cleanup was not confirmed")]
+    VersionCleanup(#[source] vessel_proc::CheckedWaitError),
+    /// A new preparation effect was refused by its original admission owner.
+    #[error(transparent)]
+    Preparation(#[from] crate::PreparationRefusal),
     /// A runtime task failed unexpectedly.
     #[error("internal session runtime failure")]
     Internal(#[source] tokio::task::JoinError),
@@ -340,7 +346,7 @@ impl SessionError {
             | Self::Queue(QueueError::Full | QueueError::Stale { .. })
             // The file is not the one kept: the node's state changed.
             | Self::Attachment(AttachmentError::Changed(_)) => ErrorCode::Conflict,
-            Self::ShuttingDown | Self::Delivery(DeliveryError::TurnDidNotEnd) => {
+            Self::ShuttingDown | Self::VersionCleanup(_) | Self::Preparation(_) | Self::Delivery(DeliveryError::TurnDidNotEnd) => {
                 ErrorCode::Unavailable
             }
             Self::Move(error) => move_code(error),
