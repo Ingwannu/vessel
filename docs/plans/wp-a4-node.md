@@ -248,3 +248,16 @@ one canonical registration. No ancestry/admission/store algorithm needed manual
 resolution. The head's generated proto.ts is retained byte-for-byte rather than
 hand-merging generated text; the new union requires its own generator snapshot
 and narrow checks before the final whole root gate.
+
+## Verified post-base generated union
+
+Run wp-transfer-ts-20261115T162413Z-477ae375 completed the proto declaration
+selection3/0 and web declaration/alias selection2/0. The prior LimitPercent base
+defect is absent after canonical9dfdf0a1. Overall rc1 now reports only the stale
+proto.ts snapshot (188 insertions/4 deletions), not a failed generator/test.
+All six artifact hashes and exact source commit were verified. The patch applied
+cleanly after the1c762ccf base merge, whose announced gate reports wire diff0;
+its proto.ts bytes match the recovered snapshot SHA256
+dbed8f1c7af0e02c58ba791f3d54383ece769a6d52c4b24711c676431eed4f73.
+The generated whitespace is retained unchanged. Current-head freshness and all
+shared consumers remain the final whole root gate's responsibility.
