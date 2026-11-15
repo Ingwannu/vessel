@@ -1073,7 +1073,12 @@ resources reach the target library. `localization` prepares language bundles
 and retains plain messages before rendering. NUMBER display rules and DATETIME whole patterns come from each language
 folder; typed Gregorian/local-clock parts cross that boundary. ICU4X was
 rejected after the release-size experiment, recorded in ADR 0039.
-Pairing is the first whole screen on that API. The host reads the typed
+Pairing is the first whole screen on that API.
+About's licence and bundled-software vocabulary also uses generated plain
+getters; its closed inventory roles map to them in `view::about`, without
+formatting a message while drawing each row. The rest of About's shared
+sections retain their owners' tables during the staged migration.
+The host reads the typed
 language preference before creating a shell; System resolves against the
 host tag, while VESSEL_APP_LANG is the checking override. General's language
 row uses the generated registry and native names, never the pseudo locale.

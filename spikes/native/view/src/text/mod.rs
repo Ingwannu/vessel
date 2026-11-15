@@ -13,7 +13,6 @@
 //! - Cost: additional languages cover migrated areas only during this staged
 //!   move. The app ships complete English and Korean catalogs today.
 
-mod about;
 mod agents;
 mod app;
 mod board;
@@ -37,7 +36,6 @@ mod sync;
 mod update;
 pub mod workspace;
 
-pub use about::AboutText;
 pub use app::Text;
 pub use board::BoardWords;
 pub use conversation::{ConversationWords, grouped, meter_tokens, short_tokens};
