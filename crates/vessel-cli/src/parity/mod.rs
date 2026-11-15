@@ -4,7 +4,6 @@ mod agents;
 mod heartbeat;
 mod hooks;
 mod hosts;
-mod images;
 mod observe;
 pub(crate) mod output;
 pub(crate) mod projects;

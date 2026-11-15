@@ -109,7 +109,7 @@ pub(super) async fn send(
     if text.trim().is_empty() && args.image.is_empty() {
         return Err(CliError::Usage("the prompt is empty"));
     }
-    let images = crate::parity::images::Images::open(&args.image).await?;
+    let images = crate::conversation::Images::open(&args.image).await?;
     let delivery = args.behavior.map_or_else(
         || {
             if std::env::var_os("VESSEL_AGENT_SESSION").is_some() {

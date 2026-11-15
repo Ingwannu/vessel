@@ -88,7 +88,7 @@ async fn upload(
 }
 
 /// Reuse one already opened/validated input instead of racing a second path open.
-pub(crate) async fn upload_file(
+pub(super) async fn upload_file(
     client: &NodeClient,
     session: SessionId,
     mut file: super::file_input::FileInput,

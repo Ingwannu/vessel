@@ -408,7 +408,7 @@ rather than carrying clap booleans between handler modules.
 - Purpose: implement --image for an existing agent without inventing inline RPCs or a second uploader.
 - Existing assets: conversation::FileInput already reads bounded chunks and send::upload already uses attachment.begin/write/finish.
 - Alternatives: read/base64 the whole image in the CLI, or implement a second upload loop; both duplicate the existing attachment protocol and retain more memory.
-- Choice: expose the already opened file input and extract upload_file with unchanged chunk behavior. Pre-open/validate every image, check the node's actual attachment limits and advertised image ability, then upload and send references.
+- Choice: keep file input private to conversation, expose an opaque Images batch, and extract upload_file with unchanged chunk behavior. Pre-open/validate every image, check the node's actual attachment limits and advertised image ability, then upload and send references.
 - Why: invalid local files fail before staging; provider ability and node limits fail before the first upload; all transports continue using the same client calls.
 - Impact: only png/jpg/jpeg/gif/webp extensions are accepted (Paseo guesses JPEG for unknown extensions); default attachment admission is 16 images, 10 MiB each and 25 MiB inline. Node limits may tighten these. Staging has a two-minute deadline; unfinished uploads use the existing idle cleanup because no abandon call exists. Initial run images still await atomic creation integration.
 
@@ -416,3 +416,7 @@ CLI unit run 6910fd61 passed 116/0/0. Process run 3e23c196 passed two tests and 
 one fixture assertion: fake ACP's generic hello prompt asks permission, while the test
 expected idle. The idle fixture now uses the explicitly idle plain command; the observed
 permission result was correct. A new process case checks actual delivered image bytes.
+
+The image batch stays in conversation alongside FileInput/upload_file; raw file byte counts
+are not exposed to the command orchestration layer. W16 reserves root plugin registration
+and owns args::plugin / plugin::run over the same Presentation/output helper surface.

@@ -1,16 +1,14 @@
 //! Image send reuses the existing chunk uploader after validating every local input.
-use crate::{
-    conversation::{FileInput, upload_file},
-    error::CliError,
-};
+use super::{file_input::FileInput, send::upload_file};
+use crate::error::CliError;
 use std::{path::PathBuf, time::Duration};
 use vessel_client::NodeClient;
 use vessel_proto::{AttachmentKind, ContentBlock, SessionId, conversation::AttachmentLimits};
 
 const STAGING_DEADLINE: Duration = Duration::from_secs(120);
-pub(super) struct Images(Vec<FileInput>);
+pub(crate) struct Images(Vec<FileInput>);
 impl Images {
-    pub(super) async fn open(paths: &[PathBuf]) -> Result<Self, CliError> {
+    pub(crate) async fn open(paths: &[PathBuf]) -> Result<Self, CliError> {
         let maximum = usize::try_from(AttachmentLimits::DEFAULT.per_prompt).map_err(|_range| {
             CliError::Usage("image count limit is unavailable on this platform")
         })?;
@@ -60,7 +58,7 @@ impl Images {
         }
         Ok(())
     }
-    pub(super) async fn stage(
+    pub(crate) async fn stage(
         self,
         client: &NodeClient,
         session: SessionId,

@@ -8,6 +8,7 @@
 pub(crate) mod answer;
 pub(crate) mod comparison;
 mod file_input;
+mod images;
 mod queue;
 mod send;
 
@@ -18,8 +19,8 @@ use vessel_proto::forking::{ForkSession, RewindSession};
 use vessel_proto::parking::{ParkSession, WakeSession};
 use vessel_proto::{Mark, SessionInfo};
 
-pub(crate) use file_input::FileInput;
-pub(crate) use send::{send, upload_file};
+pub(crate) use images::Images;
+pub(crate) use send::send;
 
 use crate::args::{ConversationCommand, Target};
 use crate::connect::connect;
