@@ -92,14 +92,14 @@ pub(super) async fn archive(
     target: &Target,
     presentation: Presentation,
     id: SessionSelector,
-    force: bool,
+    intent: ArchiveIntent,
 ) -> Result<(), CliError> {
     let client = connect(target).await?.client;
     let info = id.resolve(&client).await?;
     if info.marks.archived_at.is_some() {
         return Err(CliError::Usage("agent is already archived"));
     }
-    if !force && info.status.is_live() {
+    if intent == ArchiveIntent::IfIdle && info.status.is_live() {
         structured(&info)?;
         if observe::snapshot(&client, info.id).await?.state() != State::Idle {
             return Err(CliError::Usage(
@@ -126,26 +126,57 @@ pub(super) async fn archive(
     output::single(presentation, &info.id.to_string(), &result).await
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum ArchiveIntent {
+    IfIdle,
+    Force,
+}
+pub(super) enum ModeAction {
+    List,
+    Set(OptionValueId),
+}
+
 pub(super) async fn mode(
     target: &Target,
     presentation: Presentation,
     id: SessionSelector,
-    mode: Option<OptionValueId>,
-    list: bool,
+    action: ModeAction,
 ) -> Result<(), CliError> {
     let client = connect(target).await?.client;
     let info = id.resolve(&client).await?;
     let options = client.session_options(info.id).await?;
-    if list || mode.is_none() {
-        return output::single(presentation, &info.id.to_string(), &options).await;
+    match action {
+        ModeAction::List => {
+            let rows = options
+                .iter()
+                .filter(|option| option.category == OptionCategory::Mode)
+                .flat_map(|option| match &option.kind {
+                    OptionKind::Select { values, .. } => values.as_slice(),
+                    OptionKind::Toggle { .. } | OptionKind::Unknown => &[],
+                })
+                .map(|value| ModeRow {
+                    id: value.id.clone(),
+                    label: value.name.clone(),
+                    description: value.description.clone(),
+                })
+                .collect::<Vec<_>>();
+            output::list(presentation, &rows).await
+        }
+        ModeAction::Set(mode) => {
+            let choice = choice(&options, OptionCategory::Mode, &mode)?;
+            let options = client.set_option(info.id, choice).await?;
+            if super::selected(&options, OptionCategory::Mode) != Some(&mode) {
+                return Err(CliError::ParityInvalidReceipt(
+                    "mode acknowledgement did not report the requested selection",
+                ));
+            }
+            let result = ModeSet {
+                agent_id: super::row::ShortId::new(info.id),
+                mode,
+            };
+            output::single(presentation, result.agent_id.as_str(), &result).await
+        }
     }
-    let choice = choice(
-        &options,
-        OptionCategory::Mode,
-        mode.as_ref().ok_or(CliError::Usage("give a mode"))?,
-    )?;
-    let options = client.set_option(info.id, choice).await?;
-    output::single(presentation, &info.id.to_string(), &options).await
 }
 
 pub(super) async fn update(
@@ -232,4 +263,33 @@ struct Archived {
     agent_id: vessel_proto::SessionId,
     status: ArchivedStatus,
     archived_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(serde::Serialize)]
+struct ModeRow {
+    id: OptionValueId,
+    label: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    description: Option<String>,
+}
+impl output::Row for ModeRow {
+    fn id(&self) -> String {
+        self.id.to_string()
+    }
+    fn headers() -> &'static [&'static str] {
+        &["MODE", "LABEL", "DESCRIPTION"]
+    }
+    fn cells(&self) -> Vec<String> {
+        vec![
+            self.id.to_string(),
+            self.label.clone(),
+            self.description.clone().unwrap_or_default(),
+        ]
+    }
+}
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ModeSet {
+    agent_id: super::row::ShortId,
+    mode: OptionValueId,
 }

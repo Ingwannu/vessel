@@ -396,3 +396,8 @@ The first local TS generator run completed compilation but found a global declar
 collision with forge::HostStatus. The registry enum keeps its Rust namespace and wire values
 and exports the distinct TypeScript name RegisteredHostStatus. No existing forge declaration
 or RPC serialization shape changes. Generator outputs remain uncommitted until rerun succeeds.
+
+Mode requires either a choice or --list. Available modes project only actual Mode select
+values, with ID/label/description rows. A successful set returns agentId/mode only after
+the acknowledgement reports that choice selected. Internal archive/mode intent uses enums
+rather than carrying clap booleans between handler modules.

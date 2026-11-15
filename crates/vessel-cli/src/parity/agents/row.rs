@@ -9,7 +9,7 @@ use vessel_proto::{SessionId, SessionInfo, SessionMode, SessionOption};
 #[serde(rename_all = "camelCase")]
 pub(super) struct AgentRow {
     id: SessionId,
-    short_id: String,
+    short_id: ShortId,
     name: String,
     provider: String,
     thinking: String,
@@ -24,10 +24,9 @@ impl AgentRow {
         thinking: Option<&vessel_proto::OptionValueId>,
         options: &[SessionOption],
     ) -> Self {
-        let id = info.id.to_string();
         Self {
             id: info.id,
-            short_id: id.chars().take(7).collect(),
+            short_id: ShortId::new(info.id),
             name: info
                 .title
                 .as_ref()
@@ -42,7 +41,7 @@ impl AgentRow {
 }
 impl Row for AgentRow {
     fn id(&self) -> String {
-        self.short_id.clone()
+        self.short_id.as_str().to_owned()
     }
     fn headers() -> &'static [&'static str] {
         &[
@@ -51,7 +50,7 @@ impl Row for AgentRow {
     }
     fn cells(&self) -> Vec<String> {
         vec![
-            self.short_id.clone(),
+            self.short_id.as_str().to_owned(),
             self.name.clone(),
             self.provider.clone(),
             self.thinking.clone(),
@@ -61,6 +60,20 @@ impl Row for AgentRow {
                 .map_or_else(|| "-".to_owned(), |p| p.display().to_string()),
             self.created.clone(),
         ]
+    }
+}
+
+/// Presentation identity remains distinct from the full UUID used by node calls.
+#[derive(Serialize)]
+#[serde(transparent)]
+pub(super) struct ShortId(String);
+impl ShortId {
+    pub(super) fn new(id: SessionId) -> Self {
+        const SHOWN_CHARS: usize = 7;
+        Self(id.to_string().chars().take(SHOWN_CHARS).collect())
+    }
+    pub(super) fn as_str(&self) -> &str {
+        &self.0
     }
 }
 

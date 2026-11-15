@@ -52,10 +52,20 @@ pub(super) async fn run(
         AgentCommand::Stop(selection) => mutate::stop(target, presentation, selection).await,
         AgentCommand::Delete(selection) => mutate::delete(target, presentation, selection).await,
         AgentCommand::Archive { id, force } => {
-            mutate::archive(target, presentation, id, force).await
+            let intent = if force {
+                mutate::ArchiveIntent::Force
+            } else {
+                mutate::ArchiveIntent::IfIdle
+            };
+            mutate::archive(target, presentation, id, intent).await
         }
         AgentCommand::Mode { id, mode, list } => {
-            mutate::mode(target, presentation, id, mode, list).await
+            let action = if list {
+                mutate::ModeAction::List
+            } else {
+                mutate::ModeAction::Set(mode.ok_or(CliError::Usage("give a mode or --list"))?)
+            };
+            mutate::mode(target, presentation, id, action).await
         }
         AgentCommand::Update { id, name, thinking } => {
             mutate::update(target, presentation, id, name, thinking).await

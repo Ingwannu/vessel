@@ -32,7 +32,7 @@ pub(crate) enum AgentCommand {
     Wait(Wait),
     Mode {
         id: SessionSelector,
-        #[arg(value_parser = super::identifier::option)]
+        #[arg(value_parser = super::identifier::option, required_unless_present = "list")]
         mode: Option<OptionValueId>,
         #[arg(long, conflicts_with = "mode")]
         list: bool,
