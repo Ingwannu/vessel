@@ -21,7 +21,12 @@ pub enum FinishStatus {
     #[default]
     Idle,
     /// Processed count includes skipped/failed steps and locally hidden providers.
-    Running { completed: usize, total: usize },
+    Running {
+        /// Steps already processed, including local provider hides and skips.
+        completed: usize,
+        /// Captured steps in this batch.
+        total: usize,
+    },
     /// Only still-eligible failed managed rows may be retried explicitly.
     Failed {
         /// Failures still eligible after current metadata reconciliation.

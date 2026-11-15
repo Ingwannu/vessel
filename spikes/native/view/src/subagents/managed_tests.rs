@@ -228,7 +228,7 @@ fn old_and_unassigned_peers_never_turn_audit_creator_into_a_root_fact() {
                 options: vec![],
             },
         ),
-        chrono::DateTime::UNIX_EPOCH,
+        DateTime::UNIX_EPOCH,
     )
     .with_creator(Creator::Agent {
         node: parent.node,
