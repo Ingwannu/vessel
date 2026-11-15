@@ -459,9 +459,11 @@ No row of the crate table changes.
   including both new script/ports signal cases. They check normal real signals
   and resource survival, with the exact write interleaving still unforced.
   Its separate complete gate remains owed.
-- Next: run the complete gate for the older interrupt-loop repair while
-  label call wiring awaits the shared accessor. No new wire call or dependency
-  is added by log options. All slices include the caller-to-projection
+- Next: finish the older interrupt-loop repair's complete gate and the
+  existing label-input admission checks through the integrated accessor.
+  New event availability and call plumbing held for the quality batch still
+  wait for their shared owners. No new wire call or dependency is added by
+  log options or the label admission correction. All slices include the caller-to-projection
   citations and retain the raw-chunk test; the selection render context changes
   without changing its expected fragment. Windows, macOS, native UI and real harnesses remain
   unverified.
