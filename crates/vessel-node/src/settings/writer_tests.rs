@@ -56,13 +56,8 @@ pub(super) fn runtime(root: &std::path::Path) -> Arc<SessionRuntime> {
     Arc::new(runtime)
 }
 
-pub(super) fn settings(root: &std::path::Path) -> Arc<Settings> {
-    Arc::new(Settings::open(
-        DataDir::new(root),
-        runtime(root),
-        ParkAfter::DEFAULT,
-        false,
-    ))
+pub(super) async fn settings(root: &std::path::Path) -> Arc<Settings> {
+    Arc::new(Settings::open(DataDir::new(root), runtime(root), ParkAfter::DEFAULT, false).await)
 }
 
 pub(super) fn patch(park_after: ParkAfter) -> SetNodeSettings {
@@ -76,7 +71,7 @@ pub(super) fn patch(park_after: ParkAfter) -> SetNodeSettings {
 async fn cancelled_caller_cannot_release_the_real_writer_or_reorder_application() {
     let result = tokio::time::timeout(WRITE_TEST_BUDGET, async {
         let root = tempfile::tempdir().unwrap();
-        let settings = settings(root.path());
+        let settings = settings(root.path()).await;
         let (entered, release) = settings.state.gate.install();
         let first = Arc::clone(&settings);
         let caller = tokio::spawn(async move { first.change(patch(ParkAfter::Never)).await });
@@ -125,7 +120,7 @@ async fn cancelled_caller_cannot_release_the_real_writer_or_reorder_application(
 async fn shutdown_joins_cancelled_writers_and_refuses_late_mutations() {
     let result = tokio::time::timeout(WRITE_TEST_BUDGET, async {
         let root = tempfile::tempdir().unwrap();
-        let settings = settings(root.path());
+        let settings = settings(root.path()).await;
         let (entered, release) = settings.state.gate.install();
         let first = Arc::clone(&settings);
         let caller = tokio::spawn(async move { first.change(patch(ParkAfter::Never)).await });
@@ -169,7 +164,7 @@ async fn a_noop_keeps_original_file_bytes_and_future_fields_in_place() {
         let path = DataDir::new(root.path()).settings_path();
         let bytes = br#"{ "park_after" : {"kind":"never"}, "future" : {"keep":"canary"} }"#;
         std::fs::write(&path, bytes).unwrap();
-        let settings = settings(root.path());
+        let settings = settings(root.path()).await;
         let before = settings.current().await;
         let after = settings.change(patch(ParkAfter::Never)).await.unwrap();
         settings.shutdown().await;

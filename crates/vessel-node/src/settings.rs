@@ -51,7 +51,9 @@ use tokio::sync::Mutex;
 
 mod admission;
 mod opening;
+mod recovery_apply;
 pub(crate) use opening::Opening;
+pub(crate) use recovery_apply::RecoveryApply;
 mod writer;
 #[cfg(test)]
 mod writer_tests;
@@ -78,6 +80,9 @@ pub(crate) enum SettingsError {
     /// The retained consumer ended without answering this operation.
     #[error("the settings operation ended without a reply")]
     Consumer(#[source] tokio::sync::oneshot::error::RecvError),
+    /// Actual recovery SQL settlement failed; saved state is not rolled back.
+    #[error(transparent)]
+    Recovery(#[from] recovery_apply::RecoveryApplyError),
     /// A choice this node does not know.
     #[error("this node does not know that park_after; send never or idle with minutes")]
     Unknown,
@@ -113,12 +118,15 @@ pub(crate) struct Settings {
 struct State {
     data_dir: DataDir,
     runtime: Arc<SessionRuntime>,
+    recovery: RecoveryApply,
     /// `--park-after`, or its default.
     flag: ParkAfter,
     /// What a person changed, as kept; held over write and apply.
     saved: Arc<Mutex<SavedNodeSettings>>,
     #[cfg(test)]
     gate: writer_tests::GateSlot,
+    #[cfg(test)]
+    fixture_store: std::sync::Mutex<Option<tempfile::TempDir>>,
     /// Why `settings.json` must not be replaced: it could not be used at
     /// start, and moving it aside failed. `None` when changes may write.
     kept: Option<Arc<str>>,
@@ -128,19 +136,49 @@ struct State {
 }
 
 impl Settings {
-    /// Isolated fixtures reuse the canonical startup snapshot path.
+    /// Fixtures retain their real Store directory with worker state, so caller
+    /// or last-handle loss cannot remove it before physical SQL settlement.
     #[cfg(test)]
-    pub(crate) fn open(
+    pub(crate) async fn open(
         data_dir: DataDir,
         runtime: Arc<SessionRuntime>,
         flag: ParkAfter,
         flag_given: bool,
     ) -> Self {
-        Self::from_opening(Opening::read_parts(data_dir, flag, flag_given), runtime)
+        let opening = Opening::read_parts(data_dir, flag, flag_given);
+        Self::fixture_from_opening(opening, runtime).await
+    }
+
+    #[cfg(test)]
+    pub(super) async fn fixture_from_opening(
+        opening: Opening,
+        runtime: Arc<SessionRuntime>,
+    ) -> Self {
+        let directory = tempfile::tempdir().unwrap();
+        let policy = opening.recovery_policy();
+        let store = vessel_store::Store::open_with_restart_policy(
+            &DataDir::new(directory.path()),
+            Default::default(),
+            policy.enabled,
+        )
+        .await
+        .unwrap()
+        .store;
+        let recovery = RecoveryApply::new(
+            Arc::new(crate::recovery::policy::Policy::new(policy)),
+            store,
+        );
+        let settings = Self::from_opening(opening, runtime, recovery);
+        *settings.state.fixture_store.lock().unwrap() = Some(directory);
+        settings
     }
 
     /// Consume the exact pre-Store snapshot; never re-read the file here.
-    pub(crate) fn from_opening(opening: Opening, runtime: Arc<SessionRuntime>) -> Self {
+    pub(crate) fn from_opening(
+        opening: Opening,
+        runtime: Arc<SessionRuntime>,
+        recovery: RecoveryApply,
+    ) -> Self {
         let Opening {
             data_dir,
             saved,
@@ -153,17 +191,20 @@ impl Settings {
         let settings = State {
             data_dir,
             runtime,
+            recovery,
             flag,
             saved: Arc::new(Mutex::new(saved)),
             #[cfg(test)]
             gate: writer_tests::GateSlot::default(),
+            #[cfg(test)]
+            fixture_store: std::sync::Mutex::default(),
             kept,
             later: AtomicBool::new(matches!(
                 disposition,
                 SettingsDisposition::PreserveBeforeWrite
             )),
         };
-        let in_force = settings.in_force(public);
+        let in_force = settings.in_force(&public);
         if flag_given && public.park_after.is_some() && in_force.park_after != flag {
             tracing::info!(
                 saved = ?in_force.park_after,
@@ -184,7 +225,7 @@ impl Settings {
     /// The settings in force.
     pub(crate) async fn current(&self) -> NodeSettings {
         let public = self.state.saved.lock().await.public_settings();
-        self.state.in_force(public)
+        self.state.in_force(&public)
     }
 
     /// Success transfers the typed intent before the caller awaits its reply.
@@ -199,9 +240,17 @@ impl Settings {
             .map_err(SettingsError::Consumer)?
     }
 
+    /// Close generic settings first, then seal effects under their final enqueue
+    /// arbiter. Before that final seal linearizes, settings is already closed.
+    pub(crate) fn seal(&self) {
+        self.admission.seal();
+        self.state.recovery.seal_effect_admission();
+    }
+
     /// Seal admission and join queued as well as physical work. Cancelling this
     /// waiter cannot cancel the independent consumer.
     pub(crate) async fn shutdown(&self) {
+        self.seal();
         self.admission.shutdown().await;
     }
 }
@@ -209,12 +258,16 @@ impl Settings {
 impl State {
     /// What is in force for `saved`: a saved value this node knows, else
     /// the flag's.
-    fn in_force(&self, saved: SetNodeSettings) -> NodeSettings {
+    fn in_force(&self, saved: &SetNodeSettings) -> NodeSettings {
         let park_after = match saved.park_after {
             Some(after @ (ParkAfter::Never | ParkAfter::Idle { .. })) => after,
             // A newer build's choice, read after a downgrade: the flag's.
             Some(ParkAfter::Unknown) | None => self.flag,
         };
+        let restart_recovery = saved.restart_recovery.as_ref().map_or_else(
+            vessel_proto::restart::RestartRecovery::default,
+            vessel_proto::restart::SetRestartRecovery::effective,
+        );
         let saved = saved.drivers.unwrap_or_default();
         let driver = |kind, chosen: Option<AgentDriver>| match chosen {
             Some(AgentDriver::Direct) if offered(kind) => AgentDriver::Direct,
@@ -232,7 +285,7 @@ impl State {
         NodeSettings {
             park_after,
             drivers,
-            restart_recovery: vessel_proto::restart::RestartRecovery::default(),
+            restart_recovery,
         }
     }
 
@@ -240,12 +293,22 @@ impl State {
     /// publications even when the original callers have gone away.
     async fn change(&self, change: SetNodeSettings) -> Result<NodeSettings, SettingsError> {
         let saved = Arc::clone(&self.saved).lock_owned().await;
+        self.recovery.settle_before().await?;
         let mut next = saved.public_settings();
         if let Some(after) = change.park_after {
             next.park_after = Some(after);
         }
         if let Some(drivers) = change.drivers {
             next.drivers = Some(drivers.over(next.drivers.unwrap_or_default()));
+        }
+        if let Some(recovery) = &change.restart_recovery {
+            next.restart_recovery = Some(
+                recovery.over(
+                    next.restart_recovery
+                        .as_ref()
+                        .unwrap_or(&Default::default()),
+                ),
+            );
         }
         // Keep the old document intact until the candidate is durable.
         let next = saved.clone().with_public_settings(next);

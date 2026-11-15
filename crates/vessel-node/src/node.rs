@@ -19,7 +19,7 @@ use vessel_relay::address::ClientAddress;
 use vessel_relay::{LinkState, TlsConfig};
 use vessel_rpc::Server;
 use vessel_secure::NodeKeypair;
-use vessel_session::{AttachmentLoader, RuntimeConfig, SessionRuntime};
+use vessel_session::{AttachmentLoader, SessionRuntime};
 use vessel_store::{DataDir, NodeLock, NodeOwner, NodeToken, Store};
 
 use crate::agents::Agents;
@@ -297,12 +297,16 @@ async fn core(
     let key = keypair.public();
     // Sessions ask the node for their prompts' attachments (protocol 10).
     let (loader, loads) = AttachmentLoader::channel(ATTACHMENT_LOADS);
-    let runtime = runtime(config, loader, setup.private_dir.clone());
+    let runtime = setup::runtime(config, loader, setup.private_dir.clone());
     // A value saved with `node.set_settings` wins over `--park-after`
     // (protocol 12, `settings`).
+    let policy = Arc::new(crate::recovery::policy::Policy::new(
+        settings_opening.recovery_policy(),
+    ));
     let settings = Arc::new(Settings::from_opening(
         settings_opening,
         Arc::clone(&runtime),
+        crate::settings::RecoveryApply::new(Arc::clone(&policy), store.clone()),
     ));
     let stop = CancellationToken::new();
     // System zone detection may read OS configuration; keep startup I/O
@@ -505,27 +509,6 @@ async fn core(
         service,
         relays,
     })
-}
-
-/// The session runtime, whose structured sessions load their prompts'
-/// attachments through `loader` and whose direct drivers write a launch's
-/// private files only in `private_dir`.
-fn runtime(config: &Config, loader: AttachmentLoader, private_dir: PathBuf) -> Arc<SessionRuntime> {
-    Arc::new(
-        SessionRuntime::new(
-            RuntimeConfig {
-                harness_lookup: config.harness_lookup.clone(),
-                harness_env: config.harness_env.clone(),
-                ring_capacity: config.ring_capacity,
-                durable_capacity: config.durable_capacity,
-                agent_handshake_timeout: config.agent_handshake_timeout,
-                park_after: config.park_after,
-                private_dir: Some(private_dir),
-            },
-            CancellationToken::new(),
-        )
-        .with_attachments(loader),
-    )
 }
 
 /// How many prompts' attachment loads may wait for the node's loader; a

@@ -68,9 +68,13 @@ impl SettingsAdmission {
     }
 
     /// Token-before-close makes a racing accepted producer visible to drain.
-    pub(super) async fn shutdown(&self) {
+    pub(super) fn seal(&self) {
         let _first_close = self.tasks.close();
         self.closing.cancel();
+    }
+
+    pub(super) async fn shutdown(&self) {
+        self.seal();
         self.tasks.wait().await;
     }
 }

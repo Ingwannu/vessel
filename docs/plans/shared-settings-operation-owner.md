@@ -235,3 +235,19 @@ diagnostic-chain cases exercise the shared disk edge. These tests remain
 uncompiled and unexecuted. Recovery projection/candidate capture, the actual
 Policy/Store hook and the shutdown/effect seal are not yet wired. The existing
 startup read has no newly claimed universal byte or filesystem-time boundary.
+
+The recovery field/settlement join is in progress on the named portable hook
+and Store projection leaves, without the returned package's old saved model
+or queue. The disk Document now owns each typed field explicitly; its safe
+generic projection is exhaustive, and canonical field order/bytes when recovery
+is absent remain pinned. Recovery omission preserves the stored partial patch.
+A changed save marks the Off barrier, restores admission on file failure,
+publishes before Policy.apply and awaits real SQL settlement. The unchanged
+path settles existing debt without another replacement. Full assembly, lifecycle
+sealing and execution remain owed; this checkpoint has not compiled.
+
+Shared request literals are mechanically completed with defaults for the new
+optional recovery field. Ordinary Get uses its default capability selection.
+No existing assertion or budget is weakened. Isolated settings fixtures keep
+a separate real Store directory with worker state, preserving the original
+file-layout/no-op assertions while retaining SQL resources through final drain.

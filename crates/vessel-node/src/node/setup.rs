@@ -8,7 +8,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 
+use tokio_util::sync::CancellationToken;
 use vessel_proto::NodeId;
+use vessel_session::{AttachmentLoader, RuntimeConfig, SessionRuntime};
 use vessel_store::{Opened, Store};
 
 use crate::config::Config;
@@ -160,7 +162,7 @@ impl Startup {
             },
             settings_opening,
         ) = prepare_off_thread(config).await?;
-        let store = open_store(config).await?;
+        let store = open_store(config, &settings_opening.recovery_policy()).await?;
         let (models, proxy) = model_proxy(models).await?;
         let session_setup = SessionSetup::new(config, id, profiles, Arc::clone(&models), dirs);
         Ok(Self {
@@ -195,10 +197,14 @@ async fn prepare_off_thread(
 }
 
 /// Open the event log, closing sessions a previous run left live.
-async fn open_store(config: &Config) -> Result<Store, NodeError> {
-    let Opened { store, interrupted } = Store::open(&config.data_dir, config.store)
-        .await
-        .map_err(NodeError::Store)?;
+async fn open_store(
+    config: &Config,
+    policy: &vessel_proto::restart::RestartRecovery,
+) -> Result<Store, NodeError> {
+    let Opened { store, interrupted } =
+        Store::open_with_restart_policy(&config.data_dir, config.store, policy.enabled)
+            .await
+            .map_err(NodeError::Store)?;
     if !interrupted.is_empty() {
         tracing::info!(
             sessions = interrupted.len(),
@@ -206,4 +212,29 @@ async fn open_store(config: &Config) -> Result<Store, NodeError> {
         );
     }
     Ok(store)
+}
+
+/// The session runtime, whose structured sessions load their prompts'
+/// attachments through `loader` and whose direct drivers write a launch's
+/// private files only in `private_dir`.
+pub(super) fn runtime(
+    config: &Config,
+    loader: AttachmentLoader,
+    private_dir: PathBuf,
+) -> Arc<SessionRuntime> {
+    Arc::new(
+        SessionRuntime::new(
+            RuntimeConfig {
+                harness_lookup: config.harness_lookup.clone(),
+                harness_env: config.harness_env.clone(),
+                ring_capacity: config.ring_capacity,
+                durable_capacity: config.durable_capacity,
+                agent_handshake_timeout: config.agent_handshake_timeout,
+                park_after: config.park_after,
+                private_dir: Some(private_dir),
+            },
+            CancellationToken::new(),
+        )
+        .with_attachments(loader),
+    )
 }

@@ -4,7 +4,9 @@
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
-use vessel_proto::settings::SetNodeSettings;
+use vessel_proto::parking::ParkAfter;
+use vessel_proto::restart::SetRestartRecovery;
+use vessel_proto::settings::{SetAgentDrivers, SetNodeSettings};
 
 /// A saved document cannot accidentally become a generic Read/wire reply.
 /// Its disk codec remains inside Store; only the generic projection escapes.
@@ -19,13 +21,16 @@ pub struct SavedNodeSettings {
     document: Document,
 }
 
-// Transparent delegation preserves today's exact canonical JSON bytes. Future
-// mixed namespaces need a typed disk owner and explicit public projection, not
-// another flattened field with the same name (ADR 0064).
+// Explicit disk ownership preserves field order and the existing canonical
+// bytes while keeping future protected namespaces out of a generic wire patch.
 #[derive(Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(transparent)]
 struct Document {
-    public: SetNodeSettings,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    park_after: Option<ParkAfter>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    drivers: Option<SetAgentDrivers>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    restart_recovery: Option<SetRestartRecovery>,
 }
 
 impl fmt::Debug for SavedNodeSettings {
@@ -38,7 +43,11 @@ impl SavedNodeSettings {
     /// Obtain only the current generic saved fields, never a private disk record.
     #[must_use]
     pub fn public_settings(&self) -> SetNodeSettings {
-        self.document.public
+        SetNodeSettings {
+            park_after: self.document.park_after,
+            drivers: self.document.drivers,
+            restart_recovery: self.document.restart_recovery.clone(),
+        }
     }
 
     /// Replace the complete generic snapshot in an owned candidate document.
@@ -46,7 +55,14 @@ impl SavedNodeSettings {
     /// publishes the candidate. Future private fields must remain intact here.
     #[must_use]
     pub fn with_public_settings(mut self, public: SetNodeSettings) -> Self {
-        self.document.public = public;
+        let SetNodeSettings {
+            park_after,
+            drivers,
+            restart_recovery,
+        } = public;
+        self.document.park_after = park_after;
+        self.document.drivers = drivers;
+        self.document.restart_recovery = restart_recovery;
         self
     }
 

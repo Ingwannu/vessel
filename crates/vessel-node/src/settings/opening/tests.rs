@@ -25,7 +25,7 @@ async fn owner_consumes_the_pre_store_document_without_a_second_file_read() {
         // startup policy or cause a second set-aside decision in from_opening.
         let replacement = b"{ changed after the startup read";
         std::fs::write(data.settings_path(), replacement).unwrap();
-        let settings = Settings::from_opening(opening, runtime(root.path()));
+        let settings = Settings::fixture_from_opening(opening, runtime(root.path())).await;
         assert_eq!(settings.current().await.park_after, ParkAfter::Never);
         assert_eq!(settings.state.runtime.park_after(), None);
         assert!(settings.state.later.load(Ordering::Relaxed));
@@ -55,7 +55,7 @@ async fn an_unreadable_startup_snapshot_is_moved_once_and_its_disposition_transf
         assert_eq!(files.len(), 1);
         assert_eq!(std::fs::read(files.first().unwrap()).unwrap(), original);
         assert!(!data.settings_path().exists());
-        let settings = Settings::from_opening(opening, runtime(root.path()));
+        let settings = Settings::fixture_from_opening(opening, runtime(root.path())).await;
         assert_eq!(settings.current().await.park_after, ParkAfter::Never);
         assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), files.len());
         settings.shutdown().await;

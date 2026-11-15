@@ -48,11 +48,17 @@ impl State {
         next: SavedNodeSettings,
     ) -> Result<NodeSettings, SettingsError> {
         if next == *saved {
-            return Ok(self.in_force(saved.public_settings()));
+            let current = self.in_force(&saved.public_settings());
+            self.recovery
+                .settle_saved(&current.restart_recovery)
+                .await?;
+            return Ok(current);
         }
         if let Some(reason) = &self.kept {
             return Err(SettingsError::Kept(Arc::clone(reason)));
         }
+        self.recovery
+            .begin_write(&self.in_force(&next.public_settings()).restart_recovery);
         self.write_and_apply(saved, next).await
     }
 
@@ -65,7 +71,7 @@ impl State {
         let later = self.later.load(Ordering::Relaxed);
         #[cfg(test)]
         let gate = self.gate.take();
-        let (next, aside) = tokio::task::spawn_blocking(move || {
+        let written = tokio::task::spawn_blocking(move || {
             #[cfg(test)]
             if let Some(gate) = gate {
                 gate.pause();
@@ -77,16 +83,27 @@ impl State {
         })
         .await
         .map_err(TaskFailure::from)
-        .map_err(SettingsError::Lost)?
-        .map_err(SettingsError::Write)?;
+        .map_err(SettingsError::Lost)
+        .and_then(|result| result.map_err(SettingsError::Write));
+        let (next, aside) = match written {
+            Ok(written) => written,
+            Err(error) => {
+                self.recovery.write_failed();
+                return Err(error);
+            }
+        };
         if let Some(aside) = aside {
             tracing::info!(aside = %aside.display(), "settings.json held a later build's settings; a copy was kept before this change");
             self.later.store(false, Ordering::Relaxed);
         }
         *saved = next;
-        let in_force = self.in_force(saved.public_settings());
+        let in_force = self.in_force(&saved.public_settings());
         self.runtime.set_park_after(in_force.park_after.duration());
         self.runtime.set_drivers(in_force.drivers);
+        self.recovery.saved(in_force.restart_recovery.clone());
+        self.recovery
+            .settle_saved(&in_force.restart_recovery)
+            .await?;
         Ok(in_force)
     }
 }

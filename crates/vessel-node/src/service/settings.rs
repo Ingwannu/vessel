@@ -33,9 +33,10 @@ impl NodeService {
                 SettingsError::Kept(_) | SettingsError::Stopping | SettingsError::Full => {
                     ErrorCode::Conflict
                 }
-                SettingsError::Write(_) | SettingsError::Lost(_) | SettingsError::Consumer(_) => {
-                    ErrorCode::Internal
-                }
+                SettingsError::Write(_)
+                | SettingsError::Lost(_)
+                | SettingsError::Consumer(_)
+                | SettingsError::Recovery(_) => ErrorCode::Internal,
             };
             if matches!(code, ErrorCode::Internal | ErrorCode::Conflict) {
                 tracing::warn!(%error, "node settings not kept");

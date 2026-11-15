@@ -20,6 +20,18 @@ pub(crate) struct Opening {
 }
 
 impl Opening {
+    /// Startup candidate capture and Settings use this same admitted snapshot.
+    pub(crate) fn recovery_policy(&self) -> vessel_proto::restart::RestartRecovery {
+        self.saved
+            .public_settings()
+            .restart_recovery
+            .as_ref()
+            .map_or_else(
+                vessel_proto::restart::RestartRecovery::default,
+                vessel_proto::restart::SetRestartRecovery::effective,
+            )
+    }
+
     /// Called under the directory lock, before Store startup retention/recovery.
     /// I/O stays in the node's existing blocking startup phase.
     pub(crate) fn read(config: &crate::Config) -> Self {

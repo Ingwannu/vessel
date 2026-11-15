@@ -42,7 +42,11 @@ async fn a_damaged_file_is_set_aside_and_a_change_does_not_replace_it() {
         let node = fixture.start_with(flag).await;
         let owner = fixture.connect(&node).await;
         assert_eq!(
-            owner.call(GetNodeSettings {}).await.unwrap().park_after,
+            owner
+                .call(GetNodeSettings::default())
+                .await
+                .unwrap()
+                .park_after,
             idle(30),
             "the flag's value"
         );
@@ -56,6 +60,7 @@ async fn a_damaged_file_is_set_aside_and_a_change_does_not_replace_it() {
             .call(SetNodeSettings {
                 park_after: Some(ParkAfter::Never),
                 drivers: None,
+                ..SetNodeSettings::default()
             })
             .await
             .unwrap();
@@ -90,6 +95,7 @@ async fn a_later_builds_file_is_copied_before_the_first_change() {
             .call(SetNodeSettings {
                 park_after: Some(idle(5)),
                 drivers: None,
+                ..SetNodeSettings::default()
             })
             .await
             .unwrap();
@@ -107,6 +113,7 @@ async fn a_later_builds_file_is_copied_before_the_first_change() {
             .call(SetNodeSettings {
                 park_after: Some(ParkAfter::Never),
                 drivers: None,
+                ..SetNodeSettings::default()
             })
             .await
             .unwrap();
@@ -120,6 +127,7 @@ async fn a_later_builds_file_is_copied_before_the_first_change() {
             .call(SetNodeSettings {
                 park_after: Some(idle(7)),
                 drivers: None,
+                ..SetNodeSettings::default()
             })
             .await
             .unwrap();

@@ -11,7 +11,7 @@ use crate::settings::writer_tests::{WRITE_TEST_BUDGET, patch, settings};
 async fn waiting_capacity_refuses_overflow_and_dropped_replies_still_apply_in_order() {
     tokio::time::timeout(WRITE_TEST_BUDGET, async {
         let root = tempfile::tempdir().unwrap();
-        let settings = settings(root.path());
+        let settings = settings(root.path()).await;
         let (entered, release) = settings.state.gate.install();
         let first = Arc::clone(&settings);
         let caller = tokio::spawn(async move { first.change(patch(ParkAfter::Never)).await });
@@ -75,7 +75,7 @@ async fn waiting_capacity_refuses_overflow_and_dropped_replies_still_apply_in_or
 async fn the_consumer_outlives_the_last_handle_but_does_not_retain_itself() {
     tokio::time::timeout(WRITE_TEST_BUDGET, async {
         let root = tempfile::tempdir().unwrap();
-        let settings = settings(root.path());
+        let settings = settings(root.path()).await;
         let state = Arc::downgrade(&settings.state);
         let tasks = settings.admission.tasks.clone();
         let data = settings.state.data_dir.clone();
@@ -113,7 +113,7 @@ async fn the_consumer_outlives_the_last_handle_but_does_not_retain_itself() {
 async fn queued_patches_are_prepared_from_the_preceding_publication() {
     tokio::time::timeout(WRITE_TEST_BUDGET, async {
         let root = tempfile::tempdir().unwrap();
-        let settings = settings(root.path());
+        let settings = settings(root.path()).await;
         let (entered, release) = settings.state.gate.install();
         let first = settings.admission.submit(patch(ParkAfter::Never)).unwrap();
         entered.await.unwrap();
