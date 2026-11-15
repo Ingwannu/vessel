@@ -442,3 +442,9 @@ only if unset, return the durable choice and Imported/AlreadySet acknowledgement
 and preserve an existing explicit choice across restart. Those behaviors are
 covered in the node manager/store and actual host-command fixtures; their
 narrow results and final whole-gate status remain separately reported.
+
+The positive first-import path now also has an actual node-worker regression:
+unknown catalogue names refuse without persisting; explicit empty custom imports
+acknowledge Imported without installing; a restarted worker acknowledges
+AlreadySet and retains that choice when All is imported later. This new fixture
+is not covered by the older queued 1b32 batch; its latest-head run is owed.

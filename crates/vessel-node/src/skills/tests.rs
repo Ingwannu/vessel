@@ -137,3 +137,67 @@ async fn host_commands_install_confirm_removal_and_preserve_uninstalled_choice_o
     let _closed = tasks.close();
     tasks.wait().await;
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn explicit_import_acknowledges_only_a_valid_initial_choice_and_survives_restart() {
+    use vessel_proto::skills::{ImportSkillsSelection, SkillImportOutcome, SkillsState};
+    let root = tempfile::tempdir().unwrap();
+    let data = DataDir::new(root.path().join("node"));
+    data.prepare().unwrap();
+    let config = Config::new(data.clone(), HarnessEnv::new(root.path().join("home")));
+    let tasks = TaskTracker::new();
+    let stop = CancellationToken::new();
+    let skills = Skills::start(&config, tasks.clone(), stop.clone());
+    let unknown = SkillSelection::Custom {
+        skills: SkillNames::new(vec!["not-shipped".parse().unwrap()]).unwrap(),
+    };
+    assert!(
+        skills
+            .import(ImportSkillsSelection { selection: unknown })
+            .await
+            .is_err()
+    );
+    assert_eq!(data.read_skills_selection().unwrap(), None);
+    let selection = SkillSelection::Custom {
+        skills: SkillNames::default(),
+    };
+    let imported = skills
+        .import(ImportSkillsSelection {
+            selection: selection.clone(),
+        })
+        .await
+        .unwrap();
+    assert_eq!(imported.outcome, SkillImportOutcome::Imported);
+    assert_eq!(imported.selection, selection);
+    assert_eq!(
+        data.read_skills_selection().unwrap(),
+        Some(selection.clone())
+    );
+    let status = skills.status().await.unwrap();
+    assert_eq!(status.state, SkillsState::NotInstalled);
+    assert!(
+        status.installed.is_empty(),
+        "import is not an implicit install"
+    );
+    stop.cancel();
+    let _closed = tasks.close();
+    tasks.wait().await;
+    drop(skills);
+
+    let tasks = TaskTracker::new();
+    let stop = CancellationToken::new();
+    let restarted = Skills::start(&config, tasks.clone(), stop.clone());
+    let retained = restarted
+        .import(ImportSkillsSelection {
+            selection: SkillSelection::All,
+        })
+        .await
+        .unwrap();
+    assert_eq!(retained.outcome, SkillImportOutcome::AlreadySet);
+    assert_eq!(retained.selection, selection);
+    assert_eq!(data.read_skills_selection().unwrap(), Some(selection));
+    assert!(restarted.status().await.unwrap().installed.is_empty());
+    stop.cancel();
+    let _closed = tasks.close();
+    tasks.wait().await;
+}
