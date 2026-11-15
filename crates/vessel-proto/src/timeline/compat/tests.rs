@@ -297,17 +297,17 @@ fn old_raw_id_folds_keep_reused_scoped_calls_and_permission_references_distinct(
             .collect();
         let mut old = HashMap::new();
         for event in &masked {
-            match event {
-                AgentEvent::ToolCall(call) => {
-                    let _prior = old.insert(call.id.clone(), call.title.clone());
-                }
-                AgentEvent::ToolCallUpdate(update) => {
-                    old.get_mut(&update.id)
-                        .unwrap()
-                        .clone_from(update.title.as_ref().unwrap());
-                }
-                _ => panic!("tool lifecycle"),
+            if let AgentEvent::ToolCall(call) = event {
+                let _prior = old.insert(call.id.clone(), call.title.clone());
+                continue;
             }
+            if let AgentEvent::ToolCallUpdate(update) = event {
+                old.get_mut(&update.id)
+                    .unwrap()
+                    .clone_from(update.title.as_ref().unwrap());
+                continue;
+            }
+            panic!("tool lifecycle");
         }
         let [AgentEvent::ToolCall(a), AgentEvent::ToolCall(b), _] = masked.as_slice() else {
             panic!("announcements")
