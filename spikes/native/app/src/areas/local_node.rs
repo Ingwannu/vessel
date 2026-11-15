@@ -226,8 +226,8 @@ impl Shell {
         }
         let intent = match &action {
             Action::Start => None,
-            Action::Stop | Action::InterruptConfirmed(_) => Some(Intent::Stop),
-            Action::Restart | Action::RestartInterruptConfirmed(_) => Some(Intent::Restart),
+            Action::Stop(_) | Action::InterruptConfirmed(_) => Some(Intent::Stop),
+            Action::Restart(_) | Action::RestartInterruptConfirmed(_) => Some(Intent::Restart),
         };
         let work = cx
             .try_global::<crate::local_node::Managed>()
@@ -348,7 +348,15 @@ impl Shell {
         } else if matches!(status, Status::Owned(_)) {
             // Protect refuses live work; changing automatic intent never grants
             // interruption authority and a reused process always remains alone.
-            self.local_node_action(Action::Stop, cx);
+            if let Some(lease) = self
+                .areas
+                .local_node
+                .snapshot
+                .as_ref()
+                .and_then(Snapshot::control)
+            {
+                self.local_node_action(Action::Stop(lease), cx);
+            }
         }
         // A refused stop leaves the node running with a visible typed failure.
         cx.notify();

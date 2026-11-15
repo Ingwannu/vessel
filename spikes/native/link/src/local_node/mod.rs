@@ -61,6 +61,9 @@ pub enum ManagerError {
     /// The displayed process state changed after a confirmation was shown.
     #[error("local node confirmation is stale")]
     StaleConfirmation,
+    /// A destructive control cannot retarget a newer child after UI admission.
+    #[error("the observed local node changed")]
+    StaleControl,
     /// The bounded log actor retained the original read cause.
     #[error("local node logs could not be read")]
     Logs(#[source] vessel_local_node::LogError),
@@ -78,6 +81,7 @@ impl ManagerError {
             | Self::NotInstalled
             | Self::Unavailable
             | Self::StaleConfirmation
+            | Self::StaleControl
             | Self::Logs(_) => None,
         }
     }
@@ -159,7 +163,18 @@ impl Snapshot {
     /// Capture while showing the explicit interruption choice.
     #[must_use]
     pub fn confirmation(&self) -> Option<Confirmation> {
-        matches!(self.status, Status::Owned(_)).then(|| Confirmation(Arc::clone(&self.permit)))
+        self.control().map(Confirmation)
+    }
+    /// Bind protected stop/restart to this observed owned child before a document fence.
+    #[must_use]
+    pub fn control(&self) -> Option<ControlLease> {
+        let Status::Owned(node) = self.status else {
+            return None;
+        };
+        Some(ControlLease {
+            node,
+            permit: Arc::clone(&self.permit),
+        })
     }
     /// The protected-stop refusal supplies actual session IDs to the confirmation UI.
     #[must_use]
@@ -173,7 +188,14 @@ impl Snapshot {
 
 /// Opaque confirmation bound to one observed owned-node state, never forged by UI.
 #[derive(Debug, Clone)]
-pub struct Confirmation(Arc<()>);
+pub struct Confirmation(ControlLease);
+
+/// Observation-bound control intent; a node ID alone cannot construct it.
+#[derive(Debug, Clone)]
+pub struct ControlLease {
+    node: vessel_proto::NodeId,
+    permit: Arc<()>,
+}
 
 /// Owned runtime is process-wide, never tied to a particular window's lifetime.
 #[derive(Debug)]
@@ -197,13 +219,26 @@ pub enum Action {
     /// Start or authenticate reuse at the managed home.
     Start,
     /// Stop only an owned child; live sessions are protected.
-    Stop,
+    Stop(ControlLease),
     /// Stop then await actual exit before launching a replacement.
-    Restart,
+    Restart(ControlLease),
     /// The person explicitly confirmed interrupting active sessions.
     InterruptConfirmed(Confirmation),
     /// Explicit interruption followed by a verified-exit replacement launch.
     RestartInterruptConfirmed(Confirmation),
+}
+
+impl Action {
+    /// Facts filter for document admission; the actor separately validates ownership.
+    #[must_use]
+    pub const fn observed_node(&self) -> Option<vessel_proto::NodeId> {
+        match self {
+            Self::Start => None,
+            Self::Stop(lease) | Self::Restart(lease) => Some(lease.node),
+            Self::InterruptConfirmed(confirmation)
+            | Self::RestartInterruptConfirmed(confirmation) => Some(confirmation.0.node),
+        }
+    }
 }
 
 impl Controller {

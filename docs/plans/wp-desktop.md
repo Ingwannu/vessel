@@ -405,3 +405,16 @@ Kept and already stopped states persist the opt-out without a spurious NotOwned
 control failure. The portable root join will extend its existing public-API Keep
 fixture to verify reattachment and continued refusal of stop/restart authority.
 No new process-ownership proof or force API is introduced.
+
+### Destructive control intent retains its observed owned node
+
+Protected Stop/Restart now capture a sealed ControlLease from the rendered owned
+snapshot, containing its immutable observation identity and NodeId. The actor
+rejects a stale lease before entering the control path, including a same-node
+replacement. Interruption Confirmation wraps that same observation and retains
+its separate explicit UI choice. Action::observed_node is only a document facts
+filter; neither a NodeId nor a displayed status can construct an accepted lease.
+This prepares C5's one-node retained-write guard without retargeting its checked
+node across the async UI/actor boundary. Stale/replacement/forged-display tests
+are prepared; no current checked handoff of these new app-side changes is claimed.
+The shared root library and its frozen54 gate are unchanged.

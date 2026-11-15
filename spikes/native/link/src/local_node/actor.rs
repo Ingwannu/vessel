@@ -1,6 +1,8 @@
 //! Serialized lifecycle commands keep failed-stop ownership alive for a retry.
 
-use super::{Action, Configuration, Confirmation, Connection, ManagerError, Snapshot};
+use super::{
+    Action, Configuration, Confirmation, Connection, ControlLease, ManagerError, Snapshot,
+};
 use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot, watch};
 use vessel_app_view::local_node::{LocalProvenance, Management, Status};
@@ -122,6 +124,11 @@ async fn perform_action(
     log_source: &mut Option<vessel_local_node::LogReader>,
     published: &watch::Sender<Snapshot>,
 ) -> Result<Snapshot, ManagerError> {
+    if let Action::Stop(lease) | Action::Restart(lease) = &action
+        && !valid_control(published, lease)
+    {
+        return Err(ManagerError::StaleControl);
+    }
     if let Action::InterruptConfirmed(confirmation)
     | Action::RestartInterruptConfirmed(confirmation) = &action
         && !valid_confirmation(published, confirmation)
@@ -136,8 +143,8 @@ async fn perform_action(
     });
     let result = match action {
         Action::Start => start(config, node, log_source).await,
-        Action::Stop => control(node, log_source, StopPolicy::Protect, false).await,
-        Action::Restart => control(node, log_source, StopPolicy::Protect, true).await,
+        Action::Stop(_lease) => control(node, log_source, StopPolicy::Protect, false).await,
+        Action::Restart(_lease) => control(node, log_source, StopPolicy::Protect, true).await,
         Action::InterruptConfirmed(_confirmation) => {
             control(node, log_source, StopPolicy::InterruptConfirmed, false).await
         }
@@ -275,9 +282,13 @@ fn publish(
 }
 
 fn valid_confirmation(published: &watch::Sender<Snapshot>, confirmation: &Confirmation) -> bool {
+    valid_control(published, &confirmation.0)
+}
+
+fn valid_control(published: &watch::Sender<Snapshot>, lease: &ControlLease) -> bool {
     let current = published.borrow();
-    matches!(current.status, Status::Owned(_) | Status::Working)
-        && Arc::ptr_eq(&current.permit, &confirmation.0)
+    matches!(current.status, Status::Owned(node) if node == lease.node)
+        && Arc::ptr_eq(&current.permit, &lease.permit)
 }
 
 #[cfg(test)]
@@ -305,6 +316,39 @@ mod tests {
         let _old = published.send_replace(snapshot(Status::Owned(node)));
         assert!(!valid_confirmation(&published, &permit));
         assert!(snapshot(Status::Attached(node)).confirmation().is_none());
+    }
+
+    #[tokio::test]
+    async fn a_document_checked_control_cannot_retarget_a_replacement_or_another_node() {
+        let node_id = NodeId::random();
+        let original = snapshot(Status::Owned(node_id));
+        let lease = original.control().unwrap();
+        let (published, _receiver) = watch::channel(original.clone());
+        let mut forged_display = original;
+        forged_display.status = Status::Owned(NodeId::random());
+        assert!(!valid_control(
+            &published,
+            &forged_display.control().unwrap()
+        ));
+        let _old = published.send_replace(snapshot(Status::Owned(node_id)));
+        let config = Configuration {
+            launch: None,
+            home: vessel_local_node::NodeHome::new(
+                std::env::temp_dir().join("unused-stale-control-fixture"),
+            )
+            .unwrap(),
+            preferences: Preferences::default(),
+        };
+        let mut node = None;
+        let mut logs = None;
+        for action in [Action::Stop(lease.clone()), Action::Restart(lease.clone())] {
+            assert!(matches!(
+                perform_action(action, &config, &mut node, &mut logs, &published).await,
+                Err(ManagerError::StaleControl)
+            ));
+            assert!(node.is_none());
+            assert_eq!(published.borrow().status, Status::Owned(node_id));
+        }
     }
 
     #[tokio::test]

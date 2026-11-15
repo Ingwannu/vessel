@@ -158,19 +158,26 @@ fn controls(
             })),
         );
     }
-    if matches!(status, Status::Owned(_)) {
+    if let Some(lease) = shell
+        .areas
+        .local_node
+        .snapshot
+        .as_ref()
+        .and_then(vessel_app_link::local_node::Snapshot::control)
+    {
+        let restart = lease.clone();
         controls = controls
             .child(
                 outline_button("local-node-restart", words.restart(), idle, tokens).on_click(
-                    cx.listener(|shell, _event, _window, cx| {
-                        shell.local_node_action(Action::Restart, cx);
+                    cx.listener(move |shell, _event, _window, cx| {
+                        shell.local_node_action(Action::Restart(restart.clone()), cx);
                     }),
                 ),
             )
             .child(
                 outline_button("local-node-stop", words.stop(), idle, tokens).on_click(
-                    cx.listener(|shell, _event, _window, cx| {
-                        shell.local_node_action(Action::Stop, cx);
+                    cx.listener(move |shell, _event, _window, cx| {
+                        shell.local_node_action(Action::Stop(lease.clone()), cx);
                     }),
                 ),
             );
