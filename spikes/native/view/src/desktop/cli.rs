@@ -1,6 +1,6 @@
 //! CLI controls expose ownership and availability separately from installation progress.
 
-/// Only the exact shim or symlink installed by this application is owned.
+/// Only this application’s exact symlink or Windows PATH directory is owned.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Status {
     /// No entry exists at the user-local destination.
@@ -25,9 +25,9 @@ pub enum Availability {
 pub enum PathStatus {
     /// The inherited terminal environment includes the directory.
     Available,
-    /// A known shell rc supplies it for future terminals.
+    /// A known shell rc or Windows user PATH supplies it for future terminals.
     Configured,
-    /// Windows and unknown shells need manual terminal configuration.
+    /// Unknown shells or refused platform updates need manual terminal configuration.
     Manual,
 }
 
@@ -68,6 +68,8 @@ pub enum State {
     },
     /// One bounded operation is in progress; duplicate activation is rejected.
     Working(Operation),
+    /// Windows transactions are disabled; PATH must be configured manually.
+    UserPathUnavailable,
     /// A typed I/O refusal can be retried by refreshing status.
     Failed,
 }
@@ -87,7 +89,7 @@ impl State {
     #[must_use]
     pub fn allows(self, operation: Operation) -> bool {
         match self {
-            Self::Checking | Self::Working(_) | Self::Failed => false,
+            Self::Checking | Self::Working(_) | Self::Failed | Self::UserPathUnavailable => false,
             Self::Ready {
                 availability,
                 status,
@@ -114,6 +116,7 @@ mod tests {
             State::Working(Operation::Install),
             State::Working(Operation::Remove),
             State::Failed,
+            State::UserPathUnavailable,
             State::Ready {
                 availability: Availability::Bundled,
                 status: Status::Foreign,

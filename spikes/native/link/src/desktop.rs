@@ -24,6 +24,11 @@ pub enum DesktopError {
     /// PATH data must retain its UTF-16 representation without changing other entries.
     #[error("the Windows user PATH cannot safely represent this change")]
     InvalidUserPath,
+    /// A disabled Windows transaction service must not cause an unsafe plain-write fallback.
+    #[error(
+        "Windows user PATH transactions are unavailable; enable the transaction service or configure PATH manually"
+    )]
+    UserPathTransaction(#[source] std::io::Error),
     /// Installation must never replace a tool owned by another installation.
     #[error("the CLI destination belongs to another installation")]
     ForeignCli,

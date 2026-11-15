@@ -109,3 +109,4 @@ desktop-shell-help = Help
 desktop-shell-about = About Vessel
 # Opens the public project's issue form in the external browser.
 desktop-shell-report-issue = Report an issue
+desktop-shell-cli-path-transaction-failed = Windows cannot update the user PATH transactionally. Enable the transaction service or add the bundled bin directory to PATH manually.

@@ -9,7 +9,7 @@ fn target(text: &str) -> Entry {
 
 #[test]
 fn unicode_install_is_idempotent_and_removal_preserves_every_other_entry() {
-    let previous = raw(r"%USERPROFILE%\tools;;C:\다른 도구;");
+    let previous = raw(r"%USERPROFILE%\tools;;C:\다른 도구");
     let entry = target(r"C:\사용자\Vessel 설치\bin");
     let added = previous.changed(&entry, Operation::Install).unwrap();
     assert!(added.contains(&entry));
@@ -44,7 +44,7 @@ fn utf16_is_lossless_and_invalid_or_oversized_data_is_refused() {
         UserPath::decode(&original.encode()).unwrap().encode(),
         original.encode()
     );
-    for bytes in [vec![], vec![0], vec![1, 0], vec![0, 0, 1, 0, 0, 0]] {
+    for bytes in [vec![0], vec![0, 0, 1, 0, 0, 0]] {
         assert!(UserPath::decode(&bytes).is_err());
     }
     assert!(UserPath::decode(&vec![0; MAX_PATH_UNITS * 2 + 2]).is_err());
@@ -78,4 +78,30 @@ fn existing_case_variant_is_not_duplicated_and_only_that_directory_is_removed() 
         &"ß".encode_utf16().collect::<Vec<_>>(),
         &"SS".encode_utf16().collect::<Vec<_>>()
     ));
+}
+
+#[test]
+fn optional_or_repeated_terminators_and_empty_values_are_valid() {
+    for bytes in [vec![], vec![0, 0], vec![0, 0, 0, 0]] {
+        assert_eq!(UserPath::decode(&bytes).unwrap().encode(), vec![0, 0]);
+    }
+    for bytes in [vec![65, 0], vec![65, 0, 0, 0], vec![65, 0, 0, 0, 0, 0]] {
+        assert_eq!(
+            UserPath::decode(&bytes).unwrap().encode(),
+            vec![65, 0, 0, 0]
+        );
+    }
+}
+
+#[test]
+fn extended_prefixes_use_installer_spelling_and_trailing_separator_is_reused() {
+    assert_eq!(target(r"\\?\C:\Vessel\bin").0, target(r"C:\Vessel\bin").0);
+    assert_eq!(
+        target(r"\\?\UNC\server\Vessel\bin").0,
+        target(r"\\server\Vessel\bin").0
+    );
+    let added = raw(r"C:\other;")
+        .changed(&target(r"C:\Vessel\bin"), Operation::Install)
+        .unwrap();
+    assert_eq!(added.encode(), raw(r"C:\other;C:\Vessel\bin").encode());
 }

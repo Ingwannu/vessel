@@ -306,9 +306,17 @@ endpoint or a claim that E3 has passed its native gate.
 - Alternatives: keep a batch wrapper with code-page conversion; use a script; use the Windows registry directly through a safe maintained wrapper.
 - Decision: reuse the already locked winreg 0.56 dependency in link, Windows only, with transactions. Install/remove modifies only the exact executable-parent\bin entry of HKCU Environment Path, writing REG_EXPAND_SZ. No batch file is created.
 - Reason: raw UTF-16 preserves Unicode and unpaired Windows path units; a transaction reports competing registry changes rather than losing another process's PATH edit. Unsupported registry values and literal REG_SZ percent expressions are refused, preserving their meaning. Literal percent characters in the new directory are refused because REG_EXPAND_SZ would interpret them.
-- Impact: pure UTF-16 tests never access the real registry. Existing entries and empty separators survive an install/remove cycle. Matching compares whole entries case-insensitively (single-scalar Unicode uppercase, without expanding mappings), with no prefix, variable expansion or foreign-installation removal. The release installer owns matching uninstall cleanup.
+- Impact: pure UTF-16 tests never access the real registry. Existing entries and internal empty separators survive changes; an existing trailing separator is reused on append. Matching compares whole entries case-insensitively (single-scalar Unicode uppercase, without expanding mappings), with no prefix, variable expansion or foreign-installation removal. The release installer owns matching uninstall cleanup.
 
 Coordinator approved the registry route and assigned the safe bounded WM_SETTINGCHANGE
 broadcast to the existing GPUI Windows platform owner. Until that producer lands,
 Configured truthfully asks for a new terminal or signing out and in; this is not
 an acknowledgment from Explorer. No Windows runtime or code-page proof is claimed.
+
+Release-owner source review follow-up: accepts empty, unterminated and multiply
+terminated UTF-16 registry strings, strips trailing NUL units, rejects interior
+NULs, and always writes one terminator. Extended Win32 path prefixes are converted
+to ordinary drive/UNC spelling before comparison. 8.3 short-name equivalence is
+not resolved. A disabled transaction service has a specific translated refusal;
+there is no nontransactional overwrite fallback. Real Windows execution remains
+unverified.

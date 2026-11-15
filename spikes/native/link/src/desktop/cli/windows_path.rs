@@ -17,6 +17,7 @@ struct Entry(Vec<u16>);
 
 impl Entry {
     fn new(units: Vec<u16>) -> Result<Self, DesktopError> {
+        let units = ordinary_path(units);
         if units.is_empty()
             || units.len() >= MAX_PATH_UNITS
             || units
@@ -34,7 +35,7 @@ struct UserPath(Vec<u16>);
 
 impl UserPath {
     fn decode(bytes: &[u8]) -> Result<Self, DesktopError> {
-        if bytes.len() % 2 != 0 || bytes.len() / 2 > MAX_PATH_UNITS {
+        if !bytes.len().is_multiple_of(2) || bytes.len() / 2 > MAX_PATH_UNITS {
             return Err(DesktopError::InvalidUserPath);
         }
         let mut units: Vec<u16> = bytes
@@ -42,7 +43,10 @@ impl UserPath {
             .filter_map(|pair| pair.first().zip(pair.get(1)))
             .map(|(low, high)| u16::from_le_bytes([*low, *high]))
             .collect();
-        if units.pop() != Some(0) || units.contains(&0) {
+        while units.last() == Some(&0) {
+            let _terminator = units.pop();
+        }
+        if units.contains(&0) {
             return Err(DesktopError::InvalidUserPath);
         }
         Ok(Self(units))
@@ -58,7 +62,7 @@ impl UserPath {
         let mut units = self.0.clone();
         match operation {
             Operation::Install if !self.contains(entry) => {
-                if !units.is_empty() {
+                if !units.is_empty() && units.last() != Some(&SEPARATOR) {
                     units.push(SEPARATOR);
                 }
                 units.extend_from_slice(&entry.0);
@@ -86,6 +90,28 @@ impl UserPath {
             .chain(std::iter::once(0))
             .flat_map(u16::to_le_bytes)
             .collect()
+    }
+}
+
+// current_exe may retain an extended Win32 prefix. PATH and NSIS use the
+// ordinary absolute spelling; decoding never touches the actual filesystem.
+fn ordinary_path(units: Vec<u16>) -> Vec<u16> {
+    const EXTENDED: &[u16] = &[92, 92, 63, 92];
+    const UNC: &[u16] = &[85, 78, 67, 92];
+    let Some(tail) = units.strip_prefix(EXTENDED) else {
+        return units;
+    };
+    if tail
+        .get(..UNC.len())
+        .is_some_and(|prefix| same_entry(prefix, UNC))
+    {
+        [
+            vec![92, 92],
+            tail.get(UNC.len()..).unwrap_or_default().to_vec(),
+        ]
+        .concat()
+    } else {
+        tail.to_vec()
     }
 }
 

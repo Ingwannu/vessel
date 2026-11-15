@@ -142,6 +142,14 @@ fn perform(
     facts(installation, status)
 }
 
+fn failed(error: &DesktopError) -> State {
+    if matches!(error, DesktopError::UserPathTransaction(_)) {
+        State::UserPathUnavailable
+    } else {
+        State::Failed
+    }
+}
+
 impl Shell {
     fn desktop_cli_refresh(&mut self, cx: &mut Context<'_, Self>) {
         if matches!(self.areas.desktop.cli.state, State::Working(_)) {
@@ -160,7 +168,7 @@ impl Shell {
                     }
                     Err(error) => {
                         tracing::warn!(%error,"CLI status could not be read");
-                        shell.areas.desktop.cli.state = State::Failed;
+                        shell.areas.desktop.cli.state = failed(&error);
                     }
                 }
                 cx.notify();
@@ -192,7 +200,7 @@ impl Shell {
                     Ok(state) => state.into(),
                     Err(error) => {
                         tracing::warn!(%error,"CLI operation was refused");
-                        State::Failed
+                        failed(&error)
                     }
                 };
                 cx.notify();
@@ -209,6 +217,7 @@ pub(crate) fn section(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell
         State::Checking => words.cli_checking(),
         State::Working(_) => words.cli_busy(),
         State::Failed => words.cli_failed(),
+        State::UserPathUnavailable => words.cli_path_transaction_failed(),
         State::Ready {
             status: Status::Foreign,
             ..

@@ -53,7 +53,7 @@ pub(in super::super) fn status(path: &Path) -> Result<Status, DesktopError> {
 
 pub(in super::super) fn apply(path: &Path, operation: Operation) -> Result<(), DesktopError> {
     let entry = entry(path)?;
-    let transaction = Transaction::new()?;
+    let transaction = Transaction::new().map_err(DesktopError::UserPathTransaction)?;
     let (key, _disposition) = RegKey::predef(HKEY_CURRENT_USER)
         .create_subkey_transacted_with_flags("Environment", &transaction, KEY_READ | KEY_WRITE)?;
     let previous = read(&key)?;
