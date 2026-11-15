@@ -3,7 +3,10 @@
 use super::{Found, Sessions};
 use crate::error::ServiceError;
 use chrono::Utc;
-use std::sync::Arc;
+use std::{
+    future::{Future, ready},
+    sync::Arc,
+};
 use vessel_proto::{Mark, SessionId, SessionInfo, session_archive::ArchiveCondition};
 use vessel_session::{ArchiveRefusal, SessionError};
 
@@ -13,12 +16,28 @@ enum ExistingArchive {
 }
 
 impl Sessions {
+    #[cfg(test)]
     pub(crate) async fn archive_condition(
         self: &Arc<Self>,
         session: SessionId,
         condition: ArchiveCondition,
     ) -> Result<SessionInfo, ServiceError> {
-        self.archive_requested(session, condition, ExistingArchive::Refuse)
+        self.archive_condition_with(session, condition, |info| ready(Ok(info)))
+            .await
+    }
+    /// Keep admitted cleanup alive if its RPC waiter disappears. The completion
+    /// runs under admission and must not recursively acquire the marking lock.
+    pub(crate) async fn archive_condition_with<C, F>(
+        self: &Arc<Self>,
+        session: SessionId,
+        condition: ArchiveCondition,
+        completed: C,
+    ) -> Result<SessionInfo, ServiceError>
+    where
+        C: FnOnce(SessionInfo) -> F + Send + 'static,
+        F: Future<Output = Result<SessionInfo, ServiceError>> + Send + 'static,
+    {
+        self.archive_requested(session, condition, ExistingArchive::Refuse, completed)
             .await
     }
     /// The legacy mark keeps its idempotent timestamp while sharing admission.
@@ -26,22 +45,49 @@ impl Sessions {
         self: &Arc<Self>,
         session: SessionId,
     ) -> Result<SessionInfo, ServiceError> {
-        self.archive_requested(session, ArchiveCondition::Force, ExistingArchive::Keep)
+        self.archive_mark_with(session, |info| ready(Ok(info)))
             .await
     }
-    async fn archive_requested(
+    /// Legacy idempotent archive with the same cancellation-safe completion.
+    pub(crate) async fn archive_mark_with<C, F>(
+        self: &Arc<Self>,
+        session: SessionId,
+        completed: C,
+    ) -> Result<SessionInfo, ServiceError>
+    where
+        C: FnOnce(SessionInfo) -> F + Send + 'static,
+        F: Future<Output = Result<SessionInfo, ServiceError>> + Send + 'static,
+    {
+        self.archive_requested(
+            session,
+            ArchiveCondition::Force,
+            ExistingArchive::Keep,
+            completed,
+        )
+        .await
+    }
+    async fn archive_requested<C, F>(
         self: &Arc<Self>,
         session: SessionId,
         condition: ArchiveCondition,
         existing: ExistingArchive,
-    ) -> Result<SessionInfo, ServiceError> {
+        completed: C,
+    ) -> Result<SessionInfo, ServiceError>
+    where
+        C: FnOnce(SessionInfo) -> F + Send + 'static,
+        F: Future<Output = Result<SessionInfo, ServiceError>> + Send + 'static,
+    {
         let sessions = Arc::clone(self);
         self.tasks
             .spawn(async move {
                 // Resume and detach use this same admission mutex. Neither may
-                // publish between the actor's stop and its durable archive mark.
+                // publish between the actor's stop, durable archive mark and
+                // admitted terminal/watch cleanup, even after RPC cancellation.
                 let _admission = sessions.marking.lock().await;
-                sessions.archive_locked(session, condition, existing).await
+                let archived = sessions
+                    .archive_locked(session, condition, existing)
+                    .await?;
+                completed(archived).await
             })
             .await
             .map_err(ServiceError::Task)?

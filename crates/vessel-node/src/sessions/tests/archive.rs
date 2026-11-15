@@ -207,3 +207,54 @@ async fn legacy_archive_keeps_first_timestamp_while_new_action_refuses_replay() 
     .await
     .expect("archive workflow timed out");
 }
+
+#[tokio::test]
+async fn cancelled_rpc_keeps_admitted_cleanup_and_resume_exclusion_until_completion() {
+    let fixture = Fixture::new().await;
+    vessel_testkit::within(
+        SAFETY_NET,
+        Box::pin(async move {
+            let id = fixture
+                .sessions
+                .create(fixture.structured(), LaunchOptions::default(), None)
+                .await
+                .unwrap()
+                .id;
+            let (entered, waiting) = tokio::sync::oneshot::channel();
+            let (release, released) = tokio::sync::oneshot::channel();
+            let (completed, completion) = tokio::sync::oneshot::channel();
+            let sessions = std::sync::Arc::clone(&fixture.sessions);
+            let request = tokio::spawn(async move {
+                sessions
+                    .archive_condition_with(id, ArchiveCondition::Force, move |info| async move {
+                        assert!(!info.status.is_live());
+                        assert!(info.marks.archived_at.is_some());
+                        entered.send(()).unwrap();
+                        released.await.unwrap();
+                        completed.send(info.id).unwrap();
+                        Ok(info)
+                    })
+                    .await
+            });
+            waiting.await.unwrap();
+            request.abort();
+            assert!(request.await.unwrap_err().is_cancelled());
+            let mark_sessions = std::sync::Arc::clone(&fixture.sessions);
+            let unarchive =
+                async move { mark_sessions.mark(id, vessel_proto::Mark::Unarchive).await };
+            tokio::pin!(unarchive);
+            std::future::poll_fn(|cx| {
+                assert!(unarchive.as_mut().poll(cx).is_pending());
+                std::task::Poll::Ready(())
+            })
+            .await;
+            release.send(()).unwrap();
+            assert_eq!(completion.await.unwrap(), id);
+            assert!(unarchive.await.unwrap().marks.archived_at.is_none());
+            fixture.settle().await;
+            fixture.stop().await;
+        }),
+    )
+    .await
+    .expect("archive cleanup timed out");
+}

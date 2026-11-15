@@ -175,3 +175,14 @@ named safety deadline. The deadline then covers actor readiness, persistence,
 repeat/refusal checks and cleanup, so a broken admission or handover reports a
 bounded failure rather than holding the build slot indefinitely. These tests use
 only the existing fake runtime and temporary store.
+
+Archive completion (forgetting the forge watch and ending beside terminals) now
+runs in the same tracked admitted task as the archive mark, for both legacy mark
+and conditional archive service calls. Dropping the RPC waiter cannot cancel
+that cleanup or release resume/detach admission early. Service-owned Arc handles
+stay in its completion object; Sessions receives a statically dispatched
+completion, with no service manager field or new task registry. Completion must
+not recursively acquire the marking lock. A gated fake completion regression
+aborts its caller and proves cleanup continues while a subsequent mark remains
+blocked until completion. Existing terminal close-timeout semantics remain;
+workspace backing cleanup still requires its separate verified drain contract.

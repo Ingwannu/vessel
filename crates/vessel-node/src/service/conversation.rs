@@ -115,10 +115,10 @@ impl NodeService {
     /// (node)", meeting point 3). A schedule's session must not outlive
     /// what a person's own would ("Integration 3 (node)").
     pub(super) async fn put_away(&self, session: SessionId) -> Result<SessionInfo, ServiceError> {
-        let archived = self.sessions.mark(session, Mark::Archive).await?;
-        self.unwatch_session(session);
-        self.terminals.end_beside(session).await;
-        Ok(archived)
+        let completion = self.archive_completion();
+        self.sessions
+            .archive_mark_with(session, move |info| completion.finish(info))
+            .await
     }
 
     /// `session.delete`: remove an ended session whole, and the worktree
