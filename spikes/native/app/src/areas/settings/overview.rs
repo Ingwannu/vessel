@@ -69,7 +69,15 @@ impl State {
                 |shell: &mut Shell, text, _window, cx| shell.overview_rename(&text, cx),
                 // Paseo clears the error as the name is typed again.
                 |shell: &mut Shell, _text, cx| {
-                    shell.areas.settings.overview.problem = None;
+                    let state = &mut shell.areas.settings.overview;
+                    let Some(open) = state.rename.as_mut().filter(|open| open.pending.is_none())
+                    else {
+                        return;
+                    };
+                    // Both validation and a failed book answer belong to the
+                    // previous draft. A pending write still owns its refusal.
+                    state.problem = None;
+                    open.refused = None;
                     cx.notify();
                 },
                 window,
