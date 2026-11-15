@@ -3,6 +3,7 @@
 
 use std::collections::HashSet;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use chrono::Utc;
 use sha2::{Digest as _, Sha256};
@@ -52,6 +53,30 @@ fn validate(config: &DraftCommandConfig) -> Result<(), WireError> {
     Ok(())
 }
 
+fn profile_changed() -> WireError {
+    WireError::new(
+        ErrorCode::Unavailable,
+        "the command profile changed during discovery",
+    )
+}
+
+fn cacheable_profile(profile: &vessel_harness::Profile) -> Result<(), WireError> {
+    if profile.model().is_some()
+        || profile
+            .added()
+            .is_some_and(|agent| agent.secrets().next().is_some())
+    {
+        // The profile snapshot does not prove independently mutable routes or
+        // fleet secrets. Keep those cases unavailable until their owner supplies
+        // an actual immutable launch proof, rather than hashing credential values.
+        return Err(WireError::new(
+            ErrorCode::Unsupported,
+            "command discovery needs an immutable route and secret configuration",
+        ));
+    }
+    Ok(())
+}
+
 impl NodeService {
     pub(crate) async fn draft_commands(
         &self,
@@ -63,9 +88,11 @@ impl NodeService {
         let cwd = self.catalog_directory(&config).await?;
         self.refuse_installing(&config.harness)
             .map_err(|error| wire(&error))?;
+        let snapshot = self.profiles.current();
         let profile = self
-            .resolve(&config.harness, config.profile.as_ref())
+            .resolve_in(&snapshot, &config.harness, config.profile.as_ref())
             .map_err(|error| wire(&error))?;
+        cacheable_profile(&profile)?;
         let installed = self
             .harnesses()
             .await
@@ -87,10 +114,22 @@ impl NodeService {
         };
         let answer = self
             .probes
-            .answer(key, installed.version, async || {
-                self.probe_command_draft(config, profile, cwd).await
+            .answer_in_profile(key, installed.version, Arc::clone(&snapshot), async || {
+                if !Arc::ptr_eq(&snapshot, &self.profiles.current()) {
+                    return failed(profile_changed());
+                }
+                let answer = self.probe_command_draft(config, profile, cwd).await;
+                if Arc::ptr_eq(&snapshot, &self.profiles.current()) {
+                    answer
+                } else {
+                    failed(profile_changed())
+                }
             })
             .await;
+        // Cache hits and waiters must pass the same postcondition as new probes.
+        if !Arc::ptr_eq(&snapshot, &self.profiles.current()) {
+            return Err(profile_changed());
+        }
         let _options = answer.options?;
         let commands = answer.commands.ok_or_else(|| {
             WireError::new(

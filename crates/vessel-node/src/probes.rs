@@ -73,6 +73,7 @@ struct Probed {
     /// When it finished, on the monotonic clock.
     finished: Instant,
     version: HarnessVersion,
+    profiles: Option<Arc<vessel_harness::Profiles>>,
     outcome: Answer,
 }
 
@@ -143,6 +144,27 @@ impl Probes {
         version: HarnessVersion,
         probe: impl AsyncFnOnce() -> Answer,
     ) -> Answer {
+        self.answer_in(key, version, None, probe).await
+    }
+
+    /// Profile reloads cannot reuse a catalog from a previous immutable set.
+    pub(crate) async fn answer_in_profile(
+        &self,
+        key: ProbeKey,
+        version: HarnessVersion,
+        profiles: Arc<vessel_harness::Profiles>,
+        probe: impl AsyncFnOnce() -> Answer,
+    ) -> Answer {
+        self.answer_in(key, version, Some(profiles), probe).await
+    }
+
+    async fn answer_in(
+        &self,
+        key: ProbeKey,
+        version: HarnessVersion,
+        profiles: Option<Arc<vessel_harness::Profiles>>,
+        probe: impl AsyncFnOnce() -> Answer,
+    ) -> Answer {
         let asked = Instant::now();
         let slot = match self.slot(key) {
             Ok(slot) => slot,
@@ -159,7 +181,7 @@ impl Probes {
         // Decision Log). Each key has its own, so other keys never wait.
         let mut slot = slot.lock().await;
         if let Some(last) = &slot.last
-            && last.answers(asked, version.as_ref())
+            && last.answers(asked, version.as_ref(), profiles.as_ref())
         {
             return last.outcome.clone();
         }
@@ -167,6 +189,7 @@ impl Probes {
         slot.last = Some(Probed {
             finished: Instant::now(),
             version,
+            profiles,
             outcome: outcome.clone(),
         });
         outcome
@@ -176,15 +199,28 @@ impl Probes {
 impl Probed {
     /// Whether this answers a caller that asked at `asked` about a harness
     /// now at `version`.
-    fn answers(&self, asked: Instant, version: Option<&String>) -> bool {
+    fn answers(
+        &self,
+        asked: Instant,
+        version: Option<&String>,
+        profiles: Option<&Arc<vessel_harness::Profiles>>,
+    ) -> bool {
+        // Context is checked before the completed-while-waiting fast path.
+        // Strong Arcs prevent allocation reuse from becoming an identity match.
+        let same_context = match (self.profiles.as_ref(), profiles) {
+            (None, None) => true,
+            (Some(kept), Some(current)) => Arc::ptr_eq(kept, current),
+            (None, Some(_)) | (Some(_), None) => false,
+        };
+        if !same_context || self.version.as_ref() != version {
+            return false;
+        }
         // Finished after the caller asked, so while it waited for the slot:
         // the probe it waited for.
         if self.finished > asked {
             return true;
         }
-        self.outcome.options.is_ok()
-            && self.version.as_ref() == version
-            && self.finished.elapsed() < FRESH
+        self.outcome.options.is_ok() && self.finished.elapsed() < FRESH
     }
 }
 
@@ -337,5 +373,109 @@ mod tests {
         assert_eq!(slots.len(), 2);
         assert!(slots.contains_key(&key()));
         assert!(slots.contains_key(&draft_key("third")));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn the_same_profile_snapshot_coalesces_and_new_snapshots_replace_cached_answers() {
+        let probes = Probes::new(PathBuf::new());
+        let old = Arc::new(vessel_harness::Profiles::default());
+        let weak = Arc::downgrade(&old);
+        let started = AtomicUsize::new(0);
+        let probe = async || {
+            let _first = started.fetch_add(1, Ordering::SeqCst);
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            ok()
+        };
+        let (a, b) = tokio::join!(
+            probes.answer_in_profile(draft_key("same"), None, Arc::clone(&old), probe),
+            probes.answer_in_profile(draft_key("same"), None, Arc::clone(&old), probe),
+        );
+        assert!(a.options.is_ok());
+        assert!(b.options.is_ok());
+        assert_eq!(started.load(Ordering::SeqCst), 1);
+        drop(old);
+        assert!(
+            weak.upgrade().is_some(),
+            "the entry retains a strong snapshot"
+        );
+        let new = Arc::new(vessel_harness::Profiles::default());
+        assert!(
+            probes
+                .answer_in_profile(draft_key("same"), None, new, probe)
+                .await
+                .options
+                .is_ok()
+        );
+        assert_eq!(
+            started.load(Ordering::SeqCst),
+            2,
+            "equal contents do not prove the same installed snapshot"
+        );
+        assert!(
+            weak.upgrade().is_none(),
+            "replacement drops the retired context"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_waiter_cannot_take_an_old_context_reply_that_finishes_after_it_asked() {
+        let probes = Arc::new(Probes::new(PathBuf::new()));
+        let (started, observing) = tokio::sync::oneshot::channel();
+        let (finish, finished) = tokio::sync::oneshot::channel();
+        let first = Arc::clone(&probes);
+        let pending = tokio::spawn(async move {
+            first
+                .answer_in_profile(
+                    draft_key("same"),
+                    None,
+                    Arc::new(vessel_harness::Profiles::default()),
+                    async || {
+                        started.send(()).unwrap();
+                        finished.await.unwrap();
+                        ok()
+                    },
+                )
+                .await
+        });
+        observing.await.unwrap();
+        let new_started = AtomicUsize::new(0);
+        let (next, old) = tokio::join!(
+            probes.answer_in_profile(
+                draft_key("same"),
+                None,
+                Arc::new(vessel_harness::Profiles::default()),
+                async || {
+                    let _first = new_started.fetch_add(1, Ordering::SeqCst);
+                    ok()
+                }
+            ),
+            async {
+                finish.send(()).unwrap();
+                pending.await.unwrap()
+            },
+        );
+        assert!(old.options.is_ok());
+        assert!(next.options.is_ok());
+        assert_eq!(
+            new_started.load(Ordering::SeqCst),
+            1,
+            "context validation precedes finished-after-asked coalescing"
+        );
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn changed_version_cannot_use_the_finished_while_waiting_fast_path() {
+        let asked = Instant::now();
+        tokio::time::advance(Duration::from_secs(1)).await;
+        let old = "old".to_owned();
+        let new = "new".to_owned();
+        let completed = Probed {
+            finished: Instant::now(),
+            version: Some(old.clone()),
+            profiles: None,
+            outcome: ok(),
+        };
+        assert!(completed.answers(asked, Some(&old), None));
+        assert!(!completed.answers(asked, Some(&new), None));
     }
 }

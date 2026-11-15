@@ -3,7 +3,7 @@
 //! definitions and their file are `crate::added`'s, launching is the
 //! launcher's.
 
-use vessel_harness::Profile;
+use vessel_harness::{Profile, Profiles};
 use vessel_proto::agents::{
     AddAgent, AgentInfo, Catalogue, GetCatalogue, InstallAgent, InstallJob, InstallOutput,
     InstallPart, ListAgents, ReadInstall, RemoveAgent,
@@ -14,7 +14,7 @@ use vessel_proto::{
 
 use super::{Connection, NodeService, wire};
 use crate::error::ServiceError;
-use crate::transfers::export::named;
+use crate::transfers::export::named_in;
 
 impl NodeService {
     /// Refuse a call that would act on, or subscribe to, an added agent's
@@ -218,16 +218,30 @@ impl NodeService {
         harness: &HarnessRef,
         name: Option<&ProfileName>,
     ) -> Result<Profile, ServiceError> {
+        self.resolve_in(&self.profiles.current(), harness, name)
+    }
+
+    /// A catalog resolves and validates against the same retained profile set.
+    pub(crate) fn resolve_in(
+        &self,
+        snapshot: &Profiles,
+        harness: &HarnessRef,
+        name: Option<&ProfileName>,
+    ) -> Result<Profile, ServiceError> {
         let agent = match harness {
-            HarnessRef::Known(kind) => return named(&self.profiles, Some(*kind), name),
+            HarnessRef::Known(kind) => return named_in(snapshot, Some(*kind), name),
             HarnessRef::Added(agent) => agent,
         };
         let profile = match name {
-            None => None,
+            None => Some(
+                snapshot
+                    .default_of(harness)
+                    .ok_or_else(|| ServiceError::UnknownAgent(agent.clone()))?,
+            ),
             Some(name) => {
-                let profile = self
-                    .profiles
+                let profile = snapshot
                     .get(name)
+                    .cloned()
                     .ok_or_else(|| ServiceError::UnknownProfile(name.clone()))?;
                 if profile.harness() != *harness {
                     return Err(ServiceError::ProfileHarness {

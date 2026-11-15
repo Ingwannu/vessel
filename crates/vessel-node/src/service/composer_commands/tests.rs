@@ -69,3 +69,65 @@ fn duplicate_and_oversized_choice_sets_are_refused_before_work() {
     assert_eq!(error.code, ErrorCode::InvalidRequest);
     assert!(error.message.contains(&MAX_DRAFT_CHOICES.to_string()));
 }
+
+#[test]
+fn routed_catalogs_wait_for_an_independent_immutable_route_proof() {
+    use vessel_harness::parse_profiles;
+    let profiles = parse_profiles(
+        "[profiles.routed]\nharness = \"codex\"\nmodel = \"route-a\"\n",
+        None,
+    )
+    .unwrap();
+    let selected = crate::transfers::export::named_in(
+        &profiles,
+        Some(HarnessKind::Codex),
+        Some(&"routed".parse().unwrap()),
+    )
+    .unwrap();
+    assert_eq!(
+        cacheable_profile(&selected).unwrap_err().code,
+        ErrorCode::Unsupported
+    );
+    assert!(cacheable_profile(&vessel_harness::Profile::default_for(HarnessKind::Codex)).is_ok());
+    assert_eq!(profile_changed().code, ErrorCode::Unavailable);
+}
+
+#[test]
+fn profile_selection_uses_the_supplied_snapshot_and_keeps_harness_validation() {
+    use vessel_harness::parse_profiles;
+    let old = parse_profiles(
+        "[profiles.work]\nharness = \"codex\"\nargs = [\"old-config\"]\n",
+        None,
+    )
+    .unwrap();
+    let new = parse_profiles(
+        "[profiles.work]\nharness = \"codex\"\nargs = [\"new-config\"]\n",
+        None,
+    )
+    .unwrap();
+    let name = "work".parse().unwrap();
+    let before =
+        crate::transfers::export::named_in(&old, Some(HarnessKind::Codex), Some(&name)).unwrap();
+    let after =
+        crate::transfers::export::named_in(&new, Some(HarnessKind::Codex), Some(&name)).unwrap();
+    assert_ne!(before, after);
+    assert!(
+        crate::transfers::export::named_in(&old, Some(HarnessKind::ClaudeCode), Some(&name))
+            .is_err()
+    );
+}
+
+#[test]
+fn secret_backed_added_catalogs_wait_for_the_separate_runtime_secret_proof() {
+    let agents = vessel_harness::parse_agents(
+        "[agents.custom]\nprogram = \"custom-acp\"\nenv = { KEY = { secret = \"fixture-key\" } }\n",
+        None,
+    )
+    .unwrap();
+    let agent = agents.get(&"custom".parse().unwrap()).unwrap();
+    let profile = vessel_harness::Profile::default_added(Arc::clone(agent));
+    assert_eq!(
+        cacheable_profile(&profile).unwrap_err().code,
+        ErrorCode::Unsupported
+    );
+}

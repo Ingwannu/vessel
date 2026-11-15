@@ -28,7 +28,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use vessel_fleet::{Limits, Snapshot};
-use vessel_harness::{Profile, SessionFilesError};
+use vessel_harness::{Profile, Profiles, SessionFilesError};
 use vessel_proto::{
     ExportMemory, ExportSession, HarnessKind, ProfileName, SessionMode, TransferDetail,
     TransferManifest,
@@ -201,6 +201,15 @@ pub(crate) fn named(
     harness: Option<HarnessKind>,
     name: Option<&ProfileName>,
 ) -> Result<Profile, ServiceError> {
+    named_in(&profiles.current(), harness, name)
+}
+
+/// The same selection against an already captured immutable profile set.
+pub(crate) fn named_in(
+    profiles: &Profiles,
+    harness: Option<HarnessKind>,
+    name: Option<&ProfileName>,
+) -> Result<Profile, ServiceError> {
     let Some(name) = name else {
         return Ok(Profile::default_for(
             harness.unwrap_or(HarnessKind::ClaudeCode),
@@ -208,6 +217,7 @@ pub(crate) fn named(
     };
     let profile = profiles
         .get(name)
+        .cloned()
         .ok_or_else(|| ServiceError::UnknownProfile(name.clone()))?;
     match harness {
         Some(harness) if profile.harness() != harness => Err(ServiceError::ProfileHarness {
