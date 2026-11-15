@@ -187,6 +187,7 @@ const fn forwardable(method: Method) -> bool {
         // frames (`follow_terminal`), as a session's do.
         | Method::CreateTerminal
         | Method::CaptureTerminal
+        | Method::ListSharedHostRegistrations
         | Method::ListHostRegistrations
         | Method::AddHostRegistration
         | Method::UpdateHostRegistration

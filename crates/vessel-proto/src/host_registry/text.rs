@@ -1,4 +1,5 @@
-//! Host metadata is bounded before persistence; malformed files follow the same edge.
+//! Explicitly public display annotations are bounded before persistence and readable by local agents.
+//! These fields must never be populated from private credential/configuration stores.
 
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, fmt, str::FromStr};

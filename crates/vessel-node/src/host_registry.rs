@@ -7,7 +7,7 @@ use tokio::sync::{mpsc, oneshot};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 use vessel_proto::host_registry::{
     AddHostRegistration, HostDestination, HostRegistration, HostSource, RemoveHostRegistration,
-    UpdateHostRegistration,
+    SharedHostRegistrations, UpdateHostRegistration,
 };
 use vessel_store::{
     DataDir,
@@ -42,6 +42,8 @@ pub(crate) enum RegistryError {
     IdentityChanged,
     #[error("host registry is full")]
     Full,
+    #[error(transparent)]
+    SharedInventory(#[from] vessel_proto::host_registry::TooManySharedHosts),
     #[error("host registration revision is exhausted")]
     RevisionExhausted,
 }
@@ -57,6 +59,9 @@ enum Change {
 }
 #[derive(Debug)]
 enum Command {
+    ListShared {
+        reply: oneshot::Sender<Result<SharedHostRegistrations, RegistryError>>,
+    },
     List {
         source: HostSource,
         reply: oneshot::Sender<Vec<HostRegistration>>,
@@ -68,6 +73,17 @@ enum Command {
     },
 }
 impl HostRegistry {
+    /// Public projection happens inside the actor: no private records cross this boundary.
+    pub(crate) async fn shared(&self) -> Result<SharedHostRegistrations, RegistryError> {
+        let (reply, response) = oneshot::channel();
+        self.commands
+            .try_send(Command::ListShared { reply })
+            .map_err(|_failure| RegistryError::Busy)?;
+        tokio::time::timeout(RESPONSE_DEADLINE, response)
+            .await
+            .map_err(RegistryError::Timeout)?
+            .map_err(|_failure| RegistryError::Busy)?
+    }
     pub(crate) async fn start(
         dir: DataDir,
         stop: CancellationToken,
@@ -158,6 +174,9 @@ impl Owner {
             let command = tokio::select! { biased; ()=stop.cancelled()=>return, command=commands.recv()=>command };
             match command {
                 None => return,
+                Some(Command::ListShared { reply }) => {
+                    let _delivered = reply.send(self.state.shared());
+                }
                 Some(Command::List { source, reply }) => {
                     let _delivered = reply.send(self.state.list(source));
                 }

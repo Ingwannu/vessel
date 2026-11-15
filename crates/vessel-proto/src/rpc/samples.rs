@@ -19,7 +19,8 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
     let definition =
         json!({"cadence":cadence,"target":{"kind":"session","session":id},"prompt":"sample"});
     let params = match method {
-        Method::ListHostRegistrations
+        Method::ListSharedHostRegistrations
+        | Method::ListHostRegistrations
         | Method::NodeInfo
         | Method::ListHarnesses
         | Method::ListSessions

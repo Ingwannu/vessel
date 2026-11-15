@@ -389,6 +389,8 @@ macro_rules! method_table {
             RemoveHostRegistration / remove_host_registration / "host_registry.remove" [Admin, (pending $crate::host_registry::CLI_PARITY_PROTOCOL), unary]: $crate::host_registry::RemoveHostRegistration => $crate::Ack;
             /// Capture rendered terminal rows through the ordinary ownership gate.
             CaptureTerminal / capture_terminal / "terminal.capture" [Read, (pending $crate::host_registry::CLI_PARITY_PROTOCOL), unary]: $crate::terminals::CaptureTerminal => $crate::terminals::TerminalCapture;
+            /// Public inventory for direct local Read principals; never forwarded.
+            ListSharedHostRegistrations / list_shared_host_registrations / "host_registry.list_shared" [Read, (pending $crate::host_registry::CLI_PARITY_PROTOCOL), unary]: $crate::host_registry::ListSharedHostRegistrations => $crate::host_registry::SharedHostDirectory;
         }
     };
 }

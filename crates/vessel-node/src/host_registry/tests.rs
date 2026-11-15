@@ -1,6 +1,85 @@
 use super::*;
 use vessel_proto::host_registry::{HostEnabled, HostLabelChange, HostMetadata, IdentityChange};
 use vessel_proto::{DeviceId, NodeId};
+
+#[tokio::test]
+async fn shared_inventory_projects_all_sources_and_retains_disabled_records() {
+    let root = tempfile::tempdir().unwrap();
+    let data = DataDir::new(root.path());
+    let tasks = TaskTracker::new();
+    let stop = CancellationToken::new();
+    let registry = HostRegistry::start(data, stop.clone(), &tasks)
+        .await
+        .unwrap();
+    let destination = HostDestination::Fleet {
+        node: NodeId::random(),
+    };
+    let mut ids = Vec::new();
+    for source in [
+        HostSource::Owner,
+        HostSource::Device {
+            device: DeviceId::random(),
+        },
+    ] {
+        let record = registry
+            .add(
+                source,
+                AddHostRegistration {
+                    destination,
+                    label: Some("public worker".parse().unwrap()),
+                    metadata: std::collections::BTreeMap::from([(
+                        "role".parse().unwrap(),
+                        "build".parse().unwrap(),
+                    )])
+                    .try_into()
+                    .unwrap(),
+                },
+                TrustedDestinations(vec![destination]),
+            )
+            .await
+            .unwrap();
+        registry
+            .update(
+                source,
+                UpdateHostRegistration {
+                    registration_id: record.registration_id,
+                    expected_revision: record.revision,
+                    label: HostLabelChange::Keep,
+                    metadata: None,
+                    enabled: Some(HostEnabled::Disabled),
+                    destination: None,
+                    identity_change: IdentityChange::KeepPinned,
+                },
+                TrustedDestinations(Vec::new()),
+            )
+            .await
+            .unwrap();
+        ids.push(record.registration_id);
+        assert_eq!(registry.list(source).await.unwrap().len(), 1);
+    }
+    let shared = registry.shared().await.unwrap();
+    assert_eq!(shared.entries().len(), 2);
+    assert_eq!(
+        shared
+            .entries()
+            .iter()
+            .map(|row| row.registration_id)
+            .collect::<Vec<_>>(),
+        ids
+    );
+    for row in shared.entries() {
+        assert_eq!(row.destination, destination);
+        assert_eq!(row.label.as_ref().unwrap().as_str(), "public worker");
+        assert_eq!(
+            row.annotations.entries().values().next().unwrap().as_str(),
+            "build"
+        );
+        assert_eq!(row.destination_name, None);
+    }
+    stop.cancel();
+    let _closed = tasks.close();
+    tasks.wait().await;
+}
 #[tokio::test]
 async fn source_identity_revision_and_persistence_are_independent_of_transport_authority() {
     let dir = tempfile::tempdir().unwrap();

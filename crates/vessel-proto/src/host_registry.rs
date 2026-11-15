@@ -1,10 +1,15 @@
 //! Host directory references existing trust/transport authorities; no credentials live here.
 //! New RPC registration waits for Quality B and the integrator's feature version.
 
+mod shared;
 mod text;
 pub use crate::id::HostRegistrationId;
 use crate::{DeviceId, NodeId, ProtocolVersion};
 use serde::{Deserialize, Serialize};
+pub use shared::{
+    ListSharedHostRegistrations, SharedHostDirectory, SharedHostRegistration,
+    SharedHostRegistrations, TooManySharedHosts,
+};
 pub use text::{
     HostLabel, HostMetadata, InvalidHostText, LABEL_CHARS, METADATA_BYTES, METADATA_ENTRIES,
     METADATA_KEY_CHARS, METADATA_VALUE_CHARS, MetadataKey, MetadataValue,
@@ -117,7 +122,7 @@ pub struct HostRegistration {
     pub destination: HostDestination,
     /// Custom label; omitted follows destination display name.
     pub label: Option<HostLabel>,
-    /// Source-owned bounded display annotations.
+    /// Public bounded display annotations; local agents may read them across sources.
     pub metadata: HostMetadata,
     /// Directory state, independent of device revocation/fleet membership.
     pub enabled: HostEnabled,
@@ -137,7 +142,7 @@ pub struct AddHostRegistration {
     pub destination: HostDestination,
     /// An absent custom label follows the trusted destination label.
     pub label: Option<HostLabel>,
-    /// Bounded display metadata only.
+    /// Public display metadata readable by local agents; never credentials or private config.
     pub metadata: HostMetadata,
 }
 /// An edit compares the whole prior record's revision before changing anything.
@@ -151,7 +156,7 @@ pub struct UpdateHostRegistration {
     pub expected_revision: HostRevision,
     /// Keep, clear or replace the display label.
     pub label: HostLabelChange,
-    /// None leaves all metadata unchanged.
+    /// None preserves annotations; replacements are public to local agents, never secrets.
     pub metadata: Option<HostMetadata>,
     /// None preserves enabled state.
     pub enabled: Option<HostEnabled>,

@@ -1573,10 +1573,15 @@ normal dependency; its snapshot alone grants no signal authority. The later
 CLI signal edge remains proposed and is not added by this move.
 
 W17 stages `host_registry` (one source-owned persistent directory actor) and the
-`service/terminal_capture` handler behind unassigned `CLI_PARITY_PROTOCOL`. Five pending
+`service/terminal_capture` handler behind unassigned `CLI_PARITY_PROTOCOL`. Six pending
 rows live at the end of rpc/table.rs after Quality B; no version is assigned locally.
 Host data uses the store's owner-only atomic `host-registry.json` snapshot and contains
-references/annotations only, never credentials or a second paired/fleet authority.
+references/public annotations only, never credentials or a second paired/fleet authority.
+Its separate `host_registry.list_shared` Read row projects a bounded public inventory
+inside the same actor. Direct local Agent credentials may read across sources; a
+foreign Agent or any Delegated principal is denied. Management retains authenticated
+source ownership. Public serialization excludes source, revision and full NodeInfo;
+only existing observations may supply a display name. No record grants connectivity.
 
 The current W17 screen adapter is measurement input for C2 ADR0095. The coordinator
 requires one pure root vessel-terminal-screen crate shared by native view, D1 restore/query

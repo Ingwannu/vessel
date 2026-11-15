@@ -649,10 +649,11 @@ No result yet. Latest actor/CLI/schema/process tests, reviewed external contract
 shared-core consumption and the final whole root gate remain owed.
 
 
-### Host registry local-agent read policy — security ADR addendum (PROPOSED)
+### Host registry local-agent read policy — security ADR addendum (design reviewed; implementation pending checks)
 
-Status: coordinator ruling adopted for design; V3 security review is required
-**before any authorization, DTO, method-table or handler code is changed**.
+Status: V3 row202 SOURCE PASSED / GATE OWED on the docs-only 2bea422d
+security design, before implementation began. This is not a runtime or final
+implementation review pass.
 This section is W17's feature ADR (the initial package instructions allow an
 ADR section in the plan). It supersedes only the earlier blanket Agent read
 refusal; existing source-bound management and Admin writes remain unchanged.
@@ -778,3 +779,29 @@ source strict run and latest unit/process tests remain required.
 - Added parser-to-decoder regressions for data-dir + native init home, legacy
   node and new host selection, ordinary home aliases and conflicting selections.
   This is source-drafted evidence until the next updated CLI suite executes.
+
+
+### Public host inventory implementation (2026-11-15 12:40 UTC)
+
+[Decision Log]
+- Purpose: let W18 consume the approved local-agent inventory without source inheritance.
+- Existing assets: reuse the durable actor, bounded queue/deadline, typed display fields,
+  principal scope admission and table-generated dispatch. No dependency is introduced.
+- Alternatives: full-record serialization would leak source/revision; a second registry
+  or treating agents as Owner would create incorrect authority.
+- Choice: `host_registry.list_shared` is a separately typed, nonforwardable pending
+  Read row under the existing CLI_PARITY_PROTOCOL=None. `ListSharedHostRegistrations`
+  returns `SharedHostDirectory { node: NodeId, hosts: SharedHostRegistrations }`.
+- Reason: the actor projects only `SharedHostRegistration` fields (registration_id,
+  destination NodeId/kind, destination_name, label, annotations) across sources.
+  The bounded wrapper admits at most MAX_HOST_REGISTRATIONS on construction and decode.
+- Consequences: disabled and unavailable records remain inventory; no state/route is
+  inferred. Handler scope-checks Read and explicitly compares an Agent's node to this
+  node, denying every Delegated principal even for a local-looking origin. It neither
+  traverses Creator nor borrows an Owner source. Private management still uses source().
+
+API/CLI annotation write surfaces now explicitly state that local agents can read
+annotations; no private config, credential migration or heuristic redaction exists.
+Actor cross-source/disabled retention, serialized field allowlist, bounded decoding,
+local/foreign/delegated admission and pending client no-frame regressions are drafted.
+No compilation/test pass for this implementation or consumer-ready hash is claimed yet.

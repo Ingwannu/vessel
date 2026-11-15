@@ -12,6 +12,7 @@ pub(crate) enum HostCommand {
         connection: String,
         #[arg(long)]
         label: Option<HostLabel>,
+        /// Public annotations readable by local agents; never include secrets.
         #[arg(long)]
         meta: Vec<String>,
     },
@@ -23,6 +24,7 @@ pub(crate) enum HostCommand {
         connection: Option<String>,
         #[arg(long)]
         replace_identity: bool,
+        /// Public annotations readable by local agents; never include secrets.
         #[arg(long)]
         meta: Vec<String>,
         #[arg(long)]

@@ -2,7 +2,8 @@
 use super::{Change, RegistryError, TrustedDestinations};
 use vessel_proto::host_registry::{
     HostDestination, HostEnabled, HostLabelChange, HostRegistration, HostRegistrationId,
-    HostRevision, HostSource, IdentityChange, MAX_HOST_REGISTRATIONS,
+    HostRevision, HostSource, IdentityChange, MAX_HOST_REGISTRATIONS, SharedHostRegistration,
+    SharedHostRegistrations,
 };
 use vessel_store::host_registry::HostRegistryFile;
 
@@ -10,6 +11,21 @@ pub(super) struct State {
     entries: Vec<HostRegistration>,
 }
 impl State {
+    pub(super) fn shared(&self) -> Result<SharedHostRegistrations, RegistryError> {
+        // Explicit projection excludes authentication source, revisions and private state.
+        self.entries
+            .iter()
+            .map(|record| SharedHostRegistration {
+                registration_id: record.registration_id,
+                destination: record.destination,
+                destination_name: None,
+                label: record.label.clone(),
+                annotations: record.metadata.clone(),
+            })
+            .collect::<Vec<_>>()
+            .try_into()
+            .map_err(RegistryError::SharedInventory)
+    }
     pub(super) fn new(file: HostRegistryFile) -> Self {
         Self {
             entries: file.into_entries(),

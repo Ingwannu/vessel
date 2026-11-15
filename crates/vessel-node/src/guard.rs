@@ -324,6 +324,7 @@ untargeted!(
     // one it operates; who may open one and use it is the terminals' rule
     // (`service::terminals`), which checks an agent's ownership of the
     // session it opens one beside.
+    vessel_proto::host_registry::ListSharedHostRegistrations,
     vessel_proto::host_registry::ListHostRegistrations,
     vessel_proto::host_registry::AddHostRegistration,
     vessel_proto::host_registry::UpdateHostRegistration,

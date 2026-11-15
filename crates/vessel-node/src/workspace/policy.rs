@@ -281,6 +281,7 @@ const fn refused(method: Method) -> bool {
         // Terminals and ports (protocol 11): held to their own rule.
         | Method::CreateTerminal
         | Method::CaptureTerminal
+        | Method::ListSharedHostRegistrations
         | Method::ListHostRegistrations
         | Method::AddHostRegistration
         | Method::UpdateHostRegistration

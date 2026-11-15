@@ -1460,6 +1460,9 @@ This is a staged parity package. Workspace/provider configuration, detach, host 
 RPCs and terminal screen capture registration have explicit dependency refusals until their
 reviewed node contracts land. The complete 117-path inventory, ownership boundaries,
 reference flags/defaults and current differences are in [the W17 plan](docs/plans/wp-w17.md).
+Host annotations are explicitly public to local agents. The pending public inventory
+read exposes only approved display fields; it grants no connection or management
+authority and rejects foreign/forwarded agent principals.
 A parsed command or a matching name alone is not evidence of functional parity.
 
 The shared CLI presentation boundary is described in

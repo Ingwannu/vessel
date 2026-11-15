@@ -430,7 +430,8 @@ impl Method {
             | Self::GetAgentHistory => true,
             // Protocol 11: adding and removing an agent is the node's own
             // administration, by its owner or its own devices (ADR 0032).
-            Self::ListHostRegistrations
+            Self::ListSharedHostRegistrations
+            | Self::ListHostRegistrations
             | Self::AddHostRegistration
             | Self::UpdateHostRegistration
             | Self::RemoveHostRegistration

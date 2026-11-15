@@ -215,6 +215,7 @@ impl Call {
             | Self::MergePullRequest(_)
             | Self::SetFeedback(_)
             | Self::CreateTerminal(_)
+            | Self::ListSharedHostRegistrations(_)
             | Self::ListHostRegistrations(_)
             | Self::AddHostRegistration(_)
             | Self::UpdateHostRegistration(_)

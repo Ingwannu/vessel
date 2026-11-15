@@ -5,6 +5,15 @@ use vessel_proto::host_registry::{
     RemoveHostRegistration, UpdateHostRegistration,
 };
 impl NodeClient {
+    /// Read public cross-source inventory; foreign/forwarded agents remain forbidden.
+    /// # Errors
+    /// Unassigned/older peers refuse before sending; missing Read or nonlocal authority refuses.
+    pub async fn shared_host_registrations(
+        &self,
+    ) -> Result<vessel_proto::host_registry::SharedHostDirectory, CallError> {
+        self.call(vessel_proto::host_registry::ListSharedHostRegistrations)
+            .await
+    }
     /// Read caller-source registrations, including disabled/unreachable targets.
     /// # Errors
     /// An unassigned feature or older peer refuses before sending; otherwise normal RPC failures.

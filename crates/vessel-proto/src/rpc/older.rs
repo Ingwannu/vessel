@@ -264,6 +264,7 @@ impl Reply {
             | Self::KillTerminal(_)
             | Self::CloseTerminal(_)
             // Pending CLI rows are rejected by admission before any older peer receives them.
+            | Self::ListSharedHostRegistrations(_)
             | Self::ListHostRegistrations(_)
             | Self::AddHostRegistration(_)
             | Self::UpdateHostRegistration(_)

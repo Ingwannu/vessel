@@ -504,6 +504,7 @@ impl Handler for Fake {
     }
 
     unserved! {
+        list_shared_host_registrations: vessel_proto::host_registry::ListSharedHostRegistrations => vessel_proto::host_registry::SharedHostDirectory;
         list_host_registrations: vessel_proto::host_registry::ListHostRegistrations => vessel_proto::host_registry::HostDirectory;
         add_host_registration: vessel_proto::host_registry::AddHostRegistration => vessel_proto::host_registry::HostRegistration;
         update_host_registration: vessel_proto::host_registry::UpdateHostRegistration => vessel_proto::host_registry::HostRegistration;

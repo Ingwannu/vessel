@@ -12,6 +12,7 @@ use vessel_proto::{
         UpdateHostRegistration,
     },
 };
+mod shared;
 impl NodeService {
     pub(crate) async fn list_host_registrations(
         &self,
@@ -177,6 +178,7 @@ fn wire(error: &RegistryError) -> WireError {
         | RegistryError::Timeout(_)
         | RegistryError::Worker(_)
         | RegistryError::File(_)
+        | RegistryError::SharedInventory(_)
         | RegistryError::Full => ErrorCode::Unavailable,
     };
     WireError::new(code, error.to_string())

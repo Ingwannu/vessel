@@ -413,6 +413,10 @@ async fn cli_host_and_capture_calls_refuse_locally_until_assigned() {
         .await
         .unwrap();
     assert_eq!(
+        client.shared_host_registrations().await.unwrap_err().code(),
+        Some(ErrorCode::Unsupported)
+    );
+    assert_eq!(
         client.host_registrations().await.unwrap_err().code(),
         Some(ErrorCode::Unsupported)
     );
