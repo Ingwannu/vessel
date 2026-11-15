@@ -235,8 +235,12 @@ Root docs-only095f38c23 records the approved integration-test dev edge; prepared
 borrow runtime proof from root54. The root must be rebuilt on an announced head
 containing portable b37 checked-wait, not land the earlier 622 ancestry.
 
-The desktop-shell source552 receipt packet and later b0cef test-only portable
-waiter are provisionally consumed. Existing merge/layout behavior and this
+The desktop-shell source552 receipt packet, later b0cef test-only portable
+waiter and source15ffa serial geometry checkpoint fix are provisionally consumed.
+The writer fix retains newer accepted geometry when an older captured flush is
+enqueued late, including after debounce; explicit Final still forces its supplied
+snapshot and closes before acknowledgement. The immediate App currentness fence
+remains mandatory. Its deterministic late-enqueue regression is not yet executed. Existing merge/layout behavior and this
 package's own fields remain intact. The wait fixture does not pump GPUI foreground
 observers, preserving its receipt-before-observe race. Producer and actual consumer
 union execution, retry/deadline tests, C5 registration and retained-buffer barriers

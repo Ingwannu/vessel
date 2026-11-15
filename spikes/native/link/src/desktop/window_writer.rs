@@ -1,8 +1,9 @@
 //! A single blocking writer serializes debounced saves and the final close snapshot.
+//! Checkpoints preserve later accepted geometry even if their sender runs late.
 
-use std::sync::mpsc;
+use std::sync::{Arc, mpsc};
 
-use tokio::sync::oneshot;
+use tokio::sync::{oneshot, watch};
 use vessel_app_view::desktop::window::{SAVE_DELAY, WindowState};
 
 use super::{DesktopError, store::Store};
@@ -10,13 +11,20 @@ use super::{DesktopError, store::Store};
 const QUEUE_CAPACITY: usize = 64;
 
 enum Command {
-    Changed(WindowState),
+    Changed {
+        state: WindowState,
+        publication: Publication,
+    },
     Write {
         state: WindowState,
+        publication: Publication,
         mode: WriteMode,
         done: oneshot::Sender<Result<(), DesktopError>>,
     },
 }
+
+#[derive(Debug, Clone)]
+struct Publication(Arc<()>);
 
 #[derive(Clone, Copy)]
 enum WriteMode {
@@ -28,6 +36,7 @@ enum WriteMode {
 #[derive(Debug)]
 pub struct WindowWriter {
     commands: mpsc::SyncSender<Command>,
+    publication: watch::Sender<Publication>,
 }
 
 impl WindowWriter {
@@ -37,10 +46,15 @@ impl WindowWriter {
     /// Thread startup failures preserve the original OS cause.
     pub fn start(store: Store) -> Result<Self, DesktopError> {
         let (commands, receiver) = mpsc::sync_channel(QUEUE_CAPACITY);
+        let initial = Publication(Arc::new(()));
+        let (publication, _initial) = watch::channel(initial.clone());
         let _worker = std::thread::Builder::new()
             .name("vessel-window-state".into())
-            .spawn(move || run(&store, receiver))?;
-        Ok(Self { commands })
+            .spawn(move || run(&store, receiver, initial))?;
+        Ok(Self {
+            commands,
+            publication,
+        })
     }
 
     /// Backpressure is explicit; a full queue never blocks an input handler.
@@ -48,12 +62,18 @@ impl WindowWriter {
     /// # Errors
     /// A full or closed worker requires the caller to report failure.
     pub fn changed(&self, state: WindowState) -> Result<(), DesktopError> {
+        let publication = Publication(Arc::new(()));
         self.commands
-            .try_send(Command::Changed(state))
+            .try_send(Command::Changed {
+                state,
+                publication: publication.clone(),
+            })
             .map_err(|error| match error {
                 mpsc::TrySendError::Full(_) => DesktopError::Busy,
                 mpsc::TrySendError::Disconnected(_) => DesktopError::Closed,
-            })
+            })?;
+        let _previous = self.publication.send_replace(publication);
+        Ok(())
     }
 
     /// A final save is queued after all previous writes and acknowledged once done.
@@ -69,6 +89,8 @@ impl WindowWriter {
 
     /// Persist the latest bounds before quit/restart without closing the worker.
     /// A refused document guard or failed restart can keep this app running.
+    /// If geometry arrived after capture, persist that newer actor state; the
+    /// lifecycle owner still needs its immediate UI currentness fence.
     ///
     /// # Errors
     /// File refusal and worker/channel failures retain the same typed cause.
@@ -85,6 +107,9 @@ impl WindowWriter {
         mode: WriteMode,
     ) -> impl Future<Output = Result<(), DesktopError>> + 'static + use<> {
         let commands = self.commands.clone();
+        // Capture now, before the future's blocking sender is scheduled. A
+        // later accepted geometry must not be erased by this older checkpoint.
+        let publication = self.publication.borrow().clone();
         async move {
             let (done, wait) = oneshot::channel();
             // Sending can wait for capacity, so it runs on a dedicated blocking
@@ -92,15 +117,21 @@ impl WindowWriter {
             let _sender = std::thread::Builder::new()
                 .name("vessel-window-flush".into())
                 .spawn(move || {
-                    drop(commands.send(Command::Write { state, mode, done }));
+                    drop(commands.send(Command::Write {
+                        state,
+                        publication,
+                        mode,
+                        done,
+                    }));
                 })?;
             wait.await.map_err(|_closed| DesktopError::Closed)?
         }
     }
 }
 
-fn run(store: &Store, receiver: mpsc::Receiver<Command>) {
+fn run(store: &Store, receiver: mpsc::Receiver<Command>, mut publication: Publication) {
     let mut pending = None;
+    let mut latest = None;
     loop {
         let next = if pending.is_some() {
             receiver.recv_timeout(SAVE_DELAY)
@@ -110,9 +141,28 @@ fn run(store: &Store, receiver: mpsc::Receiver<Command>) {
                 .map_err(|_closed| mpsc::RecvTimeoutError::Disconnected)
         };
         match next {
-            Ok(Command::Changed(state)) => pending = Some(state),
-            Ok(Command::Write { state, mode, done }) => {
+            Ok(Command::Changed {
+                state,
+                publication: next,
+            }) => {
+                publication = next;
+                latest = Some(state);
+                pending = Some(state);
+            }
+            Ok(Command::Write {
+                state,
+                publication: captured,
+                mode,
+                done,
+            }) => {
+                let state = match mode {
+                    WriteMode::Checkpoint if !Arc::ptr_eq(&publication.0, &captured.0) => {
+                        latest.unwrap_or(state)
+                    }
+                    WriteMode::Checkpoint | WriteMode::Final => state,
+                };
                 pending = None;
+                latest = Some(state);
                 let saved = store.save_window(state);
                 match mode {
                     WriteMode::Checkpoint => drop(done.send(saved)),
@@ -153,6 +203,36 @@ mod tests {
         fn drop(&mut self) {
             let _cleanup = std::fs::remove_dir_all(&self.0);
         }
+    }
+
+    #[tokio::test]
+    async fn delayed_checkpoint_sender_cannot_erase_geometry_accepted_after_capture() {
+        use vessel_app_view::desktop::window::Presentation;
+        let root = Temp(std::env::temp_dir().join(format!(
+            "vessel-window-checkpoint-order-{}",
+            vessel_proto::SessionId::random()
+        )));
+        let store = Store::new(root.0.clone()).unwrap();
+        let writer = WindowWriter::start(store.clone()).unwrap();
+        let older = WindowState::default();
+        let newer =
+            WindowState::new(Some((40.0, 50.0)), 900.0, 700.0, Presentation::Windowed).unwrap();
+        writer.changed(older).unwrap();
+        // The future captures A now, but its dedicated sender starts only
+        // when it is polled below, after Changed(B) has entered the queue.
+        let captured = writer.flush(older);
+        writer.changed(newer).unwrap();
+        captured.await.unwrap();
+        assert_eq!(store.load_window().unwrap(), Some(newer));
+        let finalizing = writer.finalize(newer);
+        writer.changed(older).unwrap();
+        finalizing.await.unwrap();
+        assert_eq!(
+            store.load_window().unwrap(),
+            Some(newer),
+            "explicit final snapshot wins"
+        );
+        assert!(matches!(writer.changed(older), Err(DesktopError::Closed)));
     }
 
     #[tokio::test]
