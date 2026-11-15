@@ -221,3 +221,16 @@ silently taking Rust's different Unicode White_Space set. Primary reference:
 [ECMA-262 TrimString](https://tc39.es/ecma262/multipage/text-processing.html#sec-trimstring)
 and [White Space/Line Terminators](https://tc39.es/ecma262/multipage/ecmascript-language-lexical-grammar.html#sec-white-space).
 Unit fixtures cover ASCII/Unicode blanks, inner text retention and encoded values.
+
+
+Shared Editability8eac02e8+497dd62e is now V1 SOURCE + REQUESTED NARROW PROOF
+PASS: exact kit all-target Clippy0 and real keyboard test1/0/0 (Line+Lines in one
+case), independently audited specs/TSV/log hashes. Audit:
+/tmp/work/m12-review/w4-497-shared-field-narrow-audit.json. Package base6036 has
+byte-identical kit, native manifest and lock; A8 merged it at541b5392.
+This is bounded editor-policy proof, not RPC/authority/OS/IME/UI parity proof.
+
+Latest local all-four-crate narrow on6761865c exited101 for four missing named
+field doc comments in the new public link Response enum. Those comments are
+added before merging announced package base4. The run stopped before checking
+app, so it is not a passing compile/test result for A8.

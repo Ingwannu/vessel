@@ -14,12 +14,16 @@ pub(crate) use native::Hub;
 pub enum Response {
     /// Preserve the provider's exact selected option id.
     Permission {
+        /// The exact waiting permission, never a session-wide default.
         id: PermissionId,
+        /// An option actually offered by that request's provider.
         option: PermissionOptionId,
     },
     /// Preserve the typed form and its request id.
     Question {
+        /// The exact form whose typed values are being returned.
         id: QuestionId,
+        /// Validated field values, or the person's explicit decline.
         answer: QuestionAnswer,
     },
 }
