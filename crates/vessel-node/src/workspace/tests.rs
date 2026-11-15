@@ -3,6 +3,7 @@
 
 mod comparison;
 mod git_history;
+mod git_writes;
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};

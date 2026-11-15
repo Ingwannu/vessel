@@ -180,7 +180,8 @@ impl Workspaces {
         paths: &PathSet,
         change: IndexChange,
     ) -> Result<GitStatus, WorkspaceError> {
-        let resolved = self.resolve_git(root).await?;
+        let operation = self.locked_git(root).await?;
+        let resolved = &operation.target;
         let _mutation = self
             .comparisons
             .mutating(root, super::comparison::Change::Working);
@@ -191,7 +192,7 @@ impl Workspaces {
             IndexChange::Unstage => git.unstage(dir, paths).await?,
             IndexChange::Discard { untracked } => git.discard(dir, paths, untracked).await?,
         }
-        self.status_of(&resolved).await
+        self.status_of(resolved).await
     }
 
     /// `git.commit`.
@@ -204,7 +205,8 @@ impl Workspaces {
         message: &CommitMessage,
         stage: CommitStage,
     ) -> Result<CommitOutcome, WorkspaceError> {
-        let resolved = self.resolve_git(root).await?;
+        let operation = self.locked_git(root).await?;
+        let resolved = &operation.target;
         let _mutation = self
             .comparisons
             .mutating(root, super::comparison::Change::Repository);
@@ -223,7 +225,8 @@ impl Workspaces {
         root: WorkspaceRoot,
         remote: Option<&RemoteName>,
     ) -> Result<FetchOutcome, WorkspaceError> {
-        let resolved = self.resolve_git(root).await?;
+        let operation = self.locked_git(root).await?;
+        let resolved = &operation.target;
         let _mutation = self
             .comparisons
             .mutating(root, super::comparison::Change::History);
@@ -240,7 +243,8 @@ impl Workspaces {
         remote: Option<&RemoteName>,
         set_upstream: bool,
     ) -> Result<PushOutcome, WorkspaceError> {
-        let resolved = self.resolve_git(root).await?;
+        let operation = self.locked_git(root).await?;
+        let resolved = &operation.target;
         let _mutation = self
             .comparisons
             .mutating(root, super::comparison::Change::History);
@@ -258,7 +262,8 @@ impl Workspaces {
         &self,
         root: WorkspaceRoot,
     ) -> Result<PullOutcome, WorkspaceError> {
-        let resolved = self.resolve_git(root).await?;
+        let operation = self.locked_git(root).await?;
+        let resolved = &operation.target;
         let _mutation = self
             .comparisons
             .mutating(root, super::comparison::Change::Repository);
@@ -275,7 +280,8 @@ impl Workspaces {
         branch: &BranchName,
         create: Option<&WorktreeBase>,
     ) -> Result<SwitchOutcome, WorkspaceError> {
-        let resolved = self.resolve_git(root).await?;
+        let operation = self.locked_git(root).await?;
+        let resolved = &operation.target;
         let _mutation = self
             .comparisons
             .mutating(root, super::comparison::Change::Repository);
@@ -298,7 +304,8 @@ impl Workspaces {
         from: Option<&BranchName>,
         to: &BranchName,
     ) -> Result<RenameOutcome, WorkspaceError> {
-        let resolved = self.resolve_git(root).await?;
+        let operation = self.locked_git(root).await?;
+        let resolved = &operation.target;
         let _mutation = self
             .comparisons
             .mutating(root, super::comparison::Change::Repository);
@@ -324,7 +331,8 @@ impl Workspaces {
         root: WorkspaceRoot,
         action: &StashAction,
     ) -> Result<StashOutcome, WorkspaceError> {
-        let resolved = self.resolve_git(root).await?;
+        let operation = self.locked_git(root).await?;
+        let resolved = &operation.target;
         let _mutation = self
             .comparisons
             .mutating(root, super::comparison::Change::Working);

@@ -28,6 +28,7 @@ mod files;
 mod forge;
 mod git;
 mod git_history;
+mod git_writes;
 mod policy;
 mod projects;
 mod roots;
@@ -166,6 +167,7 @@ pub(crate) struct Workspaces {
     indexes: Arc<Indexes>,
     /// Comparison reservations outlive disconnected reply receivers.
     comparisons: comparison::Reader,
+    git_writers: git_writes::Writers,
     /// Running `file.find`s by caller and key, so a newer one stops the
     /// older one.
     searches: Mutex<HashMap<(Holder, u32), (u64, CancellationToken)>>,
@@ -238,6 +240,7 @@ impl Workspaces {
             state: Mutex::new(State::default()),
             indexes: Arc::new(Indexes::default()),
             comparisons: comparison::Reader::default(),
+            git_writers: git_writes::Writers::default(),
             searches: Mutex::new(HashMap::new()),
             search_count: AtomicU64::new(0),
             removed,

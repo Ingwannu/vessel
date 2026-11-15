@@ -143,3 +143,13 @@ and takes base plus project_default from the same resolved authority snapshot.
 Missing qualified base and output bounds are typed outcomes, distinct from an
 empty complete history. Neither legacy log paging nor a new per-client worker
 pool is used. Registration stays pending until package admission.
+
+### Mutation ordering
+
+Git RPC writes share a bounded project reservation across registered worktrees.
+A fresh root snapshot after waiting must match the original directory/project;
+queued work cannot follow a moved record. The weak lock directory carries only
+coordination handles. This does not serialize external CLI/agent processes or
+project/worktree lifecycle calls, and does not claim filesystem sandboxing.
+Multi-command merge cleanup must additionally live in the node task tracker
+until restoration completes, even if its requesting connection disappears.

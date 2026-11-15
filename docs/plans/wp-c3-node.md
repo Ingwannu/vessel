@@ -320,3 +320,33 @@ library tests never started. Add it to the existing no-session-target list:
 this is a registered-root read under its method Read scope and workspace agent
 policy, not a session ownership operation. The node still revalidates the root.
 A new changed-source remote run is required; no previous result is relabeled.
+
+## Git RPC mutation reservation
+
+The existing index/commit/fetch/push/pull/switch/rename/stash entry points now
+share a project-keyed mutation reservation, covering that project's registered
+worktrees. At most64 writers wait/execute. A weak mutex directory retains no
+closed project; only coordination metadata is recoverable after poisoning, never
+authority or repository facts. No map guard is held across await. Waiting checks
+node shutdown; after acquiring the project lease, the node re-resolves the
+original root and refuses a changed directory/project rather than retargeting.
+
+This is a prerequisite for a multi-command checkout/merge/restore operation,
+not that operation's implementation. It serializes Git RPC writes only: external
+CLI/agents and project/worktree lifecycle operations are not globally locked.
+No filesystem isolation or atomic snapshot is claimed. The lock ordering is
+project reservation, then a fresh short registry snapshot; the registry lock is
+released before I/O. Existing mutation-cache invalidation remains inside it.
+
+Added unexecuted source tests cover FIFO for one project, independent projects,
+64-slot refusal, shutdown while waiting, weak cleanup and a real registered-root
+replacement after queue admission. No sleeps/polling timers coordinate these;
+a test-only Notify exposes the actual admission boundary. Production has no
+notify counter. The current860 remote suite is prior-source and excludes these.
+
+Mutation admission now captures a named registry-only root Snapshot before the
+64-slot reservation; no filesystem work precedes capacity admission. The old
+eight-field tuple is extracted to named project/worktree snapshot helpers,
+retaining all base/default/pinned facts from the same lock and the old mapping.
+The post-wait resolve remains the only filesystem authorization and is compared
+with that original candidate path/project. No snapshot is a substitute for it.

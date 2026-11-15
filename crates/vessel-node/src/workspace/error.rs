@@ -13,6 +13,12 @@ use vessel_workspace::paths::PathError;
 /// A workspace call's failure.
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum WorkspaceError {
+    /// Bounded mutation admission is full or the node is stopping.
+    #[error(transparent)]
+    GitWriteAdmission(#[from] super::git_writes::WriteAdmission),
+    /// Waiting never permits following a replacement registered directory.
+    #[error("the repository changed while waiting; refresh before trying again")]
+    GitTargetChanged,
     /// The node found no usable git.
     #[error("this machine has no usable git (2.25 or newer)")]
     NoGit,
@@ -152,8 +158,9 @@ impl WorkspaceError {
             | Self::UnknownSnapshot(_)
             | Self::NoSuchPath(_) => ErrorCode::NotFound,
             Self::Invalid(_) => ErrorCode::InvalidRequest,
-            Self::Conflict(_) => ErrorCode::Conflict,
+            Self::Conflict(_) | Self::GitTargetChanged => ErrorCode::Conflict,
             Self::Busy(_)
+            | Self::GitWriteAdmission(_)
             | Self::Git(GitError::TimedOut { .. })
             | Self::ComparisonJob(JobError::Busy | JobError::Closed)
             | Self::ComparisonCache(CacheError::Refused(_)) => ErrorCode::Unavailable,
