@@ -242,7 +242,7 @@ impl SessionError {
             )
             | Self::StartAgent(
                 vessel_agent::AgentError::NoDriver(_)
-                | vessel_agent::AgentError::Refused(vessel_agent::LaunchRefusal::Fork(_)),
+                | vessel_agent::AgentError::Refused(vessel_agent::LaunchRefusal::Fork(_) | vessel_agent::LaunchRefusal::SystemPromptUnsupported(_)),
             )
             | Self::Unsupported { .. }
             | Self::NoOptions

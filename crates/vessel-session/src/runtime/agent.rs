@@ -295,6 +295,7 @@ impl SessionRuntime {
             // never changes whether the agent may ask.
             questions: false,
             fork: None,
+            system_prompt: None,
             private_dir: self.private_dir(),
         };
         let (reply, answer) = oneshot::channel();
@@ -344,6 +345,7 @@ pub(super) fn probe_setup(cwd: PathBuf, handshake_timeout: Duration) -> AgentSet
         handshake_timeout,
         questions: false,
         fork: None,
+        system_prompt: None,
         private_dir: None,
     }
 }

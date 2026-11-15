@@ -46,3 +46,21 @@ to setup.rs and re-exported from its existing path before the field is added.
 This refactor changes no input, behaviour or test expectation; protocol logic
 stays in handshake.rs. The feature commit then adds the optional field and
 completes existing literals with None.
+
+## Implemented contract
+
+AgentSetup now has system_prompt: Option<SystemPromptOverride> in setup.rs,
+re-exported from its previous path. The value has bounded validation and
+redacted Debug, with no persistence codec. Driver capability delegates to the
+harness transport policy. Every current driver reports Unsupported and the
+spawn boundary returns LaunchRefusal::SystemPromptUnsupported before looking
+for an executable, including drivers not built in this version. Session error
+mapping preserves the Unsupported wire classification. No driver request or
+user prompt is sent by this change.
+
+Existing AgentSetup literals are completed with None only in the session's
+again/runtime launch and probe constructors, driver test setup, ACP/Codex
+integration test setup and Claude launch/session test setup. No existing test
+assertion, provider choice or option-completion arm is changed. New tests pin
+the shared bound, controls, redacted setup/error Debug and pre-spawn refusal
+for every current transport. Checks and execution are pending.

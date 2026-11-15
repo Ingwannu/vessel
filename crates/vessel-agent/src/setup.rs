@@ -9,6 +9,9 @@ use vessel_proto::{HarnessSessionId, ModelId, OptionChoice, ResolvedMcpServers};
 /// What the session should start with.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AgentSetup {
+    /// Launch-only system instructions for a transport with a tested replace
+    /// and restore contract. Never copied into persistent specs or user logs.
+    pub system_prompt: Option<crate::SystemPromptOverride>,
     /// Working directory of the ACP session (absolute).
     pub cwd: PathBuf,
     /// Model to select, if not the agent's default.

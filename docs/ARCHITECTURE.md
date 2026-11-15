@@ -1536,3 +1536,15 @@ name `vessel_proc` in store to `src/lock/`, which delegates the lock query
 only. The real CLI caller restricts proc's signal entry point to the force
 module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
+
+## Transient system-context launch boundary
+
+`vessel-agent::setup` owns AgentSetup separately from the ACP handshake state
+machine and re-exports preserve the existing public path. Its optional
+SystemPromptOverride is a bounded non-serializable instruction value.
+`vessel-harness::system_prompt` owns the transport capability beside launch
+policy; no transport currently advertises support. AgentProcess refuses an
+unsupported override before process spawn, with a typed Unsupported mapping.
+The field does not enter SessionSpec, user messages, argv or environment.
+Reload orchestration and actual native override/restore transports are separate
+work; see docs/plans/provider-transient-context.md. No dependency edge changes.
