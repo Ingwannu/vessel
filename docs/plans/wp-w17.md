@@ -245,3 +245,10 @@ locked dependency version was updated.
 - Host types, bounded text/metadata and a source-owned actor/file store are staged. Tests cover
   identity replacement, stale updates, other-source refusal, canceled reply receiver, persisted
   state, private modes and symlink rejection. Actual host RPC registration/routing remains pending.
+
+## Structural extraction before pending registration
+
+The unchanged Request/UnexpectedReply contracts move from rpc.rs to rpc/contract.rs;
+node model client/listener setup moves unchanged to node/model_setup.rs. This behavior-only
+refactor keeps the method table and node assembly within their existing shrinking budgets
+without raising either record. Public imports and tests retain their original meaning.
