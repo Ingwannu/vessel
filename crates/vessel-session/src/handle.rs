@@ -12,6 +12,7 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use tokio::sync::{mpsc, watch};
 use tokio_util::sync::CancellationToken;
 use vessel_agent::{AgentInput, Driver};
+use vessel_proc::ProcessLifetime;
 use vessel_proto::{
     Conversation, EventSeq, ModelCall, OptionChoice, SessionId, SessionInfo, SessionOption,
     SessionTitle, TurnPoint,
@@ -81,6 +82,8 @@ pub(crate) struct Shared {
     /// replaced when a move starts another agent (protocol 11: the ports a
     /// session listens on are found from it, ADR 0031).
     pub(crate) pid: AtomicU32,
+    /// Observer from the actual runner, never minted from this numeric PID.
+    pub(crate) process: Mutex<Option<ProcessLifetime>>,
 }
 
 impl Shared {
@@ -368,6 +371,21 @@ impl SessionHandle {
     pub fn pid(&self) -> Option<u32> {
         let pid = self.0.pid.load(Ordering::Acquire);
         (pid != 0 && !self.has_ended()).then_some(pid)
+    }
+
+    /// Observe the current runner issuance; an ended or revoked run grants none.
+    #[must_use]
+    pub fn process_lifetime(&self) -> Option<ProcessLifetime> {
+        if self.has_ended() {
+            return None;
+        }
+        self.0
+            .process
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .as_ref()
+            .filter(|process| process.is_live())
+            .cloned()
     }
 
     /// Record one model call the node's proxy made for this session
