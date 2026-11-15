@@ -35,6 +35,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Type, TypeExt as _};
 use vessel_app_link::{Act, ActAnswer, ActFailed, ActKind, Acted, Command};
+use vessel_app_view::fork::{Notice, PreparedNotice};
 use vessel_app_view::timeline::{Folds, Logs, Until, empty_fork, origin_of};
 use vessel_proto::{ErrorCode, EventRecord, SessionId};
 
@@ -64,7 +65,7 @@ pub(crate) enum Origin {
     /// opened again (`from`, `until` kept for it).
     Unread {
         removed: bool,
-        message: String,
+        notice: PreparedNotice,
         from: SessionId,
         until: Until,
     },
@@ -117,12 +118,7 @@ pub(super) enum Above<'a> {
     /// The origin's turns: the line is their divider.
     Turns,
     /// The origin could not be read.
-    Unread {
-        /// The node no longer has it.
-        removed: bool,
-        /// Why, otherwise.
-        message: &'a str,
-    },
+    Unread(&'a PreparedNotice),
 }
 
 impl ConversationArea {
@@ -140,12 +136,7 @@ impl ConversationArea {
     pub(super) fn above(&self) -> Above<'_> {
         match &self.origin {
             Origin::Shown(origin) if !origin.rows.is_empty() => Above::Turns,
-            Origin::Unread {
-                removed, message, ..
-            } => Above::Unread {
-                removed: *removed,
-                message,
-            },
+            Origin::Unread { notice, .. } => Above::Unread(notice),
             Origin::Wanted { .. } | Origin::Reading { .. } => Above::Reading,
             Origin::None | Origin::Shown(_) => Above::Nothing,
         }
@@ -208,6 +199,13 @@ impl ConversationArea {
 }
 
 impl Shell {
+    /// Only reword the retained result; reading/retrying and row state stay put.
+    pub(super) fn translate_origin_notice(&mut self) {
+        if let Origin::Unread { notice, .. } = &mut self.areas.conversation.origin {
+            notice.translate(self.words);
+        }
+    }
+
     /// Read the shown fork's origin, when it is wanted.
     pub(super) fn origin_read(&mut self) {
         let area = &mut self.areas.conversation;
@@ -272,9 +270,10 @@ impl Shell {
             }
             Err(ActFailed { code, message }) => {
                 if let Origin::Reading { from, until, .. } = area.origin {
+                    tracing::warn!(?code, %message, "fork origin unreadable");
                     area.origin = Origin::Unread {
                         removed: *code == Some(ErrorCode::NotFound),
-                        message: message.clone(),
+                        notice: PreparedNotice::new(Notice::Origin((*code).into()), self.words),
                         from,
                         until,
                     };
@@ -348,7 +347,7 @@ pub(super) fn forked_line(paint: &Paint<'_>, words: String) -> AnyElement {
                 .child(rule())
                 .into_any_element()
         }
-        Above::Unread { removed, message } => div()
+        Above::Unread(notice) => div()
             .flex()
             .flex_col()
             .child(line)
@@ -358,7 +357,7 @@ pub(super) fn forked_line(paint: &Paint<'_>, words: String) -> AnyElement {
                     .face(Type::Meta)
                     .text_size(px(vessel_app_kit::fonts::ui(super::look::WORK_SIZE)))
                     .text_color(look.secondary)
-                    .child(paint.words.origin_unread(removed, message)),
+                    .child(vessel_app_kit::ui::SharedString::from(notice.words())),
             )
             .into_any_element(),
         Above::Reading => {
@@ -383,3 +382,6 @@ pub(super) fn forked_line(paint: &Paint<'_>, words: String) -> AnyElement {
         Above::Nothing => line.into_any_element(),
     }
 }
+
+#[cfg(test)]
+mod language_tests;

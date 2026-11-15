@@ -190,13 +190,17 @@ pub(crate) async fn ports(target: &Target, ports: &Ports) -> Result<(), CliError
     if !ports.watch {
         return Ok(());
     }
+    // The receiver must outlive each printed snapshot, including a slow pipe.
+    let interrupt = tokio::signal::ctrl_c();
+    tokio::pin!(interrupt);
     loop {
         let next = tokio::select! {
-            next = client.call(ListPorts { changed_from: Some(list.revision) }) => next?,
-            interrupted = tokio::signal::ctrl_c() => {
+            biased;
+            interrupted = &mut interrupt => {
                 interrupted?;
                 return Ok(());
             }
+            next = client.call(ListPorts { changed_from: Some(list.revision) }) => next?,
         };
         if next.revision != list.revision {
             out(&format!("\n{}", ports_text(&next))).await?;

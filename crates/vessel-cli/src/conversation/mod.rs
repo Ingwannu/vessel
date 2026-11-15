@@ -5,7 +5,9 @@
 //! prints what the node answered (formatting is `render`'s); a refusal is
 //! the node's typed error, printed as every command prints one.
 
-mod answer;
+pub(crate) mod answer;
+pub(crate) mod comparison;
+mod file_input;
 mod queue;
 mod send;
 
@@ -28,6 +30,20 @@ use crate::{io, render};
 pub(crate) async fn command(target: &Target, command: ConversationCommand) -> Result<(), CliError> {
     let client = connect(target).await?.client;
     match command {
+        ConversationCommand::Compare(args) => comparison::run(&client, args).await,
+        ConversationCommand::Side { session, question } => {
+            let info = session.resolve(&client).await?;
+            let side = if info.spec.side_question_of.is_some() {
+                info
+            } else {
+                client.open_side_question(info.id).await?
+            };
+            if let Some(question) = question {
+                let _delivered = client.prompt_side_question(side.id, question).await?;
+            }
+            io::out(format!("{}\n", side.id).as_bytes()).await?;
+            Ok(())
+        }
         ConversationCommand::Queue { session, change } => {
             let id = session.resolve(&client).await?.id;
             queue::queue(&client, id, change).await

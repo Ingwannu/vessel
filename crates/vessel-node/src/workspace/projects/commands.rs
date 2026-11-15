@@ -102,6 +102,7 @@ impl Workspaces {
                     setup: file.setup,
                     teardown: file.teardown,
                     scripts: file.scripts,
+                    terminals: file.terminals,
                 };
                 let (approved, last_approved) = {
                     let mut state = self.state();
@@ -117,6 +118,7 @@ impl Workspaces {
                     setup: set.setup,
                     teardown: set.teardown,
                     scripts: set.scripts,
+                    terminals: set.terminals,
                     digest,
                     last_approved,
                 }

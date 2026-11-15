@@ -24,6 +24,7 @@ use std::time::Duration;
 use vessel_proc::{CommandSpec, Signal};
 use vessel_proto::{AgentAbilities, AgentEvent, SessionOption};
 
+use crate::drivers::Driver;
 use crate::error::{AgentError, Disconnect};
 use crate::handshake::AgentSetup;
 use crate::introduction::Introduction;
@@ -104,6 +105,21 @@ enum Unready {
 /// [`ProbeError::Disconnected`] or [`ProbeError::TimedOut`] when the
 /// handshake does not complete.
 pub async fn probe(command: &CommandSpec, setup: AgentSetup) -> Result<Probed, ProbeError> {
+    probe_with(Driver::Acp, command, setup).await
+}
+
+/// [`probe`] over the protocol `driver` speaks (ADR 0057): what the agent
+/// offers comes through the same outputs whichever driver runs it.
+///
+/// # Errors
+/// As [`probe`]; [`ProbeError::Spawn`] holds
+/// [`AgentError::NoDriver`](crate::AgentError::NoDriver) for a driver this
+/// build does not run.
+pub async fn probe_with(
+    driver: Driver,
+    command: &CommandSpec,
+    setup: AgentSetup,
+) -> Result<Probed, ProbeError> {
     // Never questions, whatever the caller set: nobody watches a probe,
     // and what the agent offers does not depend on it.
     let setup = AgentSetup {
@@ -112,7 +128,7 @@ pub async fn probe(command: &CommandSpec, setup: AgentSetup) -> Result<Probed, P
     };
     let limit = setup.handshake_timeout;
     let (mut agent, _input, mut outputs) =
-        AgentProcess::spawn(command, setup).map_err(ProbeError::Spawn)?;
+        AgentProcess::spawn_with(driver, command, setup).map_err(ProbeError::Spawn)?;
     let mut log: Vec<String> = Vec::new();
     let mut options = None;
     let mut introduction = Introduction::default();

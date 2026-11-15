@@ -72,16 +72,23 @@ fn decode(call: &RawJson) -> Result<UnaryCall, Failure> {
 )]
 const fn forwardable(method: Method) -> bool {
     match method {
-        Method::NodeInfo
+        Method::GetUsageLimits
+        | Method::SetUsageLookup
+        | Method::QueryUsage
+        | Method::NodeInfo
         | Method::ListHarnesses
         | Method::ListSessions
         | Method::GetSession
+        | Method::OpenSideQuestion
+        | Method::PromptSideQuestion
+        | Method::ResetSideQuestion
         | Method::CreateSession
         | Method::SendInput
         | Method::KillSession
         | Method::ReadEvents
         | Method::StopNode
         | Method::InviteDevice
+        | Method::GetDeviceSelf
         | Method::ListDevices
         | Method::RevokeDevice
         | Method::ListProfiles
@@ -201,6 +208,8 @@ const fn forwardable(method: Method) -> bool {
         | Method::LeaveFleet
         | Method::SyncFleet
         | Method::GetFleetStatus
+        // A person's read of what the machine shares (ADR 0056).
+        | Method::GetPublished
         | Method::PreviewSchedule
         | Method::ListSchedules
         | Method::GetSchedule
@@ -215,6 +224,13 @@ const fn forwardable(method: Method) -> bool {
         | Method::CreatePrompt
         | Method::UpdatePrompt
         | Method::DeletePrompt
+        | Method::ListInbox
+        | Method::GetInboxEntry
+        | Method::MarkInbox
+        | Method::GetPushKey
+        | Method::SubscribePush
+        | Method::UnsubscribePush
+        | Method::ReportPushPresence
         // Protocol 12: searching every session's messages.
         | Method::SearchMessages
         // Protocol 12: parking and waking a session's agent.
@@ -225,7 +241,9 @@ const fn forwardable(method: Method) -> bool {
         | Method::SetNodeSettings
         // Protocol 14: forking and rewinding a session (ADR 0052).
         | Method::ForkSession
-        | Method::RewindSession => true,
+        | Method::RewindSession
+        // Protocol 17: an agent's own history (ADR 0053).
+        | Method::GetAgentHistory => true,
         Method::Subscribe
         | Method::SubscribeTerminal
         | Method::Unsubscribe
@@ -251,7 +269,9 @@ fn failure(error: CallError) -> Failure {
             negotiated,
         },
         CallError::Disconnected => Failure::Disconnected,
-        CallError::UnexpectedReply(_) | CallError::RequestIdsExhausted => Failure::Failed {
+        CallError::UnexpectedReply(_)
+        | CallError::RequestIdsExhausted
+        | CallError::UnassignedProtocol { .. } => Failure::Failed {
             message: error.to_string(),
         },
     }

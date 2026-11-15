@@ -133,7 +133,7 @@ impl Page {
         if self.pending {
             return None;
         }
-        let Some(Ok(settings)) = self.read else {
+        let Some(Ok(settings)) = self.read.as_ref() else {
             return None;
         };
         let next = match settings.park_after {
@@ -152,9 +152,9 @@ impl Page {
         if protocol.is_some_and(|protocol| protocol < PROTOCOL) {
             return Card::TooOld;
         }
-        match self.read {
+        match self.read.as_ref() {
             None => Card::Reading,
-            Some(Err(problem)) => Card::Failed(problem),
+            Some(Err(problem)) => Card::Failed(*problem),
             Some(Ok(settings)) => match settings.park_after {
                 // A newer node's value: shown as unknown rather than
                 // guessed (no switch to press).

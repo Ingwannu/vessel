@@ -263,6 +263,11 @@ impl Method {
     ///   (`terminal.*` but its subscription, `script.*`, `port.list`): an
     ///   agent opens a shell beside a session it started on another node,
     ///   and a person runs a project's service there (ADR 0031).
+    /// - Forwardable, protocol 12's and 14's conversation calls
+    ///   (`session.search`, `session.park`, `session.wake`, `session.fork`,
+    ///   `session.rewind`) and protocol 17's `agent.history` (ADR 0053),
+    ///   which an import there needs as `session.create` does; not
+    ///   `node.settings` or `node.set_settings`, a node's administration.
     #[must_use]
     #[expect(
         clippy::too_many_lines,
@@ -275,6 +280,9 @@ impl Method {
             | Self::ListHarnesses
             | Self::ListSessions
             | Self::GetSession
+            | Self::OpenSideQuestion
+            | Self::PromptSideQuestion
+            | Self::ResetSideQuestion
             | Self::CreateSession
             | Self::SendInput
             | Self::KillSession
@@ -382,6 +390,7 @@ impl Method {
             | Self::GetAgentStatus
             // Schedules (protocol 11): forwardable; who may do what from
             // another node is the target's scheduler's rule (ADR 0033).
+            | Self::GetDeviceSelf
             | Self::GetFleetStatus
             | Self::PreviewSchedule
             | Self::ListSchedules
@@ -395,10 +404,18 @@ impl Method {
             | Self::ListRuns
             // Saved prompts: readable from another node; written only on
             // their own (the service refuses a delegated writer).
+            // Lookup policy carries only a choice; credentials stay at the
+            // destination, whose admin/operate scope intersection is checked.
+            | Self::GetUsageLimits
+            | Self::SetUsageLookup
+            | Self::QueryUsage
             | Self::ListPrompts
             | Self::CreatePrompt
             | Self::UpdatePrompt
             | Self::DeletePrompt
+            | Self::ListInbox
+            | Self::GetInboxEntry
+            | Self::MarkInbox
             // Protocol 12: a search reads, as `session.read` does.
             | Self::SearchMessages
             // Parking acts on a session as a prompt does.
@@ -406,10 +423,17 @@ impl Method {
             | Self::WakeSession
             // Forking and rewinding act on a session as a prompt does.
             | Self::ForkSession
-            | Self::RewindSession => true,
+            | Self::RewindSession
+            // An agent's history there, to import from it there (ADR
+            // 0053): it needs `operate`, as the import does.
+            | Self::GetAgentHistory => true,
             // Protocol 11: adding and removing an agent is the node's own
             // administration, by its owner or its own devices (ADR 0032).
-            Self::AddAgent
+            Self::GetPushKey
+            | Self::SubscribePush
+            | Self::UnsubscribePush
+            | Self::ReportPushPresence
+            | Self::AddAgent
             | Self::GetCatalogue
             | Self::InstallAgent
             | Self::ReadInstall
@@ -441,6 +465,8 @@ impl Method {
             | Self::JoinFleet
             | Self::LeaveFleet
             | Self::SyncFleet
+            // Each machine is read over its own connection (ADR 0056).
+            | Self::GetPublished
             | Self::Subscribe
             | Self::SubscribeTerminal
             | Self::Unsubscribe => false,
