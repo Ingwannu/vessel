@@ -288,3 +288,12 @@ sheet. Existing default tests and expected values are unchanged. Added bounds
 checks distinguish620 width and fixed percentage heights for short desktop and
 compact content; a drag-model regression checks the95% content-scroll handoff.
 All new control behavior still awaits narrow compilation and tests.
+
+## Published release-note provenance
+
+Bundled history includes the complete bilingual notes from the signed manifests
+for 0.0.0.0.19 and 0.0.0.0.20, including their known problems and unchecked
+flows. Their text was independently checked against the release owner’s SHA-256
+values (19: `98e33a5ed2edc2031f48cbb44fbb84f220f20466f14513da6a5b126f731b24ae`;
+20: `f5dae40d1c84944ef01e8da26894c84297e710c6987b1475f7de3b212af4ca9e`). These are authored release notes, not a new feed
+endpoint or a claim that E3 has passed its native gate.
