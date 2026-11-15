@@ -54,3 +54,27 @@ Retain all raw output and actual compilation receipts. Ask V3 to review the
 private-file source separately; its route verdict does not approve that I/O.
 Node integration and receiving native checks remain separate. No real home,
 credentials, node, service account or OS permissions were changed.
+
+
+## A7 FIFO fixture ownership correction
+
+V3 d4184243 returned the original unnamed three-second thread timeout:
+if NONBLOCK regressed, the assertion could drop a still-blocked worker's
+JoinHandle. Product read flags and file checks are unchanged. The same
+FIFO refusal now runs in an owned copy of this already-built test executable,
+following the existing isolated self-test pattern. It has an empty child
+environment, one exact test selection and a bounded entered marker to catch
+a vacuous selection. No fake harness, node, nested Cargo build or network
+is started; testkit::within is intentionally not used because it prebuilds
+unrelated fakes.
+
+One named FIFO_INSPECTION_BUDGET preserves the original three seconds.
+The parent explicitly waits on success; on timeout or wait failure it
+signals and waits/reaps before asserting. kill_on_drop is only a backstop,
+not the claimed reap receipt. A deliberately blocking real FIFO probe
+exercises that timeout cleanup and checks the child id is gone before
+return. The original nine cap/canary/path/mode/no-chmod cases remain,
+plus this cleanup regression and the inert self-probe test registration.
+These changed fixtures are still uncompiled/unexecuted until the next
+required remote strict and exact private_files selection. No deadline was
+extended and no product path, assertion or refusal was weakened.

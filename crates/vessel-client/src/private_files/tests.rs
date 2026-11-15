@@ -141,28 +141,11 @@ fn symlink_directory_and_traversal_are_refused_without_reading() {
     );
 }
 
-#[test]
-fn fifo_is_refused_before_waiting_for_a_writer() {
-    let temp = tempfile::tempdir().unwrap();
-    rustix::fs::mkfifoat(
-        rustix::fs::CWD,
-        temp.path().join("input"),
-        rustix::fs::Mode::RUSR | rustix::fs::Mode::WUSR,
-    )
-    .unwrap();
-    let root = temp.path().to_owned();
-    let (sent, received) = std::sync::mpsc::sync_channel(1);
-    let worker = std::thread::spawn(move || {
-        let directory = Directory::open(&root).unwrap();
-        let result = directory.read(Name::parse("input").unwrap(), Purpose::Credential);
-        assert!(sent.send(result).is_ok());
-    });
-    // Safety net only: removing NONBLOCK must fail this test, not hang a gate.
-    let result = received
-        .recv_timeout(std::time::Duration::from_secs(3))
-        .expect("FIFO inspection must not wait for a writer");
-    assert!(matches!(result, Err(Error::UnsafeTarget)));
-    worker.join().unwrap();
+mod fifo;
+
+#[tokio::test]
+async fn fifo_is_refused_before_waiting_for_a_writer() {
+    fifo::refuses_without_leaving_test_work().await;
 }
 
 #[test]
