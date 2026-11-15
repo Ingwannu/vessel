@@ -12,6 +12,7 @@
 //! - Cost: a bounded RAM cache is lost at restart; saved sign-ins and
 //!   snapshots never enter the database or policy file.
 mod notice;
+pub(crate) mod policy;
 use chrono::Utc;
 use tokio::{
     sync::{mpsc, oneshot},
@@ -36,10 +37,14 @@ const SNAPSHOTS: usize = 256;
 const PROBES: usize = 2;
 #[derive(Debug, Clone)]
 pub(crate) struct Limits {
+    pub(crate) sources: crate::usage_reports::Sources,
     commands: mpsc::Sender<Command>,
 }
 #[derive(Debug)]
 enum Command {
+    Observe {
+        reply: oneshot::Sender<policy::Observation>,
+    },
     Read {
         account: LimitAccount,
         binding: Result<LimitBinding, LimitFailure>,
@@ -59,7 +64,15 @@ impl Limits {
         stop: CancellationToken,
         tasks: &TaskTracker,
     ) -> Self {
-        Self::start(config.data_dir.clone(), config.limits.clone(), stop, tasks).await
+        let mut limits = Self::start(
+            config.data_dir.clone(),
+            config.limits.clone(),
+            stop.clone(),
+            tasks,
+        )
+        .await;
+        limits.sources = crate::usage_reports::Sources::start(config, stop, tasks).await;
+        limits
     }
 
     pub(crate) async fn start(
@@ -88,7 +101,10 @@ impl Limits {
             context: LimitContext::new(),
         };
         drop(tasks.spawn(owner.run(receiver, stop)));
-        Self { commands }
+        Self {
+            commands,
+            sources: crate::usage_reports::Sources::default(),
+        }
     }
     pub(crate) async fn read(
         &self,
@@ -146,6 +162,7 @@ impl Owner {
                 () = stop.cancelled() => break,
                 result = self.jobs.join_next(), if !self.jobs.is_empty() => if let Some(result) = result { match result { Ok(result) => self.completed(result), Err(_panic) => { self.generation.cancel(); self.generation = CancellationToken::new(); self.cache.clear(); tracing::error!("a usage limits worker ended unexpectedly"); } } },
                 command = commands.recv() => match command {
+                    Some(Command::Observe {reply}) => { drop(reply.send(policy::Observation {policy:self.policy,generation:self.generation.child_token()})); },
                     Some(Command::Read { account, binding, refresh, reply }) => self.read(account, binding, refresh, reply),
                     Some(Command::Policy { policy, reply }) => {
                         let result = self.change(policy).await;
@@ -172,6 +189,7 @@ impl Owner {
     async fn change(&mut self, policy: ExternalLookup) -> Result<ExternalLookup, WireError> {
         if policy == ExternalLookup::Off {
             self.generation.cancel();
+            self.generation = CancellationToken::new();
             self.cache.clear();
             self.policy = policy;
         }
@@ -179,6 +197,7 @@ impl Owner {
         tokio::task::spawn_blocking(move || dir.write_usage_lookup(policy)).await.map_err(|_join| stopped())?
             .map_err(|_private| WireError::new(ErrorCode::Internal, "the usage lookup choice could not be saved; check the machine's data directory and try again"))?;
         if policy == ExternalLookup::On && self.policy != policy {
+            self.generation.cancel();
             self.generation = CancellationToken::new();
         }
         self.policy = policy;
@@ -352,3 +371,6 @@ fn stopped() -> WireError {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+pub(crate) mod test_support;

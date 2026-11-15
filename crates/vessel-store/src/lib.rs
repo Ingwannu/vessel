@@ -54,6 +54,7 @@ mod attachments;
 mod automation;
 mod codec;
 mod config;
+mod cursor_sign_in;
 mod data_dir;
 mod devices;
 mod error;
@@ -76,6 +77,8 @@ mod store;
 mod token;
 mod usage;
 mod usage_lookup;
+mod usage_sources;
+pub use cursor_sign_in::read_cursor_usage_sign_in;
 mod workspace;
 mod writer;
 

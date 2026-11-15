@@ -89,7 +89,7 @@ impl NodeService {
     // The saved OpenAI store of a multi-provider agent belongs to a session
     // only while its current model identifies OpenAI. Recheck on both sides
     // of awaiting a probe, just as for a concurrently moved profile.
-    async fn session_limit_binding(
+    pub(super) async fn session_limit_binding(
         &self,
         session: vessel_proto::SessionId,
     ) -> Result<LimitBinding, LimitFailure> {
@@ -112,7 +112,16 @@ impl NodeService {
         _connection: &Connection,
         request: SetUsageLookup,
     ) -> Result<ExternalLookup, WireError> {
-        self.limits.policy(request.policy).await
+        let result = self.limits.policy(request.policy).await;
+        self.usage_reports.forget_cancelled().await;
+        let sources = if request.policy == ExternalLookup::Off {
+            self.limits.sources.clear().await
+        } else {
+            Ok(())
+        };
+        let policy = result?;
+        sources?;
+        Ok(policy)
     }
 }
 fn associated(association: LimitAssociation) -> Result<LimitBinding, LimitFailure> {
