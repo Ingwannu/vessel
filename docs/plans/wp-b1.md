@@ -235,3 +235,10 @@ The mention regressions cover scope-switch candidate isolation, invalid input ou
 The current package line2e95b7d31 (including the shared connection preflight) is merged at a natural source checkpoint; no node head is merged directly. Sidebar row labels now accept owned SharedString through the creation owner's57825b3a1 fix. The post-font local check on02d1 failed on the old Arc identity moves, sidebar argument type and test CardDetail path; those are corrected before VM-only replay. Native assets are supplied from pinned Geist1.9.2 without rebuilding any shared root binaries.
 
 Local manifests now reject more distinct drafts than the actual tray capacity. Until the resident owner provides live protected resource access, adding a new tray at full capacity while any submission is pending refuses visibly instead of evicting upload state. This conservative admission keeps the existing owner and bound; it does not introduce another resident manager.
+
+
+### Workspace draft attachment cutover (staged)
+
+Canonical DraftKey now includes node/workspace/layout DraftId. The area reuses W3's exact field and scope accessors, preserves per-key context/managed-byte manifests, and retains creation payloads by key plus local Ticket. Captured pill and autocomplete callbacks extend existing kit controls rather than duplicating their renderers. The scoped seed refuses occupied fields, suppressed context and pending acquisition. The registry's root remains unavailable until its owner resolves it; no cwd or global-session substitute is used.
+
+Verification: isolated context value head20ea88e2 passed strict view Clippy and7 focused tests on the VM. Full source59a22f16 failed9 strict style/test diagnostics; owner fixes are committed and a new immutable combined check is queued. Workspace selection, creation consumer, full package gate, captures, OS file dialogs/paste/drop and review remain unverified. Boundaries checks must run on the VM because they invoke Cargo metadata; no new local Cargo is used.

@@ -8,7 +8,7 @@ use vessel_app_view::{
 };
 use vessel_proto::{AgentAbilities, AttachmentLimits, NodeId, SessionId};
 
-fn card(machine: &str) -> Card {
+pub(super) fn card(machine: &str) -> Card {
     Card {
         session: SessionId::random(),
         structured: true,

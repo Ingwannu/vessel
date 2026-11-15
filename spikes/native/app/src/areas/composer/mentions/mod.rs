@@ -43,6 +43,14 @@ impl Shell {
     pub(super) fn composer_field(&self, target: DraftKey) -> Option<&TextField> {
         match target {
             DraftKey::New => Some(&self.areas.draft.composer),
+            DraftKey::Workspace {
+                node,
+                workspace,
+                draft,
+            } => self.workspace_draft_field(
+                &vessel_app_view::layout::LayoutKey::Workspace { node, workspace },
+                draft,
+            ),
             DraftKey::Session { session } => self
                 .areas
                 .session
@@ -52,14 +60,29 @@ impl Shell {
                 .map(|_| &self.areas.session.composer),
         }
     }
-    pub(super) fn file_menu(&self, target: DraftKey) -> &RefCell<FileMenu> {
+    pub(super) fn file_menu(&self, target: DraftKey) -> std::rc::Rc<RefCell<FileMenu>> {
         match target {
-            DraftKey::New => &self.areas.composer.draft_files,
-            DraftKey::Session { .. } => &self.areas.composer.session_files,
+            DraftKey::New => std::rc::Rc::clone(&self.areas.composer.draft_files),
+            DraftKey::Session { .. } => std::rc::Rc::clone(&self.areas.composer.session_files),
+            DraftKey::Workspace { .. } => std::rc::Rc::clone(
+                self.areas
+                    .composer
+                    .workspace_files
+                    .borrow_mut()
+                    .tray(target),
+            ),
         }
     }
     pub(super) fn composer_context_scope(&self, target: DraftKey) -> Option<ContextScope> {
         match target {
+            DraftKey::Workspace {
+                node,
+                workspace,
+                draft,
+            } => self.workspace_draft_context_scope(
+                &vessel_app_view::layout::LayoutKey::Workspace { node, workspace },
+                draft,
+            ),
             DraftKey::New => {
                 let machine = Name::parse(self.areas.draft.machine.as_deref()?).ok()?;
                 let project = self.chosen_place()?.project;
@@ -249,7 +272,8 @@ impl Shell {
         if self.composer_destination() != Some(target) {
             return false;
         }
-        let state = self.file_menu(target).borrow();
+        let owner = self.file_menu(target);
+        let state = owner.borrow();
         let token = self.active_file_token(target, cx);
         let current = token.as_ref().is_some_and(|token| {
             state.model.request().is_some_and(|request| {
@@ -346,7 +370,8 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         let choice = {
-            let state = self.file_menu(target).borrow();
+            let owner = self.file_menu(target);
+            let state = owner.borrow();
             state
                 .model
                 .request()
@@ -378,24 +403,6 @@ impl Shell {
         field.focus(window, cx);
         self.file_menu(target).borrow_mut().model.dismiss();
         cx.notify();
-    }
-    fn draft_mention_clicked(
-        &mut self,
-        index: usize,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        self.choose_mention(DraftKey::New, index, window, cx);
-    }
-    fn session_mention_clicked(
-        &mut self,
-        index: usize,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        if let Some(target) = self.session_tray_key() {
-            self.choose_mention(target, index, window, cx);
-        }
     }
 }
 

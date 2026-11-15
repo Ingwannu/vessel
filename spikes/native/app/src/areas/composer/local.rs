@@ -165,6 +165,12 @@ impl Shell {
         for (draft, tray) in self.areas.composer.trays.entries() {
             let unconfirmed = match draft {
                 DraftKey::New => self.areas.composer.starting.borrow().is_some(),
+                DraftKey::Workspace { .. } => self
+                    .areas
+                    .composer
+                    .workspace_starting
+                    .keys()
+                    .any(|(held, _)| *held == draft),
                 DraftKey::Session { session } => self.areas.composer.sends.contains_key(&session),
             } || self.areas.composer.local.recovered.contains(&draft);
             for item in tray.items() {

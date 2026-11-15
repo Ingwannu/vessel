@@ -36,6 +36,14 @@ pub(crate) use files::{attach_button, draft_card, session_card};
 pub(crate) use lightbox::overlay;
 pub(crate) use local::restore_local;
 pub(crate) use prepared::PrepareProblem;
+#[cfg_attr(
+    not(test),
+    expect(
+        unused_imports,
+        reason = "W3 keyed creation request consumer is staged next"
+    )
+)]
+pub(crate) use prepared::WorkspaceInput;
 pub(crate) use running::ControlsTarget;
 pub(crate) use sent::SentFiles;
 pub(crate) use slash::{draft_menu, draft_text, menu, text};
@@ -82,6 +90,13 @@ pub(crate) struct ComposerArea {
     /// A new chat started for its files, until its session exists (set
     /// while the start is made, which reads the shell only).
     pub(crate) starting: RefCell<Option<attach::Starting>>,
+    workspace_starting: std::collections::HashMap<
+        (
+            vessel_app_view::composer::drafts::DraftKey,
+            vessel_app_view::creation::Ticket,
+        ),
+        attach::Starting,
+    >,
     /// The attach button's menu.
     pub(crate) attach_menu: MenuState,
     /// Whether the attach menu is open for the new chat (else the open
@@ -93,8 +108,11 @@ pub(crate) struct ComposerArea {
     /// (which reads the shell only), or kept from the composer.
     pub(crate) sent: RefCell<SentPictures>,
     lightbox: lightbox::Lightbox,
-    session_files: RefCell<mentions::FileMenu>,
-    draft_files: RefCell<mentions::FileMenu>,
+    session_files: std::rc::Rc<RefCell<mentions::FileMenu>>,
+    draft_files: std::rc::Rc<RefCell<mentions::FileMenu>>,
+    workspace_files: RefCell<
+        vessel_app_view::composer::trays::DraftTrays<std::rc::Rc<RefCell<mentions::FileMenu>>>,
+    >,
     mention_root: RefCell<mentions::Root>,
     mention_root_token: RefCell<Option<vessel_app_view::composer::mentions::Mention>>,
     mention_dismissed: RefCell<
@@ -125,13 +143,15 @@ impl ComposerArea {
             local: local::LocalState::default(),
             sends: HashMap::new(),
             starting: RefCell::new(None),
+            workspace_starting: std::collections::HashMap::new(),
             attach_menu: MenuState::new(cx),
             attach_for: None,
             pictures: pictures::Pictures::default(),
             sent: RefCell::new(SentPictures::default()),
             lightbox: lightbox::Lightbox::new(cx),
-            session_files: RefCell::default(),
-            draft_files: RefCell::default(),
+            session_files: std::rc::Rc::default(),
+            draft_files: std::rc::Rc::default(),
+            workspace_files: RefCell::default(),
             mention_root: RefCell::default(),
             mention_root_token: RefCell::default(),
             mention_dismissed: RefCell::default(),

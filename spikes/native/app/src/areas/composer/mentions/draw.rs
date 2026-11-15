@@ -24,7 +24,8 @@ pub(in crate::areas::composer) fn menu(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     shell.observe_file_menu(target, cx);
-    let state = shell.file_menu(target).borrow();
+    let owner = shell.file_menu(target);
+    let state = owner.borrow();
     let current = listing(shell, target, cx);
     let now = shell.areas.composer.now();
     let mut reveal = state.reveal.borrow_mut();
@@ -51,13 +52,14 @@ pub(in crate::areas::composer) fn menu(
     } else {
         state.last.borrow().clone()?
     };
-    let on_choose = match target {
-        DraftKey::New => Shell::draft_mention_clicked,
-        DraftKey::Session { .. } => Shell::session_mention_clicked,
-    };
+    let on_choose =
+        move |shell: &mut Shell, index, window: &mut Window, cx: &mut Context<'_, Shell>| {
+            shell.choose_mention(target, index, window, cx)
+        };
     let id = match target {
         DraftKey::New => "draft-files",
         DraftKey::Session { .. } => "session-files",
+        DraftKey::Workspace { .. } => "workspace-files",
     };
     let list = autocomplete(
         id,
@@ -106,7 +108,8 @@ fn listing(
     target: DraftKey,
     cx: &vessel_app_kit::ui::App,
 ) -> Option<(Listing, Option<usize>)> {
-    let state = shell.file_menu(target).borrow();
+    let owner = shell.file_menu(target);
+    let state = owner.borrow();
     let words = shell.words.composer();
     match state.model.phase() {
         Phase::Hidden => {
