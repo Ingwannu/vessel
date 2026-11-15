@@ -765,3 +765,24 @@ because the dependency blocks six core adapters: the safe queued-only endpoint
 verified it held no build slot, terminal cancellation was confirmed, and the
 same immutable c524 commit was submitted once with priority. Its original logs
 remain retained. No running build or unrelated job was canceled.
+
+## Pure registry projection registration on base 9
+
+The base now carries the reviewed canonical registry types and real handlers;
+only the pure view module is registered here. It shares RegistrySnapshot,
+ProjectList, WorktreeList and the existing LayoutKey/WorkspaceLookup types, keeps
+bounded host/byte accounting and exact Context/read correlation, and exposes
+borrowed project/title/pin/lifecycle/membership/root facts. No registry actor,
+network request, guarded result envelope, Shell lookup or navigation sink is
+registered. Base 9's pending feature remains Unsupported at a live boundary.
+
+Ten authored pure regressions cover independent same-path identities and exact
+memberships, stale/capacity/conflicting snapshots, explicit startup uncertainty,
+root/catalog consistency, read-source selection and cross-platform paths. Their
+VM execution is owed. This registration does not prove live currentness or grant
+S2/pane/onboarding readiness: the real cache must retain the original canonical
+DeliveryGuard, validate immediately on installation and EVERY query, and be
+exercised through the real shared actor fixture. Both products arrive only via
+the lead's checked G4/common owner line; no local guard constructor or shared
+attribute promotion is added. Dynamic status/role joins stay unavailable until
+their canonical producers and complete coverage are present.

@@ -91,6 +91,11 @@ fn empty_workspaces_sharing_a_directory_keep_distinct_layout_keys_and_membership
     assert_ne!(rows[0].key(), rows[1].key());
     assert_eq!(rows[0].placement(), rows[1].placement());
     assert_eq!(rows[0].workspace().id, first);
+    assert_eq!(rows[0].resources().count(), 0);
+    assert_eq!(
+        rows[1].resources().collect::<Vec<_>>(),
+        vec![WorkspaceResource::Session { session }]
+    );
     assert!(rows.iter().all(|row| row.visible()));
 }
 
@@ -328,5 +333,49 @@ fn node_lookup_exposes_its_exact_metadata_source_and_refuses_equal_revision_conf
     assert_eq!(
         cache.session_workspace(node, SessionId::random()),
         Err(LookupProblem::Unavailable)
+    );
+}
+
+#[test]
+fn pending_read_keeps_its_ticket_and_first_hydration_does_not_need_prior_data() {
+    let mut epochs = ConnectionEpochs::default();
+    let node = NodeId::random();
+    let context = context(&mut epochs, "fixture", node);
+    let snapshot = data(node);
+    let mut cache = RegistryProjection::default();
+    let key = cache.begin(context.clone()).unwrap();
+    assert_eq!(cache.phase(&context), Some(RegistryPhase::Loading));
+    assert_eq!(
+        cache.begin(context.clone()),
+        Err(ProjectionRefusal::Pending)
+    );
+    assert!(cache.finish(&key, Ok(snapshot)).unwrap());
+    assert_eq!(cache.phase(&context), Some(RegistryPhase::Ready));
+    assert!(cache.rows(&context).unwrap().next().is_some());
+    assert!(
+        !cache
+            .finish(&key, Err(RegistryReadFailure::Offline))
+            .unwrap()
+    );
+    assert_eq!(cache.phase(&context), Some(RegistryPhase::Ready));
+}
+
+#[test]
+fn remote_windows_path_is_metadata_not_the_ui_platforms_absolute_path() {
+    let mut epochs = ConnectionEpochs::default();
+    let node = NodeId::random();
+    let context = context(&mut epochs, "windows-node", node);
+    let mut snapshot = data(node);
+    let remote_root = std::path::PathBuf::from(r"C:\work\project");
+    snapshot.projects.projects[0].root = remote_root.clone();
+    snapshot.registry.workspaces[0].path = remote_root;
+    let workspace = snapshot.registry.workspaces[0].id;
+    let project = snapshot.projects.projects[0].id;
+    let mut cache = RegistryProjection::default();
+    let key = cache.begin(context).unwrap();
+    assert!(cache.finish(&key, Ok(snapshot)).unwrap());
+    assert_eq!(
+        cache.workspace_location(node, workspace),
+        Ok(WorkspaceLocation::Root(WorkspaceRoot::Project { project }))
     );
 }

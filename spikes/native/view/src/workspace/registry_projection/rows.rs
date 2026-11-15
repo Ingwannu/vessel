@@ -68,6 +68,17 @@ impl WorkspaceRow<'_> {
             project: self.workspace.project,
         }
     }
+    /// Exact resource associations in this row's same complete registry snapshot.
+    /// Pending, failed and archived resources remain associated; this is neither
+    /// a live-member list nor evidence of role, activity, process exit or readiness.
+    pub fn resources(&self) -> impl Iterator<Item = WorkspaceResource> + '_ {
+        self.data
+            .registry
+            .memberships
+            .iter()
+            .filter(move |member| member.workspace == self.workspace.id)
+            .map(|member| member.resource)
+    }
     /// Registered project data may be incomplete independently of the registry snapshot.
     #[must_use]
     pub fn project(&self) -> Option<&ProjectInfo> {

@@ -61,13 +61,17 @@ struct Budget {
 }
 impl std::io::Write for Budget {
     fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
-        if input.len() > self.limit - self.bytes {
+        let Some(next) = self
+            .bytes
+            .checked_add(input.len())
+            .filter(|next| *next <= self.limit)
+        else {
             self.full = true;
             return Err(std::io::Error::other(
                 "workspace metadata exceeds its cache budget",
             ));
-        }
-        self.bytes += input.len();
+        };
+        self.bytes = next;
         Ok(input.len())
     }
     fn flush(&mut self) -> std::io::Result<()> {

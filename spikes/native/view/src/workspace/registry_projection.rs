@@ -1,4 +1,4 @@
-//! Canonical registry projection; source staged until the reviewed proto reaches the app line.
+//! Pure canonical registry projection; live cache integration requires guarded observations.
 //!
 //! [Decision Log]
 //! - Purpose: sidebar, palette and panes share explicit workspace ownership.
@@ -143,7 +143,10 @@ impl RegistryProjection {
             bytes: 0,
         });
         if entry.context != context {
-            self.bytes -= entry.bytes;
+            self.bytes = self
+                .bytes
+                .checked_sub(entry.bytes)
+                .unwrap_or(MAX_REGISTRY_CACHE_BYTES);
             entry.bytes = 0;
             entry.data = None;
             entry.phase = RegistryPhase::Loading;
@@ -174,7 +177,13 @@ impl RegistryProjection {
         if entry.context != key.context || entry.pending.as_ref() != Some(key) {
             return Ok(false);
         }
-        let remaining = MAX_REGISTRY_CACHE_BYTES - (self.bytes - entry.bytes);
+        let retained_bytes = self
+            .bytes
+            .checked_sub(entry.bytes)
+            .ok_or(ProjectionRefusal::Invalid)?;
+        let remaining = MAX_REGISTRY_CACHE_BYTES
+            .checked_sub(retained_bytes)
+            .ok_or(ProjectionRefusal::Full)?;
         let accepted = match result {
             Ok(data) => {
                 if entry.data.as_ref().is_some_and(|old| {
@@ -210,7 +219,9 @@ impl RegistryProjection {
         {
             return Ok(false);
         }
-        self.bytes = self.bytes - entry.bytes + bytes;
+        self.bytes = retained_bytes
+            .checked_add(bytes)
+            .ok_or(ProjectionRefusal::Full)?;
         entry.bytes = bytes;
         entry.data = Some(data);
         entry.phase = RegistryPhase::Ready;
@@ -219,7 +230,10 @@ impl RegistryProjection {
 
     fn fail(&mut self, host: &Name, why: RegistryReadFailure) {
         if let Some(entry) = self.hosts.get_mut(host) {
-            self.bytes -= entry.bytes;
+            self.bytes = self
+                .bytes
+                .checked_sub(entry.bytes)
+                .unwrap_or(MAX_REGISTRY_CACHE_BYTES);
             entry.bytes = 0;
             entry.pending = None;
             entry.data = None;
@@ -247,7 +261,10 @@ impl RegistryProjection {
     /// A forgotten book entry releases its host slot; serials remain lifetime-monotonic.
     pub fn forget(&mut self, host: &Name) {
         if let Some(entry) = self.hosts.remove(host) {
-            self.bytes -= entry.bytes;
+            self.bytes = self
+                .bytes
+                .checked_sub(entry.bytes)
+                .unwrap_or(MAX_REGISTRY_CACHE_BYTES);
         }
     }
 
