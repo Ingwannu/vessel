@@ -76,7 +76,7 @@ fn chunked_history_steering_and_rewind_produce_only_visible_prompts() {
             8,
             SessionEvent::Rewound {
                 after: EventSeq::new(6),
-                harness_session: "fake-history".parse().unwrap(),
+                harness_session: vessel_proto::HarnessSessionId::new("fake-history"),
                 files_changed: 0,
             },
         ),
@@ -221,7 +221,7 @@ fn append_preserves_revision_and_cursor_while_rewind_or_retention_refuses_it() {
             3,
             SessionEvent::Rewound {
                 after: EventSeq::new(0),
-                harness_session: "history".parse().unwrap(),
+                harness_session: vessel_proto::HarnessSessionId::new("history"),
                 files_changed: 0,
             },
         ))

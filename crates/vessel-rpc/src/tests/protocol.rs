@@ -5,6 +5,8 @@ use vessel_proto::{CreateSession, GetManifest, Hello, Method, Reply};
 
 use super::*;
 
+#[path = "diagnostics.rs"]
+mod diagnostics;
 mod prompt_index;
 
 /// A raw client speaking only `version`, past the welcome.

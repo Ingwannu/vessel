@@ -350,3 +350,13 @@ metadata preview therefore stays raw as in the reference, without duplicating
 A7's body projection or importing a native-view dependency into the node. Global
 raw-source search may still hit instruction terms hidden by body presentation;
 that remains an explicit search/display integration difference.
+
+Base9b integration takes the announced app line's root handlers, registry and
+diagnostic policies unchanged, appending only A3's pending prompt row after all
+head rows and adding its entry after the head's complete forwardable fixture.
+Both architecture texts remain. The four owned standalone prompt-index test
+files are aligned with the gated node producer f7c8ba9f8 (canonical constructors,
+explicit limit defaults and awaited durable close); no foreign test is replaced.
+The conflicted generated TypeScript takes the announced head's bytes without
+manual edits. Its A3 additions still require the canonical node-generated
+artifact at the next integration; this app source is not a root TS gate result.
