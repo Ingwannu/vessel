@@ -40,12 +40,12 @@ impl Fixture {
     }
 }
 
-fn start<V>(decision: Decision<V>) -> BuildId {
+fn start<V>(decision: &Decision<V>) -> BuildId {
     assert_eq!(decision.cancel, None);
-    let Read::Start(id) = decision.read else {
+    let Read::Start(id) = &decision.read else {
         panic!("expected a new build");
     };
-    id
+    *id
 }
 
 #[test]
@@ -54,7 +54,7 @@ fn forced_readers_wait_for_one_fresh_build_after_the_old_owned_job_finishes() {
     let key = fixture.key(GitComparison::Uncommitted);
     let now = Instant::now();
     let mut cache = Cache::default();
-    let old = start(cache.read(key.clone(), ReadReason::View, now).unwrap());
+    let old = start(&cache.read(key.clone(), ReadReason::View, now).unwrap());
     let first = cache
         .read(key.clone(), ReadReason::Force(ForceReason::Mutation), now)
         .unwrap();
@@ -69,7 +69,7 @@ fn forced_readers_wait_for_one_fresh_build_after_the_old_owned_job_finishes() {
         cache.finish(old, ResultValue::Value(Arc::new("old")), now),
         Completion::Retired
     ));
-    let fresh = start(cache.read(key.clone(), ReadReason::View, now).unwrap());
+    let fresh = start(&cache.read(key.clone(), ReadReason::View, now).unwrap());
     assert!(
         matches!(cache.read(key.clone(), ReadReason::View, now).unwrap().read, Read::Join(id) if id == fresh)
     );
@@ -90,7 +90,7 @@ fn invalidated_reads_cannot_refill_the_cache_and_duplicate_completions_are_inert
     let key = fixture.key(GitComparison::All { base: None });
     let mut cache = Cache::default();
     let now = Instant::now();
-    let id = start(cache.read(key.clone(), ReadReason::View, now).unwrap());
+    let id = start(&cache.read(key.clone(), ReadReason::View, now).unwrap());
     assert_eq!(cache.invalidate(key.query.root, Change::Working), [id]);
     assert!(cache.invalidate(key.query.root, Change::Working).is_empty());
     assert!(
@@ -104,7 +104,7 @@ fn invalidated_reads_cannot_refill_the_cache_and_duplicate_completions_are_inert
         cache.finish(id, ResultValue::Value(Arc::new("duplicate")), now),
         Completion::Unknown
     ));
-    assert_ne!(start(cache.read(key, ReadReason::View, now).unwrap()), id);
+    assert_ne!(start(&cache.read(key, ReadReason::View, now).unwrap()), id);
 }
 
 #[test]
@@ -113,13 +113,13 @@ fn active_work_survives_completed_eviction_and_a_failed_job_can_retry() {
     let mut cache = Cache::default();
     let now = Instant::now();
     let active = fixture.key(GitComparison::Uncommitted);
-    let id = start(cache.read(active.clone(), ReadReason::View, now).unwrap());
+    let id = start(&cache.read(active.clone(), ReadReason::View, now).unwrap());
     for _ in 0..70 {
         let mut key = fixture.key(GitComparison::Uncommitted);
         key.query.root = WorkspaceRoot::Project {
             project: ProjectId::random(),
         };
-        let completed = start(cache.read(key, ReadReason::View, now).unwrap());
+        let completed = start(&cache.read(key, ReadReason::View, now).unwrap());
         assert!(matches!(
             cache.finish(completed, ResultValue::Value(Arc::new("completed")), now),
             Completion::Published
@@ -134,7 +134,7 @@ fn active_work_survives_completed_eviction_and_a_failed_job_can_retry() {
         Completion::Failed
     ));
     assert_ne!(
-        start(cache.read(active, ReadReason::View, now).unwrap()),
+        start(&cache.read(active, ReadReason::View, now).unwrap()),
         id
     );
 }
@@ -152,7 +152,7 @@ fn working_and_history_changes_invalidate_all_for_each_base_but_not_other_roots(
                     name: base.parse().unwrap(),
                 }),
             });
-            let id = start(cache.read(key.clone(), ReadReason::View, now).unwrap());
+            let id = start(&cache.read(key.clone(), ReadReason::View, now).unwrap());
             assert!(matches!(
                 cache.finish(id, ResultValue::Value(Arc::new(base)), now),
                 Completion::Published
@@ -163,7 +163,7 @@ fn working_and_history_changes_invalidate_all_for_each_base_but_not_other_roots(
         other.query.root = WorkspaceRoot::Project {
             project: ProjectId::random(),
         };
-        let id = start(cache.read(other.clone(), ReadReason::View, now).unwrap());
+        let id = start(&cache.read(other.clone(), ReadReason::View, now).unwrap());
         assert!(matches!(
             cache.finish(id, ResultValue::Value(Arc::new("other")), now),
             Completion::Published
@@ -179,7 +179,7 @@ fn working_and_history_changes_invalidate_all_for_each_base_but_not_other_roots(
                 .is_empty()
         );
         for key in keys {
-            let _id = start(cache.read(key, ReadReason::View, now).unwrap());
+            let _id = start(&cache.read(key, ReadReason::View, now).unwrap());
         }
         assert!(matches!(
             cache.read(other, ReadReason::View, now).unwrap().read,
@@ -194,7 +194,7 @@ fn freshness_and_two_second_suppression_match_the_reference_boundaries() {
     let key = fixture.key(GitComparison::Uncommitted);
     let mut cache = Cache::default();
     let now = Instant::now();
-    let id = start(cache.read(key.clone(), ReadReason::View, now).unwrap());
+    let id = start(&cache.read(key.clone(), ReadReason::View, now).unwrap());
     assert!(matches!(
         cache.finish(id, ResultValue::Value(Arc::new("cached")), now),
         Completion::Published
@@ -208,7 +208,7 @@ fn freshness_and_two_second_suppression_match_the_reference_boundaries() {
         Read::Hit(_)
     ));
     let expired = boundary.checked_add(Duration::from_millis(1)).unwrap();
-    let refreshing = start(cache.read(key.clone(), ReadReason::View, expired).unwrap());
+    let refreshing = start(&cache.read(key.clone(), ReadReason::View, expired).unwrap());
     let before_gap = expired
         .checked_add(MIN_READ_GAP.checked_sub(Duration::from_millis(1)).unwrap())
         .unwrap();
@@ -274,9 +274,9 @@ fn reasons_are_not_query_identity_and_every_forced_reason_bypasses_freshness() {
             key
         );
         let mut cache = Cache::default();
-        let id = start(cache.read(key.clone(), ReadReason::View, now).unwrap());
+        let id = start(&cache.read(key.clone(), ReadReason::View, now).unwrap());
         let _done = cache.finish(id, ResultValue::Value(Arc::new("old")), now);
-        assert_ne!(start(cache.read(key, reason.into(), now).unwrap()), id);
+        assert_ne!(start(&cache.read(key, reason.into(), now).unwrap()), id);
     }
 }
 
@@ -288,7 +288,7 @@ fn repository_invalidation_retires_immutable_bodies_but_working_and_history_do_n
         id: "a".repeat(40).parse().unwrap(),
     });
     let mut cache = Cache::<&str>::default();
-    let id = start(cache.read(key.clone(), ReadReason::View, now).unwrap());
+    let id = start(&cache.read(key.clone(), ReadReason::View, now).unwrap());
     assert!(cache.invalidate(key.query.root, Change::Working).is_empty());
     assert!(cache.invalidate(key.query.root, Change::History).is_empty());
     assert_eq!(cache.invalidate(key.query.root, Change::Repository), [id]);
@@ -304,7 +304,7 @@ fn active_admission_and_identifier_exhaustion_never_start_unowned_work() {
         key.query.root = WorkspaceRoot::Project {
             project: ProjectId::random(),
         };
-        let _id = start(cache.read(key, ReadReason::View, now).unwrap());
+        let _id = start(&cache.read(key, ReadReason::View, now).unwrap());
     }
     assert!(matches!(
         cache.read(
@@ -341,8 +341,8 @@ fn a_forced_summary_invalidates_its_body_pages_but_not_another_comparison() {
     };
     let other = fixture.key(GitComparison::Committed { base: None });
     let mut cache = Cache::<&str>::default();
-    let body = start(cache.read(file.clone(), ReadReason::View, now).unwrap());
-    let unrelated = start(cache.read(other.clone(), ReadReason::View, now).unwrap());
+    let body = start(&cache.read(file.clone(), ReadReason::View, now).unwrap());
+    let unrelated = start(&cache.read(other.clone(), ReadReason::View, now).unwrap());
     assert_eq!(cache.invalidate_siblings(&summary), [body]);
     assert!(
         matches!(cache.read(file, ReadReason::View, now).unwrap().read, Read::After(id) if id == body)
@@ -361,7 +361,7 @@ fn recently_used_completed_payloads_survive_eviction_of_an_older_one() {
     second.query.whitespace = GitWhitespace::Ignore;
     let mut cache = Cache::default();
     for key in [first.clone(), second.clone()] {
-        let id = start(cache.read(key, ReadReason::View, now).unwrap());
+        let id = start(&cache.read(key, ReadReason::View, now).unwrap());
         let _done = cache.finish(id, ResultValue::Value(Arc::new("kept")), now);
     }
     for _ in 2..MAX_COMPLETED {
@@ -369,7 +369,7 @@ fn recently_used_completed_payloads_survive_eviction_of_an_older_one() {
         key.query.root = WorkspaceRoot::Project {
             project: ProjectId::random(),
         };
-        let id = start(cache.read(key, ReadReason::View, now).unwrap());
+        let id = start(&cache.read(key, ReadReason::View, now).unwrap());
         let _done = cache.finish(id, ResultValue::Value(Arc::new("other")), now);
     }
     assert!(matches!(
@@ -383,7 +383,7 @@ fn recently_used_completed_payloads_survive_eviction_of_an_older_one() {
     extra.query.root = WorkspaceRoot::Project {
         project: ProjectId::random(),
     };
-    let id = start(cache.read(extra, ReadReason::View, now).unwrap());
+    let id = start(&cache.read(extra, ReadReason::View, now).unwrap());
     let _done = cache.finish(id, ResultValue::Value(Arc::new("newest")), now);
     assert!(matches!(
         cache.read(first, ReadReason::View, now).unwrap().read,

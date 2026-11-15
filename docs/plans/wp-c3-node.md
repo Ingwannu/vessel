@@ -247,3 +247,9 @@ error (and no wider), names imports and derives Copy only for the two borrowed
 lifecycle capabilities. No lint allowance or source-chain flattening is added.
 Original log: wp-git-node-narrow-20261115T093141Z-36121311. New execution remains
 unverified until the changed-source checks finish.
+
+The5e990a26 all-target check reached the new cache and returned one remaining
+test-helper lint: extracting a build ID did not consume the generic decision.
+The helper now borrows that decision explicitly; production ownership is unchanged.
+The original red log remains node-comparison-cache-fixed-clippy. Execution of
+cache and previously unreached workspace cases is still pending.
