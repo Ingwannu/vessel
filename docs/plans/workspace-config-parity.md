@@ -233,3 +233,12 @@ shown and a partial comparison cannot claim the commands are unchanged.
   tests. Returned review findings take priority.
 - Still unverified: Windows, actual shells, and negotiated support after
   the integrator assigns the protocol number.
+
+## Independent process lifetime carrier
+
+A standalone change on the assigned node head adds Proc's process-id and
+lifetime modules, runner-owned revocation and read-only handle transport.
+This does not include the staged allocator or a browser consumer. The ADR
+records the reuse choice, accepted platform limits and event-based tests.
+The node scanner and Preview must continue refusing authority from cached
+PID/port data until their own fresh ownership integration is implemented.

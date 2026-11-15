@@ -1536,3 +1536,13 @@ name `vessel_proc` in store to `src/lock/`, which delegates the lock query
 only. The real CLI caller restricts proc's signal entry point to the force
 module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
+
+### Process observation boundary
+
+ADR 0066 defines a runner-issued `ProcessLifetime`: Proc and PTY own its
+revocation; AgentProcess and session/terminal handles pass read-only
+observations to node consumers. A checked `ProcessId` is only an OS value.
+Neither PID equality nor the observation alone proves socket ownership or
+authorizes Preview. Fresh complete inspection and workspace/session policy
+remain at the node boundary. This planned carrier introduces no dependency
+edge or wire type.
