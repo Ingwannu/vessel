@@ -6,6 +6,10 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- Contract review correction: the JSON budget is pinned with units and its
+  complete-value/headroom rationale in ADR 0064. Implementation uses the one
+  matching constant; checks, errors and boundary tests derive from it.
+
 - Contract fast checks passed before code. A source re-read additionally pins
   Paseo's invalid-JSON-to-literal-string fallback; this typed input refuses it.
   Get/set source and fixtures are committed and formatted; narrow compilation
