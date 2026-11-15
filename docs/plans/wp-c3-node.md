@@ -1,12 +1,19 @@
 # C3 git runtime
 
 Status: unadmitted runtime implementation. No new method has an assigned protocol
-number. ADR0087 defines the contract. Announced82ae7c91 is merged as e103946f;
-latest owned source af78f4aed includes the shared-project cache correction and
-queued-root test lint fixes. Its exact changed-source four-crate all-target Clippy passed (60s, actual Node
-Checking); later6e history fixture execution remains queued. Earlier860
-library proof stays on860, e103 Clippy is red on the corrected test lints, and
-no final whole package gate/review has passed.
+number. ADR0087 defines the contract. Current Rust head34bb9f843 merges the
+announced9c150c6e node line. Its sole registered TS generation run162346 remains
+queued; no replacement or current merged-source compile/test pass is claimed.
+The incoming generated comparison declarations stay byte-exact to9c150c6e;
+own history generation remains owed. The shared values-only leaf194/3fde is
+reviewed and integrated, distinct from this pending runtime implementation.
+
+Prior exactaf78 all-target Node/Proto/Workspace/Client Clippy passed0; exact6e
+workspace selection later executed67/0/0 with all4 prerequisite stages0 and
+actual Node compilation. These are PRIOR-source results, not current34bb checks.
+Earlier860 library proof stays on860, e103 remains65/1 on a corrected fixture,
+and no final whole package gate/runtime review has passed. Historical sections
+below retain their original queue/result source assignments.
 
 ## Structure and decisions
 
