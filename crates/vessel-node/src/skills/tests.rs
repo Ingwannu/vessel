@@ -1,4 +1,6 @@
 //! Cancellation cannot release admission or the serialized writer prematurely.
+mod diagnostic;
+
 use super::*;
 use vessel_harness::HarnessEnv;
 use vessel_proto::skills::SkillNames;

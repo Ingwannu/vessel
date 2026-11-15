@@ -488,3 +488,34 @@ assertions, stdin protocol, wrong-session refusal, child lifecycle and original
 safety net are unchanged. No product transport, logging or timeout is changed.
 The failed run and its logs remain preserved; exact corrected strict and canary
 execution are still owed, so this mechanism is not yet called runtime-proven.
+
+
+## Runtime security checkpoint corrections (row209)
+
+The first return identified an unbounded final remote receipt close and input
+bearing decoder/task diagnostic sources. The close now uses one owner-defined
+five-second cleanup budget after follow completion, parent end or node stop.
+The exact captured origin, destination, session and receipt are retained. A
+lost close is explicitly Uncertain, never confirmed deletion or an automatic
+retry; remote receipt expiry remains its existing bounded fallback. Returning
+from supervision releases the local Following permit and tracked task.
+
+JSON metadata errors retain their concrete serde cause privately, exposing only
+category and line/column through Display/Debug and stopping the public source
+chain. I/O failures similarly expose kind/OS code, not arbitrary custom text.
+Selection owner failures retain their typed cause privately, covering both the
+store-read boundary and persistence/rollback diagnostics. Blocking and tracked
+JoinError causes remain private behind Cancelled/Panicked categories. Remote
+follow and cleanup warnings contain only closed error codes/categories; parent
+failure notices stay fixed. This changes no global RPC policy or panic hook.
+
+Regressions exercise actual malformed owned manifests, transaction journals and
+selection files, the actual selection save persistence failure, enclosing full
+source chains and an actual blocking worker panic. The paused supervision test
+holds real Following admission and real receipt reservations while a close
+future never replies; completion, parent-end and stop must release local slots
+within the cleanup budget without deleting unrelated receipts or claiming a
+lost close succeeded. A captured production warning/parent-notice producer tests
+peer-error canaries. These are mechanism tests with synthetic homes/peer futures,
+not a claim of a live two-node run, global panic-hook sanitization or process-kill
+crash recovery. Exact changed-source strict/tests and V3 closure remain owed.

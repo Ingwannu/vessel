@@ -2,6 +2,8 @@
 //! This module neither reads environment nor chooses an account's agent homes.
 
 mod bundle;
+mod diagnostic;
+pub use diagnostic::{ManifestDecodeError, SelectionOwnerError, SkillIoError};
 
 pub use bundle::{SkillAsset, SkillBundle, SkillBundles};
 
@@ -40,10 +42,10 @@ pub enum SkillError {
     Blocked,
     /// A filesystem error is retained without quoting its private path.
     #[error("skill filesystem operation failed")]
-    Io(#[from] std::io::Error),
+    Io(#[from] SkillIoError),
     /// A manifest must be decoded at its owning edge.
     #[error("invalid managed skill manifest")]
-    Manifest(#[from] serde_json::Error),
+    Manifest(#[from] ManifestDecodeError),
     /// A future manifest cannot be overwritten as the current version.
     #[error("unsupported managed skill manifest version")]
     ManifestVersion,
@@ -63,3 +65,14 @@ pub enum SkillError {
 
 mod staged;
 pub use staged::{SelectionError, SkillLocations, SkillManager};
+
+impl From<std::io::Error> for SkillError {
+    fn from(error: std::io::Error) -> Self {
+        Self::Io(error.into())
+    }
+}
+impl From<serde_json::Error> for SkillError {
+    fn from(error: serde_json::Error) -> Self {
+        Self::Manifest(error.into())
+    }
+}

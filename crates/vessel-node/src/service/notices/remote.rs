@@ -17,6 +17,8 @@ use vessel_proto::{
 };
 use vessel_rpc::Unary;
 
+mod supervision;
+
 const PAGE: u32 = 200;
 const WAIT_SECS: u32 = 30;
 const EARLY_PAUSE: Duration = Duration::from_secs(1);
@@ -150,20 +152,29 @@ impl RemoteTeller {
         tasks: &TaskTracker,
     ) {
         drop(tasks.spawn(async move {
-            tokio::select! {
-                biased;
-                () = stop.cancelled() => {}
-                () = self.teller.told_ended(&mut ends) => self.teller.notices.forget(self.teller.told),
-                result = self.follow(&tracked) => {
-                    if let Err(error) = result {
-                        tracing::warn!(%error, "remote turn notification could not be followed");
-                        let _sent = self.teller.send(Notice { text: "Vessel: the remote worker's notification stream became unavailable. Inspect that worker's status before treating its task as complete.".into(), last: true }).await;
+            let teller = &self.teller;
+            let cleanup = supervision::run(
+                self.follow(&tracked),
+                teller.told_ended(&mut ends),
+                stop,
+                |end| async move {
+                    match end {
+                        supervision::End::Stopped | supervision::End::Followed(Ok(())) => {}
+                        supervision::End::ParentEnded => teller.notices.forget(teller.told),
+                        supervision::End::Followed(Err(error)) => {
+                            let _sent = teller.send(unavailable(&error)).await;
+                        }
                     }
-                }
+                },
+                self.remote.call(ClosePromptReceipt {
+                    session: teller.prompted,
+                    receipt: tracked.receipt,
+                }),
+            )
+            .await;
+            if cleanup != supervision::Cleanup::Confirmed {
+                tracing::warn!(?cleanup, "remote turn receipt cleanup was not confirmed");
             }
-            // Closing is idempotent from the caller's point of view. A lost close
-            // retains only a bounded receipt until its fixed expiry.
-            let _closed = self.remote.call(ClosePromptReceipt { session: self.teller.prompted, receipt: tracked.receipt }).await;
         }));
     }
     async fn follow(&self, tracked: &TrackedPrompt) -> Result<(), WireError> {
@@ -253,3 +264,15 @@ impl RemoteTeller {
         }
     }
 }
+
+/// Peer messages are input; only the closed code reaches diagnostic output.
+fn unavailable(error: &WireError) -> Notice {
+    tracing::warn!(code = ?error.code, "remote turn notification could not be followed");
+    Notice {
+        text: "Vessel: the remote worker's notification stream became unavailable. Inspect that worker's status before treating its task as complete.".into(),
+        last: true,
+    }
+}
+
+#[cfg(test)]
+mod tests;

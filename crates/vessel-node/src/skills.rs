@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use tokio::sync::Semaphore;
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 use vessel_fleet::orchestration::{
-    SelectionError, SkillBundles, SkillError, SkillLocations, SkillManager,
+    SelectionError, SelectionOwnerError, SkillBundles, SkillError, SkillLocations, SkillManager,
 };
 use vessel_proto::skills::{
     ImportSkillsSelection, SaveSkillsSelection, SkillImportOutcome, SkillSelection, SkillsImported,
@@ -16,6 +16,9 @@ use vessel_proto::skills::{
 use vessel_store::{DataDir, StoreError};
 
 use crate::config::Config;
+
+mod task_error;
+pub(crate) use task_error::SkillTaskFailure;
 
 const MAX_COMMANDS: usize = 8;
 
@@ -26,15 +29,27 @@ pub(crate) enum SkillsError {
     #[error("the node is stopping")]
     Stopping,
     #[error("skill worker failed")]
-    Lost(#[source] tokio::task::JoinError),
+    Lost(#[source] SkillTaskFailure),
     #[error("skill worker state is unavailable")]
     Poisoned,
     #[error(transparent)]
     Skill(#[from] SkillError),
     #[error("skill selection could not be read or kept")]
-    Store(#[from] StoreError),
+    Store(#[source] SelectionOwnerError<StoreError>),
     #[error(transparent)]
     Selection(#[from] SelectionError<StoreError>),
+}
+
+impl From<StoreError> for SkillsError {
+    fn from(error: StoreError) -> Self {
+        Self::Store(error.into())
+    }
+}
+
+impl From<tokio::task::JoinError> for SkillsError {
+    fn from(error: tokio::task::JoinError) -> Self {
+        Self::Lost(error.into())
+    }
 }
 
 #[derive(Debug)]
@@ -134,10 +149,10 @@ impl Skills {
                     action(manager, data, durable)
                 })
                 .await
-                .map_err(SkillsError::Lost)?
+                .map_err(SkillsError::from)?
             })
             .await
-            .map_err(SkillsError::Lost)?
+            .map_err(SkillsError::from)?
     }
     pub(crate) async fn status(self: &Arc<Self>) -> Result<SkillsSnapshot, SkillsError> {
         self.run(|manager, _data, durable| manager.status(durable.as_ref()).map_err(Into::into))

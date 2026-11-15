@@ -3,7 +3,7 @@
 use vessel_proto::skills::{SkillNames, SkillOperation, SkillSelection, SkillsSaved};
 
 use super::{SkillRoot, SkillService, deletion};
-use crate::orchestration::SkillError;
+use crate::orchestration::{SelectionOwnerError, SkillError};
 
 const MAX_SAVE_ATTEMPTS: usize = 3;
 
@@ -14,10 +14,10 @@ pub enum SelectionError<E: std::error::Error + 'static> {
     #[error(transparent)]
     Skill(#[from] SkillError),
     /// No choice was acknowledged; the rollback result remains explicit.
-    #[error("skill selection persistence failed: {source}; rollback: {rollback:?}")]
+    #[error("skill selection persistence failed; rollback: {rollback:?}")]
     Persist {
         /// Error returned by the owning node's store.
-        source: E,
+        source: SelectionOwnerError<E>,
         /// None means all this transaction's changes were rolled back.
         rollback: Option<SkillError>,
     },
@@ -98,7 +98,7 @@ impl SkillService {
             if snapshot.ops.is_empty() {
                 if let Err(source) = persist(next) {
                     return Err(SelectionError::Persist {
-                        source,
+                        source: source.into(),
                         rollback: transaction.rollback().err(),
                     });
                 }
