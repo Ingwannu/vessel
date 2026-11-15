@@ -180,6 +180,16 @@ mod tests {
             };
             let dark = Tokens::of(Scheme::Dark);
             let light = Tokens::of(Scheme::Light);
+            kept.state.update(cx, |state, cx| {
+                let rendered = state.rendered_text();
+                let ranges = (marks.spans)(rendered.as_str()).into_iter().map(|range| {
+                    gpui_component::text::RangeHighlight::new(range, FindPalette::of(&dark).found)
+                });
+                assert!(
+                    state.set_range_highlights(ranges, cx).is_ok(),
+                    "draft HOLD: the pinned HTML format rejects highlights until the canonical opt-in seam exists"
+                );
+            });
             kept.sync_marks(Some((&marks, &dark)), cx);
             assert_eq!(kept.marked, Some((1, Scheme::Dark)));
             kept.state.update(cx, |state, cx| {

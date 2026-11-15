@@ -27,11 +27,17 @@ is resolved. No node, network action or new host capability is added.
   dedicated copy button still uses the exact displayed string. Scheme/query
   cache changes clear/rebuild the same marks, without clearing text selection.
 
-Remaining concrete dependency: gpui-base RangeHighlight currently carries only
-background color. The old user StyledText range also uses FindPalette.current_ink;
+Remaining concrete dependencies: gpui-base RangeHighlight currently carries only
+background color, and TextViewState::set_range_highlights/reveal_range reject the
+HTML format as Unsupported. The old user StyledText range uses FindPalette.current_ink;
 copying the Markdown background-only path would lose that current-match ink in
-dark mode. B2 was asked for an existing typed foreground-range adapter before any
-new engine extension is proposed. There is no duplicate overlay renderer or
+dark mode. B2 independently confirmed both limitations and will coordinate one
+named owner/contract for an opt-in rendered-range/ink seam in the SAME TextView.
+The old mark helper's cache-key Some is not evidence that a range was accepted:
+it intentionally ignores a refused range on its Markdown-only product path.
+The draft fixture therefore requires actual accepted highlights, not just that
+cache flag, and is known to need the missing capability before it can pass.
+There is no duplicate overlay renderer or
 alternate mark helper here. The caller must remain unaccepted until this is
 resolved; this draft is not a claim of color/accessibility parity.
 
