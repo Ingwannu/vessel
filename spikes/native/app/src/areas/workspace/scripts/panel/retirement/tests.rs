@@ -297,3 +297,73 @@ fn connection_retirement_retains_write_receipt_before_any_layout_or_poll(cx: &mu
         assert!(shell.layout_tab_matches(workspace, tab, &Panel::Scripts));
     });
 }
+
+#[gpui::test]
+fn retirement_reload_requires_a_receipt_and_a_new_explicit_action(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let receiver = Rc::new(RefCell::new(None));
+    let receiver_slot = Rc::clone(&receiver);
+    let (shell, cx) = cx.add_window_view(move |window, cx| {
+        let (shell, commands) = language_tests::with_commands(window, cx);
+        *receiver_slot.borrow_mut() = Some(commands);
+        shell
+    });
+    shell.update_in(cx, |_, window, _| window.activate_window());
+    cx.run_until_parked();
+    shell.update_in(cx, |shell, window, cx| {
+        assert!(window.is_window_active());
+        let target = opened(shell, window, cx);
+        let (workspace, tab) = key(&target.surface).unwrap();
+        let vessel_proto::scripts::ScriptPlace::Session { session } = target.place else {
+            panic!("legacy session fixture");
+        };
+        shell.route = crate::routes::Route::Session;
+        shell.areas.session.open = Some(crate::areas::session::Open {
+            machine: "fixture".into(), session, title: "isolated".into(),
+            agent: "fake".into(), structured: true, live: true,
+        });
+        assert!(shell.layout_panel_visible(workspace, tab, window));
+        let action = Action::Run("dev".parse().unwrap());
+        let (old_ticket, request, snapshot) = {
+            let mut states = shell.areas.workspace.scripts.panels.borrow_mut();
+            let model = &mut states.get_mut(&(workspace.clone(), tab)).unwrap().model;
+            let ticket = model.action_ticket().unwrap();
+            let snapshot = model.read.ready().unwrap().clone();
+            let request = model.begin_write_at(&ticket, action.clone()).unwrap();
+            (ticket, request, snapshot)
+        };
+        aba(shell, &target, cx);
+        reload_after_receipt(shell, &target.surface, window, cx);
+        assert!(shell.areas.workspace.scripts.panels.borrow()
+            .get(&(workspace.clone(), tab)).unwrap().retired);
+        let result = Err(vessel_app_view::workspace::problem::Problem::Gone("unknown outcome".into()));
+        shell.script_panel_answer(ScriptAnswer::Written {
+            target: target.clone(), key: request, result: result.clone(),
+        }, cx);
+        reload_after_receipt(shell, &target.surface, window, cx);
+        let (next, read) = {
+            let states = shell.areas.workspace.scripts.panels.borrow();
+            let controls = states.get(&(workspace.clone(), tab)).unwrap();
+            assert!(!controls.retired);
+            assert_ne!(controls.surface, target.surface);
+            assert!(controls.model.action_ticket().is_none());
+            assert!(controls.model.writing.is_none());
+            assert_eq!(controls.last_write.as_ref().unwrap().receipt(), Some(&result));
+            (controls.model.target.clone().unwrap(), controls.model.read.outstanding().unwrap())
+        };
+        reload_after_receipt(shell, &target.surface, window, cx);
+        shell.script_panel_action(&old_ticket, action.clone(), window, cx);
+        let commands = script_commands(receiver.borrow_mut().as_mut().unwrap());
+        assert_eq!(commands.len(), 1);
+        assert!(matches!(&commands[0], ScriptAsk::Read { target, key } if target == &next && *key == read));
+        shell.script_panel_answer(ScriptAnswer::Read { target: next, key: read, result: Ok(snapshot) }, cx);
+        let fresh = shell.areas.workspace.scripts.panels.borrow()
+            .get(&(workspace.clone(), tab)).unwrap().model.action_ticket().unwrap();
+        shell.script_panel_action(&fresh, action, window, cx);
+        let commands = script_commands(receiver.borrow_mut().as_mut().unwrap());
+        assert_eq!(commands.len(), 1);
+        assert!(matches!(&commands[0], ScriptAsk::Write { target, .. } if target == &fresh.target));
+        assert!(shell.areas.workspace.scripts.panels.borrow()
+            .get(&(workspace.clone(), tab)).unwrap().last_write.is_none());
+    });
+}

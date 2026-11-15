@@ -9,8 +9,10 @@ scripts-refresh = 새로 고침
 # UI를 떠나도 이미 전송한 작업은 유지되며 응답은 성공을 뜻하지 않을 수 있습니다.
 scripts-retired = 요청을 처리하는 동안 탭이 바뀌었습니다. 원래 요청을 보존하며 도착하는 응답도 함께 보관합니다. 응답이 실패해도 원격 실행 결과는 알 수 없을 수 있습니다. 새 작업 전에 현재 상태를 다시 읽으세요. 원래 요청을 다시 실행하지 않습니다.
 
+# Explicit reload only after the original request returns; never replay it.
 scripts-reload-retired = 현재 상태 다시 읽기
 
+# Owner-local retention limit refuses another panel without dropping requests.
 scripts-retained-limit = 결과를 보존 중인 스크립트 패널이 너무 많습니다. 기존 요청을 유지하며 새 패널은 아직 열 수 없습니다.
 
 # Project scripts: short action/status, or complete explanatory notice.

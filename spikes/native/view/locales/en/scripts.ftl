@@ -9,8 +9,10 @@ scripts-refresh = Refresh
 # An original detached operation survives UI retirement; a receipt is not success.
 scripts-retired = This tab changed while a request was in flight. Its original request is retained, and its reply will be kept. A failed reply can still mean an unknown remote outcome. Reload current status before any new action; the request will not be replayed.
 
+# Explicit reload only after the original request returns; never replay it.
 scripts-reload-retired = Reload current status
 
+# Owner-local retention limit refuses another panel without dropping requests.
 scripts-retained-limit = Too many script panels retain requests. Existing requests remain intact; another panel cannot be opened yet.
 
 # Project scripts: short action/status, or complete explanatory notice.
