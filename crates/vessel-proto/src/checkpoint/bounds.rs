@@ -9,6 +9,9 @@ use std::{fmt, time::Duration};
 pub const CHECKPOINT_FILE_BYTES: u64 = 16 * 1024 * 1024;
 /// Maximum raw byte sum in one image.
 pub const CHECKPOINT_IMAGE_BYTES: u64 = 128 * 1024 * 1024;
+/// Initial capture escrow includes candidate, retained image and metadata overhead.
+/// Cleanup settles this down to the retained image charge; clients supply no size.
+pub const CHECKPOINT_CAPTURE_RESERVATION_BYTES: u64 = CHECKPOINT_IMAGE_BYTES.saturating_mul(4);
 /// Maximum covered entries in one image.
 pub const CHECKPOINT_PATHS: usize = 2048;
 /// Maximum bytes in one named path.

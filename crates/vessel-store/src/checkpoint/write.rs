@@ -14,6 +14,16 @@ use vessel_proto::checkpoint::{
 
 #[derive(Debug)]
 pub(crate) enum CheckpointWrite {
+    ReserveCapture {
+        key: CaptureKey,
+        at: DateTime<Utc>,
+    },
+    CaptureSettled {
+        key: CaptureKey,
+    },
+    // Small accounting models are test-only; real filesystem capture has a
+    // fixed escrow, so no production caller can reserve zero for a full image.
+    #[cfg(test)]
     Reserve {
         key: CaptureKey,
         bytes: crate::ByteCount,
@@ -80,6 +90,11 @@ pub(crate) enum CheckpointWrite {
 /// The writer's savepoint encloses an admission AND every Pending path intent.
 pub(crate) fn apply(connection: &Connection, write: CheckpointWrite) -> Result<(), Error> {
     match write {
+        CheckpointWrite::ReserveCapture { key, at } => {
+            journal::candidate(connection, key, super::quota::CAPTURE_BYTES, at)
+        }
+        CheckpointWrite::CaptureSettled { key } => super::quota::capture_settled(connection, key),
+        #[cfg(test)]
         CheckpointWrite::Reserve { key, bytes, at } => {
             journal::candidate(connection, key, bytes, at)
         }

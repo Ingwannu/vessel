@@ -421,3 +421,17 @@ missing TerminalHandle import and its resulting inference error; runtime tests
 were never reached. The import is restored in the current source. Its four
 Future warnings were already corrected by 420dcf66. Original failed logs remain
 available; no result is reported as a runtime pass.
+
+### Capture escrow settlement (staged)
+
+The product command reserves a named fixed capture escrow; the arbitrary-size
+reservation command/constructor are now test-only accounting models. Settlement
+requires a matching immutable boundary in Ready or Unavailable, never Candidate.
+After actual private-worker cleanup, Ready keeps raw payload plus bounded entry
+and serialized-manifest allowances; Unavailable keeps its metadata reservation.
+Settlement is idempotent, refuses an undersized escrow instead of inventing extra
+capacity, and checks metadata byte length before loading/decoding it. This is a
+reservation budget, not a promise to cap the entire database/WAL or filesystem's
+physical usage. A real-writer fixture covers candidate refusal, Ready settlement
+and retry, plus unavailable cleanup. It has not run. Actual worker/cleanup and
+controller wiring, per-plan settlement/expiry and GC remain owed.

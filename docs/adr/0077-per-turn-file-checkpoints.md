@@ -719,3 +719,12 @@ cleanup acknowledgement. SQL cannot prove kernel I/O completion: the node must
 retain the worker/object ownership through it. Those controller/GC adapters are
 not yet connected. This adds a table within the one unshipped checkpoint migration,
 not another schema number; the migration runner stays unchanged.
+
+Capture settlement refinement: production reservation has a fixed named escrow;
+only unit accounting models accept arbitrary byte budgets. After the matching
+worker's actual cleanup, Ready remains charged for its payload and conservative
+entry/manifest allowances; Unavailable retains metadata. Candidate cannot settle,
+and a computed charge larger than its escrow refuses rather than growing or
+returning unreserved capacity. Metadata length is bounded before row decoding.
+This accounts checkpoint reservations, not the total physical database/WAL size.
+Node callbacks still must prove actual completion before invoking settlement.

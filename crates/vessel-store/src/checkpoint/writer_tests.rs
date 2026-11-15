@@ -564,3 +564,91 @@ async fn checkpoint_private_allocations_use_real_writer_quota_and_never_recycle_
     ));
     store.close().await;
 }
+
+#[tokio::test]
+async fn checkpoint_capture_escrow_releases_only_after_terminal_cleanup_and_keeps_ready_bytes() {
+    let temp = tempfile::tempdir().unwrap();
+    let dir = DataDir::new(temp.path());
+    dir.prepare().unwrap();
+    let store = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    let info = info();
+    store.create_session(info.clone()).await.unwrap();
+    let plan = plan(info.id);
+    store
+        .checkpoint_write(CheckpointWrite::ReserveCapture {
+            key: plan.key,
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+    assert!(matches!(
+        store
+            .checkpoint_write(CheckpointWrite::CaptureSettled { key: plan.key })
+            .await,
+        Err(StoreError::Checkpoint(CheckpointStoreError::Refused(
+            CheckpointError::Busy
+        )))
+    ));
+    store
+        .checkpoint_write(CheckpointWrite::Candidate {
+            key: plan.key,
+            snapshot: Box::new(super::tests::observed(plan.desired.image().clone())),
+        })
+        .await
+        .unwrap();
+    store
+        .checkpoint_write(CheckpointWrite::Activate {
+            key: plan.key,
+            checkpoint: CheckpointId::random(),
+        })
+        .await
+        .unwrap();
+    store
+        .checkpoint_write(CheckpointWrite::CaptureSettled { key: plan.key })
+        .await
+        .unwrap();
+    let capture = plan.key.capture.to_string();
+    let charged: i64 = store
+        .read(move |reader| {
+            reader.with(|connection| {
+                Ok(connection.query_row(
+                    "SELECT reserved_bytes FROM checkpoint_captures WHERE id=?1",
+                    [capture],
+                    |row| row.get(0),
+                )?)
+            })
+        })
+        .await
+        .unwrap();
+    assert!(charged > 0);
+    assert!(u64::try_from(charged).unwrap() < super::quota::CAPTURE_BYTES.get());
+    // Duplicate cleanup cannot release the retained payload/metadata a second time.
+    store
+        .checkpoint_write(CheckpointWrite::CaptureSettled { key: plan.key })
+        .await
+        .unwrap();
+    let mut unavailable = plan.key;
+    unavailable.capture = CaptureId::random();
+    store
+        .checkpoint_write(CheckpointWrite::ReserveCapture {
+            key: unavailable,
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+    store
+        .checkpoint_write(CheckpointWrite::Unavailable {
+            key: unavailable,
+            reason: CheckpointError::CaptureTimedOut,
+        })
+        .await
+        .unwrap();
+    store
+        .checkpoint_write(CheckpointWrite::CaptureSettled { key: unavailable })
+        .await
+        .unwrap();
+    store.close().await;
+}

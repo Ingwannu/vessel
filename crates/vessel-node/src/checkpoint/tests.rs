@@ -27,12 +27,7 @@ async fn deadline_releases_actor_but_keeps_worker_root_and_reservation() {
     let deadline = now + CHECKPOINT_CAPTURE_DEADLINE;
     let (reply, received) = oneshot::channel();
     captures
-        .admit(
-            key,
-            deadline,
-            ReservedBytes::new(CHECKPOINT_NODE_BYTES).unwrap(),
-            reply,
-        )
+        .admit(key, deadline, ReservedBytes::capture(), reply)
         .unwrap();
     captures.expire(deadline);
     assert_eq!(
@@ -40,7 +35,10 @@ async fn deadline_releases_actor_but_keeps_worker_root_and_reservation() {
         Err(CheckpointError::CaptureTimedOut)
     );
     assert!(captures.occupied(key.worktree));
-    assert_eq!(captures.reserved(), CHECKPOINT_NODE_BYTES);
+    assert_eq!(
+        captures.reserved(),
+        vessel_proto::checkpoint::CHECKPOINT_CAPTURE_RESERVATION_BYTES
+    );
     assert_eq!(
         captures.published(key, deadline),
         Err(CheckpointError::StaleCapture)
