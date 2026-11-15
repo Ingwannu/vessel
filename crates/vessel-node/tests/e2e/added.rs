@@ -372,3 +372,45 @@ async fn an_older_client_is_never_handed_an_added_agent() {
     })
     .await;
 }
+
+/// The modern manifest and legacy admission share one reserved namespace.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn modern_builtin_names_are_refused_before_legacy_definition_mutation() {
+    within(async {
+        let fixture = Fixture::new();
+        let node = quick(&fixture).await;
+        let owner = fixture.connect(&node).await;
+        let env_file = fixture.cwd().join("namespace-env.txt");
+        let agents_file = fixture.data_path().join("agents.toml");
+        assert!(!agents_file.exists());
+        // The other known names are already refused by AgentName decoding.
+        // These three remain decodable for persisted legacy records only.
+        for spelling in ["copilot", "COPILOT", "pi", "Pi", "omp", "OMP"] {
+            for replace in [false, true] {
+                let mut request = add(spelling, &env_file);
+                request.replace = replace;
+                assert_eq!(code(owner.call(request).await), ErrorCode::Conflict);
+                assert!(!agents_file.exists());
+            }
+        }
+        let _added = owner.call(add("pi-custom", &env_file)).await.unwrap();
+        let before = std::fs::read(&agents_file).unwrap();
+        assert_eq!(
+            code(owner.call(add("PI", &env_file)).await),
+            ErrorCode::Conflict
+        );
+        assert_eq!(std::fs::read(&agents_file).unwrap(), before);
+        let listed = owner.call(ListAgents {}).await.unwrap();
+        assert!(
+            listed
+                .iter()
+                .any(|agent| agent.agent == HarnessRef::Added(name("pi-custom")))
+        );
+        assert!(
+            !env_file.exists(),
+            "adding/refusing a definition never starts it"
+        );
+        node.stop().await.unwrap();
+    })
+    .await;
+}

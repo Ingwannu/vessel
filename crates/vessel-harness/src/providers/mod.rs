@@ -15,7 +15,7 @@ pub use launch::{
     CommandPrefix, LaunchOrigin, PARENT_SESSION_VARIABLES, ProviderLaunch, ProviderLaunchError,
     ToolEnforcement, merge_launch, provider_launch, resolve_prefix,
 };
-pub use manifest::{Builtin, ManifestError, builtin_manifest};
+pub use manifest::{Builtin, ManifestError, builtin_manifest, builtin_named};
 pub use models::{MergedModels, merge_models, normalize};
 pub use options::{CatalogueOptionsError, catalogue_from_options};
 pub use registry::{

@@ -41,6 +41,12 @@ use crate::profiles::{NodeProfiles, ProfilesFileError, with_agents};
 /// Why `agent.add` or `agent.remove` was refused.
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum AddedError {
+    /// Modern built-in identities cannot become legacy added-agent aliases.
+    #[error("this name belongs to a built-in provider; choose another added-agent name")]
+    ReservedProvider,
+    /// A broken compiled manifest must not bypass the namespace admission rule.
+    #[error("the provider namespace could not be checked")]
+    ProviderPolicy(#[source] vessel_harness::providers::ManifestError),
     /// An agent, or a delegated call, may not change the node's agents.
     #[error(
         "only a person may add or remove an agent on this node (not an agent, nor a call from another node)"
@@ -93,10 +99,14 @@ impl AddedError {
     pub(crate) const fn code(&self) -> ErrorCode {
         match self {
             Self::NotAPerson => ErrorCode::Forbidden,
-            Self::Taken(_) | Self::Profiles(_) => ErrorCode::Conflict,
+            Self::Taken(_) | Self::Profiles(_) | Self::ReservedProvider => ErrorCode::Conflict,
             Self::NotFound(_) | Self::NotInCatalogue { .. } => ErrorCode::NotFound,
             Self::Invalid(_) | Self::NotACommand(_) => ErrorCode::InvalidRequest,
-            Self::File(_) | Self::Io(_) | Self::Write(_) | Self::Task(_) => ErrorCode::Internal,
+            Self::File(_)
+            | Self::Io(_)
+            | Self::Write(_)
+            | Self::Task(_)
+            | Self::ProviderPolicy(_) => ErrorCode::Internal,
         }
     }
 }
@@ -174,6 +184,14 @@ pub(crate) async fn add(
         agent,
         replace,
     } = request;
+    // Admission, not decoding: preserve existing saved names as distinct
+    // legacy identities, while refusing new/replaced aliases before lookup or I/O.
+    if vessel_harness::providers::builtin_named(name.as_str())
+        .map_err(AddedError::ProviderPolicy)?
+        .is_some()
+    {
+        return Err(AddedError::ReservedProvider);
+    }
     let (definition, source) = match agent {
         AgentToAdd::Command { definition } => (definition, AgentSource::Command),
         AgentToAdd::Registry { id, version, mcp } => {

@@ -25,6 +25,19 @@ pub struct Builtin {
     pub create_policy: CreatePolicy,
 }
 
+/// Match the canonical built-in namespace without inventing another name table.
+/// Legacy decoding remains separate so saved added agents can still be removed.
+///
+/// # Errors
+/// The same compiled manifest error as [`builtin_manifest`]; callers must fail
+/// closed rather than admitting a name while the manifest is unavailable.
+pub fn builtin_named(name: &str) -> Result<Option<ProviderId>, ManifestError> {
+    Ok(builtin_manifest()?
+        .into_iter()
+        .find(|builtin| builtin.id.as_str().eq_ignore_ascii_case(name))
+        .map(|builtin| builtin.id))
+}
+
 /// Reference built-ins in provider-manifest order. Never includes a test provider.
 ///
 /// # Errors
@@ -195,5 +208,19 @@ mod tests {
             [1, 1, 1, 0, 0, 1]
         );
         assert!(rows.iter().all(|r| !r.id.as_str().starts_with("mock")));
+    }
+    #[test]
+    fn built_in_names_share_one_case_insensitive_namespace_without_prefix_matching() {
+        for builtin in builtin_manifest().unwrap() {
+            for spelling in [
+                builtin.id.as_str().to_owned(),
+                builtin.id.as_str().to_uppercase(),
+            ] {
+                assert_eq!(builtin_named(&spelling).unwrap(), Some(builtin.id.clone()));
+            }
+        }
+        for name in ["pi-custom", "Copilot2", "goose", "omp-profile"] {
+            assert!(builtin_named(name).unwrap().is_none());
+        }
     }
 }

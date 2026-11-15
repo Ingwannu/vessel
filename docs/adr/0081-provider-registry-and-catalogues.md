@@ -44,3 +44,28 @@ the shared request accessor, and test nested/forwarded replies as well.
 No platform-specific service or signal operation is added by the policy layer.
 Command resolution uses the existing cross-platform Lookup. No provider is
 started, installed, authenticated or contacted by the manifest or resolver.
+
+## Provider and legacy name admission increment
+
+[Decision Log]
+- Purpose: prevent new legacy agent.add aliases from shadowing the modern
+  provider manifest's copilot/pi/omp identities, including replace requests.
+- Existing constraint: AgentName decoding reserves only the older HarnessKind
+  spellings. Tightening that decoder would make saved legacy records unreadable
+  and could prevent an owner from removing or migrating a collision.
+- Alternatives: silently map an Added agent to a built-in account, or duplicate
+  the six reserved names in node policy. Both can drift or invent identity.
+- Choice: node admission consults the one pure built-in manifest, case-insensitive,
+  before command/catalogue lookup or file mutation. A reserved name returns the
+  existing typed Conflict code; a broken manifest fails closed. Decoding and
+  removal of an existing legacy record stay available, without reclassification.
+- Reason: preserve old persisted identity while preventing new ambiguities.
+- Effects: exact names are reserved, prefixes remain available. Existing saved
+  collisions remain distinct legacy rows until explicitly migrated/removed;
+  they confer no modern binding or authority. Modern creation must also refuse
+  ambiguous launch binding until the actor can attest the actual association.
+
+The snapshot binding/sign-in increment is still awaiting the actual lifecycle
+actor capture producer. No mapping, credential existence or successful catalogue
+handshake is used to manufacture a known account or sign-in verdict. This
+preparation has no new wire field and does not merge the two UI row sets.
