@@ -329,7 +329,8 @@ and session ownership. The unused HTTP transport also remains deferred.
 Every source commit has format, size and crate-boundary checks; the current
 size record is lowered to 626 for node.rs. No size debt is raised. Builds and
 tests use serialized prescribed lanes, fake harnesses and synthetic homes.
-There are no native UI changes/captures or operator-home/service mutations.
+No operator-home/service mutation is part of testing. Native settings UI
+was assigned after the initial node-only phase and requires its own gate/captures.
 
 | Exact source | Check and outcome | Evidence under /tmp/work/wp-mcp |
 | --- | --- | --- |
@@ -346,7 +347,7 @@ There are no native UI changes/captures or operator-home/service mutations.
 | 9e2be4d25 | TS generators 4 passed; stale file diff keeps step rc1; six artifact hashes verified and exact generated patch applied | ts-9e2be |
 | c7f0c5df1 | Strict stopped on a module-doc backtick lint; fixed 3ded; functional suite stopped after 91 passed/1 failed/1 ignored at the new default-notification fixture | strict-c7f0, functional-c7f0 |
 | 24fd5a5a5 | TS freshness passed: generator tests 4/0, wire diff 0 | ts-24fd5 |
-| 3ded9d636 | Merged-head changed-crate strict queued, not passed | strict-3ded |
+| 3ded9d636 | Strict stopped on two redundant Ack qualifications in the RPC test mock; fixed without assertion changes | strict-3ded |
 | c17b45819 | Corrected functional suite queued with no-fail-fast, not passed | functional-c17b |
 
 The alias registry brands node-minted PromptReceiptId; SkillName and
@@ -388,7 +389,7 @@ completion replies and the absence of a wait-tool call remain asserted.
 This correction does not yet prove the product path passes; rerun is owed.
 
 The tracker records built source or skeleton gaps only, never a package
-PASS. Native Skills settings ownership (tracker row 594, obsolete W21 label)
-was raised with the coordinator because the initial W18 assignment is node-side;
-W15 already owns its onboarding consumer. No app scope or readiness is inferred
-from a node-only check.
+PASS. The coordinator confirmed native Skills settings (tracker row 594) belongs
+to W18 in a separate app tree; W15 owns its onboarding consumer only. App
+implementation and gates are required before package completion. A node-only
+check is not native UI evidence.

@@ -61,7 +61,7 @@ retain the user's constraints rather than treating it as a new user instruction.
 ## Inspect and operate
 
 - `get_session` reads metadata and current structured permission requests.
-- `read_conversation` reads the current queue, options and requests;
+- `read_conversation` reads the current queue, commands, context usage and requests;
   `read_events` reads historical records. An old logged request may be resolved.
 - `list_pending_permissions` is a sequential current-state inventory. Answer a
   request only when authorized and only with its current returned option ID.
