@@ -3,11 +3,13 @@
 //! the moment it is sent, before the node records it), and the agent's
 //! reply in the owner's mirrored bubble beside the agent's circle.
 
+use vessel_app_kit::chat_markdown::actions::CopyStyle;
+use vessel_app_kit::chat_markdown::{Options, chat_markdown_with};
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, FluentBuilder as _, IntoElement as _, ParentElement as _,
     Styled as _, Window, div, px, relative,
 };
-use vessel_app_kit::{FindMarks, Type, TypeExt as _, chat_markdown};
+use vessel_app_kit::{FindMarks, Type, TypeExt as _};
 use vessel_app_view::timeline::{Prompt, first_reply, spans_of};
 
 use super::entries::{Paint, id, marked_text};
@@ -136,11 +138,15 @@ pub(super) fn message(
         .border_color(paint.look.border)
         .type_(Type::Body)
         .text_color(paint.tokens.neutral.foreground)
-        .child(chat_markdown(
+        .child(chat_markdown_with(
             ElementId::NamedInteger("message".into(), id(index)),
             text,
             vessel_app_kit::version_of(&(rev, text.len())),
-            marks.as_ref(),
+            Options {
+                marks: marks.as_ref(),
+                actions: None,
+                copy: CopyStyle::MarkdownCodeAware,
+            },
             paint.tokens,
             window,
             cx,

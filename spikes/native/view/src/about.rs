@@ -132,6 +132,7 @@ pub const BUNDLED: &[Bundled] = &[
         "(MIT OR Apache-2.0) AND Unicode-3.0",
         Role::Accents,
     ),
+    krate("unicode-segmentation", "MIT OR Apache-2.0", Role::Editing),
     krate("vte", "Apache-2.0 OR MIT", Role::Terminal),
     krate("unicode-width", "MIT OR Apache-2.0", Role::Terminal),
     krate("qrcode", "MIT OR Apache-2.0", Role::QrCodes),

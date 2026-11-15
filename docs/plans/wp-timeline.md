@@ -1312,3 +1312,22 @@ firstd2 run found type complexity and integer/NFC/slice test idioms; WordChanges
 names the existing return value, clock remainder is checked, the frame interval
 uses nearest-nanosecond precision, and escaped jamo preserve test bytes. No lint
 suppression, weakened Unicode assertion or new dependency version is introduced.
+
+
+Exacta415 view all-target tests reached1025 passes/1 failure at16:21 UTC; all
+six text-reveal regressions passed. The sole failure was the unchanged About
+manifest-order regression: the newly direct unicode-segmentation dependency was
+not listed in BUNDLED. Its existing registry SPDX expression MIT OR Apache-2.0
+is verified and the actual About inventory is now updated in manifest order,
+using the existing text-editing category. The test is not weakened; remaining
+integration suites did not run after that failure. This is not a green full run.
+
+The verified portable Markdown leaf f4c01f618 is merged without its author's
+moving branch or any host/field/App/node additions. The reply's single existing
+Markdown call now uses chat_markdown_with, preserving find marks, structural id,
+revision/visible-length version and global selection. MarkdownCodeAware copy
+preserves source markup and raw single-code selections through the SAME engine.
+Actions remains None until actual scoped host helpers/root authorization/image
+acquisition are checked; no guessed route, inferred-link authority or lightbox
+is invented here. Owner f4 standalone Kit strict is0; actual195 Kit tests belong
+to its earlier40aa source and remain prior-source evidence, not current A7 proof.
