@@ -20,7 +20,6 @@
 
 use gpui::{AppContext as _, Bounds, px, size};
 use vessel_app_kit::SchemeChoice;
-use vessel_app_view::Lang;
 
 use crate::{LABEL, shell};
 
@@ -29,7 +28,15 @@ pub(crate) fn main() {
     gpui_platform::web_init();
     // The page's language (`navigator.languages`), as the desktop takes the
     // system's.
-    let lang = sys_locale::get_locale().map_or(Lang::En, |tag| Lang::from_tag(&tag));
+    let prefs = vessel_app_link::Prefs::load();
+    let language = crate::language::Language::new();
+    let words = match language.prepare(prefs.settings.language) {
+        Ok(words) => words,
+        Err(error) => {
+            tracing::error!(%error, "the embedded translations could not start");
+            return;
+        }
+    };
     gpui_platform::single_threaded_web()
         .with_assets(vessel_app_kit::Assets)
         .run(move |cx| {
@@ -42,7 +49,7 @@ pub(crate) fn main() {
             let bounds = Bounds::centered(None, size(px(1280.0), px(800.0)), cx);
             let options = vessel_app_kit::chrome::window_options(format!("Vessel {LABEL}"), bounds);
             let opened = cx.open_window(options, |window, cx| {
-                let shell = cx.new(|cx| shell::Shell::new(lang.text(), window, cx));
+                let shell = cx.new(|cx| shell::Shell::new(prefs, language, words, window, cx));
                 vessel_app_kit::root(shell, window, cx)
             });
             if let Err(error) = opened {

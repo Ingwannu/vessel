@@ -1,0 +1,115 @@
+name: Native app
+
+# [Decision Log] (2026-11-14, milestone 12 track R; the plan's "CI for the
+# native app and the release crates" says more)
+# - Purpose: the native app (spikes/native) and the release crates
+#   (spikes/release) had no CI. ci.yml runs only the main workspace, and
+#   spikes/release/ci/app-release.yml is a release recipe that is not run.
+#   Every track ran the gate by hand before it reported a slice; nothing
+#   checked a merge.
+# - Constraints: both are workspaces of their own, pinned to Rust 1.98.1
+#   (the GPUI snapshot needs 1.95 or newer; the main workspace stays on
+#   1.93). GPUI links libxcb and libxkbcommon on Linux. The app embeds its
+#   faces with include_bytes!, and they are not committed
+#   (spikes/native/.gitignore): without them the kit does not compile.
+# - Alternatives: a job in ci.yml (its matrix and its 1.93 toolchain are the
+#   main workspace's; mixing toolchains in one job confuses its cache);
+#   Windows and macOS too (the app's Windows build is a cross-build that
+#   track R's build.sh makes and checks for every label; a hosted Windows
+#   runner would build it a second way, and macOS is not released yet).
+# - Choice: one Linux job, the gate exactly as the native README states it,
+#   then the release crates' gate. Same triggers as ci.yml: native depends
+#   on the main workspace's crates by path, so a path filter would miss
+#   changes that break it.
+# - The faces: fonts.sh, as the README says, after `npm ci` in web/ (it
+#   takes Pretendard from the page's packages and Geist from `npm pack`).
+# - Nothing here publishes or signs: read-only token, no secrets. Free
+#   while the repository is public (ci.yml says what to do if it is not).
+# - Run time, measured on 2026-11-14 with 4 jobs (a hosted runner's 4
+#   vCPUs) on a busy 16-core machine: the cargo steps took 18 minutes from
+#   nothing and 14 with the dependencies cached (the workspace's own test
+#   binaries, which link GPUI, are rebuilt every run and are most of it).
+#   With setup and the cache's upload, expect about 20-25 minutes, then
+#   about 15-18. Timeout 60.
+on:
+  push:
+    branches: [main, "backend/**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: native-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  native:
+    name: native app and release crates (Linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      # A cold run's targets reach about 13 GB (native: GPUI's test
+      # binaries with their debug info) and 3.4 GB (release), measured on
+      # 2026-11-14; a hosted runner keeps less than that free. The image's
+      # Android, .NET, Haskell and CodeQL toolsets are not used here.
+      - name: Room on the disk
+        run: |
+          df -h /
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+      # What GPUI links (libxcb, libxkbcommon, libxkbcommon-x11) and the
+      # headers its font and Wayland crates may look for. No display and no
+      # Vulkan: the gate's tests run headless (the one window capture is
+      # #[ignore]).
+      - name: GPUI's system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pkg-config libxcb1-dev libxkbcommon-dev libxkbcommon-x11-dev \
+            libfontconfig-dev libfreetype-dev libwayland-dev
+      # The faces (spikes/native/README.md, "Build, run, gate").
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - run: scripts/fonts.sh "$RUNNER_TEMP/fonts"
+        working-directory: spikes/native
+      # The toolchain the two workspaces pin, read from their files so the
+      # pin lives in one place per workspace; they must agree.
+      - name: Rust from rust-toolchain.toml
+        run: |
+          native=$(sed -n 's/^channel = "\(.*\)"/\1/p' spikes/native/rust-toolchain.toml)
+          release=$(sed -n 's/^channel = "\(.*\)"/\1/p' spikes/release/rust-toolchain.toml)
+          if [ "$native" != "$release" ]; then
+            echo "spikes/native pins $native, spikes/release $release" >&2
+            exit 1
+          fi
+          rustup toolchain install "$native" --profile minimal --component rustfmt,clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            spikes/native -> target
+            spikes/release -> target
+      # The native gate, as spikes/native/README.md states it.
+      - run: cargo fmt --all --check
+        working-directory: spikes/native
+      - run: cargo clippy --all-targets -- -D warnings
+        working-directory: spikes/native
+      - run: cargo test
+        working-directory: spikes/native
+      # The release crates' gate (updater, feed tool, log, hello).
+      - run: cargo fmt --all --check
+        working-directory: spikes/release
+      - run: cargo clippy --all-targets -- -D warnings
+        working-directory: spikes/release
+      - run: cargo test
+        working-directory: spikes/release
