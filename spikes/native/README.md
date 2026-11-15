@@ -73,6 +73,10 @@ reuses the existing machine-page tickets. Agent snapshots retain the
 reporting `NodeId`, so a reused book name cannot stand in for identity.
 The prepared request is not yet connected to a destructive call or control.
 
+The existing agent-option query/cache method lives in private native
+`link/src/options.rs`; the root actor still calls it for `Command::Options`.
+Its module split changes no request, cache order or event.
+
 Data flow: `link` lists every book node's sessions every two seconds (the
 page's cadence) and sends a `Fleet`; opening a session follows its log
 from the start and sends its records, which the shell folds in batches
