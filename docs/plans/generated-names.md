@@ -489,3 +489,13 @@ The combined gate and merge review remain owed. The schema fixture repair
 is a separate test-only commit. No new staged selector, request-preparation
 or semantic-material module is included in this integration tree. Actual
 HTTP generation, settings wiring and the first-prompt observer remain next.
+
+
+Integration completion checkpoint: the head's corrected accessor is kept
+unchanged. The separate schema-fixture repair expects the migration table
+length after migrate and finds the inbox predecessor in that same table.
+No product migration or other test assertion/deadline changes. Appended
+schema and row positions use saturating addition; the migration table's
+array length also checks the single provisional schema assignment. Narrow
+store library validation passes. The exact-commit remote whole gate and
+merge source review are next; automatic generation remains unconnected.
