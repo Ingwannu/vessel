@@ -167,6 +167,15 @@ must land together before multi-session panes can be claimed. Existing frame can
 consume only the current legacy agent screen once; other unregistered targets
 retain a localized unavailable placeholder and are omitted from launchers.
 
+The next lazy-body change is source preparation: the session gives the registry a
+function pointer, rather than constructing timeline, composer and overlays before
+the pane projection is known. The registry invokes it once only for the matching
+visible legacy Agent tab. Missing/invalid layout projection builds no agent body;
+pending session startup retains its original separate branch. This avoids hidden
+builders scheduling local work, without treating the selected-global body as an
+authenticated scoped resident renderer. The source-level deferred-builder/painted
+marker fixture is not actual network read-marking or multi-session authority proof.
+
 Remaining package evidence: narrow tests, feature-owner registrations, single-owner
 resident cutover, compact picker/explorer integration, isolated fixture captures,
 one final whole native gate and package source review. No live node or agent is

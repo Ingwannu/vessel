@@ -430,13 +430,25 @@ pub(crate) fn render(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
-    let t = shell.t;
     let view = &shell.areas.session;
     if let Some(pending) = &view.pending
         && view.conversation.entries().is_empty()
     {
         return starting(pending, shell, tokens, window, cx);
     }
+    crate::areas::layout::frame(shell, render_body, tokens, window, cx)
+}
+
+// Retained source body, invoked only for the visible selected legacy agent.
+// This still reads the existing owner; it grants no scoped resident authority.
+fn render_body(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let t = shell.t;
+    let view = &shell.areas.session;
     let Some(open) = &view.open else {
         return div();
     };
@@ -447,7 +459,7 @@ pub(crate) fn render(
         crate::areas::terminal::body(shell, tokens, window, cx)
     };
     let working = view.conversation.turn_running();
-    let screen = div()
+    div()
         .size_full()
         .flex()
         .flex_col()
@@ -482,9 +494,7 @@ pub(crate) fn render(
                 })
                 .children(over.into_iter().flatten())
         })
-        .children(super::conversation::overlays(shell, tokens, window, cx));
-    // Track F's slot: the screen, with the code panel beside it when out.
-    crate::areas::layout::frame(shell, screen, tokens, window, cx)
+        .children(super::conversation::overlays(shell, tokens, window, cx))
 }
 
 /// Under an ended session's conversation: why it could not be started
