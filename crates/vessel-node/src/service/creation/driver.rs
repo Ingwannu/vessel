@@ -15,8 +15,16 @@ enum StepFailure {
     Refused(ErrorCode),
     Uncertain(ErrorCode),
 }
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum StageReadiness {
+    Ready,
+    Deferred,
+}
 trait Runtime {
     fn fingerprint(&self) -> Fingerprint;
+    /// Preparation/approval may be pending, without admitting an effect. The
+    /// real first-input owner supplies this; receipt metadata is not acceptance.
+    fn readiness(&self, stage: Stage, reserved: &Reservation) -> StageReadiness;
     /// A real adapter rechecks current authority immediately before effects.
     fn execute(
         &self,
@@ -57,6 +65,12 @@ async fn drive(
                 .await
                 .map(|receipt| receipt.snapshot().clone());
         };
+        if runtime.readiness(stage, &receipt.snapshot().reserved) == StageReadiness::Deferred {
+            // A driver may settle/release its active permit while bounded input
+            // preparation continues elsewhere. No Begin/effect is implied by
+            // ResourceReady, and a later input uses the same child/message id.
+            return Ok(receipt.snapshot().clone());
+        }
         // Await the actual committed writer acknowledgement BEFORE dispatch.
         receipt = store
             .advance_creation(

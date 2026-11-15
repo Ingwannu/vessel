@@ -140,6 +140,17 @@ orchestration frame only: it is cfg(test), not a registered/shipping create
 RPC, and provides no principal/count/start-lease/generation-fence proof. The
 real controller and reviewed W11/runtime adapters remain missing.
 
+The staged driver also has an explicit Deferred readiness result before Begin.
+For attachment/context preparation it can park at ResourceReady with no prompt
+effect and return its snapshot, rather than holding an active permit while
+waiting indefinitely or declaring input accepted. W23 confirmed the eventual
+canonical input owner requires an existing authorized session, commits Pending
+and dispatches only for its private New token; that runtime seam is not checked
+or consumable yet. A source fixture parks across restart, then simulates input
+preparation finishing and dispatches only Prompt under the original child and
+message identity. No second prompt ledger, automatic replay or acceptance from
+creation metadata is implemented or claimed by this readiness frame.
+
 TypeScript generation on exact2eb391a1 compiled and reached the declaration
 contract, then refused a global `Snapshot` name clash. Creation declarations
 now use Creation-prefixed names and profile declarations use TerminalProfile

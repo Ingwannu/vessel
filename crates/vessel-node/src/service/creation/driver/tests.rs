@@ -13,11 +13,19 @@ struct Fake {
     reserved: Reservation,
     trace: Mutex<Vec<Stage>>,
     refuse_prompt: AtomicBool,
+    defer_prompt: AtomicBool,
     uncertain_resource: bool,
 }
 impl Runtime for Fake {
     fn fingerprint(&self) -> Fingerprint {
         Fingerprint::new(BlobHash::from_bytes([7; 32]))
+    }
+    fn readiness(&self, stage: Stage, _reserved: &Reservation) -> StageReadiness {
+        if stage == Stage::Prompt && self.defer_prompt.load(Ordering::Acquire) {
+            StageReadiness::Deferred
+        } else {
+            StageReadiness::Ready
+        }
     }
     async fn execute(&self, stage: Stage, reserved: &Reservation) -> Result<(), StepFailure> {
         let actual = self
@@ -85,6 +93,7 @@ fn fake(store: &Store, reserved: Reservation, refuse: bool, uncertain: bool) -> 
         reserved,
         trace: Mutex::new(Vec::new()),
         refuse_prompt: AtomicBool::new(refuse),
+        defer_prompt: AtomicBool::new(false),
         uncertain_resource: uncertain,
     }
 }
@@ -231,5 +240,62 @@ async fn an_old_closed_writer_cannot_begin_after_a_new_store_recovers_accepted()
         *current_runtime.trace.lock().unwrap(),
         [Stage::Workspace, Stage::Resource, Stage::Prompt]
     );
+    current.close().await;
+}
+
+#[tokio::test]
+async fn deferred_first_input_parks_without_begin_and_later_uses_the_same_child_and_message() {
+    let (_temp, dir, store, reserved) = fixture().await;
+    let runtime = fake(&store, reserved.clone(), false, false);
+    runtime.defer_prompt.store(true, Ordering::Release);
+    let ready = drive(&store, reserved.operation, &runtime).await.unwrap();
+    assert_eq!(ready.phase, Phase::ResourceReady);
+    assert_eq!(
+        *runtime.trace.lock().unwrap(),
+        [Stage::Workspace, Stage::Resource]
+    );
+    assert_eq!(
+        store
+            .creation_operation(reserved.operation)
+            .await
+            .unwrap()
+            .unwrap()
+            .in_flight(),
+        None
+    );
+    assert_eq!(
+        drive(&store, reserved.operation, &runtime).await.unwrap(),
+        ready
+    );
+    store.close().await;
+    let current = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    let next_runtime = fake(&current, reserved.clone(), false, false);
+    next_runtime.defer_prompt.store(true, Ordering::Release);
+    let historical = current
+        .creation_operation(reserved.operation)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(historical.snapshot(), &ready);
+    assert!(next_runtime.trace.lock().unwrap().is_empty());
+    assert_eq!(
+        drive(&current, reserved.operation, &next_runtime)
+            .await
+            .unwrap(),
+        ready
+    );
+    assert!(next_runtime.trace.lock().unwrap().is_empty());
+    // The fake now represents canonical preparation having completed. It is
+    // not a substitute implementation of W23's receipt/dispatch boundary.
+    next_runtime.defer_prompt.store(false, Ordering::Release);
+    let completed = drive(&current, reserved.operation, &next_runtime)
+        .await
+        .unwrap();
+    assert_eq!(completed.phase, Phase::Completed);
+    assert_eq!(completed.reserved, reserved);
+    assert_eq!(*next_runtime.trace.lock().unwrap(), [Stage::Prompt]);
     current.close().await;
 }
