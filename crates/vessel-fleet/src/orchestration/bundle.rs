@@ -12,11 +12,11 @@ mod shipped {
 }
 
 /// Maximum individual file bytes before any home is changed.
-pub const MAX_SKILL_FILE_BYTES: usize = 1024 * 1024;
+pub(super) const MAX_SKILL_FILE_BYTES: usize = 1024 * 1024;
 /// Maximum files in one bundled skill including its declaration.
-pub const MAX_SKILL_FILES: usize = 256;
+pub(super) const MAX_SKILL_FILES: usize = 256;
 /// Maximum total compiled skill bytes, bounding transaction preparation too.
-pub const MAX_SKILL_BUNDLE_BYTES: usize = 16 * 1024 * 1024;
+pub(super) const MAX_SKILL_BUNDLE_BYTES: usize = 16 * 1024 * 1024;
 
 /// One immutable file; content is shared between plans instead of cloned per target.
 #[derive(Debug, Clone)]
