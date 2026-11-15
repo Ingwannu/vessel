@@ -729,3 +729,19 @@ remain denied to agents. Explicit typed serialization probes reject extra fields
 retained disabled/unreachable entries without connectivity claims, pending/older
 SDK refusal before frames, and W18's real MCP listing adapter after a reviewed
 node head. No current CLI/MCP/runtime PASS is implied by this design.
+
+
+### C2 staged reply/feed integration plan (not an API handoff)
+
+C2's proposed pure core defaults to Silent; the node PTY actor alone will use
+NodeAuthority. Feed has a16KiB consumed-prefix budget and typed replies; actor
+glue must loop only the unconsumed suffix, check forward progress, and write
+reply bytes through its existing ordered PTY writer. Reply errors do not undo
+already consumed screen input: never re-feed that prefix. Final readonly
+snapshots retain cells/capture independently of the output ring and do not claim
+a serializable partial-decoder restore. CLI --ansi still requires core-owned
+style rendering/cells; asked C2 to retain that interface before freezing.
+
+This is a plan against C2's staged sketch, not imported code, a parallel parser,
+a compiled adapter or consumer readiness. Actual shared engine/glue integration
+and tests wait for the reviewed core hash.
