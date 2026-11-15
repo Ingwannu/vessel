@@ -1,11 +1,29 @@
 # Browser package: reference, integration and evidence
 
-Status: ADR proposed; no product implementation or qualification claim.
+Status: ADR0078 and its named amendments have contract review; the supported
+engine remains **NoEngine**. Contract passes do not approve the later source.
 Decision: **modify/reuse** the earlier browser value/policy work and the
 existing MCP/client/proc/native layers; **new** engine/CDP/proxy modules are
 necessary because none of those layers renders or drives a page. Do not
 introduce wry, an Electron host, a second cookie jar or a general CDP tunnel.
 The architecture/security contract is ADR 0078.
+
+## Current implementation boundary
+
+| Area | Implemented source | Remaining acceptance |
+| --- | --- | --- |
+| Node protocol | Typed browser values, four pending method rows and closed refusal handlers; BROWSER_PROTOCOL=None | Assigned version and reviewed real owner wiring; no browser method is enabled |
+| Settings | Shared AA writer consumer, strict present-only string preference and composed reply mask | Changed-source writer/permission/protocol checks and real session-start lease; saved On grants no runtime |
+| Execution | Test-only proxy/preparation, sealed CDP, page/input/ref/snapshot and candidate profile/launch models | Actual retained child-pipe supervisor, complete operation results, runtime and process/profile cleanup proof |
+| Preview | Accepted exact-origin service capability and connect_verified design | Checked D2 actual ownership/scheme/accepted-peer producer and revocation; no independent metadata-derived dial |
+| Native | Separate app worktree owns the sole pane NoEngine renderer and staged decoded-frame geometry | Actual fenced stream, bounded resident image lifetime, GPU/paint/input/focus/close and captures |
+| Evidence | Scoped earlier narrow runs, bundle-read component and four minimal-DOM script fixtures | Latest complete source union, actual Rust/browser execution, security qualification, whole gates and reviewers |
+
+All execution modules remain outer cfg(test), crate-private. The single future
+qualified-actor wiring commit must remove staging only with its real consumer
+and required proof. No fixture, source-only review, readable bundle or saved
+preference may become a supported engine. The sections below retain chronological
+decisions and their exact scoped evidence; early checkpoints are historical.
 
 ## Paseo reference, read before implementation
 
@@ -78,7 +96,7 @@ browser.control, browser.watch, browser.clear_profile and browser_tools.
 All use one unassigned feature constant. No numeric protocol ownership.
 The panel remains hidden until these calls and a working engine exist.
 
-## Evidence ledger
+## Initial document checkpoint (historical)
 
 - Read ADR 0069 and the initial return plus corrected document pass. Earlier
   document acceptance did not certify Chromium or a panel.
