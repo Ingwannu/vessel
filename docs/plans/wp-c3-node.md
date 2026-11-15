@@ -18,8 +18,9 @@ repositories, including mixed changes, index bytes and unborn HEAD.
 
 ## Resume point
 
-Pending narrow tests/clippy: protocol round trips and path validation, and the
-staged committed-only resolver. No runtime or parity claim yet.
+The first narrow clippy stopped on documentation markup in the new contract;
+corrected before rerunning. Protocol round trips/path validation and staged
+resolver execution remain unverified. No runtime or parity claim yet.
 
 Next: complete the All private-index case from `checkout-git.ts:3533–3577`
 (a path present in the comparison tree but absent from the current index must

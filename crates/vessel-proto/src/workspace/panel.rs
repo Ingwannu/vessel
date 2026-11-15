@@ -1,5 +1,5 @@
 //! Pending ADR 0087 contract. These types do not register a method or change
-//! legacy DiffScope: admission belongs to the single Quality B method table.
+//! legacy `DiffScope`: admission belongs to the single Quality B method table.
 //!
 //! [Decision Log]
 //! - Purpose: committed-only must exclude the index and worktree, unlike Base.
