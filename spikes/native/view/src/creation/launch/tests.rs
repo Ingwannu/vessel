@@ -46,6 +46,27 @@ fn blank_shell_types_trimmed_text_and_one_cr_without_using_a_profile() {
 }
 
 #[test]
+fn blank_shell_reserves_its_final_cr_before_any_terminal_is_created() {
+    let profiles = Profiles::new(Vec::new()).unwrap();
+    let accepted = "x".repeat(ShellInput::MAX_BYTES);
+    let LaunchPlan::BlankTerminal(Some(input)) = Launch::BlankTerminal
+        .prepare(&accepted, PayloadPresence::Empty, &profiles)
+        .unwrap()
+    else {
+        panic!("blank shell input expected");
+    };
+    assert_eq!(
+        input.terminal_data().len(),
+        vessel_proto::terminals::SendTerminal::MAX_BYTES
+    );
+    let rejected = "x".repeat(vessel_proto::terminals::SendTerminal::MAX_BYTES);
+    assert!(
+        matches!(Launch::BlankTerminal.prepare(&rejected, PayloadPresence::Empty, &profiles),
+        Err(LaunchProblem::Profile(ProfileError::TooLong { max, .. })) if max == ShellInput::MAX_BYTES)
+    );
+}
+
+#[test]
 fn removed_profile_falls_back_only_before_submit_and_never_silently_at_prepare() {
     let profiles = Profiles::new(Vec::new()).unwrap();
     let selected = Launch::Profile(Id::parse("removed").unwrap());

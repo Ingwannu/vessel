@@ -232,3 +232,9 @@ Only an unsent ask or protocol preflight remains a no-dispatch refusal; an
 explicit user cancellation keeps its existing stop behavior. This conservative
 difference avoids blind duplication without claiming receipt recovery for the
 legacy path. Pure transition tests cover both classes.
+
+Blank-shell planning reserves the trailing CR within the node's existing
+SendTerminal byte cap. An otherwise valid maximal Prompt must be refused
+before provisioning rather than creating a shell whose initial input would
+then exceed the transport limit. Boundary tests compare the complete encoded
+input length against the same protocol constant.
