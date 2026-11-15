@@ -61,7 +61,9 @@ impl Connected {
         self.validity.subscribe()
     }
     pub(crate) fn matches(&self, expected: &ConnectionContext) -> bool {
-        self.lease.validate(expected).is_ok()
+        // Identity admission is distinct from a closed transport. The selected
+        // call reports Closed once through the actor's retirement command.
+        self.lease.matches(expected)
     }
     pub(crate) fn renamed(&self, context: ConnectionContext) -> Self {
         self.retire();

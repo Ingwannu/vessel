@@ -274,3 +274,38 @@ async fn closed_app_receiver_does_not_retire_the_original_connection() {
     })
     .await;
 }
+
+#[tokio::test]
+async fn closed_identity_still_selects_and_reports_closed_retirement_once() {
+    within(async {
+        let Fixture {
+            mut state,
+            mut peer,
+            selected,
+            context,
+            _home,
+        } = fixture(false).await;
+        let (commands, mut receiver) = tokio::sync::mpsc::channel(QUEUE_CAPACITY);
+        state.commands = commands.downgrade();
+        let task = peer.task.take().unwrap();
+        task.abort();
+        assert!(phase("stop framed transport", task).await.is_err());
+        phase(
+            "observe selected transport closed",
+            selected.lease.client.closed(),
+        )
+        .await;
+        let admitted = state.selected_connection(&context).unwrap();
+        assert!(matches!(
+            admitted.call(ListSessions).await,
+            Err(RequestFailure::Refused(Refusal::Closed))
+        ));
+        let command = phase("receive exactly one closed report", receiver.recv())
+            .await
+            .unwrap();
+        assert!(matches!(command, Command::RetireConnection(tag) if tag == context.tag()));
+        assert!(receiver.try_recv().is_err());
+        assert!(peer.calls.lock().unwrap().is_empty());
+    })
+    .await;
+}

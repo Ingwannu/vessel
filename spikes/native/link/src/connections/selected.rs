@@ -64,11 +64,14 @@ impl SelectedLease {
         }
         self.active()
     }
+    pub(super) fn matches(&self, expected: &ConnectionContext) -> bool {
+        self.context == *expected
+            && self.client.node().id == expected.node()
+            && self.validity.has_changed().is_ok()
+            && *self.validity.borrow() == Validity::Active
+    }
     fn active(&self) -> Result<(), Refusal> {
-        if self.client.node().id != self.context.node()
-            || self.validity.has_changed().is_err()
-            || *self.validity.borrow() != Validity::Active
-        {
+        if !self.matches(&self.context) {
             return Err(Refusal::Changed);
         }
         // NodeClient::closed -> rpc::Connection::closed -> CancellationToken.
