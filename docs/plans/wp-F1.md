@@ -1798,3 +1798,36 @@ remains pinned to its base9b snapshot; its result will not be relabelled as this
 new InputBase/resident/registry union. Next consumer checks use the announced
 base10 tree after the schedules label becomes free. W10b confirmed its own
 active dispatch delta is only Labels and has no competing preference writer.
+
+
+### Corrected Kit suite, bounded author receipt
+
+Exactaf52eafc on base9b has schedules-20261115T180912Z-af52eafc Kit all-target
+Clippy0 and schedules-20261115T181950Z-af52eafc full Kitlib236/0/0. Both fonts/
+cargo steps0/no skip; actual Kit Checking/Compiling, all three Code/Retry/
+submission-feedback cases explicitly ok. Author rechecked all28 raw run files
+and four step digest prefixes. No V1/package/consumer/native UI approval is
+inferred; old513230/2 remains retained, and the newer base10 union is separate.
+
+Current base10 consumer View/Link/App lib test run is
+schedules-20261115T183805Z-3a5dc6fa, ordinary SHORT priority0, queued at this
+receipt. The earlier9440 attempt ended helper rc3 without registration because
+the label was busy; it is not a compiler or test result. L's generated-prefix
+Clippy correction remains separately owed; plain tests are not strict proof.
+
+A five-path known-Ended App adaptation is prepared OUTSIDE the worktree only,
+not installed/compiled/reviewed. Private evidence entry ended-app-awaiting-line
+pins patchSHA74d6b4af6af551c0667ee767eb4d2ccff2d8487d3144705c0fda23e301556573
+and all before/after files against3a5dc6fa. It shares one known-state admission
+between actions/replacement, retains original revision/metadata and unknown
+state/reason refusal, and changes only known Ended portable actions toEdit/Delete.
+Direct rustfmt/apply-check is source preparation, not execution. Wait for an
+ANNOUNCED combined App line carrying the checked node correction before applying;
+never merge a trial node head into App. Cadence matching times must not be
+presented as resumed execution in that later consumer proof.
+
+W12 may own the two canonical numeric Points constants with its real Toolbar
+loading consumer: FOURTEEN already exists in this unreviewed F1 branch only;
+EIGHTEEN does not. Preserve one canonical FOURTEEN definition when merging the
+checked shared handoff. Existing pixels()/TEN/SIXTEEN and all masks/motion stay.
+No loading.rs edit is currently active here; no F1 pass is borrowed by W12.
