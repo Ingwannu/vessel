@@ -1307,3 +1307,9 @@ red800,white), no hover or pressed override. Loading uses shared Small20 and
 refuses clicks. Existing button_control and every legacy signature stay intact.
 Button::aria_label forwards an explicit role/name without creating a keymap;
 consumer accessibility/OS/first-use evidence remains unverified.
+
+The shared audio input constructor is `link::audio::device::input`; its raw
+stream/callback queue is separate from capture-only DSP so a duplex bundle can
+reuse that constructor with one capture/render processor. Stream disposal still
+precedes retirement of the process-wide capture guard. Conversation acquisition
+remains unavailable until that bundle/controller is connected.

@@ -445,3 +445,13 @@ read count and attempts cleanup even if its initial wait-status check errors.
 These are corrections to existing fakes, without a second queue or device
 implementation. A new combined App/Link/Kit/View strict check includes the
 previously unchecked shared Circle composition and Fluent overlay labels.
+
+### Shared input stream before duplex wiring
+
+[Decision Log]
+- Purpose: duplex must use the same microphone constructor and ownership path.
+- Existing constraint: Native combined raw input construction with capture-only DSP.
+- Alternatives: duplicate CPAL setup in a conversation engine; factor raw stream ownership.
+- Choice: device::input owns the native stream/callback queue, while Native retains the capture-only processor. Device metadata validation stays in device and can serve output too.
+- Why: the forthcoming duplex bundle can feed actual output references to its one processor without another microphone constructor or engine.
+- Impact: Dictation's public API, raw format conversion, bounded queues and stream-before-owner destruction stay the same. The raw constructor now also refuses an already-closed local fence before device discovery. Conversation stays unavailable. No device is opened by tests or this source change; remote compilation and lifecycle fakes remain required.
