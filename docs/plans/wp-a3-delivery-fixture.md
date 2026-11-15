@@ -1,9 +1,9 @@
 # A3 delivery preparation (proposal, no product exposure)
 
 The canonical producer is W12's `dd13ce378..e42a387bf4093f5e09d1ec18ead68ae6673fed2e`.
-Its staged delivery lease is already on the lead line. W2 has the first common
-promotion slot; A3 will not remove the delivery/export/mint/queue staging
-attributes independently.
+Its staged delivery lease is already on the lead line. Common product exposure
+remains under the lead's one-writer slot; A3 does not remove delivery/export/
+mint/queue staging attributes independently.
 
 [Decision Log]
 - Purpose: reject a search page that became stale after its worker finished but
@@ -29,8 +29,9 @@ attributes independently.
   before a newer Fleet event arrives. No app-test API manufactures success
   guards, exposes raw State, or changes the production validation path.
 - Cost and boundaries: the fixture needs an agreed narrow test-support API and
-  module registration. It is a proposal, not implemented or architecture
-  approved. Current detached UI fixtures would either use this actor for reply
+  module registration. The lead accepted these requirements for the shared
+  fixture; that decision is not an implementation or runtime receipt. Current
+  detached UI fixtures would either use this actor for reply
   callbacks or explicitly seed the pure view for component-only setup; the
   latter is never queued-delivery proof. Actual app receive proof still requires
   a real actor-issued event and final capture/interaction evidence.
@@ -45,3 +46,12 @@ does not add a registry, follow manager, lease cache or public guard constructor
 Publication of the common API and any fixture exposure belongs to the lead's
 agreed writer slot. Until then the current A3 source does not claim the queued
 delivery gap or final resident authority is closed.
+
+The lead's later fixture ruling assigns the first shared scenario to G4 under
+`link::testing::scenario`: one private State and one framed peer, preserving
+W2's frozen actor fixture. A3 waits for that checked scenario to land, then
+claims an extension-only writer slot for two peers in the same State. Scripts
+remain typed framed Call/Reply values, and retirement/close targets the original
+peer through canonical admission. No second actor, router or fabricated guard
+is permitted. The two-machine A3 cases remain pending that extension; no
+production or queued-UI authority follows from this preparation.
