@@ -179,6 +179,7 @@ impl SessionLabels {
     /// Borrow exact entries in canonical key order for typed display and
     /// editing. The iterator's exact size supplies a count without parsing
     /// the human summary or allocating another map.
+    #[must_use]
     pub fn iter(&self) -> impl ExactSizeIterator<Item = (&LabelKey, &LabelValue)> {
         self.0.iter()
     }
