@@ -57,3 +57,34 @@ control track. Its current integrated handoff is pending; no area loader
 will be created. Implementation/gate/captures are not yet complete. Required
 evidence is A13 on the exact commit and personally inspected EN/KO,
 dark/light, 1280/390, long/many/empty/loading/failed/search shapes.
+
+## Dispatcher extraction before Models
+
+The assigned lead baseline is `d30804b2`, merged without conflicts as
+`8dbf3ccd`. Its root link dispatcher is exactly the lead's 988-line blob;
+the earlier 1082-line baseline is not copied over it. Existing removal
+rules and the earlier screen evidence were already on the lead's line.
+The later removal call/test correction remains on this branch, with its
+own exact-source gate and V1 review packet.
+
+[Decision Log]
+- Purpose: make room for Models registration without increasing the root
+  dispatcher's size record or changing another owner's error-type block.
+- Existing asset: its current `State::options` already owns one coherent
+  agent-option read and answer-cache sequence, with a real root caller.
+- Alternatives: grow the record, duplicate that path, or take the other
+  control track's separate error extraction. None is needed.
+- Choice: move that existing method into native-only `link/src/options.rs`;
+  change only its visibility to `pub(super)` for its existing root caller.
+- Why: the same client lookup, option request, cache task, typed options
+  event and order remain in one place. There is no new RPC or dependency.
+- Costs and effects: the move-only commit is source-only, with no module
+  registration or isolated compile/quality pass claimed. Its immediate
+  follow-up registers the module, lowers the record to the measured size,
+  and is the exact head run through A13. This explicit review split must
+  not be mistaken for passing the intermediate tree's gate.
+
+The original method block is retained byte-for-byte after removing only
+the parent visibility change. No assertion or test case changes. Models
+implementation is still an uncompiled preparation outside the repository;
+this extraction does not register a screen or create a new control.
