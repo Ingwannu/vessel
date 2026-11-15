@@ -1311,3 +1311,21 @@ with the single layout owner. `kit::plain_text` keeps notices literal/selectable
 through the existing text engine; canonical tools share output/diff/Plan controls.
 The exact protocol, optimistic-send and scoped-resident handoff limits are recorded
 in `docs/plans/wp-timeline.md`; staged DTO renderers do not activate node events.
+
+
+`conversation::tool_body` owns the shared canonical body and computed diff.
+`view::timeline::tool_sections` turns canonical detail into borrowed sections;
+that model also owns the one empty-JSON formatting predicate used by headers.
+The body borrows only prepared words, tokens and secondary ink, and accepts an
+App drawing context. `tool_detail::borrowed_body` projects the existing Paint
+without creating a ToolView, log entry or session. `DetailContentState` describes
+content availability, including proposed work, rather than execution or approval.
+Headers, provenance, stable disclosure identity and actions stay with callers.
+Legacy computed diffs delegate to the same kernel; output decorations reuse the
+existing virtual lines control and shared range validation.
+
+The portable body-only prerequisite keeps its modules test-only until A8's actual
+caller and legacy-diff delegation join together. Canonical values enter only via
+an announced integrator-approved contract; neither that prerequisite nor source
+review activates wire fields, rich receipts or resident follow authority. Exact
+execution evidence and exclusions remain in the package plan above.
