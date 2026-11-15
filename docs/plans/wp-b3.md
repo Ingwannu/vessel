@@ -843,3 +843,15 @@ Archive verification reuses the existing bounded hashing loop, now checking
 opened private blob mount identity and metadata too. The actual-worker fixture
 checks valid retained payloads and refuses later corruption. Node collection
 and shared capture/restore/GC worker admission remain the next integration step.
+
+### Shared checkpoint I/O admission (source; unverified)
+
+The Linux capture backend now receives a node-owned Workers budget rather than
+inventing a second pool. Capture jobs retain its opaque lease in both the owner
+and actual blocking closures, including cleanup. Losing the async owner cannot
+release capacity while kernel work is held; failed cleanup retains the owner
+copy until serving ends. Restore and collection must consume this same budget.
+The barrier fixture combines an external collector lease with held capture I/O,
+then loses the model owner and proves the actual closure still exhausts the
+shared budget until it returns. No real process or filesystem is cancelled by
+that fixture. Remote execution and actual collector wiring remain outstanding.

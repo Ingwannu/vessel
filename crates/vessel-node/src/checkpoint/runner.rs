@@ -1,6 +1,10 @@
 //! A single nonblocking owner fences candidates; admitted I/O jobs retain capacity.
 
-use super::{capture::Captures, quota::ReservedBytes};
+use super::{
+    capture::Captures,
+    quota::ReservedBytes,
+    workers::{WorkerLease, Workers},
+};
 use std::{future::Future, sync::Arc};
 use tokio::{
     sync::{mpsc, oneshot, watch},
@@ -45,6 +49,7 @@ struct Work {
     deadline: Instant,
     cancellation: CancellationToken,
     advancement: oneshot::Receiver<CheckpointAdvance>,
+    worker: Arc<WorkerLease>,
 }
 #[derive(Debug)]
 enum Event {
@@ -178,8 +183,27 @@ impl Client {
     }
 }
 
-/// Concrete closures are the node's I/O/store assembly seam, never a dynamic registry.
+#[cfg(test)]
 pub(super) fn start<Read, Persist, Cleanup, Stored>(
+    read: Read,
+    persist: Persist,
+    cleanup: Cleanup,
+) -> (Client, tokio::task::JoinHandle<()>)
+where
+    Read: Fn(CaptureKey, PhysicalRoot, CancellationToken) -> Result<ObservedSnapshot, CheckpointError>
+        + Send
+        + Sync
+        + 'static,
+    Persist: Fn(CaptureKey, Publication) -> Stored + Send + Sync + 'static,
+    Stored: Future<Output = Result<(), CheckpointError>> + Send + 'static,
+    Cleanup: Fn(CaptureKey, Disposition) -> Result<(), CheckpointError> + Send + Sync + 'static,
+{
+    start_shared(Workers::default(), read, persist, cleanup)
+}
+
+/// Concrete closures are the node's I/O/store assembly seam, never a dynamic registry.
+pub(super) fn start_shared<Read, Persist, Cleanup, Stored>(
+    workers: Workers,
     read: Read,
     persist: Persist,
     cleanup: Cleanup,
@@ -201,7 +225,7 @@ where
     let persist = Arc::new(persist);
     let cleanup = Arc::new(cleanup);
     let task = tokio::spawn(async move {
-        let mut captures = Captures::default();
+        let mut captures = Captures::new(workers);
         let mut requests_open = true;
         loop {
             if !requests_open && captures.drained() {
@@ -229,8 +253,8 @@ where
                     let key=request.key;
                     if captures.admit_at_root(key,request.physical,request.deadline,request.bytes,request.reply).is_ok() {
                         let cancellation=captures.cancellation(key);
-                        if let Some(cancellation)=cancellation {
-                            let job=Work {key,physical:request.physical,bytes:request.bytes,deadline:request.deadline,cancellation,advancement:request.advancement};
+                        if let Some((cancellation,worker))=cancellation.zip(captures.worker(key)) {
+                            let job=Work {key,physical:request.physical,bytes:request.bytes,deadline:request.deadline,cancellation,advancement:request.advancement,worker};
                             let _worker=tokio::spawn(work(job,Arc::clone(&read),Arc::clone(&persist),Arc::clone(&cleanup),events.clone()));
                         }
                     }
@@ -309,6 +333,7 @@ async fn work<Read, Persist, Cleanup, Stored>(
     Cleanup: Fn(CaptureKey, Disposition) -> Result<(), CheckpointError> + Send + Sync + 'static,
 {
     let key = job.key;
+    let worker = Arc::clone(&job.worker);
     let disposition = match persist(key, Publication::Reserve(job.bytes)).await {
         Ok(()) if Instant::now() < job.deadline && !job.cancellation.is_cancelled() => {
             read_candidate(job, read, persist, &events).await
@@ -329,7 +354,11 @@ async fn work<Read, Persist, Cleanup, Stored>(
         }
     };
     // Cleanup is deliberately awaited here, never by the session/deadline owner.
-    let cleaned = tokio::task::spawn_blocking(move || cleanup(key, disposition)).await;
+    let cleaned = tokio::task::spawn_blocking(move || {
+        let _worker = worker;
+        cleanup(key, disposition)
+    })
+    .await;
     let event = match cleaned {
         Ok(Ok(())) => Event::Cleaned(key),
         Ok(Err(reason)) => Event::CleanupFailed { key, reason },
@@ -357,7 +386,12 @@ where
     let key = job.key;
     let physical = job.physical;
     let cancel = job.cancellation;
-    let candidate = tokio::task::spawn_blocking(move || read(key, physical, cancel)).await;
+    let worker = Arc::clone(&job.worker);
+    let candidate = tokio::task::spawn_blocking(move || {
+        let _worker = worker;
+        read(key, physical, cancel)
+    })
+    .await;
     match candidate {
         Ok(Ok(image)) => publish(key, image, job.advancement, persist, events).await,
         Ok(Err(reason)) => {

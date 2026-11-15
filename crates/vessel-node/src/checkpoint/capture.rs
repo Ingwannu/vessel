@@ -1,7 +1,10 @@
 //! Admission/fencing skeleton independent of filesystem completion and storage latency.
 
-use super::quota::{Quota, ReservedBytes};
-use std::collections::BTreeMap;
+use super::{
+    quota::{Quota, ReservedBytes},
+    workers::{WorkerLease, Workers},
+};
+use std::{collections::BTreeMap, sync::Arc};
 use tokio::{sync::oneshot, time::Instant};
 #[cfg(test)]
 use vessel_proto::WorktreeId;
@@ -18,6 +21,7 @@ enum WorkerState {
 struct Job {
     key: CaptureKey,
     worker: WorkerState,
+    lease: Arc<WorkerLease>,
     physical: PhysicalRoot,
     deadline: Instant,
     bytes: ReservedBytes,
@@ -29,8 +33,22 @@ struct Job {
 pub(super) struct Captures {
     jobs: BTreeMap<CaptureId, Job>,
     quota: Quota,
+    workers: Workers,
 }
 impl Captures {
+    pub(super) fn new(workers: Workers) -> Self {
+        Self {
+            workers,
+            jobs: BTreeMap::new(),
+            quota: Quota::default(),
+        }
+    }
+    pub(super) fn worker(&self, key: CaptureKey) -> Option<Arc<WorkerLease>> {
+        self.jobs
+            .get(&key.capture)
+            .filter(|job| job.key == key)
+            .map(|job| Arc::clone(&job.lease))
+    }
     /// Failure keeps admission while serving, but cannot hang node shutdown
     /// after every actual I/O job returned. Durable escrow remains for startup.
     pub(super) fn drained(&self) -> bool {
@@ -71,6 +89,13 @@ impl Captures {
             let _closed = reply.send(Err(CheckpointError::Busy));
             return Err(CheckpointError::Busy);
         }
+        let lease = match self.workers.claim() {
+            Ok(lease) => lease,
+            Err(error) => {
+                let _closed = reply.send(Err(error));
+                return Err(error);
+            }
+        };
         if let Err(error) = self.quota.reserve(bytes) {
             let _closed = reply.send(Err(error));
             return Err(error);
@@ -80,6 +105,7 @@ impl Captures {
             Job {
                 key,
                 worker: WorkerState::Running,
+                lease,
                 physical,
                 deadline,
                 bytes,

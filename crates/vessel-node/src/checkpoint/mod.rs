@@ -12,6 +12,7 @@ mod quota;
 mod runner;
 #[cfg(test)]
 mod runner_tests;
+mod workers;
 
 #[cfg(test)]
 mod tests;

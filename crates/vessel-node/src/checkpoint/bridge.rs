@@ -54,7 +54,7 @@ pub(crate) fn serve(context: Context, mut requests: mpsc::Receiver<CheckpointReq
                 return;
             }
         };
-        let (client, owner) = backend::start(Arc::clone(&context.workspaces), context.store, defaults);
+        let (client, owner) = backend::start_shared(Arc::clone(&context.workspaces), context.store, defaults, super::workers::Workers::default());
         let mut faults = client.cleanup_faults();
         let mut faults_open = true;
         let mut jobs = JoinSet::new();

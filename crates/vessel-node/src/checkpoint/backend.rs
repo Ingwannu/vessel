@@ -7,17 +7,19 @@ use vessel_proto::checkpoint::{CaptureKey, CheckpointError, CheckpointId};
 use vessel_store::{CheckpointStoreError, Store, StoreError, checkpoint::CheckpointWrite};
 use vessel_workspace::checkpoint::{Cleanup, IgnoreDefaults, Storage};
 
-pub(crate) fn start(
+pub(super) fn start_shared(
     workspaces: Arc<Workspaces>,
     store: Store,
     defaults: IgnoreDefaults,
+    workers: super::workers::Workers,
 ) -> (Client, tokio::task::JoinHandle<()>) {
     let runtime = tokio::runtime::Handle::current();
     let reader = Arc::clone(&workspaces);
     let cleaner = workspaces;
     let cleanup_store = store.clone();
     let cleanup_runtime = runtime.clone();
-    runner::start(
+    runner::start_shared(
+        workers,
         move |key, physical, cancel| {
             reader.capture_checkpoint(&runtime, key, physical, &defaults, &cancel)
         },
@@ -90,4 +92,18 @@ pub(crate) fn clean(storage: &Storage, key: CaptureKey) -> Result<(), Checkpoint
             Cleanup::Complete => return Ok(()),
         }
     }
+}
+
+#[cfg(test)]
+pub(crate) fn start(
+    workspaces: Arc<Workspaces>,
+    store: Store,
+    defaults: IgnoreDefaults,
+) -> (Client, tokio::task::JoinHandle<()>) {
+    start_shared(
+        workspaces,
+        store,
+        defaults,
+        super::workers::Workers::default(),
+    )
 }
