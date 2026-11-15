@@ -31,7 +31,7 @@ fn retargeted_tab_keeps_its_id_but_refuses_the_original_resource_callback(cx: &m
             )
             .unwrap();
         assert!(shell.layout_tab_matches(&key, tab, &Target::Scripts));
-        shell
+        let _retargeted = shell
             .update_layout(
                 &key,
                 |layout| {
