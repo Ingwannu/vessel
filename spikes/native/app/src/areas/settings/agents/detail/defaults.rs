@@ -207,14 +207,14 @@ impl Shell {
         let choices = choices_for(options, &picks);
         self.prefs.keep_choices(machine.as_str(), &agent, &choices);
         self.areas.settings.agents.defaults.close();
-        self.command(Command::SavePrefs(self.prefs.clone()));
+        self.command(Command::SavePrefs(Box::new(self.prefs.clone())));
         cx.notify();
     }
 
     fn agent_defaults_reset(&mut self, agent: &HarnessRef, cx: &mut Context<'_, Self>) {
         if let Some(machine) = self.areas.settings.agents.machine.clone() {
             self.prefs.keep_choices(machine.as_str(), agent, &[]);
-            self.command(Command::SavePrefs(self.prefs.clone()));
+            self.command(Command::SavePrefs(Box::new(self.prefs.clone())));
         }
         cx.notify();
     }
