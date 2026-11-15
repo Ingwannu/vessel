@@ -276,3 +276,11 @@ was correct product behavior. The fixture now asserts exact absence after revoke
 and unchanged expiry after scope loss/expiry; all three still assert no admitted
 lease. No product code, boundary, deadline or security expectation is weakened.
 The corrected test and changed-source strict checks remain owed.
+
+V3 row162 at15:31 UTC closed ONLY the original A7 source return after reading
+the complete7c926b41d correction and independently verifying exact00a strict
+spec/step/log hash. The725/1 failure remains recorded; V3 also read the test-only
+revoked-row correction against the canonical DELETE, without claiming execution.
+Later terminal-push, explicit-unread, Untracked, exact-half renewal and conditional
+cancellation additions remain outside source adoption and need separate complete
+reading/checks. No owning whole, native/CLI or assigned-wire approval follows.
