@@ -783,3 +783,11 @@ requiring Element rather than IntoElement. Corrected with the existing empty
 status fixture, explicit lifetimes and AnyElement conversion; no production
 state, assertion or lint is weakened. Current correction needs its own check;
 b011 is retained as red, and queued27194 tests are not relabeled.
+
+
+Workflow correction: the local boundary script was mistakenly called part of
+non-Cargo preflight; source inspection confirms it invokes cargo metadata.
+No local Rust compile was started, but that metadata invocation still violates
+the VM-only Cargo instruction. Future boundary/metadata checks run on the VM;
+only standalone rustfmt, the pure file-size/token scans and text/import scans
+remain local. Earlier boundary output is not labeled workflow compliance.

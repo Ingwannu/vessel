@@ -92,9 +92,12 @@ run was cancelled. At14:13 the coordinator separately approved cancelling queued
 and one isolated27194 Kit test selection, short/no priority. These replaced no
 running job; all later findings retain their original source assignments. Keep all original logs. Do not restart a queued/running run.
 
-Non-cargo checks on the new source: rustfmt check of changed files, native file
-budget675 files/14 listed, boundary4 crates/7 external owners, token ratchet no
-new entries. These checks do not establish Rust compilation or UI behavior.
+Fast source checks: rustfmt of changed files, native file budget and token
+ratchet. Correction: the earlier locally executed boundary4/7 script internally
+uses Cargo metadata; it was wrongly classified as non-Cargo. This violates the
+VM-only Cargo rule even though no Rust compilation ran. Stop local boundary
+checks; future metadata/quality runs belong on the prescribed VM. The old output
+is retained as an observation, not proof of workflow compliance. These checks do not establish Rust compilation or UI behavior.
 
 ## Next work
 
