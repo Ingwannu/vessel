@@ -17,7 +17,7 @@ impl SelectedConnection {
         session: SessionId,
         from: EventSeq,
     ) -> Result<SelectedFollow, RequestFailure> {
-        let stream = self.guard(self.client.follow(session, from)).await?;
+        let stream = self.guard(self.lease.client.follow(session, from)).await?;
         Ok(SelectedFollow {
             selected: self.clone(),
             stream,
@@ -27,11 +27,11 @@ impl SelectedConnection {
         if let Err(why) = self.active() {
             return why;
         }
-        let mut validity = self.validity.clone();
+        let mut validity = self.lease.validity.clone();
         let why = tokio::select! {
             biased;
             _retired = validity.wait_for(|state| *state == Validity::Retired) => Refusal::Changed,
-            () = self.client.closed() => Refusal::Closed,
+            () = self.lease.client.closed() => Refusal::Closed,
         };
         if why == Refusal::Closed {
             self.report_closed().await;
@@ -41,7 +41,7 @@ impl SelectedConnection {
 }
 impl SelectedFollow {
     pub(crate) fn context(&self) -> &ConnectionContext {
-        &self.selected.context
+        &self.selected.lease.context
     }
     pub(crate) fn info(&self) -> Result<&SessionInfo, Refusal> {
         self.selected.active()?;
