@@ -100,7 +100,7 @@ pub use picker::{
     ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, PillParts, SendKind, Side,
     anchor_probe, combobox, glyph, initial_of, initial_tile, pill, pill_parts, send_button,
 };
-pub use plain_text::plain_text;
+pub use plain_text::{plain_text, plain_text_with_marks};
 pub use screen_header::{compact_header, screen_header};
 pub use scroll_viewport::{ScrollState, ScrollViewport, SectionIndex};
 pub use sheet::{Edge, sheet};

@@ -86,6 +86,24 @@ pub(super) struct Presentation<'a> {
     shown: Option<&'a Shown>,
 }
 
+impl Presentation<'_> {
+    /// Local text widgets share the row's display namespace. This is not a
+    /// connection guard; the resident renderer supplies canonical token scope.
+    pub(super) fn scoped<R>(self, window: &mut Window, draw: impl FnOnce(&mut Window) -> R) -> R {
+        match self.shown {
+            Some(shown) => window.with_id(scope(shown), draw),
+            None => draw(window),
+        }
+    }
+}
+
+pub(super) fn history(area: &ConversationArea) -> Presentation<'_> {
+    Presentation {
+        phase: TextPhase::Complete,
+        shown: area.shown.as_ref(),
+    }
+}
+
 pub(super) fn presentation<'a>(area: &'a ConversationArea, entry: &Entry) -> Presentation<'a> {
     Presentation {
         phase: phase(area, entry),
@@ -113,10 +131,10 @@ pub(super) fn visible_end(
     window: &mut Window,
     cx: &mut App,
 ) -> usize {
-    let Some(shown) = presentation.shown else {
+    if presentation.shown.is_none() {
         return text.len();
-    };
-    window.with_id(scope(shown), |window| {
+    }
+    presentation.scoped(window, |window| {
         visible_end_with_clock(
             id,
             text,

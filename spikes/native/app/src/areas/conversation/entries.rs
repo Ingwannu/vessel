@@ -71,7 +71,9 @@ pub(super) fn entry(
 ) -> AnyElement {
     let words = paint.words;
     match &entry.kind {
-        EntryKind::Prompt(prompt) => bubbles::person(paint, index, prompt, None),
+        EntryKind::Prompt(prompt) => {
+            bubbles::person(paint, index, prompt, None, presentation, window, cx)
+        }
         EntryKind::Steer { text, attachments } => bubbles::person(
             paint,
             index,
@@ -82,6 +84,9 @@ pub(super) fn entry(
                 attachments: attachments.clone(),
             },
             Some(words.steered().to_owned()),
+            presentation,
+            window,
+            cx,
         ),
         // Claude's reply that only repeats the failure ending its turn
         // (Paseo holds it back): the failure says it once.

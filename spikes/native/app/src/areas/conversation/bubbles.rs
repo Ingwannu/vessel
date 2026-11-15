@@ -6,20 +6,27 @@
 use vessel_app_kit::chat_markdown::actions::CopyStyle;
 use vessel_app_kit::chat_markdown::{Options, chat_markdown_with};
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, ElementId, FluentBuilder as _, IntoElement as _, ParentElement as _,
-    Styled as _, Window, div, px, relative,
+    AnyElement, App, Context, Div, ElementId, IntoElement as _, ParentElement as _, Styled as _,
+    Window, div, px, relative,
 };
-use vessel_app_kit::{FindMarks, Type, TypeExt as _};
+use vessel_app_kit::{FindMarks, Type, TypeExt as _, plain_text, plain_text_with_marks};
 use vessel_app_view::timeline::{Prompt, first_reply, presented_prompt, spans_of};
 
-use super::entries::{Paint, id, marked_text};
+use super::entries::{Paint, id};
 use super::look::{AVATAR, AVATAR_GAP, BUBBLE_RADIUS, BUBBLE_SHARE, CORNER};
 use crate::shell::Shell;
 
 /// The person's message the moment it is sent, before the node records
 /// it (Paseo's pending `UserMessage`): drawn as the message it becomes,
 /// at `index`, the entry it will be.
-pub(super) fn pending(paint: &Paint<'_>, index: usize, text: &str) -> AnyElement {
+pub(super) fn pending(
+    paint: &Paint<'_>,
+    index: usize,
+    text: &str,
+    presentation: super::pacing::Presentation<'_>,
+    window: &mut Window,
+    cx: &mut App,
+) -> AnyElement {
     person(
         paint,
         index,
@@ -30,6 +37,9 @@ pub(super) fn pending(paint: &Paint<'_>, index: usize, text: &str) -> AnyElement
             attachments: Vec::new(),
         },
         None,
+        presentation,
+        window,
+        cx,
     )
 }
 
@@ -40,9 +50,44 @@ pub(super) fn person(
     index: usize,
     prompt: &Prompt,
     corner: Option<String>,
+    presentation: super::pacing::Presentation<'_>,
+    window: &mut Window,
+    cx: &mut App,
 ) -> AnyElement {
     let corner = corner.or_else(|| prompt.replayed.then(|| paint.words.prompt_corner(true, 0)));
     let text = presented_prompt(&prompt.text);
+    let content = (!text.is_empty()).then(|| {
+        let key = ElementId::NamedInteger("person-text".into(), id(index));
+        let version = paint
+            .entries
+            .get(index)
+            .map_or(0, |entry| u64::from(entry.rev));
+        let body = presentation.scoped(window, |window| match paint.find {
+            Some(find) => {
+                let spans = |rendered: &str| spans_of(rendered, find.query);
+                plain_text_with_marks(
+                    key,
+                    text,
+                    version,
+                    &FindMarks {
+                        list: find.list,
+                        clear_top: find.clear_top,
+                        key: find.key(index),
+                        spans: &spans,
+                        current: find.current_in(index),
+                    },
+                    paint.tokens,
+                    window,
+                    cx,
+                )
+            }
+            None => plain_text(key, text, version, window, cx),
+        });
+        div()
+            .type_(Type::Body)
+            .text_color(paint.tokens.neutral.foreground)
+            .child(body)
+    });
     let files = (!prompt.attachments.is_empty()).then(|| {
         div()
             .flex()
@@ -87,14 +132,7 @@ pub(super) fn person(
                 .flex_col()
                 .gap(px(6.0))
                 .children(files)
-                .when(!text.is_empty(), |bubble| {
-                    bubble.child(
-                        div()
-                            .type_(Type::Body)
-                            .text_color(paint.tokens.neutral.foreground)
-                            .child(marked_text(paint, index, text)),
-                    )
-                }),
+                .children(content),
         )
         .into_any_element()
 }
@@ -195,3 +233,6 @@ fn avatar(paint: &Paint<'_>) -> Div {
             paint.tokens,
         ))
 }
+
+#[cfg(test)]
+mod tests;

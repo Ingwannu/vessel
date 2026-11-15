@@ -307,7 +307,7 @@ fn presentation(look: Look, cx: &App) -> TextViewStyle {
 /// Mark `marks` in the reply `state` holds and scroll to the current
 /// one; the key marked, or `None` while the text is not laid out yet (it
 /// is tried again next frame).
-fn mark(
+pub(crate) fn mark(
     state: &mut TextViewState,
     marks: &FindMarks<'_>,
     palette: FindPalette,
