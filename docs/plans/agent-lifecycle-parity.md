@@ -390,6 +390,12 @@ No row of the crate table changes.
   The event projection's profile/model fallback formatting is extracted in
   a separate behavior-preserving commit to keep its dispatch short; messages,
   thresholds and every existing test expectation remain unchanged.
+- Final narrow checks passed: combined protocol/session clippy and all 323
+  library tests, including the forcing regression after correction. The
+  separate product library check passed with a non-test compiler artifact:
+  its actor constructor and exhaustive control dispatch compile without the
+  `cfg(test)` field, control and fault branch. The designated follow/display
+  head is merged, and this package now owes its one complete gate.
 
 ## Resume point
 
