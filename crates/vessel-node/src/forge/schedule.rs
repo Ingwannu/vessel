@@ -27,7 +27,7 @@ use vessel_store::StoredFeedback;
 
 use super::folder::{self, Key, Remembered, Spot};
 use super::poll::{self, Ask, Polled};
-use super::watcher::{FOLDERS, POLLS, Watcher};
+use super::watcher::{FOLDERS, Job, POLLS, Watcher};
 
 pub(super) const FOLDER_EVERY: Duration = Duration::from_secs(60);
 pub(super) const WATCH_EVERY: Duration = Duration::from_secs(60);
@@ -148,7 +148,7 @@ impl Watcher {
         let project = held.project;
         let remembered = held.remembered.clone();
         let load = held.sent.is_none();
-        drop(self.jobs.spawn(async move {
+        let job = self.jobs.spawn(async move {
             let (spot, remembered) = folder::read(&workspaces, &folder, project, remembered).await;
             let access = match &spot {
                 Ok(spot) => Some(hosts.access(&spot.repo.host).await),
@@ -172,7 +172,8 @@ impl Watcher {
                 access,
                 feedback,
             }))
-        }));
+        });
+        let _none = self.running.insert(job.id(), Job::Folder(session));
     }
 
     fn look(&mut self, key: &Key) {
@@ -216,11 +217,12 @@ impl Watcher {
         watch.busy = true;
         watch.urgent = false;
         self.polls = self.polls.saturating_add(1);
+        let job_key = key.clone();
         let key = key.clone();
-        drop(
-            self.jobs
-                .spawn(async move { Done::Polled(Box::new((key, poll::poll(ask).await))) }),
-        );
+        let job = self
+            .jobs
+            .spawn(async move { Done::Polled(Box::new((key, poll::poll(ask).await))) });
+        let _none = self.running.insert(job.id(), Job::Look(job_key));
     }
 
     /// `base`, less up to a tenth (so watches spread out, and never later

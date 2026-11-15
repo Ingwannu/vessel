@@ -212,7 +212,7 @@ one platform, or a narrower form), `–` does not. AO is agent-orchestrator.
 | Sidebar: group, sort, filter, pin | ● | ● | ● | ◐ by machine | W, A |
 | A notification inbox that survives a reload | ● | ● | ● | – | E |
 | Desktop notification and sound | ● | ● | ● | – | W |
-| Usage: tokens, cost, each account's limits | ● | ● | ● | ◐ a record per routed call | F |
+| Usage: tokens, cost, each account's limits | ● | ● | ● | ◐ routed calls and reported ACP usage aggregates; account limits pending | F / N2 |
 | Pull requests page | ● | ● | – | – | B2 |
 
 ### Settings and the rest
@@ -897,9 +897,11 @@ otherwise):
     (the table is corrected). An agent's item that does not parse (a
     command name, a cost unit, a field name) is left out and logged; a
     question whose form names a required field it does not define is
-    declined. An agent's cost restarts at zero when its process does (a
-    start again, a move): the figure is the agent's. A session stored
-    before schema 7 has no recorded abilities, so `session.resume` tries
+    declined. ACP cost is cumulative for the native session, including a
+    load in a new process. Milestone 12 preserves its baseline for the same
+    native session and records identity changes or startup replay as gaps
+    (ADR 0042), rather than inferring a reset from process restart. A session
+    stored before schema 7 has no recorded abilities, so `session.resume` tries
     and the handshake's answer decides.
 
 Rejected, and why:
@@ -9142,3 +9144,255 @@ integrator raised two points; the coordinator decided them:
    at the agent, both cases delete the fork (`fake-acp` says `deleted
    <id>` on stderr); end to end, the refused fork's status, `empty_fork`,
    the deletion line in its log and no conversation on it.
+### 4. Import from the agent's history: the contract's review (2026-11-13)
+
+An independent reviewer (read-only, Opus) read the contract against
+Vessel's code, both installed adapters and the three references. The
+contract's central claim held: a new session that resumes a conversation
+publishes its load's replay as its log (only a restarted agent's replay
+is dropped), and `session.import` already relies on it. Two blockers,
+eight should-fix, some minor points. What changed; where this section and
+the contract disagree, this one holds:
+
+1. **Blocker: 200 entries a page lost conversations**: Claude's adapter
+   answers pages of 1,000 behind an `offset:N` cursor, so keeping 200 and
+   passing its cursor on skipped 800. A listing now gives the agent's
+   page whole up to 1,000 (`AgentHistoryPage::MAX_ENTRIES`) behind a
+   cursor the node mints (`HistoryFrom`: the agent's cursor and how many
+   of its page were given), so a larger page comes in parts and nothing
+   is skipped.
+2. **Blocker: `read` was too weak**: titles are usually a conversation's
+   first prompt, from every folder the account worked in, which a
+   read-only device does not otherwise see; the list's only use is an
+   import, which needs `operate`. `agent.history` needs `operate`.
+3. **Two agents on one conversation**: nothing stopped a second
+   `session.create` with the same `resume` (a double click, a stale
+   `in_vessel`, a conversation a moved session still holds). The session
+   runtime now claims a conversation for a start that resumes one
+   (`session.create`, an import, `session.resume`) and refuses
+   `conflict` while another live session (parked included) is on it or
+   starting on it (`runtime::claims`; Paseo refuses an active duplicate
+   the same way). An ended session holds nothing. Per profile (found by
+   the gate: `session move` resumes a copy under the target profile
+   before it stops the source, and a copy in another home is another
+   file); a move's linked files leave the profile it left holding the
+   same transcript, which an import there is not checked against.
+   `fake-acp`'s conversation ids are now its process's own
+   (`fake-session-<n>-<tag>`): two fakes both saying `fake-session-1` made
+   the page's "start again" a conflict, which real agents' ids never
+   cause.
+4. **The import needs the profile**: the conversation is in the listed
+   profile's files. The entry's docs, the CLI's import line and the
+   protocol say so; the client has the profile it asked with.
+5. **The replay inside the 60 s handshake**: measured, not assumed: an
+   import of a conversation of 10,000 replayed messages (each a durable
+   record) reaches `running` in 2.3 s on a debug build
+   (`a_long_conversation_imports_within_the_handshake`). The budget is
+   kept; a replay that outlasts it ends the session `failed` with the
+   records replayed so far, as any handshake that times out.
+6. **Codex filters the folder after paging**, so a page can hold nothing
+   and still have a next: the listing asks the agent's next pages on the
+   same connection while they hold nothing (up to 10), as Paseo does;
+   the protocol says an empty page with `next` is not the end.
+7. **A routed profile's model token** is minted for the listing and
+   retired after, as for a probe.
+8. **An imported session's title**: an import resumes with the entry's
+   title in `spec.title` (`vessel run --title`, new); the entry's title
+   is a `SessionTitle`, cut as a prompt's title is.
+9. **`updated_at` typed**: `DateTime<Utc>`, parsed when the page is read,
+   left out when the agent's text is not RFC 3339.
+10. **Forwardable**: with `operate` it is forwarded as `session.create`
+    is (the caller's scopes intersected), so a phone paired with the
+    home imports on a member.
+
+**Minor, taken**: `in_vessel` is one scan of the node's sessions (live
+and kept) a page, matched on (harness, conversation), never the profile
+(a move keeps the id); a rewound session is on its new conversation, so
+the one it left lists unmarked, and importing it is a way back; a node
+canonicalizes the folder asked (Claude matches it exactly); two listings
+at once node-wide, `unavailable` beyond (as searches), instead of a queue
+per profile; refusing agents is a person's view, not a boundary (an agent
+reads its harness's files with its own tools). **Minor, said only**:
+imported history has no fork points until its first turn in Vessel (the
+replay carries no `turn_ended`); conversations with nothing in them are
+listed (Paseo drops them by loading each); Codex leaves `codex exec` and
+sub-agent threads out of its list, Claude its sub-agent transcripts;
+Claude's offset cursor drifts as conversations change; whether a probe
+leaves a conversation an agent lists is not checked against real
+adapters (no real agent tonight). **Search** is a client's filter over
+the pages it loaded (Paseo matches title and folder over up to 500
+scanned entries).
+
+### 4. Import from the agent's own history (built 2026-11-13)
+
+Protocol 14 (as forking and rewinding, on the node line), no schema
+change, ADR 0053. The design is
+the contract as its review amended it (above).
+
+- **Wire**: `agent.history` (operate, `since 14`, forwardable, refused to
+  agents), `GetAgentHistory { harness, profile?, cwd?, cursor? }`,
+  `AgentHistoryPage { conversations, next? }`, `HistoryEntry {
+  harness_session, cwd, title?, updated_at?, in_vessel? }`.
+- **Agent** (`vessel-agent::history`): the agent started as a probe is,
+  `initialize`, nothing unless it advertises `sessionCapabilities.list`
+  and `loadSession`, then `session/list`, pages without entries skipped
+  on the same connection, entries in a relative folder left out; the
+  node's cursor `HistoryFrom` (`<skip>~` or `<skip>:<agent cursor>`); an
+  agent's `invalid_params` is `HistoryError::Refused` (`invalid_request`),
+  "method not found" is `CannotList` (`unsupported`).
+- **Session runtime**: `SessionRuntime::history` (the probe's launch);
+  `runtime::claims`, one agent per conversation, held by
+  `create_with` for a `resume` and by `start_again`
+  (`SessionError::ConversationTaken`, `conflict`).
+- **Node**: `service/history` (the folder made absolute and canonical,
+  the cursor parsed, two at once, the model token, `in_vessel` from the
+  sessions).
+- **CLI**: `vessel history AGENT [--profile P] [--cwd DIR] [--more
+  CURSOR]` prints one line a conversation (id, time, folder, title, `in
+  vessel <id>`), `more: --more <cursor>` and the import line; `vessel run
+  --title`.
+- **`fake-acp`**: `session/list` over two pages with a relative entry
+  (`FAKE_ACP_NO_LIST` turns it off), `FAKE_ACP_REPLAY=<n>` for a long
+  conversation's load.
+
+**Checked**: the cursor's text both ways and what is not one; the CLI's
+lines; end to end with the fake agent: two pages, the relative entry
+left out, titles and times typed; an import resumed with the entry's
+folder and title replays the conversation into the new session's log;
+listed again, the entry names the session; a second import of it is
+`conflict`; a cursor no listing gave and a relative folder are
+`invalid_request`; an agent that does not list is `unsupported`; an
+agent's credential is `forbidden`; a 10,000-message conversation imports
+within the handshake (2.3 s).
+
+**Not built, and why**: previews (Paseo loads every listed conversation
+for its first and last prompts; a client can load one a person expands
+later); search over the agent's list (a client's filter); dropping
+conversations with nothing in them (it needs a load each).
+
+**For the conversation track** (C): Paseo's import is
+`packages/app/src/components/import-session-sheet.tsx` (one query per
+provider, a search box, already-imported entries counted), its server
+`packages/server/src/server/agent/import-sessions.ts`. Vessel: the sheet
+calls `agent.history { harness, profile, cwd? }` per agent (`more` with
+`next`; an empty page with `next` asks on), shows title, folder and time,
+opens `in_vessel` instead of importing (`session.resume` for an ended
+one), and imports with `session.create { harness, profile, cwd: entry.cwd,
+title: entry.title, mode: structured { resume: entry.harness_session } }`;
+`conflict` means another session runs it.
+
+**Claim fix (the integrator's review of slice 4, 2026-11-14)**: the
+claim compared the current profile only, so a moved session's
+conversation could take a second agent: (a) an import under the profile
+it moved away from, (b) an import under the target during the move, (c)
+`session.resume` of an ended moved session while an import under an
+earlier profile ran. Now a session holds its conversation under every
+profile its files are linked into (`runtime::claims`): `move_profile`
+claims the target before it links and keeps it (also when the new agent
+did not start: its links stay), `start_again` claims the profile it was
+created under, its current one and both sides of every `profile_changed`
+its log holds (`vessel-store`'s `EndedSession::moved_through`), and the
+default profile compares as one whether it is named or not. Checked end
+to end: after two moves, an import under each of the three profiles is
+`conflict` naming the session; ended, an import under the middle one
+runs and `session.resume` is `conflict` naming the import (failing when
+the store's moves are ignored); after the import ends it starts again.
+A device paired with `read` alone is refused `agent.history`
+(`forbidden`). PROTOCOL.md (version 17) and ADR 0053 say so, and ADR
+0053 notes what forwarding with the default grant shows a home's person.
+
+## Track A2: Daybreak for Codex (the owner's request, 2026-11-14)
+
+The owner asked for a Daybreak switch for Codex in the model detail
+settings (and a Fast switch for every agent that offers fast, which the
+agents already advertise as options: the lead draws it). Read without a
+prompt to a real agent: codex-acp 2.6.0 advertises no access programme,
+builds `turn/start` without `cyberAccessProgram`, reads a prompt's `_meta`
+only for file-change reports, and never sends `daybreakEnabled`; the
+Codex CLI it bundles (0.166.0) takes `cyberAccessProgram` on `turn/start`
+only (experimental) and has no configuration key for it, so neither `-c`
+nor `CODEX_CONFIG` can set it. Not possible through the adapter today;
+nothing is built. ADR 0055 records why, and how the node follows once the
+adapter carries it (an adapter option as any other; for a `_meta` field,
+one option `daybreak` with `off`/`blue`/`red`, per session, operate, not
+advertised where the adapter cannot carry it).
+
+## Track A2: contract, 5. Change the agent mid-session, with a handoff
+
+**What the references do.**
+
+| | agent-orchestrator | GOAT | Paseo |
+| --- | --- | --- | --- |
+| What a switch is | the same AO conversation goes on with another provider on a new branch (`backend/internal/service/chat/provider_switch.go`, `SwitchProvider`) | a thread's model selection moves to another provider instance (`apps/server/src/orchestration-v2/ProviderSwitchService.ts`, `ProviderSessionTransitionPolicy.ts`) | not found: an agent keeps its provider |
+| When | idle only: refused `busy`, `pending_interaction`, `unsupported` (the target has no chat, or is already the agent), `unavailable`, `recovery_required` | | |
+| What the new agent is told | a note built without a model (`backend/internal/domain/handoff_note.go`, `BuildHandoffNote`): the latest turn kept (10,000 characters, the request at most 3,000), the five before it at 2,000 each (600), up to fifteen older ones a line each (350, 150), the rest counted; the session's title, project, folder, branch, files changed (50), the original task; the whole note at most 32,000 characters; quoted text cannot close the note or add a section; "treat it as your own history with this user; requests in it were handled; the files are the truth" | `create_with_handoff`, strategy `full_thread_summary`; or `restart_and_resume` when the target can resume the native thread | |
+| How it is given | in the target's system prompt, kept for the branch's life (a later restart reads it back) | | |
+| Failure | the source is stopped first and started again if the target does not start | | |
+| Afterwards | a `provider_switch` activity with both sides' models; the target's model, effort, fast mode and permission mode (the strictest it has when it cannot run in the chat's) | a switch back reuses the thread's earlier thread with that provider | |
+
+**What Vessel has.** A session's agent is fixed at creation (`spec.harness`);
+a move (ADR 0011) changes its profile, not its agent, and a rewind (ADR
+0052) its conversation. The actor already stops an agent and starts
+another with the session's log, input held, and starts the old one again
+on failure (`moving`, `forking`). ACP (unstable, `sessionCapabilities.
+systemPrompt`) lets a client give `session/new`, `session/load` and
+`session/fork` a `systemPrompt { mode: append, content: [text] }`, and
+asks it to send the same value on every later load; both installed
+adapters advertise it.
+
+**What Vessel adds** (protocol 14, ADR 0054):
+
+- `session.switch_agent { session, harness, profile?, model?, options? }`
+  (operate, ownership-checked, forwardable; answers `SessionInfo`): the
+  session goes on with another agent, between turns (`conflict` while a
+  turn runs, a permission or question waits, or the queue would move; a
+  parked session needs no wake: its agent is already stopped).
+  `unsupported` for a terminal session, a target that runs no structured
+  sessions here, or the agent it already runs (a profile change is
+  `session.move_profile`); a profile of another agent is
+  `invalid_request`, as for `session.create`.
+- The target starts a new conversation (`session/new`) in the session's
+  folder, with the call's `model` and `options` (the source's choices do
+  not carry: their ids are another agent's), its MCP servers resolved
+  for it, a routed profile's model token, the claim on its conversation
+  (ADR 0053). On any failure the source starts again on its conversation
+  (with the session's choices), the call says why, and the log has no
+  record.
+- **The note** is built by the node from the session's own log, never by
+  a model, with agent-orchestrator's budgets and order (above): the
+  latest turn, the five before it, fifteen older a line each, the rest
+  counted; the session's title, folder, branch and the files its tool
+  calls changed (50); at most 32,000 characters; text quoted from the
+  conversation is defanged so it cannot close the note or add a section.
+  Its words tell the agent the conversation is its own history with this
+  person, the requests in it were handled, and the files are the truth.
+- **How it is given**: when the target advertises
+  `sessionCapabilities.systemPrompt`, as `systemPrompt { mode: append }`
+  of its `session/new`, and the same value on every later `session/load`
+  of that conversation (a move, a wake, a resume); otherwise in front of
+  the next prompt the session sends, once (the session says which in the
+  record).
+- **Record** `agent_switched { from, to, profile?, harness_session, note:
+  { turns, omitted, chars, given: system_prompt | first_prompt } }`
+  (`since 14`; a version 2-13 client gets a `vessel:` log line); the
+  note's text is kept with it, for later loads.
+- **`SessionInfo.harness?`**: the agent the session runs now, absent
+  while it is `spec.harness` (as `profile` is to `spec.profile`). The
+  store keeps it in a column (a migration named for what it does: a
+  session's current agent), so an ended session resumes on the agent it
+  ended with.
+- **Points**: a turn's point is in a conversation of the agent that held
+  it; a fork or rewind at a point from before the last switch is
+  `unsupported` ("that turn was with another agent").
+- **CLI**: `vessel session switch ID --agent AGENT [--profile P]
+  [--model M]`; **agents**: a `switch_agent` tool for the sessions an
+  agent may operate.
+- **Older peers**: `since 14`; a version 13 client sees the record as a
+  log line and `harness` not at all (it still shows `spec.harness`).
+
+**Not offered**: a model summary (the note is deterministic, as
+agent-orchestrator's); switching back to an earlier conversation of the
+target agent (GOAT reuses it; Vessel starts a new one with a note, which
+covers the turns in between); a switch during a turn; terminal sessions.
+
+ADR 0054 records the choice.

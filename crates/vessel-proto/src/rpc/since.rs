@@ -9,8 +9,36 @@ use crate::session::{SessionInput, SessionMode};
 use super::Call;
 
 impl Call {
+    /// The assigned requirement for admission. A feature awaiting a
+    /// protocol number returns `None`; senders must refuse it rather than
+    /// manufacture a version. Fleet envelopes propagate the inner call's
+    /// requirement before considering their own assigned version.
+    #[must_use]
+    pub fn required_protocol(&self) -> Option<ProtocolVersion> {
+        if let Self::Forward(request) = self {
+            return request
+                .call
+                .required_protocol()
+                .map(|inner| inner.max(self.method().since()));
+        }
+        if let Self::Relay(request) = self {
+            return request
+                .call
+                .required_protocol()
+                .map(|inner| inner.max(self.method().since()));
+        }
+        if let Self::Deliver(request) = self {
+            return request
+                .call
+                .required_protocol()
+                .map(|inner| inner.max(self.method().since()));
+        }
+        Some(self.since())
+    }
+
     /// The protocol version this call needs: its method's, or a later one
-    /// when it uses a field added since. A node that predates a field would
+    /// when it uses a field added since or wraps a newer inner call. Every
+    /// hop must decode the full typed call. A node that predates a field would
     /// ignore it silently (and, say, start a session with the wrong profile
     /// or invite a device with more scopes than asked), so the client checks
     /// this before sending. A request that gains a field adds a line here.
@@ -23,6 +51,15 @@ impl Call {
     pub fn since(&self) -> ProtocolVersion {
         let method = self.method().since();
         let fields = match self {
+            // Every hop decodes the typed inner call. It must know its
+            // method and fields too; an older hop could otherwise drop a
+            // newer field before the target sees it (ADR 0044), as a
+            // protocol-18 home would drop `session.create`'s
+            // `side_question_of` and start a plain session (ADR 0045; N5,
+            // N3, N2 and N1 each added this rule, merged here as one).
+            Self::Forward(request) => Some(request.call.since().get()),
+            Self::Relay(request) => Some(request.call.since().get()),
+            Self::Deliver(request) => Some(request.call.since().get()),
             Self::JoinFleet(request) => request.grant.iter().map(|scope| scope.since().get()).max(),
             // Options chosen at creation and a title came in 9: an older
             // node would start the session in the agent's default mode (a
@@ -33,7 +70,9 @@ impl Call {
                     SessionMode::Structured { options, .. } => !options.is_empty(),
                     SessionMode::Terminal { .. } => false,
                 };
-                let fields = if spec.place.is_some() {
+                let fields = if spec.side_question_of.is_some() {
+                    Some(19)
+                } else if spec.place.is_some() {
                     // A place came in 10: an older node would start the
                     // session in its home folder instead.
                     Some(10)
@@ -44,7 +83,12 @@ impl Call {
                 };
                 // An added agent came in 11 (ADR 0032): an older node
                 // cannot decode it.
-                fields.max(added(Some(&spec.harness)))
+                fields.max(added(Some(&spec.harness))).max(
+                    (!spec.labels.is_empty())
+                        .then_some(crate::lifecycle_version::SINCE)
+                        .flatten()
+                        .map(ProtocolVersion::get),
+                )
             }
             Self::HarnessOptions(request) => added(Some(&request.harness)),
             Self::ListProfiles(request) => added(request.harness.as_ref()),
@@ -75,11 +119,21 @@ impl Call {
             },
             // A write guarded by its content came in 11: a protocol 10 node
             // cannot decode it (its guard compared a time instead).
+            // Drivers came in 18 (ADR 0057): an older node would keep
+            // running the agent over ACP and say nothing.
+            Self::SetNodeSettings(request) => request.drivers.map(|_| 18),
             Self::WriteFile(request) => match request.expect {
                 crate::workspace::WriteExpect::Content { .. } => Some(11),
                 crate::workspace::WriteExpect::Absent | crate::workspace::WriteExpect::Any => None,
             },
-            Self::NodeInfo(_)
+            Self::CreatePrompt(request) => template_since(request.session.as_deref()),
+            Self::UpdatePrompt(request) => template_since(request.session.as_deref()),
+            Self::CreateSchedule(request) => target_since(&request.definition.target),
+            Self::UpdateSchedule(request) => target_since(&request.definition.target),
+            Self::OpenSideQuestion(_)
+            | Self::PromptSideQuestion(_)
+            | Self::ResetSideQuestion(_)
+            | Self::NodeInfo(_)
             | Self::ListHarnesses(_)
             | Self::ListSessions(_)
             | Self::GetSession(_)
@@ -87,6 +141,7 @@ impl Call {
             | Self::Subscribe(_)
             | Self::Unsubscribe(_)
             | Self::StopNode(_)
+            | Self::GetDeviceSelf(_)
             | Self::ListDevices(_)
             | Self::RevokeDevice(_)
             | Self::ReloadProfiles(_)
@@ -96,11 +151,6 @@ impl Call {
             | Self::WatchFleet(_)
             | Self::ReportApplied(_)
             | Self::ListMembers(_)
-            // The inner call of an envelope is checked against the target's
-            // protocol where it is delivered, not against this connection.
-            | Self::Forward(_)
-            | Self::Relay(_)
-            | Self::Deliver(_)
             | Self::GrantHome(_)
             | Self::GetCallback(_)
             | Self::ForgetNode(_)
@@ -207,27 +257,34 @@ impl Call {
             | Self::LeaveFleet(_)
             | Self::SyncFleet(_)
             | Self::GetFleetStatus(_)
+            | Self::GetPublished(_)
             | Self::PreviewSchedule(_)
             | Self::ListSchedules(_)
             | Self::GetSchedule(_)
-            | Self::CreateSchedule(_)
-            | Self::UpdateSchedule(_)
             | Self::PauseSchedule(_)
             | Self::ResumeSchedule(_)
             | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)
             | Self::ListRuns(_)
+            | Self::GetUsageLimits(_)
+            | Self::SetUsageLookup(_)
+            | Self::QueryUsage(_)
             | Self::ListPrompts(_)
-            | Self::CreatePrompt(_)
-            | Self::UpdatePrompt(_)
             | Self::DeletePrompt(_)
+            | Self::ListInbox(_)
+            | Self::GetInboxEntry(_)
+            | Self::MarkInbox(_)
+            | Self::GetPushKey(_)
+            | Self::SubscribePush(_)
+            | Self::UnsubscribePush(_)
+            | Self::ReportPushPresence(_)
             | Self::SearchMessages(_)
             | Self::ParkSession(_)
             | Self::WakeSession(_)
             | Self::GetNodeSettings(_)
-            | Self::SetNodeSettings(_)
             | Self::ForkSession(_)
-            | Self::RewindSession(_) => None,
+            | Self::RewindSession(_)
+            | Self::GetAgentHistory(_) => None,
         };
         fields.map_or(method, |since| method.max(ProtocolVersion::new(since)))
     }
@@ -238,4 +295,71 @@ fn added(harness: Option<&HarnessRef>) -> Option<u32> {
     harness
         .filter(|harness| harness.added().is_some())
         .map(|harness| harness.since().get())
+}
+
+fn template_since(spec: Option<&crate::SessionSpec>) -> Option<u32> {
+    spec.and_then(|spec| {
+        spec.side_question_of.map(|_| 19).max(
+            (!spec.labels.is_empty())
+                .then_some(crate::lifecycle_version::SINCE)
+                .flatten()
+                .map(ProtocolVersion::get),
+        )
+    })
+}
+
+fn target_since(target: &crate::automation::ScheduleTarget) -> Option<u32> {
+    match target {
+        crate::automation::ScheduleTarget::NewSession { spec, .. } => template_since(Some(spec)),
+        crate::automation::ScheduleTarget::Session { .. }
+        | crate::automation::ScheduleTarget::Unknown => None,
+    }
+}
+
+#[cfg(test)]
+mod requirement_tests {
+    use crate::rpc::samples;
+    use crate::{Deliver, Forward, Method, NodeId, RelayCall, Request as _};
+
+    #[test]
+    fn assigned_requests_and_every_envelope_keep_the_existing_requirement() {
+        let mut failures = Vec::new();
+        for &method in Method::ALL {
+            let request = match samples::call(method) {
+                Ok(request) => request,
+                Err(error) => {
+                    failures.push(format!("{method:?}: {error}"));
+                    continue;
+                }
+            };
+            assert_eq!(request.method(), method);
+            let wrappers = [
+                Forward {
+                    node: NodeId::random(),
+                    call: Box::new(request.clone()),
+                }
+                .into_call(),
+                RelayCall {
+                    node: NodeId::random(),
+                    call: Box::new(request.clone()),
+                    origin: samples::origin(),
+                }
+                .into_call(),
+                Deliver {
+                    call: Box::new(request.clone()),
+                    origin: samples::origin(),
+                }
+                .into_call(),
+            ];
+            for call in std::iter::once(request).chain(wrappers) {
+                assert_eq!(
+                    call.required_protocol(),
+                    Some(call.since()),
+                    "{method:?} via {:?}",
+                    call.method()
+                );
+            }
+        }
+        assert!(failures.is_empty(), "{}", failures.join("\n"));
+    }
 }

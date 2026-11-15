@@ -125,6 +125,8 @@ impl Declarations {
         declarations.add::<EventRecord>()?;
         declarations.add::<SubscriptionEnd>()?;
         declarations.add::<PairingOffer>()?;
+        // Value types are available before their A6-gated call is registered.
+        declarations.add::<crate::diagnostics::DiagnosticReport>()?;
         Ok(declarations)
     }
 

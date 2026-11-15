@@ -1,259 +1,170 @@
-# N3 resume after the overnight credit stop
-
-The coordinator's stop instruction limits this session to row 2. Start no
-new slice or branch merge until the next session explicitly resumes work.
+# N3 current checkpoint
 
 ## Committed and reviewed
 
-- `b9cf9397`: row 1 contract.
-- `f81798c3`: machine timezone, scheduler-backed preview, typed failure,
-  old-peer adaptation, client/CLI/testkit/fake-fleet support. V1 passed the
-  source/contract and forwarded it; the node integrator found no blocker.
-  Whole workspace: 105 suites, 1,648 passed, zero failed, nine ignored.
-  Protocol/web TS libraries: 159/54. Page units: 243; page E2E: 36.
-  Final fmt/clippy passed. Native editor and other OS runtime are unverified.
-- Eight consecutive grant-stop checks on row 1 passed with the existing
-  five-second assertion. The exact executable and Cargo-unset invocation
-  record is `row1-grant-stop-invocation.txt` in this track's scratch folder.
-- `27ef259a`: exact cherry-pick of the node integrator's `bce3dd9e`, moving
-  the reinstalled-member timestamp before restart. No independent fix here.
-- `582283c7`: exact cherry-pick of integrator `d3cb09b3`, timing the late
-  member's grant from joining, after node creation. Existing 10/20-second
-  bounds remain. Their final validation is not claimed by this note.
+- Row 1, machine zone and scheduler-backed preview: `f81798c3`, integrated
+  at protocol 13 by `187dc847`.
+- Row 2, fleet join/leave/sync/status: final source `caaea148`, integrated
+  at protocol 15 by `ff2981f2`; publication subsequently uses 16.
+- Row 3, device self: contract `5cff884e`, implementation `3d486ff4`,
+  evidence `5d10d4dd`. V1 passed the node source and evidence and forwarded
+  the exact call to the coordinator and waiting device/inbox tracks.
+  Whole root: 110 suites, 1,781 passed, zero failed, ten ignored; TS two,
+  page units 417, full page E2E 62 and complete CLI fleet passed.
+- Row 4, unreachable invitation: contract `41518e9c`, implementation
+  `aea21c54`, evidence `1c3abe9c`. V1 passed the node source/evidence and
+  forwarded the exact refusal. Whole root: 110 suites, 1,786 passed, zero
+  failed, ten ignored; TS two, page units 417, full page E2E 62 and complete
+  CLI fleet passed. The coordinator forwarded rows 3 and 4 for integration.
 
-## Historical row 2 checkpoints (superseded by final result below)
+No native screen, other-OS runtime or remote reachability approval is claimed.
+The resumed baseline was `b981f5f2`, protocol 18, gated before feature code.
+This branch's row-3/4 protocol 19 was provisional: on the node line side
+questions kept 19 and rows 3 and 4 took protocol 20 (`device.self`).
+MIN_PROTOCOL_VERSION remains 2. No later branch was merged into a frozen gate.
 
-Credit-stop checkpoint: preserved as the commit titled `wip: fleet membership
-controls and bounded sync status`. It is not an approved/ready slice. At that
-checkpoint the sixth clippy was still queued, and the whole workspace test,
-TS generation, page/fake-fleet gate and current-artifact grant repeats had not
-run. A later entry must explicitly supersede those unverified items.
+## Existing exact contracts
 
-Implemented: `JoinFleet`, `LeaveFleet`, `SyncFleet`, `GetFleetStatus`, client
-methods, selected-node CLI operations and offline compatibility, safe status
-projection, bounded device windows with cancellation-retained admission,
-manual notifications into the existing loops, serialized old/new loop
-lifetimes, shared membership commit locking, typed uncertain join and large
-status refusals, partial-leave recovery, real-node regressions and fake fleet.
-`NodeClient::leave_fleet` and `sync_fleet` return unit on wire Ack.
+`GetDeviceSelf {}` / `device.self` returns `DeviceSelf { device?: DeviceId,
+scopes: Vec<Scope> }`; use `NodeClient::device_self()` or
+`vessel node devices self`. Only a directly authenticated paired device gets
+its own id. Other authenticated principals omit it. Canonical effective
+scopes are required, including empty/no-Read grants and admission clipping;
+ownership, agent limits and profile policy remain separate constraints.
+Unsupported is unknown authority, never an inferred grant. Only this method
+is Authenticated/None; all legacy methods retain Some(scope). Envelope version
+admission includes the inner call, with direct and forwarded old-peer tests.
 
-V1's early contract review requested byte/item/reply limits, lock lifetimes,
-post-redemption uncertainty and partial-leave fixtures. These followups are
-implemented; V1 has not approved the whole row. The status generation is
-historical without current-home association: do not label it up to date by
-comparing bare generation numbers. ADR 0044 records the decisions.
+Row 4 adds no call or request field. Existing `device.invite` remains Admin
+and since 4. `Conflict` carries `ErrorDetail::DeviceInvite { reason:
+DeviceInviteError::NoRoutes }` and guidance to configure reachable --public
+or --relay, then create another invitation. Route absence is checked before
+randomness/link/pending admission, including an explicit empty override.
+No bind inference, probe or automatic relay is added. Older clients keep the
+human guidance; non-Admin still gets Forbidden without configuration detail.
 
-Gate evidence in the track's scratch folder:
-- `row2-clippy.log`: first attempt waited 24m06, failed method-table docs and
-  redundant Ack qualification.
-- `row2-clippy-reviewed.log`: second attempt failed two documentation ticks.
-- `row2-clippy-current.log`: third reached node checking, failed unused
-  results; those are fixed. No lint or assertion was weakened.
-- `row2-clippy-fourth.log`: fourth attempt reached CLI and failed its invitation-encode error mapping
-  and generation formatting. Those were fixed with a distinct source-carrying
-  error and the typed generation getter. The membership-token lifetime fix
-  was installed while that attempt was running; do not treat it as a final
-  gate for the latest source.
-- `row2-clippy-final.log`: fifth whole clippy, covering those fixes and the
-  latest source; check its final result. No success is claimed in this note.
-- `row2-source-before-final.json`: frozen Rust/Cargo input hashes and mtimes
-  for the final attempt; verify its aggregate again after the gate.
-- Fifth attempt failed two store-test style lints and an obsolete supervisor
-  field; fixed without exceptions. `row2-clippy-ts.log` is the sixth attempt,
-  whole workspace/all targets plus protocol/web TypeScript features. The
-  latest frozen input record is `row2-source-last.json`. Its feature flags
-  must be stated in the gate report; no whole-test result is implied.
-- Sixth attempt reached the normal CLI binary and found its JSON error
-  dependency was test-only. It has been promoted to a normal dependency,
-  keeping the same workspace version. `row2-clippy-last.log` is the seventh
-  whole workspace/all-targets attempt with protocol/web TS features; check
-  its final result. The previous source hash is superseded by this Cargo
-  dependency correction, not an unchanged-tree rerun.
-- Seventh attempt reached node E2E and found the two new test modules lacked
-  the existing `cfg(test)` registration used by their neighbours; helpers
-  were therefore outside Clippy's test context. It also found the lifecycle
-  test was too long. Test-only registration is restored and the same history
-  is split into join/failure and manual-sync helpers, without removing
-  assertions. `row2-clippy-e2e.log` is the eighth whole workspace/all-targets
-  attempt with protocol/web TS features; check its final result.
-- `row2-fmt-fourth.log`: fmt check before that attempt; later formatting
-  changes were made only while the command remained queued.
-- `row2-fixture-failure-check.log`: one-line assertion failure, exit 1 and
-  no traceback passed. Real row 2 fleet startup is not yet claimed checked.
+## Current slice: file-seeded FakeForge (ADR 0060)
 
-Still required unless a later final entry below records completion: clean
-whole workspace test with counts; TS regeneration and generated declarations;
-page lint/typecheck/unit/build/E2E gate; actual fake-fleet check and cleanup;
-four consecutive reinstalled-node checks and the relevant grant-stop/leave
-checks on the current executable. Confirm changed crates really recompiled.
-Run one cargo command at a time through the machine's cargo-slot helper.
-Do not clean build caches, interrupt a queued build or replay an unchanged gate.
+Contract-first commits: `39df0f9c`, then assigned-number move `ef3fd425`.
+Implementation is gated and ready to commit; its V1 submission is pending.
+The separate feature-gated `vessel-forge-fixture` binary injects the real
+FakeForge through ForgeSetup.custom. Product vesseld has no fake selector,
+even with the feature enabled. No new wire, dependency edge or protocol bump.
 
-## Integration and consumers waiting
+Version-1 JSON groups complete typed wire PullRequest values by RepoRef.
+Wrappers reject unknown fields/versions, duplicates and disagreeing summaries.
+Limits: 1 MiB, 16 repositories, 128 initial/runtime pulls, bounded failing
+checks/merge methods, caches and retained attempts. Explicit failures are
+no_access/rate_limited/down/signed_out, with separately configured refused
+merges. No HTTP/account/token fallback. The file is read once before listening.
 
-The node integrator merged row 1 as protocol 13 in `187dc847`, preserving
-the source commits and renumbering preview/timezone/old-peer fixtures. The integrator subsequently reported its full gate passed: 1,692 tests,
-zero failures, and 62 page E2E cases. Eight slow-grant and eight grant-stop
-checks passed on that integrated head. This N3 branch still declares 12;
-row 2 also uses that original track version. Do not create a further N3
-protocol bump. Consume the reviewed integrated head at a clean boundary in
-the resumed session and keep all N3 additive calls at 13, minimum unchanged.
-No such merge was made after the stop notice.
+Build the CLI, node and testkit bins with feature vessel-node/forge-fixture.
+The fresh fleet script generates eleven local repositories and a seed, starts
+two loopback fixture nodes, pairs through CLI pipes and checks actual PR facts
+and read-only refusals. `forge-fixtures.json` maps project/session ids for
+screens. Push URLs are local bare repositories. PID shutdown verifies UID,
+executable, data path and kernel start time, then signals a pinned Linux pidfd.
+The native README contains exact commands and schema. No screen is changed.
 
-- G4 waits for reviewed row 2 fleet controls/status, then row 3 device.self
-  and row 4 unreachable-invite refusal. Do not integrate unverified calls.
-- G2 has the reviewed row 1 contract; its native editor/captures are its own.
-  It still waits for row 7 webhook calls/listener.
-- N1 and all app tracks wait for row 3: reserved only, `GetDeviceSelf {}`
-  -> `DeviceSelf { device: Option<DeviceId>, scopes: Vec<Scope> }`,
-  `NodeClient::device_self()`. Authenticated without Read; only own paired
-  id, otherwise absent; current effective/clipped/intersected scopes. No
-  implementation or reviewed commit exists on this branch yet.
-- G1 waits for row 5 project open PRs without live sessions.
-- G3 waits for row 6 registry flag/environment and reachable too-old/new.
+## Current gate and evidence
 
-Rows 3-7 are unimplemented, not complete. Earlier scratch preparation for
-row 3 (`row3-device-self.rs`, `row3-decision.md`) and row 6 source notes is
-not installed or verified. Re-read the integrated source before using it.
-Row 7 needs ADR 0043 and a safe resolution of ADR 0034's harness permission
-boundary before opening a listener; a prompt fence/Read scope is not a shell
-sandbox. No webhook listener, real agent prompt or preview service was used.
+Evidence filenames below are relative to the track scratch directory's
+`resumed/`. Keep the embedded page assets immutable throughout Rust gates.
 
-Keep the two local Cargo configs, font assets and web dependency/bundle
-symlinks; never commit them. Before stopping, verify no owned fixture/node/UI
-process remains and record the final commit and exact verification below.
+- `forge-feature-seed.log`: nine actual FakeForge tests passed, including
+  bounds, privacy, per-repo failures, merge refusal and concurrent capacity.
+- `forge-ssd-feature-{clippy,test}.log`: feature Clippy and all four actual
+  launcher tests passed from empty data directories; tests took 4.03 s.
+  The original 90 s total and 20 s readiness/shutdown bounds are unchanged.
+- `forge-feature3-{build,e2e,fleet}.log`: build, all 62 page E2E (6.3 min)
+  and complete CLI fleet passed. Production, forge library, CLI and Python
+  fixture sources have not changed since this runtime proof; subsequent
+  Rust changes only restore fresh startup in the new launcher test helper.
+- `forge-feature3-permissions-cleanup.json`: UID/GID 1000, 18 private paths
+  at 0600/0700, both verified node PIDs absent, no owned runtime remaining.
+  `forge-processes-check.json` proves mismatch refusal and matching-child
+  shutdown. No display or preview process was started.
+- `forge-ssd.sh` finished with exit zero: fmt, whole Clippy and literal
+  whole cargo test --workspace passed. `forge-ssd-root-summary.json` records
+  111 suites, 1,796 passed, zero failed, ten existing ignores. Main log
+  `forge-ssd.log` records beginning/end one-minute load 21.42/10.17 and
+  available memory 15,155/17,498 MiB. The compilation-phase snapshot was
+  load 22.00 and 16,192 MiB available. No timeout was waived.
+- `forge-ssd-input-check.json` verifies all 1,028 Rust/Cargo inputs unchanged
+  throughout the gate. The test log records actual recompilation of forge
+  and node. Both previously failing remote cases and canary passed in the
+  whole run; remote four passed in 161.28 s, CLI integration 39 in 8.41 s.
+- SSD test scratch is private mode 0700; targets and logs remain on cold
+  storage. The gate checks no owned process remains before emptying scratch
+  and wrote `forge-ssd-cleanup.json`: empty, UID/GID 1000,0700, no process
+  remaining. `forge-final-audit.json` rechecks all 18 private fleet paths,
+  no owned runtime and empty SSD scratch. The only Rust input difference
+  from the earlier page/fleet runtime run is the new launcher test helper.
 
-## Latest checkpoint
+The temporary in-process bootstrap workaround used for a slow HDD startup
+was removed before the SSD gate. The final tests again exercise first startup
+from empty data. Its historical pass is not the final fresh-start proof.
 
-- Row 2 source is preserved by WIP commits `2ced8723`, `cc972008` and
-  `a32a0ac6`. All remain unapproved for integration.
-- `row2-clippy-e2e.log`: eighth whole workspace/all-targets clippy with
-  `--features vessel-proto/ts,vessel-web/ts -- -D warnings` passed. It waited
-  76 seconds for its machine slot; Cargo reported 1m27s. Latest fmt and diff
-  checks passed. No lint exception, expected value or timeout was weakened.
-- The current command is `VESSEL_WRITE_TS=1 RUST_TEST_THREADS=2 cargo test
-  --workspace --features vessel-proto/ts,vessel-web/ts --no-fail-fast`, through
-  the machine build-slot helper. Its log is `row2-workspace-ts-test.log`.
-  This is the complete workspace with the TS-generating tests enabled,
-  rather than a package subset. It has not finished at this checkpoint;
-  report the exact flags, final suite counts and failures, not a guessed pass.
-- TS declarations may change when those tests reach their generator. Commit
-  them and the final result only after inspecting the completed log. Page
-  and real fake-fleet gates plus current-binary grant repeats are still
-  unverified. Protocol-13 integration and rows 3-7 remain deferred.
+## Failures retained, not waived
 
-### Runtime findings and followup
+Initial owned preflights exposed lint issues, a capacity assertion that reused
+an already-open branch, and an inconsistent test-produced checks summary.
+Those were corrected without weakening the decoder or a timeout. One valid
+fresh HDD startup took about 24 s; stderr held only 862/65536 bytes, so no
+pipe backpressure was established. SSD fresh-start tests now pass as above.
 
-The complete TS-enabled run finished: 105 suites, 1,669 passed, four failed,
-nine ignored. Failures were the lifecycle fixture's first manifest query
-(a file was visible before publication), two protocol classification tests
-that did not yet account for the new fleet methods, and the existing remote
-release-fallback test's unchanged 60-second timeout. The last is not classified
-as flaky and its timeout/code has not been changed here.
+`forge-final2-test.log`: 9 completed suites, 181 passed, two failed, one
+ignored, stopping at unchanged CLI remote 120 s safety nets:
+a_fresh_machine_is_installed_started_and_used and
+a_dropped_ssh_connection_during_attach_resumes. Each passed once alone on
+the exact same executable, CARGO unset, in 29.77 s and 20.65 s. Solo passes
+are diagnostic, not a waiver. No documented exception covered these tests.
+V1 escalated the blocker; the coordinator assigned shared-test ownership to
+the node integrator and authorized a changed-condition whole run with load
+records after the recorded machine starvation. N3 did not edit shared tests.
 
-After the run ended, the first three fixtures were corrected without changing
-expected authority, state or time limits. Initial readiness now checks the
-actual read-only RPC under the existing STEP deadline; the public watch is
-unavailable before the first publication, so its probe is paced. New Admin
-methods are pinned explicitly; the fleet additions share preview's first
-version rather than a later global protocol maximum. No join is auto-retried.
+`forge-normal.log`: that HDD attempt ended at the CLI canary's unchanged
+60 s safety net; 7 completed suites, 178 passed, one failed, zero ignored.
+The later coordinator SSD decision arrived while it ran, so it was left
+unchanged. Only after exit were the new test helper and ADR installed with
+current mtimes; final feature checks and the one authorized SSD whole run
+then started. No deadline, assertion, retry count or shared test was changed.
 
-`row2-clippy-runtime-fixes.log` passed the complete workspace/all targets
-with TS features after the first corrections. Page lint/typecheck, 55 files /
-243 unit tests, bundle build and 36 E2E cases passed; logs are `row2-web-*`.
-The current original root gate is fmt, full clippy without extra features
-(`row2-final-clippy.log`), then exactly `cargo test --workspace` with two test
-threads (`row2-final-workspace-test.log`). Read their final results before
-claiming success. Generated `web/src/wire/proto.ts` is current and must be
-committed with this followup. This remains WIP until the full gate, real
-fake-fleet check and required grant repeats are complete.
+The nested-build amendment arrived while the SSD whole gate was already in
+progress (Clippy passed; tests queued). Keep that run unchanged. Every next
+whole gate must prebuild vessel-testkit --bins and vessel-node --bin vesseld
+inside its slot, in the same environment as tests, before starting test
+clocks; record both commands at the log head. The integrator owns the shared
+clock correction. The amendment caps slots/jobs in the shared helper and
+classifies a timeout with one-minute load above 32 before/after as saturation:
+run that test once with load under 24; other timeouts go to the test owner.
+If the SSD whole run repeats a shared failure, route its log to V1/the owner;
+do not classify it as flaky or rerun unchanged without authorization.
 
-### Real fleet verification
+Prior row-3/4 failure details and passing final input/compile evidence remain
+in backend-m12-wire-gaps.md and the row evidence commits. Their final private
+path counts were 13 and 14; production permissions were unchanged.
 
-Followup `caaea148` preserves the runtime fixture corrections and generated
-wire declarations. The TS generator's own whitespace is retained. The original
-full Clippy passed (`row2-final-clippy.log`); its sequential exact whole test
-is still running at this checkpoint. No product source changed during it.
+## Finish and next order
 
-The complete native fake-fleet start passed, including the row 2 wire checks:
-home/member/standalone roles, real join/leave/fresh join, manual sync, actual
-apply and home report, and a separate read-only book with hidden member rows
-and refused sync/leave. The full script finished with exit zero. Invocation:
-`bash spikes/native/scripts/fleet.sh start <scratch>/fleet-row2 <target>/debug`.
-`row2-fleet-results.json` records binary hashes, check names and ownership.
-Run as UID/GID 1000 with umask 077: fixture directories 0700, tokens, member
-credential and both node books 0600, all owned 1000:1000. No chmod/chown fix
-was needed. Both recorded node PIDs were stopped and absent afterward. No
-pairing link or credential output was displayed. Native screen rendering and
-other OS execution are not verified by this backend check.
+The whole gate, frozen inputs, compilation and final cleanup are verified.
+Commit implementation/docs, then record the source hash in an evidence
+checkpoint and submit one complete slice to V1 only; it forwards accepted
+work. Send the waiting PR-screen track the exact command/schema only after
+integration is confirmed. No ready-slice submission has been made for ADR
+0060 yet. The ADR remains proposed until review passes. Do not rerun the
+unchanged passing gate.
 
-### Final root gate and grant checks
+Next is actual project-wide open PR listing without a live session, ADR 0061.
+The earlier claim that it was already upstream was withdrawn: pr.list still
+covers watched sessions only. Then row 6 (registry address/version states),
+then row 7 (webhook ADR and security decisions before code). No later slice
+has started. Merge the node line at a clean boundary before new wire work,
+then gate that baseline as directed by the coordinator.
 
-The exact original root gate completed successfully on the current source:
-fmt, `cargo clippy --workspace --all-targets -- -D warnings`, then
-`cargo test --workspace` (RUST_TEST_THREADS=2), each build/test through the
-machine slot helper. The test result is 105 suites, 1,666 passed, zero failed,
-nine ignored. Node unit tests: 198; node E2E: 151. Log:
-`row2-final-workspace-test.log`. Changed crates are explicitly recompiled in
-the log. This supersedes earlier incomplete whole-run checkpoints.
-
-The earlier TS-enabled whole run remains recorded as 1,669 passed / four
-failed / nine ignored. The three new-fixture failures are corrected; all pass
-in the final root run. The existing remote release-fallback test also passed
-in the final root run without any change to its code or 60-second timeout.
-Its earlier timeout remains an unexplained prior failure, not a waived
-known-load exception.
-
-On the exact node E2E executable named in the final root log, reinstalled
-member grant passed four consecutive runs and grant-stop passed eight. Each
-ran with CARGO removed so the locator used existing binaries. The whole
-workspace continued through unrelated later tests while these checks ran;
-no second Cargo command was started. `row2-grant-repeats.json` records each
-argv/log/exit, UID/GID 1000, pre/post executable SHA256 equality and no Rust
-source changes. No timing bound or assertion changed.
-
-The literal requested filtered TS regeneration command is now running:
-`VESSEL_WRITE_TS=1 cargo test -p vessel-proto -p vessel-web --features ts
---lib typescript`, with the same slot helper; log `row2-final-typescript.log`.
-Do not report it passed until its result is recorded below. The previous
-TS-enabled whole run did pass the generator tests. The owned-process audit
-found no remaining fixture/node/UI process; no preview or real agent used.
-
-## Final handoff: row 2 gated, V1 review pending
-
-This section supersedes all earlier unverified checkpoints. Row 2 source is
-committed in `2ced8723`, `cc972008`, `a32a0ac6`, `caaea148`; the final clean
-root gate and grant repeats are recorded in `bcc9106c`. Full source/contract
-review is with V1, followed by the coordinator and node integrator; no merge
-approval or native UI approval is claimed. The earlier WIP commit subjects
-are retained without history rewriting.
-
-- fmt passed; whole workspace/all-targets Clippy passed.
-- Exactly `cargo test --workspace`: 105 suites, 1,666 passed, zero failed,
-  nine ignored (`row2-final-workspace-test.log`). Node units 198, E2E 151.
-- Literal TS generation passed both tests (`row2-final-typescript.log`);
-  generated declarations were already current at `caaea148`.
-- Page lint/typecheck/build, 243 unit tests and 36 E2E passed (`row2-web-*`).
-- Actual native fake-fleet start/check passed (`row2-fleet.log`,
-  `row2-fleet-results.json`), including read-only book, apply/report and
-  join/leave/sync. Assertion failure check prints one line, no traceback.
-- Reinstalled-member 4/4, grant-stop 8/8 (`row2-grant-repeats.json` and
-  twelve individual logs). Exact executable/argv, CARGO unset, UID/GID and
-  stable pre/post SHA256 are in the record; no test bound changed.
-- Final owned-process audit empty (`row2-process-audit.json`). Own fleet
-  PIDs stopped, no app/display left. UID/GID 1000; fixture directories 0700,
-  tokens/credential/books 0600. No permission/ownership modification.
-
-References followed: Paseo server `connected-hosts/index.ts` (actor authority,
-serialized persistence and secret-free summaries), `connected-hosts/session.ts`
-(connection authority/refusals), `pairing-offer.ts` and CLI `commands/daemon/
-pair.ts`. Paseo has no Vessel fleet publication/apply engine: those semantics
-reuse ADR 0012/0013 and the existing loops. Shared native files changed only
-for fake-fleet shape preparation/checks and their README; the exact hunks
-are `row2-shared-native.diff`. No app/kit screen changed; no captures claimed.
-
-Next session: first address V1 findings, then consume the reviewed protocol-13
-integration (`187dc847`) at a clean boundary and keep every N3 addition at 13,
-minimum unchanged. No new bump, no merge during this stop-limited session.
-G4 waits for reviewed row 2 calls/status, plus future rows 3/4. All other
-consumer waits and unimplemented rows 3-7 listed above remain unchanged.
+Keep the two ignored Cargo configs, fonts and untracked web build/dependency
+links; never stage them. Use cargo slots and detached gates, one Cargo at a
+time. Test-written executables use Sandbox::executable. No real agent prompt,
+preview pairing/ports/units, push, secret output or process-name kill. Review
+route is V1, coordinator, node integrator; do not directly message the latter
+or lead except to answer them. Keep project=vessel.

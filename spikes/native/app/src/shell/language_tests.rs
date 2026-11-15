@@ -50,10 +50,7 @@ impl Shell {
             ),
             loaded: true,
             arrive_pending: false,
-            updates: None,
-            update_state: crate::update::UpdateState::Idle,
-            update_asked: false,
-            updated: None,
+            updates: crate::update_words::UpdateUi::new(Translator::get(ENGLISH).unwrap()),
             sidebar_sheet: None,
         }
     }

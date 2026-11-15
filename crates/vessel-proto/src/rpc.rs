@@ -53,6 +53,8 @@ use crate::transfer::{
 mod frames;
 mod older;
 mod requests;
+#[cfg(test)]
+pub(crate) mod samples;
 mod since;
 
 pub use frames::{ClientFrame, ClientInfo, Hello, ServerFrame, SubscriptionEnd, Welcome};
@@ -115,6 +117,12 @@ rpc_methods! {
     GetSession / get_session / "session.get" [Read, 2]: GetSession => SessionInfo;
     /// Start a session.
     CreateSession / create_session / "session.create" [Operate, 2]: CreateSession => SessionInfo;
+    /// Open or reuse a separate side conversation (protocol 19).
+    OpenSideQuestion / open_side_question / "session.side_open" [Operate, 19]: crate::side_questions::OpenSideQuestion => SessionInfo;
+    /// Ask a side question with refreshed parent context (protocol 19).
+    PromptSideQuestion / prompt_side_question / "session.side_prompt" [Operate, 19]: crate::side_questions::PromptSideQuestion => Delivered;
+    /// Replace the expected side conversation (protocol 19).
+    ResetSideQuestion / reset_side_question / "session.side_reset" [Operate, 19]: crate::side_questions::ResetSideQuestion => SessionInfo;
     /// Send input to a session.
     SendInput / send_input / "session.send" [Operate, 2]: SendInput => Ack;
     /// Kill a session.
@@ -129,6 +137,8 @@ rpc_methods! {
     StopNode / stop_node / "node.stop" [Admin, 3]: StopNode => Ack;
     /// Make a pairing invitation (protocol 4).
     InviteDevice / invite_device / "device.invite" [Admin, 4]: InviteDevice => Invitation;
+    /// Inspect this authenticated connection's own effective grant (protocol 20).
+    GetDeviceSelf / device_self / "device.self" [Authenticated, 20]: crate::GetDeviceSelf => crate::DeviceSelf;
     /// List paired devices (protocol 4).
     ListDevices / list_devices / "device.list" [Admin, 4]: ListDevices => Vec<DeviceInfo>;
     /// Revoke a device and close its connections (protocol 4).
@@ -155,6 +165,8 @@ rpc_methods! {
     SyncFleet / sync_fleet / "fleet.sync" [Admin, 15]: crate::SyncFleet => Ack;
     /// Read safe local apply history and permitted member reports (protocol 15).
     GetFleetStatus / fleet_status / "fleet.status" [Read, 15]: crate::GetFleetStatus => crate::FleetSyncStatus;
+    /// What this machine shares through its fleet, by name (protocol 16, ADR 0056).
+    GetPublished / fleet_published / "fleet.published" [Admin, 16]: crate::GetPublished => crate::FleetPublished;
     /// List fleet members (protocol 5).
     ListMembers / list_members / "fleet.members" [Admin, 5]: ListMembers => Vec<FleetMember>;
     /// Run a call on another node of the fleet (protocol 6).
@@ -376,6 +388,26 @@ rpc_methods! {
     InstallAgent / install_agent / "agent.install" [Admin, 11]: crate::agents::InstallAgent => crate::agents::InstallJob;
     /// A page of an install's output (protocol 11).
     ReadInstall / install_output / "agent.install_output" [Admin, 11]: crate::agents::ReadInstall => crate::agents::InstallOutput;
+    /// Reported tokens and permitted costs (protocol 21, ADR 0042).
+    QueryUsage / query_usage / "usage.query" [Read, crate::usage::USAGE_PROTOCOL_VERSION.get()]: crate::usage::QueryUsage => crate::usage::UsageReport;
+    /// Device-scoped push.key (protocol 22, ADR 0041).
+    GetPushKey / get_push_key / "push.key" [Read, 22]: crate::push::GetPushKey => crate::push::PushKey;
+    /// Device-scoped push.subscribe (protocol 22, ADR 0041).
+    SubscribePush / subscribe_push / "push.subscribe" [Read, 22]: crate::push::SubscribePush => crate::push::PushLease;
+    /// Device-scoped push.unsubscribe (protocol 22, ADR 0041).
+    UnsubscribePush / unsubscribe_push / "push.unsubscribe" [Read, 22]: crate::push::UnsubscribePush => Ack;
+    /// Device-scoped push.presence (protocol 22, ADR 0041).
+    ReportPushPresence / report_push_presence / "push.presence" [Read, 22]: crate::push::ReportPushPresence => Ack;
+    /// A bounded page of this node's durable attention (protocol 22).
+    ListInbox / list_inbox / "inbox.list" [Read, 22]: crate::inbox::ListInbox => crate::inbox::InboxPage;
+    /// Recheck exactly one inbox source after a delayed answer (protocol 22).
+    GetInboxEntry / get_inbox_entry / "inbox.get" [Read, 22]: crate::inbox::GetInboxEntry => Option<crate::inbox::InboxEntry>;
+    /// Mark current attention read or unread without answering it (protocol 22).
+    MarkInbox / mark_inbox / "inbox.mark" [Read, 22]: crate::inbox::MarkInbox => Ack;
+    /// Latest saved-sign-in limits (protocol 23, ADR 0042); explicit refresh additionally needs operate.
+    GetUsageLimits / get_usage_limits / "usage.limits" [Read, crate::limits::LIMITS_PROTOCOL_VERSION.get()]: crate::limits::GetUsageLimits => crate::limits::UsageLimits;
+    /// Persist this machine's credential-use policy (protocol 23); administrator only.
+    SetUsageLookup / set_usage_lookup / "usage.lookup" [Admin, crate::limits::LIMITS_PROTOCOL_VERSION.get()]: crate::limits::SetUsageLookup => crate::limits::ExternalLookup;
     // Protocol 11, track D (ADR 0033): schedules and saved prompts.
     /// Compute a bounded schedule preview without saving or starting work.
     PreviewSchedule / preview_schedule / "schedule.preview" [Read, 13]: crate::automation::PreviewSchedule => crate::automation::SchedulePreview;
@@ -420,6 +452,8 @@ rpc_methods! {
     ForkSession / fork_session / "session.fork" [Operate, 14]: crate::forking::ForkSession => SessionInfo;
     /// Take a session back to a turn's end (protocol 14, ADR 0052).
     RewindSession / rewind_session / "session.rewind" [Operate, 14]: crate::forking::RewindSession => SessionInfo;
+    /// A page of an agent's own conversations, to import one (protocol 17, ADR 0053).
+    GetAgentHistory / agent_history / "agent.history" [Operate, 17]: crate::history::GetAgentHistory => crate::history::AgentHistoryPage;
 }
 
 /// Result of a call.
