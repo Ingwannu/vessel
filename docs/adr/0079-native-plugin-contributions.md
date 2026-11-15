@@ -444,3 +444,12 @@ contract, concrete resource budgets and required preservation/authority tests
 are in docs/plans/wp-plugin-settings.md. This is a design refinement, not an
 implemented slot, available storage API or plugin activation claim. Joining it
 waits for the envelope owner's reviewed source and announced containing head.
+
+### Complete private candidate observation prerequisite
+
+The declaration-only inspection is insufficient for executable review identity.
+The proposed bounded artifact observation and its explicit Unix ownership versus
+unsupported-ACL platform boundary are specified in
+[wp-plugin-artifact](../plans/wp-plugin-artifact.md). This is a private source
+prerequisite, not acquisition/pinning, consent, persistence or helper activation.
+It introduces no second settings writer and cannot manufacture managed provenance.

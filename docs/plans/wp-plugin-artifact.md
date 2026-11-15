@@ -1,0 +1,90 @@
+# W16 private managed-artifact identity prerequisite
+
+This is a proposed, non-activated source-acquisition prerequisite under ADR0079.
+The existing declaration inspection binds only two decoded files. It cannot
+qualify a helper executable, build result or complete reviewed candidate.
+
+[Decision Log]
+- Purpose: bind review/apply to the actual complete private candidate rather
+  than treating manifest/client hashes or a runtime generation as artifact truth.
+- Assets/constraints: reuse canonical PluginId, ContentHash, PackagePath,
+  SHA-256, existing confined workspace path policy and the node account. The
+  saved-envelope owner still owns persistence; no metadata file/writer is added.
+- Alternatives: hash only declarations, trust mtime, or add a complete private
+  candidate-tree observation before activation. Only the latter binds executable
+  and asset changes, including same-size edits with restored timestamps.
+- Choice: a bounded deterministic tree observation plus exact re-observation.
+  It remains private/staged until an actual acquisition/review producer exists.
+- Why: filesystem observation alone cannot mint source revision, human consent,
+  settings permission, executable authority or an authenticated node operation.
+- Impact: additional bounded I/O and explicit refusals. No package download,
+  command/build/helper, install mutation, generic settings field or RPC is added.
+
+## Concrete shape and limits
+
+The artifact owner defines the constants once in its module; tests use those
+constants. At most32768 entries (files, directories and links),256MiB per regular
+file,512MiB aggregate regular-file bytes,4096 encoded bytes per relative name or
+link target, and64 directory levels. Names must be representable in the native
+package path contract. Every counter uses checked/saturating arithmetic and
+refuses before reading/copying excessive data; no truncation becomes identity.
+These are native resource limits, not claims that arbitrary npm trees fit.
+
+An ArtifactIdentity contains a private SHA-256 tree digest, counts and byte
+facts. Each record includes its kind, relative path, executable-owner bit and
+content hash or symlink target spelling. Entries are sorted deterministically;
+length prefixes and distinct kind tags prevent ambiguous concatenations. The
+root and every entry are observed twice around content reads, and a complete
+second observation must agree before returning a stable identity. This detects
+observed changes; it does not eliminate same-account path/open races.
+
+No symlink directory is traversed. Each link must resolve inside the same
+candidate root; dangling, cyclic/unresolvable or escaping links refuse. The
+link itself is hashed and its actual in-tree target is independently covered
+by ordinary tree entries. Special files/sockets/devices/FIFOs refuse before
+opening. Hard-linked files count/read per path; aliases do not evade budgets.
+Do not block on a FIFO or follow an uncontrolled filesystem mount traversal.
+
+Private-tree admission checks the actual effective node UID against ownership
+and refuses group/other-accessible candidate directories. Regular files must
+not be writable by another account; executable bits are observed, never granted
+by this reader. Initial implementation uses the workspace-owned nix dependency's
+safe effective-UID API on Unix, with that narrow feature explicitly declared.
+No new external crate, shell command, chown or permission repair is introduced.
+On platforms without a concrete private-owner/ACL verifier it returns a typed
+Unsupported boundary. Recognized release ABI eligibility in the manifest is
+separate from this installation qualification; it does not waive ownership.
+Windows activation cannot consume a Unix-mode inference or existing Store
+privacy fallback. A later reviewed verifier must qualify that path explicitly.
+
+## Errors, lifetime and authority
+
+I/O/parser errors retain only sealed safe classifications through Display,
+Debug and every exposed source. Candidate names, local paths and file contents
+must not appear in diagnostics. A node-owned blocking task owns a complete
+observation through return even if its waiting RPC caller disappears. Cancellation
+is checked between bounded reads; the eventual actual admission lane must keep
+its permit until the blocking task settles. Dropping a wait does not delete a
+candidate or release a process/settings lease.
+
+The first implementation is private under the existing plugin staging gate,
+with real disposable filesystem tests. It does not create a managed directory,
+copy/acquire packages, write settings or call Supervisor::spawn. A future
+acquisition owner alone creates its candidate, supplies the exact private root,
+records pinned Git/npm/registry provenance and produces a review proposal.
+ArtifactIdentity is a captured fact, not that producer's unforgeable authority.
+Apply must re-observe the exact owned candidate and revision, then use the
+reviewed start/close fence and sole settings owner. Directory sources are never
+deleted by candidate cleanup. Full source/build/storage/platform qualification
+remains separate.
+
+## Required evidence
+
+Actual private temp-tree cases cover deterministic order, ordinary files and
+executable distinction, same-size edits with restored time, path/byte/count/depth
+refusal, internal links versus escape/dangling links, FIFO refusal without open,
+changed-tree refusal and full diagnostic canaries. UID/GID/modes are inspected
+under the test runner account, without changing an account or service. Generic
+Windows refusal is not a Windows ACL or runtime pass. Existing declaration-only
+inspection and the actual saved-owner/lifecycle integration retain their own
+separate evidence obligations.
