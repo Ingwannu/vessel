@@ -284,3 +284,18 @@ revoked-row correction against the canonical DELETE, without claiming execution.
 Later terminal-push, explicit-unread, Untracked, exact-half renewal and conditional
 cancellation additions remain outside source adoption and need separate complete
 reading/checks. No owning whole, native/CLI or assigned-wire approval follows.
+
+Source follow-up: the new lease test incorrectly treated internal list metadata
+as delivery authority after scope loss. Listing may retain the unrenewed row;
+current Read is rechecked at final admission. The node test now checks that
+actual predicate; revoke still requires exact absence and expired/readless
+leases retain no extended expiry. An explicit redundant trait import is removed
+after actual strict diagnostics. Prior failed test/strict runs remain red.
+
+Local OS failure attention was incorrectly sharing Web Push reason eligibility.
+Pinned websocket-server.ts:2899-2904 elects a local recipient for errors, while
+agent-attention-policy.ts:77-79 suppresses only error PUSH. The local store claim
+and native opportunity/current-form gates now accept failed sources, preserving
+exact identity, unread, authority, once-only and focus checks. Web Push filters
+remain unchanged. New real-store and native opportunity regressions are owed
+execution; no source/runtime PASS is inferred from this correction.

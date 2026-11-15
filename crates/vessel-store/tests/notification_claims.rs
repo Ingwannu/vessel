@@ -305,3 +305,86 @@ async fn internal_first_page_cannot_hide_a_later_root_notification() {
     );
     store.close().await;
 }
+
+#[tokio::test]
+async fn failed_attention_can_claim_local_delivery_but_never_enters_web_push_candidates() {
+    let (_temp, dir) = data_dir();
+    let store = open(&dir, StoreConfig::default()).await;
+    let mut info = new_session(0);
+    info.spec.mode = SessionMode::Structured {
+        model: None,
+        resume: None,
+        options: Vec::new(),
+    };
+    store.create_session(info.clone()).await.unwrap();
+    store
+        .append(
+            info.id,
+            vec![record(
+                0,
+                SessionEvent::Agent {
+                    event: AgentEvent::TurnEnded {
+                        reason: StopReason::Refusal,
+                        usage: None,
+                        point: None,
+                    },
+                },
+            )],
+        )
+        .await
+        .unwrap();
+    let entry = store
+        .inbox(ListInbox::default())
+        .await
+        .unwrap()
+        .entries
+        .into_iter()
+        .next()
+        .unwrap();
+    assert!(matches!(entry.item, vessel_proto::inbox::InboxItem::Failed));
+    let source = PushAttention {
+        key: entry.key,
+        cursor: entry.cursor,
+    };
+    assert!(
+        store
+            .pending_push(vessel_proto::inbox::InboxCursor::new(0), entry.cursor)
+            .await
+            .unwrap()
+            .is_empty()
+    );
+    assert!(
+        store
+            .notification_current(NotificationAuthority::Owner, source)
+            .await
+            .unwrap()
+    );
+    assert_eq!(
+        store
+            .claim_notification(NotificationAuthority::Owner, source)
+            .await
+            .unwrap(),
+        LocalAdmission::Admitted
+    );
+    assert_eq!(
+        store
+            .claim_notification(NotificationAuthority::Owner, source)
+            .await
+            .unwrap(),
+        LocalAdmission::AlreadyClaimed
+    );
+    store
+        .mark_inbox(MarkInbox {
+            key: source.key,
+            read: InboxRead::Read,
+        })
+        .await
+        .unwrap();
+    assert!(
+        !store
+            .notification_current(NotificationAuthority::Owner, source)
+            .await
+            .unwrap()
+    );
+    store.close().await;
+}

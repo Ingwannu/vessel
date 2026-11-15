@@ -71,7 +71,7 @@ fn authorized(
 
 fn current(connection: &Connection, source: PushAttention) -> Result<bool, StoreError> {
     connection.query_row(
-        &format!("SELECT EXISTS(SELECT 1 FROM inbox i JOIN sessions s ON s.id=i.session WHERE i.cursor=?1 AND i.session=?2 AND i.seq=?3 AND i.seen=0 AND (i.waiting=1 OR json_extract(i.item,'$.kind') IN ('finished','limit')) AND {})",crate::notification_policy::SESSION),
+        &format!("SELECT EXISTS(SELECT 1 FROM inbox i JOIN sessions s ON s.id=i.session WHERE i.cursor=?1 AND i.session=?2 AND i.seq=?3 AND i.seen=0 AND (i.waiting=1 OR json_extract(i.item,'$.kind') IN ('finished','limit','failed')) AND {})",crate::notification_policy::SESSION),
         params![cursor(source)?, source.key.session.to_string(), crate::codec::seq_to_sql(source.key.seq)?],
         |row| row.get(0)).map_err(StoreError::from)
 }

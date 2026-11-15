@@ -1,7 +1,6 @@
 //! Real `SQLite` transaction boundaries for leases, revocation and stale 410s.
 use super::*;
 use crate::{CredentialHash, devices, schema};
-use rusqlite::OptionalExtension as _;
 use vessel_proto::{DeviceInfo, DeviceSecret};
 const LEASE_STEP: TimeDelta = TimeDelta::hours(1);
 fn now() -> DateTime<Utc> {
@@ -216,7 +215,8 @@ fn activity_cannot_resurrect_revoked_readless_or_expired_push_leases() {
         } else {
             assert_eq!(expiry.map(time_from_sql), Some(lease.expires_at));
         }
-        assert!(list(&db, later).unwrap().is_empty());
+        // Listing is internal lease metadata; current Read is checked at admission.
+        assert!(!lease_admitted(&db, &lease, later).unwrap());
     }
 }
 

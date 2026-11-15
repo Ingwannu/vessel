@@ -222,3 +222,14 @@ Both mean no terminal dot, but only explicit Untracked is neutral in workspace
 aggregation. Old peers still receive no attention field under the same pending
 feature; no new method, number, scope or migration is added. The native adapter
 waits for reviewed canonical values rather than duplicating this wire contract.
+
+## Local error attention is independent of Web Push eligibility
+
+Paseo websocket-server.ts:2899-2904 passes every attention reason to the local
+recipient election, while agent-attention-policy.ts:77-79 excludes error ONLY
+from push eligibility. Local admission therefore accepts an exact unread failed
+Inbox source with the same device/source/read/once-only checks. Web Push
+candidates and final push admission still exclude failed outcomes. Generic OS
+content and focused-target suppression do not change; no new wire or scope is
+introduced. A real-store regression checks local once-only admission, shared
+read suppression and exclusion from the actual Web Push candidate query.
