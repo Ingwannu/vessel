@@ -48,12 +48,12 @@ pub(super) fn render(
         {
             agent.take().unwrap_or_else(div).into_any_element()
         }
+        Target::Browser(_) => crate::areas::browser::render_panel(shell, panel, tokens, window, cx),
         Target::NewTab => super::draw::launcher(shell, tokens, window, cx).into_any_element(),
         Target::Agent(_)
         | Target::Draft(_)
         | Target::ProviderSubagent { .. }
         | Target::Terminal(_)
-        | Target::Browser(_)
         | Target::Changes
         | Target::Files
         | Target::Scripts

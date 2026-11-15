@@ -11,6 +11,7 @@
 pub(crate) mod about;
 pub(crate) mod archive;
 pub(crate) mod board;
+pub(crate) mod browser;
 pub(crate) mod common;
 pub(crate) mod composer;
 pub(crate) mod conversation;

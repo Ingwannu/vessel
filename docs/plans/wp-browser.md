@@ -152,3 +152,16 @@ still owed, alongside all node/app gates and native captures.
   fake painted page. The node rechecks target ownership/current viewport/revision.
 - Tests cover a doubled-density frame, centered fixed viewport, compact pane
   scaling and invalid/empty geometry. No independent pane/layout is introduced.
+
+
+## Shared pane producer adoption and unavailable owner renderer
+
+Merged the advancing app line d6aac578d, then the exact canonical values e46cd57b0
+and only W12's portable producer9480d4d0 (local cherry-pick c9a002e66). The held
+1720 producer and whole W12 branch were not adopted. W12 is the sole layout and
+resident/ticket owner. Browser slots now register the browser area's renderer in
+that one exhaustive registry. With no qualified engine/typed frame stream this
+renderer shows the localized NoEngine state; it does not expose a creation entry
+or substitute a page. The existing lifecycle guard continues to refuse closing
+a live resource without owner settlement; there is no fabricated close ACK.
+Actual resource state, stream/control and keyed close handler remain owed.
