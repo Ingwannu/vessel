@@ -77,7 +77,12 @@ pub enum ErrorPresentation {
     /// Source schedule submit error:sm12/red300, wrapping, no notice chrome.
     Submission,
 }
-fn feedback_line(text: SharedString, kind: FeedbackKind, field: bool, tokens: &Tokens) -> Div {
+fn feedback_line(
+    text: SharedString,
+    kind: FeedbackKind,
+    presentation: ErrorPresentation,
+    tokens: &Tokens,
+) -> Div {
     let line = div()
         .min_w_0()
         .type_(Type::Meta)
@@ -93,7 +98,7 @@ fn feedback_line(text: SharedString, kind: FeedbackKind, field: bool, tokens: &T
 }
 /// One error text renderer; callers own localized content and validation.
 /// Submission uses the kit's ordinary Meta line metrics: the pinned source
-/// specifies fontSize12/red300 without an explicit lineHeight (sheet1080–1083).
+/// specifies `fontSize`12/red300 without an explicit `lineHeight` (sheet1080–1083).
 #[must_use]
 pub fn error_message(text: SharedString, presentation: ErrorPresentation, tokens: &Tokens) -> Div {
     feedback_line(text, FeedbackKind::Error, presentation, tokens)
