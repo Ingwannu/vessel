@@ -287,8 +287,11 @@ limits bound aggregate decode before these validated domain values.
 
 ## Tests and delivery
 
-1. Contract security review before DTO source. Use the announced head with
-   staged rows and the shared project-command bound, preserving A8 history.
+1. Contract security review before DTO source. Use an isolated values package
+   from the announced head with staged rows and the shared project-command
+   bound, preserving A8 history. Never merge the unqualified A10 helper stack
+   just to publish DTOs. Reuse the reviewed ServiceEnvName value owner unchanged
+   if it is not yet on that head; no second normalization implementation.
 2. Validated constructor/serde bounds, unique names, cursor consistency,
    plain/service invariants, no empty-as-unavailable success, health/URL
    distinctions, credential-safe URI errors and unknown-choice refusals.
