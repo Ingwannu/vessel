@@ -35,11 +35,12 @@ Diagnostics compatibility use of kept_why remains until W20's package is
 integrated. Overview/Connections have not been touched; E2's terminal-settings
 domain is separate.
 
-State: plain-word source committed as e9116d6ca; its immutable merged checkpoint
-008181b3 has a remote component suite pending. New storage source below still
-owes its own component checks. Full General completion, its package gate/review
-and before/after screen proof remain owed. F6 helper evidence does not approve
-these new resources.
+Current state: General source snapshot 28639559 passed its whole native gate
+and standalone view wasm build. All 98 after-capture originals were opened;
+the 16 normal English/Korean before/after pairs have identical decoded pixels.
+The final review is pending. Earlier checkpoints and failures below are retained
+as history, not current pending checks. Later generator producer commits and
+the separate F6 helper are outside this General approval request.
 
 ## Prepared storage subfeature
 
@@ -171,10 +172,10 @@ the test-only second Areas constructor is corrected at the same time.
 
 The original log remains evidence of a real source compilation failure, not a
 passing test run. Its controller submitted no Clippy/wasm/whole gate afterward.
-The earlier 008181b3 run ended with signal 143 while queued; that separate
-infrastructure cancellation has no compiler/test result and is under tool-owner
-investigation. The corrected candidate must pass its own component suite before
-the one package gate and app export can start.
+The earlier 008181b3 run ended with signal 143 during the operator-approved
+build-VM resize/restart, confirmed by the tool owner. That infrastructure
+interruption has no compiler/test result. The corrected candidate still owed
+its component suite and package gate at that checkpoint.
 
 ## Raw Unicode-isolation goldens and base 6
 
@@ -222,7 +223,60 @@ comments named MAX_ACTIONS and MAX_MACHINES without Markdown code backticks.
 The English comments (and their Korean copies) now quote those identifiers.
 No message value, variable, generated getter contract or caller changed.
 
-The failed run is retained; native build/test/export did not run and there is
-no whole-gate pass yet. A changed-crate Clippy check precedes its replacement
-whole gate. The accepted dd13ce37 baseline app is read-only; baseline original
-captures are retained because this comment-only correction changes no UI text.
+The failed run is retained; its native build/test/export did not run. A
+changed-crate Clippy check preceded the corrected whole gate. The accepted
+dd13ce37 baseline app remains read-only; its original captures were retained
+because this comment-only correction changed no UI text.
+
+## Final bounded package evidence
+
+Exact source 28639559, run `i18n-20261115T134746Z-28639559`: fonts, fmt,
+quality, Clippy, build and test all returned zero, with no skipped step.
+Both changed crates actually compiled. Raw test totals are 1451 passed,
+zero failed, two ignored: 1449 ordinary tests and two compile-fail docs.
+Quality checked 658 Rust files with the same 14 size exceptions, valid
+boundaries and no new token-list entry. The exported app is bound to that
+commit, SHA-256 `18a89df04c82f5f3cdddaee33ef10a9b82f02dc339ff55f4254c6512a14e0e7f`.
+The separate run `i18n-20261115T145346Z-28639559` built view for
+`wasm32-unknown-unknown` successfully; this is code generation, not a browser
+runtime check. No unchanged whole gate is requested for these results.
+
+The author opened all 34 baseline/discovery originals and all 98 after
+originals. The after set comprises 92 matrix frames, one initial probe and five
+obsolete discovery frames. Normal English/Korean, dark/light, at 390, 800,
+1024 and 1280 logical pixels match the baseline's decoded RGBA exactly in all
+16 pairs. Pseudo labels and six selected 1.25/1.5/2 scale samples fit the
+inspected states. At 800×600 the long English/pseudo path continues below the
+initial fold; ordinary wheel scrolling exposes it fully, as captured.
+
+Actual file paths exercise malformed JSON, denied file access and a valid JSON
+string of the wrong root kind, with complete English/Korean recoveries in both
+themes and phone/desktop sizes. The original `[]` fixture was accepted as
+default preferences: its eight frames are normal empty-sequence evidence,
+not kind-failure evidence. They are retained separately from the corrected
+scalar captures. The first navigation plan also produced a phone Settings-root
+discovery frame; it is excluded from General proof. An interrupted probe's
+recorded processes were stopped after checking their PIDs and executables.
+
+Real controls expose the three delivery choices, localized copied-path notices
+and the whole shortcut-limit refusal after attempting the 65th action. The
+pseudo refusal expands while the legacy Shortcuts table remains plain.
+General's other remaining plain pseudo words are shared Settings navigation
+and Back/Add-a-machine labels, owned by their existing tables; physical key
+names and path values are data. No shipping preview branch was added.
+
+All app/display probes ran as UID/GID 1000 against private directories and
+preferences at modes 0700/0600, using the read-only mode-0500 export. Broken
+and bound-full preference bytes stayed unchanged. Completed probes stopped
+their recorded app/display processes. The General source adds no dependency,
+lock, range, serialization or store behavior change. The broader frame remains
+its owners' work, including the retained Sidebar `path_copied` and Diagnostics
+`kept_why` compatibility callers.
+
+Limits: machine-limit, NoPath and Newer outcomes have whole-sentence/model
+tests, not live UI producers here. There is no OS clipboard extraction,
+real-node/provider/updater run, browser or Windows runtime, real-GPU,
+accessibility, first-frame timing, extra-scale before-parity or later combined
+integration approval. The clipboard projection test asserts the raw path;
+captures prove the visible notice only. Earlier bounded About, Diagnostics,
+Chat and fork/rewind reviews retain their own scopes.
