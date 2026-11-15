@@ -22,10 +22,10 @@ fn a_legacy_row_is_shown_and_the_append_is_idempotent() {
     assert_eq!(inserted, 1);
     migrate(&mut connection).unwrap();
     migrate(&mut connection).unwrap();
-    let version: usize = connection
+    let version: i64 = connection
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!(version, MIGRATIONS.len());
+    assert_eq!(version, i64::try_from(MIGRATIONS.len()).unwrap());
     let (spec, listing): (String, String) = connection
         .query_row(
             "SELECT spec,listing FROM sessions WHERE id=?1",

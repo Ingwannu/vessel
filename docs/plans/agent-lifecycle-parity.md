@@ -878,3 +878,7 @@ and existing expectations; both insert and corruption fixtures now assert
 that their SQL changed exactly the intended row. The failed
 check is retained, and corrected-source checks and the complete package gate
 are still owed.
+
+The legacy schema fixture reads SQLite's user_version as its supported i64
+representation and converts the migration length with TryFrom for comparison.
+The earlier usize read did not compile; no schema value or expectation changes.
