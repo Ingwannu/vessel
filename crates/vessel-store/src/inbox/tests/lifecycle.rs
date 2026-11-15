@@ -176,8 +176,11 @@ fn migrate_again_without_inbox(db: &mut Connection) {
     db.execute_batch("DROP TABLE terminal_profile_settings; DROP TABLE creation_claims; DROP TABLE creation_receipts;")
         .unwrap();
     db.execute_batch("DROP TABLE workspace_registry_resources; DROP TABLE workspace_registry_reservations; DROP TABLE workspace_registry; DROP TABLE workspace_registry_meta;").unwrap();
-    db.execute_batch("ALTER TABLE sessions DROP COLUMN title_origin;")
-        .unwrap();
+    db.execute_batch(
+        "ALTER TABLE sessions DROP COLUMN detach_receipt;
+     ALTER TABLE sessions DROP COLUMN title_origin;",
+    )
+    .unwrap();
     db.execute_batch("ALTER TABLE sessions DROP COLUMN labels; DROP TABLE inbox_tools; DROP TABLE inbox; DROP TABLE inbox_meta; DROP TABLE push_subscriptions;")
         .unwrap();
     schema::replay_inbox_after_rollback(db);

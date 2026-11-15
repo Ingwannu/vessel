@@ -227,3 +227,26 @@ fn concurrent_exact_id_admission_at_the_last_child_slot_has_one_count_and_creden
         Err(ServiceError::AgentLimit { .. })
     ));
 }
+
+#[test]
+fn detach_frees_parent_count_without_growing_grants_resetting_depth_or_replacing_credentials() {
+    let agents = Arc::new(Agents::new(NodeId::random()));
+    let parent = SessionId::random();
+    let _secret = agents.reserve(parent, &Principal::Owner, false).unwrap();
+    let principal = agent_of(&agents, parent, vec![Scope::Operate]);
+    let child = SessionId::random();
+    let secret = agents.reserve(child, &principal, true).unwrap().unwrap();
+    let closing = CancellationToken::new();
+    let (before, registration) = agents.admit(&auth(child, &secret), &closing).unwrap();
+    let before_depth = agents.lock().get(&child).unwrap().depth;
+    agents.detach(child);
+    let entries = agents.lock();
+    let entry = entries.get(&child).unwrap();
+    assert_eq!(entry.parent, None);
+    assert_eq!(entry.depth, before_depth);
+    assert_eq!(entry.scopes, vec![Scope::Operate]);
+    drop(entries);
+    let (after, _second) = agents.admit(&auth(child, &secret), &closing).unwrap();
+    assert_eq!(before, after);
+    assert!(!registration.closing().is_cancelled());
+}

@@ -65,6 +65,10 @@ async fn changed_or_missing_source_fails_remaining_copies_without_resending_succ
                     .upload
                     .is_some()
             );
+            // The source's turn is readable once it has ended (`turn_ended`):
+            // read right after the job's snapshot it could still be on its
+            // way (W11's run, 2026-11-15).
+            turn_ended(&owner, source).await;
             assert_eq!(turns(&owner, source).await.len(), 1);
             assert!(
                 turns(&owner, snapshot.targets[1].resources.session.unwrap())

@@ -21,6 +21,7 @@ mod fixtures;
 /// schedules, saved prompts, hooks, the set an approval covered, and pull
 /// request feedback.
 const UNDO_SCHEMAS_10_TO_16: &str = "DROP TABLE terminal_profile_settings; DROP TABLE creation_claims; DROP TABLE creation_receipts;
+     ALTER TABLE sessions DROP COLUMN detach_receipt;
      ALTER TABLE sessions DROP COLUMN title_origin;
      DROP TABLE usage_samples;
      DROP TABLE usage_meta;

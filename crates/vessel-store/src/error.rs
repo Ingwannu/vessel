@@ -56,6 +56,8 @@ pub enum Column {
     Labels,
     /// `sessions.title_origin` (a `TitleOrigin`, ADR 0062).
     TitleOrigin,
+    /// Durable managed-child detach receipt (ADR 0090).
+    DetachReceipt,
 }
 
 /// Anything that can go wrong in the store.
@@ -285,6 +287,12 @@ pub enum StoreError {
         #[source]
         source: serde_json::Error,
     },
+    /// A human cannot detach a session that was never an agent's child.
+    #[error("session {0} was never a managed child")]
+    NotChild(SessionId),
+    /// A stored receipt contradicts immutable creator provenance.
+    #[error("session {0} has corrupt parentage")]
+    InvalidParentage(SessionId),
     /// The store was closed, or its writer thread is gone.
     #[error("the store is closed")]
     Closed,
@@ -313,7 +321,8 @@ impl StoreError {
             | Self::UnknownSession(_)
             | Self::UnknownDevice(_)
             | Self::Attachment(AttachmentFileError::Missing(_)) => ErrorCode::NotFound,
-            Self::RegistryFull
+            Self::NotChild(_)
+            | Self::RegistryFull
             | Self::RegistryInactive(_)
             | Self::RegistryRecordTooLarge
             | Self::RegistryConflict
@@ -339,6 +348,7 @@ impl StoreError {
             | Self::NewerSchema { .. }
             | Self::Sqlite(_)
             | Self::Commit(_)
+            | Self::InvalidParentage(_)
             | Self::Corrupt { .. }
             | Self::CorruptCreation(_)
             | Self::CorruptCreationOwner(_)

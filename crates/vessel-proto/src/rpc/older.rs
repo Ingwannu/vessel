@@ -80,6 +80,11 @@ impl Reply {
                     )
                 })
             }
+            Self::DetachSession(detached) => info(&detached.session).map(|info| {
+                let mut detached = detached.clone();
+                detached.session = Box::new(info);
+                Self::DetachSession(detached)
+            }),
             Self::ListSessions(sessions) => {
                 // An added agent's session is left out of a list an older
                 // peer could not decode with it (protocol 11, ADR 0032).
@@ -229,6 +234,8 @@ impl Reply {
             | Self::ListSnapshots(_)
             | Self::DropSnapshot(_)
             | Self::GitStatus(_)
+            | Self::GitCompare(_)
+            | Self::GitCompareFile(_)
             | Self::GitChanges(_)
             | Self::GitDiff(_)
             | Self::GitShow(_)
@@ -293,6 +300,7 @@ impl Reply {
             | Self::ListInbox(_)
             | Self::GetInboxEntry(_)
             | Self::MarkInbox(_)
+            | Self::Diagnostics(_)
             | Self::GetPushKey(_)
             | Self::SubscribePush(_)
             | Self::UnsubscribePush(_)
@@ -325,7 +333,7 @@ impl SessionInfo {
     /// 8-9 peers also keep an ended session in their archive placement.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
-        self.for_protocol_with_names(protocol, crate::GENERATED_NAMES)
+        self.for_protocol_with_parentage(protocol, crate::subagents::SUBAGENT_RELATIONS)
     }
 
     /// One projection rule also exercised with a synthetic assigned threshold.

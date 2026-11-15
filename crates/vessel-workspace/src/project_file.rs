@@ -50,8 +50,8 @@ pub const FILE_NAME: &str = "vessel.toml";
 /// Preserve the public parser name while preventing independent limits drifting.
 pub use vessel_proto::registry::MAX_CONFIG_BYTES as MAX_BYTES;
 
-/// The most commands in one list.
-pub const MAX_COMMANDS: usize = 32;
+/// The shared command-list admission limit, retained under the parser API name.
+pub use vessel_proto::workspace::MAX_PROJECT_COMMANDS as MAX_COMMANDS;
 
 /// What the file says about worktrees, and its scripts.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]

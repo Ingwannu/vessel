@@ -191,6 +191,8 @@ impl Call {
             | Self::ListSnapshots(_)
             | Self::DropSnapshot(_)
             | Self::GitStatus(_)
+            | Self::GitCompare(_)
+            | Self::GitCompareFile(_)
             | Self::GitChanges(_)
             | Self::GitDiff(_)
             | Self::GitShow(_)
@@ -260,6 +262,7 @@ impl Call {
             | Self::ListInbox(_)
             | Self::GetInboxEntry(_)
             | Self::MarkInbox(_)
+            | Self::Diagnostics(_)
             | Self::GetPushKey(_)
             | Self::SubscribePush(_)
             | Self::UnsubscribePush(_)
@@ -275,7 +278,8 @@ impl Call {
             | Self::GetTerminalProfiles(_)
             | Self::SetTerminalProfiles(_)
             | Self::ObserveCreation(_)
-            | Self::SubscribeCreation(_) => None,
+            | Self::SubscribeCreation(_)
+            | Self::DetachSession(_) => None,
         };
         let required = fields.map_or(method, |since| method.max(ProtocolVersion::new(since)));
         labels::on(self).map_or(Some(required), |labels| {

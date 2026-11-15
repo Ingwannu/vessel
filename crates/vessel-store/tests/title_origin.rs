@@ -112,7 +112,10 @@ async fn pre_origin_schema_titles_are_unknown_including_explicit_ones() {
         .unwrap();
     fixtures::undo_registry_schema(&connection);
     connection
-        .execute_batch("ALTER TABLE sessions DROP COLUMN title_origin;")
+        .execute_batch(
+            "ALTER TABLE sessions DROP COLUMN detach_receipt;
+     ALTER TABLE sessions DROP COLUMN title_origin;",
+        )
         .unwrap();
     connection
         .pragma_update(None, "user_version", BEFORE_TITLE_ORIGIN_SCHEMA)

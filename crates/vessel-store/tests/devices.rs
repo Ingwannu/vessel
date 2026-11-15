@@ -83,6 +83,7 @@ async fn device_windows_keep_a_stable_cursor_and_explicit_incompleteness() {
 /// index (schema 1's in its place, 8), the conversation's columns and the
 /// attachments table (7).
 const UNDO_SCHEMAS_7_TO_16: &str = "DROP TABLE terminal_profile_settings; DROP TABLE creation_claims; DROP TABLE creation_receipts;
+     ALTER TABLE sessions DROP COLUMN detach_receipt;
      ALTER TABLE sessions DROP COLUMN title_origin;
      DROP TABLE usage_samples;
      DROP TABLE usage_meta;

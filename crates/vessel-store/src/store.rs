@@ -5,11 +5,14 @@ mod attached;
 mod automation;
 mod conversation;
 mod creation;
+mod diagnostics;
+pub use diagnostics::{DiagnosticSnapshotError, ReadAdmission as DiagnosticReadAdmission};
 mod forge;
 mod inbox;
 mod push;
 mod registry;
 mod search;
+mod subagents;
 mod terminal_profiles;
 mod usage;
 
