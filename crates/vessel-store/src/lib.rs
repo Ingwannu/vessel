@@ -73,8 +73,6 @@ mod search;
 mod settings_file;
 mod side_context;
 mod store;
-// Staged until the shared pending-method wiring activates ADR 0084.
-#[cfg(test)]
 mod timeline_admission;
 mod token;
 mod usage;
@@ -99,5 +97,6 @@ pub use push_key::{PushKeyError, PushPrivateKey};
 pub use settings_file::{SetAside, SettingsFileError};
 pub use side_context::{LatestPlan, SideContext};
 pub use store::{Opened, Store};
+pub use timeline_admission::{ReceiptAdmission, ReceiptToken};
 pub use token::{InvalidToken, NodeToken};
 pub use workspace::{ApprovalChange, MAX_APPROVED_SETS, StoredWorkspace};

@@ -101,12 +101,14 @@ compaction needs an explicit failure-notice mapping before advertising support.
 
 ## Retained receipt service staging
 
-`vessel-store/src/timeline_admission` is registered under cfg(test) until the
-shared pending-method wiring exists. Its actual SQLite operations enforce
+`vessel-store/src/timeline_admission` now uses the existing single writer for
+receipt admission and settlement. Its SQLite operations enforce
 writer-transaction admission, fingerprint canonicalization, exact-key replay
 before capacity, fixed envelope reservation and accepted-result CAS. SQL
 triggers own per-session/node accounting; startup checks it against retained
-rows and encoded envelopes. The SQL is not in production migrations yet.
+rows and encoded envelopes. One newest-plus-one migration installs all package
+tables; the integrator re-points its index at merge. Only receipt storage is
+connected to the public Store API; node dispatch and question claims remain staged.
 Tests are written for replay/conflict, authenticated creator and nested JSON
 canonicalization, session byte saturation, each count/byte predicate, retained
 state after log pruning, committed session deletion, restart/corruption and
@@ -151,7 +153,7 @@ fields: two previously oversized actor/responder files are now below the file
 budget. Existing fixture expectations remain unchanged. Inbox tool updates keep
 known canonical bodies when updates supply None/Unknown; oversize bodies keep
 the existing explicit InSession degradation. New activation, provider mappings,
-retained-state migration, acknowledgements and question lifecycle remain owed.
+node acknowledgements and question lifecycle remain owed.
 
 The optional-field adapter keeps a no-change path for ordinary legacy events
 and snapshots rather than cloning tool bodies for each subscriber. Durable

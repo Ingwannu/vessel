@@ -7,6 +7,7 @@ mod conversation;
 mod forge;
 mod inbox;
 mod push;
+mod receipts;
 mod search;
 mod usage;
 
@@ -81,6 +82,7 @@ impl Store {
             let mut connection = Connection::open(&opening)?;
             schema::configure_writer(&connection)?;
             schema::migrate(&mut connection)?;
+            crate::timeline_admission::verify(&connection)?;
             let interrupted = recovery::interrupt_live(&mut connection, Utc::now())?;
             // Outside a transaction: each deletion is committed as it runs.
             for session in log::prune_ended(&connection, &retention)? {

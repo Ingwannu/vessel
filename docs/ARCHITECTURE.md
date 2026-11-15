@@ -1549,3 +1549,12 @@ and new calls remain inactive until their runtime wiring is complete. No new
 crate or dependency edge is added. Provider decoding remains in vessel-agent;
 client renderers consume typed values and never infer provider semantics from
 opaque arguments.
+
+The existing store writer commits receipt admission before exposing an opaque
+non-cloneable dispatch token. Settlement consumes that token after observed
+acceptance; dropping it leaves a retained uncertain key. The single appended
+migration owns replay rows and transactional session/node reservation counters.
+Startup verifies accounting before recovery or retention, so neither ordinary
+log pruning nor a damaged counter silently enables a duplicate send. This
+logical reservation floor deliberately trades finite session capacity for
+replay protection; it does not claim physical SQLite/WAL byte limits.

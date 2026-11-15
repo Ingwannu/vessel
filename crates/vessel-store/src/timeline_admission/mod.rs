@@ -1,8 +1,9 @@
-//! Staged retained-admission service (ADR 0084), tested against real `SQLite`.
-//! Remove the test-only module registration with shared-method wiring; all
-//! production mutation must remain on the store writer's transaction.
+//! Retained receipt admission (ADR 0084), owned by the one store writer.
+//! Question claims stay staged until the actor/provider bridge is connected.
 
 mod fingerprint;
+// Async question claims are staged until the actor persistence bridge exists.
+#[cfg(test)]
 mod question;
 mod receipt;
 #[cfg(test)]
@@ -19,10 +20,11 @@ use crate::{ByteCount, StoreError, codec};
 use vessel_proto::timeline::admission::AdmissionBytes;
 
 use fingerprint::ReceiptFingerprint;
-use receipt::{ReceiptAdmission, admit_receipt, finish_receipt};
+pub use receipt::{ReceiptAdmission, ReceiptToken};
+use receipt::{admit_receipt, finish_receipt};
 
 /// All package tables will join the single integration-repointed migration.
-const SQL: &str = "
+pub(crate) const SQL: &str = "
 CREATE TABLE timeline_admissions (
     session TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
     kind TEXT NOT NULL CHECK(kind IN ('receipt', 'question')),
@@ -136,7 +138,7 @@ fn reserve(
 }
 
 /// Verify reserved charges at startup; corrupted accounting never permits fresh work.
-fn verify(connection: &Connection) -> Result<(), StoreError> {
+pub(crate) fn verify(connection: &Connection) -> Result<(), StoreError> {
     let bad: i64 = connection.query_row(
         "SELECT count(*) FROM timeline_admissions WHERE
          (kind='receipt' AND (reserved_bytes<>?1 OR length(CAST(state AS BLOB))+length(CAST(identity AS BLOB))+length(fingerprint)>?3)) OR
@@ -179,4 +181,31 @@ fn verify(connection: &Connection) -> Result<(), StoreError> {
 
 fn sql_bytes(bytes: AdmissionBytes) -> Result<i64, StoreError> {
     codec::bytes_to_sql(ByteCount::new(bytes.get()))
+}
+
+/// The caller validates provider-specific content and authorization before admission.
+/// The store additionally refuses the common syntactically empty input before hashing.
+pub(crate) fn admit_input(
+    connection: &Connection,
+    request: &vessel_proto::timeline::SubmitPrompt,
+    creator: &vessel_proto::Creator,
+) -> Result<ReceiptAdmission, StoreError> {
+    if request.content.is_empty() {
+        return Err(StoreError::EmptyIdentifiedPrompt);
+    }
+    let fingerprint = ReceiptFingerprint::for_prompt(request, creator)?;
+    admit_receipt(
+        connection,
+        request.session,
+        request.message.clone(),
+        fingerprint,
+    )
+}
+
+pub(crate) fn accept_input(
+    connection: &Connection,
+    token: ReceiptToken,
+    delivered: vessel_proto::Delivered,
+) -> Result<vessel_proto::timeline::PromptReceipt, StoreError> {
+    finish_receipt(connection, token, delivered)
 }

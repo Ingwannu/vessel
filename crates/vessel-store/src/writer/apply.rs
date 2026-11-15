@@ -28,6 +28,26 @@ pub(super) fn apply(
     indexer: &mut Indexer,
 ) -> Answer {
     match write {
+        Write::AdmitPrompt {
+            request,
+            creator,
+            done,
+        } => Answer::PromptAdmitted(
+            done,
+            isolated(transaction, |connection| {
+                crate::timeline_admission::admit_input(connection, &request, &creator)
+            }),
+        ),
+        Write::AcceptPrompt {
+            token,
+            delivered,
+            done,
+        } => Answer::PromptAccepted(
+            done,
+            isolated(transaction, |connection| {
+                crate::timeline_admission::accept_input(connection, token, delivered)
+            }),
+        ),
         Write::Create { info, done } => write_answer(transaction, done, |connection| {
             log::create_session(connection, &info)
         }),

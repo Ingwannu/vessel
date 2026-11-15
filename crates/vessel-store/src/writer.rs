@@ -63,6 +63,18 @@ pub(crate) enum WriteOp {
 /// A change to the database.
 #[derive(Debug)]
 pub(crate) enum Write {
+    /// Admit a fresh identity or recover its exact retained result before any dispatch.
+    AdmitPrompt {
+        request: Box<vessel_proto::timeline::SubmitPrompt>,
+        creator: vessel_proto::Creator,
+        done: Done<crate::ReceiptAdmission>,
+    },
+    /// Provider/queue acceptance settles the already committed Pending reservation.
+    AcceptPrompt {
+        token: crate::ReceiptToken,
+        delivered: vessel_proto::Delivered,
+        done: Done<vessel_proto::timeline::PromptReceipt>,
+    },
     /// Store a new session. Boxed: operations wait in a bounded queue, and
     /// an inline `SessionInfo` would size every slot for this rare one.
     Create { info: Box<SessionInfo>, done: Done },
@@ -166,6 +178,14 @@ pub(crate) struct Setup {
 
 /// One caller's answer, held until its batch is committed.
 enum Answer {
+    PromptAdmitted(
+        Done<crate::ReceiptAdmission>,
+        Result<crate::ReceiptAdmission, StoreError>,
+    ),
+    PromptAccepted(
+        Done<vessel_proto::timeline::PromptReceipt>,
+        Result<vessel_proto::timeline::PromptReceipt, StoreError>,
+    ),
     Done(Done, Result<(), StoreError>),
     Marked(Done<KeptMarks>, Result<KeptMarks, StoreError>),
 }
@@ -174,6 +194,8 @@ impl Answer {
     /// Send it, as a failure if the commit failed.
     fn send(self, failed: Option<&Arc<rusqlite::Error>>) {
         let sent = match self {
+            Self::PromptAdmitted(done, result) => done.send(after(failed, result)).is_ok(),
+            Self::PromptAccepted(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Done(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Marked(done, result) => done.send(after(failed, result)).is_ok(),
         };

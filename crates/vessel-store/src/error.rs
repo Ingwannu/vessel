@@ -63,6 +63,9 @@ pub enum Column {
 /// Anything that can go wrong in the store.
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
+    /// Identified prompts share the existing nonempty content rule.
+    #[error("an identified prompt must contain content")]
+    EmptyIdentifiedPrompt,
     /// Retained admission state or its transaction/accounting invariant is corrupt.
     #[error("retained admission integrity check failed")]
     AdmissionIntegrity,
@@ -271,6 +274,7 @@ impl StoreError {
     pub const fn code(&self) -> ErrorCode {
         match self {
             // A row without its file: removed under the node.
+            Self::EmptyIdentifiedPrompt => ErrorCode::InvalidRequest,
             Self::PushDenied => ErrorCode::Forbidden,
             Self::InboxGone
             | Self::UnknownSession(_)

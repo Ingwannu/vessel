@@ -18,14 +18,16 @@ enum ReceiptState {
 
 /// A fresh admission is the only result authorizing the caller to dispatch once.
 #[derive(Debug)]
-pub(super) enum ReceiptAdmission {
+pub enum ReceiptAdmission {
+    /// The Pending reservation committed before the caller may dispatch once.
     New(ReceiptToken),
+    /// A replay, conflict, uncertainty or capacity refusal must not dispatch.
     Existing(SubmitPromptReply),
 }
 
 /// Unforgeable outside this owner: completion can only settle a fresh reservation.
 #[derive(Debug)]
-pub(super) struct ReceiptToken {
+pub struct ReceiptToken {
     session: SessionId,
     message: ClientMessageId,
     fingerprint: ReceiptFingerprint,

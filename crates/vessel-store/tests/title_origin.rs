@@ -105,6 +105,14 @@ async fn pre_origin_schema_titles_are_unknown_including_explicit_ones() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
+    // Remove the newer admission append before recreating the original title fixture.
+    connection.execute_batch("DROP TRIGGER timeline_admission_insert; DROP TRIGGER timeline_admission_delete; DROP TABLE timeline_admissions; DROP TABLE timeline_admission_usage; DROP TABLE timeline_admission_meta;").unwrap();
+    let admission_head: i64 = connection
+        .pragma_query_value(None, "user_version", |row| row.get(0))
+        .unwrap();
+    connection
+        .pragma_update(None, "user_version", admission_head.checked_sub(1).unwrap())
+        .unwrap();
     let latest: i64 = connection
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();

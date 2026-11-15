@@ -14,7 +14,6 @@ pub(super) fn database() -> Connection {
     let mut db = Connection::open_in_memory().unwrap();
     crate::schema::configure(&db).unwrap();
     crate::schema::migrate(&mut db).unwrap();
-    db.execute_batch(SQL).unwrap();
     db
 }
 
@@ -250,7 +249,6 @@ fn pending_state_and_full_reservations_survive_a_connection_restart() {
     let mut db = Connection::open(&path).unwrap();
     crate::schema::configure(&db).unwrap();
     crate::schema::migrate(&mut db).unwrap();
-    db.execute_batch(SQL).unwrap();
     let id = session(&db);
     let prompt = prompt(id, "durable", "run");
     assert!(matches!(admit(&mut db, &prompt), ReceiptAdmission::New(_)));
@@ -280,7 +278,6 @@ fn concurrent_same_identity_has_one_fresh_admission_and_one_uncertain_replay() {
     let mut setup = Connection::open(&path).unwrap();
     crate::schema::configure(&setup).unwrap();
     crate::schema::migrate(&mut setup).unwrap();
-    setup.execute_batch(SQL).unwrap();
     let id = session(&setup);
     let barrier = Arc::new(Barrier::new(2));
     let workers: Vec<_> = (0..2)
@@ -313,7 +310,6 @@ fn two_distinct_ids_cannot_overbook_the_final_session_reservation() {
     let mut setup = Connection::open(&path).unwrap();
     crate::schema::configure(&setup).unwrap();
     crate::schema::migrate(&mut setup).unwrap();
-    setup.execute_batch(SQL).unwrap();
     let id = session(&setup);
     let available = MAX_SESSION_ADMISSION_BYTES
         .checked_div(AdmissionKind::Receipt.reserved_bytes().get())
