@@ -14,29 +14,19 @@ use vessel_app_view::{
     prefs::{ContentWidth, PreferenceChange},
 };
 
-pub(super) fn fonts(
-    shell: &Shell,
-    tokens: &Tokens,
-    compact: bool,
-    cx: &mut Context<'_, Shell>,
-) -> Div {
+pub(super) fn fonts(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let mut card = settings::card(tokens);
     for field in Field::ALL {
         if field != Field::Width {
-            card = card.child(row(field, shell, tokens, compact, cx));
+            card = card.child(row(field, shell, tokens, cx));
         }
     }
     settings::section(shell.words.appearance().fonts(), card, tokens)
 }
-pub(super) fn layout(
-    shell: &Shell,
-    tokens: &Tokens,
-    compact: bool,
-    cx: &mut Context<'_, Shell>,
-) -> Div {
+pub(super) fn layout(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     settings::section(
         shell.words.appearance().layout(),
-        settings::card(tokens).child(row(Field::Width, shell, tokens, compact, cx)),
+        settings::card(tokens).child(row(Field::Width, shell, tokens, cx)),
         tokens,
     )
 }
@@ -53,7 +43,7 @@ pub(super) fn syntax(
         None,
         Some(select_for(List::Syntax, shell, compact, tokens, cx)),
         true,
-        compact,
+        false,
         tokens,
     ));
     let state = &shell.areas.settings.appearance;
@@ -72,13 +62,7 @@ pub(super) fn syntax(
         tokens,
     )
 }
-fn row(
-    field: Field,
-    shell: &Shell,
-    tokens: &Tokens,
-    compact: bool,
-    cx: &mut Context<'_, Shell>,
-) -> Div {
+fn row(field: Field, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let (title, hint) = labels(field, shell);
     let profile = match field {
         Field::InterfaceFamily | Field::MonoFamily => AppearanceProfile::Family,
@@ -104,7 +88,7 @@ fn row(
         None,
         Some(control),
         matches!(field, Field::InterfaceFamily | Field::Width),
-        compact,
+        false,
         tokens,
     )
 }

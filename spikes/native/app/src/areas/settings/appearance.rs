@@ -129,8 +129,8 @@ pub(crate) fn render(
         .flex_col()
         .child(settings::section(words.theme, theme, tokens))
         .child(super::motion::section(shell, tokens, compact, cx))
-        .child(rows::fonts(shell, tokens, compact, cx))
-        .child(rows::layout(shell, tokens, compact, cx))
+        .child(rows::fonts(shell, tokens, cx))
+        .child(rows::layout(shell, tokens, cx))
         .child(rows::syntax(shell, tokens, compact, cx))
         .into_any_element()
 }

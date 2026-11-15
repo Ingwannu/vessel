@@ -404,3 +404,11 @@ ContentPixels as its single bound/default owner. Its actual preference-edge
 reset/same-value/roundtrip regressions remain. Width's scalar file-edge test
 checks min/default/max roundtrip and refusal outside either bound; no inherited
 head test or bound is weakened.
+
+Appearance's source rows use settingsStyles.row/rowContent (settings.ts:31–45),
+not a compact wrapping row. The new font/width/syntax rows therefore use the
+existing shared row's ordinary horizontal layout at both widths, allowing its
+words to shrink/wrap naturally beside the control. They do not inherit the
+other Settings pages' compact160-word minimum/wrapping geometry. Syntax's
+trigger still uses the shared touch hit target, and its list uses the source
+200-point short-option width. No private row renderer is added.
