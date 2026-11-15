@@ -28,8 +28,8 @@ Copy/find retain full canonical assistant text; pacing changes its shown prefix.
 | Turn/tool/reasoning disclosure | `view/src/timeline/{turns,runs,disclosures}.rs`, conversation `{turns,disclosures,tool_sheet}.rs` | Consumed by the existing Chat preferences and rows; full followed log remains available to W1. |
 | Footer and context | `turn_footer.rs`, conversation `{footer,meter}.rs` | Known-range duration, failure suppression and full reply copy; exact context danger boundary is >90 percent. W5 owns account limits and additive usage children. |
 | New notice/compaction/plugin rows | `view/src/timeline/{items,compaction}.rs`, conversation `notices.rs` | Typed projection/renderer preparation. No activated rich AgentEvent intake. Plugin fallback names plugin/kind and never interprets opaque data. |
-| Mounted text reveal | `view/src/timeline/text_reveal.rs`, conversation `pacing.rs` | Product assistant/open-reasoning prefix, first-sight hydration, grapheme safety, reduced-motion/find bypass and weak bounded frame wake. Latest source-scoping regression is queued. |
-| Spoken prompt display | `prompt_presentation.rs`, `searchable.rs`, conversation `{bubbles,timeline}.rs` | Product source uses one borrowed display slice for user bubble, local search, copy and rewind text. New tests/strict are queued; canonical body is untouched. |
+| Mounted text reveal | `view/src/timeline/text_reveal.rs`, conversation `pacing.rs` | Product assistant/open-reasoning prefix, first-sight hydration, grapheme safety, reduced-motion/find bypass and weak bounded frame wake. Source-scoping regression executed at4b591a90; later changes remain separately bounded. |
+| Spoken prompt display | `prompt_presentation.rs`, `searchable.rs`, conversation `{bubbles,timeline}.rs` | Product source uses one borrowed display slice for user bubble, local search, copy and rewind text. View strict/tests executed at6d8c0cd8; canonical body is untouched. |
 | Submission ledger | `view/src/timeline/pending.rs` | Pure cap32 typed preparation only. Legacy Tail is still the sole product optimistic path. |
 | Resident ownership | conversation `resident{.rs,/}` | Literal cfg(test) preparation over W12's sole registry, actual Area snapshot move and Clone context Seat. Product Copy Seat/Place/globals still require coordinated conversion. |
 
@@ -56,14 +56,15 @@ Kit attribution/About registries must list both direct dependencies.
 
 | Immutable source | Execution | Limit |
 |---|---|---|
+| 5e7c1a14 | View/Kit/App all-target strict rc0, run `wp-timeline-state-tests-20261115T180046Z-5e7c1a14` | Base9 union including glyph inventory and diff metadata cache compiles strictly. Later borrowed-failure signature6729c607 is excluded; App/Kit execution remains queued. |
 | 4b591a90 | Run `wp-timeline-state-tests-20261115T165618Z-4b591a90`: App126/0/2 + Kit215/0/0 =341/0/2 | Real scoped pacing, borrowed-body and f4 Markdown-call source; excludes later diff metadata/failure-prose changes and base9 merge. |
 | 6d8c0cd8 | View all-target strict run `wp-timeline-narrow-20261115T165011Z-6d8c0cd8` rc0 | Includes About and spoken presentation. Base9 and later app-only kernel/source changes require their own union checks. |
 | 6d8c0cd8 | View all-target tests1173/0/0, run `wp-timeline-models-20261115T165014Z-6d8c0cd8` | Includes corrected About registry and all four spoken prompt cases. Later base9/source joins remain separate. |
 | 2b806402..99646e29 resident packet | V1 row252 bounded STAGED source/requested narrow PASS | Exact4b8 all-target App strict0; prior7ae GPUI3/0/0, same predicate/test bodies with declaration moves only. Not exact4b8 runtime or full A7/product proof. |
 | f4c01f61 Markdown helper | Owner standalone Kit all-target strict0; all17 owned Rust blobs equal actuald068 Kit212/0/0 | Shared helper execution; not A7 host actions, root/image authority, UI or V1 package approval. |
 
-Current in-progress feature runs are corrected base9 Main strict and App/Kit
-tests on5e7c1a14. Main3a strict returned own import/test idiom diagnostics, now
+Current in-progress feature execution is corrected base9 App/Kit tests
+on5e7c1a14; its all-target strict finished successfully. Main3a strict returned own import/test idiom diagnostics, now
 corrected without suppressions or weakened assertions; its red log remains.
 Portable body strictf839/ae256 stopped before tests on omitted closure adapters;
 corrected5c9636a0 checks are in progress. None is a current whole-source pass.
@@ -97,6 +98,12 @@ before its one ordinary replacement; its retained logs are not a failure/PASS.
    original binding/opaque owner ticket after G4's actual connection guard.
    Pacing keys must use that canonical ResidentToken structurally: legacy Shown
    route/session alone does not fence alias retarget with a reused SessionId.
+   W21's future typed normal End must follow actual application of every earlier
+   record batch on that same binding before W12 seals ingress. Merely queuing a
+   batch in a paced reducer is insufficient; SessionEnded status is not End/ACK.
+   The existing owner pump remains the single ordering authority, with no second
+   buffer or manager. The scoped fold returns only after synchronous application,
+   but the guarded End carrier/flush/install union is not yet implemented.
 5. **Request delivery:** W4 retains Answering/Unknown/Unconfirmed across unrelated
    transcript watermarks. Exact owner reads/canonical metadata and settlement/loss
    govern it; resolved records beat stale live data. A7 adds no read registry.

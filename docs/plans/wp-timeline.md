@@ -13,6 +13,28 @@ is adopted; A7 appends its four rows after the unchanged95, with original vector
 and license metadata preserved. Current full App/Kit strict is still owed.
 W23 rich fields/echo/receipts,
 W12 live resident cutover, K syntax and scoped Markdown host actions remain held.
+
+Current base9 strict evidence: run
+`wp-timeline-state-tests-20261115T180046Z-5e7c1a14` completed View/Kit/App
+all-target Clippy with warnings denied and rc0. It includes the canonical glyph
+inventory append and cached diff truncation metadata. It precedes6729c607's
+borrowed failure-prose signature; App/Kit execution on5e7c1a14 remains queued.
+This is neither the final whole native gate nor UI/V4 acceptance.
+
+[Decision Log — ordered normal End]
+- Purpose: retain the final same-binding records before lifecycle seals ingress.
+- Existing constraint: the current shell receiver applies channel events in
+  order inside one update, in batches capped at512. Scoped fold adapters are
+  staged and synchronous; typed End/guarded delivery is not active.
+- Alternatives: treating a queued record batch or SessionEnded status as an
+  application acknowledgement would let an early seal discard pending records.
+- Choice: the eventual existing owner pump must actually apply every preceding
+  same-binding batch before installing W21's actual typed normal End. A paced
+  reducer must flush through its own apply boundary first.
+- Why: one ordered pump preserves the original binding and delivery guard; a
+  second buffer/manager could reorder the seal against the original queue.
+- Effects: no new carrier, API, buffer or product cutover is introduced here.
+  W12/W21 still own the exact guarded flush/install union and its execution proof.
 A8 approvals/questions belong to W4. Minimal resident preparation has V1 row252
 bounded staged source/narrow PASS; its line merge9652a72b is not yet green.
 No whole gate, captures or V4 package pass. Updated 2026-11-15T18:08Z.
