@@ -61,6 +61,23 @@ impl Submission {
 }
 
 impl ContextTray {
+    /// Suppressed source data still belongs to this draft and must block seeding.
+    #[must_use]
+    pub fn has_retained(&self) -> bool {
+        !self.entries.is_empty() || self.phase != Phase::Idle
+    }
+
+    /// A background create transfers this exact snapshot to its new composer.
+    /// Its token and revisions remain intact; later source updates stay behind.
+    #[must_use]
+    pub fn captured(submission: &Submission) -> Self {
+        Self {
+            entries: submission.entries.clone(),
+            clock: submission.token,
+            phase: Phase::Submitting(submission.token),
+        }
+    }
+
     /// Visible items retain insertion order; a replaced context moves last.
     pub fn visible(&self) -> impl Iterator<Item = &ContextAttachment> {
         self.entries

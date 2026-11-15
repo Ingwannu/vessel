@@ -27,7 +27,7 @@
 use tokio::sync::mpsc;
 use vessel_app_kit::ui::{AsyncApp, WeakEntity};
 use vessel_app_link::agents::AgentsError;
-use vessel_app_link::attachments::{Answer, Files, Step, WithFiles};
+use vessel_app_link::attachments::{Answer, Files, Step};
 use vessel_app_link::{ActAnswer, ActFailed, Command, Event, Rejected, Unsent, devices};
 use vessel_app_view::composer::tray::{self, Again};
 use vessel_app_view::idle_release;
@@ -138,8 +138,11 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
                 message: said(),
             }),
         }),
-        Command::Prompt { session, text, .. }
-        | Command::Files(Files::Prompt(WithFiles { session, text, .. })) => {
+        Command::Files(Files::Prompt(prompt)) => Event::Files(Answer::Submitted {
+            prompt,
+            result: Err(vessel_app_link::attachments::SubmitFailure::NotSent),
+        }),
+        Command::Prompt { session, text, .. } => {
             return Settle::Prompt { session, text };
         }
         // A file the link never took: failed, to be tried again.

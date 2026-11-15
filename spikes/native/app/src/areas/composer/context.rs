@@ -99,9 +99,12 @@ impl Shell {
     }
     /// The creation area seeds this only after claiming the active draft's canonical target.
     /// History has no destination root until that draft's placement is chosen.
-    #[expect(
-        dead_code,
-        reason = "fully implemented seed intake is staged until the creation/history producer integrates"
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "fully implemented seed intake is staged until the creation/history producer integrates"
+        )
     )]
     pub(crate) fn composer_seed_history(
         &mut self,
@@ -112,6 +115,9 @@ impl Shell {
     ) -> Result<(), ContextProblem> {
         if target != DraftKey::New {
             return Err(ContextProblem::Scope);
+        }
+        if self.draft_has_payload(cx) {
+            return Err(ContextProblem::Busy);
         }
         self.areas
             .composer
@@ -124,6 +130,40 @@ impl Shell {
         cx.notify();
         Ok(())
     }
+    /// Seeding must not overwrite whitespace, suppressed context, or pending work.
+    pub(crate) fn draft_has_payload(&self, cx: &vessel_app_kit::ui::App) -> bool {
+        !self.areas.draft.composer.text(cx).is_empty()
+            || !self.areas.composer.drafts.text(DraftKey::New).is_empty()
+            || self.composer_has_files(DraftKey::New)
+            || self
+                .areas
+                .composer
+                .contexts
+                .get(DraftKey::New)
+                .is_some_and(vessel_app_view::composer::context::ContextTray::has_retained)
+            || self.areas.composer.starting.borrow().is_some()
+            || !self.areas.draft.creation.flow.may_submit()
+    }
+
+    pub(super) fn prepare_session_context(
+        &mut self,
+        session: vessel_proto::SessionId,
+        cx: &mut Context<'_, Self>,
+    ) -> Result<Option<vessel_app_view::composer::context::Submission>, ContextProblem> {
+        let result = self
+            .areas
+            .composer
+            .contexts
+            .get_mut(DraftKey::Session { session })
+            .map(vessel_app_view::composer::context::ContextTray::prepare)
+            .transpose()
+            .map(Option::flatten);
+        if let Err(problem) = result {
+            self.composer_context_refused(problem, cx);
+        }
+        result
+    }
+
     pub(crate) fn composer_has_context(&self, target: DraftKey) -> bool {
         self.areas
             .composer

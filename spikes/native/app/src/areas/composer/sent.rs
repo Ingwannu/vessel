@@ -30,6 +30,7 @@ use vessel_proto::{AttachmentKind, AttachmentRef, SessionId};
 
 use crate::areas::conversation::ConversationArea;
 use crate::shell::Shell;
+use vessel_app_view::composer::drafts::DraftKey;
 
 /// What a message's files add under them so the text sits Paseo's 8
 /// (`spacing[2]`, `imagePreviewSpacing`) below: the bubble
@@ -185,13 +186,26 @@ impl Shell {
     /// reads begin.
     pub(crate) fn composer_answered(&mut self, answer: Answer, cx: &mut Context<'_, Self>) {
         match answer {
+            Answer::Submitted { prompt, result } => self.composer_submitted(prompt, result, cx),
             Answer::Root(answer) => self.composer_mention_root(answer, cx),
             Answer::Suggestions(answer) => self.composer_mention_answer(answer, cx),
             Answer::Capabilities { ask, result } => self.composer_capabilities(ask, result, cx),
             Answer::Woke { session, outcome } => match outcome {
                 vessel_app_link::attachments::WakeOutcome::Ready => self.resumed(session, cx),
                 vessel_app_link::attachments::WakeOutcome::Refused => {
-                    drop(self.areas.composer.sends.remove(&session));
+                    if let Some(waiting) = self.areas.composer.sends.remove(&session)
+                        && let Some(context) = &waiting.context
+                        && let Some(tray) = self
+                            .areas
+                            .composer
+                            .contexts
+                            .get_mut(DraftKey::Session { session })
+                    {
+                        let _settled = tray.settle(
+                            context,
+                            vessel_app_view::composer::context::SubmissionOutcome::Failed,
+                        );
+                    }
                     self.resume_failed(
                         session,
                         self.words.composer().file_wake_failed().to_owned(),

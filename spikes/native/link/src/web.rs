@@ -118,12 +118,13 @@ impl Link {
                 let records = self.demo.borrow().records(&session);
                 self.emit(Event::Records { session, records });
             }
-            Command::Prompt { session, text, .. }
-            | Command::Files(crate::attachments::Files::Prompt(crate::attachments::WithFiles {
-                session,
-                text,
-                ..
-            })) => {
+            Command::Files(crate::attachments::Files::Prompt(prompt)) => {
+                self.emit(Event::Files(crate::attachments::Answer::Submitted {
+                    prompt,
+                    result: Err(crate::attachments::SubmitFailure::NotSent),
+                }));
+            }
+            Command::Prompt { session, text, .. } => {
                 let records = self.demo.borrow_mut().prompt(&session, &text, now);
                 self.emit(Event::Records { session, records });
                 self.emit(Event::Sent { session });

@@ -131,3 +131,18 @@ composer-context-unavailable = 지금 문맥 첨부를 사용할 수 없습니�
 
 # Context intake rejection, shared by file/browser/review/history/plugin producers.
 composer-context-invalid = 문맥 첨부가 올바르지 않거나 너무 큽니다
+
+# Retained attachment delivery status; uncertainty never authorizes automatic retry.
+composer-file-submission-retained = 첨부 메시지의 전달을 확인하지 못해 보관 중입니다. 자동으로 다시 보내지 않습니다.
+
+# Attachment delivery status or explicit retry of a request never sent.
+composer-file-submission-preparing = 첨부를 준비하는 중…
+
+# Attachment delivery status or explicit retry of a request never sent.
+composer-file-submission-sending = 보관된 첨부 메시지를 보내는 중…
+
+# Attachment delivery status or explicit retry of a request never sent.
+composer-file-submission-not-sent = 메시지를 보내지 못했습니다. 준비한 첨부는 보관됩니다.
+
+# Attachment delivery status or explicit retry of a request never sent.
+composer-file-submission-retry = 이 메시지 다시 보내기

@@ -140,3 +140,18 @@ composer-context-unavailable = Context attachments are unavailable right now
 
 # Context intake rejection, shared by file/browser/review/history/plugin producers.
 composer-context-invalid = This context attachment is invalid or too large
+
+# Retained attachment delivery status; uncertainty never authorizes automatic retry.
+composer-file-submission-retained = The attachment message is retained because delivery is unconfirmed. It will not be sent again automatically.
+
+# Attachment delivery status or explicit retry of a request never sent.
+composer-file-submission-preparing = Preparing attachments…
+
+# Attachment delivery status or explicit retry of a request never sent.
+composer-file-submission-sending = Sending the retained attachment message…
+
+# Attachment delivery status or explicit retry of a request never sent.
+composer-file-submission-not-sent = The message was not sent. Its prepared attachments are retained.
+
+# Attachment delivery status or explicit retry of a request never sent.
+composer-file-submission-retry = Retry this message

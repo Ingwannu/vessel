@@ -54,6 +54,9 @@ pub enum PrepareProblem {
     /// Preserve the existing machine-name validator result.
     #[error("invalid machine selection: {0:?}")]
     Machine(crate::machines::NameProblem),
+    /// Context validation preserves its source-specific refusal.
+    #[error(transparent)]
+    Context(#[from] super::context::ContextProblem),
     /// A peer has not provided an authoritative destination identity.
     #[error(transparent)]
     Target(#[from] TargetProblem),

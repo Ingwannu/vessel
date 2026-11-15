@@ -37,6 +37,8 @@ mod capabilities;
 #[cfg(not(target_arch = "wasm32"))]
 mod read;
 #[cfg(not(target_arch = "wasm32"))]
+mod submit;
+#[cfg(not(target_arch = "wasm32"))]
 mod target;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use capabilities::spawn as spawn_capabilities;
@@ -62,7 +64,7 @@ pub enum Files {
     /// its files are in; answered `Event::Started` (or `Event::Failed`).
     Create(Create),
     /// A prompt with the files already sent for it.
-    Prompt(WithFiles),
+    Prompt(Arc<WithFiles>),
     /// Read a sent image back from its node beside the other commands;
     /// answered `Answer::Read`.
     Read(Sent),
@@ -83,6 +85,13 @@ pub enum Answer {
         ask: CapabilityAsk,
         /// Authoritative conversation facts or a typed refusal.
         result: Result<vessel_app_view::composer::tray::Target, CapabilityFailure>,
+    },
+    /// A final immutable payload remains retained until this exact completion.
+    Submitted {
+        /// The same local ownership handle, not a wire idempotency identity.
+        prompt: Arc<WithFiles>,
+        /// The existing prompt result; uncertainty never authorizes replay.
+        result: Result<vessel_proto::Delivered, SubmitFailure>,
     },
     /// A session resumed before its files upload; failure is translated by the area.
     Woke {
@@ -174,6 +183,8 @@ pub struct WithFiles {
     pub session: SessionId,
     /// What was typed (may be empty when files go alone).
     pub text: String,
+    /// The immutable context captured before asynchronous preparation.
+    pub context: Option<vessel_app_view::composer::context::Submission>,
     /// The files, as `attachment.finish` returned them.
     pub attachments: Vec<AttachmentRef>,
     /// What it does while a turn runs.
@@ -248,4 +259,22 @@ pub enum CapabilityFailure {
     #[cfg(not(target_arch = "wasm32"))]
     #[error(transparent)]
     Call(#[from] vessel_rpc::CallError),
+}
+
+/// A refused local dispatch is distinct from a call with an unknown outcome.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum SubmitFailure {
+    /// No request was admitted by the local link.
+    #[error("the attachment prompt was not sent")]
+    NotSent,
+    /// The captured peer changed before the call; no request was sent.
+    #[error(transparent)]
+    Target(#[from] TargetProblem),
+    /// The call reached transport but its final result is not known.
+    #[cfg(not(target_arch = "wasm32"))]
+    #[error(transparent)]
+    Uncertain(#[from] vessel_rpc::CallError),
+    /// A transport deadline cannot prove whether the node accepted the input.
+    #[error("the attachment prompt outcome is unknown after its deadline")]
+    TimedOut,
 }

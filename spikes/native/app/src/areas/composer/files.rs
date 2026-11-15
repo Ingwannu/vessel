@@ -63,6 +63,11 @@ pub(crate) fn session_card(
     .children(
         shell
             .session_tray_key()
+            .and_then(|target| super::transmission::notice(shell, target, tokens, cx)),
+    )
+    .children(
+        shell
+            .session_tray_key()
             .and_then(|target| super::context::tray(shell, target, tokens, touch, cx)),
     )
     .child(super::text(shell, tokens, touch, cx))
@@ -320,6 +325,16 @@ impl Shell {
     }
 
     fn composer_remove(&mut self, key: DraftKey, index: usize, cx: &mut Context<'_, Self>) {
+        if let DraftKey::Session { session } = key
+            && self
+                .areas
+                .composer
+                .sends
+                .get(&session)
+                .is_some_and(|waiting| waiting.phase != super::transmission::Phase::Preparing)
+        {
+            return;
+        }
         let tray = self.areas.composer.trays.tray(key);
         if let Some(item) = tray.items().get(index).map(|item| item.key) {
             let _removed = tray.remove(item);

@@ -34,7 +34,7 @@ impl Shell {
     ) -> Result<Option<PreparedSubmission>, PrepareProblem> {
         let machine =
             vessel_app_view::machine_book::Name::parse(machine).map_err(PrepareProblem::Machine)?;
-        if !self.composer_has_files(DraftKey::New) {
+        if !self.draft_has_files() {
             return Ok(None);
         }
         if self.areas.composer.sends.len() >= vessel_app_view::composer::trays::Trays::MAX {
@@ -44,7 +44,16 @@ impl Shell {
         if held.is_some() {
             return Err(PrepareProblem::Busy);
         }
+        let context = self
+            .areas
+            .composer
+            .contexts
+            .get_mut(DraftKey::New)
+            .map(vessel_app_view::composer::context::ContextTray::prepare)
+            .transpose()?
+            .flatten();
         *held = Some(Starting {
+            context,
             machine,
             expected_node,
             text: text.to_owned(),
@@ -101,7 +110,15 @@ impl Shell {
             .as_ref()
             .is_some_and(|held| held.ticket == Some(ticket))
         {
-            *held = None;
+            if let Some(starting) = held.take()
+                && let Some(context) = &starting.context
+                && let Some(tray) = self.areas.composer.contexts.get_mut(DraftKey::New)
+            {
+                let _settled = tray.settle(
+                    context,
+                    vessel_app_view::composer::context::SubmissionOutcome::Failed,
+                );
+            }
             cx.notify();
         }
     }
