@@ -18,7 +18,7 @@ async fn losing_the_receiver_does_not_drop_running_cleanup_or_release_its_reserv
     drop(pending);
     assert_eq!(jobs.admitted.available_permits(), MAX_ADMITTED - 1);
     assert_eq!(jobs.executing.available_permits(), MAX_EXECUTING - 1);
-    tasks.close();
+    assert!(tasks.close());
     assert!(!tasks.is_empty());
     finish.send(()).unwrap();
     tasks.wait().await;
@@ -69,7 +69,7 @@ async fn the_queue_refuses_at_64_and_shutdown_does_not_start_waiting_operations(
         (MAX_EXECUTING, MAX_ADMITTED - MAX_EXECUTING)
     );
     assert!(running.recv().await.is_none());
-    tasks.close();
+    assert!(tasks.close());
     tasks.wait().await;
     assert_eq!(jobs.admitted.available_permits(), MAX_ADMITTED);
     assert!(matches!(
@@ -96,7 +96,7 @@ async fn shutdown_waits_for_started_work_to_finish_its_cleanup() {
         .unwrap();
     running.await.unwrap();
     stop.cancel();
-    tasks.close();
+    assert!(tasks.close());
     assert!(!tasks.is_empty());
     assert_eq!(jobs.executing.available_permits(), MAX_EXECUTING - 1);
     finish.send(()).unwrap();

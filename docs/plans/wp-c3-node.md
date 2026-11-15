@@ -115,3 +115,13 @@ private-only update-index command now uses the documented numeric
 repository config or the real index. The actual protected-reader regression
 now uses a group-sharing repository and asserts0700/0600 after summary/body
 reads and unchanged real-index mode/bytes. It remains unexecuted in this tree.
+
+At a9301381 the full selected all-target narrow check compiled the production
+protocol, workspace, RPC, client and node code. It returned nine test-only
+unused-result errors (tracker close booleans and fixture git stdout). Tracker
+closure is now asserted and quiet setup outputs are explicitly acknowledged.
+No lint allowance or production behaviour was changed by this correction.
+Those fixes and the group-sharing permission regression still need their
+changed-source narrow check and execution. Before the eventual whole root
+gate, merge exactly the reviewed base security-test race fix c5da5305; do not
+edit that test locally or relabel its base failure as feature evidence.

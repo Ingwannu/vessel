@@ -27,10 +27,10 @@ async fn node_comparisons_keep_committed_working_and_all_distinct_and_reject_inv
         .add_project(repo.clone(), None)
         .await
         .unwrap();
-    fixture.git(&repo, &["checkout", "-q", "-b", "topic"]);
+    let _checkout = fixture.git(&repo, &["checkout", "-q", "-b", "topic"]);
     std::fs::write(repo.join("committed"), "committed\n").unwrap();
-    fixture.git(&repo, &["add", "committed"]);
-    fixture.git(&repo, &["commit", "-q", "-m", "topic"]);
+    let _stage = fixture.git(&repo, &["add", "committed"]);
+    let _commit = fixture.git(&repo, &["commit", "-q", "-m", "topic"]);
     std::fs::write(repo.join("working"), "working\n").unwrap();
     let index = std::fs::read(repo.join(".git/index")).unwrap();
     let root = WorkspaceRoot::Project {
@@ -98,7 +98,7 @@ async fn node_comparisons_keep_committed_working_and_all_distinct_and_reject_inv
         0
     );
     fixture.stop.cancel();
-    fixture.tasks.close();
+    assert!(fixture.tasks.close());
     fixture.tasks.wait().await;
 }
 
@@ -136,7 +136,7 @@ async fn an_unknown_root_fails_before_a_job_and_a_stopped_node_refuses_the_resol
             super::super::comparison::JobError::Closed
         ))
     ));
-    fixture.tasks.close();
+    assert!(fixture.tasks.close());
     fixture.tasks.wait().await;
 }
 
@@ -160,6 +160,6 @@ async fn a_folder_cannot_be_requested_as_a_file_diff() {
     assert!(matches!(result, Err(WorkspaceError::Invalid(_))));
     assert!(fixture.tasks.is_empty());
     fixture.stop.cancel();
-    fixture.tasks.close();
+    assert!(fixture.tasks.close());
     fixture.tasks.wait().await;
 }
