@@ -101,3 +101,16 @@ scale-1 screen (the lines merge); three parallel lines need about 32 px
 of cap height at scale 1 (16 at scale 2), the mark's loops about 44 to
 48. The title bar keeps the plain wordmark and the mark until the owner
 decides otherwise.
+
+## Sidebar icons from Lucide
+
+The F4 shared sidebar glyphs History, ArrowDown, Blocks, FolderPlus and
+CircleHelp retain the Lucide 1.50.0 vectors under the accompanying
+[lucide-LICENSE.txt](lucide-LICENSE.txt). Paseo imports History and CircleHelp
+through Lucide aliases (`rotate-ccw-clock` and `circle-question-mark`). The
+shared kit uses Paseo's explicit 1.5-unit stroke on the same 24-unit grid,
+with round joins/caps. These are attributed upstream assets, separate from
+the original Vessel mark and window drawings. No Gauge vector is added here;
+it remains the existing shared producer's responsibility.
+
+Primary source: [Lucide 1.50.0 icons](https://github.com/lucide-icons/lucide/tree/1.50.0/icons).

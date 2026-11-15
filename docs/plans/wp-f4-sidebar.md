@@ -123,3 +123,10 @@ yet compiled while the preceding package's whole gate remains queued.
 V1 reserved additional shared glyphs History, ArrowDown, Blocks, FolderPlus,
 CircleHelp for this package. Gauge remains its existing G2 producer; no local
 fallback or second spelling is added. Final glyph first-use captures are owed.
+
+The five new sidebar glyphs append to the shared inventory and asset paths.
+Their vectors are Lucide 1.50.0, matching Paseo's dependency and imported aliases;
+shared stroke remains Paseo's explicit 1.5 rather than upstream's default 2.
+The upstream license is retained with the design assets. Inventory uniqueness,
+view box, stroke and actual asset loading have regression tests. No existing
+vector, alias or Gauge producer is replaced; first-use runtime proof is pending.
