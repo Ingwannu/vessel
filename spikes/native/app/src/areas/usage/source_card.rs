@@ -249,7 +249,7 @@ fn header(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use gpui::{Render, TestAppContext, Window};
+    use gpui::{IntoElement, Render, TestAppContext, Window};
     use vessel_app_kit::{Scheme, ui::InteractiveElement as _};
     use vessel_app_view::localization::{ENGLISH, Locale, Translator};
     use vessel_proto::usage_reports::{

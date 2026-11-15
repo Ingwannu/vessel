@@ -80,3 +80,10 @@ units stay visible, including values above Number's u32 decimal bound. The area
 will consume the owner's producer rather than fork a formatter or silently drop
 large values. Relative-age words at e89334984 are separately accepted as word/key/
 context only; that acceptance does not cover number formatting or UI.
+
+The older 3febf32e narrowed run returned RED before Rust tests: the catalog build
+required a direct translator-context comment for usage-fresh-days. That exact
+failure is retained. L's e893 correction already supplied direct comments for all
+ten keys plus numeric arguments; the old run did not execute any card tests and
+is not credited as runtime evidence. The merged consumer's actual narrowed check
+must cover these fixes, the landed header and the shared typed refresh control.
