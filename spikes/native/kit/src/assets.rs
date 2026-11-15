@@ -191,8 +191,13 @@ pub enum Glyph {
     Play,
     /// Run again now: one clockwise rotation arrow.
     RotateCw,
-    /// The source `ActivityIndicator`:32-unit ring with its alpha background.
+    /// Original combined activity asset, retained for compatibility. Use the
+    /// loading control to apply track alpha after monochrome mask correction.
     ActivityIndicator,
+    /// Opaque activity track; its renderer applies the source alpha after masking.
+    ActivityTrack,
+    /// Opaque activity foreground, rotated independently of its invariant track.
+    ActivityArc,
     /// Work going on: three quarters of a ring, turned by `spinner`.
     Spinner,
     /// The board (three lanes of cards).
@@ -224,7 +229,7 @@ pub enum Glyph {
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 89] = [
+const ALL: [Glyph; 91] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -301,6 +306,8 @@ const ALL: [Glyph; 89] = [
     Glyph::Play,
     Glyph::RotateCw,
     Glyph::ActivityIndicator,
+    Glyph::ActivityTrack,
+    Glyph::ActivityArc,
     Glyph::Spinner,
     Glyph::Board,
     Glyph::Sun,
@@ -401,6 +408,8 @@ impl Glyph {
             Self::Play => "kit/play.svg",
             Self::RotateCw => "kit/rotate-cw.svg",
             Self::ActivityIndicator => "kit/activity-indicator.svg",
+            Self::ActivityTrack => "kit/activity-track.svg",
+            Self::ActivityArc => "kit/activity-arc.svg",
             Self::Spinner => "kit/spinner.svg",
             Self::Board => "kit/board.svg",
             Self::Sun => "kit/sun.svg",

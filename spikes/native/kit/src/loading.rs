@@ -9,9 +9,15 @@
 //! - Why: `LoadingSpinner` delegates to `RNWeb` `ActivityIndicator`, whose large36,
 //!   small20 and numeric sizes differ from the existing24-grid arc.
 //! - Cost: callers explicitly migrate; numeric size is validated once at edge.
+//!
+//! Alpha correction decision: use opaque track/arc masks and apply the track's
+//! opacity at the element boundary. The monochrome shader gamma-corrects mask
+//! coverage; a fractional alpha baked into one SVG is treated as coverage too.
+//! Splitting two masks costs one SVG draw but preserves the source's visible
+//! alpha without changing GPUI, theme colours or the legacy spinner.
 use crate::assets::Glyph;
 use gpui::prelude::*;
-use gpui::{Animation, AnimationExt as _, AnyElement, ElementId, Hsla, Pixels, Svg, px, svg};
+use gpui::{Animation, AnimationExt as _, AnyElement, ElementId, Hsla, Pixels, Svg, div, px, svg};
 use std::time::Duration;
 
 /// A finite, positive numeric source size; fractional points remain exact.
@@ -72,19 +78,36 @@ impl Size {
     }
 }
 const PERIOD: Duration = Duration::from_millis(750);
+const TRACK_OPACITY: f32 = 0.2;
 pub(crate) const LEGACY_PERIOD: Duration = Duration::from_millis(800);
-fn vector(size: Size, colour: Hsla) -> Svg {
+fn vector(glyph: Glyph, size: Size, colour: Hsla) -> Svg {
     svg()
-        .path(Glyph::ActivityIndicator.path())
+        .path(glyph.path())
         .size(size.side())
         .flex_shrink_0()
         .text_color(colour)
+}
+fn track(size: Size, colour: Hsla) -> Svg {
+    // GPUI gamma-corrects SVG mask samples as text. Encoding .2 inside the
+    // SVG therefore strengthens the ring. Element opacity multiplies tint
+    // after mask correction, preserving the reference's actual .2 alpha.
+    vector(Glyph::ActivityTrack, size, colour).opacity(TRACK_OPACITY)
 }
 /// The reference wrapper's always-animating indicator. Its current consumers
 /// expose colour/size, not `ActivityIndicator`'s unused stop/hide flags.
 #[must_use]
 pub fn activity_indicator(id: impl Into<ElementId>, size: Size, colour: Hsla) -> AnyElement {
-    rotate(id, vector(size, colour), PERIOD)
+    div()
+        .relative()
+        .size(size.side())
+        .flex_none()
+        .child(track(size, colour).absolute())
+        .child(rotate(
+            id,
+            vector(Glyph::ActivityArc, size, colour).absolute(),
+            PERIOD,
+        ))
+        .into_any_element()
 }
 fn motion(period: Duration) -> Animation {
     Animation::new(period).repeat()
@@ -115,10 +138,13 @@ mod tests {
         assert_eq!(PERIOD, Duration::from_millis(750));
         for scheme in [Scheme::Light, Scheme::Dark] {
             let ink = Tokens::of(scheme).neutral.foreground_muted;
-            let mut actual = vector(Size::Large, ink);
-            assert_eq!(actual.style().size.width, Some(px(36.0).into()));
-            assert_eq!(actual.style().size.height, Some(px(36.0).into()));
-            assert_eq!(actual.style().text.color, Some(ink));
+            for glyph in [Glyph::ActivityTrack, Glyph::ActivityArc] {
+                let mut actual = vector(glyph, Size::Large, ink);
+                assert_eq!(actual.style().size.width, Some(px(36.0).into()));
+                assert_eq!(actual.style().size.height, Some(px(36.0).into()));
+                assert_eq!(actual.style().text.color, Some(ink));
+            }
+            assert_eq!(track(Size::Large, ink).style().opacity, Some(TRACK_OPACITY));
         }
     }
     #[test]
@@ -146,6 +172,41 @@ mod tests {
         }
         for value in [f32::MIN_POSITIVE, 0.5, 10.0, 16.5, 36.0, f32::MAX] {
             assert!(Points::try_from(px(value)).is_ok());
+        }
+    }
+
+    #[test]
+    fn track_and_arc_masks_keep_intrinsic_alpha_opaque_before_element_compositing() {
+        use gpui::AssetSource as _;
+        for (glyph, path, full, clear) in [
+            (
+                Glyph::ActivityTrack,
+                "kit/activity-track.svg",
+                (2, 16),
+                (16, 16),
+            ),
+            (
+                Glyph::ActivityArc,
+                "kit/activity-arc.svg",
+                (25, 25),
+                (16, 2),
+            ),
+        ] {
+            assert_eq!(glyph.path(), path);
+            let bytes = crate::assets::Assets.load(path).unwrap().unwrap();
+            let tree =
+                resvg::usvg::Tree::from_data(&bytes, &resvg::usvg::Options::default()).unwrap();
+            assert_eq!(tree.size().width().to_bits(), 32.0_f32.to_bits());
+            assert_eq!(tree.size().height().to_bits(), 32.0_f32.to_bits());
+            let mut pixmap = resvg::tiny_skia::Pixmap::new(32, 32).unwrap();
+            resvg::render(
+                &tree,
+                resvg::tiny_skia::Transform::identity(),
+                &mut pixmap.as_mut(),
+            );
+            let image = image::RgbaImage::from_raw(32, 32, pixmap.take()).unwrap();
+            assert_eq!(image.get_pixel(full.0, full.1).0[3], 255);
+            assert_eq!(image.get_pixel(clear.0, clear.1).0[3], 0);
         }
     }
 }

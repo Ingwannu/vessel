@@ -324,6 +324,13 @@ TEN/SIXTEEN are typed source numeric literals. Legacy `slider::spinner`
 keeps its24-unit vector/800ms and existing callers. Both reuse one SVG
 rotation path and the existing App reduced-motion handling.
 
+The activity track and arc are separate opaque32-unit masks. Its track's20%
+opacity is applied by the element, after GPUI's monochrome mask gamma
+correction; baking it into SVG opacity makes the visible ring too strong.
+`ActivityTrack`/`ActivityArc` are registered originals. The combined
+`ActivityIndicator` asset and legacy Spinner are preserved. See the
+activity-alpha decision note for the pixel evidence and platform scope.
+
 The menu's pending feedback explicitly uses Numeric16 of that profile;
 other legacy spinner callers retain their existing appearance.
 
