@@ -128,3 +128,25 @@ consumer-ready engine. The process-wide `link::audio` owner remains to be
 implemented. The initial remote view-clippy snapshot failed only an
 unnecessary qualification after the import fix; corrected in the next
 snapshot, with narrow recheck still owed.
+
+
+### Narrow evidence and desktop DSP draft
+
+The initial protocol snapshot after the shared-table base passed 290
+library tests including TS freshness. The app pure-state/capture-slot
+snapshot passed view clippy and all 866 view library tests. These are
+snapshot-specific narrow checks, not the package gate or device proof.
+
+The desktop link now stages an actual Sonora processor with CPAL sample
+conversion under tests, with retained audio dependency notices. It checks
+frame sizes and non-finite samples before processing, keeps capture mono
+16 kHz PCM16, uses explicit stereo downmix/upmix edges, and feeds the actual
+converted device-rate render stream to the voice processor. A separate
+unfiltered converter prevents source-rate changes from resetting AEC.
+This has no physical device actor or visible feature yet; DSP and uploader
+narrow clippy/tests are the next checks. Initial format exclusions and the
+lockfile's inactive-target dependencies are stated in the inventory.
+
+The app consumed the second shared package base (machine welcome identity
+and kit editability seams) after its preceding narrow run ended. No whole
+package gate has been run or claimed.
