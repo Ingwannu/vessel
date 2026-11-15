@@ -172,3 +172,23 @@ impl Startup {
         })
     }
 }
+
+/// Startup services share the node's task and cancellation handles. Keeping
+/// these initializers together preserves push's store failure before limits I/O.
+pub(super) struct RuntimeServices {
+    pub(super) push: Arc<crate::push::Push>,
+    pub(super) limits: crate::limits::Limits,
+}
+
+pub(super) async fn runtime_services(
+    config: &Config,
+    store: &vessel_store::Store,
+    tasks: tokio_util::task::TaskTracker,
+    stop: tokio_util::sync::CancellationToken,
+) -> Result<RuntimeServices, NodeError> {
+    let push = crate::push::Push::started(config, store.clone(), &tasks, stop.clone())
+        .await
+        .map_err(NodeError::Store)?;
+    let limits = crate::limits::Limits::configured(config, stop.clone(), &tasks).await;
+    Ok(RuntimeServices { push, limits })
+}
