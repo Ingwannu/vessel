@@ -1,5 +1,5 @@
 //! Command catalog contract for the composer; discovery never sends a prompt.
-//! The call stays unregistered until the shared method table accepts pending rows.
+//! The pending method remains unavailable until the integrator assigns its feature.
 
 use serde::{Deserialize, Serialize};
 
@@ -43,7 +43,7 @@ pub struct DraftCommandConfig {
     pub options: Vec<OptionChoice>,
 }
 
-/// Proposed prompt-free draft query; no method registration before integration.
+/// Prompt-free draft query, registered as a pending method until integration.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct GetDraftCommands {
@@ -79,6 +79,17 @@ pub(crate) fn commands_for(
                 .collect()
         },
     )
+}
+
+impl crate::SessionEvent {
+    pub(crate) fn composer_commands_for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
+        let Self::CommandsChanged { commands } = self else {
+            return None;
+        };
+        let commands = commands_for(commands, protocol, COMPOSER_COMMANDS)?;
+        let projected = Self::CommandsChanged { commands };
+        projected.for_protocol(protocol).or(Some(projected))
+    }
 }
 
 impl Conversation {

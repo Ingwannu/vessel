@@ -185,15 +185,8 @@ impl SessionEvent {
     /// can read this event as it is.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
-        if let Self::CommandsChanged { commands } = self
-            && let Some(commands) = crate::composer_commands::commands_for(
-                commands,
-                protocol,
-                crate::composer_commands::COMPOSER_COMMANDS,
-            )
-        {
-            let projected = Self::CommandsChanged { commands };
-            return projected.for_protocol(protocol).or(Some(projected));
+        if let Some(projected) = self.composer_commands_for_protocol(protocol) {
+            return Some(projected);
         }
         if self.since() <= protocol
             && let Self::UsageChanged { usage } = self
