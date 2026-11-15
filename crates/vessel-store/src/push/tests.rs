@@ -200,14 +200,21 @@ fn activity_cannot_resurrect_revoked_readless_or_expired_push_leases() {
             },
         )
         .unwrap();
-        let expiry: i64 = db
+        let expiry: Option<i64> = db
             .query_row(
                 "SELECT expires_at FROM push_subscriptions WHERE device=?1",
                 [lease.device.to_string()],
                 |row| row.get(0),
             )
+            .optional()
             .unwrap();
-        assert_eq!(time_from_sql(expiry), lease.expires_at);
+        if state == 0 {
+            // The existing revoke transaction deletes this subscription.
+            // Activity must leave it absent, rather than recreating a row.
+            assert!(expiry.is_none());
+        } else {
+            assert_eq!(expiry.map(time_from_sql), Some(lease.expires_at));
+        }
         assert!(list(&db, later).unwrap().is_empty());
     }
 }

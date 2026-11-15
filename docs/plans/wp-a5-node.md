@@ -268,3 +268,11 @@ a22e3e5e221ff2e65fb0f2176b7ff444a90d3771fe37d065728b43410fa4f11a matches
 the recorded step. This settles compilation/lints only; same-source unit run
 is executing, and V3 source closure, whole root, assigned wire and native/CLI
 producer proof remain owed. No protocol number or runtime adoption follows.
+
+Same-source unit run wp-inbox-unit-20261115T144650Z-00a47d41 executed725 passed,
+one failed: the new no-resurrection fixture assumed a revoked subscription row
+remains. Existing devices::revoke deletes it transactionally, so QueryReturnedNoRows
+was correct product behavior. The fixture now asserts exact absence after revoke
+and unchanged expiry after scope loss/expiry; all three still assert no admitted
+lease. No product code, boundary, deadline or security expectation is weakened.
+The corrected test and changed-source strict checks remain owed.
