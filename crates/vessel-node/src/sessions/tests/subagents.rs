@@ -186,6 +186,9 @@ async fn stale_resume_metadata_cannot_reattach_a_detached_session() {
     fixture.stop().await;
 }
 
+/// Safety budget for the owned detach's commit/publication phase, not polling.
+const DETACH_PUBLICATION_DEADLINE: std::time::Duration = std::time::Duration::from_secs(5);
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_cancelled_caller_cannot_abandon_live_publication() {
     let fixture = Fixture::new().await;
@@ -193,34 +196,53 @@ async fn a_cancelled_caller_cannot_abandon_live_publication() {
         node: NodeId::random(),
         session: SessionId::random(),
     };
-    let info = child(&fixture, ancestor).await;
-    let handle = fixture.sessions.live(info.id).unwrap();
+    // Keep persistence under this fixture's control so the node TaskTracker
+    // contains exactly the real detach task whose RPC future is dropped.
+    let vessel_session::Created { handle, durable } = fixture
+        .runtime
+        .create_with(
+            fixture.spec(),
+            LaunchOptions {
+                created_by: Creator::Agent {
+                    node: ancestor.node,
+                    session: ancestor.session,
+                },
+                ..LaunchOptions::default()
+            },
+        )
+        .await
+        .unwrap();
+    let id = handle.id();
+    let _durability = fixture
+        .sessions
+        .track(&handle, vessel_proto::EventSeq::ZERO);
+    fixture.store.create_session(handle.info()).await.unwrap();
+    assert_eq!(fixture.tasks.len(), 0);
     let order = fixture.sessions.marking.lock().await;
     {
-        let mut request = Box::pin(fixture.sessions.detach(info.id));
-        // One poll starts the tracked node task. It cannot commit yet because
-        // this test holds the same metadata mutex; then the RPC future is dropped.
+        let mut request = Box::pin(fixture.sessions.detach(id));
+        // Starts the actual owned task, which cannot commit under this lock.
         assert!(futures_util::poll!(request.as_mut()).is_pending());
     }
+    assert_eq!(fixture.tasks.len(), 1);
+    let _first_close = fixture.tasks.close();
     drop(order);
-    let receipt = tokio::time::timeout(std::time::Duration::from_secs(5), async {
-        loop {
-            let stored = fixture.store.session(info.id).await.unwrap().unwrap();
-            if let Some(receipt) = stored.detach_receipt {
-                break receipt;
-            }
-            tokio::task::yield_now().await;
-        }
-    })
-    .await
-    .expect("the detached node task commits after its caller is gone");
-    let publication = fixture.sessions.marking.lock().await;
+    // TaskTracker's empty/closed notification proves the abandoned RPC's
+    // actual node task finished; no DB reads or yields coordinate the test.
+    tokio::time::timeout(DETACH_PUBLICATION_DEADLINE, fixture.tasks.wait())
+        .await
+        .expect("the owned detach completes commit and live publication");
+    let receipt = fixture
+        .store
+        .session(id)
+        .await
+        .unwrap()
+        .unwrap()
+        .detach_receipt
+        .unwrap();
     assert_eq!(handle.info().detach_receipt, Some(receipt));
     assert!(!handle.has_ended());
-    drop(publication);
-    assert_eq!(
-        fixture.sessions.detach(info.id).await.unwrap().receipt,
-        receipt
-    );
+    assert_eq!(fixture.sessions.detach(id).await.unwrap().receipt, receipt);
+    drop(durable);
     fixture.stop().await;
 }
