@@ -200,7 +200,7 @@ fn profile(presentation: Presentation, tokens: &Tokens) -> Profile {
             geometry: Geometry {
                 horizontal: spacing::S3,
                 vertical: spacing::S3,
-                radius: radius::R5,
+                radius: radius::R2,
                 text_gap: spacing::S1,
                 ..geometry(Size::ExtraSmall)
             },
@@ -310,13 +310,13 @@ mod tests {
 
     #[test]
     fn partial_host_errors_use_the_reference_frame_and_normal_red_text_in_both_themes() {
-        // schedules-screen.tsx:400–417, not Alert's semantic Error profile.
+        // schedules-screen.tsx:398 resolves lg via theme.ts:616 to 8, not xl/12.
         for scheme in [Scheme::Light, Scheme::Dark] {
             let tokens = Tokens::of(scheme);
             let actual = profile(Presentation::HostErrors, &tokens);
             assert_eq!(actual.geometry.horizontal.to_bits(), 12.0_f32.to_bits());
             assert_eq!(actual.geometry.vertical.to_bits(), 12.0_f32.to_bits());
-            assert_eq!(actual.geometry.radius.to_bits(), 12.0_f32.to_bits());
+            assert_eq!(actual.geometry.radius.to_bits(), 8.0_f32.to_bits());
             assert_eq!(actual.geometry.text_gap.to_bits(), 4.0_f32.to_bits());
             assert_eq!(actual.look.border, tokens.neutral.border);
             assert_eq!(actual.look.icon, None);

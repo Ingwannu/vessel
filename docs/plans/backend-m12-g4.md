@@ -1,5 +1,10 @@
 # Native Settings: Devices and Sync (G4)
 
+The earlier HostErrors producer/handoff incorrectly called `lg` 12. G2
+and V1 resolved the actual reference token to 8; the radius-only correction
+and its separate evidence are in `backend-m12-g4-alert.md`. The old green
+gate proves the old source and is not corrected-source or visual evidence.
+
 ## Decisions and scope
 
 [Decision Log]

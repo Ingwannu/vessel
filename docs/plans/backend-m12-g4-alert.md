@@ -58,3 +58,29 @@ The alert-only patch was independently applied to the badge commit in a
 scratch index. Visual checks belong to the consuming Devices screen;
 this control adds no catalogue route to the app. No installed service,
 production permission or runtime configuration changed.
+
+
+## Partial-host-errors presentation: radius correction
+
+[Decision Log]
+- Purpose: the shared messages-only banner must use the reference's actual
+  corner size, not the earlier handoff's mistaken interpretation.
+- Existing asset: `alert::host_errors` already uses the one shared frame;
+  `theme::radius::R2` is 8. No new token or renderer is needed.
+- Alternatives: change R5 globally, override a consuming area, or create a
+  second banner. Those alter unrelated controls or duplicate the renderer.
+- Choice: only HostErrors uses R2; its regression asserts the literal 8
+  in both themes. Every ordinary Notice geometry remains unchanged.
+- Why: pinned Paseo schedules-screen line 398 uses borderRadius.lg, and
+  styles/theme.ts lines 611–619 resolve lg to 8 (xl is 12). The earlier
+  producer/handoff and its literal-12 test were wrong; G2 found this and
+  V1 returned the radius-only defect before first-use captures.
+- Impact: padding 12, gap 4, red 300, normal 12-point type, neutral border,
+  wrapping sibling messages and no icon all remain. API is unchanged.
+
+The earlier producer gate (1045 passed, zero failed, one ignored) remains
+old-source evidence. It does not validate this correction or the consumer.
+Under A14 this correction receives narrow Kit checks; G2's final F1 package
+supplies the whole gate and first-use captures. No extra whole producer
+run is added. Corrected-source verification is pending below; no installed
+service, production permission or runtime configuration changed.
