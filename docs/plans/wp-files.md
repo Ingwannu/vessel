@@ -442,7 +442,7 @@ Deep directory rename rewrites now join each already-validated suffix component 
 - Existing assets: the ordinary typed paged ReadFile, G4 selected original connection, one retained file ticket, shared view lexer and existing virtual rows. Reuse them without another text engine, highlighter, protocol or filesystem path authority.
 - Choice: the C5 readonly runner acquires complete text through at most64 one-MiB requests under one30-second overall deadline and the existing operation cap. Each continuation retains original root/path, compares the first returned FileVersion, and validates exact byte progress/EOF before appending. Failure returns no partial assembled source. Nontext/over10MiB stops after initial classification. Source over1MiB has no prepared syntax states and uses the existing plain-language lexer at draw; over10MiB shows the existing localized too-large fallback.
 - Editor fallback: a first editor read that discovers larger paged text retires editing and reacquires the complete readonly source with a new original owner ticket. Binary/oversize needs no second acquisition. An older reply cannot install into this acquisition. Complete Markdown uses the same existing bounded preview renderer and parser.
-- Limits/tradeoff: first-page classification may be read twice when an editor becomes readonly. Existing32-buffer retention bounds owner count, not total process heap; readonly source/line storage may retain more bytes than editable buffers. This remains a resource/capture validation item. Legacy file.read hashes/version and content are acquired separately on the node; matching page versions do not prove an immutable snapshot or whole-file digest agreement. The stronger ADR0083 binary-page transfer/sink contract is separate and not claimed by this helper.
+- Limits/tradeoff: first-page classification may be read twice when an editor becomes readonly. The existing32-owner ceiling is now paired with32MiB of logical readonly source payload. A completed read may evict only disposable parked sources to fit; it never evicts the visible source, modified draft or original pending/uncertain operation. If space cannot be admitted the new readonly acquisition shows the existing buffer-limit refusal. This does not bound total process heap, lexer/row copies, parsed preview documents or editable undo history; resource/capture validation remains owed. Legacy file.read hashes/version and content are acquired separately on the node; matching page versions do not prove an immutable snapshot or whole-file digest agreement. The stronger ADR0083 binary-page transfer/sink contract is separate and not claimed by this helper.
 - Validation: source tests pin UTF-8 byte boundaries, original scope, changed version/refused continuation, malformed EOF/zero progress, finite page count, binary/oversize/empty behavior. GPUI source regressions pin complete readonly fallback and explicit oversize with no extra acquisition. Fast size/boundaries/tokens pass. New-source strict/tests/real UI observations remain owed.
 
 ## Document readiness producer before desktop finalization
@@ -465,3 +465,9 @@ This is not ordinary-quit integration: registration, finalizing-phase control
 read-only and queued mutator/new-write refusal still need the canonical live
 consumer. Forced exit has no journal or recovery guarantee. New tests are not
 executed yet; fast checks are bounded source checks only.
+
+
+The readonly payload reservation regression uses small actual retained sources
+and a budget-sized reservation without allocating a large fixture. It pins
+parked-only eviction and refusal to evict a visible owner for a late response.
+No editable draft is truncated or discarded to meet the readonly cache cap.

@@ -284,6 +284,20 @@ impl Shell {
         _cx: &mut Context<'_, Self>,
     ) {
         let words = self.words();
+        if let Ok(read) = &result
+            && read.version.size <= vessel_app_view::workspace::source::MAX_SOURCE_BYTES
+            && let FileContent::Text { text, .. } = &read.content
+            && !self.reserve_readonly_source(
+                key,
+                vessel_proto::workspace::FileSize(u64::try_from(text.len()).unwrap_or(u64::MAX)),
+            )
+        {
+            if let Some(viewer) = self.areas.workspace.code.viewer_for(key) {
+                viewer.text = Shown::Failed(words.labels().editor_buffers_full.to_owned());
+                viewer.list.reset(0);
+            }
+            return;
+        }
         let Some(viewer) = self.areas.workspace.code.viewer_for(key) else {
             return;
         };

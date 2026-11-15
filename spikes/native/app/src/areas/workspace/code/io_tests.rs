@@ -449,3 +449,46 @@ fn oversize_source_has_an_explicit_fallback_without_a_second_acquisition(cx: &mu
         assert!(viewer.reading.is_none());
     });
 }
+
+#[gpui::test]
+fn readonly_payload_reservation_evicts_only_disposable_parked_sources(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update(cx, |shell, cx| {
+        let root = root();
+        target(shell, root);
+        shell.areas.workspace.code.files.narrow.set(true);
+        shell.open_file_at("a.txt".parse().unwrap(), None, cx);
+        let a = shell.areas.workspace.code.file_key().unwrap();
+        let ticket = shell
+            .areas
+            .workspace
+            .code
+            .viewer_at(&a)
+            .unwrap()
+            .reading
+            .unwrap();
+        shell.file_read_answered_for(&a, &read(root, "a.txt"), ticket, Ok(text("a")), cx);
+        shell.open_file_at("b.txt".parse().unwrap(), None, cx);
+        let b = shell.areas.workspace.code.file_key().unwrap();
+        // Exercise the reservation without allocating a budget-sized string.
+        assert!(
+            shell.reserve_readonly_source(&b, vessel_proto::workspace::FileSize(32 * 1024 * 1024))
+        );
+        assert!(!shell.areas.workspace.code.files.retained.contains_key(&a));
+        let ticket = shell
+            .areas
+            .workspace
+            .code
+            .viewer_at(&b)
+            .unwrap()
+            .reading
+            .unwrap();
+        shell.file_read_answered_for(&b, &read(root, "b.txt"), ticket, Ok(text("visible")), cx);
+        // A late retained acquisition cannot evict the currently visible source.
+        assert!(
+            !shell.reserve_readonly_source(&a, vessel_proto::workspace::FileSize(32 * 1024 * 1024))
+        );
+        assert!(shell.areas.workspace.code.viewer_at(&b).is_some());
+    });
+}

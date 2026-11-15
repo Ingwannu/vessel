@@ -5,12 +5,23 @@ use vessel_app_view::workspace::file_scope::FileScope;
 use vessel_proto::NodeId;
 use vessel_proto::workspace::{RelPath, WorkspaceRoot};
 
-use super::{CodePanel, Files, Slot, Viewer, actions};
+use super::{CodePanel, Files, Shown, Slot, Viewer, actions};
 use crate::shell::Shell;
 use vessel_app_view::workspace::file_tree::{TreeRow, tree_rows_with_metadata};
+use vessel_proto::workspace::FileSize;
 
-/// One-MiB editor buffers require an aggregate retention ceiling.
+/// All source owners share a finite retained-count ceiling.
 const MAX_RETAINED_FILES: usize = 32;
+/// Logical read-only source payload, excluding lexer/row/control allocations.
+/// Oversize paste/undo in an editable draft is never discarded to meet this cap.
+const MAX_READONLY_SOURCE: FileSize = FileSize(32 * 1024 * 1024);
+
+fn readonly_size(viewer: &Viewer) -> FileSize {
+    match &viewer.text {
+        Shown::Text { source, .. } => FileSize(u64::try_from(source.len()).unwrap_or(u64::MAX)),
+        Shown::Loading | Shown::Binary | Shown::TooLarge | Shown::Failed(_) => FileSize(0),
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(super) struct FileKey {
@@ -60,6 +71,37 @@ impl CodePanel {
 }
 
 impl Shell {
+    /// Make space only by evicting disposable parked sources. An incoming
+    /// retained reply cannot displace the current visible source or any draft.
+    pub(super) fn reserve_readonly_source(&mut self, key: &FileKey, incoming: FileSize) -> bool {
+        loop {
+            let panel = &self.areas.workspace.code;
+            let active = panel
+                .file_key()
+                .filter(|active| active != key)
+                .and(panel.files.viewer.as_ref())
+                .map_or(FileSize(0), readonly_size);
+            let used = panel
+                .files
+                .retained
+                .iter()
+                .filter(|(other, _)| *other != key)
+                .fold(active.0, |bytes, (_, viewer)| {
+                    bytes.saturating_add(readonly_size(viewer).0)
+                });
+            if used.saturating_add(incoming.0) <= MAX_READONLY_SOURCE.0 {
+                return true;
+            }
+            let disposable = panel.files.retained.iter().find_map(|(other, viewer)| {
+                (other != key && viewer.can_evict() && readonly_size(viewer).0 != 0)
+                    .then(|| other.clone())
+            });
+            let Some(disposable) = disposable else {
+                return false;
+            };
+            let _evicted = self.areas.workspace.code.files.retained.remove(&disposable);
+        }
+    }
     /// Pending/dirty content cannot be evicted to make room for a file.
     pub(super) fn park_file(&mut self) -> bool {
         let Some(key) = self.areas.workspace.code.file_key() else {

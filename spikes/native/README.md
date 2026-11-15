@@ -1255,3 +1255,30 @@ fallback also retains that refusal. A typed refusal has separate EN/KO
 Fluent copy; it does not enable allocation, helpers or `PROJECT_FILE_KEYS`.
 This keeps an unseen setting out of an approval digest while the native display
 is implemented. Existing terminal refusal and head test cases remain intact.
+
+
+## C5 retained file source ownership (in progress)
+
+`app/areas/workspace/code` retains resources by actual node/root/relative path;
+route aliases and connection epochs belong to each original `FileScope` and
+request ticket. `buffers` owns retention, `lifecycle` owns disposal readiness,
+`editor_io` serializes effects, and `receipts` installs only original scoped
+outcomes. The shared G4 selected connection admits each effect in Link;
+constructing a scope does not grant filesystem authority. Unknown writes keep
+one original obligation across undo, reads and reconnect, including when parked.
+
+Readonly source acquisition reuses existing typed file.read pages with one
+original scope, consistent returned versions, exact byte continuation, finite
+round trips and deadline. Native display budgets are1MiB highlighted/10MiB
+plain; oversized files are explicit. Thirty-two retained owners and32MiB
+logical readonly source payload bound the cache; this is not a process-heap
+bound. Only disposable parked sources can make room. The legacy node's separate
+version and text reads are not an immutable snapshot guarantee.
+
+Directory metadata and saved-file observation consume pending ADR0083 methods
+when the integrator assigns their protocol; older peers keep ordinary requested
+parent listings. New source/metadata/readiness regression sources are not a
+package gate, product UI capture or live quit/pane integration result. The
+canonical desktop readiness enum is shared; the all-document callback remains
+staged until its actual desktop finalizer is available. Delivery, typed panes,
+transfers and unfinished preview surfaces are tracked in docs/plans/wp-files.md.
