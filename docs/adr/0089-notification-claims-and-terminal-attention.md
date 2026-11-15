@@ -50,8 +50,15 @@ never authorize delivery. Claims do not resolve or mark attention read.
 
 All identities are typed and scoped to the authenticated reporting connection;
 a caller cannot nominate a different recipient. An uncertain claim is never
-retried into a second delivery. Admission storage/retention, cancellation and
-revocation are specified with the implementation before call registration.
+retried into a second delivery. Session admission uses one persistent table keyed by inbox cursor with an
+ON DELETE CASCADE foreign key to the inbox row. Its population is bounded by
+the existing inbox retention and live request limits. Atomic insert rechecks
+current unread/eligible source and a paired device's current Read grant;
+owner-origin claims have their existing owner authority. A post-insert presence
+or disconnect recheck may suppress best-effort delivery but never reopen that
+source for duplicate admission. Losing a notification opportunity leaves the
+inbox unchanged. Terminal admission is runtime-only, keyed by terminal revision;
+terminals themselves do not survive node restart.
 
 Terminal attention has an explicit Unknown state for a plain shell. Known
 activity is Idle or Working; attention is Finished or NeedsInput with an exact
@@ -114,5 +121,7 @@ duplicate/uncertain claim; restart and bounded retention; session/terminal
 identity isolation; explicit terminal transitions and stale revision clears;
 all unassigned and older-peer paths; no source contents in OS payloads.
 
-Resume: contract proposal only. No new call is registered. Terminal producer,
-admission persistence and exact field/call shape are completed before Quality B.
+Resume: contract proposal only. No new call is registered. Value contracts and the pure terminal reducer are staged. The terminal
+producer report carries the exact observed revision; stale hooks conflict
+instead of completing a newer run. Next are store admission tests, connection
+policy integration, then pending Quality B rows and older-peer projections.

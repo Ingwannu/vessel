@@ -38,6 +38,7 @@ pub mod lsp;
 mod model;
 mod name;
 mod node;
+pub mod notifications;
 mod options;
 mod pairing;
 pub mod parking;

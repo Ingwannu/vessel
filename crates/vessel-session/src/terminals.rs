@@ -29,6 +29,9 @@
 //!   starts (its Decision Log), and a service's grandchildren must end
 //!   with it on every platform.
 
+// Staged until ADR 0089 wiring after Quality B connects the actor and clients.
+#[cfg(test)]
+mod attention;
 mod backoff;
 mod handle;
 mod log;

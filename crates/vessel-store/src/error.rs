@@ -61,6 +61,9 @@ pub enum Column {
 /// Anything that can go wrong in the store.
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
+    /// Current device has no person Read authority for local notification admission.
+    #[error("notification authority changed; reconnect and refresh before notifying")]
+    NotificationDenied,
     /// A file in the data directory could not be read or written.
     #[error("{}: {source}", path.display())]
     Io {
@@ -266,7 +269,7 @@ impl StoreError {
     pub const fn code(&self) -> ErrorCode {
         match self {
             // A row without its file: removed under the node.
-            Self::PushDenied => ErrorCode::Forbidden,
+            Self::NotificationDenied | Self::PushDenied => ErrorCode::Forbidden,
             Self::InboxGone
             | Self::UnknownSession(_)
             | Self::UnknownDevice(_)

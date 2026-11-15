@@ -63,6 +63,12 @@ pub(crate) enum WriteOp {
 /// A change to the database.
 #[derive(Debug)]
 pub(crate) enum Write {
+    /// One elected person's exact local notification admission.
+    NotificationClaim {
+        authority: crate::NotificationAuthority,
+        source: crate::PushAttention,
+        done: Done<crate::LocalAdmission>,
+    },
     /// Store a new session. Boxed: operations wait in a bounded queue, and
     /// an inline `SessionInfo` would size every slot for this rare one.
     Create { info: Box<SessionInfo>, done: Done },
@@ -166,6 +172,10 @@ pub(crate) struct Setup {
 
 /// One caller's answer, held until its batch is committed.
 enum Answer {
+    NotificationClaim(
+        Done<crate::LocalAdmission>,
+        Result<crate::LocalAdmission, StoreError>,
+    ),
     Done(Done, Result<(), StoreError>),
     Marked(Done<KeptMarks>, Result<KeptMarks, StoreError>),
 }
@@ -174,6 +184,7 @@ impl Answer {
     /// Send it, as a failure if the commit failed.
     fn send(self, failed: Option<&Arc<rusqlite::Error>>) {
         let sent = match self {
+            Self::NotificationClaim(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Done(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Marked(done, result) => done.send(after(failed, result)).is_ok(),
         };

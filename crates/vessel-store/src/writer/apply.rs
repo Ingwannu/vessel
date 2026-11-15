@@ -28,6 +28,16 @@ pub(super) fn apply(
     indexer: &mut Indexer,
 ) -> Answer {
     match write {
+        Write::NotificationClaim {
+            authority,
+            source,
+            done,
+        } => Answer::NotificationClaim(
+            done,
+            isolated(transaction, |connection| {
+                crate::notification_claims::claim(connection, authority, source)
+            }),
+        ),
         Write::Create { info, done } => write_answer(transaction, done, |connection| {
             log::create_session(connection, &info)
         }),

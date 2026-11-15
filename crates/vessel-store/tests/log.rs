@@ -32,7 +32,7 @@ const UNDO_SCHEMAS_7_TO_16: &str = "ALTER TABLE sessions DROP COLUMN title_origi
      DROP INDEX sessions_search_behind;
      ALTER TABLE sessions DROP COLUMN search_open;
      ALTER TABLE sessions DROP COLUMN search_seq;
-DROP TABLE inbox_tools;
+DROP TABLE notification_claims; DROP TABLE inbox_tools;
      DROP TABLE inbox;
      DROP TABLE inbox_meta;
      DROP TABLE push_subscriptions;

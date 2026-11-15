@@ -105,6 +105,20 @@ async fn pre_origin_schema_titles_are_unknown_including_explicit_ones() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
+    // Roll back this package's later migration before the existing origin fixture.
+    let notification_schema: i64 = connection
+        .pragma_query_value(None, "user_version", |row| row.get(0))
+        .unwrap();
+    connection
+        .execute_batch("DROP TABLE notification_claims;")
+        .unwrap();
+    connection
+        .pragma_update(
+            None,
+            "user_version",
+            notification_schema.checked_sub(1).unwrap(),
+        )
+        .unwrap();
     let latest: i64 = connection
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
