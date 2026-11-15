@@ -1269,7 +1269,7 @@ profiles, leaving chrome to each profile and all events in the one engine.
 
 ### Composer shell policy
 
-`view::composer_shell` owns the pure mode/access/fullscreen controller, ordered command sources, file-reference parsing and gesture-to-send policy (ADR 0085). The existing composer keeps recall, draft and attachment state. Integration state and supported paths are recorded in `docs/plans/wp-composer-shell.md`; the new shell entry points remain hidden until their owning lifecycle, file and command boundaries are wired.
+`view::composer_shell` owns pure mode/access/fullscreen policy, ordered command sources, file-reference values and gesture projection (ADR0085). The current input wrappers retain one TextField Entity and delegate early client commands to the existing lifecycle. Attachments/mentions and the lightbox stay with their owner. Scoped resident construction/retention remains test-only until the sole registry cutover. Validation, unavailable contracts and supported source paths are recorded in `docs/plans/wp-composer-shell.md`; no complete package/UI pass is claimed.
 ### Attachment previews
 
 Click an image in either the composer tray or a sent message to open the
