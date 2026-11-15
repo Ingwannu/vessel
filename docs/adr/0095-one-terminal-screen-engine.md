@@ -81,8 +81,9 @@ Query replies follow the explicit server handlers at
 map at 45–49. Construction defaults to a silent observer; only an explicit
 `ReplyDuty::NodeAuthority` can return ordered reply bytes. This supersedes
 ADR 0073's provisional viewer-owned, theme-colored response contract for the
-new engine: one server owner prevents duplicate replies from multiple native
-views, and the fixed colors reproduce the reference server. No network or
+new engine: the intended normal-query owner prevents duplicate replies from
+native observers, subject to the overlap limitation below, and the fixed colors
+reproduce the reference server. No network or
 PTY write occurs inside the crate. Unsupported queries and clipboard requests
 produce no replies. The reply allocation bound derives from the input budget
 and longest allowed reply, including a query begun in the previous feed; an
@@ -107,6 +108,32 @@ output/resize/capture ordering and immutable final-state lifetime. No screen
 is reconstructed from a pruned event ring. The native parser stays only until
 D1 switches to the passed engine; this prerequisite does not claim retirement,
 full D1 UI, physical input, platform runtime or renderer parity.
+
+## Node presentation and ambiguous-overlap limitation
+
+The coordinator's compatibility ruling preserves the rare AmbiguousOverlap raw
+span unchanged. Two old raw clients, or live output plus history replay, can each
+automatically answer an embedded query (for example OSC title with ESC[6n).
+Those clients do not understand candidate settlement, and their CPR bytes cannot
+be distinguished from real keys. Filtering stdin is forbidden. Therefore no
+universal exactly-once claim is possible under this compatibility contract.
+
+The required node exactly-once guarantee covers ONLY normal queries whose
+tokens are suppressed from published presentation/history. An ambiguous legacy
+reply is best-effort, with possible duplicates just as with multiple raw attaches.
+A frame-only client receives no answer for an overlap span. The pure follow-up
+retains its bounded typed UnansweredReplies candidate separately from normal
+replies; that candidate grants no response authority and is not a replay command.
+It must not be answered/settled by a frame reader until a separate route is
+designed. No exclusive routing or overlap rewriting is authorized now.
+
+W17 owns one node screen/frame/query adapter for typed Session(SessionId) and
+Standalone(TerminalId) targets, with no ID conversion or parallel parser. CLI
+capture remains TerminalId-only. Current adoption uses Screen::new Silent and
+NodeAuthority is OFF. Normal-query activation requires the reviewed node responder
+contract and C2's full whole PASS, with tests for suppression, split boundaries,
+replay and absence of duplicate normal responses. The unreviewed engine extension,
+frame/mode/marker API and typed candidate are not adopted by this frozen prerequisite.
 
 ## Verification record and limits
 
