@@ -14,7 +14,7 @@ pub const MAX_PROXY_HOST_BYTES: usize = 253;
 /// A credential-free HTTP(S) origin for display, never a Preview admission.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "string"))]
-pub struct ServiceProxyUrl(Arc<str>);
+pub struct ServiceProxyUrl(Arc<url::Url>);
 
 /// Input-free diagnostics keep submitted credentials out of every source chain.
 #[derive(Debug, thiserror::Error)]
@@ -49,7 +49,21 @@ impl ServiceProxyUrl {
     /// Canonical text is safe to display; it carries no connection authority.
     #[must_use]
     pub fn as_str(&self) -> &str {
-        &self.0
+        self.0.as_str()
+    }
+
+    /// Classify literal/reserved loopback metadata without DNS or a second parse.
+    /// This does not prove that a service listener exists on the node.
+    #[must_use]
+    pub(super) fn is_node_loopback(&self) -> bool {
+        match self.0.host() {
+            Some(url::Host::Ipv4(address)) => address.is_loopback(),
+            Some(url::Host::Ipv6(address)) => address.is_loopback(),
+            Some(url::Host::Domain(domain)) => {
+                domain == "localhost" || domain.ends_with(".localhost")
+            }
+            None => false,
+        }
     }
 }
 
@@ -91,7 +105,7 @@ impl FromStr for ServiceProxyUrl {
         if parsed.as_str().len() > MAX_PROXY_URL_BYTES {
             return Err(InvalidServiceProxyUrl::Length);
         }
-        Ok(Self(Arc::from(parsed.as_str())))
+        Ok(Self(Arc::new(parsed)))
     }
 }
 

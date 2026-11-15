@@ -1,12 +1,21 @@
 //! Workspace-scoped service observations and controls, never runtime authority.
 //! Values remain separate from legacy root-based script calls (ADR 0066).
 
+mod observation;
 mod origin;
+mod row;
 
 pub use crate::id::{ServiceSnapshotId, ServicesSettingsRevision};
+pub use observation::{
+    InvalidServiceProxyUrls, ServiceHealth, ServiceLink, ServiceLinkAccess, ServiceObservation,
+    ServicePortPlan, ServicePortSource, ServiceProxyState, ServiceProxyUrls, ServiceUnavailable,
+};
 pub use origin::{
     InvalidServiceProxyUrl, MAX_PROXY_HOST_BYTES, MAX_PROXY_LABEL_BYTES, MAX_PROXY_URL_BYTES,
     ServiceProxyUrl,
+};
+pub use row::{
+    InvalidWorkspaceScriptRow, WorkspaceScriptOrigin, WorkspaceScriptRow, WorkspaceScriptRowView,
 };
 
 use serde::{Deserialize, Serialize};

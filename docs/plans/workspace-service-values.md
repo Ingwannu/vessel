@@ -35,3 +35,26 @@ existing url dependency and retains input-free typed sources. URI repairs
 metadata value is created. No network work occurs. DTO collections, method
 rows and SDK wrappers are next; no setting, process or route is implemented.
 Narrow strict/TS-feature tests on this exact source remain owed.
+
+
+Observation values now preserve explicit unplanned/reserved/unavailable,
+health pending/unknown and Planned versus Registered URL metadata. Both URL
+roles survive; preference is derived. Empty/mislabelled links refuse,
+including a public slot claiming loopback or node-loopback metadata naming a
+non-loopback origin. Retain the parsed URL owner rather than reparse text
+for that classification; the predicate performs no DNS or socket work.
+
+Rows keep the current ScriptEntry owner separate from an older terminal's
+command/type. Paseo script-status-projection.ts100-164,214-249 uses the
+current definition with the latest runtime entry keyed by name. Matching
+commands/kinds would reject legitimate edits while the earlier approved run
+continues. Only recorded name association is required; plain definitions
+cannot carry service fields. RemovedRunning requires a supervised terminal
+observation, never proof of kernel liveness. Complete row view destructures
+every owner field. Six more constructor/serde/projection regressions are
+authored; none executed yet. No row/health/URL grants runtime authority.
+
+Next: consume the announced shared MAX_PROJECT_COMMANDS owner for bounded
+page/env DTOs. Staged rows and SDK wrappers remain absent. Existing exact
+origin94811 suite stays pinned; later observation source needs its own
+changed-head narrow suite. No previous result qualifies this commit.
