@@ -22,7 +22,16 @@ async fn phase<T>(name: &str, future: impl Future<Output = T>) -> T {
 struct Dropped(Arc<AtomicUsize>);
 impl Drop for Dropped {
     fn drop(&mut self) {
-        self.0.fetch_add(1, Ordering::SeqCst);
+        let _previous = self.0.fetch_add(1, Ordering::SeqCst);
+    }
+}
+
+struct Notice(Option<oneshot::Sender<()>>);
+impl Drop for Notice {
+    fn drop(&mut self) {
+        if let Some(send) = self.0.take() {
+            let _gone = send.send(());
+        }
     }
 }
 
@@ -39,7 +48,7 @@ async fn capacity_is_reserved_before_factory_and_stop_joins_all_pending_drops() 
                 (Arc::clone(&created), Arc::clone(&dropped), ready.clone());
             assert_eq!(
                 data.start(move |_stop| async move {
-                    created.fetch_add(1, Ordering::SeqCst);
+                    let _previous = created.fetch_add(1, Ordering::SeqCst);
                     let _drop = Dropped(dropped);
                     ready.send(()).await.unwrap();
                     std::future::pending::<()>().await;
@@ -56,7 +65,7 @@ async fn capacity_is_reserved_before_factory_and_stop_joins_all_pending_drops() 
         let extra = Arc::clone(&created);
         assert_eq!(
             data.start(move |_stop| {
-                extra.fetch_add(1, Ordering::SeqCst);
+                let _previous = extra.fetch_add(1, Ordering::SeqCst);
                 async {}
             }),
             Admission::Full
@@ -103,14 +112,6 @@ async fn dropping_the_run_cancels_and_aborts_its_children() {
         let mut data = DataOpens::new(&registration);
         let (ready, started) = oneshot::channel();
         let (gone, dropped) = oneshot::channel();
-        struct Notice(Option<oneshot::Sender<()>>);
-        impl Drop for Notice {
-            fn drop(&mut self) {
-                if let Some(send) = self.0.take() {
-                    let _gone = send.send(());
-                }
-            }
-        }
         assert_eq!(
             data.start(move |_| async move {
                 let _notice = Notice(Some(gone));
@@ -154,7 +155,7 @@ async fn an_actual_websocket_upgrade_is_dropped_before_stop_returns() {
             Reach::Any,
             ConnId::from_bytes([7; 16]),
             Arc::new(move |_carrier| {
-                count.fetch_add(1, Ordering::SeqCst);
+                let _previous = count.fetch_add(1, Ordering::SeqCst);
             }),
         );
         let (peer, _) = phase("data dial reaches the loopback listener", listener.accept())
@@ -218,7 +219,7 @@ async fn stop_waits_for_the_actual_accept_callback_already_in_progress() {
                 entered.take().unwrap().send(()).unwrap();
                 wait.recv_timeout(PHASE)
                     .expect("release actual accept callback");
-                completed.fetch_add(1, Ordering::SeqCst);
+                let _previous = completed.fetch_add(1, Ordering::SeqCst);
             });
         });
         data.open(

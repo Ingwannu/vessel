@@ -90,3 +90,22 @@ safety and abort ownership are unchanged.
 This additional test is newer than the queued5a02 narrow source. That narrow
 result cannot cover it; the final merged package gate must compile/run it.
 No additional narrow run or runtime PASS is claimed from this preparation.
+
+
+## Corrected-source lint result and final gate boundary
+
+Narrow devices-relay-life-20261115T133940Z-5a02b847 checked the actual changed
+relay library and reached its test targets, then failed on unused atomic/watch
+return values and a local Notice type declared after statements. No runtime
+test ran. Explicitly consume the irrelevant previous atomic values, drop the
+completed watch borrow, and move Notice to module scope; no assertion, budget
+or production behavior changes and no lint is suppressed. Apply the same
+atomic-result discipline to the newer public-run callback test. Both red
+predecessors are retained.
+
+V3 source-passed the normal-drain implementation only at ede20014..5a02b847;
+that is not a pass for these newer fixtures, merged source or runtime. The
+first final whole root gate will cover the corrected current merged source,
+including strict Clippy and all new actual relay tests. No extra unchanged
+narrow or whole pass is inferred. The separate settings runtime and internal
+OS DNS-work limitation remain outside this source verdict.

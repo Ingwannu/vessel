@@ -161,12 +161,14 @@ where
         stop: stop.clone(),
         task: tokio::spawn(link.run(accept, stop)),
     };
-    phase(
-        "configured registration ready",
-        state.wait_for(|state| *state == LinkState::Registered),
-    )
-    .await
-    .unwrap();
+    drop(
+        phase(
+            "configured registration ready",
+            state.wait_for(|state| *state == LinkState::Registered),
+        )
+        .await
+        .unwrap(),
+    );
     Registration { running, state }
 }
 
@@ -191,7 +193,7 @@ impl HeldAccept {
                 entered.take().unwrap().send(()).unwrap();
                 wait.recv_timeout(PHASE)
                     .expect("release public runner accept");
-                completed.fetch_add(1, Ordering::SeqCst);
+                let _previous = completed.fetch_add(1, Ordering::SeqCst);
             });
         };
         (
