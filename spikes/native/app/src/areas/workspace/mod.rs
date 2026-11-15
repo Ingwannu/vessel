@@ -124,6 +124,7 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) -> bool {
         match answer {
+            Answer::Layout(answer) => self.layout_renamed(answer, cx),
             Answer::Projects(result) => {
                 let _was = self
                     .areas
