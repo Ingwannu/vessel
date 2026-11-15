@@ -38,3 +38,12 @@ rustfmt module-registration order is corrected. No LinkError, schedule/menu
 chain or new event arm is included. Native narrow Clippy is pending on this
 exact producer. No independent whole-gate, runtime or UI claim is made. A14
 puts the consumer's complete feature gate and first-use evidence together.
+
+
+Exact producer narrow run schedules-narrow-20261115T051328Z-f9671c15
+completed native-fonts and native-clippy at zero with no skip. This is a
+narrow all-target compile/lint result, not tests or a whole gate. Its steps
+SHA256 isb1f5bf96ae62698bdfb09cb8113607cb879a77032599f2ab117df7a0320156b0. V1 independently
+prechecked the original31495e4d method move/body; the producer keeps that body
+and corrects only module registration formatting on the identical d308 base.
+Consumer feature tests, the final package gate and first-use UI remain owed.
