@@ -83,7 +83,7 @@ impl Shell {
                 .id(SharedString::from(format!("pending-context-{index}")))
                 .cursor_pointer()
                 .on_click(cx.listener(move |shell, _, window, cx| {
-                    shell.open_context_snapshot(item.clone(), window, cx)
+                    shell.open_context_snapshot(item.clone(), window, cx);
                 }))
                 .into_any_element()
         });

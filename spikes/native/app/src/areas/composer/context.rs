@@ -317,10 +317,6 @@ impl Shell {
         cx.notify();
     }
     fn context_closed(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
-        if let ContextAttachment::Plugin(item) = &item {
-            cx.open_url(item.item.url.as_str());
-            return;
-        }
         let preview = &mut self.areas.composer.context_preview;
         preview.item = None;
         if let Some(previous) = preview.previous.take() {
@@ -422,4 +418,38 @@ pub(super) fn preview(
         Shell::context_closed,
         cx,
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::shell::language_tests;
+    use gpui::TestAppContext;
+    #[gpui::test]
+    fn dismissing_a_snapshot_releases_only_the_preview_and_restores_the_editor(
+        cx: &mut TestAppContext,
+    ) {
+        language_tests::init(cx);
+        let (shell, cx) = cx.add_window_view(Shell::without_io);
+        shell.update_in(cx, |shell, window, cx| {
+            let history = super::super::prepared::tests::history("retained context");
+            shell
+                .composer_seed_history(DraftKey::New, history.clone(), window, cx)
+                .unwrap();
+            shell.areas.draft.composer.focus(window, cx);
+            shell.open_context_snapshot(history.into_attachment(), window, cx);
+            assert!(shell.areas.composer.context_preview.item.is_some());
+            shell.context_closed(window, cx);
+            assert!(shell.areas.composer.context_preview.item.is_none());
+            assert!(shell.composer_has_context(DraftKey::New));
+            assert!(
+                shell
+                    .areas
+                    .draft
+                    .composer
+                    .focus_handle(cx)
+                    .is_focused(window)
+            );
+        });
+    }
 }
