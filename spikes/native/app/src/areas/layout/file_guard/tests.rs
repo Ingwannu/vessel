@@ -3,7 +3,7 @@ use super::*;
 use crate::areas::layout::{key, with_layout_at};
 use crate::areas::session::Open;
 use crate::shell::{Shell, language_tests};
-use gpui::{AppContext as _, Context, TestAppContext, Window};
+use gpui::{Context, TestAppContext, Window};
 use vessel_app_view::layout::{
     AgentRole, CloseApproval, CloseScope, LayoutAction, LayoutKey, LayoutMode, Modified,
     OpenIntent, Placement, Position, RetargetRequest, TabId,
@@ -11,7 +11,7 @@ use vessel_app_view::layout::{
 use vessel_proto::workspace::WorkspaceRoot;
 use vessel_proto::{ProjectId, SessionId};
 
-fn shell(window: &mut Window, cx: &mut Context<Shell>) -> Shell {
+fn shell(window: &mut Window, cx: &mut Context<'_, Shell>) -> Shell {
     let mut shell = Shell::without_io(window, cx);
     shell.route = crate::routes::Route::Session;
     shell.areas.session.open = Some(Open {
@@ -32,7 +32,12 @@ fn file(path: &str) -> Target {
         path: path.parse().unwrap(),
     }
 }
-fn open(shell: &mut Shell, target: Target, window: &mut Window, cx: &mut Context<Shell>) -> TabId {
+fn open(
+    shell: &mut Shell,
+    target: Target,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> TabId {
     shell
         .layout_open_target(
             &key(shell).unwrap(),
@@ -44,7 +49,7 @@ fn open(shell: &mut Shell, target: Target, window: &mut Window, cx: &mut Context
         )
         .unwrap()
 }
-fn move_file(shell: &mut Shell, key: &LayoutKey, tab: TabId, cx: &mut Context<Shell>) {
+fn move_file(shell: &mut Shell, key: &LayoutKey, tab: TabId, cx: &mut Context<'_, Shell>) {
     shell
         .update_layout(
             key,
