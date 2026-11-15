@@ -13,6 +13,8 @@
 //!   histories are later slices; their unwired menu items are not returned.
 
 mod choices;
+#[cfg(test)]
+mod grants;
 mod mutation;
 pub use choices::MachineChoice;
 #[cfg(test)]
@@ -102,6 +104,7 @@ struct RowState {
 struct Cache {
     read: Read,
     rows: BTreeMap<ScheduleId, RowState>,
+    scopes: Option<Vec<vessel_proto::Scope>>,
 }
 
 #[derive(Debug, Default)]
@@ -158,6 +161,7 @@ impl Page {
     /// A fresh connection invalidates row permission evidence and pending reads.
     pub fn connected(&mut self, machine: &MachineKey) {
         if let Some(cache) = self.caches.get_mut(machine) {
+            cache.scopes = None;
             for row in cache.rows.values_mut() {
                 row.authority = Authority::default();
                 row.mutation.reconnected();
@@ -249,11 +253,15 @@ impl Page {
             return;
         }
         if let Some(snapshot) = cache.read.snapshot() {
+            if succeeded && let Ok(scopes) = &snapshot.scopes {
+                cache.scopes = Some(scopes.clone());
+            }
             cache
                 .rows
                 .retain(|id, _| snapshot.schedules.iter().any(|info| info.id == *id));
             for info in &snapshot.schedules {
                 let state = cache.rows.entry(info.id).or_default();
+                state.authority.reported(cache.scopes.as_deref());
                 if succeeded {
                     state.mutation.reconciled();
                 }

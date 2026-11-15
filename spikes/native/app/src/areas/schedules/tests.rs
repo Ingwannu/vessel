@@ -72,6 +72,7 @@ fn a_connected_notice_resets_old_refusal_without_needing_changed_fleet_data() {
     area.page.listed(
         &request,
         Ok(Snapshot {
+            scopes: Err(Failure::Older),
             schedules: vec![info],
             read_at: chrono::DateTime::UNIX_EPOCH,
             projects: Ok(vec![]),

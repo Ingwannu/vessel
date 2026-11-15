@@ -14,6 +14,8 @@ const REFRESH_AFTER: chrono::TimeDelta = chrono::TimeDelta::seconds(5);
 pub struct Snapshot {
     /// Node-authored schedules, in the node's bounded list.
     pub schedules: Vec<ScheduleInfo>,
+    /// Effective self-reported scopes, independently fallible on older nodes.
+    pub scopes: Result<Vec<vessel_proto::Scope>, Failure>,
     /// Client read time, for refresh cadence only, never schedule state.
     pub read_at: DateTime<Utc>,
     /// Worktree details only when a schedule targets one; a failed lookup

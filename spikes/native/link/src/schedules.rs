@@ -25,6 +25,8 @@ use vessel_proto::{
 pub struct ListValue {
     /// Exactly the node's schedule list; no locally synthesized states.
     pub schedules: Vec<ScheduleInfo>,
+    /// Effective grant from device.self; an unavailable report is never a denial.
+    pub scopes: Result<Vec<vessel_proto::Scope>, ScheduleError>,
     /// Read completion time, used only for refreshing the cache.
     pub read_at: chrono::DateTime<chrono::Utc>,
     /// No dependency on visiting a separate workspace screen first.

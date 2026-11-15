@@ -115,3 +115,20 @@ Fleet publication; the notice alone proves neither a retained connection nor
 Read authority and does not retire stale tickets by itself. No compile/runtime
 PASS is claimed for that isolated producer. Removal/rename/offline invalidation
 is still an area's responsibility.
+
+## Effective grants on the list
+
+[Decision Log]
+- Purpose: a device with an explicitly read-only grant must not first attempt a
+  write merely to learn its scope; a device unable to inspect devices must still
+  retain its valid operations.
+- Existing seam: `device.self` reports this authenticated connection's effective
+  scopes and does not require the unrelated device-list permission.
+- Choice: retain its independently fallible result beside the schedule list,
+  accept it only with the list ticket, and keep known evidence for the connection.
+  Failure on an older node leaves authority unknown. A real per-row Forbidden
+  outranks a later Operate report until a fresh connection resets the evidence.
+- Alternative rejected: treating failure as an empty grant, or matching device
+  labels in the administrative device list. Both can wrongly remove actions.
+- Cost: an auxiliary self-query per list read. Narrow checks for this new delta
+  are owed; the queued cb96 run is immutable earlier-source evidence only.

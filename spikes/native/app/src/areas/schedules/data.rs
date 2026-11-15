@@ -66,6 +66,7 @@ impl Data {
 fn snapshot(list: ListValue) -> Snapshot {
     Snapshot {
         schedules: list.schedules,
+        scopes: list.scopes.map_err(|error| error.failure(Ask::List)),
         read_at: list.read_at,
         projects: list.projects.map_err(|error| error.failure(Ask::List)),
         worktrees: list.worktrees.map_err(|error| error.failure(Ask::List)),

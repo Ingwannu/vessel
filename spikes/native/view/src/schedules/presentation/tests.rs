@@ -11,6 +11,7 @@ fn setup() -> Page {
     page.listed(
         &request,
         Ok(Snapshot {
+            scopes: Err(crate::schedules::load::Failure::Older),
             schedules: vec![
                 serde_json::from_str(include_str!("../../../tests/fixtures/schedules/info.json"))
                     .unwrap(),

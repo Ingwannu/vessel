@@ -12,6 +12,7 @@ pub(super) fn key(name: &str) -> MachineKey {
 }
 pub(super) fn snapshot(schedules: Vec<ScheduleInfo>) -> Snapshot {
     Snapshot {
+        scopes: Err(Failure::Older),
         schedules,
         read_at: now(),
         worktrees: Ok(Vec::new()),

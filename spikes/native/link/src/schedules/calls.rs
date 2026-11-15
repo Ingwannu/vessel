@@ -53,6 +53,13 @@ impl Hub {
 }
 async fn list(client: &NodeClient) -> Result<Value, ScheduleError> {
     let schedules = client.schedules().await?;
+    // This authenticated self-query needs no device-list permission. Its failure
+    // must not turn an otherwise valid list into a read-only screen.
+    let scopes = client
+        .device_self()
+        .await
+        .map(|report| report.scopes)
+        .map_err(ScheduleError::Call);
     let needs_projects = schedules.iter().any(|info| match &info.definition.target {
         ScheduleTarget::NewSession { spec, .. } => match spec.place.as_deref() {
             Some(SessionPlace::Project { .. }) => true,
@@ -87,6 +94,7 @@ async fn list(client: &NodeClient) -> Result<Value, ScheduleError> {
     };
     Ok(Value::List(Box::new(ListValue {
         schedules,
+        scopes,
         projects,
         worktrees,
         read_at: chrono::Utc::now(),

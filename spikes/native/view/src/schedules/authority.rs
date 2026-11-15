@@ -30,6 +30,17 @@ impl Authority {
         }
     }
 
+    /// A successful self-query can update a grant, but cannot erase a resource
+    /// refusal already observed on this connection. Missing reports keep the
+    /// last known grant rather than inventing an empty one.
+    pub fn reported(&mut self, scopes: Option<&[Scope]>) {
+        if !matches!(self, Self::OperationForbidden)
+            && let Some(scopes) = scopes
+        {
+            *self = Self::Scopes(scopes.to_vec());
+        }
+    }
+
     /// A node refusal is evidence for this connection only. Starting a new
     /// connection constructs a new Authority; other failures never narrow it.
     pub fn refused(&mut self, code: ErrorCode) {
