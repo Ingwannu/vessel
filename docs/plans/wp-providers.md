@@ -314,3 +314,11 @@ plugin session adapter, and persistent provider helper ledger. The ledger must
 consume nodectl's reviewed seeded identity producer and pidfd-only verified
 signal; ProcessLifetime is solely an in-process observer. Root verified signal
 is not checked process-group cleanup and cannot acknowledge whole-group reap.
+
+The first immutable wiring test run626f12f79 stopped in nested-vesseld compilation:
+three new reply variants were missing from agents/older.rs's exhaustive older
+agent projection. No product test ran. That projection now explicitly classifies
+the three pending provider replies alongside other newer methods; shared protocol
+admission still refuses unassigned calls. Red evidence stays in
+/tmp/work/wp-providers/provider-wiring-tests. The own waiting local626 check was
+cancelled before compilation and is replaced on the changed head.
