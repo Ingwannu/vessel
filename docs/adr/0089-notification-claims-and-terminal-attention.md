@@ -232,7 +232,11 @@ Paseo websocket-server.ts:2899-2904 passes every attention reason to the local
 recipient election, while agent-attention-policy.ts:77-79 excludes error ONLY
 from push eligibility. Local admission therefore accepts an exact unread failed
 Inbox source with the same device/source/read/once-only checks. Web Push
-candidates and final push admission still exclude failed outcomes. Generic OS
-content and focused-target suppression do not change; no new wire or scope is
-introduced. A real-store regression checks local once-only admission, shared
-read suppression and exclusion from the actual Web Push candidate query.
+candidates and final push admission still exclude failed outcomes. This server
+recipient/admission rule is not the client OS-delivery rule: Paseo
+`packages/app/src/contexts/session-context.tsx:267-269` returns immediately for
+error. The native opportunity and final projection gates therefore exclude
+Failed while retaining the source in Inbox and failed badges. Generic OS text
+and focus suppression do not change. A real-store regression checks the server
+local once-only admission, shared read suppression and actual Web Push query;
+separate native tests check error suppression. No new wire or scope is added.
