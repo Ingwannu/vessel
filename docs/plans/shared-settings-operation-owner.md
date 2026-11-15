@@ -218,3 +218,20 @@ order remain to be joined and checked. The initial lane does not authorize any
 recovery, MCP or plugin activation and does not replace a consumer's temporary
 quota until the qualified joint head is announced. Explicit reset/reload intents
 join this same lane with their actual callers rather than unused variants here.
+
+The boot snapshot adapter is now drafted as Store's `SettingsFileSnapshot`
+and Node's `settings::Opening`. Store derives typed content and conservative
+future-field disposition from the same physical bytes. Both the normal parse
+and compatibility coverage path use the canonical sealed diagnostic wrapper.
+Node reads the snapshot under its directory lock, before Store opens, and
+passes it into `Settings::from_opening`; that constructor performs no file I/O.
+The existing Store-opening helper moves beside startup assembly without changing
+its operations. The node file's size allowance shrinks with that move.
+
+New fixtures replace the file between snapshot admission and owner construction
+and check that the original typed settings/preservation decision still apply,
+without a second read or set-aside. Missing/null/current/future and complete
+diagnostic-chain cases exercise the shared disk edge. These tests remain
+uncompiled and unexecuted. Recovery projection/candidate capture, the actual
+Policy/Store hook and the shutdown/effect seal are not yet wired. The existing
+startup read has no newly claimed universal byte or filesystem-time boundary.

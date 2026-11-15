@@ -6,6 +6,13 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- Drafted the one-read startup handoff: canonical Store snapshot computes
+  preservation from the same bytes, Opening carries it across Store startup,
+  and Settings consumes it without file I/O. Compatibility coverage diagnostics
+  now reuse the sealed decoder. Replacement/no-second-read and safe-chain
+  fixtures are authored, not executed; recovery hook/shutdown wiring still owed.
+
+
 - The accepted common Settings contract now has its initial finite lane over
   the opaque model and canonical private-cause decoder. Candidate construction
   happens in the consumer, so queued intents survive caller loss without stale

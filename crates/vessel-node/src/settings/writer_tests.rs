@@ -40,7 +40,7 @@ impl Gate {
     }
 }
 
-pub(super) fn settings(root: &std::path::Path) -> Arc<Settings> {
+pub(super) fn runtime(root: &std::path::Path) -> Arc<SessionRuntime> {
     let runtime = SessionRuntime::new(
         vessel_session::RuntimeConfig {
             harness_lookup: vessel_harness::Lookup::new(std::iter::empty::<std::path::PathBuf>()),
@@ -53,9 +53,13 @@ pub(super) fn settings(root: &std::path::Path) -> Arc<Settings> {
         },
         tokio_util::sync::CancellationToken::new(),
     );
+    Arc::new(runtime)
+}
+
+pub(super) fn settings(root: &std::path::Path) -> Arc<Settings> {
     Arc::new(Settings::open(
         DataDir::new(root),
-        Arc::new(runtime),
+        runtime(root),
         ParkAfter::DEFAULT,
         false,
     ))

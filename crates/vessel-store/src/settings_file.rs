@@ -31,6 +31,8 @@
 //!   unable to change any setting from the app.
 
 mod decode;
+mod snapshot;
+pub use snapshot::{SettingsDisposition, SettingsFileSnapshot};
 
 pub use decode::SettingsDecodeFailure;
 
@@ -167,10 +169,12 @@ impl DataDir {
             Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(false),
             Err(error) => return Err(StoreError::io(&path)(error)),
         };
-        let invalid = |error| StoreError::io(&path)(io::Error::other(error));
-        let file: serde_json::Value = serde_json::from_slice(&text).map_err(invalid)?;
-        let known = known.comparable().map_err(invalid)?;
-        Ok(!covered(&file, &known))
+        snapshot::coverage(&text, known)
+            .map(|disposition| match disposition {
+                SettingsDisposition::Current => false,
+                SettingsDisposition::PreserveBeforeWrite => true,
+            })
+            .map_err(|error| StoreError::io(&path)(io::Error::other(error)))
     }
 
     /// Replace the saved settings, owner-only and atomically.

@@ -1805,3 +1805,10 @@ parts without its sender; accepted work drains even when callers or the last
 handle disappear. Its bounded waiting capacity and typed overflow belong to
 `settings::admission`. Recovery settlement and pre-Store startup composition
 remain a separate joint implementation (shared-settings-operation-owner plan).
+
+
+Startup settings content and its future-field disposition now travel together
+from one Store file read, under the directory lock and before Store startup,
+through Node's Opening into the mutation owner. Coverage trees and concrete
+serde causes stay at the Store boundary. This snapshot is not a recovery
+activation or a new settings writer; policy assembly remains the joint package.

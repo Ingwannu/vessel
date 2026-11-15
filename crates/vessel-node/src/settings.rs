@@ -50,6 +50,8 @@ use std::sync::atomic::AtomicBool;
 use tokio::sync::Mutex;
 
 mod admission;
+mod opening;
+pub(crate) use opening::Opening;
 mod writer;
 #[cfg(test)]
 mod writer_tests;
@@ -59,7 +61,7 @@ use vessel_proto::settings::{
     AgentDriver, AgentDrivers, NodeSettings, SetAgentDrivers, SetNodeSettings,
 };
 use vessel_session::SessionRuntime;
-use vessel_store::{DataDir, SavedNodeSettings, SetAside};
+use vessel_store::{DataDir, SavedNodeSettings, SetAside, SettingsDisposition};
 
 /// Why a change was refused or not kept.
 #[derive(Debug, thiserror::Error)]
@@ -126,38 +128,27 @@ struct State {
 }
 
 impl Settings {
-    /// Keep the node startup adapter beside saved-value precedence, not in its
-    /// already large composition function. This reads only the passed config.
-    pub(crate) fn for_config(config: &crate::Config, runtime: Arc<SessionRuntime>) -> Self {
-        Self::open(
-            config.data_dir.clone(),
-            runtime,
-            ParkAfter::from_duration(config.park_after),
-            config.park_after_given,
-        )
-    }
-
-    /// Read `settings.json` and apply what it holds to `runtime`. A file
-    /// that cannot be used is moved aside and logged, and the flags'
-    /// values stand.
+    /// Isolated fixtures reuse the canonical startup snapshot path.
+    #[cfg(test)]
     pub(crate) fn open(
         data_dir: DataDir,
         runtime: Arc<SessionRuntime>,
         flag: ParkAfter,
         flag_given: bool,
     ) -> Self {
-        let (saved, kept, later) = match data_dir.read_settings() {
-            Ok(saved) => {
-                let saved = saved.unwrap_or_default();
-                // Unsure counts as more: a copy too many costs nothing.
-                let later = data_dir.settings_hold_more_than(&saved).unwrap_or(true);
-                (saved, None, later)
-            }
-            Err(error) => {
-                let kept = set_aside(&data_dir, &error);
-                (SavedNodeSettings::default(), kept, false)
-            }
-        };
+        Self::from_opening(Opening::read_parts(data_dir, flag, flag_given), runtime)
+    }
+
+    /// Consume the exact pre-Store snapshot; never re-read the file here.
+    pub(crate) fn from_opening(opening: Opening, runtime: Arc<SessionRuntime>) -> Self {
+        let Opening {
+            data_dir,
+            saved,
+            flag,
+            flag_given,
+            kept,
+            disposition,
+        } = opening;
         let public = saved.public_settings();
         let settings = State {
             data_dir,
@@ -167,7 +158,10 @@ impl Settings {
             #[cfg(test)]
             gate: writer_tests::GateSlot::default(),
             kept,
-            later: AtomicBool::new(later),
+            later: AtomicBool::new(matches!(
+                disposition,
+                SettingsDisposition::PreserveBeforeWrite
+            )),
         };
         let in_force = settings.in_force(public);
         if flag_given && public.park_after.is_some() && in_force.park_after != flag {

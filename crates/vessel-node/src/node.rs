@@ -20,7 +20,7 @@ use vessel_relay::{LinkState, TlsConfig};
 use vessel_rpc::Server;
 use vessel_secure::NodeKeypair;
 use vessel_session::{AttachmentLoader, RuntimeConfig, SessionRuntime};
-use vessel_store::{DataDir, NodeLock, NodeOwner, NodeToken, Opened, Store};
+use vessel_store::{DataDir, NodeLock, NodeOwner, NodeToken, Store};
 
 use crate::agents::Agents;
 use crate::attachments::staging;
@@ -110,6 +110,7 @@ impl Node {
             models,
             proxy,
             session_setup: setup,
+            settings_opening,
             clients,
             relaying: relay,
         } = setup::Startup::open(&config).await?;
@@ -125,7 +126,16 @@ impl Node {
             agents,
             service,
             relays,
-        } = core(&config, id, &store, &keypair, relay, setup, started).await?;
+        } = core(
+            &config,
+            id,
+            &store,
+            &keypair,
+            relay,
+            (setup, settings_opening),
+            started,
+        )
+        .await?;
         drop(tokio::spawn(serve_models(models, proxy, stop.clone())));
         let closing = CancellationToken::new();
         let rpc = Arc::new(Server::new(
@@ -250,20 +260,6 @@ impl Node {
     }
 }
 
-/// Open the event log, closing sessions a previous run left live.
-async fn open_store(config: &Config) -> Result<Store, NodeError> {
-    let Opened { store, interrupted } = Store::open(&config.data_dir, config.store)
-        .await
-        .map_err(NodeError::Store)?;
-    if !interrupted.is_empty() {
-        tracing::info!(
-            sessions = interrupted.len(),
-            "sessions from the previous run are now interrupted"
-        );
-    }
-    Ok(store)
-}
-
 /// The node's parts below its transports.
 struct Core {
     runtime: Arc<SessionRuntime>,
@@ -295,7 +291,7 @@ async fn core(
     store: &Store,
     keypair: &Arc<NodeKeypair>,
     relaying: Option<(RelayToken, TlsConfig)>,
-    setup: SessionSetup,
+    (setup, settings_opening): (SessionSetup, crate::settings::Opening),
     diagnostic_started: tokio::time::Instant,
 ) -> Result<Core, NodeError> {
     let key = keypair.public();
@@ -304,7 +300,10 @@ async fn core(
     let runtime = runtime(config, loader, setup.private_dir.clone());
     // A value saved with `node.set_settings` wins over `--park-after`
     // (protocol 12, `settings`).
-    let settings = Arc::new(Settings::for_config(config, Arc::clone(&runtime)));
+    let settings = Arc::new(Settings::from_opening(
+        settings_opening,
+        Arc::clone(&runtime),
+    ));
     let stop = CancellationToken::new();
     // System zone detection may read OS configuration; keep startup I/O
     // off the async workers just as data-directory preparation is.
@@ -644,18 +643,6 @@ fn prepare(dir: &DataDir, env: HarnessEnv) -> Result<Prepared, NodeError> {
             workspace: workspace_dir,
         },
     })
-}
-
-/// The client model calls go out with: the operating system's roots, or
-/// none (with a warning) on a machine that has none, where only `http`
-/// providers (a local server) can then be reached.
-/// [`prepare`], on a thread that may block.
-async fn prepare_off_thread(config: &Config) -> Result<Prepared, NodeError> {
-    let dir = config.data_dir.clone();
-    let env = config.harness_env.clone();
-    tokio::task::spawn_blocking(move || prepare(&dir, env))
-        .await
-        .map_err(NodeError::Task)?
 }
 
 /// Bind the TCP listen address.

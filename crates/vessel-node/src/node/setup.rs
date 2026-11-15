@@ -9,6 +9,7 @@ use std::sync::Arc;
 use tokio::net::TcpListener;
 
 use vessel_proto::NodeId;
+use vessel_store::{Opened, Store};
 
 use crate::config::Config;
 use crate::fleet::FleetMcp;
@@ -137,6 +138,7 @@ pub(super) struct Startup {
     pub(super) models: Arc<Models>,
     pub(super) proxy: TcpListener,
     pub(super) session_setup: SessionSetup,
+    pub(super) settings_opening: crate::settings::Opening,
     pub(super) clients: vessel_relay::address::ClientAddress,
     pub(super) relaying: Option<(vessel_proto::RelayToken, vessel_relay::TlsConfig)>,
 }
@@ -146,16 +148,19 @@ impl Startup {
         // relay/proxy must still fail before any node state starts.
         let clients = super::client_address(config)?;
         let relaying = super::relaying(config)?;
-        let super::Prepared {
-            id,
-            token,
-            keypair,
-            lock,
-            profiles,
-            models,
-            dirs,
-        } = super::prepare_off_thread(config).await?;
-        let store = super::open_store(config).await?;
+        let (
+            super::Prepared {
+                id,
+                token,
+                keypair,
+                lock,
+                profiles,
+                models,
+                dirs,
+            },
+            settings_opening,
+        ) = prepare_off_thread(config).await?;
+        let store = open_store(config).await?;
         let (models, proxy) = model_proxy(models).await?;
         let session_setup = SessionSetup::new(config, id, profiles, Arc::clone(&models), dirs);
         Ok(Self {
@@ -167,8 +172,38 @@ impl Startup {
             models,
             proxy,
             session_setup,
+            settings_opening,
             clients,
             relaying,
         })
     }
+}
+
+/// The directory lock precedes the one settings read; Store opens only after
+/// this returns both the prepared identity and its original settings snapshot.
+async fn prepare_off_thread(
+    config: &Config,
+) -> Result<(super::Prepared, crate::settings::Opening), NodeError> {
+    let config = config.clone();
+    tokio::task::spawn_blocking(move || {
+        let prepared = super::prepare(&config.data_dir, config.harness_env.clone())?;
+        let opening = crate::settings::Opening::read(&config);
+        Ok((prepared, opening))
+    })
+    .await
+    .map_err(NodeError::Task)?
+}
+
+/// Open the event log, closing sessions a previous run left live.
+async fn open_store(config: &Config) -> Result<Store, NodeError> {
+    let Opened { store, interrupted } = Store::open(&config.data_dir, config.store)
+        .await
+        .map_err(NodeError::Store)?;
+    if !interrupted.is_empty() {
+        tracing::info!(
+            sessions = interrupted.len(),
+            "sessions from the previous run are now interrupted"
+        );
+    }
+    Ok(store)
 }
