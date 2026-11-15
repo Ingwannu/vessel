@@ -20,7 +20,7 @@ types to the one pending `FILE_PANELS_PROTOCOL` constant. No schema change.
 
 Binary input is capped at the reference's 64 MiB session-download budget;
 pages at its 256 KiB stream chunk. A continuation must name the original
-content revision; source changes before/during a page fail. File reads
+read-pass content revision; page bytes are captured from the same buffers as its complete digest, with continuation identity checked. This does not promise an atomic snapshot of a mutable file. File reads
 run on the blocking pool and use the opened handle's regular-file check.
 
 A duplicate creates the first available copy name exclusively. Partial
@@ -56,3 +56,25 @@ Next: narrow clippy/tests, add metadata for modified tree order, then
 Quality B registration, bounded node wait admission, client calls and
 old-peer tests. Review filesystem/security commits individually; submit
 one complete node gate when the package is connected end to end.
+
+### Wiring check corrections
+
+The first registered wiring checks reached the new handlers and SDK. They found
+an omitted old-agent reply arm, a missing test-only CallError import, and manual
+FakeNode handlers that needed the five new methods. Both client and RPC test
+fakes now declare those methods with their existing unsupported-method macro;
+no original assertion or admission expectation changes. A redundant Future
+qualification in the tracked work helper was also removed. These are source
+corrections; new unit tests, TS generation and the full gate are still owed.
+
+### V3 source corrections (row 171)
+
+The original separate before/page/after reads admitted A→B→A substitution.
+`files/binary/pass` now owns one bounded SHA-256 pass and captures only the
+requested page from those same buffers. The real-file barrier test preserves
+the exact adversarial schedule and pins page/digest agreement. No full-source
+buffer or new transfer actor is added. Query input now uses the existing JS
+trim helper after explicit raw scalar/control admission; ADR0083 records why
+the 256-scalar and control/line-separator restrictions differ from Paseo. Unit
+and serde fixtures pin the chosen contract. These corrections still await the
+proper changed-source narrow checks and V3 follow-up; no green claim is made.

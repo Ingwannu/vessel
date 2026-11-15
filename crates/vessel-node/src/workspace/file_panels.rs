@@ -15,7 +15,7 @@ impl Workspaces {
     /// permit, and is drained by the existing workspace task tracker.
     pub(crate) fn spawn_file_work<T: Send + 'static>(
         &self,
-        work: impl std::future::Future<Output = T> + Send + 'static,
+        work: impl Future<Output = T> + Send + 'static,
     ) -> tokio::task::JoinHandle<T> {
         self.tasks.spawn(work)
     }

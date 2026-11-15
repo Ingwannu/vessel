@@ -1,6 +1,6 @@
 //! Pending file APIs reject before a transport frame, including SDK wrappers.
 use super::*;
-use crate::WorkspaceFileCallError;
+use crate::{CallError, WorkspaceFileCallError};
 use vessel_proto::workspace::directory_metadata::{IgnoredEntries, InspectDirectory};
 use vessel_proto::workspace::panel_files::{
     DuplicateFileEntry, FileOffset, ObserveFile, ReadFileBytes,

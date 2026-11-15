@@ -43,9 +43,11 @@ copying refuses symbolic links, special files and nested `.git`, and is
 bounded by total bytes, entry count, depth and candidate-name attempts.
 Paseo preserves copied symlinks and has no equivalent whole-copy budget.
 The stricter rule prevents a file action from importing data or metadata
-outside its ordinary root boundary. Binary pages rehash their bounded
-source before and after each page to guarantee a coherent transfer; this
-costs I/O compared with Paseo's one streamed handle. A future transfer
+outside its ordinary root boundary. Binary pages capture their requested bytes
+from the same bounded read pass
+that supplies the complete digest. Expected-revision checks compare that pass
+identity; an in-place A→B→A write cannot substitute separately read page bytes.
+This is not an atomic filesystem snapshot. It costs I/O compared with Paseo's one streamed handle. A future transfer
 actor may amortize that cost without changing the content identity.
 
 Reference: Paseo 0.15.4 `server/file-explorer/service.ts` (workspace scoping,
@@ -101,3 +103,26 @@ central protocol-10 loop remains unchanged; only FORWARDABLE gains the five
 names. Local narrow attempts before base/head merges were cancelled while
 still waiting, with no compiler result. The next check covers this committed
 wiring and the new typed client/transfer tests, not those cancelled attempts.
+
+### V3 read-pass and query boundary correction
+
+A before/after hash cannot bind intervening page bytes: A→B→A has equal outer
+hashes. The page is now copied from the exact buffers supplied to SHA-256 in one
+bounded full-source pass. Each continuation must reproduce that complete digest
+and size, and the actual output sink still checks the full assembled hash before
+publishing. The cost is one full source pass per page (not a streaming-performance
+claim); a transfer actor/immutable snapshot can replace it only with its own
+bounded lifecycle. A deterministic real-file barrier fixture exercises the
+A→B→A schedule; no sleeps or timing assumptions are used.
+
+Paseo protocol/messages.ts:2561-2571 accepts an unbounded suggestion query.
+Directory-suggestions.ts:688-696 applies JS trim before normalization. Vessel
+intentionally caps the *raw* input at 256 Unicode scalar values, not UTF-8 bytes
+or JS UTF-16 units, to bound scoring and admission work. It also rejects every
+Unicode control and U+2028/U+2029 before trimming, including at the edges, so
+prohibited input cannot vanish through normalization. Only then does it reuse
+`workspace::trim_project_text` for JavaScript-compatible BOM/space trimming.
+BOM/space-only queries become blank child listings; interior BOM stays literal.
+These cap/control rules are explicit Vessel resource/one-line differences,
+not Paseo parity claims. Direct and serde fixtures cover Unicode scalars, raw
+length boundaries, BOM-wrapped input and edge/interior prohibited characters.

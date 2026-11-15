@@ -2,9 +2,10 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::{RelPath, WorkspaceRoot};
+use super::{RelPath, WorkspaceRoot, trim_project_text};
 
-/// Paseo's maximum query length is bounded here before any scan starts.
+/// Vessel resource floor on raw Unicode scalars before trim or disk work.
+/// Paseo's wire query is unbounded; this is a deliberate admission difference.
 pub const MAX_SUGGESTION_QUERY_CHARS: usize = 256;
 /// Paseo's picker default result count.
 pub const DEFAULT_SUGGESTIONS: u16 = 30;
@@ -68,10 +69,16 @@ impl TryFrom<String> for SuggestionQuery {
     type Error = InvalidSuggestionQuery;
 
     fn try_from(text: String) -> Result<Self, Self::Error> {
-        if text.chars().count() > MAX_SUGGESTION_QUERY_CHARS || text.chars().any(char::is_control) {
+        if text.chars().count() > MAX_SUGGESTION_QUERY_CHARS
+            || text.chars().any(|character| {
+                character.is_control() || matches!(character, '\u{2028}' | '\u{2029}')
+            })
+        {
             return Err(InvalidSuggestionQuery);
         }
-        Ok(Self(text.trim().to_owned()))
+        // Match JavaScript BOM/space trimming only after refusing controls; a
+        // prohibited edge control must not disappear before admission checks.
+        Ok(Self(trim_project_text(&text).to_owned()))
     }
 }
 
@@ -161,3 +168,7 @@ pub struct EntrySuggestions {
     /// Whether discovery reached its depth/entry budget or results were clipped.
     pub more: bool,
 }
+
+#[cfg(test)]
+#[path = "suggestions_tests.rs"]
+mod tests;
