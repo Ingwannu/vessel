@@ -305,9 +305,10 @@ No row of the crate table changes.
   before `LabelsChanged` or `Reloaded` is put on the wire. Reuse the existing
   gap-free redacted stand-ins once that shape exists, with no base-version or
   maximum-version fallback and no second projection technique.
-- The newly merged node head still predates the shared request accessor.
-  Value types and storage queries may progress; call registration and client
-  field wiring remain deferred until the designated accessor head arrives.
+- The latest merged node head now has the shared request accessor. Future
+  call and field admission must use it and the one method table. Work held
+  for the shared call-plumbing batch remains staged until that batch; event
+  availability still waits for the protocol owner's named shape.
 
 ## Resume point
 
@@ -319,7 +320,9 @@ No row of the crate table changes.
   its protocol constant, migration order and assigned labels schema win.
   Protocol assertions use the named constant. The only manual conflict keeps
   the head's inbox argument module/export and adds the log module/export.
-  The shared admission accessor is still pending.
+  The subsequent accessor head is merged before implementation begins. Its
+  existing Log export stays, with the LogMode export appended; no head
+  protocol, schema or expectation is changed.
 - Slice 2b keeps creation/current labels separately in durable storage.
   `lifecycle_version::SINCE` remains unassigned (`None`); both maps are
   hidden in direct replies, lists, subscriptions, saved/scheduled specs,

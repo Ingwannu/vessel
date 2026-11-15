@@ -53,6 +53,8 @@ use crate::transfer::{
 mod frames;
 mod older;
 mod requests;
+#[cfg(test)]
+pub(crate) mod samples;
 mod since;
 
 pub use frames::{ClientFrame, ClientInfo, Hello, ServerFrame, SubscriptionEnd, Welcome};

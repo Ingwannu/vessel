@@ -269,7 +269,9 @@ fn failure(error: CallError) -> Failure {
             negotiated,
         },
         CallError::Disconnected => Failure::Disconnected,
-        CallError::UnexpectedReply(_) | CallError::RequestIdsExhausted => Failure::Failed {
+        CallError::UnexpectedReply(_)
+        | CallError::RequestIdsExhausted
+        | CallError::UnassignedProtocol { .. } => Failure::Failed {
             message: error.to_string(),
         },
     }

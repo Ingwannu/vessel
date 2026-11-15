@@ -203,13 +203,27 @@ shown and a partial comparison cannot claim the commands are unchanged.
   both text and serde for Unix, drive and UNC paths; NUL keeps its own
   diagnostic. The absolute per-component limit remains a native execution
   check, with its reason in ADR 0066.
-- Then: add the nonempty allocation block and project-relative program
-  path described in ADR 0066. Reuse `RelPath`, `ExecPath` and validated
-  serde through private owners; share the existing JavaScript trim rule
-  across the input edges. A relative bare program is project-rooted,
+- Implemented refactor: one `trim_project_text` input rule now serves
+  port ranges and terminal entries. Their existing tests and digest vectors
+  are unchanged; a shared-rule test pins BOM, NEL and Unicode line/paragraph
+  separators. No accepted input, approval bytes or execution path changes.
+- Implemented value layer: `PortScript` privately owns a non-root relative
+  path or an `ExecPath`, reusing their validation after shared edge trimming.
+  `ServicePorts` privately owns the optional range and program and refuses
+  an empty block through both its constructor and serde. Unknown keys and
+  explicit null choices are refused. Six unit tests cover the typed paths,
+  source chains, trim behavior, nonempty block and strict serde; a TypeScript
+  feature test pins optional fields without nullable values. These types
+  are not yet reachable from the project-file parser or a wire reply.
+- Before port fields: ADR 0066 now defines the `ScriptEntry` construction
+  invariant and complete borrowed display view. The native lead owns its
+  constructor/getter and exhaustive-card adaptation; web coverage and
+  comparison must name nested entry fields too. No implementation yet.
+- Then: add the file parser, digest and approval fields. A relative bare
+  program is checkout-rooted, using a worktree's own copy in its own folder,
   unlike Paseo's PATH lookup; the execution test proving that selection
-  and relative-link containment remain owed. Then add
-  the file parser, digest, approval snapshots and exhaustive clients in
+  and relative-link containment remain owed. Add
+  approval snapshots and exhaustive clients in
   separate small changes. Runtime follows with approval and lifecycle
   tests. Returned review findings take priority.
 - Still unverified: Windows, actual shells, and negotiated support after

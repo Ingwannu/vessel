@@ -4,7 +4,7 @@
 use super::{MAX_COMMANDS, ProjectFileError, scripts};
 use serde::Deserialize;
 use sha2::{Digest as _, Sha256};
-use vessel_proto::workspace::FileTerminal;
+use vessel_proto::workspace::{FileTerminal, trim_project_text};
 
 /// Untrusted TOML stays here until its command and title have parsed.
 #[derive(Deserialize)]
@@ -25,26 +25,18 @@ fn one(raw: RawTerminal) -> Result<FileTerminal, ProjectFileError> {
     let command = raw
         .command
         .ok_or(ProjectFileError::TerminalMissingCommand)?;
-    let command = trim_entry(&command)
+    let command = trim_project_text(&command)
         .parse()
         .map_err(ProjectFileError::TerminalCommand)?;
     let name = raw
         .name
         .as_deref()
-        .map(trim_entry)
+        .map(trim_project_text)
         .filter(|name| !name.is_empty())
         .map(str::parse)
         .transpose()
         .map_err(ProjectFileError::TerminalName)?;
     Ok(FileTerminal { name, command })
-}
-
-// JavaScript trims BOM but keeps NEL; plain Rust trim would change an
-// approved command relative to Paseo before it reaches ProjectCommand.
-fn trim_entry(text: &str) -> &str {
-    text.trim_matches(|character: char| {
-        (character.is_whitespace() && character != '\u{0085}') || character == '\u{feff}'
-    })
 }
 
 /// Order is executable behaviour, so the approval must cover it.
