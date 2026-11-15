@@ -32,12 +32,7 @@ pub(super) fn apply(
             authority,
             source,
             done,
-        } => Answer::NotificationClaim(
-            done,
-            isolated(transaction, |connection| {
-                crate::notification_claims::claim(connection, authority, source)
-            }),
-        ),
+        } => notification_claim(transaction, authority, source, done),
         Write::Create { info, done } => write_answer(transaction, done, |connection| {
             log::create_session(connection, &info)
         }),
@@ -130,6 +125,22 @@ pub(super) fn apply(
             Answer::Done(done, applied)
         }
     }
+}
+
+// Keep the claim's existing savepoint and post-commit answer unchanged while
+// leaving the canonical writer dispatch below its per-function size budget.
+fn notification_claim(
+    transaction: &mut Transaction<'_>,
+    authority: crate::NotificationAuthority,
+    source: crate::PushAttention,
+    done: Done<crate::LocalAdmission>,
+) -> Answer {
+    Answer::NotificationClaim(
+        done,
+        isolated(transaction, |connection| {
+            crate::notification_claims::claim(connection, authority, source)
+        }),
+    )
 }
 
 // Both paths keep their existing savepoint, answer and post-commit wakeup.

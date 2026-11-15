@@ -431,3 +431,10 @@ run must restore own declarations from the merged Rust source; no generated
 union is hand-edited. Canonical generator whitespace is retained. The old
 LimitPercent defect is fixed by the head; any further TS result must be recorded
 from this merged source, not inferred from the earlier named-defect run.
+
+Merged-source strict run wp-inbox-node-20261115T163510Z-b028853c failed
+only on writer/apply's103-line dispatch after the canonical registry/detach
+addition. The own notification claim arm is extracted into a private helper,
+retaining its identical isolated savepoint, typed answer and commit boundary.
+No head branch, transaction, assertion or deadline changes. Existing immutable
+unit/TS/rollback runs retain b028 scope; changed-source strict remains owed.
