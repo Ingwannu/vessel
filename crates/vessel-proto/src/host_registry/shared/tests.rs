@@ -33,8 +33,17 @@ fn public_inventory_has_only_the_approved_serialized_fields() {
     assert_eq!(allowed.destination_name, row.destination_name);
     assert_eq!(allowed.label, row.label);
     assert_eq!(allowed.annotations, row.annotations);
-    let with_source = encoded.replacen('{', "{\"source\":{\"kind\":\"owner\"},", 1);
-    assert!(serde_json::from_str::<SharedHostRegistration>(&with_source).is_err());
+    for field in [
+        "source",
+        "revision",
+        "credentials",
+        "config",
+        "enabled",
+        "status",
+    ] {
+        let extra = encoded.replacen('{', &format!("{{\"{field}\":null,"), 1);
+        assert!(serde_json::from_str::<SharedHostRegistration>(&extra).is_err());
+    }
     let directory = SharedHostDirectory {
         node: NodeId::random(),
         hosts: vec![row].try_into().unwrap(),
