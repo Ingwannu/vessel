@@ -5,7 +5,9 @@
 use crate::shell::Shell;
 use std::time::Duration;
 use vessel_app_kit::ui::{Context, Window};
-use vessel_app_view::inbox::presence::{IdleAge, IdleSample};
+#[cfg(any(target_os = "linux", target_os = "freebsd"))]
+use vessel_app_view::inbox::presence::IdleAge;
+use vessel_app_view::inbox::presence::IdleSample;
 
 const INTERVAL: Duration = Duration::from_secs(5);
 #[cfg(any(target_os = "linux", target_os = "freebsd"))]
@@ -68,7 +70,8 @@ impl Probe {
         }
         #[cfg(not(any(target_os = "linux", target_os = "freebsd")))]
         {
-            let _context = cx;
+            // Keep one stateful probe interface even on an unsupported backend.
+            let _unknown = (self, cx);
             None
         }
     }

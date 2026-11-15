@@ -1,4 +1,4 @@
-//! Attention rows use existing controls. Opening a real TerminalId pane stays
+//! Attention rows use existing controls. Opening a real `TerminalId` pane stays
 //! at C2/W12's owner boundary; selecting an alert can always reveal this row.
 use crate::shell::Shell;
 use vessel_app_kit::theme::spacing::{S0, S2, S3};

@@ -112,14 +112,14 @@ impl Shell {
             (Action::Clear { terminal, .. }, Ok(ResultState::Cleared(state)))
                 if state.terminal == terminal =>
             {
-                self.inbox_refresh()
+                self.inbox_refresh();
             }
             (Action::Claim { .. } | Action::Clear { .. }, Err(problem)) => {
-                area.problem = Some(problem)
+                area.problem = Some(problem);
             }
             (Action::Clear { .. }, Ok(ResultState::Claim(_)))
             | (Action::Claim { .. } | Action::Clear { .. }, Ok(ResultState::Cleared(_))) => {
-                area.problem = Some(Problem::InvalidReply)
+                area.problem = Some(Problem::InvalidReply);
             }
         }
         true

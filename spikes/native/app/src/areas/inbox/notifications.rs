@@ -25,10 +25,10 @@ pub(super) fn listen(window: &Window, cx: &mut Context<'_, Shell>) {
             if let Some(key) = key.and_then(|tag| shell.areas.inbox.notice_routes.take(tag)) {
                 match key {
                     vessel_app_view::inbox::notices::Destination::Session(key) => {
-                        shell.inbox_select(key, cx)
+                        shell.inbox_select(key, cx);
                     }
                     vessel_app_view::inbox::notices::Destination::Terminal(key) => {
-                        shell.areas.inbox.terminals.selected = Some(key)
+                        shell.areas.inbox.terminals.selected = Some(key);
                     }
                 }
             }

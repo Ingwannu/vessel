@@ -467,3 +467,13 @@ and native opportunity/current-form gates now accept failed sources, preserving
 exact identity, unread, authority, once-only and focus checks. Web Push filters
 remain unchanged. New real-store and native opportunity regressions are owed
 execution; no source/runtime PASS is inferred from this correction.
+
+Native7ccf strict reached App and returned14 own diagnostics (private interface,
+unit-return semicolons, unused receiver, borrowed Source parameters, redundant
+method closures and one doc identifier). Fields are narrowed rather than types
+widened; input decoration becomes an associated helper; replies borrow their
+original Source without changing tickets/admission. The probe's X11-only import
+is cfg-gated; unsupported backends retain the same unknown-returning interface.
+No timing, scope, answer, notification or visibility rule changes. The earlier
+strict result remains red; changed App checks are required. Non-Linux compilation
+is not inferred from these source corrections.

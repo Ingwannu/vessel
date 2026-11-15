@@ -36,7 +36,7 @@ impl Shell {
             .machines
             .iter()
             .find(|item| item.name == machine)
-            .and_then(|item| item.connection_context())
+            .and_then(vessel_app_view::Machine::connection_context)
             .and_then(|context| vessel_app_view::inbox::Source::new(context).ok());
         self.areas.inbox.read_open = self.areas.inbox.read_source.as_ref().map(|source| Target {
             node: source.node(),
@@ -66,7 +66,7 @@ impl Shell {
                 .machines
                 .iter()
                 .find(|machine| machine.name == open.machine)
-                .and_then(|machine| machine.connection_context())
+                .and_then(vessel_app_view::Machine::connection_context)
                 .as_ref()
                 != Some(source.context())
         {

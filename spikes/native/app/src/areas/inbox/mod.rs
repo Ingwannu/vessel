@@ -28,7 +28,7 @@ pub(crate) struct InboxArea {
     pub(crate) window: gpui::AnyWindowHandle,
     pub(crate) admission: vessel_app_view::inbox::admission::Gate,
     pub(crate) granted: Vec<vessel_app_view::inbox::admission::Pending>,
-    pub(super) terminals: terminals::Terminals,
+    terminals: terminals::Terminals,
     pub(crate) detail: Detail,
     pub(crate) detail_source: Option<vessel_app_view::inbox::Source>,
     pub(crate) conversation: ConversationArea,

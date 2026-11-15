@@ -69,10 +69,10 @@ impl Shell {
                 }
             }
             Answer::Presence(source, result) => {
-                changed = self.inbox_presence_answer(source, result)
+                changed = self.inbox_presence_answer(&source, result);
             }
             Answer::Listed(source, request, result) => {
-                changed = self.inbox_listed(source, request, result, cx)
+                changed = self.inbox_listed(&source, request, result, cx);
             }
             Answer::Detail(source, key, request, result) => {
                 changed = false;
@@ -94,7 +94,7 @@ impl Shell {
         changed
     }
 
-    fn inbox_presence_answer(&mut self, source: Source, result: Result<(), Problem>) -> bool {
+    fn inbox_presence_answer(&mut self, source: &Source, result: Result<(), Problem>) -> bool {
         let mut changed = false;
         if self
             .areas
@@ -102,7 +102,7 @@ impl Shell {
             .store
             .nodes()
             .iter()
-            .any(|node| node.source == source)
+            .any(|node| node.source == *source)
         {
             changed = self
                 .areas
@@ -128,7 +128,7 @@ impl Shell {
 
     fn inbox_listed(
         &mut self,
-        source: Source,
+        source: &Source,
         request: Request,
         result: Result<Snapshot, Problem>,
         cx: &mut Context<'_, Self>,
@@ -138,7 +138,7 @@ impl Shell {
             .inbox
             .targets
             .iter()
-            .any(|target| matches!(target, Target::Online(known) if *known == source))
+            .any(|target| matches!(target, Target::Online(known) if known == source))
         {
             return false;
         }

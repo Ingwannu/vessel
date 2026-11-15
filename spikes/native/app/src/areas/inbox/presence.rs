@@ -49,7 +49,7 @@ impl Shell {
         }
     }
     /// Capture before descendant controls can consume a key or pointer press.
-    pub(crate) fn inbox_input(&self, content: Div, cx: &Context<'_, Self>) -> Div {
+    pub(crate) fn inbox_input(content: Div, cx: &Context<'_, Self>) -> Div {
         content
             .capture_key_down(
                 cx.listener(|shell, _event, window, _cx| shell.inbox_activity(window)),
