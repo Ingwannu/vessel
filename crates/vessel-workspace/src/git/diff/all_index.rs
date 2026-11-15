@@ -264,9 +264,16 @@ fn copy_index(
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
         Err(error) => return Err(error),
     };
-    let directory = tempfile::Builder::new()
-        .prefix("vessel-git-comparison-")
-        .tempdir_in(scratch)?;
+    let mut builder = tempfile::Builder::new();
+    let _prefix = builder.prefix("vessel-git-comparison-");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt as _;
+        // Temp directories otherwise start at 0777 masked by the process
+        // umask. Restrict at creation, before any repository index is copied.
+        let _mode = builder.permissions(std::fs::Permissions::from_mode(0o700));
+    }
+    let directory = builder.tempdir_in(scratch)?;
     if let Some(source) = source {
         let mut options = std::fs::OpenOptions::new();
         let _write = options.write(true).create_new(true);

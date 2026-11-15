@@ -38,11 +38,15 @@ is no production tempfile dependency, permission change or new transport yet.
 
 - Initial contract and committed resolver at 3611a6b4: protocol/workspace narrow
   clippy green; library tests 382 passed, 0 failed, 1 ignored.
-- All/private-index additions have not passed tests yet. At 77ef00b4 narrow
-  clippy returned discarded parse causes; corrected at 3353c2d4 with typed
-  source variants and source-chain tests. That check remains queued.
-- The later explicit scratch-parent change is not included in that queued
-  source. It requires its own changed-source narrow check.
+- All/private-index at 1bf60f28 passed all-target workspace clippy, then its
+  library tests returned 110 passed, 1 failed, 1 ignored. The failing actual
+  filesystem assertion found a 0755 scratch directory, because tempfile's
+  directory default is 0777 masked by the process umask. The corrected builder
+  requests 0700 at creation, before copying any index bytes; no process-wide
+  umask or post-creation chmod is used. Its changed-source check is pending.
+- Logs: `wp-git-node-narrow-20261115T072022Z-1bf60f28` (clippy),
+  `wp-git-node-narrow-20261115T073212Z-1bf60f28` (tests). Both compiled the
+  changed workspace crate. These are staged library checks, not node admission.
 - Post-base submissions of 4331b5b2/ea58824d ended before registration during a
   build-helper lock fault. They have no step evidence and were not rerun as
   successes. Registered earlier red/green runs remain unchanged.
