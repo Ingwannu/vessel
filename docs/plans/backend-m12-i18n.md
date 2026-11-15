@@ -1,3 +1,63 @@
+## Settings vocabulary package: Diagnostics and Chat
+
+Source checkpoint: Diagnostics `205f1e01`; native format, size, boundaries and
+tokens were repeated successfully after the interrupted outer check session.
+Chat is next; the package receives one whole native gate and one review under
+the common brief's package rule. Earlier exact-source approvals remain scoped.
+
+[Decision Log]
+- Purpose: let translators own every visible Chat sentence, including its
+  navigation title and both values of the display picker.
+- Existing assets: generated Fluent plain getters and the exhaustive About
+  role adapter already borrow prepared strings without frame-time formatting.
+- Alternatives: a new formatter/dependency or a Fluent selector for this closed
+  enum would add work during rendering without improving translation context.
+- Choice: extend the existing catalog with six whole messages and a typed
+  ConversationDisplay adapter. Keep the existing picker and preference path.
+- Why: labels have separate context from Appearance's content-width Full;
+  the shared width label stays in its current table until that area moves.
+- Effect: no dependency, behavior, default or geometry change. Paseo's
+  screens/settings/chat/chat-section.tsx lines 13–79 were read: its third
+  display and reasoning/outline switches remain the previously stated native
+  gaps, not changes made by this vocabulary package.
+
+Narrow view/app all-target Clippy passes, as do 855 view library tests and
+ten contract tests, including rejection of a key present in only English or
+only Korean. The native picker regression covers actual pseudo-language and
+Korean refresh with the preference/checked row and live composer caret intact.
+The final pseudo/Korean native picker test and repeated all-target Clippy pass.
+An initial test setup incorrectly tried to look up the pseudo tag in the public
+chooser registry; its intentional rejection exposed that setup error. The test
+now resolves pseudo through the checking override, exactly as the app does;
+the failed run remains in the evidence. Source coverage has no missing keys
+in either shipped language. Before Settings captures are retained from the
+previous exact binary; eight draft-screen frames were rejected and replaced
+by inspected captures of the intended screens.
+The package whole native gate and after screen comparisons are still owed.
+
+The Settings owner released chat.rs/diagnostics.rs words, the Display arms
+in choices.rs, their view fields/adapters/catalogs and the transitional
+SettingsText::section catalog argument. Other Settings sections and the
+sidebar/palette vocabulary remain outside this package.
+
+## About visual appendix: bounded reviewer pass
+
+For exact `0ca69ede`, independent review now passed the translated About
+labels, roles and licence rows within the inspected empty-state captures.
+All 252 original image hashes/dimensions and the retained app hash were
+verified independently; the reviewer personally opened 41 risk-selected
+originals, not all 252. The author opened all 252. Four viewport sizes,
+English/Korean/pseudo and both themes are covered at scale one; extra
+English/Korean top and initial-role frames cover scales 1.25, 1.5 and two.
+The existing source/native gate disposition is unchanged.
+
+This is not a blanket layout pass: About BEFORE/geometry parity is absent,
+and the known pseudo phone log-path column remains the layout owner's
+follow-up. It gives no updater I/O/install/restart, real-node fork/rewind,
+new Diagnostics/Chat, browser/wasm/Windows/real-GPU, accessibility or
+independent licence-audit approval. No unchanged gate/capture rerun was
+requested. The first failed scale-navigation attempt remains rejected.
+
 ## Diagnostics vocabulary (source ready; whole gate/UI owed)
 
 The lead released Diagnostics and Chat; Sidebar Display/palette vocabulary

@@ -4,7 +4,7 @@
 //! page" made "Vessel" where the app is meant.
 
 use super::Lang;
-use crate::prefs::{ContentWidth, ConversationDisplay, Kept, LaunchOnly, Theme, TurnDelivery};
+use crate::prefs::{ContentWidth, Kept, LaunchOnly, Theme, TurnDelivery};
 use crate::settings::{Group, Section};
 
 impl Lang {
@@ -59,13 +59,9 @@ pub struct SettingsText {
     pub layout: &'static str,
     pub content_width: &'static str,
     pub content_width_note: &'static str,
-    pub detail_level: &'static str,
     pub comfortable: &'static str,
     pub wide: &'static str,
     pub full: &'static str,
-    pub chat_display: &'static str,
-    pub chat_display_note: &'static str,
-    pub collapse_tools: &'static str,
     // About.
     pub about_lead: &'static str,
     pub version: &'static str,
@@ -116,13 +112,9 @@ const EN: SettingsText = SettingsText {
     layout: "Layout",
     content_width: "Content width",
     content_width_note: "Max width of chat and Markdown files on wide screens",
-    detail_level: "Detail level",
     comfortable: "Comfortable",
     wide: "Wide",
     full: "Full",
-    chat_display: "Chat display",
-    chat_display_note: "How much of an agent's work the chat shows",
-    collapse_tools: "Collapse tool calls",
     about_lead: "This app's version and licence, and each machine's.",
     version: "Version",
     licence: "Licence",
@@ -180,13 +172,9 @@ const KO: SettingsText = SettingsText {
     layout: "레이아웃",
     content_width: "콘텐츠 너비",
     content_width_note: "와이드 화면에서 채팅과 Markdown 파일의 최대 너비",
-    detail_level: "세부 수준",
     comfortable: "편안하게",
     wide: "넓게",
     full: "전체",
-    chat_display: "채팅 표시",
-    chat_display_note: "채팅에 표시할 에이전트 작업의 양",
-    collapse_tools: "도구 호출 접기",
     about_lead: "이 앱과 각 머신의 버전과 라이선스.",
     version: "버전",
     licence: "라이선스",
@@ -240,7 +228,7 @@ impl SettingsText {
             (Lang::En, Section::General) => "General",
             (Lang::En, Section::Appearance) => "Appearance",
             (Lang::En, Section::Sidebar) => "Sidebar",
-            (Lang::En, Section::Chat) => "Chat",
+            (_, Section::Chat) => catalog.chat().title(),
             (Lang::En, Section::Terminal) => "Terminal",
             (Lang::En, Section::Browser) => "Browser",
             (Lang::En, Section::Editor) => "Editor",
@@ -268,7 +256,6 @@ impl SettingsText {
             (Lang::Ko, Section::General) => "일반",
             (Lang::Ko, Section::Appearance) => "모양",
             (Lang::Ko, Section::Sidebar) => "사이드바",
-            (Lang::Ko, Section::Chat) => "채팅",
             (Lang::Ko, Section::Browser) => "브라우저",
             (Lang::Ko, Section::Editor) => "편집기",
             (Lang::Ko, Section::Files) => "파일",
@@ -360,15 +347,6 @@ impl SettingsText {
             ContentWidth::Comfortable => self.comfortable,
             ContentWidth::Wide => self.wide,
             ContentWidth::Full => self.full,
-        }
-    }
-
-    /// A display's name.
-    #[must_use]
-    pub const fn display(&self, display: ConversationDisplay) -> &'static str {
-        match display {
-            ConversationDisplay::Full => self.full,
-            ConversationDisplay::CollapseTools => self.collapse_tools,
         }
     }
 

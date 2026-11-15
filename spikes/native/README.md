@@ -795,6 +795,11 @@ the answer boundary for live retranslation. Typed fork/origin-read failures and
 unknown empty-fork reasons choose whole recovery sentences; original diagnostics
 remain in logs/session state. An uncertain fork asks to check the session list
 before retrying.
+Settings Chat uses `chat.ftl` for its section title, display row and choices;
+the typed adapter borrows prepared labels. A live language change rewords the
+existing picker while preserving its selected preference. Content-width labels
+remain in their Appearance area until that area moves.
+
 Settings Diagnostics controls use `diagnostics.ftl`. Its copied notice rewords
 on a language change while the collected report and clipboard data stay fixed.
 The technical report keeps its stable English schema and existing redaction,
