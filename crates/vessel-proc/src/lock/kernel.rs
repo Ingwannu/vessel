@@ -1,7 +1,7 @@
 //! Linux exposes flock writers by file identity without acquiring the lock.
-//! One decoder remains shared with later descriptor verification.
+//! One decoder is shared with the candidate descriptor verification.
 
-use super::{KernelLock, LockFileIdentity, NodeProcess};
+use super::{KernelLock, KernelWriter, LockFileIdentity, NodeProcess};
 use std::io::{self, Read};
 use std::path::Path;
 
@@ -28,7 +28,7 @@ impl LockTable {
         Ok(Self(text))
     }
 
-    fn writer(&self, file: &LockFileIdentity) -> Result<Option<KernelLock>, DecodeError> {
+    fn writer(&self, file: &LockFileIdentity) -> Result<Option<KernelWriter>, DecodeError> {
         let mut found = None;
         for line in self.0.lines() {
             let Some(writer) = writer(line, file)? else {
@@ -66,17 +66,30 @@ enum DecodeError {
 /// The snapshot supplies no signal authority.
 ///
 /// # Errors
-/// The lock metadata or bounded procfs table cannot be read/decoded.
+/// The metadata/table/descriptor records cannot be read or decoded, or the
+/// candidate cannot be shown to possess the selected locked description.
 pub fn observe(path: &Path) -> io::Result<Option<KernelLock>> {
     let file = match identity(path) {
         Ok(file) => file,
         Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
         Err(error) => return Err(error),
     };
-    LockTable::read()?.writer(&file).map_err(io::Error::other)
+    let Some(writer) = LockTable::read()?.writer(&file).map_err(io::Error::other)? else {
+        return Ok(None);
+    };
+    let descriptor = super::descriptor::Proof::capture(&writer)?;
+    Ok(Some(KernelLock {
+        process: writer.process,
+        file: writer.file,
+        descriptor,
+    }))
 }
 
-fn identity(path: &Path) -> io::Result<LockFileIdentity> {
+/// Reuse Linux device/inode decoding for a candidate's descriptor metadata.
+///
+/// # Errors
+/// The metadata cannot be read or represented by the existing identity rule.
+pub(super) fn identity(path: &Path) -> io::Result<LockFileIdentity> {
     use std::os::unix::fs::MetadataExt as _;
     let metadata = std::fs::metadata(path)?;
     let device = metadata.dev();
@@ -99,7 +112,18 @@ fn identity(path: &Path) -> io::Result<LockFileIdentity> {
     })
 }
 
-fn writer(line: &str, selected: &LockFileIdentity) -> Result<Option<KernelLock>, DecodeError> {
+/// The FD block uses exactly the selected-file decoder used by the lock table.
+///
+/// # Errors
+/// Preserve the existing line-decoder cause inside an I/O error.
+pub(super) fn descriptor_writer(
+    line: &str,
+    selected: &LockFileIdentity,
+) -> io::Result<Option<KernelWriter>> {
+    writer(line, selected).map_err(io::Error::other)
+}
+
+fn writer(line: &str, selected: &LockFileIdentity) -> Result<Option<KernelWriter>, DecodeError> {
     let mut fields = line.split_whitespace();
     let _sequence = fields.next();
     // A blocked waiter, a POSIX range or a read lock is no exclusive flock.
@@ -126,7 +150,7 @@ fn writer(line: &str, selected: &LockFileIdentity) -> Result<Option<KernelLock>,
         return Ok(None);
     }
     let process = process.parse().map_err(DecodeError::Number)?;
-    let writer = KernelLock {
+    let writer = KernelWriter {
         process: NodeProcess(process),
         file,
     };

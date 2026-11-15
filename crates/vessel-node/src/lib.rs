@@ -128,3 +128,11 @@ pub use terminals::{KNOWN_CREDENTIALS, Shell, TerminalsConfig, credentials_in};
 pub use vessel_store::{ByteCount, DataDir, NodeToken, Retention, StoreConfig, StoreError};
 /// Local lifecycle commands share the node's persistent lock rather than a PID file.
 pub use vessel_store::{KernelLock, KernelProbe, NodeLock};
+
+// The first speech consumer removes staging after its product wiring.
+#[cfg(test)]
+mod speech_audio;
+
+// The first connection-owned resource wires this into the real context once.
+#[cfg(test)]
+mod connection_life;
