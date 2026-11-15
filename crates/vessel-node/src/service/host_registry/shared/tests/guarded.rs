@@ -35,86 +35,9 @@ async fn guarded_public_inventory_reads_across_sources_without_widening_private_
         let expected = seed(&node, device).await;
         let before = data.read_host_registry().unwrap();
         let (client, context, closing, serving) = context(&node).await;
-        let local = node.secure.lifecycle.info().id;
-        let reader = context.acting_as(Principal::Agent {
-            node: local,
-            session: SessionId::random(),
-            scopes: vec![Scope::Read],
-        });
-        let public = node
-            .secure
-            .service
-            .list_shared_host_registrations(&reader, ListSharedHostRegistrations)
-            .await
-            .unwrap();
-        assert_eq!(public.node, local);
-        assert_eq!(
-            public
-                .hosts
-                .entries()
-                .iter()
-                .map(|row| row.registration_id)
-                .collect::<Vec<_>>(),
-            expected
-        );
-        assert!(
-            public
-                .hosts
-                .entries()
-                .iter()
-                .all(|row| row.destination_name.is_none())
-        );
-        let private = node
-            .secure
-            .service
-            .list_host_registrations(&reader, ListHostRegistrations)
-            .await
-            .unwrap_err();
-        assert_eq!(private.code, ErrorCode::Forbidden);
-        let owner_rows = node
-            .secure
-            .service
-            .list_host_registrations(&context, ListHostRegistrations)
-            .await
-            .unwrap();
-        assert_eq!(owner_rows.hosts.len(), 1);
-        let paired = context.acting_as(Principal::Device {
-            id: device,
-            scopes: vec![Scope::Read],
-        });
-        assert_eq!(
-            node.secure
-                .service
-                .list_host_registrations(&paired, ListHostRegistrations)
-                .await
-                .unwrap()
-                .hosts
-                .len(),
-            1
-        );
-        for principal in [
-            Principal::Agent {
-                node: local,
-                session: SessionId::random(),
-                scopes: vec![],
-            },
-            Principal::Agent {
-                node: NodeId::random(),
-                session: SessionId::random(),
-                scopes: vec![Scope::Read],
-            },
-        ] {
-            let refused = node
-                .secure
-                .service
-                .list_shared_host_registrations(
-                    &context.acting_as(principal),
-                    ListSharedHostRegistrations,
-                )
-                .await
-                .unwrap_err();
-            assert_eq!(refused.code, ErrorCode::Forbidden);
-        }
+        let reader = public_read(&node, &context, &expected).await;
+        private_reads(&node, &context, &reader, device).await;
+        refused_readers(&node, &context).await;
         assert_eq!(
             data.read_host_registry().unwrap().entries(),
             before.entries()
@@ -185,4 +108,100 @@ async fn context(node: &Node) -> (NodeClient, Connection, CancellationToken, Joi
     .await
     .unwrap();
     (client, received.await.unwrap(), closing, serving)
+}
+
+async fn public_read(
+    node: &Node,
+    context: &Connection,
+    expected: &[HostRegistrationId],
+) -> Connection {
+    let local = node.secure.lifecycle.info().id;
+    let reader = context.acting_as(Principal::Agent {
+        node: local,
+        session: SessionId::random(),
+        scopes: vec![Scope::Read],
+    });
+    let public = node
+        .secure
+        .service
+        .list_shared_host_registrations(&reader, ListSharedHostRegistrations)
+        .await
+        .unwrap();
+    assert_eq!(public.node, local);
+    assert_eq!(
+        public
+            .hosts
+            .entries()
+            .iter()
+            .map(|row| row.registration_id)
+            .collect::<Vec<_>>()
+            .as_slice(),
+        expected
+    );
+    assert!(
+        public
+            .hosts
+            .entries()
+            .iter()
+            .all(|row| row.destination_name.is_none())
+    );
+    reader
+}
+
+async fn private_reads(node: &Node, context: &Connection, reader: &Connection, device: DeviceId) {
+    let private = node
+        .secure
+        .service
+        .list_host_registrations(reader, ListHostRegistrations)
+        .await
+        .unwrap_err();
+    assert_eq!(private.code, ErrorCode::Forbidden);
+    let owner_rows = node
+        .secure
+        .service
+        .list_host_registrations(context, ListHostRegistrations)
+        .await
+        .unwrap();
+    assert_eq!(owner_rows.hosts.len(), 1);
+    let paired = context.acting_as(Principal::Device {
+        id: device,
+        scopes: vec![Scope::Read],
+    });
+    assert_eq!(
+        node.secure
+            .service
+            .list_host_registrations(&paired, ListHostRegistrations)
+            .await
+            .unwrap()
+            .hosts
+            .len(),
+        1
+    );
+}
+
+async fn refused_readers(node: &Node, context: &Connection) {
+    let local = node.secure.lifecycle.info().id;
+    for principal in [
+        Principal::Agent {
+            node: local,
+            session: SessionId::random(),
+            scopes: vec![],
+        },
+        Principal::Agent {
+            node: NodeId::random(),
+            session: SessionId::random(),
+            scopes: vec![Scope::Read],
+        },
+    ] {
+        let refused = node
+            .secure
+            .service
+            .list_shared_host_registrations(
+                &context.acting_as(principal),
+                ListSharedHostRegistrations,
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(refused.code, ErrorCode::Forbidden);
+    }
 }
