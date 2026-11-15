@@ -112,7 +112,11 @@ mod tests {
     }
     #[test]
     fn opaque_open_routes_are_bounded_consumed_once_and_do_not_guess_after_restart() {
-        let key = Key { node: vessel_proto::NodeId::random(), session: vessel_proto::SessionId::random(), seq: vessel_proto::EventSeq::new(1) };
+        let key = Key {
+            node: vessel_proto::NodeId::random(),
+            session: vessel_proto::SessionId::random(),
+            seq: vessel_proto::EventSeq::new(1),
+        };
         let tag = DeliveryTag::new([1; 16]);
         let mut routes = NoticeRoutes::default();
         routes.remember(tag, key);
@@ -123,11 +127,13 @@ mod tests {
         for index in 0..total {
             let mut bytes = [0; 16];
             let encoded = u64::try_from(index).unwrap().to_le_bytes();
-            bytes.get_mut(..encoded.len()).unwrap().copy_from_slice(&encoded);
+            bytes
+                .get_mut(..encoded.len())
+                .unwrap()
+                .copy_from_slice(&encoded);
             routes.remember(DeliveryTag::new(bytes), key);
         }
         assert_eq!(routes.0.len(), MAX_PENDING_NOTICES);
         assert_eq!(routes.take(DeliveryTag::new([0; 16])), None);
     }
-
 }

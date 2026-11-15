@@ -25,8 +25,8 @@
 //!   echo, or standard input), never a command line. `set_secret`,
 //!   `secret_names` and `delete_secret` are what protocol 6's `secret.set`,
 //!   `secret.list` and `secret.delete` (admin) call. No call reads a value
-//!   back out; `secret_value` only feeds `secret.copy`, which sends it to
-//!   another node's store as `secret.set`.
+//!   back out. Internal consumers resolve non-serializable values for sensitive
+//!   request headers; `secret_value` only feeds `secret.copy` into another store.
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -147,9 +147,8 @@ pub fn secret_names(files: &FleetFiles) -> Result<Vec<SecretName>, SecretsError>
     Ok(secrets.names().cloned().collect())
 }
 
-/// The value of secret `name`, for `secret.copy` to send on to another
-/// node's store (the only way a value leaves this file); `None` if it is
-/// not set. Blocks.
+/// The wire value for `secret.copy` into another node's store. Internal
+/// consumers use `resolved_secret` so their value cannot be serialized. Blocks.
 ///
 /// # Errors
 /// See [`SecretsError`].
@@ -157,10 +156,24 @@ pub(crate) fn secret_value(
     files: &FleetFiles,
     name: &SecretName,
 ) -> Result<Option<SecretValue>, SecretsError> {
-    let (secrets, _digest) = read(files)?;
-    Ok(secrets
-        .get(name)
-        .map(|value| SecretValue::new(value.expose().to_owned())))
+    files
+        .resolved_secret(name)
+        .map(|value| value.map(|value| SecretValue::new(value.expose().to_owned())))
+}
+
+impl FleetFiles {
+    /// Resolve for this node's sensitive headers without a wire getter.
+    /// Blocks; asynchronous callers must use a blocking worker.
+    ///
+    /// # Errors
+    /// The existing typed store refusal, which never contains secret values.
+    pub(crate) fn resolved_secret(
+        &self,
+        name: &SecretName,
+    ) -> Result<Option<ResolvedValue>, SecretsError> {
+        let (secrets, _digest) = read(self)?;
+        Ok(secrets.get(name))
+    }
 }
 
 /// Set secret `name` to `value` in `secrets.toml` (created owner-only),

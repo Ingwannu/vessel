@@ -20,6 +20,13 @@ pub enum HarnessError {
         /// The binary that was looked for.
         binary: &'static str,
     },
+    /// The session cannot run over its agent's own protocol: a terminal
+    /// session, or an agent with no direct driver (ADR 0057).
+    #[error("{harness} has no direct driver for this session")]
+    NoDirect {
+        /// Which agent.
+        harness: HarnessRef,
+    },
     /// Structured mode cannot run on this node (for example its ACP adapter
     /// is missing).
     #[error("{harness} cannot run in structured mode: {reason}")]

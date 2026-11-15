@@ -465,7 +465,7 @@ impl<'de> Deserialize<'de> for ConfigValue {
     }
 }
 
-/// A value with secrets filled in, for launching a session on this node.
+/// A resolved value for this node's process environments or request headers.
 /// It has no serde implementation on purpose (the module notes say why),
 /// and its `Debug` is redacted.
 #[derive(Clone, PartialEq, Eq)]

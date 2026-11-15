@@ -264,7 +264,8 @@ fn node_error(error: &CallError) -> String {
         other @ (CallError::Disconnected
         | CallError::UnexpectedReply(_)
         | CallError::RequestIdsExhausted
-        | CallError::NotInProtocol { .. }) => other.to_string(),
+        | CallError::NotInProtocol { .. }
+        | CallError::UnassignedProtocol { .. }) => other.to_string(),
     }
 }
 
