@@ -179,3 +179,17 @@ connection_ready fanout, observes Connected before an equal Fleet, and checks
 that a delayed old response cannot restore its copyable facts. This does not
 claim the notice proves Read authority or a retained healthy connection; the
 actual read still owns refusal and timeout outcomes.
+
+### Validation resume
+
+L accepted the final EN/KO wording and catalog shape (no app/security/gate
+approval implied). Golden tests now cover every Problem recovery in both
+languages and every progress status, including partial coverage. A canonical
+complete typed fixture also exercises successful full coverage independently
+from the existing partial-source fixtures.
+
+The typed-consumer narrow submit b7a9d390 was never registered due to the build
+service's global cleanup-lock stall. Its owner confirmed the exact absent SHA
+and authorized one fixed-SHA resubmission after repair. That infrastructure
+interruption is not a compilation/test failure. Current source still owes
+updated narrow Clippy, scoped diagnostics tests, captures and the final gate.

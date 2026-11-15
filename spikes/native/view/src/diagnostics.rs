@@ -169,3 +169,6 @@ pub use redaction::redact;
 #[cfg(test)]
 #[path = "diagnostics/words_tests.rs"]
 mod words_tests;
+
+#[cfg(test)]
+mod fixture;

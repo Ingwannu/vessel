@@ -2,7 +2,14 @@
 use super::*;
 use crate::devices::{MachineKey, Tickets};
 use crate::diagnostics::collection::{Collection, HostResult, NodeFacts, Phase, Progress};
-use vessel_proto::{DurationMs, NodeState, ProtocolVersion, diagnostics::*};
+use vessel_proto::{
+    DurationMs, NodeState, ProtocolVersion,
+    diagnostics::{
+        DiagnosticArch, DiagnosticCount, DiagnosticHome, DiagnosticNode, DiagnosticOs,
+        DiagnosticReport, DiagnosticReportFields, DiagnosticRuntimeSessions, DiagnosticSection,
+        DiagnosticUnavailable,
+    },
+};
 fn missing<T>() -> DiagnosticSection<T> {
     DiagnosticSection::Unavailable {
         reason: DiagnosticUnavailable::NotChecked,
@@ -120,5 +127,46 @@ fn a_report_for_another_admitted_node_cannot_enter_the_copyable_result() {
             .unwrap()
             .as_str()
             .contains("Runtime sessions")
+    );
+}
+
+#[test]
+fn a_complete_typed_report_is_distinct_from_partial_coverage() {
+    let id = NodeId::random();
+    let report = crate::diagnostics::fixture::complete(id);
+    assert!(report.complete());
+    let mut tickets = Tickets::default();
+    let ticket = tickets.next_ticket().unwrap();
+    let machine = MachineKey::from_book("host");
+    let mut collection = Collection::default();
+    collection.start(
+        ticket,
+        ReportText::new("Client").unwrap(),
+        [(machine.clone(), Ok(()))],
+    );
+    collection.running(ticket, &machine);
+    collection.answer(
+        ticket,
+        &machine,
+        Ok(HostResult {
+            admitted: id,
+            facts: Ok(NodeFacts {
+                node: id,
+                protocol: ProtocolVersion::new(13),
+                state: NodeState::Serving,
+            }),
+            daemon: report,
+        }),
+    );
+    assert!(matches!(
+        collection.rows().first().unwrap().progress,
+        Progress::Done(_)
+    ));
+    assert!(
+        !collection
+            .report()
+            .unwrap()
+            .as_str()
+            .contains("Unavailable:")
     );
 }
