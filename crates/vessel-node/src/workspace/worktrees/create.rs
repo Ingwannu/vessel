@@ -78,11 +78,7 @@ impl Workspaces {
         let project = request.project;
         let (root, default_branch) = {
             let mut state = self.state();
-            if state.worktrees.contains_key(&id) {
-                return Err(WorkspaceError::Conflict(
-                    "the reserved worktree identity already exists".to_owned(),
-                ));
-            }
+            require_new_worktree_id(&state, id)?;
             let entry = state
                 .projects
                 .get(&project)
@@ -323,4 +319,14 @@ async fn canonical(path: PathBuf) -> PathBuf {
     tokio::task::spawn_blocking(move || std::fs::canonicalize(&path).unwrap_or(path))
         .await
         .unwrap_or_default()
+}
+
+/// A durably reserved identity must never replay an already-registered backing effect.
+fn require_new_worktree_id(state: &State, id: WorktreeId) -> Result<(), WorkspaceError> {
+    if state.worktrees.contains_key(&id) {
+        return Err(WorkspaceError::Conflict(
+            "the reserved worktree identity already exists".to_owned(),
+        ));
+    }
+    Ok(())
 }

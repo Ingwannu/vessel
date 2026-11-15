@@ -205,7 +205,7 @@ impl Workspaces {
                 path,
                 title: reservation.intent.title.clone(),
                 automation: reservation.intent.automation.clone(),
-                pin: Default::default(),
+                pin: vessel_proto::registry::WorkspacePin::Unpinned,
                 backing,
                 lifecycle: WorkspaceLifecycle::Active,
                 visibility: reservation.intent.visibility,

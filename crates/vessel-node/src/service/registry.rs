@@ -12,7 +12,7 @@ use vessel_proto::registry::{
 use vessel_proto::{ErrorCode, WireError, WorkspaceId};
 use vessel_store::{RegistryRecord, StoreError};
 
-fn wire(error: StoreError) -> WireError {
+fn wire(error: &StoreError) -> WireError {
     WireError::new(error.code(), error.to_string())
 }
 
@@ -27,7 +27,7 @@ impl NodeService {
             .store()
             .release_registry_automation(request)
             .await
-            .map_err(wire)?;
+            .map_err(|error| wire(&error))?;
         self.registry_record(id)
             .await
             .map(|record| record.descriptor)
@@ -40,7 +40,10 @@ impl NodeService {
     ) -> Result<RegistrySnapshot, WireError> {
         let store = self.sessions.store();
         let mut changes = store.registry_changes();
-        let mut stored = store.workspace_registry().await.map_err(wire)?;
+        let mut stored = store
+            .workspace_registry()
+            .await
+            .map_err(|error| wire(&error))?;
         let mut wait = request
             .changed_from
             .filter(|revision| *revision == stored.revision)
@@ -55,7 +58,10 @@ impl NodeService {
             let _settled =
                 tokio::time::timeout(Duration::from_secs(u64::from(seconds)), changes.changed())
                     .await;
-            stored = store.workspace_registry().await.map_err(wire)?;
+            stored = store
+                .workspace_registry()
+                .await
+                .map_err(|error| wire(&error))?;
         }
         Ok(RegistrySnapshot {
             node: here,
@@ -75,7 +81,7 @@ impl NodeService {
             .store()
             .workspace_registry()
             .await
-            .map_err(wire)?;
+            .map_err(|error| wire(&error))?;
         Ok(stored
             .workspaces
             .into_iter()
@@ -138,7 +144,7 @@ impl NodeService {
             .store()
             .registry_workspace(id)
             .await
-            .map_err(wire)?
+            .map_err(|error| wire(&error))?
             .ok_or_else(|| {
                 WireError::new(
                     ErrorCode::NotFound,
@@ -173,7 +179,7 @@ impl NodeService {
             .store()
             .put_registry_workspace(record, Some(expected))
             .await
-            .map_err(wire)?;
+            .map_err(|error| wire(&error))?;
         Ok(descriptor)
     }
 }

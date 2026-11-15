@@ -23,7 +23,7 @@ fn record(id: WorkspaceId) -> RegistryRecord {
             path: "/work/project".into(),
             automation: vessel_proto::registry::WorkspaceAutomation::Allowed,
             title: None,
-            pin: Default::default(),
+            pin: vessel_proto::registry::WorkspacePin::Unpinned,
             backing: WorkspaceBacking::Local,
             lifecycle: WorkspaceLifecycle::Active,
             visibility: WorkspaceVisibility::Foreground,
