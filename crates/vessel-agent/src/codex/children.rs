@@ -25,8 +25,7 @@ pub(super) struct Children {
     budget: ChildBudget,
     supported: bool,
     resumed: bool,
-    ingestion_gap: bool,
-    nesting_gap: bool,
+    reported_gaps: Vec<ChildGap>,
 }
 impl Children {
     pub(super) fn new(resumed: bool) -> Self {
@@ -35,8 +34,7 @@ impl Children {
             budget: ChildBudget::default(),
             supported: false,
             resumed,
-            ingestion_gap: false,
-            nesting_gap: false,
+            reported_gaps: Vec::new(),
         }
     }
     pub(super) fn observe(&mut self, root: &str, method: &str, params: &Value) -> Vec<AgentEvent> {
@@ -81,7 +79,7 @@ impl Children {
         } else {
             proposed.push(descriptor.clone());
         }
-        ChildDescriptors::try_from(proposed).map_err(|error| match error {
+        let _validated = ChildDescriptors::try_from(proposed).map_err(|error| match error {
             vessel_proto::subagents::InvalidChildCollection::Identity => ChildGap::Nesting,
             vessel_proto::subagents::InvalidChildCollection::Count
             | vessel_proto::subagents::InvalidChildCollection::Bytes
@@ -97,7 +95,7 @@ impl Children {
                 return Err(ChildGap::IngestionBudget);
             }
             self.budget = budget;
-            self.entries.insert(
+            let _previous = self.entries.insert(
                 descriptor.id.clone(),
                 Child {
                     descriptor: descriptor.clone(),
@@ -110,16 +108,10 @@ impl Children {
         Ok(event(ProviderObservation::Descriptor { descriptor }))
     }
     fn gap(&mut self, reason: ChildGap) -> Vec<AgentEvent> {
-        let reported = match reason {
-            ChildGap::Nesting => &mut self.nesting_gap,
-            ChildGap::IngestionBudget | ChildGap::ScanBudget | ChildGap::Retention => {
-                &mut self.ingestion_gap
-            }
-        };
-        if *reported {
+        if self.reported_gaps.contains(&reason) {
             return Vec::new();
         }
-        *reported = true;
+        self.reported_gaps.push(reason);
         vec![event(ProviderObservation::Gap { reason })]
     }
     fn wrap(&mut self, id: &ProviderChildId, events: Vec<AgentEvent>) -> Vec<AgentEvent> {

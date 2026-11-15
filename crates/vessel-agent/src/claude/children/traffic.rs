@@ -32,7 +32,7 @@ impl Children {
             }
         }
         self.budget = budget;
-        self.aliases.insert(key.clone(), key.clone());
+        let _previous = self.aliases.insert(key.clone(), key.clone());
         Some(key)
     }
     pub(super) fn stream(&mut self, frame: &StreamEvent) -> Vec<AgentEvent> {
@@ -103,7 +103,7 @@ impl Children {
             }
         }
         for tool in owners {
-            self.owners.insert(tool, id.clone());
+            let _previous = self.owners.insert(tool, id.clone());
         }
         let mut frame = frame.clone();
         frame.parent_tool_use_id = None;

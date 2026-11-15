@@ -35,7 +35,7 @@ fn messages(events: &[AgentEvent], child: &str) -> Vec<String> {
 #[test]
 fn actual_receivers_are_readonly_children_with_unknown_unreported_status() {
     let mut children = Children::new(false);
-    feed(
+    let _observed = feed(
         &mut children,
         "item/completed",
         spawn("root", "child", None),
@@ -54,7 +54,7 @@ fn actual_receivers_are_readonly_children_with_unknown_unreported_status() {
 #[test]
 fn parent_tool_completion_does_not_complete_a_running_child_and_actual_child_turn_does() {
     let mut children = Children::new(false);
-    feed(
+    let _observed = feed(
         &mut children,
         "item/completed",
         spawn("root", "child", Some("running")),
@@ -64,7 +64,7 @@ fn parent_tool_completion_does_not_complete_a_running_child_and_actual_child_tur
         children.entries[&id].descriptor.status,
         Some(ChildStatus::Running)
     );
-    feed(
+    let _observed = feed(
         &mut children,
         "turn/completed",
         json!({"threadId":"child","turn":{"id":"t","status":"completed"}}),
@@ -77,8 +77,8 @@ fn parent_tool_completion_does_not_complete_a_running_child_and_actual_child_tur
 #[test]
 fn nested_routes_use_actual_sender_and_same_item_ids_do_not_merge_siblings() {
     let mut children = Children::new(false);
-    feed(&mut children, "item/completed", spawn("root", "a", None));
-    feed(&mut children, "item/completed", spawn("a", "b", None));
+    let _observed = feed(&mut children, "item/completed", spawn("root", "a", None));
+    let _observed = feed(&mut children, "item/completed", spawn("a", "b", None));
     let a = "a".parse::<ProviderChildId>().unwrap();
     let b = "b".parse::<ProviderChildId>().unwrap();
     assert_eq!(children.entries[&b].descriptor.parent, Some(a));
@@ -100,7 +100,7 @@ fn nested_routes_use_actual_sender_and_same_item_ids_do_not_merge_siblings() {
 #[test]
 fn unrelated_threads_cannot_create_routes_or_pollute_an_existing_child() {
     let mut children = Children::new(false);
-    feed(
+    let _observed = feed(
         &mut children,
         "item/completed",
         spawn("unrelated", "child", Some("running")),
@@ -147,7 +147,7 @@ fn reannouncement_deduplicates_prompts_and_resume_discloses_missing_native_prefi
 fn route_saturation_is_partial_without_evicting_known_lifecycle() {
     let mut children = Children::new(false);
     for n in 0..=vessel_proto::subagents::bounds::MAX_CHILDREN {
-        feed(
+        let _observed = feed(
             &mut children,
             "item/completed",
             spawn("root", &format!("child-{n}"), Some("running")),
@@ -157,8 +157,8 @@ fn route_saturation_is_partial_without_evicting_known_lifecycle() {
         children.entries.len(),
         vessel_proto::subagents::bounds::MAX_CHILDREN
     );
-    assert!(children.ingestion_gap);
-    feed(
+    assert!(children.reported_gaps.contains(&ChildGap::IngestionBudget));
+    let _observed = feed(
         &mut children,
         "item/completed",
         spawn("root", "child-0", Some("completed")),

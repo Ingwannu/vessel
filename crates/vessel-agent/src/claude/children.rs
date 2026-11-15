@@ -30,8 +30,7 @@ pub(super) struct Children {
     saw_tasks: bool,
     supported: bool,
     resumed: bool,
-    ingestion_gap: bool,
-    nesting_gap: bool,
+    reported_gaps: Vec<ChildGap>,
 }
 impl Children {
     pub(super) fn new(resumed: bool) -> Self {
@@ -44,8 +43,7 @@ impl Children {
             saw_tasks: false,
             supported: false,
             resumed,
-            ingestion_gap: false,
-            nesting_gap: false,
+            reported_gaps: Vec::new(),
         }
     }
     pub(super) fn observe(&mut self, frame: &Frame) -> Vec<AgentEvent> {
@@ -93,13 +91,12 @@ impl Children {
             .iter()
             .map(|entry| entry.descriptor.clone())
             .collect::<Vec<_>>();
-        let index = self.index(&descriptor.id);
-        if let Some(index) = index {
-            proposed[index] = descriptor.clone();
+        if let Some(row) = proposed.iter_mut().find(|row| row.id == descriptor.id) {
+            *row = descriptor.clone();
         } else {
             proposed.push(descriptor.clone());
         }
-        ChildDescriptors::try_from(proposed).map_err(|error| match error {
+        let _validated = ChildDescriptors::try_from(proposed).map_err(|error| match error {
             vessel_proto::subagents::InvalidChildCollection::Identity => ChildGap::Nesting,
             vessel_proto::subagents::InvalidChildCollection::Count
             | vessel_proto::subagents::InvalidChildCollection::Bytes
@@ -107,8 +104,12 @@ impl Children {
                 ChildGap::IngestionBudget
             }
         })?;
-        if let Some(index) = index {
-            self.entries[index].descriptor = descriptor.clone();
+        if let Some(row) = self
+            .entries
+            .iter_mut()
+            .find(|row| row.descriptor.id == descriptor.id)
+        {
+            row.descriptor = descriptor.clone();
         } else {
             self.entries.push(Child {
                 descriptor: descriptor.clone(),
@@ -119,16 +120,10 @@ impl Children {
         Ok(event(ProviderObservation::Descriptor { descriptor }))
     }
     fn gap(&mut self, reason: ChildGap) -> Vec<AgentEvent> {
-        let reported = match reason {
-            ChildGap::Nesting => &mut self.nesting_gap,
-            ChildGap::IngestionBudget | ChildGap::Retention | ChildGap::ScanBudget => {
-                &mut self.ingestion_gap
-            }
-        };
-        if *reported {
+        if self.reported_gaps.contains(&reason) {
             return Vec::new();
         }
-        *reported = true;
+        self.reported_gaps.push(reason);
         vec![event(ProviderObservation::Gap { reason })]
     }
     fn activity(&mut self, id: &ProviderChildId, events: Vec<AgentEvent>) -> Vec<AgentEvent> {

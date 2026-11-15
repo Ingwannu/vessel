@@ -56,14 +56,14 @@ fn descriptors_keep_unknown_fields_and_actual_lifecycle_updates() {
     let mut p = Projection::new(None, EventSeq::ZERO, EventSeq::new(3));
     let mut d = child("child");
     d.status = Some(ChildStatus::Running);
-    p.observe(record(
+    let _continued = p.observe(record(
         0,
         ProviderObservation::Descriptor {
             descriptor: d.clone(),
         },
     ));
     d.status = Some(ChildStatus::Completed);
-    p.observe(record(1, ProviderObservation::Descriptor { descriptor: d }));
+    let _continued = p.observe(record(1, ProviderObservation::Descriptor { descriptor: d }));
     let rows = p.list().unwrap();
     assert_eq!(rows.children.as_slice().len(), 1);
     let d = &rows.children.as_slice()[0];
@@ -75,7 +75,7 @@ fn descriptors_keep_unknown_fields_and_actual_lifecycle_updates() {
 fn child_timeline_never_mixes_siblings_and_keeps_sparse_parent_positions() {
     let mut p = Projection::new(Some(request(None, 2)), EventSeq::ZERO, EventSeq::new(20));
     for (seq, id) in [(0, "child"), (3, "sibling"), (7, "child"), (19, "child")] {
-        p.observe(activity(seq, id));
+        let _continued = p.observe(activity(seq, id));
     }
     p.finish(true);
     let page = p.page().unwrap();
@@ -109,7 +109,7 @@ fn forward_limit_stops_at_a_real_parent_continuation() {
 fn gaps_and_descriptor_saturation_are_honest_and_never_evict_existing_children() {
     let mut p = Projection::new(None, EventSeq::ZERO, EventSeq::new(999));
     for i in 0..=vessel_proto::subagents::bounds::MAX_CHILDREN {
-        p.observe(record(
+        let _continued = p.observe(record(
             u64::try_from(i).unwrap(),
             ProviderObservation::Descriptor {
                 descriptor: child(&format!("id{i}")),
@@ -130,7 +130,7 @@ fn gaps_and_descriptor_saturation_are_honest_and_never_evict_existing_children()
         }
     ));
     let mut p = Projection::new(None, EventSeq::new(50), EventSeq::new(90));
-    p.observe(record(
+    let _continued = p.observe(record(
         50,
         ProviderObservation::Gap {
             reason: ChildGap::Nesting,
@@ -148,13 +148,13 @@ fn resumed_metadata_omission_keeps_known_facts_and_explicit_empty_text_clears() 
     known.title = Some("known kind".parse().unwrap());
     known.description = Some("earlier description".parse().unwrap());
     known.status = Some(ChildStatus::Completed);
-    p.observe(record(
+    let _continued = p.observe(record(
         0,
         ProviderObservation::Descriptor { descriptor: known },
     ));
     let mut resumed = child("child");
     resumed.description = Some("".parse().unwrap());
-    p.observe(record(
+    let _continued = p.observe(record(
         1,
         ProviderObservation::Descriptor {
             descriptor: resumed,
@@ -173,7 +173,7 @@ fn interrupted_metadata_prefix_never_regresses_a_forward_cursor() {
         EventSeq::new(100),
         EventSeq::new(600),
     );
-    p.observe(record(100, ProviderObservation::Supported));
+    let _continued = p.observe(record(100, ProviderObservation::Supported));
     p.truncated();
     let page = p.page().unwrap();
     assert_eq!(page.next, EventSeq::new(500));

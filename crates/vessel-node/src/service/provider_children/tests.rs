@@ -43,7 +43,7 @@ fn an_oversized_first_record_is_partial_at_the_actual_decoded_parent_sequence() 
 #[test]
 fn elapsed_after_observation_keeps_the_scanned_boundary_and_never_reads_another_record() {
     let mut projection = projection::Projection::new(None, EventSeq::new(40), EventSeq::new(50));
-    projection.observe(record(40, "read".to_owned()));
+    let _continued = projection.observe(record(40, "read".to_owned()));
     assert!(
         !observe_page(
             &mut projection,

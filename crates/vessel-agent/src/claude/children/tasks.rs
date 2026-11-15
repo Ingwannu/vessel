@@ -62,12 +62,15 @@ impl Children {
             }
         }
         self.budget = budget;
-        self.tasks.insert(task_id, canonical.clone());
-        self.aliases.insert(tool, canonical.clone());
-        if let Some(index) = self.index(&canonical)
+        let _previous = self.tasks.insert(task_id, canonical.clone());
+        let _previous = self.aliases.insert(tool, canonical.clone());
+        if let Some(child) = self
+            .entries
+            .iter_mut()
+            .find(|row| row.descriptor.id == canonical)
             && task.is_backgrounded.is_some()
         {
-            self.entries[index].background = task.is_backgrounded;
+            child.background = task.is_backgrounded;
         }
         let prompt = if task.task_type == Some(TaskKind::LocalWorkflow) {
             task.description.as_deref()
@@ -92,10 +95,14 @@ impl Children {
         tool: &ProviderChildId,
         task: &TaskStarted,
     ) -> Result<ChildDescriptor, ChildGap> {
-        let mut descriptor = self.index(canonical).map_or_else(
-            || identity(canonical.clone(), self.owners.get(tool).cloned()),
-            |index| self.entries[index].descriptor.clone(),
-        );
+        let mut descriptor = self
+            .entries
+            .iter()
+            .find(|row| &row.descriptor.id == canonical)
+            .map_or_else(
+                || identity(canonical.clone(), self.owners.get(tool).cloned()),
+                |child| child.descriptor.clone(),
+            );
         if let Some(kind) = task.subagent_type.as_deref() {
             descriptor.title = Some(
                 kind.parse::<ProviderText>()
@@ -115,10 +122,10 @@ impl Children {
     pub(super) fn updated(&mut self, task: &TaskUpdated) -> Vec<AgentEvent> {
         if let Some(patch) = &task.patch {
             if let Some(id) = self.resolve_task(&task.task_id)
-                && let Some(index) = self.index(&id)
+                && let Some(child) = self.entries.iter_mut().find(|row| row.descriptor.id == id)
                 && patch.is_backgrounded.is_some()
             {
-                self.entries[index].background = patch.is_backgrounded;
+                child.background = patch.is_backgrounded;
             }
             self.status(&task.task_id, patch.status)
         } else {
@@ -149,13 +156,13 @@ impl Children {
         let Some(id) = self.resolve_task(task) else {
             return Vec::new();
         };
-        let Some(index) = self.index(&id) else {
+        let Some(child) = self.entries.iter().find(|row| row.descriptor.id == id) else {
             return Vec::new();
         };
-        if self.entries[index].descriptor.status == Some(status) {
+        if child.descriptor.status == Some(status) {
             return Vec::new();
         }
-        let mut descriptor = self.entries[index].descriptor.clone();
+        let mut descriptor = child.descriptor.clone();
         descriptor.status = Some(status);
         match self.descriptor(descriptor) {
             Ok(event) => vec![event],
@@ -166,16 +173,16 @@ impl Children {
         let Some(id) = self.resolve_task(task) else {
             return Vec::new();
         };
-        let Some(index) = self.index(&id) else {
+        let Some(child) = self.entries.iter().find(|row| row.descriptor.id == id) else {
             return Vec::new();
         };
         let Ok(subtitle) = format!("{tokens} tokens").parse::<ProviderText>() else {
             return self.gap(ChildGap::IngestionBudget);
         };
-        if self.entries[index].descriptor.subtitle.as_ref() == Some(&subtitle) {
+        if child.descriptor.subtitle.as_ref() == Some(&subtitle) {
             return Vec::new();
         }
-        let mut descriptor = self.entries[index].descriptor.clone();
+        let mut descriptor = child.descriptor.clone();
         descriptor.subtitle = Some(subtitle);
         match self.descriptor(descriptor) {
             Ok(event) => vec![event],

@@ -69,7 +69,7 @@ fn background_lifecycle_without_any_sidechain_survives_the_main_result() {
 #[test]
 fn real_task_identity_survives_reannouncements_and_restart_with_different_tool_aliases() {
     let mut first = Children::new(false);
-    feed(&mut first, started("stable-task", "old-tool", Some(true)));
+    let _observed = feed(&mut first, started("stable-task", "old-tool", Some(true)));
     let events = feed(&mut first, started("stable-task", "new-tool", Some(true)));
     assert_eq!(first.entries.len(), 1);
     assert_eq!(descriptors(&events)[0].id.as_str(), "stable-task");
@@ -97,12 +97,12 @@ fn real_task_identity_survives_reannouncements_and_restart_with_different_tool_a
 fn background_shell_and_unknown_task_kinds_are_not_fabricated_children() {
     let mut children = Children::new(false);
     for kind in ["local_bash", "future_task_kind"] {
-        feed(
+        let _observed = feed(
             &mut children,
             json!({"type":"system","subtype":"task_started","task_id":"shell","tool_use_id":"shell-tool","task_type":kind}),
         );
         assert!(
-            feed(
+            let _observed = feed(
                 &mut children,
                 assistant("shell-tool", "shell-message", "shell text")
             )
@@ -114,9 +114,9 @@ fn background_shell_and_unknown_task_kinds_are_not_fabricated_children() {
 #[test]
 fn canonical_streaming_dedup_is_per_child_and_main_translation_still_ignores_child_frames() {
     let mut children = Children::new(false);
-    feed(&mut children, started("task-a", "tool-a", Some(false)));
-    feed(&mut children, started("task-b", "tool-b", Some(false)));
-    feed(
+    let _observed = feed(&mut children, started("task-a", "tool-a", Some(false)));
+    let _observed = feed(&mut children, started("task-b", "tool-b", Some(false)));
+    let _observed = feed(
         &mut children,
         json!({"type":"stream_event","parent_tool_use_id":"tool-a","event":{"type":"message_start","message":{"id":"same-message"}}}),
     );
@@ -154,11 +154,11 @@ fn canonical_streaming_dedup_is_per_child_and_main_translation_still_ignores_chi
 #[test]
 fn nested_task_parent_is_observed_from_its_actual_emitting_tool() {
     let mut children = Children::new(false);
-    feed(
+    let _observed = feed(
         &mut children,
         started("outer-task", "outer-tool", Some(false)),
     );
-    feed(
+    let _observed = feed(
         &mut children,
         json!({"type":"assistant","parent_tool_use_id":"outer-tool","message":{"id":"outer-message","content":[{"type":"tool_use","id":"nested-tool","name":"Task","input":{"description":"nested"}}]}}),
     );
@@ -174,8 +174,8 @@ fn nested_task_parent_is_observed_from_its_actual_emitting_tool() {
 #[test]
 fn task_tool_completion_does_not_complete_a_running_background_child() {
     let mut children = Children::new(false);
-    feed(&mut children, started("task", "tool", Some(true)));
-    feed(
+    let _observed = feed(&mut children, started("task", "tool", Some(true)));
+    let _observed = feed(
         &mut children,
         json!({"type":"assistant","parent_tool_use_id":"tool","message":{"id":"m","content":[{"type":"tool_use","id":"read-call","name":"Read","input":{"file_path":"/fixture"}}]}}),
     );
@@ -197,9 +197,9 @@ fn task_tool_completion_does_not_complete_a_running_background_child() {
 #[test]
 fn cancellation_only_terminalizes_explicitly_foreground_tasks_and_keeps_aliases() {
     let mut children = Children::new(false);
-    feed(&mut children, started("foreground", "fg-tool", Some(false)));
-    feed(&mut children, started("background", "bg-tool", Some(true)));
-    feed(&mut children, started("unknown", "unknown-tool", None));
+    let _observed = feed(&mut children, started("foreground", "fg-tool", Some(false)));
+    let _observed = feed(&mut children, started("background", "bg-tool", Some(true)));
+    let _observed = feed(&mut children, started("unknown", "unknown-tool", None));
     let events = children.canceled();
     assert_eq!(descriptors(&events).len(), 1);
     assert_eq!(descriptors(&events)[0].id.as_str(), "foreground");
