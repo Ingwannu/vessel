@@ -139,6 +139,7 @@ fn body(shell: &Shell, tokens: &Tokens, window: &mut Window, cx: &mut Context<'_
     if let Some(pane) = &area.pane {
         body = body
             .child(button(Action::Back, shell, tokens, cx))
+            .child(super::breadcrumbs::render(shell, tokens, cx))
             .child(note(words.read_only(), tokens));
         if let Some(problem) = pane.failure() {
             body = body.child(note(problem.words(shell.words), tokens));
@@ -166,6 +167,9 @@ fn body(shell: &Shell, tokens: &Tokens, window: &mut Window, cx: &mut Context<'_
                     )),
             )
             .child(button(Action::Older, shell, tokens, cx));
+        if !area.rows.is_empty() {
+            body = body.child(super::rows::list(shell, window, cx));
+        }
     } else if area.rows.is_empty() {
         body = body.child(note(words.empty(), tokens));
     } else {
@@ -175,7 +179,7 @@ fn body(shell: &Shell, tokens: &Tokens, window: &mut Window, cx: &mut Context<'_
     }
     body
 }
-const PANE_SHARE: f32 = 0.45;
+const PANE_SHARE: f32 = 0.3;
 fn confirm(
     shell: &Shell,
     tokens: &Tokens,
@@ -253,9 +257,7 @@ fn button(
             Action::Close => shell.close_subagents(window, cx),
             Action::Refresh => shell.subagents_refresh(),
             Action::HideFinished => shell.subagents_hide_finished(),
-            Action::Back => {
-                shell.areas.subagents.pane = None;
-            }
+            Action::Back => shell.subagent_provider_back(),
             Action::Older => shell.subagent_older(),
             Action::CancelDetach => shell.subagent_cancel_detach(window, cx),
             Action::Detach => shell.subagent_detach(),

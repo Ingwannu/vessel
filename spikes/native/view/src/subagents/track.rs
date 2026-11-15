@@ -151,6 +151,26 @@ impl Track {
             .iter()
             .filter(move |row| self.visible_under(row, parent) && !self.hidden.contains(&row.id))
     }
+    /// Resolve an observed descriptor without inventing missing parent metadata.
+    #[must_use]
+    pub fn provider(&self, id: &ProviderChildId) -> Option<&ChildDescriptor> {
+        self.providers.iter().find(|row| &row.id == id)
+    }
+    /// Ancestors come from the same validated bounded descriptor set as rows.
+    #[must_use]
+    pub fn provider_path(&self, id: &ProviderChildId) -> Vec<&ChildDescriptor> {
+        let mut path = Vec::new();
+        let mut next = self.provider(id);
+        while let Some(row) = next {
+            path.push(row);
+            if path.len() >= vessel_proto::subagents::bounds::MAX_CHILD_DEPTH {
+                break;
+            }
+            next = row.parent.as_ref().and_then(|id| self.provider(id));
+        }
+        path.reverse();
+        path
+    }
     fn visible_under(&self, row: &ChildDescriptor, parent: Option<&ProviderChildId>) -> bool {
         match parent {
             Some(parent) => row.parent.as_ref() == Some(parent),

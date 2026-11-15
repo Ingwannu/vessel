@@ -146,14 +146,44 @@ impl Shell {
         else {
             return;
         };
+        if self
+            .areas
+            .subagents
+            .track
+            .as_ref()
+            .and_then(|track| track.provider(child))
+            .is_none()
+        {
+            return;
+        }
         let mut pane = ChildPane::new(ChildQuery {
             target,
             child: child.clone(),
         });
         let read = pane.read(None);
         self.areas.subagents.pane = Some(pane);
+        self.areas.subagents.readonly_source = None;
+        self.areas.subagents.reproject(self.words);
         if let Ok(read) = read {
             self.command(Command::Subagents(Ask::Timeline(read)));
+        }
+    }
+    pub(super) fn subagent_provider_back(&mut self) {
+        let parent = self.areas.subagents.pane.as_ref().and_then(|pane| {
+            self.areas
+                .subagents
+                .track
+                .as_ref()
+                .and_then(|track| track.provider(&pane.query().child))
+                .and_then(|row| row.parent.as_ref())
+                .cloned()
+        });
+        if let Some(parent) = parent {
+            self.subagent_provider(&parent);
+        } else {
+            self.areas.subagents.pane = None;
+            self.areas.subagents.readonly_source = None;
+            self.areas.subagents.reproject(self.words);
         }
     }
     pub(super) fn subagent_older(&mut self) {

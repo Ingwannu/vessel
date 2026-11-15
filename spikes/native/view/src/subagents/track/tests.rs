@@ -174,3 +174,31 @@ fn provider_nesting_selects_only_direct_children_and_keeps_unknown_parents_expli
         "nested"
     );
 }
+
+#[test]
+fn nested_navigation_uses_the_same_observed_path_and_missing_parent_stays_visible() {
+    let mut track = Track::new(target(NodeId::random()));
+    let root = provider("root", Some(ChildStatus::Running));
+    let mut nested = provider("nested", None);
+    nested.parent = Some(root.id.clone());
+    let mut orphan = provider("orphan", None);
+    orphan.parent = Some("missing".parse().unwrap());
+    listed(&mut track, vec![root, nested, orphan]);
+    assert_eq!(
+        track
+            .providers(None)
+            .map(|row| row.id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["root", "orphan"]
+    );
+    let id = "nested".parse().unwrap();
+    assert_eq!(
+        track
+            .provider_path(&id)
+            .iter()
+            .map(|row| row.id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["root", "nested"]
+    );
+    assert_eq!(track.providers(Some(&"root".parse().unwrap())).count(), 1);
+}

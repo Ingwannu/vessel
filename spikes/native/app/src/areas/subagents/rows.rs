@@ -9,9 +9,15 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button_with_kind};
 
 const VIEWPORT_SHARE: f32 = 0.45;
+const NESTED_VIEWPORT_SHARE: f32 = 0.2;
 pub(super) fn list(shell: &Shell, window: &Window, cx: &mut Context<'_, Shell>) -> Div {
     div()
-        .h(px(f32::from(window.viewport_size().height) * VIEWPORT_SHARE))
+        .h(px(f32::from(window.viewport_size().height)
+            * if shell.areas.subagents.pane.is_some() {
+                NESTED_VIEWPORT_SHARE
+            } else {
+                VIEWPORT_SHARE
+            }))
         .w_full()
         .min_w_0()
         .overflow_hidden()
@@ -126,7 +132,9 @@ fn provider_row<'a>(
     let track = area.track.as_ref()?;
     let parent = track.target().address;
 
-    let child = track.providers(None).find(|row| &row.id == id)?;
+    let scope = area.pane.as_ref().map(|pane| pane.query().child.clone());
+    let child = track.providers(scope.as_ref()).find(|row| &row.id == id)?;
+    let hide_scope = scope.clone();
     let title = child
         .description
         .as_ref()
@@ -149,9 +157,16 @@ fn provider_row<'a>(
         if shell
             .areas
             .subagents
-            .track
+            .pane
             .as_ref()
-            .is_some_and(|track| track.target().address == parent)
+            .map(|pane| &pane.query().child)
+            == scope.as_ref()
+            && shell
+                .areas
+                .subagents
+                .track
+                .as_ref()
+                .is_some_and(|track| track.target().address == parent)
         {
             shell.subagent_provider(&chosen);
             cx.notify();
@@ -169,9 +184,16 @@ fn provider_row<'a>(
         if shell
             .areas
             .subagents
-            .track
+            .pane
             .as_ref()
-            .is_some_and(|track| track.target().address == parent)
+            .map(|pane| &pane.query().child)
+            == hide_scope.as_ref()
+            && shell
+                .areas
+                .subagents
+                .track
+                .as_ref()
+                .is_some_and(|track| track.target().address == parent)
         {
             shell.subagent_hide(&hidden);
             cx.notify();

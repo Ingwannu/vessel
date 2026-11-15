@@ -2,6 +2,7 @@
 
 mod actions;
 mod answers;
+mod breadcrumbs;
 mod draw;
 mod rows;
 pub(crate) use draw::{render, with_header};
@@ -82,13 +83,15 @@ impl SubagentArea {
             self.rows.clear();
             return;
         };
+        let provider_parent = self.pane.as_ref().map(|pane| &pane.query().child);
         let rows = track
             .managed()
             .iter()
+            .filter(|_| provider_parent.is_none())
             .map(|row| Row::Managed(row.target.address))
             .chain(
                 track
-                    .providers(None)
+                    .providers(provider_parent)
                     .map(|row| Row::Provider(row.id.clone())),
             )
             .collect::<Vec<_>>();

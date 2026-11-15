@@ -132,3 +132,13 @@ stay typed; there is no second context store. W3's Busy-protected actual draft s
 and W12's existing-workspace DraftId integration remain required before wiring the
 user action. A top-level workspace opener is never substituted for an existing
 workspace draft target.
+
+## Nested provider navigation
+
+Root/provider child rows and breadcrumb paths now use the same bounded descriptor
+projection. A known child can open its own canonical read-only pane and direct
+children; Back follows its actual observed provider parent before returning to the
+managed parent's track. An omitted ancestor stays an orphan root row with its real
+parent metadata preserved. No managed SessionId is fabricated. Row and breadcrumb
+callbacks capture the active full parent/child source before navigation/hide, so
+painted callbacks from another nested view refuse instead of mutating that view.
