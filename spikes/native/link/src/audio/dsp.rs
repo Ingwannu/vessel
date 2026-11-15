@@ -8,15 +8,23 @@ use std::fmt;
 
 use bytes::Bytes;
 use cpal::Sample as _;
-use sonora::config::{EchoCanceller, GainController2, NoiseSuppression};
+#[cfg(test)]
+use sonora::config::EchoCanceller;
+use sonora::config::{GainController2, NoiseSuppression};
 use sonora::{AudioProcessing, Config};
 
 use super::AudioError;
-use super::format::{Channels, Format, NORMALIZED_RATE, RateHz};
+#[cfg(test)]
+use super::format::RateHz;
+use super::format::{Channels, Format, NORMALIZED_RATE};
 
 pub(super) struct Captured(Bytes);
 
 impl Captured {
+    pub(super) fn into_bytes(self) -> Bytes {
+        self.0
+    }
+    #[cfg(test)]
     pub(super) fn pcm(&self) -> &[u8] {
         &self.0
     }
@@ -30,8 +38,10 @@ impl fmt::Debug for Captured {
     }
 }
 
+#[cfg(test)]
 pub(super) struct Rendered(Vec<f32>);
 
+#[cfg(test)]
 impl Rendered {
     pub(super) fn samples(&self) -> &[f32] {
         &self.0
@@ -41,6 +51,7 @@ impl Rendered {
     }
 }
 
+#[cfg(test)]
 impl fmt::Debug for Rendered {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Rendered")
@@ -51,6 +62,7 @@ impl fmt::Debug for Rendered {
 
 pub(super) struct Processor {
     voice: AudioProcessing,
+    #[cfg(test)]
     converter: AudioProcessing,
     input: Format,
     output: Format,
@@ -58,9 +70,13 @@ pub(super) struct Processor {
     in_left: Vec<f32>,
     in_right: Vec<f32>,
     mono: Vec<f32>,
+    #[cfg(test)]
     converted_left: Vec<f32>,
+    #[cfg(test)]
     converted_right: Vec<f32>,
+    #[cfg(test)]
     render_left: Vec<f32>,
+    #[cfg(test)]
     render_right: Vec<f32>,
 }
 
@@ -74,6 +90,18 @@ impl fmt::Debug for Processor {
 }
 
 impl Processor {
+    pub(super) fn capture_only(input: Format) -> Result<Self, AudioError> {
+        Self::configured(
+            input,
+            input,
+            Config {
+                noise_suppression: Some(NoiseSuppression::default()),
+                gain_controller2: Some(GainController2::default()),
+                ..Config::default()
+            },
+        )
+    }
+    #[cfg(test)]
     pub(super) fn new(input: Format, output: Format) -> Result<Self, AudioError> {
         Self::configured(
             input,
@@ -100,9 +128,11 @@ impl Processor {
             output.config(),
             output.config(),
         );
+        #[cfg(test)]
         let converter = AudioProcessing::builder().build();
         Ok(Self {
             voice,
+            #[cfg(test)]
             converter,
             input,
             output,
@@ -110,9 +140,13 @@ impl Processor {
             in_left: vec![0.0; input.frames().get()],
             in_right: vec![0.0; input.frames().get()],
             mono: vec![0.0; normalized.frames().get()],
+            #[cfg(test)]
             converted_left: vec![0.0; output.frames().get()],
+            #[cfg(test)]
             converted_right: vec![0.0; output.frames().get()],
+            #[cfg(test)]
             render_left: vec![0.0; output.frames().get()],
+            #[cfg(test)]
             render_right: vec![0.0; output.frames().get()],
         })
     }
@@ -162,6 +196,7 @@ impl Processor {
         Ok(Captured(pcm.into()))
     }
 
+    #[cfg(test)]
     pub(super) fn prepare_render(
         &mut self,
         mono: &[f32],
@@ -187,6 +222,7 @@ impl Processor {
         }
         Ok(Rendered(samples))
     }
+    #[cfg(test)]
     fn convert_render(&mut self, mono: &[f32], stereo_source: Format) -> Result<(), AudioError> {
         let result = match self.output.channels() {
             Channels::Mono => self.converter.process_render_f32_with_config(
@@ -207,6 +243,7 @@ impl Processor {
 
     // Feed only samples the physical output callback actually wrote. Prepared
     // audio may still be interrupted or discarded before reaching the speaker.
+    #[cfg(test)]
     pub(super) fn reference_render(&mut self, samples: &[f32]) -> Result<(), AudioError> {
         validate_external(samples, self.output)?;
         match self.output.channels() {

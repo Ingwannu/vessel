@@ -6,29 +6,14 @@
 use std::sync::Arc;
 
 use tokio::sync::mpsc;
-use vessel_app_view::audio::CaptureLease;
 
 use super::device::{CaptureDevice, Native};
-use super::dsp::Captured;
 use super::owner::{DeviceFailure, Owner};
 use crate::cancel::Fence;
 
 const NORMALIZED_QUEUE_BLOCKS: usize = 100;
 
-#[derive(Debug)]
-pub(super) struct Frame {
-    lease: CaptureLease,
-    audio: Captured,
-}
-
-impl Frame {
-    pub(super) const fn lease(&self) -> CaptureLease {
-        self.lease
-    }
-    pub(super) fn pcm(&self) -> &[u8] {
-        self.audio.pcm()
-    }
-}
+use super::capture::Frame;
 
 pub(super) fn start(owner: Owner) -> Result<mpsc::Receiver<Frame>, DeviceFailure> {
     let (sender, receiver) = mpsc::channel(NORMALIZED_QUEUE_BLOCKS);
@@ -91,10 +76,7 @@ async fn capture(
             break;
         }
         sender
-            .try_send(Frame {
-                lease: owner.lease(),
-                audio,
-            })
+            .try_send(Frame::new(owner.lease(), audio))
             .map_err(|_private| DeviceFailure::Overrun)?;
     }
     Ok(())

@@ -48,7 +48,7 @@ impl Native {
             Channels::try_from(config.channels()).map_err(|_private| DeviceFailure::Format)?;
         let format = Format::new(rate, channels).map_err(|_private| DeviceFailure::Format)?;
         let processor =
-            Processor::new(format, format).map_err(|_private| DeviceFailure::Processing)?;
+            Processor::capture_only(format).map_err(|_private| DeviceFailure::Processing)?;
         let (callback, frames) = Callback::channel(format, Arc::clone(&fence));
         let overrun = callback.overrun();
         let interrupted = Arc::new(AtomicBool::new(false));

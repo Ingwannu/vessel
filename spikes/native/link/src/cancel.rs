@@ -20,6 +20,7 @@ impl Fence {
         self.closed.load(Ordering::Acquire)
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub(super) async fn closed(&self) {
         // Register before checking the flag: Stop cannot fall between the
         // state check and waiter registration and strand a saturated actor.

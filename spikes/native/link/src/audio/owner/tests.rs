@@ -14,7 +14,7 @@ fn stop_and_handle_drop_gate_callbacks_but_never_release_a_live_owner() {
     assert_eq!(*status.borrow(), State::Running);
     assert!(matches!(
         engine.reserve(CapturePurpose::Dictation),
-        Err(AudioError::Reservation(CaptureRefusal::Busy(
+        Err(AcquireError::Reservation(CaptureRefusal::Busy(
             CapturePurpose::Conversation
         )))
     ));

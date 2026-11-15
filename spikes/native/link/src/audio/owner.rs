@@ -22,29 +22,8 @@ pub(super) struct Engine {
     slot: Arc<Mutex<CaptureSlot>>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum State {
-    Reserved,
-    Running,
-    Released,
-    Failed(DeviceFailure),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
-pub(super) enum DeviceFailure {
-    #[error("the audio device is unavailable")]
-    Unavailable,
-    #[error("the audio device format is unsupported")]
-    Format,
-    #[error("the audio device stopped unexpectedly")]
-    Interrupted,
-    #[error("audio processing failed")]
-    Processing,
-    #[error("the audio consumer fell behind")]
-    Overrun,
-    #[error("the audio device thread could not start")]
-    Thread,
-}
+use super::capture::AcquireError;
+pub(super) use super::capture::{CaptureState as State, DeviceFailure};
 
 /// Only the owning thread retires this guard after dropping its streams.
 #[derive(Debug)]
@@ -69,13 +48,12 @@ impl Engine {
         ENGINE.get_or_init(Self::default)
     }
 
-    pub(super) fn reserve(&self, purpose: CapturePurpose) -> Result<(Owner, Handle), AudioError> {
+    pub(super) fn reserve(&self, purpose: CapturePurpose) -> Result<(Owner, Handle), AcquireError> {
         let lease = self
             .slot
             .lock()
-            .map_err(|_private| AudioError::Ownership)?
-            .reserve(purpose)
-            .map_err(AudioError::Reservation)?;
+            .map_err(|_private| AcquireError::Ownership)?
+            .reserve(purpose)?;
         let fence = Arc::new(Fence::default());
         let (status, receiver) = watch::channel(State::Reserved);
         Ok((

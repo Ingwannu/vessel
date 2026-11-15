@@ -22,9 +22,7 @@
 //!   and a sender waits for room, so a burst of records slows the stream,
 //!   never grows memory.
 
-#[cfg(all(test, any(target_os = "linux", target_os = "windows")))]
-mod audio;
-#[cfg(all(test, not(target_arch = "wasm32")))]
+pub mod audio;
 mod cancel;
 mod command;
 #[cfg(not(target_arch = "wasm32"))]

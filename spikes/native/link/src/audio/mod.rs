@@ -1,19 +1,28 @@
-//! Staged desktop audio/DSP mechanisms, not an advertised device capability.
+//! Shared native microphone ownership; conversation output remains staged.
 //!
 //! The device thread drives `view::audio` ownership and owns the capture DSP.
-//! Conversation playback wiring still removes this outer staging boundary.
-//! These tests open no device.
+//! The public API exposes dictation capture; conversation acquisition is
+//! refused until duplex playback is wired. Tests open no device.
 
+mod capture;
+pub use capture::{AcquireError, Capture, CaptureControl, CaptureState, DeviceFailure, Frame};
+pub use format::{Channels, Format, FormatError, FrameCount, RateHz};
+
+#[cfg(any(target_os = "linux", target_os = "windows"))]
 mod callback;
+#[cfg(any(target_os = "linux", target_os = "windows"))]
 mod device;
+#[cfg(any(target_os = "linux", target_os = "windows"))]
 mod dsp;
 mod format;
+#[cfg(any(target_os = "linux", target_os = "windows"))]
 mod owner;
+#[cfg(all(test, any(target_os = "linux", target_os = "windows")))]
 mod playback;
+#[cfg(any(target_os = "linux", target_os = "windows"))]
 mod thread;
 
-use std::num::TryFromIntError;
-
+#[cfg(any(target_os = "linux", target_os = "windows"))]
 #[derive(Debug, thiserror::Error)]
 pub(super) enum AudioError {
     #[error("audio ownership cannot be verified")]
@@ -22,18 +31,14 @@ pub(super) enum AudioError {
     Stopped,
     #[error(transparent)]
     Reservation(vessel_app_view::audio::CaptureRefusal),
-    #[error("the device sample rate is unsupported")]
-    Rate,
-    #[error("the device must offer mono or stereo audio")]
-    Channels,
+    #[error(transparent)]
+    Format(#[from] FormatError),
     #[error("audio frame size does not match its validated format")]
     Frame,
     #[error("audio contains a non-finite sample")]
     NonFinite,
     #[error("audio sample is outside the normalized device range")]
     Range,
-    #[error("audio count exceeds this platform's range")]
-    Count(#[source] TryFromIntError),
     #[error("audio processing failed")]
     Processor(#[source] sonora::Error),
 }

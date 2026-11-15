@@ -1184,14 +1184,25 @@ mark capture ready before node enable, retarget a late completion, or
 upload while muted or stopping. Its current public state is not a capability
 claim: no voice entry point is displayed.
 
-`link::voice` is staged under tests until the actual node adapter and shared
+`link::voice` is staged under tests until the actual node adapter and duplex
 `link::audio` device owner exist. Its bounded uploader and cancellation fence
 separate immediate local Stop from uncertain remote cleanup; queued PCM is
 discarded on Stop and device disposal precedes the remote wait. Fakes hold
 remote requests and fill data queues to check privacy and deadlines. These
 tests do not open a microphone or establish hardware/AEC readiness. The
-shared physical capture lease will remain owned until streams actually
-stop/drop, including failure paths; dictation consumes that same engine.
+shared physical capture lease remains owned until streams actually stop/drop,
+including failure paths; dictation consumes that same engine.
+
+`link::audio::Capture::acquire(Dictation)` exposes that single hardware owner.
+It emits typed10ms mono16k PCM16 frames; control() gives a separate cloneable
+Stop/status handle while a task awaits next(). Stream opening stays on the
+device worker; Stop wakes a silent callback reader without polling. Other
+platforms return typed Unsupported. Conversation acquisition returns
+ConversationUnavailable until duplex output wiring exists. No product entry
+point invokes acquisition yet; fake tests prove ownership, not physical device
+or permission behavior. The speaker callback/reference/drain code remains staged.
+Voice glyph source/notices live in kit/src/assets/voice/; their existing outline
+Stop counterpart is unchanged.
 
 Settings Overview keeps its page and book-edit commands in
 `app/src/areas/settings/overview.rs`; `overview/dialogs.rs` only renders

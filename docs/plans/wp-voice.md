@@ -254,3 +254,22 @@ float bits, use checked time subtraction, assert returned transitions/readers,
 and express fractional geometry via mul_add. No lint allowance was added.
 Node strict at57ee128a8 passed (remote23s); node voice runtime suite on merged
 d5487770f is queued separately, not yet a runtime pass.
+
+### Shared capture consumer API draft
+
+Existing owner/callback/DSP code is reused through link::audio::Capture instead
+of a second hardware engine. acquire(Dictation) reserves the global slot and
+opens CPAL only on its worker; Frame has a typed lease and fixedFormat(rate16k,
+Mono,160frames), with borrowed PCM. control() returns a cloneable stop/status
+handle while another task awaits next(). Dropping capture stops its callback
+fence; controls do not prolong the real device guard. CaptureState::Released
+still requires stream destruction. This API is compiled as product code, but
+is not exposed by a product button and has no physical-device verification.
+
+Conversation acquisition explicitly returns ConversationUnavailable until the
+duplex output owner exists, even though deterministic output-callback mechanisms
+are staged under tests. Other platforms return typed Unsupported before device
+work. Dictation capture uses noise suppression/gain only; AEC requires an actual
+render reference and is not claimed for the capture-only API. No node call or
+readiness is invented by acquisition. Narrow compile/tests are owed before
+publishing a consumer-ready hash to W12b.

@@ -1,4 +1,4 @@
-use super::super::dsp::Processor;
+use super::super::dsp::{Captured, Processor};
 use super::super::format::{Channels, Format, RateHz};
 use super::super::owner::{Engine, State};
 use super::*;
