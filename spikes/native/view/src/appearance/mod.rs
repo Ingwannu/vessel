@@ -10,15 +10,15 @@
 //! - Effect: input validation and preview/commit semantics are unit-testable
 //!   without constructing a window or starting a node.
 
-mod draft;
 mod family;
+pub mod form;
 mod input;
 mod number;
 mod syntax;
 mod width;
 
-pub use draft::{Commit, Draft, DraftText};
 pub use family::{FaceName, FamilyError, FamilyFace, FontFamily, GenericFamily, MAX_FAMILY_UNITS};
+pub use input::DraftText;
 pub use number::Number;
 pub use syntax::SyntaxTheme;
 pub use width::{ContentMaximum, ContentPixels, WidthError};

@@ -103,6 +103,12 @@ fn check_constructs(text: &str) -> Result<(), FamilyError> {
     }
 }
 
+impl std::fmt::Display for FontFamily {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.spelling)
+    }
+}
+
 impl TryFrom<String> for FontFamily {
     type Error = FamilyError;
 

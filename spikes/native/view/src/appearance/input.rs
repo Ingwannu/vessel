@@ -12,3 +12,19 @@ pub(super) fn trim(text: &str) -> &str {
         )
     })
 }
+
+/// Raw text at the editing edge, never a committed preference or a second
+/// editor state. The existing text engine remains its sole live owner.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DraftText(String);
+impl DraftText {
+    /// Construct only at the sibling form's raw-input boundary.
+    pub(super) fn new(text: String) -> Self {
+        Self(text)
+    }
+    /// The input data, for the caller's existing editor to retain/replace.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
