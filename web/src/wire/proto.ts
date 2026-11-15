@@ -9050,7 +9050,7 @@ export type SyncFleet = Record<symbol, never>;
 /**
  * Unknown is distinct from idle: raw PTY bytes cannot identify a shell job.
  */
-export type TerminalActivity = { "state": "idle" } | { "state": "working" } | { "state": "attention", 
+export type TerminalActivity = { "state": "untracked" } | { "state": "idle" } | { "state": "working" } | { "state": "attention", 
 /**
  * Reason supplied by the typed activity producer.
  */

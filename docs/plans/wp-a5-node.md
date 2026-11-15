@@ -237,3 +237,16 @@ Its unchanged unpolled/nonexistent-command handle fixture is extracted and uses
 Leftover::default explicitly. Assertions, denial boundaries and deadlines stay
 unchanged. The previously submitted dbf strict predates this test-only fix;
 its immutable evidence must not be called current.
+
+TS run wp-inbox-ts-20261115T134300Z-4d7ac8d6 returned rc101: all 3 proto TS tests
+and the web declaration test passed, but the newly selected web primitive-alias
+classification test failed on pre-existing LimitPercent. It remains declared as
+FiniteNumber; the stale-entry test considers only primitive aliases. The test,
+alias entry and usage type are unchanged by A5, including the approved82ae7c91
+source. This is reported for baseline-owner disposition, not fixed by deleting
+a head expectation. The step is NOT green.
+
+The generator's exact Untracked enum patch is applied after checking source
+commit/status/all artifact hashes. Proto/web generator inputs are byte-unchanged
+between4d7 and the current node source. This records generated-byte provenance
+and the passing declaration test, not a whole TS/strict/runtime PASS.
