@@ -1,6 +1,7 @@
 //! Agent list, inspection and lifecycle shortcuts reuse the typed node client.
 //! Provider creation and rich permissions keep their owning packages' contracts.
 
+mod detach;
 mod inspect;
 mod mutate;
 mod prompt;
@@ -73,9 +74,7 @@ pub(super) async fn run(
             let info = id.resolve(&connected.client).await?;
             crate::attach::attach(&connected, &info, vessel_proto::EventSeq::ZERO).await
         }
-        AgentCommand::Detach { .. } => Err(CliError::ParityBlocked(
-            "agent detach awaits the reviewed subagent attachment contract",
-        )),
+        AgentCommand::Detach { id } => detach::run(target, presentation, id).await,
         AgentCommand::Open { .. } => Err(CliError::ParityBlocked(
             "agent open awaits the desktop deep-link contract",
         )),

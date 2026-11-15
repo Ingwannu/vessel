@@ -86,7 +86,7 @@ JSON-only admission are preserved; all six own pending rows stay at the table en
 | `agent mode <id> [mode]` | agent mode | Source | session.options + session.set_option | Advertised mode choices and exact option/value acknowledgement; ambiguous choices refuse before mutation. |
 | `agent archive <id>` | agent archive | Source Force / pending IfIdle | explicit Force: session.mark(Archive) | ALL no-force effects withheld until W21 actor+stored/reopen admission; no ended-snapshot force fallback. |
 | `agent reload <id>` | node reload | Other owner | lifecycle (labels/logs/reload); W17 only non-label update fields | No W17 implementation/readiness claim; consume that owner’s reviewed integration. |
-| `agent detach <id>` | agent detach | Pending | session.detach source on9c, SUBAGENT_RELATIONS=None | Existing W2 contract is still unassigned/unactivated; Creator provenance never becomes parentage. |
+| `agent detach <id>` | agent detach | Source + pending feature | existing session.detach, SUBAGENT_RELATIONS=None | Atomic node receipt validated before agentId/detached output. Immutable Creator retained; no inferred parent/workspace or client move fence. Execution owed. |
 | `agent update <id>` | agent update | Source non-label fields | session.rename / session.set_option | W17 name/thinking; combined metadata+thinking refused as reference. Labels lifecycle-owned; native result/notice differences remain. |
 | `daemon set-password` | none | Other owner | nodectl | No W17 implementation/readiness claim; consume that owner’s reviewed integration. |
 | `daemon pair` | node pair | Other owner | nodectl | No W17 implementation/readiness claim; consume that owner’s reviewed integration. |

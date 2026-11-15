@@ -611,3 +611,43 @@ async fn workspace_rename_keeps_pending_or_missing_targets_as_errors_without_an_
     })
     .await;
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn detach_does_not_forge_a_receipt_for_pending_or_never_child_sessions() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let owner = fixture.owner().await;
+        let before = owner
+            .create_session(
+                SessionSpec::new(
+                    vessel_proto::HarnessKind::ClaudeCode,
+                    SessionMode::Structured {
+                        model: None,
+                        resume: None,
+                        options: Vec::new(),
+                    },
+                )
+                .with_cwd(fixture.cwd()),
+            )
+            .await
+            .unwrap();
+        let result = fixture
+            .vessel(&["agent", "detach", &before.id.to_string(), "--json"], b"")
+            .await;
+        assert_eq!(result.status.code(), Some(1));
+        assert!(result.stdout.is_empty());
+        let refused: FailureEnvelope = serde_json::from_str(&result.stderr).unwrap();
+        let expected = if vessel_proto::subagents::SUBAGENT_RELATIONS.is_none() {
+            vessel_proto::ErrorCode::Unsupported
+        } else {
+            vessel_proto::ErrorCode::Conflict
+        };
+        assert_eq!(refused.error.code, expected);
+        let after = owner.session(before.id).await.unwrap();
+        assert_eq!(after.created_by, before.created_by);
+        assert_eq!(after.detach_receipt, before.detach_receipt);
+        assert_eq!(after.spec.place, before.spec.place);
+        fixture.stop().await;
+    })
+    .await;
+}

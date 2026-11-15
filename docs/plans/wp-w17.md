@@ -1616,3 +1616,26 @@ not prove general parity with that known divergence. Latest8447 suite still targ
 explicit frozen cases only; no unmeasured semantic pass is inferred. Current capture
 RPC remains own featureNone, Silent observation and NodeAuthorityOFF. Coordinator
 and C2 were told the final consumer qualification will await the verified repair.
+
+### Consume W2's landed atomic detach receipt
+
+[Decision Log]
+- Purpose: replace a missing-contract stub with the actual typed request already on the announced node line.
+- Existing assets: subagents::DetachSession/DetachedSession, validated Parentage and
+  original DetachReceipt are on9c/1c; generic NodeClient::call retains the unassigned
+  SUBAGENT_RELATIONS=None preflight. Pinned agent/detach.ts emits only agentId/status.
+- Alternatives: rewriting Creator or deriving parentage from a raw creator field
+  loses provenance; locally clearing a parent or compare-and-moving cwd invents authority.
+- Choice: call the existing node operation after ordinary selector resolution,
+  then verify target id, immutable Creator, validated Detached parentage, returned
+  original receipt and any previously known durable detach receipt before success.
+- Impact: first/repeated detach both emit the reference detached status through common
+  table/JSON/YAML/quiet output. Former typed parent remains in the validated node receipt;
+  workspace preservation is the producer's atomic guarantee, not a client read-then-act fence.
+  No new RPC, node mutation implementation, parent inference or source inheritance.
+
+The real fake-CLI negative fixture keeps pending or never-child root sessions as
+errors with no success stdout and unchanged Creator/receipt/place. Pure adversarial
+receipt tests reject wrong identity, missing detach, rewritten provenance and changed
+idempotent timestamp. They are drafted/unexecuted and outside queued exact8447;
+no positive live RPC or full package claim follows from this source wiring.
