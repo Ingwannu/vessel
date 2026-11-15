@@ -847,3 +847,13 @@ the eventual send still checks again. No new option, parser or discovery
 consumer is introduced here. The separate CLI consumer must prove its new
 metadata flags cannot create a worktree before a pending/older refusal. That
 end-user path is not claimed by the raw SDK regression alone.
+
+### Discovery narrow-check corrections
+
+The integrated strict check found two fixture defects and a private helper's
+reference convention: append records are shared Arc values, the corruption
+fixture must consume and assert its SQL row count, and the import spec builder
+takes Option<&ProfileName>. These corrections retain imported profile values
+and existing expectations; the corruption assertion is stronger. The failed
+check is retained, and corrected-source checks and the complete package gate
+are still owed.

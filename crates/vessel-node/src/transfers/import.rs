@@ -294,7 +294,7 @@ impl Importer<'_> {
             harness_session.clone(),
             options,
             to_cwd.clone(),
-            &named_profile,
+            named_profile.as_ref(),
         );
         tracing::info!(%transfer, written = placed.written, same = placed.same, "session imported");
         Ok(SessionPlaced {

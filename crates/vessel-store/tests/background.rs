@@ -37,12 +37,13 @@ async fn listing_survives_reopening_without_becoming_a_state_or_spec_override() 
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection
+    let changed = connection
         .execute(
             "UPDATE sessions SET listing='invalid' WHERE id=?1",
             [background.id.to_string()],
         )
         .unwrap();
+    assert_eq!(changed, 1);
     drop(connection);
     let store = open(&dir, StoreConfig::default()).await;
     let error = store.session(background.id).await.unwrap_err();

@@ -12,7 +12,7 @@ pub(super) fn resumed(
     session: HarnessSessionId,
     options: Vec<OptionChoice>,
     cwd: PathBuf,
-    profile: &Option<ProfileName>,
+    profile: Option<&ProfileName>,
 ) -> SessionSpec {
     let model = match &info.spec.mode {
         SessionMode::Structured { model, .. } => model.clone(),
@@ -30,7 +30,7 @@ pub(super) fn resumed(
         },
     )
     .with_cwd(cwd);
-    spec.profile.clone_from(profile);
+    spec.profile = profile.cloned();
     spec.title.clone_from(&info.title);
     spec.labels.clone_from(&info.labels);
     spec.listing = Some(info.listing);
@@ -64,7 +64,7 @@ mod tests {
                 session.clone(),
                 Vec::new(),
                 PathBuf::from("/fixture"),
-                &None,
+                None,
             );
             assert_eq!(spec.listing, Some(listing));
             assert_eq!(spec.labels, info.labels);

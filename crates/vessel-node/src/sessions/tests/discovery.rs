@@ -22,13 +22,13 @@ async fn stored(
         .store
         .append(
             info.id,
-            vec![EventRecord {
+            vec![Arc::new(EventRecord {
                 seq: EventSeq::ZERO,
                 at,
                 event: SessionEvent::Status {
                     status: SessionStatus::Exited { code: Some(0) },
                 },
-            }],
+            })],
         )
         .await
         .unwrap();
