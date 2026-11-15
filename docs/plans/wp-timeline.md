@@ -1365,7 +1365,9 @@ scoped host/root/image authority and final UI acceptance remain separate.
   search use this one helper; the existing trailing copy/rewind text also receives
   this slice, as `message.tsx:533-541` supplies its presented message to both
   controls. Entry text/key/revision/attachments stay intact; rewind's protocol
-  boundary and owner state are unchanged.
+  boundary and owner state are unchanged. Empty displayed text has no trailing
+  copy/rewind row, matching the reference's hasText gate for attachment-only or
+  whitespace-only spoken messages.
 - Why: find marks index the exact words actually shown, including trimmed Unicode
   boundaries. Closing tags embedded in examples require a valid whole suffix
   before recognition, matching the source's anchored lazy capture.
@@ -1396,5 +1398,8 @@ scoped host/root/image authority and final UI acceptance remain separate.
   numbers/revisions while the old source has backlog and one callback outstanding.
 - Effects: display identity grants no input/network authority. W12 still owns
   admission, authenticated node/resident/claim, lazy visible rendering and transport
-  retirement. This patch is not the live resident cutover. Its new source-switch
+  retirement. Shown has no authenticated NodeId: alias retarget with a reused
+  SessionId is not fenced by this legacy display key. The actual resident body
+  must use the canonical ResidentToken (registry/address/epoch) structurally,
+  never a guess from the latest Fleet. This patch is not that live cutover. Its new source-switch
   regression is not covered by the earlier e879322-pass run; execution is owed.

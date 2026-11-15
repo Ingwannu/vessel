@@ -260,7 +260,7 @@ fn entry_element(
     } else {
         None
     };
-    let drawn = if let Some(text) = said {
+    let drawn = if let Some(text) = said.filter(|text| !text.is_empty()) {
         super::rewind::with_row(
             paint,
             index,

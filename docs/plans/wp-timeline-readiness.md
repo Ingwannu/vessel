@@ -89,6 +89,8 @@ before its one ordinary replacement; its retained logs are not a failure/PASS.
    other concrete owner adapters must join once. No default Ready for origins,
    global fallback or copied resource bundle. Network mutation consumes the
    original binding/opaque owner ticket after G4's actual connection guard.
+   Pacing keys must use that canonical ResidentToken structurally: legacy Shown
+   route/session alone does not fence alias retarget with a reused SessionId.
 5. **Request delivery:** W4 retains Answering/Unknown/Unconfirmed across unrelated
    transcript watermarks. Exact owner reads/canonical metadata and settlement/loss
    govern it; resolved records beat stale live data. A7 adds no read registry.
