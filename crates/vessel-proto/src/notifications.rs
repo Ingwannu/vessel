@@ -192,8 +192,8 @@ pub enum TerminalActivitySignal {
     Interrupt,
 }
 
-/// A scoped terminal producer reports one semantic transition against the
-/// exact revision it observed, so a late hook cannot finish a newer command.
+/// Semantic transition for one terminal. Normal clients name the exact
+/// revision; a capability-only producer may advance its own current state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields)]

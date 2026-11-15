@@ -108,7 +108,7 @@ mod tests {
         TerminalAttentionRevision,
     };
     use vessel_session::terminals::{ScriptStart, Scrollback, start_script};
-    #[tokio::test]
+    #[tokio::test(flavor = "current_thread")]
     async fn activity_capability_cannot_read_sessions_claim_notifications_or_report_another_terminal()
      {
         // The current-thread actor remains unpolled until the final wait;

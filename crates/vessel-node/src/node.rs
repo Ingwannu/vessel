@@ -36,7 +36,7 @@ use crate::fleet::{self, FleetFiles};
 use crate::forge::Forges;
 use crate::guard::Guarded;
 use crate::identity;
-use crate::ipc::{self, AgentGateway, Endpoint, LocalGateway, LocalListener};
+use crate::ipc::{self, Endpoint, LocalGateway, LocalListener};
 use crate::lifecycle::Lifecycle;
 use crate::models::Models;
 use crate::models::proxy::serve as serve_models;
@@ -178,13 +178,8 @@ impl Node {
             )
         });
         relays.serve(secure.clone(), connections.clone());
-        let gateway = LocalGateway {
-            rpc,
-            token,
-            connections,
-            terminals: secure.service.0.terminal_producers(),
-            agents: AgentGateway::new(agents, &secure, config.rpc.clone()),
-        };
+        let gateway =
+            LocalGateway::new(rpc, token, connections, agents, &secure, config.rpc.clone());
         let task = tokio::spawn(serve(
             router,
             (local, gateway),

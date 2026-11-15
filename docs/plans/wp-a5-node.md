@@ -59,3 +59,11 @@ table is introduced. Normal clients still need Operate/ownership/exact revision;
 the hook capability can advance only its own terminal. W17 owns CLI hook grammar
 and bounded silent invocation, waiting for the reviewed DTO/hash before wiring.
 Capability/env injection and denial tests are drafted, not yet compile verified.
+
+Coordinator authorized immediate A8 merge of V3-passed W17 seams1c8d0b93 and
+ed3a3323; merged asd493254f/304d29d8. LocalGateway assembly now lives in IPC's
+constructor so node.rs carries one registration line and no credential policy.
+Measured node.rs688 versus recorded691; records are not increased. rpc.rs is
+below500 after the shared contract extraction. Auth handler test runs on an
+explicit current-thread runtime with an unpolled actor and nonexistent command;
+no provider or real process is launched by the capability checks.

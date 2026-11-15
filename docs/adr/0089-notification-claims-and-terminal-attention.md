@@ -122,7 +122,7 @@ identity isolation; explicit terminal transitions and stale revision clears;
 all unassigned and older-peer paths; no source contents in OS payloads.
 
 Resume: contract proposal only. No new call is registered. Value contracts and the pure terminal reducer are staged. The terminal
-producer report carries the exact observed revision; stale hooks conflict
+normal-client report carries the exact observed revision; supplied stale revisions conflict
 instead of completing a newer run. Next are store admission tests, connection
 policy integration, then pending Quality B rows and older-peer projections.
 
@@ -158,3 +158,8 @@ already hides environment values; the new auth/secret Debug is redacted too.
 The producer contract, environment injection, closure/denial tests and actual
 CLI consumer must pass before the feature's pending protocol is assigned. A
 wire test with the final assigned protocol remains required at integration.
+
+A hook without an explicit revision is scoped to its terminal and follows the
+reference producer's event ordering. It does not attest which provider command
+generation produced an event. Revision-supplied reports and all attention-clear
+callbacks retain exact revision checks; no stronger causal ordering is claimed.

@@ -225,6 +225,27 @@ pub(crate) struct LocalGateway {
     pub(crate) terminals: Arc<crate::terminals::Terminals>,
 }
 
+impl LocalGateway {
+    /// Assemble local credentials at their transport boundary, including the
+    /// activity-only service; node assembly carries no credential policy.
+    pub(crate) fn new(
+        rpc: Arc<Server<Guarded>>,
+        token: Arc<NodeToken>,
+        connections: TaskTracker,
+        agents: Arc<Agents>,
+        secure: &crate::secure::SecureGateway,
+        config: ServerConfig,
+    ) -> Self {
+        Self {
+            rpc,
+            token,
+            connections,
+            terminals: secure.service.0.terminal_producers(),
+            agents: AgentGateway::new(agents, secure, config),
+        }
+    }
+}
+
 /// What an agent's connection needs: its own server, closed with its
 /// session.
 #[derive(Debug, Clone)]
