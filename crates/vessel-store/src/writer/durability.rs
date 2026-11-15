@@ -17,7 +17,8 @@ pub(super) fn begin(
 ) -> rusqlite::Result<Option<PreviousSync>> {
     if !writes
         .iter()
-        .any(|write| matches!(write, Write::Checkpoint { .. }))
+        .any(|write| matches!(write, Write::Checkpoint { .. })
+            || matches!(write, Write::Append { records, .. } if records.iter().any(|record| matches!(record.event, vessel_proto::SessionEvent::Checkpoint { .. }))))
     {
         return Ok(None);
     }
@@ -137,5 +138,36 @@ mod tests {
             matches!(reply.try_recv().unwrap(), Err(StoreError::Commit(source)) if Arc::ptr_eq(&source, &error))
         );
         transaction.rollback().unwrap();
+    }
+}
+
+#[cfg(test)]
+mod checkpoint_log_tests {
+    use super::*;
+    #[test]
+    fn actor_checkpoint_records_also_require_full_sync() {
+        let connection = Connection::open_in_memory().unwrap();
+        connection
+            .pragma_update(None, "synchronous", "NORMAL")
+            .unwrap();
+        let (done, _reply) = tokio::sync::oneshot::channel();
+        let writes = [Write::Append {
+            session: vessel_proto::SessionId::random(),
+            records: vec![Arc::new(vessel_proto::EventRecord {
+                seq: vessel_proto::EventSeq::ZERO,
+                at: chrono::DateTime::UNIX_EPOCH,
+                event: vessel_proto::SessionEvent::Checkpoint {
+                    event: vessel_proto::checkpoint::CheckpointEvent::PromptAccepted,
+                },
+            })],
+            done,
+        }];
+        let previous = begin(&connection, &writes).unwrap();
+        assert!(previous.is_some());
+        let sync: i64 = connection
+            .pragma_query_value(None, "synchronous", |row| row.get(0))
+            .unwrap();
+        assert_eq!(sync, 2);
+        finish(&connection, previous).unwrap();
     }
 }

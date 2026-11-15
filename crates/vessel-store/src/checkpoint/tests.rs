@@ -14,6 +14,7 @@ fn one_migration_creates_all_tables_and_rolls_back_atomically() {
         assert_eq!(
             names,
             [
+                "checkpoint_allocations",
                 "checkpoint_captures",
                 "checkpoint_garbage",
                 "checkpoint_paths",

@@ -38,7 +38,9 @@ CREATE TABLE checkpoint_restores (
     outcome TEXT NOT NULL,
     phase TEXT NOT NULL CHECK(phase IN ('prepared','complete','recovery')),
     before_image TEXT NOT NULL,
-    created_at INTEGER NOT NULL
+    event_seq INTEGER CHECK(event_seq >= 0),
+    created_at INTEGER NOT NULL,
+    UNIQUE(session, event_seq)
 ) STRICT;
 CREATE TABLE checkpoint_paths (
     restore TEXT NOT NULL REFERENCES checkpoint_restores(id) ON DELETE RESTRICT,

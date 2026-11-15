@@ -435,3 +435,22 @@ reservation budget, not a promise to cap the entire database/WAL or filesystem's
 physical usage. A real-writer fixture covers candidate refusal, Ready settlement
 and retry, plus unavailable cleanup. It has not run. Actual worker/cleanup and
 controller wiring, per-plan settlement/expiry and GC remain owed.
+
+
+### Ended-target metadata contract (coordinator ruling, staged)
+
+Reuse the existing store writer/log append rather than start an actor for ended
+sessions. The checkpoint restore row now stores its metadata EventSeq; append
+validates the stored Restored/checkpoint/path-count binding and records the marker
+in the same savepoint. EndedMetadata derives its event from the authoritative row,
+refuses live targets, and treats an existing marker as a completed retry. Live
+actor append uses the same projection. Checkpoint-bearing append batches select
+FULL sync as well as explicit checkpoint writes. No run/status/ended_at/queue or
+conversation mutation is introduced. The shared Status comment is copied only
+from de2908cd's approved event.rs comment hunk; no lifecycle branch was merged.
+
+New real-writer fixtures cover ended status/ended_at/held queue and harness-id
+preservation, FilesRestored after Status in history, replay after store reopen,
+live-path refusal and ordinary append projection/duplicate rejection. They are
+unrun. Store operations and projection remain staged under cfg(test), and node
+controller/live pause event delivery are still unwired; FILE_CHECKPOINTS is None.

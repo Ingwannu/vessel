@@ -328,6 +328,22 @@ the approved scope union; a later nonignored created file is deleted only when
 it appeared in the approved plan. Ignored files stay outside the operation.
 `Unchanged` is a distinct verified no-op result, not a made-up changed count.
 
+An ended target does not need a process or resumed conversation to restore files.
+The existing store writer appends `FilesRestored` as storage-only metadata outside
+any run, preserving status, ended_at, conversation identity and the complete queue.
+A final Status remains the last runtime-produced lifecycle record of a run;
+checkpoint metadata may follow an ended run (shared wording owned by lifecycle,
+from de2908cd's comment hunk). Live targets publish through the owned actor pause.
+Both append paths validate the durable Restored outcome, selected CheckpointId and
+changed-path count, and record the event's EventSeq on the restore row in the same
+transaction as the event. A retry/restart reads that marker before publishing;
+it cannot append another event for the same RestoreId. An ended append checks the
+stored live flag in the writer transaction and refuses if a run has resumed. A
+verified Unchanged, rollback or recovery-required outcome cannot emit FilesRestored.
+The log append carrying checkpoint metadata uses FULL synchronous durability,
+including the live actor path, before acknowledging the metadata commit.
+
+
 An I/O error/cancellation after writes attempts rollback only for paths still
 matching this restore's own written fingerprint; never overwrite a new external
 edit while rolling back. Verified rollback returns `RolledBack`; otherwise

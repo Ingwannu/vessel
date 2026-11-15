@@ -16,7 +16,7 @@ use vessel_proto::{
     },
 };
 
-fn info() -> SessionInfo {
+pub(super) fn info() -> SessionInfo {
     SessionInfo::new(
         SessionId::random(),
         SessionSpec::new(
@@ -30,7 +30,7 @@ fn info() -> SessionInfo {
         DateTime::UNIX_EPOCH,
     )
 }
-fn plan(session: SessionId) -> Plan {
+pub(super) fn plan(session: SessionId) -> Plan {
     let key = CaptureKey {
         capture: CaptureId::random(),
         session,
@@ -69,7 +69,7 @@ fn plan(session: SessionId) -> Plan {
     }
 }
 
-async fn read_operation(
+pub(super) async fn read_operation(
     store: &Store,
     plan: &Plan,
     restore: RestoreId,
@@ -86,7 +86,7 @@ async fn read_operation(
         .unwrap()
 }
 
-async fn publish_capture(store: &Store, plan: &Plan) {
+pub(super) async fn publish_capture(store: &Store, plan: &Plan) {
     store
         .checkpoint_write(CheckpointWrite::Reserve {
             key: plan.key,

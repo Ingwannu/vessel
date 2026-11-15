@@ -237,7 +237,7 @@ fn backfill_never_revives_attention_before_a_new_turn_or_rewind() {
 
 #[test]
 fn checkpoint_metadata_keeps_branch_attention_instead_of_rewinding_it() {
-    use vessel_proto::checkpoint::{CheckpointEvent, CheckpointId, PathCount, RestoreId};
+    use vessel_proto::checkpoint::CheckpointEvent;
     let db = database();
     let id = session(&db);
     append(
@@ -260,11 +260,7 @@ fn checkpoint_metadata_keeps_branch_attention_instead_of_rewinding_it() {
             prompt: EventSeq::new(1),
             turn: EventSeq::ZERO,
         },
-        CheckpointEvent::FilesRestored {
-            restore: RestoreId::random(),
-            checkpoint: CheckpointId::random(),
-            paths: PathCount::new(1).unwrap(),
-        },
+        CheckpointEvent::PromptAccepted,
     ]
     .into_iter()
     .enumerate()

@@ -4,7 +4,7 @@ use std::sync::Arc;
 use vessel_proto::{
     AgentEvent, EventRecord, EventSeq, HarnessKind, HarnessSessionId, PlanEntry, PlanPriority,
     PlanStatus, SessionEvent, SessionId, SessionInfo, SessionMode, SessionSpec,
-    checkpoint::{CheckpointEvent, CheckpointId, PathCount, RestoreId},
+    checkpoint::CheckpointEvent,
 };
 use vessel_store::{DataDir, Store, StoreConfig};
 #[tokio::test]
@@ -57,11 +57,7 @@ async fn checkpoint_metadata_preserves_conversation_identity_and_the_retained_pl
             prompt: EventSeq::new(1),
             turn: EventSeq::ZERO,
         },
-        CheckpointEvent::FilesRestored {
-            restore: RestoreId::random(),
-            checkpoint: CheckpointId::random(),
-            paths: PathCount::new(1).unwrap(),
-        },
+        CheckpointEvent::PromptAccepted,
     ];
     let records = events
         .into_iter()

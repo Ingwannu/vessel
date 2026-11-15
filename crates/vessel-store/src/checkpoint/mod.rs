@@ -10,6 +10,7 @@ mod journal;
 #[cfg(test)]
 mod journal_tests;
 mod list;
+pub(crate) mod metadata;
 mod paths;
 mod plans;
 mod publication;
@@ -36,3 +37,6 @@ fn install_staged(connection: &Connection) -> Result<(), StoreError> {
     connection.execute_batch(CHECKPOINTS)?;
     Ok(())
 }
+
+#[cfg(test)]
+mod metadata_tests;

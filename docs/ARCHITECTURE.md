@@ -1744,3 +1744,13 @@ pin unfinished private work. Accounted id tombstones prevent reuse after cleanup
 retirement transfers private reservations into durable capture garbage. The node
 must still connect actual worker/cleanup ownership, expiry, GC and recovery, and
 complete capture reservation policy before exposing a checkpoint capability.
+
+
+Checkpoint result metadata (ADR 0077) shares the existing log transaction:
+FilesRestored is validated against the durable restored outcome and selected
+checkpoint, with its EventSeq saved on the restore row atomically. Ended targets
+use a storage-only writer command guarded by the stored live flag; live targets
+use actor append under their owned pause. Neither path changes conversation,
+queue, status or ended_at. Checkpoint-bearing append batches require FULL sync.
+These store operations/projection remain staged under cfg(test) until controller
+wiring and recovery admission are complete; they are not an enabled capability.

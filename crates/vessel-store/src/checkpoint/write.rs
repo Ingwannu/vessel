@@ -14,6 +14,10 @@ use vessel_proto::checkpoint::{
 
 #[derive(Debug)]
 pub(crate) enum CheckpointWrite {
+    EndedMetadata {
+        operation: Box<Operation>,
+        at: DateTime<Utc>,
+    },
     ReserveCapture {
         key: CaptureKey,
         at: DateTime<Utc>,
@@ -88,8 +92,14 @@ pub(crate) enum CheckpointWrite {
 }
 
 /// The writer's savepoint encloses an admission AND every Pending path intent.
-pub(crate) fn apply(connection: &Connection, write: CheckpointWrite) -> Result<(), Error> {
-    match write {
+pub(crate) fn apply(
+    connection: &Connection,
+    write: CheckpointWrite,
+) -> Result<(), crate::StoreError> {
+    let result = match write {
+        CheckpointWrite::EndedMetadata { operation, at } => {
+            return super::metadata::append_ended(connection, &operation, at);
+        }
         CheckpointWrite::ReserveCapture { key, at } => {
             journal::candidate(connection, key, super::quota::CAPTURE_BYTES, at)
         }
@@ -152,5 +162,6 @@ pub(crate) fn apply(connection: &Connection, write: CheckpointWrite) -> Result<(
         } => super::allocation::cleaned(connection, key, allocation, owner),
         CheckpointWrite::InvalidateCandidates => journal::invalidate_candidates(connection),
         CheckpointWrite::GarbageCleaned { object } => super::garbage::cleaned(connection, object),
-    }
+    };
+    result.map_err(crate::StoreError::from)
 }
