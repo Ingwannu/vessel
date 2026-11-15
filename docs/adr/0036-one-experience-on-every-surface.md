@@ -143,6 +143,19 @@ and option 3 inside it removes the cost entirely where it holds.
   to WebAssembly, which would make behaviour one code and not two
   checked against each other. Not before the port is complete.
 
+## Native composed-content scrolling (proposed, 2026-11-15)
+
+The sidebar repair extends the one-control rule with a shared bounded
+viewport over GPUI's scroll handle. Fixed navigation and footer surround one
+scrolling body containing projects and sessions, as Paseo's sidebar does;
+there is no section-specific height budget. This fixes content displacing
+the footer without copying scroll handling into an area. The existing
+virtualized list remains for indexed row delegates; private dialog and
+autocomplete scrolling are later consumers, not part of this change. The
+contract and limited focus-reveal evidence are recorded in
+`docs/plans/backend-m12-sidebar-layout.md`; complete row keyboard and
+accessibility behavior remain separate work.
+
 ## References
 
 - ADR 0017 (the page), ADR 0020 (the shells), ADR 0028 (preferences

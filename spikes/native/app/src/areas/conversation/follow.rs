@@ -13,25 +13,28 @@ use vessel_proto::{EventRecord, EventSeq, SessionId};
 
 use super::Seat;
 use super::area::{Followup, collapsing};
+use crate::areas::session::Open;
 use crate::shell::Shell;
 
 impl Shell {
-    /// The session area opened `session` on `machine`: start again from
-    /// its first record, and read what the node says of it.
-    pub(crate) fn conversation_opened(
-        &mut self,
-        machine: &str,
-        session: SessionId,
-        cx: &mut Context<'_, Self>,
-    ) {
+    /// The session area opened a session: start again from its first
+    /// record, and read what the node says of it. A terminal session has
+    /// no conversation state (the node refuses `Act::Conversation` for one
+    /// and the refusal showed as the screen's notice), so only its info is
+    /// read.
+    pub(crate) fn conversation_opened(&mut self, open: &Open, cx: &mut Context<'_, Self>) {
         self.hear_find(cx);
-        self.areas.conversation.open(machine, session);
+        self.areas.conversation.open(&open.machine, open.session);
         // Opened again: a fork's origin that could not be read is read.
         self.origin_read();
-        for act in [Act::Info, Act::Conversation] {
+        let mut acts = vec![Act::Info];
+        if open.structured {
+            acts.push(Act::Conversation);
+        }
+        for act in acts {
             self.command(Command::Act {
-                machine: machine.to_owned(),
-                session,
+                machine: open.machine.clone(),
+                session: open.session,
                 act,
             });
         }
@@ -74,6 +77,11 @@ impl Shell {
     /// state happens only when it is for the session shown
     /// ([`ConversationArea::answered`]).
     pub(crate) fn acted(&mut self, answer: ActAnswer, cx: &mut Context<'_, Self>) {
+        // A terminal session's log, read whole (`terminal`).
+        if self.terminal_acted(&answer, cx) {
+            cx.notify();
+            return;
+        }
         match &answer.result {
             Ok(Acted::Session(info)) => {
                 let card = Card::from_session(&answer.machine, info);
