@@ -1,0 +1,138 @@
+//! Link marks preserve partial source selection and rendered find offsets.
+
+use std::sync::{Arc, Mutex};
+
+use gpui::{
+    Context, Entity, IntoElement, Modifiers, MouseButton, ParentElement as _, Render, Styled as _,
+    TestAppContext, Window, div, point, px,
+};
+use gpui_component::text::{TextView, TextViewState};
+
+use super::{Actions, CopyStyle, InlineLinkKind, RecognizedLink, Source, finish};
+
+const PATH: &str = "src/lib.rs:4";
+
+fn recognize(text: &str, _: InlineLinkKind) -> Vec<RecognizedLink> {
+    text.find(PATH)
+        .and_then(|start| RecognizedLink::new(text, start..start.saturating_add(PATH.len()), PATH))
+        .into_iter()
+        .collect()
+}
+
+struct Probe {
+    source: &'static str,
+    state: Entity<TextViewState>,
+    clicks: Arc<Mutex<Vec<(String, Source)>>>,
+}
+impl Render for Probe {
+    fn render(&mut self, _: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {
+        let clicks = Arc::clone(&self.clicks);
+        let actions = Actions::new(move |href, _, _| {
+            clicks
+                .lock()
+                .unwrap()
+                .push((href.as_str().to_owned(), href.source()))
+        })
+        .with_inline_links(recognize);
+        div()
+            .w(px(130.0))
+            .child(gpui_base::TextSelectionLayer)
+            .child(finish(
+                TextView::new(&self.state),
+                self.state.clone(),
+                Arc::from(self.source),
+                Some(actions),
+                CopyStyle::MarkdownCodeAware,
+            ))
+    }
+}
+
+#[gpui::test]
+fn inferred_token_keeps_partial_selection_and_find_source_offsets(cx: &mut TestAppContext) {
+    cx.update(gpui_base::init);
+    for source in [
+        "prefix words src/lib.rs:4 suffix words beyond more",
+        "prefix words `src/lib.rs:4` suffix words beyond more",
+    ] {
+        let clicks = Arc::new(Mutex::new(Vec::new()));
+        let captured = Arc::clone(&clicks);
+        let (probe, window) = cx.add_window_view(move |_, cx| Probe {
+            source,
+            state: cx.new(|cx| TextViewState::markdown(source, cx)),
+            clicks,
+        });
+        window.run_until_parked();
+        window.update(|window, cx| {
+            let _paint = window.draw(cx);
+        });
+        let state = probe.read_with(window, |probe, _| probe.state.clone());
+        let bounds = state.read_with(window, |state, _| state.bounds());
+        let start = bounds.origin + point(px(12.0), px(4.0));
+        let end = bounds.bottom_right() - point(px(4.0), px(4.0));
+        window.simulate_mouse_down(start, MouseButton::Left, Modifiers::default());
+        window.simulate_mouse_move(end, MouseButton::Left, Modifiers::default());
+        window.simulate_mouse_up(end, MouseButton::Left, Modifiers::default());
+        window.update(|window, cx| {
+            let _paint = window.draw(cx);
+        });
+        state.read_with(window, |state, _| {
+            let rendered = state.rendered_text();
+            assert_eq!(rendered.source(), source);
+            let path_start = source.find(PATH).unwrap();
+            let found = rendered
+                .range_for_source(path_start..path_start.saturating_add(PATH.len()))
+                .unwrap();
+            assert_eq!(&rendered.as_str()[found], PATH, "find offsets did not move");
+            let selected = state
+                .selected_source_range()
+                .expect("drag selection maps to source");
+            assert!(
+                selected.start > 0 || selected.end < source.len(),
+                "this must be a partial selection"
+            );
+            assert!(state.selected_text().contains(PATH));
+            assert_eq!(
+                state.selected_text().trim_end_matches('\n'),
+                &source[selected]
+            );
+            assert!(
+                !state.selected_text().contains("](src/lib.rs:4)"),
+                "inferred links must not fabricate copied markdown"
+            );
+        });
+        assert!(
+            captured.lock().unwrap().is_empty(),
+            "dragging across a link does not activate it"
+        );
+    }
+}
+
+#[gpui::test]
+fn explicit_links_keep_authored_provenance_and_fenced_code_is_not_recognized(
+    cx: &mut TestAppContext,
+) {
+    cx.update(gpui_base::init);
+    for (source, authored) in [
+        ("[src/lib.rs:4](https://example.com)", true),
+        ("```text\nsrc/lib.rs:4\n```", false),
+    ] {
+        let clicks = Arc::new(Mutex::new(Vec::new()));
+        let captured = Arc::clone(&clicks);
+        let (_, window) = cx.add_window_view(move |_, cx| Probe {
+            source,
+            state: cx.new(|cx| TextViewState::markdown(source, cx)),
+            clicks,
+        });
+        window.run_until_parked();
+        window.simulate_click(point(px(8.0), px(8.0)), Modifiers::default());
+        let seen = captured.lock().unwrap();
+        if authored {
+            assert_eq!(
+                &*seen,
+                &[("https://example.com".to_owned(), Source::Authored)]
+            );
+        } else {
+            assert!(seen.is_empty());
+        }
+    }
+}

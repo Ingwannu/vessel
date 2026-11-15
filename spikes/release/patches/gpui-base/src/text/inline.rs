@@ -1,3 +1,4 @@
+// MODIFIED by Vessel: optional inferred links retain source selection and find mapping.
 #[cfg(target_family = "wasm")]
 use async_channel::bounded;
 use gpui::Corners;
@@ -1448,7 +1449,7 @@ impl Element for Inline {
                             },
                             up: event.clone(),
                         });
-                        handle_link_click(&link_click_handler, link.url, click, window, cx);
+                        handle_link_click(&link_click_handler, link.target(), click, window, cx);
                     }
                 }
             });

@@ -1132,6 +1132,7 @@ impl Render for TextViewState {
         let (reveal, reveal_block) = self.reveal_frame(cx.background_executor().now(), window);
         // Built every frame, so everything in it is shared, not copied.
         let node_cx = NodeContext {
+            inline_link_scope: Default::default(),
             offset: self.parsed_content.node_cx.offset,
             link_refs: self.parsed_content.node_cx.link_refs.clone(),
             style: self.text_view_style.clone(),

@@ -49,14 +49,14 @@ pub(super) fn activate(
             .on_click(move |event, window, cx| {
                 crate::TextSelection::end(window, cx);
                 cx.stop_propagation();
-                handle_link_click(&link_handler, link.url.clone(), event.clone(), window, cx);
+                handle_link_click(&link_handler, link.target(), event.clone(), window, cx);
             })
             .on_aux_click(move |event, window, cx| {
                 crate::TextSelection::end(window, cx);
                 cx.stop_propagation();
                 handle_link_click(
                     &auxiliary_handler,
-                    auxiliary_link.url.clone(),
+                    auxiliary_link.target(),
                     event.clone(),
                     window,
                     cx,

@@ -1,3 +1,4 @@
+// MODIFIED by Vessel: optional inferred links retain source selection and find mapping.
 use std::{
     cell::RefCell,
     rc::Rc,
@@ -389,7 +390,7 @@ impl Element for InlineObject {
                     },
                     up: event.clone(),
                 });
-                super::text_view::handle_link_click(&handler, link.url.clone(), click, window, cx);
+                super::text_view::handle_link_click(&handler, link.target(), click, window, cx);
             });
         }
         if selectable {

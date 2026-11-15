@@ -108,7 +108,7 @@ pub(crate) type TableActionsFn =
 pub(crate) type ImageSourceFn = dyn Fn(&gpui::SharedUri) -> gpui::ImageSource + Send + Sync;
 
 pub(crate) type LinkClickHandlerFn =
-    dyn Fn(&SharedString, &ClickEvent, &mut Window, &mut App) + Send + Sync;
+    dyn Fn(&super::LinkTarget, &ClickEvent, &mut Window, &mut App) + Send + Sync;
 
 /// Kept by the element only, so unlike the handlers the state carries, it
 /// may hold a `ScrollHandle`.
@@ -116,13 +116,13 @@ pub(crate) type RevealHandlerFn = dyn Fn(Bounds<Pixels>, &mut Window, &mut App);
 
 pub(crate) fn handle_link_click(
     handler: &Option<Arc<LinkClickHandlerFn>>,
-    url: SharedString,
+    target: super::LinkTarget,
     event: ClickEvent,
     window: &mut Window,
     cx: &mut App,
 ) {
     if let Some(handler) = handler {
-        handler(&url, &event, window, cx);
+        handler(&target, &event, window, cx);
     } else if match &event {
         ClickEvent::Mouse(click) => {
             matches!(click.up.button, MouseButton::Left | MouseButton::Middle)
@@ -130,7 +130,7 @@ pub(crate) fn handle_link_click(
         ClickEvent::Keyboard(_) => true,
         ClickEvent::Touch(click) => !click.long_press,
     } {
-        cx.open_url(&url);
+        cx.open_url(&target.href);
     }
 }
 
@@ -449,12 +449,33 @@ impl TextView {
     where
         F: Fn(&SharedString, &ClickEvent, &mut Window, &mut App) + Send + Sync + 'static,
     {
+        self.link_click_handler = Some(Arc::new(move |target, event, window, cx| {
+            handler(&target.href, event, window, cx)
+        }));
+        self
+    }
+
+    /// Handles authored and inferred links with their original provenance.
+    #[must_use]
+    pub fn on_link_activate<F>(mut self, handler: F) -> Self
+    where
+        F: Fn(&super::LinkTarget, &ClickEvent, &mut Window, &mut App) + Send + Sync + 'static,
+    {
         self.link_click_handler = Some(Arc::new(handler));
+        self
+    }
+
+    /// Recognize file-like text/code using existing text runs, not custom inline atoms.
+    #[must_use]
+    pub fn inline_link_recognizer(mut self, recognizer: super::InlineLinkRecognizer) -> Self {
+        let extensions = Arc::make_mut(&mut self.markdown_extensions);
+        *extensions = extensions.clone().inline_link_recognizer(recognizer);
         self
     }
 
     /// Handle image activation without replacing the image renderer or selection atom.
     /// With no handler, only images already wrapped in links are interactive.
+    #[must_use]
     pub fn on_image_click<F>(mut self, handler: F) -> Self
     where
         F: Fn(&gpui::SharedUri, &ClickEvent, &mut Window, &mut App) + Send + Sync + 'static,

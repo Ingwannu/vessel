@@ -6,11 +6,25 @@ use gpui::{
     AnyElement, App, ClipboardItem, Entity, ImageSource, InteractiveElement as _, IntoElement as _,
     ParentElement as _, SharedString, SharedUri, Window, div,
 };
+pub use gpui_component::text::{InlineLinkKind, RecognizedLink};
+use gpui_component::text::{InlineLinkRecognizer, LinkSource};
 use gpui_component::text::{SelectionFormat, TextView, TextViewState};
 
 /// An authored href is untrusted text until the host classifies and authorizes it.
 #[derive(Debug, Clone)]
-pub struct Href(SharedString);
+pub struct Href {
+    value: SharedString,
+    source: Source,
+}
+
+/// Inferred text keeps literal percent bytes, unlike an authored href.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Source {
+    /// Original Markdown href.
+    Authored,
+    /// Recognized text or inline-code token.
+    Inferred,
+}
 
 /// An image URI remains untrusted until the host resolves its authorized resource.
 #[derive(Debug, Clone)]
@@ -28,7 +42,13 @@ impl Href {
     /// Raw href supplied by the markdown engine, never automatically opened.
     #[must_use]
     pub fn as_str(&self) -> &str {
-        &self.0
+        &self.value
+    }
+
+    /// The host chooses the parser's raw-token or href path without guessing by URL.
+    #[must_use]
+    pub const fn source(&self) -> Source {
+        self.source
     }
 }
 
@@ -43,6 +63,7 @@ pub struct Actions {
     link: Arc<LinkHandler>,
     image: Option<Arc<ImageResolver>>,
     image_click: Option<Arc<ImageHandler>>,
+    inline_links: Option<InlineLinkRecognizer>,
 }
 
 impl std::fmt::Debug for Actions {
@@ -50,6 +71,7 @@ impl std::fmt::Debug for Actions {
         f.debug_struct("Actions")
             .field("image_resolver", &self.image.is_some())
             .field("image_activation", &self.image_click.is_some())
+            .field("inline_links", &self.inline_links.is_some())
             .finish_non_exhaustive()
     }
 }
@@ -62,6 +84,7 @@ impl Actions {
             link: Arc::new(handler),
             image: None,
             image_click: None,
+            inline_links: None,
         }
     }
 
@@ -83,6 +106,16 @@ impl Actions {
         handler: impl Fn(ImageHref, &mut Window, &mut App) + Send + Sync + 'static,
     ) -> Self {
         self.image_click = Some(Arc::new(handler));
+        self
+    }
+
+    /// Decorate existing text/code runs without replacing their selection/source map.
+    #[must_use]
+    pub fn with_inline_links(
+        mut self,
+        recognize: fn(&str, InlineLinkKind) -> Vec<RecognizedLink>,
+    ) -> Self {
+        self.inline_links = Some(InlineLinkRecognizer::new(recognize));
         self
     }
 }
@@ -109,9 +142,25 @@ pub(super) fn finish(
         CopyStyle::MarkdownCodeAware => SelectionFormat::Source,
     });
     if let Some(actions) = actions {
-        view = view.on_link_click(move |uri, _event, window, cx| {
-            (actions.link)(Href(uri.clone()), window, cx);
+        view = view.on_link_activate(move |target, _event, window, cx| {
+            let source = match target.source() {
+                LinkSource::Authored => Source::Authored,
+                LinkSource::Inferred(InlineLinkKind::Text | InlineLinkKind::Code) => {
+                    Source::Inferred
+                }
+            };
+            (actions.link)(
+                Href {
+                    value: target.href().clone(),
+                    source,
+                },
+                window,
+                cx,
+            );
         });
+        if let Some(recognizer) = actions.inline_links {
+            view = view.inline_link_recognizer(recognizer);
+        }
         if let Some(image) = actions.image {
             view = view.image_source(move |uri| image(uri));
         }
@@ -253,3 +302,6 @@ mod tests {
 
 #[cfg(test)]
 mod image_tests;
+
+#[cfg(test)]
+mod link_tests;

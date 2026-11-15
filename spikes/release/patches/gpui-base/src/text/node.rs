@@ -777,6 +777,16 @@ pub struct LinkMark {
     /// Optional identifier for footnotes.
     pub identifier: Option<SharedString>,
     pub title: Option<SharedString>,
+    pub(crate) source: super::LinkSource,
+}
+
+impl LinkMark {
+    pub(crate) fn target(&self) -> super::LinkTarget {
+        super::LinkTarget {
+            href: self.url.clone(),
+            source: self.source,
+        }
+    }
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -1076,7 +1086,9 @@ pub(crate) fn wrap_with_mark(text: &str, mark: &TextMark) -> String {
     if mark.highlight.is_some() {
         out = format!("=={}==", out);
     }
-    if let Some(link) = &mark.link {
+    if let Some(link) = &mark.link
+        && link.source == super::LinkSource::Authored
+    {
         out = match &link.title {
             Some(title) => format!("[{}]({} \"{}\")", out, link.url, title),
             None => format!("[{}]({})", out, link.url),
@@ -1108,7 +1120,9 @@ impl MarkdownSource {
         // Outer-to-inner order for equally extensive marks. When a mark spans
         // more neighboring pieces, serialize it outside the shorter marks.
         let mut layers = Vec::new();
-        if let Some(link) = &mark.link {
+        if let Some(link) = &mark.link
+            && link.source == super::LinkSource::Authored
+        {
             layers.push(TextMark {
                 link: Some(link.clone()),
                 ..Default::default()
@@ -2657,6 +2671,7 @@ impl CodeBlock {
 /// A context for rendering nodes, contains link references.
 #[derive(Default, Clone)]
 pub(crate) struct NodeContext {
+    pub(crate) inline_link_scope: super::inline_links::InlineLinkScope,
     /// The byte offset of the node in the original markdown text.
     /// Used for incremental updates.
     pub(crate) offset: usize,

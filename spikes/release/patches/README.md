@@ -198,6 +198,25 @@ seam listed below is also marked in each changed file.
   inline-flow images and linked images with a host handler, plus absence of a
   handler. These tests are pending; no visual approval is implied.
 
+### Optional inferred text links without source rewriting
+
+- Purpose: Paseo `components/markdown/source.ts:12-55` recognizes file tokens in
+  prose and complete inline code, then `assistant-file-links/parse.ts:598-646`
+  classifies the target. A custom Markdown inline atom would remove ordinary
+  partial selection from those tokens.
+- Choice: a typed `InlineLinkRecognizer` function produces validated UTF-8
+  ranges which become existing paragraph link marks. It skips explicit links
+  (including reference/inline-HTML groups) and fenced code. Equivalent function
+  registrations keep the existing parsed document. No text or source segment is
+  rewritten; inferred marks do not generate new link syntax during source copy.
+- Provenance: the optional `on_link_activate` callback distinguishes authored
+  hrefs from inferred Text/Code, preserving literal percent bytes in filenames.
+  Existing `on_link_click` signatures remain compatible and receive the same URL.
+- Changed files: private `text/inline_links.rs`, extension configuration, Markdown
+  parsing, existing link marks/copy, and existing inline/image activation adapters.
+  The native kit tests partial selection across a recognized token, source-to-find
+  offsets, authored-link priority, and fenced-code exclusion. Tests are pending.
+
 ### 4. A steady caret while motion is held
 
 - Purpose: a focused text field costs nothing while nothing changes.

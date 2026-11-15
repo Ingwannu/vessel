@@ -104,11 +104,14 @@ impl RenderContext {
     where
         F: Fn(&SharedString, &ClickEvent, &mut Window, &mut App) + Send + Sync + 'static,
     {
-        self.node.link_click_handler = Some(Arc::new(handler));
+        self.node.link_click_handler = Some(Arc::new(move |target, event, window, cx| {
+            handler(&target.href, event, window, cx)
+        }));
         self
     }
 
     /// Handles image activation through the same renderer as a TextView.
+    #[must_use]
     pub fn on_image_click<F>(mut self, handler: F) -> Self
     where
         F: Fn(&SharedUri, &ClickEvent, &mut Window, &mut App) + Send + Sync + 'static,
