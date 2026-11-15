@@ -399,3 +399,15 @@ App compile result. Its replacement will also verify the official2e95 union.
 The two10:35 cancelled jobs are confirmed infrastructure interruption (VM
 resize/restart), not source failures. Per T/coordinator ruling, the latest-source
 Clippy and View tests each have one replacement; old143 logs remain retained.
+
+
+## Shared actual-close focus restoration
+
+Palette/help now reuse kit::focus::ReturnFocus, already introduced and reviewed
+for shared overlays. Each open cycle captures a weak opener once; actual close
+restores only while the overlay's search owns focus. A removed opener cannot be
+kept alive by the modal; missing focus falls back to the existing composer entry.
+A newer focused field is preserved. This replaces duplicated strong-handle
+restoration, without changing kit internals or creating a focus registry. The
+new actual GPUI regression covers removed openers and newer focus for both
+surfaces. It is written, not yet executed.

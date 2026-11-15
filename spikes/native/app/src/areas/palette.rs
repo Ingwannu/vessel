@@ -26,11 +26,12 @@ pub(crate) use entry::{sidebar_row, title_trigger};
 
 use snapshot::Activate;
 
-use gpui::{FocusHandle, ScrollHandle};
+use gpui::ScrollHandle;
 use vessel_app_kit::command::{
     CommandAnimation, CommandFrame, CommandHandlers, CommandKey, CommandState,
     command_frame_animated,
 };
+use vessel_app_kit::focus::ReturnFocus;
 use vessel_app_kit::picker;
 use vessel_app_kit::ui::{
     AnyElement, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
@@ -80,7 +81,7 @@ pub(crate) struct PaletteArea {
     /// The list's scroll, to keep the active row in sight.
     scroll: ScrollHandle,
     /// What held the keys before it opened.
-    prior: Option<FocusHandle>,
+    return_focus: ReturnFocus,
 }
 
 impl PaletteArea {
@@ -111,7 +112,7 @@ impl PaletteArea {
             mode: PaletteMode::default(),
             unavailable: None,
             scroll: ScrollHandle::new(),
-            prior: None,
+            return_focus: ReturnFocus::default(),
         }
     }
 }
@@ -146,7 +147,7 @@ impl Shell {
         let placeholder = self.t.lang.palette().placeholder;
         let palette = &mut self.areas.palette;
         if !palette.motion.is_open() {
-            palette.prior = window.focused(cx);
+            palette.return_focus.remember(window, cx);
             palette.motion.present();
             palette.scroll.set_offset(vessel_app_kit::ui::point(
                 px(vessel_app_kit::theme::spacing::S0),
@@ -183,13 +184,9 @@ impl Shell {
         palette.cursor.reset();
         palette.messages.reset();
         palette.unavailable = None;
-        if let Some(prior) = palette.prior.take() {
-            prior.focus(window, cx);
-            if !prior.is_focused(window) {
-                let _restored = self.focus_composer(window, cx);
-            }
-        } else {
-            window.blur(cx);
+        let owner = palette.search.focus_handle(cx);
+        palette.return_focus.restore_if_owned(&owner, window, cx);
+        if window.focused(cx).is_none() {
             let _restored = self.focus_composer(window, cx);
         }
         self.message_search_query("", cx);

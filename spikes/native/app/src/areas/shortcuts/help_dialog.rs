@@ -5,11 +5,12 @@
 mod rows;
 
 use crate::shell::Shell;
-use gpui::{FocusHandle, ScrollHandle};
+use gpui::ScrollHandle;
 use vessel_app_kit::command::{
     CommandAnimation, CommandFrame, CommandHandlers, CommandKey, CommandState,
     command_frame_animated,
 };
+use vessel_app_kit::focus::ReturnFocus;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, IntoElement as _, ParentElement as _, Styled as _, Window, div, px,
@@ -21,7 +22,7 @@ pub(super) struct HelpDialog {
     search: TextField,
     pub(super) query: String,
     scroll: ScrollHandle,
-    prior: Option<FocusHandle>,
+    return_focus: ReturnFocus,
 }
 
 impl HelpDialog {
@@ -37,7 +38,7 @@ impl HelpDialog {
             ),
             query: String::new(),
             scroll: ScrollHandle::new(),
-            prior: None,
+            return_focus: ReturnFocus::default(),
         }
     }
 
@@ -69,7 +70,7 @@ impl Shell {
         super::modal_opened(self);
         let help = &mut self.areas.shortcuts.help;
         if !help.is_open() {
-            help.prior = window.focused(cx);
+            help.return_focus.remember(window, cx);
             help.query.clear();
             help.search.clear(window, cx);
             help.search
@@ -100,13 +101,9 @@ impl Shell {
         help.motion.close();
         help.query.clear();
         help.search.clear(window, cx);
-        if let Some(prior) = help.prior.take() {
-            prior.focus(window, cx);
-            if !prior.is_focused(window) {
-                let _restored = self.focus_composer(window, cx);
-            }
-        } else {
-            window.blur(cx);
+        let owner = help.search.focus_handle(cx);
+        help.return_focus.restore_if_owned(&owner, window, cx);
+        if window.focused(cx).is_none() {
             let _restored = self.focus_composer(window, cx);
         }
         cx.notify();

@@ -1,6 +1,6 @@
 //! Actual shell controls and source callbacks, with no link or external I/O.
 use crate::shell::{Shell, language_tests};
-use gpui::{Entity, TestAppContext, VisualTestContext};
+use gpui::{AppContext as _, Entity, TestAppContext, VisualTestContext};
 use vessel_app_view::settings::Section;
 use vessel_app_view::shortcuts::Platform;
 
@@ -280,4 +280,58 @@ fn settings_shortcuts_use_actual_six_hundred_boundary_independent_of_phone_form(
     cx.simulate_resize(gpui::size(gpui::px(599.0), gpui::px(844.0)));
     cx.run_until_parked();
     assert!(cx.debug_bounds(selector).is_none(), "unavailable below600");
+}
+
+#[gpui::test]
+fn help_and_palette_release_dead_openers_and_preserve_newer_focus(cx: &mut TestAppContext) {
+    let (shell, cx) = setup(cx);
+    for help in [true, false] {
+        shell.update_in(cx, |shell, window, cx| {
+            shell.go(crate::routes::Route::Draft, window, cx);
+            let transient_opener = cx.focus_handle();
+            transient_opener.focus(window, cx);
+            if help {
+                shell.open_shortcuts_help(window, cx);
+            } else {
+                shell.open_palette(window, cx);
+            }
+            // No retained strong opener: this field disappears before close.
+        });
+        cx.run_until_parked();
+        shell.update_in(cx, |shell, window, cx| {
+            if help {
+                shell.close_shortcuts_help(window, cx);
+            } else {
+                shell.close_palette(window, cx);
+            }
+            assert!(
+                shell
+                    .areas
+                    .draft
+                    .composer
+                    .focus_handle(cx)
+                    .is_focused(window)
+            );
+            if help {
+                shell.open_shortcuts_help(window, cx);
+            } else {
+                shell.open_palette(window, cx);
+            }
+        });
+        cx.run_until_parked();
+        shell.update_in(cx, |shell, window, cx| {
+            let newer = cx.focus_handle();
+            newer.focus(window, cx);
+            if help {
+                shell.close_shortcuts_help(window, cx);
+            } else {
+                shell.close_palette(window, cx);
+            }
+            assert!(
+                newer.is_focused(window),
+                "actual-close must preserve newer focus"
+            );
+        });
+        cx.run_until_parked();
+    }
 }
