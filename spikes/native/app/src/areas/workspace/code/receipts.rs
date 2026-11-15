@@ -61,21 +61,7 @@ impl Shell {
                 ask,
                 ticket,
                 result,
-            } => {
-                let key = FileKey::new(scope, ask.path.clone());
-                let current = self.file_reply_current(&key, scope, live);
-                if current {
-                    self.editor_read_answered_for(&key, ticket, &ask, result, cx);
-                } else if let Some(editing) = self.editing_for(&key) {
-                    if editing
-                        .reading
-                        .take_if(|(pending, _)| *pending == ticket)
-                        .is_some()
-                    {
-                        editing.model.retire_observations();
-                    }
-                }
-            }
+            } => self.editable_file_receipt(scope, &ask, ticket, result, live, cx),
             FileAnswer::Saved {
                 path,
                 ticket,
@@ -168,6 +154,28 @@ impl Shell {
             self.file_read_answered_for(&key, ask, ticket, result, cx);
         } else if let Some(viewer) = self.areas.workspace.code.viewer_for(&key) {
             let _settled = viewer.reading.take_if(|pending| *pending == ticket);
+        }
+    }
+    fn editable_file_receipt(
+        &mut self,
+        scope: &FileScope,
+        ask: &ReadFile,
+        ticket: FileTicket,
+        result: Result<FileRead, Problem>,
+        live: bool,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let key = FileKey::new(scope, ask.path.clone());
+        if self.file_reply_current(&key, scope, live) {
+            self.editor_read_answered_for(&key, ticket, ask, result, cx);
+        } else if let Some(editing) = self.editing_for(&key) {
+            if editing
+                .reading
+                .take_if(|(pending, _)| *pending == ticket)
+                .is_some()
+            {
+                editing.model.retire_observations();
+            }
         }
     }
 }
