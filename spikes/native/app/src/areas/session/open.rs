@@ -54,21 +54,20 @@ impl crate::shell::Shell {
     }
     /// Show a session's conversation, following it.
     pub(super) fn follow(&mut self, open: Open, cx: &mut Context<'_, Self>) {
-        self.conversation_opened(&open.machine, open.session, open.binding.as_ref(), cx);
+        self.conversation_opened(&open, cx);
         let view = &mut self.areas.session;
         view.conversation = Conversation::default();
         view.entries.reset(0);
-        if open.structured {
-            self.command(open.binding.clone().map_or_else(
-                || Command::Open {
-                    machine: open.machine.clone(),
-                    session: open.session,
-                },
-                |binding| {
-                    Command::SessionAccess(vessel_app_link::sessions::Access::Follow(binding))
-                },
-            ));
+        if !self.terminal_follow(&open, cx) {
+            return;
         }
+        self.command(open.binding.clone().map_or_else(
+            || Command::Open {
+                machine: open.machine.clone(),
+                session: open.session,
+            },
+            |binding| Command::SessionAccess(vessel_app_link::sessions::Access::Follow(binding)),
+        ));
         self.areas.session.open = Some(open);
         self.route = Route::Session;
         cx.notify();
@@ -108,7 +107,8 @@ impl crate::shell::Shell {
         // Track P: the session composer swaps the draft it holds.
         self.composer_switched(open.session, window, cx);
         // An ended session takes prompts too: sending starts it again.
-        let takes_prompts = open.structured && open.archived_at.is_none();
+        let structured = open.structured;
+        let takes_prompts = structured && open.archived_at.is_none();
         self.areas.session.pending = None;
         self.areas.session.resuming = None;
         self.areas.session.resume_error = None;
@@ -122,6 +122,8 @@ impl crate::shell::Shell {
             .set_placeholder(&placeholder, window, cx);
         if takes_prompts {
             self.areas.session.composer.focus(window, cx);
+        } else if !structured {
+            self.focus_terminal(window, cx);
         }
     }
 }
