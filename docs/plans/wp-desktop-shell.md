@@ -400,3 +400,11 @@ pending local intent as an acknowledgment. Existing revision regression now
 checks that publish does not advance canonical context, observed snapshots do,
 and stale failure snapshots cannot replace newer canonical state. W12 consumes
 this timing for its owned layout cache hook; no second persistence owner is added.
+
+Bundled history now retains the release owner's complete available notes for
+labels0.0.0.0.4 through0.0.0.0.20, newest first. Earlier notes are not reconstructed
+from current behavior: known problems and unchecked flows remain exactly as
+published by that author, including Korean-only early notes. CHANGELOG.sources
+records each source text hash; only19/20 additionally have the independent
+signed-manifest note comparison supplied above. Seventeen releases exercise the
+real initial5/+10 reveal controls without invented history or an external fetch.
