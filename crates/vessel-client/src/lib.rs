@@ -61,6 +61,7 @@ mod resume;
 mod schedules;
 pub mod secure;
 mod side_questions;
+mod skills;
 mod stream;
 #[cfg(test)]
 mod tests;

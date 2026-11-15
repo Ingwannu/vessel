@@ -7,6 +7,7 @@ mod memory;
 mod pinned;
 mod resume;
 mod secure;
+mod skills;
 mod stream;
 mod websocket;
 

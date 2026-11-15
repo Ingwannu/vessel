@@ -75,10 +75,16 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::GetCatalogue
         | Method::ListSchedules
         | Method::ListPrompts
+        | Method::GetSkillsStatus
+        | Method::ReconcileSkills
+        | Method::UninstallSkills
         | Method::GetNodeSettings
         | Method::SetNodeSettings
         | Method::ListInbox
         | Method::Diagnostics => json!({}),
+        Method::SaveSkillsSelection | Method::ImportSkillsSelection => {
+            json!({"selection":{"mode":"all"}})
+        }
         Method::RevokeDevice => json!({"device":id}),
         Method::ReadBlob => json!({"hash":hash}),
         Method::WatchFleet => json!({"after":0}),

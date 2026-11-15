@@ -3501,6 +3501,11 @@ export type GetSessionOptions = {
 session: SessionId, };
 
 /**
+ * Read host-level state; Admin only, never an agent tool.
+ */
+export type GetSkillsStatus = Record<symbol, never>;
+
+/**
  * `git.status`.
  */
 export type GetStatus = { 
@@ -4048,6 +4053,15 @@ cwd?: string | null,
  * Start a session resuming the conversation.
  */
 start?: boolean, };
+
+/**
+ * Import older client selection only if the host has never stored one.
+ */
+export type ImportSkillsSelection = { 
+/**
+ * Validated legacy preference, never arbitrary input paths.
+ */
+selection: SkillSelection, };
 
 /**
  * A count of inbox entries, independent of the currently loaded page.
@@ -7020,6 +7034,11 @@ offset: number, };
 export type RecentFailures = Array<DiagnosticFailure>;
 
 /**
+ * Explicit non-destructive install/update of selected bundled skills.
+ */
+export type ReconcileSkills = Record<symbol, never>;
+
+/**
  * A name git resolves: a branch, a remote-tracking branch such as
  * `origin/main`, or a tag.
  */
@@ -7637,6 +7656,19 @@ missed: number, } | { "trigger": "asked",
  * Who.
  */
 by: Creator, } | { "trigger": "unknown" };
+
+/**
+ * Save only after the fresh deletion plan has been explicitly confirmed.
+ */
+export type SaveSkillsSelection = { 
+/**
+ * New desired set; all picks up future bundled additions.
+ */
+selection: SkillSelection, 
+/**
+ * Empty on first attempt; retry with the returned exact names.
+ */
+confirmed_removals: SkillNames, };
 
 /**
  * A saved prompt.
@@ -9088,6 +9120,103 @@ help: SignInHelp, } | { "state": "not_required" } | { "state": "unknown",
 reason: UnknownReason, };
 
 /**
+ * Import acknowledgement without an ambiguous boolean result.
+ */
+export type SkillImportOutcome = "imported" | "already_set";
+
+/**
+ * A skill's portable directory name, excluding harness-private dot directories.
+ */
+export type SkillName = string;
+
+/**
+ * A normalized set used for selections, installed names and confirmations.
+ */
+export type SkillNames = Array<SkillName>;
+
+/**
+ * One user-visible operation against a bundled skill name.
+ */
+export type SkillOperation = { "kind": "add", 
+/**
+ * The bundled directory.
+ */
+name: SkillName, } | { "kind": "update", 
+/**
+ * The bundled directory.
+ */
+name: SkillName, } | { "kind": "delete", 
+/**
+ * The managed directory, requiring explicit confirmation.
+ */
+name: SkillName, };
+
+/**
+ * All follows future bundle additions; custom remains the exact chosen set.
+ */
+export type SkillSelection = { "mode": "all" } | { "mode": "custom", 
+/**
+ * Unknown available names are refused by the service before writes.
+ */
+skills: SkillNames, };
+
+/**
+ * Import never overwrites an explicit current choice.
+ */
+export type SkillsImported = { 
+/**
+ * The durable choice after import or refusal to replace.
+ */
+selection: SkillSelection, 
+/**
+ * Whether this call established the initial selection.
+ */
+outcome: SkillImportOutcome, };
+
+/**
+ * A selection save either commits or names deletions without changing state.
+ */
+export type SkillsSaved = { 
+/**
+ * Fresh view after saving, or the unchanged current view on confirmation.
+ */
+snapshot: SkillsSnapshot, 
+/**
+ * None means committed; otherwise confirm these exact fresh-plan removals.
+ */
+confirmation_required: SkillNames | null, };
+
+/**
+ * One complete view for host settings and onboarding.
+ */
+export type SkillsSnapshot = { 
+/**
+ * Actual installed state, independent from the selection.
+ */
+state: SkillsState, 
+/**
+ * Complete typed operations; no silently truncated list.
+ */
+ops: Array<SkillOperation>, 
+/**
+ * Names this release ships.
+ */
+available: SkillNames, 
+/**
+ * Names with an existing directory in at least one target.
+ */
+installed: SkillNames, 
+/**
+ * Durable user preference.
+ */
+selection: SkillSelection, };
+
+/**
+ * A complete status without conflating selected and actually installed skills.
+ */
+export type SkillsState = "not-installed" | "up-to-date" | "drift";
+
+/**
  * Why a run sent nothing.
  */
 export type SkipReason = { "reason": "previous_running" } | { "reason": "previous_waiting" } | { "reason": "stopped" } | { "reason": "missed", 
@@ -10048,6 +10177,11 @@ cached_write?: TokenCount | null, };
  * Type definitions at a saved source position.
  */
 export type TypeDefinition = AtPosition;
+
+/**
+ * Explicit whole-directory uninstall, confirmed by the human-facing client.
+ */
+export type UninstallSkills = Record<symbol, never>;
 
 /**
  * Why a fact is not known.

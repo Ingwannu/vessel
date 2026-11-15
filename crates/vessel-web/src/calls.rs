@@ -265,7 +265,12 @@ const fn forwardable(method: Method) -> bool {
         | Method::Deliver
         | Method::GrantHome
         | Method::GetCallback
-        | Method::ListPeers => false,
+        | Method::ListPeers
+        | Method::GetSkillsStatus
+        | Method::ReconcileSkills
+        | Method::UninstallSkills
+        | Method::SaveSkillsSelection
+        | Method::ImportSkillsSelection => false,
     }
 }
 
@@ -328,6 +333,11 @@ mod tests {
                 "fleet.peers",
                 // Protocol 11: a terminal's stream has its own frame.
                 "terminal.subscribe",
+                "skills.status",
+                "skills.reconcile",
+                "skills.uninstall",
+                "skills.save_selection",
+                "skills.import_selection",
             ]
         );
     }
