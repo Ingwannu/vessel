@@ -1,6 +1,6 @@
 # Composer command discovery on the node
 
-Status: implemented source with scoped checks; native integration, protocol assignment and whole-package review remain pending. ADR0085 records reference paths and capability limits.
+Status (2026-11-15 18:25 UTC): separate node development source with bounded checks, not adopted App runtime. Official App roots exclude this private discovery/RPC ancestry. The coordinator-approved minimal kind-only carrier on node93970 is a separate producer; native consumes it through an announced base. Protocol assignment, current whole-package review and native acceptance remain pending. ADR0085 records reference paths and capability limits.
 
 [Decision Log]
 - Purpose: preserve provider command/skill identity and list a complete draft's commands without sending a prompt.
@@ -106,3 +106,6 @@ The named TS generation on exacte319 completed in run `wp-composer-shell-typescr
 
 
 The exacte319 full Node library request completed311 passed/1 failed in run `wp-composer-shell-node-tests-20261115T161926Z-e319902a`. The only failure was the incoming diagnostics fixture's Unix socket path exceeding SUN_LEN under the old runner's long temporary directory, before collection. The build-tool owner confirmed that infrastructure defect and fixed new submissions with a bounded short private temporary root; this old request is not retroactively fixed. Original311/1 evidence is retained, diagnostics source/assertions are unchanged, and no unchanged automatic rerun is submitted. The corrected runner and a future meaningful B2 source require their own actual result before any full Node pass.
+
+
+Current execution limits: exact e319 eight-crate TS-enabled strict passed. Its full Node library execution passed311 and failed one diagnostics socket fixture under the runner's pre-fix long temporary directory; the runner owner confirmed that infrastructure defect. The original failure is retained, with no diagnostics guard/assertion edit or automatic unchanged rerun. Catalog Serde diagnostic privacy and physical blocking-preparation ownership have separate W22 corrections pending their actual strict/runtime handoff. A dropped probe waiter alone is not evidence that its blocking launch lookup released capacity. Native compact/goal offers remain unavailable until checked live provider transport and keyed W23 acceptance.
