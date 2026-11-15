@@ -28,7 +28,7 @@ supplies statusSuccess/statusDanger15%/10%, muted numbers and terminal-blue
 selection. paint.web.ts uses independent old/new editors; native actual-font
 measurement replaces the approximate0.62 digit multiplier. This first control
 retains the engine six-point gutter gap. Sparse-hunk syntax context is incomplete;
-final source/reference geometry, header muted text, cross-file selection and
+final source/reference geometry, cross-file selection and
 consumer body/cache/scroll policy remain C3 work, not claims of this producer.
 
 The lead and V1 source-prechecked the optional resolver/viewport/coordinate
@@ -60,3 +60,17 @@ The package's prior fa1 Clippy reached Kit and found a partial doc span,
 redundant Render qualification and two fixture API spellings. The exact same
 three corrected source blobs are installed here. This does not relabel fa1 as
 a pass or execute any window test; the isolated producer still needs its gate.
+
+## Header foreground correction
+
+Paseo diff-document/palette.ts codeTextColor uses foregroundMuted for hunk
+headers. Reuse the existing Base TextDecorationCollection over UTF-8 header
+ranges, preserving the complete buffer and existing two-sided LineSyntax.
+Only nonempty Header rows receive a foreground override; notices and source
+syntax are unchanged. A shared colour cache prevents identical redraws or
+clones from repeatedly setting the collection and notifying its owner. Theme
+changes replace that one existing collection. No new syntax kind, palette,
+parser or vendor API is needed. Tests exercise byte ranges with Hangul and
+actual engine notifications across unchanged/changed themes and clones.
+This correction is newer than the exact27194 queued tests and remains
+uncompiled/unexecuted until its own immutable source is checked.
