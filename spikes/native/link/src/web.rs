@@ -87,6 +87,7 @@ impl Link {
             Command::PromptIndex(ask) => {
                 self.emit(Event::PromptIndex(crate::prompt_index::IndexAnswer {
                     ask,
+                    delivery: None,
                     result: Err(vessel_app_view::prompt_index::IndexProblem::Unsupported),
                 }))
             }
@@ -202,6 +203,8 @@ impl Link {
             // nothing.
             Command::Search(ask) => self.emit(Event::Searched(crate::search::Answer {
                 machine: ask.machine,
+                connection: ask.connection,
+                delivery: None,
                 ticket: ask.ticket,
                 result: Ok(vessel_proto::search::SearchPage {
                     hits: Vec::new(),

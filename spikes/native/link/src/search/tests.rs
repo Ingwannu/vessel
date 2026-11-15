@@ -137,3 +137,49 @@ async fn retirement_fences_an_in_flight_search_reply() {
     })
     .await;
 }
+
+#[tokio::test]
+async fn an_actually_queued_search_page_loses_validity_when_its_original_connection_retires() {
+    use crate::testing::{Home, peer, phase, state, within};
+    within(async {
+        let home = Home::new();
+        let (mut state, mut events) = state(&home);
+        let mut peer = peer::controlled("fixture").await;
+        let connected = admit(&mut state, peer.client.take().unwrap());
+        let context = connected.context.clone();
+        let mut requests = peer.requests.take().unwrap();
+        state.search(request(context.clone()));
+        let pending = phase("original page request", requests.recv())
+            .await
+            .unwrap();
+        assert!(matches!(
+            pending.call,
+            vessel_proto::Call::SearchMessages(_)
+        ));
+        pending
+            .answer
+            .send(vessel_proto::Outcome::Ok(
+                vessel_proto::Reply::SearchMessages(SearchPage {
+                    hits: Vec::new(),
+                    next: None,
+                    reached: None,
+                }),
+            ))
+            .unwrap();
+        let Event::Searched(answer) = phase("queued original page", events.recv()).await.unwrap()
+        else {
+            panic!("wrong event");
+        };
+        assert!(answer.result.is_ok());
+        assert_eq!(answer.connection.as_ref(), Some(&context));
+        let delivery = answer.delivery.unwrap();
+        assert_eq!(delivery.validate(&context), Ok(()));
+        connected.retire();
+        assert_eq!(
+            delivery.validate(&context),
+            Err(vessel_app_view::connection::Refusal::Changed)
+        );
+        assert_eq!(peer.calls.lock().unwrap().len(), 1);
+    })
+    .await;
+}

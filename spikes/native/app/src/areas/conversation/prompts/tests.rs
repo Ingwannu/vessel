@@ -98,6 +98,7 @@ fn seed(shell: &mut Shell, cx: &mut Context<'_, Shell>) -> (IndexTarget, PromptI
     shell.prompt_index_answered(
         IndexAnswer {
             ask,
+            delivery: None,
             result: Ok(page),
         },
         cx,
@@ -256,6 +257,7 @@ fn prompt_navigation_retries_after_the_same_node_is_readmitted(cx: &mut TestAppC
         shell.prompt_index_answered(
             IndexAnswer {
                 ask,
+                delivery: None,
                 result: Err(IndexProblem::Unsupported),
             },
             cx,

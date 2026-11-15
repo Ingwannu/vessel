@@ -47,6 +47,8 @@ fn update<R>(
 fn answer(ask: &Ask) -> Searched {
     Searched {
         machine: ask.machine.clone(),
+        connection: ask.connection.clone(),
+        delivery: None,
         ticket: ask.ticket,
         result: Ok(SearchPage {
             hits: vec![SearchHit {
@@ -150,6 +152,8 @@ fn message_search_failure_facts_reword_without_restarting_the_query(cx: &mut Tes
                 shell.message_searched(
                     Searched {
                         machine: machine.to_owned(),
+                        connection: None,
+                        delivery: None,
                         ticket,
                         result: Err(why),
                     },

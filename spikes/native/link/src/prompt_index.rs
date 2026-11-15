@@ -9,6 +9,8 @@ use vessel_proto::prompt_index::PromptIndexPage;
 pub struct IndexAnswer {
     /// Exact ask, including target, page cursor and set identity.
     pub ask: IndexAsk,
+    /// Weak validity of the original lease, never a transport owner.
+    pub delivery: Option<crate::DeliveryGuard>,
     /// Safe typed result; raw peer error text is never retained.
     pub result: Result<PromptIndexPage, IndexProblem>,
 }
@@ -57,6 +59,7 @@ mod native {
                 let _closed = events
                     .send(crate::Event::PromptIndex(IndexAnswer {
                         ask,
+                        delivery: None,
                         result: Err(IndexProblem::Connection),
                     }))
                     .await;
@@ -66,20 +69,35 @@ mod native {
                 let _closed = events
                     .send(crate::Event::PromptIndex(IndexAnswer {
                         ask,
+                        delivery: None,
                         result: Err(IndexProblem::Busy),
                     }))
                     .await;
                 return;
             };
             drop(tokio::spawn(async move {
+                let delivery = client.delivery_guard();
+                let fallback = ask.clone();
                 let result =
                     match tokio::time::timeout(DEADLINE, client.call(ask.request.clone())).await {
                         Ok(result) => result.map_err(|error| problem(&error)),
                         Err(_elapsed) => Err(IndexProblem::Timeout),
                     };
-                let _closed = events
-                    .send(crate::Event::PromptIndex(IndexAnswer { ask, result }))
-                    .await;
+                let event = crate::Event::PromptIndex(IndexAnswer {
+                    ask,
+                    delivery: Some(delivery),
+                    result,
+                });
+                if client.send_guarded(&events, event).await.is_err() {
+                    drop(client);
+                    let _closed = events
+                        .send(crate::Event::PromptIndex(IndexAnswer {
+                            ask: fallback,
+                            delivery: None,
+                            result: Err(IndexProblem::Connection),
+                        }))
+                        .await;
+                }
                 drop(permit);
             }));
         }

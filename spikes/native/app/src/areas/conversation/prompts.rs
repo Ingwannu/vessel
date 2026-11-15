@@ -162,12 +162,23 @@ impl Shell {
         answer: IndexAnswer,
         cx: &mut Context<'_, Self>,
     ) {
+        let admitted = match (&answer.delivery, &answer.ask.target.connection) {
+            (Some(guard), Some(context)) => guard.validate(context).is_ok(),
+            (Some(_), None) => false,
+            (None, _) => answer.result.is_err(),
+        };
+        let result = if admitted {
+            answer.result
+        } else {
+            Err(vessel_app_view::prompt_index::IndexProblem::Connection)
+        };
+        // No await between validating the lease and applying this exact ticket.
         let ask = self
             .areas
             .conversation
             .prompts
             .index
-            .answered(&answer.ask, answer.result);
+            .answered(&answer.ask, result);
         self.prompt_index_ask(ask);
         cx.notify();
     }

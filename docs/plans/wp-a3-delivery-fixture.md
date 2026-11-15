@@ -45,3 +45,22 @@ does not add a registry, follow manager, lease cache or public guard constructor
 Publication of the common API and any fixture exposure belongs to the lead's
 agreed writer slot. Until then the current A3 source does not claim the queued
 delivery gap or final resident authority is closed.
+
+## Source preparation receipt (not a compile or runtime pass)
+
+`/tmp/work/wp-search/delivery-prep`, branch
+`backend/m12-wp-search-delivery-prep`, joins exactly W12 e42 without changing
+common staging attributes or testing-module exposure. Owned A3 publishers now
+prepare weak-guard envelopes and the shared guarded send. A refused send drops
+the selected client before sending an original-ticket local connection refusal.
+Native receivers require matching original admission/ticket and validate the
+guard immediately before applying data. A global cached row retains only weak
+validity, checked again when preparing and activating a destination.
+
+This branch intentionally awaits W2's published product exposure and genuine
+actor fixture. Positive detached GPUI reply fixtures have only their new fields
+completed; None success is refused, so they still need migration to the real
+actor before they can pass. No fake validity constructor or acceptance bypass is
+added. This branch is not merged to the working A3 main and must not be submitted
+for a gate or adopted as working source yet. The canonical context-bound session
+opener and resident binding/ticket admission still belong to W12/W2's cutover.

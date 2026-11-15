@@ -63,6 +63,8 @@ pub(crate) struct Searching {
     view: MessageSearch,
     /// Admission is fixed for the whole paged query.
     sources: Vec<(String, Option<ConnectionContext>)>,
+    /// Weak read-result validity cannot retain a retired transport.
+    deliveries: Vec<(String, vessel_app_link::DeliveryGuard)>,
 }
 
 impl Shell {
@@ -77,6 +79,7 @@ impl Shell {
             .view
             .start(text, machines);
         self.areas.palette.messages_search.sources = sources;
+        self.areas.palette.messages_search.deliveries.clear();
         let ticket = self.areas.palette.messages_search.view.ticket();
         cx.notify();
         if asks.is_empty() {
@@ -126,7 +129,34 @@ impl Shell {
 
     /// A machine answered a search.
     pub(crate) fn message_searched(&mut self, answer: Searched, cx: &mut Context<'_, Self>) {
-        let page = match answer.result {
+        let search = &self.areas.palette.messages_search;
+        if answer.ticket != search.view.ticket()
+            || !search
+                .sources
+                .iter()
+                .any(|(name, context)| name == &answer.machine && context == &answer.connection)
+        {
+            return;
+        }
+        let admitted = match (&answer.delivery, &answer.connection) {
+            (Some(guard), Some(context)) => guard.validate(context).is_ok(),
+            (Some(_), None) => false,
+            (None, _) => answer.result.is_err(),
+        };
+        let result = if admitted {
+            answer.result
+        } else {
+            Err(Refusal::NotConnected)
+        };
+        if result.is_ok()
+            && let Some(guard) = answer.delivery
+        {
+            let deliveries = &mut self.areas.palette.messages_search.deliveries;
+            deliveries.retain(|(name, _)| name != &answer.machine);
+            deliveries.push((answer.machine.clone(), guard));
+        }
+        // No await between validating the original lease and installing its page.
+        let page = match result {
             Ok(page) => Answer::Page(page),
             Err(Refusal::Older) => Answer::Older,
             Err(Refusal::NotConnected) => Answer::NotConnected,
@@ -174,7 +204,19 @@ impl Shell {
         if current.reach != Reach::Online || source.1 != current.connection_context() {
             return None;
         }
+        let connection = source.1.as_ref()?;
+        let delivery = &self
+            .areas
+            .palette
+            .messages_search
+            .deliveries
+            .iter()
+            .find(|(name, _)| name == &hit.machine)?
+            .1;
+        delivery.validate(connection).ok()?;
         Some(Destination {
+            connection: connection.clone(),
+            delivery: delivery.clone(),
             open: card_of(self, hit).map(Open::of)?,
             seq: found.seq,
             query: view.query_value()?.clone(),
@@ -188,6 +230,15 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        if destination
+            .delivery
+            .validate(&destination.connection)
+            .is_err()
+        {
+            self.notice = Some(self.words.message_search().unavailable().to_owned());
+            cx.notify();
+            return;
+        }
         self.open_session(destination.open, window, cx);
         self.conversation_reveal(destination.seq, cx);
         self.find_at(destination.query.as_str(), destination.seq, window, cx);
@@ -205,6 +256,8 @@ fn search_sources(fleet: &vessel_app_view::Fleet) -> Vec<(String, Option<Connect
 
 /// A prepared selection cannot lose its query when the palette closes.
 pub(crate) struct Destination {
+    connection: ConnectionContext,
+    delivery: vessel_app_link::DeliveryGuard,
     open: Open,
     seq: EventSeq,
     query: SearchQuery,

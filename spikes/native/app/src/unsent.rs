@@ -66,6 +66,7 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         Command::PromptIndex(ask) => {
             Event::PromptIndex(vessel_app_link::prompt_index::IndexAnswer {
                 ask,
+                delivery: None,
                 result: Err(vessel_app_link::prompt_index::rejected(unsent.why)),
             })
         }
@@ -130,6 +131,8 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         // that machine's failure, in the app's words.
         Command::Search(ask) => Event::Searched(vessel_app_link::search::Answer {
             machine: ask.machine,
+            connection: ask.connection,
+            delivery: None,
             ticket: ask.ticket,
             result: Err(vessel_app_link::search::Refusal::Failed {
                 code: Some(ErrorCode::Unavailable),

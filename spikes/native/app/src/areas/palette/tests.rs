@@ -110,6 +110,8 @@ fn asks(view: &Entity<Probe>, cx: &mut VisualTestContext) -> Vec<Ask> {
 fn answer(ask: &Ask, session: SessionId, count: usize) -> Answer {
     Answer {
         machine: ask.machine.clone(),
+        connection: ask.connection.clone(),
+        delivery: None,
         ticket: ask.ticket,
         result: Ok(SearchPage {
             hits: (0..count)

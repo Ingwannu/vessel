@@ -57,6 +57,10 @@ pub enum Refusal {
 pub struct Answer {
     /// The machine.
     pub machine: String,
+    /// Exact original query admission, including on a local preflight refusal.
+    pub connection: Option<ConnectionContext>,
+    /// Weak actor-issued validity; absent only on a local refusal or demo result.
+    pub delivery: Option<crate::DeliveryGuard>,
     /// The search it belongs to.
     pub ticket: u64,
     /// Its page, or why there is none.
@@ -75,17 +79,40 @@ impl State {
             .ok_or(vessel_app_view::connection::Refusal::Changed)
             .and_then(|context| self.selected_connection(context));
         drop(tokio::spawn(async move {
-            let result = match client {
-                Ok(client) => bounded(client.call(ask.request), DEADLINE).await,
-                Err(_refused) => Err(Refusal::NotConnected),
+            let Ask {
+                machine,
+                connection,
+                ticket,
+                request,
+            } = ask;
+            let local_failure = || Answer {
+                machine: machine.clone(),
+                connection: connection.clone(),
+                delivery: None,
+                ticket,
+                result: Err(Refusal::NotConnected),
             };
+            let Ok(client) = client else {
+                let _closed = events.send(Event::Searched(local_failure())).await;
+                return;
+            };
+            let delivery = client.delivery_guard();
+            let result = bounded(client.call(request), DEADLINE).await;
             let answer = Answer {
-                machine: ask.machine,
-                ticket: ask.ticket,
+                machine: machine.clone(),
+                connection: connection.clone(),
+                delivery: Some(delivery),
+                ticket,
                 result,
             };
-            if events.send(Event::Searched(answer)).await.is_err() {
-                tracing::debug!("a search answered after the app closed");
+            if client
+                .send_guarded(&events, Event::Searched(answer))
+                .await
+                .is_err()
+            {
+                // No selected client is retained while a local refusal waits for UI room.
+                drop(client);
+                let _closed = events.send(Event::Searched(local_failure())).await;
             }
         }));
     }
