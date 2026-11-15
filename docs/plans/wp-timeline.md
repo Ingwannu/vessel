@@ -197,3 +197,18 @@ trigger does not invent one. `TurnFolds` publishes a single host/range map for r
 find and prompt reveal. Preferences will use the existing Appearance/PreferenceChange
 path: reasoning (default collapsed), Full / Collapse tool calls / Collapse turns,
 then the outline setting. No row is exposed before its behavior consumes it.
+
+### Turn footer correction
+
+Read `components/message.tsx:587-682` and `components/assistant-turn-footer-label.ts`
+directly. A missing visible start uses the completion timestamp; copy and duration
+stop at the previous response boundary. The pure TurnFooter model pins partial
+history and resumed-response cases. Desktop hover swaps to the timestamp; compact
+tap reveals it for the reference's 3,000 ms. Both captions reserve the longer label
+width. Repeated taps use a fresh local token so a stale expiry cannot hide a newer
+reveal. Footer state is display-only and sends no node request.
+
+Narrow view test run: 846 passed / 1 failed (About dependency inventory omitted
+the newly direct `similar` dependency); the inventory and its English/Korean role
+were then corrected without changing its assertion. Plan tests also passed 3/3
+on an immutable source snapshot. The package whole gate is still pending.

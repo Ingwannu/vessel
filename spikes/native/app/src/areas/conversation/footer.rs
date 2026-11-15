@@ -26,11 +26,11 @@
 
 use chrono::{DateTime, Local, Utc};
 use vessel_app_kit::ui::{
-    AnyElement, Context, ElementId, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, Styled, Window, div, px,
+    AnyElement, Context, ElementId, FluentBuilder as _, IntoElement as _, ParentElement as _,
+    Styled as _, Window, div, px,
 };
 use vessel_app_kit::{CopyLook, Type, TypeExt as _, breakpoint, copy_button};
-use vessel_app_view::timeline::{Entry, EntryKind};
+use vessel_app_view::timeline::{TurnFooter, duration_label};
 use vessel_proto::StopReason;
 
 use super::entries::{Paint, id};
@@ -40,56 +40,34 @@ use crate::shell::Shell;
 /// Paseo's `STREAM_METADATA_FONT_SIZE`.
 const METADATA: f32 = 12.0;
 
+mod label;
+
 /// The footer of the turn that ended at entry `index` (its `turn_ended`).
 pub(super) fn completed(
     paint: &Paint<'_>,
     index: usize,
     reason: StopReason,
-    window: &Window,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let entries = paint.entries;
-    let ended = entries.get(index).map(|entry| entry.at);
-    let start = turn_start(entries, index);
-    let words = paint.words;
-    let worked = match (start, ended) {
-        (Some(start), Some(ended)) => Some(words.worked_for(&duration_label(start, ended))),
-        _ => None,
+    let Some(footer) = TurnFooter::of(paint.entries, index) else {
+        return div().into_any_element();
     };
+    let words = paint.words;
+    let worked = footer
+        .started_at
+        .map(|start| words.worked_for(&duration_label(start, footer.completed_at)));
     let worked = match (worked, reason) {
         (Some(worked), StopReason::EndTurn) => Some(worked),
         (Some(worked), other) => Some(format!("{worked} · {}", words.stop_reason(other))),
         (None, StopReason::EndTurn) => None,
         (None, other) => Some(words.stop_reason(other).to_owned()),
     };
-    let when = ended.map(|ended| words.when(ended, Local::now().fixed_offset()));
-    let reply = reply_text(entries, index);
+    let when = words.when(footer.completed_at, Local::now().fixed_offset());
+    let primary = worked.unwrap_or_else(|| when.clone());
+    let reply = footer.response;
     let muted = paint.tokens.neutral.foreground_muted;
-    let group = format!("turn-footer-{index}");
-    let label = worked.map(|worked| {
-        div()
-            .relative()
-            .group(group.clone())
-            .text_size(px(METADATA))
-            .text_color(muted)
-            .child(
-                div()
-                    .when(when.is_some(), |shown| {
-                        shown.group_hover(group.clone(), Styled::invisible)
-                    })
-                    .child(worked),
-            )
-            .children(when.map(|when| {
-                div()
-                    .absolute()
-                    .top_0()
-                    .left_0()
-                    .whitespace_nowrap()
-                    .invisible()
-                    .group_hover(group.clone(), Styled::visible)
-                    .child(when)
-            }))
-    });
+    let label = label::draw(paint, index, primary, when, window, cx);
     div()
         .flex()
         .flex_row()
@@ -115,7 +93,7 @@ pub(super) fn completed(
             breakpoint::phone(window),
             cx,
         ))
-        .children(label)
+        .child(label)
         .into_any_element()
 }
 
@@ -146,65 +124,4 @@ pub(super) fn working(paint: &Paint<'_>, since: Option<DateTime<Utc>>) -> AnyEle
                 .child(duration_label(since, Utc::now()))
         }))
         .into_any_element()
-}
-
-/// When the turn ending at `index` began: the person's prompt (or steer)
-/// before it.
-pub(super) fn turn_start(entries: &[Entry], index: usize) -> Option<DateTime<Utc>> {
-    entries
-        .get(..index)?
-        .iter()
-        .rev()
-        .find(|entry| matches!(entry.kind, EntryKind::Prompt(_)))
-        .map(|entry| entry.at)
-}
-
-/// The agent's reply in the turn ending at `index`, its messages joined
-/// (what Paseo's copy button copies).
-fn reply_text(entries: &[Entry], index: usize) -> String {
-    let Some(before) = entries.get(..index) else {
-        return String::new();
-    };
-    let start = before
-        .iter()
-        .rposition(|entry| matches!(entry.kind, EntryKind::Prompt(_)))
-        .map_or(0, |at| at.saturating_add(1));
-    before
-        .get(start..)
-        .unwrap_or_default()
-        .iter()
-        .filter_map(|entry| {
-            if let EntryKind::Message { text } = &entry.kind {
-                Some(text.as_str())
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<_>>()
-        .join("\n\n")
-}
-
-/// Paseo's `formatDuration`: seconds under a minute, minutes and seconds
-/// under an hour, then hours and minutes.
-fn duration_label(start: DateTime<Utc>, end: DateTime<Utc>) -> String {
-    let seconds = end.signed_duration_since(start).num_seconds().max(0);
-    if seconds < 60 {
-        return format!("{seconds}s");
-    }
-    let minutes = seconds.div_euclid(60);
-    if minutes < 60 {
-        let rest = seconds.rem_euclid(60);
-        return if rest == 0 {
-            format!("{minutes}m")
-        } else {
-            format!("{minutes}m {rest}s")
-        };
-    }
-    let hours = minutes.div_euclid(60);
-    let rest = minutes.rem_euclid(60);
-    if rest == 0 {
-        format!("{hours}h")
-    } else {
-        format!("{hours}h {rest}m")
-    }
 }
