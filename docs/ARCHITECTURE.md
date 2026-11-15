@@ -1196,7 +1196,33 @@ resources reach the target library. `localization` prepares language bundles
 and retains plain messages before rendering. NUMBER display rules and DATETIME whole patterns come from each language
 folder; typed Gregorian/local-clock parts cross that boundary. ICU4X was
 rejected after the release-size experiment, recorded in ADR 0039.
-Legacy area tables stay until their owners migrate them. The crate map,
+Pairing is the first whole screen on that API.
+About's licence and bundled-software vocabulary also uses generated plain
+getters; its closed inventory roles map to them in `view::about`, without
+formatting a message while drawing each row. The rest of About's shared
+sections retain their owners' tables during the staged migration.
+Updater labels and whole value messages use the same catalogs. The pure
+`view::updates` projection prepares shared text on state/language changes;
+the host groups its updater runtime, authoritative state and prepared words
+in `UpdateUi`. Both desktop and browser shells use it without introducing
+the native updater's I/O dependencies into view.
+Rewind and fork vocabulary uses the generated catalogs beside the remaining
+conversation tables. Rewind recoveries project typed node codes; fork source
+captions are retained in `view::fork::Headers` across unchanged fleet events.
+The host refreshes captions at fleet/act/language events and invalidates rows
+only when captions change. Origin and frame notices retain shared text for
+language refresh without another request. Typed fork/origin-read recoveries keep
+diagnostics in host logs/session state; unknown empty-fork reasons borrow a
+complete recovery message rather than copying a diagnostic while drawing.
+The host reads the typed
+language preference before creating a shell; System resolves against the
+host tag, while VESSEL_APP_LANG is the checking override. General's language
+row uses the generated registry and native names, never the pseudo locale.
+A preference change prepares the catalog outside rendering, then refreshes
+both Fluent and legacy labels and retained field placeholders without
+clearing input or restarting. Typed pairing errors and success notices keep
+the data needed to reword an existing outcome. Legacy area tables stay until
+their owners migrate them. The crate map,
 execution instructions and gate are in `spikes/native/README.md`; ADR 0039
 records the decision and `docs/plans/backend-m12-i18n.md` its measurements.
 
@@ -1267,6 +1293,34 @@ else of the manifest (blob hashes, commands, arguments, addresses,
 headers, literal values). It shares `projection`'s byte-bounded file read
 and reply budget, and refuses the whole answer past a bound. `admin`, not
 forwardable, refused to agents; `vessel fleet published` prints it.
+
+## Native agents' option lists (milestone 12, track P)
+
+What each agent on each machine offers (`harness.options`: models, efforts,
+permissions modes, on/off options; and the `/` commands a session of it last
+reported) is one store, `view::offers`, held by the
+app's composer area and read by every control that draws those lists. It
+decides what is shown (the list there is, however old; loading or the error
+only when there is none), when to ask again (on open, at connect, when a
+machine's agents change or a person retries; one request per agent in
+flight, none within 30 s of a good answer on open) and how an answer lands in
+an open list (new rows at the edge away from its anchor, the shown rows in
+place). `link::offers` keeps the last answers on the
+device between runs in one owner-only, versioned, bounded file in the app's
+state folder, keyed by the node's id (not a book's name), written only when an
+answer differs; a machine that connects gets its kept lists
+(`Event::OptionsKept`) before the fleet shows it online. No new wire method.
+The rules, bounds and what was followed from Paseo's provider snapshot are in
+`docs/plans/backend-m12-composer.md`.
+
+What was typed in a composer and not sent is a draft per session and one
+for the new chat (`view::composer::drafts`, held by the composer area): put
+back when its composer comes back, written a second after the last edit by
+`link::drafts` to `drafts.json` beside the agents' lists (owner-only,
+versioned, bounded as the web bridge bounds the page's; a file that does
+not read is set aside, never overwritten). Up and Down in an empty session
+composer walk the messages sent in it (`view::composer::recall`, Paseo's
+`ComposerRecall`); a recalled message is not a draft until it is edited.
 
 ## Protocol 13: schedule preview (N3)
 
