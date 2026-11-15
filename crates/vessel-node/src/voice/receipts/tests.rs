@@ -3,14 +3,14 @@ use vessel_proto::voice::{PlaybackPcm, SpeechGroupId, VoiceEpoch, VoiceId};
 
 fn lease() -> VoiceLease {
     VoiceLease {
-        id: VoiceId::new(),
-        epoch: VoiceEpoch::new(),
+        id: VoiceId::random(),
+        epoch: VoiceEpoch::random(),
     }
 }
 fn playback() -> Playback {
     Playback {
-        id: PlaybackId::new(),
-        group: SpeechGroupId::new(),
+        id: PlaybackId::random(),
+        group: SpeechGroupId::random(),
         format: "audio/pcm;rate=24000;bits=16".parse().unwrap(),
         pcm: PlaybackPcm::new(vec![0; 48_000]).unwrap(),
     }
@@ -37,7 +37,7 @@ fn played_is_explicit_own_generation_only_and_duplicate_cannot_resettle() {
     assert_eq!(book.pending.len(), 1);
     assert_eq!(
         book.complete(
-            receipt(own, PlaybackId::new(), PlaybackOutcome::Played),
+            receipt(own, PlaybackId::random(), PlaybackOutcome::Played),
             now
         ),
         Err(ReceiptError::Unknown)
