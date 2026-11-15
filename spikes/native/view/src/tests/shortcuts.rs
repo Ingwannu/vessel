@@ -265,7 +265,7 @@ fn primary_modifier_and_a_digit_go_to_that_workspace() {
     );
     assert_eq!(
         matched(&chord("Mod+0"), None, &none, 0, OTHER),
-        Matched::None
+        run(Action::ActualSize)
     );
 }
 
@@ -306,7 +306,7 @@ fn clashes_with_another_action_with_a_fixed_one_with_itself() {
     let none = Overrides::new();
     let clash = |text: &str| clash_of(Action::Find, &binding(text), &none, OTHER);
     assert_eq!(clash("Mod+K"), Some(Clash::Taken(Action::Palette)));
-    assert_eq!(clash("Mod+4"), Some(Clash::Fixed(Action::JumpSession)));
+    assert_eq!(clash("Mod+4"), Some(Clash::Taken(Action::JumpSession)));
     assert_eq!(clash("Mod+F"), Some(Clash::Same(Action::Find)));
     assert_eq!(clash("G"), None);
     assert_eq!(clash("Mod+J"), None);

@@ -21,6 +21,7 @@ pub(super) fn render(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let compact = f32::from(window.viewport_size().width) < vessel_app_kit::picker::COMPACT;
+    super::git_source::refresh(shell);
     let snapshot = snapshot::project(shell);
     let active = shell.areas.palette.cursor.settle_identity(&snapshot.ids());
     let query = &shell.areas.palette.query;

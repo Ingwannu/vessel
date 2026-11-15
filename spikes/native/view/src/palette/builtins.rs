@@ -88,9 +88,9 @@ pub fn project<'a, I, T>(
     rows: &'a [Row<I, T>],
     text: &str,
     category: Category,
-    scope: Scope,
+    filter: Scope,
 ) -> Vec<&'a Row<I, T>> {
-    if scope == Scope::Files && category != Category::Files {
+    if filter == Scope::Files && category != Category::Files {
         return Vec::new();
     }
     if category == Category::Files {

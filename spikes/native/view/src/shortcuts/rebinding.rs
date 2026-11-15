@@ -108,8 +108,10 @@ mod tests {
         raw: BTreeMap<ActionId, Bindings>,
         edits: Vec<ShortcutEdit>,
     ) -> BTreeMap<ActionId, Bindings> {
-        let mut prefs = Preferences::default();
-        prefs.shortcuts = raw;
+        let prefs = Preferences {
+            shortcuts: raw,
+            ..Preferences::default()
+        };
         prefs
             .changed(&PreferenceChange::Shortcuts {
                 edits: ShortcutEdits::try_from(edits).unwrap(),

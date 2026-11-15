@@ -230,3 +230,35 @@ S2/other feature handlers still await their consumer-ready exact heads. W12 has
 confirmed NewTab opens a passive chooser and guarded close is handled, preventing
 fallthrough to W19's lower-priority window close. G1 is preparing its own opaque
 repository/generation/session target and current-menu availability adapter.
+
+## Registered Git source and current checks (09:4x checkpoint)
+
+C5 source0df7abd9 is merged as b59a2ce01 for the shared file-search controller,
+explicitly not its whole-package pass. The file owner is adding the exact active
+scope getter; the scoped file opener and live G4 admission remain pending. No
+legacy global file opener is exposed as a scoped command-center operation.
+G1 source47e39d988 is merged as df4f434be for its compiled opaque GitCommandTarget
+and menu adapters. palette/git_source.rs retains an equality fingerprint of that
+target and owner menu rows. It replaces its source token only on change, avoiding
+stale callbacks on every animation frame. Only a matching primary Git ActionRow
+with no unavailability and an enabled MenuItem is promoted to Always; remaining
+entries are query-only. Callback execution delegates run_git_command, including
+its exact repository/incarnation/session/pull-identity checks. No Git policy,
+RPC call or connection resolver is duplicated. These dependencies still await
+producer final package/runtime evidence; they are not declared passed by F4.
+
+W12's1720 adoption was held by its owner after shared-line compilation failed;
+NONE of its pane/plugin/proto branch was adopted here. Wait for its self-contained
+checked successor on announced base5, preserving the one layout owner.
+
+Clippy30b272c6 found one similar-name lint in builtins (scope/score), corrected by
+renaming the scope parameter. The local view suite progressed through the changed
+shortcut/catalog cases but hit its time budget on the terminal stress fixture;
+two observed failures were obsolete expectations: Mod+0 now means Actual size,
+and the legacy browser-floor helper refuses primary+digit before conflict review.
+The actual Settings recorder remains SequenceCapture and permits index rebinding.
+The compatibility overlap helper now delegates to the same wildcard/prefix policy
+and no longer labels workspace navigation as a fixed action. No complete local
+suite pass is claimed. From coordinator09:2x to12:30 all NEW Cargo work runs
+remotely; already waiting/running local jobs are left alone. Checks stay batched
+per meaningful slice, and one whole final native gate/review remains outstanding.

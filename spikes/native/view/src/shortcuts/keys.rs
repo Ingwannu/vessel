@@ -261,13 +261,11 @@ pub fn same_chord(one: &Chord, two: &Chord, platform: Platform) -> bool {
 /// other.
 #[must_use]
 pub fn overlaps(one: &Binding, two: &Binding, platform: Platform) -> bool {
-    if !same_chord(&one.first, &two.first, platform) {
-        return false;
-    }
-    match (&one.then, &two.then) {
-        (Some(one), Some(two)) => same_chord(one, two, platform),
-        (None, _) | (_, None) => true,
-    }
+    super::sequence_capture::sequences_overlap(
+        &super::sequence::KeySequence::from_binding(one),
+        &super::sequence::KeySequence::from_binding(two),
+        platform,
+    )
 }
 
 /// Whether a chord holds a modifier that makes it a command rather than

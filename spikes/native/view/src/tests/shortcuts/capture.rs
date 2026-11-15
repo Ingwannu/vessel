@@ -49,7 +49,7 @@ fn the_pages_refusals_and_clashes_keep_done_off() {
         ("Mod+W", Verdict::Refused(Refusal::Kept)),
         ("Mod+C", Verdict::Refused(Refusal::Editing)),
         ("Mod+F", Verdict::Clashes(Clash::Same(Action::Find))),
-        ("Mod+3", Verdict::Clashes(Clash::Fixed(Action::JumpSession))),
+        ("Mod+3", Verdict::Refused(Refusal::Kept)),
     ] {
         let capture = recording(Action::Find, pressed);
         assert_eq!(capture.verdict(&none, OTHER), verdict, "{pressed}");
