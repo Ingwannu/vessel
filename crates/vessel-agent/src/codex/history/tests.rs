@@ -70,7 +70,7 @@ async fn cursor_cycles_and_invalid_native_ids_refuse_instead_of_empty_success() 
         exchange(
             vec![
                 json!({"data":[],"nextCursor":"same"}),
-                json!({"data":[],"nextCursor":"same"})
+                json!({"data":[{"id":"real","cwd":"/work"}],"nextCursor":"same"})
             ],
             None
         )

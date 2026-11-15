@@ -52,6 +52,9 @@ async fn read(
             return Ok(None);
         };
         let next = data::ThreadPage::next(page.next_cursor.clone())?;
+        if page.next_cursor.is_some() && page.next_cursor == cursor {
+            return Err(ProbeError::Invalid);
+        }
         let entries = page.entries(cwd, skip)?;
         if !entries.is_empty() || next.is_none() {
             return Ok(Some(HistoryPage { entries, next }));
