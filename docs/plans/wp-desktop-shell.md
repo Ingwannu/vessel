@@ -218,7 +218,7 @@ then 10 more; 17 real releases make the paging controls meaningful.
 ## Remaining integrations and deliberate differences
 
 - W21's authenticated bounded session lookup is integrated provisionally. C2's retained Binding terminal cutover is still required; the old alias-only terminal path is not declared identity-safe.
-- W11's managed-local project adapter is not consumer-ready. Its directory intent stays queued; no first-alias fallback, implicit trust or registration occurs.
+- W11's managed-local project adapter is not consumer-ready. Its directory intent stays queued; no first-alias fallback, implicit trust or registration occurs. The callback now returns ProjectDelivery::Opened only after the exact editable draft opens, otherwise Pending retains the directory without overwriting a newer arrival. Pending is idempotent and does not emit repeated UI events.
 - W15's managed-node, document/quit and update-restart consumer remains pending a checked range.
 - W22's sole dispatcher, shortcut invalidation and receipt UI remain pending its checked range. No competing keyboard listener is installed.
 - S2 owns the shared sidebar callout frame/dismissal band. Its checked source is required for update-provider adoption. No Rosetta/download fact is inferred from a remote machine or an absent macOS asset.

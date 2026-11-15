@@ -31,6 +31,13 @@ impl Inbox {
     pub fn take_project(&mut self) -> Option<ProjectDirectory> {
         self.project.take()
     }
+
+    /// A temporarily unready handler cannot replace a newer arriving directory.
+    pub fn defer_project(&mut self, previous: ProjectDirectory) {
+        if self.project.is_none() {
+            self.project = Some(previous);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -75,5 +82,20 @@ mod tests {
         inbox.push(Launch::NewWindow);
         assert_eq!(inbox.take_session(), Some(latest));
         assert_eq!(inbox.take_project(), None);
+    }
+
+    #[test]
+    fn deferred_old_directory_cannot_overwrite_a_newer_request_during_delivery() {
+        let prefix = if cfg!(windows) { r"C:\" } else { "/" };
+        let old = ProjectDirectory::new(PathBuf::from(prefix).join("old")).unwrap();
+        let latest = ProjectDirectory::new(PathBuf::from(prefix).join("latest")).unwrap();
+        let mut inbox = Inbox::default();
+        inbox.push(Launch::Project(old.clone()));
+        let captured = inbox.take_project().unwrap();
+        inbox.push(Launch::Project(latest.clone()));
+        inbox.defer_project(captured);
+        assert_eq!(inbox.take_project(), Some(latest));
+        inbox.defer_project(old.clone());
+        assert_eq!(inbox.take_project(), Some(old));
     }
 }

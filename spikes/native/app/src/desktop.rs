@@ -91,8 +91,20 @@ type SessionHandler = fn(
     &mut gpui::Window,
     &mut gpui::Context<'_, Shell>,
 );
-type ProjectHandler =
-    fn(&mut Shell, &std::path::Path, &mut gpui::Window, &mut gpui::Context<'_, Shell>);
+/// Directory delivery acknowledges only opening the exact managed-local draft.
+pub(crate) enum ProjectDelivery {
+    /// The exact managed-local editable draft opened; no trust or registration occurred.
+    Opened,
+    /// Readiness/refusal is temporary; retry without repeated UI side effects.
+    Pending,
+}
+
+type ProjectHandler = fn(
+    &mut Shell,
+    &std::path::Path,
+    &mut gpui::Window,
+    &mut gpui::Context<'_, Shell>,
+) -> ProjectDelivery;
 
 pub(crate) fn set_session_handler(handler: SessionHandler, cx: &mut App) {
     cx.global_mut::<Desktop>().session = Some(handler);
@@ -124,7 +136,10 @@ pub(crate) fn drain_pending(
     if let Some(open) = project
         && let Some(directory) = shell.areas.desktop.pending.take_project()
     {
-        open(shell, directory.path(), window, cx);
+        match open(shell, directory.path(), window, cx) {
+            ProjectDelivery::Opened => {}
+            ProjectDelivery::Pending => shell.areas.desktop.pending.defer_project(directory),
+        }
     }
 }
 
