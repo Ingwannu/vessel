@@ -83,12 +83,19 @@ produce no replies. The reply allocation bound derives from the input budget
 and longest allowed reply, including a query begun in the previous feed; an
 admission failure is returned explicitly with the consumed prefix.
 
-Six query oracle cases execute the reference server's actual registered
+Seven query oracle cases execute the reference server's actual registered
 handlers on its own headless factory. Golden inputs cover pending wrap,
 origin mode/scroll regions, alternate screen, OSC whitespace and unsupported
 or clipboard queries. Rust tests repeat whole and one-byte feeds, silent
 observers and a carried-query burst. These are source/runtime oracle tests,
 not a real PTY transport claim.
+
+Two small upstream corrections also preserve this boundary: unknown CSI
+callbacks keep their space intermediate so a non-query cannot alias an
+admitted query, and bold/dim remain independent until normal-intensity reset.
+The latter matches the exact server InputHandler's separate flags and the
+existing native cell contract. The numbered patch list records both; golden
+cases use actual server handlers and raw xterm cell flags in both orders.
 
 Wire DTOs remain in vessel-proto. W17 owns mapping, bounded actor inbox,
 output/resize/capture ordering and immutable final-state lifetime. No screen

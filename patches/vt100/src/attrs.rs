@@ -57,12 +57,10 @@ impl Attrs {
     }
 
     pub fn set_bold(&mut self) {
-        self.mode &= !TEXT_MODE_INTENSITY;
         self.mode |= TEXT_MODE_BOLD;
     }
 
     pub fn set_dim(&mut self) {
-        self.mode &= !TEXT_MODE_INTENSITY;
         self.mode |= TEXT_MODE_DIM;
     }
 

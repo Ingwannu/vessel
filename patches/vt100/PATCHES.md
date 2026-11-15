@@ -23,6 +23,11 @@ Numbered patch list (implementation in progress):
    the bottom with current viewport and saved-cursor accounting, including
    output below the cursor. The independent saved-cursor golden exposed the
    first implementation's static-cursor defect; its failing result is retained.
+4. Preserve the space-intermediate identifier on unhandled CSI callbacks so
+   an unknown sequence cannot be mistaken for an admitted DA/DSR query. Keep
+   bold and dim independent until SGR22 clears intensity, matching xterm's
+   separate bits and the existing native attribute contract. Independent
+   server-handler/raw-cell golden cases cover both corrections.
 
 Wide-continuation attributes are corrected by the facade, not another parser.
 No byte parser, runtime, PTY, toolkit, or harness is added to the upstream crate.
