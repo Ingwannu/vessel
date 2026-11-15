@@ -48,3 +48,6 @@ the earlier A7 actual test pass preceded this isolated draw fixture.
 Dependency audit: the existing empty-JSON predicate now lives in tool_sections,
 with A7's header model importing it there. The body does not import tool_display
 or its source/provenance graph; no second predicate or decoder is introduced.
+The moved computed-diff implementation imports FluentBuilder at its new call
+site; pinned GPUI defines conditional building on that separate trait. This
+static import audit is source preparation, not a compiler or draw-test pass.

@@ -3,8 +3,9 @@
 use vessel_app_kit::output::{AnnotatedLines, Line, Lines, Tone, annotated_lines_box};
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, App, Div, ElementId, Hsla, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px, size,
+    AnyElement, App, Div, ElementId, FluentBuilder as _, Hsla, InteractiveElement as _,
+    IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window,
+    div, px, size,
 };
 use vessel_app_kit::{Start, Type, TypeExt as _, lines_box, output_box, skeleton, version_of};
 use vessel_app_view::timeline::{
