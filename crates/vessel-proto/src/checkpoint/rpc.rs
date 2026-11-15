@@ -18,12 +18,14 @@ use serde::{Deserialize, Serialize};
 /// Keyset position in one session's capture metadata; never a filesystem path.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(type = "string"))]
 #[serde(transparent)]
 pub struct CheckpointCursor(pub CaptureId);
 
 /// An offset within the frozen, bounded change list of the named plan.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(type = "number"))]
 #[serde(transparent)]
 pub struct ChangeCursor(pub PathCount);
 
