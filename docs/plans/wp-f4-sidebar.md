@@ -141,3 +141,18 @@ all named actions are integrated yet.
 First narrow model test stopped in translation generation before compiling the
 new model: every Fluent message needs its own translator context comment.
 The catalog is corrected per key; this failure remains in the first log.
+
+### Sidebar form and width ruling
+
+The native lead delegated `view::panels`' sidebar-only form/space policy to
+this package. Global PHONE=768 remains unchanged for 45 other chrome/area
+uses. `sidebar_form` uses Paseo's below-600 boundary; `sidebar_layout` returns
+Sheet/Hidden/Docked with clamped width and a typed Sharing result. Workspace
+auto-hide applies when its content budget cannot fit. Settings requests the
+shared 720-point content minimum but is temporarily exempt from automatic
+hiding: its sidebar currently replaces the agent sidebar and is the only path
+to its sections. E2 will consume the same Sharing result for its list/back
+fallback, then replace this exception. S2 does not build another Settings frame.
+The native default264 and frame inset12 are deliberate retained differences,
+per the lead's ruling: the prior native shell and its framed chrome keep their
+layout. Min200/max600/normal content400 remain the reference limits.
