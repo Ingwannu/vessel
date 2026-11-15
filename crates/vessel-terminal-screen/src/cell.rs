@@ -122,6 +122,18 @@ pub struct Cell<'a> {
     attributes: Attributes,
 }
 impl<'a> Cell<'a> {
+    pub(crate) const fn blank() -> Self {
+        Self {
+            text: "",
+            width: Width::One,
+            attributes: Attributes {
+                foreground: Color::Default,
+                background: Color::Default,
+                styles: 0,
+            },
+        }
+    }
+
     /// Validate a readonly wire/display cell; this never restores mutable parser state.
     ///
     /// # Errors

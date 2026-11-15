@@ -160,7 +160,7 @@ impl FrameView<'_> {
             return None;
         }
         let line = self.first.0.checked_add(u32::from(row.0))?;
-        crate::projection::buffer_cell(self.source.state, LineIndex(line), column)
+        crate::projection::frame_cell(self.source.state, LineIndex(line), column)
     }
 }
 impl Screen {

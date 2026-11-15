@@ -42,6 +42,22 @@ pub(crate) fn buffer_cell(
     Some(Cell::of(body, lead))
 }
 
+pub(crate) fn frame_cell(
+    screen: &vt100::Screen,
+    line: LineIndex,
+    column: Column,
+) -> Option<Cell<'_>> {
+    let index = usize::try_from(line.0).ok()?;
+    let stored_columns = screen.buffer_row_width(index)?;
+    // History trims trailing default cells. Project that implicit padding only
+    // after establishing the row exists; missing rows must remain unavailable.
+    if column.0 >= stored_columns {
+        Some(Cell::blank())
+    } else {
+        buffer_cell(screen, line, column)
+    }
+}
+
 pub(crate) fn capture(screen: &vt100::Screen, range: CaptureRange) -> Result<Capture, ScreenError> {
     let total = screen.buffer_len();
     let total = LineCount(u32::try_from(total).map_err(|_overflow| ScreenError::CaptureTooLarge)?);
