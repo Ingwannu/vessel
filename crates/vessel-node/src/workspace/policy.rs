@@ -63,6 +63,9 @@ pub(crate) fn refuse_agents(principal: &Principal, method: Method) -> Result<(),
     ) {
         "a repository's scripts run where a person approved them and a person asked; an agent \
          runs commands with its own tools"
+    } else if matches!(method, Method::GetAgentHistory) {
+        "an agent's own history holds a person's conversations outside Vessel; an agent works \
+         with the node's sessions"
     } else if matches!(
         method,
         Method::ForgeStatus
@@ -142,10 +145,20 @@ const fn refused(method: Method) -> bool {
         | Method::RestartScript
         | Method::JoinFleet
         | Method::LeaveFleet
-        | Method::SyncFleet => true,
+        | Method::SyncFleet
+        // What the machine shares (ADR 0056): a person's read, `admin`.
+        | Method::GetPublished
+        // An agent's own history (protocol 17, ADR 0053): an account's
+        // other conversations are a person's, not the fleet's sessions.
+        | Method::GetAgentHistory => true,
         // Orchestration: the projects, and a worktree with its setup's
         // output for a session the agent starts.
         Method::ListProjects
+        // Side-question policy refuses agents before reading a parent;
+        // its typed reason belongs to that domain, not file/git policy.
+        | Method::OpenSideQuestion
+        | Method::PromptSideQuestion
+        | Method::ResetSideQuestion
         | Method::GetProject
         | Method::ProjectCommands
         | Method::ListWorktrees
@@ -160,6 +173,7 @@ const fn refused(method: Method) -> bool {
         // every agent is (ADR 0013, `guard`), not to this rule.
         // Schedules (protocol 11) are held to theirs (ADR 0033,
         // `automation::schedules::rules`).
+        | Method::GetDeviceSelf
         | Method::GetFleetStatus
         | Method::PreviewSchedule
         | Method::ListSchedules
@@ -171,6 +185,11 @@ const fn refused(method: Method) -> bool {
         | Method::RunSchedule
         | Method::DeleteSchedule
         | Method::ListRuns
+        // Session-scoped reads are held to their own service rule;
+        // lookup policy needs admin, which no agent holds.
+        | Method::GetUsageLimits
+        | Method::SetUsageLookup
+        | Method::QueryUsage
         | Method::ListPrompts
         | Method::CreatePrompt
         | Method::UpdatePrompt
@@ -269,7 +288,14 @@ const fn refused(method: Method) -> bool {
         | Method::RenameTerminal
         | Method::KillTerminal
         | Method::CloseTerminal
-        | Method::ListPorts => false,
+        | Method::ListPorts
+        | Method::ListInbox
+        | Method::GetInboxEntry
+        | Method::MarkInbox
+        | Method::GetPushKey
+        | Method::SubscribePush
+        | Method::UnsubscribePush
+        | Method::ReportPushPresence => false,
     }
 }
 

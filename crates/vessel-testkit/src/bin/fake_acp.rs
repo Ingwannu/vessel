@@ -36,8 +36,9 @@
 //!   Any other extension method is "method not found".
 //! - Right after answering `session/new` or `session/load`, an
 //!   `available_commands_update`: `compact` (with a hint) and `review`.
-//! - `session/new`: session `fake-session-<n>`, with the options
-//!   `FAKE_ACP_OPTIONS` picks (`options` module): by default config
+//! - `session/new`: session `fake-session-<n>-<tag>` (`<tag>` this
+//!   process's own, so no two fakes share an id, as no two real agents
+//!   do), with the options `FAKE_ACP_OPTIONS` picks (`options` module): by default config
 //!   options `mode`, `model` (`fake-small`, the default, or `fake-large`),
 //!   `effort` and `fast`. With `FAKE_ACP_STARTUP_LOG` set it first writes
 //!   a real adapter's start-up log to stderr (`shapes::startup_log`).
@@ -48,8 +49,13 @@
 //!   agent that ignores the anchor. Options as `session/new`.
 //! - `session/delete` (offered): says `fake-acp: deleted <id>` on stderr,
 //!   so a test sees a refused fork deleted.
+//! - `session/list` (protocol 17; offered unless `FAKE_ACP_NO_LIST` is
+//!   set, "method not found" then): three earlier conversations over two
+//!   pages (`history` module); no session is started by it.
 //! - `session/load`: replays the conversation as a user message chunk
-//!   `earlier question` and an agent message chunk `replayed <id>` whose
+//!   `earlier question` (then, with `FAKE_ACP_REPLAY` set to a number,
+//!   that many agent message chunks `replayed line <n>`, a long
+//!   conversation) and an agent message chunk `replayed <id>` whose
 //!   message id is where a fork was made (`<at>`, `head-last` for `head`,
 //!   `replayed-last` for any other session), then
 //!   answers with the same options as `session/new`, as they stand. With
@@ -96,10 +102,14 @@
 //!     <n> bytes` (the base64 decoded), `link <name> <type> <size> read
 //!     <n>` (the bytes of the file its `file:` URI names, or
 //!     `unreadable`), then `end_turn`;
+//!   - `usage-burst`: 101 cumulative cost updates, for sparse read-only pages;
+//!     `FAKE_ACP_LOAD_USAGE` replays .5 USD while loading, before Ready;
+//!     its `higher` mode replays 10 USD. `usage-after-load` reports 12 USD
+//!     and `usage-later` 14 USD, with the same vendor response shape.
+//!   - `usage-reasoning`: as `usage`, with reported zero reasoning/write and 12 cached reads;
 //!   - `usage`: a `usage_update` (1,200 of 200,000 tokens, 0.5 USD), one
 //!     message chunk `used`, then `end_turn` with the turn's tokens (30:
-//!     20 in, 10 out); `usage <tokens>` the same with that many of the
-//!     200,000 used (a context meter's amber from 70%, red past 90%);
+//!     20 in, 10 out); `usage <tokens>` uses that many of the 200,000 tokens;
 //!   - `report <path>`: writes its arguments, its whole environment and
 //!     the MCP servers of the last `session/new` or `session/load` to that
 //!     file as JSON (`vessel_testkit::write_report`), then one message
@@ -123,10 +133,8 @@
 //!     the real adapters' shapes (Claude Code leaving plan mode, Codex's
 //!     five answers, two at once; `permits` module), then one message
 //!     chunk `permitted: <option>` per request;
-//!   - `plans`: the agent's plan as it changes, in Claude Code's shape (the
-//!     whole list in each `plan` update: created, sent again unchanged, a
-//!     step started, one done as the next starts, one added; `plans`
-//!     module), then one message chunk `plans done`;
+//!   - `plans`: a changing plan in Claude Code shape (`plans` module),
+//!     followed by `plans done`;
 //!   - `fail`: one message chunk `failing`, then the prompt's request
 //!     answers an error (`fake-acp: the turn failed`) and the agent stays
 //!     up: a turn that fails with the agent alive;
@@ -149,15 +157,16 @@ use agent_client_protocol::v1::schema::{
     AgentCapabilities, AuthMethod, AuthMethodAgent, AvailableCommand, AvailableCommandInput,
     AvailableCommandsUpdate, CancelNotification, Content, ContentBlock, ContentChunk, Cost,
     DeleteSessionRequest, DeleteSessionResponse, ElicitationCapabilities, ForkSessionRequest,
-    ForkSessionResponse, Implementation, InitializeRequest, InitializeResponse, LoadSessionRequest,
-    LoadSessionResponse, McpCapabilities, McpServer, MessageId, NewSessionRequest,
-    NewSessionResponse, PermissionOption, PermissionOptionKind, Plan, PlanEntry, PlanEntryPriority,
-    PlanEntryStatus, PromptCapabilities, PromptRequest, PromptResponse, RequestPermissionOutcome,
-    RequestPermissionRequest, SessionCapabilities, SessionDeleteCapabilities,
-    SessionForkCapabilities, SessionId, SessionNotification, SessionUpdate,
-    SetSessionConfigOptionRequest, SetSessionConfigOptionResponse, SetSessionModeRequest,
-    SetSessionModeResponse, StopReason, TextContent, ToolCall, ToolCallContent, ToolCallStatus,
-    ToolCallUpdate, ToolCallUpdateFields, ToolKind, UnstructuredCommandInput, Usage, UsageUpdate,
+    ForkSessionResponse, Implementation, InitializeRequest, InitializeResponse,
+    ListSessionsRequest, LoadSessionRequest, LoadSessionResponse, McpCapabilities, McpServer,
+    MessageId, NewSessionRequest, NewSessionResponse, PermissionOption, PermissionOptionKind, Plan,
+    PlanEntry, PlanEntryPriority, PlanEntryStatus, PromptCapabilities, PromptRequest,
+    PromptResponse, RequestPermissionOutcome, RequestPermissionRequest, SessionCapabilities,
+    SessionDeleteCapabilities, SessionForkCapabilities, SessionId, SessionListCapabilities,
+    SessionNotification, SessionUpdate, SetSessionConfigOptionRequest,
+    SetSessionConfigOptionResponse, SetSessionModeRequest, SetSessionModeResponse, StopReason,
+    TextContent, ToolCall, ToolCallContent, ToolCallStatus, ToolCallUpdate, ToolCallUpdateFields,
+    ToolKind, UnstructuredCommandInput, Usage, UsageUpdate,
 };
 use agent_client_protocol::{Agent, ByteStreams, Error, UntypedMessage};
 use tokio_util::compat::{TokioAsyncReadCompatExt as _, TokioAsyncWriteCompatExt as _};
@@ -167,6 +176,8 @@ use tokio_util::sync::CancellationToken;
 mod ask;
 #[path = "fake_acp/describe.rs"]
 mod describe;
+#[path = "fake_acp/history.rs"]
+mod history;
 #[path = "fake_acp/options.rs"]
 mod options;
 #[path = "fake_acp/permits.rs"]
@@ -356,10 +367,17 @@ async fn serve() -> ExitCode {
     let loads = std::env::var_os("FAKE_ACP_NO_LOAD").is_none();
     let hears = std::env::var_os("FAKE_ACP_AUDIO").is_some();
     let startup_log = std::env::var_os("FAKE_ACP_STARTUP_LOG").is_some();
+    let load_usage = std::env::var_os("FAKE_ACP_LOAD_USAGE")
+        .map(|mode| if mode == "higher" { 10.0 } else { 0.5 });
     let load_fails = std::env::var_os("FAKE_ACP_LOAD_FAILS").is_some();
     let signs_in = std::env::var_os("FAKE_ACP_SIGN_IN").is_some();
     let forks = std::env::var_os("FAKE_ACP_NO_FORK").is_none();
     let ignores_point = std::env::var_os("FAKE_ACP_FORK_IGNORES_POINT").is_some();
+    let lists = std::env::var_os("FAKE_ACP_NO_LIST").is_none();
+    let replay: u32 = std::env::var("FAKE_ACP_REPLAY")
+        .ok()
+        .and_then(|lines| lines.parse().ok())
+        .unwrap_or(0);
     let state: Shared = Arc::new(Mutex::new(State::new()));
     let transport = ByteStreams::new(
         tokio::io::stdout().compat_write(),
@@ -398,7 +416,8 @@ async fn serve() -> ExitCode {
                                 .session_capabilities(
                                     SessionCapabilities::new()
                                         .fork(forks.then(SessionForkCapabilities::new))
-                                        .delete(SessionDeleteCapabilities::new()),
+                                        .delete(SessionDeleteCapabilities::new())
+                                        .list(lists.then(SessionListCapabilities::new)),
                                 ),
                         )
                         .agent_info(Implementation::new("fake-acp", env!("CARGO_PKG_VERSION")));
@@ -433,7 +452,7 @@ async fn serve() -> ExitCode {
                         state.mcp_servers = request.mcp_servers;
                         state.cwd = Some(request.cwd);
                         state.sessions = state.sessions.saturating_add(1);
-                        let id = format!("fake-session-{}", state.sessions);
+                        let id = format!("fake-session-{}-{}", state.sessions, process_tag());
                         let mut response = NewSessionResponse::new(id);
                         response.config_options = state.options.config();
                         response.modes = state.options.modes();
@@ -456,6 +475,19 @@ async fn serve() -> ExitCode {
                 // Said on stderr, so a test sees it in the session's log.
                 complain(&format!("fake-acp: deleted {}", request.session_id.0));
                 responder.respond(DeleteSessionResponse::new())
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .on_receive_request(
+            async move |request: ListSessionsRequest, responder, _cx| {
+                if !lists {
+                    return responder.respond_with_error(Error::method_not_found());
+                }
+                complain("fake-acp: listing its conversations");
+                match history::page(request.cwd, request.cursor.as_deref()) {
+                    Ok(page) => responder.respond(page),
+                    Err(error) => responder.respond_with_error(error),
+                }
             },
             agent_client_protocol::on_receive_request!(),
         )
@@ -501,9 +533,23 @@ async fn serve() -> ExitCode {
                             update,
                         ))
                     };
+                    // Real adapters can replay their cumulative session
+                    // cost before load's response and the driver's Ready.
+                    if let Some(amount) = load_usage {
+                        say(SessionUpdate::UsageUpdate(
+                            UsageUpdate::new(1200, 200_000).cost(Cost::new(amount, "USD")),
+                        ))?;
+                    }
                     say(SessionUpdate::UserMessageChunk(ContentChunk::new(text(
                         "earlier question",
                     ))))?;
+                    // A long conversation (`FAKE_ACP_REPLAY`): what an
+                    // import of one costs.
+                    for line in 1..=replay {
+                        say(SessionUpdate::AgentMessageChunk(ContentChunk::new(text(
+                            &format!("replayed line {line}\n"),
+                        ))))?;
+                    }
                     // A fork's replay ends where it was forked (protocol
                     // 14): its id says so.
                     let mut replayed =
@@ -511,6 +557,12 @@ async fn serve() -> ExitCode {
                     replayed.message_id =
                         Some(MessageId::new(replayed_message(&request.session_id.0)));
                     say(SessionUpdate::AgentMessageChunk(replayed))?;
+                    if let Ok(replay) = std::env::var("FAKE_ACP_REPLAY_USER") {
+                        cx.send_notification(SessionNotification::new(
+                            request.session_id.clone(),
+                            SessionUpdate::UserMessageChunk(ContentChunk::new(text(&replay))),
+                        ))?;
+                    }
                     let response = {
                         let mut state = lock(&state);
                         state.mcp_servers.clone_from(&request.mcp_servers);
@@ -588,25 +640,60 @@ async fn serve() -> ExitCode {
                         ))?;
                         return responder.respond(PromptResponse::new(StopReason::EndTurn));
                     }
-                    let used = match prompt.strip_prefix("usage") {
-                        Some("") => Some(1200),
-                        Some(tokens) => tokens.trim().parse::<u64>().ok(),
-                        None => None,
-                    };
-                    if let Some(used) = used {
+                    if prompt == "usage-burst" {
+                        for amount in 1_u32..=101 {
+                            cx.send_notification(SessionNotification::new(
+                                request.session_id.clone(),
+                                SessionUpdate::UsageUpdate(
+                                    UsageUpdate::new(1200, 200_000)
+                                        .cost(Cost::new(f64::from(amount), "USD")),
+                                ),
+                            ))?;
+                        }
+                        cx.send_notification(SessionNotification::new(
+                            request.session_id.clone(),
+                            SessionUpdate::AgentMessageChunk(ContentChunk::new(text("used"))),
+                        ))?;
+                        return responder.respond(PromptResponse::new(StopReason::EndTurn));
+                    }
+                    let used = prompt
+                        .strip_prefix("usage ")
+                        .and_then(|tokens| tokens.trim().parse::<u64>().ok());
+                    if used.is_some()
+                        || matches!(
+                            prompt.as_str(),
+                            "usage" | "usage-reasoning" | "usage-after-load" | "usage-later"
+                        )
+                    {
+                        let amount = match prompt.as_str() {
+                            "usage-after-load" => 12.0,
+                            "usage-later" => 14.0,
+                            _ => 0.5,
+                        };
                         cx.send_notification(SessionNotification::new(
                             request.session_id.clone(),
                             SessionUpdate::UsageUpdate(
-                                UsageUpdate::new(used, 200_000).cost(Cost::new(0.5, "USD")),
+                                UsageUpdate::new(used.unwrap_or(1200), 200_000)
+                                    .cost(Cost::new(amount, "USD")),
                             ),
                         ))?;
                         cx.send_notification(SessionNotification::new(
                             request.session_id.clone(),
                             SessionUpdate::AgentMessageChunk(ContentChunk::new(text("used"))),
                         ))?;
-                        return responder.respond(
-                            PromptResponse::new(StopReason::EndTurn).usage(Usage::new(30, 20, 10)),
-                        );
+                        let usage = if prompt == "usage-reasoning" {
+                            Usage::new(30, 20, 10)
+                                .thought_tokens(0)
+                                .cached_read_tokens(12)
+                                .cached_write_tokens(0)
+                        } else {
+                            Usage::new(30, 20, 10)
+                        };
+                        return responder
+                            .respond(PromptResponse::new(StopReason::EndTurn).usage(usage));
+                    }
+                    if prompt == "limit" {
+                        return responder.respond(PromptResponse::new(StopReason::MaxTokens));
                     }
                     if prompt == "fail" {
                         // The agent stays up: only this turn's request
@@ -738,6 +825,20 @@ async fn serve() -> ExitCode {
     }
 }
 
+/// What makes this process's session ids its own: real agents mint ids
+/// no other process repeats (UUIDs), and a node refuses two live sessions
+/// on one conversation (protocol 17), so two fakes must not both say
+/// `fake-session-1`. Its process id and start time, in hex.
+fn process_tag() -> &'static str {
+    static TAG: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    TAG.get_or_init(|| {
+        let started = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |since| since.subsec_nanos());
+        format!("{:x}{started:x}", std::process::id())
+    })
+}
+
 /// A message id, new each time: `msg-<n>` (protocol 14's points).
 fn next_message() -> String {
     static NEXT: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(1);
@@ -793,8 +894,8 @@ async fn run_turn(
         }
         "exit" | "garbage" => return failing_turn(cx, session, prompt == "exit", turn).await,
         "flood" => return flood(cx, session, turn).await,
-        "shapes" => return shapes::shapes(cx, session, turn).await,
         "plans" => return plans::turn(cx, session, turn),
+        "shapes" => return shapes::shapes(cx, session, turn).await,
         _ => {}
     }
     if let Some(permit) = permits::wanted(prompt) {

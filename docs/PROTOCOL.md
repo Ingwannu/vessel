@@ -30,6 +30,366 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+Unassigned protocol numbers use `Option<ProtocolVersion>`, not a numeric
+stand-in. A connection admits calls through `Call::required_protocol()`;
+the existing numeric `since()` API is unchanged. Assigned requests default
+to `Some(self.since())`, and fleet envelopes propagate the inner requirement.
+The client refuses `None` before allocating an id or queuing a frame with
+`CallError::UnassignedProtocol { method }` (code `Unsupported`); the server
+refuses before dispatch. Each future feature supplies its optional
+threshold, assigned by integration only after its clients can read or
+approve the new data. No pending feature is registered by this foundation.
+
+## Version 23 (2026-11-14, milestone 12): saved-sign-in limits (N2, ADR 0042)
+
+N2 proposed 19 for these together with `usage.query`; `usage.query` took
+21 and the inbox 22 at the merges, so these two calls are 23 and
+`usage.query` keeps 21. The minimum protocol remains 2.
+
+Protocol 23 introduces `usage.limits(GetUsageLimits) -> UsageLimits`
+and `usage.lookup(SetUsageLookup) -> ExternalLookup`. These are separate from
+retained `usage.query` history. For `LimitsScope::Account`, omitted profile
+selects the configured default, and the reply names the selected profile.
+For `LimitsScope::Session`, the node uses the nonsecret binding of the actual
+live launch, including successful profile moves. Reloading profiles does not
+retarget it. Stored sessions without a live binding return `unassociated`.
+
+Cached reads require read and perform no credential/vendor I/O; `refresh`
+additionally requires operate and observes admission and Retry-After. Only
+admin can change the machine-wide policy, saved before acknowledgement.
+Agents may read only their own local session. Forwarded calls retain the
+existing destination/intersected-origin authorization. All three envelopes
+require the maximum of envelope and inner method/field versions, so a pre-23
+hop refuses both methods before sending or dispatching them.
+
+`UsageLimits` carries `policy`, canonical `account`, typed source disclosure,
+`AccountLimitState`, `cost_visibility` and optional `LimitNotice`. Off clears
+external observations; enabling does not poll. State distinguishes not yet
+requested, in progress with a retained observation, ready, and safe failure
+with optional same-login retained observation and actual cooldown. The
+snapshot's timestamp remains its observation time after a failed refresh.
+No credential, credential path, account fingerprint, email, raw API body or
+vendor error is serialized. Credit balances require operate; eligibility
+booleans remain visible without claiming a monetary unit.
+
+Each window has a bounded stable id, explicitly reported period (unknown when
+absent), provider slot, independent account/model/surface/feature/review scope,
+optional finite reported percentage, and optional reported reset time. Zero
+and missing are distinct; consumers clamp only for drawing. No duration is
+inferred from the plan or primary/secondary slot. `incomplete` prevents a
+partial response being presented as a complete set. Additional paid-use and
+credits/allowed flags remain distinct from subscription fullness.
+
+A notice names reported full general windows and gives their latest future
+reset only when all selected full windows have one. Explicit paid/credit/
+allowed permission suppresses the notice. It is not a stopped-turn diagnosis
+or an automatic recovery action. Screens localize and format these facts,
+show retained observations as stale, and offer only implemented operations.
+
+## Version 22 (2026-11-14, milestone 12): the inbox and push (N1, ADRs 0040 and 0041)
+
+N1 proposed 19; side questions took 19, `device.self` 20 and `usage.query`
+21 at the merge. Nodes speak 2..=22. Inbox and push are additive; older
+clients receive no new unsolicited frame and new calls are refused locally
+below 22. The inbox's tables are store schema 16.
+
+`inbox.list {before?}` requires Read and returns exact whole-node counts
+(`total`, `waiting`, `unread`), at most 16 `entries`, and an exclusive `next`
+cursor. An entry has its session and source sequence, timestamp, current
+session/project labels, shared read state and typed permission/question or
+finished/failed/limit item. `inbox.get {key,fetch?:"summary"|"live_request"}` returns that exact current entry
+or null. `inbox.mark {key,read}` changes shared attention; agent origins,
+including delegated agents, are forbidden. Answers still use Operate-scoped
+`session.send` / question answer calls and their existing validation. No
+request disappears merely because it is read. Oversized forms are explicit
+`in_session` references, never shortened option sets.
+
+`push.key` (unit request, `params: null`) returns the node's public VAPID identity. `push.subscribe
+{subscription:{endpoint,p256dh,auth}}` replaces this authenticated paired
+device's subscription and returns its 48-hour `expires_at`; `push.unsubscribe`
+(unit request, `params: null`) removes it. These Read-scoped calls refuse owner-token, agent and delegated
+principals and accept no supplied device identity. Endpoint/key/auth parsing
+is bounded; diagnostics redact capability material. Registration and sending
+both check current authority, revocation and expiry. `push.presence
+{focus,activity}` is connection-scoped: focus is session/elsewhere/background,
+activity is active/unchanged, with time assigned by the server. Agent and
+delegated origins cannot report a person's activity. Closed connections lose
+presence; an idle open connection does not prevent push indefinitely.
+
+All additions negotiate through `Call::since`; minimum protocol is unchanged.
+An older client receives no unsolicited new frame. ADRs 0040 and 0041 specify
+cursor movement, lifecycle, limits, notification watermarks and relay privacy.
+
+Opt-in inbox live-request fetch recovers one actor-owned pending form after
+history pruning. Summary is the compatible default. Expanded replies are
+capped at 15 MiB; larger forms remain exact compact references with no clipped
+choices, and an answered or withdrawn live request returns absence.
+
+## Version 21 (2026-11-14, milestone 12): reported usage (N2, ADR 0042)
+
+N2 proposed 19; side questions took 19 and `device.self` 20 at the merge.
+
+`usage.query` requires `read`. `QueryUsage` selects the machine, an
+agent/profile or a session, and a rolling day/week (or all retained
+samples of a session). `after` pages the session's samples by exclusive
+event sequence. Totals are independent of that cursor. At most 100 samples
+and 256 agent/profile groups are returned. Optional counts stay absent
+when the agent did not report them. Cache counts are not added again to
+input or total tokens. Cost units are never combined.
+
+`UsageReport` declares accounting start, age retention and incomplete
+coverage. `cost_visibility` distinguishes no reported cost from cost
+withheld because the caller lacks `operate`. That withholding covers
+totals, groups and individual cost samples in this new call. Existing
+session/event calls retain their earlier cost visibility contract.
+Agents may query only their own session on its own machine; delegated
+calls apply the destination's existing scope intersection. A machine or
+agent query with the session period/cursor is `invalid_request`, a missing
+session `not_found`, a scope/ownership refusal `forbidden`.
+
+The minimum protocol remains 2. No event kind changed. `ContextUsage`
+adds optional `observation: current|replayed` metadata in protocol 21;
+`current` is the omitted default. The runtime marks reports received during
+conversation loading, including a move, wake or rewind whose Ready is
+consumed. Replayed costs establish baselines/gaps without spending a
+historical increase. Older peers receive their original context report
+without the metadata, including through forwarded conversation replies.
+New calls are refused
+by the existing negotiated-version guard on an older node; an old client
+continues reading the existing ACP reports in the conversation log.
+
+Cost timing and optional-field coverage (ADR 0042): `current_costs` is the
+session's latest cumulative agent report, independent of the requested
+rolling period. Increment samples carry `since`; an interval crossing the
+period boundary contributes an unaccounted-cost notice, never its whole
+charge to that period. Existing/resumed/unknown counters produce baseline
+samples until their increments can be observed. `optional_reports` counts
+turns reporting each cache/reasoning field; their sums are reported
+subtotals, with missing turns explicitly distinguishable.
+
+A read-only session page can have no visible samples and still have a
+`next` cursor: the page contained only costs. Clients continue while
+`next` exists and do not interpret an empty page as end-of-history.
+
+For `UsageScope::Agent`, an omitted profile includes every recorded profile
+of that agent. A supplied name restricts the historical profile recorded
+with the sample. Account quota lookup is a different scope: its default
+profile identifies a configured login, never an aggregate of accounts.
+
+Usage scans admit at most two queued or running blocking jobs per node;
+excess calls receive `unavailable` with advice to retry shortly. Cancellation
+does not release admission until the blocking job finishes. Cost arithmetic
+uses exact decimal inputs and integer accumulation. Final sums or increments
+that cannot survive the finite wire number's decimal spelling are omitted.
+For an omitted unit sum, `unaccounted_costs` counts every contributing cost
+sample, rather than silently presenting a rounded subtotal.
+
+The negotiated version requirement for a typed fleet envelope includes its
+inner call's method and fields, recursively, for forward, relay and deliver
+(version 20's one rule; N2 added the same).
+An older intermediate peer refuses `usage.query` before sending or dispatch,
+even when a forced envelope targets that peer itself. Older supported
+envelopes retain their existing requirement and dispatch behavior.
+
+## Version 20 (2026-11-14, milestone 12): caller authority (N3, ADR 0044)
+
+- `device.self {}` returns `DeviceSelf { device?: DeviceId, scopes: Scope[] }`.
+  Authentication is required without an extra scope, so a caller without
+  Read can inspect its own grant. Unknown request fields are refused. Only
+  a directly paired caller gets its own id; owner/agent/delegated calls omit
+  it. Scopes are canonical, capped by the existing five-value universe, and
+  reflect the same principal checked by the guard, including agent clipping
+  and delegated intersection. No database or lifecycle policy changes.
+- This is an additive call, with minimum protocol still 2. Old direct and
+  routed hops refuse before send/dispatch. Typed envelopes now include the
+  inner call's method/field version in their requirement, since every hop
+  decodes and re-encodes it; an old hop must not drop an unknown field
+  (version 19's side link needed the same, and the line keeps this one
+  general rule for both).
+- Method metadata's Rust `scope()` is optional: None explicitly means an
+  authenticated call with no additional grant, not anonymous access. Every
+  legacy method retains Some(scope). Scopes do not replace ownership,
+  profile policy or agent limits. Unsupported self queries remain unknown
+  authority to the caller, never an inferred full or read-only grant.
+
+### Pairing setup refusal (N3 row 4, ADR 0044)
+
+`device.invite` retains its original method/version and Admin requirement.
+If neither a direct address nor a relay is advertised, the node refuses
+before creating invitation material: Conflict with optional detail
+`{ kind: "device_invite", reason: "no_routes" }`. `DeviceInviteError` also
+has an explicit Unknown future reason. The human message says to configure
+a reachable --public address or --relay, then create another invitation.
+The same refusal is sent on older negotiated connections: their decoders
+ignore unknown detail and retain the message. A configured route is not a
+remote connectivity proof; callback invitations use their effective override.
+An older node can retain its previous behavior; this refusal guarantees the
+behavior of the updated node, not a retroactive change to an older server.
+
+## Version 19 (2026-11-14, milestone 12)
+
+The track raises the current version once to 19; minimum remains 2.
+
+### Side questions (N5, ADR 0045)
+
+- `SessionSpec.side_question_of?: SessionId` links a separate structured
+  conversation to a local parent. It never resumes the parent's native id.
+  Ordinary creation naming this field uses the same serialized open/reuse
+  operation and inherits the parent's current configuration.
+- `session.side_open { session } -> SessionInfo`: reuse the newest
+  unarchived side, including an ended/interrupted one, or start a new side.
+  Opening never implicitly resumes an ended side.
+- `session.side_prompt { session, question: PromptText } -> Delivered`:
+  refresh the parent context and start a turn in the named side. A live
+  parked side wakes first; a failed wake consumes only that request. Busy
+  or ended sides are conflict. General prompt and queue operations refuse
+  sides, including scheduled and tracked prompts; old clients can read
+  them but must update or use `vessel session side` to ask.
+- `session.side_reset { session, side } -> SessionInfo`: serialized
+  expected-id replacement. A stale side is conflict. Deletion failure
+  creates nothing; creation failure after deletion leaves the old side
+  gone. Opening again retries; no rollback is promised.
+- All three calls need read and operate. Direct and delegated agents are
+  refused; delegated people retain the usual scope intersection. Calls
+  can cross the fleet and the existing encrypted relay. Neither questions
+  nor answers are written into the parent conversation.
+- Context uses current status/attention, an independent latest-plan
+  projection (schema 14; twenty steps, 1,200 characters each), and a
+  labelled partial tail of at most 128 records. Snapshots are at most
+  24 KiB in UTF-8 including metadata and markers; complete serialized ACP requests at
+  most 48 KiB, including prefixes, JSON escaping and the request envelope.
+  TurnStarted retains only the question; context is transient provider
+  input carried atomically with it. Native slash questions are refused
+  explicitly rather than moved behind a context prefix. Question text uses the existing 16 KiB `PromptText`.
+- Parent deletion leaves existing side logs readable but prevents new
+  questions/resume. Reset inherits current profile/model/choices; an
+  existing side keeps its own configuration. Imports clear node-local
+  parent links. Saved/scheduled templates refuse side specs.
+- A parent rewind clears its plan projection and limits the partial
+  transcript to records after the latest rewind, so discarded future
+  messages cannot be presented as current. A new plan report replaces
+  the cleared projection. Generic session.fork refuses side sources;
+  side_reset is the supported start-over path.
+- All direct and currently supported nested session specs require
+  protocol 19 when they name a side link, so old nodes cannot silently
+  ignore it. The optional field is ignored by older apps. No new events
+  or stand-ins are required.
+
+## Version 18 (2026-11-14, milestone 11's track A2, ADR 0057's slice 0)
+
+Nodes speak 2..=18. No method, no event, no record: one field of the
+node's settings. A client sends a change naming it to no older node
+(`Call::since`; `unsupported`, "needs protocol 18"), since an older node
+would ignore it and keep every agent on ACP without saying so.
+
+### Agents over their own protocols (track A2, ADR 0057)
+
+Types in `vessel_proto::settings`.
+
+- `NodeSettings` gains `drivers?: AgentDrivers { claude_code, codex,
+  open_code }`, each an `AgentDriver`: `acp` (the Agent Client Protocol,
+  the agent's own ACP mode or its adapter), `direct` (the agent's own
+  protocol: Codex's app-server, Claude Code's stream-json, `OpenCode`'s
+  server) or `unknown` (a newer node's). Absent when every agent runs
+  over ACP, as from a node older than 18. Gemini and agents added on the
+  node have no protocol of their own and always run over ACP.
+- `node.set_settings { drivers?: SetAgentDrivers { claude_code?, codex?,
+  open_code? } }` changes the agents it names. `unknown` is refused
+  (`invalid_request`); `direct` is refused (`unsupported`) for an agent
+  whose driver this build does not offer yet. Which are offered is the
+  build's, not the version's: Codex's from its driver's slice 2 (it asks
+  a person for permissions and questions as over ACP); Claude Code's and
+  `OpenCode`'s not yet. A
+  change is kept in `settings.json`; a choice a newer build saved runs
+  as ACP here and stays in the file.
+- What a setting changes: the driver of that agent's sessions started
+  after it, chosen at each creation and start again, and used by its
+  probes (`harness.options`) and listings (`agent.history`). A session
+  keeps its driver for its life, across moves, parks and rewinds, since
+  its options are that driver's. The node runs the agent's own protocol
+  only for a version it was checked against (the agent's `--version`);
+  for an older or unreadable one the session runs over ACP and its log
+  says why, and for a newer one it runs and its log says so.
+- Nothing else on the wire changes: a direct driver produces the same
+  events, options, permission requests and questions as ACP.
+
+## Version 17 (2026-11-14, milestone 11's track A2 slice 4, on milestone 12's node line, ADR 0053)
+
+Nodes speak 2..=17. One method, no event, no record. Track A2 wrote it
+at 14 beside forking; on the node line 15 (N3's fleet controls) and 16
+(`fleet.published`) were taken first, so it is 17 here. A client
+sends it to no older node (`Call::since`; `unsupported`, "needs protocol
+17"); a node refuses it on an older connection.
+
+### Importing from an agent's own history (track A2, ADR 0053)
+
+One method; types in `vessel_proto::history`.
+
+- `agent.history { harness, profile?, cwd?, cursor? }` (operate,
+  forwardable, refused to agents) answers `AgentHistoryPage {
+  conversations: [HistoryEntry], next? }`: the conversations the agent
+  keeps under that profile, newest first, as it lists them over ACP
+  (`session/list`; the node starts the agent as for `harness.options`,
+  and no session is created or loaded). `cwd` (absolute) keeps those
+  held in that folder; `cursor` is a page's `next` as it was given (at
+  most 4,096 bytes). A page holds up to 1,000; it can be empty with a
+  `next` after the node has asked past several empty pages of the agent's.
+- `HistoryEntry { harness_session, cwd, title?, updated_at?, in_vessel?
+  }`: the agent's id, its folder (absolute), its title cut as a prompt's
+  title is, when it was last active, and the newest session on this node
+  (live or kept) on that conversation.
+- Importing is `session.create` with `mode: structured { resume:
+  harness_session }`, the entry's `cwd`, the `profile` it was listed
+  under and, for a title, its `title`; the agent's replay is the new
+  session's log.
+- A node of 17 refuses `session.create` with `resume`,
+  `session.resume` and `session.move_profile` with `conflict` while
+  another live session (parked included) holds that conversation, or is
+  starting on it or moving it: two agents on one transcript would
+  corrupt it. A session holds its conversation under every profile its
+  transcript is in: the one it started under, and each profile
+  `session.move_profile` took it to or from, since a move hard-links the
+  transcript into the target home for good (also when the new agent did
+  not start). A session started again holds the profiles of the moves
+  its log still records. The default profile is one profile whether it
+  is named or not. This is the node's own check, so a client of any
+  version meets it. A copy into another profile (`session.export` then
+  `session.import`, which the CLI's `vessel session copy` and `vessel
+  session move` use; the move kills the source after the copy runs) is
+  another file and is not refused. The listing marks such an entry
+  `in_vessel`; a client opens that session rather than import it.
+- Errors: `invalid_request` (a relative folder, a cursor no listing gave,
+  the agent refusing it), `unsupported` (an agent that does not list or
+  load over ACP), `not_found` (a profile or added agent that is not
+  there), `spawn_failed` (the agent did not start or answer within its
+  handshake), `unavailable` (two listings already run on the node).
+
+## Version 16 (2026-11-14, milestone 12's node line, ADR 0056)
+
+Nodes speak 2..=16. One method, no event, no record; a client refuses it
+locally on an older node (`unsupported`, "needs protocol 16").
+
+`fleet.published {}` (admin, not forwardable, refused to agents; the browser
+bridge passes it) answers what this machine shares through its fleet, by
+name and metadata, never file contents, secret values or a tool server's
+command, arguments, address or headers. Tagged `role`:
+
+- `standalone`: it shares nothing (a value, not an error).
+- `home { bundle? }`: what it publishes; absent before its first bundle.
+- `member { home, bundle?, applied? }`: the bundle it last received from
+  `home`, and the version last applied here (older than `bundle`'s when
+  the last apply did not finish).
+- `unknown`: a newer node's role.
+
+`PublishedBundle { generation, files: SharedFile[], servers, secrets }`;
+`SharedFile { path, kind: instructions | skill | other, size, executable }`;
+`servers` are tool (MCP) server names, `secrets` the secret names they use,
+each once, sorted. Over a bound (4096 files, 256 servers, the reply's byte
+budget) the whole read is refused: `unavailable` with
+`detail: { kind: fleet_control, reason: published_too_large }`, which a
+version 15 client reads as `unknown`. The member protocol
+(`fleet.manifest`, `fleet.peers`) is unchanged and stays `sync`-only.
+
 ## Version 15 (2026-11-13, milestone 12, N3 row 2)
 
 Nodes speak 2..=15. Track N3 built its fleet controls as part of its
@@ -61,8 +421,8 @@ Refusals use `ErrorDetail::FleetControl { reason }` (ADR 0044).
 Nodes speak 2..=14. Track A2 built forking and rewinding as part of its
 protocol 12; on the node line N3's schedule preview had taken 13 first,
 and a client built at 13 has no variant for the two new records, so they
-and the two calls are 14 here. A client sends neither call to an older
-node (`Call::since`); a node refuses them on an older connection
+and the two calls are 14 here. A client sends none of these calls to an older node
+(`Call::since`); a node refuses them on an older connection
 (`unsupported`, "needs protocol 14").
 
 ### Forking and rewinding (track A2, ADR 0052)
@@ -202,7 +562,8 @@ Two methods, one optional field, two records; types in
   cancel do not wake it.
 - The node parks idle sessions on its own after `--park-after` minutes
   (60 by default; 0 never), never one that someone follows live.
-- `node.settings {}` (read) answers `NodeSettings { park_after }` in force;
+- `node.settings {}` (read) answers `NodeSettings { park_after }` in force
+  (and `drivers`, protocol 18);
   `node.set_settings { park_after? }` (admin) changes what it names and
   answers the same. `ParkAfter` (tagged `kind`): `never`, `idle { minutes
   }` (1 to 10,080), `unknown` (a newer node's; refused in a change,
@@ -241,7 +602,11 @@ Six methods, one optional field, no event. Every type is in
 - `pr.get { session, refresh }` (read): the whole `PullRequest` (checks
   with the failing ones named, people's reviews, times, the repository's
   merge methods). `refresh` reads now, at most once per 10 s per session
-  (more often is answered from memory); an agent may refresh only a
+  (more often is answered from memory); a refresh that comes before the
+  node has first read the session's folder (its branch, just after the
+  session started) waits for that read and answers with what it finds
+  (since 2026-11-14; before, it answered at once with no pull request);
+  an agent may refresh only a
   session it may operate. A session that has ended answers `access:
   ended`; one the node does not watch (not placed) `not_placed`.
 - `pr.open { session, title, body?, base?, draft }` (operate): from the
@@ -1106,8 +1471,12 @@ every method.)
   with its delivering device's scopes intersected with `origin.scopes`,
   and applies ownership and the agent limits to the origin. Subscriptions
   and the envelope's own methods cannot be forwarded
-  (`Method::forwardable`). A call needs protocol 6 on the connection it is
-  sent on; the inner call's version is checked where it is delivered.
+  (`Method::forwardable`). Each connection must understand the envelope
+  (at least protocol 6) and the full inner call, including newer fields:
+  `Call::since` recursively takes their maximum. Both client and server
+  check this before sending or dispatching, including a forward to the
+  welcomed node itself. Thus the protocol 22 inbox cannot cross a hop
+  negotiated at 21, even when that hop is also the final target.
 - Fleet: `fleet.grant { link }` (sync) hands the home a pairing link made
   on the member, so the home holds a credential there (a member's node
   sends it when it connects, with the scopes chosen at join, `read` and
@@ -1470,3 +1839,15 @@ Nodes speak 2..=3. Version 3 only adds, so version 2 peers keep working.
 
 REST routes and one websocket per session stream. Replaced entirely by
 version 2.
+
+## Staged project-file terminal approvals (ADR 0066)
+
+`CommandSet` and `ProjectCommands::Listed` gain a default-empty `terminals`
+list (`FileTerminal`: optional validated title, validated command). No call
+is added. The version is assigned at integration through
+`workspace::PROJECT_FILE_KEYS`, currently `None`; `PROTOCOL_VERSION` stays
+unchanged. Until assigned, any set naming terminals is returned as `invalid`
+on every negotiated connection. This also covers a terminal-bearing prior
+approval and script/worktree approval replies. Older nodes omit the field;
+new readers treat omission as no terminal commands. Parsing and approval are
+staged ahead of automatic terminal creation, which is not implemented yet.

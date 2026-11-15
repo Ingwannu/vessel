@@ -20,7 +20,7 @@ use crate::error::StoreError;
 /// Store a new session with an empty log.
 ///
 /// Only the session's identity, spec, profile, creator, origin, model
-/// route and title come from `info`. Its status is
+/// route, title and current labels come from `info`. Its status is
 /// stored as `Starting` and live, and everything else is derived from the
 /// records appended later: `info` is a snapshot the runtime took after the
 /// process started, and a session that ends within milliseconds would
@@ -35,8 +35,8 @@ pub(crate) fn create_session(
             "INSERT INTO sessions
                  (id, spec, status, live, created_at, ended_at, next_seq, first_seq,
                   retained_bytes, harness_session, profile, created_by, via, origin, model,
-                  title)
-             VALUES (?1, ?2, ?3, 1, ?4, NULL, 0, 0, 0, NULL, ?5, ?6, ?7, ?8, ?9, ?10)
+                  title, labels)
+             VALUES (?1, ?2, ?3, 1, ?4, NULL, 0, 0, 0, NULL, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
              ON CONFLICT (id) DO NOTHING",
         )?
         .execute(params![
@@ -50,10 +50,14 @@ pub(crate) fn create_session(
             info.origin.as_ref().map(encode).transpose()?,
             info.model.as_ref().map(encode).transpose()?,
             info.title.as_ref().map(SessionTitle::as_str),
+            (!info.labels.is_empty())
+                .then(|| encode(&info.labels))
+                .transpose()?,
         ])?;
     if inserted == 0 {
         return Err(StoreError::SessionExists(info.id));
     }
+    crate::usage::initialize_cost(connection, info)?;
     Ok(())
 }
 
@@ -74,6 +78,16 @@ enum ProfileMove {
     To(Option<ProfileName>),
 }
 
+/// A plan report replaces the projection; a rewind invalidates it even
+/// if the old plan event is no longer retained.
+#[derive(Default)]
+enum PlanMove {
+    #[default]
+    Unchanged,
+    Cleared,
+    Reported(crate::LatestPlan),
+}
+
 /// The `sessions` columns a run of records changes.
 #[derive(Default)]
 struct Projection {
@@ -92,6 +106,7 @@ struct Projection {
     usage: Option<ContextUsage>,
     queue: Option<PromptQueue>,
     attention: Option<EventSeq>,
+    plan: PlanMove,
     bytes: u64,
 }
 
@@ -123,6 +138,11 @@ impl Projection {
                     self.abilities = *abilities;
                 }
             }
+            SessionEvent::Agent {
+                event: AgentEvent::Plan { entries },
+            } => {
+                self.plan = PlanMove::Reported(crate::LatestPlan::bounded(entries));
+            }
             SessionEvent::UsageChanged { usage } => self.usage = Some(usage.clone()),
             SessionEvent::QueueChanged { queue } => self.queue = Some(queue.clone()),
             SessionEvent::ProfileChanged { to, .. } => {
@@ -146,7 +166,12 @@ impl Projection {
             // a resume or an export after it reads the id from here.
             SessionEvent::Rewound {
                 harness_session, ..
-            } => self.harness_session = Some(harness_session.clone()),
+            } => {
+                self.harness_session = Some(harness_session.clone());
+                // The discarded future's plan is no longer current. Older
+                // events may be pruned; do not pretend to reconstruct it.
+                self.plan = PlanMove::Cleared;
+            }
         }
     }
 }
@@ -184,6 +209,9 @@ pub(crate) fn append<'a>(
             time_to_sql(record.at)?,
             event
         ])?;
+        crate::usage::note_profile(connection, session, record)?;
+        crate::usage::observe(connection, session, record)?;
+        crate::inbox::observe(connection, session, record)?;
         projection.observe(record, event.len());
         // Records past u64::MAX cannot exist: the runtime ends a session
         // before its counter would wrap.
@@ -210,7 +238,8 @@ pub(crate) fn append<'a>(
                  abilities = COALESCE(?12, abilities),
                  usage = COALESCE(?13, usage),
                  queue = COALESCE(?14, queue),
-                 attention_seq = COALESCE(?15, attention_seq)
+                 attention_seq = COALESCE(?15, attention_seq),
+                 latest_plan = CASE WHEN ?17 THEN ?16 ELSE latest_plan END
              WHERE id = ?1",
         )?
         .execute(params![
@@ -235,7 +264,13 @@ pub(crate) fn append<'a>(
             projection.usage.as_ref().map(encode).transpose()?,
             projection.queue.as_ref().map(encode).transpose()?,
             projection.attention.map(seq_to_sql).transpose()?,
+            match &projection.plan {
+                PlanMove::Reported(plan) => Some(encode(plan)?),
+                PlanMove::Cleared | PlanMove::Unchanged => None,
+            },
+            !matches!(projection.plan, PlanMove::Unchanged),
         ])?;
+    crate::usage::prune(connection, Utc::now())?;
     Ok(Appended { ended })
 }
 

@@ -45,6 +45,12 @@ pub(crate) enum Slot {
 }
 
 impl Publisher {
+    /// Updated only once a new agent successfully starts; publish the
+    /// profile event afterward so its readers see the matching binding.
+    pub(crate) fn set_limit_association(&self, association: crate::LimitAssociation) {
+        let _previous = self.shared.limits.send_replace(association);
+    }
+
     /// `activity` must be the tracker `info`'s first board came from, so
     /// the board changes only with what the session publishes. The first
     /// record is numbered `info`'s `next_seq`: zero for a new session, the
@@ -91,11 +97,6 @@ impl Publisher {
     /// The session's program is now `pid` (a move started another agent).
     pub(crate) fn running(&self, pid: u32) {
         self.shared.pid.store(pid, Ordering::Release);
-    }
-
-    /// How many follow the session live now (protocol 12).
-    pub(crate) fn followers(&self) -> usize {
-        self.shared.ring().followers()
     }
 
     /// Whether a permission or a question waits for an answer (protocol

@@ -360,3 +360,45 @@ fn relative_working_directories_are_refused() {
         );
     }
 }
+
+/// A session over the agent's own protocol (ADR 0057) runs the agent's own
+/// program with that protocol's arguments; a terminal session and an agent
+/// without one have none. The version Vessel checks is the same program's
+/// `--version`.
+#[test]
+fn a_direct_launch_runs_the_agents_own_program() {
+    let bin = TempDir::new();
+    let codex = install(bin.path(), HarnessKind::Codex, Role::Terminal, &fake_tui()).unwrap();
+    let lookup = Lookup::new([bin.path().to_path_buf()]);
+    let env = vessel_harness::HarnessEnv::new(std::env::temp_dir());
+    let spec = structured(HarnessKind::Codex, None);
+    let profile = Profile::default_of(&spec.harness).unwrap();
+    let command = vessel_harness::launch_direct(&lookup, &env, &spec, &profile, None)
+        .unwrap()
+        .command;
+    assert_eq!(command.program, codex);
+    assert_eq!(command.args, ["app-server"]);
+
+    let in_terminal = terminal(HarnessKind::Codex, &[], None);
+    assert!(matches!(
+        vessel_harness::launch_direct(&lookup, &env, &in_terminal, &profile, None),
+        Err(HarnessError::NoDirect { .. })
+    ));
+    let gemini = structured(HarnessKind::Gemini, None);
+    let gemini_profile = Profile::default_of(&gemini.harness).unwrap();
+    assert!(matches!(
+        vessel_harness::launch_direct(&lookup, &env, &gemini, &gemini_profile, None),
+        Err(HarnessError::NoDirect { .. })
+    ));
+
+    let version = vessel_harness::version_check(&lookup, &env, &profile)
+        .unwrap()
+        .unwrap();
+    assert_eq!(version.program, codex);
+    assert_eq!(version.args, ["--version"]);
+    assert!(
+        vessel_harness::version_check(&lookup, &env, &gemini_profile)
+            .unwrap()
+            .is_none()
+    );
+}
