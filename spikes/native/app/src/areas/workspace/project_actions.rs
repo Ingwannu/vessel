@@ -1,5 +1,5 @@
 //! Project action correlation and explicit destructive confirmation.
-//! Late replies reconcile the host cache without settling a newer draft.
+//! Late replies trigger a fresh authoritative read without mutating a newer draft.
 
 use crate::shell::Shell;
 use std::path::PathBuf;
@@ -37,6 +37,13 @@ impl Shell {
             return;
         }
         let current = self.areas.workspace.page.actions.settle(&key) == ProjectReply::Current;
+        if !current {
+            // A book alias may now name a different node: never hydrate from an old reply.
+            if self.areas.workspace.projects.contains_key(machine) {
+                self.ask(machine, Ask::Project(ProjectAsk::List));
+            }
+            return;
+        }
         match result {
             Ok(ProjectChanged::Registered(project)) => {
                 if let Some(view) = self.areas.workspace.projects.get_mut(machine) {
@@ -74,6 +81,33 @@ impl Shell {
             }
         }
         self.ask(machine, Ask::Project(ProjectAsk::List));
+    }
+
+    /// A forgotten/renamed alias cannot retain mutation authority for its former target.
+    pub(super) fn project_host_detached(&mut self, host: &str) {
+        let page = &mut self.areas.workspace.page;
+        if page
+            .actions
+            .pending()
+            .is_some_and(|key| key.host().as_str() == host)
+        {
+            page.actions.cancel();
+        }
+        if page
+            .form_host
+            .as_ref()
+            .is_some_and(|name| name.as_str() == host)
+        {
+            page.form_host = None;
+            page.adding = None;
+        }
+        if page
+            .removing
+            .as_ref()
+            .is_some_and(|remove| remove.host.as_str() == host)
+        {
+            page.removing = None;
+        }
     }
 
     /// Only the confirmation performs a destructive call; opening it is read-only.

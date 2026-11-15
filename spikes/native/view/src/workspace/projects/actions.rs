@@ -59,7 +59,7 @@ pub enum ProjectActionError {
 pub enum ProjectReply {
     /// This response owns the current form's in-flight state.
     Current,
-    /// Cache reconciliation may still use it, but the current draft must remain untouched.
+    /// Re-read current authority; this payload cannot hydrate a newer host binding or draft.
     Stale,
 }
 

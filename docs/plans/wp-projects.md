@@ -137,3 +137,11 @@ new deadline comment; that comment is corrected. The package then merged the
 announced app package base 8d5513e4 without conflicts. The projects size exception
 remains removed; shared registration files follow the new base split. No capture
 or runtime completion is inferred from this source merge.
+
+Host-alias mutation correlation now rejects stale payload hydration. After a
+cancelled form or successful book rename/forget, delayed project results cannot
+write the cache or settle a newer form. If that host is still known, the app asks
+for its current authoritative list instead. Renaming/forgetting closes the old
+host's project mutation drafts without undoing an already submitted node effect.
+A headless GPUI regression combines alias reuse, stale success and a newer pending
+form with actual text input/caret retention. Current native checks remain owed.

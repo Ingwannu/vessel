@@ -70,6 +70,7 @@ impl Shell {
     }
 
     fn workspace_renamed(&mut self, from: &str, to: &str) {
+        self.project_host_detached(from);
         let workspace = &mut self.areas.workspace;
         let listed = workspace.projects.contains_key(from);
         rekey(&mut workspace.projects, from, to);
@@ -88,6 +89,7 @@ impl Shell {
     }
 
     fn workspace_forgot(&mut self, name: &str) {
+        self.project_host_detached(name);
         let workspace = &mut self.areas.workspace;
         let _was = workspace.projects.remove(name);
         workspace.place.machine_forgot(name);
