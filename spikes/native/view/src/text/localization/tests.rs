@@ -315,6 +315,15 @@ fn plain_access_has_zero_allocations_after_initialization() {
                 let _name = std::hint::black_box(translator.meta().name());
                 let _language = std::hint::black_box(translator.meta().language());
                 let _system = std::hint::black_box(translator.meta().system());
+                let _language_note = std::hint::black_box(translator.meta().language_note());
+                for delivery in [
+                    crate::prefs::TurnDelivery::Queue,
+                    crate::prefs::TurnDelivery::Steer,
+                    crate::prefs::TurnDelivery::Interrupt,
+                ] {
+                    let _name = std::hint::black_box(translator.general().delivery(delivery));
+                    let _note = std::hint::black_box(translator.general().delivery_note(delivery));
+                }
                 let _pair_title = std::hint::black_box(translator.pairing().title());
                 let _pair_warning = std::hint::black_box(translator.pairing().security_warning());
                 let _confirm = std::hint::black_box(translator.pairing().confirm_description());

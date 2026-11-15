@@ -106,6 +106,13 @@ placeholder; retain the typed value, caret, selection, current step and focus.
 Test that retention with the actual language-change dispatch and input keys
 (the find, question, queued-edit and project-form tests are examples).
 
+At a GPUI boundary, borrow a plain message from the static process catalog with
+`SharedString::new_static(shell.words.general().title())`. GPUI's generic
+`From<&str>` copies longer values; that also affects expanded pseudo labels.
+The static lifetime comes from the prepared Translator cache. Dynamic messages
+instead become a retained SharedString at state/language events and are cloned
+by renderers. This rule concerns message storage, not widget/tree allocations.
+
 For value messages, retain the input facts and shared prepared text at state and
 language events; invalidate cached rows/measurements when that text changes.
 `view::updates` and `view::fork::Headers` are examples. A frame reads the
