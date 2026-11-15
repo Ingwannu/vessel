@@ -101,6 +101,9 @@ impl Shell {
         if !area.response_waiting(response.request()) {
             return Ok(None);
         }
+        if !area.response_failures.retryable(response.request()) {
+            return Err(Problem::Unconfirmed);
+        }
         if !area.response_valid(response) {
             return Err(Problem::Invalid);
         }

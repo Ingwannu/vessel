@@ -75,7 +75,10 @@ impl Shell {
         let Some(area) = (P::SEAT.get_mut)(self) else {
             return;
         };
-        if !area.response_waiting(vessel_app_view::responses::Request::Permission(id))
+        if !area
+            .response_failures
+            .retryable(vessel_app_view::responses::Request::Permission(id))
+            || !area.response_waiting(vessel_app_view::responses::Request::Permission(id))
             || area.permit_sending.contains_key(&id)
                 && area
                     .response_failures
@@ -194,7 +197,10 @@ pub(crate) fn card_at<P: Place>(
         CardTitle::Plan => words.permission_plan().to_owned(),
         CardTitle::Required => words.permission_required().to_owned(),
     };
-    let holding = P::busy(shell);
+    let holding = P::busy(shell)
+        || !area
+            .response_failures
+            .retryable(vessel_app_view::responses::Request::Permission(id));
     let answers = answers::<P>(
         &card,
         (sending.as_ref(), holding),

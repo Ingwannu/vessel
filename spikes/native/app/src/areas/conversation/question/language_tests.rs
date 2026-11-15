@@ -231,3 +231,46 @@ fn dismiss_progress_belongs_to_the_clicked_action_even_when_the_answer_is_accept
         );
     });
 }
+
+#[gpui::test]
+fn an_uncertain_question_keeps_its_original_editor_and_cannot_resubmit(
+    cx: &mut gpui::TestAppContext,
+) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        prepare(shell, false, window, cx);
+        let form = shell.areas.conversation.answering.as_ref().unwrap();
+        let id = form.id;
+        let source = form.field.id();
+        let drafts = form.drafts.clone();
+        shell
+            .areas
+            .conversation
+            .answering
+            .get_mut(id)
+            .unwrap()
+            .sending = Some(ResponseAction::Submit);
+        let request = vessel_app_view::responses::Request::Question(id);
+        shell
+            .areas
+            .conversation
+            .response_failures
+            .failed(request, vessel_app_view::responses::Problem::Unconfirmed);
+        assert!(!shell.question_editable::<SessionPlace>(id));
+        shell.question_typed::<SessionPlace>(source, "late uncertain edit".into(), cx);
+        shell.question_entered::<SessionPlace>(source, "late uncertain submit".into(), window, cx);
+        let held = shell.areas.conversation.answering.get(id).unwrap();
+        assert_eq!(held.field.id(), source);
+        assert_eq!(held.drafts, drafts);
+        assert_eq!(held.sending, Some(ResponseAction::Submit));
+        // A correlated no-effect refusal is a different authority from a
+        // snapshot still containing this request. It can permit correction.
+        shell
+            .areas
+            .conversation
+            .response_failures
+            .failed(request, vessel_app_view::responses::Problem::Unsent);
+        assert!(shell.question_editable::<SessionPlace>(id));
+    });
+}

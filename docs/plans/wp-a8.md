@@ -565,3 +565,23 @@ native Rust format, size, dependency boundary and token checks pass after the
 merge; the current all-target Clippy run is pinned to its pre-merge feature head,
 so it cannot establish this union or overall runtime acceptance. Shared field
 proof, request-owner source and final package evidence remain distinct.
+
+## Uncertain delivery is a retained response fence
+
+W23 confirmed that Conversation.through covers actor-event membership, not
+all durable delivery changes: equal-through and even a higher unrelated event
+can accompany stale Pending after Answering/OutcomeUnknown. Per-owner read
+correlation remains necessary, and a retained admitted/uncertain/settled response
+cannot be reopened by ordinary snapshot presence alone.
+
+Reuse the existing request-scoped failure owner as the current uncertainty hold;
+no second registry is added. Unconfirmed keeps both question and permission
+actions disabled, retains the actual question editor/drafts, rejects queued local
+callbacks and refuses direct response_at admission before allocating a new ticket.
+The spinner stops in favor of the translated uncertainty message. A known
+no-effect refusal permits explicit correction; exact settlement/authority loss
+may retire the old request. A duplicate success for an already consumed ticket
+cannot clear uncertainty. New regression source exercises direct admission plus
+stale same-request projection and the retained question editor; VM execution is
+owed. Rich receipt classification and coordinated read-ticket ingress remain
+pending their checked producers; no snapshot or timeline event is fabricated.

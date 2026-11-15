@@ -88,13 +88,15 @@ impl Shell {
     /// queued field callbacks must not change the answer already in flight.
     fn question_editable<P: Place>(&self, id: QuestionId) -> bool {
         (P::SEAT.get)(self).is_some_and(|area| {
-            area.answering.get(id).is_some_and(|answering| {
-                answering.sending.is_none()
-                    || area
-                        .response_failures
-                        .get(vessel_app_view::responses::Request::Question(answering.id))
-                        .is_some()
-            })
+            area.response_failures
+                .retryable(vessel_app_view::responses::Request::Question(id))
+                && area.answering.get(id).is_some_and(|answering| {
+                    answering.sending.is_none()
+                        || area
+                            .response_failures
+                            .get(vessel_app_view::responses::Request::Question(answering.id))
+                            .is_some()
+                })
         }) && !P::busy(self)
     }
 

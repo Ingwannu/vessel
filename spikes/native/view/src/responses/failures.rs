@@ -23,6 +23,13 @@ impl Failures {
     pub fn get(&self, request: Request) -> Option<Problem> {
         self.requests.get(&request).copied()
     }
+    /// A snapshot still listing the request cannot prove an uncertain effect did
+    /// not happen. Only exact response/authority reconciliation clears this hold;
+    /// other admission and provider-delivery checks remain independently required.
+    #[must_use]
+    pub fn retryable(&self, request: Request) -> bool {
+        self.get(request) != Some(Problem::Unconfirmed)
+    }
     /// A retry/ack clears its own failure without touching another request.
     pub fn clear(&mut self, request: Request) {
         let _previous = self.requests.remove(&request);

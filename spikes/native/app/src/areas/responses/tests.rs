@@ -114,7 +114,7 @@ fn a_late_refusal_cannot_decorate_a_successor_canceled_or_other_target(
 }
 
 #[gpui::test]
-fn an_uncertain_result_preserves_the_card_and_duplicate_replies_cannot_clear_a_retry(
+fn an_uncertain_result_preserves_the_card_and_cannot_be_reopened_by_stale_reads(
     cx: &mut gpui::TestAppContext,
 ) {
     language_tests::init(cx);
@@ -133,8 +133,8 @@ fn an_uncertain_result_preserves_the_card_and_duplicate_replies_cannot_clear_a_r
                 .get(pending.request),
             Some(Problem::Unconfirmed)
         );
-        // A failed refresh used to overwrite the response's generic refusal,
-        // leaving the original card permanently sending without a retry.
+        // A failed refresh must not replace the retained uncertainty.
+        // An ordinary Pending snapshot is not proof that no effect happened.
         let _followup = shell
             .areas
             .conversation
@@ -158,23 +158,33 @@ fn an_uncertain_result_preserves_the_card_and_duplicate_replies_cannot_clear_a_r
         );
         assert!(shell.areas.conversation.response_waiting(pending.request));
         let permission = shell.areas.conversation.live.permissions[0].clone();
+        let stale_live = shell.areas.conversation.live.clone();
+        shell.areas.conversation.live = stale_live;
+        shell.areas.conversation.reconcile_responses();
+        assert!(
+            !shell
+                .areas
+                .conversation
+                .response_failures
+                .retryable(pending.request)
+        );
         shell.response_at(
             Seat::SESSION,
             Answer::Permit(permission.id, permission.options[0].id.clone()),
         );
-        assert_eq!(shell.areas.responses.seats.len(), 1);
+        assert!(shell.areas.responses.seats.is_empty());
         shell.response_answered(&Reply {
             pending: pending.clone(),
             result: Ok(()),
         });
-        assert_eq!(shell.areas.responses.seats.len(), 1);
+        assert!(shell.areas.responses.seats.is_empty());
         assert_eq!(
             shell
                 .areas
                 .conversation
                 .response_failures
                 .get(pending.request),
-            None
+            Some(Problem::Unconfirmed)
         );
     });
 }

@@ -99,7 +99,11 @@ pub(crate) fn card_at<P: Place>(
         .map(|failure| crate::areas::responses::problem(shell.words, failure).to_owned())
         .or_else(|| answering.validation.clone());
     let sending = answering.sending.filter(|_| refused.is_none());
-    let waiting_on_node = sending.is_some() || P::busy(shell);
+    let waiting_on_node = sending.is_some()
+        || P::busy(shell)
+        || !area
+            .response_failures
+            .retryable(vessel_app_view::responses::Request::Question(question.id));
     let last = answering.step.saturating_add(1) >= steps.len();
     let ready = ready(&steps, step, answering);
     answering.field.set_editability(
