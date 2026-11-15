@@ -288,6 +288,8 @@ impl Reply {
             | Self::DeletePrompt(_)
             | Self::ListInbox(_)
             | Self::GetInboxEntry(_)
+            | Self::ReadInboxThrough(_)
+            | Self::GetInboxAttention(_)
             | Self::ClaimNotification(_)
             | Self::ClearTerminalAttention(_)
             | Self::ReportTerminalActivity(_)

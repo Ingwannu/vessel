@@ -185,6 +185,8 @@ untargeted!(
     vessel_proto::usage::QueryUsage,
     vessel_proto::inbox::ListInbox,
     vessel_proto::inbox::MarkInbox,
+    vessel_proto::inbox_attention::GetInboxAttention,
+    vessel_proto::inbox_attention::ReadInboxThrough,
     vessel_proto::notifications::ClaimNotification,
     vessel_proto::notifications::ClearTerminalAttention,
     vessel_proto::notifications::ReportTerminalActivity,

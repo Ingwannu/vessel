@@ -378,9 +378,16 @@ macro_rules! method_table {
             RewindSession / rewind_session / "session.rewind" [Operate, 14, unary]: $crate::forking::RewindSession => $crate::SessionInfo;
             /// A page of an agent's own conversations, to import one (protocol 17, ADR 0053).
             GetAgentHistory / agent_history / "agent.history" [Operate, 17, unary]: $crate::history::GetAgentHistory => $crate::history::AgentHistoryPage;
+            /// Claim one local delivery opportunity for this authenticated connection.
             ClaimNotification / claim_notification / "notification.claim" [Read, (pending ATTENTION_NOTIFICATIONS_PROTOCOL), unary]: $crate::notifications::ClaimNotification => $crate::notifications::NotificationClaim;
+            /// Clear only the terminal attention revision actually observed.
             ClearTerminalAttention / clear_terminal_attention / "terminal.attention_clear" [Read, (pending ATTENTION_NOTIFICATIONS_PROTOCOL), unary]: $crate::notifications::ClearTerminalAttention => $crate::notifications::TerminalAttention;
+            /// Report explicit activity for an owned or capability-bound terminal.
             ReportTerminalActivity / report_terminal_activity / "terminal.activity" [Operate, (pending ATTENTION_NOTIFICATIONS_PROTOCOL), unary]: $crate::notifications::ReportTerminalActivity => $crate::notifications::TerminalAttention;
+            /// Authoritative per-session inbox badges, independent of the loaded page.
+            GetInboxAttention / inbox_attention / "inbox.attention" [Read, (pending ATTENTION_NOTIFICATIONS_PROTOCOL), unary]: $crate::inbox_attention::GetInboxAttention => Vec<$crate::inbox_attention::SessionAttention>;
+            /// Mark observed attention read without granting general session operations.
+            ReadInboxThrough / read_inbox_through / "inbox.read" [Read, (pending ATTENTION_NOTIFICATIONS_PROTOCOL), unary]: $crate::inbox_attention::ReadInboxThrough => $crate::Ack;
         }
     };
 }

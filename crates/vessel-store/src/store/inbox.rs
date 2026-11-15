@@ -100,3 +100,50 @@ impl Store {
             .await
     }
 }
+
+impl Store {
+    /// Authoritative per-session unread/waiting, from one read transaction.
+    ///
+    /// # Errors
+    /// Database or projection decoding failed. The node bounds the batch.
+    pub async fn inbox_attention(
+        &self,
+        sessions: Vec<vessel_proto::SessionId>,
+    ) -> Result<Vec<vessel_proto::inbox_attention::SessionAttention>, StoreError> {
+        self.read(move |reader| {
+            reader.with(|connection| {
+                let transaction = connection.unchecked_transaction()?;
+                let result = crate::inbox::attention::read(&transaction, &sessions)?;
+                transaction.commit()?;
+                Ok(result)
+            })
+        })
+        .await
+    }
+}
+
+impl Store {
+    /// Passive read with a transactional waiting-request veto. Reuses the
+    /// existing marks write so delayed appends inherit the same watermark.
+    ///
+    /// # Errors
+    /// Pending requests, missing session, or store write failure.
+    pub async fn read_attention(
+        &self,
+        session: vessel_proto::SessionId,
+        through: vessel_proto::EventSeq,
+        at: chrono::DateTime<chrono::Utc>,
+    ) -> Result<vessel_proto::KeptMarks, StoreError> {
+        {
+            let (done, committed) = tokio::sync::oneshot::channel();
+            self.send(Write::ReadAttention {
+                session,
+                through,
+                at,
+                done,
+            })
+            .await?;
+            committed.await.map_err(|_closed| StoreError::Closed)?
+        }
+    }
+}

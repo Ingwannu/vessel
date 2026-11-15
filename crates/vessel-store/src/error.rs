@@ -234,6 +234,9 @@ pub enum StoreError {
     /// An inbox entry was answered or removed before it could be marked.
     #[error("this inbox entry has moved on; refresh the inbox before trying again")]
     InboxGone,
+    /// Passive read must not consume another live permission or question.
+    #[error("this session still waits for an answer; keep its attention unread")]
+    AttentionWaiting,
     /// A push lease cannot be registered after revocation or without read.
     #[error("this device cannot register push; pair it again with read access")]
     PushDenied,
@@ -274,7 +277,8 @@ impl StoreError {
             | Self::UnknownSession(_)
             | Self::UnknownDevice(_)
             | Self::Attachment(AttachmentFileError::Missing(_)) => ErrorCode::NotFound,
-            Self::PushFull
+            Self::AttentionWaiting
+            | Self::PushFull
             | Self::SessionExists(_)
             | Self::SessionLive(_)
             | Self::DeviceExists(_)

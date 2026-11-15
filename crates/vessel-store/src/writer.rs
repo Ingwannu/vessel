@@ -104,6 +104,13 @@ pub(crate) enum Write {
         at: DateTime<Utc>,
         done: Done<KeptMarks>,
     },
+    /// Narrow passive read; reuses marks after an atomic pending-request veto.
+    ReadAttention {
+        session: SessionId,
+        through: EventSeq,
+        at: DateTime<Utc>,
+        done: Done<KeptMarks>,
+    },
     /// Delete an ended session whole (protocol 10).
     Delete { session: SessionId, done: Done },
     /// Reopen an ended session's row for a run starting at record `next`

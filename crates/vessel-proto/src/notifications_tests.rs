@@ -23,6 +23,8 @@ fn terminal() -> TerminalInfo {
 #[test]
 fn pending_calls_and_terminal_focus_are_never_sent_as_an_older_field() {
     for method in [
+        Method::GetInboxAttention,
+        Method::ReadInboxThrough,
         Method::ClaimNotification,
         Method::ClearTerminalAttention,
         Method::ReportTerminalActivity,
@@ -148,4 +150,33 @@ fn elapsed_idle_is_gated_even_when_focusing_no_terminal_and_cannot_encode_future
         serde_json::from_str(r#"{"focus":{"focus":"background"},"activity":"unchanged"}"#).unwrap();
     assert_eq!(legacy.idle_age, None);
     assert!(!serde_json::to_string(&legacy).unwrap().contains("idle_age"));
+}
+
+#[test]
+fn passive_reads_are_narrow_person_operations_and_idle_age_is_versioned() {
+    use crate::inbox_attention::{GetInboxAttention, ReadInboxThrough};
+    assert_eq!(Method::GetInboxAttention.scope(), Some(crate::Scope::Read));
+    assert_eq!(Method::ReadInboxThrough.scope(), Some(crate::Scope::Read));
+    assert!(!Method::ReadInboxThrough.forwardable());
+    for call in [
+        GetInboxAttention {
+            sessions: vec![SessionId::random()],
+        }
+        .into_call(),
+        ReadInboxThrough {
+            session: SessionId::random(),
+            through: crate::EventSeq::new(9),
+        }
+        .into_call(),
+        crate::push::ReportPushPresence {
+            focus: crate::push::PushFocus::Background,
+            activity: crate::push::PushActivity::Unchanged,
+            idle_age: Some(crate::push::PushIdleAge::new(180_000)),
+        }
+        .into_call(),
+    ] {
+        assert_eq!(call.since(), ATTENTION_NOTIFICATIONS_PROTOCOL);
+        let encoded = serde_json::to_vec(&call).unwrap();
+        assert_eq!(serde_json::from_slice::<Call>(&encoded).unwrap(), call);
+    }
 }

@@ -434,6 +434,8 @@ impl Method {
             Self::GetPushKey
             | Self::SubscribePush
             | Self::UnsubscribePush
+            | Self::GetInboxAttention
+            | Self::ReadInboxThrough
             | Self::ClaimNotification
             | Self::ReportPushPresence
             | Self::AddAgent

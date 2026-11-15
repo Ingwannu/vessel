@@ -150,6 +150,8 @@ const fn refused(method: Method) -> bool {
         | Method::GetPublished
         // An agent's own history (protocol 17, ADR 0053): an account's
         // other conversations are a person's, not the fleet's sessions.
+        | Method::ReadInboxThrough
+        | Method::GetInboxAttention
         | Method::ClaimNotification
         | Method::ClearTerminalAttention
         | Method::GetAgentHistory => true,

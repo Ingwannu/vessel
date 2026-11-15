@@ -110,6 +110,45 @@ impl Sessions {
             .map_err(ServiceError::Task)?
     }
 
+    /// Human-only Read-scoped ingress; it cannot perform any general mark.
+    /// Same ordering/cancellation boundary as mark_live, with both live and
+    /// durable pending requests checked before the shared mark transaction.
+    pub(crate) async fn read_attention(
+        self: &Arc<Self>,
+        id: SessionId,
+        through: EventSeq,
+    ) -> Result<(), ServiceError> {
+        let sessions = Arc::clone(self);
+        self.tasks
+            .spawn(async move {
+                let _order = sessions.marking.lock().await;
+                let handle = match sessions.find(id).await? {
+                    Found::Live { handle, .. } => {
+                        within_log(id, through, handle.log_end())?;
+                        let current = handle.conversation()?;
+                        if !current.permissions.is_empty() || !current.questions.is_empty() {
+                            return Err(vessel_store::StoreError::AttentionWaiting.into());
+                        }
+                        Some(handle)
+                    }
+                    Found::Stored(info) => {
+                        within_log(id, through, info.next_seq)?;
+                        None
+                    }
+                };
+                let kept = sessions
+                    .store
+                    .read_attention(id, through, Utc::now())
+                    .await?;
+                if let Some(handle) = handle {
+                    handle.set_marks(kept);
+                }
+                Ok(())
+            })
+            .await
+            .map_err(ServiceError::Task)?
+    }
+
     /// Delete an ended session whole: its log, marks, queue and
     /// attachments, files included. A session that has just ended is
     /// waited for until the store serves it (`HAND_OVER_WAIT`).

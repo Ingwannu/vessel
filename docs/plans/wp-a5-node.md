@@ -1,6 +1,7 @@
 # Connected notification routing and terminal attention
 
-Status: contract proposal, ADR 0089. No registered call or product behavior yet.
+Status: staged pending contracts, ADR 0089; narrow verification in progress.
+No assigned protocol, whole gate or V3 approval yet.
 
 Existing assets: the node's push presence and policy, transactional inbox
 projection, terminal actor and typed terminal registry are reused. Recipient
@@ -67,3 +68,21 @@ Measured node.rs688 versus recorded691; records are not increased. rpc.rs is
 below500 after the shared contract extraction. Auth handler test runs on an
 explicit current-thread runtime with an unpolled actor and nonexistent command;
 no provider or real process is launched by the capability checks.
+
+## Badge/read seam
+
+N1 confirmed exact-entry inbox reads never changed SessionInfo log marks. The
+existing SQL projection is reused by inbox.attention (256 distinct sessions,
+all pages, one read transaction). New inbox.read is a narrow Read-scoped direct
+human ingress through Sessions' existing marking lock and cancellation-safe
+task, live pending-request veto and the writer's atomic durable pending veto.
+It calls the same marks::mark transaction so delayed appends inherit its actual
+observed watermark. No general MarkSession scope is widened. Mark/read publishes
+post-commit inbox wakeups for other devices. ADR0040 clarifies the distinction.
+Pending rows now total five; same unassigned feature constant, no new schema.
+
+OS idle age is optional and version-gated. An aged cached sample cannot renew
+activity; actual input is node-timestamped. Existing paired push leases renew
+only after half of their 48-hour life; expired/revoked/readless leases never
+resurrect, and an old 410 cannot delete a newer lease. New tests are drafted;
+these additions are not yet compile/runtime verified.

@@ -30,6 +30,7 @@ mod harness;
 pub mod history;
 mod id;
 pub mod inbox;
+pub mod inbox_attention;
 mod key;
 pub mod labels;
 pub mod lifecycle_version;
