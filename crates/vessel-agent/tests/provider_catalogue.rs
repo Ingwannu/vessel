@@ -35,9 +35,10 @@ async fn native_codex_catalogue_never_creates_a_thread_or_turn() {
             questions: false,
             private_dir: None,
         };
-        let observed = probe_provider_with(Driver::Codex, &command, setup.clone(), definition)
-            .await
-            .unwrap();
+        let observed =
+            probe_provider_with(Driver::CodexAppServer, &command, setup.clone(), definition)
+                .await
+                .unwrap();
         assert_eq!(observed.catalogue.models.all().len(), 2);
         assert_eq!(
             observed.catalogue.models.all()[1].spec().default,
@@ -68,7 +69,7 @@ async fn native_codex_catalogue_never_creates_a_thread_or_turn() {
         );
         let malformed = command.env("FAKE_CODEX_CATALOGUE", "malformed");
         assert!(
-            probe_provider_with(Driver::Codex, &malformed, setup, definition)
+            probe_provider_with(Driver::CodexAppServer, &malformed, setup, definition)
                 .await
                 .is_err()
         );

@@ -44,7 +44,7 @@ pub async fn probe_provider_with(
     setup: AgentSetup,
     definition: &ProviderDefinition,
 ) -> Result<ProviderObservation, ProviderProbeError> {
-    if driver == Driver::Codex {
+    if driver == Driver::CodexAppServer {
         return Ok(crate::codex::catalogue::probe(command, &setup, definition).await?);
     }
     let setup = AgentSetup {

@@ -212,10 +212,14 @@ impl Transaction {
                 Some(Ok(Incoming::Notification { .. })) => {}
                 // A discovery process has no authority to ask for execution,
                 // sign-in, tools or human answers. End it instead of acting.
-                Some(Ok(
-                    Incoming::Response { .. } | Incoming::Failure { .. } | Incoming::Request { .. },
-                ))
-                | Some(Err(_))
+                Some(
+                    Ok(
+                        Incoming::Response { .. }
+                        | Incoming::Failure { .. }
+                        | Incoming::Request { .. },
+                    )
+                    | Err(_),
+                )
                 | None => return Err(CatalogueProbeError::Protocol),
             }
         }
