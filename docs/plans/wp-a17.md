@@ -116,8 +116,9 @@ invalidates its pending ticket.
   conversation pending check + Mark::Read; old read-only peers remain unsupported.
 - Node-staged `explicit_unread` separately projects committed marked_unread,
   including empty/pruned Inbox. Exact-entry Seen/answer/removal do not clear it;
-  whole-session Read does. Native consumption awaits the reviewed values/base
-  handoff; counts are never OR-ed with historical attention_seq/read_seq.
+  whole-session Read does. Native source consumes the reviewed c2dcebea values;
+  assigned runtime/consumer checks remain owed. Counts are never OR-ed with
+  historical attention_seq/read_seq.
 
 ## Presence and delivery
 
@@ -145,7 +146,8 @@ read, withdrawn or newly visible sources before display.
 ## Terminal attention
 
 Existing terminal.list metadata is projected into the same Inbox snapshot.
-Unknown plain shells never infer jobs from PTY bytes. Explicit working, idle,
+Plain uninstrumented shells have no indicator; missing/future evidence remains
+Unknown. Neither infers a job from PTY bytes. Explicit working, idle,
 finished and needs-input states retain exact non-reused node revisions. Claims
 recheck current state after admission; explicit row clear carries the observed
 revision. Old/unassigned peers retain unsupported terminal attention.
@@ -171,8 +173,9 @@ Notification activation can select the exact Inbox terminal row meanwhile.
   helper, pause every variant on hover, ignore whitespace, and require explicit
   sticky. Stale-id and hover-race tests were retained/extended. **All areas'
   toast timing changes; the lead must receive this note at package handoff.**
-- Session sidebar priority is needs-input > failed > working > review > done.
-  Drawing and shortcut ordering share those groups. Terminal unknown stays None.
+- Aggregate urgency is needs-input > failed > working > review > done.
+  Sidebar display/shortcut groups put review before working, following the
+  separate reference order. Terminal untracked/unknown rows retain no dot.
   Pure workspace projection takes one LatestRoot plus terminal facts; unknown
   ownership/attention never becomes zero/Done. W11 owns canonical selection.
 - Dock/taskbar badge is an approved native difference: GPUI has no API. W19b owns
@@ -252,7 +255,7 @@ stale entry while verifying read-only/failed/recovered/disconnected transitions.
 ## Explicit untracked terminal projection
 
 The row retains whether canonical TerminalKind is a known Shell. Its own
-indicator remains None for explicit Unknown. Workspace TerminalState separates
+indicator remains None for explicit Untracked or Unknown. Workspace TerminalState separates
 Untracked (only that known plain-shell case), Known(Bucket), and Unknown
 (missing/unavailable/managed-or-future kind/future reason). Untracked is neutral
 only in aggregation; it never means a terminal completed or may be archived.
@@ -272,12 +275,10 @@ policy; there is one implementation. Inbox-specific Card classification and
 terminal metadata projection remain A5 adapters. Exact narrow checks and bounded
 review of the producer are pending; consumers must not treat it as ready yet.
 
-The current app-base TerminalActivity::Unknown is also serde(other), so its Row
-adapter cannot yet prove Untracked. It now stays conservative (Unknown) until
-canonical pending values589d3c723 receive V3/integrator handoff. That DTO separates
-explicit Untracked from lost/missing/future Unknown. The standalone projection
-API is valid independently; only a proven explicit fact may use its Untracked
-variant. The native mapper is not advertised as ready or wire-complete.
+The pre-adoption app DTO conflated explicit unknown and serde(other), so the Row
+adapter stayed conservative until c2dcebea's V3/integrator handoff below. Current
+source uses canonical explicit Untracked, while lost/missing/future Unknown
+remains non-neutral. The standalone projection API accepts only proven facts.
 
 Exact native strict run wp-inbox-adapter-20261115T124704Z-24178c54 reached the
 view build script and failed on an own duplicate inbox-combined locale key.
