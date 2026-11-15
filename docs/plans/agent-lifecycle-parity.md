@@ -287,13 +287,19 @@ No row of the crate table changes.
   and pin one future before the loop, polling interruption first. Keep script
   detach, port revisions, rendering, reconnects and watched resources intact.
   A shared controller or a new dependency would add no needed behavior.
+  Both loops now retain that future; interruption is polled before data.
 - The existing owned-child cleanup and executable-checked SIGINT helper are
   first shared by the tests, with existing log assertions unchanged.
 - This is a separate corrective slice from log follow. Tests use owned CLI
   children and real signals against temporary fakes/scripts. A claimed
   signal-during-write case must acknowledge that write deterministically;
   otherwise report the unforced interleaving explicitly, without adding a
-  product-only test hook or using sleeps as synchronization.
+  product-only test hook or using sleeps as synchronization. The Linux cases
+  acknowledge real script output and a changed ports snapshot before SIGINT,
+  then check successful exit and the still-live script/session/listeners.
+  They cannot force a specific pending write through the public harness.
+  The script executable is the existing fake in sleeper mode; only approved
+  project configuration is written, with no generated executable script.
 
 ## Shared base defects and deferred wiring
 
@@ -419,7 +425,8 @@ No row of the crate table changes.
 - The corrected follow gate passed 1992/0/12 plus its two TS freshness tests,
   with no waiver or rerun, and was submitted for review. The next clean slice
   begins on the newly announced node head. The older attach/ports interrupt
-  repair is planned separately and has not yet changed behavior.
+  repair is implemented separately; its new Linux signal cases and gates
+  have not run yet.
 - Next: repair and gate the older interrupt loops while
   label call wiring awaits the shared accessor. No new wire call or dependency
   is added by log options. All slices include the caller-to-projection
