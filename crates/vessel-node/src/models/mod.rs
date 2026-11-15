@@ -27,6 +27,8 @@
 //!   limit, which harnesses back off from.
 
 mod accounting;
+mod key;
+pub(crate) use key::KeyError;
 pub(crate) mod config;
 #[cfg(test)]
 mod generation;
@@ -45,8 +47,8 @@ use std::sync::{Arc, Mutex, OnceLock, PoisonError, RwLock};
 
 use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 use vessel_harness::{ModelProxy, Profile};
-use vessel_llm::client::{ApiKey, Client};
-use vessel_proto::{ModelRoute, ModelRouteName, ProfileInfo, SecretName, SessionId, SessionModel};
+use vessel_llm::client::Client;
+use vessel_proto::{ModelRoute, ModelRouteName, ProfileInfo, SessionId, SessionModel};
 use vessel_session::SessionHandle;
 use vessel_store::DataDir;
 
@@ -256,52 +258,31 @@ impl Models {
         self.tokens.find(presented)
     }
 
-    /// A place for one call of `session`, or `None` past the limits.
+    /// A place for this original handle, or None after it ends or past the limits.
     pub(crate) fn slot(
         &self,
-        session: SessionId,
+        session: &SessionHandle,
     ) -> Option<(OwnedSemaphorePermit, OwnedSemaphorePermit)> {
-        let per_session = Arc::clone(
-            self.session_slots
+        let per_session = {
+            let mut slots = self
+                .session_slots
                 .lock()
-                .unwrap_or_else(PoisonError::into_inner)
-                .entry(session)
-                .or_insert_with(|| Arc::new(Semaphore::new(PER_SESSION))),
-        );
+                .unwrap_or_else(PoisonError::into_inner);
+            let info = session.watch_info();
+            // Retirement follows the final publication. Checking under this
+            // lock prevents an ended handle from recreating its removed entry.
+            if !info.borrow().status.is_live() {
+                return None;
+            }
+            Arc::clone(
+                slots
+                    .entry(session.id())
+                    .or_insert_with(|| Arc::new(Semaphore::new(PER_SESSION))),
+            )
+        };
         let session_permit = per_session.try_acquire_owned().ok()?;
         let node_permit = Arc::clone(&self.node_slots).try_acquire_owned().ok()?;
         Some((session_permit, node_permit))
-    }
-
-    /// The key of `provider`, read from `secrets.toml` now. `Ok(None)` for
-    /// a provider that takes none.
-    ///
-    /// # Errors
-    /// The provider names a secret that is not set, or the file cannot be
-    /// read; the message names the secret, never a value.
-    pub(crate) async fn key(&self, provider: &Provider) -> Result<Option<ApiKey>, String> {
-        let Some(name) = provider.key.clone() else {
-            return Ok(None);
-        };
-        let files = self.files.clone();
-        let wanted = name.clone();
-        let read = tokio::task::spawn_blocking(move || crate::fleet::secret_value(&files, &wanted))
-            .await
-            .map_err(|_panicked| "the node could not read its secrets".to_owned())?;
-        let value = read.map_err(|error| {
-            tracing::warn!(%error, "cannot read secrets.toml for a model call");
-            "the node could not read its secrets".to_owned()
-        })?;
-        let key = value
-            .map(|value| ApiKey::new(value.expose().to_owned()))
-            .ok_or_else(|| missing_key(&name))?;
-        // Every answer is searched for the key (`proxy`): one a model may
-        // write as ordinary text would end valid answers.
-        if !key.distinctive() {
-            tracing::warn!(secret = %name, "refused a model call: the route's key is too plain");
-            return Err(plain_key(&name));
-        }
-        Ok(Some(key))
     }
 
     /// The upstream client.
@@ -346,21 +327,6 @@ fn missing_route(profile: Option<&Profile>, name: &ModelRouteName) -> ServiceErr
         profile: profile.map(|profile| profile.name().clone()),
         route: name.clone(),
     }
-}
-
-fn plain_key(name: &SecretName) -> String {
-    format!(
-        "the route's provider key `{name}` is too short or too plain to keep out of model \
-         answers: give the provider no key in models.toml (a local server needs none), \
-         or a random one of at least {} characters",
-        vessel_llm::client::MIN_KEY_BYTES
-    )
-}
-
-fn missing_key(name: &SecretName) -> String {
-    format!(
-        "the route's provider key `{name}` is not set on this node (`vessel secret set {name}`)"
-    )
 }
 
 fn read(dir: &DataDir) -> Result<Routes, ModelsError> {

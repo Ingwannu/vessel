@@ -329,7 +329,7 @@ fn admit(models: &Models, parts: &Parts, front: Front) -> Result<Admitted, Box<R
             ),
         )));
     };
-    let Some(slots) = models.slot(holder.session.id()) else {
+    let Some(slots) = models.slot(&holder.session) else {
         tracing::info!(session = %holder.session.id(), "refused a model call past the limits");
         return Err(Box::new(refuse(
             front,
@@ -749,7 +749,7 @@ impl Record {
 }
 
 /// The call's endpoint, with its key read now.
-async fn endpoint(models: &Models, provider: &Provider) -> Result<Endpoint, String> {
+async fn endpoint(models: &Models, provider: &Provider) -> Result<Endpoint, super::KeyError> {
     Ok(Endpoint {
         api: provider.flavor.api(),
         base_url: provider.base_url.clone(),
@@ -877,7 +877,7 @@ async fn pass(
         Ok(endpoint) => endpoint,
         Err(message) => {
             record.finish(&Outcome::failed(ir::FailureClass::Unauthorized));
-            return refuse(front, Refusal::Forbidden, &message);
+            return refuse(front, Refusal::Forbidden, &message.to_string());
         }
     };
     let answer = match models.client().send(&endpoint, passed.body, &headers).await {
@@ -1211,7 +1211,7 @@ async fn translate(
         Ok(endpoint) => endpoint,
         Err(message) => {
             record.finish(&Outcome::failed(ir::FailureClass::Unauthorized));
-            return refuse(front, Refusal::Forbidden, &message);
+            return refuse(front, Refusal::Forbidden, &message.to_string());
         }
     };
     let answer = match models.client().send(&endpoint, body, &[]).await {

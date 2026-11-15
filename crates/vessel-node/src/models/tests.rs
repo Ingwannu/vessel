@@ -337,6 +337,30 @@ const MESSAGE: &str =
 /// Everything refused is refused before the provider is called, in the
 /// harness's error shape, without echoing what was presented.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn an_ended_handle_cannot_recreate_its_retired_call_limit() {
+    within(async {
+        let fixture = Fixture::new().await;
+        let (handle, _token, records) = fixture.session("sonnet").await;
+        drop(fixture.models.slot(&handle).unwrap());
+        handle.kill();
+        handle.ended().await;
+        fixture.models.retire(handle.id());
+        assert!(fixture.models.slot(&handle).is_none());
+        assert!(
+            !fixture
+                .models
+                .session_slots
+                .lock()
+                .unwrap()
+                .contains_key(&handle.id())
+        );
+        let _records = records.await.unwrap();
+        fixture.stop().await;
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn who_may_call() {
     within(async {
         let fixture = Fixture::new().await;

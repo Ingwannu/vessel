@@ -770,3 +770,12 @@ parking, cancellation, counted refusals and persisted later-build fields.
 Per-commit narrow checks precede one completed-package whole gate. Credential
 and path changes retain separate security review. The Git accessor is its
 own prerequisite commit; no second runner or configuration policy is added.
+
+
+Credential/live-admission checkpoint: the proxy and title task share one
+credential reader with sealed typed read/task causes and the existing
+missing/plain-key policy. The proxy maps to text only at its HTTP boundary.
+The permit-map lock also checks the original handle's live status, preventing
+late ended tasks from recreating a retired entry. Two isolated synthetic-key
+tests and all-targets Clippy pass; the added real-runtime retirement case and
+proxy regression run on this commit before separate security review.
