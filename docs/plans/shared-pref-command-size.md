@@ -22,3 +22,10 @@ Coordinator explicitly assigned S2 the sole mechanical writer and requested
 lead-first handoff. Non-cargo format/size/boundary/token/import checks are the
 available source checks; Rust execution remains owed to the lead integration.
 No local Cargo/Rustc, runtime, persistence or full feature pass is claimed.
+
+Integration result: the lead included exact b8390c60 in announced c3429952 and
+reports native1450 passed/0 failed/2 existing ignored. The earlier41eee587
+candidate was superseded to remove an unrelated withdrawn registry carrier.
+This is the lead's combined native evidence, not an independent execution on
+the isolated producer branch. The command/call-site change remains mechanical;
+JSON, store and policy are unchanged.

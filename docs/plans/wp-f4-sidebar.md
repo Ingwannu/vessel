@@ -768,3 +768,20 @@ artifacts remain immutable in glyph-inventory-before-100 and the before-source
 snapshot remains in commit0d8e8b3d1. This is an intentional integration-order
 migration, not a claim that the mechanical refactor changed the old100 order.
 No new glyph or consumer visual approval is inferred.
+
+Announced c3429952 (lead reports native1450/0/2) is adopted as e8be353e2.
+Preserve both additive README sections. Incoming shared field split removes its
+old size exception; keep the already-lower picker828 record, not incoming829.
+Native fast checks report677 files and13 existing exceptions, with no raised
+record. This base includes the shared boxed save command and excludes the
+withdrawn W11 registry value carrier. Its gate is base evidence, not F4 proof.
+
+Legacy session-row mutation boundary: current row_menu Target retains Card and
+acts, not a captured connection. board/acts.rs reduces that to alias+SessionId
+Command::Act, so a retained row and an alias rebound to a node with the same
+SessionId form a source-level stale-target scenario. No runtime failure was
+executed here. W21 confirms its pending lifecycle/resident adapter owns the
+replacement behind canonical G4 admission plus W12 binding/ticket; no checked
+captured-target archive/read/pin/confirm seam is available. Keep this legacy
+safety claim unverified. Do not add an App-only late recheck or a second mutation
+framework. Canonical F4 replacement rows remain pending W11's checked projection.
