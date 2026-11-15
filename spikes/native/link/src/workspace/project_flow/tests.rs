@@ -107,7 +107,13 @@ async fn the_real_remove_rpc_returns_its_exact_form_key_and_target() {
         };
         assert_eq!(returned, key);
         assert_eq!(result, Ok(ProjectChanged::Removed(project)));
-        assert_eq!(tracker.settle(&returned), ProjectReply::Current);
+        assert_eq!(
+            tracker.finish(
+                &returned,
+                vessel_app_view::workspace::projects::actions::ProjectSettlement::Succeeded
+            ),
+            ProjectReply::Current
+        );
         assert_eq!(
             peer.await.unwrap(),
             Call::RemoveProject(RemoveProject { project })
@@ -137,7 +143,13 @@ fn unsent_dispatch_preserves_correlation_and_never_reports_removal_success() {
     };
     assert_eq!(returned, key);
     assert_eq!(result, Err(ProjectFailure::Call(Problem::Unsent)));
-    assert_eq!(tracker.settle(&returned), ProjectReply::Current);
+    assert_eq!(
+        tracker.finish(
+            &returned,
+            vessel_app_view::workspace::projects::actions::ProjectSettlement::Succeeded
+        ),
+        ProjectReply::Current
+    );
 }
 
 #[tokio::test]

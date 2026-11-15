@@ -58,6 +58,44 @@ pub enum ProjectActionError {
     /// A process restart is needed before another unique ticket can be generated.
     #[error("project operation identifiers are exhausted")]
     Exhausted,
+    /// Detached remote calls remain tracked; repeated cancellation cannot grow memory forever.
+    #[error("too many project operations still need reconciliation")]
+    ReconciliationFull,
+}
+
+/// Readiness of manual project work for a fixed authenticated host.
+/// This says nothing about a suggested-project checked-set acknowledgement.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProjectSetupReadiness {
+    /// All observed manual work settled successfully.
+    Ready,
+    /// A request or a clone is still running, even if its form was closed.
+    Pending,
+    /// An observed operation failed and requires explicit reconciliation or retry.
+    Failed,
+}
+
+/// A transport result settles tracking independently of which form is now visible.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProjectSettlement {
+    /// The node returned an authoritative success.
+    Succeeded,
+    /// Refused, timed out or failed; the app must not infer remote rollback.
+    Failed,
+}
+
+const MAX_PROJECT_RECONCILIATIONS: usize = 16;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ActivityState {
+    Pending,
+    Failed,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Activity {
+    key: ProjectActionKey,
+    state: ActivityState,
 }
 
 /// Explicit disposition prevents a stale response from closing a newer form.
@@ -74,6 +112,7 @@ pub enum ProjectReply {
 pub struct ProjectActions {
     serial: u64,
     pending: Option<ProjectActionKey>,
+    activities: Vec<Activity>,
 }
 impl ProjectActions {
     /// Capture the chosen host before a node call is submitted.
@@ -88,6 +127,14 @@ impl ProjectActions {
         if self.pending.is_some() {
             return Err(ProjectActionError::Busy);
         }
+        self.activities.retain(|activity| {
+            !(activity.state == ActivityState::Failed
+                && activity.key.host == host
+                && activity.key.node == node)
+        });
+        if self.activities.len() >= MAX_PROJECT_RECONCILIATIONS {
+            return Err(ProjectActionError::ReconciliationFull);
+        }
         self.serial = self
             .serial
             .checked_add(1)
@@ -98,15 +145,31 @@ impl ProjectActions {
             serial: self.serial,
         };
         self.pending = Some(key.clone());
+        self.activities.push(Activity {
+            key: key.clone(),
+            state: ActivityState::Pending,
+        });
         Ok(key)
     }
     /// Cancelling detaches the draft, without claiming the remote side effect was undone.
     pub fn cancel(&mut self) {
         self.pending = None;
     }
-    /// A queue refusal, transport failure and successful reply settle through the same key.
+    /// Every reply settles remote activity even after its form was detached.
     #[must_use]
-    pub fn settle(&mut self, key: &ProjectActionKey) -> ProjectReply {
+    pub fn finish(&mut self, key: &ProjectActionKey, result: ProjectSettlement) -> ProjectReply {
+        if let Some(index) = self
+            .activities
+            .iter()
+            .position(|activity| &activity.key == key)
+        {
+            match result {
+                ProjectSettlement::Succeeded => {
+                    self.activities.remove(index);
+                }
+                ProjectSettlement::Failed => self.activities[index].state = ActivityState::Failed,
+            }
+        }
         if self.pending.as_ref() == Some(key) {
             self.pending = None;
             ProjectReply::Current
@@ -118,6 +181,21 @@ impl ProjectActions {
     #[must_use]
     pub const fn pending(&self) -> Option<&ProjectActionKey> {
         self.pending.as_ref()
+    }
+
+    /// Query exactly one Name+NodeId; aliases reused by another node cannot inherit readiness.
+    #[must_use]
+    pub fn setup_readiness(&self, host: &Name, node: NodeId) -> ProjectSetupReadiness {
+        let mut result = ProjectSetupReadiness::Ready;
+        for activity in &self.activities {
+            if &activity.key.host == host && activity.key.node == node {
+                if activity.state == ActivityState::Pending {
+                    return ProjectSetupReadiness::Pending;
+                }
+                result = ProjectSetupReadiness::Failed;
+            }
+        }
+        result
     }
 }
 
@@ -143,9 +221,15 @@ mod tests {
         let old = state.begin(host("laptop"), NodeId::random()).unwrap();
         state.cancel();
         let new = state.begin(host("laptop"), NodeId::random()).unwrap();
-        assert_eq!(state.settle(&old), ProjectReply::Stale);
+        assert_eq!(
+            state.finish(&old, ProjectSettlement::Succeeded),
+            ProjectReply::Stale
+        );
         assert_eq!(state.pending(), Some(&new));
-        assert_eq!(state.settle(&new), ProjectReply::Current);
+        assert_eq!(
+            state.finish(&new, ProjectSettlement::Succeeded),
+            ProjectReply::Current
+        );
     }
     #[test]
     fn switching_hosts_never_settles_the_other_hosts_form() {
@@ -153,7 +237,10 @@ mod tests {
         let old = state.begin(host("laptop"), NodeId::random()).unwrap();
         state.cancel();
         let new = state.begin(host("build-server"), NodeId::random()).unwrap();
-        assert_eq!(state.settle(&old), ProjectReply::Stale);
+        assert_eq!(
+            state.finish(&old, ProjectSettlement::Succeeded),
+            ProjectReply::Stale
+        );
         assert_eq!(new.host().as_str(), "build-server");
         assert_eq!(state.pending(), Some(&new));
     }
@@ -162,11 +249,71 @@ mod tests {
         let mut state = ProjectActions {
             serial: u64::MAX,
             pending: None,
+            activities: Vec::new(),
         };
         assert_eq!(
             state.begin(host("laptop"), NodeId::random()),
             Err(ProjectActionError::Exhausted)
         );
         assert!(state.pending().is_none());
+    }
+
+    #[test]
+    fn closing_a_form_keeps_its_remote_work_pending_until_a_matching_reply() {
+        let mut state = ProjectActions::default();
+        let host = host("laptop");
+        let node = NodeId::random();
+        let key = state.begin(host.clone(), node).unwrap();
+        state.cancel();
+        assert_eq!(
+            state.setup_readiness(&host, node),
+            ProjectSetupReadiness::Pending
+        );
+        assert_eq!(
+            state.setup_readiness(&host, NodeId::random()),
+            ProjectSetupReadiness::Ready
+        );
+        assert_eq!(
+            state.finish(&key, ProjectSettlement::Failed),
+            ProjectReply::Stale
+        );
+        assert_eq!(
+            state.setup_readiness(&host, node),
+            ProjectSetupReadiness::Failed
+        );
+        let retry = state.begin(host.clone(), node).unwrap();
+        assert_eq!(
+            state.setup_readiness(&host, node),
+            ProjectSetupReadiness::Pending
+        );
+        assert_eq!(
+            state.finish(&retry, ProjectSettlement::Succeeded),
+            ProjectReply::Current
+        );
+        assert_eq!(
+            state.setup_readiness(&host, node),
+            ProjectSetupReadiness::Ready
+        );
+    }
+
+    #[test]
+    fn detached_requests_have_a_bound_and_can_settle_at_capacity() {
+        let mut state = ProjectActions::default();
+        let host = host("laptop");
+        let node = NodeId::random();
+        let mut keys = Vec::new();
+        for _ in 0..MAX_PROJECT_RECONCILIATIONS {
+            keys.push(state.begin(host.clone(), node).unwrap());
+            state.cancel();
+        }
+        assert_eq!(
+            state.begin(host.clone(), node),
+            Err(ProjectActionError::ReconciliationFull)
+        );
+        assert_eq!(
+            state.finish(&keys[0], ProjectSettlement::Succeeded),
+            ProjectReply::Stale
+        );
+        assert!(state.begin(host, node).is_ok());
     }
 }

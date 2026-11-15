@@ -1,0 +1,135 @@
+//! Synchronous manual-work readiness; onboarding owns its Target and Visit checks.
+
+use crate::shell::Shell;
+use vessel_app_view::{
+    machine_book::Name,
+    workspace::projects::{ProjectsView, actions::ProjectSetupReadiness},
+};
+use vessel_proto::{NodeId, workspace::ProjectState};
+
+impl Shell {
+    /// Query a fixed authenticated host. This does not acknowledge checked suggestions.
+    /// The caller must retain its own Visit and recheck it before advancing onboarding.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "onboarding installs this shared seam in its own package"
+        )
+    )]
+    pub(crate) fn setup_readiness(&self, host: &Name, node: NodeId) -> ProjectSetupReadiness {
+        if self.project_node(host.as_str()) != Some(node) {
+            return ProjectSetupReadiness::Failed;
+        }
+        let page = &self.areas.workspace.page;
+        let activity = page.actions.setup_readiness(host, node);
+        if activity != ProjectSetupReadiness::Ready {
+            return activity;
+        }
+        if page.form_host.as_ref() == Some(host)
+            && page.form_node == Some(node)
+            && page.error.is_some()
+        {
+            return ProjectSetupReadiness::Failed;
+        }
+        match self.areas.workspace.projects.get(host.as_str()) {
+            Some(ProjectsView::Ready(list)) => {
+                if list
+                    .projects
+                    .iter()
+                    .any(|project| matches!(project.state, ProjectState::Cloning { .. }))
+                {
+                    ProjectSetupReadiness::Pending
+                } else if list.projects.iter().any(|project| {
+                    matches!(
+                        project.state,
+                        ProjectState::CloneFailed { .. } | ProjectState::Missing
+                    )
+                }) {
+                    ProjectSetupReadiness::Failed
+                } else {
+                    ProjectSetupReadiness::Ready
+                }
+            }
+            Some(ProjectsView::Loading) | None => ProjectSetupReadiness::Pending,
+            Some(ProjectsView::Failed(_) | ProjectsView::Older) => ProjectSetupReadiness::Failed,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::shell::language_tests;
+    use vessel_app_view::{Machine, Reach};
+    use vessel_proto::{
+        ProjectId,
+        workspace::{CloneStage, GitSupport, ProjectInfo, ProjectList},
+    };
+
+    #[gpui::test]
+    fn readiness_waits_for_clone_and_refuses_a_rebound_host(cx: &mut gpui::TestAppContext) {
+        language_tests::init(cx);
+        let (shell, cx) = cx.add_window_view(Shell::without_io);
+        shell.update_in(cx, |shell, _, _| {
+            let host = Name::parse("laptop").unwrap();
+            let node = NodeId::random();
+            shell.fleet.machines.push(Machine {
+                name: host.to_string(),
+                reach: Reach::Online,
+                sessions: Vec::new(),
+                agents: Vec::new(),
+                protocol: None,
+                version: None,
+                node: Some(node),
+            });
+            assert_eq!(
+                shell.setup_readiness(&host, node),
+                ProjectSetupReadiness::Pending
+            );
+            let project = ProjectInfo {
+                id: ProjectId::random(),
+                name: "cloning".parse().unwrap(),
+                root: "/isolated/project".into(),
+                git: true,
+                default_branch: None,
+                state: ProjectState::Cloning {
+                    stage: CloneStage::Connecting,
+                    percent: None,
+                },
+                created_at: "1970-01-01T00:00:00Z".parse().unwrap(),
+                revision: 0,
+            };
+            let _previous = shell.areas.workspace.projects.insert(
+                host.to_string(),
+                ProjectsView::Ready(ProjectList {
+                    git: GitSupport::Missing,
+                    projects: vec![project.clone()],
+                    more: false,
+                }),
+            );
+            assert_eq!(
+                shell.setup_readiness(&host, node),
+                ProjectSetupReadiness::Pending
+            );
+            let mut ready = project;
+            ready.state = ProjectState::Ready;
+            shell
+                .areas
+                .workspace
+                .projects
+                .get_mut(host.as_str())
+                .unwrap()
+                .replace(ready);
+            assert_eq!(
+                shell.setup_readiness(&host, node),
+                ProjectSetupReadiness::Ready
+            );
+            shell.fleet.machines[0].node = Some(NodeId::random());
+            assert_eq!(
+                shell.setup_readiness(&host, node),
+                ProjectSetupReadiness::Failed
+            );
+        });
+    }
+}

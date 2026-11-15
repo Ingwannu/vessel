@@ -190,3 +190,29 @@ font validation passed on the current source. Narrow project tests passed 27/0:
 2 headless app input/correlation, 4 framed link tests and 21 view cases selected
 by the filter (including existing projection/Git cases). These are scoped checks,
 not screen captures, real fleet behavior, full C1 or V4 acceptance.
+
+## Manual readiness producer (staged, unverified)
+
+`Shell::setup_readiness(&Name, NodeId) -> ProjectSetupReadiness` reports
+Ready/Pending/Failed for one authenticated online host. The onboarding owner
+retains and validates its sole Target and Visit; this query does not invent or
+acknowledge a suggested-project checked set. A missing/loading project list or
+running clone is Pending; read/clone failure, missing directories and a rebound
+or disconnected host are Failed. Form validation errors remain scoped to the
+captured Name+NodeId.
+
+[Decision Log]
+- Purpose: onboarding cannot advance merely because a form was closed.
+- Constraint: cancelling the visible form does not cancel an already sent RPC.
+- Alternatives: a page busy boolean or treating detached responses as successes.
+- Choice: separate bounded manual activity tracking from current form correlation.
+- Reason: a late success/failure must settle activity while remaining unable to
+  hydrate another node or close another form. Up to 16 retained reconciliations
+  are allowed; at capacity new dispatch refuses, existing results still settle.
+- Tradeoff: failed activity remains until explicit retry for that host; readiness
+  is conservative and never proves checked suggestions were all added.
+
+Pure tests cover cancellation, stale replies, host identity and capacity; a
+headless shell test covers clone observation and host rebinding. New source has
+not compiled or run yet; earlier 27/0 and strict Clippy evidence applies only to
+the preceding checkpoint.

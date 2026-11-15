@@ -17,3 +17,6 @@ projects-identifiers-exhausted = Project operation identifiers are exhausted. Re
 projects-host = Host
 # Refresh after external project changes or an uncertain mutation, short.
 projects-refresh = Refresh
+
+# Local bounded tracking refuses new dispatch without forgetting earlier pending work.
+projects-reconciliation-full = Too many project changes need reconciliation. Wait for pending requests and retry failed changes before adding more.

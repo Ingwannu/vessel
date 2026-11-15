@@ -16,6 +16,7 @@ mod place;
 mod place_rows;
 mod project_actions;
 mod project_form;
+mod project_readiness;
 mod projects;
 mod remove;
 mod sidebar;

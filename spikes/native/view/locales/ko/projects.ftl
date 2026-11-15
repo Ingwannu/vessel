@@ -17,3 +17,6 @@ projects-identifiers-exhausted = 프로젝트 작업 식별자를 모두 사용�
 projects-host = 호스트
 # 외부 변경 또는 결과 불명 작업 이후 목록 새로 고침.
 projects-refresh = 새로 고침
+
+# Local bounded tracking refuses new dispatch without forgetting earlier pending work.
+projects-reconciliation-full = 확인이 필요한 프로젝트 변경이 너무 많습니다. 진행 중인 요청을 기다리고 실패한 변경을 다시 확인한 뒤 추가하세요.

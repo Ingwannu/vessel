@@ -12,6 +12,7 @@ use vessel_app_link::workspace::{Ask, ProjectAsk, ProjectChange, ProjectFailure}
 use vessel_app_view::machine_book::Name;
 use vessel_app_view::workspace::projects::actions::{
     ProjectAction, ProjectActionError, ProjectActionKey, ProjectChanged, ProjectReply,
+    ProjectSettlement,
 };
 use vessel_proto::{NodeId, ProjectId, workspace::ProjectName};
 
@@ -33,7 +34,11 @@ impl Shell {
         key: &ProjectActionKey,
         result: Result<ProjectChanged, ProjectFailure>,
     ) {
-        if !self.accept_project_reply(machine, key) {
+        let settlement = match &result {
+            Ok(_) => ProjectSettlement::Succeeded,
+            Err(_) => ProjectSettlement::Failed,
+        };
+        if !self.accept_project_reply(machine, key, settlement) {
             return;
         }
         match result {
@@ -73,11 +78,17 @@ impl Shell {
     }
 
     /// Settlement never grants a rebound alias authority to hydrate an old node's payload.
-    fn accept_project_reply(&mut self, machine: &str, key: &ProjectActionKey) -> bool {
+    fn accept_project_reply(
+        &mut self,
+        machine: &str,
+        key: &ProjectActionKey,
+        settlement: ProjectSettlement,
+    ) -> bool {
         if machine != key.host().as_str() {
             return false;
         }
-        let current = self.areas.workspace.page.actions.settle(key) == ProjectReply::Current;
+        let current =
+            self.areas.workspace.page.actions.finish(key, settlement) == ProjectReply::Current;
         let changed_node = self
             .fleet
             .machines
@@ -208,6 +219,10 @@ impl Shell {
     pub(super) fn project_action_refused(&mut self, error: ProjectActionError) {
         match error {
             ProjectActionError::Busy => {}
+            ProjectActionError::ReconciliationFull => {
+                self.areas.workspace.page.error =
+                    Some(self.words.projects().reconciliation_full().to_owned());
+            }
             ProjectActionError::Exhausted => {
                 self.areas.workspace.page.error =
                     Some(self.words.projects().identifiers_exhausted().to_owned());
