@@ -31,7 +31,7 @@ request → typed response → presentation → stdout. Stream/attach paths reta
 No live node, real provider, credential store or production configuration is used for checks.
 Existing CLI modules remain the authority for lifecycle/daemon/scripts.
 
-## Current integration state (2026-11-15 15:00 UTC)
+## Current integration state (2026-11-15 15:14 UTC)
 
 The table below is the initial 117-path inventory, not a current green checklist.
 The [current invocation map](wp-w17-current.md) records source adapters and refusals
@@ -44,9 +44,9 @@ W17 gate, package V3 pass, protocol assignment or merge handoff has been claimed
 | Boundary | Current state / owner |
 | --- | --- |
 | Shared output for W4 permit / W16 plugin | V3 scoped PASS for source5305: 6/0/0 root/process regressions and strict CLI alltarget Clippy0. Evidence-only handoff5b3ca1d is now on announced node head82ae7c91; W4/W16 were told to merge that head. No full W17 claim. |
-| Existing-client CLI adapters | Scoped agent lists, text runs, sends with attachment staging, turn waits/cancel, forced archive/delete, mode options, project create/list/clone, schedules/heartbeat and terminal keys have source implementations. Exact0656 CLI units now134/0/0; older process/host checks are in the verification matrix. Public-host strict runs dd33 and 8545 returned before tests; declaration placement and the private Method import are corrected. Exact e4e4 host tests are queued; latest CLI and strict checks remain owed. No latest-head/full-parity claim. |
+| Existing-client CLI adapters | Scoped agent lists, text runs, sends with attachment staging, turn waits/cancel, forced archive/delete, mode options, project create/list/clone, schedules/heartbeat and terminal keys have source implementations. Exact0656 CLI units now134/0/0; older process/host checks are in the verification matrix. Public-host strict runs dd33 and 8545 returned before tests; both source defects are corrected. The e4e4 test invocation rejected an unselected feature before tests. Corrected seven-library units257fc are queued; latest CLI and strict checks remain owed. No latest-head/full-parity claim. |
 | Run/send output | Typed command receipts now map idle completion to completed. Standalone wait remains idle. Wait/mutation tables and schedule/heartbeat deletion status are source-corrected; update/provider notices and detailed schedule logs retain documented native differences. |
-| W17 node host registry / capture | Six pending rows and one None feature constant; source-owned reference metadata, separately typed bounded public local-agent inventory and capture actor glue staged. Paired destinations lacking node-side trust lookup and direct/SSH creation remain typed refusals. Capture must consume C2's one reviewed pure engine before handoff; no second parser may merge. |
+| W17 node host registry / capture | Six pending rows and one None feature constant; source-owned reference metadata, separately typed bounded public local-agent inventory and capture actor glue staged. Paired destinations lacking node-side trust lookup and direct/SSH creation remain typed refusals. C2's one pure engine is conditionally integrated as source; full consumer qualification requires enclosing whole on announced gate49. Capture remains Silent/NodeAuthorityOFF; no second parser remains in session. |
 | Workspace placement / project reset/cascade | W11 reviewed registry/operation contract awaited; WorkspaceId alone is not a workspace call. |
 | Detach / atomic archive / open | W2 detach and W21 idle archive/deep links awaited; Creator is never treated as current parentage. |
 | Provider / initial schema/image/env | W22 atomic preflight and per-turn contracts awaited. Pre-create refusal remains. The 64 KiB offline schema adapter and initial+2 retry loop passed scoped0656 units under cfg(test), not runtime wiring; Ajv extension equivalence remains owed. |
@@ -1232,3 +1232,10 @@ retaining the schema dependency closure and switching session to the shared leaf
 The lock is edited structurally without local Cargo; exact locked VM checks remain
 owed. Added consumer regressions for multi-feed UTF8 progress and Silent/style capture,
 retaining actor-inbox ordering/final-state regressions. They have not executed yet.
+
+Locked selected-library run wp-cli-narrow-20261115T151233Z-257fc41c was submitted
+once after that terminal invocation return. It covers proto/rpc/client/store/node/
+session/terminal-screen unit targets, with vessel-proto/ts and --skip typescript.
+The skip keeps the separately required named generator from failing on known stale
+wire output; it is not a waiver. CLI binary/process and latest strict lint are still
+separate owed checks. No local Cargo, new number, or consumer readiness is claimed.

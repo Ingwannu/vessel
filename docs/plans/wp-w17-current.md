@@ -1,7 +1,8 @@
 # W17 current invocation map
 
-Product checkpoint: `e4e4ea0a70bc1c013e6b3f887fa5f26e4b870cd6`, after node head
-`82ae7c91` and the reviewed W7 values-only carrier `c2dcebea`.
+Product checkpoint: `257fc41c637f4bb7a998caf434bf21e270fbd104`, after node head
+`82ae7c91`, reviewed W7 values-only carrier `c2dcebea`, and conditional C2 source
+integration (`0d7cf46e` product, `c0abda32` docs; full consumer qualification open).
 This is a source/ownership map, **not a passing parity checklist**. All 117 paths are
 listed; flags/defaults, reference output/exits and exact Paseo registration references
 remain in [the full inventory](wp-w17.md#complete-command-inventory-baseline).
@@ -21,9 +22,12 @@ strict 0 and 6 targeted/root/process tests passed and is integrated on `82ae7c91
 inventory dd33 strict failed one test declaration-position lint before tests; fixed
 at `85454788`. Its changed-source strict run 134749 then failed E0603 before tests:
 the node service imported Method through private rpc instead of its public re-export.
-The checkpoint fixes that import; run wp-cli-narrow-20261115T143928Z-e4e4ea0a
-is queued for host-filtered proto/client/store/node tests. The failed strict source
-predates source-corrected ID-first send, version alias, W7 constants and extra guard tests. Full package,
+The import is fixed. Run wp-cli-narrow-20261115T143928Z-e4e4ea0a then rejected
+the author's unselected vessel-web/ts feature before tests; no runtime test ran.
+Changed-source run wp-cli-narrow-20261115T151233Z-257fc41c is queued for seven
+affected libraries with the proper proto TS feature and --locked. It skips the
+separate TypeScript generation check; fresh named generation is still owed.
+The earlier strict sources predate corrected send/version/hooks/fence and guard tests. Full package,
 actual public-host authorization/DTO/client tests, latest CLI processes and A12 remain owed.
 
 | Paseo path | Vessel source entry | State | Existing call / owner boundary | Limitation |
