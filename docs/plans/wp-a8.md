@@ -350,3 +350,13 @@ block eviction. A pending node request is retained beyond the provider turn
 according to its declared lifetime. No snapshot is a clone/swap of globally
 selected conversation state, and no hidden form claims focus or read ownership.
 This section is an implementation boundary, not runtime/visibility evidence.
+
+
+The legacy plan fallback must not interpret arbitrary tool input.plan as a plan
+approval: doing so selected the plan-only body and hid an execute command or edit
+detail. Until explicit permission presentation is available, only the existing
+typed ToolKind::SwitchMode can supply that fallback. No provider tool-name match
+or raw JSON tree is added. Regression fixtures put a plan argument alongside a
+real execute/edit request and require ordinary tool rendering; the existing
+mode-switch plan fixture remains the positive case. This is display classification,
+not a new global approval policy or a synthesized provider implementation action.

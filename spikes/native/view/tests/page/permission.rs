@@ -221,6 +221,25 @@ mod card {
     }
 
     #[test]
+    fn an_arbitrary_plan_argument_cannot_hide_an_executing_or_editing_tool() {
+        let command = "cargo test --workspace";
+        for kind in ["execute", "edit"] {
+            let mut tool = shell("call-work", command, &json!(command));
+            tool["kind"] = json!(kind);
+            tool["raw_input"]["plan"] = json!("A friendly plan instead of the actual work");
+            let timeline = waiting(&tool, &[claude_command_options("cargo test")]);
+            let (_, permission) = timeline.pending().expect("a request");
+            let shown = timeline.tool_call(&permission.request.tool_call);
+            let card = permission_card(permission, shown, 1, |kind| EN.permission_kind(kind));
+            assert_eq!(card.plan, None);
+            if kind == "execute" {
+                assert_eq!(card.command.as_deref(), Some(command));
+                assert_eq!(card.title, CardTitle::Required);
+            }
+        }
+    }
+
+    #[test]
     fn a_very_long_command_stays_whole_for_its_box() {
         let command = format!(
             "cargo test -- {}",

@@ -100,6 +100,9 @@ pub fn permission_card<'a>(
         .and_then(|tool| tool.input.as_ref())
         .map(RawJson::as_text);
     let plan = input
+        // A tool's arbitrary `plan` argument cannot replace the work being
+        // approved. Legacy plans belong only to typed mode-switch requests.
+        .filter(|_| tool.is_some_and(|tool| tool.kind == ToolKind::SwitchMode))
         .and_then(|input| serde_json::from_str::<PlanInput>(input).ok())
         .map(|input| input.plan)
         .filter(|plan| !plan.trim().is_empty());
