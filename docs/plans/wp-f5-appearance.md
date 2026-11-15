@@ -241,3 +241,37 @@ slot, before any compiler/log started, using the owned process group after
 command verification. It supplies no compile evidence. Reviewed plugin value
 types are now available and will be imported at this clean dependency point;
 subsequent selected checks must pin that combined dependency state instead.
+
+### Shared field handoff and component projection
+
+Imported only the standalone field controls (`934c1790`/`f231ef26`, local
+`b859beaed`/`8cf5511f4`), excluding unrelated Settings consumers. Their
+source matches the owner's selected Clippy and20 engine-test proof; that is
+a provisional dependency result, not this package's final gate or UI pass.
+Package base4 `3cd0d3fc` merged at `82b47c788`; both terminal and syntax token
+modules are preserved, both README additions retained, and the session size
+record shrinks with the combined source rather than raising a budget.
+
+The next control-only source adds `TextField::with_events` with optional
+window-aware edit/focus/blur hooks through the SAME subscription. Legacy
+constructors use their unchanged callback shape/order; a typed notification
+variant prevents two change callbacks from firing. Appearance profiles reuse
+that engine and the owner's shared settings-frame/select-all/Editability.
+Family is flexible/max280; number64, width80, min36, source insets12/8/r6.
+Input alignment is projected on the existing engine. Generic hooks do not
+filter IME text; the consuming form must leave composing edits alone.
+
+Component typography now reads active resolved families and independent
+content/code units. It uses the component's supported mode/update adapter so
+its Base projection and color tokens cannot remain stale after palette or
+family changes. This intentionally changes the previous Markdown body14 to
+the source desktop content default15; the four Light/Dark palette constructor
+bodies remain unchanged. Independent syntax ink defaults to the source One
+palette, deliberately replacing the old page-only code ink while retaining
+existing code frame/error/diff paints. No new Markdown highlighter ships.
+
+The selected `bcb0f07c` Clippy result remains FAILED (strict documentation,
+float-operation, unnecessary-qualification and borrowed-large-value lints).
+Current corrections remove them without exemptions; focused checks still
+need execution on the corrected controls. Engine callback/profile tests and
+preview geometry are included but have not yet run here.

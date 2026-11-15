@@ -4,7 +4,7 @@
 use gpui::{App, Entity, px};
 use gpui_base::input::InputEditorStyle;
 
-use crate::fonts;
+use crate::fonts::{self, Type};
 use crate::theme::Tokens;
 
 /// The field's colours, projected onto its engine: the foreground's text,
@@ -30,29 +30,39 @@ pub(super) fn project<M: gpui_base::input::InputModeKind>(
 /// The component layer's colours and type from the kit's tokens, for what
 /// of it is still drawn (Markdown's text).
 pub(crate) fn apply_tokens(cx: &mut App, tokens: &Tokens) {
-    let theme = gpui_component::Theme::global_mut(cx);
-    theme.font_family = fonts::SANS.into();
-    theme.mono_font_family = fonts::MONO.into();
-    theme.font_size = px(fonts::ui(14.0));
-    // Code in Markdown at the code size (the page's `--code-px`).
-    theme.mono_font_size = px(fonts::code(12.0));
-    theme.radius = px(8.0);
-    let neutral = tokens.neutral;
-    let colors = &mut theme.colors;
-    colors.background = tokens.bg_base;
-    colors.foreground = neutral.foreground;
-    colors.border = neutral.border;
-    colors.input = neutral.border_accent;
-    colors.ring = gpui::transparent_black();
-    colors.caret = neutral.foreground;
-    colors.muted_foreground = neutral.foreground_muted;
-    colors.selection = neutral.foreground.opacity(0.2);
-    colors.popover = neutral.surface0;
-    colors.popover_foreground = neutral.foreground;
-    colors.accent = neutral.surface2;
-    colors.accent_foreground = neutral.foreground;
-    // A reply's links: GOAT's `--info-foreground` (its blue), the page's
-    // nearest token. Read by `chat_markdown`, which resolves its style
-    // from this theme on every layout.
-    colors.link = tokens.st_building;
+    let mode = match tokens.scheme {
+        crate::Scheme::Light => gpui_component::ThemeMode::Light,
+        crate::Scheme::Dark => gpui_component::ThemeMode::Dark,
+    };
+    if gpui_component::Theme::global(cx).mode != mode {
+        gpui_component::Theme::change(mode, None, cx);
+    }
+    // Updating colors through the component's adapter also synchronizes its
+    // Base projection; raw global_mut left that copy stale after a change.
+    gpui_component::Theme::update(cx, |theme| {
+        theme.font_family = Type::Body.family();
+        theme.mono_font_family = Type::Mono.family();
+        theme.font_size = px(fonts::content_size());
+        // Code in Markdown at the code size (the page's `--code-px`).
+        theme.mono_font_size = px(fonts::code_size());
+        theme.radius = px(8.0);
+        let neutral = tokens.neutral;
+        let colors = &mut theme.colors;
+        colors.background = tokens.bg_base;
+        colors.foreground = neutral.foreground;
+        colors.border = neutral.border;
+        colors.input = neutral.border_accent;
+        colors.ring = gpui::transparent_black();
+        colors.caret = neutral.foreground;
+        colors.muted_foreground = neutral.foreground_muted;
+        colors.selection = neutral.foreground.opacity(0.2);
+        colors.popover = neutral.surface0;
+        colors.popover_foreground = neutral.foreground;
+        colors.accent = neutral.surface2;
+        colors.accent_foreground = neutral.foreground;
+        // A reply's links: GOAT's `--info-foreground` (its blue), the page's
+        // nearest token. Read by `chat_markdown`, which resolves its style
+        // from this theme on every layout.
+        colors.link = tokens.st_building;
+    });
 }

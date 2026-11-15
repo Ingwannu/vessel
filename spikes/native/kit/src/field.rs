@@ -25,7 +25,10 @@ pub mod composer_hooks;
 mod editability;
 mod events;
 pub use editability::Editability;
-use events::{Handlers, listen};
+pub use events::FieldEvents;
+use events::{Handlers, Notifications, listen};
+mod appearance;
+pub use appearance::AppearanceProfile;
 mod frame;
 mod presentation;
 mod rename;
@@ -149,6 +152,24 @@ impl TextField {
         Self::line(placeholder, on_submit, Some(on_change), window, cx)
     }
 
+    /// The same single-line engine, with optional edit/focus/blur hooks.
+    /// Existing constructors retain their legacy callbacks and defaults.
+    pub fn with_events<V: 'static>(
+        placeholder: &str,
+        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        events: FieldEvents<V>,
+        window: &mut Window,
+        cx: &mut Context<'_, V>,
+    ) -> Self {
+        Self::line_with(
+            placeholder,
+            on_submit,
+            Notifications::Windowed(events),
+            window,
+            cx,
+        )
+    }
+
     /// A composer's text: lines that grow; the press [`SendOn`] names
     /// (Enter unless [`Self::set_send_on`] says otherwise) calls
     /// `on_submit` with the text, Shift+Enter starts a new line.
@@ -214,10 +235,10 @@ impl TextField {
                 on_submit,
                 // A growing form changes the surrounding dialog's layout
                 // and submit availability; its owner must see each edit.
-                on_change: match style {
+                notifications: Notifications::Legacy(match style {
                     MultilineStyle::Composer => None,
                     MultilineStyle::Form => Some(|_, _, cx| cx.notify()),
-                },
+                }),
                 focused: Rc::clone(&focused),
                 send: Some(Rc::clone(&send)),
             },
@@ -246,6 +267,22 @@ impl TextField {
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
+        Self::line_with(
+            placeholder,
+            on_submit,
+            Notifications::Legacy(on_change),
+            window,
+            cx,
+        )
+    }
+
+    fn line_with<V: 'static>(
+        placeholder: &str,
+        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        notifications: Notifications<V>,
+        window: &mut Window,
+        cx: &mut Context<'_, V>,
+    ) -> Self {
         let placeholder = placeholder.to_owned();
         let state = cx.new(|cx| InputState::new(window, cx).placeholder(placeholder));
         let focused = Rc::new(Cell::new(false));
@@ -253,7 +290,7 @@ impl TextField {
             &state,
             Handlers {
                 on_submit,
-                on_change,
+                notifications,
                 focused: Rc::clone(&focused),
                 send: None,
             },

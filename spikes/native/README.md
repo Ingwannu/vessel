@@ -1222,3 +1222,12 @@ input audit of the shared rename action: ordinary, disabled, adjacent
 button and clipped-parent cases. Counters distinguish the action, its
 parent's mouse-down/release and the neighbour. It starts no node and adds no app
 route. The fixed grid is an audit fixture; the action itself is unchanged.
+
+`TextField::with_events` adds window-aware edit/focus/blur notifications to
+its existing subscription; old constructors retain their callback defaults.
+`appearance_element(AppearanceProfile::{Family,Number,Width}, label, …)` uses
+the same engine and shared inset-focus bridge with source widths/insets.
+The owner invokes the shared select_all hook when a numeric field gains
+focus. Composition-aware filtering/preview decisions remain in the form.
+Component style projection uses the supported theme update adapter, reading
+active families and independent content/code sizes, including Base's copy.
