@@ -166,8 +166,28 @@ async fn revoked_without_setter_continuation(held: Held) {
         .unwrap();
     let cached = fixture.list(&fixture.reader, LimitRefresh::Cached).await;
     assert!(
-        cached.reports.is_empty(),
-        "Off/On must not revive cached values"
+        cached
+            .reports
+            .as_slice()
+            .iter()
+            .all(|entry| entry.source().as_str() != "cursor"),
+        "Off/On must not revive the prior source account or its opaque id"
+    );
+    // The legacy adapter may describe configured accounts without discovering
+    // a login. Those metadata-only entries must not retain any successful data.
+    assert!(
+        cached
+            .reports
+            .as_slice()
+            .iter()
+            .all(|entry| match &entry.state {
+                SourceReportState::NotRequested => true,
+                SourceReportState::Refreshing { retained, .. }
+                | SourceReportState::Unavailable { retained, .. }
+                | SourceReportState::Failed { retained, .. } => retained.is_none(),
+                SourceReportState::Available { .. } => false,
+            }),
+        "Off/On must not revive successful values from any source"
     );
     assert_eq!(
         control.polls.load(Ordering::SeqCst),

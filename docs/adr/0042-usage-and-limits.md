@@ -518,3 +518,13 @@ is retained RED: web installation passed; fmt stopped on this package's harness
 re-export ordering before any later gate step. Corrected source, strict/runtime
 checks, current generated freshness and the eventual changed-source whole gate
 remain owed. No vulnerability fix or package acceptance is claimed from inspection.
+
+The first correction library run at `ad82f001` passed 347 tests and failed the
+two new regressions at their recovery assertion. All preceding revocation/drain
+assertions executed, but the tests incorrectly required the entire cached list
+to be empty after Off/On: legacy configured-account metadata may legitimately
+remain as NotRequested or unavailable entries without successful observations.
+The corrected assertion requires no Cursor source account/id and no successful
+or retained values in any returned entry. It preserves the no-fetch check and
+new-id/Available explicit-refresh control. This remains a failed run, with the
+corrected exact execution and strict check still owed; production code is unchanged.
