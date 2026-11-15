@@ -93,6 +93,7 @@ fn response(reply: Reply) -> ServerFrame {
 
 fn settings() -> NodeSettings {
     NodeSettings {
+        dictation: None,
         park_after: ParkAfter::Never,
         drivers: AgentDrivers {
             codex: AgentDriver::Direct,

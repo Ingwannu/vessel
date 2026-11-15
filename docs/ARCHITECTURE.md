@@ -1658,3 +1658,4 @@ or worker. The real connection setup will own one instance and acting-as context
 will clone it; resources retain only its identity/close observer and observe
 transport closure as well. Dictation, spoken conversation and later resources
 consume that connection accessor rather than creating another ownership key.
+

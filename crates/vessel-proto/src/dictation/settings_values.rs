@@ -17,7 +17,11 @@ const MAX_URL_INPUT_BYTES: usize = MAX_URL_BYTES * char::MAX.len_utf8();
 
 /// ASCII letters and `-`, bounded by `MIN_TEXT_CHARS` and `MAX_LANGUAGE_CHARS`.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "string"))]
+#[cfg_attr(
+    feature = "ts",
+    derive(ts_rs::TS),
+    ts(type = "string", rename = "DictationLanguage")
+)]
 pub struct Language(String);
 
 impl Language {

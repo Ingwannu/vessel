@@ -1,8 +1,7 @@
 //! Validated dictation wire values (ADR 0067), without stream state, providers or I/O.
 //!
-//! The merge assigns the protocol number by changing [`SINCE`]. This branch
-//! keeps it at the base version so a method's `since` is never newer than
-//! [`PROTOCOL_VERSION`](crate::PROTOCOL_VERSION).
+//! The feature remains unavailable until [`SINCE`] is assigned. Its node,
+//! client, composer and explicit file-client contracts must exist before then.
 
 use std::fmt;
 use std::str::FromStr;
@@ -36,8 +35,16 @@ pub use stream_values::{
 
 pub use error::DictationDecodeError;
 
-/// First protocol version with these calls. The merge changes this number.
-pub const SINCE: crate::ProtocolVersion = crate::PROTOCOL_VERSION;
+/// Await node, client, composer and file-client support before assigning a version.
+pub const SINCE: Option<crate::ProtocolVersion> = None;
+
+/// A present settings block is an object; null must not bypass feature admission.
+pub(crate) fn settings_present<'de, D>(decoder: D) -> Result<Option<SetDictation>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    SetDictation::deserialize(decoder).map(Some)
+}
 
 // Bounds are shared with diagnostic formatting so a refusal cannot name a
 // different limit from the one that rejected the input.

@@ -30,6 +30,10 @@
 //!   person repairs the file, which leaves a node whose file was damaged
 //!   unable to change any setting from the app.
 
+// Dictation keeps its strict wire patch while this owner decodes saved values
+// through a lenient projection, preserving the existing later-file backup rule.
+mod dictation;
+
 use std::io;
 use std::path::PathBuf;
 
@@ -92,8 +96,8 @@ impl DataDir {
             Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
             Err(error) => return Err(StoreError::io(&path)(error).into()),
         };
-        serde_json::from_slice(&text)
-            .map(Some)
+        serde_json::from_slice::<dictation::FileSettings>(&text)
+            .map(|settings| Some(settings.into_settings()))
             .map_err(|source| SettingsFileError::Parse { path, source })
     }
 
@@ -208,6 +212,7 @@ mod tests {
                 minutes: IdleMinutes::new(15).unwrap(),
             }),
             drivers: None,
+            ..SetNodeSettings::default()
         };
         data.write_settings(&saved).unwrap();
         assert_eq!(data.read_settings().unwrap(), Some(saved));
@@ -314,3 +319,6 @@ mod tests {
         assert_eq!(mode & 0o077, 0, "{mode:o}");
     }
 }
+
+#[cfg(test)]
+mod dictation_tests;

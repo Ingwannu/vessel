@@ -125,11 +125,11 @@ impl Settings {
             data_dir,
             runtime,
             flag,
-            saved: Mutex::new(saved),
+            saved: Mutex::new(saved.clone()),
             kept,
             later: AtomicBool::new(later),
         };
-        let in_force = settings.in_force(saved);
+        let in_force = settings.in_force(&saved);
         if flag_given && saved.park_after.is_some() && in_force.park_after != flag {
             tracing::info!(
                 saved = ?in_force.park_after,
@@ -145,7 +145,7 @@ impl Settings {
 
     /// What is in force for `saved`: a saved value this node knows, else
     /// the flag's.
-    fn in_force(&self, saved: SetNodeSettings) -> NodeSettings {
+    fn in_force(&self, saved: &SetNodeSettings) -> NodeSettings {
         let park_after = match saved.park_after {
             Some(after @ (ParkAfter::Never | ParkAfter::Idle { .. })) => after,
             // A newer build's choice, read after a downgrade: the flag's.
@@ -166,6 +166,7 @@ impl Settings {
             open_code: driver(HarnessKind::OpenCode, saved.open_code),
         };
         NodeSettings {
+            dictation: None,
             park_after,
             drivers,
             restart_recovery: vessel_proto::restart::RestartRecovery::default(),
@@ -174,8 +175,8 @@ impl Settings {
 
     /// The settings in force.
     pub(crate) async fn current(&self) -> NodeSettings {
-        let saved = *self.saved.lock().await;
-        self.in_force(saved)
+        let saved = self.saved.lock().await;
+        self.in_force(&saved)
     }
 
     /// Change what `change` names, keep it, then apply it; answers what is
@@ -197,7 +198,7 @@ impl Settings {
             }
         }
         let mut saved = self.saved.lock().await;
-        let mut next = *saved;
+        let mut next = saved.clone();
         if let Some(after) = change.park_after {
             next.park_after = Some(after);
         }
@@ -205,18 +206,19 @@ impl Settings {
             next.drivers = Some(drivers.over(next.drivers.unwrap_or_default()));
         }
         if next == *saved {
-            return Ok(self.in_force(*saved));
+            return Ok(self.in_force(&saved));
         }
         if let Some(reason) = &self.kept {
             return Err(SettingsError::Kept(Arc::clone(reason)));
         }
         let data_dir = self.data_dir.clone();
         let later = self.later.load(Ordering::Relaxed);
+        let writing = next.clone();
         let aside = tokio::task::spawn_blocking(move || {
             let aside = later
                 .then(|| data_dir.set_aside_settings(chrono::Utc::now(), SetAside::Later))
                 .transpose()?;
-            data_dir.write_settings(&next).map(|()| aside)
+            data_dir.write_settings(&writing).map(|()| aside)
         })
         .await
         .map_err(SettingsError::Lost)?
@@ -226,7 +228,7 @@ impl Settings {
             self.later.store(false, Ordering::Relaxed);
         }
         *saved = next;
-        let in_force = self.in_force(*saved);
+        let in_force = self.in_force(&saved);
         self.runtime.set_park_after(in_force.park_after.duration());
         self.runtime.set_drivers(in_force.drivers);
         Ok(in_force)
