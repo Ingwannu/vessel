@@ -3,9 +3,10 @@
 //! Activation and complete row keyboard accessibility remain separate work.
 
 use crate::shell::Shell;
+use gpui::FocusHandle;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FocusHandle, IntoElement, ParentElement as _, Styled as _, div, px,
+    AnyElement, Context, Div, IntoElement, ParentElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{ScrollState, ScrollViewport};
 

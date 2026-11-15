@@ -43,11 +43,11 @@ pub(super) fn groups(
     let machines = shell
         .fleet
         .sidebar_machines(view, vessel_app_view::sidebar::SIDEBAR_SESSIONS);
-    let last = machines.len().checked_sub(1);
+    let final_machine = machines.len().checked_sub(1);
     for (index, machine) in machines.iter().enumerate() {
         list = list.child(group(
             machine,
-            EndTarget::at(index, last),
+            EndTarget::at(index, final_machine),
             shell,
             tokens,
             touch,
@@ -68,11 +68,11 @@ fn group(
 ) -> AnyElement {
     let mut rows = header(listed, shell, tokens, touch);
     let machine = listed.machine;
-    let last = listed.sessions.len().checked_sub(1);
+    let final_session = listed.sessions.len().checked_sub(1);
     for (index, card) in listed.sessions.iter().enumerate() {
         let row = super::session_row::session_row(card, None, shell, tokens, touch, cx);
         let target = if listed.more == 0 {
-            end.and(EndTarget::at(index, last))
+            end.and(EndTarget::at(index, final_session))
         } else {
             EndTarget::Earlier
         };

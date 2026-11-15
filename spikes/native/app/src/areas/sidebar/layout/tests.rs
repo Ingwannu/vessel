@@ -100,7 +100,7 @@ fn setup(
                     };
                     shell.prefs.settings.sidebar.group = group;
                     shell.t = Lang::En.text();
-                    shell
+                    let _previous = shell
                         .areas
                         .workspace
                         .projects
@@ -112,7 +112,7 @@ fn setup(
                     frames: Rc::default(),
                 });
                 *saved.borrow_mut() = Some(probe.clone());
-                Ok(vessel_app_kit::root(probe, window, cx))
+                vessel_app_kit::root(probe, window, cx)
             }
         })
         .unwrap()
