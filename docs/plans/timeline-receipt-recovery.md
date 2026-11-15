@@ -165,3 +165,11 @@ its home hop uses the existing connection-bound forwarding adapter so reference
 origin is classified from the exact client used for that response. The unchanged
 limit-association reader moves into the existing read module to respect the root
 module budget. These are receiving-union source joins, not new runtime evidence.
+
+The old runtime run stopped at web-ci before any fake/node/selected Rust tests.
+The observed TypeScript errors are corrected at their owners: index-signature
+fixture fields use indexed access, the book edit switch refuses the added local
+preflight result explicitly, retained delivery ranking accepts the complete
+optional-state domain, and tool lookup captures the actual optional id before
+the callback. These preserve the refusal and uncertainty rules. Current checks
+are still required; the stopped run is not Rust execution evidence.

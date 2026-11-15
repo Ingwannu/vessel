@@ -211,7 +211,7 @@ test("an op's failure keeps the bridge's reason, and a lost socket says so", asy
   const frame: unknown = JSON.parse(socket.sent.at(-1) ?? "{}");
   const id =
     typeof frame === "object" && frame !== null && "id" in frame
-      ? frame.id
+      ? frame["id"]
       : null;
   socket.message({
     type: "op_reply",
@@ -248,7 +248,7 @@ test("prepared uploads and submission keep the captured recipient, without retry
     request,
   });
   const checked = sentFrame(socket);
-  expect(checked.op).toEqual({
+  expect(checked["op"]).toEqual({
     op: "check_submit",
     node,
     expected_node: expected,
@@ -256,7 +256,7 @@ test("prepared uploads and submission keep the captured recipient, without retry
   });
   socket.message({
     type: "op_reply",
-    id: checked.id,
+    id: checked["id"],
     outcome: {
       ok: {
         op: "check_submit",
@@ -298,11 +298,11 @@ test("prepared uploads and submission keep the captured recipient, without retry
     const before = socket.sent.length;
     const pending = task();
     const frame = sentFrame(socket);
-    expect(frame.expected_node).toBe(expected);
-    expect(frame.node).toBe(node);
+    expect(frame["expected_node"]).toBe(expected);
+    expect(frame["node"]).toBe(node);
     socket.message({
       type: "reply",
-      id: frame.id,
+      id: frame["id"],
       outcome: {
         err: {
           kind: "refused",

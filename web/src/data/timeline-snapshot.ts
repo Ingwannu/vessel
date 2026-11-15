@@ -106,8 +106,9 @@ function retainAdmission<
     delivery_state?: "pending" | "answering" | "outcome_unknown" | null;
   },
 >(previous: T, incoming: T): T {
-  const rank = (state: T["delivery_state"]) =>
-    state === "outcome_unknown" ? 2 : state === "answering" ? 1 : 0;
+  const rank = (
+    state: "pending" | "answering" | "outcome_unknown" | null | undefined,
+  ) => (state === "outcome_unknown" ? 2 : state === "answering" ? 1 : 0);
   return rank(previous.delivery_state) > rank(incoming.delivery_state)
     ? { ...incoming, delivery_state: previous.delivery_state }
     : incoming;

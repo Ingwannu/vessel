@@ -85,6 +85,7 @@ async function edit(
       case "drafts":
       case "draft":
       case "save_draft":
+      case "check_submit":
         throw new Error("vessel ui answered another op");
     }
   });
