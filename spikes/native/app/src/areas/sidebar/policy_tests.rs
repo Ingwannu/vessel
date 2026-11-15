@@ -41,16 +41,18 @@ pub(super) fn setup(
 }
 
 #[gpui::test]
-fn root_docks_workspace_at_six_fifty_and_keeps_sheet_preference_independent(
+fn root_docks_requested_sidebar_at_exact_six_hundred_without_explorer_or_settings(
     cx: &mut TestAppContext,
 ) {
     language_tests::init(cx);
-    let (shell, cx) = setup(cx, 650.0, Route::Draft);
+    let (shell, cx) = setup(cx, 600.0, Route::Draft);
     cx.update(|window, cx| {
         shell.read_with(cx, |shell, _| {
+            assert_eq!(shell.prefs.settings.layout.sidebar, Panel::Shown);
+            assert_eq!(shell.code_placement(window), None);
             assert!(matches!(
                 arrangement(shell, window),
-                SidebarLayout::Docked { .. }
+                SidebarLayout::Docked { width, .. } if width.to_bits() == 200.0_f32.to_bits()
             ));
             assert!(shell.areas.sidebar.layout.scroll.bounds().size.height > px(0.0));
         });
