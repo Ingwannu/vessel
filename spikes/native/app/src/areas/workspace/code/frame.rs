@@ -315,6 +315,10 @@ fn over(frame: Div, width: f32, tokens: &Tokens) -> Div {
         .border_l_1()
         .border_color(tokens.neutral.border)
         .shadow(popup::shadow_md(tokens))
+        // The scrim under it closes the panel on a press; without this a
+        // press on the panel's own controls reached it too (a link's
+        // on_click lost its element before the click ended).
+        .occlude()
 }
 
 /// A line where the panel has nothing else to show.
