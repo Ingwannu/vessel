@@ -36,6 +36,8 @@ use crate::waits::{ConnectionWaits, Share, WaitSlot, Waits};
 use crate::workspace::{Occupant, Workspaces};
 
 // The calls of protocols 2 to 8, by area.
+mod discovery;
+mod export_cleanup;
 mod fleet;
 mod fleet_control;
 mod profiles;
@@ -52,6 +54,7 @@ mod conversation;
 mod agents;
 mod status;
 // Protocol 10's calls: projects, worktrees, git and files (`workspace`).
+mod file_panels;
 mod files;
 mod git;
 mod projects;
@@ -92,6 +95,7 @@ mod dispatch_tests;
 /// The node's protocol implementation.
 #[derive(Debug)]
 pub(crate) struct NodeService {
+    file_panels: file_panels::FilePanelSlots,
     #[cfg(test)]
     pub(crate) place_gate: crate::settings::writer_tests::GateSlot,
     pub(crate) lsp: vessel_lsp::Manager,
@@ -100,8 +104,8 @@ pub(crate) struct NodeService {
     lookup: Lookup,
     sessions: Arc<Sessions>,
     devices: Arc<Devices>,
-    /// Subscription forwarders, so shutdown can let them queue their last
-    /// frames.
+    /// Forwarding tasks, including transfer cleanup retained across caller
+    /// cancellation; shutdown gives them its existing bounded grace.
     forwarders: TaskTracker,
     /// `profiles.toml` (ADR 0011).
     profiles: Arc<NodeProfiles>,
@@ -237,6 +241,7 @@ impl NodeService {
             store.clone(),
         );
         Self {
+            file_panels: file_panels::FilePanelSlots::default(),
             #[cfg(test)]
             place_gate: Default::default(),
             lsp,

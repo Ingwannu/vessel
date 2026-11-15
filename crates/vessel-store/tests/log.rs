@@ -674,7 +674,13 @@ async fn sessions_from_schema_3_have_no_origin() {
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
     connection
-        .execute_batch("DROP TABLE restart_state; DROP TABLE restart_control; ALTER TABLE sessions DROP COLUMN labels;")
+        .execute_batch("DROP TABLE restart_state; DROP TABLE restart_control;")
+        .unwrap();
+    connection
+        .execute_batch("ALTER TABLE sessions DROP COLUMN listing;")
+        .unwrap();
+    connection
+        .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
         .unwrap();
     fixtures::undo_registry_schema(&connection);
     connection.execute_batch(UNDO_SCHEMAS_7_TO_16).unwrap();
@@ -708,7 +714,13 @@ async fn sessions_from_schema_2_read_as_the_owners_on_the_default() {
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
     connection
-        .execute_batch("DROP TABLE restart_state; DROP TABLE restart_control; ALTER TABLE sessions DROP COLUMN labels;")
+        .execute_batch("DROP TABLE restart_state; DROP TABLE restart_control;")
+        .unwrap();
+    connection
+        .execute_batch("ALTER TABLE sessions DROP COLUMN listing;")
+        .unwrap();
+    connection
+        .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
         .unwrap();
     fixtures::undo_registry_schema(&connection);
     connection.execute_batch(UNDO_SCHEMAS_7_TO_16).unwrap();
@@ -754,7 +766,13 @@ async fn a_sessions_model_is_stored_and_older_ones_have_none() {
 
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
     connection
-        .execute_batch("DROP TABLE restart_state; DROP TABLE restart_control; ALTER TABLE sessions DROP COLUMN labels;")
+        .execute_batch("DROP TABLE restart_state; DROP TABLE restart_control;")
+        .unwrap();
+    connection
+        .execute_batch("ALTER TABLE sessions DROP COLUMN listing;")
+        .unwrap();
+    connection
+        .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
         .unwrap();
     fixtures::undo_registry_schema(&connection);
     connection.execute_batch(UNDO_SCHEMAS_7_TO_16).unwrap();

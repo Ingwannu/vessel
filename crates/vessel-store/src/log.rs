@@ -38,8 +38,8 @@ pub(crate) fn create_session(
             "INSERT INTO sessions
                  (id, spec, status, live, created_at, ended_at, next_seq, first_seq,
                   retained_bytes, harness_session, profile, created_by, via, origin, model,
-                  title, labels, title_origin, detach_receipt)
-             VALUES (?1, ?2, ?3, 1, ?4, NULL, 0, 0, 0, NULL, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+                  title, labels, title_origin, detach_receipt, listing)
+             VALUES (?1, ?2, ?3, 1, ?4, NULL, 0, 0, 0, NULL, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
              ON CONFLICT (id) DO NOTHING",
         )?
         .execute(params![
@@ -60,6 +60,7 @@ pub(crate) fn create_session(
             info.detach_receipt
                 .map(|receipt| encode(&receipt))
                 .transpose()?,
+            encode(&info.listing)?,
         ])?;
     if inserted == 0 {
         return Err(StoreError::SessionExists(info.id));
