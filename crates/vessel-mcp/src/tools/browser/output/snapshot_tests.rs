@@ -10,7 +10,7 @@ fn snapshot_projects_observed_document_text_and_named_stats_without_later_lookup
     let command = BrowserCommand::Snapshot(TabArgs {
         browser_id: id.clone(),
     });
-    let content = PageText::capped("- document \"Own snapshot\"".to_owned());
+    let content = PageText::capped("- document \"Own snapshot\"");
     let length = u32::try_from(content.text.as_str().len()).unwrap();
     let reply = render(
         &command,
