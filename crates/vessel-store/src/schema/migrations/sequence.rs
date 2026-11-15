@@ -4,14 +4,15 @@
 //! - Purpose: keep future append-only registrations out of the SQL body's size budget.
 //! - Choice: move the existing array, without an allocator, new registry or SQL change.
 //! - Invariant: integration appends here; the parent re-export preserves schema callers.
+use super::super::creation::{CREATION, OWNER, OWNER_SCHEMA};
 use super::{
-    BACKGROUND_SCHEMA, INBOX, LABELS, SIDE_CONTEXT, SUBAGENT_RELATIONS, TITLE_ORIGIN, USAGE_LEDGER,
-    V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13,
+    INBOX, LABELS, SIDE_CONTEXT, SUBAGENT_RELATIONS, TITLE_ORIGIN, USAGE_LEDGER, V1, V2, V3, V4,
+    V5, V6, V7, V8, V9, V10, V11, V12, V13,
 };
 
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-pub(in crate::schema) const MIGRATIONS: &[&str; BACKGROUND_SCHEMA] = &[
+pub(in crate::schema) const MIGRATIONS: &[&str; OWNER_SCHEMA] = &[
     V1,
     V2,
     V3,
@@ -33,4 +34,6 @@ pub(in crate::schema) const MIGRATIONS: &[&str; BACKGROUND_SCHEMA] = &[
     SUBAGENT_RELATIONS,
     super::super::workspace_registry::SQL,
     super::super::listing::SQL,
+    CREATION,
+    OWNER,
 ];

@@ -373,3 +373,14 @@ and tuple ListSessions are canonical, and creation appends now follow the shared
 BACKGROUND_SCHEMA. The combined old migration list measured501 product lines;
 its coordinator-approved move-only central producer is separate from the two
 owned creation registrations. No size allowance is raised or SQL rewritten.
+
+
+The central sequence move is isolated on announced93970acb asd94165df2,
+without creation code or SQL changes. This private development stack merges
+that exact producer and then registers the two owned entries in a separate
+commit. Their versions derive from BACKGROUND_SCHEMA and the owned predecessor;
+integration may repoint that single assignment if another append lands first.
+The parent SQL file shrinks to476 lines, and the unchanged historical sequence
+prefix is retained before the two additions. No legacy size record existed for
+that file, so none is added or raised. The intermediate development merge is
+not an adoption candidate without its immediately following registration commit.
