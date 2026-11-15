@@ -31,6 +31,7 @@ pub(super) fn render(
     let Some(ready) = ready(agent, inventory) else {
         return settings::card(tokens);
     };
+    let node = inventory.node;
     let busy = page.pending().is_some();
     let mut auth = settings::card(tokens)
         .p(px(spacing::S4))
@@ -94,7 +95,13 @@ pub(super) fn render(
             .self_start()
             .on_click(cx.listener(move |shell, _, _, cx| {
                 if !busy && shell.agent_context(scope.as_ref()) {
-                    shell.agent_ask(Ask::Check(target.clone()), cx);
+                    shell.agent_ask(
+                        Ask::Check {
+                            node,
+                            agent: target.clone(),
+                        },
+                        cx,
+                    );
                 }
             })),
     );

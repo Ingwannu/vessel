@@ -27,6 +27,9 @@ pub(super) fn render(
         .and_then(|page| page.inventory())
         .and_then(|inventory| ready(agent, inventory))
     else {
+        let node = page(shell)
+            .and_then(|page| page.inventory())
+            .map(|inventory| inventory.node);
         let target = agent.clone();
         let scope = shell.areas.settings.agents.machine.clone();
         let words = shell.t.lang.agents();
@@ -40,7 +43,7 @@ pub(super) fn render(
                 vessel_app_kit::outline_button(
                     "agent-check-status",
                     words.check_status,
-                    true,
+                    node.is_some(),
                     tokens,
                 )
                 .when(compact, |button| {
@@ -48,8 +51,16 @@ pub(super) fn render(
                 })
                 .self_start()
                 .on_click(cx.listener(move |shell, _, _, cx| {
-                    if shell.agent_context(scope.as_ref()) {
-                        shell.agent_ask(vessel_app_link::agents::Ask::Check(target.clone()), cx);
+                    if shell.agent_context(scope.as_ref())
+                        && let Some(node) = node
+                    {
+                        shell.agent_ask(
+                            vessel_app_link::agents::Ask::Check {
+                                node,
+                                agent: target.clone(),
+                            },
+                            cx,
+                        );
                     }
                 })),
             );

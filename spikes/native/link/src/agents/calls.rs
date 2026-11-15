@@ -96,16 +96,20 @@ async fn run(
                 administration,
             })
         }
-        Ask::Check(agent) => Answer::Checked(
-            client
-                .call(GetAgentStatus {
-                    agent: Some(agent),
-                    profile: None,
-                    refresh: true,
-                })
-                .await?,
-        ),
-        Ask::Install(install) => {
+        Ask::Check { node, agent } => {
+            confirm_node(client, node)?;
+            Answer::Checked(
+                client
+                    .call(GetAgentStatus {
+                        agent: Some(agent),
+                        profile: None,
+                        refresh: true,
+                    })
+                    .await?,
+            )
+        }
+        Ask::Install { node, install } => {
+            confirm_node(client, node)?;
             follow_install(client, machine, request, install, events).await?;
             return Ok(());
         }
@@ -162,3 +166,13 @@ async fn follow_install(
         }
     }
 }
+
+fn confirm_node(client: &NodeClient, expected: vessel_proto::NodeId) -> Result<(), AgentsError> {
+    let actual = client.node().id;
+    if actual != expected {
+        return Err(AgentsError::TargetChanged { expected, actual });
+    }
+    Ok(())
+}
+#[cfg(test)]
+mod tests;

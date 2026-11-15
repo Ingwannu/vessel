@@ -29,9 +29,19 @@ pub enum Ask {
         fetch: CatalogueFetch,
     },
     /// A person explicitly checks one agent and profile.
-    Check(vessel_proto::HarnessRef),
+    Check {
+        /// The node whose displayed status is being checked.
+        node: vessel_proto::NodeId,
+        /// The displayed agent, not a row position.
+        agent: vessel_proto::HarnessRef,
+    },
     /// The node runs its offered installer, then the link follows output.
-    Install(InstallAgent),
+    Install {
+        /// The node that offered the displayed installer.
+        node: vessel_proto::NodeId,
+        /// Its exact offered builtin part.
+        install: InstallAgent,
+    },
     /// One consumed confirmation; use [`crate::Command::remove_agent`].
     Remove(Removal),
 }
@@ -90,6 +100,14 @@ pub enum Answer {
 /// Failures stay typed until the screen presents them beside the action.
 #[derive(Debug, thiserror::Error)]
 pub enum AgentsError {
+    /// A stale machine name must not redirect a check or installer.
+    #[error("the displayed node {expected} is now connected as {actual}")]
+    TargetChanged {
+        /// Physical identity retained by the displayed action.
+        expected: vessel_proto::NodeId,
+        /// Identity of the actual client immediately before I/O.
+        actual: vessel_proto::NodeId,
+    },
     /// A record-only addition refusal or uncertain result.
     #[cfg(not(target_arch = "wasm32"))]
     #[error(transparent)]
@@ -134,8 +152,11 @@ impl Ask {
             Self::List => Operation::Discovery,
             Self::Add(target) => target.operation(),
             Self::Catalogue { node, .. } => Operation::Catalogue { node: *node },
-            Self::Check(agent) => Operation::Check(agent.clone()),
-            Self::Install(install) => Operation::Install(*install),
+            Self::Check { node: _node, agent } => Operation::Check(agent.clone()),
+            Self::Install {
+                node: _node,
+                install,
+            } => Operation::Install(*install),
             Self::Remove(target) => target.operation(),
         }
     }
@@ -160,6 +181,7 @@ impl AgentsError {
             Self::Removal(error) => error.problem(),
             #[cfg(not(target_arch = "wasm32"))]
             Self::Catalogue(_) | Self::Addition(_) => Problem::Call,
+            Self::TargetChanged { .. } => Problem::NodeChanged,
             Self::Disconnected => Problem::Disconnected,
             Self::Busy => Problem::Busy,
             Self::NoTransport => Problem::NoTransport,
@@ -183,6 +205,7 @@ impl AgentsError {
         match self {
             #[cfg(not(target_arch = "wasm32"))]
             Self::Catalogue(error) => error.problem(),
+            Self::TargetChanged { .. } => Problem::NodeChanged,
             Self::Disconnected => Problem::Offline,
             Self::Busy => Problem::Busy,
             Self::NoTransport => Problem::NoTransport,
@@ -205,6 +228,7 @@ impl AgentsError {
         match self {
             #[cfg(not(target_arch = "wasm32"))]
             Self::Addition(error) => error.problem(),
+            Self::TargetChanged { .. } => Failure::Changed,
             Self::Disconnected => Failure::Offline,
             Self::Busy => Failure::Busy,
             Self::NoTransport => Failure::NoTransport,

@@ -192,6 +192,7 @@ fn installers(
     let words = shell.t.lang.agents();
     let page = page(shell)?;
     let inventory = page.inventory()?;
+    let node = inventory.node;
     let ready = ready(agent, inventory)?;
     let offers = readiness::installs(agent, &ready.installed, &inventory.agents);
     if offers.is_empty() {
@@ -240,7 +241,7 @@ fn installers(
                     .self_start()
                     .on_click(cx.listener(move |shell, _, _, cx| {
                         if !busy && shell.agent_context(scope.as_ref()) {
-                            shell.agent_ask(Ask::Install(install), cx);
+                            shell.agent_ask(Ask::Install { node, install }, cx);
                         }
                     })),
             );

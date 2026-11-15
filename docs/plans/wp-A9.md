@@ -339,3 +339,18 @@ new native memory fixture is directly cfg(test) with the same native-target
 guard, keeping test-only helpers within the workspace's test lint policy.
 The old143 runs were operator-approved VM-resize interruption (T confirmation),
 not a source result; their latest replacements were not duplicated.
+
+
+## Existing check/install identity boundary
+
+While joining Add to the existing actor, inspection found that the older Check
+and Install variants retained only a book key. `dispatch.rs` resolves that key
+to its current client, so a repaint/reconnect race could redirect a status
+command or offered installer to a different physical node. The displayed
+inventory's NodeId now travels with both variants and is compared with the
+actual client immediately before the first action call. A mismatch sends no
+check/installer, keeps the original expected/actual IDs as typed error fields,
+and uses the existing translated NodeChanged instruction. The new bounded
+Hub regression proves both refusals and an ordered no-frame barrier. Normal
+install progress, polling, retained output and offered command are unchanged.
+This adds no RPC, credential, permission grant or node behavior.
