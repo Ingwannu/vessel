@@ -31,7 +31,7 @@ agent-catalog-download = Install this provider on the machine, then add it by it
 agent-catalog-unavailable = This provider is not available for this machine.
 
 # Successful registry with no entries; different from a failed fetch.
-agent-catalog-empty = No providers are listed in the registry.
+agent-catalog-empty = No registry providers were listed by this machine.
 
 # A nonempty search yields no matching registry title/id. No values.
 agent-catalog-no-matches = No providers match your search.

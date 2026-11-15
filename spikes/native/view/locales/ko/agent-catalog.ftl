@@ -31,7 +31,7 @@ agent-catalog-download = 머신에 프로바이더를 설치한 다음 명령으
 agent-catalog-unavailable = 이 머신에서는 사용할 수 없는 프로바이더입니다.
 
 # 레지스트리를 정상적으로 읽었지만 항목이 없음. 읽기 실패와 다름.
-agent-catalog-empty = 레지스트리에 등록된 프로바이더가 없습니다.
+agent-catalog-empty = 이 머신에서 표시할 레지스트리 프로바이더가 없습니다.
 
 # 이름과 식별자 검색에 일치하는 항목이 없음.
 agent-catalog-no-matches = 검색과 일치하는 프로바이더가 없습니다.

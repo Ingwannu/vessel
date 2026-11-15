@@ -94,6 +94,10 @@ These network states are a necessary difference from Paseo's static ACP
 catalog; loading/error furniture follows ProviderModalBody 488–570.
 The new Korean registry words use “프로바이더”, matching the existing
 Settings section label rather than introducing another noun for that page.
+The empty sentence describes what this machine listed, not a claim that the
+public index contains nothing: the node may have omitted unreadable or
+unpinned entries. Its aggregate skipped count remains in the accepted copy;
+the node does not give individual omitted entries or per-entry reasons.
 
 ## Resume point and verification
 

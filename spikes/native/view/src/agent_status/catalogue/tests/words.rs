@@ -69,8 +69,8 @@ fn control_and_empty_state_words_are_complete_in_both_languages() {
         (ko.add(), "추가"),
         (en.adding(), "Adding…"),
         (ko.adding(), "추가 중…"),
-        (en.empty(), "No providers are listed in the registry."),
-        (ko.empty(), "레지스트리에 등록된 프로바이더가 없습니다."),
+        (en.empty(), "No registry providers were listed by this machine."),
+        (ko.empty(), "이 머신에서 표시할 레지스트리 프로바이더가 없습니다."),
         (en.no_matches(), "No providers match your search."),
         (ko.no_matches(), "검색과 일치하는 프로바이더가 없습니다."),
         (
