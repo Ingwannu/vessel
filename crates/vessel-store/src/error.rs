@@ -61,6 +61,10 @@ pub enum Column {
 /// Anything that can go wrong in the store.
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
+    /// ADR 0077 staged operations use the same writer and source-preserving errors.
+    #[cfg(test)]
+    #[error("checkpoint storage operation failed")]
+    Checkpoint(#[from] crate::CheckpointStoreError),
     /// A file in the data directory could not be read or written.
     #[error("{}: {source}", path.display())]
     Io {
@@ -265,6 +269,8 @@ impl StoreError {
     #[must_use]
     pub const fn code(&self) -> ErrorCode {
         match self {
+            #[cfg(test)]
+            Self::Checkpoint(error) => error.code(),
             // A row without its file: removed under the node.
             Self::PushDenied => ErrorCode::Forbidden,
             Self::InboxGone

@@ -77,6 +77,34 @@ fn ready_plan(connection: &Connection, key: CaptureKey) -> Plan {
             .unwrap(),
     }
 }
+fn selected_files(count: usize) -> (FileImage, vessel_proto::checkpoint::FileMetadata) {
+    use vessel_proto::{
+        BlobHash,
+        checkpoint::{Entry, FileBytes, FileMetadata, FileState, GroupId, OrdinaryMode, OwnerId},
+    };
+    let metadata = FileMetadata {
+        owner: OwnerId::new(1000),
+        group: GroupId::new(1000),
+        mode: OrdinaryMode::new(0o600).unwrap(),
+    };
+    let selected = FileImage::new(
+        (0..count)
+            .map(|index| Entry {
+                path: serde_json::from_str(
+                    &serde_json::to_string(&format!("file-{index:04}")).unwrap(),
+                )
+                .unwrap(),
+                state: FileState::Present {
+                    digest: BlobHash::from_bytes([0; 32]),
+                    bytes: FileBytes::new(0).unwrap(),
+                    metadata,
+                },
+            })
+            .collect(),
+    )
+    .unwrap();
+    (selected, metadata)
+}
 #[test]
 fn expired_and_restarted_candidates_cannot_be_persisted_as_ready_images() {
     let (connection, key) = fixture();
@@ -341,28 +369,11 @@ fn restore_admission_reloads_capture_identity_instead_of_trusting_the_caller() {
 #[test]
 fn terminal_outcomes_require_the_complete_approved_path_journal() {
     use super::paths::{self, Phase};
-    use vessel_proto::{
-        BlobHash,
-        checkpoint::{Entry, FileBytes, FileState, PathCount},
-    };
+    use vessel_proto::checkpoint::{FileState, PathCount};
     let (mut connection, key) = fixture();
     let mut plan = ready_plan(&connection, key);
-    let metadata = vessel_proto::checkpoint::FileMetadata {
-        owner: vessel_proto::checkpoint::OwnerId::new(1000),
-        group: vessel_proto::checkpoint::GroupId::new(1000),
-        mode: vessel_proto::checkpoint::OrdinaryMode::new(0o600).unwrap(),
-    };
-    let path =
-        serde_json::from_str::<vessel_proto::checkpoint::CheckpointPath>("\"file\"").unwrap();
-    let selected = FileImage::new(vec![Entry {
-        path: path.clone(),
-        state: FileState::Present {
-            digest: BlobHash::from_bytes([1; 32]),
-            bytes: FileBytes::new(1).unwrap(),
-            metadata,
-        },
-    }])
-    .unwrap();
+    let (selected, metadata) = selected_files(1);
+    let path = selected.entries().first().unwrap().path.clone();
     plan.desired = selected.effective(&plan.current, metadata).unwrap();
     let _changed = connection
         .execute(
@@ -497,36 +508,11 @@ fn candidate_persistence_is_not_ready_and_activation_cannot_revive_expired_or_re
 #[test]
 fn preview_pages_share_one_target_expiry_and_device_authorization() {
     use super::changes;
-    use vessel_proto::{
-        BlobHash,
-        checkpoint::{
-            CHECKPOINT_PAGE_ENTRIES, ChangeCursor, Entry, FileBytes, FileState, PathCount,
-        },
-    };
+    use vessel_proto::checkpoint::{CHECKPOINT_PAGE_ENTRIES, ChangeCursor, PathCount};
     let (connection, key) = fixture();
     let mut plan = ready_plan(&connection, key);
-    let metadata = vessel_proto::checkpoint::FileMetadata {
-        owner: vessel_proto::checkpoint::OwnerId::new(1000),
-        group: vessel_proto::checkpoint::GroupId::new(1000),
-        mode: vessel_proto::checkpoint::OrdinaryMode::new(0o600).unwrap(),
-    };
     let count = CHECKPOINT_PAGE_ENTRIES.saturating_mul(2).saturating_add(1);
-    let selected = FileImage::new(
-        (0..count)
-            .map(|index| Entry {
-                path: serde_json::from_str(
-                    &serde_json::to_string(&format!("file-{index:04}")).unwrap(),
-                )
-                .unwrap(),
-                state: FileState::Present {
-                    digest: BlobHash::from_bytes([0; 32]),
-                    bytes: FileBytes::new(0).unwrap(),
-                    metadata,
-                },
-            })
-            .collect(),
-    )
-    .unwrap();
+    let (selected, metadata) = selected_files(count);
     plan.desired = selected.effective(&plan.current, metadata).unwrap();
     journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
     let mut cursor = None;

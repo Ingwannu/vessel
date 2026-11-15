@@ -3,6 +3,8 @@
 
 mod attached;
 mod automation;
+#[cfg(test)]
+mod checkpoints;
 mod conversation;
 mod forge;
 mod inbox;

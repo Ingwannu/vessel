@@ -43,8 +43,10 @@ staging. No provider SDK, tool-call-count inference or new crate edge.
   Durable per-path intent and compare-and-advance phases constrain terminal
   outcomes; human-principal-bound change pages share the frozen target/expiry, enforce
   bounded offsets and refuse expired or consumed previews; admission enforces
-  the five-minute lifetime and four active previews per human principal; restart pins interrupted operations for recovery. Existing writer
-  transaction wiring, retention and physical quota reconciliation remain owed.
+  the five-minute lifetime and four active previews per human principal; restart pins interrupted operations for recovery. A test-only adapter uses the existing writer, savepoint and durable reply;
+  restore admission and all Pending path intents share that savepoint. Its
+  real-writer commit/restart/failure-injection tests remain unverified. Public
+  node assembly, retention and physical quota reconciliation remain owed.
 - workspace/checkpoint: test-only strict enumeration, rooted nofollow reads,
   private immutable raw blobs, bounded streaming and canonical fingerprints.
   Files are fully staged before per-path mutation; rename exchange retains

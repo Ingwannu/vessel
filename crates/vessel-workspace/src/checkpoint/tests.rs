@@ -138,9 +138,12 @@ mod linux {
             rustix::fs::XattrFlags::empty(),
         )
         .unwrap();
-        let path =
-            serde_json::from_str::<vessel_proto::checkpoint::CheckpointPath>("\"nested/file\"")
-                .unwrap();
+        let path = vessel_proto::checkpoint::CheckpointPath::try_from(
+            "nested/file"
+                .parse::<vessel_proto::workspace::RelPath>()
+                .unwrap(),
+        )
+        .unwrap();
         assert!(matches!(
             Root::open(&dir).unwrap().file(&path),
             Err(Error::Refused(CheckpointError::UnsupportedMetadata))

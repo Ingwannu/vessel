@@ -1,0 +1,268 @@
+//! The real shared writer commits path intent before replying, and isolates failure.
+use super::{
+    CheckpointWrite, journal,
+    paths::{self, Phase},
+    records::{CheckpointStoreError, Plan},
+};
+use crate::{ByteCount, DataDir, Store, StoreConfig, StoreError};
+use chrono::DateTime;
+use vessel_proto::{
+    BlobHash, EventSeq, HarnessKind, SessionId, SessionInfo, SessionMode, SessionSpec, WorktreeId,
+    checkpoint::{
+        Boundary, CHECKPOINT_PREVIEW_LIFETIME, CaptureGeneration, CaptureId, CaptureKey,
+        CheckpointError, CheckpointId, CheckpointOwner, Entry, FileBytes, FileImage, FileMetadata,
+        FileState, GroupId, OrdinaryMode, OwnerId, PathCount, RestoreId, RestoreOutcome,
+        RestorePlanId,
+    },
+};
+
+fn info() -> SessionInfo {
+    SessionInfo::new(
+        SessionId::random(),
+        SessionSpec::new(
+            HarnessKind::Codex,
+            SessionMode::Structured {
+                model: None,
+                resume: None,
+                options: Vec::new(),
+            },
+        ),
+        DateTime::UNIX_EPOCH,
+    )
+}
+fn plan(session: SessionId) -> Plan {
+    let key = CaptureKey {
+        capture: CaptureId::random(),
+        session,
+        worktree: WorktreeId::random(),
+        boundary: Boundary::BeforeTurn {
+            prompt: EventSeq::new(0),
+        },
+        generation: CaptureGeneration::FIRST,
+    };
+    let current = FileImage::new(Vec::new()).unwrap();
+    let metadata = FileMetadata {
+        owner: OwnerId::new(1000),
+        group: GroupId::new(1000),
+        mode: OrdinaryMode::new(0o600).unwrap(),
+    };
+    let selected = FileImage::new(vec![Entry {
+        path: serde_json::from_str("\"file\"").unwrap(),
+        state: FileState::Present {
+            digest: BlobHash::from_bytes([0; 32]),
+            bytes: FileBytes::new(0).unwrap(),
+            metadata,
+        },
+    }])
+    .unwrap();
+    let desired = selected.effective(&current, metadata).unwrap();
+    Plan {
+        id: RestorePlanId::random(),
+        key,
+        owner: CheckpointOwner::LocalOwner,
+        current,
+        desired,
+        expires: DateTime::UNIX_EPOCH
+            .checked_add_signed(chrono::TimeDelta::from_std(CHECKPOINT_PREVIEW_LIFETIME).unwrap())
+            .unwrap(),
+    }
+}
+
+async fn read_operation(
+    store: &Store,
+    plan: &Plan,
+    restore: RestoreId,
+) -> super::records::Operation {
+    let session = plan.key.session;
+    let owner = plan.owner;
+    store
+        .read(move |reader| {
+            reader.with(|connection| {
+                journal::status(connection, session, restore, owner).map_err(StoreError::from)
+            })
+        })
+        .await
+        .unwrap()
+}
+
+#[tokio::test]
+async fn shared_writer_admits_all_path_intents_before_reply_and_keeps_idempotent_result() {
+    let temp = tempfile::tempdir().unwrap();
+    let dir = DataDir::new(temp.path());
+    dir.prepare().unwrap();
+    let store = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    let info = info();
+    store.create_session(info.clone()).await.unwrap();
+    let plan = plan(info.id);
+    store
+        .checkpoint_write(CheckpointWrite::Reserve {
+            key: plan.key,
+            bytes: ByteCount::new(1),
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+    store
+        .checkpoint_write(CheckpointWrite::Candidate {
+            key: plan.key,
+            image: plan.desired.image().clone(),
+        })
+        .await
+        .unwrap();
+    store
+        .checkpoint_write(CheckpointWrite::Activate {
+            key: plan.key,
+            checkpoint: CheckpointId::random(),
+        })
+        .await
+        .unwrap();
+    store
+        .checkpoint_write(CheckpointWrite::Plan {
+            plan: Box::new(plan.clone()),
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+    let restore = RestoreId::random();
+    for _ in 0..2 {
+        store
+            .checkpoint_write(CheckpointWrite::Admit {
+                plan: Box::new(plan.clone()),
+                restore,
+                at: DateTime::UNIX_EPOCH,
+            })
+            .await
+            .unwrap();
+    }
+    let operation = read_operation(&store, &plan, restore).await;
+    let read = operation.clone();
+    let entries = store
+        .read(move |reader| {
+            reader.with(|connection| paths::list(connection, &read).map_err(StoreError::from))
+        })
+        .await
+        .unwrap();
+    assert_eq!(entries.len(), 1);
+    let path = entries.first().unwrap().path.clone();
+    assert_eq!(entries.first().unwrap().phase, Phase::Pending);
+    store
+        .checkpoint_write(CheckpointWrite::Advance {
+            operation: Box::new(operation.clone()),
+            path,
+            from: Phase::Pending,
+            to: Phase::Applied,
+        })
+        .await
+        .unwrap();
+    let result = RestoreOutcome::Restored {
+        changed: PathCount::new(1).unwrap(),
+    };
+    store
+        .checkpoint_write(CheckpointWrite::Outcome {
+            operation: Box::new(operation),
+            result: result.clone(),
+        })
+        .await
+        .unwrap();
+    assert_eq!(read_operation(&store, &plan, restore).await.outcome, result);
+    let mut next = plan.key;
+    next.capture = CaptureId::random();
+    store
+        .checkpoint_write(CheckpointWrite::Reserve {
+            key: next,
+            bytes: ByteCount::new(1),
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+    store
+        .checkpoint_write(CheckpointWrite::Unavailable {
+            key: next,
+            reason: CheckpointError::CaptureTimedOut,
+        })
+        .await
+        .unwrap();
+    store
+        .checkpoint_write(CheckpointWrite::InvalidateCandidates)
+        .await
+        .unwrap();
+    store.close().await;
+    let reopened = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    assert_eq!(
+        read_operation(&reopened, &plan, restore).await.outcome,
+        result
+    );
+    reopened.close().await;
+}
+
+#[tokio::test]
+async fn failed_pending_path_insert_rolls_back_restore_admission_in_the_shared_writer() {
+    let temp = tempfile::tempdir().unwrap();
+    let dir = DataDir::new(temp.path());
+    dir.prepare().unwrap();
+    let mut connection = rusqlite::Connection::open(dir.database_path()).unwrap();
+    crate::schema::configure_writer(&connection).unwrap();
+    crate::schema::migrate(&mut connection).unwrap();
+    let info = info();
+    crate::log::create_session(&connection, &info).unwrap();
+    let plan = plan(info.id);
+    journal::candidate(
+        &connection,
+        plan.key,
+        ByteCount::new(1),
+        DateTime::UNIX_EPOCH,
+    )
+    .unwrap();
+    journal::keep_candidate(&connection, plan.key, plan.desired.image()).unwrap();
+    super::publication::activate(&connection, plan.key, CheckpointId::random()).unwrap();
+    journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
+    connection.execute_batch("CREATE TRIGGER checkpoint_deny_path BEFORE INSERT ON checkpoint_paths BEGIN SELECT RAISE(ABORT,'fixture fail'); END;").unwrap();
+    drop(connection);
+    let store = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    let restore = RestoreId::random();
+    let error = store
+        .checkpoint_write(CheckpointWrite::Admit {
+            plan: Box::new(plan.clone()),
+            restore,
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        StoreError::Checkpoint(CheckpointStoreError::Sql(_))
+    ));
+    let checked = plan.clone();
+    store
+        .read(move |reader| {
+            reader.with(|connection| {
+                assert!(matches!(
+                    journal::status(connection, checked.key.session, restore, checked.owner),
+                    Err(CheckpointStoreError::Refused(CheckpointError::NotFound))
+                ));
+                assert_eq!(
+                    super::plans::owned(connection, checked.id, checked.owner)
+                        .unwrap()
+                        .1,
+                    None
+                );
+                Ok(())
+            })
+        })
+        .await
+        .unwrap();
+    store
+        .checkpoint_write(CheckpointWrite::InvalidateCandidates)
+        .await
+        .unwrap();
+    store.close().await;
+}

@@ -12,9 +12,15 @@ mod plans;
 mod publication;
 mod records;
 mod recovery;
+mod write;
+
+pub use records::CheckpointStoreError;
+pub(crate) use write::{CheckpointWrite, apply};
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod writer_tests;
 
 use crate::StoreError;
 use rusqlite::Connection;

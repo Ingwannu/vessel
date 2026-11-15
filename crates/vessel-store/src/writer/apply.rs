@@ -28,6 +28,10 @@ pub(super) fn apply(
     indexer: &mut Indexer,
 ) -> Answer {
     match write {
+        #[cfg(test)]
+        Write::Checkpoint { write, done } => write_answer(transaction, done, |connection| {
+            crate::checkpoint::apply(connection, *write).map_err(StoreError::from)
+        }),
         Write::Create { info, done } => write_answer(transaction, done, |connection| {
             log::create_session(connection, &info)
         }),

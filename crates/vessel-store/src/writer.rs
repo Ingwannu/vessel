@@ -63,6 +63,12 @@ pub(crate) enum WriteOp {
 /// A change to the database.
 #[derive(Debug)]
 pub(crate) enum Write {
+    /// Staged checkpoints share this writer's savepoint and commit acknowledgement.
+    #[cfg(test)]
+    Checkpoint {
+        write: Box<crate::checkpoint::CheckpointWrite>,
+        done: Done,
+    },
     /// Store a new session. Boxed: operations wait in a bounded queue, and
     /// an inline `SessionInfo` would size every slot for this rare one.
     Create { info: Box<SessionInfo>, done: Done },

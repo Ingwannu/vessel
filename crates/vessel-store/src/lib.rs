@@ -87,6 +87,8 @@ pub use agents_file::AgentsFileError;
 pub use attachments::files::{AttachmentFileError, FileIdentity, ReadBack};
 pub use attachments::{AttachmentUsage, KeptAttachment};
 pub use automation::{DELIVERIES_KEPT, RUNS_KEPT, StoredAutomation};
+#[cfg(test)]
+pub use checkpoint::CheckpointStoreError;
 pub use config::{ByteCount, Retention, StoreConfig};
 pub use data_dir::{DataDir, ProfilesFile};
 pub use devices::{CredentialHash, DeviceWindow, StoredDevice};
