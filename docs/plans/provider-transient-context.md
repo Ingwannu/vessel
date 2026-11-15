@@ -81,3 +81,19 @@ commit's web bundle and fake executables. These checks establish bounded values,
 redaction, pre-spawn refusal and error classification; they do not establish
 voice enablement or a supported native override/restore path. The whole root
 gate and review remain pending.
+
+The one whole gate ran on 0eb6d895 (source identical to the narrowly checked
+087583af): wp-providers-20261115T072649Z-0eb6d895. Rust reported 2270 passed,
+1 failed, 12 ignored; web unit tests 442 passed; browser tests 64 passed,
+1 failed; forge fixture 4 passed. Formatting, source size/boundaries, all Clippy
+variants, generated TypeScript and builds passed. The two failures are existing
+paths unchanged by this package: vessel-mcp's archive/resume test received a
+Conflict while its ended log was still writing, and web security.spec.ts:98
+observed missing sessionStorage at line 118. The single exact-SHA archive replay
+passed (wp-providers-narrow-20261115T075238Z-0eb6d895). The single exact-SHA
+security replay failed the same assertion
+(wp-providers-narrow-20261115T075839Z-0eb6d895). Original red evidence is retained
+under /tmp/work/wp-providers/prompt-whole, with both replay folders beside it.
+This is not a green whole gate. The coordinator/integrator own the baseline
+security correction and combined proof; this package has no web/bridge changes.
+Source/security review is requested with that gate limitation stated explicitly.
