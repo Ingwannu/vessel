@@ -313,3 +313,8 @@ fn total_key_argument_and_date_zone_bounds_are_whole_result_refusals() {
     let private = Arguments::new(vec![("value", text("PRIVATE-ARGUMENT-CANARY"))]).expect("args");
     assert!(!format!("{private:?}").contains("PRIVATE-ARGUMENT-CANARY"));
 }
+
+#[test]
+fn individual_argument_diagnostics_do_not_reopen_private_values() {
+    assert!(!format!("{:?}", text("PRIVATE-ARGUMENT-CANARY")).contains("PRIVATE-ARGUMENT-CANARY"));
+}

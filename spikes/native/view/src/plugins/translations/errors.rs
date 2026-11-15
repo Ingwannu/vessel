@@ -6,7 +6,7 @@ use fluent_bundle::FluentError;
 use fluent_syntax::parser::ParserError;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum Budget {
+pub(in crate::plugins) enum Budget {
     Locales,
     Source,
     Total,
@@ -18,7 +18,7 @@ pub(super) enum Budget {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub(super) enum Problem {
+pub(in crate::plugins) enum Problem {
     #[error("plugin translation resource budget exceeded ({0:?})")]
     Budget(Budget),
     // unic-langid errors are closed enum classifications, never input strings.
@@ -56,10 +56,10 @@ pub(super) enum Problem {
     },
 }
 
-pub(super) struct Sealed<E>(E);
+pub(in crate::plugins) struct Sealed<E>(E);
 
 impl<E> Sealed<E> {
-    pub(super) const fn new(cause: E) -> Self {
+    pub(in crate::plugins) const fn new(cause: E) -> Self {
         Self(cause)
     }
 }
@@ -78,7 +78,7 @@ impl<E> fmt::Display for Sealed<E> {
 }
 impl<E: std::error::Error> std::error::Error for Sealed<E> {}
 
-pub(super) struct SyntaxFailure(pub(super) Vec<ParserError>);
+pub(in crate::plugins) struct SyntaxFailure(pub(in crate::plugins) Vec<ParserError>);
 impl fmt::Debug for SyntaxFailure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(self, f)
@@ -91,7 +91,7 @@ impl fmt::Display for SyntaxFailure {
 }
 impl std::error::Error for SyntaxFailure {}
 
-pub(super) struct BundleFailure(pub(super) Vec<FluentError>);
+pub(in crate::plugins) struct BundleFailure(pub(in crate::plugins) Vec<FluentError>);
 impl fmt::Debug for BundleFailure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(self, f)

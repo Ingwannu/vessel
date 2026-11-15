@@ -98,11 +98,21 @@ impl MessageKey {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub(super) enum Argument {
     Text(vessel_proto::plugins::ContentText),
     Number(Number),
     Date(Date),
+}
+
+impl fmt::Debug for Argument {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Text(_) => "Text(<private>)",
+            Self::Number(_) => "Number(<private>)",
+            Self::Date(_) => "Date(<private>)",
+        })
+    }
 }
 
 #[derive(Clone, Default)]
