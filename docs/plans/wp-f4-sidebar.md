@@ -785,3 +785,12 @@ replacement behind canonical G4 admission plus W12 binding/ticket; no checked
 captured-target archive/read/pin/confirm seam is available. Keep this legacy
 safety claim unverified. Do not add an App-only late recheck or a second mutation
 framework. Canonical F4 replacement rows remain pending W11's checked projection.
+
+Main698 strict reached App and returned101 on four owning diagnostics:
+one114-line workspace-row GPUI fixture, one unused settings trait import and
+two settings element ids formatting Key without Display. Use the existing
+Key::as_str canonical spelling (no new serializer or debug identity), remove
+the unused trait and separate the same six literal geometry cases from their
+shared actual-render/input runner. Every old numeric expectation is retained;
+the inferred after-row tail is now explicit in each golden case. No production
+geometry or action policy changed. No strict/test pass inferred from this run.

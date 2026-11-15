@@ -13,7 +13,7 @@ use crate::shell::Shell;
 use std::{cell::RefCell, rc::Rc};
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, ParentElement as _,
+    AnyElement, Context, Div, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
@@ -194,7 +194,7 @@ fn row(
     ] {
         let key = entry.item.key.clone();
         let button = button_control(
-            format!("sidebar-{section:?}-{direction:?}-{key}"),
+            format!("sidebar-{section:?}-{direction:?}-{}", key.as_str()),
             ButtonContent::Icon(ButtonIcon::muted(glyph)),
             ButtonConfig::new(
                 ButtonKind::Ghost,
@@ -219,7 +219,7 @@ fn row(
     let on = entry.item.visible == Visibility::Shown;
     let key = entry.item.key.clone();
     let switch = settings::switch(
-        format!("sidebar-{section:?}-visible-{key}"),
+        format!("sidebar-{section:?}-visible-{}", key.as_str()),
         on,
         true,
         compact,

@@ -54,79 +54,73 @@ impl Render for Probe {
 fn bounds(x: f32, y: f32, w: f32, h: f32) -> Bounds<Pixels> {
     Bounds::new(point(px(x), px(y)), size(px(w), px(h)))
 }
+#[derive(Clone, Copy)]
+struct GeometryCase {
+    density: Density,
+    indent: Indent,
+    leading: Bounds<Pixels>,
+    row: Bounds<Pixels>,
+    after: Bounds<Pixels>,
+    metadata: Option<Bounds<Pixels>>,
+}
+fn geometry_cases() -> [GeometryCase; 6] {
+    [
+        GeometryCase {
+            density: Density::Desktop,
+            indent: Indent::Flush,
+            leading: bounds(8.0, 8.0, 16.0, 20.0),
+            row: bounds(0.0, 0.0, 320.0, 36.0),
+            after: bounds(0.0, 40.0, 320.0, 1.0),
+            metadata: None,
+        },
+        GeometryCase {
+            density: Density::Desktop,
+            indent: Indent::Grouped,
+            leading: bounds(16.0, 8.0, 16.0, 20.0),
+            row: bounds(0.0, 0.0, 320.0, 36.0),
+            after: bounds(0.0, 40.0, 320.0, 1.0),
+            metadata: None,
+        },
+        GeometryCase {
+            density: Density::Compact,
+            indent: Indent::Flush,
+            leading: bounds(8.0, 12.0, 20.0, 20.0),
+            row: bounds(0.0, 0.0, 320.0, 44.0),
+            after: bounds(0.0, 48.0, 320.0, 1.0),
+            metadata: None,
+        },
+        GeometryCase {
+            density: Density::Compact,
+            indent: Indent::Grouped,
+            leading: bounds(16.0, 12.0, 20.0, 20.0),
+            row: bounds(0.0, 0.0, 320.0, 44.0),
+            after: bounds(0.0, 48.0, 320.0, 1.0),
+            metadata: None,
+        },
+        GeometryCase {
+            density: Density::Desktop,
+            indent: Indent::Grouped,
+            leading: bounds(16.0, 8.0, 16.0, 20.0),
+            row: bounds(0.0, 0.0, 320.0, 52.0),
+            after: bounds(0.0, 56.0, 320.0, 1.0),
+            metadata: Some(bounds(40.0, 28.0, 268.0, 16.0)),
+        },
+        GeometryCase {
+            density: Density::Compact,
+            indent: Indent::Grouped,
+            leading: bounds(16.0, 8.0, 20.0, 20.0),
+            row: bounds(0.0, 0.0, 320.0, 52.0),
+            after: bounds(0.0, 56.0, 320.0, 1.0),
+            metadata: Some(bounds(44.0, 28.0, 264.0, 16.0)),
+        },
+    ]
+}
 #[gpui::test]
 fn workspace_row_source_geometry_uses_one_rail_for_each_group_and_both_themes(
     cx: &mut TestAppContext,
 ) {
     for scheme in [Scheme::Dark, Scheme::Light] {
-        for (density, indent, meta, left, top, icon, row_h, meta_x, meta_w) in [
-            (
-                Density::Desktop,
-                Indent::Flush,
-                false,
-                8.0,
-                8.0,
-                16.0,
-                36.0,
-                32.0,
-                276.0,
-            ),
-            (
-                Density::Desktop,
-                Indent::Grouped,
-                false,
-                16.0,
-                8.0,
-                16.0,
-                36.0,
-                40.0,
-                268.0,
-            ),
-            (
-                Density::Compact,
-                Indent::Flush,
-                false,
-                8.0,
-                12.0,
-                20.0,
-                44.0,
-                36.0,
-                272.0,
-            ),
-            (
-                Density::Compact,
-                Indent::Grouped,
-                false,
-                16.0,
-                12.0,
-                20.0,
-                44.0,
-                44.0,
-                264.0,
-            ),
-            (
-                Density::Desktop,
-                Indent::Grouped,
-                true,
-                16.0,
-                8.0,
-                16.0,
-                52.0,
-                40.0,
-                268.0,
-            ),
-            (
-                Density::Compact,
-                Indent::Grouped,
-                true,
-                16.0,
-                8.0,
-                20.0,
-                52.0,
-                44.0,
-                264.0,
-            ),
-        ] {
+        for case in geometry_cases() {
             let leading = Place::default();
             let metadata = Place::default();
             let outer = Seen::default();
@@ -137,10 +131,10 @@ fn workspace_row_source_geometry_uses_one_rail_for_each_group_and_both_themes(
                 let outer = Rc::clone(&outer);
                 let presses = Rc::clone(&presses);
                 move |_, _| Probe {
-                    density,
-                    indent,
+                    density: case.density,
+                    indent: case.indent,
                     scheme,
-                    meta,
+                    meta: case.metadata.is_some(),
                     leading,
                     metadata,
                     outer,
@@ -148,25 +142,9 @@ fn workspace_row_source_geometry_uses_one_rail_for_each_group_and_both_themes(
                 }
             });
             cx.run_until_parked();
-            assert_eq!(leading.get(), Some(bounds(left, top, icon, 20.0)));
-            let tail = if meta {
-                56.0
-            } else if density == Density::Desktop {
-                40.0
-            } else {
-                48.0
-            };
-            assert_eq!(
-                *outer.borrow(),
-                [
-                    bounds(0.0, 0.0, 320.0, row_h),
-                    bounds(0.0, tail, 320.0, 1.0)
-                ]
-            );
-            assert_eq!(
-                metadata.get(),
-                meta.then(|| bounds(meta_x, 28.0, meta_w, 16.0))
-            );
+            assert_eq!(leading.get(), Some(case.leading));
+            assert_eq!(*outer.borrow(), [case.row, case.after]);
+            assert_eq!(metadata.get(), case.metadata);
             cx.simulate_click(point(px(200.0), px(18.0)), Modifiers::none());
             cx.run_until_parked();
             assert_eq!(presses.get(), 1);
