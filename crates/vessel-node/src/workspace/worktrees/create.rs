@@ -218,24 +218,27 @@ impl Workspaces {
             },
             kept: None,
         };
-        {
-            let (written, _) = tokio::sync::watch::channel(0);
-            drop(self.state().worktrees.insert(
-                id,
-                WorktreeEntry {
-                    info: info.clone(),
-                    written: Arc::new(written),
-                    running: None,
-                    starting: 0,
-                },
-            ));
-        }
+        self.remember_created_worktree(&info);
         self.save_worktree(info.clone()).await?;
         let info = match setup {
             Planned::Run(commands) => self.start_setup(id, commands)?,
             Planned::Skipped | Planned::Nothing => info,
         };
         Ok(CreateWorktreeOutcome::Created { worktree: info })
+    }
+
+    /// Preserve the existing publication order; durability and setup stay with the tracked creator.
+    fn remember_created_worktree(&self, info: &WorktreeInfo) {
+        let (written, _) = tokio::sync::watch::channel(0);
+        drop(self.state().worktrees.insert(
+            info.id,
+            WorktreeEntry {
+                info: info.clone(),
+                written: Arc::new(written),
+                running: None,
+                starting: 0,
+            },
+        ));
     }
 
     /// Run setup again with the commands of the worktree's file as it is.
