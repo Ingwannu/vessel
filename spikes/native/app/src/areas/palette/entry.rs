@@ -24,7 +24,7 @@ use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, Stateful, StatefulInteractiveElement as _, Styled as _, div, px, svg,
+    ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px, svg,
 };
 
 use crate::shell::Shell;
@@ -60,21 +60,12 @@ pub(crate) fn title_trigger(
         .into_any_element()
 }
 
-/// The sidebar's Search row, after its routes (Paseo's header rows: new,
-/// history, search, schedules); `touch`: drawn in the phone's sheet.
+/// The sidebar's Search row consumes its owner's preference inventory.
 pub(crate) fn sidebar_row(
     shell: &Shell,
     tokens: &Tokens,
-    touch: bool,
+    window: &Window,
     cx: &mut Context<'_, Shell>,
-) -> Stateful<Div> {
-    crate::areas::sidebar::nav_row(
-        "nav-search",
-        shell.t.lang.palette().search,
-        Some(Glyph::Search),
-        shell.areas.palette.is_open(),
-        touch,
-        tokens,
-    )
-    .on_click(cx.listener(|shell, _event, window, cx| shell.open_palette(window, cx)))
+) -> Option<Div> {
+    crate::areas::sidebar::search_navigation(shell, tokens, window, cx)
 }

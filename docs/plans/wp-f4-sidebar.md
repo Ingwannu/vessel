@@ -586,3 +586,42 @@ approval. Main combined narrow/consumer evidence remains owed.
 The previously adopted W22 marker leaves picker.rs at828 counted lines; lower
 its stale829 record to828, never increase a size exception. No picker renderer
 or behavior is changed by this bookkeeping correction.
+
+
+## Sidebar settings and first shared navigation consumer
+
+Read the whole pinned screens/settings/sidebar/sidebar-nav-section.tsx and
+components/sidebar/sidebar-header-row.tsx again. The two existing bands use the
+one typed Navigation inventory; settings rows retain source icon16, gap8,
+single-line main label/hint, G2 Ghost MD icon14 arrows (32 pointer/44 compact),
+boundary disabled state and the existing switch. No settings screen header,
+card frame, button or preference store is copied. The source arrows remain
+visible on compact widths; only unavailable shortcut hints are omitted.
+
+Register Sidebar in settings/sections.rs::page only; E2 authorized three
+mechanical sidebar_settings_clear_info calls in open_settings/settings_section/
+settings_back. No other settings frame/nav behavior changes. Preserve L's
+Translator seam and the canonical preference setter.
+
+Search is the first live consumer of the same inventory and shared Compact
+SidebarHeaderRow. Preserve stable nav-search id and Shell::open_palette.
+The palette/entry.rs sidebar adapter now returns Option<Div>; title_trigger is
+byte-identical. Hints use current legacy bindings_of, not copied defaults,
+until W22's checked primary_keys producer. Sidebar600 determines density and
+hint availability, independent of global PHONE768.
+
+Compact rows own their outer8 inset. Move legacy padding out of the common root
+into the legacy route group, one body wrapper, Add and footer wrappers; this
+prevents double header inset without another scroll container. The sole scroll
+viewport retains its previous inner width and vertical budget. Existing actual
+height tests retain all vertical/focus/wheel assertions and additionally compare
+the measured viewport to the body wrapper's literal8 horizontal inset.
+
+New real GPUI tests bind actual source rows, press Up/Down/visibility, verify
+boundary refusal and persisted ordering, then hide/restore/click the actual
+shared Search opener. Both themes, EN/KO,390 and700 (the600-767 boundary) check
+literal action-frame dimensions32/44 and shared header28/36. Registration uses
+the actual existing Settings entry. These tests are installed, NOT executed yet.
+Combined F4 Kit/View/Link/App strict narrow check and first-use captures are
+still owed. Other builtin openers, plugin groups, workspace projection and the
+final hierarchy remain pending their owner contracts; no full F4 pass.

@@ -141,7 +141,17 @@ fn fixed(probe: &Entity<Probe>, cx: &VisualTestContext, height: f32) {
         assert!(frames[3].bottom() <= px(height));
         assert!(frames[1].bottom() <= frames[2].top());
         let state = &probe.shell.read(cx).areas.sidebar.layout;
-        assert_eq!(state.scroll.bounds(), frames[1]);
+        // Header rows own their outer inset; the body wrapper retains the
+        // original scrolling width, with no vertical padding or second scroll.
+        let body = frames[1];
+        let expected = Bounds::new(
+            point(px(f32::from(body.left()).mul_add(1.0, 8.0)), body.top()),
+            size(
+                px(f32::from(body.size.width).mul_add(1.0, -16.0)),
+                body.size.height,
+            ),
+        );
+        assert_eq!(state.scroll.bounds(), expected);
         for index in 0..3 {
             assert!(
                 state

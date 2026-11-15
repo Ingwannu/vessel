@@ -79,11 +79,10 @@ fn page(section: Section) -> Option<Draw> {
             Some(|shell, tokens, phone, window, cx| sync::render(shell, tokens, phone, window, cx))
         }
         Section::Shortcuts => Some(crate::areas::shortcuts::page::render),
-        // Not drawn yet. Sidebar and Notifications wait on S3's sidebar
-        // reading its items and on notifications being delivered; the rest
-        // have nothing behind them in Vessel yet.
-        Section::Sidebar
-        | Section::Terminal
+        Section::Sidebar => Some(crate::areas::sidebar::settings::render),
+        // Notifications wait on their delivery producer; the remaining sections
+        // have no renderer in this build.
+        Section::Terminal
         | Section::Browser
         | Section::Editor
         | Section::Files

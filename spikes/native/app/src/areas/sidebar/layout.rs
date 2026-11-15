@@ -44,11 +44,15 @@ pub(super) fn body(
         Some(projects) => div().pb(px(spacing::S3)).child(projects),
         None => div(),
     };
-    ScrollViewport::new("sidebar-body", &state.scroll)
-        .section(projects)
-        .section(div().pb(px(spacing::S3)).child(heading))
-        .section(groups)
-        .element()
+    // Compact header rows own their own inset; keep the legacy body inset
+    // here so the one shared scroller retains its original measured width.
+    div().flex_1().min_h_0().px(px(spacing::S2)).child(
+        ScrollViewport::new("sidebar-body", &state.scroll)
+            .section(projects)
+            .section(div().pb(px(spacing::S3)).child(heading))
+            .section(groups)
+            .element(),
+    )
 }
 
 /// Which existing row ends the list; no invisible focus sentinel is added.

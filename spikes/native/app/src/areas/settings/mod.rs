@@ -188,6 +188,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        self.sidebar_settings_clear_info();
         if self.route != Route::Settings {
             self.areas.settings.from = self.route;
         }
@@ -201,6 +202,7 @@ impl Shell {
 
     /// Show `section` (from the list).
     pub(crate) fn settings_section(&mut self, section: Section, cx: &mut Context<'_, Self>) {
+        self.sidebar_settings_clear_info();
         let listed = sections::listed(section, self);
         self.areas.settings.arrive(section, listed, true);
         self.agent_load(false, cx);
@@ -214,6 +216,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        self.sidebar_settings_clear_info();
         if to_list {
             self.areas.settings.pushed = false;
             cx.notify();

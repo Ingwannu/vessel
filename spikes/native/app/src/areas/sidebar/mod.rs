@@ -42,6 +42,9 @@ mod display;
 mod foot;
 mod layout;
 mod machines;
+mod navigation;
+pub(crate) mod settings;
+pub(crate) use navigation::search_navigation;
 mod row_menu;
 mod session_row;
 mod statuses;
@@ -58,6 +61,7 @@ const HEADING_BACK: f32 = -4.0;
 /// machine's line is drawn (by machine name).
 pub(crate) struct SidebarState {
     callouts: callouts::Callouts,
+    settings: settings::State,
     layout: layout::Layout,
     tips: Tooltips,
     places: RefCell<HashMap<String, vessel_app_kit::tooltip::Place>>,
@@ -76,6 +80,7 @@ impl SidebarState {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
             callouts: callouts::Callouts::default(),
+            settings: settings::State::new(),
             layout: layout::Layout::new(cx),
             tips: Tooltips::new(),
             places: RefCell::new(HashMap::new()),
@@ -154,7 +159,14 @@ pub(crate) fn render(
         );
     }
     // Paseo's Search row, after the pages (track S's, `areas::palette`).
-    nav = nav.child(crate::areas::palette::sidebar_row(shell, tokens, touch, cx));
+    let nav = div()
+        .flex()
+        .flex_col()
+        .gap(px(spacing::S0_5))
+        .child(nav.px(px(spacing::S2)))
+        .children(crate::areas::palette::sidebar_row(
+            shell, tokens, window, cx,
+        ));
     let view = shell.prefs.settings.sidebar;
     let list = if shell.loaded && shell.fleet.machines.is_empty() {
         div().child(
@@ -175,13 +187,11 @@ pub(crate) fn render(
         .flex()
         .flex_col()
         .bg(tokens.bg_shell)
-        .px(px(spacing::S2))
         .pb(px(spacing::S2))
         .gap(px(spacing::S3))
-        .child(
-            nav.flex_none()
-                .children(schedules(shell, tokens, touch, cx)),
-        )
+        .child(nav.flex_none().children(
+            schedules(shell, tokens, touch, cx).map(|entry| div().px(px(spacing::S2)).child(entry)),
+        ))
         .child(layout::body(
             &shell.areas.sidebar.layout,
             projects(shell, tokens, cx),
@@ -196,6 +206,7 @@ pub(crate) fn render(
                 tokens,
             )
             .flex_none()
+            .mx(px(spacing::S2))
             .on_click(cx.listener(|this, _event, window, cx| this.go(Route::Pair, window, cx))),
         )
         .children(
@@ -204,10 +215,21 @@ pub(crate) fn render(
             vessel_app_kit::chrome::system_titlebar()
                 .then(|| crate::chrome::update_status(shell, false, tokens, cx))
                 .flatten()
-                .map(|status| div().flex_none().px(px(INSET)).child(status)),
+                .map(|status| {
+                    div()
+                        .flex_none()
+                        .mx(px(spacing::S2))
+                        .px(px(INSET))
+                        .child(status)
+                }),
         )
         .children(callouts::render(shell, tokens, cx).map(|strip| strip.flex_none()))
-        .child(foot::foot(shell, tokens, cx).flex_none())
+        .child(
+            div()
+                .flex_none()
+                .px(px(spacing::S2))
+                .child(foot::foot(shell, tokens, cx)),
+        )
         .children(shell.areas.sidebar.tips.render(tokens))
         .children(display::menu(shell, tokens, window, cx))
         .children(row_menu::render(shell, tokens, touch, window, cx))
