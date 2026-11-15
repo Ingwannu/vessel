@@ -16,8 +16,8 @@
 //!   landing between the two is lost); an unguarded write when the version
 //!   has no hash (a write a person did not ask for); a retry of a conflict
 //!   whose disk matches the edit's start (the node compared exactly that).
-//! - Choice: the guard is the hash, or nothing is written and the editor
-//!   says why; `Any` only when the person pressed Overwrite. A `conflict`
+//! - Choice: the generic helper permits explicit `Any`; the source-editor
+//!   helper confirms an existing whole text file and uses its fresh hash. A `conflict`
 //!   is read back once (the disk's version and first page) for the banner,
 //!   and is never followed by another write. The two calls are given as
 //!   `FnOnce`, so a second write cannot be written.
@@ -38,11 +38,16 @@ pub enum Saved {
     Saved(FileVersion),
     /// The file is not what the edit started from; nothing was written.
     Conflict {
-        /// The disk's version now, `None` when it is gone or unreadable.
+        /// The disk's version now, `None` when its state is unverified.
         disk: Option<FileVersion>,
         /// The disk's text, when it is text read whole in one page.
         disk_text: Option<String>,
         /// The text that was refused.
+        mine: String,
+    },
+    /// A guarded write was rejected because the file is confirmed missing.
+    Missing {
+        /// The original draft remains owned by the editor.
         mine: String,
     },
     /// Not written, for another reason.
@@ -95,6 +100,7 @@ fn conflict_of(read: Result<FileRead, Problem>, mine: String) -> Saved {
                 mine,
             }
         }
+        Err(problem) if problem.code() == Some(ErrorCode::NotFound) => Saved::Missing { mine },
         Err(_problem) => Saved::Conflict {
             disk: None,
             disk_text: None,
@@ -130,6 +136,62 @@ where
         Err(problem) if guarded && problem.code() == Some(ErrorCode::Conflict) => {
             conflict_of(read().await, text)
         }
+        Err(problem @ (Problem::Older | Problem::Unsent)) => {
+            Saved::Failed(SaveFailure::Call(problem))
+        }
+        Err(problem) => Saved::Uncertain(problem),
+    }
+}
+
+/// Editor overwrite is restricted to a freshly confirmed existing text file.
+/// The generic `save_text` remains available to callers that explicitly use
+/// its unguarded-write contract; the source editor never sends `Any`.
+///
+/// The returned outcome preserves the draft on missing, uneditable, unknown,
+/// or changed files. At most one write is attempted and none is replayed.
+pub async fn save_existing_text<W, WF, R, RF>(
+    write: W,
+    read: R,
+    text: String,
+    base: Option<&FileVersion>,
+) -> Saved
+where
+    W: FnOnce(WriteExpect, String) -> WF,
+    WF: Future<Output = Result<FileVersion, Problem>>,
+    R: FnOnce() -> RF,
+    RF: Future<Output = Result<FileRead, Problem>>,
+{
+    if base.is_some() {
+        return save_text(write, read, text, base).await;
+    }
+    let current = match read().await {
+        Ok(current) => current,
+        Err(problem) if problem.code() == Some(ErrorCode::NotFound) => {
+            return Saved::Missing { mine: text };
+        }
+        Err(problem) => return Saved::Failed(SaveFailure::Call(problem)),
+    };
+    if current.version.size > super::editor::MAX_EDITABLE_BYTES
+        || !matches!(current.content, FileContent::Text { next: None, .. })
+    {
+        return Saved::Conflict {
+            disk: None,
+            disk_text: None,
+            mine: text,
+        };
+    }
+    let Some(expect) = save_guard(Some(&current.version)) else {
+        return Saved::Failed(SaveFailure::NoGuard);
+    };
+    match write(expect, text.clone()).await {
+        Ok(version) => Saved::Saved(version),
+        // The single read was used before overwrite. A new race must be
+        // resolved by a new owner acquisition, never a blind force retry.
+        Err(problem) if problem.code() == Some(ErrorCode::Conflict) => Saved::Conflict {
+            disk: None,
+            disk_text: None,
+            mine: text,
+        },
         Err(problem @ (Problem::Older | Problem::Unsent)) => {
             Saved::Failed(SaveFailure::Call(problem))
         }
@@ -303,10 +365,8 @@ mod tests {
         ));
         assert_eq!(
             saved,
-            Saved::Conflict {
-                disk: None,
-                disk_text: None,
-                mine: "mine".to_owned(),
+            Saved::Missing {
+                mine: "mine".to_owned()
             }
         );
     }
@@ -366,6 +426,134 @@ mod tests {
             saved,
             Saved::Conflict { disk: Some(disk), disk_text: None, .. } if disk == changed()
         ));
+    }
+
+    #[test]
+    fn source_overwrite_uses_the_fresh_hash_and_never_any() {
+        let node = Node::new(changed(), "external edit");
+        let saved = now(save_existing_text(
+            |expect, text| node.write(&expect, text),
+            || node.read(),
+            "mine".into(),
+            None,
+        ));
+        assert_eq!(saved, Saved::Saved(written()));
+        assert_eq!(
+            *node.writes.borrow(),
+            [WriteExpect::Content { hash: hash('b') }]
+        );
+    }
+
+    #[test]
+    fn source_overwrite_never_creates_a_missing_file() {
+        let saved = now(save_existing_text(
+            |_, _| -> Ready<Result<FileVersion, Problem>> { panic!("must not write") },
+            || ready(Err(refused(ErrorCode::NotFound, "missing"))),
+            "mine".into(),
+            None,
+        ));
+        assert_eq!(
+            saved,
+            Saved::Missing {
+                mine: "mine".into()
+            }
+        );
+    }
+
+    #[test]
+    fn failed_preoverwrite_read_is_proven_not_sent() {
+        let saved = now(save_existing_text(
+            |_, _| -> Ready<Result<FileVersion, Problem>> { panic!("must not write") },
+            || ready(Err(Problem::Unsent)),
+            "mine".into(),
+            None,
+        ));
+        assert_eq!(saved, Saved::Failed(SaveFailure::Call(Problem::Unsent)));
+    }
+
+    #[test]
+    fn source_overwrite_refuses_binary_partial_and_oversize_snapshots() {
+        for (version, content) in [
+            (changed(), FileContent::Binary),
+            (
+                changed(),
+                FileContent::Text {
+                    text: "part".into(),
+                    next: Some(4),
+                },
+            ),
+            (
+                version(
+                    super::super::editor::MAX_EDITABLE_BYTES.saturating_add(1),
+                    1,
+                    'b',
+                ),
+                FileContent::Text {
+                    text: "large".into(),
+                    next: None,
+                },
+            ),
+        ] {
+            let saved = now(save_existing_text(
+                |_, _| -> Ready<Result<FileVersion, Problem>> { panic!("must not write") },
+                || ready(Ok(FileRead { version, content })),
+                "mine".into(),
+                None,
+            ));
+            assert_eq!(
+                saved,
+                Saved::Conflict {
+                    disk: None,
+                    disk_text: None,
+                    mine: "mine".into()
+                }
+            );
+        }
+    }
+
+    #[test]
+    fn source_overwrite_race_is_not_retried_or_forced() {
+        let node = Node::new(changed(), "external edit");
+        let saved = now(save_existing_text(
+            |expect, _| {
+                node.writes.borrow_mut().push(expect);
+                ready(Err(refused(ErrorCode::Conflict, "changed again")))
+            },
+            || node.read(),
+            "mine".into(),
+            None,
+        ));
+        assert_eq!(
+            saved,
+            Saved::Conflict {
+                disk: None,
+                disk_text: None,
+                mine: "mine".into()
+            }
+        );
+        assert_eq!(
+            *node.writes.borrow(),
+            [WriteExpect::Content { hash: hash('b') }]
+        );
+        assert_eq!(*node.text.borrow(), "external edit");
+    }
+
+    #[test]
+    fn failed_conflict_readback_does_not_claim_deletion() {
+        let saved = now(save_existing_text(
+            |_, _| ready(Err(refused(ErrorCode::Conflict, "changed"))),
+            || ready(Err(refused(ErrorCode::Forbidden, "unreadable"))),
+            "mine".into(),
+            Some(&read_version()),
+        ));
+        assert_eq!(
+            saved,
+            Saved::Conflict {
+                disk: None,
+                disk_text: None,
+                mine: "mine".into()
+            }
+        );
     }
 }
 

@@ -372,3 +372,19 @@ fn a_failed_initial_read_can_be_retried_without_discarding_a_loaded_draft() {
     assert_eq!(model.content(), "recovered");
     assert_eq!(model.status(), EditorStatus::Clean);
 }
+
+#[test]
+fn unverified_conflict_preserves_draft_and_requires_reload_before_overwrite() {
+    let mut model = loaded("baseline");
+    let _step = model.edit("draft");
+    let (sequence, _, _) = write_of(&model.save());
+    assert_eq!(
+        model.saved(sequence, Written::UnverifiedConflict),
+        Step::StopAutosave
+    );
+    assert_eq!(model.conflict(), Some((ConflictKind::Unverified, false)));
+    assert_eq!(model.content(), "draft");
+    assert_eq!(model.overwrite(), Step::None);
+    assert_eq!(model.save(), Step::None);
+    assert!(matches!(model.reload(), Step::Read { .. }));
+}

@@ -57,6 +57,8 @@ pub enum ConflictKind {
     Changed,
     /// The file is gone.
     Deleted,
+    /// A conflict occurred but current editable saved state is unconfirmed.
+    Unverified,
 }
 
 /// What the panel does after a step.
@@ -94,6 +96,8 @@ pub enum Written {
     Changed,
     /// The file is gone.
     Deleted,
+    /// Conflict readback did not confirm an existing editable file.
+    UnverifiedConflict,
     /// Not written, for another reason (the panel's sentence).
     Failed(String),
     /// Possibly sent; only definitive original completion can release its hold.
@@ -404,6 +408,7 @@ impl EditorModel {
                 }
             }
             Written::Uncertain(_) => Step::StopAutosave,
+            Written::UnverifiedConflict => self.enter_conflict(ConflictKind::Unverified),
             Written::Changed => self.enter_conflict(ConflictKind::Changed),
             Written::Deleted => self.enter_conflict(ConflictKind::Deleted),
             Written::Failed(sentence) => {

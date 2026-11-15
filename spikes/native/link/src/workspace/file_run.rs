@@ -1,7 +1,7 @@
 //! One admitted file effect implementation for every C5 owner.
-//! Keeping save_text here preserves its exactly-one-write rule during cutover.
+//! Keeping the shared source-save helper here preserves its exactly-one-write rule during cutover.
 use super::{FileAnswer, FileAsk, PathChange, Save, file_call::Client};
-use vessel_app_view::workspace::{problem::Problem, save::save_text};
+use vessel_app_view::workspace::{problem::Problem, save::save_existing_text};
 use vessel_proto::workspace::{ReadFile, WriteExpect, WriteFile};
 
 pub(super) async fn run(client: &Client<'_>, ask: FileAsk) -> FileAnswer {
@@ -54,7 +54,7 @@ pub(super) async fn run(client: &Client<'_>, ask: FileAsk) -> FileAnswer {
 
 /// A guarded save, at most one write.
 async fn saved(client: &Client<'_>, save: Save) -> FileAnswer {
-    let saved = save_text(
+    let saved = save_existing_text(
         |expect, text| {
             client.call(WriteFile {
                 root: save.root,
@@ -68,7 +68,7 @@ async fn saved(client: &Client<'_>, save: Save) -> FileAnswer {
                 root: save.root,
                 path: save.path.clone(),
                 offset: 0,
-                limit: None,
+                limit: u32::try_from(vessel_app_view::workspace::editor::MAX_EDITABLE_BYTES).ok(),
             })
         },
         save.text,

@@ -41,6 +41,8 @@ pub struct Labels {
     pub files_refresh: &'static str,
     /// A failed observation keeps the last source; writes retain their own guards.
     pub file_watch_paused: &'static str,
+    /// Never offer overwrite when conflict readback failed or became uneditable.
+    pub editor_conflict_unverified: &'static str,
     /// File sort and visibility actions.
     pub file_sort_size: &'static str,
     pub hide_hidden_files: &'static str,

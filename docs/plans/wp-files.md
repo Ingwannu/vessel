@@ -411,3 +411,15 @@ A failed initial read is retryable on explicit reopen/refresh with a new read se
 Exact a3d7b3a1 strict four-crate all-target narrow15 finished rc1: `file_scope.rs` rustdoc backticks and captured-submit regression trailing semicolon only; both corrected. Kit library/type checking reached the captured Fn callback seam, but the all-target run is not green and Link/App checking remains owed. Latest canonical ownership/observation code was not part of that older immutable run.
 
 Deep directory rename rewrites now join each already-validated suffix component individually. Passing an entire multi-component suffix to `RelPath::child` was incorrect because that API deliberately accepts one basename; clean deep descendants could otherwise disappear from the retained map. Pure nested-path and actual retained-owner rename regressions pin preservation and component boundaries.
+
+
+## Existing-file source overwrite
+
+[Decision Log]
+- Purpose: editor overwrite must preserve a missing file as deleted and must not turn a failed conflict read into permission to force a write.
+- Reference: Paseo source editor reports deleted files without an overwrite action (survey p4-files, source editor conflict lifecycle); its existing-file handle refuses recreation.
+- Existing assets: the generic `save_text` accepts explicit `Any`, the node already supports a content-hash guard, and the admitted C5 runner owns its one write and one read. No additional protocol, actor, dependency or authority is introduced.
+- Choice: the source runner uses `save_existing_text`. Normal saves reuse the existing guarded save. Explicit overwrite first reads at the editable one-MiB ceiling, confirms whole editable text and its hash, then sends one content-guarded write. Missing/unreadable/binary/partial/oversize snapshots send no write. A new conflict after this read is never retried.
+- Why: reusing `Any` could recreate a deleted file. An unavailable snapshot is now a separate unverified conflict with Reload but no Overwrite; only an actual NotFound readback reports deletion. The generic helper remains source-compatible for other explicit unguarded consumers.
+- Tradeoff: this strengthens intent under the existing wire contract but is not an immutable read snapshot or atomic filesystem compare-and-swap. The existing node hash/read and guard-check/rename gaps remain documented limitations. Invoked unknown write failures retain their original sticky obligation; pre-read failures are known not sent.
+- Validation: added ready-boundary tests for fresh hash, missing/no-write, pre-read refusal, binary/partial/oversize refusal, guarded race/no-retry and unavailable conflict readback; model regression preserves the unverified draft and disables overwrite. These new tests are source-only until the next meaningful narrow run. Fast size, crate boundaries, token checks pass; no budget is raised.

@@ -220,8 +220,11 @@ impl Shell {
         let written = match saved {
             Saved::Uncertain(problem) => Written::Uncertain(words.problem(&problem)),
             Saved::Saved(version) if current => Written::Saved(version),
-            Saved::Saved(_) => Written::Changed,
-            Saved::Conflict { .. } => Written::Changed,
+            Saved::Saved(_) => Written::UnverifiedConflict,
+            Saved::Missing { .. } if current => Written::Deleted,
+            Saved::Missing { .. } => Written::UnverifiedConflict,
+            Saved::Conflict { disk: Some(_), .. } if current => Written::Changed,
+            Saved::Conflict { .. } => Written::UnverifiedConflict,
             Saved::Failed(failure) => Written::Failed(words.save_failure(&failure)),
         };
         let step = editing.model.saved(sequence, written);

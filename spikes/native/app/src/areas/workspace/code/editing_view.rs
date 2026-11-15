@@ -187,8 +187,12 @@ fn conflict_bar(
             Some(labels.editor_conflict_description),
         ),
         (ConflictKind::Changed, false) => (labels.editor_changed_on_disk, None),
+        (ConflictKind::Unverified, _) => (
+            labels.editor_changed_on_disk,
+            Some(labels.editor_conflict_unverified),
+        ),
     };
-    let actions = (kind == ConflictKind::Changed).then(|| {
+    let actions = (kind != ConflictKind::Deleted).then(|| {
         div()
             .flex_none()
             .ml_auto()
