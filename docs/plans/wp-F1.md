@@ -637,3 +637,23 @@ on exact825..2b080afd (Clippy0;137/0/0); selected range/API was handed to the
 voice consumer and shared-line owner. This is not an App/latest-combined/native
 consumer/OS/accessibility or whole F1 pass. The voice consumer still owns final
 mic/filled-square artwork and switching/first-use proof.
+
+
+## Shared Field content frame (source only)
+
+Decision: modify/reuse existing controls, with one missing surrounding renderer.
+No existing kit equivalent was found; Settings frames/rows and TextField chrome
+serve different roles. The approved additive kit::form_field::frame takes
+localized Content(label,trailing,body,hint,error), passes the existing field/
+selector through unchanged, and owns only the source Field layout. Pinned
+ui/form-field.tsx37–78/238–264: label base14 normal foregroundMuted, header and
+container gap8; hint/error sm12 with17 line height; nonempty error overrides hint
+and is one line/red300, ordinary hint/label wraps. Empty strings follow the
+source's truthiness behavior rather than suppressing a valid hint. Source/value
+cases are added for both themes and EN/KO feedback precedence. No engine,
+constructor, callback, dependency, area override or caller migration is added.
+
+Proof: direct pinned formatting/source inspection only. The already queued
+e86d narrow predates this new module and is not evidence for it. One final
+changed F1 package check and actual long-label/error/trailing/phone/theme/language
+first-use layout evidence remain owed; no extra whole producer gate is started.

@@ -1477,3 +1477,16 @@ is Paseo's schedule-prompt96 in both layouts. Old constructors/callers stay
 unchanged; the option cannot be applied to a composer/line by a no-op builder.
 The old form chrome moved unchanged into field/form_minimum.rs to lower the
 root's product-line record635→618.
+
+
+### Labeled form fields
+
+`form_field::frame(Content { label, trailing, body, hint, error }, tokens)`
+provides Paseo's `ui/form-field.tsx` Field layout around an existing control.
+It adds no input state, callback or validation engine. Label is normal14 muted;
+container/header gap8; hint/error12 with17 line height; nonempty error wins over
+hint and uses the shared fixed red300 token with the source's single-line limit.
+Ordinary hint and long labels can wrap. Inputs/selects still own their chrome
+and field lifetime. No existing caller/default constructor is changed. Exact
+source/value tests are part of F1's final package checks; native first-use
+layout/long bilingual captures are not implied by this source addition.
