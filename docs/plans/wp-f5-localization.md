@@ -95,18 +95,35 @@ crates actually recompiled. The current explicit-root data report has English
 and Korean complete with zero missing; the partial Japanese fixture has its
 expected three missing messages and is not shipped.
 
-Eight retained before frames reproduce the unsupported-first English fallback
-and English-first control in both themes and desktop/phone sizes; every original
-was opened and hash/dimension checked. Capture apps/private display were stopped.
-The feature is built, not passed: one whole A13 gate/review and the targeted
-after startup check are owed at package close. The approved package base
-`8d5513e4` is now merged as `5b36d990`; the locale implementation is retained
-unchanged and the root crates/manifests/lockfile/page/scripts match that
-incoming base exactly. Its contract adaptations and link/event splits are
-incoming ownership, not new locale features. The final native gate must cover
-this merged source; no older-base gate proves the combined application.
-Current browser/Windows/OS integration and plugin runtime integration are not
-inferred from these native tests; the latter belongs to F6.
+The approved package base `8d5513e4` was merged as `5b36d990`; the locale
+implementation is retained unchanged and root crates/manifests/lockfile/page/
+scripts match the incoming base exactly. Its contract adaptations and link/event
+splits are incoming ownership, not new locale features.
+
+The exact merged source `8a944a237c5f7377b7387c9782793b2a934dbeeb` passed its
+one whole native A13 run `i18n-20261115T065422Z-8a944a23`: fonts, formatting,
+quality, Clippy, build and tests each exited zero, without a skipped step.
+Changed view/link/kit/app crates recompiled. Raw test totals are 1,213 passed
+(1,211 ordinary and two compile-fail documentation tests), zero failed and one
+ignored. Both preferred-order regressions, released catalog completeness and
+plain-getter zero-allocation tests passed. An earlier unregistered submission
+was retired during the build-tool owner's authorized submission repair; it was
+not a compiler/test failure or a second registered package gate.
+
+All 16 startup originals were opened and hash/dimension checked: eight retained
+before frames and eight after frames, both themes at desktop/phone sizes.
+With no override or stored choice, `LANGUAGE=zz-ZZ:ko-KR:en-US` starts in Korean
+instead of English; the `LANGUAGE=en-US:ko-KR` control stays English. Private empty
+configurations and owned display/app processes were used and stopped. Captures
+show settled startup before interaction, not a frame-one timing/flicker proof
+or a whole geometry comparison across the accepted base merge.
+
+Standalone view's wasm library check passed on the same source; full library
+code generation is recorded separately when finished. Neither proves browser
+app execution. V1 review is still owed. Current Windows/OS change subscriptions,
+real provider/node/updater flows, persisted-preference I/O, accessibility, real
+GPU and plugin runtime integration are not inferred from these tests or frames;
+the per-installation plugin integration belongs to F6.
 
 ## Coordinated package word seams
 
@@ -118,8 +135,9 @@ inferred from these native tests; the latter belongs to F6.
 - E4 owns `onboarding.ftl` and `diagnostic-flow.ftl`; underscores are Rust getter
   spellings, never area filenames. It consumes the existing translated
   Diagnostics header/Run/Copy/Refresh and keeps technical report schema separate.
-  Its first diagnostic-flow review found phrasing/terminology corrections;
-  a revised final key diff is still awaited, not approved as a complete package.
+  Its revised final diagnostic-flow wording at `c2000083` passed the words
+  review and explicit-root EN/KO contract check; remaining typed-problem
+  sentence tests were requested. This is not complete-package approval.
 - A9 owns its new `models.ftl` domain and typed helper, without a new formatter
   or dependency in the core localization mechanism.
 
