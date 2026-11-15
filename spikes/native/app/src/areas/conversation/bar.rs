@@ -262,20 +262,37 @@ pub(super) fn menu_items(shell: &Shell) -> Vec<MenuItem> {
         .conversation
         .menu_rows
         .iter()
-        .map(|action| match action {
-            MenuAction::Mark(MarkAction::Delete) => {
-                MenuItem::danger(words.mark_action(MarkAction::Delete))
-            }
-            MenuAction::Mark(mark) => MenuItem::new(words.mark_action(*mark)),
-            MenuAction::CopyId => MenuItem::new(words.copy_session_id()).grouped(),
-            MenuAction::Kill => MenuItem::danger(words.kill()),
-            MenuAction::AgentLog => MenuItem::new(
-                words.agent_log(
-                    Logs::all(shell.areas.conversation.timeline.entries())
-                        .lines()
-                        .count(),
+        .map(|action| {
+            let mut item = match action {
+                MenuAction::Mark(MarkAction::Delete) => {
+                    MenuItem::danger(words.mark_action(MarkAction::Delete))
+                }
+                MenuAction::Mark(mark) => MenuItem::new(words.mark_action(*mark)),
+                MenuAction::CopyLink => MenuItem::new(shell.words.sessions().copy_link()),
+                MenuAction::Close => MenuItem::new(shell.words.sessions().close()),
+                MenuAction::CopyId => MenuItem::new(words.copy_session_id()).grouped(),
+                MenuAction::Kill => MenuItem::danger(words.kill()),
+                MenuAction::AgentLog => MenuItem::new(
+                    words.agent_log(
+                        Logs::all(shell.areas.conversation.timeline.entries())
+                            .lines()
+                            .count(),
+                    ),
                 ),
-            ),
+            };
+            if matches!(
+                action,
+                MenuAction::Close
+                    | MenuAction::Mark(
+                        MarkAction::Archive
+                            | MarkAction::Unarchive
+                            | MarkAction::Delete
+                            | MarkAction::StartAgain
+                    )
+            ) {
+                item.disabled = shell.sessions_lifecycle_busy();
+            }
+            item
         })
         .collect()
 }
@@ -304,6 +321,10 @@ impl Shell {
             })
             .unwrap_or_default();
         rows.push(MenuAction::CopyId);
+        rows.push(MenuAction::CopyLink);
+        if area.info.is_some() {
+            rows.push(MenuAction::Close);
+        }
         // The agent's own log, out of the conversation (slice M): here
         // once the agent has written a line.
         if area

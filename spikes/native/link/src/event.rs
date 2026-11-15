@@ -20,6 +20,10 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// Session address lookup, correlated to its requesting control.
+    Sessions(crate::sessions::Answer),
+    /// The matching lifecycle mutation result.
+    SessionLifecycle(crate::sessions::lifecycle::Answer),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.
