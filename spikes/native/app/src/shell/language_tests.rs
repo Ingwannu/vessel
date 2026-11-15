@@ -65,6 +65,18 @@ impl Shell {
     }
 }
 
+/// A command queue without a node/runtime task lets area tests supply typed replies.
+pub(crate) fn with_commands(
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> (Shell, mpsc::Receiver<Command>) {
+    const ROOM: usize = 64;
+    let (link, commands) = Link::detached(ROOM).unwrap();
+    let mut shell = Shell::without_io(window, cx);
+    shell.link = Some(link);
+    (shell, commands)
+}
+
 pub(crate) fn init(cx: &mut TestAppContext) {
     cx.update(|cx| {
         vessel_app_kit::init(cx, SchemeChoice::Fixed(Scheme::Dark)).unwrap();

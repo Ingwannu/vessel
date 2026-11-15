@@ -19,7 +19,7 @@ use vessel_proto::{ErrorCode, EventSeq, SessionId, SessionInfo};
 use super::actions::{AgentLog, Confirm, MenuAction};
 use super::{
     bench, find, fork, meter, origin, outline, permission, question, queue, read, rename, rewind,
-    search, tail,
+    tail,
 };
 
 /// What the shell does after an act's answer reached the conversation.
@@ -115,8 +115,6 @@ pub(crate) struct ConversationArea {
     /// The node refused to start the session again: its code and words,
     /// said under the ended banner.
     pub(super) again_refused: Option<(Option<ErrorCode>, String)>,
-    /// The palette's message search (kept when another session shows).
-    pub(crate) search: search::Searching,
     /// The rows after the entries: the message sent and not yet
     /// recorded, the working footer.
     pub(super) tail: tail::Tail,
@@ -202,7 +200,6 @@ impl ConversationArea {
             refused: None,
             restarting: false,
             again_refused: None,
-            search: search::Searching::default(),
             tail: tail::Tail::default(),
             fresh: None,
             lost: None,
