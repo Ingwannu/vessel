@@ -32,7 +32,7 @@ fn retained_files_and_context_prevent_client_archive_and_plain_commands_use_life
             shell
                 .layout_open_target(
                     &vessel_app_view::layout::LayoutKey::Session {
-                        machine: "fixture".parse().unwrap(),
+                        machine: vessel_app_view::layout::HostAlias::parse("fixture").unwrap(),
                         session,
                     },
                     vessel_app_view::layout::Target::Agent(session),
@@ -106,7 +106,7 @@ fn unavailable_context_scope_is_not_admitted_and_history_seeds_only_its_new_draf
             url: None,
         };
         let scope = ContextScope {
-            machine: "fixture".parse().unwrap(),
+            machine: vessel_app_view::machine_book::Name::parse("fixture").unwrap(),
             root: WorkspaceRoot::Project {
                 project: ProjectId::random(),
             },

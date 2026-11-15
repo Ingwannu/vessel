@@ -27,7 +27,7 @@ fn menu_keys_are_scoped_and_querying_never_changes_input_or_selection(cx: &mut T
         shell
             .layout_open_target(
                 &vessel_app_view::layout::LayoutKey::Session {
-                    machine: "fixture".parse().unwrap(),
+                    machine: vessel_app_view::layout::HostAlias::parse("fixture").unwrap(),
                     session,
                 },
                 vessel_app_view::layout::Target::Agent(session),
