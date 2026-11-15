@@ -18,6 +18,9 @@ with a simultaneous schema-allocation request to the integrator. No
 launch-profile implementation or registration exists. Quality B's pending
 row is still required; no dummy/current protocol number or second table.
 Account profiles and named launch profiles remain separate domains.
+Contract source `3f0ae46d` is now with V3; the same request asks the node
+integrator for the schema number. Both replies and announced Quality B
+remain prerequisites. The ADR is unchanged in this status-only checkpoint.
 
 The older checkpoints below are historical. Per-commit checks are now
 narrow; one complete root gate and implementation review close the feature

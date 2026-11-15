@@ -2,6 +2,11 @@
 
 ## State
 
+ADR source `3f0ae46d` is submitted to V3 for contract review, with the same
+request to the node integrator for schema allocation. Both are pending;
+the ADR is unchanged in this results-only checkpoint. No approval or
+executable launch-profile behavior is claimed.
+
 Contract proposed; no launch-profile code, method registration, store
 migration, CLI or UI is built. The security contract goes to the node
 reviewer before code. Protocol and store schema allocation are the node
