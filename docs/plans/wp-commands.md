@@ -985,3 +985,8 @@ maximizing, while maximized, and after dispatch. The legacy root-agent metadata
 is seeded in the background solely to prevent its render-time insertion from
 changing the chooser selection; no real agent/resource/connection is admitted.
 These are source/UI regressions, not physical keyboard, OS or authority proof.
+
+Source-check branch also merges announced base10 before its narrow checks,
+preserving the checked diff module and ONE existing composition registration.
+Main remains free of this S2 policy/caller until the coordinator's capture/union
+clearance. No native product acceptance follows from this source preparation.

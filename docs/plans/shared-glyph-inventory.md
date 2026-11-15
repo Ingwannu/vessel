@@ -52,3 +52,11 @@ It does not approve F4's five additional glyphs, consumer ink/geometry, native
 OS input, the sidebar package or measured popup placement. No new capture
 matrix was taken: no vector or renderer changed in this mechanical producer.
 V1's bounded source/package disposition and lead integration remain separate.
+
+V1 final disposition9373dccd: bounded mechanical SOURCE/native PASS for exact
+e1b73c9e8..bb33cee31 +docs-only db04de651. Independent original enum/ALL/path and
+variant documentation order match; old loaders/tests, three drawing sources and
+external mark bytes match. Exact six-step A13 and Kit181/0/0 verified. Audit:
+/tmp/work/m12-review/s2-glyph-inventory-bb33/audit.json. Lead may adopt the isolated
+producer preserving newer append-only entries. No F4 five/artwork/consumer
+UI/OS/F5 approval and no repeated successful gate/capture matrix requested.
