@@ -483,3 +483,14 @@ Merged green93970acb (gate53); canonical listing schema21 remains first,
 and the worker claims append follows it as schema22. No mutation clock or
 workspace mark operation is installed by this merge. Five A5 protocols remain
 None. Earlier1c strict/units are prior-source; merged checks remain owed.
+
+
+## Canonical file/skills carrier base
+
+Merged green275024369 after the prior830 checks completed: five-crate strict0,
+980 library tests and42 rollback tests, following an actual vesseld build.
+Canonical file and skills rows precede the five owned pending attention rows;
+all owning constants remain None. The claim migration stays22 after listing21.
+Canonical generated TypeScript bytes are retained without manual splicing;
+remote regeneration/actual merged-head checks remain owed. No workspace-mark
+clock, roles or same-writer membership helper is adopted by this merge.
