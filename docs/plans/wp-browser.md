@@ -402,8 +402,21 @@ target to acquire input. CDP session correlation alone cannot grant that proof.
 A two-real-tab focus/canary regression (including background targets, simultaneous
 callers and cancellation after activation/before ACK) is required. No private
 constructor/test fixture or single-tab protocol ACK may qualify this boundary.
-Keyboard implementation and node/renderer enabling remain blocked on this real
-input routing proof. The current page module remains cfg(test) and NoEngine.
+Node/renderer enabling remains blocked on complete real input routing proof.
+The current page module remains cfg(test) and NoEngine. The reference comment is
+an embedder-specific warning, not measured evidence that unified headless Chrome
+misroutes every session-scoped insertion.
+
+On 2026-11-15 12:43 UTC, a fresh sandboxed Chrome149 private-pipe diagnostic
+created two targets in the same actual browser window. Both documents focused
+their own synthetic input, then B was activated. Input.insertText sent to A's
+flattened session changed A only; sixteen alternating session insertions also
+stayed separate. The child exited0 after Browser.close; service UID/GID1000,
+profile0700 and all inspected regular entries private. The retained script and
+result are /tmp/work/wp-browser/pipe-multitab-input/{probe.py,result.json}.
+This tests only that specific two-target text path. It does not prove pointer,
+key/IME, dialogs, concurrent actor cancellation, product proxy, Preview or Windows
+isolation and does not remove the required profile-wide transaction fence.
 
 
 ## Private debugger pipe staging after V3 contract PASS
@@ -523,3 +536,15 @@ helper value ownership, moved DTO declaration and consumed read counts). They
 are corrected without changing domain behavior; exact00ae functional suite
 completed493/0/0 before the later launcher/watch/output additions. Current
 changed-source strict/functional evidence remains owed.
+
+
+## Updated common bases and launch permission predicate
+
+Node merged announced ede20014 without conflicts after the active strict suite
+was pinned; app merged announced dd13ce37 (base6 lock fix) independently. Neither
+was a whole-package freeze. New changed-union narrow runs are queued; previous
+strict/tests are not promoted to these unions. Candidate executable admission
+also now checks the opened regular file's other-execute bit in addition to root
+ownership, nonwritable ancestors and fixed digest. A non-root service may not
+accept a non-executable candidate just because its contents hash correctly.
+No chmod/chown or host policy change is performed on refusal.

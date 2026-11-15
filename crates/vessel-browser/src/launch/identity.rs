@@ -75,7 +75,11 @@ fn verify(path: &Path, expected: &[u8; 32]) -> Result<(), LaunchError> {
     }
     let mut file = File::open(path).map_err(LaunchError::Io)?;
     let metadata = file.metadata().map_err(LaunchError::Io)?;
-    if !metadata.is_file() || metadata.uid() != ROOT_UID || metadata.mode() & WRITE_ACCESS != 0 {
+    if !metadata.is_file()
+        || metadata.uid() != ROOT_UID
+        || metadata.mode() & WRITE_ACCESS != 0
+        || metadata.mode() & EXECUTE_ACCESS == 0
+    {
         return Err(LaunchError::Permissions);
     }
     if digest(&mut file)? != *expected {
