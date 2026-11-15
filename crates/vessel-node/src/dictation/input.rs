@@ -11,7 +11,8 @@ const MAX_HELD_BYTES: usize = 1_048_576;
 const SAMPLE_BYTES: usize = size_of::<i16>();
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
-enum InputError {
+/// Distinguish call-only shape refusals from terminal resource failures.
+pub(super) enum InputError {
     #[error("the dictation chunk or finish has an invalid audio shape")]
     BadAudio,
     #[error("the dictation sequence or duration exceeds its stream bound")]
@@ -26,7 +27,8 @@ enum InputError {
     Count(#[source] std::num::TryFromIntError),
 }
 
-struct Input {
+/// Keep accepted and forwarded cursors separate while provider work awaits.
+pub(super) struct Input {
     second: usize,
     accepted: u64,
     limit: u64,
@@ -41,7 +43,8 @@ struct Input {
 }
 
 impl Input {
-    fn new(rate: SampleRate) -> Result<Self, InputError> {
+    /// Derive input bounds from the parsed rate before spawning a stream.
+    pub(super) fn new(rate: SampleRate) -> Result<Self, InputError> {
         let second = usize::try_from(rate.get())
             .map_err(InputError::Count)?
             .saturating_mul(SAMPLE_BYTES)
@@ -68,7 +71,12 @@ impl Input {
         })
     }
 
-    fn accept(&mut self, seq: ChunkSeq, pcm: DictationPcm) -> Result<Option<ChunkSeq>, InputError> {
+    /// Refuse before storing so a rejected call cannot corrupt ordering.
+    pub(super) fn accept(
+        &mut self,
+        seq: ChunkSeq,
+        pcm: DictationPcm,
+    ) -> Result<Option<ChunkSeq>, InputError> {
         // The terminal sequence bound precedes duplicate and shape checks.
         if seq > MAX_SEQ {
             return Err(InputError::TooLong);
@@ -124,7 +132,8 @@ impl Input {
         Ok(())
     }
 
-    fn finish(&mut self, last: ChunkSeq) -> Result<(), InputError> {
+    /// Pin final metadata before any held tail can be forwarded.
+    pub(super) fn finish(&mut self, last: ChunkSeq) -> Result<(), InputError> {
         if last > MAX_SEQ {
             return Err(InputError::TooLong);
         }
@@ -141,7 +150,8 @@ impl Input {
         Ok(())
     }
 
-    fn pop(&mut self) -> Option<DictationPcm> {
+    /// Release one contiguous chunk so commit bounds apply after each append.
+    pub(super) fn pop(&mut self) -> Option<DictationPcm> {
         if self.tail == Some(self.forward) && self.finish != Some(self.forward) {
             return None;
         }
@@ -154,6 +164,20 @@ impl Input {
         Some(pcm)
     }
 
+    /// A short tail stays acknowledged until finish releases it.
+    pub(super) fn forwardable(&self) -> bool {
+        self.current.is_some()
+            && (self.tail != Some(self.forward) || self.finish == Some(self.forward))
+    }
+    /// Finalization waits for the named tail, including gaps accepted earlier.
+    pub(super) fn all_forwarded(&self) -> bool {
+        self.finish.is_some_and(|last| self.forward > last)
+    }
+    /// The actor freezes its first finish estimate against this metadata.
+    pub(super) fn final_seq(&self) -> Option<ChunkSeq> {
+        self.finish
+    }
+
     fn contains(&self, seq: ChunkSeq) -> bool {
         seq < self.forward || self.chunk(seq).is_some()
     }
@@ -164,7 +188,8 @@ impl Input {
             self.held.get(&seq)
         }
     }
-    fn ack(&self) -> Option<ChunkSeq> {
+    /// Expose accepted contiguous progress independently of provider completion.
+    pub(super) fn ack(&self) -> Option<ChunkSeq> {
         self.acknowledge.get().checked_sub(1).map(ChunkSeq::new)
     }
 }

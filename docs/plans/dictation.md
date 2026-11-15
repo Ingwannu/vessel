@@ -490,3 +490,23 @@ phase observation before delayed collection, abort-and-drain, real HTTP/codecs,
 closed-provider typed causes and a worker panic with fixed diagnostics. Narrow
 checks remain owed. The layer does not
 yet prove the actor's finish-only TooSmall mapping or owner/transport cancellation.
+
+## Staged actor implementation
+
+Decision: modify the tested Input/Text/Budget/Updates/Jobs components into one
+exclusive stream owner. Existing transport queues do not own gap ordering,
+finish metadata or per-segment result order; a separate scheduler is necessary.
+No dependency or alternate codec, TLS builder or secret reader is introduced.
+The actor advances one accepted chunk at a time, while a separate select observes
+next, transport/node/owner close, first-stop selection and the fixed deadline.
+Independent provider jobs capture finish phase at return, before result folding.
+A deferred success retains backpressure without blocking control. Retirement
+preserves a previously selected terminal cause and aborts/joins provider tasks.
+Unread terminals retain only output, never the HTTP pool, credential or audio.
+
+Resume: the actor and its tests are staged under the existing outer test gate;
+its first narrow compile/runtime checks are pending. Input, text/budget, DTO,
+update buffer and provider-job narrow checks have passed. Registry quotas,
+secret preparation, settings persistence, RPC policy/transport wiring and the
+file CLI remain unimplemented. This is source under development, not product
+or end-to-end evidence. The feature package gets its whole gate at completion.

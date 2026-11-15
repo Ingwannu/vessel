@@ -21,3 +21,8 @@ mod provider_json;
 mod roots;
 mod text;
 mod updates;
+
+mod commands;
+mod control;
+mod stream;
+mod stream_error;

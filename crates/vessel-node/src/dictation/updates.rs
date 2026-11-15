@@ -10,28 +10,33 @@ use vessel_proto::dictation::Transcript;
 
 const MAX_PARTIALS: usize = 2;
 
-enum End<F> {
+/// Retain a terminal separately from bounded partial backpressure.
+pub(super) enum End<F> {
     Final(Transcript),
     Failed(F),
 }
-enum Event<F> {
+/// Keep partial and terminal ownership distinct at response readiness.
+pub(super) enum Event<F> {
     Partial(Transcript),
     End(End<F>),
 }
-enum Reply<F> {
+/// Refuse extra waits without consuming the pending update.
+pub(super) enum Reply<F> {
     Update(Event<F>),
     Refused(ReadRefusal),
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
-enum ReadRefusal {
+/// Distinguish a conflicting wait from an absent stream.
+pub(super) enum ReadRefusal {
     #[error("a dictation update wait is already pending")]
     Waiting,
     #[error("the dictation stream no longer exists")]
     Gone,
 }
 #[derive(Debug, thiserror::Error)]
-enum PartialRefusal {
+/// Return the owned transcript when the bounded buffer cannot accept it.
+pub(super) enum PartialRefusal {
     #[error("the dictation partial buffer holds {MAX_PARTIALS} updates")]
     Full(Transcript),
     #[error("the dictation stream already has a terminal result")]
@@ -40,7 +45,8 @@ enum PartialRefusal {
 
 #[derive(thiserror::Error)]
 #[error("the dictation stream already has a terminal result")]
-struct EndRefusal<F>(End<F>);
+/// Return the later terminal without overwriting the first.
+pub(super) struct EndRefusal<F>(End<F>);
 impl<F> std::fmt::Debug for EndRefusal<F> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("EndRefusal")
@@ -54,13 +60,15 @@ enum Phase {
     Consumed,
 }
 #[derive(Debug, PartialEq, Eq)]
-enum Delivery {
+/// Let the actor retire only after a terminal becomes response-ready.
+pub(super) enum Delivery {
     Idle,
     PartialReady,
     TerminalReady,
 }
 
-struct Updates<F> {
+/// Restore canceled replies before another await can lose an update.
+pub(super) struct Updates<F> {
     partials: VecDeque<Transcript>,
     end: Option<End<F>>,
     waiter: Option<oneshot::Sender<Reply<F>>>,
@@ -77,7 +85,30 @@ impl<F> Default for Updates<F> {
     }
 }
 impl<F> Updates<F> {
-    fn partial(&mut self, text: Transcript) -> Result<(), PartialRefusal> {
+    /// Backpressure keeps a successful provider result outside this full queue.
+    pub(super) fn can_partial(&self) -> bool {
+        self.phase == Phase::Open && self.partials.len() < MAX_PARTIALS
+    }
+    /// No accepted audio produces a call refusal, never a fabricated terminal.
+    pub(super) fn absent(&mut self) {
+        self.partials.clear();
+        self.end = None;
+        self.phase = Phase::Consumed;
+        if let Some(reply) = self.waiter.take() {
+            drop(reply.send(Reply::Refused(ReadRefusal::Gone)));
+        }
+    }
+    /// Explicit retirement discards partials but preserves the first terminal.
+    pub(super) fn retire(&mut self, end: End<F>) {
+        self.partials.clear();
+        if self.phase == Phase::Open {
+            self.end = Some(end);
+            self.phase = Phase::Ending;
+        }
+    }
+
+    /// Refuse overflow without dropping or coalescing transcript events.
+    pub(super) fn partial(&mut self, text: Transcript) -> Result<(), PartialRefusal> {
         if self.phase != Phase::Open {
             return Err(PartialRefusal::Ended(text));
         }
@@ -88,7 +119,8 @@ impl<F> Updates<F> {
         Ok(())
     }
 
-    fn finish(&mut self, end: End<F>) -> Result<(), EndRefusal<F>> {
+    /// Select one terminal independently of partial capacity.
+    pub(super) fn finish(&mut self, end: End<F>) -> Result<(), EndRefusal<F>> {
         if self.phase != Phase::Open {
             return Err(EndRefusal(end));
         }
@@ -97,7 +129,8 @@ impl<F> Updates<F> {
         Ok(())
     }
 
-    fn wait(&mut self, reply: oneshot::Sender<Reply<F>>) {
+    /// Allow one pending reader and replace only a canceled one.
+    pub(super) fn wait(&mut self, reply: oneshot::Sender<Reply<F>>) {
         if self.waiter.as_ref().is_some_and(oneshot::Sender::is_closed) {
             drop(self.waiter.take());
         }
@@ -116,7 +149,8 @@ impl<F> Updates<F> {
         }
     }
 
-    fn pump(&mut self) -> Delivery {
+    /// Transfer an update only at the response-ready point.
+    pub(super) fn pump(&mut self) -> Delivery {
         let Some(reply) = self.waiter.take() else {
             return Delivery::Idle;
         };

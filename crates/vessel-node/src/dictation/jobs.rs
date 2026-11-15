@@ -14,25 +14,29 @@ use tokio::{sync::watch, task::JoinSet};
 use vessel_proto::dictation::Transcript;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum CommitPhase {
+/// Classify TooSmall at provider return rather than delayed result folding.
+pub(super) enum CommitPhase {
     Running,
     Finishing,
 }
 
 #[derive(Clone)]
-enum Source {
+/// Keep test fakes out of product provider choices.
+pub(super) enum Source {
     Endpoint(Endpoint),
     #[cfg(test)]
     Fake(mpsc::Sender<FakeRequest>),
 }
 #[cfg(test)]
-struct FakeRequest {
-    segment: Segment,
-    reply: oneshot::Sender<Result<Transcript, ProviderError>>,
+/// Let actor tests hold real jobs at an explicit completion boundary.
+pub(super) struct FakeRequest {
+    pub(super) segment: Segment,
+    pub(super) reply: oneshot::Sender<Result<Transcript, ProviderError>>,
 }
 
 #[derive(thiserror::Error)]
-enum JobError {
+/// Retain typed causes without formatting provider payloads.
+pub(super) enum JobError {
     #[error("the dictation provider did not complete the segment")]
     Endpoint(#[source] ProviderError),
     #[error("the dictation provider worker did not finish")]
@@ -73,20 +77,23 @@ impl Source {
     }
 }
 
-struct Completion {
-    index: CommitIndex,
-    phase: CommitPhase,
-    result: Result<Transcript, JobError>,
+/// Keep the submission slot and completion phase attached to the result.
+pub(super) struct Completion {
+    pub(super) index: CommitIndex,
+    pub(super) phase: CommitPhase,
+    pub(super) result: Result<Transcript, JobError>,
 }
 
 #[derive(Debug, thiserror::Error)]
 #[error("dictation already holds {max} provider job slots", max = super::MAX_IN_FLIGHT_COMMITS)]
-struct Full {
+/// Return detached audio ownership when no bounded job slot is free.
+pub(super) struct Full {
     index: CommitIndex,
     segment: Segment,
 }
 
-struct Jobs {
+/// Own independently polled jobs so text ordering cannot serialize HTTP.
+pub(super) struct Jobs {
     source: Source,
     phase: watch::Receiver<CommitPhase>,
     tasks: JoinSet<Completion>,
@@ -94,7 +101,8 @@ struct Jobs {
     observed: Option<watch::Sender<Option<(CommitIndex, CommitPhase)>>>,
 }
 impl Jobs {
-    fn new(source: Source, phase: watch::Receiver<CommitPhase>) -> Self {
+    /// Bind all jobs to this stream and its completion phase.
+    pub(super) fn new(source: Source, phase: watch::Receiver<CommitPhase>) -> Self {
         Self {
             source,
             phase,
@@ -103,13 +111,16 @@ impl Jobs {
             observed: None,
         }
     }
-    fn full(&self) -> bool {
+    /// Prevent provider tasks from growing with queued input.
+    pub(super) fn full(&self) -> bool {
         self.tasks.len() >= super::MAX_IN_FLIGHT_COMMITS
     }
-    fn empty(&self) -> bool {
+    /// Avoid polling an empty join set as a ready-loop.
+    pub(super) fn empty(&self) -> bool {
         self.tasks.is_empty()
     }
-    fn spawn(&mut self, index: CommitIndex, segment: Segment) -> Result<(), Full> {
+    /// Reserve physical work only after the text slot has an owner.
+    pub(super) fn spawn(&mut self, index: CommitIndex, segment: Segment) -> Result<(), Full> {
         if self.full() {
             return Err(Full { index, segment });
         }
@@ -133,13 +144,15 @@ impl Jobs {
         });
         Ok(())
     }
-    async fn take(&mut self) -> Option<Result<Completion, JobError>> {
+    /// Release physical capacity in completion order.
+    pub(super) async fn take(&mut self) -> Option<Result<Completion, JobError>> {
         self.tasks
             .join_next()
             .await
             .map(|result| result.map_err(JobError::Join))
     }
-    async fn clear(&mut self) -> Result<(), JobError> {
+    /// Join aborted workers before releasing the stream reservation.
+    pub(super) async fn clear(&mut self) -> Result<(), JobError> {
         self.tasks.abort_all();
         let mut failed = None;
         while let Some(result) = self.tasks.join_next().await {

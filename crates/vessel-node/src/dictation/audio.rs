@@ -16,7 +16,7 @@ const RIFF_PREFIX_BYTES: usize = 8;
 const WAVE_FMT_BYTES: u32 = 16;
 const PCM_FORMAT: u16 = 1;
 const MONO_CHANNELS: u16 = 1;
-const COMMIT_SECONDS: usize = 15;
+pub(super) const COMMIT_SECONDS: usize = 15;
 // Commit after appending a whole second-sized input chunk, as Paseo does.
 const MAX_SEGMENT_SECONDS: usize = COMMIT_SECONDS + super::MAX_CHUNK_SECONDS;
 const SILENCE_PEAK: u16 = 300;
@@ -43,7 +43,7 @@ pub(super) enum AudioError {
 
 /// Provider-rate PCM cannot be confused with a client's original-rate chunk.
 #[derive(Clone)]
-struct ResampledPcm(Bytes);
+pub(super) struct ResampledPcm(Bytes);
 
 impl fmt::Debug for ResampledPcm {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -52,7 +52,7 @@ impl fmt::Debug for ResampledPcm {
 }
 
 /// Carry interpolation across calls, without retaining the old chunk's buffer.
-struct Resampler {
+pub(super) struct Resampler {
     input: SampleRate,
     phase: u32,
     left: Option<i16>,
@@ -60,7 +60,7 @@ struct Resampler {
 
 impl Resampler {
     /// Only a parsed wire rate can select the interpolation ratio.
-    fn new(input: SampleRate) -> Self {
+    pub(super) fn new(input: SampleRate) -> Self {
         Self {
             input,
             phase: 0,
@@ -69,7 +69,7 @@ impl Resampler {
     }
 
     /// Preserve one-sample tails and phase across independently decoded chunks.
-    fn push(&mut self, pcm: &DictationPcm) -> Result<ResampledPcm, AudioError> {
+    pub(super) fn push(&mut self, pcm: &DictationPcm) -> Result<ResampledPcm, AudioError> {
         if self.input.get() == PROVIDER_HZ {
             return Ok(ResampledPcm(pcm.clone().into_bytes()));
         }
@@ -169,7 +169,7 @@ impl Segment {
 }
 
 /// An actor's open segment is bounded even while an endpoint is backpressured.
-struct SegmentBuffer {
+pub(super) struct SegmentBuffer {
     pcm: Vec<u8>,
     peak: u16,
     bytes_per_second: usize,
@@ -187,7 +187,7 @@ impl SegmentBuffer {
     }
 
     /// Refuse before retaining a chunk that would exceed the segment bound.
-    fn append(&mut self, chunk: &ResampledPcm) -> Result<(), AudioError> {
+    pub(super) fn append(&mut self, chunk: &ResampledPcm) -> Result<(), AudioError> {
         if self.pcm.len().saturating_add(chunk.0.len())
             > self.bytes_per_second.saturating_mul(MAX_SEGMENT_SECONDS)
         {
@@ -202,12 +202,12 @@ impl SegmentBuffer {
     }
 
     /// Commit after the whole current chunk, preserving Paseo's threshold order.
-    fn ready(&self) -> bool {
+    pub(super) fn ready(&self) -> bool {
         self.pcm.len() >= self.bytes_per_second.saturating_mul(COMMIT_SECONDS)
     }
 
     /// Supply finish-budget arithmetic with a duration rather than raw bytes.
-    fn duration(&self) -> Result<Duration, AudioError> {
+    pub(super) fn duration(&self) -> Result<Duration, AudioError> {
         let seconds = self.pcm.len().div_ceil(self.bytes_per_second);
         Ok(Duration::from_secs(
             u64::try_from(seconds).map_err(AudioError::Count)?,
@@ -215,7 +215,7 @@ impl SegmentBuffer {
     }
 
     /// Silence is intentionally discarded at a commit boundary or finish.
-    fn seal(&mut self) -> Option<Segment> {
+    pub(super) fn seal(&mut self) -> Option<Segment> {
         let pcm = std::mem::take(&mut self.pcm);
         let peak = std::mem::replace(&mut self.peak, 0);
         if pcm.is_empty() || peak < SILENCE_PEAK {

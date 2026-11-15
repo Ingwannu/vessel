@@ -46,7 +46,12 @@ impl Text {
         Ok(index)
     }
 
-    fn complete(&mut self, index: CommitIndex, text: Transcript) -> Result<(), TextError> {
+    /// Account for untrimmed text before allocating any joined output.
+    pub(super) fn complete(
+        &mut self,
+        index: CommitIndex,
+        text: Transcript,
+    ) -> Result<(), TextError> {
         let separators = self.slots.len().saturating_sub(1);
         let slot = self.slots.get_mut(index.0).ok_or(TextError::Commit)?;
         if slot.is_some() {
@@ -62,7 +67,8 @@ impl Text {
         Ok(())
     }
 
-    fn join(&self) -> Result<Transcript, TextError> {
+    /// Preserve submission slots and trim the complete result exactly once.
+    pub(super) fn join(&self) -> Result<Transcript, TextError> {
         let mut joined = String::with_capacity(
             self.retained
                 .saturating_add(self.slots.len().saturating_sub(1)),
@@ -84,11 +90,13 @@ impl Text {
         Transcript::try_from(joined).map_err(TextError::Transcript)
     }
 
-    fn pending(&self) -> PendingCommits {
+    /// Count committed slots whose results have not been folded.
+    pub(super) fn pending(&self) -> PendingCommits {
         PendingCommits::new(self.pending)
     }
 
-    fn finished(&self) -> bool {
+    /// Finalization must wait for every submitted result, even an empty one.
+    pub(super) fn finished(&self) -> bool {
         self.pending == 0
     }
 }
