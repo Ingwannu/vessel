@@ -28,6 +28,8 @@ use crate::shell::Shell;
 
 /// What every row needs to draw itself.
 pub(super) struct Paint<'a> {
+    /// Prepared catalogs for the areas already moved out of legacy tables.
+    pub(super) catalog: &'static vessel_app_view::localization::Translator,
     pub(super) words: &'static ConversationWords,
     pub(super) tokens: &'a Tokens,
     pub(super) look: Look,
@@ -52,7 +54,7 @@ pub(super) struct Paint<'a> {
     )>,
     /// The machines' sessions: a forked session's first line names its
     /// source by its title.
-    pub(super) fleet: &'a vessel_app_view::Fleet,
+    pub(super) fork_headers: &'a vessel_app_view::fork::Headers,
     /// What a fork's first line has above or under it (`origin`).
     pub(super) above: super::origin::Above<'a>,
 }
@@ -86,22 +88,7 @@ pub(super) fn entry(
             div().into_any_element()
         }
         EntryKind::Message { text } => bubbles::message(paint, index, text, entry.rev, window, cx),
-        EntryKind::Thought { text } => {
-            let head = work_row(paint, index, words.thought().to_owned(), None, open, cx);
-            div()
-                .child(head)
-                .when(open, |row| {
-                    row.child(
-                        div()
-                            .ml(px(28.0))
-                            .py(px(4.0))
-                            .type_(Type::Body)
-                            .text_color(paint.look.secondary)
-                            .child(text.clone()),
-                    )
-                })
-                .into_any_element()
-        }
+        EntryKind::Thought { text } => thought(paint, index, text, open, cx),
         EntryKind::Tool(view) => tool::card(paint, index, view, open, window, cx),
         // While it waits its form is over the composer: here only a quiet
         // line (the page's), so the question is not drawn twice.
@@ -136,33 +123,69 @@ pub(super) fn entry(
         EntryKind::TurnEnded { reason, .. } => {
             super::footer::completed(paint, index, *reason, window, cx)
         }
-        EntryKind::TurnFailed { .. } => failure(paint, words.spoken(entry)),
-        EntryKind::Log { line } => div()
-            .px(px(4.0))
-            .type_(Type::Mono)
-            .text_size(px(vessel_app_kit::fonts::ui(12.0)))
-            .text_color(paint.look.secondary)
-            .child(line.clone())
-            .into_any_element(),
-        EntryKind::Forked { from, .. } => super::origin::forked_line(
-            paint,
-            format!(
-                "{} · {}",
-                words.forked_from(paint.fleet.title_of(*from)),
-                words.when(entry.at, Local::now().fixed_offset())
-            ),
-        ),
+        EntryKind::TurnFailed { .. } => failure(paint, words.spoken(entry, paint.catalog)),
+        EntryKind::Log { line } => log_line(paint, line),
+        EntryKind::Forked { from, .. } => {
+            let head = paint.fork_headers.words(*from, paint.catalog);
+            super::origin::forked_line(paint, dated(paint, head, entry))
+        }
         EntryKind::Status { .. } | EntryKind::Parking(_) => meta(
             paint,
-            format!(
-                "{} · {}",
-                words.spoken(entry),
-                words.when(entry.at, Local::now().fixed_offset())
-            ),
+            dated(paint, &words.spoken(entry, paint.catalog), entry),
         ),
-        EntryKind::Ready { .. } | EntryKind::Profile { .. } => meta(paint, words.spoken(entry)),
+        EntryKind::Ready { .. } | EntryKind::Profile { .. } => {
+            meta(paint, words.spoken(entry, paint.catalog))
+        }
         EntryKind::Model(call) => meta(paint, words.model_line(call)),
     }
+}
+
+/// A thought: its work row, and its words under it while open.
+fn thought(
+    paint: &Paint<'_>,
+    index: usize,
+    text: &str,
+    open: bool,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let head = work_row(
+        paint,
+        index,
+        paint.words.thought().to_owned(),
+        None,
+        open,
+        cx,
+    );
+    div()
+        .child(head)
+        .when(open, |row| {
+            row.child(
+                div()
+                    .ml(px(28.0))
+                    .py(px(4.0))
+                    .type_(Type::Body)
+                    .text_color(paint.look.secondary)
+                    .child(text.to_owned()),
+            )
+        })
+        .into_any_element()
+}
+
+/// A line of the agent's log, in the code face.
+fn log_line(paint: &Paint<'_>, line: &str) -> AnyElement {
+    div()
+        .px(px(4.0))
+        .type_(Type::Mono)
+        .text_size(px(vessel_app_kit::fonts::ui(12.0)))
+        .text_color(paint.look.secondary)
+        .child(line.to_owned())
+        .into_any_element()
+}
+
+/// `head`, then when `entry` happened.
+fn dated(paint: &Paint<'_>, head: &str, entry: &Entry) -> String {
+    let when = paint.words.when(entry.at, Local::now().fixed_offset());
+    format!("{head} · {when}")
 }
 
 /// An element id from an entry's index.

@@ -13,7 +13,6 @@
 //! - Cost: additional languages cover migrated areas only during this staged
 //!   move. The app ships complete English and Korean catalogs today.
 
-mod about;
 mod agents;
 mod app;
 mod board;
@@ -34,10 +33,8 @@ mod settings;
 mod shortcuts;
 mod sidebar;
 mod sync;
-mod update;
 pub mod workspace;
 
-pub use about::AboutText;
 pub use app::Text;
 pub use board::BoardWords;
 pub use conversation::{ConversationWords, grouped, meter_tokens, short_tokens};
@@ -54,7 +51,6 @@ pub use palette::PaletteWords;
 pub use settings::SettingsText;
 pub use shortcuts::ShortcutWords;
 pub use sidebar::SidebarWords;
-pub use update::UpdateText;
 
 /// A language the app speaks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

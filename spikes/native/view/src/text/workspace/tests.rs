@@ -13,7 +13,9 @@ use vessel_proto::workspace::{
 
 use super::{En, Ko, Local, WorkspaceWords};
 use crate::workspace::branch_name::branch_name_problem;
-use crate::workspace::command_changes::{Compared, Listed, compare_approved, needs_folder};
+use crate::workspace::command_changes::{
+    Change, Compared, Listed, ScriptLine, compare_approved, compare_scripts, needs_folder,
+};
 use crate::workspace::place::{Place, PlaceMode, ProjectPlace, place_problem};
 
 fn local() -> Local {
@@ -306,12 +308,14 @@ fn command(text: &str) -> ProjectCommand {
 }
 
 fn script(name: &str, kind: ScriptKind, command: &str) -> ScriptEntry {
-    ScriptEntry {
-        name: name.parse().unwrap(),
+    ScriptEntry::new(
+        name.parse().unwrap(),
         kind,
-        command: command.parse().unwrap(),
-        dir: None,
-    }
+        command.parse().unwrap(),
+        None,
+        None,
+    )
+    .unwrap()
 }
 
 fn dev() -> ScriptEntry {
@@ -337,6 +341,7 @@ fn listed(
         digest: digest.to_string().repeat(64).parse().unwrap(),
         approved,
         scripts,
+        terminals: Vec::new(),
         last_approved: last.map(Box::new),
     }
 }
@@ -347,6 +352,7 @@ fn approved_set(setup: &[&str], scripts: Vec<ScriptEntry>) -> ApprovedCommands {
             setup: setup.iter().map(|text| command(text)).collect(),
             teardown: Vec::new(),
             scripts,
+            terminals: Vec::new(),
         },
         digest: "a".repeat(64).parse().unwrap(),
         approved_at: Utc.with_ymd_and_hms(2026, 11, 12, 9, 30, 0).unwrap(),
@@ -355,16 +361,16 @@ fn approved_set(setup: &[&str], scripts: Vec<ScriptEntry>) -> ApprovedCommands {
 
 #[test]
 fn says_what_a_script_s_change_was() {
-    let service = ScriptEntry {
-        kind: ScriptKind::Service,
-        ..lint()
-    };
+    let service = script("lint", ScriptKind::Service, "npm run lint");
     assert_eq!(En.script_change(&lint(), &service), "now a service");
-    let moved = ScriptEntry {
-        command: "pnpm dev".parse().unwrap(),
-        dir: Some("web".parse().unwrap()),
-        ..dev()
-    };
+    let moved = ScriptEntry::new(
+        "dev".parse().unwrap(),
+        ScriptKind::Service,
+        "pnpm dev".parse().unwrap(),
+        Some("web".parse().unwrap()),
+        None,
+    )
+    .unwrap();
     assert_eq!(
         En.script_change(&dev(), &moved),
         "its command and its folder"
@@ -480,4 +486,125 @@ fn says_every_case_in_korean_too() {
     );
     let problem = branch_name_problem("what?").unwrap();
     assert!(Ko.branch_name(problem).contains("\u{201c}?\u{201d}"));
+}
+
+#[test]
+fn refuses_approval_of_unshown_terminal_commands() {
+    use crate::workspace::command_changes::ApprovalRefusal;
+    use vessel_proto::workspace::FileTerminal;
+    let mut asked = listed(&[], false, 'c', vec![], None);
+    assert_eq!(Listed::of(&asked).unwrap().approval(), Ok(()));
+    if let ProjectCommands::Listed { terminals, .. } = &mut asked {
+        terminals.push(FileTerminal {
+            name: None,
+            command: command("npm run watch"),
+        });
+    }
+    assert_eq!(
+        Listed::of(&asked).unwrap().approval(),
+        Err(ApprovalRefusal::Terminals)
+    );
+    assert!(!En.labels().approval_unseen.is_empty());
+    assert!(!Ko.labels().approval_unseen.is_empty());
+}
+
+#[test]
+fn refuses_comparison_that_would_hide_removed_terminal_commands() {
+    use crate::workspace::command_changes::ApprovalRefusal;
+    use vessel_proto::workspace::FileTerminal;
+    let mut previous = approved_set(&[], vec![]);
+    previous.commands.terminals.push(FileTerminal {
+        name: None,
+        command: command("npm run watch"),
+    });
+    let asked = listed(&[], false, 'c', vec![], Some(previous));
+    assert_eq!(
+        Listed::of(&asked).unwrap().approval(),
+        Err(ApprovalRefusal::Terminals)
+    );
+}
+
+#[test]
+fn compares_and_names_declared_port_additions_changes_and_removal() {
+    use vessel_proto::workspace::ServicePort;
+    let without = dev();
+    let declared = |port: u16| {
+        ScriptEntry::new(
+            without.name.clone(),
+            without.kind(),
+            without.command.clone(),
+            without.dir.clone(),
+            Some(ServicePort::try_from(port).unwrap()),
+        )
+        .unwrap()
+    };
+    let first = declared(3000);
+    let second = declared(3001);
+    for (before, after, english, korean) in [
+        (
+            &without,
+            &first,
+            "no declared port → port 3000",
+            "지정 포트 없음 → 포트 3000",
+        ),
+        (
+            &first,
+            &second,
+            "port 3000 → port 3001",
+            "포트 3000 → 포트 3001",
+        ),
+        (
+            &first,
+            &without,
+            "port 3000 → no declared port",
+            "포트 3000 → 지정 포트 없음",
+        ),
+    ] {
+        assert_eq!(
+            compare_scripts(std::slice::from_ref(before), std::slice::from_ref(after)),
+            vec![ScriptLine::Changed {
+                script: after.clone(),
+                was: before.clone()
+            }]
+        );
+        assert_eq!(En.script_change(before, after), english);
+        assert_eq!(Ko.script_change(before, after), korean);
+    }
+    assert_eq!(
+        compare_scripts(std::slice::from_ref(&first), std::slice::from_ref(&first)),
+        vec![ScriptLine::Line {
+            change: Change::Same,
+            script: first
+        }]
+    );
+}
+
+#[test]
+fn an_approved_declared_port_removal_is_still_a_change() {
+    let previous = ScriptEntry::new(
+        "dev".parse().unwrap(),
+        ScriptKind::Service,
+        "npm run dev".parse().unwrap(),
+        None,
+        Some("3000".parse().unwrap()),
+    )
+    .unwrap();
+    let asked = listed(
+        &[],
+        false,
+        'b',
+        vec![dev()],
+        Some(approved_set(&[], vec![previous.clone()])),
+    );
+    let compared = compare_approved(&Listed::of(&asked).unwrap(), None);
+    let Compared::Changed { scripts, .. } = compared else {
+        panic!("expected an approved comparison")
+    };
+    assert_eq!(
+        scripts,
+        vec![ScriptLine::Changed {
+            script: dev(),
+            was: previous
+        }]
+    );
 }

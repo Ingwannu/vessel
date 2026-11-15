@@ -1,25 +1,19 @@
 //! The timeline on screen: the kit's long list over the rows, each row in
-//! the session's one chat column; a run of tool calls
-//! folded into its summary row, a run of the agent's log lines into one
-//! row opening to a box; and what floats over the frame (the
-//! Session actions menu, a confirm).
+//! the session's one chat column; a run of tool calls folded into its
+//! summary row. What floats over the frame is `overlays`.
 
-use vessel_app_kit::output::Lines;
 use vessel_app_kit::ui::{
-    AnyElement, Context, ElementId, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, ElementId, InteractiveElement as _, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
-use vessel_app_kit::{
-    DialogContent, DialogSize, Start, Tokens, Type, TypeExt as _, breakpoint, button, dialog,
-    lines_box, menu,
-};
+use vessel_app_kit::{Tokens, Type, TypeExt as _, breakpoint};
 use vessel_app_view::session::is_live;
-use vessel_app_view::timeline::{EntryKind, Logs};
+use vessel_app_view::timeline::{Entry, EntryKind};
 
 use super::entries::{self, Paint, id};
 use super::look::{Look, WORK_LINE, WORK_SIZE};
 use super::tail::TailRow;
-use super::{Confirm, ConversationArea, Seat};
+use super::{ConversationArea, Seat};
 use crate::shell::Shell;
 
 /// The conversation's body: its rows in the long list, or the empty
@@ -116,6 +110,7 @@ fn paint<'a>(
     window: &Window,
 ) -> Paint<'a> {
     Paint {
+        catalog: shell.words,
         words: shell.t.lang.conversation(),
         tokens,
         look: Look::of(tokens),
@@ -129,7 +124,7 @@ fn paint<'a>(
         rewinds: rewinds(shell, area).then_some(&area.timeline),
         forks: std::ptr::eq(area, &raw const shell.areas.conversation)
             .then_some((&area.timeline, &area.forking)),
-        fleet: &shell.fleet,
+        fork_headers: &shell.areas.conversation.forking.headers,
         above: area.above(),
     }
 }
@@ -158,22 +153,7 @@ fn row_element(
     };
     let paint = paint(shell, area, seat, tokens, window);
     if let Some(tail) = area.tail_row(row) {
-        return lane(match tail {
-            TailRow::Pending(text) => {
-                let index = area.timeline.entries().len();
-                area.pending_drawn();
-                let row = super::bubbles::pending(&paint, index, &text);
-                if area.pending_fresh() {
-                    super::motion::settle(
-                        ElementId::NamedInteger("pending-arrive".into(), id(index)),
-                        row,
-                    )
-                } else {
-                    row
-                }
-            }
-            TailRow::Working(since) => super::footer::working(&paint, since),
-        });
+        return lane(tail_element(&paint, area, tail));
     }
     let Some(index) = area.rows.entry(row) else {
         return div().into_any_element();
@@ -206,44 +186,75 @@ fn row_element(
         ));
     }
     if run.is_none() || run_open {
-        let drawn = entries::entry(&paint, index, entry, open(area, index), window, cx);
-        // A person's message carries Paseo's trailing row: its time,
-        // rewind where it can go, copy (`rewind`).
-        let said = if let EntryKind::Prompt(prompt) = &entry.kind {
-            Some(prompt.text.as_str())
-        } else if let EntryKind::Steer { text, .. } = &entry.kind {
-            Some(text.as_str())
-        } else {
-            None
-        };
-        let drawn = if let Some(text) = said {
-            super::rewind::with_row(
-                &paint,
-                index,
-                (drawn, text, entry.at),
-                &area.rewinding,
-                breakpoint::phone(window),
-                window,
-                cx,
-            )
-        } else {
-            drawn
-        };
-        // A reply that just came grows in (`motion`).
-        let arriving = matches!(entry.kind, EntryKind::Message { .. })
-            && area
-                .fresh
-                .is_some_and(|(from, at)| index >= from && at.elapsed() < super::motion::FRESH);
-        content = content.child(if arriving {
-            super::motion::arrive(
-                ElementId::NamedInteger("reply-arrive".into(), id(index)),
-                drawn,
-            )
-        } else {
-            drawn
-        });
+        content = content.child(entry_element(&paint, area, (index, entry), window, cx));
     }
     lane(content.into_any_element())
+}
+
+/// A row after the log's own: the person's message still on its way
+/// (settling in when fresh), or the working footer.
+fn tail_element(paint: &Paint<'_>, area: &ConversationArea, tail: TailRow) -> AnyElement {
+    match tail {
+        TailRow::Pending(text) => {
+            let index = area.timeline.entries().len();
+            area.pending_drawn();
+            let row = super::bubbles::pending(paint, index, &text);
+            if area.pending_fresh() {
+                super::motion::settle(
+                    ElementId::NamedInteger("pending-arrive".into(), id(index)),
+                    row,
+                )
+            } else {
+                row
+            }
+        }
+        TailRow::Working(since) => super::footer::working(paint, since),
+    }
+}
+
+/// Entry `index` drawn: a person's message with Paseo's trailing row (its
+/// time, rewind where it can go, copy), a reply that just came growing in.
+fn entry_element(
+    paint: &Paint<'_>,
+    area: &ConversationArea,
+    (index, entry): (usize, &Entry),
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let drawn = entries::entry(paint, index, entry, open(area, index), window, cx);
+    let said = if let EntryKind::Prompt(prompt) = &entry.kind {
+        Some(prompt.text.as_str())
+    } else if let EntryKind::Steer { text, .. } = &entry.kind {
+        Some(text.as_str())
+    } else {
+        None
+    };
+    let drawn = if let Some(text) = said {
+        super::rewind::with_row(
+            paint,
+            index,
+            (drawn, text, entry.at),
+            &area.rewinding,
+            breakpoint::phone(window),
+            window,
+            cx,
+        )
+    } else {
+        drawn
+    };
+    // A reply that just came grows in (`motion`).
+    let arriving = matches!(entry.kind, EntryKind::Message { .. })
+        && area
+            .fresh
+            .is_some_and(|(from, at)| index >= from && at.elapsed() < super::motion::FRESH);
+    if arriving {
+        super::motion::arrive(
+            ElementId::NamedInteger("reply-arrive".into(), id(index)),
+            drawn,
+        )
+    } else {
+        drawn
+    }
 }
 
 /// Whether entry `index`'s disclosure is open: a tool call while it
@@ -314,178 +325,4 @@ fn run_header(
         .child(entries::disclosure(open, paint.look.secondary))
         .child(div().min_w(px(0.0)).truncate().child(summary))
         .into_any_element()
-}
-
-/// The menus and tooltips of going back in the conversation: rewind
-/// under a person's message (`rewind`), fork under a turn's footer
-/// (`fork`).
-fn going_back(
-    shell: &Shell,
-    tokens: &Tokens,
-    narrow: bool,
-    cx: &mut Context<'_, Shell>,
-) -> Vec<AnyElement> {
-    let area = &shell.areas.conversation;
-    let mut floating = Vec::new();
-    floating.extend(menu(
-        "rewind-menu",
-        &area.rewinding.menu,
-        &super::rewind::menu_items(shell),
-        &Shell::rewind_menu_handlers(),
-        tokens,
-        narrow,
-        cx,
-    ));
-    floating.extend(area.rewinding.tips.render(tokens));
-    floating.extend(menu(
-        "fork-menu",
-        &area.forking.menu,
-        &super::fork::menu_items(shell),
-        &Shell::fork_menu_handlers(),
-        tokens,
-        narrow,
-        cx,
-    ));
-    floating.extend(area.forking.tips.render(tokens));
-    floating
-}
-
-/// What floats over the frame: the Session actions menu when open, the
-/// confirm when one is asked.
-pub(crate) fn overlays(
-    shell: &Shell,
-    tokens: &Tokens,
-    window: &mut Window,
-    cx: &mut Context<'_, Shell>,
-) -> Vec<AnyElement> {
-    let area = &shell.areas.conversation;
-    let narrow = breakpoint::phone(window);
-    let words = shell.t.lang.conversation();
-    let mut floating = Vec::new();
-    floating.extend(super::search::example(shell, tokens, window, cx));
-    floating.extend(going_back(shell, tokens, narrow, cx));
-    let items = super::bar::menu_items(shell);
-    if let Some(menu) = menu(
-        "session-actions",
-        &area.menu,
-        &items,
-        &Shell::menu_handlers(),
-        tokens,
-        narrow,
-        cx,
-    ) {
-        floating.push(menu);
-    }
-    if let Some(confirm) = area.confirm {
-        let machine = area
-            .shown
-            .as_ref()
-            .map(|shown| shown.machine.clone())
-            .unwrap_or_default();
-        let live = area.info.as_deref().is_some_and(is_live);
-        let short: String = area
-            .shown
-            .as_ref()
-            .map(|shown| shown.session.to_string().chars().take(4).collect())
-            .unwrap_or_default();
-        let (title, body, accept) = match confirm {
-            Confirm::Archive => (
-                words.archive_title().to_owned(),
-                words.archive_words(live, &machine, true),
-                words.confirm(),
-            ),
-            Confirm::Delete => (
-                words.delete_title().to_owned(),
-                words.delete_words(&machine),
-                words.delete(),
-            ),
-            Confirm::Kill => (
-                words.kill_title(&short),
-                words.kill_words(&machine),
-                words.kill(),
-            ),
-        };
-        let dismiss = match confirm {
-            Confirm::Archive => words.no(),
-            Confirm::Delete | Confirm::Kill => words.cancel(),
-        };
-        let footer = vec![
-            button("confirm-dismiss", dismiss, false, tokens)
-                .on_click(
-                    cx.listener(|shell, _event, window, cx| shell.dismiss_confirm(window, cx)),
-                )
-                .into_any_element(),
-            button("confirm-accept", accept, true, tokens)
-                .when(confirm != Confirm::Archive, |accept| {
-                    accept.bg(tokens.neutral.destructive)
-                })
-                .on_click(cx.listener(|shell, _event, _window, cx| shell.confirmed(cx)))
-                .into_any_element(),
-        ];
-        floating.push(dialog(
-            &area.dialog,
-            DialogContent {
-                title: title.into(),
-                body: div().type_(Type::Body).child(body).into_any_element(),
-                footer,
-                size: DialogSize::Normal,
-            },
-            tokens,
-            window,
-            narrow,
-            Shell::dismiss_confirm,
-            cx,
-        ));
-    }
-    if area.agent_log == super::AgentLog::Shown {
-        floating.push(agent_log(shell, tokens, window, narrow, cx));
-    }
-    floating
-}
-
-/// The agent's own log (its adapter's lines on stderr), the whole of it
-/// in one box: the Session actions' "Agent log". Its lines were rows
-/// between turns; Paseo shows no adapter log in the stream (slice M).
-fn agent_log(
-    shell: &Shell,
-    tokens: &Tokens,
-    window: &mut Window,
-    narrow: bool,
-    cx: &mut Context<'_, Shell>,
-) -> AnyElement {
-    let area = &shell.areas.conversation;
-    let words = shell.t.lang.conversation();
-    let lines = Logs::all(area.timeline.entries());
-    let count = lines.lines().count();
-    let body = div()
-        .max_h(px(420.0))
-        .child(lines_box(
-            "agent-log-lines",
-            u64::try_from(count).unwrap_or(u64::MAX),
-            || Lines::text(&lines),
-            Start::End,
-            tokens,
-            window,
-            cx,
-        ))
-        .into_any_element();
-    let footer = vec![
-        button("agent-log-close", words.close(), false, tokens)
-            .on_click(cx.listener(|shell, _event, window, cx| shell.dismiss_log(window, cx)))
-            .into_any_element(),
-    ];
-    dialog(
-        &area.dialog,
-        DialogContent {
-            title: words.agent_log(count).into(),
-            body,
-            footer,
-            size: DialogSize::Wide,
-        },
-        tokens,
-        window,
-        narrow,
-        Shell::dismiss_log,
-        cx,
-    )
 }

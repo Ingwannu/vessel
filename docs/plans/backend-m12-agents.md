@@ -1,5 +1,179 @@
 # Native Settings: Agents and Models
 
+## Resume point: provider removal rules
+
+The resumed branch includes the published baseline `56a7cbd3`; all earlier
+track commits were already ancestors of that baseline, so the requested
+merge fast-forwarded without conflicts. The existing navigation remains:
+Agents is the host settings page with idle release, Providers is the
+installed/sign-in/defaults page, and Models currently has rules but no
+registered renderer. The old queue-loss note is resolved by the baseline's
+`Shell::command` / `Link::submit` / `unsent::settle` path, including Agents.
+The earlier returned detail layout and refresh-failure findings have source
+corrections on the baseline; this is not a fresh visual approval of them.
+
+The current slice adds UI-free removal intent and acknowledgement rules.
+No removal control, node call or new navigation is exposed by this slice.
+Its source is Paseo 0.15.4 `screens/settings/providers-section.tsx`:
+`ProviderActionsMenu` (111–171), custom-provider eligibility (485–488), and
+`handleRemoveProvider` (410–440). The reference confirms before changing
+configuration, serializes removal and releases its pending marker on both
+cancel and failure. Its existing section tests cover row order, opening
+and enabled toggles; removal races have no equivalent case there, so the
+new tests describe Vessel's additional identity boundaries explicitly.
+
+[Decision Log]
+- Purpose and intent: make a later Remove control safe across machine
+  switches, cached refreshes and late replies before any UI is wired.
+- Existing assets and constraints: ADR 0032 already defines `agent.remove`
+  with an added `AgentName`, admin authority and profile-conflict refusal.
+  `agent_status::Pages` already owns bounded snapshots and never-reused
+  machine tickets; its failure transition retains the previous snapshot.
+- Alternatives considered: retain a row index; retain only its name; add a
+  parallel request store; depend on a revision field that the node lacks.
+- Choice: extend the existing page operation and acknowledgement path.
+  A non-cloneable confirmation retains the reported added definition,
+  node identity and book route, starts nothing until consumed, rechecks current local facts,
+  and then mints the existing page ticket.
+- Why: only a still-listed added definition on a supported node can be
+  removed; a changed local definition needs fresh confirmation. A success
+  changes only its ticket's named definition, discovery and readiness;
+  failure keeps facts, selection and a retryable issue.
+- Advantages, costs and effects: builtins and discovery-only entries have
+  no Remove action. The reference's readiness status remains unchanged
+  during removal (only its action becomes pending). Snapshot retention
+  clones one definition already held by the page at explicit user intent.
+  There is no node revision precondition: unreported environment-value
+  changes, an identical remove/re-add, and concurrent edits after dispatch
+  cannot be detected by this local comparison. These are stated wire
+  limits, not claims of transactional confirmation.
+
+Verification for this resumed slice is recorded with its submitted commit.
+The local whole native gate is intentionally not run on the saturated
+development machine. Compiling checks use the short lane; the final native
+gate ran on the designated builder, as recorded below.
+The shared ProviderRow trigger remains its control owner's preparation,
+with no reviewed integrated hash; no duplicate trigger or glyph is added.
+The existing snapshot now also carries the connection's `NodeId` beside
+its node-book `MachineKey`. A consumed confirmation retains both, and an
+acknowledgement must match the node as well as the request and added name.
+A same-name/different-node regression refuses a retained confirmation.
+Before the destructive call is wired, the link must compare that expected
+identity with its current connection. The node already reports identity;
+this is client plumbing, not a new wire call. Nothing dispatches removal
+in this rules-only slice.
+
+Problems met: Clippy rejected two identical idle match arms; their patterns
+were combined without changing the result. An editing command initially
+addressed the fixture from the wrong workspace root. While that was being
+corrected, a queued narrow compile saw the new node-identity API with old
+fixture arguments and failed (missing field/argument and old enum syntax).
+The failed log is retained, not counted as a pass. Earlier eight-case and
+Clippy results predate the node-bound extension; exact-commit verification
+of the corrected tree passed on the designated builder.
+Next: wire the existing call, then consume the reviewed
+shared menu/confirmation controls for Providers and capture their states.
+
+### Removal-rules verification (native only)
+
+Implementation `3177e7723e1f8cbec015abcae4a3c741708e0371` passed the complete
+native gate on its exact commit. Run `agents-20261115T022821Z-3177e772`:
+fonts, fmt, size/boundaries/tokens, Clippy with warnings denied, ordinary
+application build and tests all returned zero. The test log reports 1046
+runtime passes, two document-test passes and one ignored browser wording
+capture (`pairing_browser_words_capture`, requiring a private display and
+fake fleet). All nine new removal-rule cases passed. No skipped step is
+counted as a pass. Root/web gates were not run: no root or web code changed.
+
+A preceding exact-commit native Clippy check also passed. The earlier
+local fixture-arity failure remains a failed preparation run; it is not a
+flaky-test exception and no assertion was relaxed. Source was frozen for
+the final exact-commit run. The normal local application build for captures
+also passed; it is not a second whole native gate.
+
+V1 passed the exact implementation and its documentation follow-up for
+rules-only source and A13 verification. This is not a removal-call or UI
+approval. A capture fleet started
+with pre-existing development binaries failed its home-role fixture before
+agent seeding. Those binaries' source commit was not independently known;
+the two disposable nodes were stopped and no successful fleet or screen
+claim is derived from that run. The fresh evidence below uses matching
+source-built fixture binaries instead.
+
+### Fresh baseline screen evidence, 2026-11-15
+
+Forty new captures were personally opened: English/Korean, dark/light,
+1280 by 900 and 390 by 844, covering the provider list, long added-agent
+details, scrolled defaults, machine-reported sign-in steps, and a failed
+list refresh retained above the subsequently selected details. These
+exercise the baseline's returned-layout corrections; no drawing changed
+in the removal-rules commit. Image, executable and source identities stay
+with the private evidence manifest. Historical captures are excluded.
+
+The list follows Paseo 0.15.4 `screens/settings/providers-section.tsx:195–349`
+(`ProviderRow` and `StatusIndicator`) and shared settings furniture. The
+expanded list shows 16 Claude Code models and two added-agent models from
+read options; compact rows retain only the status marker. Known sign-out
+appears as the warning status. Option probes can replace the node's cached
+authentication verdict, so captures do not claim every initially signed-out
+fixture remains signed out after a probe. The dedicated sign-in fixture
+reports its method and remains available for the sign-in captures.
+
+The detail target follows `provider-settings-host.tsx:17–29`; the reference's
+`provider-diagnostic-sheet.tsx:575–749` heads that target and presents models
+in a sheet. Vessel currently uses its existing native detail page/header,
+settings fact rows and additional readiness/sign-in/default facts. This is
+the already documented native-page difference, not a claim that its body
+implements that model sheet. Program values are middle-elided with the
+whole value in a tooltip; copy is visible at both widths. Commands have a
+separate divided row and horizontal scroll. Independent X11 clipboard reads
+matched the full 56-byte program and 461-byte command at both widths.
+
+The new failure captures stop only the verified disposable node, invoke
+Refresh and select the cached added agent. The translated connection alert
+stays above its details at both widths. Sign-in captures also show a failed
+options read with its actual reload action; two English scrolled captures
+include the hovered raw-machine diagnostic tooltip. That diagnostic is
+separate from the translated failure sentence.
+
+The matching root fixture build passed, and agent-specific fixture checks
+passed. The full fleet script then failed in the shell fixture's loopback
+guard: `shell-fixtures.py:23` still reads a `url` key, whereas the current
+book reports secure `direct` routes. That owner was notified; the guard was
+not bypassed or changed. These are agent captures against a partially
+initialized fleet, not a successful full-fleet assertion. The application
+uses that disposable fleet's HOME so relative credential paths resolve;
+it uses no real node or user configuration. Credentials and display cookie
+are owner-only, generated and used by the same UID; no ownership repair or
+production permission change was needed.
+
+Unverified here: installation/loading phases, empty/registry/Add/Remove
+screens, intermediate widths and scale factors, and complete Providers or
+Models parity. The shared remove trigger still has no integrated reviewed
+handoff. No enable switch is drawn because the node exposes no enable
+operation; removal's missing control is pending work, not a wire limitation.
+Only the marks already shipped on the baseline are used. The named launch-
+profile contract gap below remains open. V1/coordinator visual review of
+this new family is separate from the accepted rules-only gate.
+
+### Profile parity boundary found on resumption
+
+Paseo 0.15.4 `agent-profiles/settings/agent-profiles-section.tsx:24–110`
+creates, edits, reorders and removes named launch bundles.
+`agent-profiles/internal/use-agent-profiles.ts:23–25` saves the whole array
+through `patchConfig({ agentProfiles: next })`. Its protocol
+`agent-profile.ts:12–28` stores `id`, `name`, `icon`, `color`, `provider`,
+`model`, `modeId`, `thinkingOptionId`, `featureValues` and `notes` (the UI's
+“When to use”). These are different from account profiles.
+
+The current Vessel `crates/vessel-proto/src/profile.rs:22–40` reports account
+profile name, label, harness, environment names and an optional model route.
+Its RPC table at `rpc.rs:137–141` offers list, reload and session profile
+move, with no named-launch-bundle CRUD/reordering or matching settings key.
+Existing `keep_choices` remains the new-chat default selection; it is not
+presented as full launch-profile editing. The contract gap was reported;
+this track makes no node change and no parallel client-only profile store.
+
 Track G3, branch `backend/m12-app-agents`. The contract is milestone
 11's track G and ADR 0032. This track changes no node or wire type.
 

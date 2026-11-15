@@ -50,9 +50,7 @@ use vessel_app_kit::ui::{
     Context, Div, Hsla, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window,
     div, px,
 };
-use vessel_app_kit::{
-    ComboboxState, SendKind, TextField, Tokens, Type, TypeExt as _, composer_card, send_button,
-};
+use vessel_app_kit::{ComboboxState, SendKind, TextField, Tokens, Type, TypeExt as _, send_button};
 use vessel_app_link::Command;
 use vessel_app_view::offers::Offered;
 use vessel_app_view::{
@@ -60,7 +58,7 @@ use vessel_app_view::{
 };
 use vessel_proto::{HarnessRef, OptionChoice};
 
-use crate::areas::composer::{draft_menu, draft_text};
+use crate::areas::composer::{attach_button, draft_card};
 use crate::routes::Route;
 use crate::shell::Shell;
 
@@ -340,7 +338,8 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        if text.trim().is_empty() || self.areas.draft.sending.is_some() {
+        if (text.trim().is_empty() && !self.draft_has_files()) || self.areas.draft.sending.is_some()
+        {
             return;
         }
         self.settle_draft();
@@ -378,13 +377,13 @@ impl Shell {
         // In a project, track F's start (a new worktree made first, its
         // steps on the session's screen); else in the folder.
         if !self.start_in_place(&machine, &harness, &options, &text) {
-            self.command(Command::Start {
+            self.command(self.with_draft_files(Command::Start {
                 machine: machine.clone(),
                 harness: harness.clone(),
                 folder: (!folder.is_empty()).then_some(folder),
                 prompt: text.clone(),
                 options,
-            });
+            }));
         }
         let draft = &mut self.areas.draft;
         draft.error = None;
@@ -439,38 +438,29 @@ pub(crate) fn render(
     let touch = compact(window);
     let neutral = tokens.neutral;
 
-    let typed = !draft.composer.text(cx).trim().is_empty();
+    let typed = !draft.composer.text(cx).trim().is_empty() || shell.draft_has_files();
     let can_send = typed && draft.agent.is_some();
-    let card = composer_card(tokens, touch)
-        .relative()
-        .children(draft_menu(shell, tokens, window, cx))
-        .child(draft_text(shell, tokens, touch, cx))
-        .child(
-            // Paseo's button row bleeds 6 past the card's padding.
-            div()
-                .mx(px(-6.0))
-                .flex()
-                .flex_row()
-                .items_end()
-                .justify_between()
-                .gap(px(8.0))
-                .child(pickers::controls(
-                    shell,
-                    shown.as_ref(),
-                    touch,
-                    tokens,
-                    window,
-                    cx,
-                ))
-                .child(
-                    send_button("send-draft", SendKind::Send, can_send, touch, tokens).on_click(
-                        cx.listener(|this, _event, window, cx| {
-                            let text = this.areas.draft.composer.text(cx);
-                            this.send_draft(text, window, cx);
-                        }),
-                    ),
+    let attach = attach_button(true, touch, tokens, cx);
+    let card = draft_card(shell, tokens, touch, window, cx).child(
+        // Paseo's button row bleeds 6 past the card's padding.
+        div()
+            .mx(px(-6.0))
+            .flex()
+            .flex_row()
+            .items_end()
+            .justify_between()
+            .gap(px(8.0))
+            .child(attach)
+            .child(pickers::controls(shell, shown.as_ref(), touch, tokens, window, cx).flex_1())
+            .child(
+                send_button("send-draft", SendKind::Send, can_send, touch, tokens).on_click(
+                    cx.listener(|this, _event, window, cx| {
+                        let text = this.areas.draft.composer.text(cx);
+                        this.send_draft(text, window, cx);
+                    }),
                 ),
-        );
+            ),
+    );
 
     let mut column = div()
         .w_full()

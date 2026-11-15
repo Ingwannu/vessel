@@ -71,7 +71,7 @@ impl Areas {
             shortcuts: shortcuts::ShortcutListener::new(cx),
             sidebar: sidebar::SidebarState::new(window, cx),
             toasts: vessel_app_view::toasts::Toasts::default(),
-            composer: composer::ComposerArea::default(),
+            composer: composer::ComposerArea::new(cx),
             regions: crate::region::Regions::default(),
         };
         // Track P: the composers' drafts read back, and kept as typed.

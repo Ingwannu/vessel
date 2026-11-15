@@ -39,9 +39,9 @@ use chrono::Utc;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::ui::{
-    AnyElement, Context, ElementId, FluentBuilder as _, HighlightStyle, InteractiveElement as _,
-    IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, Styled as _, StyledText,
-    Window, div, px,
+    AnyElement, Context, Div, ElementId, FluentBuilder as _, HighlightStyle,
+    InteractiveElement as _, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
+    Styled as _, StyledText, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, breakpoint, popup};
 use vessel_app_link::Command;
@@ -239,29 +239,7 @@ pub(crate) fn message_row(
         |card| shell.t.title(&card.title).to_owned(),
     );
     let when = shell.t.lang.machines().ago(Ago::of(found.at, Utc::now()));
-    let head = div()
-        .flex()
-        .flex_row()
-        .items_center()
-        .gap(px(6.0))
-        .min_w(px(0.0))
-        .text_size(px(14.0))
-        .child(
-            div()
-                .min_w(px(0.0))
-                .truncate()
-                .text_color(neutral.foreground)
-                .child(title),
-        )
-        .child(
-            div()
-                .flex_none()
-                .max_w(px(160.0))
-                .truncate()
-                .text_size(px(12.0))
-                .text_color(neutral.foreground_extra_muted)
-                .child(hit.machine.clone()),
-        );
+    let head = head(title, &hit.machine, tokens);
     frame
         .items_start()
         .child(div().flex_none().pt(px(2.0)).child(glyph(
@@ -288,6 +266,34 @@ pub(crate) fn message_row(
                 .child(when),
         )
         .into_any_element()
+}
+
+/// A message row's head: its session's title, then its machine, quieter.
+fn head(title: String, machine: &str, tokens: &Tokens) -> Div {
+    let neutral = tokens.neutral;
+    div()
+        .flex()
+        .flex_row()
+        .items_center()
+        .gap(px(6.0))
+        .min_w(px(0.0))
+        .text_size(px(14.0))
+        .child(
+            div()
+                .min_w(px(0.0))
+                .truncate()
+                .text_color(neutral.foreground)
+                .child(title),
+        )
+        .child(
+            div()
+                .flex_none()
+                .max_w(px(160.0))
+                .truncate()
+                .text_size(px(12.0))
+                .text_color(neutral.foreground_extra_muted)
+                .child(machine.to_owned()),
+        )
 }
 
 /// GOAT's excerpt: who said it, then the snippet with its matches

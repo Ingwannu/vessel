@@ -33,16 +33,12 @@ px-other spikes/native/app/src/areas/conversation/permission.rs 4
 px-other spikes/native/app/src/areas/conversation/question/card.rs 4
 px-other spikes/native/app/src/areas/conversation/queue/rows.rs 1
 px-other spikes/native/app/src/areas/conversation/search.rs 3
-px-other spikes/native/app/src/areas/conversation/timeline.rs 1
 px-other spikes/native/app/src/areas/draft/effort_card.rs 1
 px-other spikes/native/app/src/areas/draft/mod.rs 2
 px-other spikes/native/app/src/areas/draft/pickers.rs 1
 px-other spikes/native/app/src/areas/session.rs 3
 px-other spikes/native/app/src/areas/settings/agents/rows.rs 3
 px-other spikes/native/app/src/areas/settings/appearance.rs 6
-px-other spikes/native/app/src/areas/sidebar/foot.rs 2
-px-other spikes/native/app/src/areas/sidebar/mod.rs 1
-px-other spikes/native/app/src/areas/sidebar/session_row.rs 1
 px-other spikes/native/app/src/areas/workspace/code/changes.rs 1
 px-other spikes/native/app/src/areas/workspace/code/found.rs 2
 px-other spikes/native/app/src/areas/workspace/code/viewer.rs 2

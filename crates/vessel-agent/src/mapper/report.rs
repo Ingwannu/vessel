@@ -63,6 +63,7 @@ pub(crate) fn usage(update: acp::UsageUpdate) -> ContextUsage {
         Some(Cost { amount, unit })
     });
     ContextUsage {
+        observation: vessel_proto::conversation::UsageObservation::Current,
         used: TokenCount::new(update.used),
         size: TokenCount::new(update.size),
         cost,

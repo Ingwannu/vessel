@@ -4,8 +4,8 @@
 use std::net::SocketAddr;
 
 use vessel_proto::{
-    AgentName, ErrorCode, EventSeq, HarnessKind, HarnessRef, ModelRouteName, ProfileName,
-    SecretName, SessionId, WireError,
+    AgentName, DeviceInviteError, ErrorCode, ErrorDetail, EventSeq, HarnessKind, HarnessRef,
+    ModelRouteName, ProfileName, SecretName, SessionId, WireError,
 };
 use vessel_rpc::OutboundError;
 use vessel_session::SessionError;
@@ -112,6 +112,15 @@ pub(crate) enum ServiceError {
     /// No session with this id, live or stored.
     #[error("no session {0}")]
     NotFound(SessionId),
+    /// A side-question boundary refused the action (ADR 0045).
+    #[error(transparent)]
+    SideQuestion(#[from] crate::side_questions::SideError),
+    /// Side creation inherits a spec or returns an existing side; it cannot apply overrides.
+    #[error("creation labels cannot override a side question's inherited spec")]
+    SideCreationLabels,
+    /// No protocol has published the label metadata yet.
+    #[error("session labels have no assigned protocol version")]
+    LabelsUnassigned,
     /// The session has ended and is served from the store (it ended in an
     /// earlier run, or in this one and was handed over); it can be read but
     /// not driven.
@@ -219,6 +228,11 @@ pub(crate) enum ServiceError {
     /// `device.invite` naming an empty list of scopes.
     #[error("an invitation must grant at least one scope")]
     NoScopes,
+    /// No effective advertised direct or relay route, including callbacks.
+    #[error(
+        "this node has no pairing route; configure --public with a reachable address or --relay, then create a new invitation"
+    )]
+    NoPairingRoutes,
     /// Too many invitations are waiting (`devices::invitations`).
     #[error("too many pairing invitations are waiting; let some be used or expire")]
     TooManyInvitations,
@@ -403,7 +417,8 @@ impl ServiceError {
             | Self::WorktreeBusy(_)
             | Self::AgentSecret { .. }
             | Self::Installing(_)
-            | Self::Models(_) => ErrorCode::Conflict,
+            | Self::Models(_)
+            | Self::NoPairingRoutes => ErrorCode::Conflict,
             Self::AgentDepth { .. }
             | Self::AgentLimit { .. }
             | Self::NotOwned(_)
@@ -412,13 +427,17 @@ impl ServiceError {
             Self::Ahead { .. }
             | Self::ReadAhead { .. }
             | Self::InvalidTtl
+            | Self::SideCreationLabels
             | Self::NoScopes
             | Self::UnknownProfile(_)
             | Self::ProfileRemoved { .. }
             | Self::UnknownRoute { .. }
             | Self::ProfileHarness { .. } => ErrorCode::InvalidRequest,
             Self::DidNotStart { .. } => ErrorCode::SpawnFailed,
-            Self::MoveRoute { .. } | Self::NotAPoint { .. } => ErrorCode::Unsupported,
+            Self::MoveRoute { .. } | Self::NotAPoint { .. } | Self::LabelsUnassigned => {
+                ErrorCode::Unsupported
+            }
+            Self::SideQuestion(error) => error.code(),
             Self::Session(error) => error.code(),
             Self::Transfer(error) => error.code(),
             Self::Upload(error) => error.code(),
@@ -445,6 +464,12 @@ impl ServiceError {
             message.push_str(&cause.to_string());
             source = cause.source();
         }
-        WireError::new(code, message)
+        let mut error = WireError::new(code, message);
+        if matches!(self, Self::NoPairingRoutes) {
+            error.detail = Some(ErrorDetail::DeviceInvite {
+                reason: DeviceInviteError::NoRoutes,
+            });
+        }
+        error
     }
 }

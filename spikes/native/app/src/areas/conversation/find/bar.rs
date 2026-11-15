@@ -26,7 +26,6 @@ pub(crate) fn bar(
     let words = shell.t.lang.conversation();
     let surfaces = popup::Surfaces::of(tokens);
     let narrow = breakpoint::phone(window);
-    let neutral = tokens.neutral;
     let has_query = !bar.query.trim().is_empty();
     let none = has_query && bar.finder.is_none() && bar.matches.is_empty();
     let count = if !has_query {
@@ -64,46 +63,8 @@ pub(crate) fn bar(
             }
         }))
         .child(bar.field.input(tokens, cx))
-        .child(
-            div()
-                .min_w(px(40.0))
-                .flex_none()
-                .text_center()
-                .type_(Type::Meta)
-                .text_color(if none {
-                    neutral.destructive
-                } else {
-                    neutral.foreground_muted
-                })
-                .child(count),
-        )
-        .child(
-            small_button("find-previous", Glyph::ChevronUp, can_move, tokens, narrow).when(
-                can_move,
-                |button| {
-                    button.on_click(cx.listener(|shell, _event, _window, cx| {
-                        shell.find_move(false, cx);
-                    }))
-                },
-            ),
-        )
-        .child(
-            small_button("find-next", Glyph::ChevronDown, can_move, tokens, narrow).when(
-                can_move,
-                |button| {
-                    button.on_click(cx.listener(|shell, _event, _window, cx| {
-                        shell.find_move(true, cx);
-                    }))
-                },
-            ),
-        )
-        .child(
-            small_button("find-close", Glyph::Close, true, tokens, narrow).on_click(cx.listener(
-                |shell, _event, _window, cx| {
-                    shell.close_find(cx);
-                },
-            )),
-        );
+        .child(count_label(count, none, tokens))
+        .children(buttons(can_move, tokens, narrow, cx));
     // On a phone the bar takes its own place above the conversation: laid
     // over it, it would hide the very match it scrolls to (the page lays
     // it over at every width, the same fault).
@@ -117,6 +78,56 @@ pub(crate) fn bar(
             .w(px(WIDTH))
     };
     Some(frame.child(shell_row).into_any_element())
+}
+
+/// The count of matches (or that find is still looking), in the danger
+/// colour when there is none.
+fn count_label(count: String, none: bool, tokens: &Tokens) -> Div {
+    let neutral = tokens.neutral;
+    div()
+        .min_w(px(40.0))
+        .flex_none()
+        .text_center()
+        .type_(Type::Meta)
+        .text_color(if none {
+            neutral.destructive
+        } else {
+            neutral.foreground_muted
+        })
+        .child(count)
+}
+
+/// Previous and next (answering only while there are matches to move
+/// between), and close.
+fn buttons(
+    can_move: bool,
+    tokens: &Tokens,
+    narrow: bool,
+    cx: &mut Context<'_, Shell>,
+) -> [Stateful<Div>; 3] {
+    [
+        small_button("find-previous", Glyph::ChevronUp, can_move, tokens, narrow).when(
+            can_move,
+            |button| {
+                button.on_click(cx.listener(|shell, _event, _window, cx| {
+                    shell.find_move(false, cx);
+                }))
+            },
+        ),
+        small_button("find-next", Glyph::ChevronDown, can_move, tokens, narrow).when(
+            can_move,
+            |button| {
+                button.on_click(cx.listener(|shell, _event, _window, cx| {
+                    shell.find_move(true, cx);
+                }))
+            },
+        ),
+        small_button("find-close", Glyph::Close, true, tokens, narrow).on_click(cx.listener(
+            |shell, _event, _window, cx| {
+                shell.close_find(cx);
+            },
+        )),
+    ]
 }
 
 /// One of the bar's buttons (GOAT's `icon-xs` ghost button): its glyph,
