@@ -44,6 +44,7 @@ pub mod form_summary;
 pub mod frame;
 pub mod frame_log;
 pub mod host_rename;
+pub mod loading;
 pub mod menu;
 pub mod motion;
 pub mod output;
@@ -100,9 +101,9 @@ pub use toast::{
 pub use tooltip::Tooltips;
 pub use virtual_list::{Reveal, VirtualList};
 pub use widgets::{
-    ButtonContent, ButtonIcon, ButtonKind, ButtonState, TypeExt, button, button_with_content,
-    button_with_kind, button_with_kind_at, choice, dot, kicker, mark, mark_mono, markdown,
-    outline_button,
+    Button, ButtonConfig, ButtonContent, ButtonIcon, ButtonKind, ButtonSize, ButtonState, TypeExt,
+    button, button_control, button_with_content, button_with_kind, button_with_kind_at, choice,
+    dot, kicker, mark, mark_mono, markdown, outline_button,
 };
 
 /// What a screen needs of GPUI's layout and view types, re-exported so

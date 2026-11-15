@@ -49,8 +49,8 @@ impl<E: Styled> TypeExt for E {}
 
 mod button;
 pub use button::{
-    ButtonContent, ButtonIcon, ButtonKind, ButtonState, button, button_with_content,
-    button_with_kind, button_with_kind_at,
+    Button, ButtonConfig, ButtonContent, ButtonIcon, ButtonKind, ButtonSize, ButtonState, button,
+    button_control, button_with_content, button_with_kind, button_with_kind_at,
 };
 
 /// Paseo's outline button (`variant="outline"`): no fill, a hairline of

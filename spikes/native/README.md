@@ -1039,3 +1039,6 @@ written to the fixture report.
 Shared button extension: see `docs/plans/backend-m12-g2-button-content.md`.
 Existing label APIs delegate to typed Label/Icon/IconAndLabel content;
 MD pointer32/touch44, icon14, explicit muted vectors remain muted.
+Guarded button_control adds source Small28/px12 and Small20 loading,
+with disabled/pending callback refusal. The isolated previously reviewed
+ActivityIndicator producer is reused without a menu dependency.
