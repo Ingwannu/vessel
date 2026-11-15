@@ -256,3 +256,13 @@ layout-cache rebase is a separate pending consumer; this preference merge alone
 does not prove cross-window layout cache behavior. Native Cargo.lock now includes
 only the incoming root serde_path_to_error and Store-to-Proc manifest edges;
 the already queued local build generated those two missing lock dependency lines.
+
+Finalization phase is now owned once by app::quit, independently of whether a
+local-node controller exists. `is_finalizing(&App)` is C5's editability and
+mutating-handler admission hook: keep editors read-only and refuse new edits or
+writes while a quit/update is settling. `begin` coalesces requests and refreshes
+all windows; refusal/failure `finish` restores editing. Registering a new C5 window
+replaces only the callback and cannot reset an in-flight phase. This prevents a
+new edit after Ready from leaving unsaved work behind a node already stopped;
+the final guard remains necessary for other asynchronous owner changes. Local
+node policy/actions also disable while this same phase is active.

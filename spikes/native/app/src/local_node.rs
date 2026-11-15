@@ -7,7 +7,6 @@ use vessel_app_view::local_node::{AfterQuit, Management, Status};
 
 pub(crate) struct Managed {
     pub(crate) controller: Option<Rc<Controller>>,
-    finalizing: bool,
     unavailable: Status,
 }
 impl Global for Managed {}
@@ -43,7 +42,6 @@ pub(crate) fn ensure(prefs: &vessel_app_link::Prefs, cx: &mut App) {
     }
     cx.set_global(Managed {
         controller,
-        finalizing: false,
         unavailable,
     });
     crate::desktop::set_quit_handler(request_quit, cx);
@@ -134,21 +132,11 @@ pub(crate) fn request_confirmed_quit(confirmation: Confirmation, cx: &mut App) {
 }
 
 pub(crate) fn begin_finalization(cx: &mut App) -> bool {
-    if !cx.has_global::<Managed>() {
-        return true;
-    }
-    let managed = cx.global_mut::<Managed>();
-    if managed.finalizing {
-        return false;
-    }
-    managed.finalizing = true;
-    true
+    crate::quit::begin(cx)
 }
 
 pub(crate) fn end_finalization(cx: &mut App) {
-    if cx.has_global::<Managed>() {
-        cx.global_mut::<Managed>().finalizing = false;
-    }
+    crate::quit::finish(cx);
 }
 
 fn quit(after: Option<AfterQuit>, confirmation: Option<Confirmation>, cx: &mut App) {

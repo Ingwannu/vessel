@@ -18,7 +18,9 @@ pub(crate) fn section(
         || crate::local_node::unavailable_status(cx),
         |snapshot| snapshot.status,
     );
-    let working = status == Status::Working || shell.areas.local_node.action_pending;
+    let working = status == Status::Working
+        || shell.areas.local_node.action_pending
+        || crate::quit::is_finalizing(cx);
     let enabled = shell.prefs.local_node.management == Management::Enabled;
     let keep = shell.prefs.local_node.after_quit == AfterQuit::KeepRunning;
     let manage = settings::switch(
@@ -31,7 +33,7 @@ pub(crate) fn section(
     )
     .on_click(cx.listener(move |shell, _event, _window, cx| shell.manage_local_node(!enabled, cx)))
     .into_any_element();
-    let after = settings::switch("keep-local-node", keep, true, false, 0, tokens)
+    let after = settings::switch("keep-local-node", keep, !working, working, 0, tokens)
         .on_click(cx.listener(move |shell, _event, _window, cx| shell.keep_local_node(!keep, cx)))
         .into_any_element();
     let failed = shell
@@ -94,7 +96,9 @@ fn controls(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let words = shell.words.local_node();
-    let idle = status != Status::Working && !shell.areas.local_node.action_pending;
+    let idle = status != Status::Working
+        && !shell.areas.local_node.action_pending
+        && !crate::quit::is_finalizing(cx);
     let readable = cx
         .try_global::<crate::local_node::Managed>()
         .is_some_and(|managed| managed.controller.is_some());
