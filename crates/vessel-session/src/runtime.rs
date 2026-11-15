@@ -12,6 +12,7 @@ mod claims;
 mod drivers;
 mod launch;
 mod parts;
+mod preparation;
 #[cfg(test)]
 mod private_dir;
 
@@ -68,7 +69,7 @@ pub struct SessionRuntime {
     /// follows it, so a change applies to live sessions at once.
     park_after: watch::Sender<Option<Duration>>,
     /// Conversations sessions are starting on (protocol 17, `claims`).
-    claims: claims::Claims,
+    claims: Arc<claims::Claims>,
     /// Which protocol drives each agent's new sessions (protocol 18,
     /// `drivers`).
     drivers: drivers::Drivers,
@@ -99,7 +100,7 @@ impl SessionRuntime {
             sessions: RwLock::new(HashMap::new()),
             attachments: None,
             park_after,
-            claims: claims::Claims::default(),
+            claims: Arc::new(claims::Claims::default()),
             drivers: drivers::Drivers::default(),
         }
     }

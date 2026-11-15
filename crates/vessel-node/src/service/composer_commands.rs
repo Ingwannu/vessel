@@ -3,6 +3,7 @@
 
 use std::collections::HashSet;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use chrono::Utc;
 use sha2::{Digest as _, Sha256};
@@ -138,15 +139,15 @@ impl NodeService {
     ) -> Answer {
         // Catalog cache hits need no permit; a new probe shares the existing
         // bounded agent-discovery budget with history listing.
-        let Ok(_place) = self.listings.try_acquire() else {
+        let Ok(place) = Arc::clone(&self.listings).try_acquire_owned() else {
             return failed(WireError::new(
                 ErrorCode::Unavailable,
                 "the node is already discovering as many provider catalogs as it can",
             ));
         };
         let probe = SessionId::random();
-        let _model = ModelLease {
-            models: &self.models,
+        let model = ModelLease {
+            models: Arc::clone(&self.models),
             session: probe,
         };
         let proxy = match self.models.launch(Some(&profile), probe) {
@@ -159,7 +160,7 @@ impl NodeService {
         };
         match self
             .sessions
-            .probe_with_choices(config.harness, profile, proxy, cwd, choices)
+            .probe_with_choices_owned(config.harness, profile, proxy, cwd, choices, (place, model))
             .await
         {
             Ok(probed) => Answer {
@@ -189,11 +190,11 @@ fn failed(error: WireError) -> Answer {
 }
 
 /// Cancellation must retire routed credentials even if the awaiting RPC is dropped.
-struct ModelLease<'a> {
-    models: &'a Models,
+struct ModelLease {
+    models: Arc<Models>,
     session: SessionId,
 }
-impl Drop for ModelLease<'_> {
+impl Drop for ModelLease {
     fn drop(&mut self) {
         self.models.retire(self.session);
     }

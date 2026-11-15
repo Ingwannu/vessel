@@ -746,3 +746,41 @@ catalog and native skill invocation must remain identical, with no replacement
 catalog emitted after failure. This requires no process, fake launch flag,
 credentials, global environment/subscriber mutation or new dependency. Execution
 and strict-check evidence remain owed until the VM runs on this source finish.
+
+## Retained runtime preparation (row207, shared with recovery)
+
+[Decision Log]
+- Purpose: cancelling a draft/restart waiter must not release admission or a
+  conversation claim while its executable filesystem lookup still runs.
+- Existing constraint: `spawn_blocking` cannot be stopped by dropping its async
+  waiter; the runtime already has the hard-drain tracker and callers already
+  own admission. A second quota would only hide the ownership defect.
+- Choice: one `runtime::preparation` entry retains a runtime tracker token and
+  `Arc<T>` caller owner inside each actual blocking closure. Native version
+  lookup uses it too. Normal settlement awaits each closure; an externally
+  dropped waiter leaves those physical owners until actual closure settlement.
+- Claim lifetime: the same claims registry is now shared by owned guards;
+  borrowed `keep` publishes held profiles and the last guard drop releases the
+  starting claim. A restart and resumed creation pass this actual guard through
+  preparation, rather than recreating a claim from metadata.
+- Draft consumer: the existing listing semaphore becomes an Arc of that same
+  semaphore. Its owned permit and the same model-route retirement guard move
+  through `probe_with_choices_owned`; no new registry, quota or credential read.
+- Deadline: the probe handshake budget starts before version/command
+  preparation. On expiry no process starts later; actual blocking work keeps
+  its owners and remains in hard drain. Process handshake shutdown grace is
+  still the existing agent probe's separate cleanup allowance.
+- Recovery consumer: normal preparation has no internal early timeout. Recovery
+  must await real preparation settlement while retaining its original attempt
+  and store claim, then recheck cancellation/deadline/fresh authority before
+  admitting a process. This seam does not itself authorize a restart.
+- Tradeoff: a stuck filesystem call delays hard drain and holds existing quota;
+  pretending cancellation ended it would permit unbounded physical work.
+
+Tests reuse the single fakes-only `Lookup.find` barrier offered by the recovery
+owner. They hold actual launch and native-version lookups, drop async waiters,
+check retained admission/conversation exclusion and poll actual hard drain,
+then release the lookup. A separate actual draft-handler test uses the node's
+canonical listing bound. The paused-clock case proves the preparation deadline
+without sleeping. No returned result or discarded lookup may start a late
+process. Execution evidence is owed until the corresponding VM checks finish.

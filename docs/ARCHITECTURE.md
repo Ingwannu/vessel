@@ -1832,3 +1832,11 @@ ProvidersFileFailure, exposing category/location or a storage code without
 raw serde strings or private paths. ProviderTaskFailure similarly seals task
 panic payloads; outer ConfigurationFailure/NodeError source chains remain safe
 through those wrappers. The global panic hook is a separate runtime boundary.
+
+Runtime executable preparation (`vessel-session::runtime::preparation`) shares
+its existing session drain tracker with actual blocking lookups. Each closure
+retains the caller's existing admission/claim owner through physical settlement;
+caller cancellation does not imply filesystem completion. Draft discovery uses
+this path with the node's same listing permit and model retirement guard. The
+fakes-only harness lookup barrier observes this boundary without granting quota
+or changing lookup results (provider plan, retained runtime preparation).

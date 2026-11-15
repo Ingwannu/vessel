@@ -30,7 +30,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Stdio;
-use std::sync::{Mutex, PoisonError};
+use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{Duration, SystemTime};
 
 use tokio::io::AsyncReadExt as _;
@@ -118,7 +118,12 @@ impl SessionRuntime {
     }
 
     /// What drives a session of `spec` under `profile` started now.
-    pub(crate) async fn choose_driver(&self, spec: &SessionSpec, profile: &Profile) -> Chosen {
+    pub(crate) async fn choose_driver<T: Send + Sync + 'static>(
+        &self,
+        spec: &SessionSpec,
+        profile: &Profile,
+        ownership: Arc<T>,
+    ) -> Chosen {
         let setting = *self
             .drivers
             .setting
@@ -129,22 +134,27 @@ impl SessionRuntime {
             Gate::Refused(line) => return Chosen::acp_because(line),
             Gate::Direct(direct) => direct,
         };
-        let line = self.version_line(profile).await;
+        let line = self.version_line(profile, ownership).await;
         fit(spec_kind(spec), direct, line.as_deref())
     }
 
     /// The installed agent's `--version` line under `profile`, kept until
     /// its program changes; `None` when it could not be read.
-    async fn version_line(&self, profile: &Profile) -> Option<String> {
+    async fn version_line<T: Send + Sync + 'static>(
+        &self,
+        profile: &Profile,
+        ownership: Arc<T>,
+    ) -> Option<String> {
         let lookup = self.config.harness_lookup.clone();
         let env = self.config.harness_env.clone();
         let owned = profile.clone();
-        let command = tokio::task::spawn_blocking(move || {
-            vessel_harness::version_check(&lookup, &env, &owned)
-        })
-        .await
-        .ok()?
-        .ok()??;
+        let command = self
+            .prepare_blocking(ownership, move || {
+                vessel_harness::version_check(&lookup, &env, &owned)
+                    .map_err(crate::SessionError::Launch)
+            })
+            .await
+            .ok()??;
         let program = command.program.clone();
         let modified = std::fs::metadata(&program)
             .and_then(|metadata| metadata.modified())

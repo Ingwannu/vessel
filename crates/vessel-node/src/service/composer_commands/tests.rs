@@ -69,3 +69,5 @@ fn duplicate_and_oversized_choice_sets_are_refused_before_work() {
     assert_eq!(error.code, ErrorCode::InvalidRequest);
     assert!(error.message.contains(&MAX_DRAFT_CHOICES.to_string()));
 }
+
+mod preparation;

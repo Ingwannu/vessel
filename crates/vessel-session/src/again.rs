@@ -38,6 +38,7 @@
 //!   `starting`, then `failed` with the reason, as a new session does.
 
 use std::collections::BTreeSet;
+use std::sync::Arc;
 
 use chrono::Utc;
 use tokio::sync::oneshot;
@@ -209,7 +210,8 @@ impl SessionRuntime {
         let mut profiles = moved_through;
         let _created = profiles.insert(info.spec.profile.clone());
         let _current = profiles.insert(info.profile.clone());
-        let claim = self.claim(info.id, &info.spec.harness, profiles, &harness_session)?;
+        let claim =
+            Arc::new(self.claim(info.id, &info.spec.harness, profiles, &harness_session)?);
         let Relaunch {
             profile,
             limits,
@@ -229,7 +231,9 @@ impl SessionRuntime {
             cwd,
             driver,
             notices: chosen,
-        } = self.agent_command(spec, profile, model_proxy).await?;
+        } = self
+            .agent_command_owned(spec, profile, model_proxy, Arc::clone(&claim))
+            .await?;
         notices.extend(chosen);
         // The model it asked for at creation, as a move passes it on.
         let model = match &info.spec.mode {
