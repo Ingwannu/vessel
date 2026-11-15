@@ -5,6 +5,9 @@ use vessel_proto::checkpoint::{CHECKPOINT_NODE_BYTES, CheckpointError};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct ReservedBytes(u64);
 impl ReservedBytes {
+    pub(super) const fn get(self) -> u64 {
+        self.0
+    }
     pub(super) fn new(bytes: u64) -> Result<Self, CheckpointError> {
         if bytes > CHECKPOINT_NODE_BYTES {
             Err(CheckpointError::StorageFull)

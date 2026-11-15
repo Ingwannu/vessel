@@ -21,6 +21,8 @@ pub(super) enum Disposition {
 }
 #[derive(Debug)]
 pub(super) enum Publication {
+    /// Durable global admission precedes every filesystem read or allocation.
+    Reserve(ReservedBytes),
     Candidate(FileImage),
     /// Only sent after the coordinator accepted the durable candidate in time.
     Activate,
@@ -31,6 +33,13 @@ struct Request {
     bytes: ReservedBytes,
     deadline: Instant,
     reply: oneshot::Sender<Result<CaptureKey, CheckpointError>>,
+}
+#[derive(Debug)]
+struct Work {
+    key: CaptureKey,
+    bytes: ReservedBytes,
+    deadline: Instant,
+    cancellation: CancellationToken,
 }
 #[derive(Debug)]
 enum Event {
@@ -129,7 +138,8 @@ where
                     if captures.admit(key,request.deadline,request.bytes,request.reply).is_ok() {
                         let cancellation=captures.cancellation(key);
                         if let Some(cancellation)=cancellation {
-                            let _worker=tokio::spawn(work(key,cancellation,Arc::clone(&read),Arc::clone(&persist),Arc::clone(&cleanup),events.clone()));
+                            let job=Work {key,bytes:request.bytes,deadline:request.deadline,cancellation};
+                            let _worker=tokio::spawn(work(job,Arc::clone(&read),Arc::clone(&persist),Arc::clone(&cleanup),events.clone()));
                         }
                     }
                 }
@@ -165,8 +175,7 @@ async fn wait_deadline(deadline: Option<Instant>) {
 }
 
 async fn work<Read, Persist, Cleanup, Stored>(
-    key: CaptureKey,
-    cancellation: CancellationToken,
+    job: Work,
     read: Arc<Read>,
     persist: Arc<Persist>,
     cleanup: Arc<Cleanup>,
@@ -180,10 +189,50 @@ async fn work<Read, Persist, Cleanup, Stored>(
     Stored: Future<Output = Result<(), CheckpointError>> + Send + 'static,
     Cleanup: Fn(CaptureKey, Disposition) + Send + Sync + 'static,
 {
-    let read_key = key;
-    let candidate = tokio::task::spawn_blocking(move || read(read_key, cancellation)).await;
-    let disposition = match candidate {
-        Ok(Ok(image)) => publish(key, image, persist, &events).await,
+    let key = job.key;
+    let disposition = match persist(key, Publication::Reserve(job.bytes)).await {
+        Ok(()) if Instant::now() < job.deadline && !job.cancellation.is_cancelled() => {
+            read_candidate(job, read, persist, &events).await
+        }
+        Ok(()) => {
+            let _closed = events
+                .send(Event::Failed {
+                    key,
+                    reason: CheckpointError::CaptureTimedOut,
+                })
+                .await;
+            Disposition::Discard
+        }
+        Err(reason) => {
+            let _closed = events.send(Event::Failed { key, reason }).await;
+            // A lost writer acknowledgement cannot prove the reservation absent.
+            Disposition::Recovery
+        }
+    };
+    // Cleanup is deliberately awaited here, never by the session/deadline owner.
+    let cleaned = tokio::task::spawn_blocking(move || cleanup(key, disposition)).await;
+    if cleaned.is_ok() {
+        let _closed = events.send(Event::Cleaned(key)).await;
+    }
+}
+async fn read_candidate<Read, Persist, Stored>(
+    job: Work,
+    read: Arc<Read>,
+    persist: Arc<Persist>,
+    events: &mpsc::Sender<Event>,
+) -> Disposition
+where
+    Read: Fn(CaptureKey, CancellationToken) -> Result<FileImage, CheckpointError>
+        + Send
+        + Sync
+        + 'static,
+    Persist: Fn(CaptureKey, Publication) -> Stored + Send + Sync + 'static,
+    Stored: Future<Output = Result<(), CheckpointError>> + Send + 'static,
+{
+    let key = job.key;
+    let candidate = tokio::task::spawn_blocking(move || read(key, job.cancellation)).await;
+    match candidate {
+        Ok(Ok(image)) => publish(key, image, persist, events).await,
         Ok(Err(reason)) => {
             let _closed = events.send(Event::Failed { key, reason }).await;
             Disposition::Discard
@@ -197,11 +246,6 @@ async fn work<Read, Persist, Cleanup, Stored>(
                 .await;
             Disposition::Discard
         }
-    };
-    // Cleanup is deliberately awaited here, never by the session/deadline owner.
-    let cleaned = tokio::task::spawn_blocking(move || cleanup(key, disposition)).await;
-    if cleaned.is_ok() {
-        let _closed = events.send(Event::Cleaned(key)).await;
     }
 }
 async fn publish<Persist, Stored>(

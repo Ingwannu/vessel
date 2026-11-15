@@ -48,8 +48,14 @@ async fn held_read_io_releases_prompt_and_late_candidate_never_publishes() {
                 .map_err(|_closed| CheckpointError::StaleCapture)?;
             FileImage::new(Vec::new())
         },
-        move |_key, _image| {
-            let _previous = writes.fetch_add(1, Ordering::SeqCst);
+        move |_key, phase| {
+            match phase {
+                Publication::Reserve(bytes) => assert_eq!(bytes.get(), 1),
+                Publication::Candidate(_image) => {
+                    let _previous = writes.fetch_add(1, Ordering::SeqCst);
+                }
+                Publication::Activate => panic!("expired read cannot activate"),
+            }
             async { Ok(()) }
         },
         move |_key, disposition| {
@@ -88,11 +94,22 @@ async fn held_publication_ack_cannot_revive_the_expired_lease() {
     let cleaned = std::sync::Mutex::new(Some(cleaned));
     let (client, owner) = runner::start(
         |_key, _cancel| FileImage::new(Vec::new()),
-        move |_key, _image| {
-            let release = release.lock().unwrap().take().unwrap();
-            entered.lock().unwrap().take().unwrap().send(()).unwrap();
+        move |_key, phase| {
+            let release = match phase {
+                Publication::Reserve(bytes) => {
+                    assert_eq!(bytes.get(), 1);
+                    None
+                }
+                Publication::Candidate(_image) => {
+                    entered.lock().unwrap().take().unwrap().send(()).unwrap();
+                    Some(release.lock().unwrap().take().unwrap())
+                }
+                Publication::Activate => panic!("expired candidate cannot activate"),
+            };
             async move {
-                release.await.unwrap();
+                if let Some(release) = release {
+                    release.await.unwrap();
+                }
                 Ok(())
             }
         },
@@ -130,6 +147,10 @@ async fn accepted_candidate_releases_actor_but_activation_retains_worker_and_roo
         |_key, _cancel| FileImage::new(Vec::new()),
         move |_key, phase| {
             let held = match phase {
+                Publication::Reserve(bytes) => {
+                    assert_eq!(bytes.get(), 1);
+                    None
+                }
                 Publication::Candidate(image) => {
                     assert!(image.entries().is_empty());
                     None
@@ -184,6 +205,10 @@ async fn uncertain_ready_activation_keeps_archive_for_reconciliation() {
         |_key, _cancel| FileImage::new(Vec::new()),
         |_key, phase| async move {
             match phase {
+                Publication::Reserve(bytes) => {
+                    assert_eq!(bytes.get(), 1);
+                    Ok(())
+                }
                 Publication::Candidate(image) => {
                     assert!(image.entries().is_empty());
                     Ok(())
@@ -202,6 +227,61 @@ async fn uncertain_ready_activation_keeps_archive_for_reconciliation() {
         Ok(key)
     );
     finished.await.unwrap();
+    drop(client);
+    owner.await.unwrap();
+}
+
+#[tokio::test(start_paused = true)]
+async fn held_global_reservation_never_starts_filesystem_work_after_actor_deadline() {
+    let (release, held) = oneshot::channel();
+    let held = std::sync::Mutex::new(Some(held));
+    let (entered, entry) = oneshot::channel();
+    let entered = std::sync::Mutex::new(Some(entered));
+    let reads = Arc::new(AtomicUsize::new(0));
+    let read_count = Arc::clone(&reads);
+    let (cleaned, finished) = oneshot::channel();
+    let cleaned = std::sync::Mutex::new(Some(cleaned));
+    let (client, owner) = runner::start(
+        move |_key, _cancel| {
+            let _previous = read_count.fetch_add(1, Ordering::SeqCst);
+            FileImage::new(Vec::new())
+        },
+        move |_key, phase| {
+            let held = match phase {
+                Publication::Reserve(bytes) => {
+                    assert_eq!(bytes.get(), 1);
+                    entered.lock().unwrap().take().unwrap().send(()).unwrap();
+                    held.lock().unwrap().take().unwrap()
+                }
+                Publication::Candidate(_) | Publication::Activate => {
+                    panic!("an expired reservation cannot read or activate")
+                }
+            };
+            async move {
+                held.await.unwrap();
+                Ok(())
+            }
+        },
+        move |_key, disposition| {
+            assert_eq!(disposition, Disposition::Discard);
+            cleaned.lock().unwrap().take().unwrap().send(()).unwrap();
+        },
+    );
+    let key = key();
+    let call = client.clone();
+    let actor =
+        tokio::spawn(async move { call.capture(key, ReservedBytes::new(1).unwrap()).await });
+    entry.await.unwrap();
+    tokio::time::advance(CHECKPOINT_CAPTURE_DEADLINE).await;
+    assert_eq!(actor.await.unwrap(), Err(CheckpointError::CaptureTimedOut));
+    assert_eq!(
+        client.capture(key, ReservedBytes::new(1).unwrap()).await,
+        Err(CheckpointError::Busy)
+    );
+    assert_eq!(reads.load(Ordering::SeqCst), 0);
+    release.send(()).unwrap();
+    finished.await.unwrap();
+    assert_eq!(reads.load(Ordering::SeqCst), 0);
     drop(client);
     owner.await.unwrap();
 }

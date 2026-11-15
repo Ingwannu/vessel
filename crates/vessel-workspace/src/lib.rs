@@ -13,8 +13,8 @@
 //! temporary folders, with the real `git`; nothing reaches the network.
 
 pub mod commands;
-// ADR 0077: staged until reviewed node wiring consumes this boundary.
-#[cfg(test)]
+// ADR 0077: Linux I/O staging only; other platforms remain unavailable.
+#[cfg(all(test, target_os = "linux"))]
 mod checkpoint;
 pub mod files;
 pub mod find;
