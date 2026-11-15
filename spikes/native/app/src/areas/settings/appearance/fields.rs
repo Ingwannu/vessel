@@ -41,13 +41,7 @@ impl Fields {
 }
 impl State {
     /// Rehydrate only changed saved axes; a theme switch cannot erase a draft.
-    pub(super) fn sync(
-        &mut self,
-        saved: &Appearance,
-        full: &str,
-        window: &mut Window,
-        cx: &mut App,
-    ) {
+    pub(super) fn sync(&mut self, saved: &Appearance, window: &mut Window, cx: &mut App) {
         for field in Field::ALL {
             let next = form::saved_text(field, saved);
             if self
@@ -56,19 +50,17 @@ impl State {
                 .is_none_or(|before| form::saved_text(field, before) != next)
             {
                 self.drafts.reset(field);
-                self.fields
-                    .of(field)
-                    .set_text(&display(next, full), window, cx);
+                self.fields.of(field).set_text(&display(next), window, cx);
             }
         }
         self.saved = Some(saved.clone());
         self.refresh_preview(saved, cx);
     }
 }
-fn display(text: FieldText, full: &str) -> String {
+fn display(text: FieldText) -> String {
     match text {
         FieldText::Value(value) => value.as_str().to_owned(),
-        FieldText::WindowWidth => full.to_owned(),
+        FieldText::WindowWidth => String::new(),
     }
 }
 impl Shell {
@@ -114,13 +106,8 @@ impl Shell {
         if let Some(change) = result.change {
             self.prefer(&change, window, cx);
         }
-        let full = self
-            .t
-            .lang
-            .settings()
-            .width(vessel_app_view::prefs::ContentWidth::Full);
         let input = self.areas.settings.appearance.fields.of(field);
-        let text = display(result.text, full);
+        let text = display(result.text);
         if input.text(cx) != text {
             input.set_text(&text, window, cx);
         }

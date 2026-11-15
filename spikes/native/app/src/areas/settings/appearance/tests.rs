@@ -186,3 +186,46 @@ fn theme_changes_preserve_other_drafts_while_external_axis_changes_resync_curren
         })
     });
 }
+
+#[gpui::test]
+fn language_refresh_keeps_family_draft_selection_and_legacy_width_as_presentation(
+    cx: &mut TestAppContext,
+) {
+    use crate::shell::language_tests;
+    language_tests::init(cx);
+    language_tests::preserves(
+        cx,
+        |shell, window, cx| {
+            shell.prefs.settings.appearance.content_width = ContentWidth::Full;
+            sync(shell, window, cx);
+            assert_eq!(
+                shell
+                    .areas
+                    .settings
+                    .appearance
+                    .fields
+                    .of(Field::Width)
+                    .text(cx),
+                ""
+            );
+        },
+        |shell| shell.areas.settings.appearance.fields.of(Field::MonoFamily),
+        |shell| {
+            assert_eq!(
+                shell.prefs.settings.appearance.content_width,
+                ContentWidth::Full
+            );
+            assert_eq!(
+                shell
+                    .areas
+                    .settings
+                    .appearance
+                    .saved
+                    .as_ref()
+                    .unwrap()
+                    .content_width,
+                ContentWidth::Full
+            );
+        },
+    );
+}

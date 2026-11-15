@@ -48,6 +48,14 @@ impl State {
 }
 /// Hydrate/selectively resync outside paint, retaining unrelated live drafts.
 pub(super) fn sync(shell: &mut Shell, window: &mut Window, cx: &mut App) {
+    refresh_words(shell, window, cx);
+    shell
+        .areas
+        .settings
+        .appearance
+        .sync(&shell.prefs.settings.appearance, window, cx);
+}
+fn refresh_words(shell: &Shell, window: &mut Window, cx: &mut App) {
     let placeholder = shell.words.appearance().default_family();
     for field in [
         vessel_app_view::appearance::form::Field::InterfaceFamily,
@@ -61,16 +69,34 @@ pub(super) fn sync(shell: &mut Shell, window: &mut Window, cx: &mut App) {
             .of(field)
             .set_placeholder(placeholder, window, cx);
     }
-    let full = shell
-        .t
-        .lang
-        .settings()
-        .width(vessel_app_view::prefs::ContentWidth::Full);
+    // Legacy Full is presentation, never a translated raw numeric value.
+    let width_placeholder = match shell.prefs.settings.appearance.content_width {
+        vessel_app_view::prefs::ContentWidth::Full => shell
+            .t
+            .lang
+            .settings()
+            .width(vessel_app_view::prefs::ContentWidth::Full),
+        vessel_app_view::prefs::ContentWidth::Comfortable
+        | vessel_app_view::prefs::ContentWidth::Wide
+        | vessel_app_view::prefs::ContentWidth::Pixels(_) => "",
+    };
     shell
         .areas
         .settings
         .appearance
-        .sync(&shell.prefs.settings.appearance, full, window, cx);
+        .fields
+        .of(vessel_app_view::appearance::form::Field::Width)
+        .set_placeholder(width_placeholder, window, cx);
+}
+impl Shell {
+    /// Reword only control placeholders, retaining typed text and selection.
+    pub(crate) fn refresh_appearance_words(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        refresh_words(self, window, cx);
+    }
 }
 
 use theme_tile::{Columns, Preview, State as TileState};

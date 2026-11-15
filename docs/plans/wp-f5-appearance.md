@@ -377,3 +377,11 @@ adapter regression independently checks every semantic input/alpha, absent
 accent fallback and ambient independence. Runtime installed-catalog binding
 and checked dependency import remain pending; static offline themes must use
 Registry::installed, never the online-only remote-action resolver (ADR0079).
+
+Language refresh registers one Appearance placeholder callback in the existing
+registry. It never replaces the person's raw draft, focus or selection. Legacy
+Full width is now represented by an empty raw numeric draft with a translated
+Window-width placeholder, rather than placing UI words inside numeric data;
+invalid/empty commit retains Full. This native legacy presentation has no
+Paseo counterpart. A real language/input selection regression covers it and
+the family field; no second locale watcher is introduced.
