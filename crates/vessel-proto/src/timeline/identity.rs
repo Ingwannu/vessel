@@ -98,6 +98,15 @@ identity!(
     "A display name or tool label whose spelling must remain intact."
 );
 
+impl ClientMessageId {
+    /// Mint once before prompt preparation; retain this identity across delivery retries.
+    #[must_use]
+    pub fn random() -> Self {
+        // A canonical UUID has no controls and fits the identity bound by construction.
+        Self(Arc::from(uuid::Uuid::new_v4().to_string()))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
