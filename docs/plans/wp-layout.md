@@ -63,6 +63,16 @@ caller. Typed Explorer rendering is not installed yet and is not reported visibl
 through this adapter. Sidebar actions use idempotent `layout_exit_focus`, rather
 than toggling into focus mode on an already ordinary layout.
 
+The staged preferences hook rebases an initialized layout cache against old/new
+canonical preferences by workspace key. It installs unrelated additions/removals
+and keeps each pane tree atomic. Locally changed durable trees, dirty tabs,
+compact sheets and active rename/menu/drag/resize interactions retain their
+current tree; metadata refresh never discards their owner resources. It does not
+save preferences. The desktop coordinator must remove its literal test-only
+staging attributes with the real canonical-snapshot caller and check that union.
+This avoids the former stale whole-book write removing another window's layout,
+without introducing another preferences coordinator.
+
 `view::layout` owns targets, manifests, recursive tree, placement,
 reconciliation, close plans and compact sheets. The app area adapts live
 selection, draws through feature renderers and routes lifecycle effects
