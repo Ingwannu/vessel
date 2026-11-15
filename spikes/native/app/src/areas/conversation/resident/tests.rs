@@ -1,6 +1,6 @@
 //! Populated owner state crosses the sole registry, never selected globals.
 use super::{ConversationArea, Origin};
-use crate::areas::conversation::ResidentSeat;
+use crate::areas::conversation::{ResidentSeat, TimelineSnapshot};
 use crate::areas::{layout::residents::SessionResources, session::SessionView};
 use crate::shell::{Shell, language_tests};
 use gpui::TestAppContext;
@@ -250,7 +250,9 @@ fn a_clean_snapshot_moves_the_real_rows_disclosures_and_scroll_while_holds_retur
             panic!("navigation must hold")
         };
         assert_eq!(area.timeline.entries().len(), 2);
-        let Ok(snapshot) = area.into_timeline_snapshot(token, OwnerReadiness::Ready) else {
+        let Ok(snapshot): Result<TimelineSnapshot, _> =
+            area.into_timeline_snapshot(token, OwnerReadiness::Ready)
+        else {
             panic!("idle owner can transfer")
         };
         assert!(!format!("{snapshot:?}").contains("Reasoning"));

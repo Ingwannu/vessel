@@ -884,3 +884,21 @@ explicitly dereference the filter borrow. No test counts or GPUI pass are claime
 from that failed run; /tmp/work/wp-timeline/literal-and-projection-tests-2 retains
 the exact compiler log. The corrected current-head run also covers the staged
 resident/Seat regression source omitted by that earlier snapshot.
+
+W12's proposed explicit Subagents owner was chosen over a generic A7 child
+snapshot placeholder: W12 owns the canonical owner/ALL and operation mapping
+addition. W2 owns its real query/track/navigation/detach/dialog/uncertainty holds
+and metadata snapshot; A7's Timeline vote covers main+origin with W1 navigation.
+Neither writes a second last-writer Timeline vote for the other's resource.
+The sole registry must collect both real snapshots and Ready votes before drop.
+
+W2 can reuse the SAME staged Conversation TimelineSnapshot for its readonly Area:
+into_timeline_snapshot(parent ResidentToken, navigation vote) moves the real Area
+including list/bookmark/disclosures/find resources. A child with shown/info None
+remains readonly; no fabricated child SessionId is allocated. The W2 snapshot
+retains canonical child ref, accepted projection revision and actual query ticket
+source alongside that Area snapshot; A7 does not invent or duplicate those fields.
+Restore checks original parent window/node/session; W2 additionally restores its
+matching child identity/revision and retains its dispatch fences. This helper
+never reinstates an old transport operation. The public crate reexport remains
+literal cfg(test) until the coordinated product owner/caller cutover.

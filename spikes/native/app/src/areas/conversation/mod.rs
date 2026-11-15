@@ -69,18 +69,18 @@ mod overlays;
 mod permission;
 mod place;
 mod plan;
-mod projection;
 /// The Plan body shared with the pending approval package.
 pub(crate) mod plan_card;
+mod projection;
 mod question;
 mod queue;
 mod read;
 mod rename;
-mod rewind;
 #[cfg(test)]
 mod resident;
+mod rewind;
 #[cfg(test)]
-pub(crate) use resident::ResidentSeat;
+pub(crate) use resident::{ResidentSeat, TimelineSnapshot};
 pub(crate) mod search;
 mod tail;
 /// Its rows, for another area's conversation too ([`timeline::rows`]).
