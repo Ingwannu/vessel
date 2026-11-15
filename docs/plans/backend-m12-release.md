@@ -1105,6 +1105,28 @@ never rebuilt.
     - The published 0.0.0.0.20 Linux build took 0.0.0.0.21 by itself 7 s
       after its start: the raw file, since 0.0.0.0.20's updater knows no
       gzip. ERROR 0, no token in its log, no `.part` left.
+- **0.0.0.0.22**:
+  - Source: `6af1ccc72`, package base 12 (`b5b46357`, the lead's gate
+    1614/0/2) merged into this track's branch. Base 12 already holds
+    0.0.0.0.21's source, so the code is exactly `b5b46357`'s; the merge
+    adds only this plan.
+  - Compiled on the build VM, priority lane: 512 s for Windows and
+    Linux. The slot was found once in each app.
+  - Packaged here at 19:31 UTC on 2026-11-15:
+    - The test proof took 6 s and the real proof 6 s.
+    - Both shipped apps pass `patch-feed.py verify`.
+    - The sums' signature verifies with the key compiled in.
+    - The build log holds neither the address nor its token.
+  - Not published until the coordinator's smoke.
+  - Sizes, with the change against 0.0.0.0.21: setup 14,566,398
+    (+292,378), exe 54,672,384 (+1,461,760), zip 21,388,894 (+425,806),
+    linux 92,303,936 (+1,919,528), tar.gz 31,683,033 (+481,090), exe.gz
+    21,281,911, linux.gz 31,430,043.
+  - Checks: icons the same as 0.0.0.0.21, the Windows version string
+    0.0.0.0.22, the debuglink CRC, the four licence texts in both
+    archives, `/dl/` lists it.
+  - The first update whose downloader knows the gzip copies and resuming:
+    0.0.0.0.21's updater fetches this one's `.gz`.
   - Sizes, with the change against 0.0.0.0.20: setup 14,274,020
     (+322,119), exe 53,210,624 (+1,566,720), zip 20,963,088 (+446,904),
     linux 90,384,408 (+1,629,792), tar.gz 31,201,943 (+458,553). The first
