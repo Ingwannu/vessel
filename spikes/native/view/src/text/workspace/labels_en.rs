@@ -99,6 +99,7 @@ pub const EN: Labels = Labels {
     tip_isolation: "Run in the project's folder as it is, or in a new worktree on a branch of its own",
     tip_base: "The branch the new worktree's branch starts from",
     all_projects: "All projects",
+    fewer_projects: "Show fewer",
     panel_changes: "Changes",
     panel_files: "Files",
     panel_toggle: "Changes and files",

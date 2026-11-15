@@ -830,6 +830,47 @@ credential `~/config/…`; an app run with another HOME reports the
 machine unreachable ("the device credential … No such file"). The
 capture driver rewrites that path in its per-run copy.
 
+### The sidebar's row menu, ended sessions, all projects (track S3, 2026-11-15)
+
+Row menu, commit `f7e91461`: a session row has Paseo's menu
+(`components/sidebar/sidebar-workspace-menu.tsx`), opened from the row's
+dots (shown while the row is hovered, always on touch, kept while its
+menu is up) or a right press on the row. Items in Paseo's order: Copy
+path (when the session has a folder), Mark as read or Mark as unread,
+Pin or Unpin, Archive. The marks need the node's conversation protocol;
+an older node's row offers Copy path only. Archive asks the board's own
+question first, drawn by the sidebar while the board is not on screen.
+Differences, named in `app/src/areas/sidebar/row_menu.rs`: horizontal
+dots (the kit has no vertical mark), no Rename, Copy branch name, Labels
+or Open in file manager (no native seam yet), no leading glyphs on the
+menu's rows (the kit's menu has none).
+
+How the board's agreement was checked: one run of the release build on
+the board route with the sidebar beside it (the capture folder's
+`shots/rowmenu/sync-dark-en` and `archive`). Mark read removes the
+board card's unread dot; mark unread brings it back; unpin removes the
+card's pin and moves the row down the sidebar; Archive, after Confirm,
+moves the board's Building count from 28 to 27 and Archive from 4 to 5,
+and the machine's "22 more" becomes "21 more". No reload in between:
+the node answers a mark with the session's new state, and the board's
+bookkeeping of acts puts it in the fleet that both draw from.
+
+Ended sessions, commit `8366a2b4`: "Show ended sessions" is on by
+default (the coordinator's ruling after the 0.0.0.0.17 smoke test). A
+stored document without the field reads as on; a stored `false` stays
+off. The page and the bridge still default to off until the node line
+moves them; `view/src/tests/prefs.rs` pins the shared document's shape
+and names this one default as the stated temporary difference (Decision
+Log at `prefs::SidebarView`).
+
+All projects: the row counted every machine's projects but opened
+Settings › Projects, which shows one machine (on a fleet of two, the
+other machine's "No projects yet" while the fourteen were on the
+first). Paseo's sidebar has no "all projects" screen: it lists every
+host's projects in the sidebar and filters them through its Display
+menu. The row now unfolds the rest in place, "Show fewer" folds them
+back, so the count and what the press shows are the same rows.
+
 ### Resume point (track S3, 2026-11-14 15:40 UTC)
 
 - Done and reported: palette (`153da701`, accepted); `view::matcher`

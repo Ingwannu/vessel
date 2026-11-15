@@ -102,6 +102,7 @@ pub struct Labels {
     pub tip_isolation: &'static str,
     pub tip_base: &'static str,
     pub all_projects: &'static str,
+    pub fewer_projects: &'static str,
     pub panel_changes: &'static str,
     pub panel_files: &'static str,
     pub panel_toggle: &'static str,
