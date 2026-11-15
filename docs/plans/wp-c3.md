@@ -255,3 +255,21 @@ and refreshed shared menu have not supplied consumer SOURCE handoffs yet.
 Their owners were asked; no duplicate pane registry, alias resolver or menu
 renderer is created here. Independent node/model work continues. C3 is still
 neither a complete skeleton nor built/passed; no tracker row is upgraded.
+
+## Command-center owner adapter
+
+The command center consumes areas::git::commands::{GitCommands, GitCommandTarget}
+through Shell::git_command_entries and run_git_command. It retains the opaque
+repository/generation/session target and MenuEntry intention; the owner re-reads
+the shown root and live entries on activation. The menu now uses the same adapter,
+so this is not an unused second policy or RPC path. git_command_item supplies the
+same localized label/busy gate; areas::git::glyph supplies Git action artwork.
+An ActionRow's unavailable reason distinguishes an enabled primary from an
+explanation-only query result. PR and merge artwork remain existing kit glyphs.
+
+The area generation uses its lifetime RequestKeys and is replaced on every
+followed-target transition, never reconstructed from a root name. Pure tests
+cover A/B/A, changed machine/root/session, changed availability and removed merge
+methods. This does not claim G4 connection-epoch admission or full C3 primary
+policy parity; those shared/feature integrations remain pending. It needs a
+changed-source narrow check and execution before another package consumes it.

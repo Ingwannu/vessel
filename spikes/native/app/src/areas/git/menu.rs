@@ -32,7 +32,7 @@ use crate::shell::Shell;
 const DETAIL_MOST: f32 = 160.0;
 
 /// Paseo's `git/action-icons.tsx` glyph for an action.
-pub(super) const fn glyph(action: Action) -> Glyph {
+pub(crate) const fn glyph(action: Action) -> Glyph {
     match action {
         Action::Quick(GitAction::Commit) => Glyph::Commit,
         Action::Quick(GitAction::Push) => Glyph::Upload,
@@ -47,37 +47,41 @@ pub(super) const fn glyph(action: Action) -> Glyph {
 
 /// The menu's rows, in the view's order, as the kit draws them.
 fn items(shell: &Shell) -> Vec<MenuItem> {
-    let git = &shell.areas.git;
-    let lang = shell.t.lang;
-    let Some(status) = git.status.shown() else {
-        return Vec::new();
-    };
-    let running = git.writing.intent();
-    entries(shell, status)
-        .into_iter()
-        .map(|entry| match entry {
-            MenuEntry::Git(row) => {
-                let label = match running {
-                    Some(intent) if intent.action() == Some(row.action) => lang.git_pending(intent),
-                    Some(_) | None => lang.git_action_label(row.action, status),
-                };
-                MenuItem {
-                    label: label.into(),
-                    tone: vessel_app_kit::menu::Tone::Plain,
-                    // Paseo's `isActionDisabled`: only a running write takes
-                    // a row out of reach; any other reason is said on choice.
-                    disabled: row.unavailable == Some(Unavailable::Writing),
-                    starts_group: row.starts_group,
-                }
-            }
-            MenuEntry::Pull(pull) => pull_item(shell, &pull),
-            MenuEntry::Merge(method) => merge_item(shell, method),
+    shell
+        .git_command_entries()
+        .map_or_else(Vec::new, |commands| {
+            commands
+                .entries
+                .iter()
+                .filter_map(|entry| shell.git_command_item(entry))
+                .collect()
         })
-        .collect()
+}
+
+/// Menu and command center use the same labels and current busy gates.
+pub(super) fn item(shell: &Shell, entry: &MenuEntry, status: &GitStatus) -> MenuItem {
+    match entry {
+        MenuEntry::Git(row) => {
+            let label = match shell.areas.git.writing.intent() {
+                Some(intent) if intent.action() == Some(row.action) => {
+                    shell.t.lang.git_pending(intent)
+                }
+                Some(_) | None => shell.t.lang.git_action_label(row.action, status),
+            };
+            MenuItem {
+                label: label.into(),
+                tone: vessel_app_kit::menu::Tone::Plain,
+                disabled: row.unavailable == Some(Unavailable::Writing),
+                starts_group: row.starts_group,
+            }
+        }
+        MenuEntry::Pull(pull) => pull_item(shell, pull),
+        MenuEntry::Merge(method) => merge_item(shell, *method),
+    }
 }
 
 /// The git rows with the pull request rows after the remote ones.
-fn entries(shell: &Shell, status: &GitStatus) -> Vec<MenuEntry> {
+pub(super) fn entries(shell: &Shell, status: &GitStatus) -> Vec<MenuEntry> {
     let git = &shell.areas.git;
     with_pull(
         rows(&git.status, &git.writing),
@@ -139,24 +143,12 @@ pub(super) fn overlay(
     if !git.menu.is_open() {
         return None;
     }
+    let commands = shell.git_command_entries()?;
     let handlers = MenuHandlers {
         state: |shell: &mut Shell| &mut shell.areas.git.menu,
-        chose: std::rc::Rc::new(|shell: &mut Shell, index, window, cx| {
-            let Some(status) = shell.areas.git.status.shown().cloned() else {
-                return;
-            };
-            match entries(shell, &status).get(index) {
-                Some(MenuEntry::Git(row)) => shell.git_choose(row.action, window, cx),
-                Some(MenuEntry::Pull(_)) => {
-                    shell.areas.git.menu.close();
-                    shell.pulls_chosen(window, cx);
-                }
-                Some(MenuEntry::Merge(method)) => {
-                    let method = *method;
-                    shell.areas.git.menu.close();
-                    shell.pulls_merge(method, cx);
-                }
-                None => {}
+        chose: std::rc::Rc::new(move |shell: &mut Shell, index, window, cx| {
+            if let Some(entry) = commands.entries.get(index) {
+                let _dispatched = shell.run_git_command(&commands.target, entry, window, cx);
             }
         }),
     };

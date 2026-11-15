@@ -214,7 +214,14 @@ fn actions(
 ) -> AnyElement {
     let git = &shell.areas.git;
     let lang = shell.t.lang;
-    let chosen = control.action;
+    let commands = shell.git_command_entries();
+    let chosen = commands.as_ref().and_then(|commands| commands.primary);
+    let captured = commands.and_then(|commands| {
+        let entry = commands.entries.into_iter().find(|entry| {
+            matches!(entry, vessel_app_view::workspace::pull::MenuEntry::Git(row) if Some(row.action) == chosen)
+        })?;
+        Some((commands.target, entry))
+    });
     let state = if control.running {
         PrimaryState::Busy
     } else {
@@ -232,7 +239,7 @@ fn actions(
     let content = match chosen {
         Some(action) => Content::Split(SplitContent {
             label: label.into(),
-            icon: menu::glyph(action),
+            icon: super::glyph(action),
             density: match control.density {
                 ControlDensity::Labelled => Density::Labelled,
                 ControlDensity::IconOnly => Density::IconOnly,
@@ -243,9 +250,12 @@ fn actions(
         None => Content::MenuOnly(phase),
     };
     let handlers = SplitHandlers {
-        primary: Rc::new(move |shell: &mut Shell, window, cx| match chosen {
-            Some(action) => shell.git_choose(action, window, cx),
-            None => shell.git_open_menu_at_trigger(window, cx),
+        primary: Rc::new(move |shell: &mut Shell, window, cx| {
+            if let Some((target, entry)) = &captured {
+                let _dispatched = shell.run_git_command(target, entry, window, cx);
+            } else if chosen.is_none() {
+                shell.git_open_menu_at_trigger(window, cx);
+            }
         }),
         menu: Rc::new(|shell: &mut Shell, at, window, cx| {
             shell.git_open_menu(at, window, cx);
