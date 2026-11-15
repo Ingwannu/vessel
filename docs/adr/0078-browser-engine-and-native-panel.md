@@ -610,7 +610,7 @@ all their existing rules, including first-engine Preview qualification.
 
 ### Ownership and data flow
 
-W13 supplies a self-contained valid UTF-8 snapshot of at most1MiB, bound to its
+W13 supplies a self-contained valid UTF-8 snapshot of at most 1 MiB, bound to its
 exact root/file/buffer revision and current resident operation ticket. Its
 checked read/snapshot API is still pending; this ADR does not invent its types.
 The app-side W12 ticket is a UI correlation/fencing token, never node authority.
@@ -657,8 +657,8 @@ required guard for the actual runtime, return Unsupported for this surface;
 never rely on an unenforced CSP directive or widen another profile's authority.
 
 One document consumes one of the existing total target slots; initially at most
-two document contexts may exist on a node. The1MiB source cap, encoded PNG8MiB,
-RGBA32MiB and owned task/queue limits are independent. Hidden/closed/replaced
+two document contexts may exist on a node. The 1 MiB source cap, encoded PNG 8 MiB,
+RGBA 32 MiB and owned task/queue limits are independent. Hidden/closed/replaced
 panes stop frame production; 5s paint/action waits and a wedged-script deadline
 end the owned process group/job rather than yielding an old frame as success.
 Close, changed buffer/revision, workspace/session move/archive, lost connection

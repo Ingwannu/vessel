@@ -41,7 +41,7 @@ pub(crate) enum CdpError {
     Decode(#[source] wire::DecodeError),
     /// Local typed parameters could not be encoded.
     #[error("CDP command encoding failed")]
-    Json(#[source] serde_json::CdpError),
+    Json(#[source] serde_json::Error),
     /// A known operation was refused by Chromium; its text is not a node diagnostic.
     #[error("CDP operation was refused by the browser")]
     Remote(#[source] wire::RemoteError),
@@ -84,11 +84,13 @@ impl std::fmt::Debug for CdpError {
 
 struct Command {
     id: CommandId,
+    session: Option<SessionId>,
     text: String,
     delivered: Arc<AtomicBool>,
     answer: oneshot::Sender<Result<Payload, CdpError>>,
 }
 struct Pending {
+    session: Option<SessionId>,
     answer: oneshot::Sender<Result<Payload, CdpError>>,
 }
 struct Shared {
@@ -180,7 +182,7 @@ impl Client {
             id,
             method: R::METHOD,
             params: Payload::encode(&request).map_err(CdpError::Json)?,
-            session_id: session,
+            session_id: session.clone(),
         };
         let text = serde_json::to_string(&outgoing).map_err(CdpError::Json)?;
         if text.len() > MAX_OUTGOING_BYTES {
@@ -192,6 +194,7 @@ impl Client {
             .commands
             .try_send(Command {
                 id,
+                session,
                 text,
                 delivered: Arc::clone(&delivered),
                 answer,
@@ -266,7 +269,7 @@ async fn run(
                 let Some(command)=command else {break Ok(())};
                 if command.answer.is_closed() {continue;}
                 if pending.len()>=PENDING_CAPACITY {let _gone=command.answer.send(Err(CdpError::Busy));continue;}
-                let _old=pending.insert(command.id,Pending{answer:command.answer});
+                let _old=pending.insert(command.id,Pending{session:command.session,answer:command.answer});
                 command.delivered.store(true,Ordering::Release);
                 match tokio::time::timeout(WRITE_TIMEOUT,socket.send(Message::Text(command.text.into()))).await {
                     Ok(Ok(()))=>{},Ok(Err(error))=>break Err(CdpError::Socket(error)),Err(source)=>break Err(CdpError::TimedOut{effect:BrowserEffect::Uncertain,source}),
@@ -288,7 +291,14 @@ async fn run(
                     Some(Err(error))=>break Err(CdpError::Socket(error)),
                 };
                 match wire::incoming(&text) {
-                    Ok(Incoming::Response{id,result})=>if let Some(waiting)=pending.remove(&id) {let _gone=waiting.answer.send(result.map_err(CdpError::Remote));},
+                    Ok(Incoming::Response{id,session,result})=>if let Some(waiting)=pending.remove(&id) {
+                        // Command ids alone do not prove which flattened target answered.
+                        if waiting.session != session {
+                            let _gone=waiting.answer.send(Err(CdpError::Protocol));
+                            break Err(CdpError::Protocol);
+                        }
+                        let _gone=waiting.answer.send(result.map_err(CdpError::Remote));
+                    },
                     Ok(Incoming::Event(event))=>if events.try_send(event).is_err() {break Err(CdpError::Busy);},
                     Ok(Incoming::UnknownEvent)=>{},
                     Err(error)=>break Err(CdpError::Decode(error)),

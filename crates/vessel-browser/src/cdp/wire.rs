@@ -86,6 +86,7 @@ struct RemoteCode(i64);
 pub(super) enum Incoming {
     Response {
         id: CommandId,
+        session: Option<SessionId>,
         result: Result<Payload, RemoteError>,
     },
     Event(Event),
@@ -207,7 +208,11 @@ pub(super) fn incoming(text: &str) -> Result<Incoming, DecodeError> {
             (None, Some(error)) => Err(error),
             (Some(_), Some(_)) | (None, None) => return Err(DecodeError::Shape),
         };
-        return Ok(Incoming::Response { id, result });
+        return Ok(Incoming::Response {
+            id,
+            session: packet.session_id,
+            result,
+        });
     }
     if packet.result.is_some() || packet.error.is_some() {
         return Err(DecodeError::Shape);

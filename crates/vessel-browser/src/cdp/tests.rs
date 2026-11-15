@@ -8,7 +8,7 @@ use tokio::net::TcpListener;
 use tokio_tungstenite::tungstenite::Message;
 use vessel_proto::browser::{BrowserEffect, InputText};
 
-use super::identity::{CommandId, TargetId};
+use super::identity::{CommandId, SessionId, TargetId};
 use super::requests::{Attach, InsertText, Version};
 use super::{CdpError, Client, Endpoint};
 
@@ -248,6 +248,48 @@ async fn essential_signal_overflow_fails_the_connection_without_silently_skippin
         let (client, _events) = Client::connect(&endpoint).await.unwrap();
         client.wait_closed().await;
         assert!(matches!(client.shutdown().await, Err(CdpError::Busy)));
+        peer.await.unwrap();
+    })
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn a_reply_from_another_flattened_session_fails_closed() {
+    tokio::time::timeout(FIXTURE_DEADLINE, async {
+        let (listener, endpoint) = listener().await;
+        let peer = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let mut socket = tokio_tungstenite::accept_async(socket).await.unwrap();
+            let frame = socket.next().await.unwrap().unwrap();
+            #[derive(Deserialize)]
+            struct Identity {
+                id: CommandId,
+            }
+            let call: Identity = serde_json::from_str(frame.to_text().unwrap()).unwrap();
+            let reply = serde_json::json!({"id":call.id,"sessionId":"another-target","result":{}});
+            socket
+                .send(Message::Text(reply.to_string().into()))
+                .await
+                .unwrap();
+            while let Some(Ok(message)) = socket.next().await {
+                if message.is_close() {
+                    break;
+                }
+            }
+        });
+        let (client, _events) = Client::connect(&endpoint).await.unwrap();
+        let session = SessionId::try_from("selected-target".to_owned()).unwrap();
+        let result = client
+            .execute(
+                Some(session),
+                InsertText {
+                    text: InputText::try_from("session-canary".to_owned()).unwrap(),
+                },
+            )
+            .await;
+        assert!(matches!(result, Err(CdpError::Protocol)));
+        assert!(matches!(client.shutdown().await, Err(CdpError::Protocol)));
         peer.await.unwrap();
     })
     .await

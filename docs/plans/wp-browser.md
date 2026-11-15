@@ -315,3 +315,12 @@ or supported surface. W13 retains Source until a checked hash exists. Initial
 node-side active HTML requires direct human Operate plus the file-read policy;
 this deliberate difference avoids silently granting server script execution to
 Read-only devices. No General/Preview fallback or extra MCP tool.
+
+
+## Flattened debugger response binding
+
+CDP pending requests now retain the expected flattened session as well as the
+monotonic command id. A mismatched response closes the transport and refuses
+the result; it cannot be used as the selected page's reply. A scripted peer
+regression sends a correct command id from a different target. No actual
+browser/runtime qualification follows from that transport-only fixture.
