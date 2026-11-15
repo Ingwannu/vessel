@@ -37,6 +37,6 @@ fn a_waiting_form_keeps_text_focus_and_selection_until_retry(cx: &mut TestAppCon
     cx.run_until_parked();
     cx.simulate_input("X");
     view.update_in(cx, |view, _window, cx| {
-        assert_eq!(view.field.text(cx), "answer AXC")
+        assert_eq!(view.field.text(cx), "answer AXC");
     });
 }

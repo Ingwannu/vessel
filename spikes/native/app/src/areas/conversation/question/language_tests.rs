@@ -118,3 +118,88 @@ fn a_language_change_keeps_the_step_answer_caret_selection_and_focus(
         );
     }
 }
+
+#[gpui::test]
+fn an_old_question_editor_cannot_change_or_submit_its_successor(cx: &mut gpui::TestAppContext) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        shell
+            .areas
+            .conversation
+            .open("scratch", vessel_proto::SessionId::random());
+        prepare(shell, false, window, cx);
+        let old = shell.areas.conversation.answering.as_ref().unwrap();
+        let source = old.field.id();
+        let cursor = old.cursor();
+        let previous = old.id;
+        let successor = Question {
+            id: QuestionId::random(),
+            message: "Next request".into(),
+            tool_call: None,
+            fields: vec![field("answer", text())],
+        };
+        let _change = shell.areas.conversation.timeline.apply(&[
+            EventRecord {
+                seq: EventSeq::new(1),
+                at: chrono::DateTime::UNIX_EPOCH,
+                event: SessionEvent::Agent {
+                    event: AgentEvent::QuestionResolved {
+                        id: previous,
+                        outcome: vessel_proto::QuestionOutcome::Cancelled,
+                    },
+                },
+            },
+            EventRecord {
+                seq: EventSeq::new(2),
+                at: chrono::DateTime::UNIX_EPOCH,
+                event: SessionEvent::Agent {
+                    event: AgentEvent::QuestionAsked(successor),
+                },
+            },
+        ]);
+        shell.question_prepare::<SessionPlace>(window, cx);
+        let current_source = shell
+            .areas
+            .conversation
+            .answering
+            .as_ref()
+            .unwrap()
+            .field
+            .id();
+        assert_ne!(current_source, source);
+        shell.question_typed::<SessionPlace>(current_source, "current draft".into(), cx);
+        let draft = shell
+            .areas
+            .conversation
+            .answering
+            .as_ref()
+            .unwrap()
+            .drafts
+            .clone();
+        shell.question_typed::<SessionPlace>(source, "stale text".into(), cx);
+        assert_eq!(
+            shell.areas.conversation.answering.as_ref().unwrap().drafts,
+            draft
+        );
+        shell.question_entered::<SessionPlace>(source, "stale text".into(), window, cx);
+        assert!(
+            shell
+                .areas
+                .conversation
+                .answering
+                .as_ref()
+                .unwrap()
+                .sending
+                .is_none()
+        );
+        assert!(!shell.question_cursor::<SessionPlace>(cursor));
+        // Prove the successor can actually submit: ignoring the old source
+        // guard above would set this flag and fail the preceding assertion.
+        shell.question_entered::<SessionPlace>(current_source, "current draft".into(), window, cx);
+        assert_eq!(
+            shell.areas.conversation.answering.as_ref().unwrap().sending,
+            Some(ResponseAction::Submit)
+        );
+    });
+}

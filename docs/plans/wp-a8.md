@@ -122,3 +122,17 @@ Narrow evidence: app-only clippy on the question frame passed locally before the
 base merge. Remote be9cd023 run wp-side-narrow-20261115T063710Z-be9cd023 failed in
 view test targets on two unused qualifications; fixed in the next commit. No
 whole gate, inspected captures, durable rich response or V4 PASS is claimed.
+
+## Retained editor identity
+
+Coordinator approved the shared kit extraction on 2026-11-15: 7a3e3ed1 moves
+Handlers/listen without behavior changes, lowering field.rs ratchet694→635.
+Its narrow kit check compiled the extraction but failed an earlier A8 editor
+regression's missing semicolon; the follow-up fixes that test. The opt-in
+TextField::with_source callback supplies FieldId from the actual engine entity;
+all existing constructors retain their signatures. Question input handlers
+require that source to own the current waiting question. Rendered buttons also
+retain a request/step cursor, so old option/tab/submit clicks cannot affect a
+successor. A real keyboard test checks source propagation, and the app regression
+proves stale typing/Enter cannot alter or submit a replacement question while
+its own current editor can submit normally. No copied input engine is added.

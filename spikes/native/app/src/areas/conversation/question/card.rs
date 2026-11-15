@@ -23,7 +23,7 @@ use vessel_app_view::timeline::{
 };
 use vessel_proto::Question;
 
-use super::{Answering, ResponseAction, waiting};
+use super::{Answering, Cursor, ResponseAction, waiting};
 use crate::areas::conversation::Place;
 use crate::shell::Shell;
 
@@ -118,12 +118,15 @@ pub(crate) fn card<P: Place>(
             .child(block)
             .children(said.map(|said| said_row(said, tokens)))
             .child(actions::<P>(
-                words.question_dismiss(),
-                if last {
-                    words.question_submit()
-                } else {
-                    words.question_next()
-                },
+                answering.cursor(),
+                (
+                    words.question_dismiss(),
+                    if last {
+                        words.question_submit()
+                    } else {
+                        words.question_next()
+                    },
+                ),
                 (ready && !waiting_on_node, !waiting_on_node),
                 sending,
                 narrow,
@@ -190,7 +193,15 @@ fn answers<P: Place>(
     if !options.is_empty() {
         let rows = options.into_iter().enumerate().map(|(index, choice)| {
             let on = picked(step, &answering.drafts, &choice.value);
-            option_row::<P>(index, choice, on, multiple, busy, tokens, cx)
+            option_row::<P>(
+                (index, answering.cursor()),
+                choice,
+                on,
+                multiple,
+                busy,
+                tokens,
+                cx,
+            )
         });
         // Paseo's card scrolls with the conversation; here it stands over
         // the composer, so a long list scrolls inside it instead of
@@ -220,6 +231,7 @@ fn tabs<P: Place>(
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let neutral = tokens.neutral;
+    let cursor = answering.cursor();
     let tabs = steps.iter().enumerate().map(|(index, step)| {
         let active = index == answering.step;
         let ink = if active {
@@ -255,7 +267,9 @@ fn tabs<P: Place>(
             })
             .child(div().truncate().child(step_header(*step)))
             .on_click(cx.listener(move |shell, _event, window, cx| {
-                shell.question_show::<P>(index, window, cx);
+                if shell.question_cursor::<P>(cursor) {
+                    shell.question_show::<P>(index, window, cx);
+                }
             }))
     });
     div()
@@ -269,7 +283,7 @@ fn tabs<P: Place>(
 
 /// One option: Paseo's row, a radio or a checkbox at its left.
 fn option_row<P: Place>(
-    index: usize,
+    (index, cursor): (usize, Cursor),
     choice: Choice,
     on: bool,
     multiple: bool,
@@ -293,7 +307,9 @@ fn option_row<P: Place>(
         .cursor_pointer()
         .when(!busy, |row| {
             row.on_click(cx.listener(move |shell, _event, window, cx| {
-                shell.question_pick::<P>(&value, window, cx);
+                if shell.question_cursor::<P>(cursor) {
+                    shell.question_pick::<P>(&value, window, cx);
+                }
             }))
         })
         .child(control)
@@ -360,8 +376,8 @@ fn mark(on: bool, multiple: bool, tokens: &Tokens) -> Div {
 /// Dismiss, then Next or Submit (the accent): in a row, stacked on a
 /// phone. `(primary, dismiss)`: whether each answers a click.
 fn actions<P: Place>(
-    dismiss_words: &'static str,
-    primary_words: &'static str,
+    cursor: Cursor,
+    (dismiss_words, primary_words): (&'static str, &'static str),
     (primary, dismiss): (bool, bool),
     sending: Option<ResponseAction>,
     narrow: bool,
@@ -383,8 +399,10 @@ fn actions<P: Place>(
         tokens,
     )
     .when(dismiss, |button| {
-        button.on_click(cx.listener(|shell, _event, _window, cx| {
-            shell.question_dismiss::<P>(cx);
+        button.on_click(cx.listener(move |shell, _event, _window, cx| {
+            if shell.question_cursor::<P>(cursor) {
+                shell.question_dismiss::<P>(cx);
+            }
         }))
     });
     let primary_button = card_button(
@@ -404,8 +422,10 @@ fn actions<P: Place>(
         tokens,
     )
     .when(primary, |button| {
-        button.on_click(cx.listener(|shell, _event, window, cx| {
-            shell.question_primary::<P>(window, cx);
+        button.on_click(cx.listener(move |shell, _event, window, cx| {
+            if shell.question_cursor::<P>(cursor) {
+                shell.question_primary::<P>(window, cx);
+            }
         }))
     });
     div()

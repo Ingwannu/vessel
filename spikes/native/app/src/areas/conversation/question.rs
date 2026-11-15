@@ -32,8 +32,8 @@
 //!   the option rows scroll inside the card past 360 (280 on a phone), where Paseo's card
 //!   scrolls with the conversation.
 
-use vessel_app_kit::TextField;
 use vessel_app_kit::ui::{Context, Window};
+use vessel_app_kit::{TextField, field::FieldId};
 use vessel_app_link::ActKind;
 use vessel_app_view::timeline::{
     Draft, Drafts, EntryKind, Pick, Step, answer_of, box_is_other, empty_drafts, pick,
@@ -64,6 +64,22 @@ impl Answering {
     /// A late reply may settle only the retained form that sent it.
     pub(crate) fn is_sending(&self, id: QuestionId) -> bool {
         self.id == id && self.sending.is_some()
+    }
+}
+
+/// Render-time identity prevents clicks from a replaced request or step.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Cursor {
+    id: QuestionId,
+    step: usize,
+}
+
+impl Answering {
+    fn cursor(&self) -> Cursor {
+        Cursor {
+            id: self.id,
+            step: self.step,
+        }
     }
 }
 
@@ -135,6 +151,26 @@ impl Shell {
         }) && !P::busy(self)
     }
 
+    /// Old input subscriptions can outlive the card that created them.
+    fn question_source<P: Place>(&self, source: FieldId) -> bool {
+        (P::SEAT.get)(self)
+            .and_then(|area| area.answering.as_ref())
+            .is_some_and(|form| {
+                form.field.id() == source
+                    && waiting_at::<P>(self).is_some_and(|question| question.id == form.id)
+            })
+    }
+
+    /// A queued click belongs to the request and step drawn for it.
+    fn question_cursor<P: Place>(&self, cursor: Cursor) -> bool {
+        (P::SEAT.get)(self)
+            .and_then(|area| area.answering.as_ref())
+            .is_some_and(|form| {
+                form.cursor() == cursor
+                    && waiting_at::<P>(self).is_some_and(|question| question.id == cursor.id)
+            })
+    }
+
     /// Update only this session's retained step hint; other places own theirs.
     pub(crate) fn refresh_question_words(
         &mut self,
@@ -175,7 +211,7 @@ impl Shell {
             return;
         }
         let words = self.t.lang.conversation();
-        let field = TextField::with_change(
+        let field = TextField::with_source(
             words.question_other_placeholder(),
             Self::question_entered::<P>,
             Self::question_typed::<P>,
@@ -231,8 +267,13 @@ impl Shell {
 
     /// The text box changed: the step's text, and for a single choice the
     /// pick cleared (an option and a custom answer replace each other).
-    fn question_typed<P: Place>(&mut self, text: String, cx: &mut Context<'_, Self>) {
-        if !self.question_editable::<P>() {
+    fn question_typed<P: Place>(
+        &mut self,
+        source: FieldId,
+        text: String,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if !self.question_source::<P>(source) || !self.question_editable::<P>() {
             return;
         }
         let Some(question) = waiting_at::<P>(self) else {
@@ -252,11 +293,14 @@ impl Shell {
 
     fn question_entered<P: Place>(
         &mut self,
+        source: FieldId,
         _text: String,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        self.question_primary::<P>(window, cx);
+        if self.question_source::<P>(source) {
+            self.question_primary::<P>(window, cx);
+        }
     }
 
     /// Pick `value` in the step shown: a radio's or a yes-or-no field's
