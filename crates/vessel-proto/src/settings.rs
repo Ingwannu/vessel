@@ -205,6 +205,7 @@ pub struct SetNodeSettings {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "browser::change"
     )]
+    #[cfg_attr(feature = "ts", ts(optional))]
     pub browser_tools: Option<crate::browser::BrowserTools>,
 }
 

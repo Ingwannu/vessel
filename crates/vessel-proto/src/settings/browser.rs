@@ -34,6 +34,13 @@ mod tests {
     use crate::parking::ParkAfter;
     use crate::restart::RestartRecovery;
     use crate::settings::{AgentDrivers, SetNodeSettings};
+    #[cfg(feature = "ts")]
+    #[test]
+    fn typescript_browser_change_allows_omission_but_not_null() {
+        let declaration = <SetNodeSettings as ts_rs::TS>::decl();
+        assert!(declaration.contains("browser_tools?: BrowserTools"));
+        assert!(!declaration.contains("browser_tools?: BrowserTools | null"));
+    }
     #[test]
     fn a_named_field_cannot_disappear_at_null_or_unknown_values() {
         for input in [

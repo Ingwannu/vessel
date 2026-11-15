@@ -1073,8 +1073,9 @@ No ConnectionLife consumer was invented to remove staging expectations.
   now persist, rather than the old pre-AA BrowserPending placeholder refusal.
 - Why: preference persistence and browser admission are different facts. A saved
   On is not an engine qualification, provider start or offered-tool lease. Public
-  mutations still require the None browser field version at every hop and direct
-  human Admin; no method number or tool offering is enabled.
+  mutations require an assigned browser field version at every hop and direct
+  human Admin; the constant remains None, so public named mutations are refused.
+  No method number or tool offering is enabled.
 - Impact: actual-writer fixtures cover restart, unrelated concurrent updates,
   all-or-nothing unknown refusal, write failure, cancellation/serialization,
   service-account file ownership/modes, and future/unreadable original backups.
@@ -1099,3 +1100,13 @@ The settings tests now assert those returned preference/parking facts rather tha
 ignore them. Directory-backup tests also fail on enumeration errors instead of
 filtering them out. No test assertion or policy was weakened. Current corrected
 source still owes the changed-source checks; the failed exact3f receipt remains.
+
+
+The browser preference's optional request field explicitly generates a non-null
+optional TS property. The pinned ts-rs12.0.1 API distinguishes ts(optional) from
+optional=nullable; only this strict field uses the former. Existing nullable
+legacy settings are unchanged. A feature-ts test named for the fixed TypeScript
+selection checks the declaration against the decoder's omission/null contract.
+Default-feature strict/functional runs stay pinned to0b because this change is
+feature-ts metadata/test only; the still-queued TS run is superseded once after
+terminal cancellation, and its new exact-head compilation/generation is owed.
