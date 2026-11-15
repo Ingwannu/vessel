@@ -1,12 +1,26 @@
 //! A bounded physical-display serializer, never mutable-engine restoration or a query source.
 use crate::{
-    Attributes, Cell, Color, Column, Cursor, FrameCursor, FrameView, InputModes, ModeState, Row,
-    ScreenError, Size, Style, Visibility, Width,
+    Attributes, Cell, Color, Column, Cursor, CursorAppearance, CursorBlink, CursorShape,
+    FrameCursor, FrameView, InputModes, ModeState, Row, ScreenError, Size, Style, Visibility,
+    Width,
 };
 use std::fmt::Write as _;
 
 /// Serialized display bytes are admitted before the caller can write any of them.
 pub const MAX_ANSI_FRAME_BYTES: usize = 1024 * 1024;
+/// Explicit renderer defaults resolve unset program overrides without guessing node state.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CursorDefaults {
+    shape: CursorShape,
+    blink: CursorBlink,
+}
+impl CursorDefaults {
+    /// The physical display owner chooses its configured defaults once at admission.
+    #[must_use]
+    pub const fn new(shape: CursorShape, blink: CursorBlink) -> Self {
+        Self { shape, blink }
+    }
+}
 /// Display output only; consumers must never feed it back into the source engine.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AnsiFrame(Vec<u8>);
@@ -66,11 +80,19 @@ impl std::fmt::Write for Output {
 ///
 /// # Errors
 /// Refuses malformed cells/cursor geometry or an oversized serialized display update.
-pub fn paint_frame(frame: &FrameView<'_>) -> Result<AnsiFrame, ScreenError> {
+pub fn paint_frame(
+    frame: &FrameView<'_>,
+    defaults: CursorDefaults,
+) -> Result<AnsiFrame, ScreenError> {
     let size = Size::new(frame.columns(), frame.rows().get())?;
-    paint_cells(size, frame.cursor(), frame.input_modes(), |row, column| {
-        frame.cell(row, column).ok_or(ScreenError::Unavailable)
-    })
+    paint_cells(
+        size,
+        frame.cursor(),
+        frame.cursor_appearance(),
+        defaults,
+        frame.input_modes(),
+        |row, column| frame.cell(row, column).ok_or(ScreenError::Unavailable),
+    )
 }
 
 /// Share one renderer between engine projections and a validated wire-frame cell adapter.
@@ -81,6 +103,8 @@ pub fn paint_frame(frame: &FrameView<'_>) -> Result<AnsiFrame, ScreenError> {
 pub fn paint_cells<'a>(
     size: Size,
     cursor: FrameCursor,
+    appearance: CursorAppearance,
+    defaults: CursorDefaults,
     modes: InputModes,
     mut cell: impl FnMut(Row, Column) -> Result<Cell<'a>, ScreenError>,
 ) -> Result<AnsiFrame, ScreenError> {
@@ -103,6 +127,7 @@ pub fn paint_cells<'a>(
     let mut output = painter.output;
     output.push(format_args!("\x1b[0m\x1b[?7h"))?;
     modes_output(&mut output, modes)?;
+    cursor_output(&mut output, appearance, defaults)?;
     if let FrameCursor::Present(cursor) = cursor {
         position(
             &mut output,
@@ -115,6 +140,24 @@ pub fn paint_cells<'a>(
         }
     }
     Ok(output.finish())
+}
+
+fn cursor_output(
+    output: &mut Output,
+    appearance: CursorAppearance,
+    defaults: CursorDefaults,
+) -> Result<(), ScreenError> {
+    let shape = appearance.shape().unwrap_or(defaults.shape);
+    let blink = appearance.blink().unwrap_or(defaults.blink);
+    let parameter = match (shape, blink) {
+        (CursorShape::Block, CursorBlink::On) => 1,
+        (CursorShape::Block, CursorBlink::Off) => 2,
+        (CursorShape::Underline, CursorBlink::On) => 3,
+        (CursorShape::Underline, CursorBlink::Off) => 4,
+        (CursorShape::Bar, CursorBlink::On) => 5,
+        (CursorShape::Bar, CursorBlink::Off) => 6,
+    };
+    output.push(format_args!("\x1b[{parameter} q"))
 }
 struct Painter {
     output: Output,

@@ -150,3 +150,14 @@ The d105 strict check found only three test lints (two get/unwrap spellings and
 a non-Copy fixture ID); those are corrected without changing expected data.
 All original31 cell hashes,239 mode checkpoints,11 marker checkpoints and
 the original26 metadata values remain unchanged. Checks on this head are owed.
+
+The corrected b4be implementation executed48 tests with zero failures and
+all-target strict Clippy passed. A separate minimal producer omits this display
+serializer and its cell constructor; consumers must not adopt this whole branch.
+The next display revision takes explicit typed renderer cursor defaults and
+resolves each optional program override independently. The physical oracle uses
+the unchanged reference factory, then configures both receiver displays with
+Paseo app runtime's bar/blink defaults. It compares effective appearance, not
+unset program overrides with explicit display parameters. Original four scenes
+and their source bytes remain unchanged; added0..8/reset cases supplement them.
+No actual CLI writer/reset-guard integration or OS terminal proof follows.

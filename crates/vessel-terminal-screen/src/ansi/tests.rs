@@ -7,6 +7,9 @@ use std::io::Write as _;
 fn ink() -> Attributes {
     Attributes::new(Color::Default, Color::Default, [])
 }
+fn defaults() -> CursorDefaults {
+    CursorDefaults::new(CursorShape::Bar, CursorBlink::On)
+}
 #[test]
 fn readonly_cells_refuse_control_injection_and_invalid_spans() {
     for text in [
@@ -48,6 +51,8 @@ fn malformed_wide_pair_returns_no_display_frame() {
     let result = paint_cells(
         Size::new(4, 1).unwrap(),
         FrameCursor::OutsideViewport,
+        CursorAppearance::default(),
+        defaults(),
         InputModes::default(),
         |_, column| Ok(if column.0 == 0 { wide } else { wrong }),
     );
@@ -57,6 +62,8 @@ fn malformed_wide_pair_returns_no_display_frame() {
         paint_cells(
             Size::new(4, 1).unwrap(),
             FrameCursor::OutsideViewport,
+            CursorAppearance::default(),
+            defaults(),
             InputModes::default(),
             |_, _| Ok(orphan)
         ),
@@ -73,6 +80,8 @@ fn invalid_cursor_refuses_before_any_cell_is_read() {
             column: Column(0),
             visibility: Visibility::Shown,
         }),
+        CursorAppearance::default(),
+        defaults(),
         InputModes::default(),
         |_, _| {
             calls += 1;
@@ -89,6 +98,8 @@ fn encoded_byte_budget_stops_work_before_walking_a_maximum_grid() {
     let result = paint_cells(
         Size::new(1000, 1000).unwrap(),
         FrameCursor::OutsideViewport,
+        CursorAppearance::default(),
+        defaults(),
         InputModes::default(),
         |_, _| {
             calls += 1;
@@ -137,6 +148,18 @@ fn physical_display_fixture_export() {
         ),
         ("history", 8, 3, "0\r\n1\r\n2\r\n3\r\n4", Some(1)),
         ("pending-wrap", 8, 3, "12345678", None),
+        ("cursor-default", 8, 3, "default", None),
+        ("cursor-1", 8, 3, "\x1b[1 qone", None),
+        ("cursor-2", 8, 3, "\x1b[2 qtwo", None),
+        ("cursor-3", 8, 3, "\x1b[3 qthree", None),
+        ("cursor-4", 8, 3, "\x1b[4 qfour", None),
+        ("cursor-5", 8, 3, "\x1b[5 qfive", None),
+        ("cursor-6", 8, 3, "\x1b[6 qsix", None),
+        ("cursor-0-reset", 8, 3, "\x1b[1 q\x1b[0 qzero", None),
+        ("cursor-7-blink", 8, 3, "\x1b[7 qseven", None),
+        ("cursor-8-steady", 8, 3, "\x1b[8 qeight", None),
+        ("cursor-soft-reset", 8, 3, "\x1b[1 qkept\x1b[!pX", None),
+        ("cursor-ris", 8, 3, "\x1b[1 qbefore\x1bcafter", None),
     ] {
         let mut engine =
             Screen::new(Size::new(cols, rows).unwrap(), ScrollbackLines::default()).unwrap();
@@ -164,7 +187,7 @@ fn physical_display_fixture_export() {
                 );
             }
         }
-        let encoded = paint_frame(&frame).unwrap();
+        let encoded = paint_frame(&frame, defaults()).unwrap();
         assert!(encoded.as_bytes().len() <= MAX_ANSI_FRAME_BYTES);
         let modes = frame.input_modes();
         probes.push(Probe {

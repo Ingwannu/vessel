@@ -13,7 +13,7 @@ mod projection;
 mod queries;
 mod range;
 
-pub use ansi::{AnsiFrame, MAX_ANSI_FRAME_BYTES, paint_cells, paint_frame};
+pub use ansi::{AnsiFrame, CursorDefaults, MAX_ANSI_FRAME_BYTES, paint_cells, paint_frame};
 pub use cell::{
     Attributes, BufferKind, Cell, Color, Column, Cursor, Row, Style, Visibility, Width,
 };
