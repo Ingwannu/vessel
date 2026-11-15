@@ -157,6 +157,6 @@ mod tests {
             decode(br#"{"base_resp":{"status_code":9999,"status_msg":"private vendor message"}}"#)
                 .is_err()
         );
-        assert!(decode(br#"{}"#).is_err());
+        assert!(decode(br"{}").is_err());
     }
 }

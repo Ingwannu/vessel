@@ -95,7 +95,7 @@ impl NodeService {
         for scope in scopes {
             let source = match &scope {
                 LimitsScope::Account { account } => usage_reports::source(&account.harness)
-                    .map(|source| source.id())
+                    .map(vessel_proto::usage_reports::SavedUsageSource::id)
                     .transpose()
                     .map_err(|_invalid| changed())?,
                 LimitsScope::Session { .. } => None,
@@ -305,7 +305,7 @@ fn complete(
     mut reports: Vec<SourceReportEntry>,
     policy: ExternalLookup,
     visibility: CostVisibility,
-    additional: crate::usage_reports::Snapshot,
+    additional: usage_reports::Snapshot,
 ) -> Result<UsageReports, WireError> {
     reports.extend(additional.reports);
     let reports = ReportEntries::try_from(reports).map_err(|_collection| too_large())?;
@@ -343,7 +343,7 @@ impl pipeline::Bindings for Access<'_> {
     async fn capture(&self, scope: LimitsScope) -> Result<(Binding, HarnessRef), WireError> {
         self.service.report_binding(scope).await
     }
-    fn registry(&self) -> &crate::usage_reports::Registry {
+    fn registry(&self) -> &usage_reports::Registry {
         &self.service.usage_reports
     }
     fn limits(&self) -> &crate::limits::Limits {

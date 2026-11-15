@@ -107,7 +107,7 @@ mod tests {
         assert_eq!(report.windows.as_slice()[0].summary, UsageSummary::Included);
         assert_eq!(
             report.windows.as_slice()[0].resets_at.unwrap().timestamp(),
-            1800000000
+            1_800_000_000
         );
         assert!(report.balances.is_empty());
         let AccountUsageOutcome::Available(balance) =

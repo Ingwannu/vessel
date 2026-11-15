@@ -1,5 +1,7 @@
 //! Cache reads and policy commands never invoke a source; only Refresh starts jobs.
-use super::*;
+use super::{
+    Command, ExternalLookup, Observation, Owner, Snapshot, Source, WireError, changed, mpsc, spec,
+};
 use vessel_proto::usage_reports::{UsageDisclosureVersion, UsageSourceConsent};
 impl Owner {
     pub(super) async fn run(mut self, mut commands: mpsc::Receiver<Command>) {
@@ -8,10 +10,10 @@ impl Owner {
                 ()=self.stop.cancelled()=>break,
                 result=self.jobs.join_next(),if !self.jobs.is_empty()=>if let Some(result)=result{match result{Ok(done)=>self.completed(done),Err(_panic)=>{self.invalidate_all();tracing::error!("a source usage worker ended unexpectedly");}}},
                 command=commands.recv()=>match command{
-                    Some(Command::Snapshot{global,reply})=>{let result=if global.still_current(){self.prune(&global);self.snapshot(&global)}else{Err(changed())};drop(reply.send(result));},
+                    Some(Command::Snapshot{global,reply})=>{let result=if global.still_current(){self.prune(&global);self.snapshot(&global)}else{Err(changed())};let _closed=reply.send(result);},
                     Some(Command::Refresh{source,global,reply})=>self.refresh(source,global,reply),
-                    Some(Command::Set{request,global,reply})=>{let result=self.set(request,&global).await;drop(reply.send(result));},
-                    Some(Command::Clear{reply})=>{self.invalidate_all();drop(reply.send(()));},
+                    Some(Command::Set{request,global,reply})=>{let result=self.set(request,&global).await;let _closed=reply.send(result);},
+                    Some(Command::Clear{reply})=>{self.invalidate_all();let _closed=reply.send(());},
                     None=>break,
                 }
             }

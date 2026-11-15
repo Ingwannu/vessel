@@ -1,5 +1,8 @@
 //! Jobs keep their owner slot until the underlying local read actually finishes.
-use super::*;
+use super::{
+    Completed, DateTime, Entry, ExternalLookup, Observation, Owner, PROBES, SOURCE_BUDGET, Source,
+    SourceReportEntry, UsageFetchFailure, UsageSourceFailure, Utc, WAITERS, oneshot,
+};
 use vessel_harness::AccountUsageOutcome;
 use vessel_proto::{
     limits::LimitFailure,
@@ -17,11 +20,11 @@ impl Owner {
     ) {
         self.prune(&global);
         if !global.still_current() || global.policy != ExternalLookup::On {
-            drop(reply.send(Err(UsageFetchFailure::SourceRemoved)));
+            let _closed = reply.send(Err(UsageFetchFailure::SourceRemoved));
             return;
         }
         if !self.enabled(source) {
-            drop(reply.send(Ok(())));
+            let _closed = reply.send(Ok(()));
             return;
         }
         if let Some(entry) = self.entries.iter_mut().find(|entry| entry.source == source)
@@ -29,19 +32,20 @@ impl Owner {
         {
             entry.waiters.retain(|waiter| !waiter.is_closed());
             if entry.waiters.len() >= WAITERS {
-                drop(reply.send(Err(UsageFetchFailure::Busy)));
+                let _closed = reply.send(Err(UsageFetchFailure::Busy));
             } else {
                 entry.waiters.push(reply);
             }
             return;
         }
         if self.jobs.len() >= PROBES {
-            drop(reply.send(Err(UsageFetchFailure::Busy)));
+            let _closed = reply.send(Err(UsageFetchFailure::Busy));
             return;
         }
-        let position = match self.entries.iter().position(|entry| entry.source == source) {
-            Some(position) => position,
-            None => {
+        let position =
+            if let Some(position) = self.entries.iter().position(|entry| entry.source == source) {
+                position
+            } else {
                 self.entries.push(Entry {
                     source,
                     epoch: uuid::Uuid::new_v4(),
@@ -54,14 +58,13 @@ impl Owner {
                     waiters: Vec::new(),
                 });
                 self.entries.len().saturating_sub(1)
-            }
-        };
+            };
         let Some(entry) = self.entries.get_mut(position) else {
-            drop(reply.send(Err(UsageFetchFailure::SourceRemoved)));
+            let _closed = reply.send(Err(UsageFetchFailure::SourceRemoved));
             return;
         };
         if cooling(entry, Utc::now()) {
-            drop(reply.send(Ok(())));
+            let _closed = reply.send(Ok(()));
             return;
         }
         entry.epoch = uuid::Uuid::new_v4();
@@ -102,7 +105,7 @@ impl Owner {
             Err(UsageFetchFailure::SourceRemoved)
         };
         for waiter in entry.waiters.drain(..) {
-            drop(waiter.send(result));
+            let _closed = waiter.send(result);
         }
     }
 }
@@ -165,7 +168,7 @@ fn settle(entry: &mut Entry, done: Completed) -> Result<(), UsageFetchFailure> {
             None,
             SourceReportState::NotRequested,
         ));
-        entry.identity = done.result.identity.clone();
+        entry.identity.clone_from(&done.result.identity);
     }
     let state = state(
         done.result.result,

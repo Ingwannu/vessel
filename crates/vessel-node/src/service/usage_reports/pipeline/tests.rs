@@ -26,8 +26,8 @@ impl Bindings for Fake {
         let phase = self.captures.fetch_add(1, Ordering::SeqCst);
         if phase == 0 {
             let captured = self.current.read().await.clone();
-            self.outer.wait().await;
-            self.before_read.wait().await;
+            let _barrier = self.outer.wait().await;
+            let _barrier = self.before_read.wait().await;
             let harness = captured.account.harness.clone();
             Ok((captured, harness))
         } else {
@@ -35,8 +35,8 @@ impl Bindings for Fake {
                 phase, 1,
                 "no hidden selector re-resolution may be introduced"
             );
-            self.inner_done.wait().await;
-            self.before_final.wait().await;
+            let _barrier = self.inner_done.wait().await;
+            let _barrier = self.before_final.wait().await;
             let captured = self.current.read().await.clone();
             let harness = captured.account.harness.clone();
             Ok((captured, harness))
@@ -96,12 +96,12 @@ async fn configuration_a_b_a_never_publishes_bs_values_under_as_id() {
             let changing = Arc::clone(&fake);
             let original = a.clone();
             let controller = tokio::spawn(async move {
-                changing.outer.wait().await;
+                let _barrier = changing.outer.wait().await;
                 *changing.current.write().await = b;
-                changing.before_read.wait().await;
-                changing.inner_done.wait().await;
+                let _barrier = changing.before_read.wait().await;
+                let _barrier = changing.inner_done.wait().await;
                 *changing.current.write().await = original;
-                changing.before_final.wait().await;
+                let _barrier = changing.before_final.wait().await;
             });
             let policy = cached.limits.observation().await.unwrap();
             let report = saved_report(
