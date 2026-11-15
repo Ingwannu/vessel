@@ -36,8 +36,8 @@ use serde::{Deserialize, Serialize};
 use vessel_proto::{ChoiceValue, HarnessKind, NodeId, OptionId, ProfileName};
 
 pub use appearance::{
-    Animations, Appearance, CodeSize, ContentWidth, ConversationDisplay, InterfaceSize, OutOfRange,
-    Theme,
+    Animations, Appearance, CodeSize, ContentSize, ContentWidth, ConversationDisplay,
+    InterfaceSize, OutOfRange, Theme,
 };
 pub use change::{PreferenceChange, Refused, ShortcutEdit, ShortcutEdits, ShortcutTarget};
 pub use keys::{ActionId, Bindings, InvalidActionId, InvalidKeyBinding, KeyBinding, TooMany};

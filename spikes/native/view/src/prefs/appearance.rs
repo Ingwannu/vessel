@@ -169,13 +169,18 @@ macro_rules! text_size {
 }
 
 text_size! {
-    /// The interface's text size, 12 to 20 points (14 unless chosen).
-    InterfaceSize, 12 ..= 20, 14
+    /// The interface size, bounded by `MIN`/`MAX` (desktop default 14).
+    InterfaceSize, 10 ..= 21, 14
 }
 
 text_size! {
-    /// Code's text size, 10 to 18 points (12 unless chosen).
-    CodeSize, 10 ..= 18, 12
+    /// Code size, bounded by `MIN`/`MAX` (default 12).
+    CodeSize, 9 ..= 22, 12
+}
+
+text_size! {
+    /// Chat content's independent absolute size (desktop default 15).
+    ContentSize, 10 ..= 21, 15
 }
 
 /// A size outside its range.
