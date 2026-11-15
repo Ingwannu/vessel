@@ -1193,3 +1193,23 @@ probe is explicitly unexecuted: this receipt proves no timeout cleanup.
 This is Python/CDP execution of our script, not Rust decoding, the product policy
 proxy, private Preview ownership/revocation, process/profile supervisor, UDP/ICE/
 QUIC/WebTransport or Windows qualification. NoEngine and pending versions remain.
+
+
+## Changed-source checkpoint after the first full browser analysis
+
+Exactb1e7f6e9 strict runwp-browser-node-narrow-20261115T172100Z-b1e7f6e9
+returned13 findings: the bundle manifest helper still declared a u8 parameter
+after its field became typed Kind (three related type errors); eight test path/
+name lints; two forbidden unreachable macros in watch fixtures. The helper now
+accepts Kind while retaining the exact tag encoding. Test paths are unqualified
+where already imported, the cancellation barrier receiver is named resume, and
+the four watch-scope cases are a closed enum instead of a numeric range with
+unreachable fallback. An invalid frame fixture fails explicitly. Existing scope,
+late-ACK, cleanup, fingerprint and viewport assertions remain intact.
+
+That run did not execute functional tests. The queued old0b functional source
+shares the proven bundle type error, and3c TS predates the observed-document DTO
+and announced registry version. Both own queued runs were cancelled through
+queued-only admission and independently observed terminal cancelled/143 before
+their one replacements. The new combined batch includes these corrections and
+the same-traversal document source; older receipts do not qualify that union.

@@ -29,14 +29,14 @@ async fn fixture(held: Held) -> Fixture {
     ))
     .unwrap();
     let (seen, arrived) = oneshot::channel();
-    let (release, hold) = oneshot::channel();
+    let (release, resume) = oneshot::channel();
     let (ack, acknowledged) = oneshot::channel();
-    let peer = tokio::spawn(peer(listener, held, seen, hold, ack));
+    let peer = tokio::spawn(peer(listener, held, seen, resume, ack));
     let (client, _events) = Client::connect(&endpoint).await.unwrap();
     let page = Page::open(
         client.clone(),
         "https://example.test/".parse().unwrap(),
-        super::tests::viewport(390, 844),
+        tests::viewport(390, 844),
     )
     .await
     .unwrap();
@@ -53,12 +53,12 @@ async fn peer(
     listener: TcpListener,
     held: Held,
     seen: oneshot::Sender<()>,
-    hold: oneshot::Receiver<()>,
+    resume: oneshot::Receiver<()>,
     acknowledged: oneshot::Sender<()>,
 ) {
     let (socket, _) = listener.accept().await.unwrap();
     let mut socket = tokio_tungstenite::accept_async(socket).await.unwrap();
-    let mut barrier = Some((seen, hold));
+    let mut barrier = Some((seen, resume));
     let mut acknowledged = Some(acknowledged);
     let mut closes = 0_u8;
     while let Some(Ok(frame)) = socket.next().await {
@@ -72,10 +72,10 @@ async fn peer(
             Held::Close => "Target.closeTarget",
         };
         if method == held_method
-            && let Some((seen, hold)) = barrier.take()
+            && let Some((seen, resume)) = barrier.take()
         {
             seen.send(()).unwrap();
-            hold.await.unwrap();
+            resume.await.unwrap();
         }
         let result = match method {
             "Target.createTarget" => serde_json::json!({"targetId":"owned-target"}),

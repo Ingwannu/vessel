@@ -22,7 +22,7 @@ impl ManifestHash {
         hash.update(b"vessel-candidate-bundle-v1");
         Self(hash)
     }
-    fn entry(&mut self, kind: u8, path: &Path, mode: u32) -> Result<(), LaunchError> {
+    fn entry(&mut self, kind: Kind, path: &Path, mode: u32) -> Result<(), LaunchError> {
         let name = path.as_os_str().as_encoded_bytes();
         self.0.update([kind.tag()]);
         self.0.update(

@@ -39,21 +39,34 @@ fn state(tab: BrowserTab, revision: BrowserRevision, sequence: BrowserUpdateSeq)
 #[test]
 fn scope_mismatch_poisoning_cannot_be_followed_by_a_valid_update() {
     let (node, opened) = opening();
-    for mismatch in 0..4 {
+    #[derive(Clone, Copy)]
+    enum ScopeChange {
+        Workspace,
+        Browser,
+        Profile,
+        Node,
+    }
+    for mismatch in [
+        ScopeChange::Workspace,
+        ScopeChange::Browser,
+        ScopeChange::Profile,
+        ScopeChange::Node,
+    ] {
         let mut cursor = Cursor::new(node, &opened);
         let mut tab = opened.tab.clone();
         match mismatch {
-            0 => tab.workspace = WorkspaceId::random(),
-            1 => tab.browser_id = "00000000-0000-4000-8000-000000000002".parse().unwrap(),
-            2 => {
+            ScopeChange::Workspace => tab.workspace = WorkspaceId::random(),
+            ScopeChange::Browser => {
+                tab.browser_id = "00000000-0000-4000-8000-000000000002".parse().unwrap()
+            }
+            ScopeChange::Profile => {
                 tab.profile = BrowserProfile::Preview {
                     opening_session: vessel_proto::SessionId::random(),
                 }
             }
-            3 => {}
-            _ => unreachable!(),
+            ScopeChange::Node => {}
         }
-        let source = if mismatch == 3 {
+        let source = if matches!(mismatch, ScopeChange::Node) {
             NodeId::random()
         } else {
             node
@@ -193,7 +206,7 @@ fn real_png_payload_still_needs_the_exact_announced_frame_context() {
         BrowserUpdateSeq::FIRST.next().unwrap(),
     );
     let BrowserChange::Frame { frame: candidate } = &mut wrong.change else {
-        unreachable!()
+        panic!("frame fixture must contain a frame")
     };
     candidate.viewport = viewport(800, 600);
     assert_eq!(

@@ -27,9 +27,9 @@ async fn typed_driver_uses_the_owned_nul_pipe_without_discovering_a_socket() {
 }
 
 struct HeldWrite {
-    sent: tokio::sync::mpsc::Sender<String>,
+    sent: mpsc::Sender<String>,
     release: Arc<tokio::sync::Semaphore>,
-    replies: tokio::sync::mpsc::Receiver<String>,
+    replies: mpsc::Receiver<String>,
 }
 impl Transport for HeldWrite {
     async fn send(&mut self, text: String) -> Result<(), CdpError> {

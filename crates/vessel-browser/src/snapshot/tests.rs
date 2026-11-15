@@ -219,8 +219,8 @@ fn a_late_graph_without_any_ref_cannot_bypass_the_namespace_fence() {
 #[test]
 fn changed_form_value_invalidates_an_otherwise_identical_binding() {
     let value = element(0, "textbox", "Own", Some("@e1"));
-    let node: graph::Node = serde_json::from_value(value).unwrap();
-    let graph::Node::Element { fingerprint, .. } = node else {
+    let node: Node = serde_json::from_value(value).unwrap();
+    let Node::Element { fingerprint, .. } = node else {
         panic!("element fixture")
     };
     let original = Binding(fingerprint.clone());
