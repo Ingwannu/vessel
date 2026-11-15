@@ -3,10 +3,10 @@
 ## Scope and status
 
 The node facet of tracker row 28 belongs to N5; W3 retains its app facet.
-The package skeleton includes the accepted R1 policy values and hidden reply
-projection. R2's typed journal, passive projection and node-owned settings
-extension are being filled in and verified. No automatic continuation or
-whole-package pass is claimed. Existing R1 and narrow source verdicts do not
+The package includes the accepted R1 policy values and hidden reply projection,
+R2's typed journal, passive projection, node-owned settings and startup runtime.
+The implementation is built; the final changed-base package gate and source
+review remain pending. No whole-package pass is claimed. Existing R1 and narrow source verdicts do not
 stand in for the final product gate. No native or page implementation belongs
 to this node package. Future node review routes to V3 under the parity plan.
 
@@ -113,3 +113,13 @@ fixture keeps its existing stop_failure module and adds the new stopping
 module; its earlier assertions and deadlines remain. Recovery's ADR is now
 0098 to keep the brand's 0059 unique. Candidate revisions and failed logs are
 retained independently; final source verification is still required.
+
+## Final gate preparation
+
+The final node all-target Clippy passed after the last fixture result was
+asserted. The earlier recovery-focused 27/0 run remains a narrow result on
+the previous base. The package gate now covers the announced node base and
+the actual regenerated TypeScript. Existing sessions without the creation-time
+eligibility projection remain manual even after later turns; neither a log
+scan nor a manual resume invents that provenance. This deliberate migration
+limit is stated in the ADR and user documentation.

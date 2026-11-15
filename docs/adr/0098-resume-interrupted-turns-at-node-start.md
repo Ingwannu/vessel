@@ -84,6 +84,11 @@ a version after the CLI and native/web host-settings consumers exist.
 The staged durable projection will need an appended migration with one named
 schema fact after the node head's existing migrations. R1 adds no migration.
 Existing rows must migrate inactive, with no invented interrupted turn.
+Rows created before this projection have no trusted creation-time eligibility.
+They remain under manual control even after a later turn; automatic recovery
+starts tracking only new eligible creations/imports. Reconstructing that fact
+from a transcript or a current creator would risk resuming an unattended
+execution. This conservative migration difference from Paseo is deliberate.
 
 CLI: `vessel node settings --resume-on-startup on|off` and independently
 `--resume-prompt TEXT`. A read shows both effective values. Reuse existing
