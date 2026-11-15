@@ -6,12 +6,18 @@ root. Source values are decoded by a test-only node backend, then admitted and
 published by the production policy/cache service. No browser payload mocking.
 """
 import argparse
+import errno
 import datetime as dt
 import json
 import os
+import stat
+import time
 from pathlib import Path
 
 MARKER = b"vessel-usage-fixture-v1\n"
+RELEASE_WAIT_SECONDS = 2
+RELEASE_RETRY_SECONDS = 0.01
+CURSOR_STUB = b"vessel-usage-fixture-cursor-stub-v1\n"
 
 
 def write(root, path, value):
@@ -70,10 +76,47 @@ def prepare(root, legacy):
         write(root, root / "data/profiles.toml", b'[profiles.fixture-other]\nharness = "codex"\nlabel = "Other synthetic account"\n[profiles.fixture-other.env]\nCODEX_HOME = "~/codex-other"\n')
 
 
+def hold(root):
+    if not hasattr(os, "mkfifo"):
+        raise SystemExit("the fixture gate requires Unix FIFOs")
+    stub = root / "home/.config/Cursor/User/globalStorage/state.vscdb"
+    if stub.exists() and (stub.stat().st_size != len(CURSOR_STUB) or stub.read_bytes() != CURSOR_STUB):
+        raise SystemExit("refusing to overwrite a non-fixture Cursor database")
+    write(root, stub, CURSOR_STUB)
+    os.mkfifo(root / "source-gate", mode=0o600)
+
+
+def release(root):
+    gate = root / "source-gate"
+    before = gate.lstat()
+    if not stat.S_ISFIFO(before.st_mode):
+        raise SystemExit("refusing a non-FIFO fixture gate")
+    deadline = time.monotonic() + RELEASE_WAIT_SECONDS
+    while True:
+        try:
+            descriptor = os.open(gate, os.O_WRONLY | os.O_NONBLOCK | os.O_NOFOLLOW)
+            break
+        except OSError as error:
+            if error.errno != errno.ENXIO or time.monotonic() >= deadline:
+                raise SystemExit("no recorded source read is waiting at the gate") from None
+            time.sleep(RELEASE_RETRY_SECONDS)
+    try:
+        current = os.fstat(descriptor)
+        if (current.st_dev, current.st_ino) != (before.st_dev, before.st_ino):
+            raise SystemExit("the fixture gate changed")
+        os.write(descriptor, b"r")
+    finally:
+        os.close(descriptor)
+    after = gate.lstat()
+    if (after.st_dev, after.st_ino) != (before.st_dev, before.st_ino):
+        raise SystemExit("the fixture gate changed")
+    gate.unlink()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("root", type=Path)
-    parser.add_argument("action", choices=("prepare", "malformed", "restore", "switch-login"))
+    parser.add_argument("action", choices=("prepare", "malformed", "restore", "switch-login", "hold", "release"))
     parser.add_argument("--legacy", action="store_true", help="also prepare two distinct saved Codex profiles")
     args = parser.parse_args()
     root = args.root.absolute()
@@ -82,7 +125,11 @@ def main():
     else:
         root = root.resolve(strict=True)
         marked(root)
-        if args.action == "malformed":
+        if args.action == "hold":
+            hold(root)
+        elif args.action == "release":
+            release(root)
+        elif args.action == "malformed":
             write(root, root / "source-report.json", b'{"malformed":')
         elif args.action == "restore":
             write(root, root / "source-report.json", report())

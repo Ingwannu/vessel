@@ -259,3 +259,15 @@ The service fixture explicitly sets `bind=None`; its only TCP-independent carrie
 the owned duplex handshake and its Unix endpoint stays in scratch. It never binds a
 product/default/live port. The paused deadline assertion allows timer-wheel rounding
 inside its named safety budget rather than requiring nanosecond-exact wake timing.
+
+### Deterministic foreign-refresh fixture gate
+[Decision Log]
+- Purpose: a second mounted consumer must observe a real in-flight source refresh, then its terminal outcome, without a browser payload mock or timing sleeps that guess vendor duration.
+- Existing asset: the fixture already supplies the production source owner with a deferred Cursor database capability. Reuse that injection point; no second source parser, node command or protocol is needed.
+- Choice: `hold` creates one fixed mode-0600 Unix FIFO and a marked Cursor database stub inside the isolated root. The fixture's injected capability waits on that FIFO, returns no database token after release, and lets the existing headless sign-in parser read the synthetic login. `release` verifies the FIFO identity and writes one byte; its nonblocking connection attempt has a named two-second test-control budget.
+- Alternatives: a browser mock would skip the owner; a public pause RPC would enlarge production's contract. Both are unnecessary for this test-only executable.
+- Tradeoff: this is a Unix-only, single-held-job fixture. Release it before stopping the fixture, including after a timeout: actual blocking work deliberately retains its permit until it ends. A hold longer than the production source deadline truthfully produces timeout rather than successful refresh.
+
+After explicit Admin consent, run `python3 scripts/usage-fixture.py ROOT hold`, start an explicit Operate refresh, and wait for `USAGE_FIXTURE_GATE_WAITING` on the fixture's stdout. Cached Read from another connection can now observe Refreshing without starting a read. A second explicit additional-source refresh joins the owner; local request pending remains distinct from that cached phase. Run `python3 scripts/usage-fixture.py ROOT release` before the 20-second source deadline for a successful outcome. `USAGE_FIXTURE_GATE_RELEASED` acknowledges the actual callback release, not publication. Legacy `usage.limits` refresh retains its existing immediate snapshot behavior when already refreshing and does not promise a join. No new event or passive vendor polling is introduced. Python FIFO/mode/duplicate-hold checks are local standard-library probes; the Rust executable and end-to-end join proof still require remote build and execution.
+
+Managed exports can additionally use the tool owner's fixed `--root-fleet vessel-usage-fixture vessel` combination when the same source's daemon and fake harnesses are required. This combines already approved names, ordinary lane only, with no app build. It does not replace or duplicate any existing run; manifests must still match each executable actually used.

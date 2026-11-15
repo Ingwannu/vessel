@@ -12,6 +12,8 @@ use vessel_harness::{
 };
 use vessel_node::{Config, DataDir, Node};
 use vessel_proto::usage_reports::BuiltinUsageSource;
+#[path = "usage_fixture/gate.rs"]
+mod gate;
 const MARKER: &[u8] = b"vessel-usage-fixture-v1\n";
 const MARKER_BYTES: u64 = 64;
 #[derive(Debug, Parser)]
@@ -65,9 +67,13 @@ fn prepare(args: Args) -> Result<Config, Error> {
     config.bind = Some(args.bind);
     config.name = Some("Recorded usage fixture".to_owned());
     config.harness_lookup = Lookup::new([programs]);
+    let gate_root = root.clone();
     config.usage_sources = AccountUsageProbe::Recorded {
         root: root.clone(),
-        access: AccountSourceAccess::new(home, |_name| None),
+        access: AccountSourceAccess::new(home, |_name| None).with_cursor_reader(move |_path| {
+            gate::wait(&gate_root)?;
+            Ok(None)
+        }),
         source: BuiltinUsageSource::Cursor,
         body,
         status: 200,
