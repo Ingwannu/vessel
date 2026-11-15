@@ -59,7 +59,7 @@ struct Inner {
 pub struct Store(Arc<Mutex<Inner>>);
 
 /// Newly saved/unreferenced bytes survive a finalized-draft grace interval.
-const GRACE: Duration = Duration::from_secs(5 * 60);
+const GRACE: Duration = Duration::from_mins(5);
 const KEY_ATTEMPTS: usize = 8;
 /// Disk usage is bounded even while finalized files await grace-period GC.
 const MAX_TOTAL: u64 = 512 * 1024 * 1024;
