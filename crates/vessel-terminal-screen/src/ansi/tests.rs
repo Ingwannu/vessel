@@ -150,6 +150,15 @@ fn physical_display_fixture_export() {
         let frame = engine
             .frame(viewport, FrameRows::new(rows).unwrap())
             .unwrap();
+        for row in 0..frame.rows().get() {
+            for column in 0..frame.columns() {
+                assert!(
+                    frame.cell(Row(row), Column(column)).is_some(),
+                    "{name}: missing selected cell {row},{column} at {:?}",
+                    frame.first()
+                );
+            }
+        }
         let encoded = paint_frame(&frame).unwrap();
         assert!(encoded.as_bytes().len() <= MAX_ANSI_FRAME_BYTES);
         let modes = frame.input_modes();

@@ -65,3 +65,11 @@ and four stdout-only probe cases for an independent pinned terminal oracle.
 No process/filesystem/environment/toolkit or testkit dependency is added.
 Probe export is data generation, not a terminal-parity test; the independent
 oracle must run and be inspected separately. Source checks remain owed.
+
+First remote check at93b9 compiled the crate and ran42 tests:41 passed,
+the display fixture refused with Unavailable. The corresponding strict check
+found a non-Copy private channel enum passed by value. The enum is corrected;
+the fixture now checks every selected cell with scene/coordinate context before
+encoding, so a projection defect cannot hide behind a generic display refusal.
+The original failure and all expectations remain; a corrected runtime result
+and the independent display oracle are still owed.

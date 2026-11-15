@@ -194,6 +194,7 @@ fn attributes(output: &mut Output, ink: Attributes) -> Result<(), ScreenError> {
     color(output, Channel::Background, ink.background())?;
     output.push(format_args!("m"))
 }
+#[derive(Clone, Copy)]
 enum Channel {
     Foreground,
     Background,
