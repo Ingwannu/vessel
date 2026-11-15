@@ -229,3 +229,19 @@ read-only address accessor checks binding host/session agreement. Legacy resolve
 copy responses share the same URL/clipboard helper. A fake-shell regression
 keeps the original node despite a replaced Fleet destination and preserves the
 pending open and clipboard on a later invalid binding.
+
+## Shared resident source adoption
+
+W12's initial producer1720 was held before original-tree adoption. The isolated
+held branch is retained only as work evidence. The successor adopted here is the
+single native producer9480d4d0 with its explicitly reviewed value prerequisite
+e46cd57b (including canonical WorkspaceId identity), on the current shared app
+line. It is separate from plugin runtime or a node-head merge into the app.
+`view::sessions::SessionAddress` re-exports canonical
+`view::residents::SessionAddress`; navigation, receipt bindings and resident
+contexts therefore share one type without changing existing import paths.
+The producer includes a metadata admission/fence table and pane registry, with
+no live per-session resource getters or follow cutover. A2 retains no second
+resource manager and does not substitute selected-global state for scoped access.
+The producer's reviewed/clippy evidence does not replace this consumer's union
+checks or the final package/runtime gate.
