@@ -47,8 +47,7 @@ fn uncertainty_keeps_exact_payload_and_only_matching_completion_can_consume_it(
             },
         );
         shell.composer_pump(session, cx);
-        let Phase::Submitting(payload) = &shell.areas.composer.sends.get(&session).unwrap().phase
-        else {
+        let Phase::Submitting(payload) = &shell.areas.composer.sends[&session].phase else {
             panic!("context-only payload must dispatch exactly once");
         };
         let payload = Arc::clone(payload);
@@ -62,7 +61,7 @@ fn uncertainty_keeps_exact_payload_and_only_matching_completion_can_consume_it(
         shell.composer_pump(session, cx);
         let Phase::Retained {
             payload: retained, ..
-        } = &shell.areas.composer.sends.get(&session).unwrap().phase
+        } = &shell.areas.composer.sends[&session].phase
         else {
             panic!("uncertainty must retain the immutable payload");
         };
