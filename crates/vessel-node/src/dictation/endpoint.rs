@@ -25,7 +25,7 @@ const MAX_UPLOAD_ATTEMPTS: u32 = 1;
 
 /// Retain lower causes once without letting their payload enter diagnostics.
 #[derive(thiserror::Error)]
-enum ProviderError {
+pub(super) enum ProviderError {
     #[error("the dictation endpoint could not complete the request")]
     Http(#[source] reqwest::Error),
     #[error("the dictation TLS roots could not be loaded")]
@@ -124,7 +124,7 @@ impl Specification {
 
 /// Owning the HTTP client per stream bounds hosts and credentials with stream life.
 #[derive(Clone)]
-struct Endpoint {
+pub(super) struct Endpoint {
     http: Client,
     specification: Arc<Specification>,
     // A phase observation only: tests must distinguish body and header waits.
@@ -134,7 +134,7 @@ struct Endpoint {
 
 impl Endpoint {
     /// The request timeout covers headers and the bounded response body.
-    async fn transcribe(&self, segment: &Segment) -> Result<Transcript, ProviderError> {
+    pub(super) async fn transcribe(&self, segment: &Segment) -> Result<Transcript, ProviderError> {
         let spec = &self.specification;
         let form = Multipart::new(
             segment,
@@ -183,4 +183,4 @@ async fn read(mut response: reqwest::Response) -> Result<Vec<u8>, ProviderError>
 
 #[cfg(test)]
 #[path = "endpoint_tests.rs"]
-mod tests;
+pub(super) mod tests;

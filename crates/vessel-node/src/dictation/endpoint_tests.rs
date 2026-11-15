@@ -15,7 +15,8 @@ use vessel_proto::dictation::DictationPcm;
 
 const KEY: &str = "synthetic-private-credential";
 
-struct Server {
+/// Job tests reuse the actual HTTP fixture instead of copying server policy.
+pub(in crate::dictation) struct Server {
     base: EndpointBase,
     stop: CancellationToken,
     task: Option<JoinHandle<Result<(), std::io::Error>>>,
@@ -29,7 +30,8 @@ impl Drop for Server {
     }
 }
 impl Server {
-    async fn start(router: Router) -> Self {
+    /// Bind an isolated loopback route for the real endpoint and job clients.
+    pub(in crate::dictation) async fn start(router: Router) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let address = listener.local_addr().unwrap();
         let stop = CancellationToken::new();
@@ -45,7 +47,8 @@ impl Server {
             task: Some(task),
         }
     }
-    async fn endpoint(&self) -> Endpoint {
+    /// Exercise actual specification validation and client preparation in callers.
+    pub(in crate::dictation) async fn endpoint(&self) -> Endpoint {
         let spec = Specification::new(
             &self.base,
             EndpointModel::whisper(),
@@ -55,7 +58,8 @@ impl Server {
         .unwrap();
         spec.connect(&Factory::default()).await.unwrap()
     }
-    async fn finish(mut self) {
+    /// Join teardown so a completed test cannot retain its listener task.
+    pub(in crate::dictation) async fn finish(mut self) {
         self.stop.cancel();
         self.task.take().unwrap().await.unwrap().unwrap();
     }

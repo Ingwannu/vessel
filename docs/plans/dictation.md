@@ -475,3 +475,18 @@ Narrow clippy and four buffer tests pass: backpressure/FIFO, canceled response
 restoration, extra-wait refusal/replacement and immutable selected terminal.
 This proves the buffer only; actor control races, provider job
 cancellation and quota/connection integration remain the package's tests.
+
+## Independent provider jobs
+
+Decision: extend the existing endpoint behind a closed endpoint/fake source and
+a bounded JoinSet. A completed later job can release a slot before the earlier
+one finishes; every job captures Running/Finishing immediately on provider
+return, independently of result folding. Typed causes remain available, while
+Debug stays fixed. Existing loopback test setup is reused, with no policy or
+assertion changes in its original tests. No runtime trait or dependency is added.
+
+Half-done: seven job tests cover out-of-order slot reuse and full ownership return,
+phase observation before delayed collection, abort-and-drain, real HTTP/codecs,
+closed-provider typed causes and a worker panic with fixed diagnostics. Narrow
+checks remain owed. The layer does not
+yet prove the actor's finish-only TooSmall mapping or owner/transport cancellation.

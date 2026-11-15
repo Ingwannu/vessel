@@ -14,6 +14,7 @@ mod audio;
 mod budget;
 mod endpoint;
 mod input;
+mod jobs;
 mod multipart;
 mod owner;
 mod provider_json;

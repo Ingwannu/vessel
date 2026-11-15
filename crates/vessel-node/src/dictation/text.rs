@@ -6,11 +6,13 @@
 use super::budget::PendingCommits;
 use vessel_proto::{dictation::Transcript, workspace::trim_project_text};
 
+/// Associate each completion with the slot reserved before provider work.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-struct CommitIndex(usize);
+pub(super) struct CommitIndex(usize);
 
+/// Preserve the reason aggregate storage or its output boundary was refused.
 #[derive(Debug, thiserror::Error)]
-enum TextError {
+pub(super) enum TextError {
     #[error("the aggregate dictation transcript exceeds its byte bound")]
     TooLong,
     #[error("the joined transcript could not be trimmed at a valid boundary")]
@@ -21,8 +23,9 @@ enum TextError {
     Transcript(#[source] vessel_proto::dictation::DictationDecodeError),
 }
 
+/// Keep submission order without delaying a later completed segment's text.
 #[derive(Default)]
-struct Text {
+pub(super) struct Text {
     // No Debug: even independently redacted transcript values should not gain
     // a diagnostic container that might later expose newly added fields.
     slots: Vec<Option<Transcript>>,
@@ -31,7 +34,8 @@ struct Text {
 }
 
 impl Text {
-    fn reserve(&mut self) -> Result<CommitIndex, TextError> {
+    /// Give a provider job a stable place before it starts asynchronous work.
+    pub(super) fn reserve(&mut self) -> Result<CommitIndex, TextError> {
         let index = CommitIndex(self.slots.len());
         let separators = self.slots.len();
         if self.retained.saturating_add(separators) > Transcript::MAX_BYTES {
