@@ -27,6 +27,7 @@ fn observed() -> SuccessfulUsageReport {
     SuccessfulUsageReport {
         at: DateTime::UNIX_EPOCH,
         report: AvailableUsageReport {
+            completeness: UsageCompleteness::Complete,
             plan: Some(name("Example plan")),
             windows: vec![window("session")].try_into().unwrap(),
             balances: vec![UsageBalance {
@@ -67,6 +68,7 @@ fn entry(id: &str, state: SourceReportState) -> SourceReportEntry {
         id: id.parse().unwrap(),
         source_label: name("Example source"),
         builtin: None,
+        saved_login: None,
         account_label: Some(name("Same human label")),
         state,
     }
@@ -123,11 +125,12 @@ fn all_current_and_retained_success_paths_redact_money_and_private_details() {
             observed: success.clone(),
         },
         SourceReportState::Refreshing {
-            started_at: DateTime::UNIX_EPOCH,
+            started_at: Some(DateTime::UNIX_EPOCH),
             retained: Some(success.clone()),
         },
         SourceReportState::Unavailable {
-            attempted_at: DateTime::UNIX_EPOCH,
+            attempted_at: Some(DateTime::UNIX_EPOCH),
+            retry_at: None,
             problem: UsageProblem::Login {
                 reason: crate::limits::LimitFailure::Expired,
             },
@@ -135,7 +138,8 @@ fn all_current_and_retained_success_paths_redact_money_and_private_details() {
             logins: ReportLoginFailures::default(),
         },
         SourceReportState::Failed {
-            attempted_at: DateTime::UNIX_EPOCH,
+            attempted_at: Some(DateTime::UNIX_EPOCH),
+            retry_at: None,
             reason: UsageFetchFailure::TimedOut,
             retained: Some(success),
             logins: ReportLoginFailures::default(),

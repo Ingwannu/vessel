@@ -104,8 +104,8 @@ pub enum SourceReportState {
     NotRequested,
     /// One admitted fetch is running.
     Refreshing {
-        /// When this attempt began.
-        started_at: DateTime<Utc>,
+        /// Actual start when the source retained it; absent is never the query time.
+        started_at: Option<DateTime<Utc>>,
         /// Previous success only for the same validated login binding.
         retained: Option<SuccessfulUsageReport>,
     },
@@ -116,10 +116,12 @@ pub enum SourceReportState {
     },
     /// Latest attempt established an unavailable state.
     Unavailable {
-        /// Actual attempt completion, never successful freshness.
-        attempted_at: DateTime<Utc>,
+        /// Actual attempt completion when retained by the source; never the query time.
+        attempted_at: Option<DateTime<Utc>>,
         /// Sanitized current reason.
         problem: UsageProblem,
+        /// Actual provider cooldown when supplied; never a guessed retry delay.
+        retry_at: Option<DateTime<Utc>>,
         /// Same-binding success only.
         retained: Option<SuccessfulUsageReport>,
         /// Independent safe errors when every login failed.
@@ -127,10 +129,12 @@ pub enum SourceReportState {
     },
     /// Latest attempt failed to fetch a report.
     Failed {
-        /// Actual attempt completion time.
-        attempted_at: DateTime<Utc>,
+        /// Actual attempt completion when retained by the source; unknown stays absent.
+        attempted_at: Option<DateTime<Utc>>,
         /// Sanitized current error category.
         reason: UsageFetchFailure,
+        /// Actual provider cooldown when supplied; never a guessed retry delay.
+        retry_at: Option<DateTime<Utc>>,
         /// Same-binding success only.
         retained: Option<SuccessfulUsageReport>,
         /// Independent safe errors when every login failed.
@@ -148,6 +152,8 @@ pub struct SourceReportEntry {
     pub source_label: LimitName,
     /// Official bundled source mark; absent uses the shared plugin/gauge fallback.
     pub builtin: Option<BuiltinUsageSource>,
+    /// Exact configured saved-login store for credential-use disclosure, if applicable.
+    pub saved_login: Option<crate::limits::LimitLoginStore>,
     /// Optional human account label, never used for lookup or cache identity.
     pub account_label: Option<LimitName>,
     /// Current attempt and original successful observations.

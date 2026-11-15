@@ -163,10 +163,25 @@ pub struct UsageDetail {
     pub tone: Option<UsageTone>,
 }
 
+/// Whether malformed or bounded provider entries made an observation partial.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum UsageCompleteness {
+    /// No provider data was omitted by this source.
+    #[default]
+    Complete,
+    /// The source explicitly reports omitted or malformed provider entries.
+    Partial,
+}
+
 /// Values belong only to an explicitly successful observation.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct AvailableUsageReport {
+    /// Partial parsing is disclosed separately from successful transport.
+    #[serde(default)]
+    pub completeness: UsageCompleteness,
     /// Recognized subscription name, never an estimated price.
     pub plan: Option<LimitName>,
     /// Independent bounded quota windows.

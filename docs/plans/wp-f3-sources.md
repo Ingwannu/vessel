@@ -79,6 +79,33 @@ remain owed until the complete package is wired.
 Quality B base `29eebb8b` permits the two report selectors to register in the
 single method table with `(pending ACCOUNT_REPORTS_PROTOCOL)`, which remains
 `None`. Client and server admission therefore refuse these methods rather than
-assigning an invented protocol version. The node handlers also refuse with typed
-`Unsupported` until the actual source registry is connected. This is a skeleton,
-not a source implementation or a successful empty-report claim.
+assigning an invented protocol version. The initial skeleton handlers refused with typed `Unsupported`; the current
+saved-login adapter uses the existing limits actor, opaque binding registry, and
+real list/inspect service paths. Method admission remains pending. This does not
+claim the nine full provider sources or the F6 helper are implemented.
+
+### Honest legacy observation projection
+
+Protocol 23 retains successful timestamps but does not retain attempt start or
+failure completion times. The generic DTO therefore represents those timestamps
+as optional: a bridge leaves them absent, never invents the current query time.
+Sources with real attempt timestamps supply them. Available reports also carry
+Complete/Partial, preserving the existing limits parser's incomplete fact.
+Configured saved-login projections retain their configured binding identity; they
+do not claim two profiles are the same vendor account merely because labels match.
+
+### Saved-login adapter and registry
+
+The node adapter reuses the existing limits actor and probes: no credentials,
+HTTP implementation or credential identity are copied. Public `saved-*` source
+names explicitly identify configured saved-login bindings, rather than claiming
+vendor-account discovery. Opaque random report keys belong to exact canonical
+scope plus resolved binding proof; they are never labels, paths, fingerprints,
+or guessed defaults. Rebinding and policy off revoke resolution/publication.
+Inspect resolves only known ids in RAM and rechecks their captured scope/proof.
+Session scopes retain the existing local-owner/current-provider checks around
+awaits. No inspect id expands an agent principal's authority: agents use their
+own local Session selector. Registry capacity refuses growth without eviction;
+response count/byte bounds refuse the complete observation, never silently drop
+accounts. Generic source discovery, provider account grouping, F6 and the seven
+additional provider fetchers remain required; the pending constant stays None.

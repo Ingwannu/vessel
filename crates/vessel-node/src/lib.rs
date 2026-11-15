@@ -105,6 +105,7 @@ mod terminals;
 mod tidying;
 mod transfers;
 mod transport;
+mod usage_reports;
 mod waits;
 mod workspace;
 

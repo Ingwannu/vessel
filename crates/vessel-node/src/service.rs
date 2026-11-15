@@ -145,6 +145,7 @@ pub(crate) struct NodeService {
     listings: tokio::sync::Semaphore,
     /// The node's settings (protocol 12, `crate::settings`).
     settings: Arc<crate::settings::Settings>,
+    usage_reports: crate::usage_reports::Registry,
     limits: crate::limits::Limits,
     /// Turns followed for their starters (protocol 11,
     /// `automation::notices`).
@@ -216,6 +217,7 @@ impl NodeService {
         } = parts;
         let store = sessions.store().clone();
         Self {
+            usage_reports: crate::usage_reports::Registry::default(),
             lsp,
             lsp_roots,
             lifecycle,

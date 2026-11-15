@@ -12,6 +12,7 @@
 //! - Cost: a bounded RAM cache is lost at restart; saved sign-ins and
 //!   snapshots never enter the database or policy file.
 mod notice;
+pub(crate) mod policy;
 use chrono::Utc;
 use tokio::{
     sync::{mpsc, oneshot},
@@ -40,6 +41,9 @@ pub(crate) struct Limits {
 }
 #[derive(Debug)]
 enum Command {
+    Observe {
+        reply: oneshot::Sender<policy::Observation>,
+    },
     Read {
         account: LimitAccount,
         binding: Result<LimitBinding, LimitFailure>,
@@ -146,6 +150,7 @@ impl Owner {
                 () = stop.cancelled() => break,
                 result = self.jobs.join_next(), if !self.jobs.is_empty() => if let Some(result) = result { match result { Ok(result) => self.completed(result), Err(_panic) => { self.generation.cancel(); self.generation = CancellationToken::new(); self.cache.clear(); tracing::error!("a usage limits worker ended unexpectedly"); } } },
                 command = commands.recv() => match command {
+                    Some(Command::Observe {reply}) => { drop(reply.send(policy::Observation {policy:self.policy,generation:self.generation.child_token()})); },
                     Some(Command::Read { account, binding, refresh, reply }) => self.read(account, binding, refresh, reply),
                     Some(Command::Policy { policy, reply }) => {
                         let result = self.change(policy).await;

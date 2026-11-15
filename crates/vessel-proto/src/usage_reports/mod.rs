@@ -21,8 +21,8 @@ pub use bounded::{
 };
 mod values;
 pub use values::{
-    AvailableUsageReport, BuiltinUsageSource, UsageBalance, UsageBalanceUnit, UsageDetail,
-    UsageDetailAccess, UsageShortLabel, UsageSummary, UsageTone, UsageWindow,
+    AvailableUsageReport, BuiltinUsageSource, UsageBalance, UsageBalanceUnit, UsageCompleteness,
+    UsageDetail, UsageDetailAccess, UsageShortLabel, UsageSummary, UsageTone, UsageWindow,
 };
 mod state;
 pub use state::{
