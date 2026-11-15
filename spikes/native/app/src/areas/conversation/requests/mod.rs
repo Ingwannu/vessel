@@ -58,6 +58,14 @@ pub(crate) struct Prepared<'a> {
     binding: FollowBinding,
     form: Form,
 }
+impl std::fmt::Debug for Prepared<'_> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("Prepared")
+            .field("binding", &self.binding)
+            .finish_non_exhaustive()
+    }
+}
 impl Requests {
     /// The caller first validates CURRENT Visible/Focused full `SessionContext`.
     /// This checks captured origin BEFORE W12 allocates any Request ticket.
