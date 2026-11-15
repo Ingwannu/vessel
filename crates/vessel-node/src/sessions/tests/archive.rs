@@ -258,3 +258,45 @@ async fn cancelled_rpc_keeps_admitted_cleanup_and_resume_exclusion_until_complet
     .await
     .expect("archive cleanup timed out");
 }
+
+#[tokio::test]
+async fn terminal_archive_requires_force_without_claiming_terminal_quietness_is_idle() {
+    let fixture = Fixture::new().await;
+    vessel_testkit::within(
+        SAFETY_NET,
+        Box::pin(async move {
+            let id = fixture
+                .sessions
+                .create(fixture.spec(), LaunchOptions::default(), None)
+                .await
+                .unwrap()
+                .id;
+            let refused = fixture
+                .sessions
+                .archive_condition(id, ArchiveCondition::IfIdle)
+                .await;
+            assert!(matches!(
+                refused,
+                Err(ServiceError::Session(SessionError::NotArchived(
+                    ArchiveRefusal::Terminal
+                )))
+            ));
+            let Found::Live { handle, .. } = fixture.sessions.find(id).await.unwrap() else {
+                panic!("live terminal missing")
+            };
+            assert!(handle.info().status.is_live());
+            assert!(handle.info().marks.archived_at.is_none());
+            let ended = fixture
+                .sessions
+                .archive_condition(id, ArchiveCondition::Force)
+                .await
+                .unwrap();
+            assert!(!ended.status.is_live());
+            assert!(ended.marks.archived_at.is_some());
+            fixture.settle().await;
+            fixture.stop().await;
+        }),
+    )
+    .await
+    .expect("terminal archive timed out");
+}
