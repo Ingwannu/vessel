@@ -165,12 +165,11 @@ impl Shell {
             self.areas.draft.error = Some(why);
             return None;
         }
-        match Name::parse(&machine) {
-            Ok(machine) => Some((machine, harness)),
-            Err(_) => {
-                self.areas.draft.error = Some(self.words.creation().refused().to_owned());
-                None
-            }
+        if let Ok(machine) = Name::parse(&machine) {
+            Some((machine, harness))
+        } else {
+            self.areas.draft.error = Some(self.words.creation().refused().to_owned());
+            None
         }
     }
     fn draft_creation_target(
