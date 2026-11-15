@@ -1,9 +1,14 @@
 //! Shared pane adapter; renderers own content and lifecycle, never docking state.
+mod action_context;
 mod actions;
 mod book;
 mod draw;
 mod header;
 mod menu;
+// The desktop coordinator removes this exact staging attribute with its real caller.
+#[cfg(test)]
+mod preferences;
+mod queries;
 pub(crate) mod registry;
 mod rename;
 mod resize;

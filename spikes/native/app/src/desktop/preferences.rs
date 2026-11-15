@@ -82,7 +82,8 @@ pub(crate) fn submit(
                 Some(why) => Err(vessel_app_link::Unsent::new(why, Command::SavePrefs(prefs))),
             }
         }
-        forward @ (Command::Agents { .. }
+        forward @ (Command::RetireConnection(_)
+        | Command::Agents { .. }
         | Command::SessionAccess(_)
         | Command::Sessions(_)
         | Command::SessionLifecycle(_)
