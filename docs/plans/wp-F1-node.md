@@ -174,3 +174,23 @@ requested or inferred. Integrator/lead adoption and App Ended permission
 changes wait for an actually checked producer. Per-run isolation stays excluded
 from this bounded correction and remains an unimplemented runtime dependency.
 No service/permission or scope/method/schema/protocol changes were made.
+
+
+## Exact corrected narrow outcomes
+
+Source d26b0b775 on assigned9c150c6e (V3 ca067547 SOURCE PASSED):
+- schedules-node-20261115T165717Z-d26b0b77: --locked vessel-node all-targets
+  Clippy -D warnings0, actual changed Node compilation, cargo step0/no skip.
+- schedules-node-20261115T172743Z-d26b0b77: --locked vessel-node --lib filter
+  automation::schedules,41 passed/0 failed/0 ignored (266 filtered). All four
+  new actor/Store and the completed-expiry validator case explicitly ran ok.
+  Required web-ci/nested-fakes/nested-vesseld/cargo steps all0/no skip.
+- Exact specs/checkout and all step digest prefixes were checked, immutable
+  run files pinned in the private evidence packet. This is author-verified
+  narrow evidence submitted to the SAME V3 row, not yet a V3 gate disposition.
+
+Earlier265/6e cancellations remain queued-only143, not failures or passes.
+This docs-only receipt changes no d26 Rust and requires no unchanged rerun.
+No whole root/native, App/consumer UI, new RPC authority, service-account or
+per-run isolation/runtime adoption is claimed. Integrator handoff/App Ended
+permission still await the actual qualified producer disposition.
