@@ -96,7 +96,7 @@ fn waiting(area: &ConversationArea) -> Option<Question> {
 
 /// The question waiting first at `P`, if any.
 fn waiting_at<P: Place>(shell: &Shell) -> Option<Question> {
-    (P::SEAT.get)(shell).and_then(waiting)
+    P::SEAT.get(shell).and_then(waiting)
 }
 
 /// Arrival and refresh share the step's hint without reloading its draft.
@@ -120,8 +120,9 @@ impl Shell {
         };
         let words = self.t.lang.conversation();
         let steps = steps_of(&question);
-        let Some(answering) =
-            (Seat::SESSION.get_mut)(self).and_then(|area| area.answering.as_mut())
+        let Some(answering) = Seat::SESSION
+            .get_mut(self)
+            .and_then(|area| area.answering.as_mut())
         else {
             return;
         };
@@ -137,12 +138,16 @@ impl Shell {
     /// when none waits.
     fn question_prepare<P: Place>(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let Some(question) = waiting_at::<P>(self) else {
-            if (P::SEAT.get_mut)(self).is_some_and(|area| area.answering.take().is_some()) {
+            if P::SEAT
+                .get_mut(self)
+                .is_some_and(|area| area.answering.take().is_some())
+            {
                 cx.notify();
             }
             return;
         };
-        if (P::SEAT.get)(self)
+        if P::SEAT
+            .get(self)
             .and_then(|area| area.answering.as_ref())
             .is_some_and(|answering| answering.id == question.id)
         {
@@ -156,7 +161,7 @@ impl Shell {
             window,
             cx,
         );
-        let Some(area) = (P::SEAT.get_mut)(self) else {
+        let Some(area) = P::SEAT.get_mut(self) else {
             return;
         };
         area.answering = Some(Answering {
@@ -181,7 +186,9 @@ impl Shell {
             return;
         };
         let steps = steps_of(&question);
-        let Some(answering) = (P::SEAT.get_mut)(self).and_then(|area| area.answering.as_mut())
+        let Some(answering) = P::SEAT
+            .get_mut(self)
+            .and_then(|area| area.answering.as_mut())
         else {
             return;
         };
@@ -207,7 +214,9 @@ impl Shell {
             return;
         };
         let steps = steps_of(&question);
-        let Some(answering) = (P::SEAT.get_mut)(self).and_then(|area| area.answering.as_mut())
+        let Some(answering) = P::SEAT
+            .get_mut(self)
+            .and_then(|area| area.answering.as_mut())
         else {
             return;
         };
@@ -239,7 +248,9 @@ impl Shell {
             return;
         };
         let steps = steps_of(&question);
-        let Some(answering) = (P::SEAT.get_mut)(self).and_then(|area| area.answering.as_mut())
+        let Some(answering) = P::SEAT
+            .get_mut(self)
+            .and_then(|area| area.answering.as_mut())
         else {
             return;
         };
@@ -260,7 +271,7 @@ impl Shell {
             return;
         };
         let steps = steps_of(&question);
-        let Some(answering) = (P::SEAT.get)(self).and_then(|area| area.answering.as_ref()) else {
+        let Some(answering) = P::SEAT.get(self).and_then(|area| area.answering.as_ref()) else {
             return;
         };
         let Some(step) = steps.get(answering.step).copied() else {
@@ -289,7 +300,7 @@ impl Shell {
                     step.field.name == *name || step.other.is_some_and(|other| other.name == *name)
                 })
             });
-            if let Some(area) = (P::SEAT.get_mut)(self) {
+            if let Some(area) = P::SEAT.get_mut(self) {
                 area.refused = Some((ActKind::Answer, message));
             }
             if let Some(at) = at {
@@ -303,7 +314,8 @@ impl Shell {
 
     /// Decline the question.
     fn question_dismiss<P: Place>(&mut self, cx: &mut Context<'_, Self>) {
-        if let Some(id) = (P::SEAT.get)(self)
+        if let Some(id) = P::SEAT
+            .get(self)
             .and_then(|area| area.answering.as_ref())
             .map(|answering| answering.id)
         {
@@ -317,7 +329,7 @@ impl Shell {
         answer: QuestionAnswer,
         cx: &mut Context<'_, Self>,
     ) {
-        if let Some(area) = (P::SEAT.get_mut)(self) {
+        if let Some(area) = P::SEAT.get_mut(self) {
             if let Some(answering) = area.answering.as_mut() {
                 answering.sent = true;
             }

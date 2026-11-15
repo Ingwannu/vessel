@@ -73,7 +73,7 @@ impl Shell {
         option: PermissionOptionId,
         cx: &mut Context<'_, Self>,
     ) {
-        let Some(area) = (P::SEAT.get_mut)(self) else {
+        let Some(area) = P::SEAT.get_mut(self) else {
             return;
         };
         area.permit_sending = Some((id, option.clone()));
@@ -84,7 +84,7 @@ impl Shell {
 
     /// Fold or unfold a plan request's plan.
     fn permit_plan_toggle(&mut self, seat: Seat, cx: &mut Context<'_, Self>) {
-        if let Some(area) = (seat.get_mut)(self) {
+        if let Some(area) = seat.get_mut(self) {
             area.plan_folded = !area.plan_folded;
             cx.notify();
         }
@@ -102,7 +102,7 @@ pub(crate) fn card<P: Place>(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let seat = P::SEAT;
-    let area = (seat.get)(shell)?;
+    let area = seat.get(shell)?;
     let unseen = area.timeline.unseen_permissions(&area.live);
     let live;
     let permission = if let Some((_entry, permission)) = area.timeline.pending() {
@@ -390,7 +390,7 @@ fn head_with_chevron(
         .min_h(px(24.0))
         .cursor_pointer()
         .on_click(cx.listener(move |shell, _event, _window, cx| {
-            shell.permit_plan_toggle(seat, cx);
+            shell.permit_plan_toggle(seat.clone(), cx);
         }))
         .child(vessel_app_kit::glyph(
             chevron,
