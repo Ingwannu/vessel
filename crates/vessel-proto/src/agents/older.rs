@@ -96,11 +96,10 @@ impl Reply {
                 | Self::GetLaunchProfileOptions(_)
                 | Self::GetApplicableLaunchProfiles(_)
                 | Self::ApplySessionOptions(_)
-        ) && !crate::launch_profiles::NAMED_LAUNCH_PROFILES
-            .is_some_and(|since| protocol >= since)
+        ) && crate::launch_profiles::NAMED_LAUNCH_PROFILES.is_none_or(|since| protocol < since)
         {
             return Some(WireError::new(
-                crate::ErrorCode::Unsupported,
+                ErrorCode::Unsupported,
                 "named launch profiles are not available on this connection",
             ));
         }

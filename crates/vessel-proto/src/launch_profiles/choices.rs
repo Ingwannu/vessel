@@ -22,6 +22,11 @@ impl LaunchChoice {
     pub const fn as_choice(&self) -> &OptionChoice {
         &self.choice
     }
+    /// Consume a choice for an ordinary structured creation specification.
+    #[must_use]
+    pub fn into_choice(self) -> OptionChoice {
+        self.choice
+    }
     /// Retain reported placement metadata; the driver's catalogue remains
     /// authoritative when applying. Unknown provenance uses Other.
     #[must_use]

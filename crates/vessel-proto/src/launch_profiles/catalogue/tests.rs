@@ -110,6 +110,7 @@ fn inconsistent_unknown_or_null_fields_fail_whole_without_echoing_input() {
             None,
             super::super::LaunchChoices::default(),
         ),
+        LaunchAccount::new("codex".parse().unwrap(), LaunchAccountKind::Default),
         empty,
         DateTime::UNIX_EPOCH,
     )

@@ -63,7 +63,11 @@ async fn cancellation_retains_all_blocking_slots_while_apply_stays_independent()
             }
             assert_eq!(jobs.metadata.available_permits(), 0);
             assert!(matches!(
-                jobs.run(Lane::Metadata, || async { Ok(()) }).await,
+                phase(
+                    "metadata admission refusal",
+                    jobs.run(Lane::Metadata, || async { Ok(()) })
+                )
+                .await,
                 Err(ServiceError::LaunchBusy(_))
             ));
             assert!(
@@ -85,7 +89,11 @@ async fn cancellation_retains_all_blocking_slots_while_apply_stays_independent()
                 LaunchProfileJobs::MAX_ACTIVE
             );
             assert!(matches!(
-                jobs.run(Lane::Metadata, || async { Ok(()) }).await,
+                phase(
+                    "metadata admission refusal",
+                    jobs.run(Lane::Metadata, || async { Ok(()) })
+                )
+                .await,
                 Err(ServiceError::Draining)
             ));
         }),
@@ -111,7 +119,11 @@ async fn completion_channels_retain_admission_until_consumed_or_dropped() {
             phase("queued completions produced", tasks.wait()).await;
             assert_eq!(jobs.metadata.available_permits(), 0);
             assert!(matches!(
-                jobs.run(Lane::Metadata, || async { Ok(()) }).await,
+                phase(
+                    "metadata admission refusal",
+                    jobs.run(Lane::Metadata, || async { Ok(()) })
+                )
+                .await,
                 Err(ServiceError::LaunchBusy(_))
             ));
             drop(answers);

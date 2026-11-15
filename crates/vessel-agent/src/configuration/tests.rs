@@ -195,3 +195,50 @@ async fn driver_closure_ends_owner_even_with_external_handles_and_unanswered_rep
     .await
     .unwrap();
 }
+
+#[tokio::test]
+async fn mutation_queue_reuses_the_process_budget_and_closure_drains_waiters() {
+    vessel_testkit::within(
+        SAFETY,
+        Box::pin(async {
+            let (send, mut receive) = mpsc::channel(crate::process::COMMANDS);
+            let lane = Configuration::spawn(send);
+            let running_lane = lane.clone();
+            let running = tokio::spawn(async move { running_lane.single(choice("running")).await });
+            let held = setter(&mut receive, "running").await;
+            let mut queued = Vec::new();
+            for n in 0..crate::process::COMMANDS {
+                let (reply, answer) = oneshot::channel();
+                lane.0
+                    .try_send(Mutation::Single {
+                        choice: choice(&format!("queued-{n}")),
+                        reply,
+                    })
+                    .unwrap();
+                queued.push(answer);
+            }
+            assert_eq!(lane.0.capacity(), 0);
+            let (reply, _answer) = oneshot::channel();
+            assert!(matches!(
+                lane.0.try_send(Mutation::Single {
+                    choice: choice("overflow"),
+                    reply
+                }),
+                Err(mpsc::error::TrySendError::Full(_))
+            ));
+            drop(receive);
+            assert!(matches!(
+                phase("active setter closes", running).await.unwrap(),
+                Err(InputError::Closed)
+            ));
+            phase("owner closes bounded queue", lane.0.closed()).await;
+            for answer in queued {
+                assert!(phase("queued reply drains", answer).await.is_err());
+            }
+            drop(held);
+            drop(lane);
+        }),
+    )
+    .await
+    .unwrap();
+}

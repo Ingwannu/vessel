@@ -484,3 +484,16 @@ integrator's; this amendment adds no migration entry or protocol number.
 All new state, outcome, notice, legacy-key and result types need the same
 constructor/decoder/serialized-budget discipline as the accepted values.
 Implementation and the complete A10 package gate remain outstanding.
+
+### Canonical account facts for materialization and migration
+
+A successful selected catalogue also carries the actual retained account's
+canonical name and whether it is the default or a named account. The
+request selection is still echoed exactly. These nonsecret node facts let
+the shared migration helper compare an omitted account selector with an
+explicit default-name selector without a client harness/default table.
+They do not expose account settings, read another account's files, or
+allow an apply request to override the running account. Unknown future
+account kinds never authorize default inference. The complete catalogue
+byte budget includes these facts. This is an implementation refinement of
+the accepted canonical account boundary, subject to package review.

@@ -7,7 +7,8 @@ use chrono::Utc;
 use std::sync::Arc;
 use vessel_harness::{Profile, Profiles};
 use vessel_proto::launch_profiles::{
-    GetLaunchProfileOptions, LaunchCatalogue, LaunchCatalogueOptions, LaunchSelection,
+    GetLaunchProfileOptions, LaunchAccount, LaunchAccountKind, LaunchCatalogue,
+    LaunchCatalogueOptions, LaunchSelection,
 };
 use vessel_proto::{SessionId, WireError};
 
@@ -30,6 +31,12 @@ impl NodeService {
                 let snapshot = profiles.current();
                 let selection = request.selection;
                 let profile = resolve(&snapshot, &profiles, &launcher, &selection)?;
+                let kind = if profile.is_default() {
+                    LaunchAccountKind::Default
+                } else {
+                    LaunchAccountKind::Named
+                };
+                let account = LaunchAccount::new(profile.name().clone(), kind);
                 let id = SessionId::random();
                 let proxy = models.launch(Some(&profile), id)?.map(|(_, proxy)| proxy);
                 let result = sessions
@@ -45,7 +52,7 @@ impl NodeService {
                 let probed = result.map_err(structured)?;
                 let options = LaunchCatalogueOptions::try_from(probed.options)
                     .map_err(ServiceError::LaunchValues)?;
-                let result = LaunchCatalogue::new(selection, options, Utc::now())
+                let result = LaunchCatalogue::new(selection, account, options, Utc::now())
                     .map_err(ServiceError::LaunchValues)?;
                 if !Arc::ptr_eq(&snapshot, &profiles.current()) {
                     return Err(ServiceError::LaunchChanged);

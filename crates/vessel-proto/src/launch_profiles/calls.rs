@@ -102,6 +102,9 @@ pub struct ApplySessionOptionsResult {
 }
 impl ApplySessionOptionsResult {
     /// Refuse an oversized whole result rather than truncate its failure text.
+    ///
+    /// # Errors
+    /// Combined escaped JSON exceeds the complete launch body budget.
     pub fn new(
         applied: LaunchChoices,
         notice: Option<ConfigurationNotice>,

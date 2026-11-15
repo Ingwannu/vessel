@@ -3739,6 +3739,7 @@ dependencies = [
  "vessel-relay",
  "vessel-rpc",
  "vessel-secure",
+ "vessel-testkit",
 ]
 
 [[package]]

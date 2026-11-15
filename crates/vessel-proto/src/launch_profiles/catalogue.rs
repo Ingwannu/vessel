@@ -1,7 +1,9 @@
 //! Bounded driver-neutral editor options; unknown controls are never invented.
 
 use super::{InvalidLaunchValue, LaunchPayload, LaunchSelection, codec};
-use crate::{OptionCategory, OptionId, OptionKind, OptionValue, OptionValueId, SessionOption};
+use crate::{
+    OptionCategory, OptionId, OptionKind, OptionValue, OptionValueId, ProfileName, SessionOption,
+};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer, Serialize, de};
 use std::{collections::HashSet, sync::Arc};
@@ -172,23 +174,69 @@ impl<'de> Deserialize<'de> for LaunchCatalogueOptions {
     }
 }
 
+/// The actual account association, reported by the node without credentials.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum LaunchAccountKind {
+    /// The harness's real default account; absence of a selector means this one.
+    Default,
+    /// A saved named account; absence must never silently select it.
+    Named,
+    /// A future association is not authority to guess an account.
+    #[serde(other)]
+    Unknown,
+}
+
+/// Canonical account name and default status, not its secret configuration.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(deny_unknown_fields)]
+pub struct LaunchAccount {
+    name: ProfileName,
+    kind: LaunchAccountKind,
+}
+impl LaunchAccount {
+    /// Record actual retained node facts, rather than infer defaults in clients.
+    #[must_use]
+    pub const fn new(name: ProfileName, kind: LaunchAccountKind) -> Self {
+        Self { name, kind }
+    }
+    /// Canonical name selected by the node's existing account owner.
+    #[must_use]
+    pub const fn name(&self) -> &ProfileName {
+        &self.name
+    }
+    /// Whether an omitted selector names this actual account.
+    #[must_use]
+    pub const fn kind(&self) -> LaunchAccountKind {
+        self.kind
+    }
+}
+
 /// One terminal probe result, echoed with its exact request key for stale isolation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct LaunchCatalogue {
     selection: LaunchSelection,
+    account: LaunchAccount,
     options: LaunchCatalogueOptions,
     probed_at: DateTime<Utc>,
 }
 impl LaunchCatalogue {
     /// Refuse the whole result if combined escaping exceeds the payload budget.
+    ///
+    /// # Errors
+    /// The complete escaped selection/account/options body exceeds its cap.
     pub fn new(
         selection: LaunchSelection,
+        account: LaunchAccount,
         options: LaunchCatalogueOptions,
         probed_at: DateTime<Utc>,
     ) -> Result<Self, InvalidLaunchValue> {
         let value = Self {
             selection,
+            account,
             options,
             probed_at,
         };
@@ -199,6 +247,11 @@ impl LaunchCatalogue {
     #[must_use]
     pub const fn selection(&self) -> &LaunchSelection {
         &self.selection
+    }
+    /// Canonical account facts from the same retained node snapshot.
+    #[must_use]
+    pub const fn account(&self) -> &LaunchAccount {
+        &self.account
     }
     /// Actual reported options after the selected choices applied.
     #[must_use]
@@ -215,13 +268,14 @@ impl LaunchCatalogue {
 #[serde(deny_unknown_fields)]
 struct EncodedCatalogue {
     selection: LaunchSelection,
+    account: LaunchAccount,
     options: LaunchCatalogueOptions,
     probed_at: DateTime<Utc>,
 }
 impl<'de> Deserialize<'de> for LaunchCatalogue {
     fn deserialize<D: Deserializer<'de>>(input: D) -> Result<Self, D::Error> {
         let raw: EncodedCatalogue = codec::decode(input)?;
-        Self::new(raw.selection, raw.options, raw.probed_at).map_err(de::Error::custom)
+        Self::new(raw.selection, raw.account, raw.options, raw.probed_at).map_err(de::Error::custom)
     }
 }
 

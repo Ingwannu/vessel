@@ -51,6 +51,7 @@ mod error;
 pub mod file_fault;
 mod fleet_control;
 mod inbox;
+pub mod launch_profiles;
 mod local;
 pub mod pairing;
 mod pinned;

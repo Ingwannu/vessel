@@ -21,7 +21,7 @@ pub use calls::{
     GetApplicableLaunchProfiles, GetLaunchProfileOptions, LaunchConfigurationFailure,
     LaunchProfileRefusal, ListLaunchProfiles, ReplaceLaunchProfiles,
 };
-pub use catalogue::{LaunchCatalogue, LaunchCatalogueOptions};
+pub use catalogue::{LaunchAccount, LaunchAccountKind, LaunchCatalogue, LaunchCatalogueOptions};
 pub use choices::{LaunchChoice, LaunchChoices};
 pub use codec::LaunchPayload;
 pub use list::{LaunchProfiles, LaunchProfilesSnapshot};

@@ -144,3 +144,24 @@ The shared node assembly and RPC binding definitions were divided by their
 existing responsibilities to preserve the size ratchet, without adding a
 second method registry. Current generated TypeScript, consumer wiring and
 new-stage compile/runtime verification remain outstanding.
+
+The client stage adds five thin typed methods, an explicit migration-support
+projection from the CRUD/apply table requirements, pure strict draft and
+live reconciliation helpers, and the pinned reference's separate live-call
+budget. Its catalogue includes nonsecret canonical account/default facts so
+migration never guesses default-name aliases. Tests cover stale mode
+omission versus unknown deferral, actual category order, untouched model/
+feature refusals, draft copying and finite caller-budget behavior. The
+client's testkit dev edge reuses the required safety-net clock.
+
+Selected Clippy on `53680637` stopped on five proto diagnostics (two public
+constructor error docs, one qualification, one boolean simplification and
+a repeated fixture arm). Those are corrected; no lint/deadline/assertion is
+relaxed. Actual selected runtime tests, client/migration/CLI/MCP completion,
+generated wire and the one final package gate remain outstanding.
+
+MCP facade ownership is coordinated with its package owner: this node/client
+package does not edit that crate concurrently. MCP wrappers receive only
+the reviewed, assigned integration handoff; their execution evidence is a
+separate consumer obligation. Existing account-profile/harness-options
+wrappers never impersonate named launch presets.
