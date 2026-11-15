@@ -35,15 +35,22 @@ pub fn fill_headers(
     Ok(answer)
 }
 
-fn choice<'a>(options: &'a [ChoiceOption], text: &str) -> Option<&'a str> {
+enum ChoiceMatch<'a> {
+    Missing,
+    Unique(&'a str),
+    Ambiguous,
+}
+fn choice<'a>(options: &'a [ChoiceOption], text: &str) -> ChoiceMatch<'a> {
     let mut matching = options
         .iter()
         .filter(|option| option.value == text || option.title == text);
-    let found = matching.next()?;
+    let Some(found) = matching.next() else {
+        return ChoiceMatch::Missing;
+    };
     if matching.next().is_some() {
-        return None;
+        return ChoiceMatch::Ambiguous;
     }
-    Some(found.value.as_str())
+    ChoiceMatch::Unique(found.value.as_str())
 }
 
 fn value(field: &QuestionField, text: &str) -> Result<(FieldName, AnswerValue), FillError> {
@@ -55,13 +62,17 @@ fn value(field: &QuestionField, text: &str) -> Result<(FieldName, AnswerValue), 
         options, multiple, ..
     } = &field.kind
     {
-        if let Some(selected) = choice(options, text) {
-            let value = if *multiple {
-                AnswerValue::Choices(vec![selected.to_owned()])
-            } else {
-                AnswerValue::Choice(selected.to_owned())
-            };
-            return Ok((field.name.clone(), value));
+        match choice(options, text) {
+            ChoiceMatch::Ambiguous => return Err(unreadable()),
+            ChoiceMatch::Unique(selected) => {
+                let value = if *multiple {
+                    AnswerValue::Choices(vec![selected.to_owned()])
+                } else {
+                    AnswerValue::Choice(selected.to_owned())
+                };
+                return Ok((field.name.clone(), value));
+            }
+            ChoiceMatch::Missing => {}
         }
         if *multiple && text.contains(", ") {
             if options
@@ -70,14 +81,19 @@ fn value(field: &QuestionField, text: &str) -> Result<(FieldName, AnswerValue), 
             {
                 return Err(unreadable());
             }
-            let selected: Option<Vec<_>> = text
-                .split(", ")
-                .map(|part| choice(options, part).map(str::to_owned))
-                .collect();
-            if let Some(selected) = selected {
+            let mut selected = Vec::new();
+            let mut missing = false;
+            for part in text.split(", ") {
+                match choice(options, part) {
+                    ChoiceMatch::Ambiguous => return Err(unreadable()),
+                    ChoiceMatch::Unique(value) => selected.push(value.to_owned()),
+                    ChoiceMatch::Missing => missing = true,
+                }
+            }
+            if !missing {
                 return Ok((field.name.clone(), AnswerValue::Choices(selected)));
             }
-            if text.split(", ").any(|part| choice(options, part).is_some()) {
+            if !selected.is_empty() {
                 return Err(unreadable());
             }
         }
@@ -175,5 +191,73 @@ mod tests {
             )
             .is_err()
         );
+    }
+    #[test]
+    fn ambiguous_offered_labels_never_fall_back_to_the_custom_companion() {
+        for second in [
+            ChoiceOption {
+                value: "other".to_owned(),
+                title: "Left".to_owned(),
+                preview: None,
+            },
+            ChoiceOption {
+                value: "Left".to_owned(),
+                title: "Different".to_owned(),
+                preview: None,
+            },
+        ] {
+            let mut question = form();
+            let FieldKind::Choice { options, .. } = &mut question.fields[0].kind else {
+                panic!("choice");
+            };
+            let exact = second.value.clone();
+            options.push(second);
+            assert!(matches!(
+                fill_headers(
+                    &question,
+                    &BTreeMap::from([("Route".into(), "Left".into())])
+                ),
+                Err(FillError::Unreadable { .. })
+            ));
+            let canonical = QuestionAnswer::Accept {
+                values: BTreeMap::from([("route".parse().unwrap(), AnswerValue::Choice(exact))]),
+            };
+            assert!(question.check(&canonical).is_ok());
+            let free = fill_headers(
+                &question,
+                &BTreeMap::from([("Route".into(), "Unlisted custom".into())]),
+            )
+            .unwrap();
+            let QuestionAnswer::Accept { values } = free else {
+                panic!("custom");
+            };
+            assert_eq!(
+                values[&"custom".parse::<FieldName>().unwrap()],
+                AnswerValue::Text("Unlisted custom".to_owned())
+            );
+        }
+    }
+    #[test]
+    fn ambiguous_multi_select_parts_are_not_custom_text() {
+        let mut question = form();
+        let FieldKind::Choice {
+            options, multiple, ..
+        } = &mut question.fields[0].kind
+        else {
+            panic!("choice");
+        };
+        *multiple = true;
+        options.push(ChoiceOption {
+            value: "other".to_owned(),
+            title: "Left".to_owned(),
+            preview: None,
+        });
+        assert!(matches!(
+            fill_headers(
+                &question,
+                &BTreeMap::from([("Route".into(), "Left, Unlisted".into())])
+            ),
+            Err(FillError::Unreadable { .. })
+        ));
     }
 }
