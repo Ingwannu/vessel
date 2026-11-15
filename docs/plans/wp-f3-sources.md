@@ -328,3 +328,22 @@ now creates the shared `StopSignals` listener before preparation/readiness, so a
 immediate signal after its ready line cannot fall into the old late-registration
 gap. This consumes the reviewed base producer; the fixture's own managed binary
 execution and immediate-stop flow remain unverified until the new source is built.
+
+### Generated declarations and strict correction evidence
+Exact `d5f1804b387f50320e2f5535b8128fdf2c6dc12f` passed strict all-target
+Clippy for proto, harness, store, node and web, including `ts` and the required
+`usage-fixture` feature, in run
+`wp-usage-consent-values-20261115T132734Z-d5f1804b`. This includes the shared
+admission correction and FIFO fixture source, before the later base merge and
+StopSignals consumer change. It does not prove their merged head.
+
+Run `wp-usage-wire-fresh-20261115T132620Z-d5f1804b` ran four generating tests
+successfully but remained rc1 because `proto.ts` changed. All six recovered
+artifact hashes and the source commit matched. The exact generated patch is
+applied without hand formatting, including the generator's whitespace. It adds
+versioned source consent/disclosure, independent permission metadata and the
+refresh origin. Source/account fields remain independently typed. The later
+node base did not change this generated file before application. Freshness of
+the committed result, current-head strict and the complete package gate remain
+owed. Protocol numbers still come only from actual integration merge order;
+neither feature constant is assigned here.
