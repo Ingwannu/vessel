@@ -89,10 +89,12 @@ already stored at schema 17 do not establish RPC availability. The owner will
 supply an exact reviewed, whole-gated consumer head.
 
 A6 itself owns workspace catalog/colours/ordered assignments and their RPC gap
-under ADR 0086. Its SQL/actor implementation remains cfg(test), with typed fake
-registry admission only in tests, until the reviewed W11 registry transaction
-helpers and watches can support the real adapter. No dummy protocol number,
-handler or successful persistence response stands in for that dependency.
+under ADR 0086. Its separate node worktree now wires the reviewed W11 transaction
+helpers and existing post-commit watch into the real writer, actor and handlers.
+Those changes still owe their own execution, whole gate and V3 review, so this
+app does not adopt them or claim node-backed behavior. The app base contains
+canonical registry metadata, but no A6 catalog transport. No dummy protocol
+number or successful persistence response stands in for that dependency.
 
 ## Shared identity paint
 
@@ -482,3 +484,46 @@ three change handlers taking an unconsumed String. Callback closures now accept
 the kit's owned string and borrow it into internal handlers. No kit signature,
 behavior, allowance or test assertion changed. This log is retained as RED;
 current execution and strict acceptance remain owed.
+
+
+## Current session metadata owner and base checkpoint
+
+Merged announced app base 9 `db42d9c5`, then dialog base 9b `a7aab9d6`.
+This does not adopt the unreviewed A6 node runtime. Base 10 candidates and the
+lifecycle event producer remain outside this app until their announcements.
+The existing manager search retains identified TextField callbacks: the new
+shared SearchField currently exposes only an unidentified change callback.
+Changing it would discard the queued-old-editor fence. Reuse the same identified
+input engine until the shared control offers an equivalent source-aware API;
+no area-owned search renderer is added.
+
+[Decision Log]
+- Purpose: existing session-label views must read current metadata after a
+  lifecycle label change, without changing immutable creation provenance.
+- Existing assets and constraints: Card::from_session projects list snapshots;
+  ConversationArea.info already retains SessionInfo, including for terminals.
+  W12's staged SessionResources retains that same conversation owner. The
+  legacy session-id-only record intake is not an admitted metadata carrier.
+- Alternatives: a second session-label map, creation-spec fallback, applying
+  every historical record, or resolving the selected alias after a reply.
+- Choice: prepare an installer into the existing resident-owned current info,
+  with passive list projection derived from SessionInfo.labels. No generic
+  editor, new admission service or independently authoritative map.
+- Why: historical replay and late snapshots must not replace newer labels.
+  The node producer must first establish authoritative metadata revision or
+  snapshot/watermark semantics; EventSeq alone is not an inferred guarantee.
+- Impact: no source installer or event arm is enabled before that exact contract
+  and its announced app base. W10 owns the two timeline/conversation metadata
+  compile arms; C2 owns the terminal frame arm. Assemble one isolated native
+  leaf with their portable deltas, rather than their moving feature branches.
+
+Actual carriers must validate the original ConnectionContext and DeliveryGuard
+immediately before W12's receive/settle callback. Info responses additionally
+retain the original opaque Timeline/Lifecycle operation ticket and session-id
+join. The staged callback does not itself establish live product authority.
+The lifecycle owner was asked for exact snapshot/event ordering semantics; no
+local counter or speculative SetLabels DTO fills that unresolved contract.
+
+G2 now owns the coordinator-assigned ordered preference-save outcome helper.
+The completed shared SavePrefs extraction is preserved; A6 adds no second
+helper and its metadata work does not change preference-save behavior.
