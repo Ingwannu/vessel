@@ -4,16 +4,16 @@
 //! [Decision Log]
 //! - Purpose: shared settings reorder and form actions need the same button.
 //! - Constraints: existing callers/paint/default32-pointer geometry stay intact.
-//! - Choice: Label/Icon/IconAndLabel plus a typed automatic-or-muted icon.
-//!   The source's explicit muted ReactElement stays muted even on Ghost hover;
+//! - Choice: `Label`/`Icon`/`IconAndLabel` plus a typed automatic-or-muted icon.
+//!   The source's explicit muted `ReactElement` stays muted even on Ghost hover;
 //!   automatic icons use the button ink. Both put ink on the SVG itself.
 //! - Alternative: an area arrow div, empty text children, or a toolbar pill.
 //! - Why and cost: one renderer/interaction policy; callers still attach no
 //!   handler to Disabled, as required by the existing button contract.
 use super::TypeExt as _;
-use crate::{assets::Glyph, control_sizing::ControlSizing, fonts::Type, theme::Tokens};
+use crate::{control_sizing::ControlSizing, fonts::Type, theme::Tokens};
 use gpui::prelude::*;
-use gpui::{Div, Hsla, SharedString, Stateful, div, px, svg};
+use gpui::{Div, Hsla, SharedString, Stateful, div, px};
 
 /// Button meanings from Paseo (`default`, `secondary`, `destructive`,
 /// `ghost`). Outline retains its existing entry point.
@@ -27,6 +27,8 @@ pub enum ButtonKind {
     Destructive,
     /// A quiet action: transparent, muted text; foreground text on hover.
     Ghost,
+    /// Transparent fill and the reference `borderAccent`, for catalog Add.
+    Outline,
 }
 
 /// Whether the caller may attach a handler. Disabled buttons keep their words
@@ -39,48 +41,15 @@ pub enum ButtonState {
     Disabled,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum IconTone {
-    Button,
-    Muted,
-}
-/// A shared vector with the source's automatic or explicitly muted ink.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ButtonIcon {
-    glyph: Glyph,
-    tone: IconTone,
-}
-impl ButtonIcon {
-    /// Inherit this button variant's own text/hover ink.
-    #[must_use]
-    pub const fn new(glyph: Glyph) -> Self {
-        Self {
-            glyph,
-            tone: IconTone::Button,
-        }
-    }
-    /// Explicit muted element, as settings SidebarNavRow's reorder arrows.
-    #[must_use]
-    pub const fn muted(glyph: Glyph) -> Self {
-        Self {
-            glyph,
-            tone: IconTone::Muted,
-        }
-    }
-}
-/// Button children, with no empty-label workaround for icon-only controls.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ButtonContent {
-    /// Existing text-only behavior, including its wrapping policy.
-    Label(SharedString),
-    /// Square icon-only control.
-    Icon(ButtonIcon),
-    /// Leading vector and the ordinary label, in that order.
-    IconAndLabel {
-        icon: ButtonIcon,
-        label: SharedString,
-    },
-}
+mod content;
+mod control;
+use content::icon_element;
+#[cfg(test)]
+use content::icon_ink;
+pub use content::{ButtonContent, ButtonIcon};
+use control::Activity;
+pub use control::{Button, ButtonConfig, ButtonSize};
+
 const BUTTON_GROUP: &str = "kit-button";
 const BUTTON_ICON: gpui::Pixels = px(crate::theme::icon::SM);
 
@@ -127,6 +96,7 @@ fn button_paint(kind: ButtonKind, phase: ButtonPhase, tokens: &Tokens) -> Button
     let (fill, text) = match kind {
         ButtonKind::Primary => (neutral.accent, neutral.accent_foreground),
         ButtonKind::Secondary => (neutral.surface3, neutral.foreground),
+        ButtonKind::Outline => (gpui::transparent_black(), neutral.foreground),
         ButtonKind::Destructive => (neutral.destructive, neutral.destructive_foreground),
         ButtonKind::Ghost => (
             gpui::transparent_black(),
@@ -140,7 +110,10 @@ fn button_paint(kind: ButtonKind, phase: ButtonPhase, tokens: &Tokens) -> Button
     };
     ButtonPaint {
         fill,
-        border: fill,
+        border: match kind {
+            ButtonKind::Outline => neutral.border_accent,
+            _ => fill,
+        },
         text,
         opacity: match phase {
             ButtonPhase::Idle | ButtonPhase::Hovered => 1.0,
@@ -206,7 +179,35 @@ pub fn button_with_content(
     sizing: ControlSizing,
     tokens: &Tokens,
 ) -> Stateful<Div> {
-    let geometry = button_geometry(sizing);
+    render(id, content, ButtonConfig::new(kind, state, sizing), tokens)
+}
+
+/// Loading/size-aware content with a guarded handler entry. Catalog Add uses
+/// Small+Outline; loading is the source Small20 ActivityIndicator before text.
+#[must_use]
+pub fn button_control(
+    id: impl Into<gpui::ElementId>,
+    content: ButtonContent,
+    config: ButtonConfig,
+    tokens: &Tokens,
+) -> Button {
+    Button::new(render(id, content, config, tokens), config.availability())
+}
+fn render(
+    id: impl Into<gpui::ElementId>,
+    content: ButtonContent,
+    config: ButtonConfig,
+    tokens: &Tokens,
+) -> Stateful<Div> {
+    let ButtonConfig {
+        kind,
+        sizing,
+        size,
+        activity,
+        ..
+    } = config;
+    let state = config.availability();
+    let geometry = size.geometry(sizing);
     let phase = match state {
         ButtonState::Enabled => ButtonPhase::Idle,
         ButtonState::Disabled => ButtonPhase::Disabled,
@@ -231,7 +232,11 @@ pub fn button_with_content(
         .bg(paint.fill)
         .text_color(paint.text)
         .opacity(paint.opacity)
-        .type_(Type::Label)
+        .type_(match size {
+            ButtonSize::Small => Type::Meta,
+            ButtonSize::Medium => Type::Label,
+        })
+        .font_weight(gpui::FontWeight::MEDIUM)
         .when(state == ButtonState::Enabled, |button| {
             button
                 .cursor_pointer()
@@ -244,45 +249,25 @@ pub fn button_with_content(
                 })
                 .active(move |style| style.opacity(pressed.opacity))
         });
-    match content {
-        ButtonContent::Label(label) => button.child(wrapping(label)),
-        ButtonContent::Icon(icon) => button
-            .w(geometry.height)
-            .px(px(0.0))
-            .flex_none()
-            .child(icon_element(icon, kind, state, tokens)),
-        ButtonContent::IconAndLabel { icon, label } => button
-            .child(icon_element(icon, kind, state, tokens))
-            .child(wrapping(label)),
-    }
+    let content = content.parts();
+    let mut button = if content.label.is_none() {
+        button.w(geometry.height).px(px(0.0)).flex_none()
+    } else {
+        button
+    };
+    button = match activity {
+        Activity::Loading => button.child(crate::loading::activity_indicator(
+            "button-loading",
+            crate::loading::Size::Small,
+            paint.text,
+        )),
+        Activity::Idle => match content.leading {
+            Some(icon) => button.child(icon_element(icon, kind, state, size, tokens)),
+            None => button,
+        },
+    };
+    button.children(content.label.map(wrapping))
 }
-fn icon_ink(icon: ButtonIcon, kind: ButtonKind, phase: ButtonPhase, tokens: &Tokens) -> Hsla {
-    match icon.tone {
-        IconTone::Button => button_paint(kind, phase, tokens).text,
-        IconTone::Muted => tokens.neutral.foreground_muted,
-    }
-}
-fn icon_element(
-    icon: ButtonIcon,
-    kind: ButtonKind,
-    state: ButtonState,
-    tokens: &Tokens,
-) -> gpui::Svg {
-    let ink = icon_ink(icon, kind, ButtonPhase::Idle, tokens);
-    let hover = icon_ink(icon, kind, ButtonPhase::Hovered, tokens);
-    svg()
-        .path(icon.glyph.path())
-        .size(BUTTON_ICON)
-        .flex_none()
-        .text_color(ink)
-        .when(
-            state == ButtonState::Enabled
-                && kind == ButtonKind::Ghost
-                && icon.tone == IconTone::Button,
-            |element| element.group_hover(BUTTON_GROUP, move |style| style.text_color(hover)),
-        )
-}
-
 /// Compatibility entry point. The lead retires this bool API after migrating
 /// its callers; all drawing already delegates to the typed entry point.
 #[must_use]
@@ -315,3 +300,6 @@ fn wrapping(label: SharedString) -> Div {
 #[cfg(test)]
 #[path = "button_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+mod input_tests;

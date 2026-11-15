@@ -174,6 +174,7 @@ fn icon_only_content_has_exact_square_geometry_and_no_label_padding() {
                     ButtonIcon::muted(Glyph::ArrowUp),
                     ButtonKind::Ghost,
                     state,
+                    ButtonSize::Medium,
                     &tokens,
                 );
                 assert_eq!(vector.style().size.width, Some(px(14.0).into()));
@@ -238,6 +239,51 @@ fn typed_content_preserves_legacy_label_geometry_and_explicit_muted_ink() {
                         button_paint(kind, phase, &tokens).text
                     );
                 }
+            }
+        }
+    }
+}
+
+#[test]
+fn catalog_small_outline_and_loading_have_literal_source_geometry_and_paint() {
+    for scheme in [Scheme::Light, Scheme::Dark] {
+        let tokens = Tokens::of(scheme);
+        for sizing in [ControlSizing::Pointer, ControlSizing::Touch] {
+            for pending in [false, true] {
+                let config = ButtonConfig::new(ButtonKind::Outline, ButtonState::Enabled, sizing)
+                    .with_size(ButtonSize::Small);
+                let config = if pending { config.loading() } else { config };
+                let mut actual = button_control(
+                    "catalog",
+                    ButtonContent::Label("Add".into()),
+                    config,
+                    &tokens,
+                );
+                assert_eq!(actual.style().min_size.height, Some(px(28.0).into()));
+                assert_eq!(actual.style().padding.left, Some(px(12.0).into()));
+                assert_eq!(actual.style().padding.right, Some(px(12.0).into()));
+                assert_eq!(actual.style().text.font_size, Some(px(12.0).into()));
+                assert_eq!(
+                    actual.style().text.font_weight,
+                    Some(gpui::FontWeight::MEDIUM)
+                );
+                assert_eq!(
+                    actual.style().border_color,
+                    Some(tokens.neutral.border_accent)
+                );
+                assert_eq!(actual.style().text.color, Some(tokens.neutral.foreground));
+                assert_eq!(
+                    actual.style().opacity,
+                    Some(if pending { 0.5 } else { 1.0 })
+                );
+                assert_eq!(
+                    config.availability(),
+                    if pending {
+                        ButtonState::Disabled
+                    } else {
+                        ButtonState::Enabled
+                    }
+                );
             }
         }
     }

@@ -1198,3 +1198,7 @@ The typed button accepts `ButtonContent::{Label,Icon,IconAndLabel}` through
 `ButtonIcon::new` follows button ink, while `ButtonIcon::muted` preserves an
 explicit muted source icon (the sidebar reorder arrows). Icon-only MD controls
 are32/44 squares for Pointer/Touch, with no empty label or horizontal padding.
+`button_control(id, content, ButtonConfig, tokens)` adds Small/Medium and loading;
+its Button wrapper rejects on_click registration while disabled or pending.
+Catalog Add uses Outline+Small (28/px12 in both layouts), with the shared
+Small20 ActivityIndicator before its label. No area spinner or scaling is needed.
