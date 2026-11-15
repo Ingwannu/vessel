@@ -201,10 +201,12 @@ Bounds:
   are not padded). The node's ring is unchanged (4,096 records, 1
   MiB): a reconnect cannot show bytes the node has already dropped.
 - One feed applies at most 16 KiB, the PTY's read size, and reports how
-  many bytes it consumed. The rest stays with the caller. A frame feeds
-  live bytes at most once, so one frame parses at most 16 KiB of live
-  output. That ceiling is not a measured optimum; the renderer measures
-  frame time.
+  many bytes it consumed. The rest stays with the caller. The app replays
+  live output on the background executor too: no event, including a small
+  event in a large queued batch, parses bytes on the UI thread. One model
+  is in flight; output arriving meanwhile waits in order for its return.
+  A completion paints once, rather than painting after every queued record.
+  The cost is an executor handover even for a small echo.
 - History is not fed frame by frame. On open, the terminal's ring (a
   shell) or its log (a session that is a terminal, which can be many
   megabytes) is read page by page (`terminal.read` / `session.read`, 512
@@ -347,8 +349,10 @@ is not smuggled in as a copy.
   already has. Neither crate is vendored. Their `unsafe`, if any, stays
   inside them.
 - History is replayed off the UI thread (above), so a long log costs a
-  loading row, not frames; interactive output is one read, so a live
-  feed is one read.
+  loading row, not frames. Every read and replay completion belongs to a
+  typed opening identity and its typed book name; reopening the same
+  session cannot accept work from an earlier opening. Cancellation alone
+  cannot provide this guarantee for a result already delivered.
 - Paseo's 5 ms output coalescer is not copied. The node already chunks
   at 16 KiB; a timer in `view` would be I/O-shaped.
 - Paseo's refit ladders (0, 48, 144, 320 ms, and the emulator's waits up

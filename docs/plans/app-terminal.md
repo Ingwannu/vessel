@@ -366,6 +366,48 @@ Each a few hundred lines with tests, captures (1280×800, 1024×700,
 
 ## Resume point
 
+### T1 review repair contract
+
+The first screen review returned lifecycle, appearance, motion, scrolling,
+scheduling and notice defects. T1 remains unaccepted until these repairs,
+the native gate and the complete visual matrix are reviewed.
+
+[Decision Log]
+- Purpose and intent: one opening owns its read and replay, a quiet screen
+  follows appearance immediately, and queued output never monopolizes input.
+- Existing implementation and constraints: keep the existing parser, grid,
+  log fold, app area and the single kit renderer; asynchronous reads outlive
+  navigation and one link update may contain many small records.
+- Alternatives considered: cancellation alone (cannot reject an already
+  delivered result), per-event byte limits (do not bound an update), and an
+  area-local notice or second renderer (duplicate shared controls).
+- Choice: modify the existing assets. A typed opening identity accompanies
+  the history request, its refusal and both replay completions. Compare the
+  owning typed book name and opening before moving any retained state.
+  Replay all output on the background executor, in order, with one model
+  owner. UI updates collect pending bytes and paint completed models only.
+  There is no inline parse budget to accidentally reset per record.
+- Why: no dependency or wire change is needed; standard ownership and the
+  existing executor remove the unbounded UI parsing path altogether.
+- Advantages, costs and effects: a small echo requires an executor handover;
+  queued output has zero parsing work on the UI thread. A typed bounded
+  viewport exposes history by wheel/touch scrolling. Appearance identity
+  includes scheme and font metrics; changes rebuild without output. Cursor
+  timers exist only while presented, focused and motion is allowed, and
+  cancellation restores a steady visible cursor. Failed history is one
+  shared error alert while live output continues.
+
+Reference reread: `components/terminal-emulator.tsx` 313–317 and
+`terminal/runtime/terminal-emulator-runtime.ts` 980–994 invalidate theme
+and refresh visible rows; 555–575 configure a blinking bar, line height
+and scrollbar. The scheduling difference is deliberate: Vessel parses
+on its executor, not Paseo's client xterm event loop. Reduced motion
+continues to hold the cursor steady. The original font/cluster/underline
+differences above remain. No new wire, protocol assignment or dependency.
+
+Repair resume: contract recorded; behavioural regressions are next,
+followed by source fixes, private fake-fleet captures and the native gate.
+
 - Done: ADR 0073 (status proposed) and this contract. `replay` never
   answers. Path quoting is stated for both node platforms. Scrollback
   is a field of `view::prefs::Preferences`. The view that created a
