@@ -17,6 +17,11 @@
 ///   for a method whose number the integrator has not assigned yet, where
 ///   `FEATURE` is the feature's `Option<ProtocolVersion>` constant (None
 ///   until assigned; both ends refuse the method while it is None).
+///   `(staged FEATURE)` is a pending method whose values landed before
+///   any runtime serves it: its `Handler` method answers `Unsupported` by
+///   default and the node's guard needs no service method for it. The
+///   package that serves it changes the row to `(pending FEATURE)` in the
+///   commit that adds its handler; a staged row's constant must stay None.
 /// - `shape` is how the method is answered: `unary` (one reply),
 ///   `stream` (the reply opens a stream of frames) or `envelope` (it
 ///   carries another call to a node and answers once; what it carries is
@@ -378,7 +383,8 @@ macro_rules! method_table {
             RewindSession / rewind_session / "session.rewind" [Operate, 14, unary]: $crate::forking::RewindSession => $crate::SessionInfo;
             /// A page of an agent's own conversations, to import one (protocol 17, ADR 0053).
             GetAgentHistory / agent_history / "agent.history" [Operate, 17, unary]: $crate::history::GetAgentHistory => $crate::history::AgentHistoryPage;
-
+            /// Make a managed child independent without changing its process or conversation.
+            DetachSession / detach_session / "session.detach" [Operate, (pending $crate::subagents::SUBAGENT_RELATIONS), unary]: $crate::subagents::DetachSession => $crate::subagents::DetachedSession;
             /// Read an atomic independent-workspace registry snapshot.
             GetRegistry / get_registry / "workspace.registry" [Read, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::GetRegistry => $crate::registry::RegistrySnapshot;
             /// List active/archived workspace descriptors independently of sessions.
@@ -391,6 +397,13 @@ macro_rules! method_table {
             PinWorkspace / pin_workspace / "workspace.pin" [Operate, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::PinWorkspace => $crate::registry::WorkspaceDescriptor;
             /// Release automation for one explicitly inspected external source and revision.
             ReleaseWorkspaceAutomation / release_workspace_automation / "workspace.release_automation" [Operate, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::ReleaseWorkspaceAutomation => $crate::registry::WorkspaceDescriptor;
+
+            /// Distinct committed/All comparison summary (ADR 0087, staged values).
+            GitCompare / git_compare / "git.compare" [Read, (staged $crate::workspace::GIT_PANEL), unary]: $crate::workspace::CompareGit => $crate::workspace::GitCompared<$crate::workspace::DiffSummary>;
+            /// A bounded file in the same comparison (ADR 0087, staged values).
+            GitCompareFile / git_compare_file / "git.compare_file" [Read, (staged $crate::workspace::GIT_PANEL), unary]: $crate::workspace::CompareGitFile => $crate::workspace::GitCompared<$crate::workspace::FileDiff>;
+            /// Collect bounded content-free diagnostics (protocol 24).
+            Diagnostics / diagnostics / "node.diagnostics" [Read, (pending $crate::diagnostics::DIAGNOSTICS_PROTOCOL), unary]: $crate::diagnostics::GetDiagnostics => $crate::diagnostics::DiagnosticReport;
             /// Create and register one empty directory without initializing Git.
             CreateProjectDirectory / create_project_directory / "project.create_directory" [Operate, (pending $crate::project_management::PROJECT_MANAGEMENT), unary]: $crate::project_management::CreateProjectDirectory => $crate::project_management::ProjectDirectoryOutcome;
             /// Register the selected directory without canonicalizing it to a Git top level.

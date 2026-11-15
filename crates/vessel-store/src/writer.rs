@@ -98,6 +98,12 @@ pub(crate) enum Write {
         at: DateTime<Utc>,
         done: Done<KeptMarks>,
     },
+    /// Atomic first/repeated detach, replied only after commit.
+    Detach {
+        session: SessionId,
+        at: DateTime<Utc>,
+        done: Done<vessel_proto::subagents::DetachedSession>,
+    },
     /// Delete an ended session whole (protocol 10).
     Delete { session: SessionId, done: Done },
     /// Reopen an ended session's row for a run starting at record `next`
@@ -175,12 +181,17 @@ pub(crate) struct Setup {
 enum Answer {
     Done(Done, Result<(), StoreError>),
     Marked(Done<KeptMarks>, Result<KeptMarks, StoreError>),
+    Detached(
+        Done<vessel_proto::subagents::DetachedSession>,
+        Result<vessel_proto::subagents::DetachedSession, StoreError>,
+    ),
 }
 
 impl Answer {
     /// Send it, as a failure if the commit failed.
     fn send(self, failed: Option<&Arc<rusqlite::Error>>) {
         let sent = match self {
+            Self::Detached(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Done(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Marked(done, result) => done.send(after(failed, result)).is_ok(),
         };

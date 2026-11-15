@@ -251,11 +251,16 @@ impl Workspaces {
         name: Option<ProjectName>,
         state: ProjectState,
     ) -> Result<ProjectInfo, WorkspaceError> {
+        // Reserve before detaching: cancelled calls cannot fill an unbounded lock queue.
+        let capacity = self.project_operation_capacity()?;
         let owner = Arc::clone(self);
         self.tasks
-            .spawn(async move { owner.insert_project_now(root, git, name, state).await })
+            .spawn(async move {
+                let _capacity = capacity;
+                owner.insert_project_now(root, git, name, state).await
+            })
             .await
-            .map_err(WorkspaceError::ProjectTask)?
+            .map_err(WorkspaceError::project_task)?
     }
 
     async fn insert_project_now(

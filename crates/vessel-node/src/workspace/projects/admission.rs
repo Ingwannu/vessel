@@ -1,4 +1,4 @@
-//! Retain existing project serialization across backing I/O and registry commit.
+//! Retain project metadata serialization across backing I/O and descriptor commit.
 //! This is node metadata admission, not config approval or physical-root exclusion.
 
 use super::super::{WorkspaceError, Workspaces, roots::Resolved};
@@ -6,11 +6,11 @@ use std::sync::{Arc, Weak};
 use vessel_proto::{ProjectId, workspace::WorkspaceRoot};
 use vessel_workspace::paths::Root;
 
-/// Includes the current owner and waiters; cancelled RPCs cannot grow tracked work.
+/// Bounds retained admissions and their lock waiters before waiting begins.
 pub(crate) const MAX_PROJECT_ADMISSIONS: usize = 64;
 
 /// An opaque hold on the exact registered project and its checked root.
-/// W3 retains an Arc until its independent workspace descriptor is finalized.
+/// The provisioner retains an `Arc` until its independent descriptor is finalized.
 #[derive(Debug)]
 pub(crate) struct ProjectAdmission {
     owner: Weak<Workspaces>,
@@ -39,17 +39,24 @@ impl ProjectAdmission {
 }
 
 impl Workspaces {
-    /// Resolve a ready project while retaining its existing mutation lock.
+    /// One shared non-waiting budget, acquired before any detached mutation can queue.
+    pub(super) fn project_operation_capacity(
+        &self,
+    ) -> Result<tokio::sync::OwnedSemaphorePermit, WorkspaceError> {
+        Arc::clone(&self.project_admissions)
+            .try_acquire_owned()
+            .map_err(|_full| {
+                WorkspaceError::Busy("too many project operations need admission".to_owned())
+            })
+    }
+
+    /// Resolve a ready project while retaining the project metadata mutation lock.
     /// The caller owns any additional workspace lifecycle/start and root-I/O claims.
     pub(crate) async fn admit_project(
         self: &Arc<Self>,
         project: ProjectId,
     ) -> Result<Arc<ProjectAdmission>, WorkspaceError> {
-        let capacity = Arc::clone(&self.project_admissions)
-            .try_acquire_owned()
-            .map_err(|_full| {
-                WorkspaceError::Busy("too many project operations need admission".to_owned())
-            })?;
+        let capacity = self.project_operation_capacity()?;
         let serial = Arc::clone(&self.project_registrations).lock_owned().await;
         let resolved = self.resolve(WorkspaceRoot::Project { project }).await?;
         Ok(Arc::new(ProjectAdmission {

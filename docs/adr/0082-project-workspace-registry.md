@@ -124,26 +124,27 @@ Restart marks interrupted starts Uncertain rather than rerunning them. This
 requires the lifecycle consumer to stop resources only after all starts settle.
 A generic metadata CAS is not evidence that resource teardown happened.
 
-The lifetime budget is explicit: at most 256 workspace/backing identities and
-4096 resource ownership claims, including archived, failed, interrupted and ended
-records. Each workspace atomically reserves 8 KiB descriptor, 256 KiB recovery,
-16 KiB intent and 1 KiB bookkeeping capacity before backing effects. Resource
-claims reserve 256 bytes each before spawn. The total logical payload allowance
-is the named MAX_RETAINED_BYTES formula in the store capacity module. Fixed slot
-reservations cover later growth without borrowing a create receipt's independent
-budget. Oversized records fail without publishing partial state. New identities
-return RegistryFull at capacity; exact existing identities can still reconcile
-and settle, with no eviction or ownership/key release. Physical SQLite indexes,
-page allocation and WAL remain subject to the existing store management; this
-logical payload bound is not a disk quota. A complete public snapshot is bounded
-by descriptor and membership limits and fits the existing 16 MiB frame ceiling.
+The lifetime budget is explicit: MAX_WORKSPACES workspace/backing identities and
+MAX_RESOURCES resource ownership claims, including archived, failed, interrupted
+and ended records. Each workspace atomically reserves MAX_DESCRIPTOR_BYTES,
+MAX_RECOVERY_BYTES, MAX_INTENT_BYTES and WORKSPACE_KEY_BYTES capacity before
+backing effects. Resource claims reserve RESERVED_BYTES_PER_RESOURCE before
+spawn. MAX_RETAINED_BYTES is computed from these named constants in the store
+capacity module. Fixed slot reservations cover later growth without borrowing a
+create receipt's independent budget. Oversized records fail without publishing
+partial state. New identities return RegistryFull at capacity; exact existing
+identities can still reconcile and settle, with no eviction or ownership/key
+release. Physical SQLite indexes, page allocation and WAL remain subject to the
+existing store management; this logical payload bound is not a disk quota.
+Descriptor and membership caps bound a complete public snapshot below the
+existing RPC MAX_FRAME ceiling.
 
 Coalesced watches emit only after a successful writer commit. Consumers re-read
 a complete descriptor/membership snapshot on wake; no polling interval, cwd
 inference, resource payload or project config text is put into notifications.
 The retained external-source gate and explicit release CAS described below are
-included. The filesystem provisioner remains staged in this continuation; no
-automatic setup or receipt driver is wired by this dependency.
+included. The filesystem provisioner remains staged in the project continuation;
+this dependency does not start automatic setup or claim provisioning is wired.
 
 ## Retained external source and explicit release
 
@@ -164,44 +165,20 @@ separate explicit action after release. Historical create intent stays blocked,
 so replay cannot reinterpret the original request as a newly authorized effect.
 
 
-## Planned lifecycle incarnation fence (not implemented)
+## Stable terminal runs and restart admission
 
-The minimal metadata dependency keeps project, path, backing and creation time
-immutable under a workspace id. This logical tuple does not prove that a future
-restore has the same backing incarnation. A coalesced watch can skip the whole
-Archiving/Archived/Restoring interval, and restoring an existing directory can
-retain its inode. Neither path equality, physical identity nor a generic title
-revision is an adequate actor/route restart authority.
+A terminal may retain its TerminalId over several process runs. The initial
+claim deliberately refuses an already Ready resource. Its supervisor retains
+the opaque first lease, completes registration, and proves the previous process
+has actually joined before requesting claim_registry_restart. A signal, revoked
+lifetime token or an ambiguous wait error is not proof that a process stopped.
 
-[Decision Log]
-- Purpose: a restore/unarchive cycle must invalidate old launch, Ready-resource
-  and service-route authority even when it reuses the same directory and ids.
-- Existing implementation and constraints: registry revisions reject stale writes
-  but also change for presentation; start leases identify one exact run. The
-  lifecycle consumer owns actual stop/drain and backing validation. No restore
-  adapter is currently wired in this continuation or the minimal dependency.
-- Alternatives considered: infer replacement from a changed path or inode, force
-  clients to observe every lifecycle transition, or overload descriptor revision.
-- Selected approach: a producer-owned typed admission generation in descriptor
-  and durable resource/start leases. Atomically advance it at exclusive
-  Archived-to-Restoring admission, including existing-directory unarchive, with
-  checked overflow refusal before I/O. Preserve the admitted generation through
-  partial failure and restart/retry of that same restoration claim. Publish
-  Active only for that claim after its consumer proves backing readiness.
-- Reason: a complete snapshot can then distinguish a new lifecycle incarnation
-  from rename/pin/release without replaying every intermediate event.
-- Effects and tradeoffs: lease completion, restart and automatic effect admission
-  must compare the canonical generation and lifecycle. Old Ready tokens cannot
-  resume after the cycle. Existing starts may settle while Archiving; Archived
-  still requires all pending/uncertain starts to be resolved. Actual prior-run
-  wait/join proof remains necessary for same-terminal restarts. W9's PhysicalRoot
-  and RootLease remain separate filesystem exclusion authorities.
-
-This section reserves a contract boundary, not a published type, SQL field or
-API. Its migration, serializers, exact transition checks and adversarial tests
-remain to be implemented and reviewed before real restore or D2 cache/effect
-wiring. The minimal dependency has no public backing replacement/restore route;
-its immutable logical placement must not be described as physical continuity.
+Restart compares exact workspace/resource/predecessor lease and requires its
+stored stage still Ready plus an Active workspace at the expected revision. It
+then allocates a new Pending lease in that same transaction. Concurrent restarts,
+foreign owners, Archiving/Restoring, pending/uncertain predecessors and late
+completions refuse. The resource id/owner and retained capacity slot never change;
+restarting an existing row remains possible when fresh resource capacity is full.
 
 registry_resource_run exposes retained admission metadata for supervisor recovery.
 Ready means the last run was registered; it attests neither current liveness nor
@@ -229,3 +206,16 @@ its public project_file::MAX_BYTES name as a re-export, with the workspace owner
 agreement (message24bb3bd8). Existing parser/editor checks, errors and tests derive
 from that one definition. No limit or MAX_COMMANDS ownership changes. This avoids
 future editor/parser divergence without introducing a new dependency edge.
+
+
+### Separate project-management continuation
+
+The pending `project_management` module retains exact selected-directory
+registration, empty directory creation and raw `vessel.toml` editing. Its four
+methods remain behind `PROJECT_MANAGEMENT = None`; this is not part of the
+reviewed registry metadata activation. The continuation uses the landed retained
+project admission and fixed-id producer rather than its superseded draft.
+Obsolete test-only workspace provisioning files are removed in favor of the
+separate creation owner. See `docs/plans/project-management.md` for scope.
+This merge is source integration only; generated TypeScript, changed-source
+checks, config diagnostic/physical admission and full package review remain owed.

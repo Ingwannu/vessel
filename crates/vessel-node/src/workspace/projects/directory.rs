@@ -26,7 +26,7 @@ impl Workspaces {
         self.tasks
             .spawn(async move { owner.create_project_directory_now(request).await })
             .await
-            .map_err(|error| WorkspaceError::ProjectTask(error).wire())?
+            .map_err(|error| WorkspaceError::project_task(error).wire())?
     }
 
     async fn create_project_directory_now(

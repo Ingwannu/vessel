@@ -40,6 +40,7 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::SessionOptions
         | Method::GetConversation
         | Method::ResumeSession
+        | Method::DetachSession
         | Method::DeleteSession
         | Method::GetPullRequest
         | Method::ParkSession
@@ -76,7 +77,8 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::ListPrompts
         | Method::GetNodeSettings
         | Method::SetNodeSettings
-        | Method::ListInbox => json!({}),
+        | Method::ListInbox
+        | Method::Diagnostics => json!({}),
         Method::RevokeDevice => json!({"device":id}),
         Method::ReadBlob => json!({"hash":hash}),
         Method::WatchFleet => json!({"after":0}),
@@ -156,6 +158,12 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::GitPush
         | Method::GitPull
         | Method::ListDir => json!({"root":root}),
+        Method::GitCompare => {
+            json!({"root":root,"comparison":{"kind":"committed"},"whitespace":"show"})
+        }
+        Method::GitCompareFile => {
+            json!({"query":{"root":root,"comparison":{"kind":"all"}},"path":"sample.rs"})
+        }
         Method::GitChanges => json!({"root":root,"scope":{"kind":"unstaged"}}),
         Method::GitDiff => json!({"root":root,"scope":{"kind":"unstaged"},"path":"sample.rs"}),
         Method::GitShow => {

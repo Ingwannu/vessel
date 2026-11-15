@@ -284,6 +284,7 @@ impl Method {
             | Self::PromptSideQuestion
             | Self::ResetSideQuestion
             | Self::CreateSession
+            | Self::DetachSession
             | Self::SendInput
             | Self::KillSession
             | Self::ReadEvents
@@ -348,6 +349,8 @@ impl Method {
             | Self::ListSnapshots
             | Self::DropSnapshot
             | Self::GitStatus
+            | Self::GitCompare
+            | Self::GitCompareFile
             | Self::GitChanges
             | Self::GitDiff
             | Self::GitShow
@@ -439,7 +442,8 @@ impl Method {
             | Self::GetAgentHistory => true,
             // Protocol 11: adding and removing an agent is the node's own
             // administration, by its owner or its own devices (ADR 0032).
-            Self::GetPushKey
+            Self::Diagnostics
+            | Self::GetPushKey
             | Self::SubscribePush
             | Self::UnsubscribePush
             | Self::ReportPushPresence

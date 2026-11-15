@@ -47,7 +47,7 @@ impl Workspaces {
                     .map_err(|error| edit_error(&error))
             })
             .await
-            .map_err(|error| WorkspaceError::ProjectTask(error).wire())?
+            .map_err(|error| WorkspaceError::project_task(error).wire())?
     }
 }
 

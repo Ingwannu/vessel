@@ -1,5 +1,8 @@
 //! What a workspace call can fail with, mapped to the wire once.
 
+mod task;
+
+use task::ProjectTaskCause;
 use vessel_proto::workspace::RelPath;
 use vessel_proto::{ErrorCode, ProjectId, WireError, WorktreeId};
 use vessel_store::StoreError;
@@ -10,9 +13,9 @@ use vessel_workspace::paths::PathError;
 /// A workspace call's failure.
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum WorkspaceError {
-    /// Registration keeps running after its caller leaves; a failed task is explicit.
-    #[error("project operation task stopped")]
-    ProjectTask(#[source] tokio::task::JoinError),
+    /// A tracked project/backing operation stopped; retain its actual task cause.
+    #[error("the project operation stopped")]
+    ProjectTask(#[source] ProjectTaskCause),
     /// The node found no usable git.
     #[error("this machine has no usable git (2.25 or newer)")]
     NoGit,
@@ -110,6 +113,11 @@ impl From<FileError> for WorkspaceError {
 }
 
 impl WorkspaceError {
+    /// Seal a tracked task's input-controlled panic payload at its diagnostic boundary.
+    pub(crate) fn project_task(cause: tokio::task::JoinError) -> Self {
+        Self::ProjectTask(ProjectTaskCause::new(cause))
+    }
+
     /// The wire's form: a code a client branches on, and a message.
     pub(crate) fn wire(&self) -> WireError {
         let code = match self {

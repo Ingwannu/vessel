@@ -28,9 +28,6 @@ mod forge;
 mod git;
 mod policy;
 mod projects;
-// Staged until the registry RPC wiring uses the shared pending method table.
-#[cfg(test)]
-mod registry;
 mod roots;
 mod scripts;
 mod setup;
@@ -153,6 +150,8 @@ pub(super) struct State {
     /// worktrees against the limits, so creations at once cannot all pass
     /// the check before any is recorded.
     making: Vec<Creator>,
+    /// Fixed ids in flight, including calls sharing one retained admission.
+    making_ids: HashSet<WorktreeId>,
 }
 
 /// The node's projects and worktrees.
@@ -164,6 +163,7 @@ pub(crate) struct Workspaces {
     dirs: Dirs,
     places: Places,
     state: Mutex<State>,
+    /// Serializes project metadata publication and retained backing admissions.
     project_registrations: Arc<tokio::sync::Mutex<()>>,
     project_admissions: Arc<tokio::sync::Semaphore>,
     indexes: Arc<Indexes>,

@@ -125,7 +125,11 @@ impl Store {
     /// Does not poll and never contains paths, payloads or secrets.
     #[must_use]
     pub fn registry_changes(&self) -> tokio::sync::watch::Receiver<()> {
-        self.registry.clone()
+        let mut changes = self.registry.clone();
+        // Clone preserves the source receiver's unseen history; a fresh long-poll must not spin.
+        // Mark before the caller reads its snapshot, so concurrent future commits remain visible.
+        changes.mark_unchanged();
+        changes
     }
 
     /// Resolve explicit ownership; a shared cwd is never a membership claim.

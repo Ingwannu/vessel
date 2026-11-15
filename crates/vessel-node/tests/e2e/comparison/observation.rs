@@ -206,6 +206,10 @@ async fn a_member_keeps_mixed_pending_setup_and_frozen_input_after_partial_start
         );
         assert_eq!(turns(&member.owner, source).await.len(), 1);
         let destination = done.targets[1].resources.session.unwrap();
+        // The destination's turn is recorded after its prompt is accepted,
+        // which can come after the job reports Started (W15's run,
+        // 2026-11-15): wait for its end, then read (`turn_ended`).
+        turn_ended(&member.owner, destination).await;
         let history = turns(&member.owner, destination).await;
         let vessel_proto::ContentBlock::Attachment { attachment } = &history[0][1] else {
             panic!("file");
