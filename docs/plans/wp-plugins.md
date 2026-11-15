@@ -1,6 +1,7 @@
 # W16: Plugins and plugin-contributed themes
 
-ADR: 0079 (proposed). Scope: the W16 package in the implementation plan.
+ADR: 0079 (architecture CONTRACT PASS by V3; implementation unreviewed).
+Scope: F6/W16 in PLAN.md section 7, which supersedes duplicate assignments.
 Reference source is Paseo 0.15.4. ADR 0079's source table and differences
 are the contract for this package; do not duplicate its protocol list.
 
@@ -52,3 +53,20 @@ pure work can proceed. Runtime/installation/catalog calls and user-visible
 controls wait for shared-contract authorization; no feature is advertised
 as complete until its real path works. The package is not a whole-package
 gate or runtime/capture proof merely because its declaration tests pass.
+
+Coordinator subsequently authorized W16 to implement both sides in a
+second node worktree based on d954fa3a. The integrator confirmed one pending
+PLUGINS Option None and one settings namespace; no SQLite schema is needed
+for owner-private settings/source files. Quality B is still awaited before
+method registration. Workspace identity belongs to W11 ADR 0082, pane/tab
+identity to W12, chooser/fallback/preferences and token adapter to K, and
+command-center registration to W22b. Consume their reviewed contracts;
+do not infer workspace identity from a path or allocate another WorkspaceId.
+
+Staged scalar/address/theme values are in `vessel_proto::plugins`, with no
+dependency or manifest change. RuntimeGeneration is a public UUID correlation
+value, not an authorization credential; plugin and contribution addresses
+retain NodeId and generation. HexColor parses once and retains packed RGBA;
+no fallback color is synthesized after failed parsing. Whole documents,
+helper, node service, CLI and native adapters remain separate implementation
+work and are not claimed by the scalar tests.
