@@ -1377,3 +1377,14 @@ actor-derived attention already share that one overlay lock. Only private
 module/type/field/accessor names move; public mark and receipt setters, reducer
 logic, locking and test expectations remain unchanged. The following behavior
 change can add durable time to this same bounded row-copy responsibility.
+
+
+### Append projection extraction after the strict check
+
+The first clock-storage strict check stopped because the existing append
+function grew past the function budget. Its SQL/parameter block moves into
+Projection::save, with the profile enum binding named separately. Record
+validation/observation, exact SQL text and parameter order, indexing/retention,
+clock timing and savepoint behavior are unchanged. No bound, assertion or
+deadline is altered. This is a separate behavior-preserving correction;
+the original strict failure remains in the validation history.
