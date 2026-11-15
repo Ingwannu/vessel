@@ -71,6 +71,7 @@ impl ConversationArea {
                 vessel_app_view::prompt_index::IndexPhase::Reading(_)
             )
             || self.outline_pointer.settling()
+            || self.origin.area().is_some_and(Self::navigation_held)
     }
 
     /// W12 calls this on the exact retired resource after invalidating its binding.
@@ -81,6 +82,9 @@ impl ConversationArea {
         self.cancel_prompt_jump();
         self.prompts.index.unavailable();
         self.outline_pointer.leave();
+        if let Some(origin) = self.origin.area_mut() {
+            origin.navigation_retired();
+        }
     }
 
     pub(super) fn prompt_target(&self) -> Option<&IndexTarget> {

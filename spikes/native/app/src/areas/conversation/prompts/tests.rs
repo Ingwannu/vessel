@@ -311,3 +311,54 @@ fn prompt_navigation_retries_after_the_same_node_is_readmitted(cx: &mut TestAppC
         ));
     });
 }
+
+#[gpui::test]
+fn origin_navigation_holds_and_retires_with_the_same_resource_tree(cx: &mut TestAppContext) {
+    use super::super::origin::Origin;
+    use vessel_app_view::prompt_index::{IndexPhase, IndexProblem};
+    let (probe, cx) = harness(cx);
+    update(&probe, cx, |shell, _, cx| {
+        shell.areas.conversation.clear_prompts();
+        assert!(!shell.areas.conversation.navigation_held());
+        let mut inner = ConversationArea::new(cx);
+        let ask = inner
+            .prompts
+            .index
+            .refresh(
+                IndexTarget {
+                    machine: MachineKey::from_book("machine"),
+                    connection: None,
+                    session: SessionId::random(),
+                },
+                None,
+            )
+            .unwrap();
+        let mut origin = ConversationArea::new(cx);
+        origin.origin = Origin::Shown(Box::new(inner));
+        shell.areas.conversation.origin = Origin::Shown(Box::new(origin));
+        assert!(
+            shell.areas.conversation.navigation_held(),
+            "nested origin read must Hold"
+        );
+        shell.areas.conversation.navigation_retired();
+        assert!(!shell.areas.conversation.navigation_held());
+        let inner = shell
+            .areas
+            .conversation
+            .origin
+            .area_mut()
+            .unwrap()
+            .origin
+            .area_mut()
+            .unwrap();
+        assert_eq!(
+            inner.prompts.index.phase(),
+            IndexPhase::Failed(IndexProblem::Connection)
+        );
+        let next = inner.prompts.index.restart().unwrap();
+        assert_ne!(
+            next.ticket, ask.ticket,
+            "retirement must preserve the original ticket source"
+        );
+    });
+}
