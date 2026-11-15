@@ -51,7 +51,7 @@ async fn refused_keep_preserves_the_live_owner_until_explicit_drop() {
         loop {
             let mut line = String::new();
             assert_ne!(output.read_line(&mut line).await.unwrap(), 0);
-            if line == READY {
+            if line.ends_with(READY) {
                 break;
             }
         }
