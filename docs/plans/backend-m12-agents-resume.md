@@ -1,5 +1,66 @@
 # Native Agents: resume after the redraw slice
 
+## Latest checkpoint
+
+V1 returned `7a2c7eb2` for test liveness only. The test-only correction
+`6fe855ab` retains all original assertions, ordering, product deadline and
+explicit virtual-time advance, with finite named phases and abort cleanup.
+Its first A13 run stopped at Clippy on rationale-comment markup. Follow-up
+`aded954c` fixes that markup and passed exact-source A13
+`agents-20261115T041734Z-aded954c`: six steps zero/no skips, 1059 runtime
+plus two document passes, zero failures, one existing ignored private
+capture. V1 received the source/gate packet first; review remains pending.
+The old failed execution remains failed. Result notes do not rerun a gate.
+
+Coordinator order is Models, then registry/Add with the one shared title
+comparator; Remove waits for the reviewed common trigger. Models scope was
+documented in `2b8e01d3`. Its uncompiled working changes remain outside
+the repository as a patch and prepared-source manifest; they are not a
+registered screen or a compile result. The N3 handoff for named launch-profile CRUD was sent once with
+exact references/fields/semantics; build nothing on it before its number is
+assigned. The minimal shared loader producer `434933b3` and its results-only
+follow-up `533b21ff` now have V1 source/A13 clearance for provisional use;
+first Models runtime evidence remains separate.
+
+`69cef4f1` records the fresh 40-image packet. V1 opened every final image,
+matched all image hashes and passed the submitted normal/list/detail and
+four returned-fix matrix (EN/KO, dark/light, 1280/390). This does not approve
+complete Providers, profiles, Add/Remove, installs, loading/empty, registry,
+intermediate widths/scales, actual IME, other operating systems or Light300
+font selection. The capture app, fleet children and authenticated Xvfb were
+stopped by verified UID/executable/arguments and PID.
+
+The removal slice wired confirmation through the existing link. Its final
+local narrow checks passed (link Clippy, nine RPC cases, 41 view cases).
+Implementation `7a2c7eb2` passed exact-commit A13 native verification:
+run `agents-20261115T032805Z-7a2c7eb2`, six steps zero, 1061 passes
+(1059 runtime plus two document tests), zero failures, one existing ignored
+private capture. V1 returned test liveness only; correction details in
+`backend-m12-agents-removal.md`. Do not draw a duplicate Remove trigger.
+The coordinator's one-file fixture fix `d30804b2` was cherry-picked at the
+clean boundary as `9037d62c`, with an identical source blob. The actual G3
+paired book and seven loopback/no-address/protected-port cases passed its
+guard without starting a node. S2 separately proved its full fleet with
+both the shared and its own root binaries. Those are S2's runs; G3 did not
+repeat the full fleet or relabel the older failed capture setup as green.
+
+The assigned lead baseline `d30804b2` merged without conflicts at
+`8dbf3ccd`; its root dispatcher stayed byte-identical to the lead's 988-line
+blob. Existing removal rules and normal screen evidence were already on
+that line. Own later removal call/test corrections remain separate.
+The coordinator-delegated unchanged option-query move is `5edd521b`,
+source-only. Its immediate native module registration lowers the measured
+root size to 952 and awaits the combined exact-head A13 gate. The other
+control track's error-type move is not included. See the Models plan for
+its unchanged-method proof and the deliberate intermediate gate boundary.
+After this extraction, consume the reviewed minimal loader on the assigned
+lead base and build Models first, then registry/Add with the shared title
+comparator. Remove UI still waits for the reviewed shared trigger and
+leading16 seam; no second trigger is implemented. Models preparations remain
+outside the repository and uncompiled. Named launch-profile CRUD waits for
+the separately reported node contract and assigned number. No local
+capture/fleet/display/build processes remain running.
+
 ## Start here
 
 Resumed on the published `56a7cbd3` baseline. The requested merge was a

@@ -984,3 +984,77 @@ async fn no_pairing_that_raced_a_withdrawal_outlives_it() {
     }
     node.stop().await.unwrap();
 }
+
+/// No public invitation can occupy the bounded pending map without a
+/// route. Tracked callbacks use their chosen routes, never an implicit
+/// fallback when an explicit override is empty.
+#[tokio::test]
+async fn invitations_require_effective_routes_before_pending_admission() {
+    let (_temp, node) = node().await;
+    let original = &node.secure.devices;
+    let devices = Devices::new(
+        original.store.clone(),
+        original.node,
+        original.key,
+        Routes::default(),
+    );
+    let request = InviteDevice {
+        label: None,
+        ttl_secs: 600,
+        scopes: None,
+    };
+    for _ in 0..invitations::MAX_PENDING {
+        let error = devices.invite(&request).unwrap_err();
+        assert!(matches!(error, ServiceError::NoPairingRoutes));
+        assert_eq!(
+            error.to_wire(),
+            vessel_testkit::device_fixtures::unreachable_invitation()
+        );
+    }
+    assert_eq!(devices.withdraw_all(), 0);
+    let direct: RouteUrl = "ws://127.0.0.1:1".parse().unwrap();
+    let relay: RouteUrl = "wss://relay.example/vessel".parse().unwrap();
+    for routes in [
+        Routes {
+            direct: vec![direct.clone()],
+            relays: vec![],
+        },
+        Routes {
+            direct: vec![],
+            relays: vec![relay.clone()],
+        },
+        Routes {
+            direct: vec![direct],
+            relays: vec![relay],
+        },
+    ] {
+        let configured = Devices::new(
+            original.store.clone(),
+            original.node,
+            original.key,
+            routes.clone(),
+        );
+        let offer = configured.invite(&request).unwrap().link.decode().unwrap();
+        assert_eq!(offer.direct, routes.direct);
+        assert_eq!(offer.relays, routes.relays);
+        assert_eq!(configured.withdraw_all(), 1);
+        let (callback, _redeemed) = devices
+            .invite_tracked(&request, Some(routes.clone()))
+            .unwrap();
+        let offer = callback.link.decode().unwrap();
+        assert_eq!(offer.direct, routes.direct);
+        assert_eq!(offer.relays, routes.relays);
+        assert_eq!(devices.withdraw_all(), 1);
+        assert!(matches!(
+            configured.invite_tracked(&request, Some(Routes::default())),
+            Err(ServiceError::NoPairingRoutes)
+        ));
+        assert_eq!(configured.withdraw_all(), 0);
+    }
+    assert!(matches!(
+        devices.invite_tracked(&request, None),
+        Err(ServiceError::NoPairingRoutes)
+    ));
+    assert_eq!(devices.withdraw_all(), 0);
+    node.stop().await.unwrap();
+}

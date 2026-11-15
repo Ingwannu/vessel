@@ -15,6 +15,11 @@ use vessel_node::{Config, DataDir, Node};
 use vessel_proto::HarnessKind;
 use vessel_testkit::Fake;
 
+mod signals;
+pub(super) use signals::ChildGuard;
+#[cfg(target_os = "linux")]
+pub(super) use signals::interrupt;
+
 const SAFETY_NET: Duration = Duration::from_secs(60);
 
 /// The safety net starts after the fakes are built: the first build of
@@ -303,24 +308,11 @@ impl Drop for Proxy {
     }
 }
 
-/// Write an executable script. The text goes to a side file and `cp`
-/// creates the script, so this process never holds it open for
-/// writing: a test forking on another thread meanwhile would keep that
-/// descriptor and running the script would fail with `ETXTBSY`.
+/// Write an executable script at `path` (never with `std::fs::write`; see
+/// `vessel_testkit::write_executable`).
 #[cfg(unix)]
 pub(super) fn executable(path: &Path, text: &str) {
-    use std::os::unix::fs::PermissionsExt as _;
-
-    let mut source = path.as_os_str().to_owned();
-    source.push(".source");
-    std::fs::write(&source, text).unwrap();
-    let copied = std::process::Command::new("cp")
-        .arg(&source)
-        .arg(path)
-        .status()
-        .unwrap();
-    assert!(copied.success());
-    std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    vessel_testkit::write_executable(path, text).unwrap();
 }
 
 /// Everything a stream has produced so far, readable while it runs.

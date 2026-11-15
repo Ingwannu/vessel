@@ -67,6 +67,11 @@ impl Reader {
         result
     }
 
+    /// The existing paged-read byte allowance, shared by side tail reads.
+    pub(crate) fn page_bytes(&self) -> usize {
+        usize::try_from(self.config.max_page_bytes.get()).unwrap_or(usize::MAX)
+    }
+
     fn open(&self) -> Result<Connection, StoreError> {
         let connection = Connection::open_with_flags(
             &self.path,
