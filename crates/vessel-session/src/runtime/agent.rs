@@ -90,6 +90,8 @@ impl SessionRuntime {
         );
         let actor = StructuredActor {
             agent,
+            #[cfg(test)]
+            stop_signal_error: None,
             outputs,
             outputs_open: true,
             input,

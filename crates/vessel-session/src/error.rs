@@ -384,7 +384,8 @@ const fn move_code(error: &MoveError) -> ErrorCode {
         MoveError::Restart(_) => ErrorCode::SpawnFailed,
         MoveError::Files(SessionFilesError::Io { .. })
         | MoveError::Link(LinkError::Io { .. })
-        | MoveError::Task(_) => ErrorCode::Internal,
+        | MoveError::Task(_)
+        | MoveError::Signal { .. } => ErrorCode::Internal,
     }
 }
 
