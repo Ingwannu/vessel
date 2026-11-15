@@ -133,20 +133,30 @@ fn explicit_unsubscribe_removes_a_renewal_without_an_attempt_identity() {
 }
 
 #[test]
-fn activity_renews_only_after_half_life_and_stale_410_cannot_remove_the_renewal() {
+fn activity_renews_at_half_life_and_stale_410_cannot_remove_the_renewal() {
     let db = database();
     let lease = stored(device(&db, vec![Scope::Read]));
     subscribe(&db, &lease, now()).unwrap();
+    let half = now() + (PUSH_LEASE / 2);
     apply(
         &db,
         &PushWrite::Renew {
             device: lease.device,
-            now: now() + (PUSH_LEASE / 2),
+            now: half - LEASE_STEP,
         },
     )
     .unwrap();
     assert_eq!(list(&db, now()).unwrap()[0].expires_at, lease.expires_at);
-    let later = now() + (PUSH_LEASE / 2 + LEASE_STEP);
+    apply(
+        &db,
+        &PushWrite::Renew {
+            device: lease.device,
+            now: half,
+        },
+    )
+    .unwrap();
+    assert_eq!(list(&db, half).unwrap()[0].expires_at, half + PUSH_LEASE);
+    let later = half + LEASE_STEP;
     apply(
         &db,
         &PushWrite::Renew {
@@ -155,7 +165,7 @@ fn activity_renews_only_after_half_life_and_stale_410_cannot_remove_the_renewal(
         },
     )
     .unwrap();
-    assert_eq!(list(&db, later).unwrap()[0].expires_at, later + PUSH_LEASE);
+    assert_eq!(list(&db, later).unwrap()[0].expires_at, half + PUSH_LEASE);
     apply(&db, &PushWrite::Expire(Box::new(lease))).unwrap();
     assert_eq!(list(&db, later).unwrap().len(), 1);
 }

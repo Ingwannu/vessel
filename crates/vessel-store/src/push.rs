@@ -69,7 +69,7 @@ pub(crate) fn apply(connection: &Connection, write: &PushWrite) -> Result<(), St
                 .checked_div(2)
                 .and_then(|half| now.checked_add_signed(half))
                 .ok_or(StoreError::OutOfRange(crate::Quantity::Time))?;
-            let _renewed = connection.execute("UPDATE push_subscriptions SET expires_at=?1 WHERE device=?2 AND expires_at>?3 AND expires_at<?4 AND EXISTS(SELECT 1 FROM devices d WHERE d.id=?2 AND d.revoked_at IS NULL AND EXISTS(SELECT 1 FROM json_each(d.scopes) WHERE value='read'))",params![time_to_sql(next)?,device.to_string(),time_to_sql(*now)?,time_to_sql(half)?])?;
+            let _renewed = connection.execute("UPDATE push_subscriptions SET expires_at=?1 WHERE device=?2 AND expires_at>?3 AND expires_at<=?4 AND EXISTS(SELECT 1 FROM devices d WHERE d.id=?2 AND d.revoked_at IS NULL AND EXISTS(SELECT 1 FROM json_each(d.scopes) WHERE value='read'))",params![time_to_sql(next)?,device.to_string(),time_to_sql(*now)?,time_to_sql(half)?])?;
             Ok(())
         }
         PushWrite::Remove { device } => {

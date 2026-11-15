@@ -1,6 +1,6 @@
 # ADR 0089: One connected notification recipient and explicit terminal attention
 
-Status: proposed.
+Status: implemented/staged, pending checks and assignment; not package acceptance.
 
 ## Purpose and intent
 
@@ -121,10 +121,14 @@ duplicate/uncertain claim; restart and bounded retention; session/terminal
 identity isolation; explicit terminal transitions and stale revision clears;
 all unassigned and older-peer paths; no source contents in OS payloads.
 
-Resume: contract proposal only. No new call is registered. Value contracts and the pure terminal reducer are staged. The terminal
-normal-client report carries the exact observed revision; supplied stale revisions conflict
-instead of completing a newer run. Next are store admission tests, connection
-policy integration, then pending Quality B rows and older-peer projections.
+Five Quality B rows are registered as pending under the one unassigned feature
+constant: notification.claim, terminal.attention_clear, terminal.activity,
+inbox.attention and inbox.read. Store admission, semantic reducer, optional-field
+older projections and capability routing are staged. The normal-client report
+carries the exact observed revision; stale reports cannot complete a newer run.
+No protocol assignment, whole package gate, completed hook/native consumer or
+V3/V4 acceptance is inferred from registration. The plan records actual narrow
+failures, corrections and remaining assigned-wire/platform obligations.
 
 ## Activity-only local producer capability
 
@@ -175,7 +179,8 @@ heartbeats age the evidence instead of keeping an idle window present forever.
 Unknown platform evidence is absent; ordinary in-app input remains independent.
 
 Paired heartbeat renews only its caller's existing active Web Push lease, after
-half of the 48h lifetime. The committed update rechecks current Read/revocation
+half of the 48h lifetime or exactly at that boundary (Paseo 0.15.4
+`packages/server/src/server/push/token-store.ts:34-42`). The committed update rechecks current Read/revocation
 and never resurrects an expired or missing lease. Node-owner and agent/delegated
 origins cannot borrow another device's subscription identity. A renewed expiry
 also prevents a late old 410 from deleting that newer lease.
@@ -202,4 +207,5 @@ watermarks, unknown/cleared/failed/foreign sources and metadata watcher teardown
 The real-node/fake-terminal encrypted HTTP fixture tests unassigned refusal now
 and activates its positive branch after integrator assignment. A pending-branch
 pass is not positive terminal delivery evidence; the assigned integration run
-and preparation-time terminal cancellation cases remain required.
+and execution of the drafted preparation-time terminal cancellation cases
+remain required.

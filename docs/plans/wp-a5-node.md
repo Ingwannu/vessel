@@ -14,8 +14,8 @@ Paseo 0.15.4 reference paths:
 - `packages/server/src/terminal/activity/terminal-activity-tracker.ts:12-80`:
   semantic working/idle/needs-input/clear/interrupt; unknown plain shells have
   no inferred state.
-- `packages/server/src/server/push/token-store.ts:193-267`: 48 h lease, renewal
-  after half life, revoke/prune/persist. Vessel retains the ADR 0041 account-free
+- `packages/server/src/server/push/token-store.ts:34-42,95-141`: 48 h lease, renewal
+  at or after half life, revoke/prune/persist. Vessel retains the ADR 0041 account-free
   Web Push difference, not Expo/APNs/FCM or mobile permission/UI parity.
 - `packages/app/src/utils/agent-attention.ts:18-90` and
   `hooks/use-agent-attention-clear.ts:112-150`: reading never answers permission;
@@ -141,7 +141,7 @@ Read and unrevoked/existing device. Inbox source+lease checks remain one SQL
 snapshot. Terminal admission awaits that lease check, then synchronously
 rechecks exact runtime revision and presence. No session identity is fabricated.
 Gone responses expire only the attempted stored lease; an old 410 cannot remove
-a newer renewal. Leases renew after half of PUSH_LEASE only while current;
+a newer renewal. Leases renew at or after half of PUSH_LEASE only while current;
 expired/revoked/missing/readless rows cannot resurrect.
 
 Existing real HTTP/encryption/preparation cancellation/restart fixtures remain.
@@ -182,3 +182,14 @@ VM restart rc143 evidence remains an infrastructure interruption, not PASS.
 No whole root gate, V3 acceptance, final native gate/capture or V4 exists yet.
 Tests use fake agents/private temporary data; no production credential/service,
 file ownership/permission or infrastructure changes have been made.
+
+## Half-life boundary correction
+
+Rereading the actual v0.15.4 token-store.ts:34-42 exposed an own implementation
+off-by-one: the reference skips renewal only while remaining life is greater
+than half. The SQL now includes exact half life. The own new fixture checks no
+rewrite before half, renewal exactly at half, no second rewrite a step later,
+and late old 410 preservation. Device/read/revocation/expiry predicates and
+existing tests are retained. This intentionally changes only the own half-life
+expectation and is separate from V3's earlier bound-duplication correction.
+Changed-source execution remains owed.
