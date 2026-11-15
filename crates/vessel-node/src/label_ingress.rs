@@ -1,6 +1,6 @@
-//! Reject new label metadata at existing wire entry points until assignment.
+//! Reject unassigned session metadata at creation and dynamic import edges.
 //! This temporary node-side guard precedes writes/spawns; the shared
-//! `required_protocol` accessor will also reject it before client sends.
+//! shared optional call accessor rejects explicit fields before client sends.
 
 use crate::error::ServiceError;
 use vessel_proto::automation::ScheduleTarget;
@@ -15,7 +15,11 @@ fn labels(value: &SessionLabels) -> Result<(), WireError> {
 
 /// Existing create calls must not silently accept an unassigned field.
 pub(crate) fn spec(value: &SessionSpec) -> Result<(), WireError> {
-    labels(&value.labels)
+    labels(&value.labels)?;
+    if value.listing.is_some() && vessel_proto::lifecycle_version::SINCE.is_none() {
+        return Err(ServiceError::ListingUnassigned.to_wire());
+    }
+    Ok(())
 }
 
 /// Saved templates follow the same boundary before any lookup or write.
@@ -34,6 +38,9 @@ pub(crate) fn target(value: &ScheduleTarget) -> Result<(), WireError> {
 /// An import may carry different creation and current maps; neither is accepted yet.
 pub(crate) fn imported(value: &SessionInfo) -> Result<(), WireError> {
     labels(&value.labels)?;
+    if !value.listing.is_shown() && vessel_proto::lifecycle_version::SINCE.is_none() {
+        return Err(ServiceError::ListingUnassigned.to_wire());
+    }
     spec(&value.spec)
 }
 

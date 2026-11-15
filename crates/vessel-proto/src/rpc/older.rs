@@ -33,7 +33,7 @@ use crate::session::SessionInfo;
 /// The first version whose ended sessions may sit outside the archive.
 const ENDED_OUTSIDE_THE_ARCHIVE: ProtocolVersion = ProtocolVersion::new(10);
 
-mod labels;
+mod templates;
 
 impl Reply {
     /// This reply as a peer speaking `protocol` reads it, or `None` when it
@@ -156,18 +156,18 @@ impl Reply {
             Self::WakeSession(session) => info(session).map(Self::WakeSession),
             Self::ForkSession(session) => info(session).map(Self::ForkSession),
             Self::RewindSession(session) => info(session).map(Self::RewindSession),
-            Self::ExportSession(value) => labels::exported(value, protocol).map(Self::ExportSession),
-            Self::ExportMemory(value) => labels::exported(value, protocol).map(Self::ExportMemory),
-            Self::ImportSession(value) => labels::imported(value, protocol).map(Self::ImportSession),
-            Self::ListPrompts(value) => labels::prompts(value, protocol).map(Self::ListPrompts),
-            Self::CreatePrompt(value) => labels::prompt(value, protocol).map(Self::CreatePrompt),
-            Self::UpdatePrompt(value) => labels::prompt(value, protocol).map(Self::UpdatePrompt),
-            Self::ListSchedules(value) => labels::schedules(value, protocol).map(Self::ListSchedules),
-            Self::GetSchedule(value) => labels::schedule(value, protocol).map(Self::GetSchedule),
-            Self::CreateSchedule(value) => labels::schedule(value, protocol).map(Self::CreateSchedule),
-            Self::UpdateSchedule(value) => labels::schedule(value, protocol).map(Self::UpdateSchedule),
-            Self::PauseSchedule(value) => labels::schedule(value, protocol).map(Self::PauseSchedule),
-            Self::ResumeSchedule(value) => labels::schedule(value, protocol).map(Self::ResumeSchedule),
+            Self::ExportSession(value) => templates::exported(value, protocol).map(Self::ExportSession),
+            Self::ExportMemory(value) => templates::exported(value, protocol).map(Self::ExportMemory),
+            Self::ImportSession(value) => templates::imported(value, protocol).map(Self::ImportSession),
+            Self::ListPrompts(value) => templates::prompts(value, protocol).map(Self::ListPrompts),
+            Self::CreatePrompt(value) => templates::prompt(value, protocol).map(Self::CreatePrompt),
+            Self::UpdatePrompt(value) => templates::prompt(value, protocol).map(Self::UpdatePrompt),
+            Self::ListSchedules(value) => templates::schedules(value, protocol).map(Self::ListSchedules),
+            Self::GetSchedule(value) => templates::schedule(value, protocol).map(Self::GetSchedule),
+            Self::CreateSchedule(value) => templates::schedule(value, protocol).map(Self::CreateSchedule),
+            Self::UpdateSchedule(value) => templates::schedule(value, protocol).map(Self::UpdateSchedule),
+            Self::PauseSchedule(value) => templates::schedule(value, protocol).map(Self::PauseSchedule),
+            Self::ResumeSchedule(value) => templates::schedule(value, protocol).map(Self::ResumeSchedule),
             // Replies of calls newer than every peer that can ask them, or
             // holding nothing that changed meaning.
             Self::PromptSideQuestion(_)
@@ -336,13 +336,16 @@ impl SessionInfo {
     }
 
     /// One projection rule also exercised with a synthetic assigned threshold.
-    pub(crate) fn for_protocol_with_labels(
+    pub(crate) fn for_protocol_with_metadata(
         &self,
         protocol: ProtocolVersion,
         assigned: Option<ProtocolVersion>,
     ) -> Option<Self> {
         let strip = !crate::lifecycle_version::visible(assigned, protocol)
-            && (!self.labels.is_empty() || !self.spec.labels.is_empty());
+            && (!self.labels.is_empty()
+                || !self.spec.labels.is_empty()
+                || !self.listing.is_shown()
+                || self.spec.listing.is_some());
         let archive = protocol < ENDED_OUTSIDE_THE_ARCHIVE && !self.status.is_live();
         if !strip && !archive {
             return None;
@@ -351,6 +354,8 @@ impl SessionInfo {
         if strip {
             info.labels.clear();
             info.spec.labels.clear();
+            info.listing = crate::SessionListing::Shown;
+            info.spec.listing = None;
         }
         if !archive {
             return Some(info);
@@ -374,7 +379,7 @@ impl SessionInfo {
         protocol: ProtocolVersion,
         assigned: Option<ProtocolVersion>,
     ) -> Option<Self> {
-        let projected = self.for_protocol_with_labels(protocol, crate::lifecycle_version::SINCE);
+        let projected = self.for_protocol_with_metadata(protocol, crate::lifecycle_version::SINCE);
         let source = projected.as_ref().unwrap_or(self);
         let origin = source.title_origin.for_protocol(protocol, assigned);
         if origin == source.title_origin {
@@ -501,9 +506,13 @@ mod tests {
         let peer = crate::PROTOCOL_VERSION;
         let hidden = info.for_protocol(peer).unwrap();
         assert!(hidden.labels.is_empty() && hidden.spec.labels.is_empty());
-        assert!(info.for_protocol_with_labels(peer, Some(peer)).is_none());
+        info.listing = crate::SessionListing::Background;
+        info.spec.listing = Some(crate::SessionListing::Background);
+        assert!(info.for_protocol_with_metadata(peer, Some(peer)).is_none());
         let older = ProtocolVersion::new(peer.get().saturating_sub(1));
-        let hidden = info.for_protocol_with_labels(older, Some(peer)).unwrap();
+        let hidden = info.for_protocol_with_metadata(older, Some(peer)).unwrap();
+        assert!(hidden.listing.is_shown());
+        assert_eq!(hidden.spec.listing, None);
         assert!(hidden.labels.is_empty() && hidden.spec.labels.is_empty());
         assert!(!info.labels.is_empty() && !info.spec.labels.is_empty());
     }

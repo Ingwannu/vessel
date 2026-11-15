@@ -114,7 +114,7 @@ impl VesselTools {
             "list_nodes" => Ok(json!(self.client.call(ListNodes).await?)),
             "list_sessions" => {
                 let node = self.target(args).await?;
-                Ok(json!(self.on(node, ListSessions).await?))
+                Ok(json!(self.on(node, ListSessions::default()).await?))
             }
             "list_projects" | "list_worktrees" | "create_worktree" => {
                 self.workspace(name, args).await
