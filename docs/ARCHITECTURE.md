@@ -1534,3 +1534,15 @@ name `vessel_proc` in store to `src/lock/`, which delegates the lock query
 only. The real CLI caller restricts proc's signal entry point to the force
 module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
+
+
+### Staged file checkpoints (ADR 0077)
+
+`vessel-proto::checkpoint` holds validated immutable file images, metadata
+policy, boundary identities and typed outcomes; its protocol gate is None.
+The checkpoint modules in `vessel-node`, `vessel-store`, `vessel-session` and
+`vessel-workspace` are test-only staging under A10, not advertised product
+capabilities. The node owns admission/fencing, store owns SQL, workspace owns
+filesystem operations and the session only waits for a bounded node
+acknowledgement. No dependency edge or registered method changes here. Wiring
+requires the centrally ordered schema predecessor and Quality B protocol work.

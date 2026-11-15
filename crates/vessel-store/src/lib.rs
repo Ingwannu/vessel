@@ -53,6 +53,9 @@ mod agents_file;
 mod attachments;
 mod automation;
 mod codec;
+// ADR 0077: staged until its schema predecessor and Quality B wiring exist.
+#[cfg(test)]
+mod checkpoint;
 mod config;
 mod data_dir;
 mod devices;

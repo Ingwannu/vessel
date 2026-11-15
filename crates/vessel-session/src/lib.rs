@@ -117,6 +117,9 @@ mod again;
 mod attachments;
 pub mod board;
 mod config;
+// ADR 0077: staged until reviewed node wiring consumes this boundary.
+#[cfg(test)]
+mod checkpoint;
 mod conversation;
 mod delivery;
 mod error;

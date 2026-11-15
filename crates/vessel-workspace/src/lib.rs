@@ -13,6 +13,9 @@
 //! temporary folders, with the real `git`; nothing reaches the network.
 
 pub mod commands;
+// ADR 0077: staged until reviewed node wiring consumes this boundary.
+#[cfg(test)]
+mod checkpoint;
 pub mod files;
 pub mod find;
 pub mod git;

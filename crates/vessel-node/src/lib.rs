@@ -66,6 +66,9 @@ mod attachments;
 mod auth;
 mod automation;
 mod catalogue;
+// ADR 0077: staged until Quality B and the reviewed checkpoint wiring commit.
+#[cfg(test)]
+mod checkpoint;
 pub mod cleanup;
 mod config;
 mod devices;

@@ -456,7 +456,7 @@ const LABELS: &str = "ALTER TABLE sessions ADD COLUMN labels TEXT;";
 
 /// The provisional title-origin schema follows the newest head migration.
 /// Integration changes this one assignment if another migration lands first.
-const TITLE_ORIGIN_SCHEMA: usize = LABELS_SCHEMA.saturating_add(1);
+pub(crate) const TITLE_ORIGIN_SCHEMA: usize = LABELS_SCHEMA.saturating_add(1);
 
 /// NULL preserves unknown provenance on rows written before this addition.
 const TITLE_ORIGIN: &str = "ALTER TABLE sessions ADD COLUMN title_origin TEXT;";

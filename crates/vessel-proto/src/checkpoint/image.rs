@@ -1,0 +1,113 @@
+//! Immutable bounded images and the single effective target used throughout restore.
+
+use super::{CheckpointError, CheckpointPath, FileBytes, FileMetadata, ImageBytes, PathCount};
+use crate::BlobHash;
+use serde::{Deserialize, Serialize};
+
+/// Missing files are evidence, not zero-byte contents.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum FileState {
+    /// The path was absent at this boundary.
+    Absent,
+    /// Raw bytes in immutable private blob storage.
+    Present {
+        /// Digest verified while streaming.
+        digest: BlobHash,
+        /// Bounded raw size.
+        bytes: FileBytes,
+        /// Capture evidence or effective desired metadata.
+        metadata: FileMetadata,
+    },
+}
+/// A named entry whose path can never be a root or Git administrative directory.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Entry {
+    /// Portable nonroot path under the registered worktree.
+    pub path: CheckpointPath,
+    /// Captured presence/content/ordinary metadata.
+    pub state: FileState,
+}
+/// A sorted unique complete image: validated even when read from stored JSON.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(try_from = "Vec<Entry>", into = "Vec<Entry>")]
+pub struct FileImage(Vec<Entry>);
+impl FileImage {
+    /// Bound count, total bytes and duplicate names before accepting an image.
+    pub fn new(mut entries: Vec<Entry>) -> Result<Self, CheckpointError> {
+        let _count = PathCount::new(entries.len())?;
+        entries.sort_by(|left, right| left.path.cmp(&right.path));
+        let mut previous = None;
+        let mut total = 0_u64;
+        for entry in &entries {
+            if previous == Some(&entry.path) {
+                return Err(CheckpointError::DuplicatePath);
+            }
+            previous = Some(&entry.path);
+            if let FileState::Present { bytes, .. } = entry.state {
+                total = total
+                    .checked_add(bytes.get())
+                    .ok_or(CheckpointError::ImageTooLarge)?;
+            }
+        }
+        let _bytes = ImageBytes::new(total)?;
+        Ok(Self(entries))
+    }
+    /// Sorted entries support deterministic plans and fingerprints.
+    #[must_use]
+    pub fn entries(&self) -> &[Entry] {
+        &self.0
+    }
+    /// Locate existing content without assuming identical file enumeration.
+    #[must_use]
+    pub fn get(&self, path: &CheckpointPath) -> Option<&FileState> {
+        self.0
+            .binary_search_by(|entry| entry.path.cmp(path))
+            .ok()
+            .and_then(|index| self.0.get(index))
+            .map(|entry| &entry.state)
+    }
+    /// Freeze checkpoint contents with the metadata policy applied to current files.
+    pub fn effective(
+        &self,
+        current: &Self,
+        account: FileMetadata,
+    ) -> Result<Self, CheckpointError> {
+        let mut entries = self.0.clone();
+        for entry in &mut entries {
+            if let FileState::Present { metadata, .. } = &mut entry.state {
+                let existing = match current.get(&entry.path) {
+                    Some(FileState::Present { metadata, .. }) => Some(*metadata),
+                    Some(FileState::Absent) | None => None,
+                };
+                *metadata = metadata.effective(existing, account);
+            }
+        }
+        // Later-created covered files are approved explicit deletions.
+        entries.extend(
+            current
+                .0
+                .iter()
+                .filter(|entry| self.get(&entry.path).is_none())
+                .map(|entry| Entry {
+                    path: entry.path.clone(),
+                    state: FileState::Absent,
+                }),
+        );
+        Self::new(entries)
+    }
+}
+impl TryFrom<Vec<Entry>> for FileImage {
+    type Error = CheckpointError;
+    fn try_from(entries: Vec<Entry>) -> Result<Self, Self::Error> {
+        Self::new(entries)
+    }
+}
+impl From<FileImage> for Vec<Entry> {
+    fn from(image: FileImage) -> Self {
+        image.0
+    }
+}
+
+#[cfg(test)]
+mod tests;

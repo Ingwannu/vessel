@@ -1,0 +1,38 @@
+CREATE TABLE checkpoint_captures (
+    id TEXT PRIMARY KEY NOT NULL,
+    session TEXT NOT NULL REFERENCES sessions(id) ON DELETE RESTRICT,
+    worktree TEXT NOT NULL,
+    generation INTEGER NOT NULL CHECK(generation > 0),
+    boundary TEXT NOT NULL,
+    state TEXT NOT NULL CHECK(state IN ('candidate','ready','unavailable')),
+    image TEXT,
+    reserved_bytes INTEGER NOT NULL CHECK(reserved_bytes >= 0),
+    created_at INTEGER NOT NULL
+) STRICT;
+CREATE INDEX checkpoint_session ON checkpoint_captures(session, created_at);
+CREATE TABLE checkpoint_plans (
+    id TEXT PRIMARY KEY NOT NULL,
+    capture TEXT NOT NULL REFERENCES checkpoint_captures(id) ON DELETE RESTRICT,
+    device TEXT NOT NULL,
+    current_image TEXT NOT NULL,
+    desired_image TEXT NOT NULL,
+    expires_at INTEGER NOT NULL,
+    consumed_by TEXT
+) STRICT;
+CREATE TABLE checkpoint_restores (
+    id TEXT PRIMARY KEY NOT NULL,
+    session TEXT NOT NULL REFERENCES sessions(id) ON DELETE RESTRICT,
+    plan TEXT NOT NULL REFERENCES checkpoint_plans(id) ON DELETE RESTRICT,
+    device TEXT NOT NULL,
+    outcome TEXT NOT NULL,
+    before_image TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+) STRICT;
+CREATE TABLE checkpoint_paths (
+    restore TEXT NOT NULL REFERENCES checkpoint_restores(id) ON DELETE RESTRICT,
+    path TEXT NOT NULL,
+    before_state TEXT NOT NULL,
+    desired_state TEXT NOT NULL,
+    phase TEXT NOT NULL CHECK(phase IN ('pending','applied','restored','conflict')),
+    PRIMARY KEY(restore, path)
+) STRICT, WITHOUT ROWID;

@@ -50,6 +50,15 @@ macro_rules! uuid_id {
     };
 }
 
+uuid_id!(/// A node-owned immutable file checkpoint.
+    CheckpointId);
+uuid_id!(/// One capture attempt, including timed-out private staging.
+    CaptureId);
+uuid_id!(/// A device-bound frozen file restore authorization.
+    RestorePlanId);
+uuid_id!(/// A client-minted idempotent restore identity.
+    RestoreId);
+
 /// Declares an opaque identifier minted by something other than the node.
 ///
 /// Backed by `Arc<str>`: these ids are copied into many events and fanned

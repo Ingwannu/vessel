@@ -8,7 +8,7 @@
 
 #[cfg(test)]
 mod labels;
-mod migrations;
+pub(crate) mod migrations;
 
 use rusqlite::Connection;
 
