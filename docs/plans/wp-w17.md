@@ -748,3 +748,9 @@ was incorrect, and the existing staged adapter already documented this rule.
 This is a plan against C2's staged sketch, not imported code, a parallel parser,
 a compiled adapter or consumer readiness. Actual shared engine/glue integration
 and tests wait for the reviewed core hash.
+
+Reference update.ts parseAgentChanges explicitly rejects simultaneous metadata
+and thinking changes. Corrected that pre-connect error to Usage/InvalidRequest;
+it is not an absent atomic-update contract. The thinking/mode option-ID decoder
+also trims outer whitespace as the reference does, retaining its bound/control
+checks. No new node call or mutation behavior is added by these edge corrections.

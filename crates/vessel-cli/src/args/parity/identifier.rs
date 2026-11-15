@@ -19,7 +19,7 @@ fn checked(text: &str) -> Result<&str, InvalidIdentifier> {
     }
 }
 pub(super) fn option(text: &str) -> Result<vessel_proto::OptionValueId, InvalidIdentifier> {
-    checked(text).map(vessel_proto::OptionValueId::new)
+    checked(text.trim()).map(vessel_proto::OptionValueId::new)
 }
 pub(super) fn model(text: &str) -> Result<vessel_proto::ModelId, InvalidIdentifier> {
     checked(text).map(vessel_proto::ModelId::new)

@@ -191,8 +191,8 @@ pub(super) async fn update(
         return Err(CliError::Usage("give --name or --thinking"));
     }
     if name.is_some() && thinking.is_some() {
-        return Err(CliError::ParityBlocked(
-            "combined name/thinking update needs the atomic provider configuration contract",
+        return Err(CliError::Usage(
+            "update metadata and thinking in separate commands",
         ));
     }
     let client = connect(target).await?.client;
