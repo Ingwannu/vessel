@@ -221,3 +221,17 @@ the whole native gate/export and actual General captures still await this
 corrected candidate. Current noncompiling quality checks pass: 658 Rust files,
 the same 14 size exceptions, valid boundaries and no new token-list entry.
 All Rust compilation continues only through the build VM.
+
+## First whole package gate
+
+The corrected e35adcc89 settings suite passed 21/0/0, including pseudo.
+The first whole native gate passed fonts, formatting and all quality checks,
+then Clippy rejected two generated documentation comments: the translator
+comments named MAX_ACTIONS and MAX_MACHINES without Markdown code backticks.
+The English comments (and their Korean copies) now quote those identifiers.
+No message value, variable, generated getter contract or caller changed.
+
+The failed run is retained; native build/test/export did not run and there is
+no whole-gate pass yet. A changed-crate Clippy check precedes its replacement
+whole gate. The accepted dd13ce37 baseline app is read-only; baseline original
+captures are retained because this comment-only correction changes no UI text.
