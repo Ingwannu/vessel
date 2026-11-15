@@ -30,6 +30,24 @@ Status: proposed.
   Existing path checks accept same-user directory swap races (ADR 0027);
   this does not claim an OS filesystem sandbox.
 
+Dependency decision: reuse `notify 8.2.2` (CC0-1.0), already locked for
+`vessel-lsp`; its unpacked source is approximately 332 KiB. No second
+version is introduced. The standard library has no portable filesystem
+notification API. The new owner is `vessel-workspace` for workspace-file
+observation, while LSP keeps its separate document-cache lifecycle. Added
+app binary size is not measured yet; source size is not binary growth.
+
+Stated differences from the reference: suggestions require a registered,
+authorized workspace root, rather than exposing arbitrary home paths;
+copying refuses symbolic links, special files and nested `.git`, and is
+bounded by total bytes, entry count, depth and candidate-name attempts.
+Paseo preserves copied symlinks and has no equivalent whole-copy budget.
+The stricter rule prevents a file action from importing data or metadata
+outside its ordinary root boundary. Binary pages rehash their bounded
+source before and after each page to guarantee a coherent transfer; this
+costs I/O compared with Paseo's one streamed handle. A future transfer
+actor may amortize that cost without changing the content identity.
+
 Reference: Paseo 0.15.4 `server/file-explorer/service.ts` (workspace scoping,
 copy naming and revision guarded reads), `file-explorer/observer.ts`
 (file versions), `utils/directory-suggestions.ts` (limits and discovery).
