@@ -360,3 +360,10 @@ explicit limit defaults and awaited durable close); no foreign test is replaced.
 The conflicted generated TypeScript takes the announced head's bytes without
 manual edits. Its A3 additions still require the canonical node-generated
 artifact at the next integration; this app source is not a root TS gate result.
+
+The first full A3 three-crate strict check on c5666bfa7 stopped at three owned
+link issues: two unnecessary type qualifications and a test reading the now
+private machine-edit module. The test now uses State::saved_entries, the same
+book-read boundary as tick/retry, without widening module visibility. The type
+spelling fixes do not alter behavior. The original red receipt is retained; a
+changed-source narrow must pass before claiming this wider A3 integration checked.

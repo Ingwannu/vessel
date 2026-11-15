@@ -44,7 +44,7 @@ async fn unknown_admission_settles_the_original_query_without_a_client() {
     assert_eq!(answer.result, Err(Refusal::NotConnected));
 }
 
-fn request(context: vessel_app_view::connection::ConnectionContext) -> Ask {
+fn request(context: ConnectionContext) -> Ask {
     Ask {
         machine: context.machine().as_str().to_owned(),
         connection: Some(context),
