@@ -3,7 +3,7 @@ use super::{PrepareProblem, PreparedSubmission, Starting};
 use crate::shell::Shell;
 use vessel_app_kit::ui::Context;
 use vessel_app_view::{Card, composer::drafts::DraftKey, creation::Ticket};
-use vessel_proto::{NodeId, timeline::ClientMessageId};
+use vessel_proto::timeline::ClientMessageId;
 
 /// One creation attempt and its explicitly addressed source, before any effect.
 #[cfg_attr(
@@ -17,8 +17,7 @@ pub(crate) struct WorkspaceInput<'a> {
     pub(crate) target: DraftKey,
     pub(crate) ticket: Ticket,
     pub(crate) message: ClientMessageId,
-    pub(crate) node: NodeId,
-    pub(crate) machine: &'a str,
+    pub(crate) connection: vessel_app_view::connection::ConnectionContext,
     pub(crate) text: &'a str,
 }
 #[cfg_attr(
@@ -38,10 +37,11 @@ impl Shell {
             target,
             ticket,
             message,
-            node,
-            machine,
+            connection,
             text,
         } = input;
+        let node = connection.node();
+        let machine = connection.machine().as_str();
         let DraftKey::Workspace { node: expected, .. } = target else {
             return Err(PrepareProblem::Context(
                 vessel_app_view::composer::context::ContextProblem::Scope,
@@ -90,6 +90,7 @@ impl Shell {
             .transpose()?
             .flatten();
         let held = Starting {
+            connection,
             message,
             context,
             machine,
@@ -131,11 +132,14 @@ impl Shell {
         }
         let machine = held.machine.clone();
         let node = held.expected_node;
+        let connection = held.connection.clone();
         let Some(held) = self.areas.composer.workspace_starting.remove(&key) else {
             return;
         };
         self.composer_started_from(target, held, card, cx);
-        if let Err(problem) = self.read_creation_capabilities(ticket, machine, node, card.session) {
+        if let Err(problem) =
+            self.read_creation_capabilities(ticket, machine, node, connection, card.session)
+        {
             self.fail_creation_preparation(card.session, &problem, cx);
         }
     }
@@ -177,6 +181,7 @@ mod tests {
         layout::{DraftId, LayoutKey},
         machine_book::Name,
     };
+    use vessel_proto::NodeId;
 
     fn admit(
         shell: &mut Shell,
@@ -245,8 +250,7 @@ mod tests {
                             target,
                             ticket,
                             message: ClientMessageId::random(),
-                            node,
-                            machine: "fixture",
+                            connection: super::super::tests::connection(node),
                             text: "payload"
                         })
                         .unwrap()

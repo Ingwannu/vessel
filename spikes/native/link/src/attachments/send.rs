@@ -3,12 +3,12 @@
 use std::io::{Read as _, Seek as _, SeekFrom};
 use std::path::{Path, PathBuf};
 
+use crate::connections::{RequestFailure, SelectedConnection};
 use bytes::Bytes;
 use tokio::sync::mpsc;
 use vessel_app_view::composer::attach::looks_like;
 use vessel_app_view::composer::tray::{Again, Begun, Origin, Problem};
 use vessel_client::CallError;
-use vessel_client::NodeClient;
 use vessel_proto::{AttachmentRef, BlobChunk, ContentBlock, ErrorCode};
 
 use super::{Answer, Attach, Step};
@@ -20,17 +20,24 @@ const HEAD: usize = 16;
 /// Send `attach` beside the link's other commands, telling each step;
 /// `client` is the machine's connection, or why there is none.
 pub(crate) fn spawn(
-    client: Result<NodeClient, crate::LinkError>,
+    client: Result<SelectedConnection, crate::LinkError>,
     attach: Attach,
     events: mpsc::Sender<Event>,
 ) {
     drop(tokio::spawn(async move {
         let session = attach.session;
         let key = attach.key;
+        let message = attach.message.clone();
         let tell = |step: Step| {
             let events = events.clone();
+            let message = message.clone();
             async move {
-                let upload = Answer::Upload { session, key, step };
+                let upload = Answer::Upload {
+                    message,
+                    session,
+                    key,
+                    step,
+                };
                 let _closed = events.send(Event::Files(upload)).await;
             }
         };
@@ -65,7 +72,7 @@ pub(crate) fn content(text: String, attachments: Vec<AttachmentRef>) -> Vec<Cont
 type Failure = (Problem, Again);
 
 async fn upload<F, T>(
-    client: &NodeClient,
+    client: &SelectedConnection,
     attach: Attach,
     tell: &F,
 ) -> Result<AttachmentRef, Failure>
@@ -73,8 +80,6 @@ where
     F: Fn(Step) -> T,
     T: Future<Output = ()>,
 {
-    super::target::check(client, attach.expected_node)
-        .map_err(|why| (Problem::Node(why.to_string()), Again::Never))?;
     let source = Source::of(&attach.origin);
     if attach.resume.is_none() {
         let head = source.head().await?;
@@ -86,12 +91,12 @@ where
         begun
     } else {
         let upload = client
-            .begin_upload(
-                attach.session,
-                attach.name.clone(),
-                attach.mime.clone(),
-                attach.size,
-            )
+            .call(vessel_proto::conversation::BeginUpload {
+                session: attach.session,
+                name: attach.name.clone(),
+                mime: attach.mime.clone(),
+                size: attach.size,
+            })
             .await
             .map_err(|error| node(&error, None))?;
         Begun {
@@ -119,7 +124,11 @@ where
                 (problem, again)
             })?;
         let written = client
-            .write_upload(begun.upload, begun.received, data)
+            .call(vessel_proto::conversation::WriteUpload {
+                upload: begun.upload,
+                offset: begun.received,
+                data,
+            })
             .await
             .map_err(|error| node(&error, Some(begun)))?;
         if written.received <= begun.received {
@@ -131,7 +140,9 @@ where
         tell(Step::Progress(begun.received)).await;
     }
     client
-        .finish_upload(begun.upload)
+        .call(vessel_proto::conversation::FinishUpload {
+            upload: begun.upload,
+        })
         .await
         .map_err(|error| node(&error, Some(begun)))
 }
@@ -140,7 +151,11 @@ where
 /// an upload the node no longer knows is begun again, a file the node
 /// judged wrong is not tried again, anything else goes on from what the
 /// node has.
-fn node(error: &CallError, begun: Option<Begun>) -> Failure {
+fn node(error: &RequestFailure, begun: Option<Begun>) -> Failure {
+    let projected = super::selected::problem(error);
+    let RequestFailure::Call(error) = error else {
+        return (Problem::Node(projected.to_string()), Again::Never);
+    };
     let again = match error {
         CallError::Remote(wire) => match wire.code {
             ErrorCode::NotFound => Again::Restart,
@@ -161,7 +176,7 @@ fn node(error: &CallError, begun: Option<Begun>) -> Failure {
         | CallError::NotInProtocol { .. }
         | CallError::UnassignedProtocol { .. } => begun.map_or(Again::Restart, Again::Resume),
     };
-    (Problem::Node(error.to_string()), again)
+    (Problem::Node(projected.to_string()), again)
 }
 
 /// Where the bytes are read from: a file is opened for each piece on the

@@ -9,15 +9,16 @@
 //! agent has said what it takes (its first records) the files go and the
 //! prompt follows (the node takes a file only into a live session).
 
+mod upload;
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::Command;
-use vessel_app_link::attachments::{Files, Step};
+use vessel_app_link::attachments::Files;
 use vessel_app_view::Card;
 use vessel_app_view::composer::drafts::DraftKey;
-use vessel_app_view::composer::tray::{ItemKey, ItemState, Origin, Target};
+use vessel_app_view::composer::tray::{ItemState, Origin, Target};
 use vessel_proto::{AttachmentLimits, Delivery, SessionId};
 
 use crate::shell::Shell;
@@ -91,6 +92,7 @@ pub(super) enum LocalFileProblem {
 /// A prompt waiting for its files.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Waiting {
+    pub(super) connection: vessel_app_view::connection::ConnectionContext,
     pub(super) message: vessel_proto::timeline::ClientMessageId,
     pub(super) machine: vessel_app_view::machine_book::Name,
     pub(super) expected_node: vessel_proto::NodeId,
@@ -105,6 +107,7 @@ pub(crate) struct Waiting {
 /// A new chat started for its files, until its session exists.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Starting {
+    pub(super) connection: vessel_app_view::connection::ConnectionContext,
     pub(super) message: vessel_proto::timeline::ClientMessageId,
     pub(super) machine: vessel_app_view::machine_book::Name,
     pub(super) expected_node: vessel_proto::NodeId,
@@ -277,7 +280,7 @@ impl Shell {
         let Ok(machine) = vessel_app_view::machine_book::Name::parse(&open.machine) else {
             return true;
         };
-        let Some(expected_node) = self.attachment_node(&machine) else {
+        let Some(connection) = self.attachment_context(&machine) else {
             self.conversation_send_failed();
             self.toast(
                 self.words.composer().file_capabilities_failed(),
@@ -286,10 +289,12 @@ impl Shell {
             );
             return true;
         };
+        let expected_node = connection.node();
         let Ok(context) = self.prepare_session_context(session, cx) else {
             return true;
         };
         let waiting = Waiting {
+            connection,
             message,
             local_files: self.retained_local_files(DraftKey::Session { session }),
             phase: super::transmission::Phase::Preparing,
@@ -329,7 +334,7 @@ impl Shell {
             );
             return;
         };
-        let Some(expected_node) = self.attachment_node(&key) else {
+        let Some(connection) = self.attachment_context(&key) else {
             self.conversation_send_failed();
             self.toast(
                 self.words.composer().file_capabilities_failed(),
@@ -338,6 +343,7 @@ impl Shell {
             );
             return;
         };
+        let expected_node = connection.node();
         let Ok(context) = self.prepare_session_context(session, cx) else {
             return;
         };
@@ -345,7 +351,8 @@ impl Shell {
         drop(self.areas.composer.sends.insert(
             session,
             Waiting {
-                message,
+                connection: connection.clone(),
+                message: message.clone(),
                 local_files,
                 phase: super::transmission::Phase::Preparing,
                 context,
@@ -361,6 +368,8 @@ impl Shell {
         self.areas.session.resume_error = None;
         self.command(Command::Files(Files::Wake(
             vessel_app_link::attachments::Wake {
+                connection,
+                message,
                 machine: key,
                 expected_node,
                 session,
@@ -446,6 +455,7 @@ impl Shell {
                 vessel_app_view::composer::context::ContextTray::captured(context);
         }
         let waiting = Waiting {
+            connection: starting.connection,
             message: starting.message,
             local_files,
             phase: super::transmission::Phase::Preparing,
@@ -461,34 +471,5 @@ impl Shell {
         if starting.ticket.is_none() {
             self.composer_pump(session, cx);
         }
-    }
-
-    /// A step of a file's upload to `session`: its tray follows (a tray
-    /// dropped since, or a file removed since, takes nothing), and the
-    /// next file, or the prompt, goes.
-    pub(crate) fn composer_upload(
-        &mut self,
-        session: SessionId,
-        key: ItemKey,
-        step: Step,
-        cx: &mut Context<'_, Self>,
-    ) {
-        let Some(tray) = self
-            .areas
-            .composer
-            .trays
-            .get_mut(DraftKey::Session { session })
-        else {
-            return;
-        };
-        match step {
-            Step::Progress(received) => tray.progress(key, received),
-            Step::Done(attachment) => tray.uploaded(key, attachment),
-            Step::Failed { problem, again } => {
-                tracing::info!(?problem, ?again, "a file's upload failed");
-                tray.failed(key, problem, again);
-            }
-        }
-        self.composer_pump(session, cx);
     }
 }

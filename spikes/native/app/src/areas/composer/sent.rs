@@ -42,7 +42,7 @@ const UNDER_FILES: f32 = 2.0;
 pub(crate) struct SentFiles<'a> {
     shell: &'a Shell,
     /// The conversation's machine and session, when one is shown.
-    shown: Option<(vessel_app_view::machine_book::Name, SessionId)>,
+    shown: Option<(vessel_app_view::connection::ConnectionContext, SessionId)>,
 }
 
 impl std::fmt::Debug for SentFiles<'_> {
@@ -60,6 +60,11 @@ impl<'a> SentFiles<'a> {
         shell: &'a Shell,
         shown: Option<(vessel_app_view::machine_book::Name, SessionId)>,
     ) -> Self {
+        let shown = shown.and_then(|(machine, session)| {
+            shell
+                .attachment_context(&machine)
+                .map(|connection| (connection, session))
+        });
         Self { shell, shown }
     }
 
@@ -103,8 +108,8 @@ impl<'a> SentFiles<'a> {
         cx: &mut Context<'_, Shell>,
     ) -> vessel_app_kit::ui::AnyElement {
         let frame = attachment_frame(&self.body(file), tokens);
-        let sent = self.shown.as_ref().map(|(machine, session)| Sent {
-            machine: machine.clone(),
+        let sent = self.shown.as_ref().map(|(node, session)| Sent {
+            connection: node.clone(),
             session: *session,
             attachment: file.id,
         });
@@ -129,11 +134,11 @@ impl<'a> SentFiles<'a> {
     /// as its name over its kind.
     pub(crate) fn body(&self, file: &AttachmentRef) -> Body {
         let shell = self.shell;
-        let Some((machine, session)) = self.shown.as_ref().filter(|_| Pictures::shows(file)) else {
+        let Some((node, session)) = self.shown.as_ref().filter(|_| Pictures::shows(file)) else {
             return label(shell, file);
         };
         let sent = Sent {
-            machine: machine.clone(),
+            connection: node.clone(),
             session: *session,
             attachment: file.id,
         };
@@ -189,30 +194,57 @@ impl Shell {
             Answer::Root(answer) => self.composer_mention_root(answer, cx),
             Answer::Suggestions(answer) => self.composer_mention_answer(answer, cx),
             Answer::Capabilities { ask, result } => self.composer_capabilities(&ask, result, cx),
-            Answer::Woke { session, outcome } => match outcome {
-                vessel_app_link::attachments::WakeOutcome::Ready => self.resumed(session, cx),
-                vessel_app_link::attachments::WakeOutcome::Refused => {
-                    if let Some(waiting) = self.areas.composer.sends.remove(&session)
-                        && let Some(context) = &waiting.context
-                        && let Some(tray) = self
-                            .areas
-                            .composer
-                            .contexts
-                            .get_mut(DraftKey::Session { session })
-                    {
-                        let _settled = tray.settle(
-                            context,
-                            vessel_app_view::composer::context::SubmissionOutcome::Failed,
-                        );
-                    }
-                    self.resume_failed(
-                        session,
-                        self.words.composer().file_wake_failed().to_owned(),
-                    );
-                    cx.notify();
+            Answer::Woke {
+                message,
+                session,
+                outcome,
+            } => {
+                if !self
+                    .areas
+                    .composer
+                    .sends
+                    .get(&session)
+                    .is_some_and(|waiting| waiting.message == message)
+                {
+                    return;
                 }
-            },
-            Answer::Upload { session, key, step } => self.composer_upload(session, key, step, cx),
+
+                match outcome {
+                    vessel_app_link::attachments::WakeOutcome::Unknown => {
+                        if let Some(waiting) = self.areas.composer.sends.get_mut(&session) {
+                            waiting.phase = super::transmission::Phase::ResumeUncertain;
+                        }
+                        cx.notify();
+                    }
+                    vessel_app_link::attachments::WakeOutcome::Ready => self.resumed(session, cx),
+                    vessel_app_link::attachments::WakeOutcome::Refused => {
+                        if let Some(waiting) = self.areas.composer.sends.remove(&session)
+                            && let Some(context) = &waiting.context
+                            && let Some(tray) = self
+                                .areas
+                                .composer
+                                .contexts
+                                .get_mut(DraftKey::Session { session })
+                        {
+                            let _settled = tray.settle(
+                                context,
+                                vessel_app_view::composer::context::SubmissionOutcome::Failed,
+                            );
+                        }
+                        self.resume_failed(
+                            session,
+                            self.words.composer().file_wake_failed().to_owned(),
+                        );
+                        cx.notify();
+                    }
+                }
+            }
+            Answer::Upload {
+                message,
+                session,
+                key,
+                step,
+            } => self.composer_upload(session, &message, key, step, cx),
             Answer::Read { sent, bytes } => {
                 self.areas.composer.sent.borrow_mut().read(&sent, bytes);
                 self.sent_reads();
@@ -226,11 +258,12 @@ impl Shell {
 /// kept in `store` from the bytes the composer holds (a pasted image), so
 /// the message shows them without reading them back. A file picked on
 /// this device is read back as any other (the file may have changed).
-pub(super) fn seed(store: &RefCell<Pictures>, machine: &str, session: SessionId, tray: &Tray) {
-    let Ok(machine) = vessel_app_view::machine_book::Name::parse(machine) else {
-        tracing::warn!("an attachment prompt has an invalid machine key");
-        return;
-    };
+pub(super) fn seed(
+    store: &RefCell<Pictures>,
+    connection: &vessel_app_view::connection::ConnectionContext,
+    session: SessionId,
+    tray: &Tray,
+) {
     let mut pictures = store.borrow_mut();
     for item in tray.items() {
         let (ItemState::Uploaded(attachment), Origin::Pasted(bytes)) = (&item.state, &item.origin)
@@ -239,7 +272,7 @@ pub(super) fn seed(store: &RefCell<Pictures>, machine: &str, session: SessionId,
         };
         if attachment.kind == AttachmentKind::Image {
             let sent = Sent {
-                machine: machine.clone(),
+                connection: connection.clone(),
                 session,
                 attachment: attachment.id,
             };

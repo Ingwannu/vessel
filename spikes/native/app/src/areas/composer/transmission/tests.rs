@@ -17,6 +17,7 @@ fn uncertainty_keeps_exact_payload_and_only_matching_completion_can_consume_it(
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, _window, cx| {
         let session = SessionId::random();
+        let node = NodeId::random();
         let key = DraftKey::Session { session };
         let item = ContextAttachment::Snapshot {
             kind: ContextKind::Review,
@@ -33,9 +34,10 @@ fn uncertainty_keeps_exact_payload_and_only_matching_completion_can_consume_it(
         let _previous = shell.areas.composer.sends.insert(
             session,
             Waiting {
+                connection: crate::areas::composer::prepared::tests::connection(node),
                 message: vessel_proto::timeline::ClientMessageId::random(),
                 machine: Name::parse("fixture").unwrap(),
-                expected_node: NodeId::random(),
+                expected_node: node,
                 text: String::new(),
                 context,
                 delivery: Delivery::Start,
@@ -105,6 +107,7 @@ fn context_only_submission_does_not_evict_a_full_book_of_unrelated_byte_trays(
             siblings.push(key);
         }
         let session = SessionId::random();
+        let node = NodeId::random();
         let target = DraftKey::Session { session };
         let tray = shell.areas.composer.contexts.tray(target);
         tray.add(ContextAttachment::Snapshot {
@@ -121,9 +124,10 @@ fn context_only_submission_does_not_evict_a_full_book_of_unrelated_byte_trays(
         drop(shell.areas.composer.sends.insert(
             session,
             Waiting {
+                connection: crate::areas::composer::prepared::tests::connection(node),
                 message: vessel_proto::timeline::ClientMessageId::random(),
                 machine: Name::parse("fixture").unwrap(),
-                expected_node: NodeId::random(),
+                expected_node: node,
                 text: String::new(),
                 context,
                 phase: Phase::Preparing,

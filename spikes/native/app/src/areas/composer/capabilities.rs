@@ -40,12 +40,15 @@ impl Capabilities {
     }
 }
 impl Shell {
-    pub(super) fn attachment_node(&self, name: &Name) -> Option<NodeId> {
+    pub(super) fn attachment_context(
+        &self,
+        name: &Name,
+    ) -> Option<vessel_app_view::connection::ConnectionContext> {
         self.fleet
             .machines
             .iter()
             .find(|machine| machine.name == name.as_str())
-            .and_then(|machine| machine.node)
+            .and_then(vessel_app_view::Machine::connection_context)
     }
 
     pub(super) fn read_creation_capabilities(
@@ -53,9 +56,11 @@ impl Shell {
         ticket: Ticket,
         machine: Name,
         expected_node: NodeId,
+        connection: vessel_app_view::connection::ConnectionContext,
         session: SessionId,
     ) -> Result<(), CapabilityFailure> {
         let ask = CapabilityAsk {
+            connection,
             ticket,
             machine,
             expected_node,
@@ -177,6 +182,7 @@ impl Shell {
                     return;
                 };
                 CapabilityAsk {
+                    connection: waiting.connection.clone(),
                     machine: waiting.machine.clone(),
                     expected_node: waiting.expected_node,
                     session,
@@ -184,9 +190,13 @@ impl Shell {
                 }
             }
         };
-        if let Err(why) =
-            self.read_creation_capabilities(ask.ticket, ask.machine, ask.expected_node, session)
-        {
+        if let Err(why) = self.read_creation_capabilities(
+            ask.ticket,
+            ask.machine,
+            ask.expected_node,
+            ask.connection,
+            session,
+        ) {
             self.fail_creation_preparation(session, &why, cx);
         }
     }
