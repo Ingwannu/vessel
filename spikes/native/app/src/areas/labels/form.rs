@@ -85,11 +85,9 @@ fn actions(shell: &Shell, host: &Host, tokens: &Tokens, cx: &mut Context<'_, She
                     tokens,
                 )
                 .when(can_delete, |button| {
-                    button.on_click(
-                        cx.listener(|shell, _, _window, cx| {
-                            shell.label_action(Action::Inspect, cx)
-                        }),
-                    )
+                    button.on_click(cx.listener(|shell, _, _window, cx| {
+                        shell.label_action(Action::Inspect, cx);
+                    }))
                 }),
             )
         }
