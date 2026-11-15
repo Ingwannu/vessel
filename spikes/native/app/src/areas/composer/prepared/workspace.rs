@@ -299,7 +299,8 @@ mod tests {
             let node = connect(shell);
             let workspace = vessel_proto::WorkspaceId::random();
             let a = admit(shell, node, workspace, DraftId::random(), window, cx);
-            let b = admit(shell, node, workspace, DraftId::random(), window, cx);
+            let b_id = DraftId::random();
+            let b = admit(shell, node, workspace, b_id, window, cx);
             let ticket = Ticket::new(1);
             for target in [a, b] {
                 shell.composer_add(
@@ -341,13 +342,7 @@ mod tests {
             assert!(!shell.composer_has_files(DraftKey::New));
             assert!(
                 shell
-                    .workspace_draft_field(
-                        &LayoutKey::Workspace { node, workspace },
-                        match b {
-                            DraftKey::Workspace { draft, .. } => draft,
-                            _ => unreachable!(),
-                        }
-                    )
+                    .workspace_draft_field(&LayoutKey::Workspace { node, workspace }, b_id)
                     .is_some()
             );
         });

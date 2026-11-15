@@ -39,12 +39,9 @@ pub(crate) use files::{attach_button, draft_card, session_card};
 pub(crate) use lightbox::overlay;
 pub(crate) use local::restore_local;
 pub(crate) use prepared::PrepareProblem;
-#[cfg_attr(
-    not(test),
-    expect(
-        unused_imports,
-        reason = "W3 keyed creation request consumer is staged next"
-    )
+#[expect(
+    unused_imports,
+    reason = "W3 keyed creation consumer is staged; fixtures use the local request type"
 )]
 pub(crate) use prepared::WorkspaceInput;
 pub(crate) use running::ControlsTarget;
