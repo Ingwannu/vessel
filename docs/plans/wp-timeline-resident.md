@@ -67,3 +67,10 @@ retain the exact resource on wrong registry/node/session restore, and include
 local origin protection. W1's new metadata/hover/query recursion, real IME/caret,
 actual owner Uncertain transition, transport authority, live cutover and UI/OS
 behavior are not proven. A7 final full gate/captures/V4 review remain separate.
+
+Exact7ae strict reached the App and failed only items_after_test_module: the
+Tail helper was appended after its existing tick_tests module. The same helper
+is now declared before that module; no predicate, test, public API or protection
+is changed. The concurrent7ae resident test run remains live and is not canceled.
+A corrected strict rerun still requires its own coordinator disposition; no
+source/runtime/package pass is inferred from this narrow lint correction.
