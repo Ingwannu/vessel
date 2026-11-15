@@ -12,7 +12,6 @@
 //!   share types without an I/O/UI edge. They add no RPC/version/TS field.
 
 mod agent;
-pub mod timeline;
 pub mod agents;
 pub mod automation;
 mod base64_bytes;
@@ -68,6 +67,7 @@ pub mod subagents;
 mod terminal;
 pub mod terminal_profiles;
 pub mod terminals;
+pub mod timeline;
 mod title;
 mod transfer;
 #[cfg(feature = "ts")]
