@@ -30,11 +30,10 @@ removed. Whole English/Korean goldens verify all messages and delivery cases.
 
 ## Remaining General scope
 
-The shared refusal banner still uses a legacy English Display cause; it needs
-its own typed retained cause and whole EN/KO sentence before General failure
-states can be complete. The current-base Diagnostics compatibility use of
-kept_why also remains until W20's package is integrated. Overview/Connections
-have not been touched; E2's terminal-settings domain is separate.
+The shared refusal banner's word-error fix is described below. The current-base
+Diagnostics compatibility use of kept_why remains until W20's package is
+integrated. Overview/Connections have not been touched; E2's terminal-settings
+domain is separate.
 
 State: plain-word source committed as e9116d6ca; its immutable merged checkpoint
 008181b3 has a remote component suite pending. New storage source below still
@@ -100,3 +99,39 @@ explicit-root checker first rejected numeric useGrouping: 0; the files now use
 its supported Fluent useGrouping: "false" option. This is a data correction,
 not a relaxation of the gate. Current-source compilation and runtime tests are
 still owed; old checked binaries are only source-parser evidence.
+
+## Whole preference refusal notices
+
+The old shared Settings banner concatenated a translated prefix with Refused's
+English Display diagnostic. It also retained only that resulting String, so a
+language change left the old sentence visible. The following word-error commit
+reuses the existing Refused enum and exact MAX_ACTIONS/MAX_MACHINES constants.
+`settings-notices.ftl` owns three whole EN/KO messages (two reasons and a safe
+formatting fallback). English uses numeric plural selectors, not noun fragments.
+A pure view adapter converts the model bound to an exact numeric argument or a
+typed range error. No second bound or store rule is introduced.
+
+The app retains one `PreparedRefusal { reason, words }` in the existing optional
+refusal field. The existing prefer Err branch prepares it, the existing success
+and arrival branches still clear it, and language dispatch prepares it again
+from the same cause before painting. Rendering only clones its SharedString;
+it never formats or displays Error. The two sentences now explain both limits
+in Korean as well as English.
+
+E2 reserved these exact shared seams: SettingsState.refused's type and its
+`.child(refused.words.clone())` render expression; the prefer Err preparation
+expression; one language refresh registration; the helper module/import. No
+change to preference outcomes, allowed ranges, success/arrival clear, S2
+lifecycle calls, Overview, or selection behavior is included.
+
+Whole EN/KO reason goldens and singular English messages cover the view adapter.
+GPUI tests use the real prefer rejection path and real language dispatch, assert
+that a rejected change did not mutate preferences, retain input/caret/focus,
+and check that a successful change clears the old refusal. These new tests are
+source prepared and still await execution. The earlier immutable 008181b3 suite
+cannot prove the later storage/refusal source or its newer package base.
+
+Source static checks: 612 Rust files, the same 14 existing size exceptions,
+unchanged token entries, and valid module boundaries. Explicit-root validation
+reports English/Korean complete with no missing key. Whole package gate, review
+and screen evidence remain owed.
