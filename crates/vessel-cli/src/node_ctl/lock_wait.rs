@@ -5,7 +5,7 @@
 
 use std::fs::File;
 
-use tokio::sync::oneshot;
+use super::local_read::{Kind, Pending};
 use vessel_node::DataDir;
 
 use crate::error::CliError;
@@ -15,7 +15,7 @@ const WAITER_TEST_BUDGET: std::time::Duration = std::time::Duration::from_secs(5
 
 /// One OS-lock completion survives timeout cancellation between exit phases.
 pub(super) struct Released {
-    receive: oneshot::Receiver<Result<(), std::io::Error>>,
+    pending: Pending<Result<(), std::io::Error>>,
 }
 
 impl Released {
@@ -25,23 +25,18 @@ impl Released {
     /// The operating system cannot create the waiter thread.
     pub(super) fn subscribe(dir: &DataDir) -> Result<Self, CliError> {
         let path = dir.lock_path();
-        let (send, receive) = oneshot::channel();
-        let waiter = std::thread::Builder::new()
-            .name("node-lock-release".to_owned())
-            .spawn(move || {
-                let result = File::options()
+        let pending = Pending::spawn(
+            Kind::LockRelease,
+            move || {
+                File::options()
                     .read(true)
                     .write(true)
                     .open(path)
-                    .and_then(|file| file.lock().and_then(|()| file.unlock()));
-                // A finished command drops its receiver. This is intentional
-                // cancellation, and the lock has already been released.
-                if send.send(result).is_err() {
-                    tracing::debug!("node lock waiter completed after its command ended");
-                }
-            })?;
-        drop(waiter);
-        Ok(Self { receive })
+                    .and_then(|file| file.lock().and_then(|()| file.unlock()))
+            },
+            || tracing::debug!("node lock waiter completed after its command ended"),
+        )?;
+        Ok(Self { pending })
     }
 
     /// Borrowing the receiver makes a timed-out wait cancellation-safe.
@@ -49,7 +44,7 @@ impl Released {
     /// # Errors
     /// The lock could not be opened/acquired, or the waiter exited unexpectedly.
     pub(super) async fn wait(&mut self) -> Result<(), CliError> {
-        (&mut self.receive).await.map_err(CliError::LockWaiter)??;
+        self.pending.wait().await.map_err(CliError::LockWaiter)??;
         Ok(())
     }
 }
