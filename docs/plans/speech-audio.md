@@ -30,7 +30,10 @@ no general recognition or arbitrary-audio equivalence is claimed.
 
 ## Validation and resume
 
-Source and tests are added; narrow strict Clippy and codec tests are pending.
+Narrow strict node and proto Clippy passed for the codec addition. The merged
+prerequisite snapshot also passed node all-target Clippy and all eight codec
+cases together with the two connection-lifetime cases. These are staged-source
+checks, not a product or recognition gate.
 Cases cover six-rate chunk invariance/counts/signed fixtures, borrowed bypass,
 WAV metadata and body prefix, alignment, empty codec output, RIFF count refusal
 and allocation refusal before mutation. No OS, audio device, provider, credential
