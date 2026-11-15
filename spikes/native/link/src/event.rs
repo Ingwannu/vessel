@@ -22,10 +22,6 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 pub enum Event {
     /// A correlated creation transition.
     Creation(super::creation::Answer),
-    /// An existing session's registered file root.
-    MentionRoot(crate::mentions::RootAnswer),
-    /// File suggestions, correlated to their original composer and token.
-    Mentions(crate::mentions::Answer),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.

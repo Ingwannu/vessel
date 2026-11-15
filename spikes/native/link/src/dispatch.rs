@@ -20,7 +20,6 @@ impl State {
     pub(super) async fn handle(&mut self, command: Command) {
         match command {
             Command::Create(ask) => self.create(ask),
-            Command::Mentions(ask) => self.mention(ask),
             Command::Reload => self.reload().await,
             Command::Agents {
                 machine,

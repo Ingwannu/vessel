@@ -66,6 +66,7 @@ impl State {
     /// What a composer's files ask (track P's row c).
     pub(super) async fn files(&mut self, files: attachments::Files) {
         match files {
+            attachments::Files::Suggest(ask) => self.mention(ask),
             attachments::Files::Capabilities(ask) => {
                 let client = self
                     .attachment_client(&ask.machine, ask.expected_node)
