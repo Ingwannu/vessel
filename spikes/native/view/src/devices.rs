@@ -12,6 +12,8 @@
 //!   reaches no log, no capture's name and no test's failure message.
 
 mod details;
+mod row;
+pub use row::{Access, DeviceBadge};
 mod invitation;
 mod page;
 pub mod qr;
@@ -67,7 +69,8 @@ pub fn device_line(lang: Lang, device: &DeviceInfo, now: DateTime<Utc>) -> Vec<S
     ]
 }
 
-/// The page's scope sentence, shared by compact and descriptive rows.
+/// The legacy web-fixture scope sentence; native rows use a compact access
+/// summary and keep their complete grants in the exact tooltip.
 #[must_use]
 pub fn scope_line(lang: Lang, device: &DeviceInfo) -> String {
     let words = lang.machines();
