@@ -70,3 +70,26 @@ retain NodeId and generation. HexColor parses once and retains packed RGBA;
 no fallback color is synthesized after failed parsing. Whole documents,
 helper, node service, CLI and native adapters remain separate implementation
 work and are not claimed by the scalar tests.
+
+## Native skeleton and request ownership
+
+The app tree merged package base 8d5513e4 without conflicts; node work
+merged Quality B 29eebb8b. Shared registration follows the split command,
+event, dispatch and shell/events modules from that base. No size record
+has been raised.
+
+`view::plugins::Registry` retains validated themes per NodeId and exact
+PluginAddress. Offline retains display data, never authorizes a remote
+action; Unsupported withdraws that host. A complete replacement validates
+all owners and duplicates before publication, while a malformed replacement
+retains the previous snapshot plus a typed failure. Read tickets reuse the
+existing checked ticket allocator and add a registry lifetime fence, so a
+new registry's reset counter cannot admit an old callback.
+
+`link::plugins` is the typed CatalogSource boundary, tested with in-memory
+and never-answering sources. Its current product adapter returns Unsupported
+without sending a method; it is not a product fake. Catalog requests have
+one named finite deadline and return their captured ticket on every result.
+The feature is not wired into the app's visible Settings route yet. Its
+actual runtime, source installation, catalog cache, i18n, declaration paint,
+per-feature adapters and capture matrix remain required work.

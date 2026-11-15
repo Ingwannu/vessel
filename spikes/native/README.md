@@ -35,6 +35,15 @@ on `vessel-*` crates (in both directions), and holds the two tables below;
 it builds nothing (`cargo metadata --no-deps`). A new edge is a change of
 this table, with its reason in the same commit.
 
+Plugin state is staged under `view::plugins` and `link::plugins` (ADR 0079).
+The pure registry captures node, helper generation and read lifetime before
+accepting snapshots/actions, retains display data offline and withdraws an
+unsupported host. The link uses a finite typed catalog source; pending
+protocols return Unsupported without a fabricated RPC. No plugin route,
+helper execution or install UI is exposed by this skeleton. Appearance,
+layout and command-center owners consume the same canonical proto ids;
+none gain another plugin registry.
+
 ### External crates with one owner
 
 | Crate | Who may depend on it | Why |

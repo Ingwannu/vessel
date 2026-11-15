@@ -186,7 +186,7 @@ impl Registry {
     /// Refuses unsupported nodes, overlapping reads and the retained-host bound.
     pub fn begin(&mut self, node: NodeId, support: HostSupport) -> Result<CatalogTicket, Problem> {
         if support == HostSupport::Unsupported {
-            let _ = self.hosts.remove(&node);
+            drop(self.hosts.remove(&node));
             return Err(Problem::Unsupported);
         }
         if !self.hosts.contains_key(&node) && self.hosts.len() >= MAX_HOSTS {
@@ -264,7 +264,7 @@ impl Registry {
 
     /// A forgotten host withdraws every contribution and cancels read ownership.
     pub fn remove(&mut self, node: NodeId) {
-        let _ = self.hosts.remove(&node);
+        drop(self.hosts.remove(&node));
     }
 
     /// Retained data is available offline for rendering; this never authorizes an action.
