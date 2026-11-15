@@ -57,3 +57,7 @@ No byte parser, runtime, PTY, toolkit, or harness is added to the upstream crate
    same table, one positive-width base plus combining marks invariant and
    ceiling without another dependency, parser or mutable grid restoration.
    No terminal interpretation or stored cell layout changes.
+
+10. Expose retained-row outgoing wrap metadata. Why: authoritative frames must
+    preserve hard/soft line boundaries for selection and reflow without a second
+    row tracker, mutable reads or synthesized ANSI restoration.

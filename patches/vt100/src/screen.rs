@@ -185,6 +185,12 @@ impl Screen {
         self.grid().buffer_row(index).map(crate::row::Row::cols)
     }
 
+    /// Preserve outgoing wrap metadata without growing or cloning retained rows.
+    #[must_use]
+    pub fn buffer_row_wrapped(&self, index: usize) -> Option<bool> {
+        self.grid().buffer_row(index).map(crate::row::Row::wrapped)
+    }
+
     /// Borrow one cell of the physical retained buffer without changing viewport state.
     #[must_use]
     pub fn buffer_cell(

@@ -113,3 +113,11 @@ The engine is the only owner of interpreted presentation; a new scanner,
 synthetic restoration or per-consumer cursor/wrap tracker is rejected. Keep
 the engine extension whole frozen in its own tree. These additions remain
 staged until their independent oracle, narrow checks and consumer integration.
+
+The readonly metadata facade and26 exact pinned-headless checkpoints are now
+staged. Cursor overrides retain shape and blink independently, including unset
+renderer defaults; row endings are read from actual physical rows. The first
+implementation exposes existing engine state without changing its control
+interpretation, so the new regression can reveal unsupported cursor/reset cases
+before any parity repair. Golden JSON is copied unchanged from the actual oracle.
+No measured cursor/wrap parity or actual display consumer is claimed yet.
