@@ -121,7 +121,7 @@ pub(crate) fn submit(
 
 pub(crate) fn refused(shell: &mut Shell, unsent: &vessel_app_link::Unsent) {
     if let Command::SavePrefs(prefs) = unsent.command.as_ref() {
-        shell.areas.desktop.rollback = Some(prefs.clone());
+        shell.areas.desktop.rollback = Some(prefs.as_ref().clone());
     }
 }
 

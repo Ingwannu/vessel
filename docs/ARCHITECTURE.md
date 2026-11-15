@@ -1676,3 +1676,11 @@ names gpui-pre-windows, and only main.rs chooses that platform edge. Background
 CLI mutation invokes the callback after a successful user PATH write; a failed
 notification preserves installation and manual fresh-login guidance. Link gains
 no GPUI dependency and native crates gain no unsafe.
+
+## Native search lifetime
+
+The existing cross-session Searching value belongs once to PaletteArea, outside
+the session-owned ConversationArea. Existing Shell search calls, the link and
+the renderer keep their interfaces. Replacing a conversation resident therefore
+preserves debounce, query tickets and merged cross-machine replies. The isolated
+prerequisite and test boundary are in docs/plans/wp-a3-search-residency.md.
