@@ -59,19 +59,7 @@ impl SelectedLease {
         }
     }
     pub(crate) fn validate(&self, expected: &ConnectionContext) -> Result<(), Refusal> {
-        if self.context != *expected {
-            return Err(Refusal::Changed);
-        }
-        self.active()
-    }
-    pub(super) fn matches(&self, expected: &ConnectionContext) -> bool {
-        self.context == *expected
-            && self.client.node().id == expected.node()
-            && self.validity.has_changed().is_ok()
-            && *self.validity.borrow() == Validity::Active
-    }
-    fn active(&self) -> Result<(), Refusal> {
-        if !self.matches(&self.context) {
+        if !self.matches(expected) {
             return Err(Refusal::Changed);
         }
         // NodeClient::closed -> rpc::Connection::closed -> CancellationToken.
@@ -83,6 +71,12 @@ impl SelectedLease {
         } else {
             Ok(())
         }
+    }
+    pub(super) fn matches(&self, expected: &ConnectionContext) -> bool {
+        self.context == *expected
+            && self.client.node().id == expected.node()
+            && self.validity.has_changed().is_ok()
+            && *self.validity.borrow() == Validity::Active
     }
 }
 impl State {
@@ -103,7 +97,7 @@ impl State {
 }
 impl SelectedConnection {
     fn active(&self) -> Result<(), Refusal> {
-        self.lease.active()
+        self.lease.validate(&self.lease.context)
     }
     async fn fence<T>(&self, value: T) -> Result<T, Refusal> {
         self.active()?;
