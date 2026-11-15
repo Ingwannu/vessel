@@ -1,6 +1,6 @@
 # Web page parity
 
-Status: parity contract accepted; A1 implementation verification in progress, 2026-11-14. ADR 0075.
+Status: parity contract accepted; A1 whole gate passed, implementation review pending, 2026-11-15. ADR 0075.
 
 ## Scope and evidence
 
@@ -296,28 +296,27 @@ licence audit, deployment, live permission change or repository push.
 ## Resume point
 
 The parity contract passed documentation review (`39fcda13`). Node head
-`a365d295` was merged without conflicts (`5790cdd3`); the page adds no wire
-method, field, protocol/schema number, crate edge or native change.
+`a365d295` was merged without conflicts (`5790cdd3`). The corrected A1
+source `1907bd0a` passed the whole merged-tree gate: Rust 1,963 passed /
+zero failed / 12 ignored, TypeScript freshness two passed, frontend units
+428 passed, full browser E2E 63 passed, and sixteen capture cases passed.
+All format, size, boundaries, Clippy, web lint, typecheck and bundle steps
+passed. Execution identity, served assets and cleanup are recorded below.
+This is executed validation, with implementation review still pending;
+it is not whole-page parity or combined integration approval.
 
-A1 source checkpoint `7a46c043` adds machine reported accounting in
-Settings. Its first whole run passed format, size/boundaries, full Clippy,
-Rust (112 summaries: 1,963 passed, zero failed, 12 ignored), TypeScript
-freshness (two cases), web lint including 132 font stacks, and web type
-checking. Web units stopped that run at 427 passed and one failed: the
-command palette's explicit complete Settings list did not yet include the
-new Usage section. This failure comes from the feature addition; it is
-not labelled an unrelated base defect. Source pre/post identities matched.
-No remaining browser/build stage is inferred from that partial gate.
+A1 adds machine reported accounting in Settings: pick a machine and the
+past day/week, read totals and coverage, then explicitly refresh. It adds
+no wire method, field, protocol/schema number, crate edge or native change.
+The earlier failed whole run and capture-bootstrap diagnostic remain in
+the historical sections below. The complete-list palette correction adds
+only the new Usage entry between Devices and Sync; every prior entry and
+its order remain. No deadline, assertion or quality exception was loosened.
 
-The narrow correction adds only `Settings: Usage` between the existing
-Devices and Sync expectations. Every prior entry and its order remain.
-The next complete run must validate the corrected immutable tree after
-actual browser findings are addressed; existing deadlines/assertions and
-quality exceptions remain unchanged. A1 is not integration-ready until
-that complete gate and implementation review pass. Per-agent/session
-accounting is A2; account limits and inbox still wait for assigned merged
-contracts. No live account, vendor, native runtime or other-platform check
-is claimed by this page work.
+Next is A2's existing-contract agent/profile and session accounting, split
+into small visible increments. Account limits and inbox still wait for
+their separately assigned merged contracts. No live account, vendor,
+native runtime or other-platform check is claimed by this page work.
 
 ## Paseo source index
 
@@ -555,7 +554,7 @@ is outside the page implementation; any actual failure must be retained
 and its one instructed exact rerun reported separately, never erased.
 
 
-## A1 implementation and verification boundary
+## A1 implementation and verification boundary (source checkpoint)
 
 Modification/reuse: the existing bridge call, Outcome guidance, Store,
 Settings frame, machine picker, row list, value, select and button controls
@@ -592,18 +591,18 @@ is included. The next step is the whole gate and recording its actual
 results, including any shared-test failure and the instructed exact rerun.
 
 
-## First whole accounting run and retained failure
+## First whole accounting run and retained failure (historical)
 
 The first immutable implementation run stopped at the command palette
-unit expectation described in the resume point. Its successful Rust and
-web checks remain scoped evidence; the incomplete whole run remains a
-failure. The complete Settings-list assertion gains the new product entry
+unit assertion for the complete Settings list, which did not yet include
+Usage: 427 passed and one failed. Its successful Rust and web checks
+remain scoped evidence; the incomplete whole run remains a failure. The complete Settings-list assertion gains the new product entry
 without dropping or moving any pre-existing entry. Actual browser flow,
 intentional captures, final asset freshness and a new whole changed-tree
 run are required before calling this slice validated.
 
 
-## Isolated browser diagnostic and capture correction
+## Isolated browser diagnostic and capture correction (historical)
 
 On the same immutable source checkpoint, a separate diagnostic built the
 browser binaries, then passed the real-node usage flow: selected machine,
@@ -645,3 +644,57 @@ After the explicit palette-list correction, all 428 frontend unit tests
 passed in the narrow run. This does not erase the stopped whole run or
 execute the strengthened browser/capture cases. Narrow type/lint checks
 and the complete corrected-tree gate remain pending at this checkpoint.
+
+
+## Corrected A1 whole gate and review handoff
+
+Executed source: `1907bd0ae1bf34ec81cb2ec15eeac74d035abed8`, including
+A1's earlier checkpoints `2f169260` and `7a46c043` and the merged node
+quality head. The final whole run started 2026-11-14 22:45 UTC and ended
+23:52 UTC. One enclosing build slot held both testkit/daemon prebuilds,
+all Rust steps and browser steps. Test data used a private mode-0700 SSD
+directory, two Rust test threads and the unchanged test deadlines. Load
+averages before/after were 18.21 and 12.02 (one-minute readings).
+
+| Check | Actual corrected-tree result |
+| --- | --- |
+| Both test-binary prebuilds, format, Rust size/boundaries, full Clippy | Passed; no exception or boundary-map change |
+| Full Rust workspace, including known shared side-question cases | 112 summaries: 1,963 passed, zero failed, 12 ignored |
+| Generated TypeScript freshness | Two passed; no generated wire change |
+| Web lint, fonts, typecheck, bundle | Passed; 132 font stacks checked |
+| Web unit tests | 428 passed across 83 files |
+| Fresh binaries after the new web bundle | Built before browser tests; changed web/node/CLI crates recompiled |
+| Full isolated-fleet browser E2E | 63 passed, zero failed |
+| Usage capture cases | 16 passed, zero failed; 32 content-only images |
+
+Pre/post manifests selected 2,430 inputs and matched exactly:
+`c410e4598060b1a193fbef3c0ef8f2b00afb753722b45b3d8085022bed539d44`.
+All 2,261 tracked contents were independently compared with executed Git
+blobs. The additional inputs include the private build configuration,
+bundle files and the installation lock/link identity; external dependency
+and toolchain caches, OS state and non-input artifacts are excluded.
+This is selected-input provenance, not a supply-chain attestation.
+
+Both final fleets served all eighteen selected static index-graph assets
+with hashes equal to the freshly built bundle. Request-painted HTML is
+explicitly excluded from byte comparison, as described in the diagnostic
+section. Actual index references still determine the checked static graph.
+
+All 32 final Usage images were manually viewed: English/Korean numeric
+locale, light/dark, 1280×900, 390×844, 800×600 and 1024×700, each with an
+overview and scrolled coverage view. Period/Refresh controls stay within
+the viewport, reported zero and cost units remain visible, and the three
+provenance dates use readable locale formatting. English labels remain.
+The small-window coverage view scrolls inside the existing Settings
+container beneath its sticky header. A read-only image audit recorded
+zero OCR failures and no own-machine-name match. This does not certify
+mobile cold-start, physical devices, contrast/accessibility or translation.
+
+All ten recorded final fleet PIDs had exited; no owned runtime remained.
+The private SSD test directory was emptied after execution. No live service,
+permission, vendor/account, native source, deployment or push action took
+place. The failed first whole run and its 427/1 frontend result, the 12/4
+capture diagnostic and the original HTML-audit error remain adverse
+historical evidence. They are corrected by this new changed-tree run,
+not relabelled as successes or waived. Implementation review and any
+combined-line gate remain separate from this result.
