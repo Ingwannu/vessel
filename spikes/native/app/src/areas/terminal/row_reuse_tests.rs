@@ -13,7 +13,10 @@ fn cursor_phase_reuses_rows_and_preserves_cursor_and_output(cx: &mut TestAppCont
             TerminalSize::default(),
             cx,
         );
-        replay_all(shell.areas.terminal.model.as_mut().unwrap(), b"painted rows");
+        replay_all(
+            shell.areas.terminal.model.as_mut().unwrap(),
+            b"painted rows",
+        );
         shell.areas.terminal.phase = Phase::Ready;
         shell.terminal_draw(cx);
         let on = Rc::clone(&shell.areas.terminal.grid.read(cx).frame);

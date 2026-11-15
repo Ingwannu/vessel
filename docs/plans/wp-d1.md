@@ -112,3 +112,33 @@ will own the sole interpretation for native view and node capture. Engine
 selection is pending the frozen actual-program corpus measurement against
 Paseo's exact server factory. W17's staged vt100 adapter is measurement input,
 not a reviewed or merged implementation. No D1/core feature is passed yet.
+
+## F: painted rows and cursor frames
+
+[Decision Log]
+- Purpose: remove row projection/allocation from a quiet cursor-only frame.
+- Constraint: the existing draw key correctly invalidates theme, geometry,
+  history viewport and output; the renderer and model cursor remain authoritative.
+- Alternatives: rebuild rows at every half-period, cache a second renderer,
+  or share the immutable rows between the on/off frames.
+- Choice: `GridFrame.rows` is `Rc<[GridRow]>`. A retained unblinked frame is
+  keyed by generation, scheme, font, metrics and viewport. Blink is a separate
+  draw input, so only the frame's optional cursor changes in a quiet blink.
+- Why: the UI-thread-owned frame needs no atomic reference count. Keeping the
+  model-derived cursor avoids reimplementing hidden/scrolled cursor rules.
+  Opening/closing drops the cached projection; output and appearance replace it.
+- Costs: one unblinked frame remains retained alongside the presented frame;
+  both share the same row allocation. Painting still visits the visible rows.
+
+Paseo reference reopened: app `terminal-emulator-runtime.ts` 560–561 enables
+its blinking bar; exact installed xterm `DomRenderer.ts` 528–573 draws supplied
+rows and 664–735 manages cursor CSS/idle state. Vessel shares native painted
+rows instead of using DOM/CSS. This is an implementation difference, not a
+claim of equivalent idle-stop timing or measured GPU work. The existing native
+focus, visibility and reduced-motion lifetime contract remains unchanged.
+
+The first regression commit `9e40fd87` retains on/off/on frames, requires the
+same row allocation and cursor restoration, then requires changed text to
+replace the allocation. Its old-code remote run is preserved separately from
+repair validation. The existing quiet-theme and motion tests remain unchanged.
+No new speed claim is made before an isolated, same-source runtime comparison.
