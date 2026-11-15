@@ -205,16 +205,11 @@ impl SessionEvent {
                 .map(|event| Self::Agent { event }),
             Self::ProfileChanged { from, to } => log(profile_line(from, to)),
             Self::ModelCall(call) => log(model_line(call)),
-            Self::OptionsChanged { options } => Some(Self::Agent {
-                event: AgentEvent::HarnessLog {
-                    line: format!("vessel: options: {}", SessionOption::summary(options)),
-                },
-            }),
-            Self::Renamed { title } => Some(Self::Agent {
-                event: AgentEvent::HarnessLog {
-                    line: format!("vessel: renamed to {title}"),
-                },
-            }),
+            Self::OptionsChanged { options } => log(format!(
+                "vessel: options: {}",
+                SessionOption::summary(options)
+            )),
+            Self::Renamed { title } => log(format!("vessel: renamed to {title}")),
             Self::QueueChanged { queue } => log(queue_line(queue)),
             Self::CommandsChanged { commands } => log(commands_line(commands)),
             Self::UsageChanged { usage } => log(usage_line(usage)),
