@@ -218,7 +218,10 @@ Node construction checks trusted service/control origin separation.
 projection is not registration/reachability proof. Each link distinguishes
 NodeLoopback from AnonymousPublic. Local URLs use the actual dedicated
 service listener's port, not the node-control port; absent listener means
-no URL. Public preference applies only with effective consent and route.
+no URL. Public projection requires valid per-service consent and configured
+public gateway. It may be Planned before a process listens; public-first
+preference is metadata for environment injection, not route activation.
+Registered publication separately requires fresh complete ownership proof.
 
 A remote app must not open a NodeLoopback URL on its own machine as though
 it reached the node. Private browser admission remains the separate node
@@ -243,6 +246,10 @@ requires its reviewed ingress/header policy and actual drain qualification.
   acknowledgement that the service becomes reachable without Vessel auth.
   Enable carries the displayed snapshot and CommandsDigest. The node derives
   the canonical binding itself; a caller-supplied URL/PID is not a grant.
+- Changing gateway choice atomically clears existing public service choices
+  and closes the old ingress/relays. A new gateway alone enables no service;
+  unchanged gateway input does not revoke or write. Each public service
+  requires fresh explicit consent for the replacement gateway.
 - Requests carry the settings revision. Unknown choices refuse. Failed
   persistence preserves the prior file and policy; no implicit fallback.
   Results distinguish unchanged, saved/applying and applied observations.
@@ -255,6 +262,12 @@ requires its reviewed ingress/header policy and actual drain qualification.
 - No qualified canonical-incarnation producer exists yet. Enable/restore
   must therefore return Unavailable before writing an enabled grant. Do
   not replace the missing type with a UUID, revision or cwd of our own.
+- The private services document will hold its settings revision, gateway
+  choice and bounded map of anonymous consent records. A record owns target,
+  CommandsDigest and the required canonical incarnation value. Private choice
+  removes that record. No actual-run id, PID, effective route/health or URL
+  observation is persisted as authority. No per-record counter duplicates
+  the document's settings CAS revision.
 - The private StoredServiceConsent schema is NOT implemented by this DTO
   package: its incarnation field must use that future qualified owner type.
   Missing is not optional/implicitly trusted. This unresolved producer is
