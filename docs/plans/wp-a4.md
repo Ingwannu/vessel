@@ -251,3 +251,20 @@ Parent-resident union uses the existing SubagentArea once in SessionResources.su
   regressions are retained, with explicit same-node replacement and budget tests.
 - Validation: native strict and framed-peer execution are remote-only and pending
   for this changed head; the earlier raw-client adapter pass is not extended here.
+
+## Completed scope audit: rewind and export
+
+The current native conversation menu uses `timeline::rewind_point`, the declared
+provider capability and the existing `session.rewind` command. It restores the
+rewound prompt only into an empty composer and reports refusal through the common
+notice. This is conversation-only: it does not restore files, and therefore is
+not full parity with Paseo's conversation/files/both modes. W9 owns checkpoints;
+A4 must not manufacture file-restoration support from the conversation capability.
+The existing native fork likewise creates a provider checkpoint session directly;
+it remains distinct from the curated configurable draft fork under construction.
+
+The primary lifecycle survey found no standalone Paseo session-export feature.
+Skill/background handoff is a separate orchestration flow. Session transfer B9
+using export/import is explicitly beyond this A4 package, not a substitute for
+own-history import via `session.create(resume)`. These audits establish differences
+and ownership only, not live provider execution or complete parity.
