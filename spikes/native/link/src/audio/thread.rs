@@ -4,7 +4,6 @@
 //! driver can retain ownership but cannot authorize another acquisition.
 
 use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 
 use tokio::sync::mpsc;
@@ -13,6 +12,7 @@ use vessel_app_view::audio::CaptureLease;
 use super::device::{CaptureDevice, Native};
 use super::dsp::Captured;
 use super::owner::{DeviceFailure, Owner};
+use crate::cancel::Fence;
 
 const NORMALIZED_QUEUE_BLOCKS: usize = 100;
 const DEVICE_POLL: Duration = Duration::from_millis(5);
@@ -44,7 +44,7 @@ pub(super) fn start(owner: Owner) -> Result<mpsc::Receiver<Frame>, DeviceFailure
 fn run<D: CaptureDevice>(
     mut owner: Owner,
     sender: &mpsc::Sender<Frame>,
-    open: impl FnOnce(Arc<AtomicBool>) -> Result<D, DeviceFailure>,
+    open: impl FnOnce(Arc<Fence>) -> Result<D, DeviceFailure>,
 ) {
     if owner.stopped() {
         return;

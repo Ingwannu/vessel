@@ -4,5 +4,4 @@
 //! and shared audio engine exist. This generic boundary is the explicitly
 //! staged node/app seam; no invented wire call is serialized here.
 
-mod fence;
 mod upload;

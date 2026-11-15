@@ -141,3 +141,23 @@ async fn queue_overrun_is_explicit_and_owner_drop_stops_without_a_data_command()
     drop(handle);
     assert_eq!(capture.submit(frame()), Err(CaptureError::Stopped));
 }
+
+#[tokio::test]
+async fn supplied_device_fence_wakes_control_even_with_full_data_queues() {
+    let device_gate = Arc::new(Fence::default());
+    let (capture, handle, _actor) = with_fence(Arc::clone(&device_gate));
+    for _ in 0..CAPTURE_QUEUE_FRAMES {
+        capture.submit(frame()).unwrap();
+    }
+    handle.stop();
+    assert!(device_gate.is_closed());
+    device_gate.closed().await;
+    assert_eq!(capture.submit(frame()), Err(CaptureError::Stopped));
+    // Device-side failure closes this exact gate too, waking an uploader
+    // blocked on a remote upload without requiring a data-queue command.
+    let gate = Arc::new(Fence::default());
+    let (capture, handle, _actor) = with_fence(Arc::clone(&gate));
+    gate.close();
+    assert_eq!(capture.submit(frame()), Err(CaptureError::Stopped));
+    assert!(handle.fence.is_closed());
+}

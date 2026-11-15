@@ -10,6 +10,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::sync::mpsc;
 
 use super::format::Format;
+use crate::cancel::Fence;
 
 const CALLBACK_QUEUE_BLOCKS: usize = 100;
 
@@ -31,7 +32,7 @@ impl fmt::Debug for Samples {
 
 #[derive(Debug)]
 pub(super) struct Callback {
-    fence: Arc<AtomicBool>,
+    fence: Arc<Fence>,
     overrun: Arc<AtomicBool>,
     sender: mpsc::Sender<Samples>,
     partial: Vec<f32>,
@@ -39,10 +40,7 @@ pub(super) struct Callback {
 }
 
 impl Callback {
-    pub(super) fn channel(
-        format: Format,
-        fence: Arc<AtomicBool>,
-    ) -> (Self, mpsc::Receiver<Samples>) {
+    pub(super) fn channel(format: Format, fence: Arc<Fence>) -> (Self, mpsc::Receiver<Samples>) {
         let (sender, receiver) = mpsc::channel(CALLBACK_QUEUE_BLOCKS);
         let block_samples = format
             .frames()
@@ -70,7 +68,7 @@ impl Callback {
         f32: cpal::FromSample<T>,
     {
         for sample in samples {
-            if self.fence.load(Ordering::Acquire) {
+            if self.fence.is_closed() {
                 self.partial.clear();
                 return;
             }
@@ -80,7 +78,7 @@ impl Callback {
                     std::mem::replace(&mut self.partial, Vec::with_capacity(self.block_samples));
                 if self.sender.try_send(Samples(block)).is_err() {
                     self.overrun.store(true, Ordering::Release);
-                    self.fence.store(true, Ordering::Release);
+                    self.fence.close();
                     return;
                 }
             }

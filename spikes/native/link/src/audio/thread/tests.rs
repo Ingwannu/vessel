@@ -2,12 +2,11 @@ use super::super::dsp::Processor;
 use super::super::format::{Channels, Format, RateHz};
 use super::super::owner::{Engine, State};
 use super::*;
-use std::sync::atomic::Ordering;
 use std::sync::mpsc as blocking;
 use vessel_app_view::audio::CapturePurpose;
 
 struct Device {
-    fence: Arc<AtomicBool>,
+    fence: Arc<Fence>,
     dropped: blocking::SyncSender<()>,
     release: blocking::Receiver<()>,
 }
@@ -17,7 +16,7 @@ impl CaptureDevice for Device {
         Ok(())
     }
     fn receive(&mut self) -> Result<Option<Captured>, DeviceFailure> {
-        self.fence.store(true, Ordering::Release);
+        self.fence.close();
         Ok(None)
     }
     fn failure(&self) -> Option<DeviceFailure> {

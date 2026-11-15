@@ -11,6 +11,7 @@ use super::callback::{Callback, Samples};
 use super::dsp::{Captured, Processor};
 use super::format::{Channels, Format, RateHz};
 use super::owner::DeviceFailure;
+use crate::cancel::Fence;
 
 const DEVICE_OPEN_TIMEOUT: Duration = Duration::from_secs(1);
 
@@ -35,7 +36,7 @@ impl std::fmt::Debug for Native {
 }
 
 impl Native {
-    pub(super) fn open(fence: Arc<AtomicBool>) -> Result<Self, DeviceFailure> {
+    pub(super) fn open(fence: Arc<Fence>) -> Result<Self, DeviceFailure> {
         let device = cpal::default_host()
             .default_input_device()
             .ok_or(DeviceFailure::Unavailable)?;
@@ -96,12 +97,12 @@ fn build(
     device: &cpal::Device,
     config: &cpal::SupportedStreamConfig,
     mut callback: Callback,
-    fence: Arc<AtomicBool>,
+    fence: Arc<Fence>,
     interrupted: Arc<AtomicBool>,
 ) -> Result<cpal::Stream, DeviceFailure> {
     let on_error = move |_error| {
         interrupted.store(true, Ordering::Release);
-        fence.store(true, Ordering::Release);
+        fence.close();
     };
     // No foreign device/error Debug text is retained. The same normalized
     // converter handles each supported hardware sample representation.

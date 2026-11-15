@@ -24,6 +24,8 @@
 
 #[cfg(all(test, any(target_os = "linux", target_os = "windows")))]
 mod audio;
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod cancel;
 mod command;
 #[cfg(not(target_arch = "wasm32"))]
 mod dispatch;

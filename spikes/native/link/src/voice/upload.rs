@@ -7,7 +7,7 @@ use std::time::Duration;
 use bytes::Bytes;
 use tokio::sync::{mpsc, watch};
 
-use super::fence::Fence;
+use crate::cancel::Fence;
 
 const CAPTURE_QUEUE_FRAMES: usize = 100;
 const MAX_FRAME_BYTES: usize = 3_200;
@@ -135,7 +135,10 @@ pub(super) struct Uploader {
 }
 
 pub(super) fn channel() -> (Capture, Handle, Uploader) {
-    let fence = Arc::new(Fence::default());
+    with_fence(Arc::new(Fence::default()))
+}
+
+pub(super) fn with_fence(fence: Arc<Fence>) -> (Capture, Handle, Uploader) {
     let (tx, rx) = mpsc::channel(CAPTURE_QUEUE_FRAMES);
     let (status, status_rx) = watch::channel(Status {
         local: Local::Capturing,

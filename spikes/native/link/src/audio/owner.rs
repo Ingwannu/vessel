@@ -7,13 +7,13 @@
 //!   The private guard stays on that thread through stream destruction. Poisoning
 //!   refuses new acquisitions instead of guessing whether ownership is safe.
 
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 
 use tokio::sync::watch;
 use vessel_app_view::audio::{CaptureCompletion, CaptureLease, CapturePurpose, CaptureSlot};
 
 use super::AudioError;
+use crate::cancel::Fence;
 
 static ENGINE: OnceLock<Engine> = OnceLock::new();
 
@@ -51,7 +51,7 @@ pub(super) enum DeviceFailure {
 pub(super) struct Owner {
     engine: Engine,
     lease: CaptureLease,
-    fence: Arc<AtomicBool>,
+    fence: Arc<Fence>,
     status: watch::Sender<State>,
     failure: Option<DeviceFailure>,
 }
@@ -60,7 +60,7 @@ pub(super) struct Owner {
 #[derive(Debug)]
 pub(super) struct Handle {
     lease: CaptureLease,
-    fence: Arc<AtomicBool>,
+    fence: Arc<Fence>,
     status: watch::Receiver<State>,
 }
 
@@ -76,7 +76,7 @@ impl Engine {
             .map_err(|_private| AudioError::Ownership)?
             .reserve(purpose)
             .map_err(AudioError::Reservation)?;
-        let fence = Arc::new(AtomicBool::new(false));
+        let fence = Arc::new(Fence::default());
         let (status, receiver) = watch::channel(State::Reserved);
         Ok((
             Owner {
@@ -100,12 +100,12 @@ impl Owner {
         self.lease
     }
 
-    pub(super) fn fence(&self) -> Arc<AtomicBool> {
+    pub(super) fn fence(&self) -> Arc<Fence> {
         Arc::clone(&self.fence)
     }
 
     pub(super) fn stopped(&self) -> bool {
-        self.fence.load(Ordering::Acquire)
+        self.fence.is_closed()
     }
 
     pub(super) fn started(&self) -> Result<(), AudioError> {
@@ -128,13 +128,13 @@ impl Owner {
 
     pub(super) fn fail(&mut self, failure: DeviceFailure) {
         self.failure = Some(failure);
-        self.fence.store(true, Ordering::Release);
+        self.fence.close();
     }
 }
 
 impl Drop for Owner {
     fn drop(&mut self) {
-        self.fence.store(true, Ordering::Release);
+        self.fence.close();
         // Keep a poisoned slot held rather than publish unverified release.
         if let Ok(mut slot) = self.engine.slot.lock()
             && slot.stopping(self.lease).is_ok()
@@ -152,7 +152,7 @@ impl Handle {
     }
 
     pub(super) fn stop(&self) {
-        self.fence.store(true, Ordering::Release);
+        self.fence.close();
     }
 
     pub(super) fn status(&self) -> watch::Receiver<State> {

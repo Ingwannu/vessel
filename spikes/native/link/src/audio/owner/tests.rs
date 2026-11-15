@@ -10,7 +10,7 @@ fn stop_and_handle_drop_gate_callbacks_but_never_release_a_live_owner() {
     let late_callback = owner.fence();
     let status = handle.status();
     handle.stop();
-    assert!(late_callback.load(Ordering::Acquire));
+    assert!(late_callback.is_closed());
     assert_eq!(*status.borrow(), State::Running);
     assert!(matches!(
         engine.reserve(CapturePurpose::Dictation),
@@ -25,7 +25,7 @@ fn stop_and_handle_drop_gate_callbacks_but_never_release_a_live_owner() {
     assert_eq!(*status.borrow(), State::Released);
     let (next, handle) = engine.reserve(CapturePurpose::Dictation).unwrap();
     assert!(!next.stopped());
-    assert!(late_callback.load(Ordering::Acquire));
+    assert!(late_callback.is_closed());
     assert_eq!(next.lease(), handle.lease());
 }
 
