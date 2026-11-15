@@ -82,5 +82,8 @@ fn invalid_tag_diagnostics_and_serde_never_reopen_input() {
 #[cfg(feature = "ts")]
 #[test]
 fn typescript_is_the_same_canonical_string_edge() {
-    assert_eq!(<LocaleTag as ts_rs::TS>::inline(), "string");
+    assert_eq!(
+        <LocaleTag as ts_rs::TS>::inline(&ts_rs::Config::new()),
+        "string"
+    );
 }

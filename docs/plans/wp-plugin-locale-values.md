@@ -33,6 +33,10 @@ owner's narrowly authorized offline scratch resolver. No local Cargo, unlocked
 build, network fetch or unrelated lock update is used. The canonical exported
 diff must still preserve native-pinned versions/checksums and be reviewed before
 the locked checks run again; no receiving consumer can adopt this candidate yet.
+V3's implementation precheck also found the root ts-rs12 inline test needs its
+existing Config argument; that exact API correction preserves the string
+assertion. The locked failures never compiled this fixture, so no executed
+compile failure or successful source check is inferred from those receipts.
 
 The canonical value retains the original closed LanguageIdentifierError rather
 than assuming it is Clone/Copy/Eq (it is not). Error classifications are byte
