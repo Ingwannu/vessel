@@ -17,12 +17,29 @@ ENGLISH = "Review the shell's command palette with long session titles and paths
 KOREAN = "긴 한국어 세션 제목과 경로가 좁은 화면에서 키보드 탐색이나 다른 행의 글자와 겹치지 않는지 확인해 주세요. 데스크톱과 휴대폰 크기에서 같은 순서를 유지해야 합니다"
 
 
+def endpoints(node: dict) -> list[str]:
+    """Every address the book would dial for `node`.
+
+    fleet.sh pairs each node as a person does, so an entry is a paired
+    one (`key` with its `direct` and `relay` routes, no `url`); a book
+    written by an older fleet.sh holds `url`. An `ssh` entry, or one with
+    no address at all, has none here and is refused by the caller.
+    """
+    if "url" in node:
+        return [node["url"]]
+    return [*node.get("direct", []), *node.get("relay", [])]
+
+
 def check_fleet(root: Path) -> None:
     book = tomllib.loads((root / "config/vessel/nodes.toml").read_text())
     for node in book["nodes"].values():
-        parsed = urlparse(node["url"])
-        if parsed.hostname != "127.0.0.1" or parsed.port in {7077, 18220, 18221}:
+        addresses = endpoints(node)
+        if not addresses:
             raise ValueError("Shell fixtures require disposable loopback nodes")
+        for address in addresses:
+            parsed = urlparse(address)
+            if parsed.hostname != "127.0.0.1" or parsed.port in {7077, 18220, 18221}:
+                raise ValueError("Shell fixtures require disposable loopback nodes")
     adapter = (root / "bin/claude-agent-acp").read_text()
     if "fake-acp" not in adapter or "FAKE_ACP_OPTIONS=real" not in adapter:
         raise ValueError("Shell fixtures require the real-shape fake adapter")
