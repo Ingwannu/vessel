@@ -3,6 +3,7 @@
 //! sends, and that a late or foreign answer changes nothing.
 
 use vessel_proto::parking::{IdleMinutes, ParkAfter};
+use vessel_proto::restart::RestartRecovery;
 use vessel_proto::settings::{AgentDriver, AgentDrivers, NodeSettings};
 use vessel_proto::{ErrorCode, ProtocolVersion};
 
@@ -11,6 +12,7 @@ use crate::idle_release::{Card, Page, Problem, Switch};
 
 fn idle(minutes: u16) -> NodeSettings {
     NodeSettings {
+        restart_recovery: RestartRecovery::default(),
         drivers: AgentDrivers {
             claude_code: AgentDriver::Acp,
             codex: AgentDriver::Acp,
@@ -22,14 +24,13 @@ fn idle(minutes: u16) -> NodeSettings {
     }
 }
 
-const NEVER: NodeSettings = NodeSettings {
-    drivers: AgentDrivers {
-        claude_code: AgentDriver::Acp,
-        codex: AgentDriver::Acp,
-        open_code: AgentDriver::Acp,
-    },
-    park_after: ParkAfter::Never,
-};
+fn never() -> NodeSettings {
+    NodeSettings {
+        restart_recovery: RestartRecovery::default(),
+        drivers: AgentDrivers::default(),
+        park_after: ParkAfter::Never,
+    }
+}
 
 const NEW: Option<ProtocolVersion> = Some(ProtocolVersion::new(15));
 
@@ -51,7 +52,7 @@ fn shows_on_with_the_minutes_in_force_and_off_for_never() {
         })
     );
     let mut off = Page::reading(laptop.clone(), first);
-    assert!(off.answered(&laptop, first, Ok(NEVER)));
+    assert!(off.answered(&laptop, first, Ok(never())));
     assert!(matches!(
         off.card(NEW),
         Card::Switch(Switch {
@@ -77,7 +78,7 @@ fn turning_off_sends_never_and_on_restores_paseos_hour() {
         page.card(NEW),
         Card::Switch(Switch { pending: true, .. })
     ));
-    assert!(page.answered(&laptop, off, Ok(NEVER)));
+    assert!(page.answered(&laptop, off, Ok(never())));
     let on = tickets.next_ticket().unwrap();
     assert_eq!(page.toggle(on), Some(ParkAfter::DEFAULT));
     assert!(page.answered(&laptop, on, Ok(idle(60))));
@@ -121,8 +122,8 @@ fn ignores_an_answer_for_another_machine_or_an_older_request() {
     let old = tickets.next_ticket().unwrap();
     let new = tickets.next_ticket().unwrap();
     let mut page = Page::reading(laptop.clone(), new);
-    assert!(!page.answered(&laptop, old, Ok(NEVER)));
-    assert!(!page.answered(&MachineKey::from_book("build-server"), new, Ok(NEVER)));
+    assert!(!page.answered(&laptop, old, Ok(never())));
+    assert!(!page.answered(&MachineKey::from_book("build-server"), new, Ok(never())));
     assert_eq!(page.card(NEW), Card::Reading);
 }
 
@@ -137,6 +138,7 @@ fn has_nothing_to_switch_on_an_older_node_or_a_value_it_does_not_know() {
         &laptop,
         read,
         Ok(NodeSettings {
+            restart_recovery: RestartRecovery::default(),
             drivers: AgentDrivers {
                 claude_code: AgentDriver::Acp,
                 codex: AgentDriver::Acp,

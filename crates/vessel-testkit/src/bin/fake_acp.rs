@@ -657,7 +657,7 @@ async fn serve() -> ExitCode {
                         return responder.respond(PromptResponse::new(StopReason::EndTurn));
                     }
                     let used = prompt
-                        .strip_prefix("usage ")
+                        .strip_prefix("usage")
                         .and_then(|tokens| tokens.trim().parse::<u64>().ok());
                     if used.is_some()
                         || matches!(
