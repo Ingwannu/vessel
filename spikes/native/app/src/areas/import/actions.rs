@@ -54,7 +54,7 @@ impl Shell {
                 {
                     let cwd = (!self.areas.draft.folder.is_empty())
                         .then(|| std::path::PathBuf::from(&self.areas.draft.folder));
-                    self.areas.import.model.choose(Scope {
+                    self.areas.import.choose(Scope {
                         context,
                         machine: MachineKey::from_book(&machine.name),
                         harness,
@@ -188,7 +188,7 @@ impl Shell {
         }
         if let Some(mut scope) = self.areas.import.model.scope().cloned() {
             scope.cwd = None;
-            self.areas.import.model.choose(scope);
+            self.areas.import.choose(scope);
             self.areas.import.reproject();
             self.history_refresh();
         }
