@@ -55,8 +55,9 @@ no invented SessionId or resident is allocated for it.
    An explicit older-session key remains a compatibility key, never workspace
    ownership. Loading/unavailable registry data cannot become guessed ownership.
 3. The sole owner claims the concrete slot and produces SessionContext before
-   binding input callbacks or installing hydration state. Admission refusal leaves
-   the old slot, its input, focus and outstanding operation admissions intact.
+   binding input callbacks or installing hydration state. Admission refusal alone
+   leaves the old slot, its input, focus and still-valid operation admissions
+   intact. It cannot defer an independent transport retirement described below.
 4. The owner retires the previous attach admission and notifies concrete owners
    of their retired operation tickets before minting/launching the next follow.
    A fresh FollowBinding exists before the link sees an attach request.
@@ -73,9 +74,16 @@ agent pane when that resource cannot be resolved.
 The existing hold contract is unchanged: nonempty text including whitespace,
 caret/selection/undo resources in use, IME, request forms, overlays, pending sends,
 uploads, confirmations and uncertain wire mutations prevent destructive release.
-All concrete owners must transfer typed clean snapshots before retirement.
+All concrete owners must transfer typed clean snapshots before destructive
+resident/resource retirement or dehydration, not before transport retirement.
 Otherwise switching refuses; a persisted draft alone does not make live input
 safe to discard. A failed admission must not clear the old composer or its holds.
+
+Observed disconnect, attempt cancellation, locator change or actual lease
+replacement invalidates the old FollowBinding and operation tickets immediately,
+even if replacement admission refuses or dirty/IME/pending/uncertain holds keep
+the original resources. Clean snapshot/Ready is never a precondition for this
+transport retirement. Already-sent writes become Uncertain and input remains.
 
 Epoch retirement precedes frontend cancellation/resource release. Same-node
 reattach keeps the resident/input epoch but retires its old FollowBinding and
@@ -111,6 +119,9 @@ their terminal owner's lifecycle; no terminal kill/archive is inferred here.
 - Duplicate completion cannot consume another operation or clear later input.
 - Refused single-slot switch preserves dirty text, pending/uncertain forms and
   actual field entity. IME and overlay holds cannot be bypassed by dehydration.
+- Refused switch combined with retirement of the old lease still rejects queued
+  old records, metadata and action completions; protected input cannot mutate or
+  clear and already-sent effects become uncertain despite retaining the slot.
 - Clean switch retires admission before cancellation and rejects old callbacks;
   no converted global storage, raw follow or global accessor fallback remains.
 - Fresh hidden records reach only their admitted resource; hidden content cannot
