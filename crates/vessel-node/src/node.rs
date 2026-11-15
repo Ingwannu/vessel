@@ -100,7 +100,7 @@ impl Node {
     /// The data directory or event log is unusable, another node holds the
     /// data directory, or the local socket or the address cannot be bound.
     pub async fn start(config: Config) -> Result<Self, NodeError> {
-        let diagnostic_started = tokio::time::Instant::now();
+        let started = tokio::time::Instant::now();
         let setup::Startup {
             id,
             token,
@@ -109,9 +109,9 @@ impl Node {
             store,
             models,
             proxy,
-            session_setup,
+            session_setup: setup,
             clients,
-            relaying,
+            relaying: relay,
         } = setup::Startup::open(&config).await?;
 
         let Core {
@@ -124,16 +124,7 @@ impl Node {
             agents,
             service,
             relays,
-        } = core(
-            &config,
-            id,
-            &store,
-            &keypair,
-            relaying,
-            session_setup,
-            diagnostic_started,
-        )
-        .await?;
+        } = core(&config, id, &store, &keypair, relay, setup, started).await?;
         drop(tokio::spawn(serve_models(models, proxy, stop.clone())));
         let closing = CancellationToken::new();
         let rpc = Arc::new(Server::new(
