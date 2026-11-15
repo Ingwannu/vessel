@@ -98,3 +98,11 @@ Paseo's permissive number payload. Search durations use the existing DurationMs
 unit; the provider decoder will normalize seconds rather than expose two units.
 Compaction retains Paseo's Loading/Completed contract; ACP failed/canceled
 compaction needs an explicit failure-notice mapping before advertising support.
+
+## Standalone caller identity allocator
+
+ClientMessageId::random uses the existing UUID dependency and returns a valid
+identity directly. Callers allocate it before preparing text/files/context and
+retain it with the final prepared payload across explicit reconciliation retries.
+This values-only dependency adds no event fields, methods, storage or runtime
+activation; all timeline capabilities remain unassigned.
