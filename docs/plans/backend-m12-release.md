@@ -1143,6 +1143,15 @@ the reasons and the trade-offs. Where it stands:
   Shown on 2026-11-15: `vessel-cli` and `vessel-node` build for Windows
   with `cargo-xwin` (console programs, 74.4 MB and 56.9 MB) and import
   only DLLs Windows ships. Not shown: that they run there.
+- W15's local-node proof on Windows uses a private named pipe per launch
+  (`first_pipe_instance`, `reject_remote_clients`). The coordinator set
+  what the first build with it shows (2026-11-15):
+  - the Windows compile and the DLL and resource checks;
+  - a console pipe probe run under wine, reported as an approximation,
+    because wine is not held to enforce those two flags as Windows does.
+  - The flags' real Windows behaviour stays "unverified" in the notes
+    and the ledger until it runs on real Windows: the operator's PC, when
+    the operator chooses.
 
 ## Labels compiled without secrets (ADR 0099, 2026-11-15)
 
