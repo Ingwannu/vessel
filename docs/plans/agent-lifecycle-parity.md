@@ -400,8 +400,11 @@ No row of the crate table changes.
 ## Resume point
 
 Current label-mutation preparation: `LabelPatch` and its five edge tests are
-implemented; remote narrow checks are pending. This is a value foundation only, with
-no mutation method/event, actor/store write or feature assignment. Earlier notes
+implemented. The corrected TypeScript-enabled prototype Clippy passed on its
+exact pre-merge revision; runtime tests remain pending. The shared node base is
+merged without conflict. A separate refactor wraps the existing rename queue as
+one metadata queue, with its response and capacity unchanged. No label mutation
+method/event, actor/store write or feature assignment exists yet. Earlier notes
 below retain their historical checkpoints.
 
 
@@ -607,3 +610,25 @@ The first TypeScript-enabled narrow Clippy stopped at `doc_markdown`: the module
 header named the map type without code markup. The header now links that existing
 type. No input, serializer, test expectation or bound changed; the original
 strict failure is retained and execution is still unverified.
+
+
+## Metadata queue preparation (behavior-preserving refactor)
+
+[Decision Log]
+- Purpose: title and label mutations need one actor publication order instead
+  of independently scheduled per-field queues.
+- Existing asset: both session modes already receive renames through a bounded
+  channel and publish through `Lifecycle`; title comparison and acknowledgement
+  already happen there, including generated-title precedence.
+- Alternatives: a second queue would not establish this shared order. A trait or
+  dynamic dispatcher is unnecessary for a closed set of metadata changes.
+- Choice: wrap the existing rename message in a private enum and retain the same
+  channel under the metadata name. `METADATA_CAPACITY` retains the former bound.
+  The only produced variant is Rename; both actors delegate to the unchanged
+  rename implementation.
+- Effects: no wire, dependency, new mutation, signal, response, deadline or test
+  expectation changes. Existing structured/terminal rename and generated-title
+  tests remain the behavior checks; no implementation-mirroring test is added.
+- Follow-up: label mutation will add its own variant and tests in the behavior
+  commit. The external native-options mailbox and later execution fence remain
+  their existing owners' boundaries and are not edited by this refactor.

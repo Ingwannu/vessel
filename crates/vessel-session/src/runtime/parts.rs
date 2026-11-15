@@ -18,7 +18,7 @@ use crate::activity::Tracker;
 use crate::conversation::Seen;
 use crate::delivery::Desk;
 use crate::forge::ForgeView;
-use crate::handle::{Input, Rename, SessionHandle, Shared};
+use crate::handle::{Input, MetadataChange, SessionHandle, Shared};
 use crate::lifecycle::Lifecycle;
 use crate::marks::Marks;
 use crate::moving::Control;
@@ -78,15 +78,15 @@ pub(super) struct Parts {
     pub(super) durable: mpsc::Receiver<Arc<EventRecord>>,
 }
 
-/// How many renames may wait for a session's actor; a caller waits for
+/// How many metadata changes may wait for a session's actor; a caller waits for
 /// room (each also waits for its own to be published).
-const RENAME_CAPACITY: usize = 8;
+const METADATA_CAPACITY: usize = 8;
 
 /// The senders the shared state holds, for the actor's receivers: model
-/// calls, renames, and the node's view of the session's pull request.
+/// calls, metadata, and the node's view of the session's pull request.
 type Channels = (
     mpsc::Sender<ModelCall>,
-    mpsc::Sender<Rename>,
+    mpsc::Sender<MetadataChange>,
     watch::Sender<Option<Arc<ForgeView>>>,
 );
 
@@ -112,10 +112,10 @@ impl SessionRuntime {
         info.board = Some(activity.board(since));
         let titled = info.title.is_some();
         let (model_calls, recorded) = mpsc::channel(MODEL_CALL_CAPACITY);
-        let (renames, renaming) = mpsc::channel(RENAME_CAPACITY);
+        let (metadata, metadata_changes) = mpsc::channel(METADATA_CAPACITY);
         let (forge, forge_view) = watch::channel(None);
         let state = (seen, Marks::after(attention, info.detach_receipt));
-        let channels = (model_calls, renames, forge);
+        let channels = (model_calls, metadata, forge);
         let (info, kill, shared) = self.shared(info, (input, process), control, channels, state);
         let _previous = shared.limits.send_replace(limits);
         let (durable_sender, durable) = mpsc::channel(self.config.durable_capacity.get());
@@ -125,7 +125,7 @@ impl SessionRuntime {
                 stop: Stopper::new(kill, self.shutdown.clone()),
                 notices,
                 model_calls: recorded,
-                renames: renaming,
+                metadata: metadata_changes,
                 forge: forge_view,
                 titled,
             },
@@ -140,7 +140,7 @@ impl SessionRuntime {
         info: SessionInfo,
         (input, process): (Input, ProcessLifetime),
         (control, driver): (Option<mpsc::Sender<Control>>, Driver),
-        (model_calls, renames, forge): Channels,
+        (model_calls, metadata, forge): Channels,
         (seen, marks): (Seen, Marks),
     ) -> (watch::Sender<SessionInfo>, CancellationToken, Arc<Shared>) {
         let id = info.id;
@@ -158,7 +158,7 @@ impl SessionRuntime {
             driver,
             model_calls,
             ended: AtomicBool::new(false),
-            renames,
+            metadata,
             reported: Mutex::new(None),
             seen: Mutex::new(seen),
             // A new session has no marks; one started again takes the

@@ -2,7 +2,9 @@
 //! sends the session is `input`'s.
 
 mod input;
+mod metadata;
 mod title;
+pub(crate) use metadata::MetadataChange;
 pub use title::TitleUpdate;
 pub(crate) use title::{Rename, RenameChange};
 
@@ -58,9 +60,9 @@ pub(crate) struct Shared {
     /// Set just before the final status is published (`Publisher::commit`),
     /// so whoever sees that record finds it set ([`SessionHandle::has_ended`]).
     pub(crate) ended: AtomicBool,
-    /// Renames for the actor to publish (protocol 9). Bounded; a caller
-    /// waits for room, then for the rename to be in the log.
-    pub(crate) renames: mpsc::Sender<Rename>,
+    /// Metadata for the actor to publish. Bounded; a caller waits for room,
+    /// then for its change to be in the log.
+    pub(crate) metadata: mpsc::Sender<MetadataChange>,
     /// The options of the last `options_changed` the session published
     /// (protocol 9), set by the publisher; what a move or an export carries
     /// on. A `std` mutex held for one clone or one store, never across an

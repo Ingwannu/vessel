@@ -18,7 +18,7 @@ use vessel_proto::{
 use vessel_pty::{PtyProcess, Signal};
 
 use crate::forge::ForgeView;
-use crate::handle::Rename;
+use crate::handle::{MetadataChange, Rename};
 use crate::publish::Publisher;
 use crate::stop::{Step, Stopper};
 
@@ -81,9 +81,8 @@ pub(crate) struct Lifecycle {
     /// Model calls to record (`SessionHandle::model_call`); the shared
     /// state holds the sender, so this stays open while the actor runs.
     pub(crate) model_calls: mpsc::Receiver<ModelCall>,
-    /// Renames to publish (`SessionHandle::rename`, protocol 9); open while
-    /// the actor runs, as `model_calls` is.
-    pub(crate) renames: mpsc::Receiver<Rename>,
+    /// Metadata to publish; open while the actor runs, as `model_calls` is.
+    pub(crate) metadata: mpsc::Receiver<MetadataChange>,
     /// The node's view of the session's pull request (protocol 11,
     /// `SessionHandle::set_pull_request`); the shared state holds the
     /// sender, so it stays open while the actor runs.
@@ -143,8 +142,19 @@ impl Lifecycle {
         }
     }
 
+    /// Keep metadata comparison, publication and acknowledgement in one actor order.
+    pub(crate) async fn metadata_changed<P: Stoppable>(
+        &mut self,
+        process: &mut P,
+        change: MetadataChange,
+    ) {
+        match change {
+            MetadataChange::Rename(rename) => self.renamed(process, rename).await,
+        }
+    }
+
     /// Publish a rename and answer it.
-    pub(crate) async fn renamed<P: Stoppable>(&mut self, process: &mut P, rename: Rename) {
+    async fn renamed<P: Stoppable>(&mut self, process: &mut P, rename: Rename) {
         let selected = {
             let current = self.out.current();
             rename.change.resolve(&current)
