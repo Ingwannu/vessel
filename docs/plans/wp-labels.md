@@ -134,3 +134,13 @@ persistence. Node journal/planner tests, protocol wiring/old-peer/forwarded
 coverage remain owed. The native skeleton lives on
 the separate app branch and must merge the announced app base first. No full
 gate, UI capture or production flow has been verified.
+
+The staged actor core now owns commit-to-publication ordering even when the
+request is cancelled after acceptance. It uses the existing bounded Tokio
+channels; no new framework or runtime is introduced. Observer watches are
+subscribed and marked seen before the actor snapshot, preventing lost wakes
+and repeated immediate polls from a previously unseen watch version. Polls
+time out after a named limit and cancellation drops the receiver directly.
+Four timing regressions use an explicit scripted backend and await execution.
+The real backend remains blocked on the reviewed registry/store producer;
+this core is cfg(test), not a fake installed into product dispatch.

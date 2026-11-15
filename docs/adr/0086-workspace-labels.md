@@ -120,7 +120,13 @@ fake-node tests are updated when wiring lands, never weakened to stage types.
 
 ## Validation and current state
 
-Proposed contract only. Registry values and transaction helpers are staged
-by their owner, not yet consumer-ready. Session-label calls remain owned by
-ADR 0063. Native skeleton is independent of those unassigned calls. No
-persistence, RPC, gate, capture or production flow is claimed complete.
+Value contract and test-only SQL/service implementations are staged. Eight
+real-SQL tests passed with an explicit fake registry. The new service core
+serializes accepted writes independently of caller lifetime; scripted timing
+regressions cover cancellation after acceptance, failure/no-op publication,
+observer wakeup/timeout and observer receiver cleanup. Their execution is
+still pending. This does not establish the real registry/store adapter.
+
+Registry identity alone is reviewed; transaction helpers are not yet
+consumer-ready. Session-label calls remain owned by ADR 0063. No RPC, whole
+gate, capture or production flow is claimed complete.
