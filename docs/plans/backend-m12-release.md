@@ -962,6 +962,36 @@ never rebuilt.
     motion (software renderer) and used 0.5% of a core on its first
     screen, ERROR 0.
 
+- **0.0.0.0.18**:
+  - Built from exactly `1d1f11df` (`backend/m12-spike`, native gate
+    1169 passed, root gate green), checked out detached and run through
+    `cargo-slot`'s priority lane (5 jobs, a slot at once); this branch
+    then merged it. Windows took 6 min 40 s, Linux 9 min 6 s.
+  - The set went into place at 05:10:02 UTC on 2026-11-15 and was
+    published to `preview` at 05:51:37 UTC, after the coordinator's
+    smoke test on the real node. The notes carry one known problem (in
+    a small window or with many projects the bottom of the sidebar is
+    pushed off screen and does not scroll) and what was not checked on
+    screen (the attachment file dialog, pasted file list and drag and
+    drop; pressing the rename pencil; the PR view against real GitHub
+    and on Windows). The terminal model and the provider removal rule
+    were left out of the notes: it was not shown that either is visible
+    yet.
+  - From outside, the public feed serves the manifest (equal to the
+    local one) and all seven files, byte for byte the dist folder's,
+    with matching sums and signature. The published 0.0.0.0.17 Linux
+    build took 0.0.0.0.18 by itself 10 s after its start (ERROR 0, no
+    leftover `.part`, no feed token in its log). `/dl/` on loopback lists
+    0.0.0.0.18 first with its seven files; from outside it answers 302.
+  - Sizes, with the change against 0.0.0.0.17: setup 13,601,986
+    (+117,539), exe 49,992,192 (+556,544), zip 19,887,870 (+189,362),
+    linux 86,921,328 (+506,392), tar.gz 30,103,857 (+183,681).
+  - Checks: icons the same as 0.0.0.0.17, the Windows version resource
+    0.0.0.0.18, the debuglink read from a copy (CRC matches, mtime
+    unchanged), the four licence texts in both archives, no feed token
+    or path in the build log. Not measured this time (the budget was
+    tight): CPU on Xvfb.
+
 ## Logs and retries (from the build after 0.0.0.0.5)
 
 - **The log file**: `spikes/release/applog` (`vessel-app-log`). The app
