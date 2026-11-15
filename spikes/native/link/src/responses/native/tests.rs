@@ -226,7 +226,7 @@ async fn missing_connection_and_capacity_refuse_the_same_ticket() {
 async fn a_retired_selected_connection_sends_no_answer_before_poll() {
     let (client, mut remote) = peer().await;
     let (_home, state, selected, context) = admitted(client);
-    state.clients.get("scratch").unwrap().retire();
+    state.clients["scratch"].retire();
     let answer = run(&selected, ask(context)).await;
     assert_eq!(answer.result, Err(Problem::Unconfirmed));
     assert!(
@@ -248,7 +248,7 @@ async fn retirement_after_send_cannot_be_installed_as_a_successful_answer() {
     else {
         panic!("typed input");
     };
-    state.clients.get("scratch").unwrap().retire();
+    state.clients["scratch"].retire();
     write(
         &mut remote,
         ServerFrame::Response {

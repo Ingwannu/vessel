@@ -551,3 +551,8 @@ move the SavePrefs body unchanged into prefs::persist and retain one exhaustive
 dispatch arm. Task creation, await order, warnings and persistence behavior stay
 identical. This avoids a dispatch lint waiver, another persistence module or any
 size-record increase. No new test behavior is introduced by this extraction.
+
+The two exact peer-retirement fixtures use test-only HashMap indexing instead of
+get().unwrap(), as the reported get_unwrap lint requires. Fixture identity and
+all before-poll/after-send retirement assertions remain unchanged; no product
+indexing, retry policy or suppression attribute is added.
