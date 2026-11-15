@@ -6,7 +6,7 @@ use crate::shell::Shell;
 use vessel_app_kit::ui::{
     Context, Div, ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
 };
-use vessel_app_kit::{ButtonKind, ButtonState, Tokens, button_with_kind};
+use vessel_app_kit::{ButtonKind, ButtonState, Tokens, button_with_kind, theme::spacing};
 use vessel_app_view::workspace::command_changes::{Listed, compare_approved};
 use vessel_app_view::workspace::git::Reading;
 use vessel_proto::workspace::{ProjectCommands, ProjectInfo};
@@ -42,7 +42,7 @@ pub(super) fn render(
     .on_click(cx.listener(move |shell, _event, window, cx| {
         shell.refresh_command_card(&refresh_machine, id, window, cx)
     }));
-    let mut column = div().flex().flex_col().gap(px(10.0)).child(refresh);
+    let mut column = div().flex().flex_col().gap(px(spacing::S3)).child(refresh);
     if model.exhausted {
         return column.child(empty(shell.words.scripts().exhausted(), tokens));
     }

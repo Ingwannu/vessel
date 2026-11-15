@@ -42,7 +42,7 @@ px-other spikes/native/app/src/areas/settings/appearance.rs 6
 px-other spikes/native/app/src/areas/workspace/code/changes.rs 1
 px-other spikes/native/app/src/areas/workspace/code/found.rs 2
 px-other spikes/native/app/src/areas/workspace/code/viewer.rs 2
-px-other spikes/native/app/src/areas/workspace/detail.rs 2
+px-other spikes/native/app/src/areas/workspace/detail.rs 1
 px-other spikes/native/app/src/areas/workspace/projects.rs 2
 px-other spikes/native/app/src/areas/workspace/remove.rs 1
 px-other spikes/native/app/src/areas/workspace/sidebar.rs 2

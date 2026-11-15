@@ -370,3 +370,7 @@ Mutation/preview/approval widget ids derive from their existing receipt ticket
 command or confirmation under the same button id. Listener controls additionally
 include exact TerminalId to avoid equal-port collisions across runs. These are
 presentation keys, not another epoch allocator or approval authority.
+
+The extracted command card uses the existing kit spacing scale rather than
+transferring a legacy pixel literal to a new file. Its original detail leaf's
+remaining literal allowance shrinks with the extraction; no token budget grows.
