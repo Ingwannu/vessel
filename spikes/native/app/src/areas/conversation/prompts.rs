@@ -12,6 +12,9 @@ use vessel_app_view::prompt_index::{IndexAsk, IndexTarget, PromptIndex, PromptRo
 use vessel_proto::prompt_index::PromptIndexEpoch;
 use vessel_proto::{EventRecord, EventSeq, SessionEvent};
 
+#[cfg(test)]
+mod tests;
+
 /// Paseo bounds loading a destination at five seconds.
 const JUMP_DEADLINE: Duration = Duration::from_millis(5_000);
 
