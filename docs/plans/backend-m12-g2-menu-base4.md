@@ -49,3 +49,8 @@ replaces the same row with Pending, Success and disabled states, checks that
 neither input activates stale content, then reenables and explicitly dismisses.
 Both themes use the real shared renderer and mixed EN/KO text. This is not OS
 input/capture proof and does not supersede the historical Linux F5 HOLD.
+
+Package formatting removes one extra blank line from the adopted G4 focus
+regression file; no test body, assertion or production helper byte changes.
+The menu producer includes only the four explicitly approved G4 producer
+changes (captured-dismiss prerequisite plus the three focus commits).
