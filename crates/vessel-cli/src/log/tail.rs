@@ -10,6 +10,9 @@ use vessel_proto::EventRecord;
 pub(crate) struct Tail(usize);
 
 impl Tail {
+    /// Paseo's omitted follow history window, shared by parser and reader.
+    pub(crate) const FOLLOW_DEFAULT: Self = Self(10);
+
     /// An empty requested window differs from an omitted limit.
     pub(crate) const ZERO: Self = Self(0);
 
@@ -17,6 +20,12 @@ impl Tail {
     #[must_use]
     const fn get(self) -> usize {
         self.0
+    }
+}
+
+impl std::fmt::Display for Tail {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.0, f)
     }
 }
 

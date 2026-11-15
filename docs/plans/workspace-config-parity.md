@@ -90,6 +90,7 @@ crates while writing ADR 0066.
 | Service run, terminal caps | session terminals, ADR 0031 | Modify. Terminals to open are shells that already exist. |
 | Port discovery | the existing scanner | Leave it. Assignment is a different fact (ADR 0031, option 1, which that ADR deferred). |
 | `paseo.json` parser | none, and ADR 0027 refused that filename | Do not add one. ADR 0066. |
+| Approval text and script comparison | CLI workspace formatter and web command-changes | Modify. Keep their behavior in focused modules and name every entry field before adding port data. |
 | Crate edge or dependency | none needed | No new edge, no new crate, no new dependency. |
 
 ## Slices
@@ -215,6 +216,10 @@ shown and a partial comparison cannot claim the commands are unchanged.
   source chains, trim behavior, nonempty block and strict serde; a TypeScript
   feature test pins optional fields without nullable values. These types
   are not yet reachable from the project-file parser or a wire reply.
+- Prepared display boundary: the CLI command formatter and web script
+  comparison now have focused modules with complete entry projections.
+  Existing output and comparison expectations stay unchanged; no field
+  or approval behavior is added.
 - Before port fields: ADR 0066 now defines the `ScriptEntry` construction
   invariant and complete borrowed display view. The native lead owns its
   constructor/getter and exhaustive-card adaptation; web coverage and

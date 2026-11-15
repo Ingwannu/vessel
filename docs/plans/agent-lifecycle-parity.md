@@ -167,11 +167,16 @@ Read first, and reproduced except for the differences ADR 0063 lists.
   terminal and status records, before rendering. This preserves the existing
   `--from` and retention cursor unit in both modes. Tail can begin inside a
   streamed message; it does not count visible lines or complete messages.
+  The same raw-record predicate order applies to timestamps and kinds.
 - `activity-curator.ts:200-207` returns "No activity to display." when
   curation has no entries; one-shot prints that result (`logs.ts:314-315`).
   Vessel's existing renderer emits only selected records and real retention
   notices. A filter with no match is quiet, preserving stdout capture rather
   than synthesizing an activity banner. A CLI case checks both streams.
+- Paseo's follow-start banner is also omitted: its history/live boundary
+  writes the tail label and Ctrl-C hint to stdout (`logs.ts:362-363,402`).
+  Vessel emits no boundary banner on either stream, so stdout capture stays
+  session output and stderr stays status and genuine stream notices.
 - Paseo waits for an explicit stop even after timeline activity ends
   (`logs.ts:401-407`). Vessel follows through the current session run,
   ending at the stream's final status or Ctrl-C. This preserves the existing
@@ -326,28 +331,53 @@ No row of the crate table changes.
 - Selection slice 5b's first narrow compile found two test-only errors: a
   failure fixture bypassed the existing status constructor, and a turn cursor
   was unused. Both are corrected without changing assertions; the narrow
-  clippy, ten log units and two fake-node CLI cases passed. The complete
-  Rust gate passed 1989/0/12, with two TS freshness tests and all applicable
-  checks passing. No waiver or rerun was needed; forge checks were explicitly
-  skipped because the base has no forge-fixture feature. The review's
-  documentation-only correction now states the raw `--since` unit and effect;
-  no selection logic or assertion changes.
-- Slice 5b passed its complete code gate: time/kind predicates precede
+  clippy, ten log units and two fake-node CLI cases passed. Its complete
+  Rust gate also passed: 1989 passed, none failed, 12 ignored, plus the two
+  TS freshness tests. Both prebuilds and all applicable checks passed; no
+  waiver or rerun was needed. Forge checks were skipped because this base
+  has no forge-fixture feature. The wire and page are unchanged.
+- Review correction: the timestamp floor's raw-record unit, midpoint effect
+  and history/live consistency are now explicit in the ADR, plan and help.
+  This changes documentation only; the complete code gate remains valid.
+- Slice 5b passed its complete gate: time/kind predicates precede
   the existing tail window. Sequence gaps separate message chunks, but only
   raw page gaps generate retention notices. Parser, predicate, render-boundary
   and fake-node selection tests passed in the narrow runs. Existing render
-  expectations stay unchanged. A no-match CLI assertion also checks that no banner is
-  fabricated. Follow and its transition test remain a protected draft for
-  slice 5c, which must reuse these predicates and the raw history cursor.
+  expectations stay unchanged. A no-match CLI assertion also checks that no
+  banner is fabricated.
   The inherited stream-end wait and the new turn-end wait share one named
   event budget; their expected records and output remain unchanged.
+- Follow review found that recreating a Ctrl-C future for each iteration
+  drops its receiver during output. The corrective slice first shares the
+  test child/capture setup without changing any expectation; it will then
+  retain one interrupt future across writes. The interrupt branch is polled
+  first so its listener exists before the first live write. A Linux CLI case
+  verifies the owned child executable before SIGINT, successful exit and the
+  still-live fake session. It cannot force the signal-during-write interleaving.
+  Corrective clippy and all four log CLI cases passed, including actual
+  SIGINT, successful CLI exit and the still-live fake session. The new
+  complete gate remains owed.
+- Implementation slice 5c, verification pending: follow reuses these predicates,
+  the tail window and the raw history cursor. Its omitted history count has
+  one constant, also used by the CLI help. The CLI edge owns the execution
+  mode; the selector module only owns predicates. Follow test turn cursors
+  are explicitly ignored, without changing its output assertions. The ADR
+  names the raw record cursor rather than the last visible match.
+  EOF, interruption and stream notices finish an open text line; terminal
+  bytes stay untouched. Follow passed narrow clippy, eleven log units and
+  three fake-node CLI cases, including history-to-live output exactly once
+  and EOF. The prior complete gate passed 1991/0/12, but the listener fix and
+  signal case passed their narrow checks and need a new complete gate.
 - The contract's follow bullet and EOF explanation now name the same end.
   Parser and command-level checks are documented together: an invalid tail
   is refused by both products, with earlier validation in Vessel.
-- Next: submit the documentation correction with fast checks, then continue
-  checking the follow draft against the verified predicates while
+- A source-preparation script continued after a failed conflict-resolution
+  step and left conflict markers in an unverified follow commit. A new
+  follow-up repaired both owned files with every prior scenario retained.
+  That intermediate commit was never compiled or used as gate evidence.
+- Next: check and fully gate the corrected follow slice 5c while
   label call wiring awaits the shared accessor. No new wire call or dependency
-  is added by log options. Both slices include the caller-to-projection
+  is added by log options. All slices include the caller-to-projection
   citations and retain the raw-chunk test; the selection render context changes
   without changing its expected fragment. Windows, macOS, native UI and real harnesses remain
   unverified.
