@@ -145,7 +145,7 @@ pub(crate) fn render(
                 tokens,
             )
             .on_click(cx.listener(move |this, _event, window, cx| this.go(route, window, cx)))
-            .when(route == Route::Draft, |row| {
+            .when(route == Route::NewWorkspace, |row| {
                 row.track_focus(&shell.areas.sidebar.layout.navigation)
             }),
         );

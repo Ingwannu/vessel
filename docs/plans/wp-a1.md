@@ -367,3 +367,11 @@ The central owner-close callback is not available yet, so layout close never
 retires the content map or frees capacity by evicting unsent input. This is a
 required consumer condition; the live canonical workspace route/minter remains
 separate from the seeded content API and is not claimed by its narrow checks.
+
+The exact309 App execution run reached 117 passes, one failure and two ignored
+captures. All owned creation/seed/editor cases passed. The failing real-sidebar
+case exposed an A1 regression: Route::NAV now starts with NewWorkspace, but the
+existing navigation focus handle was still mounted only for Draft. The same
+handle is now mounted on NewWorkspace; no focus sentinel or test assertion is
+changed. The App failure stopped Cargo before Link tests ran, so Link execution
+is still owed. The full run remains recorded as failed pending this correction.
