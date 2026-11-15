@@ -1,6 +1,8 @@
 # Workspace archive and recovery
 
-Status: staged; identity types are reviewed, registry persistence is a separate dependency.
+Status: staged. Announced node `9c150c6e` supplies reviewed identity, registry
+persistence, lifecycle CAS and start-lease metadata. Backing/admission generation
+and authoritative physical/resource cleanup proofs remain missing dependencies.
 
 ## Reference and existing assets
 
@@ -24,8 +26,9 @@ stop unrelated resources and race provider startup.
 
 - Purpose and intent: archive only resources admitted into one durable workspace;
   recovery keeps that workspace identity and never silently starts its agents.
-- Constraints: registry/store dependency is being reviewed independently; no
-  duplicate registry DTO, UUID implementation or path-based owner lookup is added.
+- Constraints: the reviewed registry/store metadata is present on the announced
+  base, but does not prove backing generation or resource exit. No duplicate
+  registry DTO, UUID implementation or path-based owner lookup is added.
 - Alternatives: infer ownership from cwd; archive metadata before draining leases;
   retry failed create/restore blindly; add an external lifecycle library.
 - Choice: modify existing resource lifecycle through a small generic backend
@@ -71,9 +74,11 @@ archived sessions, matching the reference.
 
 ## Resume point
 
-Done: exact reviewed identities merged after Quality B; reference and asset audit.
+Done: reviewed identities and registry/store metadata merged from the announced
+node base; reference and asset audit.
 In progress: staged archive/recovery workflows and deterministic fake regressions.
-Next: adopt the reviewed registry/store dependency, implement its backend adapter,
+Next: obtain canonical generation and physical/resource cleanup proof, implement
+the registry-backed adapter,
 register pending typed RPCs, connect native recovery UI, then root/native gates and
 real fake-fleet filesystem/process checks. No runtime workspace parity is claimed.
 
@@ -299,3 +304,21 @@ cleanup also succeeds. Real descendant and I/O acknowledgements remain required
 before normal terminal-backed workspace deletion can be connected. New component
 and actual-runner regressions are written, not executed; no safety acceptance or
 consumer-ready producer is claimed.
+
+## Announced registry base and remaining effect boundary
+
+The node part merges `9c150c6e`; the native app advances only through its announced
+shared base. All incoming method rows remain in the canonical table, with the two
+A2 pending rows appended at its end. One `subagents` module is registered, and the
+current-parent helper keeps its shared marking-lock precondition.
+
+Generated TypeScript is retained byte-for-byte from that announced base during
+merge resolution. The VM generator must regenerate the combined A2 table before
+wire freshness or a final gate is claimed; no generated declaration is invented
+by hand. The current union has not passed its changed-source checks.
+
+The registry's six metadata RPCs remain unassigned and do not implement archive
+or restore effects. Restoring still requires canonical generation, actual backing
+postconditions and retained physical admission. Session logical archive receipts,
+terminal ended status, process revocation and `OwnedGroupExit` are not substitutes
+for the stronger cleanup evidence required before backing mutation.
