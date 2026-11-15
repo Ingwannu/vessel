@@ -54,7 +54,9 @@ impl State {
                 self.shared.clone(),
                 self.claude.clone(),
                 self.codex.clone(),
-                self.data.root().join("skill-transactions"),
+                std::fs::canonicalize(self.data.root())
+                    .map_err(SkillError::from)?
+                    .join("skill-transactions"),
             )?;
             self.manager = Some(SkillManager::new(SkillBundles::shipped()?, roots));
         }

@@ -379,3 +379,10 @@ set. A release that only removes an asset must still produce an update even
 if SKILL.md and every remaining asset are unchanged. The regression preserves
 an edited obsolete file while removing the unchanged copy in the other home.
 Future manifest versions refuse before declaring an install current.
+
+
+The private transaction root is derived from the prepared data directory's
+canonical path, so a supported relative node data directory is not rejected
+as a relative skill root. Manifest unknown fields are refused rather than
+being erased by an older writer. Unknown skill selections remain invalid
+requests through both direct validation and the transactional save error.

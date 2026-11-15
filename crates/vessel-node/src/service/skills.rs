@@ -47,9 +47,10 @@ impl NodeService {
 fn wire(error: SkillsError) -> WireError {
     let code = match &error {
         SkillsError::Busy | SkillsError::Stopping => ErrorCode::Conflict,
-        SkillsError::Skill(vessel_fleet::orchestration::SkillError::UnknownSkill) => {
-            ErrorCode::InvalidRequest
-        }
+        SkillsError::Skill(vessel_fleet::orchestration::SkillError::UnknownSkill)
+        | SkillsError::Selection(vessel_fleet::orchestration::SelectionError::Skill(
+            vessel_fleet::orchestration::SkillError::UnknownSkill,
+        )) => ErrorCode::InvalidRequest,
         SkillsError::Skill(_)
         | SkillsError::Selection(_)
         | SkillsError::Store(_)

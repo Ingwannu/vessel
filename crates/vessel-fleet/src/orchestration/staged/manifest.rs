@@ -13,6 +13,7 @@ const FORMAT_VERSION: u32 = 1;
 use crate::orchestration::MANAGED_SKILL_MANIFEST as FILE;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct ManagedFile {
     version: u32,
     #[serde(deserialize_with = "decode_files")]

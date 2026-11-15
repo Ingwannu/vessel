@@ -1903,8 +1903,8 @@ Pending exact-turn receipt methods (same `MCP_PARITY`) are forwardable unary
 calls. `session.check_prompt_tracking` requires Read and has no side effect;
 `session.prompt_tracked`, `session.prompt_receipt` and
 `session.close_prompt_receipt` require Operate plus ordinary target ownership.
-The receipt binds its exact session and authenticated opener; wrong identity,
-session, closed or expired receipts all return not-found. Pending reads wait
+The receipt binds its exact session and authenticated opener. After ordinary
+scope/target admission, mismatched, closed or expired receipts return not-found. Pending reads wait
 at most 30 seconds. The ordinary local `session.prompt { notify: true }`
 retains protocol 11, while a `fleet.forward` carrying a notifying prompt also
 requires MCP_PARITY. The origin derives the notification parent from a direct
