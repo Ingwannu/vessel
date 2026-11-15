@@ -55,7 +55,7 @@ fn objective_bounds_are_bytes_and_invalid_content_is_never_truncated_or_printed(
         format!("{maximum}x").parse::<GoalObjective>(),
         Err(GoalObjectiveError::TooLong)
     );
-    let unicode = "한".repeat(MAX_GOAL_OBJECTIVE_BYTES / "한".len());
+    let unicode = "한".repeat(MAX_GOAL_OBJECTIVE_BYTES.div_euclid("한".len()));
     assert!(unicode.parse::<GoalObjective>().is_ok());
     assert_eq!(
         format!("{unicode}한").parse::<GoalObjective>(),

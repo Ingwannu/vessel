@@ -1,5 +1,5 @@
 //! Serde internally tagged unit variants ignore payload fields even with
-//! deny_unknown_fields. Empty struct variants validate the identical wire shape
+//! `deny_unknown_fields`. Empty struct variants validate the identical wire shape
 //! while preserving the public unit variants used by the actor and transport.
 use super::{GoalIntent, GoalObjective};
 use serde::{Deserialize, Deserializer};
