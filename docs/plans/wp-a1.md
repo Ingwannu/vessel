@@ -212,3 +212,11 @@ unsupported without clearing text. Two narrowly documented dead-code
 expectations apply only to the staged cross-worker accessors/intake and must
 be removed with their actual consumers. This producer is not a working fork,
 attachment, persistence or creation flow and must not be advertised as ready.
+
+### Portable renderer extraction
+
+Draft ownership and rendering now occupy separate files on the composer's
+exact committed source. This moves the existing functions verbatim and keeps
+the same four token exceptions under their new path, with no budget increase
+or launch/form behavior change. It allows the scoped editor owner to remain
+under the existing file limit while retaining the composer's current card.
