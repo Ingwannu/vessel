@@ -83,3 +83,12 @@ to review the completed shared Kit source/narrow scope while that integration
 check waits. No full native, Git/F1 product or UI pass is implied. Historical
 F5/actual clip/hit/neighbor/consumer captures remain open. Primary merged074ade16
 with docs-only delta because complete G4 prerequisites were already adopted.
+
+The same exact8158be6d ordinary App Clippy run
+schedules-narrow-20261115T091044Z-8158be6d finished0 (fonts/cargo0/no skip),
+with actual View/Kit/Link/App checking. Steps SHA256
+eefd457ec994075a0ab1ea21b7fdaf690f431d40f546ced5052252c76b2d911c.
+The prior queued statement records the earlier submission state; it is not a
+second source review or an assertion of full native/consumer/runtime/UI approval.
+This completes the planned narrow suite for that immutable producer; no unchanged
+whole gate is added. The existing V1 Kit source disposition remains bounded.
