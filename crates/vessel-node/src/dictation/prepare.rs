@@ -93,6 +93,18 @@ pub(super) struct Factory {
     roots: roots::Factory,
 }
 impl Factory {
+    /// Share a synthetic loader counter across service recreation, never in product.
+    #[cfg(test)]
+    pub(super) fn with_root_probe(
+        reader: Reader,
+        probe: Arc<std::sync::atomic::AtomicUsize>,
+    ) -> Self {
+        Self {
+            reader,
+            roots: roots::Factory::refusing_once(probe),
+        }
+    }
+
     /// Share the admitted read gate while creating exactly one root cache.
     pub(super) fn new(reader: Reader) -> Self {
         Self {

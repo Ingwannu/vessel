@@ -434,3 +434,58 @@ async fn only_the_last_service_handle_drop_closes_its_records_and_does_not_close
     })
     .await;
 }
+
+#[tokio::test]
+async fn failed_roots_stay_shared_across_starts_and_service_recreation_recovers() {
+    within(async {
+        let f = Fixture::new().await;
+        let link = Link::new().await;
+        let probes = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let service = || {
+            Registry::new(
+                Factory::with_root_probe(
+                    crate::dictation::secret_read::Reader::new(f.files.clone()),
+                    Arc::clone(&probes),
+                ),
+                Snapshot::Given(Arc::clone(&f.settings)),
+                &CancellationToken::new(),
+            )
+        };
+        let registry = service();
+        let first = refusal(
+            registry
+                .start(&link.caller, id("roots-first"), format())
+                .await,
+        );
+        let second = refusal(
+            registry
+                .start(&link.caller, id("roots-second"), format())
+                .await,
+        );
+        let root_cause = |error: Arc<RegistryError>| {
+            let RegistryError::Prepare(PrepareError::Endpoint(
+                crate::dictation::endpoint::ProviderError::Roots(source),
+            )) = error.as_ref()
+            else {
+                panic!("expected the injected native-root refusal");
+            };
+            Arc::clone(source)
+        };
+        assert!(Arc::ptr_eq(&root_cause(first), &root_cause(second)));
+        assert_eq!(probes.load(std::sync::atomic::Ordering::SeqCst), 1);
+        registry.shutdown().await;
+        drop(registry);
+        let recreated = service();
+        let key = id("roots-recovered");
+        recreated
+            .start(&link.caller, key.clone(), format())
+            .await
+            .unwrap();
+        assert_eq!(probes.load(std::sync::atomic::Ordering::SeqCst), 2);
+        recreated.cancel(&link.caller, &key).await.unwrap();
+        recreated.shutdown().await;
+        link.close().await;
+        f.finish().await;
+    })
+    .await;
+}

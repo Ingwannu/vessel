@@ -46,9 +46,20 @@ pub(super) struct Factory {
     result: OnceLock<watch::Receiver<Option<Loaded>>>,
     #[cfg(test)]
     gate: Option<Arc<Gate>>,
+    #[cfg(test)]
+    refusal_probe: Option<Arc<std::sync::atomic::AtomicUsize>>,
 }
 
 impl Factory {
+    /// Only the synthetic loader edge can force a native-root refusal.
+    #[cfg(test)]
+    pub(super) fn refusing_once(probe: Arc<std::sync::atomic::AtomicUsize>) -> Self {
+        Self {
+            refusal_probe: Some(probe),
+            ..Self::default()
+        }
+    }
+
     /// Waiting is cancel-safe: the independent producer remains unique.
     pub(super) async fn get(&self) -> Result<Configuration, Arc<RootsError>> {
         let mut receiver = self
@@ -57,6 +68,8 @@ impl Factory {
                 let (sender, receiver) = watch::channel(None);
                 #[cfg(test)]
                 let gate = self.gate.clone();
+                #[cfg(test)]
+                let refusal_probe = self.refusal_probe.clone();
                 drop(tokio::spawn(async move {
                     #[cfg(test)]
                     if let Some(gate) = gate {
@@ -66,7 +79,20 @@ impl Factory {
                         gate.entered.notify_one();
                         gate.release.notified().await;
                     }
-                    let result = tokio::task::spawn_blocking(crate::http_tls::config)
+                    #[cfg(test)]
+                    let load = move || {
+                        if let Some(probe) = refusal_probe
+                            && probe.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 0
+                        {
+                            return Err(rustls::Error::General(
+                                "synthetic root refusal".to_owned(),
+                            ));
+                        }
+                        crate::http_tls::config()
+                    };
+                    #[cfg(not(test))]
+                    let load = crate::http_tls::config;
+                    let result = tokio::task::spawn_blocking(load)
                         .await
                         .map_err(RootsError::Worker)
                         .and_then(|result| result.map_err(RootsError::Tls))

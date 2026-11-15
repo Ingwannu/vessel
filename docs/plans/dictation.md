@@ -662,3 +662,13 @@ Paseo dictation-stream-manager.ts486–488 calls cleanup directly for cancel, so
 cancel of an already absent id answers Ack here too. A foreign live id still
 refuses ownership. This preserves the reference's idempotent cleanup without
 granting one connection another connection's recording.
+
+
+## Root-cache lifetime regression
+
+A test-only loader probe now forces one typed root refusal, then delegates to
+the real TLS owner. Two actual registry starts share the same cached refusal
+and one loader invocation; recreating the service admits a later start and
+performs the second load. No product loader policy changes. This closes the
+missing test's source draft, but execution and product-wiring evidence are still
+owed. The test does not establish a real TLS handshake or OS trust-store repair.
