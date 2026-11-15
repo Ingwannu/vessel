@@ -29,12 +29,15 @@ impl NodeService {
                     ErrorCode::InvalidRequest
                 }
                 SettingsError::NoDirect(_) => ErrorCode::Unsupported,
+                SettingsError::Full | SettingsError::Closed => ErrorCode::Unavailable,
                 // The node's own file needs a person's hand first.
                 SettingsError::Kept(_) => ErrorCode::Conflict,
-                SettingsError::Write(_) | SettingsError::Lost(_) => ErrorCode::Internal,
+                SettingsError::Write(_) | SettingsError::Lost(_) | SettingsError::Reply(_) => {
+                    ErrorCode::Internal
+                }
             };
             if matches!(code, ErrorCode::Internal | ErrorCode::Conflict) {
-                tracing::warn!(%error, "node settings not kept");
+                tracing::warn!(%error, "node settings operation did not complete");
             }
             WireError::new(code, error.to_string())
         })

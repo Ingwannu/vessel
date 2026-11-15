@@ -4,7 +4,8 @@ ADR 0059's accepted contract remains the behavior to implement. R1's source
 `2890410c` and result record `7a00b4d6` passed value-only source and whole-gate
 review; that verdict does not cover the runtime below. This branch starts
 from that record and merges announced node `ec5b1162` at a clean boundary.
-No R2 runtime code has been installed yet.
+The file/owned-settings portion of R2 is now being implemented. The startup
+coordinator and its admission mounts are not installed yet.
 
 [Decision Log]
 - Purpose: implement the recovery settings and startup coordinator while its
@@ -36,8 +37,9 @@ Conflicts resolved under the shared merge rule:
   The old Park/Wake/Fork/Rewind no-op arms are not restored.
 
 Code and generated declarations otherwise merged without conflict. The
-merged baseline needs fresh narrow checks and its whole gate before runtime
-work. R1's submitted source/record remain unchanged in their own branch.
+ec5 merged baseline completed its narrow checks and whole gate before runtime
+work; its result is recorded below. The later accessor merge is part of the
+current changed package. R1's submitted source/record remain unchanged in their own branch.
 
 ## Staging boundary to implement
 
@@ -60,10 +62,11 @@ or special dispatch path.
 
 ## Status
 
-Merge baseline pending verification. Engine and service not implemented in
-this branch. No new client/CLI setting, node boot hook, UI or real-provider
-execution is authorized by a source-only staging verdict. Wiring remains a
-separate reviewed change after the shared admission seam arrives.
+The ec5 merge baseline passed source/gate review; its exact source and results
+are recorded below. The later accessor merge and in-progress file/owned-lane
+changes have not completed their changed-tree gate. The startup service is
+not installed. No new client/CLI setting, UI or real-provider execution is
+approved. Wiring still waits for Quality B and a separate review.
 
 ## Verified ec5 merge baseline
 
@@ -121,3 +124,53 @@ paragraph; code and generated declarations had no conflict. Head protocol and
 schema constants remain unchanged. The next changed-tree whole gate includes
 the staged R2 implementation; the earlier ec5 result is not a result for this
 newer tree.
+
+## In-progress file and settings ownership implementation
+
+The stored record and legacy wire patch use the same private settings codec,
+coverage comparison and atomic writer. Existing file APIs and their tests
+remain compatible; the full record preserves the recovery patch when an
+ordinary request changes only parking/drivers. Full-record parse diagnostics
+redact values but retain the typed source. The existing engine now has one
+bounded owned lane, so cancellation of a reply future cannot cancel an
+admitted save/apply. Shutdown drains that lane before stopping sessions.
+These changes are under narrow verification; Off/generation/intent cleanup
+and startup admission still await the staged coordinator.
+
+Node startup reads the saved snapshot off-thread before opening the store.
+Session launch preparation was extracted unchanged to node/launch_setup.rs,
+a module owning profile/model ingredients and prepared private directories.
+This keeps node.rs within its shrinking budget (782 to 738), without a size
+allowance increase or behavior/test expectation change in that constructor.
+
+## File/owned-lane narrow checks
+
+The saved-record/file tests pass (10 tests, including the five retained legacy
+cases), and Store all-target Clippy passes. Initial node checks caught the new
+legacy fixture using the wrong construction for the existing empty settings
+request, and the enlarged start function exceeding its existing function
+budget. The request is now constructed with its existing empty braces; secure
+gateway assembly is a named helper, with no raised size/lint allowance. Node
+all-target Clippy now passes, and all six new cancellation, capacity, drain,
+policy-preservation and actual raw legacy Get/Set tests pass; no startup recovery
+or whole-package pass follows from these narrow results.
+
+The per-commit narrow checks and one final package gate follow the current
+package workflow. The complete runtime remains staged until wiring is allowed;
+file parsing, saved precedence and the cancellation-safe settings owner are
+shared by ordinary requests rather than duplicated for staged tests.
+
+The node check used its actual product and test targets; the tests compiled
+the changed Store, Session and Node crates. The saved-file filter passed
+10 tests and the settings unit filter passed 6, with no failed or ignored
+cases in either selection. These are narrow results for this ownership step,
+not a full root/web gate or the complete recovery contract. Original failed
+node checks remain separate; no lint allowance, test deadline or assertion was
+weakened. No head test, wire call/field, schema migration, client command or
+native screen changed. New source/test files and the private temporary
+directory were owned by the normal development account; no permission change
+or live-service action was required.
+
+A later migration must consume the announced head carrying the existing
+latest-schema test correction, rather than quietly changing head assertions.
+The current schema and protocol constants remain the head's.

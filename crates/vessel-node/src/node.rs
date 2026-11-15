@@ -12,7 +12,6 @@ use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use vessel_harness::HarnessEnv;
-use vessel_proto::parking::ParkAfter;
 use vessel_proto::ports::PortOwner;
 use vessel_proto::{NodeId, NodeInfo, RelayToken, RouteUrl};
 use vessel_relay::address::ClientAddress;
@@ -32,7 +31,7 @@ use crate::automation::schedules::{Schedules, SystemClock};
 use crate::config::Config;
 use crate::devices::{Devices, Routes};
 use crate::error::NodeError;
-use crate::fleet::{self, FleetFiles, FleetMcp};
+use crate::fleet::{self, FleetFiles};
 use crate::forge::Forges;
 use crate::guard::Guarded;
 use crate::identity;
@@ -42,7 +41,6 @@ use crate::models::Models;
 use crate::models::proxy::serve as serve_models;
 use crate::probes::Probes;
 use crate::profiles::NodeProfiles;
-use crate::profiles::launch::{AgentTools, Launcher, McpSource};
 use crate::relays::{self, Relays};
 use crate::secure::{MAX_UNADMITTED, SecureGateway};
 use crate::server::{self, Gateway};
@@ -53,6 +51,9 @@ use crate::terminals::{Ports, Runner, Terminals};
 use crate::tidying::Tidying;
 use crate::transfers::{self, Transfers};
 use crate::workspace::{Opening, Workspaces};
+
+mod launch_setup;
+use launch_setup::{SessionSetup, SetupDirs};
 
 /// A running node. Stop it with [`Node::stop`]; dropping it leaves it
 /// running until the process exits.
@@ -111,26 +112,28 @@ impl Node {
             models,
             dirs,
         } = prepare_off_thread(&config).await?;
+        let settings_opening = crate::settings::Opening::read(&config)
+            .await
+            .map_err(NodeError::Task)?;
         let store = open_store(&config).await?;
         let (models, proxy) = model_proxy(models).await?;
         let session_setup = SessionSetup::new(&config, id, profiles, Arc::clone(&models), dirs);
 
-        let Core {
-            runtime,
-            lifecycle,
-            stop,
-            tasks,
-            forwarders,
-            devices,
-            agents,
-            service,
-            relays,
-        } = core(&config, id, &store, &keypair, relaying, session_setup).await?;
-        drop(tokio::spawn(serve_models(models, proxy, stop.clone())));
+        let core = core(
+            &config,
+            id,
+            &store,
+            &keypair,
+            relaying,
+            session_setup,
+            settings_opening,
+        )
+        .await?;
+        drop(tokio::spawn(serve_models(models, proxy, core.stop.clone())));
         let closing = CancellationToken::new();
         let rpc = Arc::new(Server::new(
-            Arc::clone(&service),
-            lifecycle.watch_info(),
+            Arc::clone(&core.service),
+            core.lifecycle.watch_info(),
             config.rpc.clone(),
             closing.clone(),
         ));
@@ -141,22 +144,12 @@ impl Node {
         let local_endpoint = local.endpoint().clone();
         let address = tcp.as_ref().map(|(_, address)| *address);
 
-        let secure = SecureGateway {
-            keypair,
-            channel: vessel_secure::Config::default(),
-            service,
-            lifecycle: lifecycle.clone(),
-            devices,
-            config: config.rpc.clone(),
-            closing: closing.clone(),
-            connections: connections.clone(),
-            unadmitted: Arc::new(Semaphore::new(MAX_UNADMITTED)),
-            unadmitted_per_address: Arc::default(),
-        };
+        let secure = secure_gateway(&config, keypair, &core, &closing, &connections);
         let teardown = Teardown {
-            runtime,
-            tasks,
-            forwarders,
+            runtime: core.runtime,
+            settings: core.settings,
+            tasks: core.tasks,
+            forwarders: core.forwarders,
             closing,
             connections: connections.clone(),
             store,
@@ -174,17 +167,17 @@ impl Node {
                 }),
             )
         });
-        relays.serve(secure.clone(), connections.clone());
+        core.relays.serve(secure.clone(), connections.clone());
         let gateway = LocalGateway {
             rpc,
             token,
             connections,
-            agents: AgentGateway::new(agents, &secure, config.rpc.clone()),
+            agents: AgentGateway::new(core.agents, &secure, config.rpc.clone()),
         };
         let task = tokio::spawn(serve(
             router,
             (local, gateway),
-            stop.clone(),
+            core.stop.clone(),
             teardown,
             lock,
         ));
@@ -192,11 +185,11 @@ impl Node {
         Ok(Self {
             address,
             local: local_endpoint,
-            lifecycle,
+            lifecycle: core.lifecycle,
             #[cfg(test)]
             secure,
-            relays,
-            stop,
+            relays: core.relays,
+            stop: core.stop,
             task,
         })
     }
@@ -275,6 +268,7 @@ async fn open_store(config: &Config) -> Result<Store, NodeError> {
 /// The node's parts below its transports.
 struct Core {
     runtime: Arc<SessionRuntime>,
+    settings: Arc<crate::settings::Settings>,
     lifecycle: Lifecycle,
     /// Cancelled to stop the node.
     stop: CancellationToken,
@@ -291,68 +285,6 @@ struct Core {
     relays: Arc<Relays>,
 }
 
-/// What sessions are created with: the node's profiles and the launch seam.
-struct SessionSetup {
-    profiles: Arc<NodeProfiles>,
-    /// The model routes and the proxy's tokens (ADR 0015).
-    models: Arc<Models>,
-    launcher: Launcher,
-    /// The fleet's MCP servers, which the fleet loop keeps current and the
-    /// launcher asks for.
-    fleet_mcp: Arc<FleetMcp>,
-    /// Where agents are probed (`DataDir::probe_dir`, protocol 9).
-    probe_dir: PathBuf,
-    /// The owner-only MCP directory (`DataDir::prepare_mcp_dir`), which the
-    /// session runtime also gives a direct driver's launches for their
-    /// private files (`AgentSetup::private_dir`, ADR 0057).
-    private_dir: PathBuf,
-    /// Worktrees and their setup logs (`DataDir::workspace_dir`,
-    /// protocol 10).
-    workspace_dir: PathBuf,
-}
-
-/// The directories sessions and probes use, prepared under the lock.
-struct SetupDirs {
-    /// Owner-only, emptied of a previous run's files (ADR 0012).
-    mcp: PathBuf,
-    /// Where agents are probed (protocol 9).
-    probe: PathBuf,
-    /// Worktrees, their setup logs and git's empty hooks folder
-    /// (protocol 10).
-    workspace: PathBuf,
-}
-
-impl SessionSetup {
-    fn new(
-        config: &Config,
-        id: NodeId,
-        profiles: NodeProfiles,
-        models: Arc<Models>,
-        SetupDirs {
-            mcp,
-            probe,
-            workspace,
-        }: SetupDirs,
-    ) -> Self {
-        let tools = config.vessel_mcp.clone().map(|mcp| AgentTools {
-            program: mcp.program,
-            args: mcp.args,
-            socket: Endpoint::of(&config.data_dir, id).path().to_owned(),
-        });
-        let fleet_mcp = Arc::new(FleetMcp::default());
-        let source: Arc<dyn McpSource> = Arc::<FleetMcp>::clone(&fleet_mcp);
-        Self {
-            profiles: Arc::new(profiles),
-            models,
-            private_dir: mcp.clone(),
-            launcher: Launcher::new(mcp, source, tools),
-            fleet_mcp,
-            probe_dir: probe,
-            workspace_dir: workspace,
-        }
-    }
-}
-
 /// The LSP manager's configuration with the operator's roots filled in:
 /// executables and toolchains inside any configured root are not trusted
 /// for conservative analysis, so the registry needs the full list.
@@ -364,6 +296,28 @@ fn lsp_config(config: &Config) -> vessel_lsp::Config {
         .map(|root| root.path.clone())
         .collect();
     lsp
+}
+
+/// Bind transport authentication to the already-created node core.
+fn secure_gateway(
+    config: &Config,
+    keypair: Arc<NodeKeypair>,
+    core: &Core,
+    closing: &CancellationToken,
+    connections: &TaskTracker,
+) -> SecureGateway {
+    SecureGateway {
+        keypair,
+        channel: vessel_secure::Config::default(),
+        service: Arc::clone(&core.service),
+        lifecycle: core.lifecycle.clone(),
+        devices: Arc::clone(&core.devices),
+        config: config.rpc.clone(),
+        closing: closing.clone(),
+        connections: connections.clone(),
+        unadmitted: Arc::new(Semaphore::new(MAX_UNADMITTED)),
+        unadmitted_per_address: Arc::default(),
+    }
 }
 
 /// Build the session runtime, the lifecycle, the devices and the service.
@@ -378,20 +332,22 @@ async fn core(
     keypair: &Arc<NodeKeypair>,
     relaying: Option<(RelayToken, TlsConfig)>,
     setup: SessionSetup,
+    settings_opening: crate::settings::Opening,
 ) -> Result<Core, NodeError> {
     let key = keypair.public();
     // Sessions ask the node for their prompts' attachments (protocol 10).
     let (loader, loads) = AttachmentLoader::channel(ATTACHMENT_LOADS);
     let runtime = runtime(config, loader, setup.private_dir.clone());
+    let stop = CancellationToken::new();
+    let tasks = TaskTracker::new();
     // A value saved with `node.set_settings` wins over `--park-after`
     // (protocol 12, `settings`).
     let settings = Arc::new(crate::settings::Settings::open(
-        config.data_dir.clone(),
+        settings_opening,
         Arc::clone(&runtime),
-        ParkAfter::from_duration(config.park_after),
-        config.park_after_given,
+        &tasks,
+        &stop,
     ));
-    let stop = CancellationToken::new();
     // System zone detection may read OS configuration; keep startup I/O
     // off the async workers just as data-directory preparation is.
     let name = config.name.clone();
@@ -400,7 +356,6 @@ async fn core(
         .await
         .map_err(NodeError::Task)?;
     let lifecycle = Lifecycle::new(info, stop.clone(), Arc::clone(&runtime));
-    let tasks = TaskTracker::new();
     let agents = Arc::new(Agents::new(id));
     let sessions = Arc::new(Sessions::new(
         Arc::clone(&runtime),
@@ -574,7 +529,7 @@ async fn core(
         catalogue: crate::catalogue::Catalogues::new(&config.registry_url),
         schedules,
         push,
-        settings,
+        settings: Arc::clone(&settings),
         limits,
     })));
     automation::schedules::start(
@@ -591,6 +546,7 @@ async fn core(
     .await;
     Ok(Core {
         runtime,
+        settings,
         lifecycle,
         stop,
         tasks,

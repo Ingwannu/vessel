@@ -1427,3 +1427,9 @@ offline synthetic fixtures.
 Startup continuation is being prepared in separate slices (ADR 0059). Its
 policy values and settings reply projection exist, with an unassigned protocol;
 there is no new startup setting or automatic resume behavior in this slice.
+
+Ordinary node settings changes now finish their admitted save and runtime
+application even if the requesting connection disappears. Shutdown drains
+those operations before stopping sessions. The local saved-record view also
+preserves an unregistered recovery policy across parking/driver changes; this
+does not expose a new startup setting or enable automatic continuation.

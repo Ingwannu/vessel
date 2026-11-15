@@ -1534,3 +1534,25 @@ existing recursive envelope walker; an unassigned field stays hidden from every
 peer. The node's existing response builder supplies only the disabled default.
 There is no recovery settings engine, request registration or startup service
 in this value-only slice; those remain for the staged and wiring slices.
+
+## Startup recovery: shared saved-file and settings ownership
+
+The staged work for ADR 0059 extends the existing settings owners. Store's
+`settings_record` reads the complete local record; its legacy wire-patch view
+uses the same private codec, coverage check and atomic/private replacement.
+Node reads one validated snapshot off-thread before opening the Store. An
+ordinary parking/driver change preserves the saved recovery policy even
+though that policy has no registered request field. Both response paths still
+use R1's per-peer projection, including for the current unassigned protocol.
+
+Node's existing settings engine is the only writer/apply owner. A bounded FIFO
+contains one active operation and `Settings::QUEUED_CHANGES` waiting changes;
+full or closed admission refuses before mutation. A reply future may disappear after
+admission, but the tracked node task retains the saved-value lock through the
+actual atomic write and runtime setters. Shutdown closes admission and drains
+that task while its runtime is still available. This replaces cancellable
+handler ownership; it does not add another parser, settings engine or RPC.
+
+The startup coordinator, durable recovery journal, Off cleanup, fresh-grant
+admission and automatic continuation are not installed by this file/ownership
+step. Their staged and product configurations require their own evidence.

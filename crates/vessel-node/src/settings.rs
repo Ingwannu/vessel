@@ -15,9 +15,9 @@
 //!   from the app at every restart if the flag won.
 //! - Choice: what a person saved wins over the flag, field by field; a
 //!   setting nobody changed keeps following its flag. A change is written
-//!   first and applied after, under one lock, so two changes at once
-//!   leave the file and the sessions agreeing, and a failed write changes
-//!   nothing. A change that changes nothing writes nothing.
+//!   first and applied after, in one bounded node-owned FIFO lane, so two
+//!   changes agree and caller cancellation cannot abandon apply after save.
+//!   A failed write changes nothing; an unchanged value writes nothing.
 //! - Cost: a saved value silently outranks a flag an operator gives later;
 //!   the node logs it at start.
 //! - Drivers (protocol 18) have no flag: ACP unless a person chose an
@@ -47,18 +47,33 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, mpsc, oneshot};
+use tokio_util::{sync::CancellationToken, task::TaskTracker};
 use vessel_proto::HarnessKind;
 use vessel_proto::parking::ParkAfter;
 use vessel_proto::settings::{
     AgentDriver, AgentDrivers, NodeSettings, SetAgentDrivers, SetNodeSettings,
 };
 use vessel_session::SessionRuntime;
-use vessel_store::{DataDir, SetAside};
+use vessel_store::{SavedNodeSettings, SetAside};
+
+pub(crate) use opening::Opening;
 
 /// Why a change was refused or not kept.
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum SettingsError {
+    /// No change was admitted; a later explicit attempt may try again.
+    #[error(
+        "node settings already has {} queued changes",
+        Settings::QUEUED_CHANGES
+    )]
+    Full,
+    /// Shutdown closed the settings lane before admission.
+    #[error("the node is stopping; no settings change was admitted")]
+    Closed,
+    /// The owned operation ended without its reply; do not invent success.
+    #[error("the node settings operation ended before replying: {0}")]
+    Reply(#[source] oneshot::error::RecvError),
     /// A choice this node does not know.
     #[error("this node does not know that park_after; send never or idle with minutes")]
     Unknown,
@@ -84,52 +99,44 @@ pub(crate) enum SettingsError {
 
 /// The node's settings: the flags' values and what a person saved.
 #[derive(Debug)]
-pub(crate) struct Settings {
-    data_dir: DataDir,
+struct Engine {
+    data_dir: vessel_store::DataDir,
     runtime: Arc<SessionRuntime>,
     /// `--park-after`, or its default.
     flag: ParkAfter,
     /// What a person changed, as kept; held over write and apply.
-    saved: Mutex<SetNodeSettings>,
+    saved: Mutex<SavedNodeSettings>,
     /// Why `settings.json` must not be replaced: it could not be used at
     /// start, and moving it aside failed. `None` when changes may write.
     kept: Option<Arc<str>>,
     /// The file holds what only a later build knows: the first change that
     /// writes copies it aside first (`settings.json.later-<UTC time>`).
     later: AtomicBool,
+    #[cfg(test)]
+    gates: tests::Gates,
 }
 
-impl Settings {
-    /// Read `settings.json` and apply what it holds to `runtime`. A file
-    /// that cannot be used is moved aside and logged, and the flags'
-    /// values stand.
-    pub(crate) fn open(
-        data_dir: DataDir,
-        runtime: Arc<SessionRuntime>,
-        flag: ParkAfter,
-        flag_given: bool,
-    ) -> Self {
-        let (saved, kept, later) = match data_dir.read_settings() {
-            Ok(saved) => {
-                let saved = saved.unwrap_or_default();
-                // Unsure counts as more: a copy too many costs nothing.
-                let later = data_dir.settings_hold_more_than(&saved).unwrap_or(true);
-                (saved, None, later)
-            }
-            Err(error) => {
-                let kept = set_aside(&data_dir, &error);
-                (SetNodeSettings::default(), kept, false)
-            }
-        };
+impl Engine {
+    fn open(opening: Opening, runtime: Arc<SessionRuntime>) -> Self {
+        let Opening {
+            data_dir,
+            saved,
+            kept,
+            later,
+            flag,
+            flag_given,
+        } = opening;
         let settings = Self {
             data_dir,
             runtime,
             flag,
-            saved: Mutex::new(saved),
+            saved: Mutex::new(saved.clone()),
             kept,
             later: AtomicBool::new(later),
+            #[cfg(test)]
+            gates: tests::Gates::default(),
         };
-        let in_force = settings.in_force(saved);
+        let in_force = settings.in_force(&saved);
         if flag_given && saved.park_after.is_some() && in_force.park_after != flag {
             tracing::info!(
                 saved = ?in_force.park_after,
@@ -145,12 +152,17 @@ impl Settings {
 
     /// What is in force for `saved`: a saved value this node knows, else
     /// the flag's.
-    fn in_force(&self, saved: SetNodeSettings) -> NodeSettings {
+    fn in_force(&self, saved: &SavedNodeSettings) -> NodeSettings {
         let park_after = match saved.park_after {
             Some(after @ (ParkAfter::Never | ParkAfter::Idle { .. })) => after,
             // A newer build's choice, read after a downgrade: the flag's.
             Some(ParkAfter::Unknown) | None => self.flag,
         };
+        let restart_recovery = saved
+            .restart_recovery
+            .as_ref()
+            .map(vessel_proto::restart::SetRestartRecovery::effective)
+            .unwrap_or_default();
         let saved = saved.drivers.unwrap_or_default();
         let driver = |kind, chosen: Option<AgentDriver>| match chosen {
             Some(AgentDriver::Direct) if offered(kind) => AgentDriver::Direct,
@@ -168,55 +180,53 @@ impl Settings {
         NodeSettings {
             park_after,
             drivers,
-            restart_recovery: vessel_proto::restart::RestartRecovery::default(),
+            restart_recovery,
         }
     }
 
     /// The settings in force.
-    pub(crate) async fn current(&self) -> NodeSettings {
-        let saved = *self.saved.lock().await;
-        self.in_force(saved)
+    async fn current(&self) -> NodeSettings {
+        let saved = self.saved.lock().await;
+        self.in_force(&saved)
     }
 
     /// Change what `change` names, keep it, then apply it; answers what is
     /// in force.
-    pub(crate) async fn change(
-        &self,
-        change: SetNodeSettings,
-    ) -> Result<NodeSettings, SettingsError> {
-        if change.park_after == Some(ParkAfter::Unknown) {
-            return Err(SettingsError::Unknown);
-        }
-        for (kind, driver) in change.drivers.iter().flat_map(SetAgentDrivers::named) {
-            match driver {
-                AgentDriver::Unknown => return Err(SettingsError::UnknownDriver(kind)),
-                AgentDriver::Direct if !offered(kind) => {
-                    return Err(SettingsError::NoDirect(kind));
-                }
-                AgentDriver::Direct | AgentDriver::Acp => {}
-            }
-        }
+    async fn change(&self, change: SavedNodeSettings) -> Result<NodeSettings, SettingsError> {
         let mut saved = self.saved.lock().await;
-        let mut next = *saved;
+        let mut next = saved.clone();
         if let Some(after) = change.park_after {
             next.park_after = Some(after);
         }
         if let Some(drivers) = change.drivers {
             next.drivers = Some(drivers.over(next.drivers.unwrap_or_default()));
         }
+        if let Some(recovery) = change.restart_recovery {
+            next.restart_recovery = Some(match next.restart_recovery.as_ref() {
+                Some(previous) => recovery.over(previous),
+                None => recovery,
+            });
+        }
         if next == *saved {
-            return Ok(self.in_force(*saved));
+            return Ok(self.in_force(&saved));
         }
         if let Some(reason) = &self.kept {
             return Err(SettingsError::Kept(Arc::clone(reason)));
         }
         let data_dir = self.data_dir.clone();
         let later = self.later.load(Ordering::Relaxed);
+        let writing = next.clone();
+        #[cfg(test)]
+        let gate = self.gates.write();
         let aside = tokio::task::spawn_blocking(move || {
+            #[cfg(test)]
+            if let Some(gate) = gate {
+                gate.wait();
+            }
             let aside = later
                 .then(|| data_dir.set_aside_settings(chrono::Utc::now(), SetAside::Later))
                 .transpose()?;
-            data_dir.write_settings(&next).map(|()| aside)
+            data_dir.write_settings_record(&writing).map(|()| aside)
         })
         .await
         .map_err(SettingsError::Lost)?
@@ -225,38 +235,124 @@ impl Settings {
             tracing::info!(aside = %aside.display(), "settings.json held a later build's settings; a copy was kept before this change");
             self.later.store(false, Ordering::Relaxed);
         }
+        #[cfg(test)]
+        self.gates.before_apply().await;
         *saved = next;
-        let in_force = self.in_force(*saved);
+        let in_force = self.in_force(&saved);
         self.runtime.set_park_after(in_force.park_after.duration());
         self.runtime.set_drivers(in_force.drivers);
         Ok(in_force)
     }
 }
 
-/// Move an unusable `settings.json` aside, so no change replaces it;
-/// answers why changes must not write when even that failed.
-fn set_aside(data_dir: &DataDir, unusable: &vessel_store::SettingsFileError) -> Option<Arc<str>> {
-    match data_dir.set_aside_settings(chrono::Utc::now(), SetAside::Unreadable) {
-        Ok(aside) => {
-            tracing::warn!(
-                error = %unusable,
-                aside = %aside.display(),
-                "settings.json could not be used and was moved aside; the node starts from its flags"
-            );
-            None
-        }
-        Err(moved) => {
-            tracing::error!(
-                error = %unusable,
-                %moved,
-                "settings.json could not be used or moved aside; the node starts from its flags and will not replace it"
-            );
-            Some(Arc::from(moved.to_string()))
+/// One admitted change. Dropping its receiver cannot drop the mutation.
+#[derive(Debug)]
+struct Change {
+    request: SavedNodeSettings,
+    reply: oneshot::Sender<Result<NodeSettings, SettingsError>>,
+}
+
+/// One bounded node-owned lane, shared by every settings mutation.
+#[derive(Debug)]
+pub(crate) struct Settings {
+    engine: Arc<Engine>,
+    changes: mpsc::Sender<Change>,
+    stopping: CancellationToken,
+    finished: TaskTracker,
+}
+
+impl Settings {
+    /// Pending changes in addition to the operation the worker owns.
+    const QUEUED_CHANGES: usize = 8;
+
+    pub(crate) fn open(
+        opening: Opening,
+        runtime: Arc<SessionRuntime>,
+        tasks: &TaskTracker,
+        stopping: &CancellationToken,
+    ) -> Self {
+        let engine = Arc::new(Engine::open(opening, runtime));
+        let (changes, receiver) = mpsc::channel(Self::QUEUED_CHANGES);
+        let stopping = stopping.child_token();
+        let finished = TaskTracker::new();
+        drop(tasks.spawn(finished.track_future(owned::run(
+            Arc::clone(&engine),
+            receiver,
+            stopping.clone(),
+        ))));
+        let _closed = finished.close();
+        Self {
+            engine,
+            changes,
+            stopping,
+            finished,
         }
     }
+
+    /// Close admission, but retain ownership until every admitted write/apply settles.
+    pub(crate) async fn drain(&self) {
+        self.stopping.cancel();
+        self.finished.wait().await;
+    }
+
+    pub(crate) async fn current(&self) -> NodeSettings {
+        self.engine.current().await
+    }
+
+    pub(crate) async fn change(
+        &self,
+        change: SetNodeSettings,
+    ) -> Result<NodeSettings, SettingsError> {
+        self.change_record(change.into()).await
+    }
+
+    async fn change_record(
+        &self,
+        change: SavedNodeSettings,
+    ) -> Result<NodeSettings, SettingsError> {
+        validate(&change)?;
+        if self.stopping.is_cancelled() {
+            return Err(SettingsError::Closed);
+        }
+        let (reply, receive) = oneshot::channel();
+        self.changes
+            .try_send(Change {
+                request: change,
+                reply,
+            })
+            .map_err(|error| match error {
+                mpsc::error::TrySendError::Full(_) => SettingsError::Full,
+                mpsc::error::TrySendError::Closed(_) => SettingsError::Closed,
+            })?;
+        receive.await.map_err(SettingsError::Reply)?
+    }
 }
+
+fn validate(change: &SavedNodeSettings) -> Result<(), SettingsError> {
+    if change.park_after == Some(ParkAfter::Unknown) {
+        return Err(SettingsError::Unknown);
+    }
+    for (kind, driver) in change.drivers.iter().flat_map(SetAgentDrivers::named) {
+        match driver {
+            AgentDriver::Unknown => return Err(SettingsError::UnknownDriver(kind)),
+            AgentDriver::Direct if !offered(kind) => {
+                return Err(SettingsError::NoDirect(kind));
+            }
+            AgentDriver::Direct | AgentDriver::Acp => {}
+        }
+    }
+    Ok(())
+}
+
+mod opening;
+mod owned;
+#[cfg(test)]
+mod tests;
 
 /// Whether this build offers `kind` over its own protocol.
 fn offered(kind: HarnessKind) -> bool {
     vessel_harness::direct(kind).is_some_and(|direct| direct.selectable)
 }
+
+// Recovery's private staged operation will use this same lane. No recovery
+// patch field or startup service is registered by the saved-record refactor.
