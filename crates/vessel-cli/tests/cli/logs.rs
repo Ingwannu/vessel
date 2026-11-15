@@ -129,6 +129,16 @@ async fn log_selects_time_kind_and_tail_without_reporting_filtered_records_as_pr
         let zero = fixture.vessel(&["log", &id, "--tail", "0"], b"").await;
         assert!(zero.ok, "{}", zero.stderr);
         assert!(zero.stdout.is_empty() && zero.stderr.is_empty());
+        let empty = fixture
+            .vessel(&["log", &id, "--filter", "errors"], b"")
+            .await;
+        assert!(empty.ok, "{}", empty.stderr);
+        assert!(
+            empty.stdout.is_empty() && empty.stderr.is_empty(),
+            "{} {}",
+            empty.stdout,
+            empty.stderr
+        );
         owner.kill(session).await.unwrap();
         fixture.stop().await;
     })

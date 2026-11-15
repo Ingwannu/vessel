@@ -252,6 +252,11 @@ there or at Ctrl-C; a later resume needs a new invocation. Paseo's timeline
 subscription waits for an explicit stop. Preserving the existing stream EOF
 avoids a new wire mode solely for this presentation command.
 
+An empty selection emits no records or activity banner. Paseo's one-shot
+curator emits "No activity to display." Vessel preserves its existing log
+capture contract: stdout is selected session output, stderr is selected
+status and genuine retention notices, without a fabricated activity entry.
+
 ### MCP
 
 On the session's own `vessel` server, as one protocol call each:

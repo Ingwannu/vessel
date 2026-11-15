@@ -150,6 +150,11 @@ Read first, and reproduced except for the differences ADR 0063 lists.
   terminal and status records, before rendering. This preserves the existing
   `--from` and retention cursor unit in both modes. Tail can begin inside a
   streamed message; it does not count visible lines or complete messages.
+- `activity-curator.ts:200-207` returns "No activity to display." when
+  curation has no entries; one-shot prints that result (`logs.ts:314-315`).
+  Vessel's existing renderer emits only selected records and real retention
+  notices. A filter with no match is quiet, preserving stdout capture rather
+  than synthesizing an activity banner. A CLI case checks both streams.
 - Paseo waits for an explicit stop even after timeline activity ends
   (`logs.ts:401-407`). Vessel follows through the current session run,
   ending at the stream's final status or Ctrl-C. This preserves the existing
@@ -303,7 +308,8 @@ No row of the crate table changes.
   the existing tail window. Sequence gaps separate message chunks, but only
   raw page gaps generate retention notices. Parser, predicate, render-boundary
   and fake-node selection tests have not run yet. Existing render expectations
-  stay unchanged. Follow and its transition test remain a protected draft for
+  stay unchanged. A no-match CLI assertion also checks that no banner is
+  fabricated. Follow and its transition test remain a protected draft for
   slice 5c, which must reuse these predicates and the raw history cursor.
 - The contract's follow bullet and EOF explanation now name the same end.
   Parser and command-level checks are documented together: an invalid tail
