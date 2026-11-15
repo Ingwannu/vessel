@@ -31,8 +31,4 @@ CREATE TABLE workspace_registry_reservations (
     worktree TEXT,
     stage TEXT NOT NULL CHECK (stage IN ('reserved', 'creating', 'ready', 'uncertain'))
 ) STRICT, WITHOUT ROWID;
-CREATE TABLE project_registry_metadata (
-    project TEXT NOT NULL PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
-    metadata TEXT NOT NULL
-) STRICT, WITHOUT ROWID;
 ";

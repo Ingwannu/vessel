@@ -191,3 +191,7 @@ claim all refuse release without changing state. These changes await current
 checks. The first registered-call narrow build found three exhaustive mapping
 omissions (agent withholding, old replies, forwarding); all new registry methods
 now explicitly choose those mappings, with no wildcard or head-case rewrite.
+
+The registry dependency migration contains only its live descriptor/reservation/
+resource/revision tables. Project presentation storage is deferred to the later
+project package's append; no unused project-metadata table is reserved here.
