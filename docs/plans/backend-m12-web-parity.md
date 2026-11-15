@@ -1235,3 +1235,22 @@ incoming non-document changed blobs. This corrects the evidence claim
 without changing executable code.
 Captures still identify their original renderer commit; the merged tree
 requires its own whole gate, and no rendered latest-head claim is inferred.
+
+
+### Menu ownership follow-up
+
+The latest-head whole run on `774f41b8` is red: 2,307 Rust tests pass
+(twelve ignored), four TypeScript checks, 464 web units and four forge
+fixtures pass; browser cases are 76 passed and two failed. The unchanged
+Display grouping case loses its Machine menu item while clicking, and the
+following reconnect case cannot find its initial Connected mark. Neither
+failure is waived, and no head assertion, deadline or retry is changed.
+
+A new controlled browser test against the retained renderer first puts
+keyboard focus inside Display, then releases the actual lazy new-session
+asset. The menu stays painted but loses focus. The modal-only guard was
+incomplete; the same public role/open boundary now includes menus. The
+regression shares the existing real lazy-route harness with the dialog
+case. This proves a menu ownership defect, without claiming it alone
+explains both intermittent whole-run failures. Changed-source checks and
+whole evidence remain pending.

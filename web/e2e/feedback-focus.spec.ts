@@ -1,6 +1,6 @@
 // The real lazy page mounts after an already open modal owns focus.
 // Hold only its actual asset; the bridge, modal and browser remain real.
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { openUi } from "./open";
 
 function latch(): { reached: Promise<void>; release: () => void } {
@@ -11,9 +11,12 @@ function latch(): { reached: Promise<void>; release: () => void } {
   return { reached, release };
 }
 
-test("a new prompt mounted behind a dialog leaves focus in the dialog", async ({
-  page,
-}) => {
+// Both are painted layers: a late lazy route must not steal a menu's
+// keyboard navigation any more than a dialog's text input.
+async function mountPromptBehind(
+  page: Page,
+  openOverlay: () => Promise<Locator>,
+): Promise<void> {
   const requested = latch();
   const resume = latch();
   await page.route("**/assets/new-session-*.js", async (route) => {
@@ -24,14 +27,10 @@ test("a new prompt mounted behind a dialog leaves focus in the dialog", async ({
   try {
     await openUi(page);
     await requested.reached;
-    await page
-      .getByRole("navigation", { name: "Sidebar" })
-      .getByRole("button", { name: "Add machine" })
-      .click();
-    const dialog = page.getByRole("dialog", { name: "Add a machine" });
+    const overlay = await openOverlay();
     await expect
       .poll(() =>
-        dialog.evaluate((element) => element.contains(document.activeElement)),
+        overlay.evaluate((element) => element.contains(document.activeElement)),
       )
       .toBe(true);
     resume.release();
@@ -48,17 +47,43 @@ test("a new prompt mounted behind a dialog leaves focus in the dialog", async ({
           }),
         ),
     );
+    await expect(overlay).toBeVisible();
     await expect
       .poll(() =>
-        dialog.evaluate((element) => element.contains(document.activeElement)),
+        overlay.evaluate((element) => element.contains(document.activeElement)),
       )
       .toBe(true);
     await page.keyboard.press("Escape");
-    await expect(dialog).toBeHidden();
+    await expect(overlay).toBeHidden();
   } finally {
     resume.release();
     await page.unrouteAll({ behavior: "wait" });
   }
+}
+
+test("a new prompt mounted behind a dialog leaves focus in the dialog", async ({
+  page,
+}) => {
+  await mountPromptBehind(page, async () => {
+    await page
+      .getByRole("navigation", { name: "Sidebar" })
+      .getByRole("button", { name: "Add machine" })
+      .click();
+    return page.getByRole("dialog", { name: "Add a machine" });
+  });
+});
+
+test("a new prompt mounted behind Display leaves focus in its menu", async ({
+  page,
+}) => {
+  await mountPromptBehind(page, async () => {
+    await page
+      .getByRole("navigation", { name: "Sidebar" })
+      .getByRole("button", { name: "Display" })
+      .click();
+    await page.keyboard.press("ArrowDown");
+    return page.getByRole("menu");
+  });
 });
 
 // Hold the initial-focus animation frame after the palette has focus.

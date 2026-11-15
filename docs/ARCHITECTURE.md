@@ -1614,9 +1614,9 @@ CLI signal edge remains proposed and is not added by this move.
 
 The existing Base UI dialog, command palette and sheet own their key and
 focus behavior. `web/src/ui/page-focus` lets page-originated focus and
-keyboard capture yield to a currently open kit modal, using its public
+keyboard capture yield to a currently open kit dialog or menu, using its public
 role/open attributes. This closes the gap before its initial focus frame:
-a late-mounted draft cannot take focus, and a page shortcut recorder cannot
+a late-mounted draft cannot take a menu's focus, and a page shortcut recorder cannot
 consume Escape before the dialog receives it. No second modal registry or
 Escape listener competes with Base UI's nested controls and IME handling.
 `compose/use-draft-presence` keeps the mounted draft's asynchronous completion

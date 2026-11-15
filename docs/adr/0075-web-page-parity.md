@@ -154,8 +154,13 @@ role and open attribute are checked at the time of a page focus request or
 a recorder key, rather than caching focus at mount. A second overlay stack
 or Escape listener was rejected: it would compete with the kit's nested
 controls and composition handling. The draft's mounted lifetime remains
-independent of its optional focus; the recorder pauses while a modal is
-open and can resume its pending choice after that modal closes.
+independent of its optional focus; the recorder pauses while a dialog or menu is
+open and can resume its pending choice after that overlay closes. A menu
+uses the same public open-role boundary: waiting only for dialogs would
+let a late lazy route move focus out of the Display menu. A controlled
+browser test first observes keyboard focus inside that real menu, releases
+the held route asset, then checks that focus remains there. Tooltips are
+not keyboard-owning menus and are not part of this guard.
 
 Paseo's `components/toast-host.tsx` places the app-shell viewport under the
 header, centred, including on narrow screens. Vessel uses its own safe
