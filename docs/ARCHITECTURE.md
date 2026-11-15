@@ -1330,3 +1330,14 @@ start with ended sessions visible. `data/sidebar` reuses that page default
 and still applies archive exclusion separately. The existing `PrefsDoc`
 field reader fills an absent choice from the wire default, preserving an
 explicit false and unknown file fields without a migration or rewrite.
+
+
+## Timeline following during layout
+
+The page's `data/follow-end` decides end intent from consecutive scroll
+and layout geometry. `features/session/window-follow` owns the DOM snapshot;
+`window-watch` applies it to scroll, container resize and row measurement,
+while `window-pin` still owns a requested row. A layout-queued scroll must
+not turn an end reader into an upward reader before resize delivery.
+An actual upward move stays authoritative, so resize does not pull that
+reader down. Listener/observer cleanup remains local to the timeline.

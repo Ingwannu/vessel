@@ -734,3 +734,47 @@ turning on again and archive exclusion. It has not run at this checkpoint;
 the two corrections' whole gate and rendered evidence are still required.
 The older collapsed-rail Settings/theme-mark clipping at 800×600 is a
 separate later parity item; these corrections do not claim to repair it.
+
+
+### Viewport/dock correction and reproducible ordering
+
+The old watch recalculated end-following from the new gap on every scroll.
+If layout's queued scroll arrived before ResizeObserver, a shorter view
+made that gap look like a reader scrolling up. The resize callback then
+saw following=false; row measurement only held a pin, and the layout
+correction was also conditional on following. Nothing restored the end.
+
+A synthetic React fixture using the actual timeline window reproduced
+that ordering explicitly: after a simultaneous width/dock change and a
+scroll delivered before resize, the old watch stayed 100 pixels from the
+end, with its last line below the dock. A normal uncontrolled resize in
+that fixture passed. This is controlled-order evidence, not a claim that
+the historical eight-pixel failure was reproduced naturally. The staged
+correction returned the controlled case to a zero gap, while an explicit
+upward reader stayed at top=0 through another resize (gap 101 pixels).
+
+Modify/reuse: keep the existing observers, virtual window, pin ownership
+and scroll threshold. A pure geometry decision preserves prior end intent
+across layout; the DOM follower uses it for both container resize and row
+measurement. An upward move outside the existing near-end band still wins; a browser
+clamp within that band retains end intent. Event/observer registration is split from that decision to
+keep functions small and cleanup explicit. No CSS offset, timer, polling
+repair, retry, new dependency or wire change is introduced.
+
+The original phone question test is unchanged. Added pure cases cover
+scroll-before-resize, later wrapped-row growth, genuine upward reading,
+content clamping and the existing near-end threshold. The added actual
+page case forces the callback order, then waits for a real resize delivery
+to verify an upward reader remains put. Separate light/dark captures cover
+the new ended default and the actual question dock at 1280×900, 390×844,
+800×600 and 1024×700. These browser
+cases/captures and the whole paired-correction gate remain unverified at
+this source checkpoint. The first correction is committed as `3d888d1b`.
+
+
+The viewport checkpoint passes all 434 frontend unit tests, including its
+four added pure ordering/reading cases. An initial typecheck passed; the
+subsequently expanded capture matrix and exhaustive DOM decision branch
+are checked again by the pending bundle's typecheck and the whole gate.
+Format, size, boundary and diff checks passed. Full web lint/build is
+queued; no actual-node or rendered follow-up success is claimed yet.
