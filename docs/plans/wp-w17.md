@@ -761,3 +761,20 @@ code backticks in schema-decoder docs. No type error or executed test result was
 reported. Renamed the private receipt type (wire field names unchanged) and fixed
 those comments. Retained /tmp/work/wp-cli/main-clippy-head42 evidence; a changed
 source strict run and latest unit/process tests remain required.
+
+
+### Context-sensitive --home alias
+
+[Decision Log]
+- Intent: preserve native init's existing --home account-scan root while adding
+  Paseo's node-home selector. Reusing a global clap id propagates the native
+  value into parent options; treating it as data_dir would target the wrong path.
+- Choice: reuse the typed Command::Init discriminant at the one connection
+  decoding edge. Init keeps its own scan-home value and its selected node/data
+  directory. Other commands apply --home as the node data directory.
+- Context-dependent home/host/data-dir conflicts are checked at that edge before
+  resolution/connection/effects; host/node remains a clap conflict. No argv
+  re-parser, second config store or foreign init handler change is introduced.
+- Added parser-to-decoder regressions for data-dir + native init home, legacy
+  node and new host selection, ordinary home aliases and conflicting selections.
+  This is source-drafted evidence until the next updated CLI suite executes.

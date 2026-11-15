@@ -27,7 +27,7 @@ use crate::{
 
 pub(crate) async fn run(mut cli: Cli) -> Result<(), CliError> {
     crate::presentation::check(&cli)?;
-    cli.connection.apply(&mut cli.target)?;
+    cli.connection.apply(&mut cli.target, &cli.command)?;
     let target = &cli.target;
     match cli.command {
         Command::Parity(command) => {

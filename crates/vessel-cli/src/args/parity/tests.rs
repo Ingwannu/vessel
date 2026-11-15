@@ -47,8 +47,13 @@ fn global_precedence_and_connection_alias_conflicts_are_explicit() {
     assert_eq!(cli.output.presentation(), Presentation::Quiet);
     let cli = Cli::try_parse_from(["vessel", "--format", "yaml", "ls", "--json"]).unwrap();
     assert_eq!(cli.output.presentation(), Presentation::Json);
+    let mut conflicting =
+        Cli::try_parse_from(["vessel", "--host", "localhost", "--home", "/tmp/x", "ls"]).unwrap();
     assert!(
-        Cli::try_parse_from(["vessel", "--host", "localhost", "--home", "/tmp/x", "ls"]).is_err()
+        conflicting
+            .connection
+            .apply(&mut conflicting.target, &conflicting.command)
+            .is_err()
     );
     // Legacy tests and SSH nodes need a separate local data directory.
     assert!(
@@ -172,4 +177,64 @@ fn pending_consumer_scopes_and_limit_resets_conflict_explicitly() {
     ] {
         assert!(Cli::try_parse_from(args).is_err());
     }
+}
+
+#[test]
+fn native_init_scan_home_never_replaces_the_node_data_directory() {
+    for args in [
+        vec![
+            "vessel",
+            "--data-dir",
+            "/tmp/node-data",
+            "init",
+            "--home",
+            "/tmp/user-scan",
+        ],
+        vec![
+            "vessel",
+            "--node",
+            "localhost",
+            "--data-dir",
+            "/tmp/node-data",
+            "init",
+            "--home",
+            "/tmp/user-scan",
+        ],
+        vec![
+            "vessel",
+            "--host",
+            "localhost",
+            "--data-dir",
+            "/tmp/node-data",
+            "init",
+            "--home",
+            "/tmp/user-scan",
+        ],
+    ] {
+        let mut cli = Cli::try_parse_from(args).unwrap();
+        assert!(
+            matches!(&cli.command, Command::Init(args) if args.home.as_deref() == Some(std::path::Path::new("/tmp/user-scan")))
+        );
+        cli.connection.apply(&mut cli.target, &cli.command).unwrap();
+        assert_eq!(
+            cli.target.data_dir.as_deref(),
+            Some(std::path::Path::new("/tmp/node-data"))
+        );
+    }
+    let mut cli = Cli::try_parse_from(["vessel", "ls", "--home", "/tmp/node-data"]).unwrap();
+    cli.connection.apply(&mut cli.target, &cli.command).unwrap();
+    assert_eq!(
+        cli.target.data_dir.as_deref(),
+        Some(std::path::Path::new("/tmp/node-data"))
+    );
+    let mut cli = Cli::try_parse_from([
+        "vessel",
+        "--data-dir",
+        "/tmp/one",
+        "ls",
+        "--home",
+        "/tmp/two",
+    ])
+    .unwrap();
+    assert!(cli.connection.apply(&mut cli.target, &cli.command).is_err());
 }
