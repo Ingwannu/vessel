@@ -516,9 +516,12 @@ differ. Paseo's ranges and the pixel width are the values to take.
 The coordinator routes them; until that lands, the shipped fields
 stay so a stored preference still loads.
 
-The preference's order, once the variants exist, follows
-`THEME_OPTIONS`: Light, Dark, System, Zinc, Midnight, Claude,
-Ghostty, Pure black. Stored names stay snake_case, so Pure black is
+The catalogue order follows `THEME_OPTIONS`: Light, Dark, System,
+Zinc, Midnight, Claude, Ghostty, Pure black. The Appearance chooser
+uses System, Light, Dark, Zinc, Midnight, Claude, Ghostty, Pure black:
+`appearance/theme-picker.tsx:19-23` moves `auto` to the front because
+it is the default. These are separate orders; the chooser's existing
+System-first order stays. Stored names stay snake_case, so Pure black is
 `pure_black` in the preference file (the file is this app's, not
 Paseo's `pureBlack`). Existing `system`, `light` and `dark` do not
 change, and neither do the words already shipped for them (Korean

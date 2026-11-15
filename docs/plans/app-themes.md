@@ -9,11 +9,14 @@ the contrast, how System resolves, the font rule).
 
 Read from Paseo 0.15.4.
 
-- Eight choices, order Light, Dark, System (`auto`), Zinc, Midnight,
+- Eight catalogue choices, order Light, Dark, System (`auto`), Zinc, Midnight,
   Claude, Ghostty, Pure black (`packages/app/src/styles/theme.ts`,
   `THEME_OPTIONS`). Default `auto`
   (`hooks/use-settings/storage.ts`). Labels in
   `i18n/resources/en.ts` and `ko.ts`.
+- The actual chooser moves System first (`appearance/theme-picker.tsx:19-23`):
+  System, Light, Dark, Zinc, Midnight, Claude, Ghostty, Pure black.
+  The catalogue's cycling order is not the tile order.
 - `auto` follows the operating system between the themes named
   `light` and `dark` only (`appearance/provider.tsx`,
   `styles/unistyles.ts`). A named theme does not follow the system.
@@ -96,7 +99,7 @@ Do not start a second theme type in the app.
 
 ## Resume point
 
-- Done: slice 1, the ADR and this plan. No code. The contrast
+- Done: slice 1, the ADR and this plan. The contrast
   floors in the ADR are the unrounded ratios truncated to two
   decimals, not the rounded table, so the later test can pass on
   Paseo's own bytes.
@@ -104,3 +107,30 @@ Do not start a second theme type in the app.
 - Next: slice 2, the kit palettes and the contrast test, behind the
   token names ADR 0070 maps. Do not repaint Light or Dark. Do not
   add a token the ADR lists as absent.
+
+### Resumption, 2026-11-15
+
+`56a7cbd3` was merged by fast-forward from the saved artwork branch,
+with no conflicts. It already contains the saved optical/fitted changes
+and the subsequent official vector rendering, current Gemini spark and
+muted sidebar marks. Their earlier partial checks are historical evidence,
+not a new gate for this head. No further vendor mark is added here.
+
+The current task is themes only. Font families, content size, font ranges,
+content width and syntax preferences described above remain future work;
+this resumption does not implement them. ADR 0070 stays proposed. Its
+catalogue/picker distinction above was checked against the actual chooser.
+
+First implementation slice: a kit-only `Palette` id and five additional
+palettes, with one tint-to-token builder, authored-byte and contrast tests.
+`Tokens::of(Scheme)` and the existing Light/Dark constructor bodies stay
+unchanged. No crate edge or dependency is added. The next slice extends the
+existing stored `Theme`, its labels and the single app adapter; Appearance
+continues to use the existing tiles and the real chooser's System-first order.
+
+Validation on the development machine is limited to the noncompiling
+format, size, boundary and token checks, followed by narrow compiling
+checks in the short lane. The full native gate must run on the separate
+build machine when its command is provided; no local whole gate is queued.
+Captures will use an isolated authenticated display at scales 1, 1.25, 1.5
+and 2. No capture, runtime switch or new palette pass is claimed yet.
