@@ -29,7 +29,7 @@ impl FindCache {
         if fresh {
             #[cfg(test)]
             {
-                self.work.folds += 1;
+                self.work.folds = self.work.folds.saturating_add(1);
             }
             let text = searchable(entry).map(|text| match &entry.kind {
                 EntryKind::Message { .. } => fold(&readable_text(text)),
@@ -64,7 +64,7 @@ impl FindCache {
     ) {
         #[cfg(test)]
         {
-            self.work.visits += 1;
+            self.work.visits = self.work.visits.saturating_add(1);
         }
         let Some(text) = self.folded(index, entry) else {
             return;
