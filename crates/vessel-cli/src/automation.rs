@@ -54,7 +54,10 @@ fn one<T>(
     }
 }
 
-async fn find_schedule(client: &NodeClient, given: &str) -> Result<ScheduleInfo, CliError> {
+pub(crate) async fn find_schedule(
+    client: &NodeClient,
+    given: &str,
+) -> Result<ScheduleInfo, CliError> {
     // A whole id is read alone, without the list.
     if let Ok(id) = given.parse::<vessel_proto::ScheduleId>() {
         return Ok(client.schedule(id).await?);

@@ -386,3 +386,93 @@ async fn limits_policy_and_reads_send_no_frames_to_an_old_hop() {
 }
 
 mod inbox;
+
+/// Pending package methods must not leak a request to either an old or a current peer.
+#[tokio::test]
+async fn cli_host_and_capture_calls_refuse_locally_until_assigned() {
+    use vessel_proto::host_registry::*;
+    let (client_end, mut node_end) = vessel_rpc::memory::pair(NonZeroUsize::new(4).unwrap());
+    let prior = CLI_PARITY_PROTOCOL
+        .and_then(|version| version.get().checked_sub(1))
+        .map_or(vessel_proto::PROTOCOL_VERSION, ProtocolVersion::new);
+    let peer = tokio::spawn(async move {
+        let _hello = node_end.next().await.unwrap().unwrap();
+        node_end
+            .send(
+                serde_json::to_string(&ServerFrame::Welcome(Welcome {
+                    protocol: prior,
+                    node: node(),
+                }))
+                .unwrap(),
+            )
+            .await
+            .unwrap();
+        node_end.next().await
+    });
+    let client = NodeClient::over(client_end, client_info(), &ClientConfig::default())
+        .await
+        .unwrap();
+    assert_eq!(
+        client.host_registrations().await.unwrap_err().code(),
+        Some(ErrorCode::Unsupported)
+    );
+    let destination = HostDestination::Fleet {
+        node: NodeId::random(),
+    };
+    assert_eq!(
+        client
+            .add_host_registration(AddHostRegistration {
+                destination,
+                label: None,
+                metadata: HostMetadata::default()
+            })
+            .await
+            .unwrap_err()
+            .code(),
+        Some(ErrorCode::Unsupported)
+    );
+    let id = HostRegistrationId::random();
+    assert_eq!(
+        client
+            .update_host_registration(UpdateHostRegistration {
+                registration_id: id,
+                expected_revision: HostRevision::default(),
+                label: HostLabelChange::Keep,
+                metadata: None,
+                enabled: None,
+                destination: None,
+                identity_change: IdentityChange::KeepPinned
+            })
+            .await
+            .unwrap_err()
+            .code(),
+        Some(ErrorCode::Unsupported)
+    );
+    assert_eq!(
+        client
+            .remove_host_registration(RemoveHostRegistration {
+                registration_id: id,
+                expected_revision: HostRevision::default()
+            })
+            .await
+            .unwrap_err()
+            .code(),
+        Some(ErrorCode::Unsupported)
+    );
+    assert_eq!(
+        client
+            .capture_terminal(
+                vessel_proto::TerminalId::random(),
+                vessel_proto::terminals::CaptureOptions::default()
+            )
+            .await
+            .unwrap_err()
+            .code(),
+        Some(ErrorCode::Unsupported)
+    );
+    drop(client);
+    assert!(
+        peer.await.unwrap().is_none(),
+        "pending methods transmitted no request"
+    );
+}

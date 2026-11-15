@@ -25,7 +25,11 @@ pub(super) async fn stop(
     selection: Selection,
 ) -> Result<(), CliError> {
     let client = connect(target).await?.client;
-    let infos = select(&client, &selection).await?;
+    let infos = select(&client, &selection)
+        .await?
+        .into_iter()
+        .filter(|info| info.marks.archived_at.is_none())
+        .collect::<Vec<_>>();
     // Resolve every input before mutating any selected session.
     for info in &infos {
         structured(info)?;
@@ -34,23 +38,25 @@ pub(super) async fn stop(
     for info in &infos {
         turns.push((info.id, observe::snapshot(&client, info.id).await?.turn));
     }
+    let mut agent_ids = Vec::new();
     for (id, turn) in turns {
         if let Some(turn) = turn {
             client
                 .send(id, SessionInput::CancelTurn { turn: Some(turn) })
                 .await?;
+            agent_ids.push(id);
         }
     }
-    output::single(
-        presentation,
-        &infos
-            .iter()
-            .map(|i| i.id.to_string())
-            .collect::<Vec<_>>()
-            .join("\n"),
-        &infos,
-    )
-    .await
+    let ids = agent_ids
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join("\n");
+    let result = Stopped {
+        stopped_count: Count(agent_ids.len()),
+        agent_ids,
+    };
+    output::single(presentation, &ids, &result).await
 }
 
 pub(super) async fn delete(
@@ -179,4 +185,14 @@ pub(super) fn choice(
             "the agent does not advertise a selectable setting",
         )),
     }
+}
+
+#[derive(serde::Serialize)]
+#[serde(transparent)]
+struct Count(usize);
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Stopped {
+    stopped_count: Count,
+    agent_ids: Vec<vessel_proto::SessionId>,
 }

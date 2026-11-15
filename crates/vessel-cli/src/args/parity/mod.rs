@@ -2,14 +2,18 @@
 
 mod agent;
 mod duration;
+mod heartbeat;
 mod host;
 mod identifier;
+mod invocation;
 pub(crate) mod output;
 mod terminal;
 
 pub(crate) use agent::{AgentCommand, AgentList, AgentRun, AgentSend, Selection, Wait};
 pub(crate) use duration::WaitBudget;
-pub(crate) use host::HostCommand;
+pub(crate) use heartbeat::{HeartbeatCommand, ScheduleSelector};
+pub(crate) use host::{HostCommand, destination as host_destination, metadata as host_metadata};
+pub(crate) use invocation::normalize;
 pub(crate) use output::{ConnectionOptions, OutputOptions, Presentation};
 pub(crate) use terminal::{TerminalCommand, TerminalSelector};
 
@@ -19,6 +23,11 @@ use clap::Subcommand;
 /// Root shortcuts share the same typed handlers as the agent group.
 #[derive(Debug, Subcommand)]
 pub(crate) enum ParityCommand {
+    /// Schedule recurring prompts only for this calling agent.
+    Heartbeat {
+        #[command(subcommand)]
+        command: HeartbeatCommand,
+    },
     /// List, create, inspect or send keys to workspace-owned terminals.
     Terminal {
         #[command(subcommand)]

@@ -1,7 +1,7 @@
 //! Request/reply association is independent of the method registration table.
 
-use serde::{Serialize,de::DeserializeOwned};
-use super::{Call,Method,Reply};
+use super::{Call, Method, Reply};
+use serde::{Serialize, de::DeserializeOwned};
 
 /// A request type, bound to its response type and its method.
 pub trait Request: Serialize + DeserializeOwned + Send + 'static {
@@ -42,4 +42,3 @@ impl std::fmt::Display for UnexpectedReply {
 }
 
 impl std::error::Error for UnexpectedReply {}
-

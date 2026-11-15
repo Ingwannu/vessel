@@ -116,9 +116,12 @@ pub(super) async fn select(
         .into_iter()
         .filter(|info| {
             selection.all
-                || cwd
-                    .as_ref()
-                    .is_some_and(|path| info.spec.cwd.as_ref() == Some(path))
+                || cwd.as_ref().is_some_and(|path| {
+                    info.spec
+                        .cwd
+                        .as_ref()
+                        .is_some_and(|cwd| cwd.starts_with(path))
+                })
         })
         .collect())
 }

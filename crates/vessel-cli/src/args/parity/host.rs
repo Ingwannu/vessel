@@ -68,7 +68,9 @@ impl HostCommand {
         }
     }
 }
-fn destination(text: &str) -> Result<vessel_proto::host_registry::HostDestination, CliError> {
+pub(crate) fn destination(
+    text: &str,
+) -> Result<vessel_proto::host_registry::HostDestination, CliError> {
     use vessel_proto::host_registry::HostDestination;
     if let Some(id) = text.strip_prefix("fleet:") {
         return Ok(HostDestination::Fleet {
@@ -88,7 +90,7 @@ fn destination(text: &str) -> Result<vessel_proto::host_registry::HostDestinatio
         "resolve direct/SSH/pairing connections through their existing trust authority first; the registry accepts fleet:<NodeId> or paired:<NodeId>",
     ))
 }
-fn metadata(items: &[String]) -> Result<HostMetadata, CliError> {
+pub(crate) fn metadata(items: &[String]) -> Result<HostMetadata, CliError> {
     let mut map = std::collections::BTreeMap::new();
     for item in items {
         let (key, value) = item

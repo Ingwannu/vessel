@@ -51,7 +51,7 @@ pub(crate) mod samples;
 mod shape;
 mod since;
 
-pub use contract::{Request,UnexpectedReply};
+pub use contract::{Request, UnexpectedReply};
 pub use frames::{ClientFrame, ClientInfo, Hello, ServerFrame, SubscriptionEnd, Welcome};
 pub use requests::{
     Ack, CreateSession, EventPage, GetNode, GetSession, KillSession, ListHarnesses, ListSessions,
@@ -93,7 +93,17 @@ macro_rules! method_table {
             ListHarnesses / list_harnesses / "harness.list" [Read, 2, unary]: $crate::ListHarnesses => Vec<$crate::Harness>;
             /// List sessions.
             ListSessions / list_sessions / "session.list" [Read, 2, unary]: $crate::ListSessions => Vec<$crate::SessionInfo>;
-            /// Get one session.
+            /// Caller-source directory of existing trusted destinations.
+    ListHostRegistrations / list_host_registrations / "host_registry.list" [Read, (pending $crate::host_registry::CLI_PARITY_PROTOCOL), unary]: $crate::host_registry::ListHostRegistrations => $crate::host_registry::HostDirectory;
+    /// Add display metadata without creating a new trust authority.
+    AddHostRegistration / add_host_registration / "host_registry.add" [Admin, (pending $crate::host_registry::CLI_PARITY_PROTOCOL), unary]: $crate::host_registry::AddHostRegistration => $crate::host_registry::HostRegistration;
+    /// Revision-checked source-owned registration edit.
+    UpdateHostRegistration / update_host_registration / "host_registry.update" [Admin, (pending $crate::host_registry::CLI_PARITY_PROTOCOL), unary]: $crate::host_registry::UpdateHostRegistration => $crate::host_registry::HostRegistration;
+    /// Remove directory metadata without revoking its destination.
+    RemoveHostRegistration / remove_host_registration / "host_registry.remove" [Admin, (pending $crate::host_registry::CLI_PARITY_PROTOCOL), unary]: $crate::host_registry::RemoveHostRegistration => $crate::Ack;
+    /// Capture rendered terminal rows through the ordinary ownership gate.
+    CaptureTerminal / capture_terminal / "terminal.capture" [Read, (pending $crate::host_registry::CLI_PARITY_PROTOCOL), unary]: $crate::terminals::CaptureTerminal => $crate::terminals::TerminalCapture;
+    /// Get one session.
             GetSession / get_session / "session.get" [Read, 2, unary]: $crate::GetSession => $crate::SessionInfo;
             /// Start a session.
             CreateSession / create_session / "session.create" [Operate, 2, unary]: $crate::CreateSession => $crate::SessionInfo;

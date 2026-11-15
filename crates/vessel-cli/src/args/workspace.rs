@@ -10,6 +10,7 @@ use clap::Subcommand;
 #[derive(Debug, Subcommand)]
 pub(crate) enum ProjectCommand {
     /// List the node's projects and the git it found.
+    #[command(alias = "ls")]
     List,
     /// Add a folder on the node (inside a repository: its top level).
     Add {
@@ -67,6 +68,7 @@ pub(crate) enum ProjectCommand {
 #[derive(Debug, Subcommand)]
 pub(crate) enum WorktreeCommand {
     /// List worktrees, or a project's.
+    #[command(alias = "ls")]
     List {
         /// Only this project's.
         #[arg(long)]

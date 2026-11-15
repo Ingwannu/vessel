@@ -1,4 +1,5 @@
 use super::*;
+use vessel_proto::host_registry::{HostEnabled, HostLabelChange, HostMetadata, IdentityChange};
 use vessel_proto::{DeviceId, NodeId};
 #[tokio::test]
 async fn source_identity_revision_and_persistence_are_independent_of_transport_authority() {
@@ -62,43 +63,7 @@ async fn source_identity_revision_and_persistence_are_independent_of_transport_a
             .await,
         Err(RegistryError::Stale)
     ));
-    let new = HostDestination::Fleet {
-        node: NodeId::random(),
-    };
-    let change = UpdateHostRegistration {
-        registration_id: entry.registration_id,
-        expected_revision: disabled.revision,
-        label: HostLabelChange::Keep,
-        metadata: None,
-        enabled: None,
-        destination: Some(new),
-        identity_change: IdentityChange::KeepPinned,
-    };
-    assert!(matches!(
-        registry
-            .update(
-                HostSource::Owner,
-                change.clone(),
-                TrustedDestinations(vec![new])
-            )
-            .await,
-        Err(RegistryError::IdentityChanged)
-    ));
-    let replaced = registry
-        .update(
-            HostSource::Owner,
-            UpdateHostRegistration {
-                identity_change: IdentityChange::Replace,
-                ..change
-            },
-            TrustedDestinations(vec![new]),
-        )
-        .await
-        .unwrap();
-    assert_eq!(
-        data.read_host_registry().unwrap().entries(),
-        [replaced.clone()]
-    );
+    let replaced = identity_rebind(&registry, &data, &entry, &disabled).await;
     registry
         .remove(
             HostSource::Owner,
@@ -111,7 +76,7 @@ async fn source_identity_revision_and_persistence_are_independent_of_transport_a
         .unwrap();
     assert!(data.read_host_registry().unwrap().entries().is_empty());
     stop.cancel();
-    tasks.close();
+    let _closed = tasks.close();
     tasks.wait().await;
 }
 
@@ -150,6 +115,52 @@ async fn queued_commit_finishes_after_reply_receiver_is_dropped() {
     assert_eq!(records.len(), 1);
     assert_eq!(data.read_host_registry().unwrap().entries(), records);
     stop.cancel();
-    tasks.close();
+    let _closed = tasks.close();
     tasks.wait().await;
+}
+
+async fn identity_rebind(
+    registry: &HostRegistry,
+    data: &DataDir,
+    entry: &HostRegistration,
+    disabled: &HostRegistration,
+) -> HostRegistration {
+    let new = HostDestination::Fleet {
+        node: NodeId::random(),
+    };
+    let change = UpdateHostRegistration {
+        registration_id: entry.registration_id,
+        expected_revision: disabled.revision,
+        label: HostLabelChange::Keep,
+        metadata: None,
+        enabled: None,
+        destination: Some(new),
+        identity_change: IdentityChange::KeepPinned,
+    };
+    assert!(matches!(
+        registry
+            .update(
+                HostSource::Owner,
+                change.clone(),
+                TrustedDestinations(vec![new])
+            )
+            .await,
+        Err(RegistryError::IdentityChanged)
+    ));
+    let replaced = registry
+        .update(
+            HostSource::Owner,
+            UpdateHostRegistration {
+                identity_change: IdentityChange::Replace,
+                ..change
+            },
+            TrustedDestinations(vec![new]),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        data.read_host_registry().unwrap().entries(),
+        std::slice::from_ref(&replaced)
+    );
+    replaced
 }

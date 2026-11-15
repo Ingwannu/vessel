@@ -249,6 +249,31 @@ locked dependency version was updated.
 ## Structural extraction before pending registration
 
 The unchanged Request/UnexpectedReply contracts move from rpc.rs to rpc/contract.rs;
-node model client/listener setup moves unchanged to node/model_setup.rs. This behavior-only
+node model client/listener setup moves unchanged to node/model_setup.rs. This behavior-preserving
 refactor keeps the method table and node assembly within their existing shrinking budgets
 without raising either record. Public imports and tests retain their original meaning.
+
+Shared-seam delivery is the clean pair `1c8d0b93`, `ed3a3323` directly on Quality B
+`29eebb8b` in branch `backend/m12-wp-cli-seams`. An earlier combined local extraction
+commit is draft history only; integration uses that clean pair. The feature source aligns
+with it. The coordinator explicitly approved adding only host_registry.add/update/remove
+to the existing exact Admin-method assertion; all prior expectations remain unchanged.
+
+Quality B `29eebb8b` was announced and merged before registration. Five rows now use
+`(pending CLI_PARITY_PROTOCOL)` in the single method table: host_registry.list/add/update/remove
+and terminal.capture. No number is invented. The client has typed wrappers; CLI performs
+an additional unassigned-feature refusal before connecting. Node and client admission
+refuse None requirements, including wrapped/old-peer paths. Host administration is local-only
+(no fleet forwarding), source-owned, and denied to agents/delegated callers. Screen capture
+follows terminal ownership and may forward like terminal.read. Browser policy explicitly
+allows the unary requests subject to the node's normal admission/scope checks.
+
+Root `run PROMPT --provider PROVIDER` and prompt-first `send PROMPT ID` now decode into the
+same agent grammar. Legacy `run HARNESS` and hex-ID-first `send ID TEXT` remain available;
+a prompt consisting only of hex/dashes is ambiguous in the latter spelling, so use
+`agent send` or `send ID --prompt TEXT` to select the Paseo form explicitly. Root selectors'
+values and arguments after `--` are excluded from compatibility grammar selection.
+Heartbeat create/update/delete reuse the existing schedule client, require VESSEL_AGENT_SESSION,
+and verify the selected schedule targets that caller before update/deletion. Existing schedule
+and project/worktree list paths gained familiar aliases; unchanged legacy flag/output differences
+remain in the inventory and are not counted as full parity.

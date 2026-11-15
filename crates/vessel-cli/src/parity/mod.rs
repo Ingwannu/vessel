@@ -1,6 +1,8 @@
 //! Typed CLI orchestration over existing calls; no method registration belongs here.
 
 mod agents;
+mod heartbeat;
+mod hosts;
 mod observe;
 pub(crate) mod output;
 mod terminals;
@@ -20,10 +22,13 @@ pub(crate) async fn run(
     command: ParityCommand,
 ) -> Result<(), CliError> {
     let command = match command {
+        ParityCommand::Heartbeat { command } => {
+            return heartbeat::run(target, output, command).await;
+        }
         ParityCommand::Terminal { command } => {
             return terminals::run(target, output, command).await;
         }
-        ParityCommand::Host { command } => return host(target, output, command).await,
+        ParityCommand::Host { command } => return hosts::run(target, output, command).await,
         ParityCommand::Agent { command } => command,
         ParityCommand::Ls(args) => AgentCommand::Ls(args),
         ParityCommand::Inspect { id } => AgentCommand::Inspect { id },
@@ -33,15 +38,4 @@ pub(crate) async fn run(
         ParityCommand::Archive { id, force } => AgentCommand::Archive { id, force },
     };
     agents::run(target, output, command).await
-}
-
-async fn host(
-    _target: &Target,
-    _output: Presentation,
-    command: crate::args::parity::HostCommand,
-) -> Result<(), CliError> {
-    command.validate()?;
-    Err(CliError::ParityBlocked(
-        "host registrations are staged until Quality B and node integration assign CLI_PARITY_PROTOCOL",
-    ))
 }

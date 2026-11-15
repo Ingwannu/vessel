@@ -546,7 +546,7 @@ async fn captured_screen_survives_output_ring_pruning_and_process_exit() {
         assert!(captured.lines.iter().any(|line| line == "row-0"));
         assert!(captured.lines.iter().any(|line| line == "row-39"));
         fixture.shutdown.cancel();
-        fixture.tasks.close();
+        let _closed = fixture.tasks.close();
         fixture.tasks.wait().await;
     })
     .await;

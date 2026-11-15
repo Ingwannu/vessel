@@ -54,10 +54,8 @@ use crate::transfers::{self, Transfers};
 use crate::workspace::{Opening, Workspaces};
 
 mod setup;
-mod model_setup;
-use model_setup::{model_proxy,model_client};
 
-use self::setup::{SessionSetup, SetupDirs};
+use self::setup::{SessionSetup, SetupDirs, model_client, model_proxy};
 
 /// A running node. Stop it with [`Node::stop`]; dropping it leaves it
 /// running until the process exits.
@@ -193,7 +191,7 @@ impl Node {
             teardown,
             lock,
         ));
-        listening(id, address, &local_endpoint);
+        setup::listening(id, address, &local_endpoint);
         Ok(Self {
             address,
             local: local_endpoint,
@@ -254,15 +252,6 @@ impl Node {
 }
 
 /// Say where the node listens.
-fn listening(id: NodeId, address: Option<SocketAddr>, local: &Endpoint) {
-    tracing::info!(
-        node = %id,
-        address = ?address,
-        local = %local.path().display(),
-        "node listening"
-    );
-}
-
 /// Open the event log, closing sessions a previous run left live.
 async fn open_store(config: &Config) -> Result<Store, NodeError> {
     let Opened { store, interrupted } = Store::open(&config.data_dir, config.store)
@@ -474,6 +463,7 @@ async fn core(
         .await
         .map_err(NodeError::Store)?;
     let limits = crate::limits::Limits::configured(config, stop.clone(), &tasks).await;
+    let host_registry = setup::host_registry(config, stop.clone(), &tasks).await;
     let service = Arc::new(Guarded(NodeService::new(Parts {
         lsp,
         lsp_roots: config.lsp_roots.clone(),
@@ -503,6 +493,7 @@ async fn core(
         push,
         settings,
         limits,
+        host_registry,
     })));
     automation::schedules::start(
         commands,

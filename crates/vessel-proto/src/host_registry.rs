@@ -125,11 +125,11 @@ pub struct HostRegistration {
     pub revision: HostRevision,
 }
 /// List includes disabled and unreachable registrations; connectivity is a projection.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ListHostRegistrations;
 /// Source is deliberately absent from an unauthenticated request payload.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields)]
 pub struct AddHostRegistration {
@@ -141,7 +141,7 @@ pub struct AddHostRegistration {
     pub metadata: HostMetadata,
 }
 /// An edit compares the whole prior record's revision before changing anything.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields)]
 pub struct UpdateHostRegistration {
@@ -161,11 +161,48 @@ pub struct UpdateHostRegistration {
     pub identity_change: IdentityChange,
 }
 /// Removing metadata never forgets a fleet node or revokes a paired device.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct RemoveHostRegistration {
     /// Directory entry to remove.
     pub registration_id: HostRegistrationId,
     /// Concurrent updates must not be silently removed.
     pub expected_revision: HostRevision,
+}
+
+/// Connection facts are projected from existing authorities, never guessed from registration.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum HostStatus {
+    /// Existing destination authority currently has an established route.
+    Online,
+    /// Existing trusted destination is currently unreachable.
+    Offline,
+    /// Registration is retained but not enabled for directory selection.
+    Disabled,
+    /// Destination authority no longer exists or could not be observed.
+    Error,
+}
+/// Display metadata and independently observed connectivity stay distinguishable.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct HostSummary {
+    /// Durable identity/annotations, owned by this caller's source.
+    pub registration: HostRegistration,
+    /// This read's actual transport observation.
+    pub status: HostStatus,
+    /// Destination display name when the existing authority supplies one.
+    pub destination_name: Option<HostLabel>,
+    /// Explicit uncertainty/failure instead of fabricated online state.
+    pub error: Option<crate::WireError>,
+}
+/// A directory includes disabled and failed records as well as the node's own identity.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct HostDirectory {
+    /// The selected node, not a registration pretending to be self.
+    pub node: crate::NodeInfo,
+    /// Caller-source entries, including unavailable targets.
+    pub hosts: Vec<HostSummary>,
 }

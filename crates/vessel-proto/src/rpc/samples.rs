@@ -19,7 +19,8 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
     let definition =
         json!({"cadence":cadence,"target":{"kind":"session","session":id},"prompt":"sample"});
     let params = match method {
-        Method::NodeInfo
+        Method::ListHostRegistrations
+        | Method::NodeInfo
         | Method::ListHarnesses
         | Method::ListSessions
         | Method::ListDevices
@@ -210,6 +211,16 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
             json!({"scope":{"kind":"session","session":id},"refresh":"cached"})
         }
         Method::SetUsageLookup => json!({"policy":"off"}),
+        Method::AddHostRegistration => {
+            json!({"destination":{"kind":"fleet","node":id},"label":null,"metadata":{}})
+        }
+        Method::UpdateHostRegistration => {
+            json!({"registration_id":id,"expected_revision":0,"label":{"kind":"keep"},"metadata":null,"enabled":null,"destination":null,"identity_change":"keep_pinned"})
+        }
+        Method::RemoveHostRegistration => json!({"registration_id":id,"expected_revision":0}),
+        Method::CaptureTerminal => {
+            json!({"terminal":id,"options":{"range":{"start":null,"end":null},"style":"plain"}})
+        }
     };
     serde_json::from_value(json!({"method":method,"params":params}))
 }

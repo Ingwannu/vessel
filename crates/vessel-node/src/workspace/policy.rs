@@ -280,6 +280,11 @@ const fn refused(method: Method) -> bool {
         | Method::ReadAttachment
         // Terminals and ports (protocol 11): held to their own rule.
         | Method::CreateTerminal
+        | Method::CaptureTerminal
+        | Method::ListHostRegistrations
+        | Method::AddHostRegistration
+        | Method::UpdateHostRegistration
+        | Method::RemoveHostRegistration
         | Method::ListTerminals
         | Method::GetTerminal
         | Method::ReadTerminal

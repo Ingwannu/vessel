@@ -186,6 +186,11 @@ const fn forwardable(method: Method) -> bool {
         // and the ports; its records follow through the bridge's own
         // frames (`follow_terminal`), as a session's do.
         | Method::CreateTerminal
+        | Method::CaptureTerminal
+        | Method::ListHostRegistrations
+        | Method::AddHostRegistration
+        | Method::UpdateHostRegistration
+        | Method::RemoveHostRegistration
         | Method::ListTerminals
         | Method::GetTerminal
         | Method::ReadTerminal

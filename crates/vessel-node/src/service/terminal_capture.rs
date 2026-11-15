@@ -7,10 +7,6 @@ use vessel_proto::{
 };
 use vessel_session::terminals::CaptureError;
 impl NodeService {
-    #[expect(
-        dead_code,
-        reason = "W17 capture handler is staged until CLI_PARITY_PROTOCOL is assigned after Quality B (A10)"
-    )]
     pub(crate) async fn capture_terminal(
         &self,
         connection: &Connection,
@@ -18,7 +14,7 @@ impl NodeService {
     ) -> Result<TerminalCapture, WireError> {
         let entry = self
             .terminal_for(connection.principal(), request.terminal)
-            .map_err(|error| error.wire())?;
+            .map_err(crate::terminals::TerminalsError::wire)?;
         entry
             .handle
             .capture(request.options)

@@ -1,10 +1,13 @@
-//! What sessions are created with, prepared once at node start: the
+//! Bootstrap helpers prepared once at node start: the
 //! node's profiles, the model routes, the launch seam and the directories
 //! sessions and probes use. Moved out of `node.rs` unchanged (Quality B),
 //! which assembles the node from it.
 
+use crate::error::NodeError;
+use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
+use tokio::net::TcpListener;
 
 use vessel_proto::NodeId;
 
@@ -75,4 +78,53 @@ impl SessionSetup {
             workspace_dir: workspace,
         }
     }
+}
+
+/// The model proxy's listener, on a port of loopback's the system picks
+/// (harnesses learn it from their environment). It is served from `core`'s
+/// stop: model calls end with the node, a harness still calling gets its
+/// connection closed, as its session is interrupted anyway.
+pub(super) async fn model_proxy(models: Models) -> Result<(Arc<Models>, TcpListener), NodeError> {
+    let listener = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))
+        .await
+        .map_err(NodeError::ModelProxy)?;
+    models.listening(listener.local_addr().map_err(NodeError::ModelProxy)?);
+    Ok((Arc::new(models), listener))
+}
+
+pub(super) fn model_client() -> Result<vessel_llm::client::Client, NodeError> {
+    let limits = vessel_llm::client::Limits::default();
+    vessel_llm::client::Client::new(limits)
+        .or_else(|error| {
+            tracing::warn!(%error, "model calls to https providers will fail");
+            vessel_llm::client::Client::with_roots(rustls::RootCertStore::empty(), limits)
+        })
+        .map_err(NodeError::ModelClient)
+}
+
+/// A failed registry never resets saved data or prevents unrelated node operations.
+pub(super) async fn host_registry(
+    config: &Config,
+    stop: tokio_util::sync::CancellationToken,
+    tasks: &tokio_util::task::TaskTracker,
+) -> Option<crate::host_registry::HostRegistry> {
+    if vessel_proto::host_registry::CLI_PARITY_PROTOCOL.is_none() {
+        return None;
+    }
+    match crate::host_registry::HostRegistry::start(config.data_dir.clone(), stop, tasks).await {
+        Ok(registry) => Some(registry),
+        Err(_failure) => {
+            tracing::warn!("host registry is unavailable; saved data is retained");
+            None
+        }
+    }
+}
+
+pub(super) fn listening(id: NodeId, address: Option<SocketAddr>, local: &Endpoint) {
+    tracing::info!(
+        node = %id,
+        address = ?address,
+        local = %local.path().display(),
+        "node listening"
+    );
 }

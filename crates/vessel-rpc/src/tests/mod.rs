@@ -504,6 +504,11 @@ impl Handler for Fake {
     }
 
     unserved! {
+        list_host_registrations: vessel_proto::host_registry::ListHostRegistrations => vessel_proto::host_registry::HostDirectory;
+        add_host_registration: vessel_proto::host_registry::AddHostRegistration => vessel_proto::host_registry::HostRegistration;
+        update_host_registration: vessel_proto::host_registry::UpdateHostRegistration => vessel_proto::host_registry::HostRegistration;
+        remove_host_registration: vessel_proto::host_registry::RemoveHostRegistration => vessel_proto::Ack;
+        capture_terminal: vessel_proto::terminals::CaptureTerminal => vessel_proto::terminals::TerminalCapture;
         forward: vessel_proto::Forward => vessel_proto::Forwarded;
         relay: vessel_proto::RelayCall => vessel_proto::Forwarded;
         deliver: vessel_proto::Deliver => vessel_proto::Forwarded;

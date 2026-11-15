@@ -58,6 +58,7 @@ mod worktrees;
 mod forge;
 // Protocol 11's calls: terminals beside sessions, a project's scripts, and
 // the ports their trees listen on (`terminals`, ADR 0031).
+mod host_registry;
 mod scripts;
 mod terminal_capture;
 mod terminals;
@@ -146,6 +147,7 @@ pub(crate) struct NodeService {
     /// The node's settings (protocol 12, `crate::settings`).
     settings: Arc<crate::settings::Settings>,
     limits: crate::limits::Limits,
+    host_registry: Option<crate::host_registry::HostRegistry>,
     /// Turns followed for their starters (protocol 11,
     /// `automation::notices`).
     notices: Arc<Notices>,
@@ -182,6 +184,7 @@ pub(crate) struct Parts {
     pub(crate) settings: Arc<crate::settings::Settings>,
     pub(crate) push: Arc<crate::push::Push>,
     pub(crate) limits: crate::limits::Limits,
+    pub(crate) host_registry: Option<crate::host_registry::HostRegistry>,
 }
 
 impl NodeService {
@@ -213,6 +216,7 @@ impl NodeService {
             settings,
             push,
             limits,
+            host_registry,
         } = parts;
         let store = sessions.store().clone();
         Self {
@@ -250,6 +254,7 @@ impl NodeService {
             listings: tokio::sync::Semaphore::new(history::AT_ONCE),
             settings,
             limits,
+            host_registry,
             notices: Arc::default(),
             side_opening: Arc::default(),
             push,

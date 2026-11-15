@@ -5,7 +5,10 @@ mod state;
 use state::State;
 use tokio::sync::{mpsc, oneshot};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
-use vessel_proto::host_registry::*;
+use vessel_proto::host_registry::{
+    AddHostRegistration, HostDestination, HostRegistration, HostSource, RemoveHostRegistration,
+    UpdateHostRegistration,
+};
 use vessel_store::{
     DataDir,
     host_registry::{HostRegistryFile, RegistryFileError},
@@ -175,12 +178,15 @@ impl Owner {
         change: Change,
     ) -> Result<Option<HostRegistration>, RegistryError> {
         let (candidate, result) = self.state.prepare(source, change)?;
-        let file = HostRegistryFile::new(candidate.clone())?;
+        let file = HostRegistryFile::new(candidate)?;
         let dir = self.dir.clone();
-        tokio::task::spawn_blocking(move || dir.write_host_registry(&file))
-            .await
-            .map_err(RegistryError::Worker)??;
-        self.state = State::new(HostRegistryFile::new(candidate)?);
+        let file = tokio::task::spawn_blocking(move || {
+            dir.write_host_registry(&file)?;
+            Ok::<_, RegistryFileError>(file)
+        })
+        .await
+        .map_err(RegistryError::Worker)??;
+        self.state = State::new(file);
         Ok(result)
     }
 }

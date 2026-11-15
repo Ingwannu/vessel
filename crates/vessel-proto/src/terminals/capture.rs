@@ -27,7 +27,7 @@ impl CaptureLineCount {
     }
     /// Consumers can compare counts without interpreting serialized text.
     #[must_use]
-    pub const fn get(self) -> u32 {
+    pub const fn get(self) -> Option<u32> {
         self.0
     }
 }
@@ -56,19 +56,19 @@ impl CaptureRange {
     #[must_use]
     pub fn resolve(self, total: CaptureLineCount) -> Option<std::ops::RangeInclusive<u32>> {
         let last = total.get().checked_sub(1)?;
-        let index = |line: Option<CaptureLine>, fallback: u32| -> u32 {
+        let index = |line: Option<CaptureLine>, fallback: u32| -> Option<u32> {
             let Some(CaptureLine(line)) = line else {
-                return fallback;
+                return Some(fallback);
             };
             let raw = if line < 0 {
                 i64::from(total.get()).saturating_add(i64::from(line))
             } else {
                 i64::from(line)
             };
-            u32::try_from(raw.clamp(0, i64::from(last))).unwrap_or_default()
+            u32::try_from(raw.clamp(0, i64::from(last))).ok()
         };
-        let start = index(self.start, 0);
-        let end = index(self.end, last);
+        let start = index(self.start, 0)?;
+        let end = index(self.end, last)?;
         (start <= end).then_some(start..=end)
     }
 }
@@ -82,7 +82,7 @@ pub struct CaptureOptions {
     pub style: CaptureStyle,
 }
 /// Pending method registration uses `host_registry::CLI_PARITY_PROTOCOL`, never a literal.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct CaptureTerminal {
     /// Existing terminal identity; the node checks its ordinary ownership policy.

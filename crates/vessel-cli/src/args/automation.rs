@@ -12,6 +12,7 @@ use vessel_proto::{HarnessRef, ProfileName};
 #[derive(Debug, Subcommand)]
 pub(crate) enum ScheduleCommand {
     /// List the node's schedules, newest first.
+    #[command(alias = "ls")]
     List,
     /// Compute upcoming runs on the node without saving a schedule.
     Preview {
@@ -32,11 +33,13 @@ pub(crate) enum ScheduleCommand {
         count: u32,
     },
     /// Show one schedule and its last run.
+    #[command(alias = "inspect")]
     Show {
         /// The schedule.
         schedule: String,
     },
     /// A schedule's newest runs (at most 50), newest first.
+    #[command(alias = "logs")]
     Runs {
         /// The schedule.
         schedule: String,
@@ -45,6 +48,7 @@ pub(crate) enum ScheduleCommand {
     Create(Box<ScheduleArgs>),
     /// Change a schedule: what is given replaces what it had; the rest
     /// stays. Whoever changes it is whom its runs act as from then on.
+    #[command(alias = "update")]
     Edit {
         /// The schedule.
         schedule: String,
@@ -62,6 +66,7 @@ pub(crate) enum ScheduleCommand {
         schedule: String,
     },
     /// Run a schedule once now and print what the run came to.
+    #[command(alias = "run-once")]
     Run {
         /// The schedule.
         schedule: String,

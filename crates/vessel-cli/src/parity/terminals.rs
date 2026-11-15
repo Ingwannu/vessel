@@ -58,9 +58,62 @@ pub(super) async fn run(
         TerminalCommand::Create { .. } => Err(CliError::ParityBlocked(
             "terminal create requires real workspace identity; project/session IDs must not be used as substitutes",
         )),
-        TerminalCommand::Capture { .. } => Err(CliError::ParityBlocked(
-            "terminal screen capture is staged until Quality B and node integration assign CLI_PARITY_PROTOCOL",
-        )),
+        TerminalCommand::Capture {
+            id,
+            start,
+            end,
+            scrollback,
+            ansi,
+        } => {
+            if vessel_proto::host_registry::CLI_PARITY_PROTOCOL.is_none() {
+                return Err(CliError::ParityBlocked(
+                    "terminal capture awaits the integrator's CLI_PARITY_PROTOCOL assignment",
+                ));
+            }
+            let start = if scrollback {
+                Some(
+                    "0".parse()
+                        .map_err(|_invalid| CliError::Usage("invalid scrollback range"))?,
+                )
+            } else {
+                start
+            };
+            let options = vessel_proto::terminals::CaptureOptions {
+                range: vessel_proto::terminals::CaptureRange { start, end },
+                style: if ansi {
+                    vessel_proto::terminals::CaptureStyle::Preserve
+                } else {
+                    vessel_proto::terminals::CaptureStyle::Plain
+                },
+            };
+            let client = connect(target).await?.client;
+            let terminal = resolve(&client, &id).await?;
+            let result = client.capture_terminal(terminal.id, options).await?;
+            match presentation {
+                Presentation::Json | Presentation::Yaml => {
+                    output::single(
+                        presentation,
+                        &terminal.id.to_string(),
+                        &Captured {
+                            terminal_id: terminal.id,
+                            lines: result.lines,
+                            total_lines: result.total_lines,
+                        },
+                    )
+                    .await
+                }
+                Presentation::Table(_) | Presentation::Quiet => {
+                    if result.lines.is_empty() {
+                        Ok(())
+                    } else {
+                        Ok(
+                            crate::io::out(format!("{}\n", result.lines.join("\n")).as_bytes())
+                                .await?,
+                        )
+                    }
+                }
+            }
+        }
         TerminalCommand::Kill { id } => {
             let client = connect(target).await?.client;
             let terminal = resolve(&client, &id).await?;
@@ -222,4 +275,12 @@ mod tests {
         assert_eq!(encode_keys(&keys, KeyMode::Tokens), "한😀\r\u{3}enter");
         assert_eq!(encode_keys(&keys, KeyMode::Literal), "한😀EnterC-center");
     }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Captured {
+    terminal_id: TerminalId,
+    lines: Vec<String>,
+    total_lines: vessel_proto::terminals::CaptureLineCount,
 }

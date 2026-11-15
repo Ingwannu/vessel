@@ -74,13 +74,6 @@ mod error;
 pub mod fleet;
 mod forge;
 mod guard;
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "W17 host registry service is staged until CLI_PARITY_PROTOCOL is assigned after Quality B (A10)"
-    )
-)]
 mod host_registry;
 mod http_tls;
 mod identity;

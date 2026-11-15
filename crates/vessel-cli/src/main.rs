@@ -100,7 +100,7 @@ fn complain(text: &str) {
 }
 
 async fn cli() -> ExitCode {
-    let cli = match Cli::try_parse() {
+    let cli = match Cli::try_parse_from(args::parity::normalize(std::env::args_os().collect())) {
         Ok(cli) => cli,
         Err(error) => {
             let success = matches!(

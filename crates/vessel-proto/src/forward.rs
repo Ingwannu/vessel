@@ -374,6 +374,7 @@ impl Method {
             // they run on (a terminal's stream is not forwarded: it is
             // read with `terminal.read` from another node).
             | Self::CreateTerminal
+            | Self::CaptureTerminal
             | Self::ListTerminals
             | Self::GetTerminal
             | Self::ReadTerminal
@@ -429,7 +430,11 @@ impl Method {
             | Self::GetAgentHistory => true,
             // Protocol 11: adding and removing an agent is the node's own
             // administration, by its owner or its own devices (ADR 0032).
-            Self::GetPushKey
+            Self::ListHostRegistrations
+            | Self::AddHostRegistration
+            | Self::UpdateHostRegistration
+            | Self::RemoveHostRegistration
+            | Self::GetPushKey
             | Self::SubscribePush
             | Self::UnsubscribePush
             | Self::ReportPushPresence

@@ -51,6 +51,12 @@ impl HostRegistryFile {
         }
         Ok(Self(entries))
     }
+    /// Move a validated candidate into the actor after its atomic persistence.
+    #[must_use]
+    pub fn into_entries(self) -> Vec<HostRegistration> {
+        self.0
+    }
+
     /// Borrow records without opening an unchecked mutation path.
     #[must_use]
     pub fn entries(&self) -> &[HostRegistration] {

@@ -50,6 +50,7 @@ mod device_self;
 mod error;
 pub mod file_fault;
 mod fleet_control;
+mod host_registry;
 mod inbox;
 mod local;
 pub mod pairing;
@@ -61,6 +62,7 @@ mod schedules;
 pub mod secure;
 mod side_questions;
 mod stream;
+mod terminal_capture;
 #[cfg(test)]
 mod tests;
 mod token;

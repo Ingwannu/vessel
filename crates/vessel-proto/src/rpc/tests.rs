@@ -34,6 +34,9 @@ fn every_method_declares_authority_and_admin_is_rare() {
     assert_eq!(
         admin,
         [
+            "host_registry.add",
+            "host_registry.update",
+            "host_registry.remove",
             "node.stop",
             "device.invite",
             "device.list",

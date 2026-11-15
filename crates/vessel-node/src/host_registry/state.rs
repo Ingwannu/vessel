@@ -1,6 +1,9 @@
 //! Pure candidate validation leaves the committed directory untouched on every refusal.
 use super::{Change, RegistryError, TrustedDestinations};
-use vessel_proto::host_registry::*;
+use vessel_proto::host_registry::{
+    HostDestination, HostEnabled, HostLabelChange, HostRegistration, HostRegistrationId,
+    HostRevision, HostSource, IdentityChange, MAX_HOST_REGISTRATIONS,
+};
 use vessel_store::host_registry::HostRegistryFile;
 
 pub(super) struct State {
@@ -9,7 +12,7 @@ pub(super) struct State {
 impl State {
     pub(super) fn new(file: HostRegistryFile) -> Self {
         Self {
-            entries: file.entries().to_vec(),
+            entries: file.into_entries(),
         }
     }
     pub(super) fn list(&self, source: HostSource) -> Vec<HostRegistration> {
