@@ -15,7 +15,9 @@ use vessel_app_kit::ui::{
     ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, breakpoint, outline_button};
-use vessel_app_view::sessions::{HistoryPage, HostScope, history};
+use vessel_app_view::sessions::{
+    HistoryAvailability, HistoryPage, HostScope, history, history_availability,
+};
 
 /// History fields survive navigation and language changes without losing input.
 pub(crate) struct SessionsArea {
@@ -136,8 +138,14 @@ pub(crate) fn render(
 }
 fn empty(shell: &Shell, tokens: &Tokens) -> Div {
     let words = shell.words.sessions();
+    let unavailable = match history_availability(&shell.fleet, &shell.areas.sessions.scope) {
+        HistoryAvailability::Available => false,
+        HistoryAvailability::Unavailable => true,
+    };
     let text = if !shell.loaded {
         words.loading()
+    } else if unavailable {
+        words.unavailable()
     } else if !shell.areas.sessions.search.trim().is_empty() {
         words.no_matches()
     } else {

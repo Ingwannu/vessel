@@ -1,6 +1,6 @@
 //! Chronological history with metadata-only search and stable local paging.
 use crate::machine_book::Name as NodeName;
-use crate::{Card, Fleet};
+use crate::{Card, Fleet, Machine, Reach};
 use chrono::NaiveDate;
 /// Paseo's directory defaults to fifty entries; fetch more explicitly.
 const PAGE_SIZE: usize = 50;
@@ -15,6 +15,45 @@ pub enum HostScope {
     All,
     /// Restrict the directory to one saved host.
     Host(NodeName),
+}
+impl HostScope {
+    /// One scope predicate is shared by rows, host errors and availability.
+    #[must_use]
+    pub fn includes(&self, machine: &Machine) -> bool {
+        match self {
+            Self::All => true,
+            Self::Host(name) => machine.name == name.as_str(),
+        }
+    }
+}
+/// An empty result is meaningful only when a selected host could be read.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HistoryAvailability {
+    /// A host answered, or the selected book has no hosts yet.
+    Available,
+    /// Every selected host failed; do not report this as an empty directory.
+    Unavailable,
+}
+/// Partial errors keep the successful rows and their separate per-host banner.
+#[must_use]
+pub fn history_availability(fleet: &Fleet, scope: &HostScope) -> HistoryAvailability {
+    let mut selected = false;
+    for machine in fleet
+        .machines
+        .iter()
+        .filter(|machine| scope.includes(machine))
+    {
+        selected = true;
+        match machine.reach {
+            Reach::Online => return HistoryAvailability::Available,
+            Reach::Unreachable(_) => {}
+        }
+    }
+    if selected {
+        HistoryAvailability::Unavailable
+    } else {
+        HistoryAvailability::Available
+    }
 }
 /// Date headings follow the viewer's calendar rather than UTC midnights.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -80,10 +119,7 @@ pub fn history<'a>(fleet: &'a Fleet, scope: &HostScope, query: &str) -> Vec<&'a 
     let mut rows: Vec<&Card> = fleet
         .machines
         .iter()
-        .filter(|machine| match scope {
-            HostScope::All => true,
-            HostScope::Host(name) => machine.name == name.as_str(),
-        })
+        .filter(|machine| scope.includes(machine))
         .flat_map(|machine| &machine.sessions)
         .filter(|card| matches(card, &query))
         .collect();

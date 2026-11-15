@@ -149,6 +149,13 @@ FollowBinding so same-node transport retirement also fences stale replies.
 
 ## Snapshot publication ordering
 
+History availability uses the same HostScope predicate as rows and per-host
+errors. If all selected hosts fail, an empty projection says "Unable to load
+sessions" rather than claiming the directory is empty or the search had no
+matches. The existing Refresh action retries that scope. A successful selected
+host keeps its rows and ordinary empty/search state with the other host's error
+banner; a book with no hosts is still an empty directory, not a failed read.
+
 Existing periodic fleet reads can overlap an asynchronous archive/delete result.
 Reusing their arrival order alone would let a response built before archive undo
 the acknowledged row. `link::sessions::Projection` therefore stores one checked

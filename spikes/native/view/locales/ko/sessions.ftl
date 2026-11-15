@@ -13,6 +13,8 @@ sessions-load-more = 더 보기
 sessions-loading = 세션 불러오는 중…
 # Keep short; session history or lifecycle control.
 sessions-empty = 세션 없음
+# No selected host produced a readable directory; refresh retries the same hosts.
+sessions-unavailable = 세션을 불러올 수 없습니다
 # Keep short; session history or lifecycle control.
 sessions-no-matches = 검색과 일치하는 세션 없음
 # Keep short; session history or lifecycle control.

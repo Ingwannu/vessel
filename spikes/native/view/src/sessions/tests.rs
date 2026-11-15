@@ -63,6 +63,42 @@ fn machine(name: &str, when: &str, title: &str, archived: bool) -> crate::Machin
 }
 
 #[test]
+fn failed_selected_hosts_are_not_an_empty_directory_and_partial_success_remains_available() {
+    use super::{HistoryAvailability, HostScope, history_availability};
+    let mut offline = machine("offline", "2026-11-01T09:00:00Z", "old", false);
+    offline.reach = crate::Reach::Unreachable("synthetic refusal".to_owned());
+    offline.sessions.clear();
+    let mut fleet = crate::Fleet {
+        machines: vec![offline],
+        read_at: None,
+    };
+    assert_eq!(
+        history_availability(&fleet, &HostScope::All),
+        HistoryAvailability::Unavailable
+    );
+    let mut online = machine("online", "2026-11-01T09:00:00Z", "old", false);
+    online.sessions.clear();
+    fleet.machines.push(online);
+    assert_eq!(
+        history_availability(&fleet, &HostScope::All),
+        HistoryAvailability::Available
+    );
+    assert_eq!(
+        history_availability(&fleet, &HostScope::Host("offline".parse().unwrap())),
+        HistoryAvailability::Unavailable
+    );
+    assert_eq!(
+        history_availability(&fleet, &HostScope::Host("online".parse().unwrap())),
+        HistoryAvailability::Available
+    );
+    fleet.machines.clear();
+    assert_eq!(
+        history_availability(&fleet, &HostScope::All),
+        HistoryAvailability::Available
+    );
+}
+
+#[test]
 fn history_keeps_archived_rows_and_sorts_activity_across_hosts() {
     let fleet = crate::Fleet {
         machines: vec![

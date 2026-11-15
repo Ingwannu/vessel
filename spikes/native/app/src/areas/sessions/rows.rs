@@ -11,7 +11,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{Tokens, Type, TypeExt as _, outline_button};
 use vessel_app_link::sessions::Binding;
 use vessel_app_view::machine_book::Name;
-use vessel_app_view::sessions::{DateBucket, HostScope, LifecycleTarget, SessionAddress};
+use vessel_app_view::sessions::{DateBucket, LifecycleTarget, SessionAddress};
 use vessel_app_view::{Card, Reach};
 
 pub(super) fn failures(shell: &Shell, tokens: &Tokens) -> Vec<AnyElement> {
@@ -19,10 +19,7 @@ pub(super) fn failures(shell: &Shell, tokens: &Tokens) -> Vec<AnyElement> {
         .fleet
         .machines
         .iter()
-        .filter(|machine| match &shell.areas.sessions.scope {
-            HostScope::All => true,
-            HostScope::Host(name) => machine.name == name.as_str(),
-        })
+        .filter(|machine| shell.areas.sessions.scope.includes(machine))
         .filter_map(|machine| match &machine.reach {
             Reach::Online => None,
             Reach::Unreachable(_) => Some(

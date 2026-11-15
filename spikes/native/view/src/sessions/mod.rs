@@ -5,7 +5,9 @@ mod lifecycle;
 mod navigation;
 #[cfg(test)]
 mod tests;
-pub use history::{DateBucket, HistoryPage, HostScope, history};
+pub use history::{
+    DateBucket, HistoryAvailability, HistoryPage, HostScope, history, history_availability,
+};
 pub use lifecycle::{
     Lifecycle, LifecycleAction, LifecycleBusy, LifecycleTarget, LifecycleTicket, PendingLifecycle,
     satisfies_lifecycle,

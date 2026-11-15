@@ -13,6 +13,8 @@ sessions-load-more = Load more
 sessions-loading = Loading sessions…
 # Keep short; session history or lifecycle control.
 sessions-empty = No sessions
+# No selected host produced a readable directory; refresh retries the same hosts.
+sessions-unavailable = Unable to load sessions
 # Keep short; session history or lifecycle control.
 sessions-no-matches = No sessions match your search
 # Keep short; session history or lifecycle control.
