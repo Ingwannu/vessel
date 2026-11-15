@@ -61,66 +61,9 @@ impl Ask {
     }
 }
 #[cfg(not(target_arch = "wasm32"))]
-mod native {
-    use super::{Answer, Ask, Failure, Located};
-    use crate::{Event, State};
-    use std::time::Duration;
-    use vessel_app_view::Card;
-    use vessel_app_view::machine_book::Name as NodeName;
-    use vessel_app_view::sessions::{NavigationTarget, SessionAddress};
-    use vessel_proto::SessionId;
-    /// Metadata reads share the existing ten-second interactive action budget.
-    const LOOKUP_DEADLINE: Duration = Duration::from_secs(10);
-    impl State {
-        /// Only connected, authenticated node IDs participate in address resolution.
-        pub(crate) fn session_navigation(&self, ask: Ask) {
-            let selected = self
-                .clients
-                .iter()
-                .find(|(name, connected)| match &ask.target {
-                    NavigationTarget::Address(address) => {
-                        connected.client.node().id == address.node
-                    }
-                    NavigationTarget::Host { host, .. } => name.as_str() == host.as_str(),
-                })
-                .map(|(name, connected)| (NodeName::parse(name), connected.client.clone()));
-            let events = self.events.clone();
-            drop(tokio::spawn(async move {
-                let result = match selected {
-                    None => Err(Failure::Offline),
-                    Some((Err(_), _client)) => Err(Failure::InvalidHost),
-                    Some((Ok(host), client)) => {
-                        let session: SessionId = match ask.target {
-                            NavigationTarget::Address(address) => address.session,
-                            NavigationTarget::Host { session, .. } => session,
-                        };
-                        match tokio::time::timeout(LOOKUP_DEADLINE, client.session(session)).await {
-                            Ok(Ok(info)) if info.id == session => Ok(Located {
-                                address: SessionAddress {
-                                    node: client.node().id,
-                                    session,
-                                },
-                                card: Card::from_session(host.as_str(), &info),
-                                host,
-                            }),
-                            Ok(Ok(_)) => Err(Failure::WrongSession),
-                            Ok(Err(error)) => {
-                                Err(error.code().map_or(Failure::Offline, Failure::Refused))
-                            }
-                            Err(_) => Err(Failure::TimedOut),
-                        }
-                    }
-                };
-                let _closed = events
-                    .send(Event::Sessions(Answer {
-                        ticket: ask.ticket,
-                        result,
-                    }))
-                    .await;
-            }));
-        }
-    }
-}
+mod navigation;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) use navigation::Hub;
 
 #[cfg(test)]
 #[cfg(not(target_arch = "wasm32"))]

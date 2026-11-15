@@ -1,5 +1,6 @@
 //! In-memory framed peer exercises the real `NodeClient` without a socket/provider.
-use std::{num::NonZeroUsize, time::Duration};
+use std::num::NonZeroUsize;
+const FRAME_CAPACITY: usize = 65_536;
 use tokio::{
     io::{AsyncReadExt as _, AsyncWriteExt as _, DuplexStream},
     sync::mpsc,
@@ -27,8 +28,9 @@ impl Drop for Peer {
 }
 async fn read(stream: &mut DuplexStream) -> Option<ClientFrame> {
     let length = stream.read_u32().await.ok()?;
-    assert!(length <= 65_536);
-    let mut data = vec![0; usize::try_from(length).unwrap()];
+    let size = usize::try_from(length).unwrap();
+    assert!(size <= FRAME_CAPACITY);
+    let mut data = vec![0; size];
     let _read = stream.read_exact(&mut data).await.unwrap();
     Some(serde_json::from_slice(&data).unwrap())
 }
@@ -55,7 +57,7 @@ fn info(id: SessionId) -> SessionInfo {
     )
 }
 pub(super) async fn connect(behavior: Behavior) -> Peer {
-    let (local, mut remote) = tokio::io::duplex(65_536);
+    let (local, mut remote) = tokio::io::duplex(FRAME_CAPACITY);
     let node = NodeInfo {
         id: NodeId::random(),
         name: "peer".to_owned(),
@@ -121,9 +123,9 @@ pub(super) async fn connect(behavior: Behavior) -> Peer {
     });
     let (reader, writer) = tokio::io::split(local);
     let client = tokio::time::timeout(
-        Duration::from_secs(5),
+        super::TEST_WAIT,
         NodeClient::over(
-            vessel_rpc::Framed::new(reader, writer, NonZeroUsize::new(65_536).unwrap()),
+            vessel_rpc::Framed::new(reader, writer, NonZeroUsize::new(FRAME_CAPACITY).unwrap()),
             ClientInfo {
                 name: "session-tests".to_owned(),
                 version: "0".to_owned(),

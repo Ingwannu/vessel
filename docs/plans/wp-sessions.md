@@ -48,11 +48,16 @@ owner. Import/history discovery and transcript search retain their separate owne
 ## Structure and data flow
 
 `view/sessions` owns chronological filtering, paging and lifecycle policy.
-`link/sessions` resolves node identities and fetches missing sessions with deadlines.
+`link/sessions` resolves node identities and fetches missing sessions with deadlines. A coalesced watch
+snapshot retains one destination through reconnect under one deadline; newer
+requests abort older metadata reads. An offline alias is refused because it
+cannot safely identify a replacement host.
 `app/areas/sessions` draws history and metadata using the kit and typed locale API.
 The shared session menu delegates lifecycle actions and navigation into this area.
 The existing fleet supplies current titles, marks and statuses. No provider process
-is started merely to list or inspect history.
+is started merely to list or inspect history. Existing Tokio test utilities are
+enabled only for deterministic virtual-time reconnect/timeout tests; no runtime
+dependency is introduced.
 
 ## Verification
 

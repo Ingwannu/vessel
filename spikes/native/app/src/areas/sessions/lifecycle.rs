@@ -111,75 +111,8 @@ impl Shell {
         if self.sessions_lifecycle_busy() {
             return;
         }
-        let Some(open) = &self.areas.session.open else {
+        let Some(prepared) = self.prepare_current_lifecycle(action, cx) else {
             return;
-        };
-        let Ok(host) = Name::parse(&open.machine) else {
-            self.notice = Some(self.words.sessions().navigation_refused().to_owned());
-            cx.notify();
-            return;
-        };
-        if action == LifecycleAction::Fresh && !self.areas.draft.composer.text(cx).trim().is_empty()
-        {
-            self.areas.sessions.lifecycle.error = Some((
-                LifecycleTarget {
-                    host,
-                    session: open.session,
-                },
-                Problem::ExistingDraft,
-            ));
-            cx.notify();
-            return;
-        }
-        let seed = self.areas.conversation.info.clone();
-        if action == LifecycleAction::Fresh && seed.is_none() {
-            self.areas.sessions.lifecycle.error = Some((
-                LifecycleTarget {
-                    host: host.clone(),
-                    session: open.session,
-                },
-                Problem::Busy,
-            ));
-            cx.notify();
-            return;
-        }
-        if action == LifecycleAction::Fresh
-            && seed.as_deref().is_some_and(|info| info.profile.is_some())
-        {
-            self.areas.sessions.lifecycle.error = Some((
-                LifecycleTarget {
-                    host,
-                    session: open.session,
-                },
-                Problem::ProfileUnavailable,
-            ));
-            cx.notify();
-            return;
-        }
-        let choices = self
-            .areas
-            .conversation
-            .timeline
-            .options()
-            .map(|options| {
-                options
-                    .iter()
-                    .filter_map(vessel_proto::SessionOption::choice)
-                    .collect()
-            })
-            .unwrap_or_else(|| {
-                seed.as_deref()
-                    .map(|info| info.spec.mode.options().to_vec())
-                    .unwrap_or_default()
-            });
-        let prepared = Prepared {
-            target: LifecycleTarget {
-                host,
-                session: open.session,
-            },
-            action,
-            seed,
-            choices,
         };
         match action {
             LifecycleAction::Archive
@@ -194,6 +127,81 @@ impl Shell {
             }
         }
         cx.notify();
+    }
+    fn prepare_current_lifecycle(
+        &mut self,
+        action: LifecycleAction,
+        cx: &mut Context<'_, Self>,
+    ) -> Option<Prepared> {
+        let open = self.areas.session.open.as_ref()?;
+        let Ok(host) = Name::parse(&open.machine) else {
+            self.notice = Some(self.words.sessions().navigation_refused().to_owned());
+            cx.notify();
+            return None;
+        };
+        if action == LifecycleAction::Fresh && !self.areas.draft.composer.text(cx).trim().is_empty()
+        {
+            self.areas.sessions.lifecycle.error = Some((
+                LifecycleTarget {
+                    host,
+                    session: open.session,
+                },
+                Problem::ExistingDraft,
+            ));
+            cx.notify();
+            return None;
+        }
+        let seed = self.areas.conversation.info.clone();
+        if action == LifecycleAction::Fresh && seed.is_none() {
+            self.areas.sessions.lifecycle.error = Some((
+                LifecycleTarget {
+                    host: host.clone(),
+                    session: open.session,
+                },
+                Problem::Busy,
+            ));
+            cx.notify();
+            return None;
+        }
+        if action == LifecycleAction::Fresh
+            && seed.as_deref().is_some_and(|info| info.profile.is_some())
+        {
+            self.areas.sessions.lifecycle.error = Some((
+                LifecycleTarget {
+                    host,
+                    session: open.session,
+                },
+                Problem::ProfileUnavailable,
+            ));
+            cx.notify();
+            return None;
+        }
+        let choices = self.lifecycle_choices(seed.as_deref());
+        Some(Prepared {
+            target: LifecycleTarget {
+                host,
+                session: open.session,
+            },
+            action,
+            seed,
+            choices,
+        })
+    }
+    fn lifecycle_choices(&self, seed: Option<&SessionInfo>) -> Vec<vessel_proto::OptionChoice> {
+        self.areas
+            .conversation
+            .timeline
+            .options()
+            .map(|options| {
+                options
+                    .iter()
+                    .filter_map(vessel_proto::SessionOption::choice)
+                    .collect()
+            })
+            .unwrap_or_else(|| {
+                seed.map(|info| info.spec.mode.options().to_vec())
+                    .unwrap_or_default()
+            })
     }
     fn send_session_lifecycle(&mut self, prepared: Prepared, cx: &mut Context<'_, Self>) {
         let area = &mut self.areas.sessions.lifecycle;
@@ -367,31 +375,7 @@ pub(crate) fn overlay(
         DialogContent {
             title: title.into(),
             body: div().type_(Type::Body).child(body).into_any_element(),
-            footer: vec![
-                button("sessions-lifecycle-cancel", words.cancel(), false, tokens)
-                    .min_h(vessel_app_kit::ui::px(
-                        vessel_app_kit::breakpoint::TOUCH_TARGET,
-                    ))
-                    .on_click(cx.listener(|shell, _, window, cx| {
-                        shell.dismiss_session_lifecycle(window, cx)
-                    }))
-                    .into_any_element(),
-                button_with_kind(
-                    "sessions-lifecycle-confirm",
-                    words.confirm(),
-                    if destructive {
-                        ButtonKind::Destructive
-                    } else {
-                        ButtonKind::Primary
-                    },
-                    ButtonState::Enabled,
-                    tokens,
-                )
-                .on_click(
-                    cx.listener(|shell, _, window, cx| shell.confirm_session_lifecycle(window, cx)),
-                )
-                .into_any_element(),
-            ],
+            footer: footer(shell, asking.action, tokens, cx),
             size: DialogSize::Normal,
         },
         tokens,
@@ -426,4 +410,35 @@ pub(crate) fn error(shell: &Shell, tokens: &Tokens) -> Option<AnyElement> {
             .child(message.to_owned())
             .into_any_element(),
     )
+}
+
+fn footer(
+    shell: &Shell,
+    action: LifecycleAction,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Vec<AnyElement> {
+    let words = shell.t.lang.conversation();
+    vec![
+        button("sessions-lifecycle-cancel", words.cancel(), false, tokens)
+            .min_h(vessel_app_kit::ui::px(breakpoint::TOUCH_TARGET))
+            .on_click(
+                cx.listener(|shell, _, window, cx| shell.dismiss_session_lifecycle(window, cx)),
+            )
+            .into_any_element(),
+        button_with_kind(
+            "sessions-lifecycle-confirm",
+            words.confirm(),
+            if action == LifecycleAction::Delete {
+                ButtonKind::Destructive
+            } else {
+                ButtonKind::Primary
+            },
+            ButtonState::Enabled,
+            tokens,
+        )
+        .min_h(vessel_app_kit::ui::px(breakpoint::TOUCH_TARGET))
+        .on_click(cx.listener(|shell, _, window, cx| shell.confirm_session_lifecycle(window, cx)))
+        .into_any_element(),
+    ]
 }

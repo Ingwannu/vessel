@@ -7,8 +7,8 @@ mod rows;
 use crate::shell::Shell;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
+    ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, breakpoint, outline_button};
 use vessel_app_view::sessions::{HistoryPage, HostScope, history};
@@ -91,7 +91,6 @@ pub(crate) fn render(
 ) -> AnyElement {
     let area = &shell.areas.sessions;
     let words = shell.words.sessions();
-    let narrow = breakpoint::phone(window);
     let found = history(&shell.fleet, &area.scope, &area.search);
     let shown = area.page.visible(found.len());
     let body = div()
@@ -109,7 +108,7 @@ pub(crate) fn render(
         .when(area.page.has_more(found.len()), |body| {
             body.child(
                 outline_button("sessions-more", words.load_more(), true, tokens)
-                    .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
+                    .min_h(px(breakpoint::TOUCH_TARGET))
                     .on_click(cx.listener(|shell, _, _, cx| {
                         shell.areas.sessions.page = shell.areas.sessions.page.next();
                         cx.notify();
@@ -125,31 +124,7 @@ pub(crate) fn render(
             None,
             tokens,
         ))
-        .child(
-            div()
-                .flex()
-                .flex_wrap()
-                .items_center()
-                .when(narrow, |bar| bar.flex_col().items_stretch())
-                .gap(px(spacing::S2))
-                .p(px(spacing::S4))
-                .child(
-                    div()
-                        .flex_1()
-                        .min_w_0()
-                        .when(narrow, |query| query.w_full().flex_none())
-                        .child(area.query.element(tokens, narrow, cx)),
-                )
-                .children(filters::trigger(shell, tokens, narrow, cx))
-                .child(
-                    outline_button("sessions-refresh", words.refresh(), true, tokens)
-                        .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
-                        .on_click(cx.listener(|shell, _, _, cx| {
-                            shell.reload();
-                            cx.notify();
-                        })),
-                ),
-        )
+        .child(toolbar(shell, tokens, window, cx))
         .child(body)
         .children(filters::picker(shell, tokens, window, cx))
         .children(super::board::card_question(shell, tokens, window, cx))
@@ -168,4 +143,42 @@ fn empty(shell: &Shell, tokens: &Tokens) -> Div {
         .type_(Type::Body)
         .text_color(tokens.neutral.foreground_muted)
         .child(text)
+}
+
+fn toolbar(shell: &Shell, tokens: &Tokens, window: &Window, cx: &mut Context<'_, Shell>) -> Div {
+    let area = &shell.areas.sessions;
+    let narrow = breakpoint::phone(window);
+    let controls = div()
+        .flex()
+        .flex_wrap()
+        .items_center()
+        .gap(px(spacing::S2))
+        .children(filters::trigger(shell, tokens, narrow, cx))
+        .child(
+            outline_button(
+                "sessions-refresh",
+                shell.words.sessions().refresh(),
+                true,
+                tokens,
+            )
+            .min_h(px(breakpoint::TOUCH_TARGET))
+            .on_click(cx.listener(|shell, _, _, cx| {
+                shell.reload();
+                cx.notify();
+            })),
+        );
+    div()
+        .flex()
+        .items_center()
+        .gap(px(spacing::S2))
+        .p(px(spacing::S4))
+        .when(narrow, |bar| bar.flex_col().items_stretch())
+        .child(
+            div()
+                .flex_1()
+                .min_w_0()
+                .when(narrow, |query| query.w_full().flex_none())
+                .child(area.query.element(tokens, narrow, cx)),
+        )
+        .child(controls)
 }

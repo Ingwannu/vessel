@@ -8,6 +8,7 @@ use vessel_app_view::sessions::{
     Lifecycle, LifecycleAction, LifecycleTarget, NavigationTarget, NavigationTicket, SessionAddress,
 };
 use vessel_proto::{Call, NodeId, SessionId};
+const TEST_WAIT: Duration = super::navigation::LOOKUP_DEADLINE.saturating_mul(2);
 fn state(client: vessel_client::NodeClient) -> (State, mpsc::Receiver<Event>) {
     let (events, receiving) = mpsc::channel(8);
     (
@@ -28,13 +29,14 @@ fn state(client: vessel_client::NodeClient) -> (State, mpsc::Receiver<Event>) {
             agents: crate::agents::Hub::default(),
             device_calls: crate::devices::Hub::default(),
             sync_calls: crate::sync::Hub::default(),
+            session_navigation: crate::sessions::Hub::default(),
             offers: std::sync::Arc::default(),
         },
         receiving,
     )
 }
 async fn next(events: &mut mpsc::Receiver<Event>) -> Event {
-    tokio::time::timeout(Duration::from_secs(5), events.recv())
+    tokio::time::timeout(TEST_WAIT, events.recv())
         .await
         .unwrap()
         .unwrap()
@@ -43,7 +45,7 @@ async fn next(events: &mut mpsc::Receiver<Event>) -> Event {
 async fn address_resolution_survives_alias_rename_and_only_reads_metadata() {
     let mut peer = peer::connect(peer::Behavior::Accept).await;
     let node = peer.client.node().id;
-    let (state, mut events) = state(peer.client.clone());
+    let (mut state, mut events) = state(peer.client.clone());
     let session = SessionId::random();
     let ticket = NavigationTicket::FIRST.next().unwrap();
     state.session_navigation(super::Ask {
@@ -65,10 +67,10 @@ async fn address_resolution_survives_alias_rename_and_only_reads_metadata() {
         "navigation must not resume/create an agent"
     );
 }
-#[tokio::test]
+#[tokio::test(start_paused = true)]
 async fn another_node_identity_never_falls_back_to_a_similar_saved_name() {
     let mut peer = peer::connect(peer::Behavior::Accept).await;
-    let (state, mut events) = state(peer.client.clone());
+    let (mut state, mut events) = state(peer.client.clone());
     state.session_navigation(super::Ask {
         ticket: NavigationTicket::FIRST,
         target: NavigationTarget::Address(SessionAddress {
@@ -79,7 +81,7 @@ async fn another_node_identity_never_falls_back_to_a_similar_saved_name() {
     let Event::Sessions(answer) = next(&mut events).await else {
         panic!("wrong event")
     };
-    assert!(matches!(answer.result, Err(super::Failure::Offline)));
+    assert!(matches!(answer.result, Err(super::Failure::TimedOut)));
     assert!(peer.calls.try_recv().is_err());
 }
 #[tokio::test]
@@ -138,7 +140,7 @@ async fn lifecycle_refusal_retains_typed_failure_instead_of_success() {
 async fn peer_cannot_redirect_an_exact_deep_link_to_another_session() {
     let peer = peer::connect(peer::Behavior::WrongSession).await;
     let node = peer.client.node().id;
-    let (state, mut events) = state(peer.client.clone());
+    let (mut state, mut events) = state(peer.client.clone());
     state.session_navigation(super::Ask {
         ticket: NavigationTicket::FIRST,
         target: NavigationTarget::Address(SessionAddress {
@@ -150,4 +152,68 @@ async fn peer_cannot_redirect_an_exact_deep_link_to_another_session() {
         panic!("wrong event")
     };
     assert!(matches!(answer.result, Err(super::Failure::WrongSession)));
+}
+
+#[tokio::test]
+async fn same_request_waits_for_matching_connection_ready_without_provider_actions() {
+    let mut peer = peer::connect(peer::Behavior::Accept).await;
+    let node = peer.client.node().id;
+    let (mut state, mut events) = state(peer.client.clone());
+    state.clients.clear();
+    let session = SessionId::random();
+    let ticket = NavigationTicket::FIRST.next().unwrap();
+    state.session_navigation(super::Ask {
+        ticket,
+        target: NavigationTarget::Address(SessionAddress { node, session }),
+    });
+    assert!(events.try_recv().is_err());
+    state.clients.insert(
+        "reconnected".to_owned(),
+        Connected {
+            client: peer.client.clone(),
+            agents: Vec::new(),
+        },
+    );
+    state.session_connections_changed();
+    let Event::Sessions(answer) = next(&mut events).await else {
+        panic!("wrong event")
+    };
+    assert_eq!(answer.ticket, ticket);
+    assert_eq!(answer.result.unwrap().host.as_str(), "reconnected");
+    assert!(
+        matches!(peer.calls.recv().await, Some(Call::GetSession(request)) if request.session == session)
+    );
+    assert!(peer.calls.try_recv().is_err());
+}
+
+#[tokio::test(start_paused = true)]
+async fn superseding_a_waiting_link_cancels_only_the_older_metadata_request() {
+    let mut peer = peer::connect(peer::Behavior::Accept).await;
+    let node = peer.client.node().id;
+    let (mut state, mut events) = state(peer.client.clone());
+    let first = NavigationTicket::FIRST.next().unwrap();
+    let second = first.next().unwrap();
+    state.session_navigation(super::Ask {
+        ticket: first,
+        target: NavigationTarget::Address(SessionAddress {
+            node: NodeId::random(),
+            session: SessionId::random(),
+        }),
+    });
+    let session = SessionId::random();
+    state.session_navigation(super::Ask {
+        ticket: second,
+        target: NavigationTarget::Address(SessionAddress { node, session }),
+    });
+    let Event::Sessions(answer) = next(&mut events).await else {
+        panic!("wrong event")
+    };
+    assert_eq!(answer.ticket, second);
+    assert!(answer.result.is_ok());
+    assert!(
+        matches!(peer.calls.recv().await, Some(Call::GetSession(request)) if request.session == session)
+    );
+    assert!(peer.calls.try_recv().is_err());
+    tokio::time::advance(TEST_WAIT).await;
+    assert!(events.try_recv().is_err());
 }
