@@ -220,3 +220,8 @@ The restored d068 strict run reached App and stopped on two missed canonical typ
 
 
 Repaired Kit source d068 passed212/0/0 in `wp-composer-copy-diagnostic-20261115T161345Z-d06848e6`, including the actual captured callback, SubmitPress scope, multiline/FieldId/IME, selection, image and Markdown tests. All17 isolated f4 Markdown Rust blobs are byte-identical to that source. Corrected App/type-call source ccfb (also containing announced82ca) has one replacement strict request `wp-composer-shell-narrow-20261115T163802Z-ccfb692e` and one AppBIN request `wp-composer-shell-markdown-tests-20261115T163804Z-ccfb692e`; both are pending. The passed Kit test is not repeated for these two App-only corrections.
+
+
+### Command-center choice ownership
+
+G3 confirms that the canonical `view::options::Controls` projection classifies supplied actual SessionOptions only; it neither discovers the active composer nor applies an option. Settings/startup choices are not current session offers. `SelectControl::choose` only constructs OptionChoice, so the one future B2 activation adapter must refresh the exact admitted target, latest owner-offered value membership, editability and pending state before invoking the existing owned setter. HarnessKind must come from the actual owned HarnessRef/report rather than a provider-name join. F4's existing registration/pages remain the only command center; active choices stay unavailable until the scoped resource/effect boundary exists. This preserves existing Controls instead of adding another selector or authority cache.
