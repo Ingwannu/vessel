@@ -127,6 +127,7 @@ impl Shell {
     }
     /// The creation area seeds this only after claiming the active draft's canonical target.
     /// History has no destination root until that draft's placement is chosen.
+    #[cfg(test)]
     pub(crate) fn composer_seed_history(
         &mut self,
         target: DraftKey,
@@ -151,6 +152,7 @@ impl Shell {
         Ok(())
     }
     /// Seeding must not overwrite whitespace, suppressed context, or pending work.
+    #[cfg(test)]
     pub(crate) fn draft_has_payload(&self, cx: &vessel_app_kit::ui::App) -> bool {
         self.composer_draft_has_payload(DraftKey::New, cx)
             || !self.areas.draft.creation.flow.may_submit()
@@ -173,6 +175,7 @@ impl Shell {
     }
 
     /// A scoped seed cannot replace text, suppressed source context or pending bytes.
+    #[cfg(test)]
     pub(crate) fn composer_draft_has_payload(
         &self,
         target: DraftKey,
