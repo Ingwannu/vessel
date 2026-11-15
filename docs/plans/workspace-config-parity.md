@@ -172,33 +172,40 @@ shown and a partial comparison cannot claim the commands are unchanged.
   texts preserved. Its root and web gates passed with no waiver or retry;
   the earlier protocol-test waiver no longer applies. `PROJECT_FILE_KEYS` stays
   unassigned.
+- Integration update: node baseline `f453ec2e` is merged after the
+  declaration-boundary gate. Its protocol/store constants, method tables,
+  shared tests and documents remain intact. The shared `required_protocol`
+  accessor is available; `PROJECT_FILE_KEYS` stays unassigned. The combined
+  gate now covers this baseline and the TOML port parser. Native view/card
+  adaptation remains an integration prerequisite.
 - Implemented: slice 2a's terminal decoder, approval fields, digest vectors,
   compatibility and CLI rendering. The slice's validation results belong in
   its review report; no runtime behaviour is implied by parsing these keys.
-- Half-done: automatic terminal execution is absent; port keys remain ignored
-  as before. `paseo.json` is not read.
+- Half-done: automatic terminal execution and port allocation are absent;
+  declared service ports and allocation choices are parsed only into approval
+  data. No helper is invoked. `paseo.json` is not read.
 - Next: keep `PROJECT_FILE_KEYS` unassigned until the web approval dialog
   displays terminals, web `command-changes` compares them, and the native
-  approval card displays them. The current web refusal is a deliberate
-  stopgap; display/comparison lands together with the native card's work.
+  approval card displays them, including declared ports and every allocation
+  choice. The current web refusal is a deliberate stopgap; display/comparison lands together with the native card's work.
   The native lead owns its card and exhaustive adapter. This track owns
   the web refusal now and its later terminal display/comparison.
-- In progress: 2b begins with validated `ServicePort` and `PortRange`
-  values. They are not yet fields of a request, reply or project file;
-  parsing, digests and execution are unchanged. Bounds and refusal text
-  share constants so a diagnostic cannot drift from the accepted grammar.
-  The existing serde
-  conversion pattern is reused; the observed-listener DTO is a separate
-  fact, not a declared or allocated service port.
+- Implemented port values: `ServicePort` and `PortRange` keep checks and
+  refusal text on shared constants. `ServicePort` now occurs in the nested
+  declaration field below; `PortRange` enters the approved allocation block
+  with its literal validated program. The existing serde conversion pattern
+  is reused;
+  observed listeners remain a separate fact from a declared or allocated
+  service port.
 - Implemented value contract: `ExecPath` keeps private literal text and
   its Unix, Windows or shared grammar. Its decoder and serde check raw
   components without filesystem access or native normalization; five
   portable fixture tests cover prefix forms, components, round trips and
   the shared byte bound. Rust's Windows prefix source also recognizes a
   forward slash in the verbatim UNC marker; the remaining verbatim
-  components still use backslashes. The type is not yet a wire field or
-  project-file key. Native invocation and the Windows command-script
-  refusal remain later typed checks, with their tests still owed.
+  components still use backslashes. It is carried through the block's
+  `PortScript`, without a separate wire field or direct project-file key.
+  Native invocation and the Windows command-script refusal remain later typed checks, with their tests still owed.
 - Approval display: the absolute path now shares `RelPath`'s control
   character refusal. LF, CR, ESC, another C0, DEL and C1 are tested through
   both text and serde for Unix, drive and UNC paths; NUL keeps its own
@@ -212,24 +219,69 @@ shown and a partial comparison cannot claim the commands are unchanged.
   path or an `ExecPath`, reusing their validation after shared edge trimming.
   `ServicePorts` privately owns the optional range and program and refuses
   an empty block through both its constructor and serde. Unknown keys and
-  explicit null choices are refused. Six unit tests cover the typed paths,
+  explicit null choices are refused. Unit tests cover the typed paths,
   source chains, trim behavior, nonempty block and strict serde; a TypeScript
   feature test pins optional fields without nullable values. These types
-  are not yet reachable from the project-file parser or a wire reply.
+  now reach the parser and wire only through that approved block.
 - Prepared display boundary: the CLI command formatter and web script
   comparison now have focused modules with complete entry projections.
   Existing output and comparison expectations stay unchanged; no field
   or approval behavior is added.
+- Implemented declaration boundary: `ScriptEntry` privately owns kind/port;
+  constructor and serde refuse a plain script with a port. The CLI names
+  every borrowed view field, the web names every nested field and refuses
+  current, previous or folder snapshots with declarations. The port is
+  covered by the reserved version-three digest slot; old vectors stay fixed.
+  The TOML decoder now reads a service's integer port through `ServicePort`;
+  invalid numbers and a plain script's port refuse the whole file. Boundary,
+  source-chain and digest tests cover this input edge. Native constructor,
+  getter and card adaptation remain the native lead's integration condition.
+  No allocator or health execution path is present.
 - Before port fields: ADR 0066 now defines the `ScriptEntry` construction
   invariant and complete borrowed display view. The native lead owns its
   constructor/getter and exhaustive-card adaptation; web coverage and
-  comparison must name nested entry fields too. No implementation yet.
-- Then: add the file parser, digest and approval fields. A relative bare
+  comparison name nested entry fields too. The declaration boundary above
+  implements this part; the native adaptation remains owed.
+- Implemented allocation boundary: the optional strict nonempty block is
+  retained by the file and current/prior approval snapshots even without
+  services. Its two reserved digest slots cover both choices. CLI names the
+  complete borrowed owner view and prints both; web names every nested key
+  while retaining its optional value type, and refuses current/prior/folder
+  blocks, including an empty peer object. File, digest, persisted approval,
+  six-reply, CLI and web tests cover these boundaries; execution is absent.
+- Then: settle the runtime contract before helper, allocator or health code.
+  A relative bare
   program is checkout-rooted, using a worktree's own copy in its own folder,
   unlike Paseo's PATH lookup; the execution test proving that selection
-  and relative-link containment remain owed. Add
-  approval snapshots and exhaustive clients in
-  separate small changes. Runtime follows with approval and lifecycle
+  and relative-link containment remain owed. Complete display in all three
+  approval clients before assigning the protocol. Runtime follows with approval and lifecycle
   tests. Returned review findings take priority.
+- Allocation projection contract: reuse the private `ServicePorts` owner
+  with a complete borrowed view before adding its optional block to the
+  file and approval snapshots. Keep block presence and both digest slots
+  even without services. CLI and the native lead's card must name every
+  view field; web names every nested field by type and refuses current,
+  prior and folder snapshots until full display exists. The contract and
+  required tests are in ADR 0066; the approval field is implemented above,
+  and no allocator is connected.
 - Still unverified: Windows, actual shells, and negotiated support after
   the integrator assigns the protocol number.
+
+## Runtime package preparation
+
+A14 groups the remaining port runtime into one package with small commits
+and narrow checks; one whole gate follows its finished wiring. Security
+changes retain per-commit review. The direct-helper contract in ADR 0066
+reuses `vessel-proc`, `Root`, the shared text trim and credential removal
+inventory; no shell pipeline, scanner truncation or new dependency. Its
+staged primitive must not be mistaken for a registered product caller.
+The earlier every-start helper and process-spawn health descriptions were
+corrected against the actual cache and first-observation callers. Cache
+lifetime/refresh and health observation must be settled before their wiring.
+A new approval does not implicitly withdraw an earlier digest.
+
+Resume: allocation approval block is committed and its exact-commit root
+gate passed; native full-view integration remains owed. Next implement and
+narrow-check one direct invocation with the path/cleanup/decoder cases in
+the ADR, then the plan owner and health. Auto terminals, archive and editor
+targets remain unimplemented. No new protocol number is assigned.

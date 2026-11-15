@@ -379,25 +379,25 @@ mod tests {
         let added = Call::CreateSession(CreateSession {
             spec: SessionSpec::new(goose(), mode()),
         });
-        assert_eq!(added.since(), V11);
+        assert_eq!(added.since(), Some(V11));
         let known = Call::CreateSession(CreateSession {
             spec: SessionSpec::new(HarnessKind::Codex, mode()),
         });
-        assert_eq!(known.since(), ProtocolVersion::new(2));
+        assert_eq!(known.since(), Some(ProtocolVersion::new(2)));
         let options = |harness| {
             Call::HarnessOptions(GetHarnessOptions {
                 harness,
                 profile: None,
             })
         };
-        assert_eq!(options(goose()).since(), V11);
+        assert_eq!(options(goose()).since(), Some(V11));
         assert_eq!(
             options(HarnessKind::Gemini.into()).since(),
-            ProtocolVersion::new(9)
+            Some(ProtocolVersion::new(9))
         );
         let profiles = |harness| Call::ListProfiles(ListProfiles { harness });
-        assert_eq!(profiles(Some(goose())).since(), V11);
-        assert_eq!(profiles(None).since(), ProtocolVersion::new(5));
+        assert_eq!(profiles(Some(goose())).since(), Some(V11));
+        assert_eq!(profiles(None).since(), Some(ProtocolVersion::new(5)));
     }
 
     #[test]

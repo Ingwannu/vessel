@@ -23,8 +23,8 @@
 //!   after it, not the protocol 4 clients that exist); refusing old clients
 //!   (the range `MIN_PROTOCOL_VERSION..` promises they work).
 //! - Choice: every event knows the version it appeared in
-//!   ([`SessionEvent::since`]); for an older connection it has a stand-in
-//!   that version can read ([`SessionEvent::for_protocol`]), with the same
+//!   ([`SessionEvent::required_protocol`]); for an older connection or pending
+//!   assignment it has a stand-in that version can read ([`SessionEvent::for_protocol`]), with the same
 //!   `seq`. `vessel-rpc` applies it where it encodes frames, the one place
 //!   that knows the connection's version.
 //! - Trade-off: an older client sees a stand-in, not the event: for
@@ -102,6 +102,12 @@ pub enum SessionEvent {
     Renamed {
         /// The title now.
         title: SessionTitle,
+        /// Who produced it (ADR 0062). Absent decodes as unknown. The
+        /// event stays protocol 9: a peer that ignores an unknown field
+        /// still reads `title`. A typed older hop may omit the origin;
+        /// the next reader then keeps the title with unknown origin.
+        #[serde(default, skip_serializing_if = "crate::title::TitleOrigin::is_unknown")]
+        origin: crate::title::TitleOrigin,
     },
     /// The session's queue changed (protocol 10, ADR 0024): a prompt
     /// queued, edited, moved, removed or started, or the queue held or let
@@ -158,20 +164,22 @@ pub enum SessionEvent {
 }
 
 impl SessionEvent {
-    /// The first protocol version that has this event.
+    /// The assigned protocol requirement for this event. A future variant
+    /// awaiting assignment returns `None`, so projections must provide its
+    /// older representation to every peer instead of inventing a number.
     #[must_use]
-    pub fn since(&self) -> ProtocolVersion {
+    pub fn required_protocol(&self) -> Option<ProtocolVersion> {
         match self {
-            Self::Status { .. } | Self::Terminal(_) => ProtocolVersion::new(2),
-            Self::Agent { event } => event.since(),
-            Self::ProfileChanged { .. } => ProtocolVersion::new(5),
-            Self::ModelCall(_) => ProtocolVersion::new(7),
-            Self::OptionsChanged { .. } | Self::Renamed { .. } => ProtocolVersion::new(9),
+            Self::Status { .. } | Self::Terminal(_) => Some(ProtocolVersion::new(2)),
+            Self::Agent { event } => Some(event.since()),
+            Self::ProfileChanged { .. } => Some(ProtocolVersion::new(5)),
+            Self::ModelCall(_) => Some(ProtocolVersion::new(7)),
+            Self::OptionsChanged { .. } | Self::Renamed { .. } => Some(ProtocolVersion::new(9)),
             Self::QueueChanged { .. }
             | Self::CommandsChanged { .. }
-            | Self::UsageChanged { .. } => ProtocolVersion::new(10),
-            Self::Parked { .. } | Self::Woken => ProtocolVersion::new(12),
-            Self::Forked { .. } | Self::Rewound { .. } => ProtocolVersion::new(14),
+            | Self::UsageChanged { .. } => Some(ProtocolVersion::new(10)),
+            Self::Parked { .. } | Self::Woken => Some(ProtocolVersion::new(12)),
+            Self::Forked { .. } | Self::Rewound { .. } => Some(ProtocolVersion::new(14)),
         }
     }
 
@@ -179,14 +187,17 @@ impl SessionEvent {
     /// can read this event as it is.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
-        if self.since() <= protocol
+        let readable = self
+            .required_protocol()
+            .is_some_and(|since| since <= protocol);
+        if readable
             && let Self::UsageChanged { usage } = self
             && let Some(usage) = usage.for_protocol(protocol)
         {
             return Some(Self::UsageChanged { usage });
         }
-        if self.since() <= protocol {
-            return None;
+        if readable {
+            return self.origin_for_protocol(protocol, crate::GENERATED_NAMES);
         }
         let log = |line: String| {
             Some(Self::Agent {
@@ -198,50 +209,13 @@ impl SessionEvent {
             Self::Agent { event } => event
                 .for_protocol(protocol)
                 .map(|event| Self::Agent { event }),
-            Self::ProfileChanged { from, to } => {
-                let name = |profile: &Option<ProfileName>| {
-                    profile
-                        .as_ref()
-                        .map_or_else(|| "default".to_owned(), ToString::to_string)
-                };
-                Some(Self::Agent {
-                    event: AgentEvent::HarnessLog {
-                        line: format!(
-                            "vessel: profile changed from {} to {}",
-                            name(from),
-                            name(to)
-                        ),
-                    },
-                })
-            }
-            Self::ModelCall(call) => {
-                let line = match call.failure {
-                    None => format!(
-                        "vessel: model call to {}: {} in, {} out",
-                        call.model,
-                        call.usage.total_input().get(),
-                        call.usage.output.get()
-                    ),
-                    Some(failure) => format!(
-                        "vessel: model call to {} failed ({})",
-                        call.model,
-                        failure.as_str()
-                    ),
-                };
-                Some(Self::Agent {
-                    event: AgentEvent::HarnessLog { line },
-                })
-            }
-            Self::OptionsChanged { options } => Some(Self::Agent {
-                event: AgentEvent::HarnessLog {
-                    line: format!("vessel: options: {}", SessionOption::summary(options)),
-                },
-            }),
-            Self::Renamed { title } => Some(Self::Agent {
-                event: AgentEvent::HarnessLog {
-                    line: format!("vessel: renamed to {title}"),
-                },
-            }),
+            Self::ProfileChanged { from, to } => log(profile_line(from.as_ref(), to.as_ref())),
+            Self::ModelCall(call) => log(model_line(call)),
+            Self::OptionsChanged { options } => log(format!(
+                "vessel: options: {}",
+                SessionOption::summary(options)
+            )),
+            Self::Renamed { title, .. } => log(format!("vessel: renamed to {title}")),
             Self::QueueChanged { queue } => log(queue_line(queue)),
             Self::CommandsChanged { commands } => log(commands_line(commands)),
             Self::UsageChanged { usage } => log(usage_line(usage)),
@@ -271,6 +245,23 @@ impl SessionEvent {
                 }
             )),
         }
+    }
+
+    /// One origin rule shared with synthetic assigned-threshold tests,
+    /// without changing the durable event's own protocol version.
+    pub(crate) fn origin_for_protocol(
+        &self,
+        protocol: ProtocolVersion,
+        assigned: Option<ProtocolVersion>,
+    ) -> Option<Self> {
+        if let Self::Renamed { title, origin } = self {
+            let adapted = origin.for_protocol(protocol, assigned);
+            return (adapted != *origin).then(|| Self::Renamed {
+                title: title.clone(),
+                origin: adapted,
+            });
+        }
+        None
     }
 }
 
@@ -377,6 +368,33 @@ fn first_line(content: &[ContentBlock]) -> Option<&str> {
     })
 }
 
+fn profile_line(from: Option<&ProfileName>, to: Option<&ProfileName>) -> String {
+    let name = |profile: Option<&ProfileName>| {
+        profile.map_or_else(|| "default".to_owned(), ToString::to_string)
+    };
+    format!(
+        "vessel: profile changed from {} to {}",
+        name(from),
+        name(to)
+    )
+}
+
+fn model_line(call: &ModelCall) -> String {
+    match call.failure {
+        None => format!(
+            "vessel: model call to {}: {} in, {} out",
+            call.model,
+            call.usage.total_input().get(),
+            call.usage.output.get()
+        ),
+        Some(failure) => format!(
+            "vessel: model call to {} failed ({})",
+            call.model,
+            failure.as_str()
+        ),
+    }
+}
+
 fn queue_line(queue: &PromptQueue) -> String {
     let held = queue.held.map(|hold| match hold {
         QueueHold::Cancelled => "cancelled",
@@ -448,3 +466,6 @@ impl EventRecord {
         })
     }
 }
+
+#[cfg(test)]
+mod admission_tests;

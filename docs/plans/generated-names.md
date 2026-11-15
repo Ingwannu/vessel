@@ -1,8 +1,8 @@
 # Generated names
 
 ADR 0062 is the contract. This file is the reading notes, the reuse
-decision, and the slice list. The protocol number is `GENERATED_NAMES`,
-given at merge. Neither document chooses it.
+decision, and the slice list. The protocol threshold is the optional
+`GENERATED_NAMES`, assigned at merge. Neither document chooses it.
 
 ## What Paseo does
 
@@ -11,7 +11,7 @@ Read from Paseo's tree, not copied.
 | Behaviour | Where |
 | --- | --- |
 | A typed title is trimmed. The provisional title is the first non-empty prompt line, whitespace collapsed, cut at 60 (`min(60, MAX_EXPLICIT_AGENT_TITLE_CHARS)`). An explicit title wins over the prompt line. | `packages/server/src/server/agent/create-agent-title.ts` 1–48; `packages/protocol/src/agent-title-limits.ts` 1 (`MAX_EXPLICIT_AGENT_TITLE_CHARS = 200`) |
-| Empty `agents.metadataGeneration.providers` is automatic. A non-empty list is manual: those entries only, in order, deduped. Automatic matches, on model id or label, `haiku`, then `gpt-5.4-mini` with thinking `low`, then `minimax-m3`, then `nemotron-3-super`, then the current selection. A thinking id the model does not offer becomes the model's default. | `packages/server/src/server/agent/structured-generation-providers.ts` 14–19, 29–70, 230–284; `packages/server/src/server/persisted-config.ts` 180–186 |
+| Empty `agents.metadataGeneration.providers` is automatic. A non-empty list is manual: those entries only, in order, deduped. Automatic matches, on model id or label, `haiku`, then `gpt-5.4-mini` with thinking `low`, then `minimax-m3`, then `nemotron-3-super`, then the current selection. An explicit model on a top-level manual provider passes its thinking string through; an omitted model uses the default or first model and resolves thinking against it. | `packages/server/src/server/agent/structured-generation-providers.ts` 14–19, 29–70, 230–284; `packages/server/src/server/persisted-config.ts` 180–186 |
 | The settings screen replaces the first manual entry and keeps the rest. Switching to automatic clears the list. | `public-docs/metadata-generation.md` (the "Choose a model" and "Configure a custom fallback order" sections) |
 | Project `paseo.json` `metadataGeneration.{title,branchName,commitMessage,pullRequest}.instructions` replaces that kind's style and is not appended. The contract is not replaceable. Blank instructions are ignored. The file is read from disk at the cwd's repository root (`readPaseoConfig`), not from a commit. `agentTitle` is a legacy key, ignored since v0.1.96. | `packages/server/src/utils/build-metadata-prompt.ts` 7–61; `paseo-config-file.ts` 284–289; `packages/protocol/src/paseo-config-schema.ts` 63–80 |
 | One structured call returns `{ title, branch }`, title 1–80, branch 1–100. The prompt forbids tools and forbids deriving the branch from the title. `maxRetries: 2`, `persistSession: false`, internal agent titled "Branch name generator". Failure returns null. | `packages/server/src/server/worktree-branch-name-generator.ts` 39–42, 54–139 |
@@ -88,13 +88,20 @@ ADR 0062 records each one with its reason. Short form:
     stays). An effort the provider's API cannot say is omitted at the
     call and the provider's default is used: Anthropic's wire has no
     `minimal` (`wire/anthropic.rs` 376–385). An effort outside the enum
-    is refused when the setting is written. Paseo keeps the string and
-    replaces an id the model does not offer at generation time
-    (`resolveThinkingOptionId`, 263–276).
-15. A provisional title stays cut at 80, and a typed title at 120 (ADR
-    0022). Paseo's provisional cut is 60 and an explicit title may be
-    200. Moving either bound would refuse a title the wire already
-    stores, or accept one it refuses.
+    is refused when the setting is written. Paseo passes explicit-model
+    manual candidates through on top-level providers (136–160); omitted
+    models use the default or first model and resolve thinking against it
+    (162–169, 259–276). Vessel validates the allowed route/model pair and
+    closed effort before saving. Preferring an omitted model's `small_model`
+    is a Vessel cost choice, not Paseo's default/first-model rule.
+15. The ADR 0022 constructors stay: a provisional title is cut at 80
+    Unicode scalar values and a typed title allows 120. Internal prompt
+    whitespace is retained, with control characters replaced by spaces.
+    Paseo collapses whitespace and uses JavaScript's UTF-16 slicing at 60;
+    its explicit bound is 200 UTF-16 units (`create-agent-title.ts` 4–18,
+    `agent-title-limits.ts` 1). Preserving the existing constructors keeps
+    new prompt-derived names consistent with earlier Vessel sessions and
+    keeps the wire's accepted title set stable.
 
 ## What a screen calls
 
@@ -103,7 +110,7 @@ nothing.
 
 - **The settings section** reads `node.settings` (`read`) and writes
   `node.set_settings` (`admin`). The field is `metadata.providers`: an
-  array of `{ route, model?, effort? }`, at most eight. Empty, present,
+  array of `{ route, model?, effort? }`, bounded by `MAX_METADATA_PROVIDERS`. Empty, present,
   is automatic. Absent `metadata` means the peer does not generate
   (below `GENERATED_NAMES`); the section is not offered as if it worked.
   Send `metadata` only when the peer speaks that constant. `effort` is
@@ -143,8 +150,8 @@ Slice 2's files, one responsibility each, and not a second `name.rs`
 - `TitleOrigin` beside `SessionTitle` in `crates/vessel-proto/src/title.rs`
   (187 lines). The event and `SessionInfo` gain the field.
 - The settings types in `crates/vessel-proto/src/settings.rs` (198 lines).
-- `branch_auto_name` in its own file under `crates/vessel-proto/src/workspace/`.
-  `worktree.rs` is 477 lines, so it gains one field and no more.
+- `branch_auto_name` belongs to slice 3, in its own file under
+  `crates/vessel-proto/src/workspace/`; it is not part of session generation.
 - `text.commit` and `text.pull` in `crates/vessel-proto/src/draft_text.rs`,
   only those two calls. Not in slice 2's code; the file waits for slice 4.
 - The generator in `crates/vessel-node/src/models/draft/` (the choice of
@@ -174,6 +181,49 @@ that already uses `..` is left alone.
   `docs/PROTOCOL.md` gains its section in the same merge, not with a
   number this plan invents.
 
+- **Done:** slice 1 contract passed review. ADR 0062 remains proposed.
+- **Source passed; whole gate owed:** slice 2a adds title origin to the session, rename event,
+  actor and durable projection. The `TITLE_ORIGIN_SCHEMA` migration leaves every older title
+  unknown, including one whose create specification has a title.
+  Wire tests cover old events and old session info in both directions.
+  A typed older forwarding hop may discard origin, retaining the title
+  and decoding it as unknown at the next reader. The ADR corrects the
+  earlier unverified assumption that protocol 20 preserves reply fields:
+  `Forwarded.reply` is typed (`forward.rs` 123–126); version 20's rule
+  applies to the inner request (`docs/PROTOCOL.md` 42–47).
+  Runtime tests assert prompt-derived and typed origins against the fake
+  harness; store tests cover migration, each origin and reopening.
+- **Source return addressed:** the merge threshold is optional (no sentinel);
+  wire adaptation hides both origin fields together, independent of durable
+  JSON. Side chats are given; imports are unknown; schedule names are typed.
+  Each creation path has a durable end-to-end assertion after stopping its
+  fake node. Targeted checks cover these paths; the whole gate remains owed.
+- **Remaining slice 2:** 2b settings and project instructions; 2c the
+  bounded completion seam; 2d automatic scheduling and application. The
+  application must compare the expected given title inside the actor:
+  a read before queuing a rename leaves a race with a person's rename.
+- **Gate status:** the pre-integration whole run passed all checks except
+  the previously accepted protocol-version assertion. The connector and
+  store migration tests passed, as did both TypeScript checks and the web
+  suite. This is reference evidence only: the merged tree must pass the
+  whole gate without that exception.
+- **Next:** gate the merged shared admission foundation and title-origin
+  paths together before registering title settings. The integrated usage
+  ledger keeps its existing migration; title origin follows it through
+  `TITLE_ORIGIN_SCHEMA`, the single provisional assignment. Older-schema
+  fixtures undo the new column before their existing rollback statements.
+  Title settings and project instructions remain separate small follow-ups.
+  No generation exists in 2a. Nothing calls a model. No branch work starts
+  before slice 2 is complete.
+- `PROTOCOL_VERSION` stays at the base. `GENERATED_NAMES` is the single
+  merge-assigned threshold, optional and `None` until assigned. Both fields
+  are
+  removed for unsupported peers at protocol adaptation, while stored JSON
+  retains their known origins. Generated TypeScript is regenerated with
+  each wire slice.
+- Not verified: real models, live nodes, UI interactions, an actual
+  old-binary forwarding hop, Windows or macOS execution.
+
 
 ### Shared admission foundation
 
@@ -185,6 +235,8 @@ pending requirement before ids, the writer queue or dispatch. The new
 SDK error is mapped at the root MCP, web and fleet-hop boundaries; native
 matches belong to their existing owner. No title settings types or new
 calls are added by this foundation. Current calls remain assigned; pending
+
+calls are added in this commit. Current calls remain assigned; pending
 state tests exercise both admission guards, while the existing in-memory
 suite checks legacy requests and older-peer refusals. A pending feature's
 end-to-end request test lands with that feature.
@@ -219,3 +271,231 @@ emit the `call` trace. Refusals emit their own trace and use the SDK error's
 Display text, preventing a second wording from drifting. Existing memory
 transport tests assert that older-protocol refusals never reach handlers.
 The correction's validation is pending before it is reported.
+
+existing ratchet limits are lowered. No dependency is added. The whole
+gate runs against the committed foundation before it is reported. The
+node-head merge preserves the integrated tables and tests; the combined
+whole gate remains owed before either the foundation or provenance closes.
+
+### Node-head gate correction
+
+The first merged whole gate stopped at Clippy, before tests: the integrated
+comparison classifier needed the new refusal pattern combined with its
+existing identical-result patterns, and the integrated store rollback fixture
+had displaced a rename event's required origin initializer. The correction
+restores only that field and combines the patterns. Existing head SQL,
+test expectations, deadlines and production migration behavior stay unchanged.
+The corrected committed tree still owes the whole gate before either slice
+is reported as complete.
+
+### Slice 2b1: bounded values resume point
+
+- Done in this slice: reusable `MetadataSettings`, `MetadataProvider` and
+  `MetadataEffort` values, with constructor and bounded streaming decoder;
+  `GeneratedTitle` validates raw UTF-16 length before using `SessionTitle`.
+  Order, duplicates, exact bounds, future effort, unknown object keys,
+  invalid extra candidates, padded answers and supplementary Unicode
+  characters have adjacent tests. Strict object keys follow the persisted
+  Paseo schemas (`persisted-config.ts` 172–186) at the wire patch boundary
+  only. These strict types are not the settings-file decoding view.
+- Existing assets: parsed route/model ids, the title constructor, serde and
+  this crate's error conventions. Modify those APIs through small modules;
+  no external solution or dependency is needed for these value contracts.
+- The generated-title bound follows Paseo's schema and trim order
+  (`worktree-branch-name-generator.ts` 39–42, 132–135). The stored candidate
+  cap and existing one-line/control rules are deliberate Vessel bounds.
+  The resolver notes above distinguish explicit-model manual pass-through
+  from default-model resolution; the old blanket thinking statement and
+  small-model attribution were inaccurate.
+- Not added: settings request/reply fields, persistence, model selection,
+  project instructions, model calls or automatic title application. The
+  protocol threshold stays unassigned. This slice's exact-commit gate is
+  next; the shared accessor correction has a separate independent gate.
+- Next: settings persistence and per-peer field gates after the shared
+  admission contract, then project instructions and generation against fakes.
+
+The value contract's generated-title paragraph now names raw UTF-16 units
+and the two owning constants directly. The older ambiguous word
+"characters" must not be read as the user-title scalar count. Code and
+validation scope are unchanged; the exact-commit whole gate is still next.
+
+### Project reader contract and resume point
+
+The next small slice reuses the existing regular, contained and bounded
+`vessel.toml` byte reader and adds a style decoder under `project_file`.
+No dependency or crate edge is added. A separate decoder is necessary
+because malformed command sections must not stop independent style reads,
+and styles must never change the command approval digest. Standard serde
+and the existing TOML decoder cover the data; no external API is needed.
+
+Reference read: `build-metadata-prompt.ts` 7–61, project schema 55–75 and
+`workspace-git-service.ts` 924–933. Per-kind replacement, blank fallback,
+malformed siblings and legacy-key handling follow those reads. The named
+raw scalar cap and the planned checkout-root/non-Git-folder policy are
+Vessel differences, with their reasons in the ADR. This helper does not
+resolve Git or issue model calls. Current resume point: contract recorded;
+reader implementation and adjacent filesystem/decoder tests come next,
+then its narrow checks and whole gate. No node wiring is claimed.
+
+Project reader implementation checkpoint: the byte-reading policy is now
+shared, and `project_file::metadata` owns typed per-kind styles, raw scalar
+validation, tolerant independent decoding and class-only diagnostics.
+Adjacent tests cover blank and malformed siblings, padding, Unicode, the
+file bound, safe Debug, command independence and the unchanged digest.
+The helper is not called by the node yet. Narrow all-targets Clippy and
+its project-file tests pass; the exact-commit whole gate remains next.
+
+### Settings compatibility correction and resume point
+
+The bounded values' strict `MetadataSettings`/`RawMetadataSettings` and
+`MetadataProvider` decoders belong to wire patches. Settings wiring must
+add a lenient file view at both nested levels: ignore unknown fields,
+retain known values, reject known bad values and read future effort as
+`MetadataEffort::Unknown`, then use the same bounded constructor. It uses
+the shared store's later-file copy/unreadable-file move, with no separate
+keeping mechanism. Unlike Paseo's strict persisted schema, the file must
+preserve other node settings when a newer candidate adds a field.
+
+Required wiring tests: unknown metadata and candidate keys leave the
+route and unrelated settings intact through read, an unrelated patch and
+reopen; future effort reads Unknown; known bad values remain refused;
+strict wire patches refuse unknown keys before mutation. No file view or
+settings field is implemented by the value-only slice. Its whole gate on
+the documented value commit passed; this correction changes documents
+only and uses the fast gate. The model resolver must also state that a
+lone JSON surrogate is refused by serde before UTF-16 counting and treat
+blank-title refusal independently of a later branch result, or document
+a deliberate difference in that later slice.
+
+### Atomic generated title application contract
+
+The next library slice extends the existing bounded rename channel; it
+adds no wire call. A generated proposal is compared and published inside
+the owning actor. A conditional read followed by `rename` cannot preserve
+a concurrent manual rename, so it is rejected. An exhaustive change enum
+shares the existing acknowledgement path without another writer or pool.
+
+Adjacent rule tests and the existing fake-runtime fixture will cover exact
+given matching, other origins, explicit specifications, terminal/resuming
+modes, ended sessions and a simultaneous same-text manual rename. No real
+agent, provider or socket is required. This source API does not arm a task
+or call a model. Node wiring and its end-to-end generation tests remain
+later. The ADR now states the live-only application/recording floor and
+corrects the old create/first-prompt and wire-acknowledgement assumption.
+The shared accessor correction passed independent validation and review;
+the integrated node head is still needed before settings registration.
+
+Actor implementation checkpoint: typed and generated requests now share a
+bounded channel and acknowledgement. The actor borrows current info only
+for comparison, drops that borrow, then publishes in the same actor turn.
+The new handle API returns a typed Applied/Kept result and preserves the
+ordinary rename API. Rule tests cover explicit/future origin and mode
+exclusions; real fake-runtime tests cover application, same-word manual
+renames, concurrent requests and ended actors. No model client or node
+arming is connected. Narrow all-targets Clippy, all library tests and the
+fake actor cases pass. The exact-commit whole gate remains next.
+
+### Late generated proposal contract and resume point
+
+A parked session still has a live status, so the actor's current live
+check alone does not protect it from an already queued proposal. Extend
+that same comparison with unparked and non-imported guards, keeping fresh
+Remote creates eligible and manual rename behavior unchanged. Adjacent
+rule tests must cover parked, imported and remote states before porting
+the actor API. No new queue, call, bound or dependency is needed. This
+contract precedes its small code correction; node arming is still absent.
+
+Late-proposal correction checkpoint: the actor now checks unparked state
+and an exhaustive origin match before accepting a generated change. A
+rule test keeps parked/imported sessions and permits a fresh Remote create;
+manual rename is unchanged. Narrow all-targets Clippy and all session
+library/fake generated-title tests pass. No node task is armed yet and the
+actor slice still owes its exact-commit whole gate before port/report.
+
+### Bounded complete-response contract and resume point
+
+Decision: modify existing model API assets, not add a provider SDK or a
+second HTTP stack. Whole Anthropic/Responses replies already have typed
+wire models; Chat needs its whole reply/message fields in that same owner.
+The complete-response decoder is separate because the proxy's permissive
+stream endings cannot establish metadata finality. It will retain usage,
+reject tools/refusals/unknown endings and check credential echoes without
+changing proxy stream semantics. Bounded buffering replaces an unnecessary
+metadata stream. The node will still own selection, permission, request
+budgets, semantic JSON and title application. Tests use recorded API shapes
+and real parsers, never a live provider. Contract first; implementation and
+its narrow checks are next. No model request is wired by this library slice.
+
+The complete-response work is split for review: this first library slice
+supports Anthropic whole messages and bounds/privacy/error reporting.
+Other APIs return a typed unsupported result until the next library slice
+adds their existing typed response extraction. No node caller is wired in
+between. The shared accounting extraction preserves streamed cumulative
+usage; existing stream tests remain part of validation. Multi-API draft
+work is preserved separately and is not treated as compiled evidence.
+
+Anthropic completion implementation checkpoint: the bounded decoder now
+requires a known normal stop, rejects tool/refusal/non-text/error output,
+and redacts diagnostics at raw and decoded text boundaries. Whole error
+envelopes retain available usage; error-only bodies have none. The existing
+stream cumulative accounting moved without changing its convention.
+Narrow all-targets Clippy and all model API library tests pass, including
+the new synthetic whole-response cases. HTTP, node routing, settings and
+automatic application remain unconnected. The exact-commit whole gate is
+still owed; other APIs are a subsequent decoder slice.
+
+### Remaining complete-response APIs contract and resume point
+
+Extend the same bounded decoder for OpenAI Chat and Responses. Reuse the
+Responses whole-response model and Chat's existing assistant-message body;
+add only the missing whole-choice wrapper in the API owner. RawJson already
+supports serde's buffered nesting, so the wrapper can reuse that body with
+flattening rather than duplicate its content/tool grammar. One named output
+count defines the single-answer rule. Explicit normal endings, tool/refusal
+checks, redaction and accounting follow the existing complete decoder's
+contract. Stream accounting conversions move unchanged to their shared
+owner; proxy ending behavior does not change. Synthetic fixtures and edge
+cases extend the adjacent tests. This contract comes before the extension;
+no HTTP client, settings field or node arming is part of this library slice.
+
+Remaining API implementation checkpoint: the complete decoder now accepts
+Chat and Responses whole replies as well as Anthropic. It requires one
+plain assistant result and explicit normal finality; tools, refusals,
+unknown/incomplete states and unsupported content are unusable. Usage
+conversions are shared with streams and the proxy's existing ending policy
+is unchanged. Twelve additional synthetic cases and the existing library
+suite pass; narrow all-targets Clippy also passes. The Chat file is now
+under the product budget and its ratchet is removed; the Responses ratchet
+is lowered. HTTP, node selection, settings and automatic application are
+still unconnected. The exact-commit whole gate remains owed.
+
+Review correction checkpoint: complete-response stop always retains the
+provider's report, including a normal end paired with tool/refusal content.
+That content remains unusable through the typed text error. Adjacent tests
+assert both facts on all supported APIs. The actor contract also states
+that a session with no given title is left alone. These clarify existing
+contracts; no Node caller or model request is added.
+
+
+### Reviewed stack integration resume point
+
+The corrected optional-protocol admission is now the node head's version,
+including its whole-method invariant and refusal trace. Earlier title
+provenance, values, style reader, actor proposal and complete-response
+decoder slices have source review and gate evidence. This merge retains
+the head's protocol, migration numbers and SQL, appends provenance after
+labels, composes all field projections, and regenerates wire declarations.
+The combined gate and merge review remain owed. The schema fixture repair
+is a separate test-only commit. No new staged selector, request-preparation
+or semantic-material module is included in this integration tree. Actual
+HTTP generation, settings wiring and the first-prompt observer remain next.
+
+
+Integration completion checkpoint: the head's corrected accessor is kept
+unchanged. The separate schema-fixture repair expects the migration table
+length after migrate and finds the inbox predecessor in that same table.
+No product migration or other test assertion/deadline changes. Appended
+schema and row positions use saturating addition; the migration table's
+array length also checks the single provisional schema assignment. Narrow
+store library validation passes. The exact-commit remote whole gate and
+merge source review are next; automatic generation remains unconnected.

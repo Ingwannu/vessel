@@ -123,6 +123,12 @@ then matching live records through the current run's end or Ctrl-C. Its
 help shows the default count. Interrupting the command keeps the session
 running; a later resumed run can be followed with another invocation.
 
+A session title uses the first nonempty prompt line unless a title was
+supplied, keeping [ADR 0022's title limits](docs/adr/0022-session-options-and-titles.md).
+The node records who supplied a title so later generation can preserve a
+person's choice; older titles have unknown origin (ADR 0062). Automatic
+generation is not enabled yet in this build.
+
 ### A conversation: the queue, files, questions, marks
 
 A structured session's next message can go in while its agent still
@@ -1367,7 +1373,10 @@ read scope; cost in these queries additionally needs operate scope.
 
 The web client also shows machine accounting in **Settings → Usage**.
 Choose a machine and the past 24 hours or seven days, then Refresh for a
-new observation. Reasoning and cache counts keep their reported-turn
+new observation. Agent/profile choices use names from the last All agents
+report; each choice reads its totals from the node. All profiles includes
+reports without a recorded profile name, rather than guessing the current
+default login. Reasoning and cache counts keep their reported-turn
 coverage, and cost stays separated by unit or explicitly hidden by access.
 Offline machines and failed reads show guidance instead of zero totals.
 This page does not yet show account limits or individual session reports.
@@ -1434,3 +1443,7 @@ and are cleared at restart or opt-out. No automatic wait/continue or account
 switch is implemented by these commands. Actual vendor-account and macOS
 Keychain behavior require a separate operator check; automated tests use only
 offline synthetic fixtures.
+
+Startup continuation is being prepared in separate slices (ADR 0059). Its
+policy values and settings reply projection exist, with an unassigned protocol;
+there is no new startup setting or automatic resume behavior in this slice.

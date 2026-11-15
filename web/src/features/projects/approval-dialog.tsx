@@ -14,6 +14,7 @@ import "./projects.css";
 
 import {
   approvalCoverage,
+  type ApprovalRefusal,
   type CommandLine,
   type Compared,
   type ListedCommands,
@@ -41,6 +42,7 @@ function listedForDisplay(commands: ListedCommands): Required<ListedCommands> {
     approved: commands.approved,
     scripts: commands.scripts ?? [],
     terminals: commands.terminals ?? [],
+    service_ports: commands.service_ports ?? null,
     last_approved: commands.last_approved ?? null,
   };
 }
@@ -70,9 +72,15 @@ export function ApprovalDialog({
   onClose,
 }: ApprovalDialogProps) {
   const shown = listedForDisplay(commands);
-  const refused =
-    approvalCoverage(shown) === "unsupported_terminals" ||
-    compared.kind === "unsupported_terminals";
+  const coverage = approvalCoverage(shown);
+  const refusal: ApprovalRefusal | null =
+    coverage !== "complete"
+      ? { kind: coverage }
+      : compared.kind === "unsupported_terminals" ||
+          compared.kind === "unsupported_ports"
+        ? compared
+        : null;
+  const refused = refusal !== null;
   return (
     <Dialog
       title={
@@ -98,10 +106,8 @@ export function ApprovalDialog({
         </>
       }
     >
-      {refused ? (
-        <p className="dialog-copy">
-          {comparedWords({ kind: "unsupported_terminals" })}
-        </p>
+      {refusal !== null ? (
+        <p className="dialog-copy">{comparedWords(refusal)}</p>
       ) : (
         <ApprovalContents shown={shown} compared={compared} where={where} />
       )}

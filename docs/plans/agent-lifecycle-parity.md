@@ -278,12 +278,141 @@ No row of the crate table changes.
   and a bad `--since` fail before connect. Follow's first print is the
   last 10 matching records when `--tail` is omitted.
 
+## Existing interrupt-loop repair
+
+- The read-only script output path in `attach/mod.rs::print_output` and
+  `terminals.rs::ports` recreate `ctrl_c()` within each select. As with the
+  corrected log loop, the receiver disappears during an awaited write.
+- Decision: modify each loop using the existing Tokio dependency: construct
+  and pin one future before the loop, polling interruption first. Keep script
+  detach, port revisions, rendering, reconnects and watched resources intact.
+  A shared controller or a new dependency would add no needed behavior.
+  Both loops now retain that future; interruption is polled before data.
+- The existing owned-child cleanup and executable-checked SIGINT helper are
+  first shared by the tests, with existing log assertions unchanged.
+- This is a separate corrective slice from log follow. Tests use owned CLI
+  children and real signals against temporary fakes/scripts. A claimed
+  signal-during-write case must acknowledge that write deterministically;
+  otherwise report the unforced interleaving explicitly, without adding a
+  product-only test hook or using sleeps as synchronization. The Linux cases
+  acknowledge real script output and a changed ports snapshot before SIGINT,
+  then check successful exit and the still-live script/session/listeners.
+  They cannot force a specific pending write through the public harness.
+  The script executable is the existing fake in sleeper mode; only approved
+  project configuration is written, with no generated executable script.
+
+## Shared base defects and deferred wiring
+
+- The existing move stop helper (`vessel-session/src/moving.rs::stop_agent`
+  and its local `signal`) logs `SignalError` and continues. This is a base
+  defect relative to the reload contract's refusal when stopping fails. A
+  separate forcing-test-first correction is required before reload can reuse
+  it; copying it would risk starting a replacement while the old process lives.
+- Event availability has one public optional accessor, following call admission.
+  Remove the numeric `SessionEvent::since()` when introducing
+  `required_protocol()`: there is no truthful numeric value for an unassigned
+  event. Existing event thresholds and content-dependent agent thresholds stay.
+  Both the event projection and page precheck use the optional requirement;
+  `None` is unreadable by every peer, with the existing gap-free stand-ins.
+  Introduce this foundation separately, before `LabelsChanged` or `Reloaded`.
+  Its tests cover every currently assigned session variant and retain the
+  existing projection/cursor assertions. Actual pending-variant tests land
+  with those variants; this foundation does not add an event or feature number.
+- The latest merged node head now has the shared request accessor. Future
+  call and field admission must use it and the one method table. Work held
+  for the shared call-plumbing batch remains staged until that batch; event
+  availability still waits for the protocol owner's named shape.
+
+## Existing label request admission
+
+[Decision Log]
+- Purpose: close the temporary node-only admission boundary now that the shared
+  optional protocol accessor is integrated.
+- Existing assets: `Call::required_protocol`, its SDK-before-writer check and
+  RPC-before-dispatch check already carry typed unassigned refusals. The five
+  existing spec-bearing methods and three envelopes use those assets.
+- Alternatives: a second SDK check or fabricated numeric threshold would split
+  the protocol rule; neither is needed. No dependency is added.
+- Choice: modify the shared accessor's field requirement, keeping `since()`'s
+  signature and numeric compatibility calculation. Nonempty labels return
+  the optional assignment combined with the existing requirement; empty or
+  absent templates preserve it. Schedule session targets remain unchanged.
+- Effects: the SDK can now refuse before a frame is sent, while raw callers
+  are refused before dispatch. Starting import still checks stored labels
+  at the node, because that metadata is not part of its request.
+- Tests planned: each of the five direct requests, Forward/Relay/Deliver and
+  nested combinations at the named current protocol, a synthetic assignment
+  threshold, SDK no-frame admission and raw-server no-dispatch admission.
+  The existing node case uses a raw websocket so SDK admission cannot hide
+  the server boundary. Its reason is exact equality with the shared typed
+  unassigned error; the server now refuses before the old node guard. Its
+  Unsupported and no-work checks remain, and starting import is unchanged.
+- Narrow verification passed: protocol/RPC clippy; all 15 label-selected
+  unit tests, including the four new admission cases; node e2e clippy and
+  both real-node label-ingress cases. The complete gate remains owed on
+  the final admission commit. No failure was retried into green.
+- Paseo contract remains the labels record and optional update at
+  `messages.ts:915,989-996`, and reserved keys in `agent-labels.ts:2-6`.
+  This is the already stated temporary Vessel difference: labels await their
+  client consumers and protocol assignment instead of silently disappearing.
+
+## Stop refusal prerequisite for reload
+
+[Decision Log]
+- Purpose: refuse replacement startup if the current agent cannot be signalled.
+- Existing assets: reuse the real structured actor's stop, output drain and
+  `try_move` error boundary. A reload must not duplicate this lifecycle.
+- Constraint: the OS refusal cannot be forced through the fake ACP protocol;
+  a vanished or reaped process is correctly treated as a successful stop.
+- Choice: a per-actor `cfg(test)` next-stop fault, following the existing
+  `Control::PrivateDir` test boundary, supplies one typed `PermissionDenied`.
+  The actor, profile linking, fake process, log and restart remain real.
+- Alternatives: another account's process, permission changes, global fault
+  state, a real harness or a release-enabled fake are rejected. No dependency
+  is needed; the session crate already owns the process signal error.
+- Sequence: commit the forcing test against log-and-continue first and retain
+  its expected red result; then return a typed move error with the source.
+  Successful stop/drain behavior, deadlines and existing expectations stay.
+- Product absence is a separate product-configuration check: the exhaustive
+  control match and actor constructor have no test fault arm or field there.
+  The test failure, corrective narrow checks and one package gate travel
+  together. This is one prerequisite package, not a working reload command.
+- Resume: the event accessor's corrective clippy and all 262 protocol units
+  passed. Its first narrow compile failure (remaining old test accessor calls)
+  is retained. The isolated stop-refusal regression failed against the old
+  log-and-continue policy: after the unchanged kill grace it incorrectly
+  completed the move. The corrective commit returns `MoveError::Signal`
+  before replacement, preserving the requested signal and typed OS source.
+  Both polite and forced stop delivery use that refusal boundary. The test
+  now asserts the specific source/action, Internal code and original process,
+  profile, conversation and responsiveness. Corrective clippy and all 61
+  session library tests passed, including the previously failing regression.
+  The event projection's profile/model fallback formatting is extracted in
+  a separate behavior-preserving commit to keep its dispatch short; messages,
+  thresholds and every existing test expectation remain unchanged.
+- Final narrow checks passed: combined protocol/session clippy and all 323
+  library tests, including the forcing regression after correction. The
+  separate product library check passed with a non-test compiler artifact:
+  its actor constructor and exhaustive control dispatch compile without the
+  `cfg(test)` field, control and fault branch. The designated follow/display
+  head is merged, and this package now owes its one complete gate.
+
 ## Resume point
 
 - Reviewed: slice 1 contract and slice 2a validating types. Bounds,
   diagnostics and boundary tests use each type's named constants.
 - The named node head is merged without rewriting earlier commits. Its
-  usage ledger, shared compatibility cases and document paragraphs remain.
+  usage ledger, shared compatibility cases and document paragraphs remain. The
+  latest announced head is merged at the next clean slice boundary as well;
+  its protocol constant, migration order and assigned labels schema win.
+  Protocol assertions use the named constant. The only manual conflict keeps
+  the head's inbox argument module/export and adds the log module/export.
+  The subsequent accessor head is merged before implementation begins. Its
+  existing Log export stays, with the LogMode export appended; no head
+  protocol, schema or expectation is changed.
+  The later follow/display head is merged at another clean boundary. Its
+  grouped Log/LogMode export wins the formatting-only argument conflict,
+  and its workspace display source and expectations remain unchanged.
 - Slice 2b keeps creation/current labels separately in durable storage.
   `lifecycle_version::SINCE` remains unassigned (`None`); both maps are
   hidden in direct replies, lists, subscriptions, saved/scheduled specs,
@@ -307,9 +436,10 @@ No row of the crate table changes.
   budget; the authorized single exact confirmation passed. Both results
   were submitted separately, preserving the initial failure. Other steps
   passed; the correction changes no wire or page surface.
-- The shared `required_protocol()` accessor is owned by the protocol layer.
-  Until its integration, the node ingress guard supplies the typed refusal;
-  no new registered call or second client mechanism is introduced here.
+- The shared `required_protocol()` accessor is now integrated. Its existing
+  client/server checks will admit or refuse embedded labels using their
+  optional assignment; the admission follow-up is being implemented. No new
+  registered call or second client mechanism is introduced by that follow-up.
 - Separate refactor: the three legacy Profile/Via/Title text-column adapters
   use a consuming serde string deserializer. The validating types and typed
   column/source errors remain; the quote/backslash, title trimming and
@@ -375,9 +505,37 @@ No row of the crate table changes.
   step and left conflict markers in an unverified follow commit. A new
   follow-up repaired both owned files with every prior scenario retained.
   That intermediate commit was never compiled or used as gate evidence.
-- Next: check and fully gate the corrected follow slice 5c while
-  label call wiring awaits the shared accessor. No new wire call or dependency
-  is added by log options. All slices include the caller-to-projection
+- The corrected follow gate passed 1992/0/12 plus its two TS freshness tests,
+  with no waiver or rerun, and was submitted for review. The next clean slice
+  begins on the newly announced node head. The older attach/ports interrupt
+  repair passed narrow clippy and all five CLI cases selected by interrupt,
+  including both new script/ports signal cases. They check normal real signals
+  and resource survival, with the exact write interleaving still unforced.
+  Its separate complete gate remains owed.
+- Next: finish the older interrupt-loop repair's complete gate and the
+  existing label-input admission checks through the integrated accessor.
+  New event availability and call plumbing held for the quality batch still
+  wait for their shared owners. No new wire call or dependency is added by
+  log options or the label admission correction. All slices include the caller-to-projection
   citations and retain the raw-chunk test; the selection render context changes
   without changing its expected fragment. Windows, macOS, native UI and real harnesses remain
   unverified.
+
+### Reviewed prerequisite landing on the integrated method table
+
+This merge carries only the reviewed label admission and reload prerequisite,
+without discovery values, typed iterator or other background work. Readable
+session events keep the head's title-origin mask, with the single optional
+availability accessor and string-preserving formatters. Event pages retain
+the head's projection-based precheck, including the Replayed usage mask fix.
+The existing label requirement is folded once into `Call::since()` after its
+assigned method/field requirement; `required_protocol()` and fleet recursion
+remain the head's. The head's newly added title-origin event assertion uses
+`Some` around the same assigned version under the single-accessor contract.
+The owned event fixture fills its new origin field with Unknown; its previous
+wire/sequence/value assertions are unchanged. A new exact-tree gate is owed.
+
+The labelled-request invariant now asserts `since() == None` as well as
+`required_protocol() == None` for every direct and nested call. Its previous
+numeric-accessor comparison is obsolete on the integrated optional API; this
+strengthens the pending check without changing any assigned expectation.

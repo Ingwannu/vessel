@@ -163,7 +163,12 @@ async fn a_protocol_12_connection_refuses_preview_before_dispatch() {
 #[tokio::test]
 async fn an_old_connection_refuses_direct_and_wrapped_self_before_dispatch() {
     use vessel_proto::{Deliver, Forward, GetDeviceSelf, Origin, OriginBy, RelayCall};
-    let previous = GetDeviceSelf::METHOD.since().get().checked_sub(1).unwrap();
+    let previous = GetDeviceSelf::METHOD
+        .since()
+        .unwrap()
+        .get()
+        .checked_sub(1)
+        .unwrap();
     let (mut client, mut served) = raw_client(previous).await;
     let query = GetDeviceSelf {}.into_call();
     let origin = Origin {
@@ -201,7 +206,7 @@ async fn an_old_connection_refuses_direct_and_wrapped_self_before_dispatch() {
 #[tokio::test]
 async fn usage_is_refused_before_dispatch_on_a_pre_usage_connection() {
     use vessel_proto::usage::{QueryUsage, UsagePeriod, UsageScope};
-    let previous = QueryUsage::METHOD.since().get().saturating_sub(1);
+    let previous = QueryUsage::METHOD.since().unwrap().get().saturating_sub(1);
     let (mut client, mut served, target) = raw_client_with_node(previous).await;
     let call = QueryUsage {
         scope: UsageScope::Machine,
@@ -215,7 +220,7 @@ async fn usage_is_refused_before_dispatch_on_a_pre_usage_connection() {
             format!(
                 "`{}` as sent needs protocol {}; this connection speaks {}",
                 wrapped.method().as_str(),
-                QueryUsage::METHOD.since(),
+                QueryUsage::METHOD.since().unwrap(),
                 previous
             ),
         );
@@ -284,8 +289,8 @@ fn usage_envelopes(call: Call, node: NodeId) -> [Call; 4] {
 #[tokio::test]
 async fn forced_limit_policy_and_reads_are_refused_before_old_server_dispatch() {
     use vessel_proto::limits::*;
-    let needed = GetUsageLimits::METHOD.since();
-    assert_eq!(needed, SetUsageLookup::METHOD.since());
+    let needed = GetUsageLimits::METHOD.since().unwrap();
+    assert_eq!(Some(needed), SetUsageLookup::METHOD.since());
     let previous = needed.get().checked_sub(1).unwrap();
     let (mut client, mut served, target) = raw_client_with_node(previous).await;
     let query = GetUsageLimits {
@@ -366,4 +371,7 @@ async fn malformed_creation_labels_are_refused_before_dispatch() {
     );
 }
 
+mod decode_privacy;
 mod inbox;
+
+mod labels;
