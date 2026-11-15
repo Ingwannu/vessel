@@ -11,11 +11,13 @@
 //! - Cost: domain owners retain their context and explicitly admit dismissal.
 
 mod draw;
+mod input;
 #[cfg(test)]
 mod tests;
 
 use crate::DialogState;
 use gpui::{App, Bounds, Context, Pixels, Window};
+use std::cell::Cell;
 use std::rc::Rc;
 
 pub use crate::dialog::DialogWidth as Width;
@@ -32,13 +34,19 @@ pub enum Alignment {
 
 /// One opening's opaque identity. Closing/replacing it invalidates retained input.
 #[derive(Debug, Clone)]
-pub struct Lease(Rc<()>);
+pub struct Lease(Rc<Cell<bool>>);
 
 #[derive(Debug)]
 struct Opening {
     anchor: Bounds<Pixels>,
     alignment: Alignment,
     lease: Lease,
+}
+
+impl Drop for Opening {
+    fn drop(&mut self) {
+        self.lease.0.set(false);
+    }
 }
 
 /// One focus owner persists across desktop/compact presentation changes.
@@ -67,10 +75,11 @@ impl PopoverState {
         window: &mut Window,
         cx: &mut App,
     ) -> Lease {
-        if self.opening.is_some() {
+        if let Some(previous) = &self.opening {
+            previous.lease.0.set(false);
             self.dialog.dismissed(window, cx);
         }
-        let lease = Lease(Rc::new(()));
+        let lease = Lease(Rc::new(Cell::new(true)));
         self.opening = Some(Opening {
             anchor,
             alignment,
@@ -100,6 +109,7 @@ impl PopoverState {
         if !self.is_current(lease) {
             return false;
         }
+        lease.0.set(false);
         self.opening = None;
         self.dialog.dismissed(window, cx);
         true

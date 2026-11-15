@@ -45,6 +45,15 @@ a newer surface. Only actual close acknowledges DialogState::dismissed. Callers
 must not implement another return-focus path. Replacing an opening finishes its
 old focus/snap cycle, preventing retained old gestures from changing new motion.
 
+The opening's same opaque lease also becomes inactive on replace, close or owner
+drop. Dismissal admission alone is too late for GPUI's automatic pointer focus
+and arbitrary child input. A private transparent InputFence delegates all child
+layout/prepaint/paint phases and installs frame-scoped capture listeners before
+the child: stale pointer down/up/move/scroll and key down/up stop before default
+focus or child handlers. Ordinary div capture was rejected because the compact
+dialog's occluding scrim can hide its ancestor hitbox. No extra hitbox, surface,
+owner generation or geometry policy is added. Fresh input remains child-owned.
+
 Automatic owner retirement is separate from user-dismiss admission. When a host
 ConnectionContext retires or the area closes, take its captured context/Lease once
 so the feature stops drawing the obsolete body immediately. A settle hook with
@@ -62,6 +71,9 @@ same DialogState; no duplicate compact layout or gesture engine exists. This is
 a generic body control; host readiness, preferences and feature actions stay out.
 DialogLayout::with_body_spacing(BodySpacing::Caller) prevents double-insetting
 forms; the legacy Inset24 default and existing dialog tests stay unchanged.
+Desktop placement currently uses GPUI point/snap only. Whole-trigger measured
+flip/clamp belongs to S2's reserved popup::placement producer; this control will
+consume that checked shared policy rather than add a competing helper.
 
 ## Validation and handoff
 
@@ -78,6 +90,14 @@ The second exact1a Clippy typechecked the control/tests and reported only two
 unary float-negation lints on the margin constant. Current source uses a named
 signed viewport inset; no lint allowance is added. The next base8 source check
 must also execute the real control tests before review.
+
+Source follow-up corrects the retained-key regression: GPUI redraws dirty windows
+before routing a key, so a real keystroke interceptor now opens B after that draw
+and before A's actual listeners. Direct pointer dispatch in one window update
+similarly asserts the render count did not change. Both presentations test stale
+field-focus, arbitrary body action, outside/header dismissal and fresh B input.
+These corrected regressions and InputFence are not yet executed; earlier source
+typechecks do not prove this capture boundary.
 
 The control producer is isolated with only the typed dialog/snap prerequisite and
 this control. It began on dd13; package base8/91407173 is now merged in0313d40a9

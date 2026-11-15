@@ -77,6 +77,7 @@ pub fn popover<V: 'static>(
     cx: &mut Context<'_, V>,
 ) -> Option<AnyElement> {
     let opening = state.opening.as_ref()?;
+    let input_lease = opening.lease.clone();
     let lease = opening.lease.clone();
     let close_handlers = PopoverHandlers {
         state: handlers.state,
@@ -92,25 +93,31 @@ pub fn popover<V: 'static>(
             content.compact,
         )?
         .with_body_spacing(BodySpacing::Caller);
-        return Some(dialog(
-            &state.dialog,
-            DialogContent {
-                title: content.title,
-                body: div()
-                    .py(px(PAGE_INSET))
-                    .child(content.body)
-                    .into_any_element(),
-                footer: Vec::new(),
-                size: DialogSize::Configured(layout),
-            },
-            tokens,
-            window,
-            true,
-            close,
-            cx,
+        return Some(super::input::fence(
+            input_lease,
+            dialog(
+                &state.dialog,
+                DialogContent {
+                    title: content.title,
+                    body: div()
+                        .py(px(PAGE_INSET))
+                        .child(content.body)
+                        .into_any_element(),
+                    footer: Vec::new(),
+                    size: DialogSize::Configured(layout),
+                },
+                tokens,
+                window,
+                true,
+                close,
+                cx,
+            ),
         ));
     }
-    Some(desktop(state, opening, content, tokens, window, close, cx))
+    Some(super::input::fence(
+        input_lease,
+        desktop(state, opening, content, tokens, window, close, cx),
+    ))
 }
 
 fn desktop<V: 'static>(
