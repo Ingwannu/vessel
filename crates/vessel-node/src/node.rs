@@ -7,6 +7,7 @@ use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Arc;
 
+use crate::settings::Settings;
 use chrono::Utc;
 use tokio::net::TcpListener;
 use tokio::sync::Semaphore;
@@ -15,7 +16,6 @@ use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use vessel_harness::HarnessEnv;
-use vessel_proto::parking::ParkAfter;
 use vessel_proto::ports::PortOwner;
 use vessel_proto::{NodeId, NodeInfo, RelayToken, RouteUrl};
 use vessel_relay::address::ClientAddress;
@@ -58,7 +58,7 @@ use crate::workspace::{Opening, Workspaces};
 
 mod setup;
 
-use self::setup::{SessionSetup, SetupDirs, model_client, model_proxy};
+use self::setup::{SessionSetup, SetupDirs, model_client};
 
 /// A running node. Stop it with [`Node::stop`]; dropping it leaves it
 /// running until the process exits.
@@ -103,26 +103,23 @@ impl Node {
     /// The data directory or event log is unusable, another node holds the
     /// data directory, or the local socket or the address cannot be bound.
     pub async fn start(config: Config) -> Result<Self, NodeError> {
-        // Checked before anything starts, so a misconfigured relay or
-        // proxy is an error at once rather than a node that is unreachable
-        // (or limited as one client) later.
-        let clients = client_address(&config)?;
-        let relaying = relaying(&config)?;
-        let Prepared {
+        let started = tokio::time::Instant::now();
+        let setup::Startup {
             id,
             token,
             keypair,
             lock,
-            profiles,
+            store,
             models,
-            dirs,
-        } = prepare_off_thread(&config).await?;
-        let store = open_store(&config).await?;
-        let (models, proxy) = model_proxy(models).await?;
-        let session_setup = SessionSetup::new(&config, id, profiles, Arc::clone(&models), dirs);
+            proxy,
+            session_setup: setup,
+            clients,
+            relaying: relay,
+        } = setup::Startup::open(&config).await?;
 
         let Core {
             runtime,
+            settings,
             lifecycle,
             stop,
             tasks,
@@ -131,7 +128,7 @@ impl Node {
             agents,
             service,
             relays,
-        } = core(&config, id, &store, &keypair, relaying, session_setup).await?;
+        } = core(&config, id, &store, &keypair, relay, setup, started).await?;
         drop(tokio::spawn(serve_models(models, proxy, stop.clone())));
         let closing = CancellationToken::new();
         let rpc = Arc::new(Server::new(
@@ -146,6 +143,7 @@ impl Node {
         let (local, tcp) = bind(&config, id).await?;
         let local_endpoint = local.endpoint().clone();
         let address = tcp.as_ref().map(|(_, address)| *address);
+        service.0.diagnostics.bound(tcp.as_ref());
 
         let secure = SecureGateway {
             keypair,
@@ -161,6 +159,7 @@ impl Node {
         };
         let teardown = Teardown {
             runtime,
+            settings,
             tasks,
             forwarders,
             closing,
@@ -194,7 +193,7 @@ impl Node {
             teardown,
             lock,
         ));
-        listening(id, address, &local_endpoint);
+        setup::listening(id, address, &local_endpoint);
         Ok(Self {
             address,
             local: local_endpoint,
@@ -254,16 +253,6 @@ impl Node {
     }
 }
 
-/// Say where the node listens.
-fn listening(id: NodeId, address: Option<SocketAddr>, local: &Endpoint) {
-    tracing::info!(
-        node = %id,
-        address = ?address,
-        local = %local.path().display(),
-        "node listening"
-    );
-}
-
 /// Open the event log, closing sessions a previous run left live.
 async fn open_store(config: &Config) -> Result<Store, NodeError> {
     let Opened { store, interrupted } = Store::open(&config.data_dir, config.store)
@@ -281,6 +270,7 @@ async fn open_store(config: &Config) -> Result<Store, NodeError> {
 /// The node's parts below its transports.
 struct Core {
     runtime: Arc<SessionRuntime>,
+    settings: Arc<Settings>,
     lifecycle: Lifecycle,
     /// Cancelled to stop the node.
     stop: CancellationToken,
@@ -297,19 +287,6 @@ struct Core {
     relays: Arc<Relays>,
 }
 
-/// The LSP manager's configuration with the operator's roots filled in:
-/// executables and toolchains inside any configured root are not trusted
-/// for conservative analysis, so the registry needs the full list.
-fn lsp_config(config: &Config) -> vessel_lsp::Config {
-    let mut lsp = config.lsp.clone();
-    lsp.registry.configured_roots = config
-        .lsp_roots
-        .iter()
-        .map(|root| root.path.clone())
-        .collect();
-    lsp
-}
-
 /// Build the session runtime, the lifecycle, the devices and the service.
 #[expect(
     clippy::too_many_lines,
@@ -322,6 +299,7 @@ async fn core(
     keypair: &Arc<NodeKeypair>,
     relaying: Option<(RelayToken, TlsConfig)>,
     setup: SessionSetup,
+    diagnostic_started: tokio::time::Instant,
 ) -> Result<Core, NodeError> {
     let key = keypair.public();
     // Sessions ask the node for their prompts' attachments (protocol 10).
@@ -329,12 +307,7 @@ async fn core(
     let runtime = runtime(config, loader, setup.private_dir.clone(), store);
     // A value saved with `node.set_settings` wins over `--park-after`
     // (protocol 12, `settings`).
-    let settings = Arc::new(crate::settings::Settings::open(
-        config.data_dir.clone(),
-        Arc::clone(&runtime),
-        ParkAfter::from_duration(config.park_after),
-        config.park_after_given,
-    ));
+    let settings = Arc::new(Settings::for_config(config, Arc::clone(&runtime)));
     let stop = CancellationToken::new();
     // System zone detection may read OS configuration; keep startup I/O
     // off the async workers just as data-directory preparation is.
@@ -399,7 +372,7 @@ async fn core(
         transfers::IDLE,
     ));
     transfers.sweep(&tasks, &stop);
-    let lsp = vessel_lsp::Manager::start(lsp_config(config), stop.child_token());
+    let lsp = vessel_lsp::Manager::start(setup::lsp_config(config), stop.child_token());
     let lsp_shutdown = lsp.clone();
     drop(tasks.spawn(async move {
         lsp_shutdown.stopped().await;
@@ -478,6 +451,13 @@ async fn core(
     let service = Arc::new(Guarded(NodeService::new(Parts {
         lsp,
         lsp_roots: config.lsp_roots.clone(),
+        diagnostics: crate::diagnostics::Setup {
+            started: diagnostic_started,
+            tasks: tasks.clone(),
+            stop: stop.clone(),
+            runtime: Arc::clone(&runtime),
+            relays: Arc::downgrade(&relays),
+        },
         lifecycle: lifecycle.clone(),
         lookup: config.harness_lookup.clone(),
         sessions,
@@ -502,7 +482,7 @@ async fn core(
         catalogue: crate::catalogue::Catalogues::new(&config.registry_url),
         schedules,
         push,
-        settings,
+        settings: Arc::clone(&settings),
         limits,
     })));
     automation::schedules::start(
@@ -519,6 +499,7 @@ async fn core(
     .await;
     Ok(Core {
         runtime,
+        settings,
         lifecycle,
         stop,
         tasks,

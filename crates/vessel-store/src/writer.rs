@@ -108,6 +108,12 @@ pub(crate) enum Write {
         at: DateTime<Utc>,
         done: Done<KeptMarks>,
     },
+    /// Atomic first/repeated detach, replied only after commit.
+    Detach {
+        session: SessionId,
+        at: DateTime<Utc>,
+        done: Done<vessel_proto::subagents::DetachedSession>,
+    },
     /// Delete an ended session whole (protocol 10).
     Delete {
         session: SessionId,
@@ -135,6 +141,11 @@ pub(crate) enum Write {
     /// Device-scoped subscription changes; lease and scope checked atomically.
     Push {
         write: crate::push::PushWrite,
+        done: Done,
+    },
+    /// Change independent workspace lifecycle/ownership in one savepoint.
+    Registry {
+        mutation: crate::registry::RegistryWrite,
         done: Done,
     },
     /// Change the record of projects and worktrees (protocol 10).
@@ -171,6 +182,8 @@ pub(crate) struct Setup {
     pub(crate) pruned: watch::Sender<u64>,
     /// Coalesced wake-up after a committed attention event, never raw output.
     pub(crate) inbox: watch::Sender<()>,
+    /// Registry invalidation carries no data; consumers read a complete committed snapshot.
+    pub(crate) registry: watch::Sender<()>,
     /// Whether some session's index is behind its log (protocol 12): true
     /// while the writer catches up, false once it waits on its queue with
     /// nothing behind.
@@ -183,12 +196,17 @@ enum Answer {
 
     Done(Done, Result<(), StoreError>),
     Marked(Done<KeptMarks>, Result<KeptMarks, StoreError>),
+    Detached(
+        Done<vessel_proto::subagents::DetachedSession>,
+        Result<vessel_proto::subagents::DetachedSession, StoreError>,
+    ),
 }
 
 impl Answer {
     /// Send it, as a failure if the commit failed.
     fn send(self, failed: Option<&Arc<rusqlite::Error>>) {
         let sent = match self {
+            Self::Detached(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Timeline(answer) => answer.send(failed),
             Self::Done(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Marked(done, result) => done.send(after(failed, result)).is_ok(),
@@ -213,6 +231,7 @@ fn after<T>(
 /// What one batch changed beyond its own rows.
 #[derive(Default)]
 struct Effects {
+    registry: crate::registry::RegistryChange,
     /// Sessions whose logs grew, for the per-session byte cap.
     touched: HashSet<SessionId>,
     /// A committed batch introduced attention.
@@ -345,6 +364,9 @@ fn commit(
         // and with them their files.
         for &session in &effects.removed {
             attachments::remove_folder(&setup.attachments, session);
+        }
+        if effects.registry == crate::registry::RegistryChange::Changed {
+            setup.registry.send_replace(());
         }
         if effects.attention {
             setup.inbox.send_replace(());

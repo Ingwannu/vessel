@@ -20,7 +20,8 @@ use vessel_store::{ByteCount, Retention, Store, StoreConfig, StoreError};
 /// in its place, 8), the conversation's columns and the attachments table
 /// (7).
 const UNDO_SCHEMAS_7_TO_16: &str = "DROP TRIGGER timeline_admission_insert; DROP TRIGGER timeline_admission_delete; DROP TABLE timeline_admissions; DROP TABLE timeline_admission_usage; DROP TABLE timeline_admission_meta;
-ALTER TABLE sessions DROP COLUMN title_origin;
+ALTER TABLE sessions DROP COLUMN detach_receipt;
+     ALTER TABLE sessions DROP COLUMN title_origin;
      DROP TABLE usage_samples;
      DROP TABLE usage_meta;
      ALTER TABLE sessions DROP COLUMN usage_cost_baseline;
@@ -676,6 +677,7 @@ async fn sessions_from_schema_3_have_no_origin() {
     connection
         .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
         .unwrap();
+    fixtures::undo_registry_schema(&connection);
     connection.execute_batch(UNDO_SCHEMAS_7_TO_16).unwrap();
     connection
         .execute_batch(
@@ -709,6 +711,7 @@ async fn sessions_from_schema_2_read_as_the_owners_on_the_default() {
     connection
         .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
         .unwrap();
+    fixtures::undo_registry_schema(&connection);
     connection.execute_batch(UNDO_SCHEMAS_7_TO_16).unwrap();
     connection
         .execute_batch(
@@ -754,6 +757,7 @@ async fn a_sessions_model_is_stored_and_older_ones_have_none() {
     connection
         .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
         .unwrap();
+    fixtures::undo_registry_schema(&connection);
     connection.execute_batch(UNDO_SCHEMAS_7_TO_16).unwrap();
     connection
         .execute_batch(

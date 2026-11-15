@@ -461,8 +461,16 @@ const TITLE_ORIGIN_SCHEMA: usize = LABELS_SCHEMA.saturating_add(1);
 /// NULL preserves unknown provenance on rows written before this addition.
 const TITLE_ORIGIN: &str = "ALTER TABLE sessions ADD COLUMN title_origin TEXT;";
 
-/// One retained-admission migration follows the newest base. Integration re-points only this assignment.
-const ADMISSION_SCHEMA: usize = TITLE_ORIGIN_SCHEMA.saturating_add(1);
+/// One provisional append follows the head; the integrator alone rebinds it.
+pub(super) const SUBAGENT_SCHEMA: usize = TITLE_ORIGIN_SCHEMA.saturating_add(1);
+/// Current delegation is metadata, never a rewrite of creation provenance.
+const SUBAGENT_RELATIONS: &str = "ALTER TABLE sessions ADD COLUMN detach_receipt TEXT;";
+
+/// Provisional next migration; integration re-points this one constant.
+const REGISTRY_SCHEMA: usize = SUBAGENT_SCHEMA.saturating_add(1);
+
+/// One worker-owned admission append follows the announced head.
+const ADMISSION_SCHEMA: usize = REGISTRY_SCHEMA.saturating_add(1);
 
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
@@ -485,5 +493,7 @@ pub(super) const MIGRATIONS: &[&str; ADMISSION_SCHEMA] = &[
     INBOX,
     LABELS,
     TITLE_ORIGIN,
+    SUBAGENT_RELATIONS,
+    super::workspace_registry::SQL,
     crate::timeline_admission::SQL,
 ];

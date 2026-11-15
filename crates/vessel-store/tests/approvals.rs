@@ -21,7 +21,8 @@ mod fixtures;
 /// schedules, saved prompts, hooks, the set an approval covered, and pull
 /// request feedback.
 const UNDO_SCHEMAS_10_TO_16: &str = "DROP TRIGGER timeline_admission_insert; DROP TRIGGER timeline_admission_delete; DROP TABLE timeline_admissions; DROP TABLE timeline_admission_usage; DROP TABLE timeline_admission_meta;
-ALTER TABLE sessions DROP COLUMN title_origin;
+ALTER TABLE sessions DROP COLUMN detach_receipt;
+     ALTER TABLE sessions DROP COLUMN title_origin;
      DROP TABLE usage_samples;
      DROP TABLE usage_meta;
      ALTER TABLE sessions DROP COLUMN usage_cost_baseline;
@@ -88,6 +89,7 @@ async fn an_old_approval_survives_current_migrations_and_new_ones_keep_their_set
     connection
         .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
         .unwrap();
+    fixtures::undo_registry_schema(&connection);
     connection.execute_batch(UNDO_SCHEMAS_10_TO_16).unwrap();
     let _row = connection
         .execute(

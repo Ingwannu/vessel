@@ -139,6 +139,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("DetailIndex", Alias::Quantity),
     ("DetailOffset", Alias::Quantity),
     ("DeviceId", Alias::Handle),
+    ("DiagnosticProcessId", Alias::Handle),
     ("DiagnosticSchemaVersion", Alias::Quantity),
     ("DraftText", Alias::Content),
     ("DurationMs", Alias::Quantity),
@@ -159,6 +160,8 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ForgeLogin", Alias::Named),
     ("ForgeUrl", Alias::Named),
     ("Generation", Alias::Quantity),
+    // A hunk continuation is a count/offset, never a byte offset or id.
+    ("GitHunkOffset", Alias::Quantity),
     ("GoalObjective", Alias::Content),
     ("GrepQuery", Alias::Named),
     ("HarnessSessionId", Alias::Handle),
@@ -216,6 +219,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("QueueEntryId", Alias::Handle),
     ("RefName", Alias::Named),
     ("RegistryId", Alias::Named),
+    ("RegistryRevision", Alias::Quantity),
     ("RegistryVersion", Alias::Named),
     ("RelPath", Alias::Named),
     ("RemoteName", Alias::Named),
@@ -254,6 +258,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ToolExitCode", Alias::Quantity),
     ("TransferId", Alias::Handle),
     ("UploadId", Alias::Handle),
+    ("WorkspaceId", Alias::Handle),
     ("WorktreeId", Alias::Handle),
 ];
 

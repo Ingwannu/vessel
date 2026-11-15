@@ -469,3 +469,23 @@ older FEFF-wrapped non-offered label fixture now correctly becomes custom Left,
 while FEFF blank refusal and U+0085 custom content remain asserted. Two new
 raw-label/value/CSV regressions are authored; prior five-case and e98 strict
 passes do not prove this changed codec.
+
+### Announced node 9c150c6e union
+
+Merged the announced gate50c head (all18 steps0; Rust2549/0/12), including the
+checked minimal body picks, without rebasing. The canonical node method order,
+subagent/workspace registry declarations, schema19/20 and diagnostics/cleanup
+changes are retained. W23's three unassigned rows follow the head rows, its
+single admission migration is now the one append after schema20, and rollback
+fixtures remove that append plus the head's registry/detach appends before
+replaying their original named predecessor. The head's ratchet remains the
+ceiling; already divided files are removed and smaller measured entries lowered.
+The richer timeline module retains its existing helpers/identity/scope/compat
+attachments in addition to the checked common body vocabulary.
+
+The generated wire deliberately remains the verified d1ab artifact until this
+new union is regenerated on the VM. It is not a hand-merged generated file or
+current equality proof. Previous immutable checks remain scoped to their own
+heads, and current root compilation/tests/generation are owed. No final package
+whole gate was running during this A8 merge. No recovery/notice implementation
+has started before joint contract row251's verdict.
