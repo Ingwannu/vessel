@@ -127,13 +127,17 @@ async fn node(target: &Target, command: NodeCommand) -> Result<(), CliError> {
             read_only,
         } => devices::pair(target, label, ttl, read_only).await,
         NodeCommand::Devices { command } => devices::devices(target, command).await,
-        NodeCommand::Settings { park_after, driver } => {
+        NodeCommand::Settings {
+            park_after,
+            driver,
+            relay,
+        } => {
             let client = connect(target).await?.client;
             let drivers = driver_change(&driver)?;
-            let settings = if park_after.is_some() || drivers.is_some() {
+            let settings = if park_after.is_some() || drivers.is_some() || relay.is_some() {
                 client
                     .call(SetNodeSettings {
-                        relay: None,
+                        relay: relay.map(Into::into),
                         park_after,
                         drivers,
                     })

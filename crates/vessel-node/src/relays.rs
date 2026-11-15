@@ -41,6 +41,10 @@
 //!   home calling members back over their connection to it (the plan says
 //!   why not yet).
 
+mod configured;
+use configured::Configured;
+pub(crate) use configured::{Advertisement, MAX_CONFIGURED_RELAYS};
+
 use std::sync::{Arc, Mutex, PoisonError};
 
 use tokio::sync::watch;
@@ -65,7 +69,7 @@ pub(crate) struct Relays {
 #[derive(Debug, Default)]
 struct State {
     /// The configured relays, linked for good, with where each stands.
-    configured: Vec<(RouteUrl, watch::Receiver<LinkState>)>,
+    configured: Configured,
     /// The current home's relays, on a member with no route of its own.
     callback: Option<CallbackLinks>,
     /// Links made before the node served, with what stops each (a child
@@ -102,12 +106,18 @@ struct Serving {
     connections: TaskTracker,
 }
 
+/// One future is tracked globally, and configured ones also by their generation.
+enum Tracking {
+    Callback,
+    Configured(TaskTracker),
+}
+
 impl Serving {
     /// Run `link` until `stop` (a child of the node's stop): each client
     /// the relay splices to the node takes the same path as a direct
     /// `/secure` connection, waiting for admission in this link's own
     /// budget (gone with the link; `secure`'s round-10 Decision Log).
-    fn run(&self, link: NodeLink, stop: CancellationToken) {
+    fn run(&self, link: NodeLink, stop: CancellationToken, tracking: Tracking) {
         let gateway = self.gateway.clone();
         let tracker = self.connections.clone();
         let budget = relay_budget();
@@ -118,7 +128,13 @@ impl Serving {
                 gateway.accept_logged(carrier, route).await;
             }));
         };
-        drop(self.connections.spawn(link.run(accept, stop)));
+        let future = link.run(accept, stop);
+        drop(match tracking {
+            Tracking::Callback => self.connections.spawn(future),
+            Tracking::Configured(generation) => {
+                self.connections.spawn(generation.track_future(future))
+            }
+        });
     }
 }
 
@@ -126,7 +142,7 @@ impl State {
     /// Run `link` now, or once the node serves.
     fn start(&mut self, link: NodeLink, stop: CancellationToken) {
         match &self.serving {
-            Some(serving) => serving.run(link, stop),
+            Some(serving) => serving.run(link, stop, Tracking::Callback),
             None => self.waiting.push((link, stop)),
         }
     }
@@ -154,25 +170,115 @@ impl Relays {
         };
         let mut state = self.state();
         for (link, stop) in std::mem::take(&mut state.waiting) {
-            serving.run(link, stop);
+            serving.run(link, stop, Tracking::Callback);
         }
+        state.configured.start(&serving, &self.keypair, &self.stop);
         state.serving = Some(serving);
     }
 
-    /// Link to the configured `relays` for good, registering with `token`.
-    pub(crate) fn link_configured(&self, relays: &[RouteUrl], token: &RelayToken, tls: &TlsConfig) {
-        let mut state = self.state();
-        for relay in relays {
-            let link = NodeLink::new(
-                relay.clone(),
-                Arc::clone(&self.keypair),
-                token.clone(),
-                tls.clone(),
-            );
-            state.configured.push((relay.clone(), link.state()));
-            tracing::info!(%relay, "linking to a relay");
-            state.start(link, self.stop.child_token());
+    /// Install only operator-validated startup configuration, before serving.
+    pub(crate) fn link_configured(
+        &self,
+        relays: &[RouteUrl],
+        token: &RelayToken,
+        tls: &TlsConfig,
+    ) -> Result<(), NodeError> {
+        if relays.len() > MAX_CONFIGURED_RELAYS {
+            return Err(NodeError::TooManyConfiguredRelays);
         }
+        let mut state = self.state();
+        if state.serving.is_some() {
+            return Err(NodeError::RelaySettings(
+                vessel_proto::relay_settings::RelaySettingsError::Busy,
+            ));
+        }
+        state
+            .configured
+            .configure(relays, token, tls)
+            .map_err(NodeError::RelaySettings)
+    }
+
+    /// Saved consent wins startup defaults before any configured task starts.
+    pub(crate) fn initial_consent(
+        &self,
+        saved: Option<vessel_proto::relay_settings::RelayChange>,
+    ) -> Result<(), vessel_proto::relay_settings::RelaySettingsError> {
+        let mut state = self.state();
+        if state.serving.is_some() {
+            return Err(vessel_proto::relay_settings::RelaySettingsError::Busy);
+        }
+        state.configured.initial(saved);
+        Ok(())
+    }
+
+    pub(crate) fn advertisement(&self) -> Advertisement {
+        self.state().configured.advertisement()
+    }
+
+    /// No route, token, ticket or peer diagnostic can enter this projection.
+    pub(crate) fn settings(&self) -> vessel_proto::relay_settings::RelaySettings {
+        use vessel_proto::relay_settings::{CallbackRelays, RelaySettings};
+        let mut state = self.state();
+        let configured = state.configured.snapshot();
+        let fleet_callback = if state.callback.is_some() {
+            CallbackRelays::Present
+        } else {
+            CallbackRelays::Absent
+        };
+        RelaySettings {
+            configured,
+            fleet_callback,
+        }
+    }
+
+    pub(crate) fn validate_change(
+        &self,
+        change: vessel_proto::relay_settings::RelayChange,
+    ) -> Result<(), vessel_proto::relay_settings::RelaySettingsError> {
+        if self.stop.is_cancelled() {
+            return Err(vessel_proto::relay_settings::RelaySettingsError::Stopping);
+        }
+        self.state().configured.validate(change)
+    }
+
+    /// Persistence has committed: a lost acknowledgement cannot roll it back.
+    pub(crate) async fn apply_committed(
+        &self,
+        change: vessel_proto::relay_settings::RelayChange,
+        deadline: tokio::time::Instant,
+    ) -> Result<(), vessel_proto::relay_settings::RelaySettingsError> {
+        use vessel_proto::relay_settings::{RelayChange, RelaySettingsError};
+        let waiting = {
+            let mut state = self.state();
+            if self.stop.is_cancelled() {
+                return Err(RelaySettingsError::Uncertain);
+            }
+            match change {
+                RelayChange::Unknown => return Err(RelaySettingsError::Unknown),
+                RelayChange::Enabled => {
+                    state.configured.enable();
+                    let State {
+                        configured,
+                        serving,
+                        ..
+                    } = &mut *state;
+                    if let Some(serving) = serving {
+                        configured.start(serving, &self.keypair, &self.stop);
+                    }
+                    None
+                }
+                RelayChange::Disabled => state.configured.disable(),
+            }
+        };
+        // Never hold the Relays mutex over network completion. The generation
+        // remains in State even if this waiter is cancelled or times out.
+        if let Some(tasks) = waiting {
+            tokio::time::timeout_at(deadline, tasks.wait())
+                .await
+                .map_err(|_elapsed| RelaySettingsError::Uncertain)?;
+            let _state = self.state().configured.snapshot();
+        }
+        Ok(())
     }
 
     /// Link to `home`'s `relays` with `ticket` (for this node's key), as a
@@ -277,7 +383,7 @@ impl Relays {
     /// Each relay linked, configured ones first, and where its link stands.
     pub(crate) fn states(&self) -> Vec<(RouteUrl, watch::Receiver<LinkState>)> {
         let state = self.state();
-        let mut states = state.configured.clone();
+        let mut states = state.configured.states();
         if let Some(callback) = &state.callback {
             states.extend(
                 callback

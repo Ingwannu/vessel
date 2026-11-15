@@ -57,6 +57,8 @@ pub(crate) struct Devices {
     /// callback relays are not among them: only its grant's link names
     /// those (`crate::relays`).
     routes: Routes,
+    /// Receiver only: default invitations follow the configured owner.
+    advertised: Option<crate::relays::Advertisement>,
     invitations: Mutex<Invitations>,
     /// Bumped whenever every pending invitation is withdrawn (a fleet home
     /// forgetting a node): a pairing whose invitation was redeemed before
@@ -73,10 +75,17 @@ impl Devices {
             node,
             key,
             routes,
+            advertised: None,
             invitations: Mutex::new(Invitations::default()),
             withdrawals: AtomicU64::new(0),
             connected: Arc::new(Connected::default()),
         }
+    }
+
+    /// Production binds the owner's decision; explicit callback overrides stay separate.
+    pub(crate) fn with_advertisement(mut self, advertised: crate::relays::Advertisement) -> Self {
+        self.advertised = Some(advertised);
+        self
     }
 
     /// `device.invite`: a single-use pairing link valid for `ttl_secs`
@@ -106,7 +115,15 @@ impl Devices {
 
     /// Where the node's own pairing links say it can be reached.
     pub(crate) fn routes(&self) -> Routes {
-        self.routes.clone()
+        let mut routes = self.routes.clone();
+        if self
+            .advertised
+            .as_ref()
+            .is_some_and(|choice| !choice.includes_configured())
+        {
+            routes.relays.clear();
+        }
+        routes
     }
 
     /// The node's public key.
@@ -140,7 +157,7 @@ impl Devices {
         // A bind address does not advertise a route. Validate the selected
         // callback override too, before randomness or pending admission;
         // probing cannot prove reachability from another device (ADR 0044).
-        let routes = routes.unwrap_or_else(|| self.routes.clone());
+        let routes = routes.unwrap_or_else(|| self.routes());
         if routes.relays.is_empty() && routes.direct.is_empty() {
             return Err(ServiceError::NoPairingRoutes);
         }

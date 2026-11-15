@@ -1659,3 +1659,22 @@ unsupported override before process spawn, with a typed Unsupported mapping.
 The field does not enter SessionSpec, user messages, argv or environment.
 Reload orchestration and actual native override/restore transports are separate
 work; see docs/plans/provider-transient-context.md. No dependency edge changes.
+
+
+## Configured relay consent (ADR 0096, pending field version)
+
+`vessel-node::relays` remains the sole registration owner. Its configured
+child retains a bounded active/stopping generation; callbacks and established
+secure connections retain their existing independent lifetimes. A receiver
+of that owner's advertisement controls default device invitation routes.
+`node/configured` prepares only operator-owned routes/token/TLS before the
+gateway starts; the remote settings request cannot supply any of them.
+
+The existing Settings lock is acquired before one tracked mutation starts,
+and retained through protected atomic storage and live application even if
+the caller stops waiting. The node's existing connection task tracker owns
+completion at shutdown; Settings keeps a weak relay reference to avoid a
+service/gateway cycle. Public proto settings contain only closed consent and
+health values; CLI formatting consumes the same safe projection. The field
+version remains unassigned, so this source is not yet a remotely available
+operation. No crate dependency or external owner changes.

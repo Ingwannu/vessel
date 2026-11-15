@@ -42,7 +42,7 @@ use crate::models::Models;
 use crate::models::proxy::serve as serve_models;
 use crate::probes::Probes;
 use crate::profiles::NodeProfiles;
-use crate::relays::{self, Relays};
+use crate::relays::Relays;
 use crate::secure::{MAX_UNADMITTED, SecureGateway};
 use crate::server::{self, Gateway};
 use crate::service::{NodeService, Parts};
@@ -53,6 +53,7 @@ use crate::tidying::Tidying;
 use crate::transfers::{self, Transfers};
 use crate::workspace::{Opening, Workspaces};
 
+mod configured;
 mod setup;
 
 use self::setup::{SessionSetup, SetupDirs, model_client, model_proxy};
@@ -104,7 +105,7 @@ impl Node {
         // proxy is an error at once rather than a node that is unreachable
         // (or limited as one client) later.
         let clients = client_address(&config)?;
-        let relaying = relaying(&config)?;
+        let relaying = configured::recipe(&config)?;
         let Prepared {
             id,
             token,
@@ -118,6 +119,7 @@ impl Node {
         let (models, proxy) = model_proxy(models).await?;
         let session_setup = SessionSetup::new(&config, id, profiles, Arc::clone(&models), dirs);
 
+        let connections = TaskTracker::new();
         let Core {
             runtime,
             lifecycle,
@@ -128,7 +130,16 @@ impl Node {
             agents,
             service,
             relays,
-        } = core(&config, id, &store, &keypair, relaying, session_setup).await?;
+        } = core(
+            &config,
+            id,
+            &store,
+            &keypair,
+            relaying,
+            session_setup,
+            connections.clone(),
+        )
+        .await?;
         drop(tokio::spawn(serve_models(models, proxy, stop.clone())));
         let closing = CancellationToken::new();
         let rpc = Arc::new(Server::new(
@@ -138,8 +149,6 @@ impl Node {
             closing.clone(),
         ));
         let token = Arc::new(token);
-        let connections = TaskTracker::new();
-
         let (local, tcp) = bind(&config, id).await?;
         let local_endpoint = local.endpoint().clone();
         let address = tcp.as_ref().map(|(_, address)| *address);
@@ -319,20 +328,28 @@ async fn core(
     keypair: &Arc<NodeKeypair>,
     relaying: Option<(RelayToken, TlsConfig)>,
     setup: SessionSetup,
+    connections: TaskTracker,
 ) -> Result<Core, NodeError> {
     let key = keypair.public();
     // Sessions ask the node for their prompts' attachments (protocol 10).
     let (loader, loads) = AttachmentLoader::channel(ATTACHMENT_LOADS);
     let runtime = runtime(config, loader, setup.private_dir.clone());
-    // A value saved with `node.set_settings` wins over `--park-after`
-    // (protocol 12, `settings`).
+    let stop = CancellationToken::new();
+    let configured::Startup {
+        relays,
+        home: home_relays,
+    } = configured::start(config, keypair, &stop, relaying)?;
+    // Saved consent is applied before any configured registration can start.
     let settings = Arc::new(crate::settings::Settings::open(
         config.data_dir.clone(),
         Arc::clone(&runtime),
         ParkAfter::from_duration(config.park_after),
         config.park_after_given,
-    ));
-    let stop = CancellationToken::new();
+        crate::settings::Owners {
+            relays: Arc::downgrade(&relays),
+            mutations: connections,
+        },
+    )?);
     // System zone detection may read OS configuration; keep startup I/O
     // off the async workers just as data-directory preparation is.
     let name = config.name.clone();
@@ -352,26 +369,18 @@ async fn core(
     ));
     let attachments = attachments(config, store, &sessions, loads, (&tasks, &stop));
     let forwarders = TaskTracker::new();
-    let devices = Arc::new(Devices::new(
-        store.clone(),
-        id,
-        *key,
-        Routes {
-            relays: config.relays.clone(),
-            direct: config.public.clone(),
-        },
-    ));
-    let relays = Arc::new(Relays::new(Arc::clone(keypair), stop.clone()));
-    // A home mints its members' tickets from its relays' token
-    // (`fleet.callback`).
-    let home_relays = relaying.map(|(token, tls)| {
-        relays.link_configured(&config.relays, &token, &tls);
-        fleet::HomeRelays {
-            relays: config.relays.clone(),
-            token,
-            first_window: config.fleet.first_ticket_window,
-        }
-    });
+    let devices = Arc::new(
+        Devices::new(
+            store.clone(),
+            id,
+            *key,
+            Routes {
+                relays: config.relays.clone(),
+                direct: config.public.clone(),
+            },
+        )
+        .with_advertisement(relays.advertisement()),
+    );
     // Fleet sync's tasks are session-adjacent work: shutdown waits for an
     // apply in progress before the data directory is released.
     let links = Arc::new(fleet::Links::new(
@@ -600,21 +609,6 @@ fn client_address(config: &Config) -> Result<ClientAddress, NodeError> {
         tracing::warn!("trusted proxies are ignored without a client address header");
     }
     Ok(clients)
-}
-
-/// The relays' registration token and the TLS setup for them, if any
-/// relay is configured. The token file is read even without relays, so a
-/// broken one shows before it is needed.
-fn relaying(config: &Config) -> Result<Option<(RelayToken, TlsConfig)>, NodeError> {
-    let token = match &config.relay_token_file {
-        Some(path) => Some(vessel_relay::read_token_file(path)?),
-        None => None,
-    };
-    if config.relays.is_empty() {
-        return Ok(None);
-    }
-    let token = token.ok_or(NodeError::NoRelayToken)?;
-    Ok(Some((token, relays::relay_tls(&config.relays)?)))
 }
 
 /// The blocking part of start-up: directory, identity, token, key, lock.

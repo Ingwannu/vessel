@@ -47,6 +47,12 @@ pub enum NodeError {
     /// Relays are configured without `--relay-token-file`.
     #[error("a relay needs its registration token: pass --relay-token-file")]
     NoRelayToken,
+    /// The operator configured more than the bounded registration owner allows.
+    #[error("too many configured relay routes")]
+    TooManyConfiguredRelays,
+    /// A closed relay startup/consent refusal carries no routes or credentials.
+    #[error(transparent)]
+    RelaySettings(#[from] vessel_proto::relay_settings::RelaySettingsError),
     /// The relays' registration token file is unreadable or empty.
     #[error(transparent)]
     RelayToken(#[from] vessel_relay::TokenFileError),

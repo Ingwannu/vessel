@@ -5,6 +5,7 @@ use std::fmt::Write as _;
 
 mod conversation;
 mod inbox;
+mod relay_settings;
 pub(crate) use inbox::inbox_entry;
 mod worktree;
 
@@ -146,7 +147,10 @@ pub(crate) fn node_settings(settings: &vessel_proto::settings::NodeSettings) -> 
     })
     .collect::<Vec<_>>()
     .join(", ");
-    format!("park an idle agent: {park_after}\nnew sessions: {drivers}\n")
+    format!(
+        "park an idle agent: {park_after}\nnew sessions: {drivers}\n{}",
+        relay_settings::render(settings.relay)
+    )
 }
 
 pub(crate) fn node_status(node: &NodeInfo, sessions: &[SessionInfo], client: &str) -> String {

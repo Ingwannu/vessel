@@ -73,7 +73,25 @@ pub(crate) enum NodeCommand {
         /// until this build offers it). Repeat for several agents.
         #[arg(long, value_name = "AGENT=acp|direct", value_parser = driver)]
         driver: Vec<(HarnessKind, AgentDriver)>,
+        /// Consent to configured relay registrations, or stop them. Never supplies a route.
+        #[arg(long, value_enum)]
+        relay: Option<RelayChoice>,
     },
+}
+
+/// An explicit choice; there is no automatic toggle or URL input.
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub(crate) enum RelayChoice {
+    Enabled,
+    Disabled,
+}
+impl From<RelayChoice> for vessel_proto::relay_settings::RelayChange {
+    fn from(choice: RelayChoice) -> Self {
+        match choice {
+            RelayChoice::Enabled => Self::Enabled,
+            RelayChoice::Disabled => Self::Disabled,
+        }
+    }
 }
 
 /// `--driver`: an agent's name, `=`, then `acp` or `direct`.

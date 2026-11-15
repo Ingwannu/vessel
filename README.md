@@ -1447,3 +1447,12 @@ offline synthetic fixtures.
 Startup continuation is being prepared in separate slices (ADR 0059). Its
 policy values and settings reply projection exist, with an unassigned protocol;
 there is no new startup setting or automatic resume behavior in this slice.
+
+
+Relay-consent implementation is pending integration (ADR 0096). The staged
+`vessel node settings --relay enabled|disabled` choice controls only the
+operator-configured registrations; it accepts no address or credential.
+The pending protocol field refuses requests until the integrator assigns it.
+A disable does not revoke devices, stop direct connections or remove fleet
+callback registrations. An uncertain result requires reading settings before
+another explicit change. Runtime/security verification is still pending.

@@ -44,15 +44,19 @@
 //!   a change loses nothing; nothing is merged back on its own. If the
 //!   copy fails, the change fails and nothing changes.
 
-use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
+use std::sync::{Arc, Weak};
 
 use tokio::sync::Mutex;
+use tokio_util::task::TaskTracker;
+use vessel_proto::relay_settings::RelaySettingsError;
+
+use crate::relays::Relays;
+
+mod mutation;
 use vessel_proto::HarnessKind;
 use vessel_proto::parking::ParkAfter;
-use vessel_proto::settings::{
-    AgentDriver, AgentDrivers, NodeSettings, SetAgentDrivers, SetNodeSettings,
-};
+use vessel_proto::settings::{AgentDriver, AgentDrivers, NodeSettings, SetNodeSettings};
 use vessel_session::SessionRuntime;
 use vessel_store::{DataDir, SetAside};
 
@@ -62,6 +66,9 @@ pub(crate) enum SettingsError {
     /// A choice this node does not know.
     #[error("this node does not know that park_after; send never or idle with minutes")]
     Unknown,
+    /// A closed, credential-free relay refusal.
+    #[error(transparent)]
+    Relay(#[from] RelaySettingsError),
     /// A driver this node does not know.
     #[error("this node does not know that driver for {0}; send acp or direct")]
     UnknownDriver(HarnessKind),
@@ -90,13 +97,24 @@ pub(crate) struct Settings {
     /// `--park-after`, or its default.
     flag: ParkAfter,
     /// What a person changed, as kept; held over write and apply.
-    saved: Mutex<SetNodeSettings>,
+    saved: Arc<Mutex<SetNodeSettings>>,
+    /// Weak to avoid a service/gateway/relay ownership cycle.
+    relays: Weak<Relays>,
+    /// Reuse node shutdown ownership for mutations after an RPC disappears.
+    mutations: TaskTracker,
     /// Why `settings.json` must not be replaced: it could not be used at
     /// start, and moving it aside failed. `None` when changes may write.
     kept: Option<Arc<str>>,
     /// The file holds what only a later build knows: the first change that
     /// writes copies it aside first (`settings.json.later-<UTC time>`).
     later: AtomicBool,
+}
+
+/// Existing owners, not a second settings task or relay registry.
+#[derive(Debug)]
+pub(crate) struct Owners {
+    pub(crate) relays: Weak<Relays>,
+    pub(crate) mutations: TaskTracker,
 }
 
 impl Settings {
@@ -108,7 +126,8 @@ impl Settings {
         runtime: Arc<SessionRuntime>,
         flag: ParkAfter,
         flag_given: bool,
-    ) -> Self {
+        owners: Owners,
+    ) -> Result<Self, RelaySettingsError> {
         let (saved, kept, later) = match data_dir.read_settings() {
             Ok(saved) => {
                 let saved = saved.unwrap_or_default();
@@ -121,11 +140,18 @@ impl Settings {
                 (SetNodeSettings::default(), kept, false)
             }
         };
+        let relays = owners
+            .relays
+            .upgrade()
+            .ok_or(RelaySettingsError::Stopping)?;
+        relays.initial_consent(saved.relay)?;
         let settings = Self {
             data_dir,
             runtime,
             flag,
-            saved: Mutex::new(saved),
+            saved: Arc::new(Mutex::new(saved)),
+            relays: owners.relays,
+            mutations: owners.mutations,
             kept,
             later: AtomicBool::new(later),
         };
@@ -140,7 +166,7 @@ impl Settings {
             .runtime
             .set_park_after(in_force.park_after.duration());
         settings.runtime.set_drivers(in_force.drivers);
-        settings
+        Ok(settings)
     }
 
     /// What is in force for `saved`: a saved value this node knows, else
@@ -166,7 +192,7 @@ impl Settings {
             open_code: driver(HarnessKind::OpenCode, saved.open_code),
         };
         NodeSettings {
-            relay: None,
+            relay: self.relays.upgrade().map(|relays| relays.settings()),
             park_after,
             drivers,
             restart_recovery: vessel_proto::restart::RestartRecovery::default(),
@@ -177,60 +203,6 @@ impl Settings {
     pub(crate) async fn current(&self) -> NodeSettings {
         let saved = *self.saved.lock().await;
         self.in_force(saved)
-    }
-
-    /// Change what `change` names, keep it, then apply it; answers what is
-    /// in force.
-    pub(crate) async fn change(
-        &self,
-        change: SetNodeSettings,
-    ) -> Result<NodeSettings, SettingsError> {
-        if change.park_after == Some(ParkAfter::Unknown) {
-            return Err(SettingsError::Unknown);
-        }
-        for (kind, driver) in change.drivers.iter().flat_map(SetAgentDrivers::named) {
-            match driver {
-                AgentDriver::Unknown => return Err(SettingsError::UnknownDriver(kind)),
-                AgentDriver::Direct if !offered(kind) => {
-                    return Err(SettingsError::NoDirect(kind));
-                }
-                AgentDriver::Direct | AgentDriver::Acp => {}
-            }
-        }
-        let mut saved = self.saved.lock().await;
-        let mut next = *saved;
-        if let Some(after) = change.park_after {
-            next.park_after = Some(after);
-        }
-        if let Some(drivers) = change.drivers {
-            next.drivers = Some(drivers.over(next.drivers.unwrap_or_default()));
-        }
-        if next == *saved {
-            return Ok(self.in_force(*saved));
-        }
-        if let Some(reason) = &self.kept {
-            return Err(SettingsError::Kept(Arc::clone(reason)));
-        }
-        let data_dir = self.data_dir.clone();
-        let later = self.later.load(Ordering::Relaxed);
-        let aside = tokio::task::spawn_blocking(move || {
-            let aside = later
-                .then(|| data_dir.set_aside_settings(chrono::Utc::now(), SetAside::Later))
-                .transpose()?;
-            data_dir.write_settings(&next).map(|()| aside)
-        })
-        .await
-        .map_err(SettingsError::Lost)?
-        .map_err(SettingsError::Write)?;
-        if let Some(aside) = aside {
-            tracing::info!(aside = %aside.display(), "settings.json held a later build's settings; a copy was kept before this change");
-            self.later.store(false, Ordering::Relaxed);
-        }
-        *saved = next;
-        let in_force = self.in_force(*saved);
-        self.runtime.set_park_after(in_force.park_after.duration());
-        self.runtime.set_drivers(in_force.drivers);
-        Ok(in_force)
     }
 }
 

@@ -76,3 +76,33 @@ This is not Clippy, generated-TS freshness, a root/native whole gate,
 actual settings persistence/application, Admin guard or relay runtime proof.
 The field is still pending None and must not be consumed as an available
 app operation. Remote numeric UID/GID and live service flow are unverified.
+
+
+## Runtime implementation source checkpoint (unverified)
+
+The existing Relays owner now retains one configured registration generation
+and its completion tracker. Its safe advertisement receiver controls only
+default device invitation routes; explicit fleet callback overrides remain
+independent. Startup rejects more than MAX_CONFIGURED_RELAYS before token/TLS
+I/O; saved consent is loaded before registration starts. Private generation
+state tests use a controlled task barrier, not a real relay transport.
+
+The existing Settings lock is now owned by one shutdown-tracked mutation
+before spawning any blocking writer. A caller timeout/drop does not release
+that mutation's capacity. Complete mixed validation precedes persistence;
+live application follows the committed snapshot. The relay waiter has the
+named ten-second deadline; a timed-out stop remains owned and disabling.
+A weak Relays reference avoids a new ownership cycle. Startup relay preparation
+moves into node/configured.rs to keep its operator authority in one place and
+to shrink the existing node.rs size record; no size limit is raised.
+
+The CLI adds an explicit enabled/disabled choice and prints only the same
+safe registration/callback facts. New relay failures publish closed messages
+and codes; private storage causes remain local and are not logged through
+this boundary. No new dependency, relay endpoint or credential input exists.
+
+This is source only until the requested narrow compilation/tests complete.
+Actual write-failure/cancellation/restart and real isolated relay barriers,
+permission/old-peer integration, generated TypeScript, V3 security review and
+the final root gate remain owed. The pending protocol constant is still None;
+no remotely available relay mutation or app consumption is claimed.

@@ -99,20 +99,25 @@ impl RelaySettings {
     }
 }
 /// Stable recovery codes; Busy uses Conflict, never a new top-level error code.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, thiserror::Error)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
 pub enum RelaySettingsError {
     /// The operator supplied no route this choice could enable.
+    #[error("this node has no configured relay")]
     NotConfigured,
     /// The node is shutting down and accepts no new change.
+    #[error("this node is stopping; relay settings cannot be changed")]
     Stopping,
     /// A prior mutation or stopping generation still owns the bounded work.
+    #[error("another relay change is still in progress; read its status")]
     Busy,
     /// The outcome is not confirmed; inspect status instead of replaying.
+    #[error("could not confirm the relay change; read its status before trying again")]
     Uncertain,
     /// A newer node's recovery category.
     #[serde(other)]
+    #[error("this relay settings choice is not supported")]
     Unknown,
 }
 
