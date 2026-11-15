@@ -1659,3 +1659,5 @@ unsupported override before process spawn, with a typed Unsupported mapping.
 The field does not enter SessionSpec, user messages, argv or environment.
 Reload orchestration and actual native override/restore transports are separate
 work; see docs/plans/provider-transient-context.md. No dependency edge changes.
+
+Composer catalog values (ADR0085) live in vessel-proto::composer_commands; native_commands owns closed native intents/status and validated goal objectives. The optional kind/native_command fields project away under an unassigned feature. The standalone carrier registers no call/runtime; provider edges and current-run availability remain separate owners. No dependency edge changes.
