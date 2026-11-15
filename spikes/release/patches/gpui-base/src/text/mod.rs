@@ -1,10 +1,14 @@
+// MODIFIED by Vessel: optional inferred links retain source selection and find mapping.
+mod code_selection;
 mod document;
 pub mod editor_host;
 mod editor_seam;
 mod format;
+mod image_activation;
 mod inline;
 mod inline_element;
 mod inline_flow;
+mod inline_links;
 mod inline_object;
 #[cfg(test)]
 mod inline_virtual_tests;
@@ -19,8 +23,12 @@ mod style;
 mod text_view;
 mod utils;
 
+pub use code_selection::trim_code_line_breaks;
 use gpui::{App, ElementId, IntoElement, RenderOnce, SharedString, Window};
 pub use inline_element::*;
+pub use inline_links::{
+    InlineLinkKind, InlineLinkRecognizer, LinkSource, LinkTarget, RecognizedLink,
+};
 pub use markdown_ext::*;
 pub use node::{CodeBlock, TableData};
 pub use range_highlight::{RangeHighlight, RangeHighlightError, RenderedText};
