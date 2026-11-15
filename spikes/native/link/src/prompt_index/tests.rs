@@ -104,7 +104,9 @@ async fn an_unadmitted_call_sends_no_frame_and_keeps_the_original_target_and_tic
     let key = MachineKey::from_book("fixture");
     let node = client.node().id;
     let context = state.admissions.admit(key.clone(), node).unwrap();
-    let binding = crate::machines::edits::entries(&home.book())
+    let binding = state
+        .saved_entries()
+        .await
         .unwrap()
         .into_iter()
         .find(|(name, _)| name.as_str() == "fixture")

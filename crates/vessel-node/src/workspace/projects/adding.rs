@@ -4,6 +4,7 @@
 //! is checked against the refused ones (`policy`) before it is recorded.
 
 use std::path::{Component, Path, PathBuf};
+use std::sync::Arc;
 
 use chrono::Utc;
 use tokio::sync::watch;
@@ -24,7 +25,7 @@ impl Workspaces {
     /// `invalid_request` for a path that is not an absolute folder or a
     /// refused root; `conflict` past the bound.
     pub(crate) async fn add_project(
-        &self,
+        self: &Arc<Self>,
         path: PathBuf,
         name: Option<ProjectName>,
     ) -> Result<ProjectInfo, WorkspaceError> {
@@ -51,7 +52,7 @@ impl Workspaces {
     /// `unsupported` without git; `conflict` for a folder that is not
     /// empty; `invalid_request` for a relative path or a refused root.
     pub(crate) async fn init_project(
-        &self,
+        self: &Arc<Self>,
         path: PathBuf,
         name: Option<ProjectName>,
     ) -> Result<ProjectInfo, WorkspaceError> {
@@ -108,7 +109,7 @@ impl Workspaces {
     /// an absolute folder or no folder name; `conflict` when the target
     /// exists.
     pub(crate) async fn clone_project(
-        self: &std::sync::Arc<Self>,
+        self: &Arc<Self>,
         url: CloneUrl,
         parent: PathBuf,
         folder: Option<FolderName>,
@@ -146,10 +147,10 @@ impl Workspaces {
             entry.clone = Some(cancel.clone());
         }
         let temporary = parent.join(format!(".{folder}.vessel-clone-{}", short(info.id)));
-        let workspaces = std::sync::Arc::clone(self);
+        let workspaces = Arc::clone(self);
         let project = info.id;
         drop(self.tasks.spawn(async move {
-            let progress_to = std::sync::Arc::clone(&workspaces);
+            let progress_to = Arc::clone(&workspaces);
             let result = git
                 .clone_into(&url, &target, &temporary, cancel, move |progress| {
                     let _now = progress_to.update(project, |info| {
@@ -215,12 +216,41 @@ impl Workspaces {
     }
 
     async fn insert_project(
+        self: &Arc<Self>,
+        root: PathBuf,
+        git: bool,
+        name: Option<ProjectName>,
+        state: ProjectState,
+    ) -> Result<ProjectInfo, WorkspaceError> {
+        // Reserve before detaching: cancelled calls cannot fill an unbounded lock queue.
+        let capacity = self.project_operation_capacity()?;
+        let owner = Arc::clone(self);
+        self.tasks
+            .spawn(async move {
+                let _capacity = capacity;
+                owner.insert_project_now(root, git, name, state).await
+            })
+            .await
+            .map_err(WorkspaceError::project_task)?
+    }
+
+    async fn insert_project_now(
         &self,
         root: PathBuf,
         git: bool,
         name: Option<ProjectName>,
         state: ProjectState,
     ) -> Result<ProjectInfo, WorkspaceError> {
+        // Serialize admission through durability/publication; cancelled callers cannot leave ghosts.
+        let _serial = self.project_registrations.lock().await;
+        if let Some(known) = self.project_at(&root) {
+            return Ok(known);
+        }
+        if self.state().projects.len() >= MAX_PROJECTS {
+            return Err(WorkspaceError::Conflict(format!(
+                "this machine keeps at most {MAX_PROJECTS} projects"
+            )));
+        }
         let name = match name {
             Some(name) => name,
             None => root
@@ -243,13 +273,9 @@ impl Workspaces {
             created_at: Utc::now(),
             revision: 0,
         };
+        self.save_project(info.clone()).await?;
         {
             let mut registry = self.state();
-            if registry.projects.len() >= MAX_PROJECTS {
-                return Err(WorkspaceError::Conflict(format!(
-                    "this machine keeps at most {MAX_PROJECTS} projects"
-                )));
-            }
             let (revision, _) = watch::channel(0);
             drop(registry.projects.insert(
                 info.id,
@@ -260,7 +286,6 @@ impl Workspaces {
                 },
             ));
         }
-        self.save_project(info.clone()).await?;
         Ok(info)
     }
 }

@@ -1,5 +1,7 @@
 //! Durable snapshot metadata remains paged across appends and rejects rewinds.
 
+#![cfg(test)]
+
 use vessel_proto::prompt_index::{ListSessionPrompts, PromptIndexLimit};
 use vessel_proto::{EventSeq, SessionEvent, SessionId};
 use vessel_store::{StoreConfig, StoreError};
@@ -62,7 +64,7 @@ async fn prompt_index_reads_one_snapshot_and_survives_reopen_without_a_new_schem
                 4,
                 SessionEvent::Rewound {
                     after: EventSeq::new(1),
-                    harness_session: "fake-history".parse().unwrap(),
+                    harness_session: vessel_proto::HarnessSessionId::new("fake-history"),
                     files_changed: 0,
                 },
             )],
@@ -76,7 +78,9 @@ async fn prompt_index_reads_one_snapshot_and_survives_reopen_without_a_new_schem
     let visible = store.prompt_index(request(session)).await.unwrap();
     assert_eq!(visible.entries().len(), 1);
     assert_eq!(visible.next(), None);
-    drop(store);
+    // Reopen after the writer/index workers release their handles; dropping a
+    // facade alone does not synchronize their asynchronous shutdown.
+    store.close().await;
     let reopened = fixtures::open(&dir, StoreConfig::default()).await;
     assert_eq!(
         reopened.prompt_index(request(session)).await.unwrap(),
@@ -86,6 +90,7 @@ async fn prompt_index_reads_one_snapshot_and_survives_reopen_without_a_new_schem
         reopened.prompt_index(request(SessionId::random())).await,
         Err(StoreError::UnknownSession(_))
     ));
+    reopened.close().await;
 }
 
 #[tokio::test]

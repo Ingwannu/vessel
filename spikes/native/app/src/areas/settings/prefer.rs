@@ -75,8 +75,8 @@ impl Shell {
                 }
             }
             Err(refused) => {
-                let words = self.t.lang.settings();
-                self.areas.settings.refused = Some(format!("{}: {refused}", words.refused));
+                self.areas.settings.refused =
+                    Some(super::PreparedRefusal::new(self.words, refused));
             }
         }
         cx.notify();

@@ -1,6 +1,6 @@
 //! Raw callers cannot bypass pending admission, including fleet envelopes.
 use super::*;
-use vessel_proto::prompt_index::{ListSessionPrompts, PROMPT_INDEX_PROTOCOL};
+use vessel_proto::prompt_index::{ListSessionPrompts, PROMPT_INDEX_PROTOCOL, PromptIndexLimit};
 use vessel_proto::{Deliver, Forward, Origin, OriginBy, RelayCall};
 
 #[tokio::test]
@@ -13,7 +13,7 @@ async fn pending_prompt_index_is_refused_before_dispatch_and_connection_survives
         session: session(1),
         after: None,
         epoch: None,
-        limit: Default::default(),
+        limit: PromptIndexLimit::default(),
     };
     let origin = Origin {
         node: target,

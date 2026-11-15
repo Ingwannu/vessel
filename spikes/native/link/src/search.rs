@@ -124,7 +124,7 @@ const DEADLINE: std::time::Duration = std::time::Duration::from_secs(15);
 
 #[cfg(not(target_arch = "wasm32"))]
 async fn bounded(
-    call: impl std::future::Future<Output = Result<SearchPage, crate::connections::RequestFailure>>,
+    call: impl Future<Output = Result<SearchPage, crate::connections::RequestFailure>>,
     deadline: std::time::Duration,
 ) -> Result<SearchPage, Refusal> {
     match tokio::time::timeout(deadline, call).await {

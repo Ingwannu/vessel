@@ -249,6 +249,10 @@ pub struct SessionInfo {
     /// only ever had the owner.
     #[serde(default)]
     pub created_by: Creator,
+    /// Durable current-parent boundary (ADR 0090), separate from creation audit.
+    /// Absent on older peers and before a human explicitly detaches the child.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub detach_receipt: Option<crate::subagents::DetachReceipt>,
     /// Current process state.
     pub status: SessionStatus,
     /// When the session was created.
@@ -383,6 +387,7 @@ impl SessionInfo {
             },
             spec,
             created_by: Creator::Owner,
+            detach_receipt: None,
             status: SessionStatus::Starting,
             created_at,
             ended_at: None,
