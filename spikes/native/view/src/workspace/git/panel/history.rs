@@ -9,7 +9,7 @@ use vessel_proto::workspace::{CommitInfo, RefName};
 /// Re-expanding a history section may use a recent cached answer.
 pub const HISTORY_FRESH_FOR: Duration = Duration::from_secs(30);
 /// Immutable file bodies can be retained independently of branch changes.
-pub const COMMIT_FILE_RETAIN_FOR: Duration = Duration::from_secs(5 * 60);
+pub const COMMIT_FILE_RETAIN_FOR: Duration = Duration::from_mins(5);
 
 /// Both history listing and base classification must be implemented.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

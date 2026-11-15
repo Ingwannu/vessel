@@ -88,7 +88,9 @@ reads settle via the same failure transition. Request issuers must live above
 disposable panes. No registration, runtime screen or complete skeleton claim yet.
 
 The first local view clippy stopped on missing variant docs/markup; fixed in
-the current source. Narrow checks of the installed view code are pending.
+the current source. The next remote narrow check found a nested-reference test
+comparison and two markup/duration lints; corrected without changing runtime
+behaviour. Checks of the corrected source are pending.
 Node comparison staging has separate protocol/workspace clippy and library
 tests green (382 passed, 0 failed, 1 ignored); no new node method admitted.
 Next: complete typed link/screen/words skeleton, node All private index,

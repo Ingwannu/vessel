@@ -155,7 +155,7 @@ pub struct ChangeTree<'a> {
 }
 
 impl<'a> ChangeTree<'a> {
-    /// Validated RelPath components cannot escape the virtual root.
+    /// Validated `RelPath` components cannot escape the virtual root.
     #[must_use]
     pub fn new(files: &'a [FileChange]) -> Self {
         let mut tree = Self {

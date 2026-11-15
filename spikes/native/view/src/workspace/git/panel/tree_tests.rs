@@ -195,5 +195,5 @@ fn maximum_bounded_depth_is_processed_without_recursive_visits() {
     let ChangeTreeRow::Folder { path: identity, .. } = rows.first().unwrap() else {
         panic!();
     };
-    assert_eq!(identity, &files.first().unwrap().path.parent().unwrap());
+    assert_eq!(*identity, &files.first().unwrap().path.parent().unwrap());
 }
