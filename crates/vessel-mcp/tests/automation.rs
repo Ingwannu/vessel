@@ -54,6 +54,7 @@ async fn an_agent_keeps_schedules_of_its_own_and_reads_saved_prompts() {
             .await;
         assert!(!failed, "{nightly}");
         assert_eq!(nightly["state"]["state"], "active", "{nightly}");
+        replace_schedule_and_refuse_stale(&mut mcp, &nightly).await;
 
         let (failed, listed) = mcp.call("list_schedules", json!({})).await;
         assert!(!failed);
@@ -108,4 +109,35 @@ async fn an_agent_keeps_schedules_of_its_own_and_reads_saved_prompts() {
         fixture.node.stop().await.unwrap();
     })
     .await;
+}
+
+async fn replace_schedule_and_refuse_stale(mcp: &mut support::McpClient, nightly: &Value) {
+    let (failed, inspected) = mcp
+        .call("get_schedule", json!({ "schedule": nightly["id"] }))
+        .await;
+    assert!(!failed, "{inspected}");
+    assert_eq!(inspected["revision"], nightly["revision"]);
+    let (failed, updated) = mcp
+        .call(
+            "update_schedule",
+            json!({
+                "schedule": nightly["id"], "revision": nightly["revision"],
+                "cron": "0 9 * * 1-5", "tz": "Asia/Seoul", "prompt": "plain again",
+                "harness": "claude", "cwd": std::env::temp_dir()
+            }),
+        )
+        .await;
+    assert!(!failed, "{updated}");
+    assert_eq!(updated["definition"]["prompt"], "plain again");
+    let (failed, stale) = mcp
+        .call(
+            "update_schedule",
+            json!({
+                "schedule": nightly["id"], "revision": nightly["revision"],
+                "cron": "0 9 * * 1-5", "tz": "Asia/Seoul", "prompt": "too late",
+                "harness": "claude", "cwd": std::env::temp_dir()
+            }),
+        )
+        .await;
+    refused(failed, &stale, "conflict");
 }

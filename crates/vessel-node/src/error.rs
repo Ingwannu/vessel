@@ -307,6 +307,9 @@ pub(crate) enum ServiceError {
     /// told where it is.
     #[error("the node's local socket path is not Unicode")]
     AgentToolsPath,
+    /// Launch policy must remain typed until serialization into the MCP environment.
+    #[error("cannot encode the agent tool visibility snapshot")]
+    ToolPolicy(#[source] serde_json::Error),
     /// A profile move of this session is running already.
     #[error("session {0} is already moving to another profile")]
     MoveRunning(SessionId),
@@ -454,6 +457,7 @@ impl ServiceError {
             | Self::Link(_)
             | Self::AgentTools(_)
             | Self::AgentToolsPath
+            | Self::ToolPolicy(_)
             | Self::Unrouted(_)
             | Self::ModelProxyDown => ErrorCode::Internal,
         };

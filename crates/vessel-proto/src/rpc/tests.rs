@@ -56,7 +56,12 @@ fn every_method_declares_authority_and_admin_is_rare() {
             "agent.install",
             "agent.install_output",
             "usage.lookup",
-            "node.set_settings"
+            "node.set_settings",
+            "skills.status",
+            "skills.reconcile",
+            "skills.uninstall",
+            "skills.save_selection",
+            "skills.import_selection",
         ]
     );
     assert_eq!(
@@ -634,6 +639,10 @@ const FORWARDABLE: &[&str] = &[
     "session.fork",
     "session.rewind",
     "agent.history",
+    "session.check_prompt_tracking",
+    "session.prompt_tracked",
+    "session.prompt_receipt",
+    "session.close_prompt_receipt",
 ];
 
 #[test]
@@ -684,11 +693,13 @@ fn a_forwarded_call_nests_its_inner_call() {
 fn a_settings_change_naming_drivers_needs_protocol_eighteen() {
     use crate::settings::{AgentDriver, SetAgentDrivers, SetNodeSettings};
     let parking = SetNodeSettings {
+        mcp: None,
         park_after: Some(crate::parking::ParkAfter::Never),
         drivers: None,
     };
     assert_eq!(parking.into_call().since(), Some(ProtocolVersion::new(12)));
     let drivers = SetNodeSettings {
+        mcp: None,
         park_after: None,
         drivers: Some(SetAgentDrivers {
             codex: Some(AgentDriver::Acp),
@@ -1184,7 +1195,10 @@ fn typed_envelopes_require_the_inner_methods_and_fields() {
         notify: true,
     }
     .into_call();
-    let expected = prompt.since();
+    // Local notifications remain protocol 11. Forwarded notification setup
+    // additionally needs the exact-turn receipt feature at the origin.
+    assert_eq!(prompt.since(), Some(ProtocolVersion::new(11)));
+    let expected = crate::mcp::MCP_PARITY;
     assert_eq!(
         Forward {
             node: crate::NodeId::random(),

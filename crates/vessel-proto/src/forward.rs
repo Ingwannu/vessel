@@ -426,6 +426,10 @@ impl Method {
             | Self::RewindSession
             // An agent's history there, to import from it there (ADR
             // 0053): it needs `operate`, as the import does.
+            | Self::CheckPromptTracking
+            | Self::TrackPrompt
+            | Self::ReadPromptReceipt
+            | Self::ClosePromptReceipt
             | Self::GetAgentHistory => true,
             // Protocol 11: adding and removing an agent is the node's own
             // administration, by its owner or its own devices (ADR 0032).
@@ -441,6 +445,11 @@ impl Method {
             | Self::StopNode
             // The node's settings (protocol 12): its own administration,
             // read and changed by its owner and its own devices.
+            | Self::GetSkillsStatus
+            | Self::ReconcileSkills
+            | Self::UninstallSkills
+            | Self::SaveSkillsSelection
+            | Self::ImportSkillsSelection
             | Self::GetNodeSettings
             | Self::SetNodeSettings
             | Self::InviteDevice

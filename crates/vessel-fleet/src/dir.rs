@@ -96,6 +96,44 @@ impl Dir {
     pub(crate) fn path(&self) -> &Path {
         &self.path
     }
+
+    /// Iterate names from the held directory; callers enforce their domain budget.
+    #[cfg(unix)]
+    pub(crate) fn each_name(
+        &self,
+        mut visit: impl FnMut(&str) -> io::Result<()>,
+    ) -> io::Result<()> {
+        for entry in rustix::fs::Dir::read_from(&self.fd)? {
+            let entry = entry?;
+            let name = entry.file_name().to_str().map_err(io::Error::other)?;
+            if name != "." && name != ".." {
+                visit(name)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Windows follows the existing directory API's checked-path limitation.
+    #[cfg(not(unix))]
+    pub(crate) fn each_name(
+        &self,
+        mut visit: impl FnMut(&str) -> io::Result<()>,
+    ) -> io::Result<()> {
+        for entry in std::fs::read_dir(&self.path)? {
+            let entry = entry?;
+            let name = entry.file_name();
+            let name = name
+                .to_str()
+                .ok_or_else(|| io::Error::other("directory name is not UTF-8"))?;
+            visit(name)?;
+        }
+        Ok(())
+    }
+
+    /// Staging a directory beside its live name retains the same filesystem.
+    pub(crate) fn move_entry(&self, from: &str, to: &str) -> io::Result<()> {
+        self.rename(from, to)
+    }
 }
 
 #[cfg(unix)]

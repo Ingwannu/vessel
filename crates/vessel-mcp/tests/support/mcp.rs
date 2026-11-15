@@ -58,6 +58,15 @@ impl Fixture {
         config.harness_lookup = Lookup::new([bin.path().to_path_buf()]);
         config.vessel_mcp = Some(VesselMcp::vessel(data.path().join("vessel")));
         adjust(&mut config, data.path());
+        // Agent fixtures opt in explicitly; this does not change behavior assertions.
+        if config.vessel_mcp.is_some() {
+            let mut saved = config.data_dir.read_settings().unwrap().unwrap_or_default();
+            saved.mcp = Some(vessel_proto::mcp::McpSettingsPatch {
+                inject: Some(vessel_proto::mcp::Injection::On),
+                policy: saved.mcp.and_then(|patch| patch.policy),
+            });
+            config.data_dir.write_settings(&saved).unwrap();
+        }
         let node = Node::start(config).await.unwrap();
         Self {
             data,
@@ -163,7 +172,13 @@ impl McpClient {
         let value = if failed {
             Value::String(text.to_owned())
         } else {
-            serde_json::from_str(text).unwrap()
+            let value: Value = serde_json::from_str(text).unwrap();
+            assert_eq!(
+                result.get("structuredContent"),
+                Some(&value),
+                "structured result must equal its model-visible text"
+            );
+            value
         };
         (failed, value)
     }

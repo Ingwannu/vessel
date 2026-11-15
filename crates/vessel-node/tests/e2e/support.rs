@@ -230,6 +230,15 @@ impl Fixture {
         config.bind = Some(SocketAddr::from((Ipv4Addr::LOCALHOST, 0)));
         config.harness_lookup = Lookup::new([self.bin.path().to_path_buf()]);
         adjust(&mut config);
+        // Agent fixtures opt in explicitly; this does not change behavior assertions.
+        if config.vessel_mcp.is_some() {
+            let mut saved = config.data_dir.read_settings().unwrap().unwrap_or_default();
+            saved.mcp = Some(vessel_proto::mcp::McpSettingsPatch {
+                inject: Some(vessel_proto::mcp::Injection::On),
+                policy: saved.mcp.and_then(|patch| patch.policy),
+            });
+            config.data_dir.write_settings(&saved).unwrap();
+        }
         Node::start(config).await.unwrap()
     }
 

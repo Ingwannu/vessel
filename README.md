@@ -872,12 +872,15 @@ reaches its home by.
 
 ### Agent tools
 
-Every session's agent gets the `vessel` MCP server (`vessel mcp`, started
-by the node) with a credential of its own, ending with the session. Its
+When host injection and its exact-provider policy are enabled, a session's
+agent gets the `vessel` MCP server (`vessel mcp`, started by the node), with
+a credential of its own ending with the session. Fresh nodes default to
+injection off; existing identities upgrade with injection on. Settings apply
+at the next launch/reload. Its
 tools: `list_nodes`, `list_sessions`, `create_session` (with a first
 prompt, and a `project` or `worktree` to run in), `send_input` (with a
 `delivery`: `start`, `queue`, `steer` or `interrupt`),
-`answer_permission`, `read_events`, `wait_turn`, `kill_session`,
+`answer_permission`, `read_events`, `kill_session`,
 `read_conversation` (the queue, the agent's commands and context, what
 waits on an answer), `change_queue`, `answer_question`,
 `resume_session` and `archive_session`, and for projects
@@ -897,11 +900,15 @@ session, gone when it ends, never run now.
   operates only on sessions it started (and theirs).
 - At most 8 live sessions of its own per node, and agents start agents at
   most 3 levels deep.
-- `send_input` and `create_session`'s first prompt take `notify` (this
-  node only): the agent's own session is told, as a message queued into
-  it, never typed into a running turn, when that prompt's turn waits for
-  an answer and when it finishes, or the session ends; once per event, at
-  most 32 turns followed per session and 60 notices an hour into it.
+- `send_input` and a structured `create_session` first prompt default
+  `notify` on for a session agent. Finish the calling turn to receive the
+  queued completion/permission notice; set `notify: false` for explicit
+  reporting. Cross-node notification uses an exact-turn receipt and checks
+  every route hop before a notifying create starts anything. These new
+  route/skills calls remain unavailable while `MCP_PARITY` is pending.
+  `wait_turn` is no longer advertised to session agents; its direct legacy
+  adapter remains compatible. Notifications retain the existing bounds:
+  at most 32 turns followed per parent and 60 notices an hour into it.
 - Sessions record who started them. This is attribution under one OS
   user, not a sandbox (ADR 0013).
 - Terminals only where a person allowed them (`agent_terminals = true` in

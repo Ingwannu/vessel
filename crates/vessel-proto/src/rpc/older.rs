@@ -280,6 +280,15 @@ impl Reply {
             | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)
             | Self::ListRuns(_)
+            | Self::CheckPromptTracking(_)
+            | Self::TrackPrompt(_)
+            | Self::ReadPromptReceipt(_)
+            | Self::ClosePromptReceipt(_)
+            | Self::GetSkillsStatus(_)
+            | Self::ReconcileSkills(_)
+            | Self::UninstallSkills(_)
+            | Self::SaveSkillsSelection(_)
+            | Self::ImportSkillsSelection(_)
             | Self::GetUsageLimits(_)
             | Self::SetUsageLookup(_)
             | Self::QueryUsage(_)
@@ -496,3 +505,6 @@ mod origins;
 
 #[cfg(test)]
 mod restart_tests;
+
+#[cfg(test)]
+mod mcp_tests;

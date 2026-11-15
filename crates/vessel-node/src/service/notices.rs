@@ -2,6 +2,8 @@
 //! who may ask, and the turn followed until its starter has been told.
 //! The bounds and the words are `automation::notices`'.
 
+mod remote;
+
 use std::sync::Arc;
 use std::time::Duration;
 

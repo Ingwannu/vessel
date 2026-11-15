@@ -8,6 +8,7 @@ use std::ffi::OsString;
 use std::path::PathBuf;
 
 use vessel_proto::AgentAuth;
+use vessel_proto::mcp::ToolPolicy;
 
 /// The node's local socket path, or its pipe name on Windows.
 pub const SOCKET_VARIABLE: &str = "VESSEL_NODE_SOCKET";
@@ -17,6 +18,11 @@ pub const SESSION_VARIABLE: &str = "VESSEL_AGENT_SESSION";
 /// passing it to the commands its agent runs).
 pub const SECRET_VARIABLE: &str = "VESSEL_AGENT_SECRET";
 
+/// Nonsecret launch-time visibility snapshot, absent on older nodes.
+pub const POLICY_VARIABLE: &str = vessel_proto::mcp::TOOL_POLICY_VARIABLE;
+/// A complete serialized launch policy fits below this allocation bound.
+const MAX_POLICY_BYTES: usize = 64 * 1024;
+
 /// Where the node is and who this is.
 #[derive(Debug, Clone)]
 pub struct AgentEnv {
@@ -24,6 +30,8 @@ pub struct AgentEnv {
     pub socket: PathBuf,
     /// The session and its credential.
     pub auth: AgentAuth,
+    /// Exact-provider visibility chosen at launch, never live mutable settings.
+    pub policy: ToolPolicy,
 }
 
 /// Why the environment cannot be used. Never quotes a value.
@@ -66,9 +74,22 @@ impl AgentEnv {
         let secret = text(SECRET_VARIABLE)?
             .parse()
             .map_err(|_invalid| EnvError::Invalid(SECRET_VARIABLE))?;
+        let policy = match get(POLICY_VARIABLE) {
+            None => ToolPolicy::default(),
+            Some(raw) => {
+                if raw.len() > MAX_POLICY_BYTES {
+                    return Err(EnvError::Invalid(POLICY_VARIABLE));
+                }
+                let raw = raw
+                    .into_string()
+                    .map_err(|_invalid| EnvError::Invalid(POLICY_VARIABLE))?;
+                serde_json::from_str(&raw).map_err(|_invalid| EnvError::Invalid(POLICY_VARIABLE))?
+            }
+        };
         Ok(Self {
             socket,
             auth: AgentAuth { session, secret },
+            policy,
         })
     }
 }
@@ -103,5 +124,29 @@ mod tests {
             AgentEnv::read(|name| vars.get(name).cloned()),
             Err(EnvError::Missing(SOCKET_VARIABLE))
         ));
+    }
+    #[test]
+    fn policy_is_a_launch_snapshot_and_malformed_values_never_fall_back_to_enabled() {
+        let session = SessionId::random();
+        let secret = AgentSecret::from_bytes([7; 32]);
+        let mut vars = HashMap::from([
+            (SOCKET_VARIABLE, OsString::from("/run/node.sock")),
+            (SESSION_VARIABLE, OsString::from(session.to_string())),
+            (SECRET_VARIABLE, OsString::from(secret.to_string())),
+            (POLICY_VARIABLE, OsString::from(r#"{"enabled":false}"#)),
+        ]);
+        let env = AgentEnv::read(|name| vars.get(name).cloned()).unwrap();
+        let _old = vars.insert(POLICY_VARIABLE, OsString::from(r#"{"enabled":true}"#));
+        assert!(!env.policy.permits(vessel_proto::mcp::ToolId::CreateSession));
+        for invalid in [
+            "not-json".to_owned(),
+            "x".repeat(MAX_POLICY_BYTES.saturating_add(1)),
+        ] {
+            let _old = vars.insert(POLICY_VARIABLE, OsString::from(invalid));
+            assert!(matches!(
+                AgentEnv::read(|name| vars.get(name).cloned()),
+                Err(EnvError::Invalid(POLICY_VARIABLE))
+            ));
+        }
     }
 }

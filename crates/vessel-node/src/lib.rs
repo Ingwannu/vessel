@@ -89,6 +89,7 @@ mod persist;
 mod principal;
 mod probes;
 mod profiles;
+mod prompt_receipts;
 mod push;
 mod readiness;
 mod relays;
@@ -100,6 +101,7 @@ mod sessions;
 mod settings;
 mod shutdown;
 mod side_questions;
+mod skills;
 mod subscribe;
 mod terminals;
 mod tidying;
@@ -128,3 +130,11 @@ pub use terminals::{KNOWN_CREDENTIALS, Shell, TerminalsConfig, credentials_in};
 pub use vessel_store::{ByteCount, DataDir, NodeToken, Retention, StoreConfig, StoreError};
 /// Local lifecycle commands share the node's persistent lock rather than a PID file.
 pub use vessel_store::{KernelLock, KernelProbe, NodeLock};
+
+// The first speech consumer removes staging after its product wiring.
+#[cfg(test)]
+mod speech_audio;
+
+// The first connection-owned resource wires this into the real context once.
+#[cfg(test)]
+mod connection_life;

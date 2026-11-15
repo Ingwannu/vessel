@@ -19,23 +19,42 @@ use super::{
 };
 
 impl VesselTools {
+    async fn check_notify_route(&self, node: Target) -> Result<(), ToolError> {
+        if let Some(node) = node {
+            let _ready = self
+                .on(Some(node), vessel_proto::mcp::CheckPromptTracking {})
+                .await?;
+        }
+        Ok(())
+    }
+
     pub(super) async fn create_session(&self, args: &JsonObject) -> Result<Value, ToolError> {
         let node = self.target(args).await?;
         let terminal = flag(args, "terminal")?;
         let spec = Self::spec(args)?;
+        // Decode and validate every option before creation can have a side effect.
+        let prompt = text(args, "prompt")?;
+        let notify = notification(
+            args,
+            self.own_session().is_some() && !terminal && prompt.is_some(),
+        )?;
+        if notify && (terminal || prompt.is_none() || self.own_session().is_none()) {
+            return Err(ToolError::Arguments(
+                "`notify` needs a structured first prompt and an explicit own-session context"
+                    .to_owned(),
+            ));
+        }
+        if notify {
+            self.check_notify_route(node).await?;
+        }
         let info = self.on(node, CreateSession { spec }).await?;
-        let Some(prompt) = text(args, "prompt")? else {
+        let Some(prompt) = prompt else {
             return Ok(json!({ "session": info }));
         };
         if !terminal {
             self.until_running(node, info.id).await?;
         }
-        if flag(args, "notify")? {
-            if terminal {
-                return Err(ToolError::Arguments(
-                    "`notify` is about a structured session's turn".to_owned(),
-                ));
-            }
+        if notify {
             let sent = self
                 .deliver(node, info.id, prompt, Delivery::Queue, true)
                 .await?;
@@ -86,23 +105,43 @@ impl VesselTools {
                 .map_err(|error| ToolError::Arguments(format!("{error}")))?;
             spec = spec.with_profile(profile);
         }
-        Ok(spec)
+        super::launch::configure(spec, args)
     }
 
     pub(super) async fn send_input(&self, args: &JsonObject) -> Result<Value, ToolError> {
         let node = self.target(args).await?;
         let session = session(args)?;
         let text = required(args, "text")?;
-        let notify = flag(args, "notify")?;
-        let delivery = conversation::delivery(args)?;
-        if delivery.is_some() || notify {
-            let delivery = delivery.unwrap_or(Delivery::Queue);
-            return self.deliver(node, session, text, delivery, notify).await;
-        }
         let terminal = matches!(
             self.on(node, GetSession { session }).await?.spec.mode,
             SessionMode::Terminal { .. }
         );
+        let notify = notification(args, self.own_session().is_some() && !terminal)?;
+        let delivery = conversation::delivery(args)?;
+        let delivery = if delivery.is_none() && !terminal && self.own_session().is_some() {
+            let current = self
+                .on(
+                    node,
+                    vessel_proto::conversation::GetConversation { session },
+                )
+                .await?;
+            Some(
+                if current.abilities.is_some_and(|abilities| abilities.steer) {
+                    Delivery::Steer
+                } else {
+                    Delivery::Interrupt
+                },
+            )
+        } else {
+            delivery
+        };
+        if delivery.is_some() || notify {
+            if notify {
+                self.check_notify_route(node).await?;
+            }
+            let delivery = delivery.unwrap_or(Delivery::Queue);
+            return self.deliver(node, session, text, delivery, notify).await;
+        }
         let from = self.send_text(node, session, terminal, text).await?;
         Ok(json!({ "from": from }))
     }
@@ -194,7 +233,8 @@ pub(super) fn session_tools(node: &Value, session: &Value) -> Vec<Tool> {
         tool(
             "send_input",
             "Send a prompt to a structured session, or type a line into a terminal one. \
-             Returns `from`, for `wait_turn`, and with `delivery` what became of the prompt.",
+             Completion notifications default on for a session agent; finish your turn to receive them. \
+             Returns `from` and, with `delivery` or notifications, the prompt receipt.",
             json!({
                 "node": node,
                 "session": session,
@@ -206,8 +246,7 @@ pub(super) fn session_tools(node: &Value, session: &Value) -> Vec<Tool> {
         ),
         tool(
             "answer_permission",
-            "Answer a session's permission request (from `wait_turn`): the chosen option's \
-             id, or none to refuse.",
+            "Answer a session's current permission request: the chosen option's id, or none to refuse.",
             json!({
                 "node": node,
                 "session": session,
@@ -254,10 +293,10 @@ pub(super) fn session_tools(node: &Value, session: &Value) -> Vec<Tool> {
 fn notify_property() -> Value {
     json!({
         "type": "boolean",
-        "description": "This node only: your own session is told, as a message queued into \
-                        it, when the turn this prompt starts waits for an answer and when it \
-                        finishes, or the session ends. Leave it out if you will call \
-                        `wait_turn` anyway."
+        "description": "Defaults true for a structured session agent. Your own session receives \
+                        a queued notice when this prompt's exact turn needs an answer, finishes, \
+                        or its session ends, including across supported fleet routes. Finish \
+                        your turn to await that notice. Set false for explicit reporting."
     })
 }
 
@@ -265,8 +304,8 @@ pub(super) fn create_session_tool(node: &Value) -> Tool {
     tool(
         "create_session",
         "Start a session; it is yours to drive and stop. Structured (a conversation) unless \
-         `terminal` is true. With `prompt`, it is sent once the session is ready; then call \
-         `wait_turn` with the returned `from` for the reply.",
+         `terminal` is true. With `prompt`, it is sent once the session is ready. Structured \
+         session agents receive completion notifications by default; finish your turn to await them.",
         json!({
             "node": node,
             "harness": {
@@ -295,6 +334,9 @@ pub(super) fn create_session_tool(node: &Value) -> Tool {
                 "description": "Run in this worktree (from `create_worktree`): one you made, \
                                 or one made for a session of yours."
             },
+            "title": { "type": "string", "description": "Initial session title." },
+            "labels": { "type": "object", "additionalProperties": {"type":"string"}, "description": "Validated session labels; requires lifecycle support on every hop." },
+            "options": super::launch::options_schema(),
             "model": { "type": "string", "description": "A model the agent offers." },
             "prompt": { "type": "string", "description": "The first prompt." },
             "notify": notify_property(),
@@ -305,4 +347,11 @@ pub(super) fn create_session_tool(node: &Value) -> Tool {
         }),
         &["harness"],
     )
+}
+
+fn notification(args: &JsonObject, default: bool) -> Result<bool, ToolError> {
+    match args.get("notify") {
+        None | Some(Value::Null) => Ok(default),
+        Some(_) => flag(args, "notify"),
+    }
 }

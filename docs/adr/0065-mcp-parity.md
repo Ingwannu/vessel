@@ -1,18 +1,19 @@
 # ADR 0065: MCP parity — the tool catalogue, per-kind policy, and HTTP
 
-Status: proposed, 2026-11-14. Not accepted. This records the
-contract. No code in this commit. The plan is
-`docs/plans/mcp-parity.md`. It extends ADR 0013 (an agent principal,
-a credential per session, grants that only shrink) and does not widen
-what that principal may call. The protocol number for the new
-settings fields, and for a read of pending permissions if one is
-added, is given at merge. This document does not choose it.
-`PROTOCOL_VERSION` stays 20, the base of this branch. Those additions
-are gated on one constant, `MCP_PARITY`, in `vessel-proto`: the
-integrator sets that constant and no other line. The constant is not
-in the code of this commit. `docs/PROTOCOL.md` is updated in the
-slice that adds the fields, not here. `docs/ARCHITECTURE.md` does not
-change: no new crate edge.
+Status: implementation in progress, 2026-11-15; not accepted or consumer-ready.
+The original 2026-11-14 proposal below is retained as historical design context.
+Its HTTP and permit CLI proposals are not retained implementations. The
+"Package implementation amendment" and "Implementation of host skill
+administration" sections describe the current source; `docs/plans/wp-mcp.md`
+is the current correspondence, decisions, verification ledger and gap list.
+
+This extends ADR 0013 without widening agent grants. The Quality B method
+table is present and MCP_PARITY exists as None. PROTOCOL_VERSION remains
+protocol 23; the integrator assigns the feature number at the wiring merge.
+Skills selection uses settings-style JSON persistence, with no SQLite schema
+number. No passing whole gate, accepted ADR or callable handover is implied.
+
+## Original proposal context (2026-11-14)
 
 ## Purpose and intent
 
@@ -565,3 +566,63 @@ bound. `reloadPersisted`'s diff loop was not re-read. This commit
 changes documents only, so its check is `cargo fmt --all --check`,
 the size script and the boundary script. Clippy and the tests are
 not part of that check.
+
+
+## Package implementation amendment
+
+The tool identifier table lives in `vessel-proto::mcp`, shared by the node
+and MCP adapter. This avoids a second denylist vocabulary. Moving the
+existing parser is behavior-preserving; the MCP adapter retains its unknown
+LSP-prefix refusal. No protocol method or settings field is registered by
+this move. There is no new dependency. The original proposed HTTP listener
+is deferred: no consumer requires it, so no transport or port is added.
+
+Skills management uses the same typed node boundary as other host settings;
+its explicit homes and filesystem transaction rules are recorded in the
+package plan before implementation. The skill service is Admin-only and
+never an MCP tool: agents cannot install or remove their own instructions.
+
+
+The shared skill name is the existing fleet bundle-path invariant moved to
+`vessel-proto::skills`. Fleet keeps its YAML-frontmatter reader and error
+mapping; only the directory value moves down. Selection is all/custom and
+normalizes names before use. Malformed selections are typed refusals instead
+of Paseo's fallback to all, to avoid accidentally broadening installation.
+Skill names and operation lists are bounded by `MAX_SKILLS`; this is a stated
+resource limit beyond Paseo's unbounded arrays. No new dependency is added.
+
+
+Skill selection is stored in `skills.json`, separate from synchronized fleet
+content. Its optional selection distinguishes no choice from an explicit all
+choice for legacy import. The file uses store's existing atomic private write
+and set-aside machinery: malformed input is preserved as unreadable; future
+fields are copied aside before replacement. Whole-file reads are bounded.
+Links and special files are refused, including on write, so preserving a
+malformed file cannot change the permissions of a linked outside target.
+
+
+The implemented settings field is `mcp`, with partial `inject`/`policy` edits.
+It has no HTTP sub-field in this package: the unused listener remains deferred.
+Both direct settings replies and nested fleet replies hide the field while
+`MCP_PARITY` is None and from older peers after assignment; edits require that
+feature at every hop. Fresh and upgrade decisions are persisted before
+identity creation under the data lock. Agent fixtures opt in explicitly, with
+behavior assertions unchanged, while independent tests pin both defaults.
+
+A bounded tracked task owns each admitted settings write through apply, even
+after request cancellation. Shutdown prevents new jobs and drains admitted
+ones. Each new process takes one policy snapshot before credential creation;
+profile-move failure restores the previous credential, including absence.
+
+
+## Implementation of host skill administration
+
+The node owns both the typed pending calls and their single writer. This
+extends the contract above without adding an HTTP listener or changing agent
+grants. Five Admin-only unary `skills.*` calls are non-forwardable and refused
+to agents. Fleet supplies safe filesystem/transaction mechanisms; store owns
+`skills.json`; node captures explicit homes, serializes blocking operations,
+tracks admitted work through cancellation/shutdown, and persists the selection
+last. `MCP_PARITY` now exists as `None`; the integrator assigns its version.
+The earlier "no code in this commit" describes the original ADR proposal;
+current implementation details and remaining gaps are in `plans/wp-mcp.md`.

@@ -30,6 +30,10 @@ const TOOLS: &[&str] = &[
     "read_events",
     "wait_turn",
     "kill_session",
+    "get_session",
+    "cancel_turn",
+    "rename_session",
+    "set_session_option",
     "read_conversation",
     "change_queue",
     "answer_question",
@@ -57,6 +61,12 @@ const TOOLS: &[&str] = &[
     "resume_schedule",
     "delete_schedule",
     "list_saved_prompts",
+    "get_schedule",
+    "update_schedule",
+    "list_harnesses",
+    "list_profiles",
+    "harness_options",
+    "list_pending_permissions",
 ];
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -73,12 +83,14 @@ async fn an_agent_starts_a_session_reads_its_reply_and_stops_it() {
         let server = tokio::spawn(vessel_mcp::serve(tools, read, write));
         let mut mcp = McpClient::new(client_end);
 
-        // The session tools (protocol 4, 10), the search (protocol 12), the
-        // project and worktree tools (protocol 10), the pull request,
-        // terminal and schedule tools (protocol 11), then LSP's.
+        // The session tools (protocol 4, 10), then a session's record, cancel,
+        // title and option; the search (protocol 12); the project and worktree
+        // tools (protocol 10); the pull request; terminal and schedule tools
+        // (protocol 11), including one schedule's record and its replacement;
+        // harnesses, profiles and a harness's options; then LSP's.
         let names = mcp.initialize().await;
         assert_eq!(&names[..TOOLS.len()], TOOLS);
-        assert_eq!(names.len(), 45);
+        assert_eq!(names.len(), 55);
         assert!(names.iter().any(|name| name == "vessel_lsp_diagnostics"));
 
         // Not in a fleet: a fleet of one, this node.
@@ -115,6 +127,9 @@ async fn an_agent_starts_a_session_reads_its_reply_and_stops_it() {
         let (failed, sessions) = mcp.call("list_sessions", json!({})).await;
         assert!(!failed);
         assert!(sessions.as_array().unwrap().len() >= 2);
+
+        drive_session_and_check_ownership(&mut mcp, &session, own_session).await;
+        provider_discovery(&mut mcp).await;
 
         // Not its own session, nor the user's: the node says why.
         let (failed, refusal) = mcp
@@ -267,4 +282,73 @@ async fn real_rust_analyzer_context_through_agent_mcp() {
         drop(owner);
         fixture.node.stop().await.unwrap();
     }).await;
+}
+
+async fn provider_discovery(mcp: &mut McpClient) {
+    let (failed, harnesses) = mcp.call("list_harnesses", json!({})).await;
+    assert!(!failed, "{harnesses}");
+    let harnesses = harnesses.as_array().expect("harnesses");
+    assert!(!harnesses.is_empty(), "{harnesses:?}");
+    for one in harnesses {
+        assert!(
+            one.get("kind").is_some() && one.get("path").is_some(),
+            "{one}"
+        );
+    }
+    let (failed, profiles) = mcp.call("list_profiles", json!({})).await;
+    assert!(!failed, "{profiles}");
+    for profile in profiles.as_array().expect("profiles") {
+        for key in profile.as_object().expect("profile").keys() {
+            assert!(
+                matches!(
+                    key.as_str(),
+                    "name" | "label" | "harness" | "sets" | "model"
+                ),
+                "{key} in {profile}"
+            );
+        }
+    }
+    let (failed, options) = mcp
+        .call("harness_options", json!({ "harness": "claude" }))
+        .await;
+    assert!(!failed, "{options}");
+    assert!(options["options"].is_array(), "{options}");
+    assert!(options.get("probed_at").is_some(), "{options}");
+}
+
+async fn drive_session_and_check_ownership(
+    mcp: &mut McpClient,
+    session: &serde_json::Value,
+    own_session: vessel_proto::SessionId,
+) {
+    let (failed, got) = mcp.call("get_session", json!({ "session": session })).await;
+    assert!(!failed, "{got}");
+    assert_eq!(&got["id"], session);
+    assert!(got["permissions"].is_array(), "{got}");
+    let (failed, renamed) = mcp
+        .call(
+            "rename_session",
+            json!({ "session": session, "title": "from the agent" }),
+        )
+        .await;
+    assert!(!failed, "{renamed}");
+    assert_eq!(renamed["title"], "from the agent");
+    for (tool, arguments) in [
+        (
+            "rename_session",
+            json!({ "session": own_session, "title": "no" }),
+        ),
+        ("cancel_turn", json!({ "session": own_session })),
+        (
+            "set_session_option",
+            json!({ "session": own_session, "option": "mode", "value": "plan" }),
+        ),
+    ] {
+        let (failed, refusal) = mcp.call(tool, arguments).await;
+        assert!(failed, "{tool}");
+        assert!(
+            refusal.as_str().unwrap().starts_with("\"forbidden\""),
+            "{tool}: {refusal}"
+        );
+    }
 }

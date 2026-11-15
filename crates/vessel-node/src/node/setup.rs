@@ -79,6 +79,41 @@ impl SessionSetup {
     }
 }
 
+/// Configuration reads and downgrade backups stay off async runtime workers.
+pub(super) async fn settings(
+    config: &Config,
+    runtime: &Arc<vessel_session::SessionRuntime>,
+    tasks: &tokio_util::task::TaskTracker,
+    stop: &tokio_util::sync::CancellationToken,
+) -> Result<Arc<crate::settings::Settings>, NodeError> {
+    let data = config.data_dir.clone();
+    let runtime = Arc::clone(runtime);
+    let flag = vessel_proto::parking::ParkAfter::from_duration(config.park_after);
+    let flag_given = config.park_after_given;
+    let tasks = tasks.clone();
+    let stop = stop.clone();
+    tokio::task::spawn_blocking(move || {
+        Arc::new(crate::settings::Settings::open(
+            data, runtime, flag, flag_given, tasks, stop,
+        ))
+    })
+    .await
+    .map_err(NodeError::Task)
+}
+
+/// The LSP manager's configuration with the operator's roots filled in:
+/// executables and toolchains inside any configured root are not trusted
+/// for conservative analysis, so the registry needs the full list.
+pub(super) fn lsp_config(config: &Config) -> vessel_lsp::Config {
+    let mut lsp = config.lsp.clone();
+    lsp.registry.configured_roots = config
+        .lsp_roots
+        .iter()
+        .map(|root| root.path.clone())
+        .collect();
+    lsp
+}
+
 /// The model proxy's listener, on a port of loopback's the system picks
 /// (harnesses learn it from their environment). It is served from `core`'s
 /// stop: model calls end with the node, a harness still calling gets its

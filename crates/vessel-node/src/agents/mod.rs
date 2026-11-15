@@ -75,6 +75,7 @@ pub(crate) struct Agents {
 struct Entry {
     /// Accepted credentials: one, or two while a profile move runs.
     credentials: Vec<CredentialHash>,
+    moving: Option<MovingCredential>,
     /// What the session's agent may do.
     scopes: Vec<Scope>,
     /// 0 for a session a user created.
@@ -87,6 +88,21 @@ struct Entry {
     /// The session, once it exists: an ended one frees its creator's place
     /// at once, before `retire` (which waits for the actor to finish) runs.
     session: Option<SessionHandle>,
+}
+
+/// Credential creation is separate from an old grant's existence.
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum CredentialUse {
+    /// The new process receives the internal MCP server.
+    Mint,
+    /// The new process receives no internal MCP credential.
+    Omit,
+}
+
+#[derive(Debug)]
+struct MovingCredential {
+    previous: Option<CredentialHash>,
+    next: Option<CredentialHash>,
 }
 
 impl Entry {
@@ -173,6 +189,7 @@ impl Agents {
             id,
             Entry {
                 credentials,
+                moving: None,
                 scopes,
                 depth,
                 parent,
@@ -279,42 +296,53 @@ impl Agents {
         ))
     }
 
-    /// A profile move of `id` begins: a second credential, for the agent
-    /// it starts. `None` when the session has no credential.
-    ///
-    /// # Errors
-    /// Another move of the session is running, or no random bytes.
-    pub(crate) fn begin_move(&self, id: SessionId) -> Result<Option<AgentSecret>, ServiceError> {
+    /// Begin a launch with the existing grant, even when injection was previously
+    /// off. A failed profile move must restore precisely its previous credentials.
+    pub(crate) fn begin_move(
+        &self,
+        id: SessionId,
+        use_credential: CredentialUse,
+    ) -> Result<Option<AgentSecret>, ServiceError> {
         let mut sessions = self.lock();
         let Some(entry) = sessions.get_mut(&id) else {
             return Ok(None);
         };
-        match entry.credentials.len() {
-            0 => Ok(None),
-            1 => {
-                let secret = mint()?;
-                entry.credentials.push(CredentialHash::of_agent(&secret));
-                Ok(Some(secret))
-            }
-            _ => Err(ServiceError::MoveRunning(id)),
+        if entry.moving.is_some() {
+            return Err(ServiceError::MoveRunning(id));
         }
+        let previous = match entry.credentials.as_slice() {
+            [] => None,
+            [only] => Some(only.clone()),
+            [_, _, ..] => return Err(ServiceError::MoveRunning(id)),
+        };
+        let secret = match use_credential {
+            CredentialUse::Mint => Some(mint()?),
+            CredentialUse::Omit => None,
+        };
+        let next = secret.as_ref().map(CredentialHash::of_agent);
+        entry.moving = Some(MovingCredential {
+            previous,
+            next: next.clone(),
+        });
+        entry.credentials.extend(next);
+        Ok(secret)
     }
 
-    /// The move begun with [`begin_move`](Self::begin_move) ended: keep
-    /// the new credential if the session moved, the old one if not. A
-    /// no-op when no move began.
+    /// Commit the new launch credential, or restore the old one after failure.
     pub(crate) fn end_move(&self, id: SessionId, moved: bool) {
         let mut sessions = self.lock();
         let Some(entry) = sessions.get_mut(&id) else {
             return;
         };
-        if entry.credentials.len() == 2 {
-            let _retired = if moved {
-                entry.credentials.remove(0)
-            } else {
-                entry.credentials.swap_remove(1)
-            };
-        }
+        let Some(changing) = entry.moving.take() else {
+            return;
+        };
+        entry.credentials.clear();
+        entry.credentials.extend(if moved {
+            changing.next
+        } else {
+            changing.previous
+        });
     }
 
     fn unregister(&self, session: SessionId, key: u64) {

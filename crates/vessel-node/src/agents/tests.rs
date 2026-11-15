@@ -134,9 +134,9 @@ fn a_move_keeps_the_credential_of_the_agent_that_runs() {
         .unwrap()
         .unwrap();
 
-    let new = agents.begin_move(id).unwrap().unwrap();
+    let new = agents.begin_move(id, CredentialUse::Mint).unwrap().unwrap();
     assert!(matches!(
-        agents.begin_move(id),
+        agents.begin_move(id, CredentialUse::Mint),
         Err(ServiceError::MoveRunning(_))
     ));
     assert!(agents.admit(&auth(id, &old), &closing).is_some());
@@ -145,11 +145,46 @@ fn a_move_keeps_the_credential_of_the_agent_that_runs() {
     assert!(agents.admit(&auth(id, &old), &closing).is_none());
     assert!(agents.admit(&auth(id, &new), &closing).is_some());
 
-    let failed = agents.begin_move(id).unwrap().unwrap();
+    let failed = agents.begin_move(id, CredentialUse::Mint).unwrap().unwrap();
     agents.end_move(id, false);
     assert!(agents.admit(&auth(id, &failed), &closing).is_none());
     assert!(agents.admit(&auth(id, &new), &closing).is_some());
     // No move began: nothing changes.
     agents.end_move(id, true);
     assert!(agents.admit(&auth(id, &new), &closing).is_some());
+}
+
+#[test]
+fn a_move_can_enable_tools_without_changing_an_existing_grant() {
+    let agents = Arc::new(Agents::new(NodeId::random()));
+    let closing = CancellationToken::new();
+    let id = SessionId::random();
+    assert!(
+        agents
+            .reserve(id, &Principal::Owner, false)
+            .unwrap()
+            .is_none()
+    );
+    let failed = agents.begin_move(id, CredentialUse::Mint).unwrap().unwrap();
+    agents.end_move(id, false);
+    assert!(agents.admit(&auth(id, &failed), &closing).is_none());
+    let active = agents.begin_move(id, CredentialUse::Mint).unwrap().unwrap();
+    agents.end_move(id, true);
+    assert!(agents.admit(&auth(id, &active), &closing).is_some());
+    assert!(
+        agents
+            .begin_move(id, CredentialUse::Omit)
+            .unwrap()
+            .is_none()
+    );
+    agents.end_move(id, false);
+    assert!(agents.admit(&auth(id, &active), &closing).is_some());
+    assert!(
+        agents
+            .begin_move(id, CredentialUse::Omit)
+            .unwrap()
+            .is_none()
+    );
+    agents.end_move(id, true);
+    assert!(agents.admit(&auth(id, &active), &closing).is_none());
 }

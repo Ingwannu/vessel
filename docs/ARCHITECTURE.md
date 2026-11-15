@@ -53,7 +53,7 @@ and 0013).
 | `vessel-remote` | Remote nodes over SSH (milestone 2): the `ssh` runner, platform detection, installing `vesseld` by upload, `cleanup`; the SSH connector. | proto, rpc, client |
 | `vessel-secure` | End-to-end secure channel (milestone 3, ADR 0009): Noise NK through `snow`, the node key pair, routing ids and fingerprints, the record layer, `SecureChannel` (a frame transport over any binary-message carrier), the relay's possession proof. | proto |
 | `vessel-relay` | The relay (milestone 3, ADR 0009): `serve` (its own accept loop; registration with token or ticket and possession proof, splicing, limits counted per IPv4 address and per IPv6 `/64`, `/56` and `/48` (`address`, public: the node's direct route counts the same way, and reads a trusted proxy's header with the same `ClientAddress`), a share of sockets kept for those that authenticated, the client-address header believed only from trusted proxies, close codes), registration tickets (`ticket`: HMAC-SHA256 under the token, minted by a fleet's home for a member's key, protocol 6), which addresses a link may dial (`reach`: `Reach::Public` resolves the relay's host at dial time and connects only to public addresses, for relays a member's home named), the node's `NodeLink` (with the token, or tickets it renews), the client's `dial`/`connect`, websocket carriers (`WsCarrier`, `AxumCarrier`) and the node's `respond` (closing with `4401`), TLS for `wss://` (rustls with `ring`). | proto, secure |
-| `vessel-fleet` | Fleet bundles (milestone 4, ADR 0012): the home's sources into a manifest and a content-addressed blob store; plan and apply into harness homes with recorded hashes (`managed.json`), local edits kept with the incoming version beside them, symlinks never followed, targets linked to the sources left alone; skills named by `SKILL.md`; MCP secret references resolved at launch; transfers as file sets (`snapshot` into a staging store within protocol 6's limits, `place` into a home never overwriting: a session whole or not at all, memory beside what differs). | proto, harness |
+| `vessel-fleet` | Fleet bundles (milestone 4, ADR 0012): the home's sources into a manifest and a content-addressed blob store; plan and apply into harness homes with recorded hashes (`managed.json`), local edits kept with the incoming version beside them, symlinks never followed, targets linked to the sources left alone; skills named by `SKILL.md`; `orchestration::bundle` validates and embeds the shipped skill directory catalogue without choosing or writing agent homes (ADR 0065); MCP secret references resolved at launch; transfers as file sets (`snapshot` into a staging store within protocol 6's limits, `place` into a home never overwriting: a session whole or not at all, memory beside what differs). | proto, harness |
 | `vessel-mcp` | `vessel mcp` (milestone 4, ADR 0013): the MCP server (stdio, on `rmcp`) a node attaches to every session as `vessel`; each tool is one call through the session's agent principal; `list_projects`, `list_worktrees`, `create_worktree` (following setup) and `create_session`'s `project`/`worktree` (protocol 10); `get_pull_request` and `open_pull_request` (protocol 11: an agent's open never pushes; merging and feedback are not offered); `create_terminal`, `list_terminals`, `read_terminal`, `write_terminal` (marked destructive and open-world), `close_terminal` and `list_ports` (protocol 11, ADR 0031: only where both profiles set `agent_terminals`, only its own; scripts are not offered); the schedule tools, `list_saved_prompts` and `notify` on a prompt, on the agent's own node (protocol 11, ADR 0033). | proto, client |
 | `vessel-llm` | Model APIs for the node's routing proxy (milestone 5, ADR 0015): Server-Sent Events decoded from any chunking and encoded (`sse`); the Anthropic Messages, `OpenAI` Responses and Chat Completions wire types, open to kinds Vessel does not know yet (`wire`); a neutral request and stream, the translators between them, a same-API passthrough and the upstream client (`client`: rustls with the platform's roots, no redirects or proxies, timeouts to connect, to the first byte and between bytes, bounded bodies, retries only before the first byte, errors classified with the key stripped). Bounded tool-free complete replies retain explicit finality and safe diagnostics. Nothing about sessions, nodes or harnesses. | proto |
 | `vessel-forge` | Pull requests on a forge (milestone 11, track B2, ADR 0029): one object-safe trait (`Forge`), GitHub behind it (REST for conditional reads and writes, one GraphQL read, a merge pinned to its head), a remote's URL read into its repository, signing in with a token the binary found or the machine's `gh` (a token only in a sensitive header, never logged, kept five minutes), one bounded HTTP client (four slots, one kept for a person; same-origin redirects; 4 MiB bodies; per-host token bucket, quota floor and cooldowns), and an in-memory forge for tests (feature `fake`). ADR 0060 adds `fake/seed`: bounded, versioned files seed that same provider, with per-repository failures and refused merges. The separate `vessel-forge-fixture` node executable requires `vessel-node/forge-fixture`, explicit scratch paths and loopback listeners; product `vesseld` has no fake-provider selector. No new crate dependency edge. Nothing about sessions, the store or principals. | proto, proc |
@@ -819,7 +819,7 @@ In the crate table's order.
     memory, scopes, depth, the agent's connections; at most 8 live
     sessions an agent created and depth 3, checked under one lock), the
     agent preamble on the local socket, the ownership rule in the guard,
-    and the `vessel` MCP server in every session from `Config::vessel_mcp`.
+    and the `vessel` MCP server from `Config::vessel_mcp` when the host injection and exact-provider policy allow it.
   - Fleet (F2, F3, ADR 0012): state under `<data_dir>/fleet/`, with
     `<data_dir>/fleet.toml` making a node the home. One loop looks every
     5 s: the home bundles when its sources changed (at least every 10
@@ -998,7 +998,8 @@ In the crate table's order.
   as read) and `place` (never overwriting: a session whole or not at all,
   memory beside what differs).
 - `vessel-mcp`: `vessel mcp`, the MCP server on `rmcp` (stdio) a node
-  attaches to every session as `vessel`. Tools: `list_nodes`,
+  attaches as `vessel` under its persisted injection/provider launch policy.
+  Success returns matching JSON text and structured content. Tools: `list_nodes`,
   `list_sessions`, `create_session`, `send_input`, `answer_permission`,
   `read_events`, `wait_turn` (a long poll of `session.read` with `wait`),
   `kill_session`; milestone 11 (protocol 10, `tools/conversation.rs`):
@@ -1619,3 +1620,53 @@ selected-file kernel query to proc through `lock/query`. Its public
 this dependency inside that lock boundary. Proc still has no internal
 normal dependency; its snapshot alone grants no signal authority. The later
 CLI signal edge remains proposed and is not added by this move.
+
+
+Pending ADR 0065 skill administration uses fleet's `orchestration` mechanisms
+(bundle-derived catalogue, directory-relative safe writes and transaction
+journals), store's private `skills.json`, and node's bounded tracked blocking
+writer. Startup repairs existing installs only. Pending exact-turn receipts
+let the origin node follow a remote prompt without guessing its log turn:
+normal fleet grant/ownership checks plus opener/session binding apply at the
+destination. These mechanisms add no crate dependency edge or SQLite schema;
+all new admission uses the single pending MCP_PARITY constant. Session agents
+receive completion notices by default and do not advertise the legacy wait
+tool. Voice context and browser tools remain their respective producers'
+responsibility, using the shared policy seams.
+
+The staged node `speech_audio` module is shared by dictation and spoken
+conversation (ADR 0067 / ADR 0080). It owns a borrowed aligned PCM16 view,
+fixed-provider-rate conversion and checked in-memory WAV framing. Recording
+budgets, silence, segmentation, prompts and multipart fields stay with callers.
+It adds no crate edge or dependency; consumers remove its test gate when wiring
+real product callers. Payload-bearing Debug is redacted and no audio file is
+created by the codec.
+
+The staged node `connection_life` primitive owns an opaque Arc identity and
+context-lifetime close/drop signal. It contains no quota, presence id, transport
+or worker. The real connection setup will own one instance and acting-as contexts
+will clone it; resources retain only its identity/close observer and observe
+transport closure as well. Dictation, spoken conversation and later resources
+consume that connection accessor rather than creating another ownership key.
+
+### Process observation boundary
+
+ADR 0066 defines a runner-issued `ProcessLifetime`: Proc and PTY own its
+revocation; AgentProcess and session/terminal handles pass read-only
+observations to node consumers. A checked `ProcessId` is only an OS value.
+Neither PID equality nor the observation alone proves socket ownership or
+authorizes Preview. Fresh complete inspection and workspace/session policy
+remain at the node boundary. This carrier introduces no dependency
+edge or wire type.
+
+## Transient system-context launch boundary
+
+`vessel-agent::setup` owns AgentSetup separately from the ACP handshake state
+machine and re-exports preserve the existing public path. Its optional
+SystemPromptOverride is a bounded non-serializable instruction value.
+`vessel-harness::system_prompt` owns the transport capability beside launch
+policy; no transport currently advertises support. AgentProcess refuses an
+unsupported override before process spawn, with a typed Unsupported mapping.
+The field does not enter SessionSpec, user messages, argv or environment.
+Reload orchestration and actual native override/restore transports are separate
+work; see docs/plans/provider-transient-context.md. No dependency edge changes.

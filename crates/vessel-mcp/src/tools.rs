@@ -1,33 +1,33 @@
-//! The tools, each one protocol call (or a call and a wait) through the
-//! agent's own principal. Arguments and results are JSON; sessions, events
-//! and nodes appear as the protocol describes them (PROTOCOL.md).
+//! Agent MCP schemas, argument decoding and typed node-call adapters.
 //!
 //! [Decision Log]
-//! - Other nodes (protocol 6, Track X): every tool but `list_nodes` takes
-//!   `node`, a node's id or its name in `list_nodes` (`fleet.nodes`); a
-//!   call for another node goes in `fleet.forward` (`NodeClient::call_on`),
-//!   and that node applies its own grant, ownership and limits to the
-//!   agent. Left out or naming this node, it is a call here. Names are
-//!   chosen by each node, so a name more than one node has (this one and
-//!   another included) is refused with the ids to choose from, never
-//!   guessed (the review of Track X, item 5; the home also refuses a
-//!   member named like another).
-//! - Waiting is a long poll, here and elsewhere alike: `wait_turn` (and a
-//!   new session's wait to be ready) is a loop of `session.read` with
-//!   `wait`, so one code path serves every node and nothing needs a
-//!   subscription across hops. A wait returns within one round trip of a
-//!   record landing; an empty page means nothing happened in that wait.
-//!   A node answers at once, empty, when too many reads already wait on
-//!   the connection or for this agent (protocol 6); the loop then pauses
-//!   [`EARLY_PAUSE`] before the next, so that is a poll a second, not a
-//!   busy loop.
+//! - The existing authenticated client and destination guard enforce grants
+//!   and session ownership; routing never supplies a second caller identity.
+//! - `machine` and the compatibility spelling `node` choose a fleet ID or
+//!   unique name. Conflicting selectors and selectors on local-only tools
+//!   are refused before mutation. Names that identify several nodes require
+//!   an explicit ID rather than a guessed destination.
+//! - A frozen exact-provider policy controls listing and direct invocation
+//!   through the shared `ToolId`. Browser identities delegate to their owner's
+//!   catalogue; availability still needs the browser producer's admission.
+//! - Session agents receive finish/permission/error notifications and do not
+//!   advertise a wait tool. Direct legacy `wait_turn` and readiness reads
+//!   retain bounded long polls for compatibility. Remote notifications follow
+//!   a principal-bound exact-turn receipt at the origin; they do not infer
+//!   a completed turn from the next event after a prompt was queued.
 
 mod args;
 mod automation;
 mod conversation;
+mod driving;
+mod exposure;
 mod forge;
 mod forking;
+mod id;
+mod launch;
 mod lsp;
+mod offer;
+mod permissions;
 mod search;
 mod sessions;
 mod terminals;
@@ -78,6 +78,8 @@ pub struct VesselTools {
     /// `create_terminal` opens one by default, and a heartbeat's target
     /// (protocol 11).
     own: Option<SessionId>,
+    policy: vessel_proto::mcp::ToolPolicy,
+    voice: vessel_proto::mcp::VoiceTools,
 }
 
 /// Where a tool's calls go: this node (`None`) or another of the fleet.
@@ -90,6 +92,8 @@ impl VesselTools {
         Self {
             client: Arc::new(client),
             own: None,
+            policy: vessel_proto::mcp::ToolPolicy::default(),
+            voice: vessel_proto::mcp::VoiceTools::Disabled,
         }
     }
 
@@ -107,46 +111,107 @@ impl VesselTools {
     }
 
     async fn call(&self, name: &str, args: &JsonObject) -> Result<Value, ToolError> {
-        match name {
-            name if name.starts_with("vessel_lsp_") => self.lsp(name, args).await,
-            "list_nodes" => Ok(json!(self.client.call(ListNodes).await?)),
-            "list_sessions" => {
+        match id::decode(name) {
+            id::Decoded::Tool(tool) => {
+                if !self.policy.permits(tool) {
+                    return Err(ToolError::Disabled { tool });
+                }
+                exposure::validate_selector(tool, args)?;
+                self.dispatch(tool, args).await
+            }
+            id::Decoded::LspPrefix => self.lsp(name, args).await,
+            id::Decoded::Unknown => Err(ToolError::Arguments(format!("no tool `{name}`"))),
+        }
+    }
+
+    /// Run a tool whose name was already decoded.
+    async fn dispatch(&self, tool: id::ToolId, args: &JsonObject) -> Result<Value, ToolError> {
+        let name = tool.as_str();
+        match tool {
+            id::ToolId::Browser(_) => Err(ToolError::BrowserUnavailable),
+            id::ToolId::LspWorkspaceSymbols
+            | id::ToolId::LspDocumentSymbols
+            | id::ToolId::LspDefinition
+            | id::ToolId::LspReferences
+            | id::ToolId::LspHover
+            | id::ToolId::LspImplementations
+            | id::ToolId::LspTypeDefinition
+            | id::ToolId::LspIncomingCalls
+            | id::ToolId::LspOutgoingCalls
+            | id::ToolId::LspDiagnostics => self.lsp(name, args).await,
+            id::ToolId::ListNodes => Ok(json!(self.client.call(ListNodes).await?)),
+            id::ToolId::ListSessions => {
                 let node = self.target(args).await?;
                 Ok(json!(self.on(node, ListSessions).await?))
             }
-            "list_projects" | "list_worktrees" | "create_worktree" => {
+            id::ToolId::ListProjects | id::ToolId::ListWorktrees | id::ToolId::CreateWorktree => {
                 self.workspace(name, args).await
             }
-            "get_pull_request" | "open_pull_request" => self.forge(name, args).await,
-            "search_sessions" => self.search(args).await,
-            "fork_session" | "rewind_session" => self.forking(name, args).await,
-            "create_session" => self.create_session(args).await,
-            "send_input" => self.send_input(args).await,
-            "answer_permission" => self.answer_permission(args).await,
-            "read_events" => self.read_events(args).await,
-            "wait_turn" => self.wait_turn(args).await,
-            "read_conversation" | "change_queue" | "answer_question" | "resume_session"
-            | "archive_session" => self.conversation(name, args).await,
-            "create_terminal" | "list_terminals" | "read_terminal" | "write_terminal"
-            | "close_terminal" | "list_ports" => self.terminals(name, args).await,
-            "create_schedule" | "create_heartbeat" | "list_schedules" | "schedule_runs"
-            | "pause_schedule" | "resume_schedule" | "delete_schedule" | "list_saved_prompts" => {
-                self.automation(name, args).await
+            id::ToolId::GetPullRequest | id::ToolId::OpenPullRequest => {
+                self.forge(name, args).await
             }
-            "kill_session" => {
+            id::ToolId::SearchSessions => self.search(args).await,
+            id::ToolId::ForkSession | id::ToolId::RewindSession => self.forking(name, args).await,
+            id::ToolId::CreateSession => self.create_session(args).await,
+            id::ToolId::SendInput => self.send_input(args).await,
+            id::ToolId::AnswerPermission => self.answer_permission(args).await,
+            id::ToolId::ReadEvents => self.read_events(args).await,
+            id::ToolId::WaitTurn => self.wait_turn(args).await,
+            id::ToolId::ReadConversation
+            | id::ToolId::ChangeQueue
+            | id::ToolId::AnswerQuestion
+            | id::ToolId::ResumeSession
+            | id::ToolId::ArchiveSession => self.conversation(name, args).await,
+            id::ToolId::CreateTerminal
+            | id::ToolId::ListTerminals
+            | id::ToolId::ReadTerminal
+            | id::ToolId::WriteTerminal
+            | id::ToolId::CloseTerminal
+            | id::ToolId::ListPorts => self.terminals(name, args).await,
+            id::ToolId::CreateSchedule
+            | id::ToolId::CreateHeartbeat
+            | id::ToolId::ListSchedules
+            | id::ToolId::ScheduleRuns
+            | id::ToolId::PauseSchedule
+            | id::ToolId::ResumeSchedule
+            | id::ToolId::DeleteSchedule
+            | id::ToolId::ListSavedPrompts => self.automation(name, args).await,
+            id::ToolId::KillSession => {
                 let node = self.target(args).await?;
                 let session = session(args)?;
                 let _ack = self.on(node, KillSession { session }).await?;
                 Ok(json!({ "killed": session }))
             }
-            other => Err(ToolError::Arguments(format!("no tool `{other}`"))),
+            id::ToolId::Added(tool) => self.added(tool, args).await,
+        }
+    }
+
+    /// Encode a parity tool's protocol value as the MCP result.
+    async fn added(&self, tool: id::AddedId, args: &JsonObject) -> Result<Value, ToolError> {
+        match tool {
+            id::AddedId::GetSession => Ok(json!(self.get_session(args).await?)),
+            id::AddedId::CancelTurn => {
+                let cancelled = self.cancel_turn(args).await?;
+                Ok(match cancelled.turn {
+                    Some(turn) => json!({ "cancelled": cancelled.cancelled, "turn": turn }),
+                    None => json!({ "cancelled": cancelled.cancelled }),
+                })
+            }
+            id::AddedId::RenameSession => Ok(json!(self.rename_session(args).await?)),
+            id::AddedId::SetSessionOption => Ok(json!(self.set_session_option(args).await?)),
+            id::AddedId::GetSchedule => Ok(json!(self.get_schedule(args).await?)),
+            id::AddedId::UpdateSchedule => Ok(json!(self.update_schedule(args).await?)),
+            id::AddedId::ListHarnesses => Ok(json!(self.list_harnesses(args).await?)),
+            id::AddedId::ListProfiles => Ok(json!(self.list_profiles(args).await?)),
+            id::AddedId::HarnessOptions => Ok(json!(self.harness_options(args).await?)),
+            id::AddedId::ListPendingPermissions => Ok(json!(self.pending_permissions(args).await?)),
         }
     }
 
     /// The node a `node` argument names: this one when it is left out or
     /// names this node; another by its id, or by its name in the fleet.
     async fn target(&self, args: &JsonObject) -> Result<Target, ToolError> {
-        let Some(given) = text(args, "node")? else {
+        let Some(given) = exposure::selector(args)? else {
             return Ok(None);
         };
         let this = self.client.node();
@@ -205,8 +270,9 @@ impl ServerHandler for VesselTools {
             .with_instructions(
                 "Vessel: start and drive other agent sessions, on this machine or another node \
                  of its fleet (`node`, from `list_nodes`). A session you start is yours: you \
-                 may send it input (queued or steered while it works), wait for its turns, \
-                 answer it, stop it, archive it and start it again. To give one a folder and \
+                 may send it input (queued or steered while it works), answer it, stop it, \
+                 archive it and start it again. A structured session agent receives completion \
+                 notifications by default; finish your turn to await the notice. To give one a folder and \
                  branch of its own, `create_worktree` in a project from `list_projects`, then \
                  `create_session` with that `worktree`. Where a person allowed it, open a \
                  terminal beside your session (`create_terminal`) and type into it.",
@@ -218,7 +284,11 @@ impl ServerHandler for VesselTools {
         _request: Option<PaginatedRequestParams>,
         _context: RequestContext<RoleServer>,
     ) -> Result<ListToolsResult, ErrorData> {
-        Ok(ListToolsResult::with_all_items(tools()))
+        let mut tools = exposure::visible(&self.policy);
+        if self.own_session().is_some() {
+            tools.retain(|tool| tool.name != "wait_turn");
+        }
+        Ok(ListToolsResult::with_all_items(tools))
     }
 
     async fn call_tool(
@@ -228,7 +298,7 @@ impl ServerHandler for VesselTools {
     ) -> Result<CallToolResponse, ErrorData> {
         let args = request.arguments.unwrap_or_default();
         match self.call(&request.name, &args).await {
-            Ok(value) => Ok(CallToolResult::success(vec![McpContent::text(pretty(&value))]).into()),
+            Ok(value) => Ok(CallToolResult::structured(value).into()),
             Err(ToolError::Arguments(message)) => Err(ErrorData::invalid_params(message, None)),
             Err(ToolError::LspJson(error)) => {
                 Err(ErrorData::invalid_params(error.to_string(), None))
@@ -243,9 +313,15 @@ impl ServerHandler for VesselTools {
 /// Why a tool call failed.
 #[derive(Debug, thiserror::Error)]
 enum ToolError {
+    /// A shared browser identity is not a qualified engine or session admission.
+    #[error("browser tools require a qualified, enabled browser engine")]
+    BrowserUnavailable,
     /// The call itself is wrong: a JSON-RPC error.
     #[error("{0}")]
     Arguments(String),
+    /// A direct invocation cannot bypass the launch visibility snapshot.
+    #[error("tool `{}` is disabled for this session", tool.as_str())]
+    Disabled { tool: id::ToolId },
     /// Typed LSP arguments or results failed to encode/decode at the SDK edge.
     #[error("invalid LSP tool JSON")]
     LspJson(#[source] serde_json::Error),
@@ -255,6 +331,9 @@ enum ToolError {
     /// The tool could not do what it was asked.
     #[error("{0}")]
     Failed(String),
+    /// A partial permission inventory must not look complete.
+    #[error("permission inventory exceeds its bounded session/request limit")]
+    PermissionInventory,
 }
 
 /// `code: message` for a refusal, the error's text otherwise.
@@ -269,16 +348,13 @@ fn node_error(error: &CallError) -> String {
     }
 }
 
-fn pretty(value: &Value) -> String {
-    serde_json::to_string_pretty(value).unwrap_or_else(|_unprintable| value.to_string())
-}
-
 /// Every tool with its input schema.
 fn tools() -> Vec<Tool> {
     let session = json!({ "type": "string", "description": "A session id." });
     let node = node_schema();
     session_tools(&node, &session)
         .into_iter()
+        .chain(driving::tools(&node, &session))
         .chain(conversation::tools(&node, &session))
         .chain(search::tools(&node, &session))
         .chain(forking::tools(&node, &session))
@@ -286,6 +362,8 @@ fn tools() -> Vec<Tool> {
         .chain(forge::tools(&node, &session))
         .chain(terminals::tools(&node))
         .chain(automation::tools())
+        .chain(offer::tools(&node))
+        .chain(permissions::tools(&node))
         .chain(lsp::tools())
         .collect()
 }
@@ -301,9 +379,14 @@ fn node_schema() -> Value {
 fn tool(
     name: &'static str,
     description: &'static str,
-    properties: Value,
+    mut properties: Value,
     required: &[&str],
 ) -> Tool {
+    if let Some(fields) = properties.as_object_mut()
+        && let Some(node) = fields.get("node").cloned()
+    {
+        let _old = fields.insert("machine".to_owned(), node);
+    }
     let mut schema = JsonObject::new();
     let _none = schema.insert("type".to_owned(), json!("object"));
     let _none = schema.insert("properties".to_owned(), properties);

@@ -107,3 +107,61 @@ fn only_a_watched_session_asks() {
     }));
     assert!(!asks(&delivered(OriginBy::Agent { session, depth: 1 })));
 }
+
+#[test]
+fn launch_policy_is_frozen_and_uses_the_childs_exact_provider() {
+    use vessel_proto::mcp::{
+        Injection, McpSettings, ProviderPolicies, ProviderPolicy, StoredTool, ToolAccess, ToolId,
+        ToolPolicy,
+    };
+    let home = tempfile::tempdir().unwrap();
+    let enabled = McpSettings {
+        inject: Injection::On,
+        policy: ProviderPolicies::new(vec![ProviderPolicy {
+            harness: HarnessKind::Codex.into(),
+            policy: ToolPolicy::new(
+                ToolAccess::Enabled,
+                vec![StoredTool::Known(ToolId::CreateSession)],
+            )
+            .unwrap(),
+        }])
+        .unwrap(),
+    };
+    let (settings, source) = watch::channel(enabled);
+    let launcher = Launcher::new(
+        home.path().join("mcp"),
+        Arc::new(NoMcpServers),
+        Some(AgentTools {
+            program: home.path().join("vessel"),
+            args: vec!["mcp".to_owned()],
+            socket: home.path().join("node.sock"),
+        }),
+    )
+    .with_tool_policy(source);
+    let codex = launcher.tools_for(&HarnessKind::Codex.into()).unwrap();
+    let claude = launcher.tools_for(&HarnessKind::ClaudeCode.into()).unwrap();
+    assert!(!codex.permits(ToolId::CreateSession));
+    assert!(claude.permits(ToolId::CreateSession));
+    let _previous = settings.send_replace(McpSettings::default());
+    assert!(launcher.tools_for(&HarnessKind::Codex.into()).is_none());
+    assert!(
+        !codex.permits(ToolId::CreateSession),
+        "an already prepared launch keeps its snapshot"
+    );
+    let mut servers = ResolvedMcpServers::new();
+    launcher
+        .attach_tools(
+            &mut servers,
+            SessionId::random(),
+            &AgentSecret::from_bytes([5; 32]),
+            &codex,
+        )
+        .unwrap();
+    let server = servers.values().next().unwrap();
+    let McpTransport::Stdio { env, .. } = server else {
+        panic!("expected stdio");
+    };
+    let encoded = env.get(&TOOL_POLICY_VARIABLE.parse().unwrap()).unwrap();
+    let policy: ToolPolicy = serde_json::from_str(encoded.expose()).unwrap();
+    assert!(!policy.permits(ToolId::CreateSession));
+}

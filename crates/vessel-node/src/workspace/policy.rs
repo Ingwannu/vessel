@@ -98,7 +98,12 @@ const fn refused(method: Method) -> bool {
     match method {
         // The workspace but orchestration: an agent uses its own file and
         // git tools in its folder.
-        Method::AddProject
+        Method::GetSkillsStatus
+        | Method::ReconcileSkills
+        | Method::UninstallSkills
+        | Method::SaveSkillsSelection
+        | Method::ImportSkillsSelection
+        | Method::AddProject
         | Method::CloneProject
         | Method::InitProject
         | Method::RemoveProject
@@ -292,6 +297,10 @@ const fn refused(method: Method) -> bool {
         | Method::ListInbox
         | Method::GetInboxEntry
         | Method::MarkInbox
+        | Method::CheckPromptTracking
+        | Method::TrackPrompt
+        | Method::ReadPromptReceipt
+        | Method::ClosePromptReceipt
         | Method::GetPushKey
         | Method::SubscribePush
         | Method::UnsubscribePush
@@ -386,6 +395,11 @@ mod tests {
             assert!(refuse_agents(&agent, allowed).is_ok(), "{allowed:?}");
         }
         for refused in [
+            Method::GetSkillsStatus,
+            Method::ReconcileSkills,
+            Method::UninstallSkills,
+            Method::SaveSkillsSelection,
+            Method::ImportSkillsSelection,
             Method::ApproveCommands,
             Method::RunSetup,
             Method::RemoveWorktree,

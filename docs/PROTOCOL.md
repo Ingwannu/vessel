@@ -1884,3 +1884,41 @@ slots with the canonical range and approved literal program. A current or
 prior block is invalid on every approval reply while unassigned. CLI shows
 both choices; web refuses current, prior and approved-folder blocks until
 it can display them completely. No allocator or process runs in this stage.
+
+
+## Pending MCP/skills parity (ADR 0065)
+
+`settings::NodeSettings.mcp` reports injection and exact-provider tool policy;
+`SetNodeSettings.mcp` is a partial edit. Omission preserves the prior choice.
+While `mcp::MCP_PARITY` is `None`, every connection hides the response field
+and rejects edits, including carried calls in fleet envelopes. Fresh data
+starts with injection off; an existing `node.id` upgrades with injection on.
+The explicit choice is persisted before identity creation under the node lock.
+Launches snapshot the exact provider once; changes apply on the next launch.
+
+The same pending constant gates Admin-only unary `skills.status`,
+`skills.reconcile`, `skills.uninstall`, `skills.save_selection`, and
+`skills.import_selection`. All are local-node administration, not agent tools
+or forwardable methods. `SkillsSnapshot` distinguishes selected, available,
+installed and actual file state. Saving a selection may return the unchanged
+snapshot with `confirmation_required` names; retry confirms deletions from a
+fresh plan, not an earlier UI snapshot. Successful save persists the selection
+last; interrupted transactions recover before later operations. Explicit
+uninstall preserves the saved selection; import only establishes an unset
+selection. Private `skills.json` follows settings-file backup rules and adds
+no SQLite schema. `PROTOCOL_VERSION` is unchanged; integration assigns the
+single pending feature requirement.
+
+
+Pending exact-turn receipt methods (same `MCP_PARITY`) are forwardable unary
+calls. `session.check_prompt_tracking` requires Read and has no side effect;
+`session.prompt_tracked`, `session.prompt_receipt` and
+`session.close_prompt_receipt` require Operate plus ordinary target ownership.
+The receipt binds its exact session and authenticated opener. After ordinary
+scope/target admission, mismatched, closed or expired receipts return not-found. Pending reads wait
+at most 30 seconds. The ordinary local `session.prompt { notify: true }`
+retains protocol 11, while a `fleet.forward` carrying a notifying prompt also
+requires MCP_PARITY. The origin derives the notification parent from a direct
+Agent principal and follows the destination's exact turn-start sequence.
+Receipt storage is finite and ephemeral; no durable delivery guarantee is
+introduced, and no store schema number is needed.
