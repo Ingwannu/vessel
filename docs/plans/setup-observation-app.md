@@ -21,8 +21,8 @@ workspace bootstrap grant or completed setup panel.
   negotiated capability, physical admission, authorization, deadline and decoded
   snapshot limits. These are not supplied by this values-only foundation.
 
-Paseo setup-panel.tsx 104–118 supplies the final-carriage-return-segment display;
-99–103 supplies whole-unit duration formatting, and 164–265 supplies automatic
+Paseo setup-panel.tsx 102–112 supplies the final-carriage-return-segment display;
+89–96 supplies whole-unit duration formatting, and 164–265 supplies automatic
 expansion with manual collapse. The producer here includes planned Waiting rows,
 so automatic expansion chooses the running or last attempted row rather than an
 unattempted trailing command. A new invocation resets manual expansion because
