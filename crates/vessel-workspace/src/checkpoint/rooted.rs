@@ -60,6 +60,9 @@ pub(super) struct Root {
 }
 impl Root {
     pub(super) fn open(path: &Path) -> Result<Self, Error> {
+        if !path.is_absolute() {
+            return Err(CheckpointError::InvalidPath.into());
+        }
         let file = File::from(
             rustix::fs::openat(CWD, path, DIRECTORY, Mode::empty()).map_err(io::Error::from)?,
         );

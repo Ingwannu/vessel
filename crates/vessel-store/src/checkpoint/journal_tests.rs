@@ -255,3 +255,70 @@ fn quota_counts_obsolete_candidates_until_physical_cleanup() {
         Err(Error::Refused(CheckpointError::StorageFull))
     ));
 }
+
+#[test]
+fn restore_admission_reloads_capture_identity_instead_of_trusting_the_caller() {
+    let (connection, key) = fixture();
+    let plan = ready_plan(&connection, key);
+    journal::put_plan(&connection, &plan).unwrap();
+    let mut forged = plan.clone();
+    forged.key.session = SessionId::random();
+    assert!(matches!(
+        journal::admit(
+            &connection,
+            &forged,
+            RestoreId::random(),
+            DateTime::UNIX_EPOCH
+        ),
+        Err(Error::Refused(CheckpointError::Forbidden))
+    ));
+    for forged_key in [
+        CaptureKey {
+            worktree: WorktreeId::random(),
+            ..key
+        },
+        CaptureKey {
+            capture: CaptureId::random(),
+            ..key
+        },
+        CaptureKey {
+            generation: key.generation.next().unwrap(),
+            ..key
+        },
+        CaptureKey {
+            boundary: Boundary::AfterTurn {
+                ended: EventSeq::new(1),
+            },
+            ..key
+        },
+    ] {
+        forged.key = forged_key;
+        assert!(matches!(
+            journal::admit(
+                &connection,
+                &forged,
+                RestoreId::random(),
+                DateTime::UNIX_EPOCH
+            ),
+            Err(Error::Refused(CheckpointError::StalePreview))
+        ));
+    }
+    let count: i64 = connection
+        .query_row("SELECT count(*) FROM checkpoint_restores", [], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    assert_eq!(
+        count, 0,
+        "a forged association cannot consume or begin a restore"
+    );
+    assert!(
+        journal::admit(
+            &connection,
+            &plan,
+            RestoreId::random(),
+            DateTime::UNIX_EPOCH
+        )
+        .is_ok()
+    );
+}

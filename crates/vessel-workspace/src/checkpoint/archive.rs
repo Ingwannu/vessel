@@ -37,6 +37,9 @@ pub(super) struct Archive {
 }
 impl Archive {
     pub(super) fn open(path: PathBuf) -> Result<Self, Error> {
+        if !path.is_absolute() {
+            return Err(CheckpointError::InvalidPath.into());
+        }
         let folder = File::from(
             rustix::fs::openat(CWD, &path, DIRECTORY, Mode::empty())
                 .map_err(std::io::Error::from)?,

@@ -161,20 +161,16 @@ pub(super) fn admit(
         Err(Error::Refused(CheckpointError::NotFound)) => {}
         Err(error) => return Err(error),
     }
-    let plan_data: Option<(String,String,String,i64,Option<String>)> = connection.query_row(
-        "SELECT device,current_image,desired_image,expires_at,consumed_by FROM checkpoint_plans WHERE id=?1",
-        [plan.id.to_string()], |row| Ok((row.get(0)?,row.get(1)?,row.get(2)?,row.get(3)?,row.get(4)?))).optional()?;
-    let (owner, current, desired, expires, consumed) =
-        plan_data.ok_or(CheckpointError::NotFound)?;
-    if owner != plan.device.to_string() {
+    let (stored, consumed) = super::plans::owned(connection, plan.id, plan.device)?;
+    if stored.key.session != plan.key.session {
         return Err(CheckpointError::Forbidden.into());
     }
-    if expires <= at.timestamp_millis() || consumed.is_some() {
-        return Err(CheckpointError::StalePreview.into());
-    }
-    if serde_json::from_str::<FileImage>(&current)? != plan.current
-        || serde_json::from_str::<vessel_proto::checkpoint::EffectiveDesiredImage>(&desired)?
-            != plan.desired
+    if stored.expires <= at
+        || consumed.is_some()
+        || stored.key != plan.key
+        || stored.current != plan.current
+        || stored.desired != plan.desired
+        || stored.expires.timestamp_millis() != plan.expires.timestamp_millis()
     {
         return Err(CheckpointError::StalePreview.into());
     }
@@ -188,7 +184,7 @@ pub(super) fn admit(
             plan.id.to_string(),
             plan.device.to_string(),
             encode(&outcome)?,
-            current,
+            encode(&stored.current)?,
             at.timestamp_millis()
         ],
     )?;

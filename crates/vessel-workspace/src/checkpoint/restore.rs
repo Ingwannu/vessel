@@ -158,6 +158,11 @@ impl Prepared {
                     return Ok(Undo::Conflict);
                 }
                 root.exchange(&step.path, stage, original)?;
+                // A same-user writer can race the precheck. Preserve the displaced
+                // bytes and refuse a truthful rollback result if that happened.
+                if stage.inspect(original, cancellation)? != step.desired {
+                    return Ok(Undo::Conflict);
+                }
             }
             (FileState::Present { .. }, FileState::Absent) => {
                 let original = Slot::new(step.index, SlotKind::Deleted);

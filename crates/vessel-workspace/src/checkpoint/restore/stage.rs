@@ -52,6 +52,9 @@ pub(in crate::checkpoint) struct Stage {
 }
 impl Stage {
     pub(in crate::checkpoint) fn open(path: &Path) -> Result<Self, Error> {
+        if !path.is_absolute() {
+            return Err(CheckpointError::InvalidPath.into());
+        }
         let folder = File::from(
             rustix::fs::openat(CWD, path, DIRECTORY, Mode::empty())
                 .map_err(std::io::Error::from)?,
