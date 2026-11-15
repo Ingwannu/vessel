@@ -401,3 +401,20 @@ Exact3307 strict compiled the combined source and returned one authored test
 let_and_return lint in the real actor fixture's admission helper. The fixture
 now returns the identical awaited result directly; no actor, identity, count,
 listing or registry assertion changes. Current corrected execution remains owed.
+
+### Bound-agent authority matrix and dependency hold
+
+Modify/reuse: ADR0091 now records the coordinator's same-workspace ruling.
+The authenticated local parent's exact Store Session membership must match an
+Active target. Canonical descriptor/root and the registry start lease remain
+mandatory; current Agents grant plus count insertion must compose atomically
+with W23's execution-incarnation owner. Other-workspace new receipt creation
+is refused, delegated-origin creation remains Unavailable, and legacy creation
+is unchanged. Observation retains its separate principal-bound read semantics.
+
+W23 confirms no qualified effect-fence API exists yet. Its invalidation-only
+producer and staged capture/queue contract are not creation admission proofs.
+Keep the real bound controller unavailable and the adapter behind a typed fake;
+never replace the missing seam with a snapshot, stamp, ProcessLifetime or
+is_live. Send the eventual concrete matrix/join to V3 together. The existing
+lower actor registration/count fixture does not establish this new boundary.

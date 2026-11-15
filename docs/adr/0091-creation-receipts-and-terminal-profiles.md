@@ -265,10 +265,52 @@ retry keeps the same reserved child and the canonical message-ledger id; it
 never returns to agent creation. No parallel message-id type is introduced.
 
 Workspace and terminal creation stay person-only, including terminal-mode
-session specifications. Cross-workspace agent placement does not detach or
-change its parent: the admitted origin remains the parent through the existing
-ownership checks. Scheduled/internal callers must carry their validated
+session specifications. Scheduled/internal callers must carry their validated
 creator and cannot construct an owner namespace from request data.
+
+### Bound agent placement and current execution authority
+
+The coordinator's bound-path ruling restricts new receipt creation as follows.
+The matrix grants no authority to a historical receipt or observation.
+
+| Authenticated parent and target | New bound receipt path |
+| --- | --- |
+| Local parent, same Active workspace | Read the parent's exact Session resource membership from Store; require the target's same WorkspaceId and Active descriptor. Validate current grant and insert the count reservation through W23's execution-incarnation fence atomically in the shared Agents owner. Use the canonical descriptor/root and registry start lease. |
+| Local parent, other workspace or absent membership | Refuse the new bound path until a canonical cross-workspace grant exists. Existing legacy placement policy remains unchanged. |
+| Delegated-origin parent | Unavailable for new receipt creation until a canonical delegated grant seam exists. Legacy CreateSession remains unchanged. |
+
+Store membership, canonical descriptor/root and the start lease are necessary
+placement inputs; none alone proves current parent execution authority. A prior
+grant snapshot, serialized incarnation stamp, ProcessLifetime or is_live check
+cannot substitute for the atomic execution fence. The parent tuple comes only
+from the authenticated principal. Neither cwd, SessionInfo nor UUID equality
+establishes membership, ownership or a cross-workspace grant. Start admission
+still uses the canonical registry writer and its Active/revision CAS; this
+matrix does not turn an earlier read into a retained archive fence.
+
+[Decision Log]
+- Purpose: admit a child into its authenticated parent's independent workspace
+  without weakening the existing parent/count owner or managed-backing guard.
+- Existing constraint: legacy worktree placement authorizes creator/created-for
+  relationships; an independently provisioned empty workspace need not carry
+  that legacy association. No qualified cross-workspace or delegated grant
+  currently exists.
+- Alternatives: infer membership from a path or reuse a historical grant;
+  bypass the legacy guard for any matching workspace id; or retain explicit
+  refusal until the shared owners can establish current authority.
+- Choice and reason: require exact same-workspace Store membership plus W23's
+  atomic execution/count admission. Keep the other cases unavailable rather
+  than inventing a second grant mechanism.
+- Impact: same-workspace orchestration can reuse canonical placement, while
+  actual activation waits for the qualified fence. The present lower actor
+  join and typed fakes do not implement or prove this admission matrix.
+
+Required regressions include current same-workspace membership, unrelated and
+missing membership, archived target, local/delegated origins, parent execution
+retirement between capture and admission, grant revocation, duplicate child
+reservation and concurrent last-slot admission. Refusal must cause no launch,
+credential replacement or leaked count/start lease. Review the concrete join
+with V3 before activation; contract text alone is not implementation evidence.
 
 ### Observation and privacy
 
