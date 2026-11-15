@@ -57,6 +57,7 @@ impl Projection {
                 }
                 if let Some(request) = &self.request
                     && request.child == child
+                    && !matches!(request.cursor, Some(ChildCursor::After(from)) if record.seq < from)
                 {
                     let event = SessionEvent::Agent {
                         event: (*activity).into(),

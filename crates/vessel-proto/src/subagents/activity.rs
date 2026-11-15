@@ -26,6 +26,7 @@ impl TryFrom<AgentEvent> for ChildActivity {
             | AgentEvent::PermissionResolved { .. }
             | AgentEvent::QuestionAsked(_)
             | AgentEvent::QuestionResolved { .. }
+            | AgentEvent::TurnEnded { point: Some(_), .. }
             | AgentEvent::ProviderChild(_) => Err(InvalidChildActivity),
             AgentEvent::TurnStarted { .. }
             | AgentEvent::UserMessageChunk { .. }
@@ -34,7 +35,7 @@ impl TryFrom<AgentEvent> for ChildActivity {
             | AgentEvent::ToolCall(_)
             | AgentEvent::ToolCallUpdate(_)
             | AgentEvent::Plan { .. }
-            | AgentEvent::TurnEnded { .. }
+            | AgentEvent::TurnEnded { point: None, .. }
             | AgentEvent::TurnFailed { .. }
             | AgentEvent::HarnessLog { .. }
             | AgentEvent::Steered { .. } => Ok(Self(event)),
