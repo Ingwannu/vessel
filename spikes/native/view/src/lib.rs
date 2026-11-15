@@ -79,3 +79,6 @@ pub use text::{
     OptionsText, OverviewText, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text,
     grouped, meter_tokens, short_tokens,
 };
+
+pub mod layout;
+pub mod residents;

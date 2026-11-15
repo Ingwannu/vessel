@@ -217,3 +217,47 @@ at the top and `Vessel patch` at the change.
   times in 3 s with motion, never with motion held). The CPU measures
   before and after are in `docs/plans/backend-m12-effort-slider.md`,
   "Known costs".
+
+## `gpui-pre` 0.3.10
+
+Upstream: the `gpui-pre` snapshot of Zed's `gpui` (zed@08cbb88),
+Apache-2.0 (`LICENSE-APACHE` beside it). The `.crate` it was taken from
+had SHA-256
+`df4b5f8d0c278308df2f11e0bfe0212dd77d7848ce1bdc4b9d513334414396f6`
+(the checksum `spikes/native/Cargo.lock` held before the patch).
+Removed from the copy: its `Cargo.lock` (unused for a dependency). Only
+the app's workspace (`spikes/native`) uses it; the release workspace's
+small programs keep the published crate.
+
+Changed: `src/elements/div.rs`, marked `MODIFIED by Vessel` at the top
+and `Vessel patch` at each change.
+
+### 5. A drag starts at the distance an element names
+
+- Purpose: a press on a row that can be dragged stays a press until the
+  pointer has clearly moved. Paseo's web draggable list waits 6 points
+  before it picks a row up; GPUI starts every drag after 2, so a
+  slightly shaky click on a sidebar row (S2's reordering) dragged it.
+- Upstream's constraint: the distance is one private constant,
+  `DRAG_THRESHOLD`, read by every element's mouse-move listener in
+  `Interactivity::paint_mouse_listeners`; no element can change it.
+- Alternatives:
+  1. The row tracks its own press and move instead of `on_drag`. A
+     second drag model beside GPUI's, with its own drag view and drop
+     targets, in each list that wants Paseo's distance.
+  2. Changing the constant to 6. Every existing drag (the queue's rows,
+     the components library's) would change at once.
+  3. **This change**: `Interactivity::drag_threshold` and the fluent
+     `StatefulInteractiveElement::drag_threshold` store a distance on
+     the element; the mouse-move listener compares with it, or with
+     `DRAG_THRESHOLD` when the element names none.
+- Why 3: one field, two builders and one comparison; every caller that
+  names nothing behaves exactly as upstream. The kit names Paseo's
+  distance once (`spikes/native/kit/src/drag.rs`, `LIST_DRAG_DISTANCE`).
+- Cost: the GPUI core is now a copy to carry at every GPUI pin (re-copy
+  the new version, re-apply the diff of `div.rs`), 8 MB of source in the
+  repository, and every build target compiles GPUI from this path once.
+- Checked: the kit's tests `drag::tests::a_list_row_waits_for_paseos_six_points`
+  (5 points: no drag; 7: a drag) and
+  `drag::tests::an_element_naming_no_distance_keeps_gpuis_two` (1.5: no
+  drag; 3: a drag), through real mouse events in a test window.

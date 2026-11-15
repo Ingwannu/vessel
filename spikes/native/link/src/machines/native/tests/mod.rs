@@ -2,6 +2,7 @@
 mod edits;
 mod errors;
 mod fixtures;
+mod layout_rename;
 mod peer;
 
 mod onboarding;
