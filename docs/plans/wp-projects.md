@@ -275,3 +275,22 @@ required next, all on the remote build machine.
 The explicit forwardable expectation appends only this package's six names in
 their new method-table order. The head's existing entries and order are unchanged;
 this prevents the table move itself from causing an expected-order regression.
+
+
+## Merged-head strict and generated-wire evidence
+
+Exact c524681c6 on the announced node head passed strict whole-workspace Clippy
+and proto/web TS-feature all-target Clippy remotely. The TS generator's four
+selected tests passed; the named TS step correctly remained red because its
+generated proto.ts differed in three method-union lines after table relocation.
+The build VM's exact generated artifact and wire patch were recovered through
+the supported gate artifact path, source-commit provenance and all SHA256SUMS
+verified, then applied verbatim and compared byte-for-byte. No TypeScript was
+hand-edited. The new final candidate also retains the expected-method-order
+correction; its complete A12 and V3 registry review remain owed.
+
+The first merged-head job was explicitly promoted under a coordinator exception
+because the dependency blocks six core adapters: the safe queued-only endpoint
+verified it held no build slot, terminal cancellation was confirmed, and the
+same immutable c524 commit was submitted once with priority. Its original logs
+remain retained. No running build or unrelated job was canceled.
