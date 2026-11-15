@@ -898,3 +898,13 @@ only the authorized web-race test merge followed. The generated declaration
 update follows the optional reply's docs. No whole package gate has run yet.
 The newly designated shared package base is merged next; its root additions
 and generated declarations are checked before the final package gate.
+
+
+Final-base checkpoint: the designated head is merged before the package gate.
+Its method table/contract split, model bootstrap, pending event admission,
+label field rules, decode privacy, migration table and explicit protocol-family
+cases are retained. This package adds no method row. Metadata remains an
+existing settings-field contribution to since(), with GENERATED_NAMES unassigned.
+Only the size-ratchet file conflicted: the head node reduction is retained,
+then the title client/proxy reductions are applied. Final generated declarations
+and narrow compatibility checks precede the one frozen package gate.
