@@ -1541,9 +1541,20 @@ when the referenced runtime resource no longer exists. Recovery marks an
 interrupted side effect unknown rather than replaying it. This ledger does
 not provision or replace ADR 0082's workspace registry/start leases.
 
-The pure receipt/store path is staged; service authorization, receipt
-subscription and launch adapters remain separate integration work. The
-logical retained-byte budget excludes SQLite pages, WAL and backups.
+The owned service derives person or origin-agent namespaces from Principal;
+agents can observe only their own agent-kind keys. Pending unary observe and
+bounded revision long-poll calls read authoritative SQL after coalesced
+post-commit notifications. A mutation returns its exact writer-held receipt
+after commit, independently of later reader snapshots. Profile metadata and
+administrator configuration use separate scopes, and corrupted JSON source
+diagnostics are omitted from their wire errors.
+
+Receipt/observer/settings source remains staged for package review; the real
+creation intake actor, filesystem provisioning and resource launch adapters
+are still missing. A test-only driver with an in-memory effect boundary is
+not a registered creation RPC. The logical retained-byte budget excludes
+SQLite pages, WAL and backups. W11 owns the sole workspace registry and
+project/config admission; W3 owns the filesystem/receipt/launch composition.
 
 ## Session creation labels (ADR 0063)
 

@@ -18,10 +18,12 @@ or persisting another registry.
   effects; retain every key/claim indefinitely, with typed capacity refusal
   instead of eviction. Existing-key reconciliation and bounded phase growth
   remain possible at capacity. ADR 0091 names the limits and required tests.
-- `vessel-node::creation` and `service/creation`: admission, operation actor,
-  revision observation and delegation to workspace/session/terminal services.
-- Existing terminal/config services: persist profiles with existing protected
-  settings writes; launch using existing process/group/environment handling.
+- `vessel-node::service::creation`: principal-bound revision observation and a
+  test-only phase driver. The retained intake actor and real workspace/session/
+  terminal driver are still planned, not shipping modules.
+- `service/terminal_profiles` and the existing Store writer: person-only
+  metadata, administrator configuration CAS and bounded singleton persistence.
+  Actual custom-program launch still awaits the process/registry adapter.
 - Existing method table: pending rows only after Quality B; no alternate
   dispatch or provisional version number.
 
