@@ -50,6 +50,7 @@ fn pending_exit(shell: &mut Shell) -> (SessionInfo, Name, NodeId, LifecycleTicke
         agents: Vec::new(),
         protocol: Some(vessel_proto::PROTOCOL_VERSION),
         version: None,
+        connection_epoch: None,
     }];
     let request = shell
         .areas

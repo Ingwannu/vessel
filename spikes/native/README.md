@@ -228,6 +228,17 @@ stay in their tooltip and in the read-only details opened by the row, so
 touch does not depend on hover. Details and revoke use one view selection
 rule and never open a revoked/missing row or replace a pending confirmation.
 Ordinary paired rows have no repeated state badge.
+Devices binds its public data and callbacks to the authenticated NodeId and
+an actor-lifetime admission generation. The existing connection registry in
+`link/src/connections.rs` owns parsed book bindings and retirement; it is
+independent of whether reading sessions succeeds. A reload, observed binding
+replacement, successful rename/forget or transport loss retires old work.
+Confirmations additionally carry a distinct, non-reused intent. Requests and
+replies keep the same context; neither an alias lookup nor a late reply can
+retarget an operation. The contract and explicit observation limits are in
+`docs/plans/backend-m12-device-targets.md`. Effective scopes remain
+unknown until Devices queries the existing device.self call; a failed session
+read is no substitute.
 The area's `devices/row.rs` composes the shared row/button so a wrapped
 badge/action group retains its trailing edge; its bounds cases live beside
 it (verification status is in the G4 notes).
@@ -328,6 +339,7 @@ existing semantic/neutral colours and palette blue 300 / amber 500 in
 `theme/status.rs`; a notice has no focus or click behaviour. Pure logic
 returns `view::alert::Variant`, mapped once by `app::badge::alert_variant`.
 Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
+
 
 
 `kit/dialog.rs` accepts a clonable close closure so Escape, the scrim and
@@ -1235,3 +1247,14 @@ fill_in) and add typed leading14/16, Pending/Success, selectable Muted, KeepOpen
 measured open_end and caller width. See docs/plans/backend-m12-g2-menu-base4.md
 for exact source, focus limits and consumer integration. The canonical palette
 GREEN_500 and existing CircleCheck own success ink/art; no second palette.
+
+### Allocation block approval boundary (base 5 adapter)
+
+`command_changes::Listed` projects every `ServicePortsView` field explicitly.
+Until the approval card displays and compares the full allocation block, it
+refuses any current or last-approved block, even with zero named services or
+when the current set removes the old block. The approved-folder comparison
+fallback also retains that refusal. A typed refusal has separate EN/KO
+Fluent copy; it does not enable allocation, helpers or `PROJECT_FILE_KEYS`.
+This keeps an unseen setting out of an approval digest while the native display
+is implemented. Existing terminal refusal and head test cases remain intact.

@@ -182,18 +182,19 @@ shown and a partial comparison cannot claim the commands are unchanged.
   compatibility and CLI rendering. The slice's validation results belong in
   its review report; no runtime behaviour is implied by parsing these keys.
 - Half-done: automatic terminal execution and port allocation are absent;
-  only declared service ports are parsed into approval data. The allocation
-  block remains ignored. `paseo.json` is not read.
+  declared service ports and allocation choices are parsed only into approval
+  data. No helper is invoked. `paseo.json` is not read.
 - Next: keep `PROJECT_FILE_KEYS` unassigned until the web approval dialog
   displays terminals, web `command-changes` compares them, and the native
-  approval card displays them. The current web refusal is a deliberate
-  stopgap; display/comparison lands together with the native card's work.
+  approval card displays them, including declared ports and every allocation
+  choice. The current web refusal is a deliberate stopgap; display/comparison lands together with the native card's work.
   The native lead owns its card and exhaustive adapter. This track owns
   the web refusal now and its later terminal display/comparison.
 - Implemented port values: `ServicePort` and `PortRange` keep checks and
   refusal text on shared constants. `ServicePort` now occurs in the nested
-  declaration field below; `PortRange` is still outside project parsing and
-  approval snapshots. The existing serde conversion pattern is reused;
+  declaration field below; `PortRange` enters the approved allocation block
+  with its literal validated program. The existing serde conversion pattern
+  is reused;
   observed listeners remain a separate fact from a declared or allocated
   service port.
 - Implemented value contract: `ExecPath` keeps private literal text and
@@ -202,9 +203,9 @@ shown and a partial comparison cannot claim the commands are unchanged.
   portable fixture tests cover prefix forms, components, round trips and
   the shared byte bound. Rust's Windows prefix source also recognizes a
   forward slash in the verbatim UNC marker; the remaining verbatim
-  components still use backslashes. The type is not yet a wire field or
-  project-file key. Native invocation and the Windows command-script
-  refusal remain later typed checks, with their tests still owed.
+  components still use backslashes. It is carried through the block's
+  `PortScript`, without a separate wire field or direct project-file key.
+  Native invocation and the Windows command-script refusal remain later typed checks, with their tests still owed.
 - Approval display: the absolute path now shares `RelPath`'s control
   character refusal. LF, CR, ESC, another C0, DEL and C1 are tested through
   both text and serde for Unix, drive and UNC paths; NUL keeps its own
@@ -218,10 +219,10 @@ shown and a partial comparison cannot claim the commands are unchanged.
   path or an `ExecPath`, reusing their validation after shared edge trimming.
   `ServicePorts` privately owns the optional range and program and refuses
   an empty block through both its constructor and serde. Unknown keys and
-  explicit null choices are refused. Six unit tests cover the typed paths,
+  explicit null choices are refused. Unit tests cover the typed paths,
   source chains, trim behavior, nonempty block and strict serde; a TypeScript
   feature test pins optional fields without nullable values. These types
-  are not yet reachable from the project-file parser or a wire reply.
+  now reach the parser and wire only through that approved block.
 - Prepared display boundary: the CLI command formatter and web script
   comparison now have focused modules with complete entry projections.
   Existing output and comparison expectations stay unchanged; no field
@@ -233,21 +234,27 @@ shown and a partial comparison cannot claim the commands are unchanged.
   covered by the reserved version-three digest slot; old vectors stay fixed.
   The TOML decoder now reads a service's integer port through `ServicePort`;
   invalid numbers and a plain script's port refuse the whole file. Boundary,
-  source-chain and digest tests cover this input edge. `service_ports` stays
-  ignored. Native constructor/getter/card adaptation remains the native
-  lead's integration condition. No allocator
-  or health execution path is present.
+  source-chain and digest tests cover this input edge. Native constructor,
+  getter and card adaptation remain the native lead's integration condition.
+  No allocator or health execution path is present.
 - Before port fields: ADR 0066 now defines the `ScriptEntry` construction
   invariant and complete borrowed display view. The native lead owns its
   constructor/getter and exhaustive-card adaptation; web coverage and
   comparison name nested entry fields too. The declaration boundary above
   implements this part; the native adaptation remains owed.
-- Then: add the allocation-block parser, digest and approval fields. A relative bare
+- Implemented allocation boundary: the optional strict nonempty block is
+  retained by the file and current/prior approval snapshots even without
+  services. Its two reserved digest slots cover both choices. CLI names the
+  complete borrowed owner view and prints both; web names every nested key
+  while retaining its optional value type, and refuses current/prior/folder
+  blocks, including an empty peer object. File, digest, persisted approval,
+  six-reply, CLI and web tests cover these boundaries; execution is absent.
+- Then: settle the runtime contract before helper, allocator or health code.
+  A relative bare
   program is checkout-rooted, using a worktree's own copy in its own folder,
   unlike Paseo's PATH lookup; the execution test proving that selection
-  and relative-link containment remain owed. Add
-  approval snapshots and exhaustive clients in
-  separate small changes. Runtime follows with approval and lifecycle
+  and relative-link containment remain owed. Complete display in all three
+  approval clients before assigning the protocol. Runtime follows with approval and lifecycle
   tests. Returned review findings take priority.
 - Allocation projection contract: reuse the private `ServicePorts` owner
   with a complete borrowed view before adding its optional block to the
@@ -255,6 +262,97 @@ shown and a partial comparison cannot claim the commands are unchanged.
   even without services. CLI and the native lead's card must name every
   view field; web names every nested field by type and refuses current,
   prior and folder snapshots until full display exists. The contract and
-  owed tests are in ADR 0066; no field or allocator is implemented here.
+  required tests are in ADR 0066; the approval field is implemented above,
+  and no allocator is connected.
 - Still unverified: Windows, actual shells, and negotiated support after
   the integrator assigns the protocol number.
+
+## Runtime package preparation
+
+A14 groups the remaining port runtime into one package with small commits
+and narrow checks; one whole gate follows its finished wiring. Security
+changes retain per-commit review. The direct-helper contract in ADR 0066
+reuses `vessel-proc`, `Root`, the shared text trim and credential removal
+inventory; no shell pipeline, scanner truncation or new dependency. Its
+staged primitive must not be mistaken for a registered product caller.
+The earlier every-start helper and process-spawn health descriptions were
+corrected against the actual cache and first-observation callers. Cache
+lifetime/refresh and health observation must be settled before their wiring.
+A new approval does not implicitly withdraw an earlier digest.
+
+Resume: allocation approval block is committed and its exact-commit root
+gate passed; native full-view integration remains owed. Next implement and
+narrow-check one direct invocation with the path/cleanup/decoder cases in
+the ADR, then the plan owner and health. Auto terminals, archive and editor
+targets remain unimplemented. No new protocol number is assigned.
+
+## Independent process lifetime carrier
+
+A standalone change on the assigned node head adds Proc's process-id and
+lifetime modules, runner-owned revocation and read-only handle transport.
+This does not include the staged allocator or a browser consumer. The ADR
+records the reuse choice, accepted platform limits and event-based tests.
+The node scanner and Preview must continue refusing authority from cached
+PID/port data until their own fresh ownership integration is implemented.
+
+### Carrier implementation checkpoint
+
+The separate process carrier now has runner-issued observations in Proc and
+PTY, delegated through AgentProcess and current session/terminal handles.
+Revocation precedes signal attempts, follows observed exit/wait uncertainty,
+and runs on owner drop. PTY's blocking waiter independently revokes its run.
+Session park, wake, profile replacement and service restart replace or clear
+the current observation; old observations cannot become live again. No wire,
+Preview admission or new dependency is introduced. Source is awaiting its
+narrow checks, security review and standalone package gate. Windows execution
+and fresh socket/workspace ownership remain unverified.
+
+The direct terminal-session test also checks the SessionHandle's PTY observer,
+separately from a standalone shell handle. The issuer guard type itself is
+must-use because dropping it revokes authority; its Self-returning methods
+rely on that one annotation. Narrow evidence for the earlier snapshot is
+kept separately from this pending revision.
+
+The first carrier narrow build found the new explicit wait-error branch
+returning std::io::Error rather than the existing WaitError wrapper. The
+revision keeps revocation first and restores the existing source-preserving
+From conversion. No test or deadline changed; the failed build log is kept,
+and no tests ran in that build.
+
+The release-capable child integration has a separate obligation: reject a
+bound release without revocation, but revoke before successful ownership
+release. Its detached direct-child wait remains the actual exit observation.
+This carrier's assigned base has no release operation; these joint tests
+belong to the later combined lifecycle integration and are not claimed here.
+
+The next narrow check reached the PTY integration tests and rejected an
+unquoted Rust item in their module documentation. The revision fixes only
+that documentation and explains why watch revocation is retained even when
+no observer has subscribed yet. The source error and documentation-lint
+failures remain distinct recorded checks; neither ran tests.
+
+The Proc child stores its private guard as observation, keeping that name
+separate from a release-capability lifetime policy in the lifecycle work.
+The public lifetime() accessor and all revocation points are unchanged;
+this private rename changes no test expectation or runtime behavior.
+
+## Process carrier qualification checkpoint
+
+The four changed crates passed all-target Clippy and their full tests at
+3d982ce9: 334 passed, none failed, two ignored across 27 result groups.
+All fourteen new PID/watch/child/PTY/session/terminal cases ran. The first
+compile-error and later test-documentation lint checks remain recorded as
+failures rather than test passes. No deadline or assertion was weakened.
+
+The composed carrier now includes the designated shared base 6c782cb6 and
+the reviewed receipt fix c5da5305. The incoming native, proto, store, node,
+workspace, testkit and web trees are unchanged. The only later product edit
+is the private observation-field rename, with the same public API and
+revocation behavior. Qualification of this composition requires the whole
+root gate and security review before integration. It introduces no D2
+helper/allocator caller, protocol field, number or dependency.
+
+Release-capable child integration, durable process identity and the actual
+service/Preview consumers remain separate work. This carrier cannot prove
+OS death, persistent ownership or socket/workspace authority. Windows and
+native execution are outside this checkpoint's evidence.

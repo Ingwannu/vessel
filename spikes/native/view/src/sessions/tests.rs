@@ -58,6 +58,7 @@ fn machine(name: &str, when: &str, title: &str, archived: bool) -> crate::Machin
         agents: Vec::new(),
         protocol: None,
         version: None,
+        connection_epoch: None,
     }
 }
 

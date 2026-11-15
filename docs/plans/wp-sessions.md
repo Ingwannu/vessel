@@ -161,10 +161,21 @@ periodic tick. Passive reads never advance it; exhaustion permanently disables
 publication until link restart instead of recycling a revision. The counter is
 projection ordering, not a second session/connection identity registry.
 
-The existing per-machine refresh body moves into `read_machine` to keep the
-new publication boundary short. It still uses the same connection, list, failure
-and authenticated Machine.node projection. Deterministic tests cover a full UI
-channel during archive acknowledgement so a queued stale snapshot cannot follow it.
+On package base 6 the shared connection owner retains `reconcile_connections`,
+`read_sessions` and authenticated node/connection-epoch projection. This package
+wraps that unchanged refresh path with the projection capture/publication check;
+it does not reinstate the older `read_machine` implementation or its connection
+failure policy. Reload retires G4 admissions before notifying the existing
+navigation readiness watch, and refresh notifies it after reconciliation and
+session reads. Test actors use the shared `testing::state` and G4 admission
+constructor. Deterministic tests cover a full UI channel during archive
+acknowledgement so a queued stale snapshot cannot follow it.
+
+This union does not make the legacy session carriers connection-epoch safe.
+Queued Records/SessionLost/Acted still need the canonical resident FollowBinding
+and selected connection lease at both boundaries. The sole resident owner's
+single-slot contract amendment must be approved before that coordinated product
+conversion; no second epoch registry or global fallback is introduced here.
 
 
 Base4 terminal integration preserves C2's terminal_follow, focus and render
