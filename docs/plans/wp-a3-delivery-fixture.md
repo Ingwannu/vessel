@@ -74,3 +74,13 @@ remain typed framed Call/Reply values, and retirement/close targets the original
 peer through canonical admission. No second actor, router or fabricated guard
 is permitted. The two-machine A3 cases remain pending that extension; no
 production or queued-UI authority follows from this preparation.
+
+Single-peer App consumer cases are prepared against G4's Scenario API snapshot
+`7641b647` without adopting or editing that producer. They drive the normal
+Search command and framed reply, then apply the actual queued event through
+the existing area handler. The cases cover resident replacement, retirement
+before a newer Fleet frame, and editing before the next debounce. They use
+only the shared Scenario and test Link accessor, never fabricate a guard.
+Those prerequisites are not on this branch yet, so these are uncompiled source
+and cannot be called execution evidence. The original two-machine residency
+case remains intact pending the approved shared fixture extension.

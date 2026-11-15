@@ -51,6 +51,8 @@ use vessel_proto::search::{MessageRole, SearchHit, SearchQuery};
 use crate::areas::session::Open;
 use crate::shell::Shell;
 
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod delivery_tests;
 #[cfg(test)]
 mod residency_tests;
 
