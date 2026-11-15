@@ -326,8 +326,16 @@ integrator's common file policy when that head is merged; do not add a parallel
 loader. Preserve unknown fields if the common policy preserves them. The
 selection check is not a secret-store transaction and caches no credential.
 
-Next: stage real audio/owner helpers under the test-only dictation module, with
-tests beside each rule, followed by endpoint and actor slices. These establish
+Half-done: the real audio/owner helpers are staged under the test-only dictation
+module. They contain integer-phase conversion, bounded whole-chunk segments,
+silence detection, in-memory WAV and opaque owner lifetime; boundary fixtures use
+SampleRate's decoder-derived typed constants. Narrow clippy and all eight helper
+tests pass; the commit's whole Rust gate is next. Owner keys carry an immutable
+Arc marker, with cancellation kept separately in connection lifetime so the key
+never contains mutable lifecycle state. No endpoint, actor or registered caller
+exists yet.
+
+Next: endpoint and actor slices. These establish
 staged source behaviour, not a product path. Wiring waits for the shared protocol
 accessor and call-table refactor, removes staging, and gets a whole product gate.
 Existing settings literals gain default completion only in the optional-field

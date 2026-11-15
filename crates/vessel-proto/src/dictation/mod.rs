@@ -93,6 +93,11 @@ serde_via_text!(DictationId);
 pub struct SampleRate(u32);
 
 impl SampleRate {
+    /// Keep callers' lower-rate boundary aligned with the decoder's invariant.
+    pub const MIN: Self = Self(MIN_RATE);
+    /// Keep callers' upper-rate boundary aligned with the decoder's invariant.
+    pub const MAX: Self = Self(MAX_RATE);
+
     /// Validate before any stream or provider is opened.
     ///
     /// # Errors
