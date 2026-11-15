@@ -20,7 +20,7 @@ pub(super) async fn serve(mut request: Request<Incoming>, context: Context) -> R
     };
     let stream = tokio::select! {
         () = context.cancel.cancelled() => return refused(StatusCode::SERVICE_UNAVAILABLE),
-        stream = crate::network::dial_public(&destination.url) => match stream {
+        stream = crate::network::dial_public(&destination.url, &context.preparation) => match stream {
             Ok(stream) => stream,
             Err(_refused) => return refused(StatusCode::FORBIDDEN),
         },

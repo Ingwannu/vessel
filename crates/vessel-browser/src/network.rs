@@ -6,13 +6,14 @@
 
 mod interfaces;
 
-use std::net::{IpAddr, SocketAddr};
+use crate::preparation::{Preparation, PreparationError};
+use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
 use std::time::Duration;
 
 use tokio::net::TcpStream;
 use vessel_proto::browser::BrowserUrl;
 
-pub use interfaces::InterfaceError;
+pub(crate) use interfaces::InterfaceError;
 use interfaces::LocalInterfaces;
 
 /// Bound one resolution independently from the browser's command deadline.
@@ -22,7 +23,10 @@ const MAX_DNS_ANSWERS: usize = 32;
 
 /// Network refusals retain system causes but never display the page-selected host/URL.
 #[derive(Debug, thiserror::Error)]
-pub enum NetworkError {
+pub(crate) enum NetworkError {
+    /// Actual OS preparation keeps admission until it finishes, even after timeout.
+    #[error("browser destination preparation failed")]
+    Preparation(#[from] PreparationError),
     /// An incomplete interface observation cannot authorize public egress.
     #[error("current local interface addresses are unavailable")]
     Interfaces(#[from] InterfaceError),
@@ -51,43 +55,61 @@ pub enum NetworkError {
 /// # Errors
 /// Missing/current interface evidence, incomplete/mixed resolver answers, timeout
 /// and connection failures all refuse. Non-Linux interface observation is unsupported.
-pub async fn dial_public(destination: &BrowserUrl) -> Result<TcpStream, NetworkError> {
-    tokio::time::timeout(DIAL_TIMEOUT, dial(destination))
+pub(crate) async fn dial_public(
+    destination: &BrowserUrl,
+    preparation: &Preparation,
+) -> Result<TcpStream, NetworkError> {
+    tokio::time::timeout(DIAL_TIMEOUT, dial(destination, preparation))
         .await
         .map_err(NetworkError::TimedOut)?
 }
 
-async fn dial(destination: &BrowserUrl) -> Result<TcpStream, NetworkError> {
+async fn dial(
+    destination: &BrowserUrl,
+    preparation: &Preparation,
+) -> Result<TcpStream, NetworkError> {
     let url = destination.parsed();
     let host = url.host_str().ok_or(NetworkError::Address)?;
     // URL's IPv6 host spelling includes brackets; the socket resolver takes
     // a host without them. BrowserUrl already refused aliases and userinfo.
     let host = host.trim_start_matches('[').trim_end_matches(']');
     let port = url.port_or_known_default().ok_or(NetworkError::Address)?;
-    let resolved = tokio::net::lookup_host((host, port))
-        .await
-        .map_err(NetworkError::Resolve)?;
-    let mut answers = Vec::new();
-    for answer in resolved {
-        if answers.len() >= MAX_DNS_ANSWERS {
-            return Err(NetworkError::Answers);
-        }
-        answers.push(answer);
-    }
-    let local = LocalInterfaces::current().await?;
+    let host = host.to_owned();
+    let answers = preparation
+        .run(move || {
+            let resolved = (host.as_str(), port)
+                .to_socket_addrs()
+                .map_err(NetworkError::Resolve)?;
+            let mut answers = Vec::new();
+            for answer in resolved {
+                if answers.len() >= MAX_DNS_ANSWERS {
+                    return Err(NetworkError::Answers);
+                }
+                answers.push(answer);
+            }
+            Ok(answers)
+        })
+        .await??;
+    let local = preparation.run(interfaces::observe).await??;
     check(&answers, &local)?;
-    connect_checked(&answers).await
+    connect_checked(&answers, preparation).await
 }
 
-async fn connect_checked(answers: &[SocketAddr]) -> Result<TcpStream, NetworkError> {
+async fn connect_checked(
+    answers: &[SocketAddr],
+    preparation: &Preparation,
+) -> Result<TcpStream, NetworkError> {
     let mut last = None;
     for address in answers {
         // Interface assignment may change after DNS or an earlier failed dial.
-        let local = LocalInterfaces::current().await?;
+        let local = preparation.run(interfaces::observe).await??;
         check(answers, &local)?;
+        if preparation.is_cancelled() {
+            return Err(PreparationError::Closed.into());
+        }
         match TcpStream::connect(address).await {
             Ok(stream) => {
-                let current = LocalInterfaces::current().await?;
+                let current = preparation.run(interfaces::observe).await??;
                 check(answers, &current)?;
                 let peer = stream.peer_addr().map_err(NetworkError::Connect)?;
                 if peer != *address {

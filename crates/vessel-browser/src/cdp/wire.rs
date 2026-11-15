@@ -56,7 +56,7 @@ struct Packet {
 
 /// Remote diagnostics are retained as page content, never reflected in a node error.
 #[derive(Deserialize)]
-pub struct RemoteError {
+pub(crate) struct RemoteError {
     // This numeric value belongs to the foreign CDP error format only.
     code: RemoteCode,
     message: PageText,
@@ -92,7 +92,7 @@ pub(super) enum Incoming {
     UnknownEvent,
 }
 /// A bounded essential signal; raw payload interpretation stays in this CDP module.
-pub struct Event {
+pub(crate) struct Event {
     pub(super) kind: EventKind,
     pub(super) session: Option<SessionId>,
     pub(super) params: Payload,
@@ -110,19 +110,19 @@ impl fmt::Debug for Event {
 impl Event {
     /// Branch on a closed signal, never the foreign method's string.
     #[must_use]
-    pub const fn kind(&self) -> EventKind {
+    pub(crate) const fn kind(&self) -> EventKind {
         self.kind
     }
     /// Private flattened identity remains distinct from a Vessel session id.
     #[must_use]
-    pub fn session(&self) -> Option<&SessionId> {
+    pub(crate) fn session(&self) -> Option<&SessionId> {
         self.session.as_ref()
     }
 }
 
 /// Essential signals consumed by the engine controller; new unrelated events stay unknown.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
-pub enum EventKind {
+pub(crate) enum EventKind {
     #[doc = "`Target.attachedToTarget`"]
     #[serde(rename = "Target.attachedToTarget")]
     Attached,
@@ -181,7 +181,7 @@ pub enum EventKind {
 
 /// Foreign protocol refusal, without a page-selected diagnostic string.
 #[derive(thiserror::Error)]
-pub enum DecodeError {
+pub(crate) enum DecodeError {
     /// Apply before decoding/queuing message content.
     #[error("CDP message exceeds its transport/event budget")]
     Size,

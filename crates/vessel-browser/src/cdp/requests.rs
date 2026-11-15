@@ -9,11 +9,11 @@ use super::identity::{SessionId, TargetId};
 
 mod sealed {
     /// Implemented only for this module's known requests.
-    pub trait Sealed {}
+    pub(crate) trait Sealed {}
 }
 
 /// Only this module can add a command and select its wire method/response type.
-pub trait Request: sealed::Sealed + Serialize + Send {
+pub(crate) trait Request: sealed::Sealed + Serialize + Send {
     /// Known response shape decoded by the CDP edge.
     type Response: serde::de::DeserializeOwned;
     /// Fixed foreign method spelling, never derived from a tool argument.
@@ -24,7 +24,7 @@ macro_rules! methods {
     ($($name:ident => $wire:literal),+ $(,)?) => {
         /// A closed internal debugging vocabulary, distinct from user-facing `BrowserTool`.
         #[derive(Debug, Clone, Copy, Serialize)]
-        pub enum Method { $(#[doc=concat!("`",$wire,"`") ] #[serde(rename=$wire)] $name,)+ }
+        pub(crate) enum Method { $(#[doc=concat!("`",$wire,"`") ] #[serde(rename=$wire)] $name,)+ }
     }
 }
 methods! {
@@ -61,14 +61,14 @@ macro_rules! empty_requests {
     ($($name:ident => $response:ty,$method:ident,$doc:literal;)+) => {$(
         #[doc=$doc]
         #[derive(Debug, Clone, Copy, Serialize)]
-        pub struct $name {}
+        pub(crate) struct $name {}
         request!($name,$response,$method);
     )+};
 }
 
 /// An empty acknowledgement is not a fabricated page result.
 #[derive(Debug, Clone, Copy, Deserialize)]
-pub struct Acknowledged {}
+pub(crate) struct Acknowledged {}
 empty_requests! {
     Version => BrowserVersion,Version,"Inspect the connected runtime's reported version, not its path alone.";
     CloseBrowser => Acknowledged,CloseBrowser,"Request owned-browser shutdown; process-group cleanup is still required.";
@@ -85,62 +85,62 @@ empty_requests! {
 /// Version strings are content facts, not runtime qualification by themselves.
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct BrowserVersion {
+pub(crate) struct BrowserVersion {
     /// Reported protocol version.
-    pub protocol_version: PageText,
+    pub(crate) protocol_version: PageText,
     /// Reported product/version.
-    pub product: PageText,
+    pub(crate) product: PageText,
     /// Build revision.
-    pub revision: PageText,
+    pub(crate) revision: PageText,
     /// The actual user-agent string is never injected into a host diagnostic.
-    pub user_agent: PageText,
+    pub(crate) user_agent: PageText,
     /// Engine JavaScript version.
-    pub js_version: PageText,
+    pub(crate) js_version: PageText,
 }
 
 /// General creation accepts an HTTP(S) URL, never a file/debugging URL.
 #[derive(Debug, Serialize)]
-pub struct CreateTarget {
+pub(crate) struct CreateTarget {
     /// Initial URL still needs network/admission checks in the controller.
-    pub url: BrowserUrl,
+    pub(crate) url: BrowserUrl,
     /// Background creation cannot steal native pane focus.
-    pub background: bool,
+    pub(crate) background: bool,
 }
 /// Only the node actor binds this private handle to a public `BrowserId`.
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Created {
+pub(crate) struct Created {
     /// Private target handle.
-    pub target_id: TargetId,
+    pub(crate) target_id: TargetId,
 }
 request!(CreateTarget, Created, CreateTarget);
 
 /// Closing a CDP target never exposes its private id through a tool response.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CloseTarget {
+pub(crate) struct CloseTarget {
     /// The target the actor owns.
-    pub target_id: TargetId,
+    pub(crate) target_id: TargetId,
 }
 /// A backend refusal to close must not appear as completed close.
 #[derive(Debug, Deserialize)]
-pub struct Closed {
+pub(crate) struct Closed {
     /// The browser acknowledged closing the target.
-    pub success: bool,
+    pub(crate) success: bool,
 }
 request!(CloseTarget, Closed, CloseTarget);
 
 /// Attach uses flattened sessions on the one private browser connection.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Attach {
+pub(crate) struct Attach {
     target_id: TargetId,
     flatten: bool,
 }
 impl Attach {
     /// Flattening is policy, not a caller-controlled debugging mode.
     #[must_use]
-    pub fn new(target_id: TargetId) -> Self {
+    pub(crate) fn new(target_id: TargetId) -> Self {
         Self {
             target_id,
             flatten: true,
@@ -150,72 +150,72 @@ impl Attach {
 /// This is unrelated to a Vessel session credential.
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Attached {
+pub(crate) struct Attached {
     /// Flattened CDP session.
-    pub session_id: SessionId,
+    pub(crate) session_id: SessionId,
 }
 request!(Attach, Attached, Attach);
 
 /// URL preparation is already typed; it does not replace proxy destination checks.
 #[derive(Debug, Serialize)]
-pub struct Navigate {
+pub(crate) struct Navigate {
     /// The requested HTTP(S) page.
-    pub url: BrowserUrl,
+    pub(crate) url: BrowserUrl,
 }
 /// Page errors are retained as bounded redacted content, not RPC messages.
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Navigated {
+pub(crate) struct Navigated {
     /// Missing means no immediate navigation error was reported.
-    pub error_text: Option<PageText>,
+    pub(crate) error_text: Option<PageText>,
 }
 request!(Navigate, Navigated, Navigate);
 
 /// A history id is meaningful only in the target's current history list.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct HistoryEntryId(i64);
+pub(crate) struct HistoryEntryId(i64);
 /// History URLs may be a browser's internal initial blank entry.
 #[derive(Debug, Deserialize)]
-pub struct HistoryEntry {
+pub(crate) struct HistoryEntry {
     /// Use only after reading this target's current list.
-    pub id: HistoryEntryId,
+    pub(crate) id: HistoryEntryId,
     /// Opaque location fact; the controller refuses unsupported destinations.
-    pub url: PageText,
+    pub(crate) url: PageText,
 }
 /// The actor bounds retained history before presenting eligibility facts.
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct NavigationHistory {
+pub(crate) struct NavigationHistory {
     /// Position is a checked foreign index at the adapter, not a session id.
-    pub current_index: HistoryIndex,
+    pub(crate) current_index: HistoryIndex,
     /// CDP transport size is bounded before decoding this list.
-    pub entries: Vec<HistoryEntry>,
+    pub(crate) entries: Vec<HistoryEntry>,
 }
 /// A foreign signed index must be checked before selecting any entry.
 #[derive(Debug, Clone, Copy, Deserialize)]
 #[serde(transparent)]
-pub struct HistoryIndex(i64);
+pub(crate) struct HistoryIndex(i64);
 impl HistoryIndex {
     /// Negative/overflowing indices cannot select an element.
     #[must_use]
-    pub fn position(self) -> Option<usize> {
+    pub(crate) fn position(self) -> Option<usize> {
         usize::try_from(self.0).ok()
     }
 }
 /// The actor selects a real id after checking back/forward eligibility.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct NavigateHistory {
+pub(crate) struct NavigateHistory {
     /// No synthetic relative index reaches CDP.
-    pub entry_id: HistoryEntryId,
+    pub(crate) entry_id: HistoryEntryId,
 }
 request!(NavigateHistory, Acknowledged, NavigateHistory);
 
 /// Page expression text is redacted just like agent functions and human input.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Evaluate {
+pub(crate) struct Evaluate {
     expression: RequiredInput,
     return_by_value: bool,
     await_promise: bool,
@@ -224,7 +224,7 @@ pub struct Evaluate {
 impl Evaluate {
     /// Return value-only page data and await a result under the finite command deadline.
     #[must_use]
-    pub fn new(expression: RequiredInput) -> Self {
+    pub(crate) fn new(expression: RequiredInput) -> Self {
         Self {
             expression,
             return_by_value: true,
@@ -235,7 +235,7 @@ impl Evaluate {
 }
 /// Runtime result interpretation remains inside the CDP edge.
 #[derive(Debug, Deserialize)]
-pub struct Evaluated {
+pub(crate) struct Evaluated {
     /// The wrapper has no raw Debug rendering.
     result: super::wire::Payload,
     /// Exceptions must not become successful evaluate echoes.
@@ -245,13 +245,15 @@ pub struct Evaluated {
 impl Evaluated {
     /// Presence is a typed failure fact; exception text is never an RPC diagnostic.
     #[must_use]
-    pub fn threw(&self) -> bool {
+    pub(crate) fn threw(&self) -> bool {
         self.exception.is_some()
     }
     /// Decode the known `Runtime.RemoteObject` shape at this foreign-protocol boundary.
     /// # Errors
     /// Page exceptions refuse before decoding, and malformed remote objects retain the JSON cause.
-    pub fn remote_object<T: serde::de::DeserializeOwned>(&self) -> Result<T, EvaluationError> {
+    pub(crate) fn remote_object<T: serde::de::DeserializeOwned>(
+        &self,
+    ) -> Result<T, EvaluationError> {
         if self.threw() {
             return Err(EvaluationError::Exception);
         }
@@ -262,15 +264,15 @@ request!(Evaluate, Evaluated, Evaluate);
 
 /// The actual base64 PNG is checked before retaining compressed bytes or raster geometry.
 #[derive(Debug, Deserialize)]
-pub struct Captured {
+pub(crate) struct Captured {
     /// No 1x1 fixture is substituted for a missing frame.
-    pub data: ScreenshotPng,
+    pub(crate) data: ScreenshotPng,
 }
 
 /// Device scale is fixed to one in the initial remotely rendered engine.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SetViewport {
+pub(crate) struct SetViewport {
     width: vessel_proto::browser::ViewportSide,
     height: vessel_proto::browser::ViewportSide,
     device_scale_factor: DeviceScale,
@@ -282,7 +284,7 @@ struct DeviceScale(u8);
 impl SetViewport {
     /// CSS dimensions remain distinct from actual screenshot pixel geometry.
     #[must_use]
-    pub const fn new(size: ViewportSize) -> Self {
+    pub(crate) const fn new(size: ViewportSize) -> Self {
         Self {
             width: size.width,
             height: size.height,
@@ -295,15 +297,15 @@ request!(SetViewport, Acknowledged, SetViewport);
 
 /// Trusted text insertion is separate from a host keyboard or page-evaluation string.
 #[derive(Debug, Serialize)]
-pub struct InsertText {
+pub(crate) struct InsertText {
     /// Raw tool input remains in its harness history; human input does not.
-    pub text: InputText,
+    pub(crate) text: InputText,
 }
 request!(InsertText, Acknowledged, InsertText);
 
 /// Evaluation exceptions and remote-object decode failures are separate typed outcomes.
 #[derive(thiserror::Error)]
-pub enum EvaluationError {
+pub(crate) enum EvaluationError {
     /// Page code threw; its content is not an RPC diagnostic.
     #[error("page evaluation raised an exception")]
     Exception,

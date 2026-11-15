@@ -13,11 +13,11 @@ const MAX_REFERENCES: usize = 500;
 
 /// A snapshot generation differs from state/frame transport revisions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SnapshotGeneration(u64);
+pub(crate) struct SnapshotGeneration(u64);
 
 /// A failed reference allocation never falls back to a different element.
 #[derive(Debug, thiserror::Error)]
-pub enum ReferenceError {
+pub(crate) enum ReferenceError {
     /// The bounded snapshot may truncate, but cannot allocate extra references.
     #[error("browser snapshot reference limit reached")]
     Limit,
@@ -33,7 +33,7 @@ pub enum ReferenceError {
 }
 
 /// A target actor owns this map and the backend values; no global reference registry.
-pub struct References<T> {
+pub(crate) struct References<T> {
     current: BTreeMap<ElementRef, T>,
     next: u64,
     generation: SnapshotGeneration,
@@ -60,7 +60,7 @@ impl<T> References<T> {
     ///
     /// # Errors
     /// A generation overflow requires closing the target, never reusing a generation.
-    pub fn invalidate(&mut self) -> Result<SnapshotGeneration, ReferenceError> {
+    pub(crate) fn invalidate(&mut self) -> Result<SnapshotGeneration, ReferenceError> {
         self.current.clear();
         let generation = self
             .generation
@@ -75,7 +75,7 @@ impl<T> References<T> {
     ///
     /// # Errors
     /// Refuses the current snapshot's cap or exhausted namespace without inserting.
-    pub fn assign(&mut self, value: T) -> Result<ElementRef, ReferenceError> {
+    pub(crate) fn assign(&mut self, value: T) -> Result<ElementRef, ReferenceError> {
         if self.current.len() >= MAX_REFERENCES {
             return Err(ReferenceError::Limit);
         }
@@ -92,7 +92,7 @@ impl<T> References<T> {
     ///
     /// # Errors
     /// A previously valid argument is explicitly stale, never retried against a new element.
-    pub fn resolve(&self, reference: &ElementRef) -> Result<&T, ReferenceError> {
+    pub(crate) fn resolve(&self, reference: &ElementRef) -> Result<&T, ReferenceError> {
         self.current.get(reference).ok_or(ReferenceError::Stale)
     }
 }

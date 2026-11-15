@@ -32,7 +32,7 @@ type Socket = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
 /// Errors remain typed; Debug never prints a frame, endpoint or page exception.
 #[derive(thiserror::Error)]
-pub enum Error {
+pub(crate) enum Error {
     /// Connection establishment failed.
     #[error("CDP websocket operation failed")]
     Socket(#[source] tokio_tungstenite::tungstenite::Error),
@@ -105,7 +105,7 @@ impl Drop for Shared {
 
 /// A trusted engine's private debugger connection, never an application RPC surface.
 #[derive(Clone)]
-pub struct Client {
+pub(crate) struct Client {
     shared: Arc<Shared>,
 }
 impl std::fmt::Debug for Client {
@@ -114,7 +114,7 @@ impl std::fmt::Debug for Client {
     }
 }
 /// Essential state signals; overflow fails the engine instead of losing invalidation/dialog events.
-pub struct Events(mpsc::Receiver<Event>);
+pub(crate) struct Events(mpsc::Receiver<Event>);
 impl std::fmt::Debug for Events {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CdpEvents").finish_non_exhaustive()
@@ -122,7 +122,7 @@ impl std::fmt::Debug for Events {
 }
 impl Events {
     /// None means the engine connection ended; no fabricated final descriptor follows.
-    pub async fn next(&mut self) -> Option<Event> {
+    pub(crate) async fn next(&mut self) -> Option<Event> {
         self.0.recv().await
     }
 }
@@ -132,7 +132,7 @@ impl Client {
     ///
     /// # Errors
     /// Socket/connect deadline failures refuse; no runtime is qualified here.
-    pub async fn connect(endpoint: &Endpoint) -> Result<(Self, Events), Error> {
+    pub(crate) async fn connect(endpoint: &Endpoint) -> Result<(Self, Events), Error> {
         let config = WebSocketConfig::default()
             .max_message_size(Some(wire::MAX_MESSAGE_BYTES))
             .max_frame_size(Some(wire::MAX_MESSAGE_BYTES));
@@ -163,7 +163,7 @@ impl Client {
     ///
     /// # Errors
     /// A timeout preserves delivery uncertainty; callers must not blindly retry mutations.
-    pub async fn execute<R: Request>(
+    pub(crate) async fn execute<R: Request>(
         &self,
         session: Option<SessionId>,
         request: R,
@@ -224,7 +224,7 @@ impl Client {
     ///
     /// # Errors
     /// The engine sees socket/protocol/task failure, never an invented successful close.
-    pub async fn shutdown(self) -> Result<(), Error> {
+    pub(crate) async fn shutdown(self) -> Result<(), Error> {
         self.shared.cancel.cancel();
         let driver = self.shared.driver.lock().await.take();
         match driver {
@@ -246,7 +246,7 @@ impl Client {
     }
 
     /// Supervision can wait for loss without polling or inspecting raw CDP errors.
-    pub async fn wait_closed(&self) {
+    pub(crate) async fn wait_closed(&self) {
         self.shared.commands.closed().await;
     }
 }

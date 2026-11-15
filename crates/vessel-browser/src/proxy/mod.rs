@@ -15,6 +15,7 @@ use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 use std::time::Duration;
 
+use crate::preparation::Preparation;
 use axum::body::Body;
 use axum::http::{Request, Response};
 use hyper::body::Incoming;
@@ -37,7 +38,7 @@ const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Lifecycle failures are retained without page-controlled content in messages.
 #[derive(Debug, thiserror::Error)]
-pub enum ProxyError {
+pub(crate) enum ProxyError {
     /// Binding never falls back from loopback to a wildcard/public listener.
     #[error("browser policy proxy could not bind loopback")]
     Bind(#[source] std::io::Error),
@@ -53,7 +54,7 @@ pub enum ProxyError {
 }
 
 /// Private node-owned proxy; Debug deliberately omits its control endpoint.
-pub struct PublicProxy {
+pub(crate) struct PublicProxy {
     address: SocketAddr,
     cancel: CancellationToken,
     actor: Option<JoinHandle<Result<(), ProxyError>>>,
@@ -69,13 +70,21 @@ impl PublicProxy {
     ///
     /// # Errors
     /// Any bind/address error refuses; this does not certify engine readiness.
-    pub async fn start() -> Result<Self, ProxyError> {
+    pub(crate) async fn start() -> Result<Self, ProxyError> {
+        let cancel = CancellationToken::new();
+        let preparation = Preparation::for_profile(cancel.clone());
+        Self::start_scope(cancel, preparation).await
+    }
+
+    async fn start_scope(
+        cancel: CancellationToken,
+        preparation: Preparation,
+    ) -> Result<Self, ProxyError> {
         let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
             .await
             .map_err(ProxyError::Bind)?;
         let address = listener.local_addr().map_err(ProxyError::Bind)?;
-        let cancel = CancellationToken::new();
-        let actor = tokio::spawn(listen(listener, cancel.clone()));
+        let actor = tokio::spawn(listen(listener, cancel.clone(), preparation));
         Ok(Self {
             address,
             cancel,
@@ -85,7 +94,7 @@ impl PublicProxy {
 
     /// Only the trusted process launcher needs this endpoint; do not serialize/log it.
     #[must_use]
-    pub const fn endpoint(&self) -> SocketAddr {
+    pub(crate) const fn endpoint(&self) -> SocketAddr {
         self.address
     }
 
@@ -93,7 +102,7 @@ impl PublicProxy {
     ///
     /// # Errors
     /// Actor failure or a shutdown deadline is explicit to the engine supervisor.
-    pub async fn close(mut self) -> Result<(), ProxyError> {
+    pub(crate) async fn close(mut self) -> Result<(), ProxyError> {
         self.cancel.cancel();
         if let Some(actor) = self.actor.take() {
             return tokio::time::timeout(SHUTDOWN_TIMEOUT, actor)
@@ -114,11 +123,16 @@ impl Drop for PublicProxy {
 struct Context {
     cancel: CancellationToken,
     tasks: TaskTracker,
+    preparation: Preparation,
     // Kept by upgraded/backend tasks too: an upgrade cannot release admission early.
     permit: Arc<OwnedSemaphorePermit>,
 }
 
-async fn listen(listener: TcpListener, cancel: CancellationToken) -> Result<(), ProxyError> {
+async fn listen(
+    listener: TcpListener,
+    cancel: CancellationToken,
+    preparation: Preparation,
+) -> Result<(), ProxyError> {
     let tasks = TaskTracker::new();
     let capacity = Arc::new(Semaphore::new(MAX_PROXY_CONNECTIONS));
     let result = loop {
@@ -138,6 +152,7 @@ async fn listen(listener: TcpListener, cancel: CancellationToken) -> Result<(), 
         let context = Context {
             cancel: cancel.clone(),
             tasks: tasks.clone(),
+            preparation: preparation.clone(),
             permit: Arc::new(permit),
         };
         let _task = tasks.spawn(async move {
@@ -160,5 +175,6 @@ async fn listen(listener: TcpListener, cancel: CancellationToken) -> Result<(), 
     cancel.cancel();
     let _closed = tasks.close();
     tasks.wait().await;
+    preparation.finish().await;
     result
 }

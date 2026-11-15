@@ -20,14 +20,14 @@ impl CommandId {
 /// A malformed private id is refused without copying it into an error.
 #[derive(Debug, Clone, Copy, thiserror::Error)]
 #[error("CDP identity is empty, too long or contains whitespace")]
-pub struct InvalidCdpIdentity;
+pub(crate) struct InvalidCdpIdentity;
 
 macro_rules! opaque_id {
     ($name:ident, $doc:literal) => {
         #[doc=$doc]
         #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
         #[serde(try_from = "String", into = "String")]
-        pub struct $name(Arc<str>);
+        pub(crate) struct $name(Arc<str>);
         impl TryFrom<String> for $name {
             type Error = InvalidCdpIdentity;
             fn try_from(value: String) -> Result<Self, Self::Error> {

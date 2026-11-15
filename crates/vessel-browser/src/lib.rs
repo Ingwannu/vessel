@@ -4,10 +4,17 @@
 //! validates the whole resolved answer and dials only a checked socket;
 //! references cannot alias elements across snapshot/navigation replacement.
 //! The node remains responsible for authenticated owner/service capabilities.
+//! A10 staging: the planned `browser: wire the qualified node browser actor`
+//! commit removes these attributes only with its real node consumer, qualified
+//! runtime and reviewed service authority. No caller-less product API is exported.
 
-pub mod cdp;
-pub mod network;
-pub mod proxy;
+#[cfg(test)]
+mod cdp;
+#[cfg(test)]
+mod network;
+#[cfg(test)]
+mod preparation;
+#[cfg(test)]
+mod proxy;
+#[cfg(test)]
 mod references;
-
-pub use references::{ReferenceError, References, SnapshotGeneration};

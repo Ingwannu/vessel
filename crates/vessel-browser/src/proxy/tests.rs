@@ -55,3 +55,50 @@ async fn dropping_the_profile_cancels_an_incomplete_client_connection() {
     .await
     .unwrap();
 }
+
+#[tokio::test]
+async fn profile_close_cannot_finish_or_replace_capacity_while_preparation_is_alive() {
+    use crate::preparation::{Preparation, PreparationError};
+    use std::sync::{Arc, mpsc as blocking};
+    use tokio::sync::{Semaphore, oneshot};
+    use tokio_util::sync::CancellationToken;
+
+    tokio::time::timeout(FIXTURE_DEADLINE, async {
+        let gate = Arc::new(Semaphore::new(1));
+        let cancel = CancellationToken::new();
+        let preparation = Preparation::with_gate(cancel.clone(), Arc::clone(&gate));
+        let proxy = PublicProxy::start_scope(cancel.clone(), preparation.clone())
+            .await
+            .unwrap();
+        let (started, entered) = oneshot::channel();
+        let (release, held) = blocking::channel();
+        let worker_scope = preparation.clone();
+        let caller = tokio::spawn(async move {
+            worker_scope
+                .run(move || {
+                    let _gone = started.send(());
+                    held.recv().unwrap();
+                })
+                .await
+        });
+        entered.await.unwrap();
+        let closing = tokio::spawn(proxy.close());
+        cancel.cancelled().await;
+        assert!(matches!(
+            caller.await.unwrap(),
+            Err(PreparationError::Closed)
+        ));
+        assert!(!closing.is_finished());
+        let replacement = Preparation::with_gate(CancellationToken::new(), Arc::clone(&gate));
+        assert!(matches!(
+            replacement.run(|| ()).await,
+            Err(PreparationError::Busy)
+        ));
+        release.send(()).unwrap();
+        closing.await.unwrap().unwrap();
+        replacement.run(|| ()).await.unwrap();
+        replacement.finish().await;
+    })
+    .await
+    .unwrap();
+}

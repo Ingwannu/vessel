@@ -8,7 +8,7 @@ const BROWSER_PATH_PREFIX: &str = "/devtools/browser/";
 
 /// A syntactically local endpoint; the launcher must separately prove child ownership.
 #[derive(Clone)]
-pub struct Endpoint(url::Url);
+pub(crate) struct Endpoint(url::Url);
 impl fmt::Debug for Endpoint {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("CdpEndpoint([redacted])")
@@ -17,7 +17,7 @@ impl fmt::Debug for Endpoint {
 
 /// Parsing retains the source without reflecting the private endpoint in its message.
 #[derive(Debug, thiserror::Error)]
-pub enum InvalidEndpoint {
+pub(crate) enum InvalidEndpoint {
     /// No DNS name, userinfo, external host, fragment or arbitrary websocket route.
     #[error("CDP endpoint is not a bounded local browser endpoint")]
     Policy,
@@ -34,7 +34,7 @@ impl Endpoint {
     ///
     /// # Errors
     /// Refuses DNS names/aliases, non-loopback hosts, credentials and non-browser routes.
-    pub fn from_launcher(text: &str) -> Result<Self, InvalidEndpoint> {
+    pub(crate) fn from_launcher(text: &str) -> Result<Self, InvalidEndpoint> {
         if text.len() > MAX_ENDPOINT_BYTES
             || text.chars().any(|c| c.is_control() || c.is_whitespace())
         {

@@ -9,9 +9,10 @@ const MAX_INTERFACE_RECORDS: usize = 512;
 
 /// Interface-observation failures do not weaken the destination rule.
 #[derive(Debug, thiserror::Error)]
-pub enum InterfaceError {
+pub(crate) enum InterfaceError {
     /// No qualified implementation is available on this platform yet.
     #[error("browser interface observation is unsupported on this platform")]
+    #[cfg(not(target_os = "linux"))]
     Unsupported,
     /// The system call must complete successfully.
     #[cfg(target_os = "linux")]
@@ -20,19 +21,10 @@ pub enum InterfaceError {
     /// A truncated snapshot cannot prove this host's address set.
     #[error("browser interface observation exceeded its bound or was empty")]
     Incomplete,
-    /// A failed blocking task is not equivalent to an empty host address set.
-    #[error("browser interface observation task failed")]
-    Task(#[source] tokio::task::JoinError),
 }
 
 pub(super) struct LocalInterfaces(BTreeSet<IpAddr>);
 impl LocalInterfaces {
-    pub(super) async fn current() -> Result<Self, InterfaceError> {
-        tokio::task::spawn_blocking(observe)
-            .await
-            .map_err(InterfaceError::Task)?
-    }
-
     pub(super) fn contains(&self, address: IpAddr) -> bool {
         self.0.contains(&super::canonical(address))
     }
@@ -44,7 +36,7 @@ impl LocalInterfaces {
 }
 
 #[cfg(target_os = "linux")]
-fn observe() -> Result<LocalInterfaces, InterfaceError> {
+pub(super) fn observe() -> Result<LocalInterfaces, InterfaceError> {
     let records = nix::ifaddrs::getifaddrs().map_err(InterfaceError::Observe)?;
     let mut addresses = BTreeSet::new();
     for (index, interface) in records.enumerate() {
@@ -67,6 +59,6 @@ fn observe() -> Result<LocalInterfaces, InterfaceError> {
 }
 
 #[cfg(not(target_os = "linux"))]
-fn observe() -> Result<LocalInterfaces, InterfaceError> {
+pub(super) fn observe() -> Result<LocalInterfaces, InterfaceError> {
     Err(InterfaceError::Unsupported)
 }

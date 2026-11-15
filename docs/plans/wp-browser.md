@@ -259,3 +259,27 @@ frames or engine qualification. Primary CDP method references: devtools-protocol
 Target and Page (https://chromedevtools.github.io/devtools-protocol/tot/Target/ ,
 https://chromedevtools.github.io/devtools-protocol/tot/Page/). Actual launched149
 protocol/runtime still must be qualified, with Preview support and all22 actions.
+
+
+## V3 preparation ownership / A10 correction
+
+The first proxy checkpoint was returned: dropping Tokio lookup_host or an
+untracked spawn_blocking wait did not stop its actual OS job, and the executable
+new-library API had no product consumer. All browser execution modules are now
+behind cfg(test), with crate-private visibility. Planned removal is the reviewed
+`browser: wire the qualified node browser actor` commit, together with its real
+node caller/runtime/service policy and whole gate; no staging feature or dead-code
+allowance substitutes for that wiring. This branch cannot be adopted as product
+execution before that review. Proto value types remain ordinary wire models.
+
+A single process-wide four-worker gate is shared across profile preparation
+scopes. The permit and profile TaskTracker token move inside the actual queued/
+started blocking closure and survive waiter cancellation/timeouts. DNS now uses
+std ToSocketAddrs inside that owner rather than Tokio's hidden resolver job;
+getifaddrs runs under the same owner. Overload refuses without an unbounded wait
+queue. Cancelled/late results cannot start or publish a socket; each dial rechecks
+profile cancellation at its execution boundary. Profile close cancels sockets,
+then waits for actual preparation completion. Its caller deadline can report an
+uncertain shutdown but does not release worker admission early. Barrier fixtures
+cover held work/caller abort, caller timeout, profile close, saturation and eventual
+release. Those common-owner fixtures do not pretend to induce a hung OS resolver.
