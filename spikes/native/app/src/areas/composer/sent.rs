@@ -200,12 +200,12 @@ impl Shell {
                 session,
                 outcome,
             } => {
-                if !self
+                if self
                     .areas
                     .composer
                     .sends
                     .get(&session)
-                    .is_some_and(|waiting| waiting.message == message)
+                    .is_none_or(|waiting| waiting.message != message)
                 {
                     return;
                 }

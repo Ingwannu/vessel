@@ -349,14 +349,14 @@ pub(super) fn tray(
                           index,
                           window: &mut Window,
                           cx: &mut Context<'_, Shell>| {
-                        shell.context_opened(target, index, window, cx)
+                        shell.context_opened(target, index, window, cx);
                     },
                 )
             },
         );
         let remove = std::rc::Rc::new(
             move |shell: &mut Shell, index, _window: &mut Window, cx: &mut Context<'_, Shell>| {
-                shell.context_removed(target, index, cx)
+                shell.context_removed(target, index, cx);
             },
         );
         let words = shell.words.composer();

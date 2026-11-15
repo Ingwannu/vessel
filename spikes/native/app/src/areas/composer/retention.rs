@@ -42,15 +42,15 @@ impl Shell {
         self.prune_empty_attachment_slots();
         let (files, contexts) = self.reserved_attachment_slots();
         let composer = &self.areas.composer;
-        (!composer
+        (composer
             .trays
             .get(source)
-            .is_some_and(|tray| !tray.is_empty())
+            .is_none_or(vessel_app_view::composer::tray::Tray::is_empty)
             || composer.trays.len().saturating_add(files) < Trays::MAX)
-            && (!composer
+            && (composer
                 .contexts
                 .get(source)
-                .is_some_and(|tray| !tray.is_empty())
+                .is_none_or(vessel_app_view::composer::context::ContextTray::is_empty)
                 || composer.contexts.len().saturating_add(contexts) < Trays::MAX)
     }
 }
