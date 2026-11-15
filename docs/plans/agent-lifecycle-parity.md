@@ -1323,3 +1323,12 @@ detach and repeated receipts, failed operations and savepoint rollback on clock
 exhaustion. Existing approvals/devices/log/marks/title-origin rollback fixtures
 only gain DROP COLUMN updated_at immediately before their old SQL; existing
 assertions and deadlines stay unchanged. Compile and execution remain pending.
+
+
+### Acknowledgement preparation (behavior-preserving)
+
+The private Store::write channel helper is generic over its existing typed
+reply instead of fixing it to unit. Its send, Closed mapping and commit wait
+are unchanged, and all current callers retain the same unit result. This lets
+subsequent clock acknowledgements reuse that one channel path; no new reply,
+public signature or mutation behavior is introduced by the refactor.

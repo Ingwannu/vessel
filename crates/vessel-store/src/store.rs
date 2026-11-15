@@ -381,7 +381,7 @@ impl Store {
         }
     }
 
-    async fn write(&self, write: impl FnOnce(Done) -> Write) -> Result<(), StoreError> {
+    async fn write<T>(&self, write: impl FnOnce(Done<T>) -> Write) -> Result<T, StoreError> {
         let (done, committed) = oneshot::channel();
         self.send(write(done)).await?;
         committed.await.map_err(|_dropped| StoreError::Closed)?
