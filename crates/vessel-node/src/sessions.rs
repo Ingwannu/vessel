@@ -78,6 +78,9 @@ pub(crate) struct Sessions {
     marking: tokio::sync::Mutex<()>,
     /// Sessions being started again (`again`), one call each.
     claims: again::Claims,
+    /// Observe the real gated-runtime boundary without polling in regressions.
+    #[cfg(test)]
+    resume_admission: tokio::sync::Notify,
     /// Each session's end, once its log is complete (protocol 11): what an
     /// agent's schedules end with (`automation`). Lossy by design: a
     /// listener that falls behind finds the agent gone at the schedule's
@@ -113,6 +116,8 @@ impl Sessions {
             models,
             marking: tokio::sync::Mutex::new(()),
             claims: again::Claims::default(),
+            #[cfg(test)]
+            resume_admission: tokio::sync::Notify::new(),
             ended: tokio::sync::broadcast::Sender::new(ENDED),
         }
     }

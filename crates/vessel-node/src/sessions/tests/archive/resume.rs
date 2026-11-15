@@ -51,7 +51,8 @@ async fn stored_archive_retains_resume_publication_exclusion_through_completion(
         }).await;
         // Observe the real gated runtime, rather than treating one pending poll
         // as proof that resume reached the shared publication admission.
-        while fixture.runtime.get(id).is_none() {tokio::task::yield_now().await;}
+        fixture.sessions.resume_admission.notified().await;
+        assert!(fixture.runtime.get(id).is_some());
         assert!(fixture.sessions.marking.try_lock().is_err());
         assert!(matches!(fixture.sessions.find(id).await.unwrap(), Found::Stored(info) if info.marks.archived_at == Some(at)));
         std::future::poll_fn(|cx| {

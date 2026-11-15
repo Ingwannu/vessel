@@ -113,6 +113,10 @@ the actual publication mutex, observes tracked deletion without any row removal,
 cancels its waiter, then releases admission and checks the committed deletion.
 This test is written but has not executed. Physical worktree/terminal cleanup
 admission remains separate and is not established by this session-row guard.
+The regression drives the real delete future using its own registered wakes;
+resume observes a test-only notification after the gated runtime exists and
+before publication admission. Neither test spins on registry state or sleeps to
+assume that an operation reached the barrier. Product admission is unchanged.
 
 W17 identified a separate A2 node gap: a CLI snapshot preflight cannot safely
 implement archive-without-force, because a prompt can be admitted before the stop.

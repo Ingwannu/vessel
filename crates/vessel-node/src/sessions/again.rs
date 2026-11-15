@@ -175,6 +175,8 @@ impl Sessions {
             created: Created { handle, durable },
             gate,
         } = self.runtime.start_again(continued(ended), launch).await?;
+        #[cfg(test)]
+        self.resume_admission.notify_one();
         let (durability, reopened) = {
             let _order = self.marking.lock().await;
             let durability = self.track(&handle, next);

@@ -26,16 +26,17 @@ async fn archive_delete_waits_for_publication_admission_and_retains_its_commit()
         let admission = fixture.sessions.marking.lock().await;
         assert_eq!(fixture.tasks.len(), 0);
         let sessions = Arc::clone(&fixture.sessions);
-        let mut request = tokio::spawn(async move { sessions.delete(id).await });
+        let mut request = Box::pin(sessions.delete(id));
         // Observe actual node-owned work, rather than treating one Pending poll
         // as proof that deletion reached the publication barrier.
-        tokio::select! {
-            result = &mut request => panic!("delete escaped held admission: {result:?}"),
-            () = async { while fixture.tasks.len() == 0 { tokio::task::yield_now().await; } } => {}
-        }
+        std::future::poll_fn(|cx| match request.as_mut().poll(cx) {
+            std::task::Poll::Ready(result) => panic!("delete escaped held admission: {result:?}"),
+            std::task::Poll::Pending if fixture.tasks.len() == 0 => std::task::Poll::Pending,
+            std::task::Poll::Pending => std::task::Poll::Ready(()),
+        })
+        .await;
         assert!(fixture.store.session(id).await.unwrap().is_some());
-        request.abort();
-        assert!(request.await.unwrap_err().is_cancelled());
+        drop(request);
         assert_eq!(fixture.tasks.len(), 1);
         assert!(fixture.store.session(id).await.unwrap().is_some());
         drop(admission);
