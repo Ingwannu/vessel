@@ -125,3 +125,9 @@ rather than a modal; the node's removal semantics are unchanged. This is not the
 new workspace archive operation. Four pure transition regressions cover duplicate
 submission, cancellation/reopen, host change and counter exhaustion. Real link and
 rendered interaction checks remain pending.
+
+Three link regressions now exercise real framed NodeClient RPC over duplex memory:
+exact remove target/ticket, queue refusal correlation, and read-only node refusal.
+No real host, agent or filesystem project mutation is involved. Checks are still
+pending; source is not called passed. The package base merge follows the central
+announcement rather than independently merging root node code into the app.

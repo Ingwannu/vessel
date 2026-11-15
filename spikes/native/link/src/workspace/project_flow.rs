@@ -69,3 +69,6 @@ async fn send(client: &NodeClient, action: ProjectAction) -> Result<ProjectChang
             .map(|_ack| ProjectChanged::Removed(project)),
     }
 }
+
+#[cfg(test)]
+mod tests;
