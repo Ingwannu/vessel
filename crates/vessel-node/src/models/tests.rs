@@ -6,7 +6,7 @@
 use std::fmt::Write as _;
 use std::future::Future;
 use std::net::SocketAddr;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
 use axum::body::Bytes;
@@ -42,6 +42,7 @@ type Records = JoinHandle<Vec<Arc<EventRecord>>>;
 pub(super) struct Fixture {
     pub(super) data: TempDir,
     bin: TempDir,
+    structured: OnceLock<()>,
     pub(super) runtime: Arc<SessionRuntime>,
     pub(super) upstream: FakeUpstream,
     pub(super) models: Arc<Models>,
@@ -92,6 +93,7 @@ impl Fixture {
         Self {
             data,
             bin,
+            structured: OnceLock::new(),
             runtime,
             upstream,
             models,
@@ -140,15 +142,18 @@ impl Fixture {
 
     /// Structured title tests borrow the same isolated runtime/provider fixture.
     pub(super) async fn structured(&self) -> (SessionHandle, Records) {
-        drop(
-            install(
-                self.bin.path(),
-                HarnessKind::ClaudeCode,
-                Role::Structured,
-                &Fake::Acp.path().unwrap(),
-            )
-            .unwrap(),
-        );
+        // Replacement-admission cases create multiple sessions in one lookup.
+        let _installed = self.structured.get_or_init(|| {
+            drop(
+                install(
+                    self.bin.path(),
+                    HarnessKind::ClaudeCode,
+                    Role::Structured,
+                    &Fake::Acp.path().unwrap(),
+                )
+                .unwrap(),
+            );
+        });
         let spec = SessionSpec::new(
             HarnessKind::ClaudeCode,
             SessionMode::Structured {

@@ -186,7 +186,11 @@ that already uses `..` is left alone.
   Source review passed the package and correction. The new held-real-closure
   regressions remain unexecuted. The first strict check caught an incorrect
   token import path before tests could compile; the qualified path is corrected
-  without changing ownership. Current corrected validation is still owed.
+  without changing ownership. Corrected strict checks passed. The models suite
+  then passed its existing cases but exposed a fixture reinstall when the new
+  physical-work cases created their second session. That fixture now installs
+  its structured fake once per lookup; the same assertions and deadlines remain.
+  Corrected runtime validation is still owed.
 - **Next:** finish current correction validation before handover. On consuming
   the announced checked settings repairs, verify that their privacy and writer
   lifetime rules retain the metadata file adapter and runtime apply behavior.
