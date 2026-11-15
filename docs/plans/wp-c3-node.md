@@ -310,3 +310,13 @@ source/compiler failures. Their logs stay intact and are not counted as tests.
 The new325fec9d core Clippy is the meaningful replacement for the interrupted
 old node run. No duplicate old run is submitted. All Rust compilation stays on
 the remote build VM; local checks here only inspect text and boundaries.
+
+### Exact history-wiring test attempt
+
+Run wp-git-node-narrow-20261115T110153Z-ba94e9e6 completed web-ci and
+nested-fakes, then nested-vesseld failed compilation with E0277: the new
+ReadGitHistory request lacked its explicit guard::Target declaration. The
+library tests never started. Add it to the existing no-session-target list:
+this is a registered-root read under its method Read scope and workspace agent
+policy, not a session ownership operation. The node still revalidates the root.
+A new changed-source remote run is required; no previous result is relabeled.

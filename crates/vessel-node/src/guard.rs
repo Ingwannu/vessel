@@ -293,6 +293,7 @@ untargeted!(
     vessel_proto::workspace::GetStatus,
     vessel_proto::workspace::CompareGit,
     vessel_proto::workspace::CompareGitFile,
+    vessel_proto::workspace::ReadGitHistory,
     vessel_proto::workspace::GetChanges,
     vessel_proto::workspace::GetFileDiff,
     vessel_proto::workspace::ShowFile,
