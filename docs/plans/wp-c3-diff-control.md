@@ -28,7 +28,7 @@ supplies statusSuccess/statusDanger15%/10%, muted numbers and terminal-blue
 selection. paint.web.ts uses independent old/new editors; native actual-font
 measurement replaces the approximate0.62 digit multiplier. This first control
 retains the engine six-point gutter gap. Sparse-hunk syntax context is incomplete;
-final source/reference geometry, header muted text, cross-file selection and
+final source/reference geometry, cross-file selection and
 consumer body/cache/scroll policy remain C3 work, not claims of this producer.
 
 The lead and V1 source-prechecked the optional resolver/viewport/coordinate
@@ -60,3 +60,49 @@ The package's prior fa1 Clippy reached Kit and found a partial doc span,
 redundant Render qualification and two fixture API spellings. The exact same
 three corrected source blobs are installed here. This does not relabel fa1 as
 a pass or execute any window test; the isolated producer still needs its gate.
+
+## Source-copy consumer gap (not covered by engine-preservation tests)
+
+Paseo diff-document/hit-testing.test.ts119–170 expects unified copy to retain
+headers, but split new-side copy to omit headers/null old-only cells; old-side
+copy retains its own header and source. Header select-all prefers new, with an
+old-side fallback for deletion-only hunks. hit-testing.ts selectedCellRanges
+skips null cells; model.ts lineSources emits the hunk header in one cell.
+
+The current C3 BufferColumns repeats a header in both columns and uses empty
+engine rows for missing cells. Ordinary native Copy therefore includes that
+header/empty padding. The queued27194 fixtures assert selection/clipboard equals
+the admitted buffer, not exact Paseo split-source extraction. They remain valid
+engine-preservation checks but cannot be reported as source-copy parity.
+
+This is unresolved C3 consumer work, not a silently accepted difference or a
+reason to change patch7's engine selection/copy model. A possible Kit-only
+projection of the same selected byte range through immutable row metadata has
+been sent to the lead/V1 before any implementation. No competing selection
+engine, vendor API widening, failing/blessed reference fixture or fabricated UI
+proof is introduced by this note.
+
+Lead ruling after tracing paint.web.ts270: that one header cell spans the full
+viewport (columnWidth = viewportWidth / cells.length). The proposed native
+split has two independently clipped half-width engines; merely blanking its
+new-side header would clip the remaining header to half width. The split body
+is not mounted, so this source-model gap is not reachable in the current
+summary-only registry. Keep the duplicated model unchanged in this packet.
+
+Follow-up is one renderer-mount packet with a plan first to lead+V1: a full-width
+header over the two immutable engines (display-only virtual rows, synchronized
+scroll/row height, no second selection engine), shared action-capture copy
+projection and the four actual hit-testing source-copy fixtures. No such
+renderer/virtual-row/copy seam is implemented or approved by this ruling.
+The current bounded control packet may proceed with this explicit exclusion;
+this does not make full C3/split/copy parity passed.
+
+## Immutable producer selection
+
+This handoff branch retains exact27194 Rust source. The later header foreground
+TextDecorationCollection correction (fb8a98cf2, d7fee2bff in the app) is preserved
+on the separate development branch but deliberately excluded: its own tests
+have not compiled or run. It must not silently enter a27194 evidence packet.
+All14 Kit/vendor production and test blobs selected here equal those in the
+queued b011 consumer all-target check. The27194 public test run and b011 Clippy
+are still queued; there is no pass or integration-ready handoff yet.
