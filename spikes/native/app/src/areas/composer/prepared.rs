@@ -24,27 +24,81 @@ impl PreparedSubmission {
 pub(crate) use vessel_app_view::composer::attach::PrepareProblem;
 
 impl Shell {
-    /// The creation flow supplies the node it admitted before any asynchronous work.
-    pub(crate) fn prepare_draft_files_on(
+    /// Recovery tests exercise the retired node/name wrapper without live I/O.
+    #[cfg(test)]
+    pub(crate) fn prepare_draft_input(
         &mut self,
         ticket: Ticket,
+        message: vessel_proto::timeline::ClientMessageId,
         expected_node: vessel_proto::NodeId,
         machine: &str,
         text: &str,
     ) -> Result<Option<PreparedSubmission>, PrepareProblem> {
-        let machine =
+        if self.composer_attachments_blocked(DraftKey::New) {
+            return Err(PrepareProblem::Busy);
+        }
+        let _name =
             vessel_app_view::machine_book::Name::parse(machine).map_err(PrepareProblem::Machine)?;
-        if !self.composer_has_files(DraftKey::New) {
+        if !self.draft_has_files() {
             return Ok(None);
         }
-        if self.areas.composer.sends.len() >= vessel_app_view::composer::trays::Trays::MAX {
+        let connection = self
+            .fleet
+            .machines
+            .iter()
+            .find(|entry| entry.name == machine && entry.node == Some(expected_node))
+            .and_then(vessel_app_view::Machine::connection_context)
+            .ok_or(vessel_app_view::composer::attach::TargetProblem::Offline)?;
+        self.prepare_draft_input_on(ticket, message, connection, text)
+    }
+
+    /// A1 may pass the exact context it captured before selecting/creating a child.
+    pub(crate) fn prepare_draft_input_on(
+        &mut self,
+        ticket: Ticket,
+        message: vessel_proto::timeline::ClientMessageId,
+        connection: vessel_app_view::connection::ConnectionContext,
+        text: &str,
+    ) -> Result<Option<PreparedSubmission>, PrepareProblem> {
+        let machine = connection.machine().as_str();
+        let expected_node = connection.node();
+        if self.composer_attachments_blocked(DraftKey::New) {
+            return Err(PrepareProblem::Busy);
+        }
+        let machine =
+            vessel_app_view::machine_book::Name::parse(machine).map_err(PrepareProblem::Machine)?;
+        if !self.draft_has_files() {
+            return Ok(None);
+        }
+        if self
+            .areas
+            .composer
+            .sends
+            .len()
+            .saturating_add(self.areas.composer.workspace_starting.len())
+            >= vessel_app_view::composer::trays::Trays::MAX
+        {
+            return Err(PrepareProblem::Capacity);
+        }
+        if !self.creation_has_attachment_room(DraftKey::New) {
             return Err(PrepareProblem::Capacity);
         }
         let mut held = self.areas.composer.starting.borrow_mut();
         if held.is_some() {
             return Err(PrepareProblem::Busy);
         }
+        let context = self
+            .areas
+            .composer
+            .contexts
+            .get_mut(DraftKey::New)
+            .map(vessel_app_view::composer::context::ContextTray::prepare)
+            .transpose()?
+            .flatten();
         *held = Some(Starting {
+            connection,
+            message,
+            context,
             machine,
             expected_node,
             text: text.to_owned(),
@@ -76,20 +130,24 @@ impl Shell {
                 held.ticket == Some(ticket) && held.machine.as_str() == card.machine
             });
         if matches {
-            let retained = self
-                .areas
-                .composer
-                .starting
-                .borrow()
-                .as_ref()
-                .map(|held| (held.machine.clone(), held.expected_node));
-            let Some((machine, expected_node)) = retained else {
+            let retained = self.areas.composer.starting.borrow().as_ref().map(|held| {
+                (
+                    held.machine.clone(),
+                    held.expected_node,
+                    held.connection.clone(),
+                )
+            });
+            let Some((machine, expected_node, connection)) = retained else {
                 return;
             };
             self.composer_started(card, cx);
-            if let Err(why) =
-                self.read_creation_capabilities(ticket, machine, expected_node, card.session)
-            {
+            if let Err(why) = self.read_creation_capabilities(
+                ticket,
+                machine,
+                expected_node,
+                connection,
+                card.session,
+            ) {
                 self.fail_creation_preparation(card.session, &why, cx);
             }
         }
@@ -101,11 +159,22 @@ impl Shell {
             .as_ref()
             .is_some_and(|held| held.ticket == Some(ticket))
         {
-            *held = None;
+            if let Some(starting) = held.take()
+                && let Some(context) = &starting.context
+                && let Some(tray) = self.areas.composer.contexts.get_mut(DraftKey::New)
+            {
+                let _settled = tray.settle(
+                    context,
+                    vessel_app_view::composer::context::SubmissionOutcome::Failed,
+                );
+            }
             cx.notify();
         }
     }
 }
 
 #[cfg(test)]
-mod tests;
+pub(super) mod tests;
+
+mod workspace;
+pub(crate) use workspace::WorkspaceInput;

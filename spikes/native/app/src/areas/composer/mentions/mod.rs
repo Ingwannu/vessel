@@ -43,6 +43,14 @@ impl Shell {
     pub(super) fn composer_field(&self, target: DraftKey) -> Option<&TextField> {
         match target {
             DraftKey::New => Some(&self.areas.draft.composer),
+            DraftKey::Workspace {
+                node,
+                workspace,
+                draft,
+            } => self.workspace_draft_field(
+                &vessel_app_view::layout::LayoutKey::Workspace { node, workspace },
+                draft,
+            ),
             DraftKey::Session { session } => self
                 .areas
                 .session
@@ -52,14 +60,29 @@ impl Shell {
                 .map(|_| &self.areas.session.composer),
         }
     }
-    pub(super) fn file_menu(&self, target: DraftKey) -> &RefCell<FileMenu> {
+    pub(super) fn file_menu(&self, target: DraftKey) -> std::rc::Rc<RefCell<FileMenu>> {
         match target {
-            DraftKey::New => &self.areas.composer.draft_files,
-            DraftKey::Session { .. } => &self.areas.composer.session_files,
+            DraftKey::New => std::rc::Rc::clone(&self.areas.composer.draft_files),
+            DraftKey::Session { .. } => std::rc::Rc::clone(&self.areas.composer.session_files),
+            DraftKey::Workspace { .. } => std::rc::Rc::clone(
+                self.areas
+                    .composer
+                    .workspace_files
+                    .borrow_mut()
+                    .tray(target),
+            ),
         }
     }
     pub(super) fn composer_context_scope(&self, target: DraftKey) -> Option<ContextScope> {
         match target {
+            DraftKey::Workspace {
+                node,
+                workspace,
+                draft,
+            } => self.workspace_draft_context_scope(
+                &vessel_app_view::layout::LayoutKey::Workspace { node, workspace },
+                draft,
+            ),
             DraftKey::New => {
                 let machine = Name::parse(self.areas.draft.machine.as_deref()?).ok()?;
                 let project = self.chosen_place()?.project;
@@ -76,17 +99,18 @@ impl Shell {
                     .as_ref()
                     .filter(|open| open.session == session)?;
                 let machine = Name::parse(&open.machine).ok()?;
-                match &*self.areas.composer.mention_root.borrow() {
+                let connection = self.attachment_context(&machine)?;
+                let root = match &*self.areas.composer.mention_root.borrow() {
                     Root::Ready(ask, Ok(Some(root)))
-                        if ask.machine == machine && ask.session == session =>
+                        if ask.machine == machine
+                            && ask.session == session
+                            && ask.connection == connection =>
                     {
-                        Some(ContextScope {
-                            machine,
-                            root: *root,
-                        })
+                        Some(*root)
                     }
                     Root::Missing | Root::Exhausted | Root::Reading(_) | Root::Ready(_, _) => None,
-                }
+                }?;
+                Some(ContextScope { machine, root })
             }
         }
     }
@@ -106,12 +130,18 @@ impl Shell {
         let Ok(machine) = Name::parse(&open.machine) else {
             return;
         };
+        let Some(connection) = self.attachment_context(&machine) else {
+            return;
+        };
         let mut state = self.areas.composer.mention_root.borrow_mut();
         let unchanged = match &*state {
-            Root::Reading(old) => old.machine == machine && old.session == session,
+            Root::Reading(old) => {
+                old.machine == machine && old.session == session && old.connection == connection
+            }
             Root::Ready(old, result) => {
                 old.machine == machine
                     && old.session == session
+                    && old.connection == connection
                     && (result.is_ok()
                         || self.areas.composer.mention_root_token.borrow().as_ref() == Some(token))
             }
@@ -127,6 +157,7 @@ impl Shell {
         };
         self.areas.composer.mention_root_clock.set(ticket);
         let ask = RootAsk {
+            connection,
             machine,
             session,
             ticket,
@@ -182,17 +213,26 @@ impl Shell {
         if let Some(token) = token {
             self.resolve_mention_root(target, &token);
         }
-        let scope = self.composer_context_scope(target).map(|scope| Scope {
-            draft: target,
-            machine: scope.machine,
-            root: scope.root,
+        let scope = self.composer_context_scope(target).and_then(|scope| {
+            self.attachment_context(&scope.machine)
+                .map(|connection| Scope {
+                    connection,
+                    draft: target,
+                    machine: scope.machine,
+                    root: scope.root,
+                })
         });
         let now = Duration::from_secs_f32(self.areas.composer.now());
-        let request = self
-            .file_menu(target)
-            .borrow_mut()
-            .model
-            .observe(scope, &text, caret, now);
+        let owner = self.file_menu(target);
+        let mut menu = owner.borrow_mut();
+        menu.model
+            .inherit_ticket_clock(self.areas.composer.mention_query_clock.get());
+        let request = menu.model.observe(scope, &text, caret, now);
+        self.areas
+            .composer
+            .mention_query_clock
+            .set(menu.model.ticket_clock());
+        drop(menu);
         let Ok(Some(request)) = request else {
             return;
         };
@@ -201,6 +241,9 @@ impl Shell {
             let _closed = this.update(cx, |shell, cx| {
                 // Re-observe before dispatch: the caret may have moved without
                 // an edit while the timer was waiting.
+                if shell.composer_field(target).is_none() {
+                    return;
+                }
                 shell.observe_file_menu(target, cx);
                 let ready = shell
                     .file_menu(target)
@@ -227,6 +270,14 @@ impl Shell {
         }
     }
     pub(crate) fn composer_mention_answer(&mut self, answer: Answer, cx: &mut Context<'_, Self>) {
+        if self.composer_field(answer.request.scope.draft).is_none()
+            || self
+                .attachment_context(&answer.request.scope.machine)
+                .as_ref()
+                != Some(&answer.request.scope.connection)
+        {
+            return;
+        }
         let now = Duration::from_secs_f32(self.areas.composer.now());
         let changed = self
             .file_menu(answer.request.scope.draft)
@@ -237,6 +288,69 @@ impl Shell {
             cx.notify();
         }
     }
+    /// Global shortcut routing reads admission without changing selection/input.
+    pub(crate) fn composer_file_menu_owns_key(
+        &self,
+        target: DraftKey,
+        key: ComposerKey,
+        cx: &vessel_app_kit::ui::App,
+    ) -> bool {
+        if self.composer_destination() != Some(target) {
+            return false;
+        }
+        let owner = self.file_menu(target);
+        let state = owner.borrow();
+        let token = self.active_file_token(target, cx);
+        let current = token.as_ref().is_some_and(|token| {
+            state.model.request().is_some_and(|request| {
+                request.mention == *token
+                    && self.attachment_context(&request.scope.machine).as_ref()
+                        == Some(&request.scope.connection)
+                    && self.composer_context_scope(target).is_some_and(|scope| {
+                        request.scope.draft == target
+                            && request.scope.machine == scope.machine
+                            && request.scope.root == scope.root
+                    })
+            })
+        });
+        if key != ComposerKey::Escape {
+            return current && !state.model.rows().is_empty();
+        }
+        let root_popup = token.is_some()
+            && match &*self.areas.composer.mention_root.borrow() {
+                Root::Reading(ask) | Root::Ready(ask, Err(_)) => {
+                    self.areas.session.open.as_ref().is_some_and(|open| {
+                        target
+                            == (DraftKey::Session {
+                                session: open.session,
+                            })
+                            && open.session == ask.session
+                            && open.machine == ask.machine.as_str()
+                            && self.attachment_context(&ask.machine).as_ref()
+                                == Some(&ask.connection)
+                    })
+                }
+                Root::Exhausted => true,
+                Root::Missing | Root::Ready(_, Ok(_)) => false,
+            };
+        let invalid = match state.model.phase() {
+            mentions::Phase::Invalid(problem) if self.composer_context_scope(target).is_some() => {
+                self.composer_field(target).is_some_and(|field| {
+                    mentions::active(&field.text(cx), field.caret(cx))
+                        .is_err_and(|current| &current == problem)
+                })
+            }
+            mentions::Phase::Hidden
+            | mentions::Phase::Debouncing { .. }
+            | mentions::Phase::Loading { .. }
+            | mentions::Phase::Rows { .. }
+            | mentions::Phase::Empty(_)
+            | mentions::Phase::Failed { .. }
+            | mentions::Phase::Invalid(_) => false,
+        };
+        current || root_popup || invalid
+    }
+
     /// The composer shell delegates before slash handling so an active @ token wins.
     pub(crate) fn composer_file_key(
         &mut self,
@@ -246,12 +360,7 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) -> KeyAnswer {
         self.observe_file_menu(target, cx);
-        let visible = !matches!(
-            self.file_menu(target).borrow().model.phase(),
-            mentions::Phase::Hidden
-        ) || (self.active_file_token(target, cx).is_some()
-            && matches!(&*self.areas.composer.mention_root.borrow(), Root::Reading(ask) if matches!(target, DraftKey::Session { session } if session == ask.session)));
-        if !visible {
+        if !self.composer_file_menu_owns_key(target, key, cx) {
             return KeyAnswer::Pass;
         }
         if key == ComposerKey::Escape {
@@ -290,8 +399,12 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        if self.composer_destination() != Some(target) {
+            return;
+        }
         let choice = {
-            let state = self.file_menu(target).borrow();
+            let owner = self.file_menu(target);
+            let state = owner.borrow();
             state
                 .model
                 .request()
@@ -301,6 +414,16 @@ impl Shell {
         let Some((request, path)) = choice else {
             return;
         };
+        if self.attachment_context(&request.scope.machine).as_ref()
+            != Some(&request.scope.connection)
+        {
+            return;
+        }
+        if self.composer_context_scope(target).is_none_or(|scope| {
+            scope.machine != request.scope.machine || scope.root != request.scope.root
+        }) {
+            return;
+        }
         let Some(field) = self.composer_field(target) else {
             return;
         };
@@ -321,25 +444,14 @@ impl Shell {
             cx,
         );
         field.focus(window, cx);
+        let current = field.text(cx);
+        if matches!(target, DraftKey::Workspace { .. }) {
+            self.composer_keep_workspace_text(target, &current, cx);
+        }
         self.file_menu(target).borrow_mut().model.dismiss();
         cx.notify();
     }
-    fn draft_mention_clicked(
-        &mut self,
-        index: usize,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        self.choose_mention(DraftKey::New, index, window, cx);
-    }
-    fn session_mention_clicked(
-        &mut self,
-        index: usize,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        if let Some(target) = self.session_tray_key() {
-            self.choose_mention(target, index, window, cx);
-        }
-    }
 }
+
+#[cfg(test)]
+mod tests;

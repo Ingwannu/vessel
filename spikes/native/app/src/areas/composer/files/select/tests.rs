@@ -13,7 +13,7 @@ fn clipboard_menu_attaches_the_image_and_restores_the_target_field(cx: &mut Test
         bytes.clone(),
     )));
     shell.update_in(cx, |shell, window, cx| {
-        shell.areas.composer.attach_for = Some(true);
+        shell.areas.composer.attach_for = Some(DraftKey::New);
         shell.composer_choose(Acquire::ClipboardImage, window, cx);
         let tray = shell.areas.composer.trays.get(DraftKey::New).unwrap();
         assert_eq!(tray.items().len(), 1);
@@ -33,7 +33,7 @@ fn empty_image_clipboard_is_a_visible_error_without_inserting_its_text(cx: &mut 
             .draft
             .composer
             .set_text("kept draft", window, cx);
-        shell.areas.composer.attach_for = Some(true);
+        shell.areas.composer.attach_for = Some(DraftKey::New);
         shell.composer_choose(Acquire::ClipboardImage, window, cx);
         assert!(!shell.composer_has_files(DraftKey::New));
         assert_eq!(shell.areas.draft.composer.text(cx), "kept draft");

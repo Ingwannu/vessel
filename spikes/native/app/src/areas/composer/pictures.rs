@@ -13,6 +13,7 @@ pub(super) fn picture(
 ) -> ImageSource {
     match origin {
         Origin::File(path) => ImageSource::from(path.clone()),
+        Origin::Stored(local) => ImageSource::from(local.path.clone()),
         Origin::Pasted(bytes) => shell.areas.composer.pictures.of(bytes, mime.as_str()),
     }
 }

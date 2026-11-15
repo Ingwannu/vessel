@@ -24,9 +24,94 @@ pub(in crate::areas::composer) fn menu(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     shell.observe_file_menu(target, cx);
-    let state = shell.file_menu(target).borrow();
+    let owner = shell.file_menu(target);
+    let state = owner.borrow();
+    let current = listing(shell, target, cx);
+    let now = shell.areas.composer.now();
+    let mut reveal = state.reveal.borrow_mut();
+    reveal.follow(
+        current.is_some(),
+        now,
+        if motion::held(cx) {
+            0.0
+        } else {
+            motion::STANDARD.as_secs_f32()
+        },
+    );
+    let Some(shown) = reveal.shown(now) else {
+        drop(state.last.borrow_mut().take());
+        return None;
+    };
+    if reveal.moving(now) {
+        window.request_animation_frame();
+    }
+    drop(reveal);
+    let (listing, chosen) = if let Some(current) = current {
+        *state.last.borrow_mut() = Some(current.clone());
+        current
+    } else {
+        state.last.borrow().clone()?
+    };
+    let on_choose =
+        move |shell: &mut Shell, index, window: &mut Window, cx: &mut Context<'_, Shell>| {
+            shell.choose_mention(target, index, window, cx);
+        };
+    let id = match target {
+        DraftKey::New => "draft-files",
+        DraftKey::Session { .. } => "session-files",
+        DraftKey::Workspace { .. } => "workspace-files",
+    };
+    let list = autocomplete(
+        id,
+        &listing,
+        chosen,
+        &state.list,
+        on_choose,
+        ROWS,
+        tokens,
+        cx,
+    );
+    let room = state.drawn.get().map(|bounds| {
+        px(f32::from(bounds.bottom())
+            .mul_add(
+                1.0,
+                if chrome::system_titlebar() {
+                    AT_TOP
+                } else {
+                    UNDER_BAR
+                },
+            )
+            .max(0.0))
+    });
+    if room.is_none() {
+        window.request_animation_frame();
+    }
+    Some(
+        div()
+            .absolute()
+            .left_0()
+            .right_0()
+            .bottom_full()
+            .mb(px(LIFT.mul_add(shown, OFFSET)))
+            .flex()
+            .flex_col()
+            .when_some(room, Styled::max_h)
+            .opacity(shown)
+            .child(anchor_probe(&state.drawn))
+            .child(list)
+            .into_any_element(),
+    )
+}
+
+fn listing(
+    shell: &Shell,
+    target: DraftKey,
+    cx: &vessel_app_kit::ui::App,
+) -> Option<(Listing, Option<usize>)> {
+    let owner = shell.file_menu(target);
+    let state = owner.borrow();
     let words = shell.words.composer();
-    let current = match state.model.phase() {
+    match state.model.phase() {
         Phase::Hidden => {
             let token = shell.active_file_token(target, cx);
             if token.is_some() {
@@ -82,78 +167,5 @@ pub(in crate::areas::composer) fn menu(
                 .collect();
             Some((Listing::Rows(rows), state.model.selected()))
         }
-    };
-    let now = shell.areas.composer.now();
-    let mut reveal = state.reveal.borrow_mut();
-    reveal.follow(
-        current.is_some(),
-        now,
-        if motion::held(cx) {
-            0.0
-        } else {
-            motion::STANDARD.as_secs_f32()
-        },
-    );
-    let Some(shown) = reveal.shown(now) else {
-        drop(state.last.borrow_mut().take());
-        return None;
-    };
-    if reveal.moving(now) {
-        window.request_animation_frame();
     }
-    drop(reveal);
-    let (listing, chosen) = if let Some(current) = current {
-        *state.last.borrow_mut() = Some(current.clone());
-        current
-    } else {
-        state.last.borrow().clone()?
-    };
-    let on_choose = match target {
-        DraftKey::New => Shell::draft_mention_clicked,
-        DraftKey::Session { .. } => Shell::session_mention_clicked,
-    };
-    let id = match target {
-        DraftKey::New => "draft-files",
-        DraftKey::Session { .. } => "session-files",
-    };
-    let list = autocomplete(
-        id,
-        &listing,
-        chosen,
-        &state.list,
-        on_choose,
-        ROWS,
-        tokens,
-        cx,
-    );
-    let room = state.drawn.get().map(|bounds| {
-        px(f32::from(bounds.bottom())
-            .mul_add(
-                1.0,
-                if chrome::system_titlebar() {
-                    AT_TOP
-                } else {
-                    UNDER_BAR
-                },
-            )
-            .max(0.0))
-    });
-    if room.is_none() {
-        window.request_animation_frame();
-    }
-    Some(
-        div()
-            .absolute()
-            .left_0()
-            .right_0()
-            .bottom_full()
-            .mb(px(LIFT.mul_add(shown, OFFSET)))
-            .flex()
-            .flex_col()
-            .when_some(room, Styled::max_h)
-            .opacity(shown)
-            .child(anchor_probe(&state.drawn))
-            .child(list)
-            .into_any_element(),
-    )
 }
