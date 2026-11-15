@@ -34,9 +34,16 @@ pub(super) fn ended_refused(info: &ScheduleInfo) -> Result<(), AutomationError> 
 /// Pinned Paseo schedule/service.ts458–509 keeps completed status on update.
 pub(super) fn update_admitted(info: &ScheduleInfo) -> Result<(), AutomationError> {
     match info.state {
-        ScheduleState::Active { .. }
-        | ScheduleState::Paused { .. }
-        | ScheduleState::Ended { .. } => Ok(()),
+        ScheduleState::Active { .. } | ScheduleState::Paused { .. } => Ok(()),
+        ScheduleState::Ended { reason, .. } => match reason {
+            EndReason::MaxRuns
+            | EndReason::Expired
+            | EndReason::CreatorGone
+            | EndReason::TargetGone => Ok(()),
+            EndReason::Unknown => Err(AutomationError::Conflict(
+                "the schedule has an unknown end reason".to_owned(),
+            )),
+        },
         ScheduleState::Unknown => Err(AutomationError::Conflict(
             "the schedule has an unknown state".to_owned(),
         )),

@@ -102,31 +102,39 @@ async fn ended_definition_edit_keeps_end_reason_time_authority_and_revision_fenc
 #[tokio::test]
 async fn unknown_definition_edit_is_refused_without_touching_the_record() {
     hang_guard("unknown definition refusal", async {
-        let mut fixture = seeded(ScheduleState::Unknown).await;
-        let mut definition = fixture.info.definition.clone();
-        definition.prompt = "Must not be stored".parse().unwrap();
-        let refused = fixture
-            .node
-            .schedules
-            .update(fixture.info.id, fixture.info.revision, definition, person())
-            .await;
-        assert!(matches!(refused, Err(AutomationError::Conflict(_))));
-        assert_eq!(
-            fixture.node.schedules.get(fixture.info.id).await.unwrap(),
-            fixture.info
-        );
-        let stored = fixture.node.store.automation().await.unwrap();
-        assert_eq!(
-            stored
+        for state in [
+            ScheduleState::Unknown,
+            ScheduleState::Ended {
+                at: at("2026-01-01T09:30:00Z"),
+                reason: EndReason::Unknown,
+            },
+        ] {
+            let mut fixture = seeded(state).await;
+            let mut definition = fixture.info.definition.clone();
+            definition.prompt = "Must not be stored".parse().unwrap();
+            let refused = fixture
+                .node
                 .schedules
-                .iter()
-                .find(|info| info.id == fixture.info.id),
-            Some(&fixture.info)
-        );
-        assert!(matches!(
-            fixture.jobs.try_recv(),
-            Err(mpsc::error::TryRecvError::Empty)
-        ));
+                .update(fixture.info.id, fixture.info.revision, definition, person())
+                .await;
+            assert!(matches!(refused, Err(AutomationError::Conflict(_))));
+            assert_eq!(
+                fixture.node.schedules.get(fixture.info.id).await.unwrap(),
+                fixture.info
+            );
+            let stored = fixture.node.store.automation().await.unwrap();
+            assert_eq!(
+                stored
+                    .schedules
+                    .iter()
+                    .find(|info| info.id == fixture.info.id),
+                Some(&fixture.info)
+            );
+            assert!(matches!(
+                fixture.jobs.try_recv(),
+                Err(mpsc::error::TryRecvError::Empty)
+            ));
+        }
     })
     .await;
 }

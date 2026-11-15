@@ -302,7 +302,7 @@ Pinned Paseo0.15.4 schedule/service.ts458–509 preserves completed status while
 updating a definition; its schedule-row.tsx209–250 still opens that form.
 The schedule actor therefore admits updates of known Ended records separately
 from pause/resume/run admission. It retains the exact end reason/time, even
-when a new run cap is below the historical count. Unknown stays refused.
+when a new run cap is below the historical count. Unknown states/end reasons stay refused.
 The original ownership, forwarded-call restrictions, revision comparison,
 serialization and storage path are unchanged. This requires no wire/schema
 change. Source tests and narrow/V3 evidence are recorded in wp-F1-node; this

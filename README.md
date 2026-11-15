@@ -654,7 +654,7 @@ vessel prompt run review --session 3f2a     # into its queue
   archives); nobody is asked questions in it, and a permission it asks
   makes the run wait (the next due times are skipped meanwhile).
 - Editing a known ended schedule changes its definition without restarting it
-  or changing its recorded end reason/time. Unknown newer states are refused;
+  or changing its recorded end reason/time. Unknown states/end reasons are refused;
   ownership and the original revision are still checked. Pause/resume/run-now
   remain unavailable after the schedule ends.
 - `--harness` names one of the four or an agent added on the node

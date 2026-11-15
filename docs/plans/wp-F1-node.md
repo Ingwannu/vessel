@@ -119,3 +119,11 @@ app isolation stays hidden until the node runtime and its review are available.
   narrow commands/V3/integrator merge are owed. App Ended admission stays
   unchanged until this node behavior is reviewed/available. Old nodes may
   still refuse with their real typed Conflict; writes are never auto-replayed.
+
+
+Known-state admission also refuses Ended{reason:Unknown}: re-encoding an
+unrecognized future reason could discard its meaning. The same real actor/
+store refusal test covers both unknown outer state and unknown end reason.
+Only the four existing known reasons become editable, all preserved exactly.
+The queued25e source was superseded only if queued under standing WORKER
+approval; retain its143 record and never call it a compiler result.
