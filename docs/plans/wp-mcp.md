@@ -444,3 +444,18 @@ its completion prompt in the authenticated parent's log. It then sends a
 second prompt without delivery/notify options and expects the second exact
 reply's notice. It never calls a wait tool to receive those notices. This
 checks the local default adapter and queue, not pending cross-node wiring.
+
+The node skill-command integration fixture uses the actual shipped bundle
+and synthetic homes. It checks explicit install, deletion confirmation
+without premature persistence, confirmed custom selection, uninstall that
+retains the preference, restart without accidental reinstall, legacy import
+that cannot replace an existing choice, and explicit selected reinstall.
+This exercises the node's serialized worker and store with real files; it
+does not assert pending RPC availability or a process-kill crash experiment.
+
+The dead track's proposed `vessel permit` CLI is not retained or advertised
+in this package. The original ADR's allow/deny argument behavior remains a
+proposal; no missing-request-ID shortcut is introduced. Existing MCP
+answer_permission continues to require one exact request and enforce session
+ownership. There is no unused HTTP server/permit implementation claimed as
+completed parity.
