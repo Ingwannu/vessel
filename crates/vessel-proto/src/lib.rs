@@ -57,7 +57,6 @@ mod session;
 pub mod session_archive;
 pub mod settings;
 pub mod side_questions;
-pub mod subagents;
 mod terminal;
 pub mod terminals;
 mod title;
@@ -223,5 +222,5 @@ mod tests {
     }
 }
 
-/// Read-only provider source identities and validated metadata.
+/// Managed parentage and validated provider source identities.
 pub mod subagents;
