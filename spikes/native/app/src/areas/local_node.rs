@@ -52,6 +52,7 @@ enum Intent {
     Update,
 }
 struct Prompt {
+    identity: std::rc::Rc<()>,
     intent: Intent,
     snapshot: Snapshot,
 }
@@ -219,8 +220,11 @@ impl Shell {
                                 if let Some(intent) =
                                     intent.filter(|_| snapshot.active_sessions().is_some())
                                 {
-                                    shell.areas.local_node.prompt =
-                                        Some(Prompt { intent, snapshot });
+                                    shell.areas.local_node.prompt = Some(Prompt {
+                                        identity: std::rc::Rc::new(()),
+                                        intent,
+                                        snapshot,
+                                    });
                                     shell.areas.local_node.focus_prompt = true;
                                 } else {
                                     shell.notice =
@@ -247,19 +251,45 @@ impl Shell {
     }
 
     pub(crate) fn local_node_quit_refused(&mut self, snapshot: Option<Snapshot>) {
-        self.areas.local_node.prompt = snapshot.map(|snapshot| Prompt {
-            intent: Intent::Quit,
-            snapshot,
-        });
+        self.areas.local_node.prompt = snapshot
+            .filter(|snapshot| snapshot.active_sessions().is_some())
+            .map(|snapshot| Prompt {
+                identity: std::rc::Rc::new(()),
+                intent: Intent::Quit,
+                snapshot,
+            });
         self.areas.local_node.focus_prompt = self.areas.local_node.prompt.is_some();
     }
 
     pub(crate) fn local_node_update_refused(&mut self, snapshot: Option<Snapshot>) {
-        self.areas.local_node.prompt = snapshot.map(|snapshot| Prompt {
-            intent: Intent::Update,
-            snapshot,
-        });
+        self.areas.local_node.prompt = snapshot
+            .filter(|snapshot| snapshot.active_sessions().is_some())
+            .map(|snapshot| Prompt {
+                identity: std::rc::Rc::new(()),
+                intent: Intent::Update,
+                snapshot,
+            });
         self.areas.local_node.focus_prompt = self.areas.local_node.prompt.is_some();
+    }
+
+    fn dismiss_local_prompt(
+        &mut self,
+        identity: &std::rc::Rc<()>,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> bool {
+        if !self
+            .areas
+            .local_node
+            .prompt
+            .as_ref()
+            .is_some_and(|prompt| std::rc::Rc::ptr_eq(&prompt.identity, identity))
+        {
+            return false;
+        }
+        self.areas.local_node.prompt_dialog.dismissed(window, cx);
+        self.areas.local_node.prompt = None;
+        true
     }
 
     pub(crate) fn manage_local_node(&mut self, enabled: bool, cx: &mut Context<'_, Self>) {

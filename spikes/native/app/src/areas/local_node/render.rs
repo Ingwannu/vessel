@@ -180,61 +180,7 @@ fn prompt_content(
                     )
                 }),
         );
-    let mut footer = Vec::new();
-    if matches!(prompt.intent, Intent::Quit) {
-        footer.push(
-            outline_button("local-quit-keep", words.keep_quit(), true, tokens)
-                .on_click(cx.listener(|shell, _event, window, cx| {
-                    shell.areas.local_node.prompt_dialog.dismissed(window, cx);
-                    shell.areas.local_node.prompt = None;
-                    shell.keep_local_node(true, cx);
-                    crate::local_node::request_keep_quit(cx);
-                }))
-                .into_any_element(),
-        );
-    }
-    if let Some(confirmation) = prompt.snapshot.confirmation() {
-        let intent = prompt.intent;
-        let label = match intent {
-            Intent::Quit => words.interrupt_quit(),
-            Intent::Stop => words.interrupt_stop(),
-            Intent::Restart => words.interrupt_restart(),
-            Intent::Update => words.interrupt_update(),
-        };
-        footer.push(
-            outline_button("local-confirm-interrupt", label, true, tokens)
-                .on_click(cx.listener(move |shell, _event, window, cx| {
-                    shell.areas.local_node.prompt_dialog.dismissed(window, cx);
-                    shell.areas.local_node.prompt = None;
-                    match intent {
-                        Intent::Quit => {
-                            crate::local_node::request_confirmed_quit(confirmation.clone(), cx)
-                        }
-                        Intent::Stop => shell.local_node_action(
-                            Action::InterruptConfirmed(confirmation.clone()),
-                            cx,
-                        ),
-                        Intent::Update => {
-                            shell.restart_to_update_confirmed(confirmation.clone(), cx);
-                        }
-                        Intent::Restart => shell.local_node_action(
-                            Action::RestartInterruptConfirmed(confirmation.clone()),
-                            cx,
-                        ),
-                    }
-                }))
-                .into_any_element(),
-        );
-    }
-    footer.push(
-        outline_button("local-confirm-cancel", words.cancel(), true, tokens)
-            .on_click(cx.listener(|shell, _event, window, cx| {
-                shell.areas.local_node.prompt_dialog.dismissed(window, cx);
-                shell.areas.local_node.prompt = None;
-                cx.notify();
-            }))
-            .into_any_element(),
-    );
+    let footer = prompt_footer(shell, prompt, tokens, cx);
     DialogContent {
         title: title.into(),
         body: body.into_any_element(),
@@ -268,16 +214,17 @@ pub(crate) fn dialog(
     let words = shell.words.local_node();
     if let Some(prompt) = &shell.areas.local_node.prompt {
         let content = prompt_content(shell, prompt, tokens, cx);
+        let identity = std::rc::Rc::clone(&prompt.identity);
         return Some(dialog(
             &shell.areas.local_node.prompt_dialog,
             content,
             tokens,
             window,
             crate::areas::draft::compact(window),
-            |shell: &mut Shell, window, cx| {
-                shell.areas.local_node.prompt_dialog.dismissed(window, cx);
-                shell.areas.local_node.prompt = None;
-                cx.notify();
+            move |shell: &mut Shell, window, cx| {
+                if shell.dismiss_local_prompt(&identity, window, cx) {
+                    cx.notify();
+                }
             },
             cx,
         ));
@@ -311,4 +258,81 @@ pub(crate) fn dialog(
         },
         cx,
     ))
+}
+
+fn prompt_footer(
+    shell: &Shell,
+    prompt: &Prompt,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Vec<AnyElement> {
+    let words = shell.words.local_node();
+    let mut footer = Vec::new();
+    if matches!(prompt.intent, Intent::Quit) {
+        let identity = std::rc::Rc::clone(&prompt.identity);
+        footer.push(
+            outline_button("local-quit-keep", words.keep_quit(), true, tokens)
+                .on_click(cx.listener(move |shell, _event, window, cx| {
+                    if !shell.dismiss_local_prompt(&identity, window, cx) {
+                        return;
+                    }
+                    shell.keep_local_node(true, cx);
+                    crate::local_node::request_keep_quit(cx);
+                }))
+                .into_any_element(),
+        );
+    }
+    footer.extend(interrupt_button(shell, prompt, tokens, cx));
+    let identity = std::rc::Rc::clone(&prompt.identity);
+    footer.push(
+        outline_button("local-confirm-cancel", words.cancel(), true, tokens)
+            .on_click(cx.listener(move |shell, _event, window, cx| {
+                if shell.dismiss_local_prompt(&identity, window, cx) {
+                    cx.notify();
+                }
+            }))
+            .into_any_element(),
+    );
+    footer
+}
+
+fn interrupt_button(
+    shell: &Shell,
+    prompt: &Prompt,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    let words = shell.words.local_node();
+    let confirmation = prompt.snapshot.confirmation()?;
+    let identity = std::rc::Rc::clone(&prompt.identity);
+    let intent = prompt.intent;
+    let label = match intent {
+        Intent::Quit => words.interrupt_quit(),
+        Intent::Stop => words.interrupt_stop(),
+        Intent::Restart => words.interrupt_restart(),
+        Intent::Update => words.interrupt_update(),
+    };
+    Some(
+        outline_button("local-confirm-interrupt", label, true, tokens)
+            .on_click(cx.listener(move |shell, _event, window, cx| {
+                if !shell.dismiss_local_prompt(&identity, window, cx) {
+                    return;
+                }
+                match intent {
+                    Intent::Quit => {
+                        crate::local_node::request_confirmed_quit(confirmation.clone(), cx)
+                    }
+                    Intent::Stop => shell
+                        .local_node_action(Action::InterruptConfirmed(confirmation.clone()), cx),
+                    Intent::Update => {
+                        shell.restart_to_update_confirmed(confirmation.clone(), cx);
+                    }
+                    Intent::Restart => shell.local_node_action(
+                        Action::RestartInterruptConfirmed(confirmation.clone()),
+                        cx,
+                    ),
+                }
+            }))
+            .into_any_element(),
+    )
 }

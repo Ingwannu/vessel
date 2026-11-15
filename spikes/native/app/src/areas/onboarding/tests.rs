@@ -48,7 +48,41 @@ fn finish_records_completion_after_the_model_has_already_hidden(cx: &mut TestApp
         assert!(shell.areas.onboarding.shown.is_none());
         // Repeated completion cannot erase or rewrite the accepted timestamp.
         let recorded = shell.prefs.onboarding.clone();
-        shell.setup_complete(window, cx);
+        shell.setup_complete(visit, window, cx);
         assert_eq!(shell.prefs.onboarding, recorded);
+    });
+}
+
+#[gpui::test]
+fn stale_close_and_rail_actions_cannot_change_a_reopened_visit(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let target = Target::authenticated(MachineKey::from_book("fixture"), NodeId::random());
+        let model = &mut shell.areas.onboarding.model;
+        model.reopen(target.clone(), Layout::Wide).unwrap();
+        let old = match model.state() {
+            State::Open(open) => open.visit(),
+            State::Deciding | State::Hidden => panic!("fixture did not open"),
+        };
+        model.reopen(target, Layout::Wide).unwrap();
+        model.go_to(Step::Projects).unwrap();
+        let before = model.state().clone();
+        shell.setup_complete(old, window, cx);
+        shell.setup_move(old, Some(Step::Phone), window, cx);
+        assert_eq!(shell.areas.onboarding.model.state(), &before);
+        assert!(shell.prefs.onboarding.is_none());
+        let current = match before {
+            State::Open(open) => open.visit(),
+            State::Deciding | State::Hidden => panic!("fixture closed"),
+        };
+        shell.setup_complete(current, window, cx);
+        assert!(matches!(
+            shell.areas.onboarding.model.state(),
+            State::Hidden
+        ));
+        let completed = shell.prefs.onboarding.clone();
+        shell.setup_complete(current, window, cx);
+        assert_eq!(shell.prefs.onboarding, completed);
     });
 }

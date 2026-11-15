@@ -123,13 +123,14 @@ pub(crate) fn dialog(
         tokens,
         window,
         compact,
-        |shell: &mut Shell, window, cx| shell.setup_complete(window, cx),
+        move |shell: &mut Shell, window, cx| shell.setup_complete(visit, window, cx),
         cx,
     ))
 }
 
 fn rail(shell: &Shell, open: &Open, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let step = open.step();
+    let visit = open.visit();
     let mut rail = div()
         .flex()
         .flex_col()
@@ -146,7 +147,7 @@ fn rail(shell: &Shell, open: &Open, tokens: &Tokens, cx: &mut Context<'_, Shell>
                 tokens,
             )
             .on_click(cx.listener(move |shell, _event, window, cx| {
-                shell.setup_move(Some(item), window, cx)
+                shell.setup_move(visit, Some(item), window, cx)
             })),
         );
     }
@@ -166,11 +167,17 @@ fn footer(
     vec![
         button("setup-skip", words.skip(), false, tokens)
             .when(last, |button| button.invisible())
-            .on_click(cx.listener(|shell, _event, window, cx| shell.setup_complete(window, cx)))
+            .on_click(
+                cx.listener(move |shell, _event, window, cx| {
+                    shell.setup_complete(visit, window, cx)
+                }),
+            )
             .into_any_element(),
         button("setup-back", words.back(), false, tokens)
             .when(step == Step::Appearance, |button| button.invisible())
-            .on_click(cx.listener(|shell, _event, window, cx| shell.setup_move(None, window, cx)))
+            .on_click(cx.listener(move |shell, _event, window, cx| {
+                shell.setup_move(visit, None, window, cx)
+            }))
             .into_any_element(),
         button_with_kind(
             "setup-next",

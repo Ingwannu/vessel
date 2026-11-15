@@ -183,3 +183,14 @@ no Vessel mobile distribution or compatible store URL has been supplied. Those
 store entries and Paseo-specific relay/Tailscale documentation are consequently
 not copied. Device pairing remains usable through the existing native owner.
 This is a product availability difference, not evidence of mobile app parity.
+
+### Captured dismissal identity
+
+Onboarding Skip, Back, rail selection and every modal dismissal capture Visit,
+and check it before mutating the currently open walkthrough. A stale close after
+reopen cannot close a new target or rewrite completion. Local-node confirmation
+callbacks also capture an opaque per-modal Rc identity before acknowledging shared
+focus restoration; stale cancel/approve handlers cannot dismiss a replacement
+prompt. Process-interruption authority is still independently checked by the
+actor's opaque Snapshot permit. Added GPUI stale-close/rail regression; execution
+is pending the combined native gate.

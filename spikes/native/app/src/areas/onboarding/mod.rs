@@ -194,7 +194,17 @@ impl Shell {
         cx.notify();
     }
 
-    fn setup_move(&mut self, step: Option<Step>, window: &mut Window, cx: &mut Context<'_, Self>) {
+    fn setup_move(
+        &mut self,
+        visit: Visit,
+        step: Option<Step>,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if !matches!(self.areas.onboarding.model.state(), State::Open(open) if open.visit() == visit)
+        {
+            return;
+        }
         let result = match step {
             Some(step) => self.areas.onboarding.model.go_to(step),
             None => self.areas.onboarding.model.back(),
@@ -233,14 +243,12 @@ impl Shell {
         cx.notify();
     }
 
-    fn setup_complete(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
-        let visit = match self.areas.onboarding.model.state() {
-            State::Open(open) => Some(open.visit()),
-            State::Deciding | State::Hidden => None,
-        };
-        if let Some(visit) = visit {
-            scope::release(self, visit);
+    fn setup_complete(&mut self, visit: Visit, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if !matches!(self.areas.onboarding.model.state(), State::Open(open) if open.visit() == visit)
+        {
+            return;
         }
+        scope::release(self, visit);
         let Effect::Complete = self.areas.onboarding.model.complete() else {
             return;
         };
