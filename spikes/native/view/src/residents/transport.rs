@@ -101,7 +101,7 @@ impl Residents {
     }
 }
 
-fn retire_operations(entry: &mut super::registry::Resident) {
+pub(super) fn retire_operations(entry: &mut super::registry::Resident) {
     for (kind, _) in &entry.operations {
         let _previous = entry.owners.insert(
             kind.owner(),

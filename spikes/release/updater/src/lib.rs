@@ -72,15 +72,15 @@ pub use install::{DetectError, InstallError, Installation};
 pub use key::{KeyError, PublicKey};
 pub use label::{Label, LabelError};
 pub use manifest::{
-    Artifact, ArtifactPath, ArtifactPathError, ByteCount, ByteCountError, Envelope,
-    MAX_ARTIFACT_BYTES, MAX_ENVELOPE_BYTES, Manifest, Notes, OpenError, Published, SCHEMA, Sha256,
-    Sha256Error, TooLong,
+    Artifact, ArtifactPath, ArtifactPathError, ByteCount, ByteCountError, COMPANION_DIR, Companion,
+    Compressed, Encoding, Envelope, MAX_ARTIFACT_BYTES, MAX_ENVELOPE_BYTES, Manifest, Notes,
+    OpenError, Published, Role, RoleError, SCHEMA, Sha256, Sha256Error, TooLong,
 };
 pub use memory::Memory;
 pub use platform::{Packaging, Target, UnknownPackaging, UnknownTarget};
 pub use report::chain;
 pub use restart::{RESTARTED_FROM, RestartError, relaunch};
 pub use service::{
-    ApplyError, EVERY, FIRST_AFTER, RETRY_AFTER, Settings, UpdateError, UpdateState, Updater,
+    ApplyError, EVERY, FIRST_AFTER, Kept, RETRY_AFTER, Settings, UpdateError, UpdateState, Updater,
 };
 pub use stage::{StageError, Staged, download};

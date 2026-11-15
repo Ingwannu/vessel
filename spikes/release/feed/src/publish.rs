@@ -16,8 +16,8 @@ use std::{
 
 use sha2::Digest as _;
 use vessel_app_updater::{
-    Artifact, ArtifactPath, ByteCount, Channel, Envelope, Manifest, Notes, PublicKey, Published,
-    SCHEMA, Sha256,
+    Artifact, ArtifactPath, ByteCount, Channel, Companion, Compressed, Encoding, Envelope,
+    Manifest, Notes, PublicKey, Published, SCHEMA, Sha256,
 };
 
 use crate::{FeedError, args::Publish, io, read_secret};
@@ -42,16 +42,7 @@ pub(crate) fn publish(publish: &Publish) -> Result<String, FeedError> {
     let artifacts = publish
         .artifacts
         .iter()
-        .map(|artifact| {
-            let (size, sha256) = measure(&publish.feed, &artifact.path)?;
-            Ok(Artifact {
-                target: artifact.target,
-                packaging: artifact.packaging,
-                path: artifact.path.clone(),
-                size,
-                sha256,
-            })
-        })
+        .map(|artifact| measured(publish, artifact))
         .collect::<Result<Vec<_>, FeedError>>()?;
     let manifest = Manifest {
         schema: SCHEMA,
@@ -138,8 +129,151 @@ pub(crate) fn check(feed: &Path, public: &str, channel: &Channel) -> Result<Stri
             artifact.path,
             size.get()
         ));
+        if let Some(compressed) = &artifact.compressed {
+            lines.push(check_compressed(
+                feed,
+                compressed,
+                artifact.size,
+                artifact.sha256,
+            )?);
+        }
+        for companion in &artifact.companions {
+            let (size, sha256) = measure(feed, &companion.path)?;
+            if size != companion.size || sha256 != companion.sha256 {
+                return Err(FeedError::Check(format!(
+                    "{} is not the file the manifest names",
+                    companion.path
+                )));
+            }
+            lines.push(format!(
+                "    with {}: {} ({} bytes) ok",
+                companion.role,
+                companion.path,
+                size.get()
+            ));
+            if let Some(compressed) = &companion.compressed {
+                lines.push(check_compressed(
+                    feed,
+                    compressed,
+                    companion.size,
+                    companion.sha256,
+                )?);
+            }
+        }
     }
     Ok(lines.join("\n"))
+}
+
+/// An artifact named on the command line as the manifest lists it: each
+/// file measured, with its companions, and the gzip copies when
+/// `--compressed gzip` asks for them.
+fn measured(publish: &Publish, artifact: &crate::args::ArtifactArg) -> Result<Artifact, FeedError> {
+    let feed = &publish.feed;
+    let copy = |path: &ArtifactPath, size: ByteCount, sha256: Sha256| {
+        if publish.gzip {
+            gzip_copy(feed, path, size, sha256).map(Some)
+        } else {
+            Ok(None)
+        }
+    };
+    let (size, sha256) = measure(feed, &artifact.path)?;
+    let companions = artifact
+        .companions
+        .iter()
+        .map(|companion| {
+            let (size, sha256) = measure(feed, &companion.path)?;
+            Ok(Companion {
+                role: companion.role.clone(),
+                path: companion.path.clone(),
+                size,
+                sha256,
+                compressed: copy(&companion.path, size, sha256)?,
+            })
+        })
+        .collect::<Result<Vec<_>, FeedError>>()?;
+    Ok(Artifact {
+        target: artifact.target,
+        packaging: artifact.packaging,
+        path: artifact.path.clone(),
+        size,
+        sha256,
+        companions,
+        compressed: copy(&artifact.path, size, sha256)?,
+    })
+}
+
+/// The gzip copy of `path` (`<path>.gz` beside it), measured, after
+/// proving it unpacks to exactly `size` bytes of digest `sha256`: the
+/// manifest never offers a compressed file that is not the signed one.
+fn gzip_copy(
+    feed: &Path,
+    path: &ArtifactPath,
+    size: ByteCount,
+    sha256: Sha256,
+) -> Result<Compressed, FeedError> {
+    let packed: ArtifactPath = format!("{path}.gz")
+        .parse()
+        .map_err(|_bad| FeedError::Value(format!("{path}.gz is not a feed path")))?;
+    let (packed_size, packed_sha) = measure(feed, &packed)?;
+    let compressed = Compressed {
+        encoding: Encoding::Gzip,
+        path: packed,
+        size: packed_size,
+        sha256: packed_sha,
+    };
+    let _line = check_compressed(feed, &compressed, size, sha256)?;
+    Ok(compressed)
+}
+
+/// Check a compressed copy: its own size and digest, and that it unpacks
+/// to `size` bytes of `sha256`.
+fn check_compressed(
+    feed: &Path,
+    compressed: &Compressed,
+    size: ByteCount,
+    sha256: Sha256,
+) -> Result<String, FeedError> {
+    let (packed_size, packed_sha) = measure(feed, &compressed.path)?;
+    if packed_size != compressed.size || packed_sha != compressed.sha256 {
+        return Err(FeedError::Check(format!(
+            "{} is not the file the manifest names",
+            compressed.path
+        )));
+    }
+    let file = feed_file(feed, &compressed.path);
+    let reader = std::fs::File::open(&file).map_err(io(format!("opening {}", file.display())))?;
+    let mut decoder = flate2::read::GzDecoder::new(std::io::BufReader::new(reader));
+    let mut hasher = sha2::Sha256::new();
+    let mut buffer = vec![0_u8; 64 * 1024];
+    let mut unpacked: u64 = 0;
+    loop {
+        let read = decoder
+            .read(&mut buffer)
+            .map_err(io(format!("unpacking {}", file.display())))?;
+        if read == 0 {
+            break;
+        }
+        unpacked = unpacked.saturating_add(u64::try_from(read).unwrap_or(u64::MAX));
+        hasher.update(buffer.get(..read).unwrap_or_default());
+    }
+    if unpacked != size.get() || Sha256::from_bytes(hasher.finalize().into()) != sha256 {
+        return Err(FeedError::Check(format!(
+            "{} does not unpack to the file it is a copy of",
+            compressed.path
+        )));
+    }
+    Ok(format!(
+        "      gzip: {} ({} bytes, unpacks to the file) ok",
+        compressed.path,
+        packed_size.get()
+    ))
+}
+
+/// The file at `path` under `feed`.
+fn feed_file(feed: &Path, path: &ArtifactPath) -> PathBuf {
+    path.as_str()
+        .split('/')
+        .fold(feed.to_path_buf(), |dir, name| dir.join(name))
 }
 
 /// A public key given as its base64 line or as a `.pub` file's path.
@@ -278,11 +412,13 @@ mod tests {
             channel: Channel::preview(),
             label: "0.0.0.0.2".parse().unwrap(),
             notes: None,
+            gzip: false,
             published: Some("2026-11-13T00:00:00Z".to_owned()),
             artifacts: vec![ArtifactArg {
                 target: Target::WindowsX86_64,
                 packaging: Packaging::Executable,
                 path: "0.0.0.0.2/vessel.exe".parse().unwrap(),
+                companions: Vec::new(),
             }],
         };
 
@@ -294,6 +430,116 @@ mod tests {
         assert!(check(feed.path(), &public, &"stable".parse().unwrap()).is_err());
 
         std::fs::write(feed.path().join("0.0.0.0.2/vessel.exe"), b"other").unwrap();
+        assert!(matches!(
+            check(feed.path(), &public, &Channel::preview()),
+            Err(FeedError::Check(_))
+        ));
+    }
+
+    #[test]
+    fn companions_are_measured_signed_and_checked_with_their_artifact() {
+        let keys = tempfile::tempdir().unwrap();
+        crate::keygen(&keys.path().join("k")).unwrap();
+        let secret = keys.path().join("k").join(crate::SECRET_FILE);
+        let feed = tempfile::tempdir().unwrap();
+        std::fs::create_dir(feed.path().join("0.0.0.0.20")).unwrap();
+        for (name, bytes) in [
+            ("app", &b"app"[..]),
+            ("vessel", b"cli"),
+            ("vesseld", b"node"),
+        ] {
+            std::fs::write(feed.path().join("0.0.0.0.20").join(name), bytes).unwrap();
+        }
+        let request = Publish {
+            key: secret.clone(),
+            feed: feed.path().to_path_buf(),
+            channel: Channel::preview(),
+            label: "0.0.0.0.20".parse().unwrap(),
+            notes: None,
+            gzip: false,
+            published: Some("2026-11-15T00:00:00Z".to_owned()),
+            artifacts: vec![ArtifactArg {
+                target: Target::LinuxX86_64,
+                packaging: Packaging::Executable,
+                path: "0.0.0.0.20/app".parse().unwrap(),
+                companions: vec![
+                    crate::args::CompanionArg {
+                        role: vessel_app_updater::Role::Cli,
+                        path: "0.0.0.0.20/vessel".parse().unwrap(),
+                    },
+                    crate::args::CompanionArg {
+                        role: vessel_app_updater::Role::Node,
+                        path: "0.0.0.0.20/vesseld".parse().unwrap(),
+                    },
+                ],
+            }],
+        };
+
+        let _line = publish(&request).unwrap();
+
+        let public = read_secret(&secret).unwrap().pk.to_base64();
+        let checked = check(feed.path(), &public, &Channel::preview()).unwrap();
+        assert!(
+            checked.contains("with cli: 0.0.0.0.20/vessel (3 bytes) ok"),
+            "{checked}"
+        );
+        assert!(
+            checked.contains("with node: 0.0.0.0.20/vesseld (4 bytes) ok"),
+            "{checked}"
+        );
+
+        std::fs::write(feed.path().join("0.0.0.0.20/vesseld"), b"NODE").unwrap();
+        assert!(matches!(
+            check(feed.path(), &public, &Channel::preview()),
+            Err(FeedError::Check(_))
+        ));
+    }
+
+    #[test]
+    fn a_gzip_copy_is_signed_only_when_it_unpacks_to_the_file() {
+        use std::io::Write as _;
+        let keys = tempfile::tempdir().unwrap();
+        crate::keygen(&keys.path().join("k")).unwrap();
+        let secret = keys.path().join("k").join(crate::SECRET_FILE);
+        let feed = tempfile::tempdir().unwrap();
+        std::fs::create_dir(feed.path().join("0.0.0.0.21")).unwrap();
+        let app = b"the build, repeated: the build, repeated: the build";
+        std::fs::write(feed.path().join("0.0.0.0.21/app"), app).unwrap();
+        let gzip = |bytes: &[u8]| {
+            let mut encoder =
+                flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::best());
+            encoder.write_all(bytes).unwrap();
+            encoder.finish().unwrap()
+        };
+        std::fs::write(feed.path().join("0.0.0.0.21/app.gz"), gzip(app)).unwrap();
+        let request = Publish {
+            key: secret.clone(),
+            feed: feed.path().to_path_buf(),
+            channel: Channel::preview(),
+            label: "0.0.0.0.21".parse().unwrap(),
+            notes: None,
+            gzip: true,
+            published: Some("2026-11-15T00:00:00Z".to_owned()),
+            artifacts: vec![ArtifactArg {
+                target: Target::LinuxX86_64,
+                packaging: Packaging::Executable,
+                path: "0.0.0.0.21/app".parse().unwrap(),
+                companions: Vec::new(),
+            }],
+        };
+
+        let _line = publish(&request).unwrap();
+
+        let public = read_secret(&secret).unwrap().pk.to_base64();
+        let checked = check(feed.path(), &public, &Channel::preview()).unwrap();
+        assert!(
+            checked.contains("gzip: 0.0.0.0.21/app.gz") && checked.contains("unpacks to the file"),
+            "{checked}"
+        );
+
+        // A copy of other bytes is refused, at publish and at check.
+        std::fs::write(feed.path().join("0.0.0.0.21/app.gz"), gzip(b"other")).unwrap();
+        assert!(matches!(publish(&request), Err(FeedError::Check(_))));
         assert!(matches!(
             check(feed.path(), &public, &Channel::preview()),
             Err(FeedError::Check(_))

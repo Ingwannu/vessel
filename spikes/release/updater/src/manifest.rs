@@ -52,6 +52,13 @@ pub const MAX_ENVELOPE_BYTES: u64 = 256 * 1024;
 /// The most artifacts one manifest lists.
 const MAX_ARTIFACTS: usize = 32;
 
+/// The most companions one artifact carries (ADR 0094: the command line
+/// and the node today).
+const MAX_COMPANIONS: usize = 8;
+
+/// The longest role name a later build may give a companion.
+const MAX_ROLE: usize = 32;
+
 /// The longest release notes shown to the owner.
 const MAX_NOTES: usize = 8 * 1024;
 
@@ -107,6 +114,187 @@ pub struct Artifact {
     pub size: ByteCount,
     /// Its SHA-256.
     pub sha256: Sha256,
+    /// The programs shipped beside the app and replaced with it, as one
+    /// set (ADR 0094). Empty for the builds before it, and left out of the
+    /// text then, so their manifests read as they always did.
+    ///
+    /// Compatibility, the reason this is a field and not a new format:
+    /// every app published before ADR 0094 reads schema 1 with serde's
+    /// default of ignoring fields it does not know (no manifest type here
+    /// has ever denied unknown fields), so it still opens a manifest that
+    /// carries companions and replaces its own executable as before. The
+    /// build it installs then fills the companions in by itself
+    /// ([`crate::service`]'s repair of the running label's set).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub companions: Vec<Companion>,
+    /// The same file compressed, for apps that read this field
+    /// ([`Compressed`]); published apps skip it and download `path`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compressed: Option<Compressed>,
+}
+
+/// A file of the set compressed for the download.
+///
+/// Why (2026-11-15): an update of the owner's Windows copy over a slow
+/// line broke off at 31.9 of 51.7 MB; gzip makes the executable about
+/// 40% of its size. The file's own digest stays the artifact's (or
+/// companion's) `sha256`; this one is the compressed bytes', checked
+/// before they are unpacked, so nothing unsigned is ever decompressed, and
+/// the unpacked file is checked against the file's digest again. An app
+/// that does not know `encoding` downloads the plain file.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Compressed {
+    /// How it is compressed.
+    pub encoding: Encoding,
+    /// Where it is, relative to the feed's base.
+    pub path: ArtifactPath,
+    /// Its exact size.
+    pub size: ByteCount,
+    /// The SHA-256 of the compressed bytes.
+    pub sha256: Sha256,
+}
+
+/// A compression this build unpacks, or another (a later build's).
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(try_from = "String", into = "String")]
+pub enum Encoding {
+    /// gzip (RFC 1952), through `flate2`, already in the app's tree. zstd
+    /// would be about a quarter smaller and adds a decoder crate.
+    Gzip,
+    /// Another encoding: this build downloads the plain file instead.
+    Other(String),
+}
+
+impl TryFrom<String> for Encoding {
+    type Error = RoleError;
+
+    fn try_from(text: String) -> Result<Self, Self::Error> {
+        if text == "gzip" {
+            return Ok(Self::Gzip);
+        }
+        // The same shape as a role's name: short, lowercase, plain.
+        text.parse::<Role>().map(|_shape| Self::Other(text))
+    }
+}
+
+impl From<Encoding> for String {
+    fn from(encoding: Encoding) -> Self {
+        match encoding {
+            Encoding::Gzip => "gzip".to_owned(),
+            Encoding::Other(name) => name,
+        }
+    }
+}
+
+/// A program shipped beside the app, downloaded and swapped together with
+/// it (ADR 0094).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Companion {
+    /// What it is, which names the file it is installed as.
+    pub role: Role,
+    /// Where it is, relative to the feed's base.
+    pub path: ArtifactPath,
+    /// Its exact size.
+    pub size: ByteCount,
+    /// Its SHA-256.
+    pub sha256: Sha256,
+    /// The same file compressed ([`Compressed`]).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compressed: Option<Compressed>,
+}
+
+/// The folder beside the app's executable that holds its companions.
+///
+/// Why a folder of their own (the coordinator's word on ADR 0094,
+/// 2026-11-15): putting it on `PATH` gives `vessel` and `vesseld` without
+/// the app itself, and on Windows the command line keeps its own name,
+/// `vessel.exe`, which beside the app's `Vessel.exe` would be the same name
+/// to a file system that ignores case.
+pub const COMPANION_DIR: &str = "bin";
+
+/// What a companion is. The file it is installed as comes from the role
+/// and the system ([`Role::file_name`], in [`COMPANION_DIR`]), never from
+/// the feed, so even a signed manifest cannot make the app write a file of
+/// another name.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(try_from = "String", into = "String")]
+pub enum Role {
+    /// The command line, `vessel` (`vessel.exe` on Windows).
+    Cli,
+    /// The node, `vesseld`.
+    Node,
+    /// A role a later build ships and this one does not know: it parses,
+    /// so the manifest still opens, and it is left out of the set.
+    Other(String),
+}
+
+/// A role name that is not 1 to 32 lowercase letters, digits and `-`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[error("a companion's role is 1 to {MAX_ROLE} lowercase letters, digits and -")]
+pub struct RoleError;
+
+impl Role {
+    /// The file this role is installed as in [`COMPANION_DIR`] on
+    /// `target`; `None` for a role this build does not install.
+    #[must_use]
+    pub const fn file_name(&self, target: Target) -> Option<&'static str> {
+        let windows = matches!(target, Target::WindowsX86_64 | Target::WindowsAarch64);
+        match (self, windows) {
+            (Self::Cli, true) => Some("vessel.exe"),
+            (Self::Cli, false) => Some("vessel"),
+            (Self::Node, true) => Some("vesseld.exe"),
+            (Self::Node, false) => Some("vesseld"),
+            (Self::Other(_), _) => None,
+        }
+    }
+
+    /// Every role this build installs.
+    pub const KNOWN: [Self; 2] = [Self::Cli, Self::Node];
+}
+
+impl FromStr for Role {
+    type Err = RoleError;
+
+    fn from_str(text: &str) -> Result<Self, Self::Err> {
+        match text {
+            "cli" => Ok(Self::Cli),
+            "node" => Ok(Self::Node),
+            _ => {
+                let plain = text
+                    .bytes()
+                    .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-');
+                if !text.is_empty() && text.len() <= MAX_ROLE && plain {
+                    Ok(Self::Other(text.to_owned()))
+                } else {
+                    Err(RoleError)
+                }
+            }
+        }
+    }
+}
+
+impl TryFrom<String> for Role {
+    type Error = RoleError;
+
+    fn try_from(text: String) -> Result<Self, Self::Error> {
+        text.parse()
+    }
+}
+
+impl From<Role> for String {
+    fn from(role: Role) -> Self {
+        role.to_string()
+    }
+}
+
+impl fmt::Display for Role {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Cli => "cli",
+            Self::Node => "node",
+            Self::Other(name) => name,
+        })
+    }
 }
 
 impl Manifest {
@@ -140,6 +328,22 @@ impl Manifest {
                     target: artifact.target,
                     packaging: artifact.packaging,
                 });
+            }
+            if artifact.companions.len() > MAX_COMPANIONS {
+                return Err(OpenError::Bounds);
+            }
+            for (at, companion) in artifact.companions.iter().enumerate() {
+                let again = artifact
+                    .companions
+                    .iter()
+                    .skip(at.saturating_add(1))
+                    .any(|other| other.role == companion.role);
+                if again {
+                    return Err(OpenError::CompanionTwice {
+                        target: artifact.target,
+                        role: companion.role.clone(),
+                    });
+                }
             }
         }
         Ok(self)
@@ -208,6 +412,15 @@ pub enum OpenError {
         target: Target,
         /// Its packaging.
         packaging: Packaging,
+    },
+    /// One artifact names a companion role twice: which file would win is
+    /// not a question the app should answer.
+    #[error("the feed lists the {role} companion of {target} twice")]
+    CompanionTwice {
+        /// The artifact's target.
+        target: Target,
+        /// The role listed twice.
+        role: Role,
     },
 }
 
@@ -466,8 +679,135 @@ mod tests {
                     .unwrap(),
                 size: ByteCount::try_from(3).unwrap(),
                 sha256: Sha256::of(b"exe"),
+                companions: Vec::new(),
+                compressed: None,
             }],
         }
+    }
+
+    fn companion(role: Role, bytes: &[u8]) -> Companion {
+        Companion {
+            path: format!("0.0.0.0.2/vessel-0.0.0.0.2-windows-x64-{role}")
+                .parse()
+                .unwrap(),
+            role,
+            size: ByteCount::try_from(u64::try_from(bytes.len()).unwrap()).unwrap(),
+            sha256: Sha256::of(bytes),
+            compressed: None,
+        }
+    }
+
+    /// The manifest types exactly as every app up to 0.0.0.0.18 has them
+    /// (no `companions`, serde's default of ignoring unknown fields): what
+    /// a published app parses a new manifest with.
+    mod published {
+        use serde::Deserialize;
+
+        use crate::{
+            channel::Channel,
+            label::Label,
+            manifest::{ArtifactPath, ByteCount, Notes, Published, Sha256},
+            platform::{Packaging, Target},
+        };
+
+        #[derive(Debug, Deserialize)]
+        pub(super) struct Manifest {
+            pub(super) schema: u32,
+            pub(super) channel: Channel,
+            pub(super) label: Label,
+            pub(super) published: Published,
+            pub(super) notes: Option<Notes>,
+            pub(super) artifacts: Vec<Artifact>,
+        }
+
+        #[derive(Debug, Deserialize)]
+        pub(super) struct Artifact {
+            pub(super) target: Target,
+            pub(super) packaging: Packaging,
+            pub(super) path: ArtifactPath,
+            pub(super) size: ByteCount,
+            pub(super) sha256: Sha256,
+        }
+    }
+
+    #[test]
+    fn an_app_published_before_companions_still_reads_a_manifest_with_them() {
+        let mut new = manifest("preview", "0.0.0.0.2");
+        new.artifacts[0].companions =
+            vec![companion(Role::Cli, b"cli"), companion(Role::Node, b"node")];
+        let text = serde_json::to_string(&new).unwrap();
+        assert!(text.contains("\"companions\""));
+
+        let old: published::Manifest = serde_json::from_str(&text).unwrap();
+        assert_eq!(old.schema, SCHEMA);
+        assert_eq!(old.channel, new.channel);
+        assert_eq!(old.label, new.label);
+        assert_eq!(old.published, new.published);
+        assert_eq!(old.notes, new.notes);
+        let [artifact] = old.artifacts.as_slice() else {
+            panic!("{:?}", old.artifacts);
+        };
+        assert_eq!(artifact.target, new.artifacts[0].target);
+        assert_eq!(artifact.packaging, new.artifacts[0].packaging);
+        assert_eq!(artifact.path, new.artifacts[0].path);
+        assert_eq!(artifact.size, new.artifacts[0].size);
+        assert_eq!(artifact.sha256, new.artifacts[0].sha256);
+
+        // And a manifest without companions is the text it always was.
+        let plain = serde_json::to_string(&manifest("preview", "0.0.0.0.2")).unwrap();
+        assert!(!plain.contains("companions"), "{plain}");
+    }
+
+    #[test]
+    fn companions_open_with_their_roles_and_unknown_roles_stay_out_of_the_set() {
+        let key = TestKey::new();
+        let mut sent = manifest("preview", "0.0.0.0.2");
+        sent.artifacts[0].companions = vec![
+            companion(Role::Cli, b"cli"),
+            companion(Role::Node, b"node"),
+            companion("helper".parse().unwrap(), b"later"),
+        ];
+        let opened =
+            Manifest::open(&key.envelope(&sent), &key.public(), &Channel::preview()).unwrap();
+        assert_eq!(opened, sent);
+        let names: Vec<_> = opened.artifacts[0]
+            .companions
+            .iter()
+            .map(|companion| companion.role.file_name(Target::WindowsX86_64))
+            .collect();
+        assert_eq!(names, [Some("vessel.exe"), Some("vesseld.exe"), None]);
+        assert_eq!(Role::Cli.file_name(Target::LinuxX86_64), Some("vessel"));
+        assert_eq!(Role::Node.file_name(Target::LinuxX86_64), Some("vesseld"));
+
+        for bad in ["", "Cli", "a/b", "..", "x".repeat(33).as_str()] {
+            assert!(bad.parse::<Role>().is_err(), "{bad:?} accepted");
+        }
+    }
+
+    #[test]
+    fn a_role_twice_or_too_many_companions_are_refused() {
+        let key = TestKey::new();
+        let mut twice = manifest("preview", "0.0.0.0.2");
+        twice.artifacts[0].companions =
+            vec![companion(Role::Node, b"a"), companion(Role::Node, b"b")];
+        let opened = Manifest::open(&key.envelope(&twice), &key.public(), &Channel::preview());
+        assert!(
+            matches!(
+                opened,
+                Err(OpenError::CompanionTwice {
+                    role: Role::Node,
+                    ..
+                })
+            ),
+            "{opened:?}"
+        );
+
+        let mut many = manifest("preview", "0.0.0.0.2");
+        many.artifacts[0].companions = (0..=MAX_COMPANIONS)
+            .map(|index| companion(format!("r{index}").parse().unwrap(), b"x"))
+            .collect();
+        let opened = Manifest::open(&key.envelope(&many), &key.public(), &Channel::preview());
+        assert!(matches!(opened, Err(OpenError::Bounds)), "{opened:?}");
     }
 
     #[test]

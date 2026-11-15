@@ -1,11 +1,10 @@
 # Borrowed tool-detail body prerequisite
 
-Status: native source preparation only, originally cut from official app
-base8 91407173. The full canonical body vocabulary is now present for preparation
-after W23/integrator announced node9c150c6e (gate50c); no rich fields/events/RPC
-or runtime are added. Coordinator requires a normal announced green app base9
-merge before the package handoff. This isolated native source has not yet been
-compiled/tested; no consumer-ready or adoption verdict is inferred.
+Status: native source preparation, now normally merged with announced green app
+base9 db42d9c5 (native1510/0/2). Canonical body vocabulary is inherited from that
+line, not a remaining provisional root delta. No rich fields/events/RPC/runtime
+are added. This isolated native source has not yet been compiled/tested;
+no consumer-ready or native adoption verdict is inferred.
 
 [Decision Log]
 - Purpose: A8 draws a reported proposed ToolCallDetail without constructing a
@@ -77,3 +76,8 @@ The prior kernel matched A7 byte-for-byte before this amendment; the updated
 kernel and new headless warm-render/cut-retention fixture remain identical in the
 two preparation trees. Their new execution is owed and is not inferred from the
 earlier322 pass. The final handoff still requires announced base9 and exact checks.
+
+The required announced base9 merge is now present. The earlier isolated canonical
+body picks are already contained in that base and contribute no root diff to the
+final native packet. The architecture merge retains all incoming shared sections;
+there is no author-specific root, event, method, generated-wire or runtime delta.
