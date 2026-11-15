@@ -33,8 +33,10 @@ import type {
   CommandSet,
   ProjectCommand,
   ProjectCommands,
-  ScriptEntry,
 } from "../../wire/proto";
+import { compareScripts, type ScriptLine } from "./script-changes";
+
+export { compareScripts, type ScriptLine };
 
 /** A set of commands as the node lists it. */
 export type ListedCommands = Extract<ProjectCommands, { state: "listed" }>;
@@ -50,11 +52,6 @@ export type CommandLine =
   | ListLine
   /** In the place of `was`: one command edited. */
   | { change: "changed"; command: ProjectCommand; was: ProjectCommand };
-
-/** One script or service compared with the approved set, by name. */
-export type ScriptLine =
-  | { change: "same" | "added" | "removed"; script: ScriptEntry }
-  | { change: "changed"; script: ScriptEntry; was: ScriptEntry };
 
 /** `after` compared with `before`, in order, removed lines before the
  * added ones that took their place. */
@@ -137,41 +134,6 @@ export function compareCommands(
     }
   }
   return paired;
-}
-
-/** Whether two entries of one name run the same thing in the same way. */
-function sameScript(a: ScriptEntry, b: ScriptEntry): boolean {
-  return (
-    a.kind === b.kind &&
-    a.command === b.command &&
-    (a.dir ?? null) === (b.dir ?? null)
-  );
-}
-
-/** `after`'s scripts against `before`'s, by name, in name order. */
-export function compareScripts(
-  before: readonly ScriptEntry[],
-  after: readonly ScriptEntry[],
-): ScriptLine[] {
-  const old = new Map(before.map((script) => [script.name, script]));
-  const names = new Set(after.map((script) => script.name));
-  const lines: ScriptLine[] = after.map((script) => {
-    const was = old.get(script.name);
-    if (was === undefined) {
-      return { change: "added", script };
-    }
-    return sameScript(was, script)
-      ? { change: "same", script }
-      : { change: "changed", script, was };
-  });
-  for (const script of before) {
-    if (!names.has(script.name)) {
-      lines.push({ change: "removed", script });
-    }
-  }
-  return lines.sort((a, b) =>
-    a.script.name < b.script.name ? -1 : a.script.name > b.script.name ? 1 : 0,
-  );
 }
 
 /** What the set asked for is compared with. */

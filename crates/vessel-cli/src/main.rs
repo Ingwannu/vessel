@@ -25,6 +25,7 @@ mod io;
 mod log;
 mod nodes;
 mod pair;
+mod project_commands;
 mod remote;
 mod render;
 mod search;
