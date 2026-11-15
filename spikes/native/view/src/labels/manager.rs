@@ -138,6 +138,15 @@ pub struct Manager {
 }
 
 impl Manager {
+    /// Name/color input stays locked across every asynchronous phase.
+    #[must_use]
+    pub fn edit_access(&self, host: HostState) -> super::EditAccess {
+        if host == HostState::Online && matches!(self.state, ManagerState::Editing(_)) {
+            super::EditAccess::Editable
+        } else {
+            super::EditAccess::ReadOnly
+        }
+    }
     /// Current phase for rendering.
     #[must_use]
     pub const fn state(&self) -> &ManagerState {

@@ -58,8 +58,9 @@ fn body(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     }
     match state.manager.state() {
         ManagerState::Listing => body.child(list(shell, host, tokens, cx)),
-        ManagerState::Editing(_) => body
+        ManagerState::Editing(draft) => body
             .child(state.name.element(tokens, false, cx))
+            .child(super::colors::choices(shell, draft.color(), tokens, cx))
             .child(button_with_kind(
                 "labels-save",
                 words.save(),
@@ -118,6 +119,7 @@ fn list(
                 ButtonState::Enabled,
                 tokens,
             )
+            .child(super::colors::mark(label.color, tokens))
             .on_click(cx.listener(move |shell, _, window, cx| {
                 let state = &mut shell.areas.labels;
                 match state.manager.edit(label.clone()) {

@@ -1,6 +1,7 @@
 //! Label manager on the existing adaptive dialog. State/rules belong to view.
 //! The skeleton exposes unsupported nodes honestly until ADR 0086 is wired.
 
+mod colors;
 mod draw;
 
 use vessel_app_kit::ui::{Context, IntoElement as _, Window};
@@ -17,6 +18,7 @@ pub(crate) struct Labels {
     pub(super) name: TextField,
     pub(super) dialog: DialogState,
     pub(super) error: Option<Failure>,
+    pub(super) color_turn: colors::ColorTurn,
 }
 
 impl Labels {
@@ -49,6 +51,7 @@ impl Labels {
             ),
             dialog: DialogState::new(cx),
             error: None,
+            color_turn: colors::ColorTurn::default(),
         }
     }
 }

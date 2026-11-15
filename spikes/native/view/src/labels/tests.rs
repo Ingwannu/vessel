@@ -291,3 +291,37 @@ fn edit_dirty_state_follows_current_catalog_and_removed_targets_cannot_be_saved(
     );
     assert!(matches!(manager.state(), ManagerState::Editing(_)));
 }
+
+#[test]
+fn field_policy_is_read_only_for_unavailable_hosts_and_every_async_phase() {
+    let mut manager = Manager::default();
+    assert_eq!(manager.edit_access(HostState::Online), EditAccess::ReadOnly);
+    manager.edit(label("Ready", Color::Violet)).unwrap();
+    for host in [
+        HostState::Offline,
+        HostState::Loading,
+        HostState::Unsupported,
+        HostState::Failed(Failure::Load),
+    ] {
+        assert_eq!(manager.edit_access(host), EditAccess::ReadOnly);
+    }
+    assert_eq!(manager.edit_access(HostState::Online), EditAccess::Editable);
+    manager.draft_mut().unwrap().set_color(Color::Sky);
+    let ticket = ticket(&mut Tickets::default());
+    manager
+        .save(HostState::Online, &ready_catalog(), ticket)
+        .unwrap();
+    assert_eq!(manager.edit_access(HostState::Online), EditAccess::ReadOnly);
+    assert!(manager.completed(ticket, Err(Failure::Update)));
+    assert_eq!(manager.edit_access(HostState::Online), EditAccess::Editable);
+    manager
+        .inspect(HostState::Online, &ready_catalog(), ticket)
+        .unwrap();
+    assert_eq!(manager.edit_access(HostState::Online), EditAccess::ReadOnly);
+    assert!(manager.inspected(ticket, Ok(Count::new(1))));
+    assert_eq!(manager.edit_access(HostState::Online), EditAccess::ReadOnly);
+    manager.delete(HostState::Online, ticket).unwrap();
+    assert_eq!(manager.edit_access(HostState::Online), EditAccess::ReadOnly);
+    assert!(manager.completed(ticket, Ok(())));
+    assert_eq!(manager.edit_access(HostState::Online), EditAccess::ReadOnly);
+}

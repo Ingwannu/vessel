@@ -1,6 +1,15 @@
 //! Request correlation and safe UI failures; label values have one protocol owner.
 
 pub(super) use vessel_proto::workspace_labels::LabelKey as Key;
+
+/// Form policy is independent of the toolkit's field implementation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EditAccess {
+    /// Authoritative connected host and idle form.
+    Editable,
+    /// Keep selection/copy while refusing user edits and color changes.
+    ReadOnly,
+}
 pub use vessel_proto::workspace_labels::{
     Assignment, Label, LabelColor as Color, LabelCount as Count, LabelName as Name,
     LabelNameError as NameError,

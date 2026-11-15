@@ -94,6 +94,21 @@ conversion; the token now composes exact RGBA bytes and delegates conversion
 to the existing color library. Tests also guard RGB24 rows. Narrow kit checks
 and the package review remain pending.
 
+## Editability and color choices
+
+Manager name/color editing is a pure `EditAccess` policy: only an idle editor
+on an authoritative online host accepts input. A regression traverses every
+async phase. The shared field owner is supplying `Editability` and
+`TextField::set_editability` in the next base; no local field renderer is
+introduced. Until that base lands, wiring this policy into the name field
+remains owed.
+
+Color choices reuse kit buttons and dots with generic identity ink. Selection
+has a one-shot QUICK fade and uses the kit motion hold policy. Deliberate
+layout difference: labeled buttons retain nonoverlapping 44-point touch
+areas and wrap on narrow windows, rather than relying on overlapping hit slop
+around reference 20-point swatches. Choosing a color changes the draft only.
+
 ## Differences and limits
 
 - Product refuses unavailable label operations explicitly until the node

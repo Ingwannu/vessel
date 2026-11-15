@@ -13,7 +13,9 @@ pub use create::{CreateDraft, PickerPage};
 pub use manager::{Draft, Manager, ManagerState};
 pub use picker::{Picker, PickerRow};
 pub use replica::Replica;
-pub use values::{Assignment, Color, Count, Failure, Label, Name, NameError, Ticket, Tickets};
+pub use values::{
+    Assignment, Color, Count, EditAccess, Failure, Label, Name, NameError, Ticket, Tickets,
+};
 
 /// Identifies a connection through the existing validated node-book name.
 pub use crate::machine_book::Name as HostKey;
