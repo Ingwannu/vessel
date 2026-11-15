@@ -40,6 +40,15 @@ pub enum Value {
     /// The node acknowledged an explicitly requested mutation.
     Written(WriteValue),
 }
+/// One area notice, distinct from any RPC ticket or optimistic state change.
+#[derive(Debug)]
+pub enum Message {
+    /// The actor established a fresh connection for this exact book key.
+    Connected(vessel_app_view::schedules::load::MachineKey),
+    /// A correlated response to a previously issued operation.
+    Replied(Answer),
+}
+
 /// Complete response, retaining every transport error until the app consumes it.
 #[derive(Debug)]
 pub struct Answer {

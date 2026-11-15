@@ -94,7 +94,9 @@ implies that the corresponding screen has been wired or visually reviewed.
 The new `link::schedules` bridge uses existing typed client calls with the same
 named request bound, retaining permits through event delivery. Local rejection
 and browser no-transport replies settle through the same app area boundary;
-no route or fixture data is implied. The shell's event dispatcher now lives in
+no route or fixture data is implied. The one generic `nodes::connection_ready`
+hook hands kept offers first, then typed area notices; identical Fleet snapshots
+cannot hide a fresh connection. The shell's event dispatcher now lives in
 its ordinary `shell::events` child module with the original effective private
 boundary; the root remains the window/frame and link receiver. LinkError keeps
 its public root path through its separate private error module. See the two

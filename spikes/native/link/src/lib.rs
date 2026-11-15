@@ -322,7 +322,7 @@ pub enum Command {
 #[derive(Debug)]
 pub enum Event {
     /// One complete correlated schedule reply, including source errors.
-    Schedules(schedules::Answer),
+    Schedules(schedules::Message),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.
@@ -593,6 +593,7 @@ impl State {
 
     async fn handle(&mut self, command: Command) {
         match command {
+            Command::Reload => self.reload().await,
             Command::Schedules(request) => self.schedule(request).await,
             Command::Agents {
                 machine,
@@ -718,14 +719,14 @@ impl State {
             }
         };
         let mut machines = Vec::with_capacity(book.len());
-        for (name, entry) in book {
-            let name = name.as_str().to_owned();
+        for (book_name, entry) in book {
+            let name = book_name.as_str().to_owned();
             let reach = if let Some(connected) = self.clients.get(&name) {
                 Ok(connected.clone())
             } else {
                 let reach = self.connect(&entry).await;
                 if let Ok(connected) = &reach {
-                    self.hand_kept(&name, &connected.client).await;
+                    self.connection_ready(&book_name, &connected.client).await;
                 }
                 reach
             };
@@ -789,32 +790,6 @@ impl State {
             Agent::all(&harnesses)
         };
         Ok(Connected { client, agents })
-    }
-
-    /// A machine just connected: the lists its agents gave last time, if
-    /// any are kept ([`Event::OptionsKept`]).
-    async fn hand_kept(&self, machine: &str, client: &NodeClient) {
-        let node = &client.node().id;
-        let lists: Vec<KeptLists> = match self.offers.lock() {
-            Ok(store) => store
-                .for_node(node)
-                .into_iter()
-                .filter(|kept| kept.profile.is_none())
-                .map(|kept| KeptLists {
-                    harness: kept.agent.clone(),
-                    options: kept.options.clone(),
-                    commands: kept.commands.clone(),
-                })
-                .collect(),
-            Err(_poisoned) => Vec::new(),
-        };
-        if !lists.is_empty() {
-            self.emit(Event::OptionsKept {
-                machine: machine.to_owned(),
-                lists,
-            })
-            .await;
-        }
     }
 
     /// Keep a session's reported commands for `harness` on `machine`'s

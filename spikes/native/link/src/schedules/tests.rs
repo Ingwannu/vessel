@@ -55,7 +55,7 @@ async fn a_missing_client_still_answers_the_exact_ticket_without_a_network_call(
         .await
         .unwrap()
         .unwrap();
-    let crate::Event::Schedules(answer) = event else {
+    let crate::Event::Schedules(Message::Replied(answer)) = event else {
         panic!("wrong event")
     };
     assert_eq!(answer.request, expected);

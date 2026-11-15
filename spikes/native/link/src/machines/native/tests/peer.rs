@@ -56,9 +56,14 @@ fn info(session: SessionId) -> SessionInfo {
     )
 }
 pub(super) async fn connect(name: &str) -> Peer {
+    connect_with_node(name, NodeId::random()).await
+}
+
+/// A new framed connection to the same node identity, for reconnect tests.
+pub(super) async fn connect_with_node(name: &str, id: NodeId) -> Peer {
     let (local, mut remote) = tokio::io::duplex(65_536);
     let node = NodeInfo {
-        id: NodeId::random(),
+        id,
         name: name.to_owned(),
         hostname: "test-machine".to_owned(),
         os: "linux".to_owned(),

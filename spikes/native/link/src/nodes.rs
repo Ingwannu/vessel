@@ -12,7 +12,7 @@ use vessel_client::{
 };
 use vessel_proto::{ClientInfo, PairingLink};
 
-use crate::LinkError;
+use crate::{Event, KeptLists, LinkError};
 
 /// Where the book and the credentials are: `VESSEL_CONFIG_DIR` (as the
 /// CLI reads it), else the system's configuration directory.
@@ -325,6 +325,66 @@ pub(crate) async fn pair(
         vessel_client::secure::Route::Relay(url) => (vessel_app_view::Via::Relay, url.to_string()),
     };
     Ok((shown, via, address))
+}
+
+// One typed fan-out point for new connections, independent of whether their
+// next Fleet snapshot differs. Future areas add an entry, not another hook.
+const CONNECTION_NOTICE_COUNT: usize = 1;
+enum ConnectionNotice {
+    Schedules(vessel_app_view::schedules::load::MachineKey),
+}
+fn connection_notices(name: &NodeName) -> Option<[ConnectionNotice; CONNECTION_NOTICE_COUNT]> {
+    let key = vessel_app_view::schedules::load::MachineKey::of(name.as_str())?;
+    Some([ConnectionNotice::Schedules(key)])
+}
+impl crate::State {
+    /// Preserve kept offers first, then tell interested areas about the actual
+    /// connection. An equal Fleet cannot suppress this separate lifecycle event.
+    pub(crate) async fn connection_ready(&self, name: &NodeName, client: &NodeClient) {
+        self.hand_kept(name.as_str(), client).await;
+        let Some(notices) = connection_notices(name) else {
+            // The book decoder already validated this key. Never log its raw
+            // input if the two boundary contracts were to diverge.
+            tracing::error!("connected machine key cannot address area caches");
+            return;
+        };
+        for notice in notices {
+            let event = match notice {
+                ConnectionNotice::Schedules(key) => {
+                    Event::Schedules(crate::schedules::Message::Connected(key))
+                }
+            };
+            self.emit(event).await;
+        }
+    }
+}
+
+impl crate::State {
+    /// A machine just connected: the lists its agents gave last time, if
+    /// any are kept ([`Event::OptionsKept`]).
+    async fn hand_kept(&self, machine: &str, client: &NodeClient) {
+        let node = &client.node().id;
+        let lists: Vec<KeptLists> = match self.offers.lock() {
+            Ok(store) => store
+                .for_node(node)
+                .into_iter()
+                .filter(|kept| kept.profile.is_none())
+                .map(|kept| KeptLists {
+                    harness: kept.agent.clone(),
+                    options: kept.options.clone(),
+                    commands: kept.commands.clone(),
+                })
+                .collect(),
+            Err(_poisoned) => Vec::new(),
+        };
+        if !lists.is_empty() {
+            self.emit(Event::OptionsKept {
+                machine: machine.to_owned(),
+                lists,
+            })
+            .await;
+        }
+    }
 }
 
 #[cfg(test)]

@@ -1,6 +1,6 @@
 //! A permit covers the call and its bounded event delivery. It is not released
 //! early when a page invalidates its own ticket or stops drawing the row.
-use super::{Answer, ListValue, ScheduleError, Value};
+use super::{Answer, ListValue, Message, ScheduleError, Value};
 use std::sync::Arc;
 use tokio::sync::{Semaphore, mpsc};
 use vessel_app_view::schedules::{
@@ -29,10 +29,10 @@ impl Hub {
     ) {
         let Ok(permit) = Arc::clone(&self.0).try_acquire_owned() else {
             let _closed = events
-                .send(crate::Event::Schedules(Answer {
+                .send(crate::Event::Schedules(Message::Replied(Answer {
                     request,
                     result: Err(ScheduleError::Busy),
-                }))
+                })))
                 .await;
             return;
         };
@@ -42,7 +42,10 @@ impl Hub {
                 None => Err(ScheduleError::Offline),
             };
             let _closed = events
-                .send(crate::Event::Schedules(Answer { request, result }))
+                .send(crate::Event::Schedules(Message::Replied(Answer {
+                    request,
+                    result,
+                })))
                 .await;
             drop(permit);
         }));

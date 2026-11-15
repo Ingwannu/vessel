@@ -1,6 +1,6 @@
 //! Schedule reply boundary. The view owns all list/permission/pending decisions;
 //! drawing/route entry are a following part of the list slice, not fake data.
-use vessel_app_link::schedules::{Answer, ListValue, Value};
+use vessel_app_link::schedules::{Answer, ListValue, Message, Value};
 use vessel_app_view::schedules::{
     load::Failure,
     page::{Ask, Page, Snapshot},
@@ -11,6 +11,13 @@ pub(crate) struct Area {
     pub(crate) page: Page,
 }
 impl Area {
+    pub(crate) fn message(&mut self, message: Message) {
+        match message {
+            Message::Connected(key) => self.page.connected(&key),
+            Message::Replied(answer) => self.answered(answer),
+        }
+    }
+
     pub(crate) fn answered(&mut self, answer: Answer) {
         let ask = answer.request.ask;
         let result = answer.result.map_err(|error| error.failure(ask));

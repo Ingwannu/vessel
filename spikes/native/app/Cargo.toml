@@ -53,6 +53,8 @@ tracing = { version = "0.1", features = ["log"] }
 sys-locale = { version = "0.3", features = ["js"] }
 
 [dev-dependencies]
+# The same typed schedule fixture is shared with view correlation tests.
+serde_json.workspace = true
 # Headless input/state regression checks; the kit uses the same test platform.
 gpui = { workspace = true, features = ["test-support"] }
 # `Link::detached`: the tests that fill the link's queue (`unsent.rs`).

@@ -14,21 +14,7 @@ use super::*;
 use cases::{ExpectedAction, ExpectedBadge, ExpectedBucket, ExpectedOutcome};
 
 pub(super) fn info() -> ScheduleInfo {
-    serde_json::from_str(
-        r#"{
-        "id":"00000000-0000-4000-8000-000000000001",
-        "definition": {
-            "cadence":{"kind":"every","seconds":90,"anchor":"2026-11-13T00:00:00Z"},
-            "target":{"kind":"session","session":"00000000-0000-4000-8000-000000000002"},
-            "prompt":"\n  빌드와 테스트 상태 확인\nLong second line"
-        },
-        "state":{"state":"active","next_due":"2026-11-14T09:00:00Z"},
-        "runs":0, "defined_by":{"kind":"owner"},
-        "created_at":"2026-11-13T00:00:00Z", "updated_at":"2026-11-13T00:00:00Z",
-        "revision":7
-    }"#,
-    )
-    .unwrap()
+    serde_json::from_str(include_str!("../../../tests/fixtures/schedules/info.json")).unwrap()
 }
 
 #[derive(Deserialize)]
