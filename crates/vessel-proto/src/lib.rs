@@ -64,6 +64,7 @@ mod transfer;
 pub mod ts;
 pub mod usage;
 pub mod workspace;
+pub mod workspace_services;
 
 pub use agent::{
     AgentEvent, ContentBlock, PermissionOption, PermissionOptionKind, PermissionOutcome,

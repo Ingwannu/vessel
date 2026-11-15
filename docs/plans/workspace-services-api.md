@@ -378,12 +378,12 @@ their responsible types with the numeric copies removed in the code commit:
 
 - Page entries and generated environment peers: the qualified shared
   MAX_PROJECT_COMMANDS, never a duplicated project-file count literal.
-- ServiceProxyUrl maximum encoded bytes: MAX_PROXY_URL_BYTES = 2048.
+- ServiceProxyUrl encoded bytes: workspace_services::MAX_PROXY_URL_BYTES.
 - Public service choices per node: MAX_PUBLIC_SERVICE_CHOICES = 256.
 - Retained service snapshot bytes per node: MAX_SERVICE_CACHE_BYTES = 8 MiB.
 - Concurrent service long-poll waiters per node: MAX_SERVICE_WAITERS = 64.
-- Host label and complete hostname: MAX_PROXY_LABEL_BYTES = 63 and
-  MAX_PROXY_HOST_BYTES = 253; the reference hash suffix uses
+- Host label and complete hostname: workspace_services::MAX_PROXY_LABEL_BYTES
+  and MAX_PROXY_HOST_BYTES; the reference hash suffix uses
   PROXY_HASH_SUFFIX_BYTES = 8. Hostname generation is a single owner and
   must match the reference normalization/collision rules before wiring.
 - SERVICE_PROBE_TIMEOUT = 500 milliseconds and

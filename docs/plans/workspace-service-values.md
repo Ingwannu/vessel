@@ -28,5 +28,10 @@ ServiceEnvName owner unchanged if absent, never a second normalizer.
 
 ## Resume point
 
-Only the contract and plan are present. Value source and rows are next;
-no method, SDK, setting, process or public route is implemented here yet.
+Origin/key/metadata etag values are authored, with canonical URL/serde,
+forbidden-shape, bound and safe-source-chain tests. The parser uses the
+existing url dependency and retains input-free typed sources. URI repairs
+(dot paths/backslashes), empty userinfo and credentials refuse before any
+metadata value is created. No network work occurs. DTO collections, method
+rows and SDK wrappers are next; no setting, process or route is implemented.
+Narrow strict/TS-feature tests on this exact source remain owed.
