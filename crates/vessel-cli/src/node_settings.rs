@@ -41,7 +41,7 @@ pub(crate) async fn run(
         match client.restart_recovery().await {
             Ok(policy) => text.push_str(&recovery_text(&policy)),
             Err(CallError::UnassignedProtocol { .. } | CallError::NotInProtocol { .. }) => {
-                text.push_str("startup recovery: unsupported by this protocol\n")
+                text.push_str("startup recovery: unsupported by this protocol\n");
             }
             Err(error) => return Err(error.into()),
         }

@@ -165,7 +165,8 @@ fn drivers(drivers: SetAgentDrivers) -> SetNodeSettings {
     SetNodeSettings {
         park_after: None,
         drivers: Some(drivers),
-    }..SetNodeSettings::default()
+        ..SetNodeSettings::default()
+    }
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

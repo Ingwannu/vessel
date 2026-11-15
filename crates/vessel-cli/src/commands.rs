@@ -7,8 +7,7 @@ use std::path::PathBuf;
 use vessel_harness::HarnessEnv;
 use vessel_node::{Config, Node, VesselMcp};
 use vessel_proto::{
-    EventSeq, HarnessKind, HarnessRef, HarnessSessionId, ModelId, ProfileName, SessionMode,
-    SessionSpec,
+    EventSeq, HarnessRef, HarnessSessionId, ModelId, ProfileName, SessionMode, SessionSpec,
 };
 
 use vessel_client::book::Resolved;
