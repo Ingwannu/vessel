@@ -225,9 +225,6 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ServicePort", Alias::Named),
     ("SessionId", Alias::Handle),
     ("SessionTitle", Alias::Named),
-    ("SetupCommandIndex", Alias::Quantity),
-    ("SetupRevision", Alias::Quantity),
-    ("SetupRunId", Alias::Handle),
     ("Sha256Hex", Alias::Named),
     ("StreamId", Alias::Handle),
     ("SubscriptionId", Alias::Handle),
@@ -240,7 +237,6 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("TransferId", Alias::Handle),
     ("UploadId", Alias::Handle),
     ("WorkspaceId", Alias::Handle),
-    ("WorkspaceOperationId", Alias::Handle),
     ("WorktreeId", Alias::Handle),
 ];
 
