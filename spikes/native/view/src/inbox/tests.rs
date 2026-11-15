@@ -509,3 +509,25 @@ fn bounded_background_admission_rotates_every_machine_to_the_head() {
     assert!(inbox.poll_routes(Vec::new()).is_empty());
     assert_eq!(inbox.poll_routes(sources.clone()).first(), sources.first());
 }
+
+#[test]
+fn shared_marks_allow_readonly_people_but_reject_retained_stale_snapshots() {
+    let mut fake = FakeNode::new("laptop");
+    let entry = fake.entry(1);
+    fake.snapshot.entries.push(entry.clone());
+    fake.snapshot.authority = Authority::ReadOnly;
+    let mut inbox = Inbox::default();
+    inbox.connect(fake.source.clone());
+    assert!(!inbox.may_mark(entry.key));
+    assert!(fake.read(&mut inbox).is_empty());
+    assert!(inbox.may_mark(entry.key));
+    assert!(!inbox.may_answer(entry.key));
+    let ticket = inbox.begin(fake.source.node()).unwrap().unwrap();
+    let _notices = inbox.receive(fake.source.node(), ticket, Err(Problem::Offline));
+    assert!(inbox.entry(entry.key).is_some());
+    assert!(!inbox.may_mark(entry.key));
+    assert!(fake.read(&mut inbox).is_empty());
+    assert!(inbox.may_mark(entry.key));
+    inbox.disconnect(fake.source.node());
+    assert!(!inbox.may_mark(entry.key));
+}

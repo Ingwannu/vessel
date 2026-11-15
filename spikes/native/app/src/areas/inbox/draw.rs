@@ -240,8 +240,9 @@ fn detail(
         Read::Read => labels.read(),
         Read::Unread => labels.unread(),
     };
+    let may_mark = pending.is_none() && area.detail.confirmed() && area.store.may_mark(key);
     body = body.child(
-        outline_button("inbox-mark", label, pending.is_none(), tokens).on_click(cx.listener(
+        outline_button("inbox-mark", label, may_mark, tokens).on_click(cx.listener(
             move |shell, _event, _window, cx| {
                 shell.inbox_mark(next);
                 cx.notify();

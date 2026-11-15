@@ -241,3 +241,10 @@ Notification activation explicitly redraws generic Inbox fallback even when its
 opaque route was consumed/evicted and the window was already active. OS/window
 activation alone is not a state-change notification. Exact source lookup and
 opaque routing remain unchanged; platform capture verification is still owed.
+
+Shared mark controls and the action entry point now require current successful
+node-read readiness as well as a confirmed exact detail. Read-only people keep
+mark access, while retained failed/offline snapshots cannot launch it. Answers
+recheck the existing may_answer policy at the action boundary too; node scope
+and original G4 admission remain final authorities. A regression retains the
+stale entry while verifying read-only/failed/recovered/disconnected transitions.

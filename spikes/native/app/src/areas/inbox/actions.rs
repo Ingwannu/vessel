@@ -83,6 +83,14 @@ impl Shell {
         operation: Operation,
     ) -> Option<(Source, Key, vessel_app_view::inbox::Request)> {
         let key = self.areas.inbox.detail.key()?;
+        let permitted = match operation {
+            Operation::Answer => self.areas.inbox.store.may_answer(key),
+            Operation::Mark => self.areas.inbox.store.may_mark(key),
+            Operation::Load => false,
+        };
+        if !permitted {
+            return None;
+        }
         let source = self.inbox_source(key)?;
         if self.areas.inbox.detail_source.as_ref() != Some(&source) {
             return None;

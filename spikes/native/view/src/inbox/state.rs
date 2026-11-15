@@ -324,6 +324,17 @@ impl Inbox {
             .flat_map(|data| &data.entries)
             .find(|entry| entry.key == key)
     }
+    /// Shared read marks require a current successful read. Read-only people
+    /// keep this action; a retained stale/offline snapshot cannot authorize it.
+    #[must_use]
+    pub fn may_mark(&self, key: Key) -> bool {
+        self.nodes.iter().any(|node| {
+            node.source.node() == key.node
+                && node.listing == Listing::Ready
+                && node.snapshot.is_some()
+        })
+    }
+
     /// Answer controls require a current successful read and explicit operate
     /// authority; a retained offline snapshot never grants an action.
     #[must_use]
