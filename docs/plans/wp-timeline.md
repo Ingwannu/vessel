@@ -1500,3 +1500,9 @@ body cases cover replacement, explicit deletion and missing new content. These
 new tests are not yet executed. Prior strict3/GPUI evidence is not enlarged, and
 final adoption remains held. Announced base10 is normally merged; shared resident
 staging and full A7 reasoning/tool-sheet protection remain intact.
+
+The first P2-successor strict489 stopped before tests on the App fixture's absent
+serde_json dependency and a similar_names lint. Direct canonical typed fixture
+constructors replace JSON decoding; no App dependency or assertion is changed.
+The mirrored correction still awaits strict/runtime execution. Affected queued
+full tests were superseded only after supported cancellation confirmed143.
