@@ -20,22 +20,15 @@ fn retain_while_finalizing(cx: &mut App) {
 }
 
 fn test_desktop() -> Desktop {
-    Desktop {
-        records: Vec::new(),
-        saved: None,
-        latest: WindowState::default(),
-        writer: None,
-        environment: vessel_app_link::desktop::environment::ShellEnvironment::inherited(),
-        environment_broadcast: None,
-        quit: Some(retain_while_finalizing),
-        window_close: None,
-        session: None,
-        project: None,
-        preferences: vessel_app_link::desktop::preferences::Coordinator::start(
-            vessel_app_link::Prefs::default(),
-        )
-        .unwrap(),
-    }
+    let mut desktop =
+        super::super::testing::desktop(
+            vessel_app_link::desktop::preferences::Coordinator::start(
+                vessel_app_link::Prefs::default(),
+            )
+            .unwrap(),
+        );
+    desktop.quit = Some(retain_while_finalizing);
+    desktop
 }
 
 #[cfg(not(target_os = "macos"))]

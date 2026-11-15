@@ -4,6 +4,36 @@ use super::*;
 use vessel_app_view::prefs::{Grouping, Theme};
 
 #[tokio::test]
+async fn checkpoint_detects_accepted_edits_and_requires_window_reconciliation() {
+    let initial = Prefs::default();
+    let coordinator = Coordinator::start(initial.clone()).unwrap();
+    let (client, _updates) = coordinator.client();
+    let first = coordinator.checkpoint().await.unwrap();
+    assert!(coordinator.is_current(&first));
+    assert!(client.is_settled(&first));
+    let mut edited = initial;
+    edited.settings.appearance.theme = Theme::Light;
+    client.publish(&edited).unwrap();
+    assert!(!coordinator.is_current(&first));
+    let saved = coordinator.checkpoint().await.unwrap();
+    assert!(coordinator.is_current(&saved));
+    assert!(!client.is_settled(&saved));
+    assert!(matches!(
+        client.observe(saved.snapshot()),
+        Observation::Applied(_)
+    ));
+    assert!(client.is_settled(&saved));
+    let awaiting = coordinator.checkpoint();
+    edited.settings.sidebar.group = Grouping::Status;
+    client.publish(&edited).unwrap();
+    let stale = awaiting.await.unwrap();
+    assert!(
+        !coordinator.is_current(&stale),
+        "publication after capture must retry even when the queue included it"
+    );
+}
+
+#[tokio::test]
 async fn full_queue_refuses_later_snapshots_until_the_window_observes_canonical_state() {
     let initial = Prefs::default();
     let coordinator = Coordinator::start(initial.clone()).unwrap();
@@ -16,6 +46,8 @@ async fn full_queue_refuses_later_snapshots_until_the_window_observes_canonical_
     assert_eq!(client.publish(&refused), Err(crate::Rejected::Full));
     coordinator.flush().await.unwrap();
     let canonical = coordinator.snapshot();
+    let checkpoint = coordinator.checkpoint().await.unwrap();
+    assert!(!client.is_settled(&checkpoint));
     // Even though the physical queue has drained, the UI still holds a refused
     // field. A later unrelated snapshot must not silently retry that field.
     let mut later = refused;
@@ -26,6 +58,7 @@ async fn full_queue_refuses_later_snapshots_until_the_window_observes_canonical_
     let Observation::Applied(reconciled) = client.observe(&canonical) else {
         panic!("current canonical state");
     };
+    assert!(client.is_settled(&checkpoint));
     let mut fresh = (*reconciled).clone();
     fresh.settings.sidebar.group = Grouping::Status;
     client.publish(&fresh).unwrap();

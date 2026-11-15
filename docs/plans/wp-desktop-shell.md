@@ -110,6 +110,18 @@ usable. Final receipts close the queue before waking their waiter. Checkpoint
 success/failure/retry tests are added, with new-head execution still pending.
 W15 must consume this facade; no second quit manager or owned-node policy is added.
 
+The completed flush now returns StateReceipt rather than unit. A completed save
+can still be obsolete: the preference Coordinator captures an opaque publication
+identity before waiting, and the receipt records acknowledged geometry. Immediately
+before exit, flush_current checks that identity and canonical revision, latest
+geometry, plus every live window Client has reconciled all accepted writes and has
+no queue refusal. It returns Changed / Saved / LaunchOnly / Failed. LaunchOnly is
+checked only after all currentness/pending checks, never as a refusal bypass.
+The lifecycle owner performs one bounded retry phase after Changed and no await
+between final document admission, this App-level fence and quit/restart. Node
+finalization is not repeated by desktop. New queue/checkpoint and real App late
+resize/preference tests are source-only pending their next combined execution.
+
 The active live window is preferred, then a visible window, then the first live
 window. Closed handles and expired Shell entities cannot be routing destinations.
 Visibility is read from GPUI, without a second cached window registry.
@@ -323,6 +335,11 @@ workspace/package manifests without invoking Cargo. The older job stayed unchang
 under the coordinator rule, then completed rc1/native-cargo101 at that duplicate
 key before compilation/tests. Logs remain in remote-unit-14. The repaired934ddd439
 union is now submitted as unit15 with --lib --bins to include app binary tests.
+Unit15 reached compilation and stopped at the same old popover test-getter type
+inference diagnosed by the isolated control run; that fix is already in current
+source. No tests ran and no app/runtime pass is inferred from it. The terminal
+logs remain in remote-unit-15; the next meaningful union includes the settled
+persistence receipt/fence and its regressions.
 The new control producer uses the clean dd13 base separately.
 Current source-size checks passed708 files/14 existing exceptions; no allowance
 increased. Direct rustfmt checks the Rust files changed from dd13ce37; this

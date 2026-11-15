@@ -88,6 +88,25 @@ pub enum Observation {
 #[derive(Debug)]
 pub struct Receipt(oneshot::Receiver<Snapshot>);
 
+#[derive(Debug, Clone)]
+struct Publication(Arc<()>);
+
+/// A completed queue checkpoint with an opaque accepted-publication identity.
+/// Lifecycle admission rechecks it on the same UI executor as its Clients.
+#[derive(Debug)]
+pub struct Checkpoint {
+    publication: Publication,
+    snapshot: Snapshot,
+}
+
+impl Checkpoint {
+    /// Preserve launch-only and failed-write outcomes rather than claiming saved.
+    #[must_use]
+    pub const fn snapshot(&self) -> &Snapshot {
+        &self.snapshot
+    }
+}
+
 impl Receipt {
     /// Await this request, not an unrelated later write. Observe this snapshot
     /// through Client before applying; a newer revision still wins.
@@ -115,6 +134,7 @@ enum Command {
 pub struct Coordinator {
     commands: mpsc::SyncSender<Command>,
     current: watch::Receiver<Snapshot>,
+    publication: watch::Sender<Publication>,
 }
 
 /// UI-thread client tracks its own optimistic baseline between acknowledgements.
@@ -129,6 +149,7 @@ pub struct Client {
     acknowledged: watch::Sender<Acknowledged>,
     acknowledgements: watch::Receiver<Acknowledged>,
     refused: std::cell::Cell<Option<crate::Rejected>>,
+    publication: watch::Sender<Publication>,
 }
 
 impl Coordinator {
@@ -162,7 +183,12 @@ impl Coordinator {
         let _worker = std::thread::Builder::new()
             .name("vessel-preferences".into())
             .spawn(move || run(snapshot, path.as_deref(), &published, &receiver))?;
-        Ok(Self { commands, current })
+        let (publication, _initial) = watch::channel(Publication(Arc::new(())));
+        Ok(Self {
+            commands,
+            current,
+            publication,
+        })
     }
 
     /// A new window starts from the latest committed snapshot, including launch-only edits.
@@ -181,6 +207,7 @@ impl Coordinator {
                 acknowledged,
                 acknowledgements,
                 refused: std::cell::Cell::new(None),
+                publication: self.publication.clone(),
             },
             self.current.clone(),
         )
@@ -196,6 +223,35 @@ impl Coordinator {
     #[must_use]
     pub fn snapshot(&self) -> Snapshot {
         self.current.borrow().clone()
+    }
+
+    /// Capture before awaiting; a later accepted edit invalidates this receipt
+    /// even if its disk write has not published a newer canonical revision yet.
+    ///
+    /// # Errors
+    /// Returns the same worker/spawn failures as flush.
+    pub fn checkpoint(
+        &self,
+    ) -> impl Future<Output = Result<Checkpoint, DesktopError>> + 'static + use<> {
+        let publication = self.publication.borrow().clone();
+        let current = self.current.clone();
+        let flush = self.flush();
+        async move {
+            flush.await?;
+            let snapshot = current.borrow().clone();
+            Ok(Checkpoint {
+                publication,
+                snapshot,
+            })
+        }
+    }
+
+    /// Called immediately before quit/restart, without a subsequent await and
+    /// on the same UI executor that publishes through this coordinator's Clients.
+    #[must_use]
+    pub fn is_current(&self, checkpoint: &Checkpoint) -> bool {
+        Arc::ptr_eq(&self.publication.borrow().0, &checkpoint.publication.0)
+            && self.current.borrow().revision() == checkpoint.snapshot.revision()
     }
 
     /// Wait for every accepted edit before the process exits.
@@ -289,7 +345,20 @@ impl Client {
             after: Arc::clone(&after),
         });
         let _previous = self.baseline.replace(after);
+        let _previous = self.publication.send_replace(Publication(Arc::new(())));
         Ok(())
+    }
+
+    /// A live window must reconcile its optimistic state/refusals before exit.
+    /// An accepted write's acknowledgment alone does not update its UI projection.
+    #[must_use]
+    pub fn is_settled(&self, checkpoint: &Checkpoint) -> bool {
+        let acknowledged = *self.acknowledgements.borrow();
+        self.refused.get().is_none()
+            && self.pending.borrow().is_empty()
+            && acknowledged.sequence == self.sequence.get()
+            && acknowledged.revision <= checkpoint.snapshot.revision()
+            && Arc::ptr_eq(&self.publication.borrow().0, &checkpoint.publication.0)
     }
 
     /// Rebase pending intent; an old failure cannot roll back a newer committed edit.

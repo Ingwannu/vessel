@@ -1,8 +1,11 @@
 //! Process-wide desktop ownership; screens use typed host adapters only.
 
+mod persistence;
 pub(crate) mod preferences;
 mod startup;
 mod startup_error;
+#[cfg(test)]
+mod testing;
 mod windows;
 
 use crate::shell::Shell;
@@ -13,6 +16,7 @@ use vessel_app_link::desktop::{
 };
 use vessel_app_view::desktop::window::WindowState;
 
+pub(crate) use persistence::{StateReadiness, StateReceipt, flush_current, flush_state};
 pub(crate) use startup::run;
 pub(crate) use windows::open_additional;
 
@@ -213,8 +217,15 @@ fn install(
         // the quit owner must await flush_state before normal quit/restart.
         let flush = flush_state(cx);
         async move {
-            if let Err(error) = flush.await {
-                tracing::warn!(%error,"desktop state could not finish saving before quit");
+            match flush.await {
+                Err(error) => {
+                    tracing::warn!(%error,"desktop state could not finish saving before quit")
+                }
+                Ok(receipt) => {
+                    if let Some(error) = receipt.failure() {
+                        tracing::warn!(%error,"preferences could not be saved before quit");
+                    }
+                }
             }
         }
     })
@@ -234,27 +245,6 @@ pub(crate) fn flush_preferences(
             Some(flush) => flush.await,
             None => Ok(()),
         }
-    }
-}
-
-/// The lifecycle owner awaits both stores before calling quit or updater restart.
-/// Geometry checkpoint keeps its worker alive if a later guard/restart refuses.
-pub(crate) fn flush_state(
-    cx: &App,
-) -> impl Future<Output = Result<(), vessel_app_link::desktop::DesktopError>> + 'static + use<> {
-    let preferences = flush_preferences(cx);
-    let geometry = cx.try_global::<Desktop>().and_then(|desktop| {
-        desktop
-            .writer
-            .as_ref()
-            .map(|writer| writer.flush(desktop.latest))
-    });
-    async move {
-        preferences.await?;
-        if let Some(geometry) = geometry {
-            geometry.await?;
-        }
-        Ok(())
     }
 }
 
