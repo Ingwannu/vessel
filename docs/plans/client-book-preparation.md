@@ -96,3 +96,17 @@ The new self-process helper must receive T's delta audit before its fixed
 private_files cargo-only selection is used. The previously audited297f
 recipe does not silently approve later helpers. Product file APIs and all
 format/writer/worker/Windows/upsert limits remain as stated above.
+
+
+### First exact receiving strict result
+
+Run settings2-narrow-20261115T184344Z-9aa0432a actually checked client and
+its dev graph, then returned101 on two doc_markdown findings in the new
+FIFO test helper: missing code backticks around testkit::within and
+kill_on_drop. No product/type/assertion or source-safety failure was
+reported by that compiler result. This leaf corrects only those two
+comments; it changes no deadline, process owner, fixture or test statement.
+Original cargo.log/steps.tsv are retained at
+/tmp/work/m12-settings4/e1-client-root-strict (93s, SHAca83f161ee39212c).
+No functional test ran in that strict check; routes8/private11 remain owed.
+Register one new strict request on this changed source before runtime tests.

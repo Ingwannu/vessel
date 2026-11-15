@@ -4,7 +4,7 @@
 //! - Why: a timed-out thread cannot be killed or safely detached. A process
 //!   can be terminated and explicitly reaped before the parent reports failure.
 //! - Reuse: the existing node/proc self-test-executable pattern, without
-//!   testkit::within (which prebuilds unrelated fake harnesses).
+//!   `testkit::within` (which prebuilds unrelated fake harnesses).
 //! - Constraint: retain the original three-second safety net and real FIFO
 //!   refusal. No product flag, file permission or assertion is weakened.
 
@@ -43,7 +43,7 @@ pub(super) async fn refuses_without_leaving_test_work() {
 }
 
 /// Exercise the failure cleanup with an actually blocked FIFO open, rather
-/// than trusting kill_on_drop or a dropped task/thread handle as a receipt.
+/// than trusting `kill_on_drop` or a dropped task/thread handle as a receipt.
 #[tokio::test]
 async fn the_deadline_terminates_and_reaps_the_actual_blocked_probe() {
     let (phase, status) = run(Probe::DeliberatelyBlock).await;
