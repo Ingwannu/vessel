@@ -473,3 +473,10 @@ Connected/ManagedLocal admission. Source changes in the shared connections and
 selected lease remain explicitly held until the lead grants the third slot after
 W2's real A4 and W12's actual DeliveryGuard promotion. No unreviewed fake BookEntry
 or second connection epoch is used to make this checkpoint compile.
+
+Lead ordering update: W2 A4 returned for correction and released its writer slot.
+The prerequisites for ManagedLocal are now a real production DeliveryGuard export
+with an actual consumer (whichever owner lands it) plus W12's actual follow
+promotion, both green on the line, followed by an explicit third-slot grant.
+Staged exports remain insufficient. This changes writer scheduling, not the
+accepted source-lifetime, classification, reservation or barrier contract.

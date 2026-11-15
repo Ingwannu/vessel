@@ -1,7 +1,10 @@
 # Managed-local transition order (implementation reservation, no source PASS)
 
-The lead's third-slot hold still applies: W2 real A4 and W12 actual product
-promotion must both land before connections source is edited. Staged delivery
+The lead's third-slot hold still applies. Updated lead ordering permits the
+real production DeliveryGuard export to land with any reviewed actual consumer
+(the closest candidate is Devices); W12's actual follow promotion must also
+land. Both predecessors must be green on the line and the lead must explicitly
+grant the third slot before connections source is edited. Staged delivery
 range dd13ce37..e42a387b alone does not unlock this work. The accepted contract
 remains desktop-managed-connections.md (SHA9de1420); this note records its actor
 transition mechanics, not another registry or permission source.
