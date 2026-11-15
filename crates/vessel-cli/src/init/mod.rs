@@ -34,7 +34,10 @@ mod identity;
 mod join;
 mod profiles;
 mod service;
-pub(crate) use service::paths::ServiceError;
+pub(crate) use service::matching::{
+    FileError as ServiceFileError, Match as ServiceMatch, ServiceFile,
+};
+pub(crate) use service::paths::{Manager as ServiceManager, ServiceError};
 
 use std::fmt::Write as _;
 use std::path::PathBuf;
