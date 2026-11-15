@@ -7,7 +7,7 @@ use vessel_app_kit::ui::{
     IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window,
     div, px, size,
 };
-use vessel_app_kit::{Start, Type, TypeExt as _, lines_box, output_box, skeleton, version_of};
+use vessel_app_kit::{Start, Type, TypeExt as _, lines_box, skeleton, version_of};
 use vessel_app_view::timeline::{
     DiffLine, MAX_LINES, Side, ToolSection, ToolSectionLabel, diff_lines, json_text, tool_sections,
     unified_lines, word_highlights,
@@ -143,13 +143,16 @@ fn section_body(
     window: &mut Window,
     cx: &mut App,
 ) -> AnyElement {
+    // A producer may refine the kind without changing a byte of its payload.
+    // Format is structural identity, so raw output never aliases parsed rows.
+    let id = child_id(&id, section_format(section));
     match section {
         ToolSection::Terminal { command, output } => {
             let text = output.filter(|text| !text.is_empty()).map_or_else(
                 || format!("$ {command}"),
                 |output| format!("$ {command}\n\n{output}"),
             );
-            output_box(id, &text, Start::Top, paint.tokens, window, cx)
+            plain_output(paint, id, &text, window, cx)
         }
         ToolSection::Code {
             text, first_line, ..
@@ -158,7 +161,7 @@ fn section_body(
         ToolSection::Edit { old, new, .. } => {
             computed_diff(paint, id, *old, new, window, cx).into_any_element()
         }
-        ToolSection::Text(text) => output_box(id, text, Start::Top, paint.tokens, window, cx),
+        ToolSection::Text(text) => plain_output(paint, id, text, window, cx),
         ToolSection::Prose(text) => prose(paint, id, text, window, cx),
         ToolSection::Opaque { label, raw } => div()
             .flex()
@@ -172,16 +175,56 @@ fn section_body(
                         ToolSectionLabel::Output => paint.words.output(),
                     }),
             )
-            .child(output_box(
-                id,
-                &json_text(raw),
-                Start::Top,
-                paint.tokens,
-                window,
-                cx,
-            ))
+            .child(plain_output(paint, id, &json_text(raw), window, cx))
             .into_any_element(),
     }
+}
+
+/// Cache domains follow the closed typed section, never provider names/text.
+fn section_format(section: &ToolSection<'_>) -> &'static str {
+    match section {
+        ToolSection::Terminal { .. } => "terminal",
+        ToolSection::Code { .. } => "code",
+        ToolSection::Patch { .. } => "patch",
+        ToolSection::Edit { .. } => "computed-diff",
+        ToolSection::Text(_) => "text",
+        ToolSection::Prose(_) => "prose",
+        ToolSection::Opaque {
+            label: ToolSectionLabel::Input,
+            ..
+        } => "input",
+        ToolSection::Opaque {
+            label: ToolSectionLabel::Output,
+            ..
+        } => "output",
+    }
+}
+
+fn plain_output(
+    paint: &BodyPaint<'_>,
+    id: ElementId,
+    text: &str,
+    window: &mut Window,
+    cx: &mut App,
+) -> AnyElement {
+    #[cfg(test)]
+    let observed_id = id.clone();
+    #[cfg(test)]
+    tests::requested(&observed_id);
+    lines_box(
+        id,
+        version_of(text),
+        || {
+            let made = Lines::text(text);
+            #[cfg(test)]
+            tests::admitted(&observed_id, &made);
+            made
+        },
+        Start::Top,
+        paint.tokens,
+        window,
+        cx,
+    )
 }
 
 fn code(
@@ -226,24 +269,33 @@ fn patch(
     window: &mut Window,
     cx: &mut App,
 ) -> AnyElement {
+    #[cfg(test)]
+    let observed_id = id.clone();
+    #[cfg(test)]
+    tests::requested(&observed_id);
     let lines = lines_box(
         id,
         version_of(text),
-        || Lines {
-            lines: unified_lines(text)
-                .0
-                .into_iter()
-                .map(|line| Line {
-                    text: line.text.to_owned().into(),
-                    number: line.number,
-                    tone: match line.side {
-                        Side::Added => Tone::Added,
-                        Side::Removed => Tone::Removed,
-                        Side::Context | Side::Header => Tone::Plain,
-                    },
-                })
-                .collect(),
-            copy: Some(text.to_owned().into()),
+        || {
+            let made = Lines {
+                lines: unified_lines(text)
+                    .0
+                    .into_iter()
+                    .map(|line| Line {
+                        text: line.text.to_owned().into(),
+                        number: line.number,
+                        tone: match line.side {
+                            Side::Added => Tone::Added,
+                            Side::Removed => Tone::Removed,
+                            Side::Context | Side::Header => Tone::Plain,
+                        },
+                    })
+                    .collect(),
+                copy: Some(text.to_owned().into()),
+            };
+            #[cfg(test)]
+            tests::admitted(&observed_id, &made);
+            made
         },
         Start::Top,
         paint.tokens,
@@ -307,7 +359,7 @@ pub(super) fn computed_diff(
     // Both texts' versions (`kit::version_of`, their hashes): a change to
     // either splits the diff again (their lengths alone kept a first diff
     // on screen after a second of the same lengths).
-    let version = version_of(old.unwrap_or("")).rotate_left(1) ^ version_of(new);
+    let version = version_of(&(old, new));
     let (lines, cut) = diff_output(
         id,
         version,
@@ -341,6 +393,10 @@ fn diff_output<'a>(
     window: &mut Window,
     cx: &mut App,
 ) -> (AnyElement, bool) {
+    #[cfg(test)]
+    let observed_id = id.clone();
+    #[cfg(test)]
+    tests::requested(&observed_id);
     let metadata = window.use_keyed_state(child_id(&id, "diff-cut"), cx, |_, _| {
         std::rc::Rc::new(std::cell::Cell::new(false))
     });
@@ -357,7 +413,7 @@ fn diff_output<'a>(
                 .enumerate()
                 .map(|(index, _)| highlights.for_line(index).to_vec())
                 .collect();
-            AnnotatedLines {
+            let made = AnnotatedLines {
                 lines: Lines {
                     lines: lines
                         .into_iter()
@@ -374,7 +430,10 @@ fn diff_output<'a>(
                     copy: None,
                 },
                 emphasis,
-            }
+            };
+            #[cfg(test)]
+            tests::admitted(&observed_id, &made.lines);
+            made
         },
         Start::Top,
         tokens,

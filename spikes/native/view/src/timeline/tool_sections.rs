@@ -99,7 +99,7 @@ pub fn tool_sections(detail: &ToolCallDetail) -> Vec<ToolSection<'_>> {
             .into_iter()
             .collect(),
         ToolCallDetail::Edit(edit) => {
-            if let Some(text) = &edit.unified_diff {
+            if let Some(text) = edit.unified_diff.as_ref().filter(|text| !text.is_empty()) {
                 vec![ToolSection::Patch {
                     text,
                     path: &edit.file_path,
@@ -249,6 +249,28 @@ mod tests {
             tool_sections(&patch).as_slice(),
             [ToolSection::Patch { .. }]
         ));
+    }
+
+    #[test]
+    fn empty_unified_diff_falls_back_without_inventing_a_missing_replacement() {
+        for (new, expected) in [
+            (Some("new"), Some("new")),
+            (Some(""), Some("")),
+            (None, None),
+        ] {
+            let edit = ToolCallDetail::Edit(vessel_proto::timeline::EditDetail {
+                file_path: "a".into(),
+                old_string: Some("old".to_owned()),
+                new_string: new.map(str::to_owned),
+                unified_diff: Some(String::new()),
+            });
+            let sections = tool_sections(&edit);
+            match expected {
+                Some(expected) => assert!(matches!(sections.as_slice(),
+                    [ToolSection::Edit { old: Some("old"), new, .. }] if *new == expected)),
+                None => assert!(sections.is_empty()),
+            }
+        }
     }
 
     #[test]

@@ -105,3 +105,37 @@ existing wrapper; proposed callers still pass None. Detail itself remains the
 canonical ToolCallDetail. No copied DTO or new root dependency is introduced;
 the narrow text-only body capability is intentional. These checks remain red,
 and the corrected source requires fresh strict/runtime evidence.
+
+### Source review corrections and cache regression
+
+Exact5c passed View/Kit/App all-target strict and the three focused App body tests
+(`wp-timeline-narrow-20261115T180704Z-5c9636a0` and
+`wp-timeline-state-tests-20261115T182140Z-5c9636a0`). V1 row276 nevertheless
+returned two static P2 findings, so no adoption followed. Those tests did not
+cover equal-byte format changes or empty unified-diff fallback. The queued full
+run on5c was cancelled before acquisition and its terminal143 retained.
+
+[Decision Log]
+- Purpose: a producer can refine a plain result into a patch without changing
+  its bytes; the cached rows must follow the current typed format.
+- Constraint: the one Kit output cache rebuilds only when its version changes.
+  Equal section IDs and equal text hashes previously aliased raw and parsed rows.
+- Alternatives: a second content cache or public inspection/renderer bypass
+  would duplicate the existing output owner and cannot fix its identity.
+- Choice: each typed section uses a structural format child. Computed diffs hash
+  their full optional old/new inputs. Empty unified text falls back to reported
+  replacement data; a missing replacement stays absent, and explicit empty means
+  deletion. A nonempty unified patch still wins.
+- Why: format and all existing numbering inputs participate before admission;
+  unchanged same-format draws retain the existing warm cache and copy path.
+- Effects: the shared renderer remains singular. New actual retained-facade
+  regressions inspect a private test-only trace of requested output identities
+  and the exact Lines admitted by the real Kit factories, including tones,
+  numbers, copy payload and warm factory counts. No Kit private state or new
+  public test API is exposed, and the trace adds no product cache or behavior.
+  This is admission/data-path evidence, not raster or clipboard-click proof.
+
+The corrected preparation normally contains announced base10 (3e7820e3), keeping
+root changes entirely in that official base. Corrected-source strict and full
+three-crate ordinary tests are still required; prior5c execution is not a pass
+for these amendments. The staged gates and atomic A8/legacy activation are intact.
