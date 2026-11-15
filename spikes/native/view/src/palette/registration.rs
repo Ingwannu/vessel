@@ -66,6 +66,23 @@ pub struct ResultId {
 pub struct Rank(i16);
 
 impl Rank {
+    /// Workspace actions precede root actions (source group rank -1).
+    pub const WORKSPACE: Self = Self(-10);
+    /// Root navigation/actions (source group rank 0).
+    pub const ROOT: Self = Self(0);
+    /// Provider/model choices (source group rank 1).
+    pub const MODELS: Self = Self(10);
+    /// Thinking choices (source group rank 1.1).
+    pub const THINKING: Self = Self(11);
+    /// Agent mode choices (source group rank 1.2).
+    pub const MODES: Self = Self(12);
+    /// Plan feature choices (source group rank 1.3).
+    pub const PLAN_MODE: Self = Self(13);
+    /// Fast feature choices (source group rank 1.4).
+    pub const FAST_MODE: Self = Self(14);
+    /// Plugin contributions (source group rank 5).
+    pub const PLUGINS: Self = Self(50);
+
     /// An exact ordinal; negative workspace ranks precede root actions.
     #[must_use]
     pub const fn new(ordinal: i16) -> Self {

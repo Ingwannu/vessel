@@ -36,8 +36,8 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{TextField, Tokens};
 use vessel_app_view::palette::{
-    Direction, MessageCursor, PaletteCursor, PaletteEntry, PaletteGroup, PaletteMode,
-    PaletteTarget, palette_entries,
+    Direction, MessageCursor, PaletteCursor, PaletteEntry, PaletteMode, PaletteTarget,
+    palette_entries,
 };
 use vessel_app_view::prefs::{PreferenceChange, Theme};
 use vessel_app_view::settings::Section;
@@ -67,6 +67,7 @@ pub(crate) struct PaletteArea {
     sources: vessel_app_view::palette::registration::Registry<source::Command>,
     page: Option<vessel_app_view::palette::pages::ChoiceLocation>,
     root_help: Option<vessel_app_view::palette::registration::Owner>,
+    keyboard_available: bool,
     /// Message selection has record identity rather than a command id.
     messages: MessageCursor,
     /// Commands remain the normal entry; transcript search is explicit.
@@ -101,6 +102,7 @@ impl PaletteArea {
             sources: vessel_app_view::palette::registration::Registry::default(),
             page: None,
             root_help: None,
+            keyboard_available: false,
             messages: MessageCursor::default(),
             mode: PaletteMode::default(),
             unavailable: None,
@@ -116,6 +118,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        if self.areas.palette.page.take().is_some() {
+            self.areas.palette.cursor.reset();
+        }
         source::install_help(self, window, cx);
     }
 
@@ -133,6 +138,7 @@ impl Shell {
     pub(crate) fn open_palette(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         self.close_shortcuts_help(window, cx);
         crate::areas::shortcuts::modal_opened(self);
+        self.areas.palette.keyboard_available = crate::areas::shortcuts::available(window);
         let placeholder = self.t.lang.palette().placeholder;
         let palette = &mut self.areas.palette;
         if !palette.motion.is_open() {
@@ -441,6 +447,7 @@ pub(crate) fn render(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
+    shell.areas.palette.keyboard_available = crate::areas::shortcuts::available(window);
     let compact = f32::from(window.viewport_size().width) < picker::COMPACT;
     let motion = shell.areas.palette.motion.sample(
         compact,

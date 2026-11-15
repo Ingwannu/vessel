@@ -6,7 +6,7 @@ use vessel_app_kit::command::{command_empty, command_heading, key_badges};
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, InteractiveElement as _, IntoElement as _, ParentElement as _, SharedString,
-    Styled as _, div, px,
+    StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_view::shortcuts::help::{HelpRow, HelpSection, filter_help};

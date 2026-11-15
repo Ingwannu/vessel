@@ -54,3 +54,19 @@ verification; pure-model checks alone do not establish working action sources.
 
 See `docs/plans/wp-commands.md` for reference paths, explicit default migration,
 platform differences, dependencies and package completion evidence.
+
+## Native source adapter
+
+The pure registry keeps Contribution<T>. The app stores a Command callback whose
+Rust closure captures each feature's concrete validated target; no Any downcast,
+RPC-name interpretation or path interpretation is introduced. The UI thread uses
+Rc rather than adding Send constraints to Window/Context-bound feature actions.
+A presented result also captures its Owner generation; replacement/removal rejects
+activation before calling the feature. The feature still checks the exact live
+node/resource generation inside its existing adapter. This costs one dynamic
+callback dispatch while keeping every feature's command and I/O policy local.
+
+ShortcutWords is now an explicit prepared-catalog compatibility adapter. It does
+not initialize translations during paint and contains no independently indexed
+English/Korean action table. Canonical action ids remain stable; source binding
+ids and overrides are normalized atomically at the preference write boundary.

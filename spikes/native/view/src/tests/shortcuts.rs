@@ -17,6 +17,27 @@ use crate::shortcuts::{
 mod capture;
 mod theme;
 
+fn words(lang: Lang) -> &'static crate::ShortcutWords {
+    use crate::localization::{LanguagePreference, Translator, resolve_language};
+    use std::sync::OnceLock;
+    static EN: OnceLock<crate::ShortcutWords> = OnceLock::new();
+    static KO: OnceLock<crate::ShortcutWords> = OnceLock::new();
+    let (cache, tag) = match lang {
+        Lang::En => (&EN, "en"),
+        Lang::Ko => (&KO, "ko"),
+    };
+    cache.get_or_init(|| {
+        crate::ShortcutWords::new(
+            Translator::get(resolve_language(
+                LanguagePreference::System,
+                Some(tag),
+                None,
+            ))
+            .unwrap(),
+        )
+    })
+}
+
 type Overrides = BTreeMap<ActionId, Bindings>;
 
 const MAC: Platform = Platform::Mac;
@@ -165,7 +186,7 @@ fn shift_is_always_written_a_modifier_alone_is_nothing() {
 
 #[test]
 fn glyphs_on_a_mac_names_elsewhere() {
-    let then = Lang::En.shortcuts().then;
+    let then = &words(Lang::En).then;
     let shifted = chord("Mod+Shift+B");
     assert_eq!(chord_caps(&shifted, MAC), ["⇧", "⌘", "B"]);
     assert_eq!(chord_caps(&shifted, OTHER), ["Ctrl", "Shift", "B"]);
@@ -268,7 +289,7 @@ fn an_override_replaces_the_defaults_an_empty_one_unsets() {
 
 #[test]
 fn a_modifier_is_needed_and_the_systems_own_keys_are_refused() {
-    let words = Lang::En.shortcuts();
+    let words = words(Lang::En);
     let said = |text: &str, platform| refusal(&chord(text), platform).map(|r| words.refusal(r));
     assert_eq!(said("K", OTHER), Some("Use Ctrl or Alt with another key."));
     assert_eq!(said("Mod+T", MAC), Some(words.refusal(Refusal::Kept)));
@@ -294,10 +315,10 @@ fn clashes_with_another_action_with_a_fixed_one_with_itself() {
 #[test]
 fn the_clash_sentences() {
     assert_eq!(
-        Lang::En
-            .shortcuts()
-            .clash(Clash::Taken(Action::Palette), "Ctrl+K", Action::Find),
-        "Ctrl+K is assigned to Open the command palette. Reassign it to Find in the session?"
+        words(Lang::En)
+            .clash(Clash::Taken(Action::Palette), "Ctrl+K", Action::Find)
+            .unwrap(),
+        "\u{2068}Ctrl+K\u{2069} is assigned to \u{2068}Toggle command center\u{2069}. Reassign it to \u{2068}Find in the session\u{2069}?"
     );
 }
 
@@ -376,7 +397,7 @@ fn every_registry_id_and_default_is_one_the_preferences_keep() {
 #[test]
 fn a_row_says_its_keys_as_the_platform_writes_them() {
     let none = Overrides::new();
-    let words = Lang::En.shortcuts();
+    let words = words(Lang::En);
     assert_eq!(
         shortcut_row(Action::ToggleInspector, &none, MAC, words).words,
         ["⌘E", "⌃`"]
@@ -393,7 +414,7 @@ fn a_row_says_its_keys_as_the_platform_writes_them() {
 #[test]
 fn search_by_name_or_keys_modified_shows_the_changed_only() {
     let none = Overrides::new();
-    let words = Lang::En.shortcuts();
+    let words = words(Lang::En);
     let actions = |group, overrides: &Overrides, query, filter| {
         shortcut_rows(group, overrides, OTHER, query, filter, words)
             .into_iter()
@@ -404,7 +425,7 @@ fn search_by_name_or_keys_modified_shows_the_changed_only() {
         actions(
             ShortcutGroup::General,
             &none,
-            "palette",
+            "command center",
             ShortcutFilter::All
         ),
         [Action::Palette]
@@ -429,7 +450,7 @@ fn search_by_name_or_keys_modified_shows_the_changed_only() {
 #[test]
 fn a_clash_kept_in_the_file_is_shown_on_both_rows() {
     let kept = overrides(&[("find", &["Mod+K"])]);
-    let words = Lang::En.shortcuts();
+    let words = words(Lang::En);
     assert_eq!(
         shortcut_row(Action::Find, &kept, OTHER, words).clashes,
         [Action::Palette]
@@ -443,7 +464,7 @@ fn a_clash_kept_in_the_file_is_shown_on_both_rows() {
 #[test]
 fn every_action_and_group_has_its_words_in_both_languages() {
     for lang in [Lang::En, Lang::Ko] {
-        let words = lang.shortcuts();
+        let words = words(lang);
         for action in Action::ALL {
             assert!(!words.label(action).is_empty(), "{action:?}");
             assert_eq!(Action::of_id(action.id()), Some(action));
@@ -453,8 +474,8 @@ fn every_action_and_group_has_its_words_in_both_languages() {
         }
     }
     assert_eq!(
-        Lang::Ko.shortcuts().label(Action::ToggleInspector),
-        "요약 보이기·숨기기"
+        words(Lang::Ko).label(Action::ToggleInspector),
+        "파일 탐색 사이드바 열기·닫기"
     );
 }
 

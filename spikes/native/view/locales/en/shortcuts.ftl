@@ -176,3 +176,21 @@ shortcuts-command-unavailable = This command is no longer available.
 
 # Command center control that returns to the parent choice page.
 shortcuts-back = Back
+
+# Compatibility capture helper sentence; key is displayed caps and action/from/to are translated labels.
+shortcuts-modifier-mac = Use Control, Option or Command with another key.
+
+# Compatibility capture helper sentence; key is displayed caps and action/from/to are translated labels.
+shortcuts-modifier-other = Use Ctrl or Alt with another key.
+
+# Compatibility capture helper sentence; key is displayed caps and action/from/to are translated labels.
+shortcuts-already-assigned = { $key } is already a key of this action.
+
+# Compatibility capture helper sentence; key is displayed caps and action/from/to are translated labels.
+shortcuts-fixed-key = { $key } is used by { $action }.
+
+# Compatibility capture helper sentence; key is displayed caps and action/from/to are translated labels.
+shortcuts-move-key = { $key } is assigned to { $from }. Reassign it to { $to }?
+
+# A bounded preference transaction or protected preference document refused a shortcut change.
+shortcuts-save-failed = The shortcut could not be changed. Your previous bindings and recording have been kept.

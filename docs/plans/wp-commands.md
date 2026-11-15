@@ -1,8 +1,11 @@
 # F4 command center and keyboard parity
 
-Status: preparation on the announced 1d1f11df app head; package base and S2's
-reviewed theme/input correction are pending. No node-backed action source is
-implemented against an unannounced base.
+Status: implementation in progress on package base 4 (3cd0d3fc), merged as
+f12d347b. S2's exact theme/input dependency eddce254 is reviewed V1 PASS.
+Canonical defaults, dispatcher, Settings/help and source projection are written;
+app compilation, feature-owner integration and package verification remain open.
+No command-center or keyboard tracker row is passed. No new node RPC is needed
+for this package's mechanics; feature-owned RPC targets remain with their owners.
 
 ## Existing assets and choice
 
@@ -65,8 +68,8 @@ Paseo source paths below are relative to packages/app/src.
 ## Deliberate differences and pending rulings
 
 The old app retains page-era shortcuts (N, G S, fixed Alt+digits), whereas the
-package requires Paseo defaults. Coordinator ruling requested before updating
-obsolete head-test assertions; unrelated tests remain untouched. Existing
+package requires Paseo defaults. Coordinator authorization permits updating obsolete default assertions; the
+mapping and new regression cases are recorded below. Unrelated cases remain. Existing
 GOAT queue actions remain available as explicitly named extensions.
 Paseo represents choice paths as flat query results; the survey's nested-page
 requirement will use those same choice paths, with a back action and query
@@ -197,3 +200,33 @@ compatibility consumers, while Settings uses SequenceCapture/rebinding. The
 compatibility listing's explicit platform now selects the correct platform's
 canonical definitions, rather than displaying Linux keys in a Mac fixture.
 Follow-up tests are pending. No unrelated behavior test was removed.
+
+## Fluent migration and owner-facing projections (09:1x checkpoint)
+
+The legacy shortcuts.rs action/group arrays are removed. Compatibility listing
+helpers take ShortcutWords::new with an explicitly prepared Translator; generated
+Fluent labels and full variable sentences replace the old indices and Rust
+format strings. Native UI already reads shell.words directly. Sequence separators
+are prepared with spaces at the formatting event, not concatenated during paint.
+Native conflict persistence failures retain the recording and old bindings and
+show a translated notice instead of silently discarding the attempt.
+
+palette::builtins projects generic, owner-supplied identities/targets for the
+Workspaces, Agents and Files categories. Workspaces and agents use the existing
+Query scorer, visible-field priority, match-tier then recency, and a shared five
+recent-row limit. Whole PR/MR-number queries use the existing forge PullNumber
+wire type and outrank ordinary text hits. File results preserve the file owner's
+ordering. This is preparation for W11/S2/W13 integration, not live search proof.
+No session-derived WorkspaceId, alternate file I/O or alternate matcher is added.
+Named Rank constants fix the shared tenths convention: workspace -10, root 0,
+models 10, thinking 11, modes 12, plan 13, fast 14, plugins 50.
+
+Native source Clippy a1e71f0bf reached the view crate and found one unused-result
+warning, corrected. The next immutable run 14213f023 reached app and found four
+app issues (two unused imports, a wrong Glyph variant and a missing scroll trait
+import); these are corrected in the following slice. No app-green claim yet.
+The local cold app check exceeded the narrow time budget and provides no pass.
+S2/other feature handlers still await their consumer-ready exact heads. W12 has
+confirmed NewTab opens a passive chooser and guarded close is handled, preventing
+fallthrough to W19's lower-priority window close. G1 is preparing its own opaque
+repository/generation/session target and current-menu availability adapter.

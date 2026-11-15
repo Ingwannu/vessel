@@ -103,7 +103,9 @@ impl Shell {
                 None,
                 act == RowAct::Reset,
             ) {
-                Ok(edits) => self.shortcut_edits(edits, window, cx),
+                Ok(edits) => {
+                    let _saved = self.shortcut_edits(edits, window, cx);
+                }
                 Err(error) => tracing::warn!(%error, "shortcut edit refused"),
             },
         }
@@ -149,10 +151,17 @@ impl Shell {
                 &bindings,
             ) {
                 Ok(edits) => {
-                    self.areas.shortcuts.page.capture = None;
-                    self.shortcut_edits(edits, window, cx);
+                    if self.shortcut_edits(edits, window, cx) {
+                        self.areas.shortcuts.page.capture = None;
+                    } else {
+                        self.areas.shortcuts.page.capture = Some(capture);
+                    }
                 }
-                Err(error) => tracing::warn!(%error, "shortcut reassignment refused"),
+                Err(error) => {
+                    tracing::warn!(%error, "shortcut reassignment refused");
+                    self.areas.shortcuts.page.capture = Some(capture);
+                    self.shortcut_save_failed(cx);
+                }
             }
         }
         cx.notify();
@@ -181,14 +190,33 @@ impl Shell {
         edits: Vec<ShortcutEdit>,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
-    ) {
+    ) -> bool {
         if edits.is_empty() {
-            return;
+            return true;
         }
-        match ShortcutEdits::try_from(edits) {
-            Ok(edits) => self.prefer(&PreferenceChange::Shortcuts { edits }, window, cx),
-            Err(error) => tracing::warn!(%error, "too many shortcut edits at once"),
+        let Ok(edits) = ShortcutEdits::try_from(edits) else {
+            self.shortcut_save_failed(cx);
+            return false;
+        };
+        let change = PreferenceChange::Shortcuts { edits };
+        let Ok(expected) = self.prefs.settings.changed(&change) else {
+            self.shortcut_save_failed(cx);
+            return false;
+        };
+        self.prefer(&change, window, cx);
+        let saved = self.prefs.settings.shortcuts == expected.shortcuts;
+        if !saved {
+            self.shortcut_save_failed(cx);
         }
+        saved
+    }
+
+    fn shortcut_save_failed(&mut self, cx: &mut Context<'_, Self>) {
+        self.toast(
+            self.words.shortcuts().save_failed().to_owned(),
+            vessel_app_view::toasts::ToastTone::Error,
+            cx,
+        );
     }
 
     pub(in crate::areas::shortcuts) fn refresh_shortcut_conflicts(&mut self) {
@@ -215,7 +243,7 @@ fn conflict_sentences(
         .chords()
         .map(|chord| chord_caps(chord, platform).join("+"))
         .collect::<Vec<_>>()
-        .join(shell.words.shortcuts().then());
+        .join(&format!(" {} ", shell.words.shortcuts().then()));
     let Ok(definitions) = definitions() else {
         return Vec::new();
     };

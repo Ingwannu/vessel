@@ -78,11 +78,11 @@ pub fn shortcut_row(
             first: jump_shown(),
             then: None,
         };
-        vec![binding_words(&jump, platform, words.then)]
+        vec![binding_words(&jump, platform, &words.then)]
     } else {
         bindings
             .iter()
-            .map(|binding| binding_words(binding, platform, words.then))
+            .map(|binding| binding_words(binding, platform, &words.then))
             .collect()
     };
     let clashes = if fixed {

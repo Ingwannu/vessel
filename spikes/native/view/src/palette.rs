@@ -12,6 +12,7 @@
 //!   names and the preference's named choices, and acts on
 //!   the target it gets back.
 
+pub mod builtins;
 mod contribution_projection;
 mod cursor;
 pub mod registration;

@@ -105,7 +105,9 @@ pub(super) fn project(shell: &Shell) -> Snapshot {
                     selected: false,
                     activate: Activate::Page(location),
                 }),
-                ChoiceRow::Result { id, entry } => contribution(&registry, id, entry),
+                ChoiceRow::Result { id, entry } => {
+                    contribution(&registry, id, entry, shell.areas.palette.keyboard_available)
+                }
             })
             .collect();
         return Snapshot {
@@ -119,7 +121,14 @@ pub(super) fn project(shell: &Shell) -> Snapshot {
             rows: section
                 .rows
                 .into_iter()
-                .filter_map(|row| contribution(&registry, row.id, row.entry))
+                .filter_map(|row| {
+                    contribution(
+                        &registry,
+                        row.id,
+                        row.entry,
+                        shell.areas.palette.keyboard_available,
+                    )
+                })
                 .collect(),
         })
         .collect();
@@ -133,7 +142,12 @@ pub(super) fn project(shell: &Shell) -> Snapshot {
                 .into_iter()
                 .map(|entry| Row {
                     id: Identity::Legacy(entry.id.clone()),
-                    title: entry.label.clone(),
+                    title: if matches!(entry.target, PaletteTarget::NewSession(_)) {
+                        vessel_app_view::shortcuts::action_label(Action::NewSession, shell.words)
+                            .to_owned()
+                    } else {
+                        entry.label.clone()
+                    },
                     subtitle: entry.detail.clone(),
                     glyph: Some(super::rows::glyph_of(&entry.target)),
                     shortcut: None,
@@ -150,7 +164,11 @@ fn contribution(
     registry: &vessel_app_view::palette::registration::Registry<Command>,
     id: ResultId,
     entry: &Contribution<Command>,
+    keyboard_available: bool,
 ) -> Option<Row> {
+    if entry.target.shortcut == Some(Action::Help) && !keyboard_available {
+        return None;
+    }
     let (title, subtitle, selected) = match &entry.presentation {
         Presentation::Action { title, subtitle } => (
             title.clone(),
@@ -213,7 +231,12 @@ fn root(shell: &Shell, all: &[super::Entry]) -> Vec<Contribution<Command>> {
                 }
             }
             _ => Presentation::Action {
-                title: entry.label.clone(),
+                title: if matches!(entry.target, PaletteTarget::NewSession(_)) {
+                    vessel_app_view::shortcuts::action_label(Action::NewSession, shell.words)
+                        .to_owned()
+                } else {
+                    entry.label.clone()
+                },
                 subtitle: entry
                     .detail
                     .as_ref()

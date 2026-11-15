@@ -176,3 +176,21 @@ shortcuts-command-unavailable = 더 이상 사용할 수 없는 명령입니다.
 
 # Command center control that returns to the parent choice page.
 shortcuts-back = 뒤로
+
+# Compatibility capture helper sentence; key is displayed caps and action/from/to are translated labels.
+shortcuts-modifier-mac = Control, Option 또는 Command를 다른 키와 함께 누르세요.
+
+# Compatibility capture helper sentence; key is displayed caps and action/from/to are translated labels.
+shortcuts-modifier-other = Ctrl 또는 Alt를 다른 키와 함께 누르세요.
+
+# Compatibility capture helper sentence; key is displayed caps and action/from/to are translated labels.
+shortcuts-already-assigned = { $key } 키는 이미 이 동작의 키입니다.
+
+# Compatibility capture helper sentence; key is displayed caps and action/from/to are translated labels.
+shortcuts-fixed-key = { $key } 키는 ‘{ $action }’에 쓰입니다.
+
+# Compatibility capture helper sentence; key is displayed caps and action/from/to are translated labels.
+shortcuts-move-key = { $key } 키는 ‘{ $from }’에 지정되어 있습니다. ‘{ $to }’에 다시 지정할까요?
+
+# A bounded preference transaction or protected preference document refused a shortcut change.
+shortcuts-save-failed = 단축키를 변경하지 못했습니다. 기존 단축키와 기록 중인 키를 유지했습니다.

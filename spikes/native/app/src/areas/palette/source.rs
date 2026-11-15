@@ -84,11 +84,11 @@ impl Shell {
 
 /// Root help follows the same registration lifecycle that external feature
 /// sources use. Its label is rebuilt only on open/language/availability events.
-pub(super) fn install_help(shell: &mut Shell, window: &Window, cx: &mut Context<'_, Shell>) {
+pub(super) fn install_help(shell: &mut Shell, _window: &Window, cx: &mut Context<'_, Shell>) {
     if let Some(owner) = shell.areas.palette.root_help.take() {
         shell.remove_command_source(&owner, cx);
     }
-    if !crate::areas::shortcuts::available(window) || !shell.areas.palette.is_open() {
+    if !shell.areas.palette.is_open() {
         return;
     }
     let (Ok(source), Ok(id), Ok(group)) = (
@@ -118,7 +118,7 @@ pub(super) fn install_help(shell: &mut Shell, window: &Window, cx: &mut Context<
             subtitle: None,
         },
         target: Command::callback(
-            Some(Glyph::Settings),
+            Some(Glyph::Keyboard),
             Some(Action::Help),
             |shell, window, cx| {
                 if !crate::areas::shortcuts::available(window) {

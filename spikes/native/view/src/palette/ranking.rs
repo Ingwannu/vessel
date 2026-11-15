@@ -10,7 +10,7 @@ use crate::matcher::{Query, Score};
 type Group<'a, S, T> = (PaletteGroup, Vec<&'a PaletteEntry<S, T>>);
 
 /// Paseo shows only five recent built-in rows before a query narrows them.
-const RECENT_LIMIT: usize = 5;
+use super::builtins::RECENT_LIMIT;
 
 pub(super) fn groups<'a, S, T>(
     entries: &'a [PaletteEntry<S, T>],
