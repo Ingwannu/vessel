@@ -64,6 +64,21 @@ Nothing of GPUI's reaches `view` or `link` (ADR 0035, 0036): the browser
 track compiles them to WebAssembly, and the layer under the kit can be
 replaced without touching them.
 
+The link's wasm32 build has its types without its calls. A `Command`'s
+or `Event`'s payload (an `Act`, a workspace `Ask`/`Answer`, a start's
+types, `NodeName`) builds on both targets. Everything that reaches a
+node through `vessel-client`, tokio's runtime or files carries
+`#[cfg(not(target_arch = "wasm32"))]`: whole modules where they are only
+calls (`connections`, `dispatch`, `workspace::{calls, follow, run}`), and
+single items and imports where a file mixes both (`session.rs`,
+`workspace/{mod, start, pulls}.rs`). `web.rs` answers every `Command`
+from the demo fleet or refuses it the way a node refuses something it does
+not support. In a browser, `NodeName` is a twin of the desktop's over the
+view's `machine_book::Name`. The native gate does not build wasm32, so a
+change to the link's commands or modules is checked with
+`cargo check --locked -p vessel-app-link --target wasm32-unknown-unknown`
+as well.
+
 Settings' agent discovery remains in `view::agent_status` (the page's
 fixtures). `agent_status::readiness` separately describes the node's
 installation, conversation support and authentication facts from

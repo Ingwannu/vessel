@@ -88,6 +88,7 @@ use tokio::sync::mpsc;
 use vessel_app_view::connection::ConnectionEpochs;
 #[cfg(not(target_arch = "wasm32"))]
 use vessel_client::NodeClient;
+#[cfg(not(target_arch = "wasm32"))]
 use vessel_proto::SessionId;
 
 pub use command::Command;
