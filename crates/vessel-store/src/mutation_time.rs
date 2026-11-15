@@ -17,13 +17,7 @@ pub(crate) fn read(
         .prepare_cached("SELECT updated_at FROM sessions WHERE id=?1")?
         .query_row([session.to_string()], |row| row.get(0))
         .optional()?;
-    stored
-        .ok_or(StoreError::UnknownSession(session))?
-        .map(|nanos| {
-            SessionUpdatedAt::try_from(time_from_sql(nanos))
-                .map_err(|source| StoreError::MutationTime { session, source })
-        })
-        .transpose()
+    decode(session, stored.ok_or(StoreError::UnknownSession(session))?)
 }
 
 /// The caller's existing savepoint owns the mutation and this tick together.
@@ -41,4 +35,17 @@ pub(crate) fn advance(
         params![session.to_string(), time_to_sql(updated.time())?],
     )?;
     Ok(updated)
+}
+
+/// The same checked cell decoder serves writer decisions and row snapshots.
+pub(crate) fn decode(
+    session: SessionId,
+    stored: Option<i64>,
+) -> Result<Option<SessionUpdatedAt>, StoreError> {
+    stored
+        .map(|nanos| {
+            SessionUpdatedAt::try_from(time_from_sql(nanos))
+                .map_err(|source| StoreError::MutationTime { session, source })
+        })
+        .transpose()
 }

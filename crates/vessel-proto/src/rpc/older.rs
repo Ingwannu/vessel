@@ -328,7 +328,7 @@ impl SessionInfo {
     /// 8-9 peers also keep an ended session in their archive placement.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
-        self.for_protocol_with_parentage(protocol, crate::subagents::SUBAGENT_RELATIONS)
+        self.for_protocol_with_mutation_time(protocol, crate::SESSION_MUTATIONS)
     }
 
     /// One projection rule also exercised with a synthetic assigned threshold.

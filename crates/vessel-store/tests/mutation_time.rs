@@ -128,11 +128,13 @@ async fn inbox_reopen_and_first_detach_share_the_same_clock_but_repeat_receipts_
     assert!(reopened > seen);
     let detached = store.detach(session.id, at(-200)).await.unwrap();
     assert_eq!(detached.disposition, DetachDisposition::Detached);
+    assert_eq!(detached.session.updated_at, clock(&dir, session.id));
     let changed = clock(&dir, session.id).unwrap();
     assert!(changed > reopened);
     let repeated = store.detach(session.id, at(-100)).await.unwrap();
     assert_eq!(repeated.disposition, DetachDisposition::AlreadyDetached);
     assert_eq!(repeated.receipt, detached.receipt);
+    assert_eq!(repeated.session.updated_at, clock(&dir, session.id));
     assert_eq!(clock(&dir, session.id), Some(changed));
     store.close().await;
 }

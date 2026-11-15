@@ -162,7 +162,7 @@ pub use session::{
     RemoteCreator, SessionInfo, SessionInput, SessionMode, SessionOrigin, SessionSpec,
     SessionStatus,
 };
-pub use session_updated_at::{InvalidSessionUpdatedAt, SessionUpdatedAt};
+pub use session_updated_at::{InvalidSessionUpdatedAt, SESSION_MUTATIONS, SessionUpdatedAt};
 pub use terminal::{TerminalBytes, TerminalInput, TerminalOutput, TerminalSize};
 pub use title::{
     GeneratedTitle, InvalidGeneratedTitle, InvalidTitle, MAX_GENERATED_TITLE_UNITS, SessionTitle,

@@ -1349,3 +1349,21 @@ and distinct time even when queued together; final stored marks match the latest
 acknowledged time. An empty append on a legacy-Unknown row preserves None until
 an actual mark initializes it. Node live-clock application and public Info
 projection are still next; no consumer readiness follows from these source tests.
+
+
+### Pending mutation-time Info projection
+
+SessionInfo now has optional updated_at, decoded with the writer's same cell
+validator. Its constructor and old wire omission preserve Unknown. The separate
+SESSION_MUTATIONS constant remains None, with assignment prerequisites stated
+beside it; the normal Info projection composes the head's parentage/title/labels
+rules before hiding this clock. New tests name every direct Info result, list,
+subscription, detach, both session-shaped exports, starting import and mixed
+Forward/Relay/Deliver nesting. A synthetic assigned threshold keeps a supported
+value; no real number is assigned. Saved/scheduled specs contain no such clock.
+
+The TS primitive is classified as a time quantity in the same change that first
+references it on the wire; generated declaration recovery/freshness is still
+owed. First detach now includes the exact newly committed row time in its Info,
+while repeated detach keeps the existing time. Live acknowledgement publication
+remains the next implementation step; this field is hidden from all peers now.

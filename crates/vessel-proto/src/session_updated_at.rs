@@ -3,6 +3,13 @@
 use chrono::{DateTime, TimeDelta, Utc};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
+/// Assignment requires the durable clock acknowledgements, all Info carrier
+/// projections and the transactional attention/workspace display consumers.
+/// Until then every peer receives Unknown rather than a partial clock contract.
+pub const SESSION_MUTATIONS: Option<crate::ProtocolVersion> = None;
+
+mod older;
+
 /// A local writer's monotonic, millisecond mutation timestamp. It is data,
 /// never a label-map revision, execution fence or caller attestation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
