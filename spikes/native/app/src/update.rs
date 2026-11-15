@@ -258,14 +258,33 @@ impl Shell {
     /// "Restart to update": start the installed build with this run's
     /// arguments, and quit.
     pub(crate) fn restart_to_update(&mut self, cx: &mut Context<'_, Self>) {
+        self.restart_update_after(None, cx);
+    }
+
+    pub(crate) fn restart_to_update_confirmed(
+        &mut self,
+        confirmation: vessel_app_link::local_node::Confirmation,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.restart_update_after(Some(confirmation), cx);
+    }
+
+    fn restart_update_after(
+        &mut self,
+        confirmation: Option<vessel_app_link::local_node::Confirmation>,
+        cx: &mut Context<'_, Self>,
+    ) {
         let Some(updates) = self.updates.runtime.as_ref().map(std::rc::Rc::clone) else {
             return;
         };
         if updates.updater.is_none() || !crate::local_node::begin_finalization(cx) {
             return;
         }
-        let finalize =
-            crate::local_node::finalize(vessel_app_view::local_node::AfterQuit::Stop, None, cx);
+        let finalize = crate::local_node::finalize(
+            vessel_app_view::local_node::AfterQuit::Stop,
+            confirmation,
+            cx,
+        );
         let flush = crate::desktop::flush_preferences(cx);
         cx.spawn(async move |this, cx| {
             let result = finalize.await;
@@ -273,8 +292,8 @@ impl Shell {
                 tracing::warn!(%error, "update restart preserved the owned local node");
                 let _closed = this.update(cx, |shell, cx| {
                     crate::local_node::end_finalization(cx);
-                    shell.areas.local_node.quit_refused = true;
-                    shell.notice = Some(shell.words.local_node().quit_refused().to_owned());
+                    shell.local_node_update_refused(error.failure_snapshot().cloned());
+                    shell.notice = Some(shell.updates.restart_failed(shell.words).to_string());
                     cx.notify();
                 });
                 return;

@@ -20,7 +20,7 @@ pub(crate) fn section(
         .snapshot
         .as_ref()
         .map_or(Status::Failed, |snapshot| snapshot.status);
-    let working = status == Status::Working;
+    let working = status == Status::Working || shell.areas.local_node.action_pending;
     let enabled = shell.prefs.local_node.management == Management::Enabled;
     let keep = shell.prefs.local_node.after_quit == AfterQuit::KeepRunning;
     let manage = settings::switch(
@@ -85,8 +85,7 @@ pub(crate) fn section(
                 false,
                 tokens,
             ))
-        })
-        .children(quit_prompt(shell, tokens, cx));
+        });
     settings::section(words.title(), card, tokens).into_any_element()
 }
 
@@ -97,7 +96,7 @@ fn controls(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let words = shell.words.local_node();
-    let idle = status != Status::Working;
+    let idle = status != Status::Working && !shell.areas.local_node.action_pending;
     let readable = cx
         .try_global::<crate::local_node::Managed>()
         .is_some_and(|managed| managed.controller.is_some());
@@ -144,73 +143,100 @@ fn controls(
         .into_any_element()
 }
 
-fn quit_prompt(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Option<AnyElement> {
-    if !shell.areas.local_node.quit_refused {
-        return None;
-    }
+fn prompt_content(
+    shell: &Shell,
+    prompt: &Prompt,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> vessel_app_kit::dialog::DialogContent {
+    use vessel_app_kit::dialog::{DialogContent, DialogSize};
     let words = shell.words.local_node();
-    let snapshot = shell.areas.local_node.snapshot.as_ref();
-    let confirmation = snapshot.and_then(Snapshot::confirmation);
-    let active = snapshot.and_then(Snapshot::active_sessions);
-    let live_rows = div()
+    let title = match prompt.intent {
+        Intent::Quit => words.quit_refused(),
+        Intent::Stop => words.confirm_stop(),
+        Intent::Restart | Intent::Update => words.confirm_restart(),
+    };
+    let body = div()
         .flex()
         .flex_col()
-        .children(active.into_iter().flatten().map(|id| {
-            let title = shell
-                .fleet
-                .machines
-                .iter()
-                .flat_map(|machine| &machine.sessions)
-                .find(|card| card.session == *id)
-                .map(|card| card.title.clone());
-            div().child(
-                title
-                    .filter(|title| !title.is_empty())
-                    .unwrap_or_else(|| id.to_string()),
-            )
-        }));
-    let actions = div()
-        .flex()
-        .flex_row()
-        .flex_wrap()
-        .child(
-            outline_button("local-quit-keep", words.keep_quit(), true, tokens).on_click(
-                cx.listener(|shell, _event, _window, cx| {
+        .child(words.protected_note())
+        .children(
+            prompt
+                .snapshot
+                .active_sessions()
+                .into_iter()
+                .flatten()
+                .map(|id| {
+                    let name = shell
+                        .fleet
+                        .machines
+                        .iter()
+                        .flat_map(|machine| &machine.sessions)
+                        .find(|card| card.session == *id)
+                        .map(|card| card.title.clone());
+                    div().child(
+                        name.filter(|name| !name.is_empty())
+                            .unwrap_or_else(|| id.to_string()),
+                    )
+                }),
+        );
+    let mut footer = Vec::new();
+    if matches!(prompt.intent, Intent::Quit) {
+        footer.push(
+            outline_button("local-quit-keep", words.keep_quit(), true, tokens)
+                .on_click(cx.listener(|shell, _event, _window, cx| {
+                    shell.areas.local_node.prompt = None;
                     shell.keep_local_node(true, cx);
                     crate::local_node::request_keep_quit(cx);
-                }),
-            ),
-        )
-        .when_some(confirmation, |actions, confirmation| {
-            actions.child(
-                outline_button("local-quit-interrupt", words.interrupt_quit(), true, tokens)
-                    .on_click(cx.listener(move |_shell, _event, _window, cx| {
-                        crate::local_node::request_confirmed_quit(confirmation.clone(), cx)
-                    })),
-            )
-        })
-        .child(
-            outline_button("local-quit-cancel", words.cancel_quit(), true, tokens).on_click(
-                cx.listener(|shell, _event, _window, cx| {
-                    shell.areas.local_node.quit_refused = false;
-                    cx.notify();
-                }),
-            ),
+                }))
+                .into_any_element(),
         );
-    Some(
-        div()
-            .flex()
-            .flex_col()
-            .child(live_rows)
-            .child(settings::row(
-                words.quit_refused(),
-                Some(words.protected_note().into()),
-                Some(actions.into_any_element()),
-                false,
-                tokens,
-            ))
+    }
+    if let Some(confirmation) = prompt.snapshot.confirmation() {
+        let intent = prompt.intent;
+        let label = match intent {
+            Intent::Quit => words.interrupt_quit(),
+            Intent::Stop => words.interrupt_stop(),
+            Intent::Restart | Intent::Update => words.interrupt_restart(),
+        };
+        footer.push(
+            outline_button("local-confirm-interrupt", label, true, tokens)
+                .on_click(cx.listener(move |shell, _event, _window, cx| {
+                    shell.areas.local_node.prompt = None;
+                    match intent {
+                        Intent::Quit => {
+                            crate::local_node::request_confirmed_quit(confirmation.clone(), cx)
+                        }
+                        Intent::Stop => shell.local_node_action(
+                            Action::InterruptConfirmed(confirmation.clone()),
+                            cx,
+                        ),
+                        Intent::Update => {
+                            shell.restart_to_update_confirmed(confirmation.clone(), cx);
+                        }
+                        Intent::Restart => shell.local_node_action(
+                            Action::RestartInterruptConfirmed(confirmation.clone()),
+                            cx,
+                        ),
+                    }
+                }))
+                .into_any_element(),
+        );
+    }
+    footer.push(
+        outline_button("local-confirm-cancel", words.cancel_quit(), true, tokens)
+            .on_click(cx.listener(|shell, _event, _window, cx| {
+                shell.areas.local_node.prompt = None;
+                cx.notify();
+            }))
             .into_any_element(),
-    )
+    );
+    DialogContent {
+        title: title.into(),
+        body: body.into_any_element(),
+        footer,
+        size: DialogSize::Normal,
+    }
 }
 
 fn status_text(shell: &Shell, status: Status) -> &str {
@@ -236,6 +262,21 @@ pub(crate) fn dialog(
 ) -> Option<AnyElement> {
     use vessel_app_kit::dialog::{DialogContent, DialogSize, dialog};
     let words = shell.words.local_node();
+    if let Some(prompt) = &shell.areas.local_node.prompt {
+        let content = prompt_content(shell, prompt, tokens, cx);
+        return Some(dialog(
+            &shell.areas.local_node.prompt_dialog,
+            content,
+            tokens,
+            window,
+            crate::areas::draft::compact(window),
+            |shell: &mut Shell, _window, cx| {
+                shell.areas.local_node.prompt = None;
+                cx.notify();
+            },
+            cx,
+        ));
+    }
     let body = match &shell.areas.local_node.logs {
         Logs::Closed => return None,
         Logs::Loading(_) => div().child(words.working()),

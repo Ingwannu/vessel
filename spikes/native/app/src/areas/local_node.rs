@@ -20,7 +20,10 @@ pub(crate) struct LocalNodeArea {
     target: Option<LocalTarget>,
     tickets: Tickets,
     pending: Option<Ticket>,
-    pub(crate) quit_refused: bool,
+    prompt: Option<Prompt>,
+    prompt_dialog: vessel_app_kit::dialog::DialogState,
+    focus_prompt: bool,
+    pub(super) action_pending: bool,
     logs: Logs,
     logs_dialog: vessel_app_kit::dialog::DialogState,
 }
@@ -31,10 +34,32 @@ impl LocalNodeArea {
             target: None,
             tickets: Tickets::default(),
             pending: None,
-            quit_refused: false,
+            prompt: None,
+            prompt_dialog: vessel_app_kit::dialog::DialogState::new(cx),
+            focus_prompt: false,
+            action_pending: false,
             logs: Logs::Closed,
             logs_dialog: vessel_app_kit::dialog::DialogState::new(cx),
         }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum Intent {
+    Quit,
+    Stop,
+    Restart,
+    Update,
+}
+struct Prompt {
+    intent: Intent,
+    snapshot: Snapshot,
+}
+
+pub(crate) fn prepare(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
+    if shell.areas.local_node.focus_prompt {
+        shell.areas.local_node.focus_prompt = false;
+        shell.areas.local_node.prompt_dialog.focus(window, cx);
     }
 }
 
@@ -169,16 +194,72 @@ impl Shell {
     }
 
     fn local_node_action(&mut self, action: Action, cx: &mut Context<'_, Self>) {
-        let result = cx
+        if self.areas.local_node.action_pending {
+            return;
+        }
+        let intent = match &action {
+            Action::Start => None,
+            Action::Stop | Action::InterruptConfirmed(_) => Some(Intent::Stop),
+            Action::Restart | Action::RestartInterruptConfirmed(_) => Some(Intent::Restart),
+        };
+        let work = cx
             .try_global::<crate::local_node::Managed>()
             .and_then(|managed| managed.controller.as_ref())
             .ok_or(vessel_app_link::local_node::ManagerError::Unavailable)
             .and_then(|controller| controller.request(action));
-        if let Err(error) = result {
-            tracing::warn!(%error,"local node action was not admitted");
-            self.notice = Some(self.words.local_node().failed().to_owned());
+        match work {
+            Ok(work) => {
+                self.areas.local_node.action_pending = true;
+                cx.spawn(async move |this, cx| {
+                    let result = work.await;
+                    let _closed = this.update(cx, |shell, cx| {
+                        shell.areas.local_node.action_pending = false;
+                        match result {
+                            Ok(snapshot) if snapshot.failure.is_some() => {
+                                if let Some(intent) =
+                                    intent.filter(|_| snapshot.active_sessions().is_some())
+                                {
+                                    shell.areas.local_node.prompt =
+                                        Some(Prompt { intent, snapshot });
+                                    shell.areas.local_node.focus_prompt = true;
+                                } else {
+                                    shell.notice =
+                                        Some(shell.words.local_node().failed().to_owned());
+                                }
+                            }
+                            Ok(_snapshot) => {}
+                            Err(error) => {
+                                tracing::warn!(%error,"local node action did not finish");
+                                shell.notice = Some(shell.words.local_node().failed().to_owned());
+                            }
+                        }
+                        cx.notify();
+                    });
+                })
+                .detach();
+            }
+            Err(error) => {
+                tracing::warn!(%error,"local node action was not admitted");
+                self.notice = Some(self.words.local_node().failed().to_owned());
+            }
         }
         cx.notify();
+    }
+
+    pub(crate) fn local_node_quit_refused(&mut self, snapshot: Option<Snapshot>) {
+        self.areas.local_node.prompt = snapshot.map(|snapshot| Prompt {
+            intent: Intent::Quit,
+            snapshot,
+        });
+        self.areas.local_node.focus_prompt = self.areas.local_node.prompt.is_some();
+    }
+
+    pub(crate) fn local_node_update_refused(&mut self, snapshot: Option<Snapshot>) {
+        self.areas.local_node.prompt = snapshot.map(|snapshot| Prompt {
+            intent: Intent::Update,
+            snapshot,
+        });
+        self.areas.local_node.focus_prompt = self.areas.local_node.prompt.is_some();
     }
 
     pub(crate) fn manage_local_node(&mut self, enabled: bool, cx: &mut Context<'_, Self>) {

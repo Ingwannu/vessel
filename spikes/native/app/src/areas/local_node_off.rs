@@ -8,3 +8,10 @@ pub(crate) fn dialog(
 ) -> Option<gpui::AnyElement> {
     None
 }
+
+pub(crate) fn prepare(
+    _shell: &mut crate::shell::Shell,
+    _window: &mut gpui::Window,
+    _cx: &mut gpui::Context<'_, crate::shell::Shell>,
+) {
+}

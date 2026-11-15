@@ -47,7 +47,7 @@ pub enum ManagerError {
     Runtime(#[source] std::io::Error),
     /// The controller retains process ownership after a failed stop.
     #[error("local node control failed")]
-    Control(#[source] Arc<LocalNodeError>),
+    Control(#[source] Arc<LocalNodeError>, Box<Snapshot>),
     /// Missing companion binaries are an ordinary distribution state.
     #[error("local node is not installed")]
     NotInstalled,
@@ -60,6 +60,23 @@ pub enum ManagerError {
     /// The bounded log actor retained the original read cause.
     #[error("local node logs could not be read")]
     Logs(#[source] vessel_local_node::LogError),
+}
+
+impl ManagerError {
+    /// The exact failed operation's observation, retained for a fixed confirmation.
+    #[must_use]
+    pub fn failure_snapshot(&self) -> Option<&Snapshot> {
+        match self {
+            Self::Control(_, snapshot) => Some(snapshot),
+            Self::Files(_)
+            | Self::Launch(_)
+            | Self::Runtime(_)
+            | Self::NotInstalled
+            | Self::Unavailable
+            | Self::StaleConfirmation
+            | Self::Logs(_) => None,
+        }
+    }
 }
 
 impl Configuration {
@@ -77,12 +94,8 @@ impl Configuration {
         let home = NodeHome::new(home)?;
         let launch = if binary.is_file() {
             Some(
-                Launch::new(
-                    binary,
-                    NodeHome::new(home)?,
-                    crate::nodes::client_info(label),
-                )?
-                .environment(|command| environment.apply(command))?,
+                Launch::new(binary, home.clone(), crate::nodes::client_info(label))?
+                    .environment(|command| environment.apply(command))?,
             )
         } else {
             None
@@ -175,6 +188,8 @@ pub enum Action {
     Restart,
     /// The person explicitly confirmed interrupting active sessions.
     InterruptConfirmed(Confirmation),
+    /// Explicit interruption followed by a verified-exit replacement launch.
+    RestartInterruptConfirmed(Confirmation),
 }
 
 impl Controller {
@@ -257,10 +272,16 @@ impl Controller {
     ///
     /// # Errors
     /// The bounded actor queue is full or closed.
-    pub fn request(&self, action: Action) -> Result<(), ManagerError> {
+    pub fn request(
+        &self,
+        action: Action,
+    ) -> Result<impl Future<Output = Result<Snapshot, ManagerError>> + 'static + use<>, ManagerError>
+    {
+        let (reply, wait) = oneshot::channel();
         self.commands
-            .try_send(actor::Command::Action(action))
-            .map_err(|_closed| ManagerError::Unavailable)
+            .try_send(actor::Command::Action { action, reply })
+            .map_err(|_closed| ManagerError::Unavailable)?;
+        Ok(async move { wait.await.map_err(|_closed| ManagerError::Unavailable)? })
     }
 
     /// Capture this future before leaving the GPUI update closure.

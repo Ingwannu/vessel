@@ -146,7 +146,7 @@ fn quit(after: Option<AfterQuit>, confirmation: Option<Confirmation>, cx: &mut A
     let before = crate::desktop::flush_preferences(cx);
     cx.spawn(async move |cx| {
         if let Err(error) = before.await {
-            cx.update(|cx| failed(cx, &error));
+            cx.update(|cx| failed(cx, &error, None));
             return;
         }
         let after = after.unwrap_or_else(|| {
@@ -157,24 +157,26 @@ fn quit(after: Option<AfterQuit>, confirmation: Option<Confirmation>, cx: &mut A
         match result {
             Ok(()) => match cx.update(|cx| crate::desktop::flush_preferences(cx)).await {
                 Ok(()) => cx.update(App::quit),
-                Err(error) => cx.update(|cx| failed(cx, &error)),
+                Err(error) => cx.update(|cx| failed(cx, &error, None)),
             },
-            Err(error) => cx.update(|cx| failed(cx, &error)),
+            Err(error) => cx.update(|cx| failed(cx, &error, error.failure_snapshot().cloned())),
         }
     })
     .detach();
 }
 
-fn failed(cx: &mut App, error: &dyn std::fmt::Display) {
+pub(crate) fn failed(
+    cx: &mut App,
+    error: &dyn std::fmt::Display,
+    snapshot: Option<vessel_app_link::local_node::Snapshot>,
+) {
     tracing::warn!(%error,"quit finalization did not complete; app remains open");
     end_finalization(cx);
     if cx.windows().is_empty() {
         crate::desktop::open_additional(cx);
     }
     crate::desktop::with_focused_shell(cx, |shell, _window, cx| {
-        shell.areas.local_node.quit_refused = true;
-        shell.route_to(crate::routes::Route::Settings);
-        shell.areas.settings.section = vessel_app_view::settings::Section::General;
+        shell.local_node_quit_refused(snapshot);
         shell.notice = Some(shell.words.local_node().quit_refused().to_owned());
         cx.notify();
     });

@@ -145,3 +145,20 @@ updater, even if ordinary quit keeps the node running. An Attached node uses the
 existing handshake protocol range as compatibility evidence and is never re-owned.
 Interruption confirmations retain an opaque snapshot permit; an intervening
 controller operation invalidates it instead of interrupting a replacement launch.
+
+### Exact operation acknowledgements and interruption admission
+
+Manual stop/restart and quit/update finalization retain the failed operation's
+immutable Snapshot for their confirmation dialog. The modal never regenerates its
+confirmation from a later watch value. Its opaque permit expires when the actor
+publishes a replacement observation, even if NodeId remains unchanged; a stale
+approval is refused before any interrupt RPC. Manual actions now receive a
+bounded-queue exact acknowledgement, and duplicate actions in one window remain
+disabled until it settles. Cancel preserves the process. Quit alone offers an
+explicit keep-running alternative; update approval resumes update restart after
+owned-node finalization and canonical preference flush. The standard kit modal
+stays above the current screen rather than navigating away from setup.
+
+These changes are source checkpoints. Their remote native type check and the
+combined root checks remain queued; no current-head runtime or capture claim is
+made from the older passing model/process suites.

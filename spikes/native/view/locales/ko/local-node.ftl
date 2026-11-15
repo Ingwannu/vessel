@@ -58,3 +58,15 @@ local-node-enable = 로컬 노드 켜기
 
 # Copy only the app-managed local log path, never a remote address.
 local-node-copy-log-path = 로그 경로 복사
+
+# Explicit local-node confirmation action: confirm-stop. Applies only to the captured owned child.
+local-node-confirm-stop = 로컬 노드를 중지할까요?
+
+# Explicit local-node confirmation action: confirm-restart. Applies only to the captured owned child.
+local-node-confirm-restart = 로컬 노드를 다시 시작할까요?
+
+# Explicit local-node confirmation action: interrupt-stop. Applies only to the captured owned child.
+local-node-interrupt-stop = 세션을 중단하고 중지
+
+# Explicit local-node confirmation action: interrupt-restart. Applies only to the captured owned child.
+local-node-interrupt-restart = 세션을 중단하고 다시 시작

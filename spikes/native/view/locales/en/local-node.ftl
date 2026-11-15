@@ -58,3 +58,15 @@ local-node-enable = Enable local node
 
 # Copy only the app-managed local log path, never a remote address.
 local-node-copy-log-path = Copy log path
+
+# Explicit local-node confirmation action: confirm-stop. Applies only to the captured owned child.
+local-node-confirm-stop = Stop local node?
+
+# Explicit local-node confirmation action: confirm-restart. Applies only to the captured owned child.
+local-node-confirm-restart = Restart local node?
+
+# Explicit local-node confirmation action: interrupt-stop. Applies only to the captured owned child.
+local-node-interrupt-stop = Interrupt sessions and stop
+
+# Explicit local-node confirmation action: interrupt-restart. Applies only to the captured owned child.
+local-node-interrupt-restart = Interrupt sessions and restart

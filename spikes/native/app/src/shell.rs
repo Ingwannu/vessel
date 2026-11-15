@@ -304,6 +304,7 @@ impl Render for Shell {
         crate::areas::desktop::pending(self, window, cx);
         self.settle_settings(window);
         areas::onboarding::prepare(self, window, cx);
+        areas::local_node::prepare(self, window, cx);
         self.terminal_present(window, cx);
         let tokens = tokens(cx);
         // ADR 0036: navigation and a wider window close the phone sidebar sheet.

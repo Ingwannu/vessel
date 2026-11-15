@@ -8,7 +8,10 @@ use vessel_local_node::{LocalNode, LocalNodeError, LocalStatus, QuitPolicy, Stop
 
 pub(super) enum Command {
     Logs(oneshot::Sender<Result<super::LogText, ManagerError>>),
-    Action(Action),
+    Action {
+        action: Action,
+        reply: oneshot::Sender<Result<Snapshot, ManagerError>>,
+    },
     Finalize {
         policy: QuitPolicy,
         confirmation: Option<Confirmation>,
@@ -65,31 +68,11 @@ pub(super) async fn run(
                 };
                 let _closed = reply.send(result);
             }
-            Command::Action(action) => {
-                if let Action::InterruptConfirmed(confirmation) = &action
-                    && !valid_confirmation(&published, confirmation)
-                {
-                    continue;
-                }
-                let prior = published.borrow().clone();
-                let prior_status = prior.status;
-                let _previous = published.send_replace(Snapshot {
-                    status: Status::Working,
-                    ..prior
-                });
-                let result = match action {
-                    Action::Start => start(&config, &mut node, &mut log_source).await,
-                    Action::Stop => control(&mut node, StopPolicy::Protect, false).await,
-                    Action::Restart => control(&mut node, StopPolicy::Protect, true).await,
-                    Action::InterruptConfirmed(_confirmation) => {
-                        control(&mut node, StopPolicy::InterruptConfirmed, false).await
-                    }
-                };
+            Command::Action { action, reply } => {
                 observe = true;
-                if node.is_none() && result.is_ok() {
-                    published.send_modify(|snapshot| snapshot.status = prior_status);
-                }
-                publish(&published, node.as_ref(), result.err());
+                let result =
+                    perform_action(action, &config, &mut node, &mut log_source, &published).await;
+                let _closed = reply.send(result);
             }
             Command::Finalize {
                 policy,
@@ -103,6 +86,43 @@ pub(super) async fn run(
     }
     // The last UI sender should finalize first. If all senders disappear during
     // startup or a crash-like UI teardown, ordinary Owned RAII still cleans up.
+}
+
+async fn perform_action(
+    action: Action,
+    config: &Configuration,
+    node: &mut Option<LocalNode>,
+    log_source: &mut Option<vessel_local_node::LogReader>,
+    published: &watch::Sender<Snapshot>,
+) -> Result<Snapshot, ManagerError> {
+    if let Action::InterruptConfirmed(confirmation)
+    | Action::RestartInterruptConfirmed(confirmation) = &action
+        && !valid_confirmation(published, confirmation)
+    {
+        return Err(ManagerError::StaleConfirmation);
+    }
+    let prior = published.borrow().clone();
+    let prior_status = prior.status;
+    let _previous = published.send_replace(Snapshot {
+        status: Status::Working,
+        ..prior
+    });
+    let result = match action {
+        Action::Start => start(config, node, log_source).await,
+        Action::Stop => control(node, StopPolicy::Protect, false).await,
+        Action::Restart => control(node, StopPolicy::Protect, true).await,
+        Action::InterruptConfirmed(_confirmation) => {
+            control(node, StopPolicy::InterruptConfirmed, false).await
+        }
+        Action::RestartInterruptConfirmed(_confirmation) => {
+            control(node, StopPolicy::InterruptConfirmed, true).await
+        }
+    };
+    if node.is_none() && result.is_ok() {
+        published.send_modify(|snapshot| snapshot.status = prior_status);
+    }
+    publish(published, node.as_ref(), result.err());
+    Ok(published.borrow().clone())
 }
 
 async fn finalize(
@@ -130,7 +150,7 @@ async fn finalize(
         node.as_ref(),
         result.as_ref().err().map(Arc::clone),
     );
-    result.map_err(ManagerError::Control)
+    result.map_err(|cause| ManagerError::Control(cause, Box::new(published.borrow().clone())))
 }
 
 async fn start(
@@ -250,7 +270,16 @@ mod tests {
         let (published, current) = watch::channel(snapshot(Status::NotInstalled));
         let (commands, inbox) = mpsc::channel(2);
         let task = tokio::spawn(run(config, inbox, published));
-        commands.send(Command::Action(Action::Start)).await.unwrap();
+        let (started, start_result) = oneshot::channel();
+        commands
+            .send(Command::Action {
+                action: Action::Start,
+                reply: started,
+            })
+            .await
+            .unwrap();
+        let acknowledged = start_result.await.unwrap().unwrap();
+        assert_eq!(acknowledged.status, Status::NotInstalled);
         // A same-queue finalization acknowledgement is a deterministic barrier,
         // rather than a sleep that might miss the transient Working snapshot.
         let (reply, done) = oneshot::channel();
