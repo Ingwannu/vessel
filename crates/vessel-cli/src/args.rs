@@ -34,7 +34,7 @@ pub(crate) use forge::{Method, PrCommand, Switch};
 pub(crate) use history::History;
 pub(crate) use inbox::InboxCommand;
 pub(crate) use log::{Log, LogMode};
-pub(crate) use node::{DevicesCommand, Install, NodeCommand, Source, Update};
+pub(crate) use node::{DevicesCommand, Install, NodeCommand, ResumeOnStartup, Source, Update};
 pub(crate) use nodes::{FromStdin, NodesCommand};
 pub(crate) use search::Search;
 pub(crate) use terminals::{OpenShell, Ports, ScriptCommand, ScriptPlaceArgs, Shell, ShellCommand};

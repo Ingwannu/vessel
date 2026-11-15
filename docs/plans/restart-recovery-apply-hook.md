@@ -117,3 +117,18 @@ shared seam and retained node-attempt consumer join. Recovery fixtures still
 require canonical settings test adapter updates; the old settings implementation
 is not included merely to make them compile. Checkpoints from previous source
 lineages establish no execution claim for this port.
+
+
+## Client, CLI and fake-provider source join
+
+The client uses explicit capability reads and the existing typed settings
+mutation. The CLI adds resume-on-startup and verbatim resume-prompt options;
+both return canonical unassigned admission until activation. Their source
+port preserves the shared base's other commands. Existing settings e2e literals
+only gain default request fields; all assertions and deadlines remain. The
+fake provider supplies actual load/prompt-response barriers and explicit test
+process termination, without a real agent or a fabricated commit result.
+
+These are still source ports, awaiting canonical settings assembly, qualified
+physical preparation, generated declarations and the joint checks. Neither
+old execution evidence nor a successful source application proves this union.

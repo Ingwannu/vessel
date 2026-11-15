@@ -27,6 +27,7 @@ mod init;
 mod io;
 mod log;
 mod node_ctl;
+mod node_settings;
 mod nodes;
 mod pair;
 mod parity;

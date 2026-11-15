@@ -40,7 +40,11 @@ async fn a_change_is_kept_across_a_restart_and_wins_over_the_flag() {
         let node = fixture.start_with(flag).await;
         let owner = fixture.connect(&node).await;
         assert_eq!(
-            owner.call(GetNodeSettings {}).await.unwrap().park_after,
+            owner
+                .call(GetNodeSettings::default())
+                .await
+                .unwrap()
+                .park_after,
             idle(30),
             "nothing saved: the flag's value"
         );
@@ -49,12 +53,17 @@ async fn a_change_is_kept_across_a_restart_and_wins_over_the_flag() {
             .call(SetNodeSettings {
                 park_after: Some(ParkAfter::Never),
                 drivers: None,
+                ..SetNodeSettings::default()
             })
             .await
             .unwrap();
         assert_eq!(changed.park_after, ParkAfter::Never);
         assert_eq!(
-            owner.call(GetNodeSettings {}).await.unwrap().park_after,
+            owner
+                .call(GetNodeSettings::default())
+                .await
+                .unwrap()
+                .park_after,
             ParkAfter::Never
         );
         assert_eq!(
@@ -63,6 +72,7 @@ async fn a_change_is_kept_across_a_restart_and_wins_over_the_flag() {
                     .call(SetNodeSettings {
                         park_after: Some(ParkAfter::Unknown),
                         drivers: None,
+                        ..SetNodeSettings::default()
                     })
                     .await
             ),
@@ -84,13 +94,18 @@ async fn a_change_is_kept_across_a_restart_and_wins_over_the_flag() {
         let node = fixture.start_with(flag).await;
         let owner = fixture.connect(&node).await;
         assert_eq!(
-            owner.call(GetNodeSettings {}).await.unwrap().park_after,
+            owner
+                .call(GetNodeSettings::default())
+                .await
+                .unwrap()
+                .park_after,
             ParkAfter::Never
         );
         let changed = owner
             .call(SetNodeSettings {
                 park_after: Some(idle(5)),
                 drivers: None,
+                ..SetNodeSettings::default()
             })
             .await
             .unwrap();
@@ -112,7 +127,11 @@ async fn an_agent_reads_the_settings_but_may_not_change_them() {
         let (_program, socket, auth) = credential(&owner, &mut parent).await;
         let agent = as_agent(&socket, &auth).await;
         assert_eq!(
-            agent.call(GetNodeSettings {}).await.unwrap().park_after,
+            agent
+                .call(GetNodeSettings::default())
+                .await
+                .unwrap()
+                .park_after,
             ParkAfter::DEFAULT
         );
         assert_eq!(
@@ -121,13 +140,18 @@ async fn an_agent_reads_the_settings_but_may_not_change_them() {
                     .call(SetNodeSettings {
                         park_after: Some(ParkAfter::Never),
                         drivers: None,
+                        ..SetNodeSettings::default()
                     })
                     .await
             ),
             ErrorCode::Forbidden
         );
         assert_eq!(
-            owner.call(GetNodeSettings {}).await.unwrap().park_after,
+            owner
+                .call(GetNodeSettings::default())
+                .await
+                .unwrap()
+                .park_after,
             ParkAfter::DEFAULT,
             "nothing changed"
         );
@@ -141,6 +165,7 @@ fn drivers(drivers: SetAgentDrivers) -> SetNodeSettings {
     SetNodeSettings {
         park_after: None,
         drivers: Some(drivers),
+        ..SetNodeSettings::default()
     }
 }
 
@@ -157,7 +182,7 @@ async fn drivers_are_acp_until_an_agents_own_protocol_is_offered() {
         .unwrap();
         let node = fixture.start().await;
         let owner = fixture.connect(&node).await;
-        let in_force = owner.call(GetNodeSettings {}).await.unwrap();
+        let in_force = owner.call(GetNodeSettings::default()).await.unwrap();
         assert_eq!(in_force.drivers, AgentDrivers::default(), "run as ACP");
 
         // An agent whose own protocol this build does not offer yet:
