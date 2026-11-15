@@ -497,3 +497,37 @@ before its label (the kit's button has no leading content yet), the
 name is not selected when the dialog opens (no select-all in the kit's
 field yet). The badges are the kit's (pills on `surface3`, where Paseo's
 are bare outlines).
+
+### Slice 5: the machine's Connections
+
+Followed: `screens/settings/host-page.tsx` (`HostConnectionsPage`,
+`HostConnectionError`, `ConnectionsSection`, `ConnectionRow`,
+`formatHostConnectionLabel`); labels from `en.ts` and `ko.ts`
+(`settings.host.connections.title`, `badges.relay`, `badges.remoteSsh`).
+
+- **Routes** (`view::connections`, tested): every way the book reaches
+  the machine, in the order the client tries them: a websocket with a
+  token, an `ssh` target, or a paired machine's own addresses and then
+  its relays. The link fills them from the book when it reads it
+  (`link::machines::Machine::routes`).
+- **Endpoints only**: a route shows its host and port (Paseo shows
+  endpoints); the scheme, a `user@` part, the path, the query and the
+  fragment are cut where the route is made, so nothing more of a URL
+  reaches the screen. An ssh target shows as the book names it.
+- **Rows**: Paseo's titles: "TCP (127.0.0.1:7077)" for any direct
+  address (a paired machine's too, as Paseo names every direct
+  endpoint), "Relay (relay.example:443)" / "릴레이 (…)", "Remote SSH
+  (me@gpu-box)" / "원격 SSH (…)"; one line, cut with an ellipsis.
+- **Not answering**: the same alert as Overview (Paseo's page puts
+  `HostConnectionError` above the section).
+- **One read of the book**: Overview and Connections share it
+  (`settings/book.rs`): asked when either page is shown for a machine
+  it was not read for, asked again after an edit succeeds, dropped
+  when both are left.
+
+Left out, nothing behind them yet: the latency probe beside each row
+(Paseo's "…", "12 ms", "Timeout") and the ghost "Remove" with its
+confirm: the book's actor edits a machine (rename, default, forget),
+never one of its routes, so a route cannot be removed here; removing
+the machine is Overview's "Danger zone", and a paired machine gets a
+new set of routes by pairing it again through the CLI.

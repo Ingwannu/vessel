@@ -1,6 +1,7 @@
 //! File boundary: preserve typed sources, classify without printing their text.
 use super::Machine;
 use std::path::Path;
+use vessel_app_view::connections::{Endpoint, Route};
 use vessel_app_view::machine_book::{Edit, Failure, Name};
 use vessel_client::book::{BookEntry, BookError, BookFile, NodeName};
 
@@ -66,9 +67,32 @@ pub(super) fn read(
                 default: book.default_node.as_ref() == Some(name),
                 node,
                 protocol,
+                routes: routes(&entry.address),
             })
         })
         .collect()
+}
+
+/// Every way `address` reaches its node, in the order they are tried
+/// (a paired node's own addresses, then its relays): endpoints only.
+fn routes(address: &vessel_client::NodeAddress) -> Vec<Route> {
+    match address {
+        vessel_client::NodeAddress::Ws(url) => vec![Route::Tcp(Endpoint::of_url(&url.to_string()))],
+        vessel_client::NodeAddress::Ssh(target) => {
+            vec![Route::Ssh(Endpoint::of_ssh(&target.authority()))]
+        }
+        vessel_client::NodeAddress::Secure(target) => target
+            .direct
+            .iter()
+            .map(|url| Route::Direct(Endpoint::of_url(url.as_str())))
+            .chain(
+                target
+                    .relays
+                    .iter()
+                    .map(|url| Route::Relay(Endpoint::of_url(url.as_str()))),
+            )
+            .collect(),
+    }
 }
 
 pub(super) fn write(path: &Path, edit: &Edit) -> Result<(), BookFailure> {

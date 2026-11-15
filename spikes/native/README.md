@@ -176,6 +176,9 @@ the machine picker; Paseo's `desktopOnly`/`webOnly` per surface). A
 section registers its renderer once, in `settings::sections::page`; a
 section without one is not listed (no placeholder pages), so the list and
 the pages cannot disagree. State and event slots are added only when needed.
+Overview and Connections share one read of the machine book
+(`settings/book.rs`, asked while either is shown); a route reaches the
+screen as its endpoint only (`view::connections`).
 
 Sync is read-only: `link::sync` projects manifests into names and metadata
 before a UI event exists. Partial failures remain explicit; secret values
