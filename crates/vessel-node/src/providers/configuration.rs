@@ -78,9 +78,10 @@ impl Configuration {
         F: Future<Output = Observation> + Send + 'static,
     {
         let reader = directory.clone();
-        let overrides = tokio::task::spawn_blocking(move || reader.read_provider_overrides())
-            .await??
-            .unwrap_or_default();
+        let loaded =
+            tokio::task::spawn_blocking(move || reader.load_provider_overrides(chrono::Utc::now()))
+                .await??;
+        let overrides = loaded.overrides;
         let registry =
             ProviderRegistry::build(&overrides, &plugins).map_err(ConfigurationFailure::Invalid)?;
         let (cache, catalogue_task) = Owner::start(registry.clone(), producer);

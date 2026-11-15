@@ -16,6 +16,26 @@ const PROVIDERS_FILE: &str = "providers.json";
 /// A local decode bound independent from the node's transport frame budget.
 pub const MAX_PROVIDER_FILE_BYTES: u64 = 4 * 1024 * 1024;
 
+/// Startup status never exposes the preserved file's private contents or path.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProviderFileState {
+    /// No override file; use manifest defaults.
+    Missing,
+    /// The complete typed generation was read.
+    Present,
+    /// Unreadable bytes were safely moved aside before defaults were selected.
+    Recovered,
+}
+
+/// Exactly one complete startup generation and its preservation outcome.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LoadedProviders {
+    /// Effective saved overrides, empty only for absent/recovered files.
+    pub overrides: ProviderOverrides,
+    /// A safe status for the node's local startup log.
+    pub state: ProviderFileState,
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 struct Document {
     #[serde(default)]
@@ -52,6 +72,48 @@ impl std::fmt::Debug for ProvidersFileError {
 }
 
 impl DataDir {
+    /// Load one startup generation using the settings-file recovery rule.
+    /// Unsafe files remain untouched; failed preservation refuses startup.
+    ///
+    /// # Errors
+    /// Unsafe ownership/modes or inability to preserve unreadable bytes.
+    pub fn load_provider_overrides(
+        &self,
+        at: DateTime<Utc>,
+    ) -> Result<LoadedProviders, ProvidersFileError> {
+        match self.read_provider_overrides() {
+            Ok(overrides) => {
+                let state = if overrides.is_some() {
+                    ProviderFileState::Present
+                } else {
+                    ProviderFileState::Missing
+                };
+                Ok(LoadedProviders {
+                    overrides: overrides.unwrap_or_default(),
+                    state,
+                })
+            }
+            Err(ProvidersFileError::Unsafe) => Err(ProvidersFileError::Unsafe),
+            Err(
+                ProvidersFileError::Io(_)
+                | ProvidersFileError::Decode(_)
+                | ProvidersFileError::TooLarge
+                | ProvidersFileError::Encode(_),
+            ) => {
+                let _preserved = settings_file::set_aside(
+                    self.root(),
+                    &self.providers_path(),
+                    at,
+                    SetAside::Unreadable,
+                )?;
+                Ok(LoadedProviders {
+                    overrides: ProviderOverrides::default(),
+                    state: ProviderFileState::Recovered,
+                })
+            }
+        }
+    }
+
     /// Local provider config path; never part of a reader snapshot.
     #[must_use]
     pub fn providers_path(&self) -> PathBuf {

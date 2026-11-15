@@ -92,7 +92,9 @@ pub use error::{Column, Quantity, StoreError};
 pub use forge::{MAX_SENT as MAX_FEEDBACK_SENT, StoredFeedback};
 pub use lock::{KernelLock, KernelProbe, NodeLock, NodeOwner, StartLock};
 pub use node_key::{NODE_KEY_BYTES, NodeKeySecret};
-pub use providers_file::{MAX_PROVIDER_FILE_BYTES, ProvidersFileError};
+pub use providers_file::{
+    LoadedProviders, MAX_PROVIDER_FILE_BYTES, ProviderFileState, ProvidersFileError,
+};
 pub use push::{PushAttention, StoredPush};
 pub use push_key::{PushKeyError, PushPrivateKey};
 pub use settings_file::{SetAside, SettingsFileError};

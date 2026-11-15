@@ -41,6 +41,32 @@ fn saved_providers_roundtrip_and_are_created_owner_only() {
 }
 
 #[test]
+fn startup_preserves_unreadable_bytes_before_selecting_manifest_defaults() {
+    let root = tempfile::tempdir().unwrap();
+    let data = DataDir::new(root.path());
+    assert_eq!(
+        data.load_provider_overrides(time()).unwrap().state,
+        ProviderFileState::Missing
+    );
+    let broken = b"{broken synthetic file";
+    private_write(&data, broken);
+    let loaded = data.load_provider_overrides(time()).unwrap();
+    assert_eq!(loaded.state, ProviderFileState::Recovered);
+    assert_eq!(loaded.overrides, ProviderOverrides::default());
+    assert!(!data.providers_path().exists());
+    assert_eq!(
+        fs::read(copies(&data, "unreadable").first().unwrap()).unwrap(),
+        broken
+    );
+    data.save_provider_overrides(&loaded.overrides, time())
+        .unwrap();
+    assert_eq!(
+        data.load_provider_overrides(time()).unwrap().state,
+        ProviderFileState::Present
+    );
+}
+
+#[test]
 fn future_fields_at_any_depth_are_preserved_byte_for_byte_before_replacement() {
     let root = tempfile::tempdir().unwrap();
     let data = DataDir::new(root.path());
