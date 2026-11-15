@@ -438,6 +438,57 @@ handover, and verifies the log cursor too. Product code is unchanged by
 this extra coverage. The queued gate was cancelled before execution so
 the next whole gate includes the strengthened test.
 Private captures have been inspected; the whole native gate remains owed.
+The burst regression now sends real ordered records through the terminal
+record handler, with each payload smaller than the parser feed budget and
+their aggregate larger than it. Its final screen and log cursor are checked.
+The quiet-theme regression explicitly retains equal measured cell geometry.
+
+### T1 repair evidence (2026-11-15)
+
+The product at `2ce9d83b` is unchanged by the subsequent test-only
+strengthening. Native run `appconv-20261115T041605Z-92be8aa6` passed
+all six steps: 1,150 passed, zero failed, two ignored (the explicit Linux
+display fixtures). The final geometry/burst assertions also pass their
+13-test area run and strict all-target app clippy; their exact whole gate
+is still owed. The earlier narrow app/link/view terminal run was 114/0/1.
+
+The inspected matrix has 33 images: every combination of 1280×800,
+1024×700, 800×600 and 390×844 with EN/KO and light/dark; 800×600 glyphs
+at 1, 1.25, 1.5 and 2 in both themes (including minimum-window 1.5);
+loading in wide English/dark and narrow Korean/light; four unread states
+including narrow Korean; two scrolled states; and motion enabled. Eight
+additional glyph crops preserve source pixels without resampling. Every
+image and crop was opened for inspection. The matrix test executable's
+SHA-256 is `783c5ab3dd5a628e37c685927f9744034ed5f7e5672f747245db277cbfb108cc`,
+from `2ce9d83b`; per-image manifests retain source, binary and image hashes.
+
+The error alert remains readable at 390 in Korean, with actual followed
+output visible below and no duplicate conversation/foot error. Scrolling
+shows early records rather than the styled live tail; the bar is outside
+that viewport. Scale crops retain baseline separation, the four mono
+styles, fills and wide Hangul pairs. The reference comparison uses Paseo's
+`assets/store-screenshots/raw/iphone/terminal.png` plus the cited source:
+edge-to-edge console, bar and terminal palette; Geist Mono/fallback gap is
+already a stated difference. This is a structural comparison, not pixel
+parity between different contents/chrome. The reference phone key toolbar
+belongs to input, outside read-only T1.
+
+An extra real Settings sequence retained one quiet opening through
+Light → Dark → Light with motion held and no terminal output added.
+Cells, background and cursor recoloured on Back to that retained route.
+The test binary at `92be8aa6` has SHA-256
+`238759e195901469d8ee25099489225c572bd77e4074b6a5e2c6e0af2b2bdb57`.
+The disposable preference was restored afterwards.
+
+A normal release app (no fixture overrides), at the same product source,
+was also opened on the private fake terminal. Binary SHA-256:
+`e17f14e177d4be79c97cd4bbb838c0e6804feee6bc566c5f7c466655410313c6`.
+Held motion, 1280×800, Mesa lavapipe: 30.00095 s, process ticks
+472 → 489 at 100 Hz (0.57% of one core), draw markers 13 → 13. The debug
+display test's separate 10 s sample was 2.10%, draw 4 → 4; those profiles
+are not interchangeable. No hardware-GPU, physical-touch, real-agent or
+owner-platform result is claimed. Painted-row reuse and T2 have not begun;
+T1 still awaits the final exact-commit gate and review acceptance.
 
 - Done: ADR 0073 (status proposed) and this contract. `replay` never
   answers. Path quoting is stated for both node platforms. Scrollback

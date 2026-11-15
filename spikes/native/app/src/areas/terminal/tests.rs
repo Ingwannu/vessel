@@ -75,6 +75,19 @@ fn quiet_theme_change_replaces_cells_background_and_cursor(cx: &mut TestAppConte
         cx.set_reduce_motion(true);
         open(shell, SessionId::random(), cx);
         replay_all(shell.areas.terminal.model.as_mut().unwrap(), b"quiet");
+        let area = &mut shell.areas.terminal;
+        area.phase = Phase::Ready;
+        area.fit = Some(GridSize::STANDARD);
+        area.probe.set(Some(Bounds::new(
+            gpui::point(Pixels::ZERO, Pixels::ZERO),
+            gpui::size(px(640.0), px(384.0)),
+        )));
+        area.grid.update(cx, |grid, _| {
+            grid.cell = vessel_app_kit::terminal_grid::CellSize {
+                width: px(8.0),
+                height: px(16.0),
+            };
+        });
         shell.terminal_draw(cx);
         let before = Rc::clone(&shell.areas.terminal.grid.read(cx).frame);
         cx.set_global(Theme {
@@ -91,14 +104,21 @@ fn quiet_theme_change_replaces_cells_background_and_cursor(cx: &mut TestAppConte
 
 #[gpui::test]
 fn queued_small_records_do_no_inline_parsing(cx: &mut TestAppContext) {
+    const QUEUED_RECORDS: usize = 8;
     let (shell, cx) = setup(cx);
+    let line = b"small\r\n";
+    let budget = vessel_app_view::terminal::parse::FEED_BUDGET;
+    let payload = line.repeat(budget.checked_div(line.len().saturating_mul(4)).unwrap());
+    let expected_bytes = payload.repeat(QUEUED_RECORDS);
+    assert!(payload.len() < budget);
+    assert!(expected_bytes.len() > budget);
     shell.update(cx, |shell, cx| {
         let a = SessionId::random();
         open(shell, a, cx);
         shell.areas.terminal.phase = Phase::Ready;
-        for _ in 0..32 {
-            shell.areas.terminal.pending.extend_from_slice(b"small\r\n");
-            shell.terminal_apply(cx);
+        for index in 0..QUEUED_RECORDS {
+            let seq = u64::try_from(index).unwrap();
+            shell.terminal_records(&a, &[record(seq, &payload)], cx);
         }
         // One executor owns the model; the UI has parsed none of the burst.
         assert!(shell.areas.terminal.model.is_none());
@@ -108,8 +128,12 @@ fn queued_small_records_do_no_inline_parsing(cx: &mut TestAppContext) {
     shell.read_with(cx, |shell, _| {
         let model = shell.areas.terminal.model.as_ref().unwrap();
         let mut expected = TerminalModel::new(model.grid().size(), ScrollbackLines::default());
-        replay_all(&mut expected, b"small\r\n".repeat(32).as_slice());
+        replay_all(&mut expected, &expected_bytes);
         same_screen(model, &expected);
+        assert_eq!(
+            shell.areas.terminal.log.next(),
+            vessel_proto::EventSeq::new(u64::try_from(QUEUED_RECORDS).unwrap())
+        );
         assert!(shell.areas.terminal.pending.is_empty());
     });
 }
