@@ -206,10 +206,11 @@ From here the check holds the map: a manifest edge missing from the table,
 or a table edge missing from the manifests, fails the gate.
 
 
-## Node-control process mechanisms (proposed amendment)
+## Node-control process mechanisms
 
-Status: proposed. This contract changes no manifest or active crate-map row.
-The dependency changes below belong to their respective implementation commits.
+Status: approved contract. The query move is implemented below; the later
+CLI edge remains proposed until its real caller. Each edge changes its
+manifest and active crate-map row in its own implementation commit.
 
 [Decision Log]
 - Purpose and intent: keep selected-file kernel observations and later process
@@ -308,8 +309,8 @@ only in the commit that adds each manifest edge.
 
 ### Binding implementation conditions
 
-The contract has passed review; the dependency implementation still awaits
-its integration decision. Before the move starts, these conditions bind it:
+The contract and first edge have approval. These conditions bind the move
+and the later caller:
 
 - The move adds only `proc` to store's active dependency cell; proc's cell
   remains `-`. The manifest, table and the following name restriction land
@@ -325,3 +326,22 @@ its integration decision. Before the move starts, these conditions bind it:
   cleanup, API change, changed bound or error source, weakened assertion,
   different duplicate-writer handling, or changed `NotVisible` fallback.
   A kernel PID alone continues to grant no signal authority.
+
+
+### First implementation: the generic lock query moves to proc
+
+The integration decision approved the first edge under the binding
+conditions above. The behavior-preserving move adds only proc to store's
+manifest and active dependency cell; proc's cell stays empty. Store's
+`lock/query` alone may name `vessel_proc` and delegates only the query.
+The decoder moves as a file (`git diff -M`), keeping the existing bound,
+selected-file-first parsing, duplicate-writer refusal, typed I/O sources
+and fallback. Its previous tracing target is retained explicitly so an
+existing log filter does not change as a side effect of the move.
+
+The opaque snapshot types move with their decoder, retaining the public
+store/node re-export paths. Private PID assertions move beside an actual
+held-file fixture in proc; store keeps its data-directory, owner-byte and
+damaged-record assertions. That fixture uses standard-library exclusive
+creation, adding no external dependency. No signal, descriptor/generation
+verification or CLI edge is introduced. Those remain separate phases.
