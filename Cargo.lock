@@ -3695,12 +3695,17 @@ name = "vessel-browser"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "futures-util",
  "hyper",
  "hyper-util",
  "nix 0.31.3",
+ "serde",
+ "serde_json",
  "thiserror 2.0.21",
  "tokio",
+ "tokio-tungstenite",
  "tokio-util",
+ "url",
  "vessel-proto",
  "vessel-relay",
 ]

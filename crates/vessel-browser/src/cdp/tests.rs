@@ -22,14 +22,22 @@ struct Call {
 }
 #[derive(Deserialize)]
 enum FakeMethod {
-    #[serde(rename="Browser.getVersion")] Version,
-    #[serde(rename="Target.attachToTarget")] Attach,
+    #[serde(rename = "Browser.getVersion")]
+    Version,
+    #[serde(rename = "Target.attachToTarget")]
+    Attach,
 }
 
-async fn listener()->(TcpListener,Endpoint) {
-    let listener=TcpListener::bind((std::net::Ipv4Addr::LOCALHOST,0)).await.unwrap();
-    let endpoint=Endpoint::from_launcher(&format!("ws://{}/devtools/browser/transport-fixture",listener.local_addr().unwrap())).unwrap();
-    (listener,endpoint)
+async fn listener() -> (TcpListener, Endpoint) {
+    let listener = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))
+        .await
+        .unwrap();
+    let endpoint = Endpoint::from_launcher(&format!(
+        "ws://{}/devtools/browser/transport-fixture",
+        listener.local_addr().unwrap()
+    ))
+    .unwrap();
+    (listener, endpoint)
 }
 
 #[tokio::test]
@@ -69,37 +77,59 @@ async fn out_of_order_responses_are_correlated_to_their_own_typed_requests() {
 
 #[tokio::test]
 async fn losing_a_reply_after_delivery_cannot_authorize_mutation_replay() {
-    tokio::time::timeout(FIXTURE_DEADLINE,async {
-        let (listener,endpoint)=listener().await;
-        let peer=tokio::spawn(async move {
-            let (socket,_)=listener.accept().await.unwrap();
-            let mut socket=tokio_tungstenite::accept_async(socket).await.unwrap();
-            let _delivered=socket.next().await.unwrap().unwrap();
+    tokio::time::timeout(FIXTURE_DEADLINE, async {
+        let (listener, endpoint) = listener().await;
+        let peer = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let mut socket = tokio_tungstenite::accept_async(socket).await.unwrap();
+            let _delivered = socket.next().await.unwrap().unwrap();
             socket.close(None).await.unwrap();
         });
-        let (client,_events)=Client::connect(&endpoint).await.unwrap();
-        let error=client.execute(None,InsertText{text:InputText::try_from("typing-canary".to_owned()).unwrap()}).await.unwrap_err();
-        assert!(matches!(error,Error::Disconnected{effect:BrowserEffect::Uncertain}));
+        let (client, _events) = Client::connect(&endpoint).await.unwrap();
+        let error = client
+            .execute(
+                None,
+                InsertText {
+                    text: InputText::try_from("typing-canary".to_owned()).unwrap(),
+                },
+            )
+            .await
+            .unwrap_err();
+        assert!(matches!(
+            error,
+            Error::Disconnected {
+                effect: BrowserEffect::Uncertain
+            }
+        ));
         assert!(!format!("{error:?}").contains("typing-canary"));
         client.shutdown().await.unwrap();
         peer.await.unwrap();
-    }).await.unwrap();
+    })
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
 async fn essential_signal_overflow_fails_the_connection_without_silently_skipping_state() {
-    tokio::time::timeout(FIXTURE_DEADLINE,async {
-        let (listener,endpoint)=listener().await;
-        let peer=tokio::spawn(async move {
-            let (socket,_)=listener.accept().await.unwrap();
-            let mut socket=tokio_tungstenite::accept_async(socket).await.unwrap();
+    tokio::time::timeout(FIXTURE_DEADLINE, async {
+        let (listener, endpoint) = listener().await;
+        let peer = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let mut socket = tokio_tungstenite::accept_async(socket).await.unwrap();
             for _ in 0..EXCESS_EVENT_COUNT {
-                socket.send(Message::Text(r#"{"method":"Page.loadEventFired","params":{}}"#.into())).await.unwrap();
+                socket
+                    .send(Message::Text(
+                        r#"{"method":"Page.loadEventFired","params":{}}"#.into(),
+                    ))
+                    .await
+                    .unwrap();
             }
         });
-        let (client,_events)=Client::connect(&endpoint).await.unwrap();
+        let (client, _events) = Client::connect(&endpoint).await.unwrap();
         client.wait_closed().await;
-        assert!(matches!(client.shutdown().await,Err(Error::Busy)));
+        assert!(matches!(client.shutdown().await, Err(Error::Busy)));
         peer.await.unwrap();
-    }).await.unwrap();
+    })
+    .await
+    .unwrap();
 }

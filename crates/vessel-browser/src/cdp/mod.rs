@@ -9,9 +9,9 @@ mod client;
 mod endpoint;
 mod identity;
 pub mod requests;
-mod wire;
 #[cfg(test)]
 mod tests;
+mod wire;
 
 pub use client::{Client, Error, Events};
 pub use endpoint::{Endpoint, InvalidEndpoint};

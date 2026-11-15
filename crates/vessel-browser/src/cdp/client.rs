@@ -235,7 +235,10 @@ impl Client {
                     // it cannot signal any unrelated process or connection.
                     driver.abort();
                     let _stopped = driver.await;
-                    Err(Error::TimedOut { effect: BrowserEffect::Uncertain, source })
+                    Err(Error::TimedOut {
+                        effect: BrowserEffect::Uncertain,
+                        source,
+                    })
                 }
             },
             None => Ok(()),
