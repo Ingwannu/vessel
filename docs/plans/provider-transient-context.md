@@ -34,10 +34,9 @@ values. No live agent, account file or network is needed to test the refusal.
 
 ## Resume point
 
-Contract recorded before implementation. Next: bounded value, AgentSetup field,
-transport capability and pre-spawn refusal; complete existing literals with
-None only. Then narrow checks, one package gate and review. Lifecycle owns reload
-orchestration; voice owns text and enable/restore state.
+Implementation and narrow checks are complete. Next: one package gate and V3
+review before the integrator handoff. Lifecycle owns reload orchestration;
+voice owns text and enable/restore state.
 
 ## Launch contract extraction
 
@@ -63,10 +62,22 @@ again/runtime launch and probe constructors, driver test setup, ACP/Codex
 integration test setup and Claude launch/session test setup. No existing test
 assertion, provider choice or option-completion arm is changed. New tests pin
 the shared bound, controls, redacted setup/error Debug and pre-spawn refusal
-for every current transport. Checks and execution are pending.
+for every current transport. Actual override transport remains unavailable.
 
 None selects the original native instruction source for this launch; a future
 Supported transport must prove that resumed sessions actually restore it. All
 current transports are Unsupported, so no override can be installed by this
 change. The initial narrow compile found an import used only by a doc link;
 the link now uses its fully qualified public path.
+
+## Validation checkpoint
+
+On 2026-11-15, commit 087583af passed Clippy for vessel-agent, vessel-harness
+and vessel-session with all targets and warnings denied (remote run
+wp-providers-narrow-20261115T065633Z-087583af). The scoped system_prompt unit
+selection passed all four tests with zero failures (run
+wp-providers-narrow-20261115T071400Z-087583af). The test gate also built the
+commit's web bundle and fake executables. These checks establish bounded values,
+redaction, pre-spawn refusal and error classification; they do not establish
+voice enablement or a supported native override/restore path. The whole root
+gate and review remain pending.
