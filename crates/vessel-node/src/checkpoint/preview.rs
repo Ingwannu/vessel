@@ -96,7 +96,7 @@ impl Controller {
             let _worker = actual;
             workspaces.preview_checkpoint(
                 &runtime,
-                PreviewRead {
+                &PreviewRead {
                     key,
                     physical,
                     selected: selected.snapshot,
@@ -145,7 +145,8 @@ impl Controller {
         CheckpointError,
     > {
         tokio::time::timeout_at(deadline, async {
-            self.context
+            let _visible = self
+                .context
                 .sessions
                 .get(request.session)
                 .await

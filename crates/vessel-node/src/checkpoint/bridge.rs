@@ -117,7 +117,7 @@ fn worktree(info: &SessionInfo) -> Result<WorktreeId, CheckpointError> {
     info.workspace
         .as_ref()
         .and_then(|workspace| workspace.worktree)
-        .or_else(|| match info.spec.place.as_deref() {
+        .or(match info.spec.place.as_deref() {
             Some(SessionPlace::Worktree { worktree }) => Some(*worktree),
             Some(SessionPlace::Project { .. }) | None => None,
         })

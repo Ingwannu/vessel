@@ -1,4 +1,4 @@
-//! Opened-FD admission and recovery namespace fencing share the sole RootGate.
+//! Opened-FD admission and recovery namespace fencing share the sole `RootGate`.
 use super::{WorkspaceError, Workspaces, exclusion::RecoveryRoots};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -25,32 +25,31 @@ impl Workspaces {
             .iter()
             .map(|(id, entry)| (*id, entry.info.path.clone()))
             .collect::<Vec<_>>();
-        Ok(self
-            .root_metadata(move || {
-                let directory = Directory::open(&path)?;
-                let ancestry = directory.ancestry()?;
-                let mut known: BTreeMap<PhysicalRoot, BTreeSet<WorktreeId>> = BTreeMap::new();
-                for (id, path) in registered {
-                    match Directory::open(&path) {
-                        Ok(opened) => {
-                            let _inserted = known.entry(opened.identity()).or_default().insert(id);
-                        }
-                        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-                        Err(error) => return Err(error),
+        self.root_metadata(move || {
+            let directory = Directory::open(&path)?;
+            let ancestry = directory.ancestry()?;
+            let mut known: BTreeMap<PhysicalRoot, BTreeSet<WorktreeId>> = BTreeMap::new();
+            for (id, path) in registered {
+                match Directory::open(&path) {
+                    Ok(opened) => {
+                        let _inserted = known.entry(opened.identity()).or_default().insert(id);
                     }
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                    Err(error) => return Err(error),
                 }
-                let roots = known.keys().copied().collect();
-                let root = ancestry
-                    .nearest(&roots)
-                    .unwrap_or_else(|| directory.identity());
-                let worktrees = known.remove(&root).unwrap_or_default();
-                Ok(OpenedAdmission {
-                    directory,
-                    root,
-                    worktrees,
-                })
+            }
+            let roots = known.keys().copied().collect();
+            let root = ancestry
+                .nearest(&roots)
+                .unwrap_or_else(|| directory.identity());
+            let worktrees = known.remove(&root).unwrap_or_default();
+            Ok(OpenedAdmission {
+                directory,
+                root,
+                worktrees,
             })
-            .await?)
+        })
+        .await
     }
 }
 

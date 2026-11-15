@@ -1,5 +1,6 @@
 //! Replacement process spawning is fenced by actual actor/node admission receipts.
 use vessel_session::{StartupHooks, StartupPhase, StartupRefusal};
+#[cfg(test)]
 #[path = "support/runtime.rs"]
 #[expect(
     dead_code,

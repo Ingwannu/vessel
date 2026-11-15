@@ -3,6 +3,7 @@ use vessel_proto::{
     AgentEvent, ContentBlock, Creator, Delivered, Delivery, QueueChange, SessionEvent, SessionInput,
 };
 use vessel_session::SessionError;
+#[cfg(test)]
 #[path = "support/runtime.rs"]
 #[expect(
     dead_code,

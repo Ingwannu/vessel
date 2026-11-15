@@ -101,7 +101,7 @@ impl Workspaces {
     pub(crate) fn preview_checkpoint(
         &self,
         runtime: &tokio::runtime::Handle,
-        read: PreviewRead,
+        read: &PreviewRead,
         defaults: &IgnoreDefaults,
         cancel: &CancellationToken,
     ) -> Result<ObservedSnapshot, CheckpointError> {

@@ -27,7 +27,8 @@ impl Controller {
         &self,
         request: ListCheckpoints,
     ) -> Result<CheckpointPage, CheckpointError> {
-        self.context
+        let _visible = self
+            .context
             .sessions
             .get(request.session)
             .await
@@ -49,7 +50,8 @@ impl Controller {
             .checkpoint_plan(request.plan, owner)
             .await
             .map_err(reason)?;
-        self.context
+        let _visible = self
+            .context
             .sessions
             .get(plan.key.session)
             .await
@@ -65,7 +67,8 @@ impl Controller {
         owner: CheckpointOwner,
         request: CheckpointRestoreStatus,
     ) -> Result<RestoreOutcome, CheckpointError> {
-        self.context
+        let _visible = self
+            .context
             .sessions
             .get(request.session)
             .await

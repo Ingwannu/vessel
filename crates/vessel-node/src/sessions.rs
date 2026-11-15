@@ -145,7 +145,9 @@ impl Sessions {
             .spawn(async move {
                 let _lease = lease;
                 admission.revalidate().await?;
-                let started = sessions.start(spec, options, admission.physical()).await;
+                let started = sessions
+                    .start(spec, options, Option::from(&admission))
+                    .await;
                 drop(admission);
                 started
             })

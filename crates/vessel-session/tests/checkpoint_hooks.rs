@@ -5,6 +5,7 @@ use vessel_proto::{
     checkpoint::{Boundary, CHECKPOINT_CAPTURE_DEADLINE, CheckpointError, CheckpointEvent},
 };
 use vessel_session::{CheckpointAdvance, CheckpointHooks};
+#[cfg(test)]
 #[path = "support/runtime.rs"]
 #[expect(
     dead_code,

@@ -25,7 +25,7 @@ use vessel_session::CheckpointAdvance;
 pub(super) enum Disposition {
     Keep,
     Discard(CheckpointError),
-    /// ReserveCapture refused before its INSERT; no filesystem read was started.
+    /// `ReserveCapture` refused before its INSERT; no filesystem read was started.
     NoReservation,
     /// Ready activation may have committed; keep bytes until reconciliation.
     Recovery,

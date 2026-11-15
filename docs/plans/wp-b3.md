@@ -1074,3 +1074,15 @@ that preserves a later external edit, and a default-controller Busy assertion.
 These are source obligations, not passing runtime evidence. Live target pause,
 canonical replacement-start admission, terminal cleanup-debt adoption, automatic
 restore reconciliation and preview/image retention are still unfinished.
+
+Run wp-checkpoints-node-narrow-20261115T150311Z-4d997fe4 finished rc1 at
+15:23 UTC (cargo101). It reached session integration support and node source:
+three new test suites lacked the established cfg(test) support-module marker;
+node diagnostics covered the old long preview function, unused session lookup
+results, two doc backticks, lazy Option fallback, needless Result wrapping,
+PreviewRead borrowing and startup root-evidence/RAII naming. The long function
+and async restore were already replaced by the retained execution slice; this
+followup fixes the remaining diagnostics without new lint suppressions. Root
+launch evidence now uses an explicit conversion from the whole held Admission,
+retaining the placement guard through registration. No test/runtime pass follows
+from this lint correction.

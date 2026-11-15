@@ -158,7 +158,9 @@ impl Sessions {
         self.tasks
             .spawn(async move {
                 admission.revalidate().await?;
-                let started = sessions.reopen(ended, launch, admission.physical()).await;
+                let started = sessions
+                    .reopen(ended, launch, Option::from(&admission))
+                    .await;
                 drop(admission);
                 drop(claim);
                 started

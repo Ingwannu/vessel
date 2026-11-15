@@ -74,11 +74,14 @@ pub(super) fn start_shared(
 }
 
 pub(crate) fn reason(error: StoreError) -> CheckpointError {
-    if let StoreError::Checkpoint(CheckpointStoreError::Refused(reason)) = error {
-        reason
-    } else {
-        CheckpointError::Unknown
-    }
+    let reason = match &error {
+        StoreError::Checkpoint(CheckpointStoreError::Refused(reason)) => *reason,
+        _ => CheckpointError::Unknown,
+    };
+    // This ownership boundary deliberately discards driver paths/SQL sources;
+    // callers expose only the stable refusal, never the private source text.
+    drop(error);
+    reason
 }
 
 /// Called on the retained cleanup worker after durable publication invalidation.
