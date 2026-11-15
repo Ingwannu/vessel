@@ -288,3 +288,10 @@ requests, and rechecks last non-macOS status before removal. A whole-app quit in
 flight refuses individual window removal so failure/prompt targets remain alive;
 this uses the same app::quit phase, not a second manager. Runtime union proof is
 still pending; the two source packages' prior scoped results do not cover this.
+
+Disabled local-node controls are also guarded at their mutation entry points;
+visual disabled styling alone cannot admit queued callbacks. Working/queued
+lifecycle operations and the shared finalization phase refuse new node actions or
+policy edits before any preference mutation/actor enqueue. Missing-bundle manage
+activation is likewise refused. A GPUI regression captures a queued policy edit
+after begin and requires the original preferences to remain unchanged.

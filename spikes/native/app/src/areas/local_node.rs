@@ -195,7 +195,7 @@ impl Shell {
     }
 
     fn local_node_action(&mut self, action: Action, cx: &mut Context<'_, Self>) {
-        if self.areas.local_node.action_pending {
+        if self.local_node_busy(cx) {
             return;
         }
         let intent = match &action {
@@ -292,7 +292,26 @@ impl Shell {
         true
     }
 
+    fn local_node_busy(&self, cx: &gpui::App) -> bool {
+        self.areas.local_node.action_pending
+            || crate::quit::is_finalizing(cx)
+            || self
+                .areas
+                .local_node
+                .snapshot
+                .as_ref()
+                .is_some_and(|snapshot| snapshot.status == Status::Working)
+    }
+
     pub(crate) fn manage_local_node(&mut self, enabled: bool, cx: &mut Context<'_, Self>) {
+        if self.local_node_busy(cx)
+            || self.areas.local_node.snapshot.as_ref().map_or_else(
+                || crate::local_node::unavailable_status(cx),
+                |snapshot| snapshot.status,
+            ) == Status::NotInstalled
+        {
+            return;
+        }
         self.prefs.local_node.management = if enabled {
             Management::Enabled
         } else {
@@ -311,6 +330,9 @@ impl Shell {
     }
 
     fn keep_local_node(&mut self, keep: bool, cx: &mut Context<'_, Self>) {
+        if self.local_node_busy(cx) {
+            return;
+        }
         self.prefs.local_node.after_quit = if keep {
             AfterQuit::KeepRunning
         } else {

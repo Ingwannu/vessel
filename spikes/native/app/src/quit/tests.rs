@@ -44,3 +44,16 @@ fn replacing_an_editor_callback_cannot_release_an_inflight_finalization(cx: &mut
         finish(cx);
     });
 }
+
+#[gpui::test]
+fn queued_local_policy_changes_cannot_enter_after_finalization_begins(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, _window, cx| {
+        let before = shell.prefs.local_node;
+        assert!(begin(cx));
+        shell.manage_local_node(false, cx);
+        assert_eq!(shell.prefs.local_node, before);
+        finish(cx);
+    });
+}
