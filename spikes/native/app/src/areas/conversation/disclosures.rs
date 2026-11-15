@@ -47,7 +47,7 @@ impl ConversationArea {
             .entries()
             .get(index)
             .and_then(|entry| entry.kind.as_tool())
-            .filter(|tool| plan_text(tool).is_some())
+            .filter(|tool| plan_text(*tool).is_some())
         {
             let outcome = plan_outcome(self.timeline.entries(), &tool.id);
             return self.plans.expansion(&tool.id, outcome) == PlanExpansion::Expanded;

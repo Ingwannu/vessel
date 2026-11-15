@@ -372,7 +372,7 @@ impl ConversationArea {
             .entries()
             .get(entry)
             .and_then(|entry| entry.kind.as_tool())
-            .filter(|tool| plan_text(tool).is_some());
+            .filter(|tool| plan_text(*tool).is_some());
         if let Some(tool) = plan {
             self.plans
                 .toggle(&tool.id, plan_outcome(self.timeline.entries(), &tool.id));

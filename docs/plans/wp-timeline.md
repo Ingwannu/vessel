@@ -876,3 +876,11 @@ Seat retains all three parent context/source/revision and validates the parent
 before those getters and BEFORE numeric row access. Retargeted or inactive child
 queries return None. That isolated W2 getter and field move are not present in
 this A7 source yet, so no live child Seat claim is made.
+
+Actual 94d80 app/kit all-target run wp-timeline-state-tests-20261115T113834Z-94d80c9c
+failed compilation before tests at 12:34 UTC: two Option::filter callbacks passed
+&&ToolView into generic plan_text(&impl ToolDetailSource). Both A7 callbacks now
+explicitly dereference the filter borrow. No test counts or GPUI pass are claimed
+from that failed run; /tmp/work/wp-timeline/literal-and-projection-tests-2 retains
+the exact compiler log. The corrected current-head run also covers the staged
+resident/Seat regression source omitted by that earlier snapshot.
