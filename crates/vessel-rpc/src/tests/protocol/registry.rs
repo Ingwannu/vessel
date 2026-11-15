@@ -110,3 +110,55 @@ async fn scenario(version: ProtocolVersion) {
     // This generic Fake returns a fresh id for node_info; only the Welcome
     // target was used for envelope identity. Real node checks are separate.
 }
+
+#[tokio::test]
+async fn registry_metadata_current_raw_calls_ignore_future_params_and_reach_dispatch() {
+    tokio::time::timeout(CASE_DEADLINE, current())
+        .await
+        .unwrap();
+}
+
+async fn current() {
+    let (mut client, mut served, _) =
+        raw_client_with_node(vessel_proto::PROTOCOL_VERSION.get()).await;
+    let mut next = FIRST_REQUEST;
+    for expected in requests() {
+        // Explicit wire decoding edge: future request fields remain forward compatible.
+        let frame = ClientFrame::Request {
+            id: RequestId::new(next),
+            call: expected.clone(),
+        };
+        let mut raw = serde_json::to_value(frame).unwrap();
+        let params = raw
+            .get_mut("call")
+            .unwrap()
+            .get_mut("params")
+            .unwrap()
+            .as_object_mut()
+            .unwrap();
+        assert!(
+            params
+                .insert("future_optional".to_owned(), json!({"nested":true}))
+                .is_none()
+        );
+        client
+            .send(serde_json::to_string(&raw).unwrap())
+            .await
+            .unwrap();
+        let response = client.next().await.unwrap().unwrap();
+        let ServerFrame::Response {
+            id,
+            outcome: Outcome::Err(error),
+        } = serde_json::from_str(&response).unwrap()
+        else {
+            panic!("the recording fake has no metadata implementation")
+        };
+        assert_eq!(id, RequestId::new(next));
+        assert_eq!(error.code, ErrorCode::Unsupported);
+        assert_eq!(served.seen.recv().await.unwrap(), expected);
+        next = next.checked_add(1).unwrap();
+    }
+    served.shutdown.cancel();
+    drop(client);
+    served.task.await.unwrap().unwrap();
+}

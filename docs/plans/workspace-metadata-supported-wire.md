@@ -21,8 +21,18 @@ provisioning, generation, archive, config, editor or process effect.
   source/revision release CAS. Original accepted whole failures remain history;
   the announced assignment head has its own green combined gate.
 
-Tests in this slice do not yet close the full assignment plan: authenticated
-paired-device and real fleet forwarding/intersected-scope/Agent paths, current
-nested hop and unknown-field compatibility remain explicit next cases. They
-must use the existing admission/secure fixtures, never synthetic proof from
-these transport fakes. No source-only test is reported as executed.
+Additional authored cases use actual paired Read/Operate/Admin credentials,
+local fake-agent credentials and the existing real fleet fixtures. Direct and
+relayed people exercise metadata without replacing origin or intersected grants;
+Read-only target grants refuse writes, Read-only origin refuses Operate, and
+Operate-only origin cannot pass the independent Read envelope. Local/delegated
+Agent calls use existing/absent IDs and must all return Forbidden. Delegated
+unchanged registry reads must return within the fixture phase bound rather than
+retaining the ordinary long-poll. Current raw unknown request params reach the
+recording handler; this proves forward decoding separately from domain authority.
+
+All authored cases still require exact changed-head execution. The real fleet
+fixture's existing join wait is reused without introducing new clock polling.
+Runtime outcome, every listed supported-wire cell and immutable gate review must
+be recorded before full matrix readiness is claimed. These tests exercise fake
+harnesses only and never execute a real provider, editor or provisioning effect.

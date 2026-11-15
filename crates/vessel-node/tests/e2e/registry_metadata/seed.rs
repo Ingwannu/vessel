@@ -55,3 +55,32 @@ pub(super) async fn seed(fixture: &Fixture, descriptors: &[WorkspaceDescriptor])
     }
     opened.store.close().await;
 }
+
+pub(super) fn requests(workspace: WorkspaceId) -> [vessel_proto::Call; 6] {
+    use vessel_proto::Request as _;
+    use vessel_proto::registry::{
+        GetRegistry, GetWorkspace, ListWorkspaces, PinWorkspace, ReleaseWorkspaceAutomation,
+        RenameWorkspace,
+    };
+    [
+        GetRegistry::default().into_call(),
+        ListWorkspaces::default().into_call(),
+        GetWorkspace { workspace }.into_call(),
+        RenameWorkspace {
+            workspace,
+            title: None,
+        }
+        .into_call(),
+        PinWorkspace {
+            workspace,
+            pin: WorkspacePin::Pinned,
+        }
+        .into_call(),
+        ReleaseWorkspaceAutomation {
+            workspace,
+            expected: RegistryRevision::ZERO,
+            source: source(),
+        }
+        .into_call(),
+    ]
+}

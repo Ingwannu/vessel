@@ -1,5 +1,7 @@
 //! Assigned metadata methods on a real node: exact identities, filtering and CAS.
 //! Offline seeds do not provision directories or attest physical resource state.
+mod authority;
+mod fleet;
 mod seed;
 
 use chrono::DateTime;
@@ -48,6 +50,13 @@ async fn registry_metadata_owner_round_trips_all_six_methods_and_exact_refusals(
 async fn reads(client: &NodeClient, expected: &[WorkspaceDescriptor]) {
     let snapshot = client.call(GetRegistry::default()).await.unwrap();
     assert_eq!(snapshot.node, client.node().id);
+    assert_eq!(
+        client
+            .call_on(client.node().id, GetRegistry::default())
+            .await
+            .unwrap(),
+        snapshot
+    );
     assert_eq!(snapshot.workspaces.len(), expected.len());
     assert!(snapshot.memberships.is_empty());
     for descriptor in expected {
