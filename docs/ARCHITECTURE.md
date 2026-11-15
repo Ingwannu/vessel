@@ -1703,7 +1703,7 @@ The node's startup recovery logger uses that diagnostic while retaining the
 existing set-aside behavior. It reuses serde_path_to_error already in the
 workspace; no workspace-crate edge changes (ADR 0038).
 
-### Independent workspace registry (ADR 0082, pending)
+### Independent workspace registry (ADR 0082, metadata at protocol 25)
 
 `vessel-proto::registry` carries independent workspace identity, exact backing,
 lifecycle and atomic node/workspace/resource snapshots. Workspace and create
@@ -1718,14 +1718,17 @@ commit publishes a coalesced watch; readers hydrate descriptors and memberships
 in one transaction. `registry::write::{require_active,bump_revision}` is the
 in-transaction seam for catalog assignment extensions, not a second registry.
 
-`vessel-node::service::registry` handles person-only registry reads, bounded
-long-poll, rename and pin through the single pending method table. The separate
+`vessel-node::service::registry` handles registry reads, bounded long-poll,
+rename, pin and the blocked-source release through the single method table:
+protocol 25's six metadata methods. Agent principals, direct or delegated, are
+refused before lookup; a forwarded person-origin call holds the intersected
+scopes and reads without the long poll. The separate
 create and lifecycle packages own actor launch and archive/recovery orchestration.
 Pre-spawn leases fence archive against late actor registration. Restoring is an
 exclusive persisted claim before backing recovery. Filesystem provisioning remains on the separate continuation until a real
 create driver wires it; no unwired node service ships in this dependency. Project config,
 icons, editor integration and automatic archive remain separate incomplete work.
-No protocol number or full package acceptance follows from this architecture.
+Those have no method row; protocol 25 covers the six metadata methods only.
 
 ### Settings writer lifetime
 
