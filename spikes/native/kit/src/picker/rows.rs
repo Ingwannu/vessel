@@ -381,24 +381,36 @@ pub(super) fn combo_row<V: 'static>(
         );
     }
     if !row.disabled {
-        let chose = Rc::clone(&handlers.chose);
-        let get = handlers.state;
-        let lease = state.render_lease();
-        element = element
-            .cursor_pointer()
-            .hover(move |style| style.bg(wash))
-            .on_mouse_down(MouseButton::Left, |_event, _window, cx| {
-                cx.stop_propagation();
-            })
-            .on_click(cx.listener(move |view: &mut V, _event, window, cx| {
-                if !get(view).accepts(&lease) {
-                    cx.stop_propagation();
-                    return;
-                }
-                chose(view, index, window, cx);
-                get(view).restore_choice_if_current(&lease, window, cx);
-                cx.notify();
-            }));
+        element = enabled_row(element, index, state, handlers, wash, cx);
     }
     element.into_any_element()
+}
+
+/// Bind one enabled row through the same captured opening; layout stays above.
+fn enabled_row<V: 'static>(
+    element: gpui::Stateful<Div>,
+    index: usize,
+    state: &ComboboxState,
+    handlers: &ComboHandlers<V>,
+    wash: gpui::Hsla,
+    cx: &mut Context<'_, V>,
+) -> gpui::Stateful<Div> {
+    let chose = Rc::clone(&handlers.chose);
+    let get = handlers.state;
+    let lease = state.render_lease();
+    element
+        .cursor_pointer()
+        .hover(move |style| style.bg(wash))
+        .on_mouse_down(MouseButton::Left, |_event, _window, cx| {
+            cx.stop_propagation();
+        })
+        .on_click(cx.listener(move |view: &mut V, _event, window, cx| {
+            if !get(view).accepts(&lease) {
+                cx.stop_propagation();
+                return;
+            }
+            chose(view, index, window, cx);
+            get(view).restore_choice_if_current(&lease, window, cx);
+            cx.notify();
+        }))
 }

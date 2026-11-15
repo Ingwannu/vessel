@@ -61,3 +61,12 @@ showed it calls cargo metadata --no-deps --offline. It compiled nothing, but
 still violated the all-Cargo-remote instruction. It will not be run locally
 again; further boundary/quality checks run through the remote helper. Direct
 rustfmt, source-size/token scans and Git checks alone remain local.
+
+
+Exact eceae233 run picker-control-20261115T144243Z-eceae233 completed fonts0
+and Kit Clippy101, solely combo_row becoming101 lines after admission. No tests
+ran. Its complete typecheck batch had no prior compile errors. The correction
+extracts the unchanged enabled-row binding into one helper, keeping paint/layout
+and the same captured lease. No suppression, assertion deletion or minification.
+Per coordinator the last priority is spent; any changed-source retry uses the
+ordinary short lane, same temporary label, not another priority or whole gate.
