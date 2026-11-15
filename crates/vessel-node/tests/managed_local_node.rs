@@ -112,10 +112,13 @@ async fn owned_restart_waits_for_old_exit_and_keep_on_quit_releases_control() {
         old.closed().await;
         let cleanup = local.client().unwrap().clone();
         assert_eq!(local.quit(QuitPolicy::KeepRunning).await.unwrap(), LocalStatus::Kept(node));
+        assert!(root.path().join("node/logs/vesseld.log").is_file());
         assert_eq!(cleanup.node_info().await.unwrap().state, NodeState::Serving);
         assert!(matches!(local.stop(StopPolicy::InterruptConfirmed).await, Err(Error::NotOwned)));
         cleanup.stop_node(StopWhen::WhenIdle).await.unwrap();
         assert!(matches!(local.wait_exit().await.unwrap(), LocalStatus::Exited(exit) if exit.code() == Some(0)));
+        let retained = NodeHome::new(root.path().join("node")).unwrap().log_tail().await.unwrap();
+        assert!(retained.as_str().contains("stopping"));
     }).await.unwrap();
 }
 

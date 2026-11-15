@@ -32,6 +32,9 @@ pub(super) struct Mode {
 }
 
 impl Mode {
+    pub(super) fn desktop_managed(&self) -> bool {
+        self.desktop_managed == Desktop::Enabled
+    }
     pub(super) fn survives_hangup(&self) -> bool {
         self.detached || self.desktop_managed == Desktop::Enabled
     }

@@ -9,7 +9,7 @@ use tokio::sync::{mpsc, oneshot};
 /// Paseo's managed-daemon log viewer requests its last one hundred lines.
 const MAX_LOG_LINES: usize = 100;
 /// Byte bound also protects the viewer from a single enormous line.
-const MAX_LOG_BYTES: usize = 128 * 1024;
+pub(crate) const MAX_LOG_BYTES: usize = 128 * 1024;
 const READ_CHUNK_BYTES: usize = 4096;
 const LOG_REQUESTS: usize = 2;
 const LOG_READ_DEADLINE: Duration = Duration::from_secs(2);
@@ -129,11 +129,15 @@ async fn collect(
                     continue;
                 }
                 let bytes: Vec<_> = ring.iter().copied().collect();
-                let text = String::from_utf8_lossy(&bytes);
-                let lines: Vec<_> = text.lines().rev().take(MAX_LOG_LINES).collect();
-                let tail = lines.into_iter().rev().collect::<Vec<_>>().join("\n");
-                let _closed = answer.send(Ok(LogText(tail.into())));
+                let _closed = answer.send(Ok(tail(&bytes)));
             }
         }
     }
+}
+
+pub(crate) fn tail(bytes: &[u8]) -> LogText {
+    let text = String::from_utf8_lossy(bytes);
+    let lines: Vec<_> = text.lines().rev().take(MAX_LOG_LINES).collect();
+    let tail = lines.into_iter().rev().collect::<Vec<_>>().join("\n");
+    LogText(tail.into())
 }

@@ -101,3 +101,12 @@ loopback IPC. It covers detached survival, ordinary bound drop and releasable
 still-owned drop on the same source path on Unix and Windows. EOF/x cleans up the
 fixture without numeric PID control. A Linux run only proves Linux; Windows job
 survival remains unverified until that same case executes on Windows.
+
+Persistent desktop logging reuses DataDir::open_node_log and its private file
+and existing ten-MiB rotation, extracted into data_dir/node_log. Only the managed
+node binary tees records to that file and stderr; the writer guard serializes
+rotation and closes the record's file before releasing the lock. Other CLI modes
+remain stderr-only. Logging failures never authorize process control, and a
+closed app pipe does not prevent retained file writes. NodeHome reads only the
+last128KiB/100lines through the Store-derived path without opening a database.
+Captured stderr still handles failures before file logging initializes.
