@@ -19,3 +19,5 @@ The opt-in `new_scoped` remains literal `cfg(test)`. It captures the original re
 The retention/snapshot adapter and submit-press metadata remain separate follow-ups. This minimal constructor has no dependency on the B2 surface or send modules. No recorded size ceiling is raised. Exact combined VM verification is outstanding.
 
 The existing ListState initial `800` height moves with its constructor; its one literal exception transfers from the parent (3 to 2) to the resource child (1), preserving the total. The parent size record falls from the announced base's 720 to 686. Consumers with an already smaller parent retain that lower record and resolve their other owner extractions; this leaf never raises an existing record.
+
+The producer carries only the scoped-constructor keyboard regression. A separate original-address lifecycle test in the full composer tree is excluded because it belongs to the lifecycle binding API and is outside this leaf's base/dependency scope. The constructor test remains unchanged.
