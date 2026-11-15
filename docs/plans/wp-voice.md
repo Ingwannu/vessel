@@ -556,3 +556,14 @@ interval needed the mutex guard dereferenced before the Arc edge, and GPUI's
 Bounds::contains takes borrowed Points. Both are corrected without changing
 control or geometry expectations. The next check includes current base8c;
 prior failed run/compile logs remain evidence, not a runtime or lint pass.
+
+
+### Staged GPUI power ownership
+
+[Decision Log]
+- Purpose: a pending sleep-inhibitor acquisition must not outlive the voice generation or reacquire ownership after local Stop.
+- Existing assets: GPUI owns Linux portal and Windows power-request integration, drop-bound ActivityGuard, cancellable tasks, multiple sleep subscriptions and deterministic fake delay/failure/count controls.
+- Alternatives: a second power crate or platform command would duplicate that boundary; retaining only an acquired guard loses pending work ownership.
+- Choice: the staged area::voice::power owner retains the existing typed Generation, pending task, guard and subscription together. Stop first closes its state and drops pending work/guard; completion has only a weak ownership reference and no audio-start path. Sleep closes this same state before invoking a synchronous local-cleanup callback outside any RefCell borrow.
+- Why: separate generation objects cannot release one another's guard, repeated cleanup is harmless, errors become the closed Unavailable status without foreign diagnostics, and no new OS dependency or global callback replaces GPUI.
+- Impact: three new tests use GPUI's fake platform for held release, delayed cancellation across generations and acquisition failure. They are source-only until their VM execution receipt. Actual sleep notification dispatch, Linux portal/Windows behavior, and controller/device integration remain unverified. Linux guard drop schedules portal close asynchronously in GPUI, so local ownership release is not a claim that the portal already acknowledged release. Public voice activation stays disabled.
