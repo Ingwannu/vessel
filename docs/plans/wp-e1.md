@@ -295,6 +295,13 @@ of silently repairing/dropping entries. Those differences remain unchanged.
   Mixed configured transport classes still require the ADR's explicit
   selection/evidence/confirmation rules at their owning boundaries.
 
+The collection only checks the supplied counter against its current ids.
+It cannot prove historical non-reuse after a caller/file supplies a lower
+counter with older routes absent. The future transaction must compare the
+old preimage and preserve its last allocated id across edits/removals. The
+exhaustion fixture tests retaining a supplied counter, not a removal or
+writer operation that does not exist yet.
+
 Four prepared regressions cover exact/one-over route budgets and order,
 duplicate ids/specifications, invalid preferences/counters, retained
 exhaustion, secure key/file disagreements and complete safe diagnostic

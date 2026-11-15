@@ -70,7 +70,8 @@ fn ids_preference_and_allocation_history_cannot_be_silently_repaired() {
         Connections::new(vec![websocket(2)], id(1), id(3)),
         Err(ConnectionProblem::UnknownPreferred)
     );
-    // Earlier removals do not erase allocation history or reuse an id.
+    // A supplied exhausted counter remains exhausted with earlier ids absent.
+    // Carrying the prior counter forward still belongs to the file writer.
     let retained = Connections::new(vec![websocket(2)], id(2), BookRouteId::LAST).unwrap();
     assert_eq!(retained.last_allocated(), BookRouteId::LAST);
     assert_eq!(retained.last_allocated().next(), None);

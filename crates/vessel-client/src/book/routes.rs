@@ -102,7 +102,7 @@ impl Connection {
     }
 }
 
-/// A nonempty route list with a valid preference and retained allocation history.
+/// A nonempty route list with a valid preference and explicit allocation counter.
 ///
 /// This stores configuration only. Mixed transport classes do not imply any
 /// automatic association/failover permission; the ADR's evidence matrix still
@@ -144,7 +144,9 @@ impl Connections {
         self.preferred
     }
 
-    /// Retain this even after removing a route, so future allocation cannot wrap.
+    /// The supplied counter, which the writer must retain after route removal.
+    /// This value cannot establish a prior file's counter or replace the
+    /// transaction's monotonic preimage check.
     #[must_use]
     pub const fn last_allocated(&self) -> BookRouteId {
         self.last_allocated
@@ -212,8 +214,8 @@ pub enum ConnectionProblem {
     /// Distinct ids must not hide duplicate specifications.
     #[error("the host repeats a connection specification")]
     DuplicateSpecification,
-    /// Removal never lowers the retained last allocated id.
-    #[error("the host's connection allocation counter has regressed")]
+    /// The supplied counter is below one of the records it claims to cover.
+    #[error("the host's allocation counter is below a saved connection id")]
     CounterBehind,
     /// A preference is an existing reference, not an out-of-band destination.
     #[error("the preferred connection does not exist in this host")]
