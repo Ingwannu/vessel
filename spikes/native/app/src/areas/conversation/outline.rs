@@ -74,6 +74,11 @@ pub(crate) struct Pointer {
 }
 
 impl Pointer {
+    #[cfg(test)]
+    pub(super) const fn settling(&self) -> bool {
+        self.hover.waiting()
+    }
+
     pub(super) fn new(cx: &App) -> Self {
         Self {
             hover: OutlineHover::default(),

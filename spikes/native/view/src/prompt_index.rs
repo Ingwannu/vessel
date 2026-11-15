@@ -3,7 +3,8 @@
 
 use crate::devices::MachineKey;
 use vessel_proto::prompt_index::{
-    INDEX_ENTRIES, ListSessionPrompts, PromptIndexEpoch, PromptIndexPage, PromptLocation,
+    INDEX_ENTRIES, ListSessionPrompts, PromptIndexEpoch, PromptIndexLimit, PromptIndexPage,
+    PromptLocation,
 };
 use vessel_proto::{ErrorCode, EventSeq, NodeId, SessionId};
 
@@ -155,7 +156,7 @@ impl PromptIndex {
     }
 
     fn start(&mut self) -> Option<IndexAsk> {
-        self.source.as_ref()?;
+        let _present = self.source.as_ref()?;
         let Some(serial) = self.serial.checked_add(1) else {
             self.phase = IndexPhase::Failed(IndexProblem::Exhausted);
             return None;
@@ -181,7 +182,7 @@ impl PromptIndex {
                 session: source.target.session,
                 after: self.after,
                 epoch: self.epoch,
-                limit: Default::default(),
+                limit: PromptIndexLimit::default(),
             },
         })
     }

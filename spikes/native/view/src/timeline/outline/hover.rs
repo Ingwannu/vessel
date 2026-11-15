@@ -164,6 +164,12 @@ impl OutlineHover {
         }
     }
 
+    /// Whether a delayed activation still references this controller.
+    #[must_use]
+    pub const fn waiting(&self) -> bool {
+        matches!(self.state, State::Waiting(_))
+    }
+
     fn schedule(&mut self) -> HoverChange {
         // A UI lifetime cannot exhaust the counter; wrapping also avoids a panic.
         self.ticket = self.ticket.wrapping_add(1);

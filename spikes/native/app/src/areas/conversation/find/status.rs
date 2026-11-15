@@ -27,6 +27,7 @@ impl Shell {
             return;
         };
         bar.at = Some(at);
+        bar.target = Rc::new(());
         let target = Rc::clone(&bar.target);
         cx.spawn(async move |this, cx| {
             cx.background_executor().timer(REVEAL_DEADLINE).await;

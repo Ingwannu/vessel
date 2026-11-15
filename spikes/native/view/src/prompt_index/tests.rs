@@ -215,9 +215,9 @@ fn a_rewind_seen_during_a_read_rejects_the_old_reply_and_old_epoch() {
 fn a_replaced_welcome_identity_cannot_answer_for_the_same_book_name_and_session() {
     let mut index = PromptIndex::default();
     let mut selected = target("one");
-    selected.node = Some(vessel_proto::NodeId::random());
+    selected.node = Some(NodeId::random());
     let first = index.refresh(selected.clone(), None).unwrap();
-    selected.node = Some(vessel_proto::NodeId::random());
+    selected.node = Some(NodeId::random());
     let second = index.refresh(selected.clone(), None).unwrap();
     assert!(
         index

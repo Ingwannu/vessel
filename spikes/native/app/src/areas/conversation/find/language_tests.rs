@@ -150,9 +150,11 @@ fn a_cancelled_search_cannot_run_against_a_reopened_bar(cx: &mut gpui::TestAppCo
         probe.shell.update(cx, |shell, cx| {
             shell.open_find(window, cx);
             shell.find_changed("old query".to_owned(), cx);
+            assert!(shell.areas.conversation.navigation_held());
             let old =
                 std::rc::Rc::clone(&shell.areas.conversation.find.as_ref().unwrap().generation);
             shell.close_find(window, cx);
+            assert!(!shell.areas.conversation.navigation_held());
             shell.open_find(window, cx);
             shell.find_changed("new query".to_owned(), cx);
             assert!(

@@ -23,7 +23,7 @@ pub struct OutlineItem {
 }
 
 /// The longest prompt preview, ellipsis included (Paseo's 120).
-pub const PREVIEW: usize = 120;
+pub const PREVIEW: usize = vessel_proto::prompt_index::PREVIEW_UNITS;
 
 /// The longest reply preview (GOAT shows three lines of it).
 pub const REPLY: usize = 240;
@@ -68,7 +68,9 @@ pub fn outline(entries: &[Entry]) -> Vec<OutlineItem> {
                 close(&mut items, last.take());
                 items.push(OutlineItem {
                     entry: index,
-                    prompt: preview(text, PREVIEW),
+                    prompt: vessel_proto::prompt_index::PromptPreview::from_text(text)
+                        .as_str()
+                        .to_owned(),
                     reply: None,
                 });
             }

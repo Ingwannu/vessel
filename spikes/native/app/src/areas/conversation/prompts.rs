@@ -36,6 +36,20 @@ impl Prompts {
 }
 
 impl ConversationArea {
+    /// Resident panes hold active UI/work. An inactive snapshot must still move
+    /// the pure prompt/hover identity sources intact, never default their counters.
+    #[cfg(test)]
+    pub(crate) fn navigation_held(&self) -> bool {
+        self.find.is_some()
+            || self.search.view.active()
+            || self.prompts.jump.is_some()
+            || matches!(
+                self.prompts.index.phase(),
+                vessel_app_view::prompt_index::IndexPhase::Reading(_)
+            )
+            || self.outline_pointer.settling()
+    }
+
     pub(super) fn prompt_target(&self) -> Option<&IndexTarget> {
         self.prompts.index.target()
     }
