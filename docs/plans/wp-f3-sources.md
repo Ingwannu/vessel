@@ -235,3 +235,16 @@ N2's source check of Paseo `query.ts`/`model.ts:209–236`/`pinned.ts` shows tha
 `Refreshing.origin: UsageRefreshOrigin` captures that immediately preceding attempt before the source actor changes state. `Available` is emitted only from an actual immediately preceding Available result; other states and omitted wire fields are `Unavailable`. Legacy limits' Refreshing state cannot prove the prior attempt and projects the conservative unavailable origin. Consumers may keep the original successful timestamp and pins for Available-origin pending results, but must never promote a failed/unavailable retained snapshot into a current observation. This adds no method/version and no permission or fetch behavior. A synthetic actor barrier checks the Available origin; a DTO roundtrip checks explicit preservation and safe omitted-field decoding. Narrow checks remain owed.
 
 A service-level regression now starts an actual isolated Node with the recorded source backend, obtains the real Connection via an in-memory framed handshake, and invokes the generated Guarded methods directly. No pending protocol is assigned or bypassed on the wire. It exercises Admin-only grant, Operate-only refresh, zero credential discovery for Read/cache misses/consent/unknown inspect, populated current and retained monetary redaction, original successful timestamp and same-binding retained error, and source-Off forgetting. A separate real-actor barrier preserves Unavailable origin while a failed attempt is refreshed. These are drafted regressions pending remote execution, not wire/e2e acceptance.
+
+### Complete-refresh time budget
+A sequential machine refresh could spend one vendor deadline per configured profile
+before starting the seven additional sources, exceeding the native caller's 120-second
+budget even for normal multi-source setups. Saved-login reads now use a stable-order
+buffer of two, and the saved and additional owners start concurrently while keeping
+their existing actual-work admissions. A named 90-second complete-refresh budget
+refuses with safe Unavailable instead of holding a unary request across hundreds of
+profile deadlines or silently omitting accounts. Cache reads remain separate and do
+not initiate more work; a failed complete refresh does not claim every account was
+updated. Owner tasks keep their permits until actual reads finish and continue to
+check policy/binding publication fences. A paused-clock regression has its own named
+95-second safety budget so removing the production deadline fails instead of hanging.

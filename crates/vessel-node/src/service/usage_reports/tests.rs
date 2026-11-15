@@ -170,3 +170,18 @@ async fn real_service_enforces_consent_refresh_and_redaction_without_read_discov
     .await
     .unwrap();
 }
+
+const REFRESH_SAFETY_BUDGET: std::time::Duration = std::time::Duration::from_secs(95);
+#[tokio::test(start_paused = true)]
+async fn aggregate_refresh_cannot_hold_a_request_indefinitely() {
+    let before = tokio::time::Instant::now();
+    let refusal = tokio::time::timeout(
+        REFRESH_SAFETY_BUDGET,
+        refresh_within_budget(std::future::pending::<Result<(), WireError>>()),
+    )
+    .await
+    .unwrap()
+    .unwrap_err();
+    assert_eq!(refusal.code, ErrorCode::Unavailable);
+    assert_eq!(before.elapsed(), REPORT_REFRESH_BUDGET);
+}

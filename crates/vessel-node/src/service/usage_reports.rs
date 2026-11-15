@@ -5,6 +5,7 @@ use crate::{
     limits::policy::Observation,
     usage_reports::{self, Binding},
 };
+use futures_util::{StreamExt as _, stream};
 use vessel_proto::{
     ErrorCode, HarnessRef, Method, WireError,
     limits::{ExternalLookup, LimitAccount, LimitRefresh, LimitsScope},
@@ -14,6 +15,9 @@ use vessel_proto::{
         ReportSourceFailures, SourceReportEntry, UsageReportLookup, UsageReportScope, UsageReports,
     },
 };
+
+const REPORT_REFRESH_BUDGET: std::time::Duration = std::time::Duration::from_secs(90);
+const SAVED_REFRESH_CONCURRENCY: usize = 2;
 
 impl NodeService {
     pub(crate) async fn set_usage_source_lookup(
@@ -32,19 +36,43 @@ impl NodeService {
         request: ListUsageReports,
     ) -> Result<UsageReports, WireError> {
         self.report_permission(connection, &request.scope, request.refresh)?;
+        let refresh = request.refresh == LimitRefresh::Refresh;
+        let reading = self.list_reports(connection, request);
+        if refresh {
+            refresh_within_budget(reading).await
+        } else {
+            reading.await
+        }
+    }
+    async fn list_reports(
+        &self,
+        connection: &Connection,
+        request: ListUsageReports,
+    ) -> Result<UsageReports, WireError> {
         let policy = self.limits.observation().await?;
         let visibility = visibility(connection);
         let machine = matches!(&request.scope, UsageReportScope::Machine);
         let refresh = request.refresh;
-        let (reports, mut failures) = if policy.policy == ExternalLookup::Off {
-            (Vec::new(), Vec::new())
-        } else {
-            self.saved_reports(connection, request, &policy).await?
-        };
-        if machine && refresh == LimitRefresh::Refresh && policy.policy == ExternalLookup::On {
-            for failure in self.limits.sources.refresh_all(&policy).await {
-                upsert_failure(&mut failures, failure);
+        let saved = async {
+            if policy.policy == ExternalLookup::Off {
+                Ok((Vec::new(), Vec::new()))
+            } else {
+                self.saved_reports(connection, request, &policy).await
             }
+        };
+        let source_refresh = async {
+            if machine && refresh == LimitRefresh::Refresh && policy.policy == ExternalLookup::On {
+                self.limits.sources.refresh_all(&policy).await
+            } else {
+                Vec::new()
+            }
+        };
+        // The existing owners keep their own actual-work permits; neither group waits
+        // for the other's vendor deadlines before it can start.
+        let (saved, refreshing) = tokio::join!(saved, source_refresh);
+        let (reports, mut failures) = saved?;
+        for failure in refreshing {
+            upsert_failure(&mut failures, failure);
         }
         let mut additional = self.limits.sources.snapshot(&policy).await?;
         if !machine {
@@ -92,18 +120,25 @@ impl NodeService {
         }
         let mut reports = Vec::with_capacity(scopes.len());
         let mut failures = Vec::new();
-        for scope in scopes {
-            let source = match &scope {
-                LimitsScope::Account { account } => usage_reports::source(&account.harness)
-                    .map(vessel_proto::usage_reports::SavedUsageSource::id)
-                    .transpose()
-                    .map_err(|_invalid| changed())?,
-                LimitsScope::Session { .. } => None,
-            };
-            match self
-                .saved_report(connection, scope, request.refresh, policy)
-                .await
-            {
+        let refresh = request.refresh;
+        let refreshed = stream::iter(scopes)
+            .map(|scope| async move {
+                let source = match &scope {
+                    LimitsScope::Account { account } => usage_reports::source(&account.harness)
+                        .map(vessel_proto::usage_reports::SavedUsageSource::id)
+                        .transpose()
+                        .map_err(|_invalid| changed())?,
+                    LimitsScope::Session { .. } => None,
+                };
+                let result = self.saved_report(connection, scope, refresh, policy).await;
+                Ok::<_, WireError>((source, result))
+            })
+            .buffered(SAVED_REFRESH_CONCURRENCY)
+            .collect::<Vec<_>>()
+            .await;
+        for refreshed in refreshed {
+            let (source, result) = refreshed?;
+            match result {
                 Ok(report) => reports.push(report),
                 Err(error) if !machine => return Err(error),
                 Err(error) => {
@@ -370,3 +405,16 @@ fn upsert_failure(
 
 #[cfg(test)]
 mod tests;
+
+async fn refresh_within_budget<T>(
+    reading: impl std::future::Future<Output = Result<T, WireError>>,
+) -> Result<T, WireError> {
+    tokio::time::timeout(REPORT_REFRESH_BUDGET, reading)
+        .await
+        .map_err(|_elapsed| {
+            WireError::new(
+                ErrorCode::Unavailable,
+                "the complete refresh exceeded its time budget; cached reports remain available",
+            )
+        })?
+}
