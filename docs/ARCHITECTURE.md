@@ -1854,3 +1854,11 @@ submission-receipt validates the actual prompt acceptance without treating nativ
 command acceptance as a turn. An uncertain attempt cannot retry, be abandoned or
 be evicted through this owner. Composer wiring and canonical row reconciliation
 remain separate work; the node queue stays the only delivery queue.
+
+Read-only receipt recovery and private finish-notice correlation now have shared
+value modules under timeline/recovery and timeline/notice (ADR0084/ADR0033).
+FinishIntentId reuses the existing UUID identity implementation; admission owns
+the named logical reservation ceilings. These values register no method and
+create no alternate receipt store or watcher. Public submission/observation
+cannot select NoticeKey. Positive private admission still requires a real atomic
+execution/parentage/grant fence, rather than serialized intent or liveness reads.

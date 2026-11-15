@@ -7,11 +7,13 @@ mod detail;
 mod identity;
 mod item;
 mod measure;
+mod notice;
 mod permission;
 mod plan;
 mod question;
 mod question_reply;
 mod receipt;
+mod recovery;
 mod reference;
 mod response;
 mod scope;
@@ -30,12 +32,14 @@ pub use permission::{
     PermissionDeliveryState, PermissionKind, PermissionPresentation, PermissionReference,
 };
 
+pub use notice::{NoticeCheckpoint, NoticeKey, NoticeRequest};
 pub use question::{
     EmptyAnswerPolicy, QuestionDeliveryState, QuestionFieldPresentation, QuestionLifetime,
     QuestionReference,
 };
 pub use question_reply::{QuestionResponseRefusal, RespondQuestion, RespondQuestionReply};
 pub use receipt::{PromptReceipt, SubmitPrompt, SubmitPromptReply};
+pub use recovery::{ObservePromptReceipt, ObservePromptReceiptReply, PromptReceiptBinding};
 pub use response::{
     PermissionInterrupt, PermissionResponse, PermissionResponseRefusal, RespondPermission,
     RespondPermissionReply,

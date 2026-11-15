@@ -1,4 +1,4 @@
-# Receipt recovery contract proposal (not implemented)
+# Receipt recovery contract and staged values
 
 This is a contract checkpoint for ADR0084 and ADR0033 row618. It is not a new
 method registration, producer capability or permission to consume moving runtime.
@@ -67,3 +67,30 @@ current-lifetime/grant fence and same queue/event acceptance. Existing Paseo
 receipt and actor-ticket references remain the comparison; the durable recovery
 lookup/private namespace is an explicit Vessel addition, not copied Paseo wire.
 No product code or method is registered by this contract checkpoint.
+
+## Values checkpoint after row251
+
+Row251 source-passed the joint contract. The first implementation checkpoint adds
+only timeline/recovery.rs, timeline/notice.rs and admission constants, reusing the
+existing UUID declaration macro for FinishIntentId. It registers no method and
+changes no Store, actor, watcher or provider behavior. Recovery values depend on
+the complete original SubmitPrompt contract; this is not a portable body-only
+producer or an app activation packet.
+
+[Decision Log]
+- Purpose: give the receipt and finish-intent owners one exact shared vocabulary.
+- Existing constraint: accepted receipts lack durable actor target correlation;
+  public client identities cannot safely namespace internal notices.
+- Alternatives: reuse public ClientMessageId or create a second receipt store.
+- Choice: closed private NoticeKey/checkpoint and read-only recovery DTOs, sharing
+  the existing UUID implementation and retained admission budgets.
+- Why: identity cannot imply execution authority, and missing observation cannot
+  accidentally admit work. The existing atomic parent/grant fence is still owed.
+- Consequences: values can be compiled independently of positive admission, but
+  do not prove storage accounting, lifecycle recovery, exactly-once effects or
+  public API support. The watcher adopts the shared needs-you ceiling when wired.
+
+Authored pure fixtures cover every checkpoint's encoded key bound and UUID
+validation, distinct request namespaces, the unmodified original observation
+request, binding wire identity and missing versus uncertain outcomes. Current
+changed-source compilation and execution are still owed.

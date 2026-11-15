@@ -18,6 +18,22 @@ pub const MAX_QUESTION_STATE_BYTES: u64 = 512 * 1024;
 /// Each reservation charges fixed logical metadata in addition to its envelope.
 pub const ADMISSION_ROW_CHARGE_BYTES: u64 = 512;
 
+/// Complete encoded private key; public submissions cannot select this namespace.
+pub const MAX_NOTICE_KEY_BYTES: u64 = 512;
+/// Captured encoded payload includes its immutable randomized output fence.
+pub const MAX_NOTICE_PAYLOAD_BYTES: u64 = 16 * 1024;
+/// Every future receipt, queue identity and canonical sequence fits this envelope.
+pub const MAX_NOTICE_STATE_BYTES: u64 = 32 * 1024;
+/// Internal finish registration alone bounds the complete encoded original request.
+/// This deliberately does not limit ordinary generic identified submissions.
+pub const MAX_FINISH_ORIGINAL_REQUEST_BYTES: u64 = 64 * 1024;
+/// Intent metadata includes its complete original request, excluding notice payloads.
+pub const MAX_FINISH_INTENT_STATE_BYTES: u64 = 128 * 1024;
+/// Existing notice policy permits at most this many distinct needs-you checkpoints.
+pub const NEEDS_YOU_MAX: u32 = 8;
+/// Reserve the final slot for terminal OR irrevocable observation unavailability.
+pub const MAX_FINISH_CHECKPOINTS: u32 = NEEDS_YOU_MAX.saturating_add(1);
+
 /// Encoded admission state uses a byte unit distinct from tokens or record counts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
