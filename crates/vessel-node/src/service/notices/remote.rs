@@ -116,7 +116,7 @@ impl NodeService {
         // The setup and accepted follower outlive cancellation of the MCP/RPC.
         self.forwarders
             .spawn(async move {
-                let (info, tracked) = supervision::setup(
+                let (info, tracked) = Box::pin(supervision::setup(
                     remote.call(GetSession {
                         session: request.session,
                     }),
@@ -129,7 +129,7 @@ impl NodeService {
                     },
                     teller.told_ended(&mut ends),
                     &stop,
-                )
+                ))
                 .await?;
                 let delivered = tracked.delivered;
                 let runner = RemoteTeller {
@@ -164,7 +164,7 @@ impl RemoteTeller {
     ) {
         drop(tasks.spawn(async move {
             let teller = &self.teller;
-            let cleanup = supervision::run(
+            let cleanup = Box::pin(supervision::run(
                 self.follow(&tracked),
                 teller.told_ended(&mut ends),
                 stop,
@@ -181,7 +181,7 @@ impl RemoteTeller {
                     session: teller.prompted,
                     receipt: tracked.receipt,
                 }),
-            )
+            ))
             .await;
             if cleanup != supervision::Cleanup::Confirmed {
                 tracing::warn!(

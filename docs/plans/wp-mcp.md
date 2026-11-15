@@ -552,3 +552,24 @@ The parent-end receiver is subscribed before reading the parent's live snapshot,
 so an end between that read and setup's first poll is retained. Already finished
 parents refuse before reserving Following capacity or dispatching remote setup.
 This uses the existing session-end stream and introduces no watcher or route.
+
+
+### Exact runtime supervision check correction
+
+Run `wp-mcp-runtime-narrow-20261115T152545Z-b853fdda` failed strict
+checking solely because the concrete setup and follow supervision futures
+exceed the workspace future-size bound. Both await sites now pin their concrete
+future in a box, reducing the enclosing task state without changing the owner,
+deadlines, cancellation branches, payload or effect ordering. There is no trait
+object, lint exception or additional task. The failed log is retained. Its still
+queued unit sibling was superseded only after terminal cancellation; exact
+corrected strict and tests remain owed.
+
+Separately, the unchanged CLI canary fixture at `0c0f23107` passed strict in
+`wp-mcp-narrow-20261115T144644Z-0c0f2310` and the actual selected secret-canary
+test in `wp-mcp-20261115T144645Z-0c0f2310` (one passed, none failed). The
+AgentTools exchange took 164 ms with the complete diagnostic-byte scan. This
+closes that selected test only; the preceding functional run remains
+1317 passed, one timeout failure, four ignored. V3 has source-settled the
+diagnostic and bounded-owner corrections through `b853fdda`; this does not
+replace the exact changed-source execution or whole-package gate.
