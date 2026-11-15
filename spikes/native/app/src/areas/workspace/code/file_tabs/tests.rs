@@ -5,7 +5,7 @@ use gpui::TestAppContext;
 use vessel_app_view::layout::{HostAlias, LayoutKey, Placement};
 use vessel_app_view::workspace::editor::{Step, Written};
 
-fn opening(
+pub(super) fn opening(
     shell: &mut Shell,
     root: vessel_proto::workspace::WorkspaceRoot,
 ) -> (FileOpenContext, LayoutKey) {

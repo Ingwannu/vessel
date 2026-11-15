@@ -4,6 +4,9 @@ use super::labels::Labels;
 
 /// English (the page's words).
 pub const EN: Labels = Labels {
+    file_close_title: "Unsaved changes",
+    file_close_message: "Your changes will be lost if you close this file.",
+    file_close_discard: "Close without saving",
     file_image_unavailable: "Image unavailable",
     file_mode_source: "Source",
     file_mode_preview: "Preview",

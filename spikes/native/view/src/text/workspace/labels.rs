@@ -7,6 +7,12 @@
 #[derive(Debug)]
 #[expect(missing_docs, reason = "each field is named for the words it holds")]
 pub struct Labels {
+    /// Original file tab's local draft confirmation.
+    pub file_close_title: &'static str,
+    /// Loss explained before an explicit presentation close.
+    pub file_close_message: &'static str,
+    /// Confirm without sending another write.
+    pub file_close_discard: &'static str,
     pub file_image_unavailable: &'static str,
     pub file_mode_source: &'static str,
     pub file_mode_preview: &'static str,

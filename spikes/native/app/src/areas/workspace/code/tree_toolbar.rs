@@ -30,7 +30,9 @@ impl Shell {
         let files = &mut self.areas.workspace.code.files;
         files.relist();
         self.prefs.explorer = files.options;
-        self.command(vessel_app_link::Command::SavePrefs(self.prefs.clone()));
+        self.command(vessel_app_link::Command::SavePrefs(Box::new(
+            self.prefs.clone(),
+        )));
         cx.notify();
     }
 

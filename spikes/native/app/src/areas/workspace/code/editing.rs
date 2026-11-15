@@ -133,7 +133,7 @@ impl Shell {
         key: &super::buffers::FileKey,
         cx: &mut Context<'_, Self>,
     ) {
-        let held = self.areas.workspace.code.file_mutating(key);
+        let held = self.areas.workspace.code.file_effect_held(key);
         let Some(editing) = self.editing_for(key) else {
             return;
         };
@@ -405,7 +405,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        let mutation_held = self.areas.workspace.code.file_mutating(key);
+        let mutation_held = self.areas.workspace.code.file_effect_held(key);
         let labels = self.words().labels();
         let Some(viewer) = self.areas.workspace.code.viewer_for(key) else {
             return;

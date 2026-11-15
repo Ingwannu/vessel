@@ -4,6 +4,9 @@ use super::labels::Labels;
 
 /// Korean.
 pub const KO: Labels = Labels {
+    file_close_title: "저장하지 않은 변경사항",
+    file_close_message: "이 파일을 닫으면 변경사항이 손실됩니다.",
+    file_close_discard: "저장하지 않고 닫기",
     file_image_unavailable: "이미지를 표시할 수 없습니다",
     file_mode_source: "원문",
     file_mode_preview: "미리보기",

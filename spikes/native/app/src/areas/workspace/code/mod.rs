@@ -42,6 +42,8 @@ mod entry_forms;
 mod entry_forms_tests;
 pub(crate) mod file_open;
 mod file_tabs;
+#[cfg(test)]
+pub(crate) use file_tabs::FileCloseRequest;
 pub(crate) use file_tabs::render_file_panel;
 mod file_search;
 mod files;

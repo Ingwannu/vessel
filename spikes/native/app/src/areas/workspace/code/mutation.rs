@@ -49,6 +49,11 @@ fn busy(viewer: &Viewer) -> bool {
 }
 
 impl CodePanel {
+    /// A presentation decision holds new effects in the same source owner.
+    pub(super) fn file_effect_held(&self, key: &FileKey) -> bool {
+        self.file_mutating(key) || self.file_tabs.is_closing(key)
+    }
+
     fn affected_busy(&self, node: NodeId, change: &PathChange) -> bool {
         let destination_open = |key: &FileKey| {
             key.node == node
@@ -116,7 +121,7 @@ impl CodePanel {
 
 impl Shell {
     pub(super) fn refuse_file_mutation(&mut self, key: &FileKey) -> bool {
-        if self.areas.workspace.code.file_mutating(key) {
+        if self.areas.workspace.code.file_effect_held(key) {
             self.areas.workspace.code.files.actions.refused = Some(
                 if self
                     .areas

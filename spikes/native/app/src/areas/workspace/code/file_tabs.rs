@@ -20,8 +20,19 @@ pub(super) struct Binding {
 #[derive(Default)]
 pub(super) struct FileTabs {
     bindings: BTreeMap<(LayoutKey, TabId), Binding>,
+    close: Option<close::ClosePrompt>,
 }
+mod close;
+mod close_view;
+#[cfg(test)]
+pub(crate) use close::FileCloseRequest;
+
 impl FileTabs {
+    pub(super) fn is_closing(&self, file: &FileKey) -> bool {
+        self.close
+            .as_ref()
+            .is_some_and(|prompt| prompt.file == *file)
+    }
     /// A visible or parked presentation is an owner reference, not disposable cache.
     pub(super) fn contains(&self, file: &FileKey) -> bool {
         self.bindings.values().any(|binding| binding.file == *file)
@@ -114,7 +125,21 @@ pub(crate) fn render_file_panel(
     if viewer.scope != *binding.origin.scope() {
         return unavailable();
     }
-    super::viewer::viewer_element(shell, viewer, tokens, window, cx)
+    use vessel_app_kit::ui::{ParentElement as _, Styled as _, div};
+    div()
+        .size_full()
+        .child(super::viewer::viewer_element(
+            shell, viewer, tokens, window, cx,
+        ))
+        .children(close_view::dialog(
+            shell,
+            panel.workspace,
+            panel.tab,
+            tokens,
+            window,
+            cx,
+        ))
+        .into_any_element()
 }
 
 impl Shell {
@@ -180,3 +205,6 @@ impl Shell {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod close_tests;

@@ -874,3 +874,33 @@ factory, preserved captured Plain callback and one composition registration for
 both line and multiline engines. Its removed field size exception stays removed.
 Existing tests on68d0aaf0 and the node whole retry on954c0bf0 remain separate,
 frozen-source evidence; they cannot validate this later union.
+
+
+### File-owner close decision (staged dispatcher join)
+
+[Decision Log]
+- Purpose: let the sole layout close dispatcher obtain the actual source owner's
+  decision, including a cached Clean tab with accepted input not yet mirrored.
+- Reference: workspace-screen.tsx2026–2043 suspends pending save before its
+  Discard/Cancel dialog and resumes on cancellation. Existing shared DialogState
+  and the layout's immutable ClosePlan are reused; no new modal or pane manager.
+- Choice: request_layout_file_close routes exact LayoutKey/TabId/original typed
+  File target and binding. Unknown or in-flight original effects and reads refuse;
+  local dirty text receives one owner-held ticketed confirmation. It stops pending
+  autosave and holds manual/flush/new timer effects. Already accepted text still
+  mirrors. Cancel restores eligible automatic saving; confirming an altered draft
+  or a replaced binding refuses rather than discarding unseen input.
+- Release: only after the actual keyed layout acknowledgement removes the tab does
+  this binding release. A second binding retains its existing dirty buffer; no
+  discard changes that shared model into Clean. Missing layout alone releases
+  nothing. No original remote write is cancelled or settled by a dialog.
+- Limit: opening and the close request entry remain literal test staging until
+  W12's ONE real dispatcher joins them. The registry draws the owner dialog but
+  product cannot create these bindings yet. Current-target equality is not an
+  ABA/generation/retirement proof; the shared synchronous hook remains separate.
+  Synthetic GPUI owner tests cover clean release, cancel/discard, stale dialog,
+  changed draft and unknown write retention; execution on this union is owed.
+
+The c342 SavePrefs Box change also requires boxing the two existing C5 tree
+preference call sites. Only that canonical command payload projection changes;
+no preference persistence or key policy changes.

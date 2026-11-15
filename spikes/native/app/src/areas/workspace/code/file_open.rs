@@ -98,7 +98,7 @@ impl Shell {
         if panel.file_tabs.conflicts(&workspace, &file) {
             return Err(FileOpenRefusal::DifferentNode);
         }
-        if panel.file_mutating(&file) {
+        if panel.file_effect_held(&file) {
             return Err(FileOpenRefusal::Busy);
         }
         if !panel.file_tabs.can_bind(&workspace, &file) {
