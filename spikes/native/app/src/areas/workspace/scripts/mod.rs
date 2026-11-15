@@ -36,11 +36,18 @@ impl Shell {
         &mut self,
         machine: &str,
         project: ProjectId,
+        window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
         let Ok(machine) = Name::parse(machine) else {
             return;
         };
+        self.areas.workspace.scripts.host.clear(window, cx);
+        self.areas.workspace.scripts.host.set_placeholder(
+            self.words.scripts().host_placeholder(),
+            window,
+            cx,
+        );
         self.areas
             .workspace
             .scripts
@@ -55,6 +62,7 @@ impl Shell {
     fn scripts_visible(&self) -> bool {
         let model = &self.areas.workspace.scripts.model;
         self.route == Route::Settings
+            && self.areas.settings.pushed
             && self.areas.settings.section == Section::Projects
             && model.target.as_ref().is_some_and(|target| {
                 self.projects_machine().as_deref() == Some(target.machine.as_str())

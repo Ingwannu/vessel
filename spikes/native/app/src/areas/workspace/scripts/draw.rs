@@ -7,8 +7,7 @@ use vessel_app_kit::ui::{
     px,
 };
 use vessel_app_kit::{
-    ButtonKind, ButtonState, Tokens, Type, TypeExt as _, badge, button, button_with_kind,
-    theme::spacing,
+    ButtonKind, ButtonState, Tokens, Type, TypeExt as _, badge, button_with_kind, theme::spacing,
 };
 use vessel_app_view::workspace::command_changes::Listed;
 use vessel_app_view::workspace::git::Reading;
@@ -37,7 +36,18 @@ pub(super) fn render(
         return div();
     }
     let busy = model.read.outstanding().is_some() || model.writing.is_some();
-    let mut refresh = button("scripts-refresh", words.refresh(), false, tokens);
+    let mut refresh = button_with_kind(
+        "scripts-refresh",
+        words.refresh(),
+        ButtonKind::Secondary,
+        if busy {
+            ButtonState::Disabled
+        } else {
+            ButtonState::Enabled
+        },
+        tokens,
+    )
+    .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET));
     if !busy {
         refresh =
             refresh.on_click(cx.listener(|shell, _event, _window, cx| shell.refresh_scripts(cx)));
@@ -229,7 +239,8 @@ fn action(
             ButtonState::Disabled
         },
         tokens,
-    );
+    )
+    .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET));
     div().child(if enabled {
         control.on_click(
             cx.listener(move |shell, _event, _window, cx| shell.script_action(action.clone(), cx)),

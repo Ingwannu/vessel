@@ -4,10 +4,7 @@
 //! folder, a clone, a new one), the machine's git when it cannot be used,
 //! and the chosen project's detail under the list.
 //!
-//! Different from the page, for now: the add menu and the add form open in
-//! place under the heading (the kit's menu and dialog are track C's and not
-//! in yet); the row's "…" menu is a Remove button for the same reason; a
-//! success is said in the frame's foot (the app has no toasts yet).
+//! The project detail remains in place below its list, with its approval.
 
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, InteractiveElement as _, IntoElement as _,
@@ -467,7 +464,7 @@ fn project_row(
             index,
             tokens,
         ))
-        .on_click(cx.listener(move |this, _event, _window, cx| this.open_project(&opened, cx)))
+        .on_click(cx.listener(move |this, _event, w, cx| this.open_project(&opened, w, cx)))
 }
 
 /// The add menu's three ways, in place under the heading.

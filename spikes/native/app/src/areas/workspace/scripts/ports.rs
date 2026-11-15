@@ -4,7 +4,9 @@ use vessel_app_kit::ui::{
     Context, Div, ElementId, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
     Styled as _, div, px,
 };
-use vessel_app_kit::{Tokens, Type, TypeExt as _, alert, button, theme::spacing};
+use vessel_app_kit::{
+    ButtonKind, ButtonState, Tokens, Type, TypeExt as _, alert, button_with_kind, theme::spacing,
+};
 use vessel_app_view::workspace::scripts::{Preview, listeners};
 use vessel_proto::ports::PortScan;
 use vessel_proto::terminals::TerminalInfo;
@@ -82,12 +84,18 @@ pub(super) fn for_run(
             &preview_request,
             &shell.areas.workspace.scripts.host.text(cx),
         );
-        let mut preview = button(
+        let mut preview = button_with_kind(
             ElementId::Name(format!("script-preview-{}-{index}", port.port).into()),
             words.preview(),
-            false,
+            ButtonKind::Secondary,
+            if destination.is_ok() {
+                ButtonState::Enabled
+            } else {
+                ButtonState::Disabled
+            },
             tokens,
-        );
+        )
+        .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET));
         if destination.is_ok() {
             preview = preview.on_click(cx.listener(move |shell, _event, _window, cx| {
                 shell.script_preview(preview_request.clone(), cx)
