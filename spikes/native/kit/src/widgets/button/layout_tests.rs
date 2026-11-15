@@ -24,18 +24,13 @@ fn typed_two_line_labels_add_no_vertical_padding_in_either_theme(cx: &mut TestAp
                 .flex_col()
                 .items_start()
                 .child(
-                    button_control(
-                        "md",
-                        ButtonContent::Label("First line\nSecond line".into()),
-                        config,
-                        &tokens,
-                    )
-                    .w(px(120.0)),
+                    button_control("md", ButtonContent::Label("A\nB".into()), config, &tokens)
+                        .w(px(120.0)),
                 )
                 .child(
                     button_control(
                         "sm",
-                        ButtonContent::Label("First line\nSecond line".into()),
+                        ButtonContent::Label("A\nB".into()),
                         config.with_size(ButtonSize::Small),
                         &tokens,
                     )
@@ -44,7 +39,7 @@ fn typed_two_line_labels_add_no_vertical_padding_in_either_theme(cx: &mut TestAp
                 .child(
                     button_with_kind(
                         "legacy",
-                        "First line\nSecond line",
+                        "A\nB",
                         ButtonKind::Ghost,
                         ButtonState::Enabled,
                         &tokens,

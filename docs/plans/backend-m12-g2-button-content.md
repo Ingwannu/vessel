@@ -102,3 +102,10 @@ entries retain direct text. This keeps existing callers unchanged while source
 content (including catalog Add) avoids eight invented points on a multiline
 label. A real-layout regression compares two-line Medium42/Small34 with legacy
 filled50, in both themes; narrow execution is still owed for this correction.
+
+Exactef93023a Clippy passed; Kit tests ran134/1/0. The new layout fixture's
+120-point width caused its longer second line to wrap again in the test font,
+so it measured62 instead of the intended two-line42. The correction uses A\nB
+to guarantee the fixture precondition. Production code and the literal height
+assertions42/34/50 are unchanged. This is a fixture repair, not a changed expected
+result or an assertion that actual long consumer labels have passed UI review.
