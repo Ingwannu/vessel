@@ -13,10 +13,6 @@ impl Shell {
     /// Collapse every open side, or restore both when neither is open.
     /// W22 owns dispatch and the subsequent W12 focus-mode exit; this method
     /// neither installs an observer nor creates another panel preference.
-    #[cfg_attr(
-        not(test),
-        expect(dead_code, reason = "W22 consumes the checked owner action seam")
-    )]
     pub(crate) fn sidebar_toggle_both(
         &mut self,
         window: &mut Window,

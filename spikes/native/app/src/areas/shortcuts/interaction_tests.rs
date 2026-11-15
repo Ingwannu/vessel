@@ -1,4 +1,6 @@
 //! Actual shell controls and source callbacks, with no link or external I/O.
+mod sidebar_dispatch;
+
 use crate::shell::{Shell, language_tests};
 use gpui::{Entity, TestAppContext, VisualTestContext};
 use vessel_app_view::settings::Section;

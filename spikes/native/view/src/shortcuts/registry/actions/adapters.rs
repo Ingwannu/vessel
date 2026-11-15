@@ -224,6 +224,7 @@ impl Action {
             | Self::GoDevices
             | Self::ToggleSidebar
             | Self::ToggleInspector
+            | Self::ToggleSidebars
             | Self::Find
             | Self::SteerQueued
             | Self::EditQueued => true,
@@ -242,7 +243,6 @@ impl Action {
             | Self::OpenProject
             | Self::PinWorkspace
             | Self::ArchiveWorkspace
-            | Self::ToggleSidebars
             | Self::NewTab
             | Self::TabAgent
             | Self::NewTerminal

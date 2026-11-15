@@ -956,3 +956,32 @@ correct. Updated ONLY the whole App English and corresponding View ENKO refusal
 goldens to128, preserving FSI/PDI and translation/cause/success
 clearing. No policy capacity, FTL wording/vars or formatter changed. Kit/View
 suites were not reached after App failed; no pass is inferred for them.
+
+## Isolated sidebar source-check union (not product adoption)
+
+Coordinator permits only source preparation/narrow checks here until S2's eight
+captures and the lead combined gate are cleared. This branch consumes ONLY
+6ebdf8e8..5901da6a plus d95e9911's seven paths, preserving the newer9b base.
+Main wp-commands does not activate this policy or caller.
+
+[Decision Log]
+- Purpose: wire the checked one-owner toggle intent through the existing engine
+  and exit focus mode only after a handled sidebar action.
+- Existing assets: core fallback registration, Action::exits_focus_mode and
+  NativeDispatcher's post-handled W12 layout_exit_focus call already exist.
+- Alternative: add a second keyboard listener, copied panel state or independent
+  toggle policy. These would duplicate source ownership and input ordering.
+- Choice: include ToggleSidebars in the existing core registration and delegate
+  only to Shell::sidebar_toggle_both; remove its exact staged expectation in the
+  same commit. Defaults/platform/IME/terminal contexts are unchanged.
+- Effect/limits: no new source cache, layout getter, resource map or Explorer
+  routing. Settings-only PHONE/TooNarrow exceptions remain with the owner.
+
+Two GPUI keystroke regressions cover the real canonical Cmd/Ctrl+period: a
+one-open-side case closes it, then a second press opens both without reentering
+focus mode; off-workspace the right side remains unchanged. The focus check
+uses W12's actual layout_panel_visible query on two passive chooser tabs before
+maximizing, while maximized, and after dispatch. The legacy root-agent metadata
+is seeded in the background solely to prevent its render-time insertion from
+changing the chooser selection; no real agent/resource/connection is admitted.
+These are source/UI regressions, not physical keyboard, OS or authority proof.
