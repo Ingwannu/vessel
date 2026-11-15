@@ -148,3 +148,8 @@ random id before delegating to the same implementation.
 Contract narrow Clippy on 702277bd returned three documentation-markdown lints
 (no type/runtime error). They are corrected in the next commit and rechecked;
 the failed log remains evidence. Tests on that commit were 5 passed/0 failed.
+
+The first store narrow run (53e835a1) stopped while prebuilding the node because
+SQLite does not decode u64 directly. The registry reader now decodes i64 and
+checks conversion to the typed nonnegative revision; no default or truncation.
+The original failed log is retained.

@@ -29,7 +29,7 @@ pub(crate) fn workspace(
 pub(crate) fn load(connection: &Connection) -> Result<StoredRegistry, StoreError> {
     // A reader connection is held exclusively while this deferred transaction runs.
     let transaction = connection.unchecked_transaction()?;
-    let revision: u64 = transaction.query_row(
+    let revision: i64 = transaction.query_row(
         "SELECT revision FROM workspace_registry_meta WHERE singleton=1",
         [],
         |row| row.get(0),
@@ -47,7 +47,9 @@ pub(crate) fn load(connection: &Connection) -> Result<StoredRegistry, StoreError
     let memberships = memberships(&transaction)?;
     transaction.commit()?;
     Ok(StoredRegistry {
-        revision: RegistryRevision::from(revision),
+        revision: RegistryRevision::from(
+            u64::try_from(revision).map_err(|_| StoreError::RegistryRevisionExhausted)?,
+        ),
         workspaces,
         memberships,
     })
