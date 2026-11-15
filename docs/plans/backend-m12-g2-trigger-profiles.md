@@ -33,3 +33,12 @@ these do not replace G1's actual production file-header/root-mismatch captures.
 Old literal tests are kept; new source geometry, palette/default paint and
 horizontal glyph mapping have both-theme cases. Changed-crate narrow and source
 review are owed. No runtime phase/hit/OS/capture or final package pass is claimed.
+
+Exact isolated6ece4a76 changed-Kit suite is now green: Clippy0 and164/0/0 tests,
+fonts/cargo both0/no skip. Runs schedules-menu-20261115T105950Z-6ece4a76 and
+schedules-menu-20261115T110007Z-6ece4a76. Changed Kit checking/compiling verified.
+This is headless GPUI coverage, not an actual Linux/OS/consumer UI or full App/F1
+pass; old native F5, focused TextField, hit/clip/neighbor and first-use evidence
+remain owed. V1 source disposition is pending. Coordinator assigned S2 the
+additive hierarchy writer AFTER this delta's checked source handoff; no second
+engine or concurrent draw writer. The temporary label retires after handoff.

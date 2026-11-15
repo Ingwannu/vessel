@@ -1246,6 +1246,19 @@ measured open_end and caller width. See docs/plans/backend-m12-g2-menu-base4.md
 for exact source, focus limits and consumer integration. The canonical palette
 GREEN_500 and existing CircleCheck own success ink/art; no second palette.
 
+The shared trigger adds ProviderRow (More14, visual32/r8/hit48, open/hover
+surface2+foreground, pressed surface3 background only) through one frame.
+trigger_presented takes typed Closed/Open with ButtonState. Existing entries
+keep Schedule/Git defaults. trigger_visual_size/trigger_space derive the same
+visual footprint; passive size has no identity, input, glyph or anchor.
+See docs/plans/backend-m12-g2-trigger-profiles.md for source and pending proof.
+
+Menu Content's typed Layer keeps Screen/priority1 as default and offers
+AboveDialog/priority3 through the same renderer. Its transparent viewport
+input boundary consumes only the nested menu's outside press, preserving
+its host dialog; no second scrim or area popup is drawn. See
+`docs/plans/backend-m12-g2-modal-menu.md` for source and pending proof.
+
 ### Allocation block approval boundary (base 5 adapter)
 
 `command_changes::Listed` projects every `ServicePortsView` field explicitly.
@@ -1273,18 +1286,7 @@ selected G4 admission and request ticket for every result and local rejection;
 its eight-read/15-second limits keep slow/disconnected peers bounded. The shared
 pane and connection owners remain the only registries. This is a skeleton;
 see `docs/plans/wp-c3.md` for missing consumers and exact verification limits.
-The shared trigger adds ProviderRow (More14, visual32/r8/hit48, open/hover
-surface2+foreground, pressed surface3 background only) through one frame.
-trigger_presented takes typed Closed/Open with ButtonState. Existing entries
-keep Schedule/Git defaults. trigger_visual_size/trigger_space derive the same
-visual footprint; passive size has no identity, input, glyph or anchor.
-See docs/plans/backend-m12-g2-trigger-profiles.md for source and pending proof.
 
-Menu Content's typed Layer keeps Screen/priority1 as default and offers
-AboveDialog/priority3 through the same renderer. Its transparent viewport
-input boundary consumes only the nested menu's outside press, preserving
-its host dialog; no second scrim or area popup is drawn. See
-`docs/plans/backend-m12-g2-modal-menu.md` for source and pending proof.
 
 The additive `code_editor::DiffDocumentEditor` prototype retains the same
 DiffEditor plus an owner reveal observer. It measures full display-map height,

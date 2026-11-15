@@ -53,3 +53,12 @@ trigger callback and operator arithmetic in the new test's measured click
 coordinate. Add the semicolon and express the identical coordinate through
 Pixels-to-f32/mul_add (no cast or lint exception). Original expectations and
 all input geometry stay unchanged;388b is red and no tests ran there.
+
+Exact isolated6ece4a76 changed-Kit suite is now green: Clippy0 and164/0/0 tests,
+fonts/cargo both0/no skip. Runs schedules-menu-20261115T105950Z-6ece4a76 and
+schedules-menu-20261115T110007Z-6ece4a76. Changed Kit checking/compiling verified.
+This is headless GPUI coverage, not an actual Linux/OS/consumer UI or full App/F1
+pass; old native F5, focused TextField, hit/clip/neighbor and first-use evidence
+remain owed. V1 source disposition is pending. Coordinator assigned S2 the
+additive hierarchy writer AFTER this delta's checked source handoff; no second
+engine or concurrent draw writer. The temporary label retires after handoff.
