@@ -136,3 +136,5 @@ mod admission;
 mod form;
 
 mod history;
+
+mod preferences;

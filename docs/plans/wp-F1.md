@@ -1691,3 +1691,15 @@ and a matching received catalog restores only valid model/mode/thinking values
 into an unedited create. An existing edit/explicit selection is never replaced.
 No browser-only profiles or isolation fields are invented. Actual failure/
 write-order/disk readback and consumer UI remain unverified at this checkpoint.
+
+
+Ordered-save regressions are authored against the same private writer with an
+isolated real file destination (test-only save_at wrapper, no HOME/config edit)
+and a real framed selected client/actor Hub. A directory target forces rename
+failure: original form receipt, local Preferences classification, no RPC and
+no stale temporary file. Success asserts committed JSON/readback BEFORE the
+original Create frame, plus Unix0600/new-dir0700. Heartbeat misuse and an actual
+retired admission must not poll persistence; a closed retired transport may
+close its empty request pipe and is not a received RPC. Outer/named phase
+guards and owned peer cleanup reuse the existing harness. These are authored
+scoped tests, NOT execution, real node authority, OS or consumer UI proof.

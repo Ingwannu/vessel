@@ -272,6 +272,11 @@ impl Prefs {
     ///   (`vessel-client/src/credential.rs`), minus its `chmod` of a
     ///   folder that already exists (the settings' folder may be the
     ///   person's, not the app's alone).
+    #[cfg(test)]
+    pub(crate) fn save_at_for_test(&self, path: &Path) -> Result<(), LinkError> {
+        self.save_at(path)
+    }
+
     fn save_at(&self, path: &Path) -> Result<(), LinkError> {
         use std::io::Write as _;
 
