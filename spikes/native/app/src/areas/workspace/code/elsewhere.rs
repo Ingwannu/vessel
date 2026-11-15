@@ -82,17 +82,22 @@ impl Shell {
         let Ok(query) = query.trim().parse::<FindQuery>() else {
             return Err(FindRefused::Query);
         };
+        let cached = vessel_app_view::machine_book::Name::parse(&machine)
+            .ok()
+            .and_then(|name| self.code_workspace_scope(&name, session));
         let panel = &mut self.areas.workspace.code;
-        // The panel knows it already when it shows this session.
-        let shown = panel.target.as_ref().and_then(|target| {
-            if target.session != session {
-                return None;
-            }
-            match &target.place {
-                Place::Root(root) => Some(Ok(Some(*root))),
-                Place::Outside => Some(Ok(None)),
-                Place::Reading | Place::Failed(_) => None,
-            }
+        // The panel knows it already when it shows this exact node/session.
+        let shown = cached.map(|root| Ok(Some(root))).or_else(|| {
+            panel.target.as_ref().and_then(|target| {
+                if target.session != session || target.machine != machine {
+                    return None;
+                }
+                match &target.place {
+                    Place::Root(root) => Some(Ok(Some(*root))),
+                    Place::Outside => Some(Ok(None)),
+                    Place::Reading | Place::Failed(_) => None,
+                }
+            })
         });
         let finder = &mut panel.finder;
         match shown.or_else(|| finder.roots.get(&session).cloned()) {

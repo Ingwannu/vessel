@@ -22,6 +22,7 @@
 //! - Cost: the engine's caret and selection drawing are its own (the
 //!   caret stops blinking while motion is held, the engine's own rule).
 
+mod find;
 mod syntax;
 
 use std::rc::Rc;
@@ -33,6 +34,7 @@ use gpui_base::input::{
     Position, RopeExt as _,
 };
 
+pub use find::{FindCase, FindDirection, FindRevision, FindState, MatchCount, ReplaceScope};
 pub use syntax::{LineSyntax, Runs, SyntaxKind};
 
 use crate::theme::spacing;
@@ -60,7 +62,7 @@ impl CodeEditor {
     pub fn new<V: 'static, S: LineSyntax>(
         text: &str,
         syntax: S,
-        on_change: fn(&mut V, &mut Window, &mut Context<'_, V>),
+        on_change: impl Fn(&mut V, &mut Window, &mut Context<'_, V>) + 'static,
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
@@ -73,6 +75,7 @@ impl CodeEditor {
             let mut state = EditorState::new(window, cx)
                 .folding(false)
                 .line_number(true)
+                .searchable(true)
                 .soft_wrap(false);
             // Paseo's `CodeMirror` theme: 16 above and below the text, and
             // `CodeMirror`'s 5 before the line numbers (without it they
@@ -170,6 +173,22 @@ impl CodeEditor {
     pub fn set_read_only(&self, read_only: bool, cx: &mut App) {
         self.state
             .update(cx, |state, cx| state.set_readonly(read_only, cx));
+    }
+
+    /// The same typed edit hold used by form fields; find may remain
+    /// available while replacement controls must disappear.
+    #[must_use]
+    pub fn editability(&self, cx: &App) -> crate::Editability {
+        if self.state.read(cx).is_editable() {
+            crate::Editability::Editable
+        } else {
+            crate::Editability::ReadOnly
+        }
+    }
+
+    /// Retain caret/selection while a buffer owner settles an operation.
+    pub fn set_editability(&self, editability: crate::Editability, cx: &mut App) {
+        self.set_read_only(editability == crate::Editability::ReadOnly, cx);
     }
 
     /// Follow every change of the editor, the caret's moves and blinks

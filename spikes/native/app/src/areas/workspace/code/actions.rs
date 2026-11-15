@@ -23,9 +23,10 @@
 use vessel_app_kit::dialog::DialogState;
 use vessel_app_kit::ui::{ClipboardItem, Context, Pixels, Point, Window};
 use vessel_app_kit::{MenuState, TextField};
-use vessel_app_link::workspace::{Ask, FileAsk, PathChange};
+use vessel_app_link::workspace::PathChange;
 use vessel_app_view::workspace::file_tree::TreeRow;
 use vessel_app_view::workspace::problem::Problem;
+use vessel_proto::workspace::FolderName;
 use vessel_proto::workspace::{CreateDir, DeletePath, RelPath, RenamePath};
 
 use crate::shell::Shell;
@@ -244,7 +245,7 @@ impl Shell {
 
     /// The name typed: make the entry or rename it.
     fn finish_edit(&mut self, text: &str, cx: &mut Context<'_, Self>) {
-        let name = text.trim();
+        let name = text.trim().parse::<FolderName>();
         let name_refused = self.words().labels().name_refused;
         let panel = &mut self.areas.workspace.code;
         let Some((machine, root)) = panel
@@ -256,9 +257,17 @@ impl Shell {
         let Some(editing) = panel.files.actions.editing.as_ref() else {
             return;
         };
+        let Ok(name) = name else {
+            panel.files.actions.refused = Some(name_refused.to_owned());
+            cx.notify();
+            return;
+        };
         let target = match &editing.kind {
-            EditKind::NewFile(dir) | EditKind::NewFolder(dir) => dir.child(name),
-            EditKind::Rename(path) => path.parent().unwrap_or_else(RelPath::root).child(name),
+            EditKind::NewFile(dir) | EditKind::NewFolder(dir) => dir.child(name.as_str()),
+            EditKind::Rename(path) => path
+                .parent()
+                .unwrap_or_else(RelPath::root)
+                .child(name.as_str()),
         };
         let Ok(target) = target else {
             panel.files.actions.refused = Some(name_refused.to_owned());
@@ -274,7 +283,7 @@ impl Shell {
                 to: target,
             }),
         };
-        self.ask(&machine, Ask::File(FileAsk::Path(change)));
+        self.begin_file_mutation(&machine, change, cx);
         cx.notify();
     }
 
@@ -296,13 +305,14 @@ impl Shell {
         let Some((path, folder)) = panel.files.actions.deleting.take() else {
             return;
         };
-        self.ask(
+        self.begin_file_mutation(
             &machine,
-            Ask::File(FileAsk::Path(PathChange::Delete(DeletePath {
+            PathChange::Delete(DeletePath {
                 root,
                 path,
                 recursive: folder,
-            }))),
+            }),
+            cx,
         );
         cx.notify();
     }
@@ -328,14 +338,6 @@ impl Shell {
             | PathChange::Delete(DeletePath { path, .. }) => vec![path.clone()],
             PathChange::Rename(RenamePath { from, to, .. }) => vec![from.clone(), to.clone()],
         };
-        if files
-            .viewer
-            .as_ref()
-            .is_some_and(|viewer| touched.contains(&viewer.path))
-            && !matches!(change, PathChange::CreateFile { .. })
-        {
-            files.viewer = None;
-        }
         let folders: Vec<RelPath> = touched
             .iter()
             .map(|path| path.parent().unwrap_or_else(RelPath::root))

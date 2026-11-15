@@ -33,6 +33,7 @@ mod answer;
 mod ask;
 mod calls;
 mod follow;
+mod intelligence;
 mod pulls;
 mod run;
 mod start;
@@ -49,6 +50,7 @@ use vessel_proto::ProjectId;
 
 pub use answer::{Answer, Form, GitWritten};
 pub use ask::{Ask, FileAsk, GitAsk, GitWrite, PathChange, ProjectAsk, Save, WorktreeAsk};
+pub use intelligence::{IntelligenceAsk, IntelligenceResult};
 pub use pulls::{PullAnswer, PullAsk};
 pub use start::{StartAnswer, StartAsk, StartEnded, StartKey};
 

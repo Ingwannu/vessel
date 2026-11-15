@@ -73,6 +73,15 @@ impl Shell {
                 })),
             );
         }
+        if self
+            .areas
+            .workspace
+            .code
+            .file_key()
+            .is_some_and(|key| self.areas.workspace.code.file_mutating(&key))
+        {
+            return;
+        }
         let edited = self
             .areas
             .workspace
@@ -84,25 +93,23 @@ impl Shell {
         if let Some(editing) = edited {
             // The editor meets the disk: a clean buffer follows it, a
             // modified one shows the conflict (Paseo's `reconcile`).
-            if let vessel_app_view::workspace::editor::Step::Read { .. } = editing.model.reconcile()
+            if let vessel_app_view::workspace::editor::Step::Read { sequence } =
+                editing.model.reconcile()
                 && let Some(path) = shown
             {
-                self.ask(
-                    &machine,
-                    Ask::File(FileAsk::Read(super::editing::whole_read(root, path))),
-                );
+                self.send_editor_read(root, path, sequence);
             }
             return;
         }
         if let Some(path) = shown {
-            self.ask(
+            self.read_viewer(
                 &machine,
-                Ask::File(FileAsk::Read(ReadFile {
+                ReadFile {
                     root,
                     path,
                     offset: 0,
                     limit: None,
-                })),
+                },
             );
         }
     }
@@ -110,12 +117,15 @@ impl Shell {
     /// A folder's entries arrived.
     pub(in crate::areas::workspace) fn folder_read(
         &mut self,
+        machine: &str,
         ask: &ListDir,
         result: Result<DirListing, Problem>,
     ) {
         let words = self.words();
         let panel = &mut self.areas.workspace.code;
-        if panel.root().map(|(_, root)| root) != Some(&ask.root) {
+        if panel.root() != Some((machine, &ask.root))
+            || !panel.files.listings.contains_key(&ask.dir)
+        {
             return;
         }
         let listing = match result {
@@ -126,6 +136,7 @@ impl Shell {
         };
         let _was = panel.files.listings.insert(ask.dir.clone(), listing);
         panel.files.relist();
+        self.restore_tree_children(&ask.dir);
     }
 
     pub(super) fn toggle_folder(&mut self, path: &RelPath, cx: &mut Context<'_, Self>) {
@@ -135,6 +146,7 @@ impl Shell {
             self.read_folder(path);
         }
         self.areas.workspace.code.files.relist();
+        self.remember_file_tree();
         cx.notify();
     }
 
@@ -145,6 +157,10 @@ impl Shell {
     /// Show `path` from an answer (a file just made), with no frame to
     /// notify: the answer's own handling repaints.
     pub(super) fn open_file_at_quietly(&mut self, path: RelPath) {
+        self.flush_file();
+        if !self.park_file() {
+            return;
+        }
         let panel = &mut self.areas.workspace.code;
         let Some((machine, root)) = panel
             .root()
@@ -169,8 +185,18 @@ impl Shell {
         else {
             return;
         };
-        if panel.files.viewer.is_some() {
-            self.leave_file(cx);
+        if super::buffers::FileKey::from_book(&machine, root, path.clone())
+            .is_some_and(|key| self.areas.workspace.code.file_mutating(&key))
+        {
+            self.areas.workspace.code.files.actions.refused =
+                Some(self.words().labels().file_busy.to_owned());
+            cx.notify();
+            return;
+        }
+        self.flush_file();
+        if !self.park_file() {
+            cx.notify();
+            return;
         }
         self.show_file(&machine, root, path, line);
         cx.notify();
@@ -179,9 +205,28 @@ impl Shell {
     /// Show `path`: edited in place at a desktop's width (read whole, in
     /// one page of at most 1 MiB), read-only at a phone's (Paseo's rule).
     fn show_file(&mut self, machine: &str, root: WorkspaceRoot, path: RelPath, line: Option<u32>) {
+        let workspace_dir = self
+            .areas
+            .workspace
+            .code
+            .cwd()
+            .map(std::path::Path::to_path_buf);
         let files = &mut self.areas.workspace.code.files;
+        let Some(key) = super::buffers::FileKey::from_book(machine, root, path.clone()) else {
+            return;
+        };
+        if let Some(mut viewer) = files.retained.remove(&key) {
+            if line.is_some() {
+                viewer.goto = line;
+            }
+            files.viewer = Some(viewer);
+            return;
+        }
         let editable = !files.narrow.get();
         files.viewer = Some(Viewer {
+            reading: None,
+            workspace_dir,
+            intelligence: super::intelligence::State::Idle,
             path: path.clone(),
             text: Shown::Loading,
             list: VirtualList::new(false),
@@ -189,52 +234,80 @@ impl Shell {
             chosen: None,
             edit: editable.then(super::editing::Editing::new),
         });
-        let read = if editable {
-            super::editing::whole_read(root, path)
-        } else {
-            ReadFile {
-                root,
-                path,
-                offset: 0,
-                limit: None,
+        if editable {
+            let sequence = files
+                .viewer
+                .as_ref()
+                .and_then(|viewer| viewer.edit.as_ref())
+                .map(|edit| edit.model.first_read());
+            if let Some(sequence) = sequence {
+                self.send_editor_read(root, path, sequence);
             }
+            return;
+        }
+        let read = ReadFile {
+            root,
+            path,
+            offset: 0,
+            limit: None,
         };
-        self.ask(machine, Ask::File(FileAsk::Read(read)));
+        self.read_viewer(machine, read);
     }
 
-    /// A file's first page arrived.
-    pub(in crate::areas::workspace) fn file_read(
+    fn read_viewer(&mut self, machine: &str, ask: ReadFile) {
+        let Some(key) = super::buffers::FileKey::from_book(machine, ask.root, ask.path.clone())
+        else {
+            return;
+        };
+        let Some(ticket) = self.next_file_ticket() else {
+            return;
+        };
+        let Some(viewer) = self.areas.workspace.code.viewer_for(&key) else {
+            return;
+        };
+        viewer.reading = Some(ticket);
+        self.ask(machine, Ask::File(FileAsk::Read { ask, ticket }));
+    }
+
+    pub(in crate::areas::workspace) fn file_read_answered(
         &mut self,
+        machine: &str,
         ask: &ReadFile,
+        ticket: vessel_app_view::workspace::file_ticket::FileTicket,
         result: Result<FileRead, Problem>,
         cx: &mut Context<'_, Self>,
     ) {
-        let words = self.words();
-        let panel = &mut self.areas.workspace.code;
-        if panel.root().map(|(_, root)| root) != Some(&ask.root) {
+        let Some(key) = super::buffers::FileKey::from_book(machine, ask.root, ask.path.clone())
+        else {
+            return;
+        };
+        let Some(viewer) = self.areas.workspace.code.viewer_for(&key) else {
+            return;
+        };
+        if viewer
+            .reading
+            .take_if(|pending| *pending == ticket)
+            .is_none()
+        {
             return;
         }
-        let edited = panel
-            .files
-            .viewer
-            .as_ref()
-            .is_some_and(|viewer| viewer.path == ask.path && viewer.edit.is_some());
-        if edited {
-            if self.editing_read(&result, cx) {
-                return;
-            }
-            // Not editable (binary, or more than a page): shown read-only.
-            if let Some(viewer) = self.areas.workspace.code.files.viewer.as_mut() {
-                viewer.edit = None;
-            }
-        }
-        let panel = &mut self.areas.workspace.code;
-        let Some(viewer) = panel
-            .files
-            .viewer
-            .as_mut()
-            .filter(|viewer| viewer.path == ask.path)
+        self.file_read(machine, ask, result, cx);
+    }
+
+    /// A file's first page arrived.
+    pub(super) fn file_read(
+        &mut self,
+        machine: &str,
+        ask: &ReadFile,
+        result: Result<FileRead, Problem>,
+        _cx: &mut Context<'_, Self>,
+    ) {
+        let words = self.words();
+        let Some(key) = super::buffers::FileKey::from_book(machine, ask.root, ask.path.clone())
         else {
+            return;
+        };
+        let Some(viewer) = self.areas.workspace.code.viewer_for(&key) else {
             return;
         };
         viewer.text = match result {
@@ -266,6 +339,30 @@ impl Shell {
     }
 }
 
+impl Shell {
+    /// An editor response belongs to its original node, file and ticket.
+    pub(in crate::areas::workspace) fn editor_read_answered(
+        &mut self,
+        machine: &str,
+        ticket: vessel_app_view::workspace::file_ticket::FileTicket,
+        ask: &ReadFile,
+        result: Result<FileRead, Problem>,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let Some(key) = super::buffers::FileKey::from_book(machine, ask.root, ask.path.clone())
+        else {
+            return;
+        };
+        if self.editing_read(&key, ticket, &result, cx) {
+            return;
+        }
+        if let Some(viewer) = self.areas.workspace.code.viewer_for(&key) {
+            viewer.edit = None;
+        }
+        self.file_read(machine, ask, result, cx);
+    }
+}
+
 /// The tab: the file shown, else the tree.
 pub(super) fn render(
     shell: &Shell,
@@ -294,6 +391,7 @@ pub(super) fn render(
         .min_h(px(0.0))
         .flex()
         .flex_col()
+        .child(super::tree_toolbar::toolbar(shell, tokens, cx))
         .child(super::search::bar(shell, tokens, cx))
         .children(super::actions_view::refused_note(shell, tokens))
         .child(div().flex_1().min_h(px(0.0)).child(body))

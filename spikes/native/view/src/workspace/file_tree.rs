@@ -19,6 +19,7 @@
 
 use std::collections::{HashMap, HashSet};
 
+use super::explorer::ExplorerOptions;
 use vessel_proto::workspace::{DirListing, EntryKind, RelPath};
 
 /// What is known of one folder's entries.
@@ -100,8 +101,18 @@ pub fn tree_rows<S: std::hash::BuildHasher>(
     listings: &HashMap<RelPath, Listing, S>,
     open: &HashSet<RelPath, S>,
 ) -> Vec<TreeRow> {
+    tree_rows_with(listings, open, ExplorerOptions::default())
+}
+
+/// Flatten visible entries in the person's chosen ordering.
+#[must_use]
+pub fn tree_rows_with<S: std::hash::BuildHasher>(
+    listings: &HashMap<RelPath, Listing, S>,
+    open: &HashSet<RelPath, S>,
+    options: ExplorerOptions,
+) -> Vec<TreeRow> {
     let mut rows = Vec::new();
-    rows_under(listings, open, &RelPath::root(), 0, &mut rows);
+    rows_under(listings, open, &RelPath::root(), 0, options, &mut rows);
     rows
 }
 
@@ -110,6 +121,7 @@ fn rows_under<S: std::hash::BuildHasher>(
     open: &HashSet<RelPath, S>,
     dir: &RelPath,
     depth: usize,
+    options: ExplorerOptions,
     rows: &mut Vec<TreeRow>,
 ) {
     let listing = match listings.get(dir) {
@@ -130,13 +142,20 @@ fn rows_under<S: std::hash::BuildHasher>(
         }
         Some(Listing::Listed(listing)) => listing,
     };
-    if listing.entries.is_empty() {
+    let mut entries: Vec<_> = listing
+        .entries
+        .iter()
+        .enumerate()
+        .filter(|(_, entry)| options.visible(entry))
+        .collect();
+    entries.sort_by(|(_, left), (_, right)| options.compare(left, right));
+    if entries.is_empty() {
         rows.push(TreeRow::Empty {
             dir: dir.clone(),
             depth,
         });
     }
-    for (index, entry) in listing.entries.iter().enumerate() {
+    for (index, entry) in entries {
         // A name the wire's path refuses (the node never lists one) has no
         // row: it could not be opened or read.
         let Ok(path) = dir.child(&entry.name) else {
@@ -151,7 +170,14 @@ fn rows_under<S: std::hash::BuildHasher>(
             open: is_open,
         });
         if is_open {
-            rows_under(listings, open, &path, depth.saturating_add(1), rows);
+            rows_under(
+                listings,
+                open,
+                &path,
+                depth.saturating_add(1),
+                options,
+                rows,
+            );
         }
     }
     if listing.more {

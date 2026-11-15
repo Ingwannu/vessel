@@ -1,6 +1,7 @@
 //! What a workspace screen asks: one enum per subject, each variant
 //! holding the wire's own request.
 
+use vessel_app_view::workspace::file_ticket::FileTicket;
 use vessel_proto::workspace::{
     AddProject, ApproveCommands, CloneProject, CreateDir, DeletePath, Discard, DropSnapshot, Fetch,
     FileVersion, FindFiles, GetChanges, GetFileDiff, GetProjectCommands, InitProject, ListDir,
@@ -86,18 +87,44 @@ pub enum GitAsk {
 /// The file asks.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FileAsk {
+    /// An existing read-only `lsp.*` query for a saved source file.
+    Intelligence(super::IntelligenceAsk),
     /// `file.list`.
     List(ListDir),
     /// `file.read`.
-    Read(ReadFile),
+    Read {
+        /// The bounded wire read.
+        ask: ReadFile,
+        /// Invalidates an older response after reopening or refreshing.
+        ticket: FileTicket,
+    },
+    /// A whole editor read whose response echoes a unique request identity.
+    EditorRead {
+        /// The bounded wire read.
+        ask: ReadFile,
+        /// Correlation independent of file/model lifetime.
+        ticket: FileTicket,
+    },
     /// A guarded save (`file.write`, then `file.read` once on a conflict).
     Save(Save),
     /// `file.find`.
     Find(FindFiles),
+    /// Shared picker search with per-request correlation even for repeated queries.
+    TrackedFind {
+        /// Existing wire search; its stable key still cancels older node work.
+        ask: FindFiles,
+        /// Local acquisition generation, echoed without a wire change.
+        ticket: FileTicket,
+    },
     /// `file.grep`.
     Grep(SearchFiles),
     /// `file.create_dir`, `file.rename`, `file.delete`, or a new file.
-    Path(PathChange),
+    Path {
+        /// Root-confined operation.
+        change: PathChange,
+        /// App mutation identity, echoed on refusals too.
+        ticket: FileTicket,
+    },
 }
 
 /// A git write (`git.stage` to `git.stash`).
@@ -147,6 +174,8 @@ impl GitWrite {
 /// A save of an edited file.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Save {
+    /// Echoed unchanged, so a late save cannot settle a newer operation.
+    pub ticket: FileTicket,
     /// The root.
     pub root: WorkspaceRoot,
     /// The file.
@@ -174,4 +203,17 @@ pub enum PathChange {
         /// The new file.
         path: RelPath,
     },
+}
+
+impl PathChange {
+    /// Authorized root independent of the selected file panel.
+    #[must_use]
+    pub const fn root(&self) -> WorkspaceRoot {
+        match self {
+            Self::CreateDir(ask) => ask.root,
+            Self::Rename(ask) => ask.root,
+            Self::Delete(ask) => ask.root,
+            Self::CreateFile { root, .. } => *root,
+        }
+    }
 }
