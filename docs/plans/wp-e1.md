@@ -230,3 +230,35 @@ owed; this is not a total-heap or cancellation-runtime claim.
 V3 independently SOURCE-passed only the ccedd4860 appearance-value move.
 Its3 root producer tests and7 unchanged native consumers still require
 execution before integration; private reader staging is outside that pass.
+
+
+## Resume: shared values and fixed-lock consumer source
+
+The Unix private-file code remains private cfg(test) staging. It has not
+been compiled or used by a production book or credential operation. The
+bounded EOF probe is outside the document buffer; worker admission,
+transaction locking, safe replacement, partial-credential retention and
+Windows refusal are still unimplemented. No all-writer safety claim is made.
+
+The shared public values are isolated on the app base18eedad4 as the exact
+range ending7becce7f. V3 accepted source through e3764115 (route identity,
+unchanged appearance values and the precise ManagedLocalAlias grammar).
+The root all-targets Clippy run122609Z remains queued; nine new root tests
+and seven native compatibility assertions still need execution. This is
+not a compiling/consumer-ready handoff. The checked result goes to the
+native lead for announced adoption, not into the node integrator's tree.
+
+This private development branch merged the fixed-lock selection source
+0610958f as744a383e. It includes the announced dd13ce37 base and the
+owner's isolated deterministic find-work correction. The lock merge was
+automatic and preserves the approved client rustix edge. No check on this
+combined E1 source has run. The native input package remains in its own
+tree and must receive its gate/export/captures independently. Preserve
+those receipts rather than attributing a later source pass to this branch.
+
+Next: finish the active shared-value check, execute its root tests, then
+check the exact native re-export consumer and private client staging.
+Only after the actual security checks/review should the new book parser,
+authority-binding projection and transaction path replace existing APIs.
+There is no callable multi-route/upsert, secure evidence receipt, direct
+or SSH addition flow yet. No production permissions or services changed.
