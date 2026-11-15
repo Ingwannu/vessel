@@ -291,12 +291,3 @@ A known different node or session clears that guard. This prevents disconnect /
 readmission from accepting metadata older than a rewind already observed on
 Follow. The pure regression includes the unavailable and unknown-admission gap,
 not only an immediate old-context → new-context swap.
-
-Local find now reuses `Timeline::rewound(index)` when projecting the visible
-conversation. Timeline intentionally retains superseded entries for stable
-addresses; passing its raw entry slice searched hidden messages after retry.
-`Finder::step_timeline` shares the same 200-index slice/cache loop without copying
-or reindexing transcript entries. The fallback outline already filters these
-canonical ranges in the intake caller and stays unchanged. Raw slice APIs and
-their existing cases retain their semantics. A replay/rewind/warm-cache regression
-checks that hidden matches disappear while surviving addresses remain stable.
