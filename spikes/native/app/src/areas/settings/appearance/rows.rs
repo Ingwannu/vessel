@@ -114,7 +114,7 @@ fn numeric(
                     &PreferenceChange::ContentWidth(ContentWidth::default()),
                     window,
                     cx,
-                )
+                );
             })),
         );
     }

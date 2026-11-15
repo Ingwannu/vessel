@@ -26,6 +26,7 @@ impl Render for Probe {
     }
 }
 fn setup(window: &mut Window, cx: &mut Context<'_, Probe>) -> Probe {
+    window.activate_window();
     let shell = cx.new(|cx| {
         let mut shell = Shell::without_io(window, cx);
         sync(&mut shell, window, cx);
@@ -49,7 +50,7 @@ fn numeric_focus_selects_all_live_preview_is_local_and_blur_commits_one_axis(
                 .fields
                 .of(Field::CodeSize)
                 .focus(window, cx);
-        })
+        });
     });
     cx.run_until_parked();
     cx.simulate_input("19abc");
@@ -61,7 +62,7 @@ fn numeric_focus_selects_all_live_preview_is_local_and_blur_commits_one_axis(
             assert_eq!(state.preview.as_ref().unwrap().code_size.get(), 19);
             assert_eq!(shell.prefs.settings.appearance.code_size.get(), 12);
             state.fields.of(Field::InterfaceSize).focus(window, cx);
-        })
+        });
     });
     cx.run_until_parked();
     probe.read_with(cx, |probe, cx| {
@@ -79,7 +80,7 @@ fn numeric_focus_selects_all_live_preview_is_local_and_blur_commits_one_axis(
                     .text(cx),
                 "19"
             );
-        })
+        });
     });
 }
 #[gpui::test]
@@ -183,7 +184,7 @@ fn theme_changes_preserve_other_drafts_while_external_axis_changes_resync_curren
                 "820"
             );
             assert!(!shell.prefs.settings.appearance.content_width.resettable());
-        })
+        });
     });
 }
 
@@ -196,6 +197,7 @@ fn language_refresh_keeps_family_draft_selection_and_legacy_width_as_presentatio
     language_tests::preserves(
         cx,
         |shell, window, cx| {
+            window.activate_window();
             shell.prefs.settings.appearance.content_width = ContentWidth::Full;
             sync(shell, window, cx);
             assert_eq!(

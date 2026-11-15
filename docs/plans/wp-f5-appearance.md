@@ -513,3 +513,10 @@ owner and lead. This branch does not box Prefs or SavePrefs. Its immutable
 font-family sharing remains a value/snapshot ownership choice; the announced
 central command change will be merged before the next combined narrow check.
 The last adopted app base remains base6 plus the lead's lock-only correction.
+
+
+The real Appearance input fixtures explicitly activate their test window,
+matching the shared engine/event fixtures so Focus and Blur are actual window
+events. Existing assertions and waits remain unchanged. Unit-valued consumer
+callbacks use explicit statement endings; the render closure still returns
+its element. These source preparations remain unexecuted until the next check.
