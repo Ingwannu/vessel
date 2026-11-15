@@ -3,6 +3,7 @@ use super::shows_at_once;
 use crate::shell::Shell;
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::Command;
+use vessel_app_view::composer::drafts::DraftKey;
 
 impl Shell {
     pub(crate) fn submit_prompt(
@@ -11,6 +12,22 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        // The legacy field has no resident context: at least require the same
+        // presented destination before allocating an ID or touching input.
+        let Some(target) = self
+            .areas
+            .session
+            .open
+            .as_ref()
+            .map(|open| DraftKey::Session {
+                session: open.session,
+            })
+        else {
+            return;
+        };
+        if self.composer_destination() != Some(target) {
+            return;
+        }
         let Some(open) = &self.areas.session.open else {
             return;
         };
@@ -62,3 +79,6 @@ impl Shell {
         cx.notify();
     }
 }
+
+#[cfg(test)]
+mod tests;
