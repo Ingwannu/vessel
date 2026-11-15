@@ -166,18 +166,43 @@ fn lock_waiter(file: File) -> Result<LockWait, DesktopError> {
     Ok(LockWait { result, waiting })
 }
 
-fn wait_for_lock(file: File) -> Result<File, DesktopError> {
+fn wait_for_lock(file: File, mode: LockMode) -> Result<File, DesktopError> {
+    match file.try_lock() {
+        Ok(()) => return Ok(file),
+        Err(std::fs::TryLockError::WouldBlock) => {}
+        Err(std::fs::TryLockError::Error(error)) => return Err(error.into()),
+    }
     // OS acquisition blocks in the kernel. A bounded startup receiver avoids
     // polling; if the error-only app closes, process exit ends this helper.
     let LockWait { result, waiting } = lock_waiter(file)?;
     drop(waiting);
+    let deadline = match mode {
+        LockMode::Normal => REQUEST_DEADLINE,
+        LockMode::Restart => RESTART_DEADLINE,
+    };
     result
-        .recv_timeout(RESTART_DEADLINE)
+        .recv_timeout(deadline)
         .map_err(|error| match error {
-            std::sync::mpsc::RecvTimeoutError::Timeout => DesktopError::RestartDeadline,
+            std::sync::mpsc::RecvTimeoutError::Timeout => match mode {
+                LockMode::Normal => DesktopError::LaunchDeadline,
+                LockMode::Restart => DesktopError::RestartDeadline,
+            },
             std::sync::mpsc::RecvTimeoutError::Disconnected => DesktopError::Closed,
         })?
         .map_err(DesktopError::from)
+}
+
+fn open_lock(path: &Path) -> Result<File, DesktopError> {
+    match crate::prefs::new_private_file(path) {
+        Ok(file) => Ok(file),
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+            Ok(std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(path)?)
+        }
+        Err(error) => Err(error.into()),
+    }
 }
 
 fn claim_with(directory: &Path, launch: &Launch, mode: LockMode) -> Result<Instance, DesktopError> {
@@ -188,16 +213,11 @@ fn claim_with(directory: &Path, launch: &Launch, mode: LockMode) -> Result<Insta
     crate::prefs::private_dir(&directory)?;
     #[cfg(unix)]
     unix::check_directory(&directory)?;
-    let mut lock = match crate::prefs::new_private_file(&directory.join("lock")) {
-        Ok(file) => file,
-        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-            std::fs::OpenOptions::new()
-                .read(true)
-                .write(true)
-                .open(directory.join("lock"))?
-        }
-        Err(error) => return Err(error.into()),
-    };
+    // A concurrent secondary must not forward between acquiring the process
+    // lock and binding IPC. Serialize this short bootstrap with a kernel lock;
+    // the long login-shell/GUI bootstrap begins only after claim returns.
+    let _bootstrap = wait_for_lock(open_lock(&directory.join("bootstrap"))?, LockMode::Normal)?;
+    let mut lock = open_lock(&directory.join("lock"))?;
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()?;
@@ -206,7 +226,7 @@ fn claim_with(directory: &Path, launch: &Launch, mode: LockMode) -> Result<Insta
         Err(std::fs::TryLockError::WouldBlock) => match mode {
             LockMode::Normal => false,
             LockMode::Restart => {
-                lock = wait_for_lock(lock)?;
+                lock = wait_for_lock(lock, LockMode::Restart)?;
                 true
             }
         },
@@ -292,6 +312,25 @@ async fn bounded<T>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn another_bootstrap_is_waited_for_and_never_bypassed_before_ipc_is_ready() {
+        let root = Path::new("/tmp").join(format!("vessel-bootstrap-{}", SessionId::random()));
+        let directory = root.join("desktop-instance");
+        crate::prefs::private_dir(&directory).unwrap();
+        let bootstrap = open_lock(&directory.join("bootstrap")).unwrap();
+        bootstrap.try_lock().unwrap();
+        // A held bootstrap gate must yield the named deadline, not create a
+        // primary whose endpoint races the other process's unfinished bind.
+        assert!(matches!(
+            claim(&root, &Launch::NewWindow),
+            Err(DesktopError::LaunchDeadline)
+        ));
+        assert!(!directory.join("lock").exists());
+        drop(bootstrap);
+        std::fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn relaunch_lock_waiter_waits_in_the_kernel_until_the_old_lock_is_released() {

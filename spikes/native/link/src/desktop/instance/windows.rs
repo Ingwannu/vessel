@@ -35,12 +35,15 @@ pub(super) async fn serve(
             _ = &mut stop=>break,
             connected=server.connect()=> {
                 if let Err(error)=connected { tracing::warn!(%error,"desktop pipe stopped");break; }
-                if let Err(error)=bounded(receive(&mut server,&sender)).await {
-                    tracing::warn!(%error,"desktop launch request was refused");
-                }
-                match ServerOptions::new().reject_remote_clients(true).create(&name) {
-                    Ok(next)=>server=next,
+                // Publish the next listening instance before acknowledging this
+                // request, so a serialized next launch cannot see PIPE_BUSY.
+                let next = match ServerOptions::new().reject_remote_clients(true).create(&name) {
+                    Ok(next)=>next,
                     Err(error)=>{tracing::warn!(%error,"desktop pipe could not reopen");break;}
+                };
+                let mut connected = std::mem::replace(&mut server, next);
+                if let Err(error)=bounded(receive(&mut connected,&sender)).await {
+                    tracing::warn!(%error,"desktop launch request was refused");
                 }
             }
         }

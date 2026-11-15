@@ -351,3 +351,12 @@ Otherwise a CLI/node child could propagate it into a later ordinary app launch,
 which would wrongly wait for the active primary to exit. This uses CommandSpec
 removal overrides, never process-global environment mutation. Regression covers
 both inherited and captured values overriding earlier child assignments.
+
+Single-instance bootstrap now serializes only OS claim/IPC binding through a
+second private kernel file lock. A second launch cannot connect in the interval
+between primary ownership and endpoint readiness; login-shell/GUI startup occurs
+after releasing this short gate. Contention has the existing named launch
+deadline and no polling. A held-gate regression refuses before creating the
+primary lock. On Windows the next named-pipe instance is listening before the
+current request receives its acknowledgment, avoiding a consecutive-launch
+PIPE_BUSY window. Windows runtime validation is still owed.
