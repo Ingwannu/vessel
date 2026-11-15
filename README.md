@@ -117,6 +117,12 @@ then matching live records through the current run's end or Ctrl-C. Its
 help shows the default count. Interrupting the command keeps the session
 running; a later resumed run can be followed with another invocation.
 
+A session title uses the first nonempty prompt line unless a title was
+supplied, keeping [ADR 0022's title limits](docs/adr/0022-session-options-and-titles.md).
+The node records who supplied a title so later generation can preserve a
+person's choice; older titles have unknown origin (ADR 0062). Automatic
+generation is not enabled yet in this build.
+
 ### A conversation: the queue, files, questions, marks
 
 A structured session's next message can go in while its agent still

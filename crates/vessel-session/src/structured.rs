@@ -309,7 +309,9 @@ impl StructuredActor {
                     .publish(&mut self.agent, SessionEvent::Agent { event })
                     .await;
                 if let Some(title) = title {
-                    self.life.rename(&mut self.agent, title).await;
+                    self.life
+                        .rename(&mut self.agent, title, vessel_proto::TitleOrigin::Given)
+                        .await;
                 }
                 if became_ready {
                     self.ready = true;

@@ -859,6 +859,7 @@ fn options_and_renames_reach_older_clients_as_lines() {
 
     let renamed = SessionEvent::Renamed {
         title: "Fix the build".parse().unwrap(),
+        origin: crate::title::TitleOrigin::Unknown,
     };
     assert_eq!(renamed.since(), V9);
     assert_eq!(
