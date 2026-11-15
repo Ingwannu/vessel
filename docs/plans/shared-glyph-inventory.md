@@ -35,3 +35,20 @@ Lead append-contract correction: the frozen95 snapshot checks a complete
 unchanged prefix and ALL length at least95; later appended glyphs are covered
 by the existing uniqueness/path-existence/raster tests. The snapshot is never
 regenerated just to admit additions. No production code changed.
+
+## Exact final package verification
+
+Final code/test commit bb33cee31b037f487ff6840b9db0b86a960e835b completed
+A13 shell2-20261115T151942Z-bb33cee3 with all six native steps exit0:
+fonts, format, quality, strict all-target Clippy, app build and tests.
+Raw totals independently summed:1433 passed/0 failed/2 existing ignored;
+Kit181 passed/0 failed/0 ignored, including the frozen95-prefix/path test.
+Changed Kit source was actually checked and compiled; App was checked/built.
+Logs: /tmp/work/m12-shell-s2/glyph-inventory-package-native.
+The prior e7 Kit narrow result remains prior-source evidence only.
+
+This result covers the isolated95 registry and unchanged baseline native API.
+It does not approve F4's five additional glyphs, consumer ink/geometry, native
+OS input, the sidebar package or measured popup placement. No new capture
+matrix was taken: no vector or renderer changed in this mechanical producer.
+V1's bounded source/package disposition and lead integration remain separate.
