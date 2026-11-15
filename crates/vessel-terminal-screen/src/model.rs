@@ -1,7 +1,7 @@
 //! One owner feeds the engine; immutable snapshots survive actor exit without log replay.
 use crate::{
-    BufferKind, Capture, CaptureRange, Cell, Column, Cursor, Row, ScreenError, ScrollbackLines,
-    Size, Visibility,
+    BufferKind, Capture, CaptureRange, Cell, Column, Cursor, Replies, ReplyDuty, Row, ScreenError,
+    ScrollbackLines, Size, Visibility,
 };
 use std::sync::Arc;
 
@@ -18,14 +18,16 @@ impl BytesTaken {
     }
 }
 /// A bounded feed's progress; no actor, transport or UI scheduling occurs here.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Feed {
     /// Prefix consumed by this call.
     pub consumed: BytesTaken,
+    /// Only an explicitly admitted node authority returns PTY protocol responses.
+    pub replies: Result<Replies, ScreenError>,
 }
 /// Mutable screen authority, owned by exactly one terminal output actor.
 pub struct Screen {
-    parser: vt100::Parser,
+    parser: vt100::Parser<crate::queries::Queries>,
     size: Size,
     requested: ScrollbackLines,
     retained_columns: u16,
@@ -44,10 +46,26 @@ impl Screen {
     /// # Errors
     /// Returns [`ScreenError::Geometry`] if both screens cannot fit the cell budget.
     pub fn new(size: Size, scrollback: ScrollbackLines) -> Result<Self, ScreenError> {
+        Self::with_replies(size, scrollback, ReplyDuty::Silent)
+    }
+    /// Bind response authority at construction; observers cannot promote themselves later.
+    ///
+    /// # Errors
+    /// Returns the same allocation admission errors as [`Self::new`].
+    pub fn with_replies(
+        size: Size,
+        scrollback: ScrollbackLines,
+        duty: ReplyDuty,
+    ) -> Result<Self, ScreenError> {
         let capacity = size.capacity(scrollback)?;
         let (rows, cols) = size.engine();
         Ok(Self {
-            parser: vt100::Parser::new(rows, cols, capacity),
+            parser: vt100::Parser::new_with_callbacks(
+                rows,
+                cols,
+                capacity,
+                crate::queries::Queries::new(duty),
+            ),
             size,
             requested: scrollback,
             retained_columns: size.cols(),
@@ -56,11 +74,13 @@ impl Screen {
     /// Interpret one bounded prefix. Ordered actors repeatedly feed the unconsumed suffix.
     pub fn feed(&mut self, bytes: &[u8]) -> Feed {
         let consumed = bytes.len().min(FEED_BUDGET);
+        self.parser.callbacks_mut().begin(consumed);
         if let Some(prefix) = bytes.get(..consumed) {
             self.parser.process(prefix);
         }
         Feed {
             consumed: BytesTaken(consumed),
+            replies: self.parser.callbacks_mut().take(),
         }
     }
     /// Current visible geometry.

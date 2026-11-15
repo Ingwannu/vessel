@@ -4,6 +4,7 @@ mod cell;
 mod geometry;
 mod model;
 mod projection;
+mod queries;
 mod range;
 
 pub use cell::{
@@ -11,6 +12,7 @@ pub use cell::{
 };
 pub use geometry::{MAX_SCREEN_CELLS, ScrollbackLines, Size};
 pub use model::{BytesTaken, FEED_BUDGET, Feed, Screen, Snapshot};
+pub use queries::{MAX_REPLY_BYTES, Replies, ReplyDuty};
 pub use range::{Capture, CaptureRange, LineCount, LineOffset, MAX_CAPTURE_BYTES};
 
 /// A screen operation refuses before replacing a valid authority or allocating a reply.
@@ -28,6 +30,9 @@ pub enum ScreenError {
     /// No retained row exists for a supposedly valid projection.
     #[error("terminal screen projection is unavailable")]
     Unavailable,
+    /// The bounded reply sink could not admit a query response.
+    #[error("terminal query replies exceed their allocation budget")]
+    ReplyUnavailable,
 }
 
 #[cfg(test)]

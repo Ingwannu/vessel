@@ -1,7 +1,7 @@
 # ADR 0095: one maintained terminal screen engine
 
 Status: proposed implementation; corpus corrections, gate and V3 review pending.
-Owner: C2. Separate prerequisite package before D1 UI (coordinator ruling).
+Separate prerequisite package before the terminal UI.
 
 ## Decision log
 
@@ -34,7 +34,7 @@ and `terminal-capture.ts`, headless 6.1.0-beta.334 plus UnicodeGraphemes
 0.5.0-beta.330. Browser xterm is not substituted. This runs the factory and
 capture function, not the whole daemon or PTY transport.
 
-Raw baseline differences, preserved in `/tmp/work/m12-conv-c2/engine-compare`:
+Raw baseline differences, preserved in the engine comparison evidence packet:
 
 | Candidate | Text cells | Width cells | Attributes | Capture arrays |
 | --- | ---: | ---: | --- | ---: |
@@ -64,6 +64,25 @@ One capture has a named byte limit, includes empty rows and separators and
 refuses a too-large response rather than truncating it. Signed inclusive row
 ranges clamp and count negatives from the end. Text stays unnormalized; JS
 trimEnd semantics include BOM and exclude NEL. No ANSI is invented by capture.
+
+Query replies follow the explicit server handlers at
+`packages/server/src/terminal/terminal.ts:884–925` and its fixed OSC color
+map at 45–49. Construction defaults to a silent observer; only an explicit
+`ReplyDuty::NodeAuthority` can return ordered reply bytes. This supersedes
+ADR 0073's provisional viewer-owned, theme-colored response contract for the
+new engine: one server owner prevents duplicate replies from multiple native
+views, and the fixed colors reproduce the reference server. No network or
+PTY write occurs inside the crate. Unsupported queries and clipboard requests
+produce no replies. The reply allocation bound derives from the input budget
+and longest allowed reply, including a query begun in the previous feed; an
+admission failure is returned explicitly with the consumed prefix.
+
+Six query oracle cases execute the reference server's actual registered
+handlers on its own headless factory. Golden inputs cover pending wrap,
+origin mode/scroll regions, alternate screen, OSC whitespace and unsupported
+or clipboard queries. Rust tests repeat whole and one-byte feeds, silent
+observers and a carried-query burst. These are source/runtime oracle tests,
+not a real PTY transport claim.
 
 Wire DTOs remain in vessel-proto. W17 owns mapping, bounded actor inbox,
 output/resize/capture ordering and immutable final-state lifetime. No screen
