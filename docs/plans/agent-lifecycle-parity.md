@@ -356,6 +356,28 @@ No row of the crate table changes.
   This is the already stated temporary Vessel difference: labels await their
   client consumers and protocol assignment instead of silently disappearing.
 
+## Stop refusal prerequisite for reload
+
+[Decision Log]
+- Purpose: refuse replacement startup if the current agent cannot be signalled.
+- Existing assets: reuse the real structured actor's stop, output drain and
+  `try_move` error boundary. A reload must not duplicate this lifecycle.
+- Constraint: the OS refusal cannot be forced through the fake ACP protocol;
+  a vanished or reaped process is correctly treated as a successful stop.
+- Choice: a per-actor `cfg(test)` next-stop fault, following the existing
+  `Control::PrivateDir` test boundary, supplies one typed `PermissionDenied`.
+  The actor, profile linking, fake process, log and restart remain real.
+- Alternatives: another account's process, permission changes, global fault
+  state, a real harness or a release-enabled fake are rejected. No dependency
+  is needed; the session crate already owns the process signal error.
+- Sequence: commit the forcing test against log-and-continue first and retain
+  its expected red result; then return a typed move error with the source.
+  Successful stop/drain behavior, deadlines and existing expectations stay.
+- Product absence is a separate product-configuration check: the exhaustive
+  control match and actor constructor have no test fault arm or field there.
+  The test failure, corrective narrow checks and one package gate travel
+  together. This is one prerequisite package, not a working reload command.
+
 ## Resume point
 
 - Reviewed: slice 1 contract and slice 2a validating types. Bounds,

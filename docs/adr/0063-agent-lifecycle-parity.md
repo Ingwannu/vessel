@@ -119,6 +119,22 @@ import must still check its source metadata before export/placement, because
 the caller does not carry those labels. No new method is registered by this
 admission change. Refusal avoids accepting data that no client can see.
 
+### Stop failure before a restart
+
+The existing profile-move stop helper is the candidate for reload reuse. Its
+signal failure must be returned with the OS error as a typed source, before
+starting any replacement. Logging and waiting for a later kill can turn a
+refused first stop into an apparent success, so it does not satisfy that
+boundary. Existing successful stop/drain behavior and grace budgets remain.
+
+A per-actor, test-only next-stop fault injects `PermissionDenied` into that
+signal boundary. It follows the existing private test control, has no global
+state, and is absent from product builds. The real runtime and fake agent
+then prove that a refusal cannot reach replacement startup. No test changes
+process ownership or signals another account to manufacture an OS refusal.
+Product configuration is checked separately: the constructor and exhaustive
+control dispatch compile without the test-only field, control or branch.
+
 ### Labels
 
 A label is a `LabelKey` and a `LabelValue`. A key is trimmed, then 1 to
