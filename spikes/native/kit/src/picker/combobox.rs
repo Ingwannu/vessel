@@ -2,7 +2,7 @@
 //! in the parent; this child keeps a typed width extension within the budget.
 //!
 //! [Decision Log]
-//! - Purpose: HostPicker grows to its labels, while existing callers fix width.
+//! - Purpose: `HostPicker` grows to its labels, while existing callers fix width.
 //! - Constraint: one shared renderer, unchanged legacy API/placement/handlers.
 //! - Alternatives: an area-local popup or forcing every label into trigger width.
 //! - Choice: fixed or content sizing, minimum the actual measured anchor, maximum

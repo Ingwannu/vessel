@@ -37,3 +37,12 @@ immutable commit; no extra whole gate is run for this shared dependency.
 The extracted sheet uses the already existing popup::sheet_scrim token, whose
 paint is exactly the old rgba value; the obsolete picker hex allowance is
 removed rather than moved or enlarged. The picker record shrinks829→672.
+
+
+First actual shared-source narrow: schedules-narrow-20261115T070113Z-db727378,
+native-fonts0, native-cargo clippy101 after91 seconds (actual Kit/Link checking).
+Six findings: two unused imports after extraction, one doc-markdown name,
+identical opacity match arms, and two missing test semicolons. All are corrected
+without lint suppression or changed test expectations. Tests were not submitted
+after the clippy failure. This red run stays tied todb727378; later corrections
+and the product list source require their own changed-source checks.

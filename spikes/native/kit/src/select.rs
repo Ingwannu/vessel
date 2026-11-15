@@ -255,7 +255,8 @@ fn opacity(
             Presentation::HostFilter,
             crate::ButtonState::Enabled | crate::ButtonState::Disabled,
             Visibility::Closed | Visibility::Open,
-        ) => None,
+        )
+        | (Presentation::Settings, crate::ButtonState::Enabled, Visibility::Closed) => None,
         (
             Presentation::Settings,
             crate::ButtonState::Disabled,
@@ -264,7 +265,6 @@ fn opacity(
         (Presentation::Settings, crate::ButtonState::Enabled, Visibility::Open) => {
             Some(PRESSED_OPACITY)
         }
-        (Presentation::Settings, crate::ButtonState::Enabled, Visibility::Closed) => None,
     }
 }
 const POINTER_HEIGHT: f32 = 32.0;

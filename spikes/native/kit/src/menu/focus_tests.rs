@@ -125,7 +125,7 @@ fn keep_open_retains_menu_focus_and_reopening_never_replaces_the_return_target(
             );
             this.menu.close_and_restore(window, cx);
             assert!(this.root.is_focused(window));
-        })
+        });
     });
     assert_eq!(witness(&view, cx), 1);
 }
@@ -147,6 +147,6 @@ fn closing_cannot_steal_new_focus_or_retain_a_removed_return_handle(cx: &mut Tes
             drop(previous);
             this.menu.close_and_restore(window, cx);
             assert!(window.focused(cx).is_none());
-        })
+        });
     });
 }

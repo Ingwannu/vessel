@@ -36,14 +36,14 @@ use std::rc::Rc;
 
 use gpui::prelude::*;
 use gpui::{
-    AnyElement, App, Bounds, Context, Div, ElementId, FocusHandle, Hsla, KeyDownEvent, MouseButton,
-    Pixels, SharedString, Stateful, Window, canvas, div, px, svg,
+    AnyElement, App, Bounds, Context, Div, ElementId, FocusHandle, Hsla, KeyDownEvent, Pixels,
+    SharedString, Stateful, Window, canvas, div, px, svg,
 };
 
 use crate::assets::Glyph;
 use crate::field::TextField;
 use crate::fonts::Type;
-use crate::popup::{self, Surfaces};
+use crate::popup::Surfaces;
 use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
 
