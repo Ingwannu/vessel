@@ -187,3 +187,14 @@ Another host/node or explicit page navigation discards it. Old completion and
 close callbacks retain their old correlation and cannot apply to the new page.
 This uses the existing Page/Picker model and no configuration store. The queued
 9430 checks predate this correction; exact changed-source validation is owed.
+
+
+The exact9430 strict run reached the app and returned E0700 in the two click
+factories: the toolkit listener's opaque type captures its Context parameter
+lifetime despite a static callback. The factories now capture the existing
+weak entity directly and update it on invocation, matching the toolkit's own
+listener mechanism. They retain only owned scope/intent values and the weak
+entity, with no borrowed Context, lifetime extension or new allocation. Existing
+scope/dialog fences and weak-owner dismissal behavior are unchanged. The failed
+log is preserved; the corrected callbacks and retained-input change still need
+exact-source strict and actual UI execution.

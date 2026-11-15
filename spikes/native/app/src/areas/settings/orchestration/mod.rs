@@ -336,11 +336,14 @@ pub(super) fn on(
     cx: &Context<'_, Shell>,
 ) -> impl Fn(&ClickEvent, &mut Window, &mut App) + 'static + use<> {
     let scope = scope.clone();
-    cx.listener(move |shell, _event, window, cx| {
-        if !shell.areas.settings.orchestration.open() {
-            shell.orchestration_intent(&scope, intent.clone(), window, cx);
-        }
-    })
+    let owner = cx.entity().downgrade();
+    move |_event, window, cx| {
+        let _gone = owner.update(cx, |shell, cx| {
+            if !shell.areas.settings.orchestration.open() {
+                shell.orchestration_intent(&scope, intent.clone(), window, cx);
+            }
+        });
+    }
 }
 
 /// Distinguish closing/reopening or replacing decisions within the same visit.
@@ -368,7 +371,10 @@ pub(super) fn on_dialog(
     cx: &Context<'_, Shell>,
 ) -> impl Fn(&ClickEvent, &mut Window, &mut App) + 'static + use<> {
     let captured = captured.clone();
-    cx.listener(move |shell, _event, window, cx| {
-        shell.orchestration_dialog_intent(&captured, intent.clone(), window, cx);
-    })
+    let owner = cx.entity().downgrade();
+    move |_event, window, cx| {
+        let _gone = owner.update(cx, |shell, cx| {
+            shell.orchestration_dialog_intent(&captured, intent.clone(), window, cx);
+        });
+    }
 }
