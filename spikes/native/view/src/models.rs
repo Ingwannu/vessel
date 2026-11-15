@@ -1,6 +1,10 @@
 //! Settings > Models (the page's `data/model-rows.ts`), read only: a
 //! machine's model routes and its profiles, each as a few facts.
 
+pub mod page;
+mod users;
+pub use users::{User, users};
+
 use vessel_proto::agents::AgentInfo;
 use vessel_proto::{ModelApi, ModelRoute, ModelRouteName, ProfileInfo};
 
