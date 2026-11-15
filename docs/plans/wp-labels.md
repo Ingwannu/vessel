@@ -255,3 +255,10 @@ is duplicated or changed.
   selected admission until reviewed registry/RPC production wiring lands.
 - Verification: added same-node reconnect/other-alias callback regression and
   missing-epoch authority regression; remote execution and strict lint pending.
+
+Workspace picker callers now have a typed WorkspaceTarget constructor, using
+only the canonical LayoutKey::Workspace and original ConnectionContext. It
+refuses a mismatched node or legacy session layout and can fence callbacks
+against a changed workspace/admission. This is a values seam, not a second
+workspace registry, connection resolver or label store. The picker renderer
+and caller registration remain unfinished; the new boundary test is pending.

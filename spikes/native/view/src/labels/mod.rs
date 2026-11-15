@@ -9,6 +9,7 @@ mod picker;
 mod replica;
 mod search;
 mod values;
+mod workspace;
 
 pub use binding::{Bindings, bind_hosts};
 pub use catalog::{Catalog, Host, HostState, project};
@@ -19,6 +20,7 @@ pub use replica::Replica;
 pub use values::{
     Assignment, Color, Count, EditAccess, Failure, Label, Name, NameError, Ticket, Tickets,
 };
+pub use workspace::WorkspaceTarget;
 
 /// Catalog ownership follows the answered node identity, never a local alias.
 pub use vessel_proto::NodeId as HostKey;
