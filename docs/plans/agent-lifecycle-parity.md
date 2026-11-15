@@ -647,6 +647,25 @@ writer or handler. These checks still need execution on this new code.
   without changing its expected fragment. Windows, macOS, native UI and real harnesses remain
   unverified.
 
+### Reviewed prerequisite landing on the integrated method table
+
+This merge carries only the reviewed label admission and reload prerequisite,
+without discovery values, typed iterator or other background work. Readable
+session events keep the head's title-origin mask, with the single optional
+availability accessor and string-preserving formatters. Event pages retain
+the head's projection-based precheck, including the Replayed usage mask fix.
+The existing label requirement is folded once into `Call::since()` after its
+assigned method/field requirement; `required_protocol()` and fleet recursion
+remain the head's. The head's newly added title-origin event assertion uses
+`Some` around the same assigned version under the single-accessor contract.
+The owned event fixture fills its new origin field with Unknown; its previous
+wire/sequence/value assertions are unchanged. A new exact-tree gate is owed.
+
+The labelled-request invariant now asserts `since() == None` as well as
+`required_protocol() == None` for every direct and nested call. Its previous
+numeric-accessor comparison is obsolete on the integrated optional API; this
+strengthens the pending check without changing any assigned expectation.
+
 ### Optional call admission after the method-table merge
 
 The label rule now contributes to `Call::since()` after the method and other
@@ -764,3 +783,13 @@ The discovery fixture gives stored rows distinct fixed timestamps. The existing
 canonical sort promises newest-first, not an order among equal timestamps, so
 this prevents a test from depending on a fresh hash map's tie order. Expected
 selection contents and ordering requirements are unchanged. Key-cap atomicity remains covered beside the shared label map itself.
+
+### Integrated admission and discovery merge
+
+The integrated method table and request-contract modules are kept in their
+new locations. The existing optional label rule remains one final field rule:
+the session-template module name and its typed spec input also let listing
+contribute there, without another accessor or numeric fallback. Both sets of
+architecture and plan additions are retained. The integrated event projection,
+title-origin masks and shared test expectations stay unchanged. Narrow checks
+and fresh generated-wire bytes are still owed for the discovery package.
