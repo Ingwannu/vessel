@@ -1,11 +1,20 @@
 //! Tail selection through the real CLI after a fake terminal's final record.
 
+<<<<<<< HEAD
 use crate::support::{Captured, Fixture, within};
+=======
+use crate::support::{Fixture, within};
+use std::time::Duration;
+
+>>>>>>> backend/m12-gk-lifecycle-log-select-fix
 use vessel_client::NodeClient;
 use vessel_proto::{
     AgentEvent, ContentBlock, EventRecord, EventSeq, HarnessKind, SessionEvent, SessionId,
     SessionInput, SessionMode, SessionSpec,
 };
+
+/// Each expected log transition has a deadline separate from the whole scenario.
+const LOG_EVENT_BUDGET: Duration = Duration::from_secs(10);
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn tail_keeps_the_last_records_without_a_false_retention_notice_and_zero_is_empty() {
@@ -19,9 +28,13 @@ async fn tail_keeps_the_last_records_without_a_false_retention_notice_and_zero_i
             .await;
         assert!(attached.ok, "{}", attached.stderr);
         let mut ended = owner.follow(session, EventSeq::ZERO).await.unwrap();
-        while let Some(record) = ended.next().await {
-            drop(record.unwrap());
-        }
+        tokio::time::timeout(LOG_EVENT_BUDGET, async {
+            while let Some(record) = ended.next().await {
+                drop(record.unwrap());
+            }
+        })
+        .await
+        .expect("the completed session's log did not close");
         let count = u32::try_from(owner.session(session).await.unwrap().next_seq.get()).unwrap();
         let all = owner.read(session, EventSeq::ZERO, count).await.unwrap();
         assert!(all.at_end);
@@ -81,17 +94,21 @@ async fn turn(owner: &NodeClient, session: SessionId, text: &str) -> EventSeq {
         .await
         .unwrap();
     let mut stream = owner.follow(session, from).await.unwrap();
-    while let Some(record) = stream.next().await {
-        if matches!(
-            record.unwrap().event,
-            SessionEvent::Agent {
-                event: AgentEvent::TurnEnded { .. }
+    tokio::time::timeout(LOG_EVENT_BUDGET, async move {
+        while let Some(record) = stream.next().await {
+            if matches!(
+                record.unwrap().event,
+                SessionEvent::Agent {
+                    event: AgentEvent::TurnEnded { .. }
+                }
+            ) {
+                return from;
             }
-        ) {
-            return from;
         }
-    }
-    panic!("session ended before the fake completed its turn");
+        panic!("session ended before the fake completed its turn");
+    })
+    .await
+    .expect("the fake turn did not finish")
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -138,6 +155,16 @@ async fn log_selects_time_kind_and_tail_without_reporting_filtered_records_as_pr
         let zero = fixture.vessel(&["log", &id, "--tail", "0"], b"").await;
         assert!(zero.ok, "{}", zero.stderr);
         assert!(zero.stdout.is_empty() && zero.stderr.is_empty());
+        let empty = fixture
+            .vessel(&["log", &id, "--filter", "errors"], b"")
+            .await;
+        assert!(empty.ok, "{}", empty.stderr);
+        assert!(
+            empty.stdout.is_empty() && empty.stderr.is_empty(),
+            "{} {}",
+            empty.stdout,
+            empty.stderr
+        );
         owner.kill(session).await.unwrap();
         fixture.stop().await;
     })
