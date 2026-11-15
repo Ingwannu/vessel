@@ -1,7 +1,6 @@
 //! Real callback transport and holder checks; metadata assignment is still pending.
 //! Returned manifests are synthetic, because a current source refuses them early.
 
-use super::*;
 use crate::fleet::{self, DEFAULT_GRANT, FleetFiles, FleetInit, FleetTargets};
 use crate::metadata_export::tests::{exported, info};
 use crate::principal::Principal;
@@ -14,8 +13,8 @@ use tokio_util::sync::CancellationToken;
 use vessel_client::secure::{SecureConnector, WsDialer};
 use vessel_client::{Connector as _, DeviceCredential, SecureTarget};
 use vessel_proto::{
-    ClientInfo, CloseTransfer, ErrorCode, InviteDevice, OriginBy, Reply, Request as _, Scope,
-    SessionListing,
+    ClientInfo, CloseTransfer, ErrorCode, InviteDevice, NodeId, OriginBy, PairingOffer, Reply,
+    Request as _, RouteUrl, Scope, SessionListing,
 };
 use vessel_relay::{LinkState, RelayConfig};
 use vessel_store::DataDir;
@@ -45,21 +44,7 @@ struct CallbackFleet {
 
 impl CallbackFleet {
     async fn start() -> Self {
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let relay_url = format!("ws://{}", listener.local_addr().unwrap())
-            .parse()
-            .unwrap();
-        let relay_stop = CancellationToken::new();
-        let stopped = relay_stop.clone();
-        let relay = tokio::spawn(async move {
-            vessel_relay::serve(
-                listener,
-                RelayConfig::new(vessel_proto::RelayToken::new(RELAY_TOKEN).unwrap()),
-                stopped,
-            )
-            .await
-            .unwrap();
-        });
+        let (relay_url, relay_stop, relay) = start_relay().await;
         let home_root = tempfile::tempdir().unwrap();
         let mut home_config = config(home_root.path());
         let instructions = home_root.path().join("instructions.md");
@@ -97,47 +82,7 @@ impl CallbackFleet {
             .decode()
             .unwrap();
         let member_root = tempfile::tempdir().unwrap();
-        let member_config = config(member_root.path());
-        let files = FleetFiles::new(&member_config.data_dir);
-        let member = Node::start(member_config).await.unwrap();
-        // Own the membership connection explicitly in this fixture. Cancelling
-        // the existing epoch before joining prevents a second automatic grant
-        // producer; no timing wait or test-only product control is needed.
-        member.secure.service.0.fleet.membership_epoch().cancel();
-        let _joined = fleet::join(&files, &offer, "cleanup-member", DEFAULT_GRANT.to_vec())
-            .await
-            .unwrap();
-        // Completing the ordinary authenticated grant is the callback barrier.
-        let target = SecureTarget {
-            key: offer.key,
-            relays: offer.relays,
-            direct: offer.direct,
-        };
-        let dialer = WsDialer::for_routes(target.routes()).unwrap();
-        let credential = DeviceCredential::read(&files.credential()).unwrap();
-        let connector = SecureConnector::new(dialer, target, home.info().id, credential).unwrap();
-        let client = connector
-            .connect(ClientInfo {
-                name: "cleanup-fixture".into(),
-                version: "0".into(),
-            })
-            .await
-            .unwrap();
-        let membership =
-            serde_json::from_slice(&std::fs::read(files.membership()).unwrap()).unwrap();
-        member
-            .secure
-            .service
-            .0
-            .links
-            .grant(&client, &membership, &CancellationToken::new())
-            .await
-            .unwrap();
-        member.secure.service.0.links.connected_home(client);
-        assert!(
-            !member.relay_links().is_empty(),
-            "no own routes: delivery must use callback"
-        );
+        let member = callback_member(member_root.path(), offer, home.info().id).await;
         Self {
             _home_root: home_root,
             _member_root: member_root,
@@ -154,6 +99,69 @@ impl CallbackFleet {
         self.relay_stop.cancel();
         self.relay.await.unwrap();
     }
+}
+
+async fn start_relay() -> (RouteUrl, CancellationToken, tokio::task::JoinHandle<()>) {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let relay_url = format!("ws://{}", listener.local_addr().unwrap())
+        .parse()
+        .unwrap();
+    let relay_stop = CancellationToken::new();
+    let stopped = relay_stop.clone();
+    let relay = tokio::spawn(async move {
+        vessel_relay::serve(
+            listener,
+            RelayConfig::new(vessel_proto::RelayToken::new(RELAY_TOKEN).unwrap()),
+            stopped,
+        )
+        .await
+        .unwrap();
+    });
+    (relay_url, relay_stop, relay)
+}
+
+async fn callback_member(root: &Path, offer: PairingOffer, home: NodeId) -> Node {
+    let member_config = config(root);
+    let files = FleetFiles::new(&member_config.data_dir);
+    let member = Node::start(member_config).await.unwrap();
+    // Own the membership connection explicitly in this fixture. Cancelling
+    // the existing epoch before joining prevents a second automatic grant
+    // producer; no timing wait or test-only product control is needed.
+    member.secure.service.0.fleet.membership_epoch().cancel();
+    let _joined = fleet::join(&files, &offer, "cleanup-member", DEFAULT_GRANT.to_vec())
+        .await
+        .unwrap();
+    // Completing the ordinary authenticated grant is the callback barrier.
+    let target = SecureTarget {
+        key: offer.key,
+        relays: offer.relays,
+        direct: offer.direct,
+    };
+    let dialer = WsDialer::for_routes(target.routes()).unwrap();
+    let credential = DeviceCredential::read(&files.credential()).unwrap();
+    let connector = SecureConnector::new(dialer, target, home, credential).unwrap();
+    let client = connector
+        .connect(ClientInfo {
+            name: "cleanup-fixture".into(),
+            version: "0".into(),
+        })
+        .await
+        .unwrap();
+    let membership = serde_json::from_slice(&std::fs::read(files.membership()).unwrap()).unwrap();
+    member
+        .secure
+        .service
+        .0
+        .links
+        .grant(&client, &membership, &CancellationToken::new())
+        .await
+        .unwrap();
+    member.secure.service.0.links.connected_home(client);
+    assert!(
+        !member.relay_links().is_empty(),
+        "no own routes: delivery must use callback"
+    );
+    member
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -205,7 +213,7 @@ async fn metadata_refusal_closes_the_exact_holder_through_forward_relay_and_call
                                 Box::new(CloseTransfer { transfer: id }.into_call()),
                             )
                             .await?;
-                        CloseTransfer::response_from(*response.reply).unwrap();
+                        let _closed = CloseTransfer::response_from(*response.reply).unwrap();
                         Ok(())
                     },
                 )

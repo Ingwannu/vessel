@@ -1001,3 +1001,7 @@ forwarding and member Relay back to callback Deliver, checking exact settlement
 and wrong-holder refusal. This is actual callback transport with synthetic
 metadata, not an assigned three-node export. No new product control or real
 harness is introduced; execution remains owed.
+
+The callback fixture setup is split by relay establishment and authenticated
+member grant so each phase remains reviewable; its assertions, routes and safety
+net are unchanged. The successful close acknowledgement is explicitly consumed.
