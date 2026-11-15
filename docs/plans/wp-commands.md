@@ -1,8 +1,8 @@
 # F4 command center and keyboard parity
 
-Status: implementation in progress on announced base9b a7aab9d6. The latest
+Status: implementation in progress on announced base10 3e7820e3. The latest
 checked F4 slice is exact547b2d72e (App strict0 and App139/0/2); the newer
-base9b union still requires consumer checks. Canonical defaults, dispatcher,
+base10 union still requires consumer checks. Canonical defaults, dispatcher,
 Settings/help and source projection are written. Feature-owner integration and
 final package verification remain open; no command-center or keyboard tracker
 row is passed. No new node RPC is needed for the mechanics; resource and RPC
@@ -956,3 +956,11 @@ correct. Updated ONLY the whole App English and corresponding View ENKO refusal
 goldens to128, preserving FSI/PDI and translation/cause/success
 clearing. No policy capacity, FTL wording/vars or formatter changed. Kit/View
 suites were not reached after App failed; no pass is inferred for them.
+
+Announced base10 3e7820e3 is merged before the next narrow run. The only code
+conflict combines the new checked diff module with existing Find exports and
+ONE CodeEditor composition registration; constructor callbacks/editability
+remain intact. W10 resident adapters and protocol25 values remain within their
+own announced scope. Product main still does not contain S2's held sidebar
+policy/caller: that exact source and its two keyboard/focus tests live only in
+the separate authorized sidebar-check worktree pending8captures+leadunion.
