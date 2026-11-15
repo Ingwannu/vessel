@@ -388,3 +388,19 @@ direct CDP text insertion, never an eval string. Lost/failed delivery quarantine
 the page as before. The keyboard adapter is not yet implemented and returns
 Unsupported, without a text/eval fallback. These paths remain outer cfg(test),
 not a supported/advertised input surface, and their new fixtures are unexecuted.
+
+## Input focus boundary found in the reference
+
+Paseo service.ts TabContents.insertText comment explicitly distinguishes its
+isolated tab text commit from CDP Input.insertText, which can follow the window's
+current focus. The test-staged Page input adapter therefore is NOT sufficient
+input isolation proof. Before any product wiring, an actual profile-wide input
+coordinator must serialize activation plus the entire input transaction, release
+held pointer/keys before changing targets, bind the lease to target/session and
+cancel the whole profile on uncertain/cancelled delivery before allowing another
+target to acquire input. CDP session correlation alone cannot grant that proof.
+A two-real-tab focus/canary regression (including background targets, simultaneous
+callers and cancellation after activation/before ACK) is required. No private
+constructor/test fixture or single-tab protocol ACK may qualify this boundary.
+Keyboard implementation and node/renderer enabling remain blocked on this real
+input routing proof. The current page module remains cfg(test) and NoEngine.
