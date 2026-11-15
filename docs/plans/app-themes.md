@@ -107,12 +107,18 @@ Do not start a second theme type in the app.
   native gate: 1,043 passed, zero failed, one existing ignored capture.
   V1 passed this producer's source and A13 native gate on 2026-11-15;
   the full ADR and consumer/first-use evidence remain pending.
-- Half-done: the consumer source extends the preference, single adapter,
-  existing previews and named palette entries; its compilation, final
-  gate and runtime evidence are pending.
-- Next: integrate the current lead while preserving the fixed menu colour,
-  then finish consumer checks and captures. Do not repaint Light or Dark,
-  or add an absent token.
+- Done: the consumer at `fb711444` is integrated on lead `d30804b2`,
+  preserves the fixed menu colour and passes the full native gate:
+  1,181 passed, zero failed, one existing ignored capture. Its normal
+  local app build also passed. V1 consumer source/UI disposition is pending.
+- Half-done: private-display runtime captures now cover the existing
+  Appearance chooser; the four-scale/language/window matrix, each stored
+  choice restored in a new process, and System's live appearance path are
+  still being checked. Initial calibration frames are excluded.
+- Next: inspect the final captures and submit their exact source/binary
+  manifest to V1. S2's separate shortcut registration is gated/reviewed
+  separately; it is not in this consumer binary. Do not repaint Light or
+  Dark, add an absent token, or treat source tests as live UI evidence.
 
 ### Resumption, 2026-11-15
 
