@@ -404,3 +404,14 @@ Resume: node Turn/finalization/ordered synthesis and native duplex source are
 staged against fakes; no real detector, actor/controller, settings wiring,
 MCP speak or prompt reload activation exists. Root/native latest strict runs
 are queued; full gates, UI captures and final V3/V4 handoff remain owed.
+
+### Turn/synthesis strict feedback
+
+Run wp-voice-node-narrow-20261115T132041Z-b240b3f2 returned101 on thirteen
+strict lint diagnostics, not a runtime result. Corrections consume unit-return
+closure statements explicitly, use named integer quotient semantics in the
+quota fake, return typed fake detector errors, remove redundant Future
+qualification and use if-let for the ready prefetch branch. Generic provider
+traits now say recognize/generate, distinct from endpoint transcribe/synthesize
+methods; endpoint behavior and wire values are unchanged. No lint exception
+is added. Latest source still owes strict/runtime on the announced merged base.

@@ -29,7 +29,7 @@ struct Provider {
     requests: mpsc::Sender<Request>,
 }
 impl Synthesizer for Provider {
-    async fn synthesize(
+    async fn generate(
         &self,
         _text: &SpeechText,
         cancel: &CancellationToken,

@@ -13,7 +13,7 @@ struct Fake {
     reply: Option<Result<VoiceTranscript, SttError>>,
 }
 impl Transcriber for Fake {
-    async fn transcribe(
+    async fn recognize(
         &mut self,
         _utterance: &Utterance,
         cancel: &CancellationToken,

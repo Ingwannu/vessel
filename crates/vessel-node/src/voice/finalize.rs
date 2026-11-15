@@ -18,14 +18,14 @@ use super::{
 const FINAL_TRANSCRIPT_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub(super) trait Transcriber: Send {
-    fn transcribe(
+    fn recognize(
         &mut self,
         utterance: &Utterance,
         cancel: &CancellationToken,
     ) -> impl Future<Output = Result<VoiceTranscript, SttError>> + Send;
 }
 impl Transcriber for Endpoint {
-    fn transcribe(
+    fn recognize(
         &mut self,
         utterance: &Utterance,
         cancel: &CancellationToken,
@@ -86,7 +86,7 @@ impl Finalization {
             biased;
             () = cancel.cancelled() => Err(Failure::Cancelled),
             () = tokio::time::sleep_until(deadline) => Err(Failure::TimedOut),
-            result = transcriber.transcribe(&utterance, &cancel) => result.map_err(Failure::Transcription),
+            result = transcriber.recognize(&utterance, &cancel) => result.map_err(Failure::Transcription),
         }
     }
 }

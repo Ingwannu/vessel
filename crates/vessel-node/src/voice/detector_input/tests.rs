@@ -18,7 +18,7 @@ fn ten_ms_chunks_carry_exact_reference_windows_without_padded_samples() {
     for _ in 0..3 {
         windows
             .push(&pcm([8_192; 160]), &token, |window| {
-                observed.push(window.samples().to_vec())
+                observed.push(window.samples().to_vec());
             })
             .unwrap();
     }
@@ -26,7 +26,7 @@ fn ten_ms_chunks_carry_exact_reference_windows_without_padded_samples() {
     assert_eq!(windows.filled, 480);
     windows
         .push(&pcm([-8_192; 160]), &token, |window| {
-            observed.push(window.samples().to_vec())
+            observed.push(window.samples().to_vec());
         })
         .unwrap();
     assert_eq!(observed.len(), 1);
@@ -57,7 +57,7 @@ fn capture_chunk_partition_does_not_change_inference_samples() {
     for chunk in source.chunks(1_536) {
         windows
             .push(&pcm(chunk.iter().copied()), &token, |window| {
-                expected.extend(window.samples().iter().map(|value| value.to_bits()))
+                expected.extend(window.samples().iter().map(|value| value.to_bits()));
             })
             .unwrap();
     }
@@ -66,7 +66,7 @@ fn capture_chunk_partition_does_not_change_inference_samples() {
     for chunk in source.chunks(160) {
         windows
             .push(&pcm(chunk.iter().copied()), &token, |window| {
-                actual.extend(window.samples().iter().map(|value| value.to_bits()))
+                actual.extend(window.samples().iter().map(|value| value.to_bits()));
             })
             .unwrap();
     }
@@ -103,14 +103,14 @@ fn an_exact_full_window_waits_for_a_real_following_sample() {
     let mut observed = Vec::new();
     windows
         .push(&pcm([8_192; 512]), &token, |window| {
-            observed.push(window.samples().to_vec())
+            observed.push(window.samples().to_vec());
         })
         .unwrap();
     assert!(observed.is_empty());
     assert_eq!(windows.filled, 512);
     windows
         .push(&pcm([-8_192; 1]), &token, |window| {
-            observed.push(window.samples().to_vec())
+            observed.push(window.samples().to_vec());
         })
         .unwrap();
     assert_eq!(observed.len(), 1);

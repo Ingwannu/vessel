@@ -265,7 +265,7 @@ fn active_and_retained_nonce_quotas_are_independent_and_connection_scoped() {
 #[test]
 fn unknown_stop_nonce_history_has_a_node_cap_and_reaps_only_closed_connections() {
     let mut registry = Registry::default();
-    let connections: Vec<_> = (0..ATTEMPTS_PER_NODE / ATTEMPTS_PER_CONNECTION)
+    let connections: Vec<_> = (0..ATTEMPTS_PER_NODE.div_euclid(ATTEMPTS_PER_CONNECTION))
         .map(|_| ConnectionLife::default())
         .collect();
     for connection in &connections {

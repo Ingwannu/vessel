@@ -21,14 +21,14 @@ const PREFETCH_SEGMENTS: usize = 2;
 const PROVIDER_TIMEOUT: Duration = Duration::from_secs(60);
 
 pub(super) trait Synthesizer: Sync {
-    fn synthesize(
+    fn generate(
         &self,
         text: &SpeechText,
         cancel: &CancellationToken,
     ) -> impl Future<Output = Result<Synthesized, TtsError>> + Send;
 }
 impl Synthesizer for Endpoint {
-    fn synthesize(
+    fn generate(
         &self,
         text: &SpeechText,
         cancel: &CancellationToken,
@@ -78,18 +78,19 @@ pub(super) async fn speak(
     let mut jobs = FuturesOrdered::new();
     let mut ready = VecDeque::new();
     for segment in remaining.by_ref().take(PREFETCH_SEGMENTS) {
-        jobs.push_back(synthesize(provider, segment, &cancel));
+        jobs.push_back(generate_segment(provider, segment, &cancel));
     }
     loop {
         if cancel.is_cancelled() {
             return Ok(PlaybackOutcome::Interrupted);
         }
-        let prepared = match ready.pop_front() {
-            Some(result) => Some(result),
-            None => tokio::select! { biased;
+        let prepared = if let Some(result) = ready.pop_front() {
+            Some(result)
+        } else {
+            tokio::select! { biased;
                 () = cancel.cancelled() => return Ok(PlaybackOutcome::Interrupted),
                 result = jobs.next() => result,
-            },
+            }
         };
         let Some(prepared) = prepared else {
             return Ok(PlaybackOutcome::Played);
@@ -99,7 +100,7 @@ pub(super) async fn speak(
             let Some(segment) = remaining.next() else {
                 break;
             };
-            jobs.push_back(synthesize(provider, segment, &cancel));
+            jobs.push_back(generate_segment(provider, segment, &cancel));
         }
         let playback = Playback {
             id: PlaybackId::random(),
@@ -130,14 +131,14 @@ pub(super) async fn speak(
     }
 }
 
-async fn synthesize(
+async fn generate_segment(
     provider: &impl Synthesizer,
     text: &SpeechText,
     cancel: &CancellationToken,
 ) -> Result<Synthesized, Failure> {
     tokio::select! { biased;
         () = tokio::time::sleep(PROVIDER_TIMEOUT) => Err(Failure::TimedOut),
-        result = provider.synthesize(text, cancel) => result.map_err(Failure::Provider),
+        result = provider.generate(text, cancel) => result.map_err(Failure::Provider),
     }
 }
 

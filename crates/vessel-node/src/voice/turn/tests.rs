@@ -19,14 +19,17 @@ struct Scores {
 impl Detector for Scores {
     type Error = InferenceFailure;
     fn probability(&mut self, window: &Window) -> Result<Probability, Self::Error> {
-        assert_eq!(window.samples().len(), 512);
+        if window.samples().len() != 512 {
+            return Err(InferenceFailure);
+        }
         let index = self.calls.fetch_add(1, Ordering::AcqRel);
         if self.fail_at == Some(index) {
             return Err(InferenceFailure);
         }
         // Thirty high windows confirm the first speech; forty low windows end
         // it. A subsequent high run is a genuine new onset, not an RMS rule.
-        Ok(Probability::new(if (30..70).contains(&index) { 0.0 } else { 1.0 }).unwrap())
+        Probability::new(if (30..70).contains(&index) { 0.0 } else { 1.0 })
+            .map_err(|_private| InferenceFailure)
     }
     fn reset(&mut self) {
         let _old = self.resets.fetch_add(1, Ordering::AcqRel);
@@ -88,11 +91,11 @@ struct Transcript {
     calls: usize,
 }
 impl Transcriber for Transcript {
-    fn transcribe(
+    fn recognize(
         &mut self,
         utterance: &Utterance,
         _cancel: &CancellationToken,
-    ) -> impl std::future::Future<Output = Result<VoiceTranscript, SttError>> + Send {
+    ) -> impl Future<Output = Result<VoiceTranscript, SttError>> + Send {
         self.calls = self.calls.saturating_add(1);
         self.bytes = utterance.pcm16().len();
         std::future::ready(Ok(VoiceTranscript::Accepted {
