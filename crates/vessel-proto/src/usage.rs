@@ -5,6 +5,10 @@ use crate::{EventSeq, HarnessRef, ProfileName, SessionId, TurnUsage};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+// Methods and replay provenance share one compatibility boundary: a peer
+// must understand both before it can distinguish current from loaded usage.
+pub(crate) const USAGE_PROTOCOL_VERSION: crate::ProtocolVersion = crate::ProtocolVersion::new(21);
+
 /// A count of reports, bounded by the retained ledger.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]

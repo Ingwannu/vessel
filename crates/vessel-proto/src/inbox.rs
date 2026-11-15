@@ -244,7 +244,7 @@ pub struct MarkInbox {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Call, Method, PROTOCOL_VERSION, Request as _, Scope};
+    use crate::{Call, Method, ProtocolVersion, Request as _, Scope};
     #[test]
     fn inbox_calls_round_trip_and_keep_the_read_scope_boundary() {
         let list: Call = ListInbox {
@@ -264,7 +264,8 @@ mod tests {
                 serde_json::from_str::<Call>(&serde_json::to_string(&call).unwrap()).unwrap(),
                 call
             );
-            assert_eq!(call.since(), PROTOCOL_VERSION);
+            // The inbox is protocol 22 (`rpc.rs`), not the newest number.
+            assert_eq!(call.since(), ProtocolVersion::new(22));
         }
         assert_eq!(ListInbox::METHOD, Method::ListInbox);
         assert_eq!(Method::ListInbox.scope(), Some(Scope::Read));

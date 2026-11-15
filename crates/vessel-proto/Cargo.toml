@@ -21,8 +21,11 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 ts-rs = { workspace = true, optional = true }
-uuid.workspace = true
+# Parse dictation endpoint addresses once, with userinfo and cleartext refusal
+# before settings or provider work (ADR 0067), and push service endpoints
+# (ADR 0041).
 url.workspace = true
+uuid.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true

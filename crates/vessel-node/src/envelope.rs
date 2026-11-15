@@ -655,6 +655,12 @@ async fn run_here(
             Reply::DeleteSchedule(guard.delete_schedule(connection, request).await?)
         }
         Call::ListRuns(request) => Reply::ListRuns(guard.list_runs(connection, request).await?),
+        Call::GetUsageLimits(request) => {
+            Reply::GetUsageLimits(guard.get_usage_limits(connection, request).await?)
+        }
+        Call::SetUsageLookup(request) => {
+            Reply::SetUsageLookup(guard.set_usage_lookup(connection, request).await?)
+        }
         Call::QueryUsage(request) => {
             Reply::QueryUsage(guard.query_usage(connection, request).await?)
         }

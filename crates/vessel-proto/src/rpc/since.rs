@@ -56,7 +56,12 @@ impl Call {
                 };
                 // An added agent came in 11 (ADR 0032): an older node
                 // cannot decode it.
-                fields.max(added(Some(&spec.harness)))
+                fields.max(added(Some(&spec.harness))).max(
+                    (!spec.labels.is_empty())
+                        .then_some(crate::lifecycle_version::SINCE)
+                        .flatten()
+                        .map(ProtocolVersion::get),
+                )
             }
             Self::HarnessOptions(request) => added(Some(&request.harness)),
             Self::ListProfiles(request) => added(request.harness.as_ref()),
@@ -94,10 +99,10 @@ impl Call {
                 crate::workspace::WriteExpect::Content { .. } => Some(11),
                 crate::workspace::WriteExpect::Absent | crate::workspace::WriteExpect::Any => None,
             },
-            Self::CreatePrompt(request) => side_spec(request.session.as_deref()),
-            Self::UpdatePrompt(request) => side_spec(request.session.as_deref()),
-            Self::CreateSchedule(request) => side_target(&request.definition.target),
-            Self::UpdateSchedule(request) => side_target(&request.definition.target),
+            Self::CreatePrompt(request) => template_since(request.session.as_deref()),
+            Self::UpdatePrompt(request) => template_since(request.session.as_deref()),
+            Self::CreateSchedule(request) => target_since(&request.definition.target),
+            Self::UpdateSchedule(request) => target_since(&request.definition.target),
             Self::OpenSideQuestion(_)
             | Self::PromptSideQuestion(_)
             | Self::ResetSideQuestion(_)
@@ -234,6 +239,8 @@ impl Call {
             | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)
             | Self::ListRuns(_)
+            | Self::GetUsageLimits(_)
+            | Self::SetUsageLookup(_)
             | Self::QueryUsage(_)
             | Self::ListPrompts(_)
             | Self::DeletePrompt(_)
@@ -263,13 +270,20 @@ fn added(harness: Option<&HarnessRef>) -> Option<u32> {
         .map(|harness| harness.since().get())
 }
 
-fn side_spec(spec: Option<&crate::SessionSpec>) -> Option<u32> {
-    spec.and_then(|spec| spec.side_question_of.map(|_| 19))
+fn template_since(spec: Option<&crate::SessionSpec>) -> Option<u32> {
+    spec.and_then(|spec| {
+        spec.side_question_of.map(|_| 19).max(
+            (!spec.labels.is_empty())
+                .then_some(crate::lifecycle_version::SINCE)
+                .flatten()
+                .map(ProtocolVersion::get),
+        )
+    })
 }
 
-fn side_target(target: &crate::automation::ScheduleTarget) -> Option<u32> {
+fn target_since(target: &crate::automation::ScheduleTarget) -> Option<u32> {
     match target {
-        crate::automation::ScheduleTarget::NewSession { spec, .. } => side_spec(Some(spec)),
+        crate::automation::ScheduleTarget::NewSession { spec, .. } => template_since(Some(spec)),
         crate::automation::ScheduleTarget::Session { .. }
         | crate::automation::ScheduleTarget::Unknown => None,
     }

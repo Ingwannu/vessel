@@ -6,10 +6,14 @@
 //! released, only appended to. A database newer than this build is refused
 //! rather than guessed at.
 
+#[cfg(test)]
+mod labels;
 mod migrations;
 
 use rusqlite::Connection;
 
+#[cfg(test)]
+use self::migrations::LABELS_SCHEMA;
 use self::migrations::{INBOX, MIGRATIONS};
 use crate::error::StoreError;
 

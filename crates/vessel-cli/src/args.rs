@@ -10,6 +10,7 @@ use crate::selector::SessionSelector;
 
 mod agents;
 mod automation;
+mod control;
 mod conversation;
 mod fleet;
 mod forge;
@@ -24,6 +25,7 @@ mod workspace;
 
 pub(crate) use agents::{AddAgentArgs, AgentsCommand};
 pub(crate) use automation::{PromptCommand, ScheduleArgs, ScheduleCommand};
+pub(crate) use control::{Confirmation, Stop, StopPolicy, StopTimeout};
 pub(crate) use conversation::{Compare, ConversationCommand, QueueCommand, Send};
 pub(crate) use fleet::{FleetCommand, MemoryCommand, SecretCommand};
 pub(crate) use forge::{Method, PrCommand, Switch};
@@ -33,7 +35,7 @@ pub(crate) use node::{DevicesCommand, Install, NodeCommand, Source, Update};
 pub(crate) use nodes::{FromStdin, NodesCommand};
 pub(crate) use search::Search;
 pub(crate) use terminals::{OpenShell, Ports, ScriptCommand, ScriptPlaceArgs, Shell, ShellCommand};
-pub(crate) use usage::{Period, UsageCommand};
+pub(crate) use usage::{LookupChoice, Period, UsageCommand};
 pub(crate) use workspace::{ProjectCommand, WorktreeCommand};
 
 /// Vessel: drive agent harnesses on this and other machines.

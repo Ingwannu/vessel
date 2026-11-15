@@ -55,6 +55,8 @@ const STOP_GRACE: Duration = Duration::from_secs(5);
 pub struct ProfileMove {
     /// The profile to run under, resolved by the caller.
     pub profile: Profile,
+    /// Nonsecret quota binding of the target's actual profile.
+    pub limits: crate::LimitAssociation,
     /// The current profile's harness home (`vessel_harness::home`), where
     /// the session's files are.
     pub from_home: PathBuf,
@@ -147,6 +149,7 @@ pub(crate) enum Control {
 /// Everything the actor needs to move.
 #[derive(Debug)]
 pub(crate) struct MoveOrder {
+    pub(crate) limits: crate::LimitAssociation,
     pub(crate) command: CommandSpec,
     pub(crate) setup: AgentSetup,
     /// The target profile's name; `None` is the harness's default.
@@ -163,6 +166,7 @@ pub(crate) struct MoveOrder {
 /// previous one again.
 #[derive(Debug, Clone)]
 pub(crate) struct Launch {
+    pub(crate) limits: crate::LimitAssociation,
     pub(crate) command: CommandSpec,
     pub(crate) setup: AgentSetup,
     /// The protocol it speaks, chosen at the session's first launch and
@@ -174,6 +178,7 @@ impl StructuredActor {
     /// Carry out a move and answer it.
     pub(crate) async fn move_profile(&mut self, order: MoveOrder) {
         let MoveOrder {
+            limits,
             command,
             mut setup,
             to,
@@ -201,6 +206,7 @@ impl StructuredActor {
         let outcome = self
             .try_move(
                 Launch {
+                    limits,
                     command,
                     setup,
                     // The runtime built `command` for the session's own
@@ -262,6 +268,7 @@ impl StructuredActor {
         match self.start_agent(&launch).await? {
             Ok(()) => {
                 let from = std::mem::replace(&mut self.profile, to.clone());
+                self.life.out.set_limit_association(launch.limits.clone());
                 self.launch = launch;
                 self.life
                     .publish(&mut self.agent, SessionEvent::ProfileChanged { from, to })

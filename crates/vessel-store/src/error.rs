@@ -52,6 +52,8 @@ pub enum Column {
     Queue,
     /// The bounded latest plan (schema 14, ADR 0045).
     LatestPlan,
+    /// `sessions.labels` (a `SessionLabels`, the labels migration, ADR 0063).
+    Labels,
 }
 
 /// Anything that can go wrong in the store.

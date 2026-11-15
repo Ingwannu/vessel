@@ -13,6 +13,7 @@
 import "./projects.css";
 
 import {
+  approvalCoverage,
   type CommandLine,
   type Compared,
   type ListedCommands,
@@ -28,15 +29,23 @@ function asListed(commands: readonly string[]): CommandLine[] {
   return commands.map((command) => ({ change: "same", command }));
 }
 
-export function ApprovalDialog({
-  commands,
-  compared,
-  where,
-  busy,
-  onApprove,
-  onSkip,
-  onClose,
-}: {
+/** Keep this screen exhaustive even when a new approved field is optional. */
+function listedForDisplay(commands: ListedCommands): Required<ListedCommands> {
+  // Enumerate the wire type, including optional fields: a future addition
+  // must fail typecheck instead of silently approving unseen commands.
+  return {
+    state: commands.state,
+    setup: commands.setup,
+    teardown: commands.teardown,
+    digest: commands.digest,
+    approved: commands.approved,
+    scripts: commands.scripts ?? [],
+    terminals: commands.terminals ?? [],
+    last_approved: commands.last_approved ?? null,
+  };
+}
+
+interface ApprovalDialogProps {
   commands: ListedCommands;
   compared: Compared;
   /** Where setup and teardown would run, in words ("in a new worktree of
@@ -48,14 +57,29 @@ export function ApprovalDialog({
    * is nothing to go on to. */
   onSkip?: () => void;
   onClose: () => void;
-}) {
-  const changed = compared.kind === "changed" ? compared : null;
-  const scripts: readonly ScriptLine[] =
-    changed?.scripts ??
-    (commands.scripts ?? []).map((script) => ({ change: "same", script }));
+}
+
+/** Offer approval only when every command covered by the digest is visible. */
+export function ApprovalDialog({
+  commands,
+  compared,
+  where,
+  busy,
+  onApprove,
+  onSkip,
+  onClose,
+}: ApprovalDialogProps) {
+  const shown = listedForDisplay(commands);
+  const refused =
+    approvalCoverage(shown) === "unsupported_terminals" ||
+    compared.kind === "unsupported_terminals";
   return (
     <Dialog
-      title="Run this project's commands?"
+      title={
+        refused
+          ? "This set cannot be approved here"
+          : "Run this project's commands?"
+      }
       size="lg"
       onClose={onClose}
       footer={
@@ -66,12 +90,41 @@ export function ApprovalDialog({
           {onSkip === undefined ? null : (
             <Button onClick={onSkip}>Start without setup</Button>
           )}
-          <Button variant="primary" busy={busy} onClick={onApprove}>
-            Approve and run
-          </Button>
+          {refused ? null : (
+            <Button variant="primary" busy={busy} onClick={onApprove}>
+              Approve and run
+            </Button>
+          )}
         </>
       }
     >
+      {refused ? (
+        <p className="dialog-copy">
+          {comparedWords({ kind: "unsupported_terminals" })}
+        </p>
+      ) : (
+        <ApprovalContents shown={shown} compared={compared} where={where} />
+      )}
+    </Dialog>
+  );
+}
+
+/** Keep the complete visible command set together, after the refusal gate. */
+function ApprovalContents({
+  shown,
+  compared,
+  where,
+}: {
+  shown: Required<ListedCommands>;
+  compared: Compared;
+  where: string;
+}) {
+  const changed = compared.kind === "changed" ? compared : null;
+  const scripts: readonly ScriptLine[] =
+    changed?.scripts ??
+    shown.scripts.map((script) => ({ change: "same", script }));
+  return (
+    <>
       <p className="dialog-copy">
         The repository&apos;s <code>vessel.toml</code> names these commands.
         Setup and teardown run {where}
@@ -84,11 +137,11 @@ export function ApprovalDialog({
       <p className="commands-note">{comparedWords(compared)}</p>
       <CommandList
         title="Setup"
-        lines={changed?.setup ?? asListed(commands.setup)}
+        lines={changed?.setup ?? asListed(shown.setup)}
       />
       <CommandList
         title="Teardown"
-        lines={changed?.teardown ?? asListed(commands.teardown)}
+        lines={changed?.teardown ?? asListed(shown.teardown)}
       />
       {scripts.length === 0 ? null : <ScriptList lines={scripts} />}
       <Banner>
@@ -96,7 +149,7 @@ export function ApprovalDialog({
         <code>npm ci</code> running package scripts) runs whatever that script
         says on that branch.
       </Banner>
-      <p className="commands-digest">Digest {commands.digest}</p>
-    </Dialog>
+      <p className="commands-digest">Digest {shown.digest}</p>
+    </>
   );
 }

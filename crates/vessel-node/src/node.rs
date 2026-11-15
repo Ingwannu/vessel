@@ -540,6 +540,13 @@ async fn core(
     crate::push::start(Arc::clone(&push), &tasks, stop.clone())
         .await
         .map_err(NodeError::Store)?;
+    let limits = crate::limits::Limits::start(
+        config.data_dir.clone(),
+        config.limits.clone(),
+        stop.clone(),
+        &tasks,
+    )
+    .await;
     let service = Arc::new(Guarded(NodeService::new(Parts {
         lsp,
         lsp_roots: config.lsp_roots.clone(),
@@ -550,7 +557,9 @@ async fn core(
         forwarders: forwarders.clone(),
         profiles: setup.profiles,
         models: setup.models,
-        launcher: setup.launcher,
+        launcher: setup
+            .launcher
+            .with_limit_environment(config.limit_environment.clone()),
         agents: Arc::clone(&agents),
         fleet,
         links,
@@ -566,6 +575,7 @@ async fn core(
         schedules,
         push,
         settings,
+        limits,
     })));
     automation::schedules::start(
         commands,

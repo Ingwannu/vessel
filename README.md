@@ -77,6 +77,22 @@ cargo build --release
 ./target/release/vessel log 3f2a > session.log
 ```
 
+The per-user service starts at login and restarts a failed process. A clean
+shutdown stays stopped. Existing service files are preserved; an older
+macOS agent with unconditional `KeepAlive` still starts again after a
+clean exit until you remove and recreate it with `vessel init --service`.
+
+`vessel node stop` requests graceful shutdown through the node's Admin
+permission. With live sessions it lists them and refuses; `--when-idle`
+returns after starting a drain, and `--now --yes` interrupts them. Without
+`--yes`, interruption requires a terminal confirmation. `--timeout` bounds
+the command in positive seconds; `--help` shows the default. When the local directory's
+identity matches the connected node, success
+also observes its lock being released. Another directory's loopback
+endpoint only proves connection closure; remote success confirms only the
+request.
+Forced cleanup, service-manager finalization and restart are pending.
+
 Sessions survive client disconnects; stopping the node marks live ones
 `Interrupted`, and their logs stay readable after a restart.
 
@@ -475,6 +491,15 @@ teardown = "docker compose down"
   signing program. Your global git configuration is used as it is; move a
   per-repository setting there (under `includeIf "gitdir:…"`) for Vessel
   to use it.
+
+Project-file terminal support is staged (ADR 0066):
+`[[worktree.terminals]]` accepts a `command` and optional `name`, at most
+32 entries. Invalid entries refuse the whole file; names use the existing
+120-character title limit. These entries enter the approval digest, but
+this build does not open them automatically. Its unassigned wire version
+means negotiated clients receive an explicit refusal for such a set until
+integration enables clients that can show it. Existing files without the
+new key retain their approvals.
 
 ### Pull requests
 
@@ -1308,6 +1333,13 @@ instead of being counted as new spending. Accounting starts with this version, r
 and 100,000 reports, and follows session deletion. New usage queries need
 read scope; cost in these queries additionally needs operate scope.
 
+The web client also shows machine accounting in **Settings → Usage**.
+Choose a machine and the past 24 hours or seven days, then Refresh for a
+new observation. Reasoning and cache counts keep their reported-turn
+coverage, and cost stays separated by unit or explicitly hidden by access.
+Offline machines and failed reads show guidance instead of zero totals.
+This page does not yet show account limits or individual session reports.
+
 A schedule preview is calculated on the target node without saving or
 starting work (`vessel schedule preview --every 30m`, or `--cron` with an
 optional `--tz`). Omitted `--tz` uses the CLI machine's IANA zone, as schedule creation does;
@@ -1337,6 +1369,36 @@ attention payload, expires subscriptions and rechecks device access before
 sending. No hosted account is required. This is the node/API side; an installed
 phone subscription UI is not included. See ADRs 0040–0041 for privacy, bounds
 and the dependency licence inventory.
+
+### Account limits (explicit local opt-in)
+
+```bash
+vessel usage limits codex                  # cached facts only
+vessel usage lookup on                     # administrator: enable on this machine
+vessel usage limits codex --refresh        # operate: read the saved login's limits
+vessel usage limits claude --profile work --refresh
+vessel usage session-limits 3f2a --refresh # actual live launch's saved-login binding
+vessel usage lookup off                    # disable and clear external observations
+```
+
+The default is off. Retained `usage machine|agent|session` reports still show
+what the agent itself reported. An explicitly requested limit refresh reads
+the configured agent's local saved access token (and Codex account identifier,
+when present), and sends it only to Anthropic or ChatGPT's fixed limits
+endpoint. Supported saved stores are Claude Code, Codex, and OpenCode's OpenAI
+OAuth login. Vessel does not sign in, refresh tokens, scrape pages, send these
+credentials through a fleet link, or store them in usage history. Read-only
+devices may read sanitized cached facts but cannot refresh, change policy or
+see credit balances.
+
+Observed saved-login limits can differ from a running agent's remembered
+login. The CLI preserves unknown values, distinct windows and paid-use flags;
+full subscription usage alone does not prove the session cannot continue.
+Reset times are human durations. Snapshots stay only in bounded node memory
+and are cleared at restart or opt-out. No automatic wait/continue or account
+switch is implemented by these commands. Actual vendor-account and macOS
+Keychain behavior require a separate operator check; automated tests use only
+offline synthetic fixtures.
 
 Startup continuation is being prepared in separate slices (ADR 0059). Its
 policy values and settings reply projection exist, with an unassigned protocol;

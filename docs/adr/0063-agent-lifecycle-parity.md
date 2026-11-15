@@ -2,7 +2,7 @@
 
 Status: proposed, 2026-11-14 (milestone 12). The protocol number is the
 one given at merge. This commit does not change `PROTOCOL_VERSION`.
-New calls and fields are gated on one constant, `lifecycle::SINCE`, so
+New calls and fields are gated on one constant, `lifecycle_version::SINCE`, so
 the integrator changes that one line. The plan is
 `docs/plans/agent-lifecycle-parity.md`. This track adds no
 `node.settings` key.
@@ -50,8 +50,8 @@ written below.
 - Agents may call `session.rename` and `session.create`. They may not
   call a method until `workspace/policy.rs` names them. Every new method
   also has to decide `forwardable`, `Call::since`, and `Reply::for_protocol`.
-- The store's schema is 14. A migration is appended, never edited.
-  `PROTOCOL_VERSION` stays that base. Minimum stays 2. `lifecycle::SINCE`
+- The store's migration list is authoritative. A migration is appended, never edited.
+  `PROTOCOL_VERSION` stays that base. Minimum stays 2. `lifecycle_version::SINCE`
   is the only new version this track names, and its value is assigned
   at merge.
 - No new crate edge and no new dependency.
@@ -85,21 +85,36 @@ written below.
 ## The choice
 
 The number given at merge adds two calls, two events, and fields on the
-session and on `session.list`, all gated on `lifecycle::SINCE`. The
+session and on `session.list`, all gated on `lifecycle_version::SINCE`. The
 next schema append (when the code lands) stores the current labels and
 the listing. `PROTOCOL.md` is updated in the commit that the integrator
 uses to publish the number, not in this one.
 
+### Protocol assignment
+
+`lifecycle_version::SINCE` is `Option<ProtocolVersion>` and remains `None`
+until all documented client consumers can validate, show and edit metadata.
+Unassigned fields are omitted for every peer, including the current version;
+after assignment, only peers at or above the assigned version receive them.
+Both current and creation maps remain in durable storage independently.
+
+The shared `required_protocol()` gate will refuse unassigned calls and fields
+before sending and at dispatch. Until that accessor is integrated, existing
+session/prompt/schedule inputs carrying labels receive a typed `unsupported`
+refusal at the node before work. A starting import has the same guard on its
+source metadata before export/placement. No new method is registered meanwhile.
+This explicit refusal avoids silently accepting data that no client can see.
+
 ### Labels
 
 A label is a `LabelKey` and a `LabelValue`. A key is trimmed, then 1 to
-64 Unicode scalars, containing neither `=` nor any character for which
-`char::is_control` is true. A value is not trimmed, 0 to 256 scalars,
+`LabelKey::MAX_CHARS` Unicode scalars, containing neither `=` nor any character for which
+`char::is_control` is true. A value is not trimmed, at most `LabelValue::MAX_CHARS` scalars,
 and likewise contains no character for which `char::is_control` is true.
 That is the same refusal `SessionTitle` already uses
 (`crates/vessel-proto/src/title.rs`, `FromStr`): every control,
 including the C1 controls U+0080 to U+009F. A
-session holds at most 32, in a `SessionLabels` map ordered by key. A
+session holds at most `SessionLabels::MAX`, in a `SessionLabels` map ordered by key. A
 key starting with `vessel.` is reserved and refused. Anything else is
 `invalid_request` naming the key, before a session is created or a row
 written.
@@ -111,11 +126,16 @@ the last value.
 
 Set at `session.create` (and so at `vessel run`, including `--resume`),
 copied by `session.import` with the row, and replaced as a patch by
-`session.labels` (`operate`, forwardable, since `lifecycle::SINCE`).
+`session.labels` (`operate`, forwardable, since `lifecycle_version::SINCE`).
 The reply is the
 `SessionInfo`. The log gains `labels_changed` with the whole map, so the
 latest record is the state. `SessionSpec` keeps what creation asked;
 the column keeps the current map, as the title's column does.
+
+Side-question creation is a shortcut that reuses a side or synthesizes its
+spec from the parent. Non-empty creation label overrides on that shortcut
+are refused before lookup, rather than silently discarded. A later explicit
+`session.labels` call can update the opened side's metadata.
 
 `session.list` gains `labels`. Every listed session must carry each
 pair (logical and). Empty means no label filter.
@@ -132,12 +152,13 @@ a schedule-definer's omission is `shown`.
 background sessions out. `all` includes them. It does not change which
 archived sessions appear; those stay listed as they are today.
 
-A peer that negotiated a protocol older than `lifecycle::SINCE` has no
+A peer that negotiated a protocol older than `lifecycle_version::SINCE` has no
 field. The node includes background sessions in that peer's list and
 rewrites each `SessionInfo` so the listing reads `shown` and the labels
 are absent. A current client does not send `scope: all`, a label
 filter, a background listing or any labels to an older node
-(`Call::since` is `lifecycle::SINCE` when any of those is present).
+(the shared `required_protocol()` accessor returns the assigned threshold,
+or `None` while the feature is unassigned).
 `params: null` keeps decoding as the default request.
 
 `session.get`, attach, log, send, kill, rename, labels and reload do
@@ -145,7 +166,7 @@ not care about the listing. A background session is still there.
 
 ### Reload
 
-`session.reload` (`operate`, forwardable, since `lifecycle::SINCE`)
+`session.reload` (`operate`, forwardable, since `lifecycle_version::SINCE`)
 restarts the live
 process and keeps the session id, the log, the subscribers, the title,
 the labels, the listing, the marks, the profile, the place, the queue
@@ -205,14 +226,26 @@ person reloads. There is no MCP tool for it.
 - `--since` an RFC 3339 timestamp. Unparseable is a usage error. A
   record's `at` must be greater than or equal to it.
 - `-f` / `--follow`. After the selection, wait on the session stream
-  for later matching records until interrupted. No sleep.
+  for later matching records until the session's log ends (its final status
+  record) or the person interrupts. No sleep.
 
 Order: `--from`, then `--since`, then `--filter`, then `--tail`. Follow
 continues after the last record it printed. Rendering stays the view
 that already joins chunks. A terminal session has no agent events of
 those four kinds, so a filter prints nothing of its bytes.
 
-These flags are not a wire call. `read_events` is unchanged.
+These flags are not a wire call. `read_events` is unchanged. Count parsing
+consumes the whole integer rather than Paseo's numeric-prefix `parseInt`;
+a trailing typo is refused. Both commands refuse a non-numeric or negative
+count: Paseo's command checks the parser's `undefined` result in both modes
+before applying a default. Vessel refuses before connecting; Paseo connects
+and resolves the agent first (and fetches one-shot history before refusal).
+Early refusal avoids credential, connection and history work for invalid input.
+RFC 3339 replaces locale-sensitive date parsing.
+The existing session stream ends at a run's final status, so follow ends
+there or at Ctrl-C; a later resume needs a new invocation. Paseo's timeline
+subscription waits for an explicit stop. Preserving the existing stream EOF
+avoids a new wire mode solely for this presentation command.
 
 ### MCP
 
@@ -253,12 +286,23 @@ Vessel does not copy it.
 
 - Labels have no maximum in Paseo's schema (`messages.ts:915`,
   `labels: z.record(z.string(), z.string()).default({})`). Vessel caps a
-  key at 64 scalars, a value at 256, and a session at 32, and refuses
+  key at `LabelKey::MAX_CHARS`, a value at `LabelValue::MAX_CHARS`,
+  and a session at `SessionLabels::MAX`, and refuses
   `=` and every character for which `char::is_control` is true, the same
   check `SessionTitle` uses, including the C1 controls. Reason: a pairing
-  label is already bounded at 64 scalars, and an unbounded map is a reply
+  label already has its own scalar bound, and an unbounded map is a reply
   the other list calls refuse rather than cut. A control the title
   refuses must not reach the same list through a label.
+- Paseo's wire map is raw strings (`messages.ts:915,993`), and run
+  (`run.ts:478-501`) and list filters (`ls.ts:126-136`) keep key
+  whitespace and allow an empty key. Vessel trims keys and refuses
+  empty ones at every ingress. Reason: creation, updates and filters
+  share one validated identity instead of disagreeing about a key.
+- Paseo formats labels using `Object.entries` (`update.ts:144-149`).
+  Vessel orders by key and uses comma-space separators in human summaries.
+  Reason: storage and display stay deterministic regardless of the sender's
+  map construction order, and summaries follow the existing CLI list style
+  (`vessel-cli/src/devices.rs`, scope summaries). The wire map is unchanged.
 - Paseo deletes one key with `null` (`applyLabelPatch`,
   `agent-manager.ts:631`). The CLI and MCP send only strings. Vessel's
   public patch only sets keys. Reason: the public surface has no
@@ -316,8 +360,7 @@ and a listing fit the title's split between "what was asked" and "what
 is true now". Reload fits the stop and `session/load` a move and a wake
 already trust, without taking over their failure rules. The log's new
 flags sit on the printer, so the protocol does not grow a second read.
-The bounds are a floor Paseo does not have: a pairing label is already
-64 scalars, and an unbounded map would be a reply past the budget the
+The bounds are a floor Paseo does not have: a pairing label already has a scalar bound, and an unbounded map would be a reply past the budget the
 other list calls refuse rather than truncate.
 
 ## Advantages, costs and effects
@@ -329,7 +372,7 @@ other list calls refuse rather than truncate.
   driver. If the session runtime cannot restart without a new function
   in `vessel-agent`, the implementation stops and reports instead of
   editing that crate.
-- The schema append and `lifecycle::SINCE` land with the first code
+- The schema append and `lifecycle_version::SINCE` land with the first code
   slice. `PROTOCOL_VERSION` stays the base until the integrator sets
   the constant and, in that same merge, the published version.
   `docs/PROTOCOL.md` and the store sentence of `docs/ARCHITECTURE.md`

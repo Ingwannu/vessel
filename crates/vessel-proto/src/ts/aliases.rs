@@ -104,6 +104,7 @@ pub enum Alias {
 /// Every primitive alias of the protocol's and the bridge's declarations,
 /// sorted by name.
 pub const ALIASES: &[(&str, Alias)] = &[
+    ("AcpProtocolVersion", Alias::Quantity),
     ("ActionId", Alias::Named),
     ("AgentLabel", Alias::Named),
     ("AgentMessageId", Alias::Handle),
@@ -129,7 +130,9 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ContentHash", Alias::Handle),
     ("CostUnit", Alias::Named),
     ("CronExpr", Alias::Named),
+    ("CustomAgentSlot", Alias::Quantity),
     ("DeviceId", Alias::Handle),
+    ("DiagnosticSchemaVersion", Alias::Quantity),
     ("DraftText", Alias::Content),
     ("DurationMs", Alias::Quantity),
     ("EnvName", Alias::Named),
@@ -156,6 +159,9 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("InvitationSecret", Alias::Secret),
     ("KeyBinding", Alias::Named),
     ("LaunchId", Alias::Handle),
+    ("LimitKey", Alias::Named),
+    ("LimitName", Alias::Named),
+    ("LimitPercent", Alias::Quantity),
     ("MaxRuns", Alias::Quantity),
     ("McpServerName", Alias::Named),
     ("MimeType", Alias::Named),

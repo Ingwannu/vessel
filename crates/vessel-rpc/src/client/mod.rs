@@ -222,6 +222,8 @@ impl Unary for vessel_proto::automation::RunSchedule {}
 impl Unary for vessel_proto::automation::DeleteSchedule {}
 impl Unary for vessel_proto::automation::ListRuns {}
 impl Unary for vessel_proto::usage::QueryUsage {}
+impl Unary for vessel_proto::limits::GetUsageLimits {}
+impl Unary for vessel_proto::limits::SetUsageLookup {}
 impl Unary for vessel_proto::automation::ListPrompts {}
 impl Unary for vessel_proto::automation::CreatePrompt {}
 impl Unary for vessel_proto::automation::UpdatePrompt {}
@@ -434,6 +436,8 @@ const fn is_unary(method: Method) -> bool {
         | Method::RunSchedule
         | Method::DeleteSchedule
         | Method::ListRuns
+        | Method::GetUsageLimits
+        | Method::SetUsageLookup
         | Method::QueryUsage
         | Method::ListPrompts
         | Method::CreatePrompt
@@ -723,7 +727,7 @@ impl Connection {
             .ids
             .next()
             .ok_or(CallError::RequestIdsExhausted)?;
-        let command = Command::Call { id, call, waiter };
+        let command = Command::call(id, call, waiter);
         // The queue is bounded; while waiting for room, also watch for the
         // connection closing, so a caller never waits on a dead driver.
         let queued = tokio::select! {

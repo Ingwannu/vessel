@@ -33,6 +33,8 @@ use crate::session::SessionInfo;
 /// The first version whose ended sessions may sit outside the archive.
 const ENDED_OUTSIDE_THE_ARCHIVE: ProtocolVersion = ProtocolVersion::new(10);
 
+mod labels;
+
 impl Reply {
     /// This reply as a peer speaking `protocol` reads it, or `None` when it
     /// needs no change.
@@ -133,9 +135,34 @@ impl Reply {
             Self::CreateWorktree(outcome) => {
                 outcome.for_protocol(protocol).map(Self::CreateWorktree)
             }
+            Self::ListScripts(list) => list.commands.for_protocol(protocol).map(|commands| {
+                let mut list = list.clone();
+                list.commands = commands;
+                Self::ListScripts(list)
+            }),
+            Self::RunScript(outcome) => outcome.for_protocol(protocol).map(Self::RunScript),
+            Self::RestartScript(outcome) => outcome.for_protocol(protocol).map(Self::RestartScript),
             Self::Forward(forwarded) => nested(forwarded, protocol).map(Self::Forward),
             Self::Relay(forwarded) => nested(forwarded, protocol).map(Self::Relay),
             Self::Deliver(forwarded) => nested(forwarded, protocol).map(Self::Deliver),
+            Self::ResumeSession(session) => info(session).map(Self::ResumeSession),
+            Self::MarkSession(session) => info(session).map(Self::MarkSession),
+            Self::ParkSession(session) => info(session).map(Self::ParkSession),
+            Self::WakeSession(session) => info(session).map(Self::WakeSession),
+            Self::ForkSession(session) => info(session).map(Self::ForkSession),
+            Self::RewindSession(session) => info(session).map(Self::RewindSession),
+            Self::ExportSession(value) => labels::exported(value, protocol).map(Self::ExportSession),
+            Self::ExportMemory(value) => labels::exported(value, protocol).map(Self::ExportMemory),
+            Self::ImportSession(value) => labels::imported(value, protocol).map(Self::ImportSession),
+            Self::ListPrompts(value) => labels::prompts(value, protocol).map(Self::ListPrompts),
+            Self::CreatePrompt(value) => labels::prompt(value, protocol).map(Self::CreatePrompt),
+            Self::UpdatePrompt(value) => labels::prompt(value, protocol).map(Self::UpdatePrompt),
+            Self::ListSchedules(value) => labels::schedules(value, protocol).map(Self::ListSchedules),
+            Self::GetSchedule(value) => labels::schedule(value, protocol).map(Self::GetSchedule),
+            Self::CreateSchedule(value) => labels::schedule(value, protocol).map(Self::CreateSchedule),
+            Self::UpdateSchedule(value) => labels::schedule(value, protocol).map(Self::UpdateSchedule),
+            Self::PauseSchedule(value) => labels::schedule(value, protocol).map(Self::PauseSchedule),
+            Self::ResumeSchedule(value) => labels::schedule(value, protocol).map(Self::ResumeSchedule),
             // Replies of calls newer than every peer that can ask them, or
             // holding nothing that changed meaning.
             Self::PromptSideQuestion(_)
@@ -155,9 +182,6 @@ impl Reply {
             | Self::ListPeers(_)
             | Self::ListNodes(_)
             | Self::ForgetNode(_)
-            | Self::ExportSession(_)
-            | Self::ImportSession(_)
-            | Self::ExportMemory(_)
             | Self::ImportMemory(_)
             | Self::ReadTransfer(_)
             | Self::CloseTransfer(_)
@@ -181,8 +205,6 @@ impl Reply {
             | Self::SetSessionOption(_)
             | Self::PromptSession(_)
             | Self::ChangeQueue(_)
-            | Self::ResumeSession(_)
-            | Self::MarkSession(_)
             | Self::DeleteSession(_)
             | Self::BeginUpload(_)
             | Self::WriteUpload(_)
@@ -241,9 +263,6 @@ impl Reply {
             | Self::RenameTerminal(_)
             | Self::KillTerminal(_)
             | Self::CloseTerminal(_)
-            | Self::ListScripts(_)
-            | Self::RunScript(_)
-            | Self::RestartScript(_)
             | Self::ListPorts(_)
             // Protocol 11's: asked only by peers that read them.
             | Self::ListAgents(_)
@@ -258,19 +277,12 @@ impl Reply {
             | Self::GetFleetStatus(_)
             | Self::GetPublished(_)
             | Self::PreviewSchedule(_)
-            | Self::ListSchedules(_)
-            | Self::GetSchedule(_)
-            | Self::CreateSchedule(_)
-            | Self::UpdateSchedule(_)
-            | Self::PauseSchedule(_)
-            | Self::ResumeSchedule(_)
             | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)
             | Self::ListRuns(_)
+            | Self::GetUsageLimits(_)
+            | Self::SetUsageLookup(_)
             | Self::QueryUsage(_)
-            | Self::ListPrompts(_)
-            | Self::CreatePrompt(_)
-            | Self::UpdatePrompt(_)
             | Self::DeletePrompt(_)
             | Self::ListInbox(_)
             | Self::GetInboxEntry(_)
@@ -281,10 +293,6 @@ impl Reply {
             | Self::ReportPushPresence(_)
             | Self::SearchMessages(_)
             // Protocol 12's, 14's and 17's: asked only by peers that read them.
-            | Self::ParkSession(_)
-            | Self::WakeSession(_)
-            | Self::ForkSession(_)
-            | Self::RewindSession(_)
             | Self::GetAgentHistory(_) => None,
         }
     }
@@ -302,18 +310,39 @@ fn nested(forwarded: &Forwarded, protocol: ProtocolVersion) -> Option<Forwarded>
 
 impl SessionInfo {
     /// This session as a peer speaking `protocol` reads it, or `None` when
-    /// it needs no change: for a version 8-9 peer, an ended session that is
-    /// not archived keeps protocol 8's place in the archive.
+    /// it needs no change. Unassigned or older peers receive neither label map; version
+    /// 8-9 peers also keep an ended session in their archive placement.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
-        if protocol >= ENDED_OUTSIDE_THE_ARCHIVE || self.status.is_live() {
-            return None;
-        }
-        let board = self.board.as_ref()?;
-        if board.column == KanbanColumn::Archive {
+        self.for_protocol_with_labels(protocol, crate::lifecycle_version::SINCE)
+    }
+
+    /// One projection rule also exercised with a synthetic assigned threshold.
+    pub(crate) fn for_protocol_with_labels(
+        &self,
+        protocol: ProtocolVersion,
+        assigned: Option<ProtocolVersion>,
+    ) -> Option<Self> {
+        let strip = !crate::lifecycle_version::visible(assigned, protocol)
+            && (!self.labels.is_empty() || !self.spec.labels.is_empty());
+        let archive = protocol < ENDED_OUTSIDE_THE_ARCHIVE && !self.status.is_live();
+        if !strip && !archive {
             return None;
         }
         let mut info = self.clone();
+        if strip {
+            info.labels.clear();
+            info.spec.labels.clear();
+        }
+        if !archive {
+            return Some(info);
+        }
+        let Some(board) = self.board.as_ref() else {
+            return strip.then_some(info);
+        };
+        if board.column == KanbanColumn::Archive {
+            return strip.then_some(info);
+        }
         info.board = Some(SessionBoard::archived(
             self.ended_at.unwrap_or(board.last_activity_at),
         ));
@@ -412,6 +441,21 @@ mod tests {
                 event: AgentEvent::HarnessLog { .. }
             }
         ));
+    }
+    #[test]
+    fn an_assigned_label_threshold_keeps_both_maps_only_for_supported_peers() {
+        let labels = serde_json::from_str(r#"{"env":"prod"}"#).unwrap();
+        let mut info = exited();
+        info.labels = labels;
+        info.spec.labels = info.labels.clone();
+        let peer = crate::PROTOCOL_VERSION;
+        let hidden = info.for_protocol(peer).unwrap();
+        assert!(hidden.labels.is_empty() && hidden.spec.labels.is_empty());
+        assert!(info.for_protocol_with_labels(peer, Some(peer)).is_none());
+        let older = ProtocolVersion::new(peer.get().saturating_sub(1));
+        let hidden = info.for_protocol_with_labels(older, Some(peer)).unwrap();
+        assert!(hidden.labels.is_empty() && hidden.spec.labels.is_empty());
+        assert!(!info.labels.is_empty() && !info.spec.labels.is_empty());
     }
 }
 

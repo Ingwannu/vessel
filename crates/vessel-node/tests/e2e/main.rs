@@ -54,6 +54,8 @@ mod install;
 #[cfg(test)]
 mod isolation;
 #[cfg(test)]
+mod label_ingress;
+#[cfg(test)]
 mod local;
 #[cfg(test)]
 mod lsp;
@@ -133,6 +135,8 @@ mod waiting;
 #[cfg(test)]
 mod workspace;
 
+#[cfg(test)]
+mod limits;
 #[cfg(test)]
 mod usage;
 

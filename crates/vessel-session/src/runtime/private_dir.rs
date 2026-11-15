@@ -215,6 +215,7 @@ async fn a_move_carries_it_and_a_wake_keeps_it() {
             .move_profile(
                 handle.id(),
                 ProfileMove {
+                    limits: crate::LimitAssociation::Unavailable,
                     profile: b.clone(),
                     from_home: home_a,
                     to_home: home_b,

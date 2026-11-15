@@ -9,7 +9,7 @@ use vessel_proto::HarnessKind;
 use vessel_proto::parking::{IdleMinutes, ParkAfter};
 use vessel_proto::settings::AgentDriver;
 
-use super::ttl_secs;
+use super::{Stop, ttl_secs};
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum NodeCommand {
@@ -38,6 +38,8 @@ pub(crate) enum NodeCommand {
     /// Install this client's vesseld on an SSH node and restart the node
     /// into it, as its live sessions allow.
     Update(Update),
+    /// Stop gracefully; live sessions require --when-idle or --now.
+    Stop(Stop),
     /// Show the node: version, state (serving or draining), live sessions.
     Status,
     /// Make a single-use link that pairs a new device with the node (needs

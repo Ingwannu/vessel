@@ -115,6 +115,8 @@ impl AgentDrivers {
 }
 
 /// A change to [`AgentDrivers`]: the agents it names; the others stay.
+/// Inside `settings.json` too, so it never refuses an unknown field (an
+/// agent a later build names), as [`SetNodeSettings`] says.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct SetAgentDrivers {
@@ -159,6 +161,13 @@ pub struct GetNodeSettings {}
 
 /// `node.set_settings`: change the settings it names; the others stay.
 /// Needs `admin`. Answers the settings in force.
+///
+/// Also the type of `settings.json` (vessel-store's `settings_file`), so it
+/// and every type inside it never refuse a field they do not know (no
+/// `deny_unknown_fields`, a later choice read as `unknown`): a file a later
+/// build wrote must still parse after a downgrade, keeping what this build
+/// knows. vessel-store's `a_file_from_a_later_build_keeps_what_this_build_knows`
+/// holds the rule.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct SetNodeSettings {
