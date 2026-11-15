@@ -150,3 +150,19 @@ Both trees merged reviewed base3(6c782cb6), including c5da5305; node merge
 is unchanged. Future package evidence must identify its combined source rather
 than relabel earlier immutable narrow runs. New comparison base selection
 work is separate and still unverified.
+
+## Comparison branch selection
+
+A further read of checkout-git.ts:1704–1735 and its real-repository tests found
+that comparison and history intentionally choose bases differently. The new
+comparison resolver now prefers origin for unqualified names (including short
+origin/main), preserves exact refs/heads or refs/remotes streams, and refuses a
+missing/malformed requested ref without substituting a local one. Explicit
+commit bases keep Vessel's existing typed extension. Legacy DiffScope calls
+are unchanged. Decoding retains the comparison error's UTF-8/object sources.
+
+New real-git cases model stale/diverged local main, an observed origin ref,
+working changes, qualified local/remote selections, and a remote pointing at a
+non-commit object. They assert both committed/All file sets and unchanged real
+index bytes. No network or real agent is needed. These additions require their
+changed-source check and execution; old17257659 results do not cover them.

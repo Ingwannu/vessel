@@ -41,7 +41,7 @@ const CACHEINFO_ENTRY_BYTES: usize = 128;
 #[derive(Debug, thiserror::Error)]
 pub enum IndexError {
     /// A protected git command failed.
-    #[error("git could not prepare the All comparison")]
+    #[error("git could not complete the comparison")]
     Git(#[from] GitError),
     /// Creating, copying or removing the private index failed.
     #[error("the comparison index could not be prepared")]

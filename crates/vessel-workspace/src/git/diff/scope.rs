@@ -6,8 +6,14 @@ use std::path::Path;
 
 use vessel_proto::workspace::{CommitId, DiffScope, WorktreeBase};
 
-use super::Resolved;
+use super::{ComparisonError, Resolved};
 use crate::git::{Git, GitError};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ComparisonEnd {
+    Head,
+    Working,
+}
 
 impl Git {
     /// ADR 0087's comparison resolver. Separate pending methods keep the
@@ -17,48 +23,67 @@ impl Git {
         dir: &Path,
         comparison: &vessel_proto::workspace::GitComparison,
         base: Option<&WorktreeBase>,
-    ) -> Result<Option<Resolved>, GitError> {
+    ) -> Result<Option<Resolved>, ComparisonError> {
         use vessel_proto::workspace::GitComparison;
-
-        let scope = match comparison {
-            GitComparison::Uncommitted => DiffScope::Uncommitted,
-            GitComparison::All { base: asked } => {
-                if asked.as_ref().or(base).is_none() {
-                    return Ok(None);
-                }
-                DiffScope::Base {
-                    base: asked.clone(),
-                }
-            }
-            GitComparison::Commit { id } => DiffScope::Commit { id: id.clone() },
+        match comparison {
+            GitComparison::Uncommitted => self
+                .resolve_scope(dir, &DiffScope::Uncommitted, base)
+                .await
+                .map(Some)
+                .map_err(Into::into),
+            GitComparison::Commit { id } => self
+                .resolve_scope(dir, &DiffScope::Commit { id: id.clone() }, base)
+                .await
+                .map(Some)
+                .map_err(Into::into),
             GitComparison::Committed { base: asked } => {
-                let Some(base) = asked.as_ref().or(base) else {
-                    return Ok(None);
-                };
-                let commit = self
-                    .resolve(dir, base)
-                    .await?
-                    .ok_or(GitError::Unexpected { what: "base" })?;
-                let head = self.head(dir).await?;
-                let Some(head) = head else {
-                    let empty = self.empty_tree(dir).await?;
-                    return Ok(Some(Resolved {
-                        sides: vec![empty.clone(), empty],
-                        from: None,
-                        untracked: false,
-                        index: None,
-                    }));
-                };
-                let fork = self.merge_base(dir, &commit).await?.unwrap_or(commit);
-                return Ok(Some(Resolved {
-                    sides: vec![fork.to_string(), head.to_string()],
-                    from: Some(fork),
-                    untracked: false,
-                    index: None,
-                }));
+                self.resolve_branch_comparison(dir, asked.as_ref().or(base), ComparisonEnd::Head)
+                    .await
             }
+            GitComparison::All { base: asked } => {
+                self.resolve_branch_comparison(dir, asked.as_ref().or(base), ComparisonEnd::Working)
+                    .await
+            }
+        }
+    }
+
+    async fn resolve_branch_comparison(
+        &self,
+        dir: &Path,
+        base: Option<&WorktreeBase>,
+        end: ComparisonEnd,
+    ) -> Result<Option<Resolved>, ComparisonError> {
+        let Some(base) = base else {
+            return Ok(None);
         };
-        self.resolve_scope(dir, &scope, base).await.map(Some)
+        let commit = self.comparison_base(dir, base).await?;
+        let head = self.head(dir).await?;
+        if head.is_none() && end == ComparisonEnd::Head {
+            let empty = self.empty_tree(dir).await?;
+            return Ok(Some(Resolved {
+                sides: vec![empty.clone(), empty],
+                from: None,
+                untracked: false,
+                index: None,
+            }));
+        }
+        let fork = self.merge_base(dir, &commit).await?.unwrap_or(commit);
+        let mut sides = vec![fork.to_string()];
+        let untracked = match end {
+            ComparisonEnd::Head => {
+                if let Some(head) = head {
+                    sides.push(head.to_string());
+                }
+                false
+            }
+            ComparisonEnd::Working => true,
+        };
+        Ok(Some(Resolved {
+            sides,
+            from: Some(fork),
+            untracked,
+            index: None,
+        }))
     }
 
     /// What `scope` compares in the repository at `dir`. `base` is the

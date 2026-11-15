@@ -11,6 +11,7 @@
 //!   (`--no-ext-diff --no-textconv`): a repository's configuration names
 //!   them, and a read must not run them (ADR 0023).
 
+mod base;
 mod file;
 mod scope;
 mod summary;
