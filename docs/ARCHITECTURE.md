@@ -40,14 +40,14 @@ and 0013).
 | --- | --- | --- |
 | `vessel-proto` | Wire contract: ids, sessions, events, agent timeline, errors, typed RPC table; keys, devices, pairing links, relay control (milestone 3); validated names, profiles, creators, agent credentials, fleet manifests and MCP server definitions (milestone 4); protocol 6's envelope (`forward`: `Origin`, `fleet.forward`/`relay`/`deliver`), transfers (`transfer`, with the size limits) and secrets on the wire (`secret`: `SecretValue`, redacted); a session's place on the board (`board`, protocol 8); what a session runs with and its title (`options`, `title`: the agent's config options, choices, `SessionTitle`, protocol 9; ADR 0062 adds typed title origin with a merge-assigned protocol threshold); projects, worktrees, git and files (`workspace`: `RelPath`, `CloneUrl`, bounded names, typed outcomes and refusals, `SessionPlace`, `SessionWorkspace`, protocol 10); agents beyond the four (`agents`: `HarnessRef`, `AgentName`, protocol 11); schedules, runs, saved prompts and hooks (`automation`: `CronExpr` parsed into bit sets, bounded names and prompt text, typed run outcomes, protocol 11). No I/O. | - |
 | `vessel-rpc` | Moves `ClientFrame`/`ServerFrame` over any frame transport; handshake, correlation, concurrency limits, generic over `Handler`. From protocol 5 it holds both sides to the negotiated version: a call newer than the connection (`Call::since`) is refused by the client before sending and by the server before dispatch, and outgoing frames are adapted to an older client where they are encoded (`ServerFrame::for_protocol`). | proto |
-| `vessel-proc` | Command specs, spawning in a process group (a kill-on-close job object on Windows), killing the group; since milestone 11 (ADR 0031) the TCP ports a process tree listens on (`listening`: `/proc` on Linux, `lsof` on macOS, `netstat` and CIM on Windows, bounded), a terminal session's leftovers (`kill_session`, Linux) and the account's login shell. | - |
+| `vessel-proc` | Command specs, spawning in a process group (a kill-on-close job object on Windows), killing the group; since milestone 11 (ADR 0031) the TCP ports a process tree listens on (`listening`: `/proc` on Linux, `lsof` on macOS, `netstat` and CIM on Windows, bounded), a terminal session's leftovers (`kill_session`, Linux) and the account's login shell. Generic selected-file kernel observations (`lock`, ADR 0001), without node layout or signal authority from a PID snapshot. | - |
 | `vessel-harness` | Everything harness-specific, one module per harness: discovery, version probe, terminal and ACP launch commands; `HarnessEnv` (the account harnesses run as, given by the binaries, never read from the process by a library); since milestone 4 harness profiles and `profiles.toml`, each harness's home and login check, a session's files and linking them between homes, a profile's memory files and renaming a path for another working directory (transfers, protocol 6), MCP servers for terminal sessions and for Claude Code's direct driver (`claude_mcp_file`; every write checks its directory is the writer's own, owner-only and not a link), and what `vessel init` offers (install and login commands, other accounts' homes); since milestone 5 a profile's `model` route and pointing its harness at the node's model proxy (`routing`: Claude Code by its gateway variables, Codex by a `vessel` provider in `-c` overrides); since protocol 18 (`direct`, ADR 0057) each agent's own protocol: its arguments, the versions its driver was checked against and whether it is offered, `launch_direct` and the `--version` command. | proto, proc |
 | `vessel-lsp` | Saved-file language context (M6, ADR 0016): bounded Content-Length transport, typed LSP edge, process actors keyed by workspace/language and shared fairly between allowed roots, conservative launch policy with a once-resolved Rust toolchain and checked Cargo projects, native watches and saved snapshots, progress/diagnostics, query conversion and pagination. No authentication or arbitrary LSP method passthrough. | proto, proc |
 | `vessel-workspace` | Projects' work (milestone 11, ADRs 0023, 0027 and 0030): the `git` program run hardened (argument vectors, prompts, hooks and configured programs off, literal pathspecs, time and output limits, three bounded pools (local, network, clones), the version checked once; before every run in a repository its own configuration listed, the filters and merge drivers it defines turned off on the command line, and a run refused that would start a program or send a credential the repository's configuration names, `git/run/own_config.rs`); status, diffs with typed hunks, log, branches, stashes, commit, fetch, push, pull, switch, rename; worktrees, the "nothing would be lost" inspection, snapshots under `refs/vessel/snapshots`; clones into a temporary folder; every path resolved and checked against its root; file list, read, write, create, rename, delete; the name index and `git grep`; `vessel.toml` and its digest, with bounded metadata styles decoded independently of commands; setup and teardown commands with a bounded log (run without Vessel's credentials and the forge's sign-in, protocol 11); what a pull request needs of a folder (the checkout in one run, a branch's remote and its address, kept out of `Debug`, and its remote-tracking commit; protocol 11). No principal, store or session. | proto, proc |
 | `vessel-pty` | Runs a command in a PTY; byte I/O and resize; on Windows, answers the pseudo console's startup cursor query. | proc |
 | `vessel-agent` | ACP client: drives a harness or adapter over stdio and maps ACP updates to `AgentEvent`s; gives MCP servers in `session/new` and `session/load` (milestone 4); the agent's config options (`options`: reported once before ready and on every change, choices applied in the handshake, changes on a running session, ACP's older modes as a mode option) and `probe`, what an agent offers without a session (protocol 9); `history`, a page of the agent's own conversations over `session/list` without a session, behind a cursor of Vessel's (protocol 17, ADR 0053). Since protocol 18 (ADR 0057) `Driver` picks the protocol a session, a probe or a listing speaks (`spawn_with`, `probe_with`, `history_with`): ACP (`driver`) or a direct driver of its own module (`codex`, `claude`, `opencode`), behind the same seam; a driver not built yet is refused before its agent starts. `codex` (ADR 0057, slices 1 and 2): Codex's app-server over JSON-RPC lines (`wire`), the protocol subset as types checked against Codex 0.166.0's schema (`protocol`, `contract`, `schema/app-server.json`), its messages as events (`mapper`), the session's mode option with codex-acp's values (`mode`), its approvals and questions held for a person under node-minted ids (`asks`), and the session loop (`session`). A launch a direct driver cannot honour (a choice it does not offer, a fork it cannot make, its private file) is refused before anything is spawned (`LaunchRefusal`). The private launch file goes through `vessel-harness` (`claude_mcp_file`, `McpFile`), the one owner of that format and of the file's checks, hence the dependency. | proto, harness, proc |
-| `vessel-session` | Persistent terminal screen authority (`terminals/screen`) over the actor's ordered output and resize queue; immutable final snapshots remain capturable after exit, independent of log retention. Session actors: owns the process, assigns `EventSeq`, keeps a ring cache, broadcasts, hands every record to the node for persistence; each session's place on the board (`board`, the reducer ported from agent-orchestrator, fed by `activity`, protocol 8, and by the pull request the node gives a live session through a watch, protocol 11); the agent's options logged as `options_changed`, titles (`renamed`, from the first prompt or a rename), the choices a session carries on, and probing an agent (protocol 9); terminals beside sessions (`terminals`, protocol 11, ADR 0031): a shell in a PTY or a script's run piped in its own process group, each an actor with a ring bounded by records and bytes, and a service's restarts with backoff; which turn a prompt started or joined, for whoever asked (`delivery/tickets`, protocol 11); parking an idle agent and waking it (`parking`, protocol 14, ADR 0038): the route a handle sends through (`Live`, `Moving`, `Parked`), each actor's own idle timer, and a park or a wake reusing a move's stop and start with the session's current choices and harness session id; rewinding (`forking`, protocol 14, ADR 0052): a move's stop and start with a fork of the conversation at a turn's end, the old conversation started again on any failure, and a fork's start (`ForkStart`: `session/fork`, its `forked` record, its check's replay dropped); one agent per conversation (`runtime/claims`, protocol 17, ADR 0053): a start that resumes a conversation or a move claims it under every profile its files are linked into, refused while another live session holds it there; which protocol drives a session (`runtime/drivers`, protocol 18, ADR 0057): the node's setting, the drivers this build offers and the installed agent's version, chosen at its first launch and kept for its life. | proto, harness, pty, agent, proc |
-| `vessel-store` | Data directory (`node.id`, `token`, `node.key`, `vessel.db`, `profiles.toml`, `settings.json`: the node settings a person changed, protocol 12, `mcp/`, `uploads/`) and its locks, SQLite event log (schema 2: paired devices; schema 3: sessions' current profile and creator; schema 4: where a session came from, `origin` and `via`, protocol 6; schema 5: a session's model route; schema 6: a session's current title and the choices of its last options report, protocol 9; schema 7: the conversation's projections, the marks and attachments; schema 8: retention's order; schema 9: projects, worktrees and approved command sets, protocol 10; schema 10: pull request feedback, protocol 11; schema 11: the set an approval covered; schema 12: schedules and their runs, saved prompts, hooks with their deliveries and keys, protocol 11, a run about to be made written in the commit that takes its due time; schema 13: the search index of every session's messages, protocol 12), the `workspace/` folder of worktrees, setup logs and git's empty hooks folder, the `probe/` directory agents are probed in, `attachments/` (kept and read back without following a link, protocol 10), retention, restart recovery. | proto |
+| `vessel-session` | Session actors: owns the process, assigns `EventSeq`, keeps a ring cache, broadcasts, hands every record to the node for persistence; each session's place on the board (`board`, the reducer ported from agent-orchestrator, fed by `activity`, protocol 8, and by the pull request the node gives a live session through a watch, protocol 11); the agent's options logged as `options_changed`, titles (`renamed`, from the first prompt or a rename), the choices a session carries on, and probing an agent (protocol 9); terminals beside sessions (`terminals`, protocol 11, ADR 0031): a shell in a PTY or a script's run piped in its own process group, each an actor with a ring bounded by records and bytes, and a service's restarts with backoff; which turn a prompt started or joined, for whoever asked (`delivery/tickets`, protocol 11); parking an idle agent and waking it (`parking`, protocol 14, ADR 0038): the route a handle sends through (`Live`, `Moving`, `Parked`), each actor's own idle timer, and a park or a wake reusing a move's stop and start with the session's current choices and harness session id; rewinding (`forking`, protocol 14, ADR 0052): a move's stop and start with a fork of the conversation at a turn's end, the old conversation started again on any failure, and a fork's start (`ForkStart`: `session/fork`, its `forked` record, its check's replay dropped); one agent per conversation (`runtime/claims`, protocol 17, ADR 0053): a start that resumes a conversation or a move claims it under every profile its files are linked into, refused while another live session holds it there; which protocol drives a session (`runtime/drivers`, protocol 18, ADR 0057): the node's setting, the drivers this build offers and the installed agent's version, chosen at its first launch and kept for its life. | proto, harness, pty, agent, proc |
+| `vessel-store` | Data directory (`node.id`, `token`, `node.key`, `vessel.db`, `profiles.toml`, `settings.json`: the node settings a person changed, protocol 12, `mcp/`, `uploads/`) and its locks, SQLite event log (schema 2: paired devices; schema 3: sessions' current profile and creator; schema 4: where a session came from, `origin` and `via`, protocol 6; schema 5: a session's model route; schema 6: a session's current title and the choices of its last options report, protocol 9; schema 7: the conversation's projections, the marks and attachments; schema 8: retention's order; schema 9: projects, worktrees and approved command sets, protocol 10; schema 10: pull request feedback, protocol 11; schema 11: the set an approval covered; schema 12: schedules and their runs, saved prompts, hooks with their deliveries and keys, protocol 11, a run about to be made written in the commit that takes its due time; schema 13: the search index of every session's messages, protocol 12), the `workspace/` folder of worktrees, setup logs and git's empty hooks folder, the `probe/` directory agents are probed in, `attachments/` (kept and read back without following a link, protocol 10), retention, restart recovery. | proto, proc |
 | `vessel-node` | `vesseld`: config, auth, HTTP/websocket server, `Handler` implementation, persistence and subscription plumbing; devices, scopes and the secure gateway, and `vesseld relay` (milestone 3); harness profiles (`profiles`: `profiles.toml`, `profile.list`/`reload`, what `session.create` launches with, what `session.move_profile` moves to), agent principals (`agents`: a credential per session, grants, limits, ownership) and fleet sync (`fleet`: the home publishing `fleet.toml`'s sources and serving `fleet.*`, members joining, pulling, applying into every profile's home and reporting; this node's secrets) (milestone 4); transfers (`transfers`: `session.export`/`memory.export` snapshots held for whoever opened them, `transfer.read`/`close`, expiry, and `session.import`/`memory.import` pulling through a `Source`: this node, or another through the envelope as the caller) (protocol 6, F4); `envelope` and `fleet/links` (protocol 6, Track X): `fleet.forward`/`relay`/`deliver` with the delegated principal (the delivering device's scopes ∩ the origin's, ownership and agent limits applied to the origin), the mutual grant (`fleet.grant`, `fleet/granted.json` on a member, `fleet/grants/` and the binding record `fleet/bindings.json` on the home, `fleet.forget`, which withdraws the home's outstanding invitations, and `fleet.callback`, the home's relays and a relay ticket for a member with no route of its own, which `relays` links to: `fleet/links/callback.rs`), `fleet.peers`/`nodes`, and `session.read` waiting with its shares (`waits`). Model routing (`models`: `models.toml`, the loopback proxy, model tokens, limits, `ModelCall` records, `model.list`) (milestone 5, ADR 0015). Protocol 9 (ADR 0022): `service/options` (`harness.options`, `session.options`, `session.set_option`, `session.rename`) and `probes` (what each agent offers, probed once for concurrent callers and kept ten minutes). Protocol 10 (ADRs 0023, 0027): `workspace` (who may call: agents refused all but orchestration in `guard`; roots refused; the registry of projects, worktrees and approvals; clones and setups as tasks; tidying a session's worktree; a session's `place` resolved into `cwd` and notices) and `service/{projects,worktrees,git,files}`. Protocol 11 (ADR 0029): `forge` (one watcher task: sessions placed in a project or worktree read for their branch and remote, watches keyed by repository and branch, at most 64, a person's first; conditional looks with backoff; each live session's view handed to its actor; feedback through the queue; `pr.open` and `pr.merge` run in the caller's call) and `service/forge`; Protocol 11 (ADR 0031): `terminals` (where one may be opened and by whom, the limits, the environment without Vessel's credentials, the registry, a script's plan under its approval, the port scanner) and `service/{terminals,scripts}`. Protocol 11 (ADR 0033): `automation` (the scheduler: one task owning every schedule, an index of due times it sleeps on, the room it hands out in due order (four runs at once, eight scheduled sessions in their first turn), what a run came to; `time`: a cron's next wall-clock minute in a zone from `jiff`'s bundled database, daylight-saving gaps and folds, missed due times; who may change what; how a session's records read to a follower; `prompts`: saved prompts' names, bound and revisions under one lock; `notices`: the starter told, its bounds and its words) and `service/{schedules,scheduled,followed,prompts,notices}` (the calls, a run made as its definer through the service's own checks and its session followed and put away, a saved prompt's spec checked as `session.create` would check it, and a told turn followed until its starter has heard). Protocol 12: `service/search` (ADR 0037: a named session must exist, two searches at once) and `service/parking` (ADR 0038: `session.park`/`wake` through the session's handle; a drain for an update not waiting for parked sessions); `settings` and `service/settings` (`node.settings`/`set_settings`: `--park-after` with what a person saved in `settings.json` laid over it, written then applied to the runtime's watch under one lock; protocol 18's drivers, `direct` refused while this build does not offer it); `service/forking` (ADR 0052: a turn's point read from its `turn_ended` record, a fork created through `session.create`'s own path, a rewind handed to the session's actor with the count of file changes it leaves); `service/history` (ADR 0053: `agent.history` through the probe's launch, two at once, `in_vessel` from the sessions).  What a probe's handshake said of an agent reaches the node as `vessel-agent`'s typed outcomes (`readiness`, `probes`: `ProbeError`, `Disconnect`, `Refusal`; protocol 11's `agent.status`, ADR 0032), and the calls that start an agent's work through the session runtime name its inputs (`service/history`: `HistoryFrom`; `service/forking`: `ForkFrom`; the side questions: `PromptContext`); the node decides nothing about ACP itself. | proto, rpc, harness, session, store, secure, relay, fleet, client, lsp, llm, workspace, forge, proc, agent |
 | `vessel-client` | Typed async client and gap-free session streams (and terminals', protocol 11: one stream generic over the log it follows); the node book; pairing and secure connections over direct and relay routes (milestone 3); the local socket with the token or an agent's credential (milestone 4); fetching a file chunk by chunk into a caller's `ChunkSink` (`fetch_chunks`, protocol 6); protocol 10's conversation calls, protocol 11's schedules and saved prompts, and `compose` (a question's answer from text, a queued prompt's new text) for the CLI and the agent tools (milestone 11); `comparison`, one nonclone client worker composing ordinary project/worktree/session/attachment calls with bounded input, immutable common files and passive recovery snapshots (ADR 0046). | proto, rpc, secure, relay |
 | `vessel-remote` | Remote nodes over SSH (milestone 2): the `ssh` runner, platform detection, installing `vesseld` by upload, `cleanup`; the SSH connector. | proto, rpc, client |
@@ -58,7 +58,7 @@ and 0013).
 | `vessel-llm` | Model APIs for the node's routing proxy (milestone 5, ADR 0015): Server-Sent Events decoded from any chunking and encoded (`sse`); the Anthropic Messages, `OpenAI` Responses and Chat Completions wire types, open to kinds Vessel does not know yet (`wire`); a neutral request and stream, the translators between them, a same-API passthrough and the upstream client (`client`: rustls with the platform's roots, no redirects or proxies, timeouts to connect, to the first byte and between bytes, bounded bodies, retries only before the first byte, errors classified with the key stripped). Bounded tool-free complete replies retain explicit finality and safe diagnostics. Nothing about sessions, nodes or harnesses. | proto |
 | `vessel-forge` | Pull requests on a forge (milestone 11, track B2, ADR 0029): one object-safe trait (`Forge`), GitHub behind it (REST for conditional reads and writes, one GraphQL read, a merge pinned to its head), a remote's URL read into its repository, signing in with a token the binary found or the machine's `gh` (a token only in a sensitive header, never logged, kept five minutes), one bounded HTTP client (four slots, one kept for a person; same-origin redirects; 4 MiB bodies; per-host token bucket, quota floor and cooldowns), and an in-memory forge for tests (feature `fake`). ADR 0060 adds `fake/seed`: bounded, versioned files seed that same provider, with per-repository failures and refused merges. The separate `vessel-forge-fixture` node executable requires `vessel-node/forge-fixture`, explicit scratch paths and loopback listeners; product `vesseld` has no fake-provider selector. No new crate dependency edge. Nothing about sessions, the store or principals. | proto, proc |
 | `vessel-web` | `vessel ui`'s server (milestone 7, ADR 0017): loopback only, one-use bootstrap and mutual session proofs, bounded pre-auth transport, `Host`/`Origin` checks and security headers, the single-page app embedded at build time (`web/dist`, or a placeholder page; each text file with the brotli and gzip forms the web build made, one chosen per request by `Accept-Encoding`, milestone 11), the browser's websocket, and the bridge to the book's nodes: one shared connection per node with its state pushed to every tab, calls forwarded as typed `Call`s, session streams (and terminals', `follow_terminal`, protocol 11) that resume, and the bridge's own ops (the book's nodes, pairing, QR codes, and the book's edits: forget, rename, default, milestone 10; the page's preferences and drafts, kept in files and pushed to every tab, and the index's first paint, milestone 11, ADR 0028). The CLI gives it the nodes, and makes the book's edits with `BookFile`, through `NodeSource`. | proto, client |
-| `vessel-cli` | Typed Paseo-compatible agent shortcuts and shared output parsing/presentation under `args/parity` and `parity`; existing node client calls remain the transport authority. `vessel` binary: commands, interactive attach, `vessel mcp`, `vessel init` (first-run setup, milestone 4); `vessel models`, each profile's route in `vessel profiles` and model calls in `vessel log` (milestone 5); `vessel ui` (milestone 7); `vessel project`, `vessel worktree` and `vessel run --project/--worktree/--new-worktree` (milestone 11); `vessel pr` (list, show, open, merge, feedback, status), `vessel shell`, `vessel script`, `vessel ports`, `vessel schedule` and `vessel prompt` (protocol 11); `vessel search`, `vessel session park/wake/fork/rewind`, `vessel node settings` (`--driver`, protocol 18) and `vessel history` (protocol 12); `vessel session compare` (ADR 0046), a bounded manifest and one common input with complete partial-result reporting. | proto, client, node, remote, mcp, harness, web |
+| `vessel-cli` | `vessel` binary: commands, interactive attach, `vessel mcp`, `vessel init` (first-run setup, milestone 4); `vessel models`, each profile's route in `vessel profiles` and model calls in `vessel log` (milestone 5); `vessel ui` (milestone 7); `vessel project`, `vessel worktree` and `vessel run --project/--worktree/--new-worktree` (milestone 11); `vessel pr` (list, show, open, merge, feedback, status), `vessel shell`, `vessel script`, `vessel ports`, `vessel schedule` and `vessel prompt` (protocol 11); `vessel search`, `vessel session park/wake/fork/rewind`, `vessel node settings` (`--driver`, protocol 18) and `vessel history` (protocol 12); `vessel session compare` (ADR 0046), a bounded manifest and one common input with complete partial-result reporting. | proto, client, node, remote, mcp, harness, web |
 | `vessel-testkit` | Fake harnesses (`fake-tui`, `fake-acp`, which also make one model call through a routed session's proxy on `model <text>`, milestone 5), `fake-ssh` for tests and `fake-provider` for the model routing smoke; with the `relay` feature, a relay that misbehaves on command; with the `upstream` feature, a model provider on loopback answering with scripted streams, errors, drops, silences and hangs (milestone 5). The fakes report the environment, arguments, MCP servers, loaded session id and working directory they got (milestone 4). With the `authority-fixtures` feature, typed caller-authority fixtures built from `vessel-proto`'s types (protocol 20); the fake binaries keep no wire dependency. | proto |
 
 The CLI also provides graceful `vessel node stop` (`node_ctl`, ADR 0064),
@@ -88,7 +88,7 @@ set up a state through another crate's format, as `vessel-node`'s e2e
 | `agent-client-protocol` | only `vessel-agent`, `vessel-testkit` | ACP types never leave the client (ADR 0003); the fake agent speaks it. |
 | `rusqlite` | only `vessel-store` | The event log's schema and its migrations have one owner. |
 | `snow` | only `vessel-secure` | The Noise handshake and the record layer (ADR 0009). |
-| `vt100` | only `vessel-session` | Persistent actor-owned screen capture; parser implementation types never cross the runtime API (W17). |
+| `vt100` | only `vessel-session` (provisional W17 adapter) | Measurement input for C2 ADR0095; the final shared screen owner is vessel-terminal-screen. |
 | `portable-pty` | only `vessel-pty` | Terminals behind one seam, with its Windows answers. |
 | `process-wrap` | only `vessel-proc` | Process groups and kill-on-close jobs in one place. |
 | `rmcp` | only `vessel-mcp` | The MCP server (ADR 0013). |
@@ -96,6 +96,12 @@ set up a state through another crate's format, as `vessel-node`'s e2e
 | `tracing-subscriber` | only `vessel-cli`, `vessel-node` | A library emits events; a binary decides where they go. |
 | `ts-rs` | only `vessel-proto`, `vessel-web` | The page's TypeScript is generated from the wire and the bridge's frames. |
 | `tokio` | never `vessel-proto` | The wire contract has no runtime: the native app's `view` uses it and compiles to WebAssembly. |
+
+### Names only some files may use
+
+| Name | Crate | May appear | Why |
+| --- | --- | --- | --- |
+| `vessel_proc` | `vessel-store` | only `src/lock/` | Delegate the generic lock query only; no spawn, signal, group or session cleanup. |
 
 ## Data flow
 
@@ -1170,10 +1176,14 @@ actor independently of event retention, capped at 15 MiB per reply. Default
 summary reads retain the bounded durable projection for background refresh.
 
 The web client's `data/usage` owns the typed accounting call, a single
-in-flight/latest-selection reader, and pure locale-aware facts. Its
-Settings Usage feature draws those facts with existing row controls;
-changing machine/period hides the previous identity before the effect
-starts, and unmounting discards queued or late observations. No browser
+in-flight/latest-selection reader, and pure locale-aware facts. A single
+names-only catalogue comes from the last all-agent report on the selected
+machine; it replaces rather than accumulates groups and holds no token or
+cost values. Agent/profile scopes read node totals directly. Historical
+unnamed reports stay in All profiles; they are not a current-default account.
+The Settings Usage feature uses existing row/select controls. Changing
+machine/period/agent/profile hides the previous identity before the effect
+starts, and unmounting clears names and discards queued or late observations. No browser
 provider access or price arithmetic is introduced. Missing optional
 counts retain field coverage; unsafe browser integers are labelled rather
 than presented as exact. Account limits remain a separate merged-contract
@@ -1189,33 +1199,7 @@ resources reach the target library. `localization` prepares language bundles
 and retains plain messages before rendering. NUMBER display rules and DATETIME whole patterns come from each language
 folder; typed Gregorian/local-clock parts cross that boundary. ICU4X was
 rejected after the release-size experiment, recorded in ADR 0039.
-Pairing is the first whole screen on that API.
-About's licence and bundled-software vocabulary also uses generated plain
-getters; its closed inventory roles map to them in `view::about`, without
-formatting a message while drawing each row. The rest of About's shared
-sections retain their owners' tables during the staged migration.
-Updater labels and whole value messages use the same catalogs. The pure
-`view::updates` projection prepares shared text on state/language changes;
-the host groups its updater runtime, authoritative state and prepared words
-in `UpdateUi`. Both desktop and browser shells use it without introducing
-the native updater's I/O dependencies into view.
-Rewind and fork vocabulary uses the generated catalogs beside the remaining
-conversation tables. Rewind recoveries project typed node codes; fork source
-captions are retained in `view::fork::Headers` across unchanged fleet events.
-The host refreshes captions at fleet/act/language events and invalidates rows
-only when captions change. Origin and frame notices retain shared text for
-language refresh without another request. Typed fork/origin-read recoveries keep
-diagnostics in host logs/session state; unknown empty-fork reasons borrow a
-complete recovery message rather than copying a diagnostic while drawing.
-The host reads the typed
-language preference before creating a shell; System resolves against the
-host tag, while VESSEL_APP_LANG is the checking override. General's language
-row uses the generated registry and native names, never the pseudo locale.
-A preference change prepares the catalog outside rendering, then refreshes
-both Fluent and legacy labels and retained field placeholders without
-clearing input or restarting. Typed pairing errors and success notices keep
-the data needed to reword an existing outcome. Legacy area tables stay until
-their owners migrate them. The crate map,
+Legacy area tables stay until their owners migrate them. The crate map,
 execution instructions and gate are in `spikes/native/README.md`; ADR 0039
 records the decision and `docs/plans/backend-m12-i18n.md` its measurements.
 
@@ -1286,34 +1270,6 @@ else of the manifest (blob hashes, commands, arguments, addresses,
 headers, literal values). It shares `projection`'s byte-bounded file read
 and reply budget, and refuses the whole answer past a bound. `admin`, not
 forwardable, refused to agents; `vessel fleet published` prints it.
-
-## Native agents' option lists (milestone 12, track P)
-
-What each agent on each machine offers (`harness.options`: models, efforts,
-permissions modes, on/off options; and the `/` commands a session of it last
-reported) is one store, `view::offers`, held by the
-app's composer area and read by every control that draws those lists. It
-decides what is shown (the list there is, however old; loading or the error
-only when there is none), when to ask again (on open, at connect, when a
-machine's agents change or a person retries; one request per agent in
-flight, none within 30 s of a good answer on open) and how an answer lands in
-an open list (new rows at the edge away from its anchor, the shown rows in
-place). `link::offers` keeps the last answers on the
-device between runs in one owner-only, versioned, bounded file in the app's
-state folder, keyed by the node's id (not a book's name), written only when an
-answer differs; a machine that connects gets its kept lists
-(`Event::OptionsKept`) before the fleet shows it online. No new wire method.
-The rules, bounds and what was followed from Paseo's provider snapshot are in
-`docs/plans/backend-m12-composer.md`.
-
-What was typed in a composer and not sent is a draft per session and one
-for the new chat (`view::composer::drafts`, held by the composer area): put
-back when its composer comes back, written a second after the last edit by
-`link::drafts` to `drafts.json` beside the agents' lists (owner-only,
-versioned, bounded as the web bridge bounds the page's; a file that does
-not read is set aside, never overwritten). Up and Down in an empty session
-composer walk the messages sent in it (`view::composer::recall`, Paseo's
-`ComposerRecall`); a recalled message is not a draft until it is edited.
 
 ## Protocol 13: schedule preview (N3)
 
@@ -1568,16 +1524,16 @@ not turn an end reader into an upward reader before resize delivery.
 An actual upward move stays authoritative, so resize does not pull that
 reader down. Listener/observer cleanup remains local to the timeline.
 
-## Planned node-control process boundary (proposed)
+## Node-control process boundary
 
-The proposed amendment in ADR 0001 moves the generic selected-file Linux
+The approved amendment in ADR 0001 moves the generic selected-file Linux
 lock observation from store into proc. Store retains `NodeLock`, its data
 layout, record handling and caller-facing API; proc owns only OS mechanisms.
 The move adds `vessel-store -> vessel-proc` in its implementation commit.
 The later real force/restart caller adds `vessel-cli -> vessel-proc` in its
-own commit. These are planned edges: the active table above and manifests
-stay unchanged in the documents-only contract, so the boundary check still
-compares the current implementation exactly.
+own commit. The documents-only contract left the map unchanged. The first
+edge is now implemented; the later CLI edge remains proposed. The boundary
+check still compares the active table and current implementation exactly.
 
 A kernel PID is never signal authority on its own. Descriptor possession,
 process generation and namespace verification precede the separate CLI
@@ -1592,14 +1548,22 @@ only. The real CLI caller restricts proc's signal entry point to the force
 module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
 
-W17 stages `host_registry` (one source-owned persistent directory actor) and the
-`service/terminal_capture` handler behind unassigned `CLI_PARITY_PROTOCOL`. These are
-not registered RPC methods before Quality B. Host data uses the store's owner-only
-atomic `host-registry.json` snapshot; it never stores credentials or replaces fleet
-transport/paired-device authority.
 
-The current W17 screen adapter is measurement input for C2 ADR0095, not the final
-engine ownership decision. The coordinator requires one pure root vessel-terminal-screen
-crate shared by native view, D1 restore/query and node capture. C2 owns the comparison
-and API; W17 removes the direct parser/render dependency from vessel-session once that
-reviewed core arrives, leaving PTY/channel ordering there. No duplicate parser may merge.
+The first process-mechanism edge of ADR 0001 is active: store delegates its
+selected-file kernel query to proc through `lock/query`. Its public
+`NodeLock` API and snapshot re-export remain unchanged. The name rule keeps
+this dependency inside that lock boundary. Proc still has no internal
+normal dependency; its snapshot alone grants no signal authority. The later
+CLI signal edge remains proposed and is not added by this move.
+
+W17 stages `host_registry` (one source-owned persistent directory actor) and the
+`service/terminal_capture` handler behind unassigned `CLI_PARITY_PROTOCOL`. Five pending
+rows live at the end of rpc/table.rs after Quality B; no version is assigned locally.
+Host data uses the store's owner-only atomic `host-registry.json` snapshot and contains
+references/annotations only, never credentials or a second paired/fleet authority.
+
+The current W17 screen adapter is measurement input for C2 ADR0095. The coordinator
+requires one pure root vessel-terminal-screen crate shared by native view, D1 restore/query
+and node capture. C2 owns the measured choice and API. W17 must remove its direct parser/
+render dependency from vessel-session once that reviewed core arrives, leaving PTY/channel
+ordering there. The provisional adapter is not mergeable as a second interpretation.

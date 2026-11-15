@@ -1,13 +1,14 @@
 # Web page parity
 
-Status: bounded A1 accepted; paired sidebar/viewport corrections gated, review pending, 2026-11-15. ADR 0075.
+Status: A1 and paired page corrections accepted; A2a round-trip correction passes its whole gate, review pending, 2026-11-15. ADR 0075.
 
 ## Scope and evidence
 
 The browser client remains `web/` behind the local bridge (ADR 0017),
 retained under ADR 0036 while ADR 0035's native client develops. ADR 0020
 was never accepted and is historical, replaced by ADR 0035. This track changes no native source and adds no protocol.
-Original inventory node/page snapshot: `7f87d41c` (protocol 21); native source snapshot:
+Original inventory row origins: `7f87d41c` (protocol 21). Node availability
+columns are updated through merged `f453ec2e` (protocol 23, schema 17); native source snapshot:
 `1fc0f66a`; Paseo 0.15.4: `1c00b365`. Native working drafts and unrelated
 branches are excluded: presence in a branch is not an integrated screen.
 
@@ -68,7 +69,7 @@ new wire number or native modification.
 | F21 / m11:113 / Switch one session between conversation and terminal | No existing-session interface-switch call on base | terminal-view.tsx is creation-selected, not a switch | No registered interface-switch control found | [P43](#reference-p43) | Blocked until assigned wire is merged; separate terminal workspace differs from switching one agent. |
 | F22 / m11:114 / A side question that stays out of the history | session.side_open; session.side_prompt; session.side_reset | No side-question surface | No registered side-question surface found | Not found in surveyed Paseo app; wider-reference feature retained. | Add isolated side panel with actual node side calls; no history injection. |
 | F23 / m11:115 / One prompt to several models at once | CLI orchestration through project/worktree/session calls; no batch RPC | No comparison flow | No registered comparison flow found | Not found in surveyed Paseo app; wider-reference feature retained. | Possible client orchestration later; preserve partial effects and explicit setup approval. |
-| F24 / m11:116 / Usage-limit notice: wait for the reset or fall back to another model | usage.query now; usage.limits/lookup not on base; no automatic recovery | No notice; session/composer-docks.tsx seam | No usage-limit dock in committed conversation/dock.rs | [P26](#reference-p26); [P27](#reference-p27); [P29](#reference-p29) | After limits merge, draw factual notice/reset; no stopped-turn diagnosis or inert wait/switch action. |
+| F24 / m11:116 / Usage-limit notice: wait for the reset or fall back to another model | usage.query21; usage.limits/lookup23; no automatic recovery | No notice; session/composer-docks.tsx seam | No usage-limit dock in committed conversation/dock.rs | [P26](#reference-p26); [P27](#reference-p27); [P29](#reference-p29) | Assigned limits facts are available; factual reset notice remains A4. No stopped-turn diagnosis or inert wait/switch action. |
 | F25 / m11:117 / Files the session delivers, HTML shown in the conversation | attachment.read for user uploads; no delivered-artifact contract on base | session/prompt-files.tsx handles uploads, not delivered HTML | No delivered-artifact surface found | [P22](#reference-p22) | Blocked for unassigned delivered facts; preserve raw HTML-off policy and sandbox requirements. |
 | F26 / m11:123 / Attach images and files | attachment.begin/write/finish/read | compose/attachment-strip.tsx; session/attach-button.tsx | composer/offers.rs | [P02](#reference-p02); [P07](#reference-p07) | Existing uploads; compare paste/drop/type/refusal states, never upload silently on failure. |
 | F27 / m11:124 / `@` a file of the project | file.find; file.read | compose/use-file-search.ts; data/suggest.ts | workspace/code/search.rs | [P22](#reference-p22) | Existing project file mention; compare outside-root and stale-file cases. |
@@ -86,7 +87,7 @@ new wire number or native modification.
 | F39 / m11:141 / Defaults per agent | Client preference defaults plus profile configuration | data/defaults.ts; settings/models.tsx | draft/book.rs; settings/agents.rs partial | [P03](#reference-p03) | Per-browser remembered choices exist; native default/readiness parity needs explicit audit. |
 | F40 / m11:142 / Every agent on every model | model.list; configured model route at launch | settings/models.tsx; data/models.ts | settings/sections.rs has no Models renderer | [P03](#reference-p03) | Existing route/profile listing, not arbitrary route editing; no fabricated prices/models. |
 | F41 / m11:148 / Approve or refuse in the session, with the agent's own choices | session.send answer_permission | session/permission-dock.tsx | conversation/permission.rs | [P06](#reference-p06) | Existing choices; permission-card text/layout follow actual request, with scoped failure. |
-| F42 / m11:149 / Everything waiting on you, from every machine, in one place | Inbox not on base; session.list/conversation gives individual pending requests | board/lane.tsx plus individual session docks | board/mod.rs; conversation/dock.rs, no inbox renderer | [P06](#reference-p06); [P32](#reference-p32) | After inbox merge, dedicated fleet list and answer-in-place, with read-only refusals. |
+| F42 / m11:149 / Everything waiting on you, from every machine, in one place | inbox.list/get/mark22; existing session.send validates answers | board/lane.tsx plus individual session docks | board/mod.rs; conversation/dock.rs, no inbox renderer | [P06](#reference-p06); [P32](#reference-p32) | Assigned inbox contract is available; dedicated fleet list/answer-in-place remains B1/B2, including read-only refusal. |
 | F43 / m11:150 / Answer from the command line or from another agent | CLI session answer and agent tools; session.send | session/question-dock.tsx; permission-dock.tsx | conversation/permission.rs; question.rs | [P06](#reference-p06); [P07](#reference-p07) | No separate CLI screen required; retain identical resolved request identities. |
 | F44 / m11:156 / Projects: add a folder, clone, start new | project.list/get/add/clone/init/remove | projects/add-project-dialog.tsx; projects-section.tsx | workspace/projects.rs | [P18](#reference-p18) | Existing add/clone/init; clone/setup failures and cancellation need visual review. |
 | F45 / m11:157 / A worktree and branch per session | worktree.list/create/output/remove | compose/start-worktree.ts; workspace/setup-card.tsx | workspace/start_card.rs | [P18](#reference-p18) | Existing per-session worktree start; do not bypass setup approval. |
@@ -116,7 +117,7 @@ new wire number or native modification.
 | F69 / m11:191 / Instructions, skills, MCP servers and secrets shared across machines | fleet.status/published/sync/members; secret.list | settings/sync-section.tsx (published read) | settings/sync.rs | Not found in surveyed Paseo app; wider-reference feature retained. | Wire join/leave/sync actions missing on page; never expose secret values. |
 | F70 / m11:192 / Spread new sessions over machines by load | No spread-by-load RPC on base | No load placement control | No registered load-placement UI found | Not found in surveyed Paseo app; wider-reference feature retained. | Blocked until actual scheduler/placement behavior exists. |
 | F71 / m11:193 / A phone app | Node transport shared; phone packaging is outside web RPC | Responsive shell and settings CSS, not an installed phone app | Native phone build is separate; no runtime verified | [P24](#reference-p24); [P36](#reference-p36) | Responsive web regression only; do not claim mobile-app/push parity. |
-| F72 / m11:194 / Push notifications | Push registration calls not on base | features/notifications/use-notices.ts is desktop notification only | No registered push settings found | [P36](#reference-p36) | Blocked for node push; Paseo web intentionally no-ops push, native differs. |
+| F72 / m11:194 / Push notifications | push.key/subscribe/unsubscribe/presence22; paired-device leases | features/notifications/use-notices.ts is desktop notification only | No registered push settings found | [P36](#reference-p36) | Node contract is available; browser service-worker/subscription workflow is absent. Paseo web intentionally no-ops push; native differs. |
 | F73 / m11:200 / Agents start, prompt, wait on and stop sessions | session.create/prompt/read/kill and agent tools | Existing normal session controls | conversation/actions.rs | [P15](#reference-p15) | No separate orchestration page required; preserve scope intersection. |
 | F74 / m11:201 / The starter is told when a session it started finishes | session notification delivery and starter events | board/card-origin.tsx; no persistent starter-notice page | No verified starter-notice surface | [P15](#reference-p15) | Show actual completion notification when inbox wiring exists; no invented completion. |
 | F75 / m11:202 / Schedules: every so often or at a time, a new session or a prompt | schedule.list/get/create/update/pause/resume/run/delete/runs/preview | No schedules page or data module | No schedule renderer in committed settings/sections.rs | [P25](#reference-p25) | Largest ready common gap: list+human cadence first, editor/preview next, actions/runs separately. |
@@ -125,9 +126,9 @@ new wire number or native modification.
 | F78 / m11:205 / A webhook starts a session | hook calls not on base | No webhook UI | No registered webhook renderer found | [P25](#reference-p25) | Blocked until hooks merged; receiving endpoint/secret generation never moves into page. |
 | F79 / m11:211 / A board by status | session.list board projection | board/board-page.tsx; data/board.ts | board/mod.rs | Not found in surveyed Paseo app; wider-reference feature retained. | Existing board; Paseo has status/sidebar views rather than this board surface. |
 | F80 / m11:212 / Sidebar: group, sort, filter, pin | Session marks; bridge preferences | shell/sidebar-view-menu.tsx; data/sidebar.ts | sidebar.rs | [P05](#reference-p05); [P37](#reference-p37) | Ended default, stored off and archive exclusion covered by the paired follow-up; broader grouping/pinning/nesting parity remains unverified. |
-| F81 / m11:213 / A notification inbox that survives a reload | Inbox not on base | notifications/use-notices.ts is transient; no durable inbox | No inbox renderer registered | [P32](#reference-p32); [P06](#reference-p06) | After inbox merge, durable list/read cursor, loading/offline/refusal states, no local fake inbox. |
+| F81 / m11:213 / A notification inbox that survives a reload | inbox.list/get/mark22 with durable shared read state | notifications/use-notices.ts is transient; no durable inbox | No inbox renderer registered | [P32](#reference-p32); [P06](#reference-p06) | Implement B1 durable list/read cursor, loading/offline/partial/refusal states; no local fake inbox. |
 | F82 / m11:214 / Desktop notification and sound | Client preferences; browser Notification API | notifications/use-notices.ts; sound.ts; settings/notifications-section.tsx | toasts.rs; no OS-notification integration verified | [P32](#reference-p32) | Existing web desktop alerts/sound; compare focus/privacy defaults before changing. |
-| F83 / m11:215 / Usage: tokens, cost, each account's limits | usage.query protocol21; limits/lookup awaiting merge | session/inspector-summary.tsx routed usage; A1 adds usage/usage-section.tsx (verification below) | conversation/footer.rs/meter.rs; settings Usage=None | [P26](#reference-p26); [P27](#reference-p27); [P28](#reference-p28); [P29](#reference-p29); [P44](#reference-p44) | A1 machine totals/day/week are implemented; verification below. Agent/session rows remain A2, account limits await merge; no estimates. |
+| F83 / m11:215 / Usage: tokens, cost, each account's limits | usage.query21; usage.limits/lookup23 | usage/usage-section.tsx A1 accepted; scope-picker.tsx A2a verified checkpoint; routed turn/proxy counts retained | conversation/footer.rs/meter.rs; settings Usage=None | [P26](#reference-p26); [P27](#reference-p27); [P28](#reference-p28); [P29](#reference-p29); [P44](#reference-p44) | A1 machine day/week is accepted. A2a round-trip whole run passes and prior bounded captures are retained; review pending; A2b session reports and A3/A4 limit controls/notices remain. |
 | F84 / m11:216 / Pull requests page | pr.list/get | No dedicated pull-requests route | pulls/mod.rs session dialogs only | [P21](#reference-p21) | Add project-aware list and facts after schedules; do not claim all-PR coverage from watched sessions only. |
 | F85 / m11:222 / Light, dark, system | Bridge preference theme | settings/appearance.tsx; data/theme.ts | settings/appearance.rs | [P38](#reference-p38) | Existing three schemes; preserve system/reduced-motion and tokens. |
 | F86 / m11:223 / More themes | Client themes; no node RPC required | Only light/dark/system tokens | settings/appearance.rs three choices; extra theme branch not integrated | [P38](#reference-p38) | Wait for shared theme decision/data; do not invent new purple/gradient theme. |
@@ -135,8 +136,8 @@ new wire number or native modification.
 | F88 / m11:225 / Shortcuts, rebindable | Client shortcut registry/preferences | settings/shortcuts-section.tsx; data/shortcuts/registry.ts | shortcuts/page.rs | [P31](#reference-p31) | Existing rebindings; preserve IME and platform modifiers. |
 | F89 / m11:226 / Languages | Client language resources; not node wire | English labels; no page locale selector | settings/language.rs; Fluent-backed text source | [P39](#reference-p39) | Shared translation integration is separate; first feature must not claim whole-page Korean parity. |
 | F90 / m11:227 / Command palette | Client command registry | palette/palette.tsx; data/palette.ts | palette.rs | [P13](#reference-p13); [P31](#reference-p31) | Existing command palette; add working routes only, not future capabilities. |
-| F91 / m11:228 / Update from the page | CLI node update; no management RPC on base | settings/about.tsx has versions, not update action | update.rs app updater, not node update | [P24](#reference-p24) | Blocked for node update; do not conflate app updater with node management. |
-| F92 / m11:229 / Diagnostics | node.info; full diagnostics wire not on base | settings/about.tsx; no diagnostics report | settings/sections.rs Diagnostics=None | [P40](#reference-p40) | Basic version info exists; diagnostics awaits assigned wire and redaction contract. |
+| F91 / m11:228 / Update from the page | node.stop3 and CLI node update; no remote-update RPC | settings/about.tsx has versions, not update action | update.rs app updater, not node update | [P24](#reference-p24) | Node update UI remains blocked by its missing update contract; app updater and node.stop do not supply remote update. |
+| F92 / m11:229 / Diagnostics | node.info; staged diagnostic types/collector, no assigned report RPC | settings/about.tsx; no diagnostics report | settings/sections.rs Diagnostics=None | [P40](#reference-p40) | Basic versions exist; diagnostics screen needs assigned report transport. Staged collector/redaction values alone are not callable. |
 | F93 / m11:230 / Plugins | Plugin management wire not on base | No plugins section | settings/sections.rs Plugins=None | [P33](#reference-p33) | Blocked; no arbitrary script/plugin loading in browser. |
 
 ## Milestone 12 feature rows
@@ -151,16 +152,16 @@ assignments as current implementation proof.
 | m12:361 / Agent terminal and sibling shells (F02,F56–F60) | session stream; terminal.* | session/terminal-view.tsx | session.rs; sibling shell not registered | [P23](#reference-p23) [P42](#reference-p42) | Shell tabs, scripts/ports and terminal find. |
 | m12:362 / Composer (F26–F32) | attachment.*, file.find, advertised commands | compose/prompt-box.tsx; session/composer.tsx | composer/{drafts,offers,slash}.rs | [P02](#reference-p02) [P16](#reference-p16) [P17](#reference-p17) | Check edge cases; retain existing attachment/draft/recall behavior. |
 | m12:363 / Agents/defaults (F35–F40) | harness.list/options; agent.status/list/catalogue/install | machines/agents-section.tsx; settings/models.tsx | settings/agents.rs; Models unregistered | [P03](#reference-p03) [P24](#reference-p24) | Registry editing/install progress and exact readiness; route editing is not implied. |
-| m12:364 / Approvals/inbox (F41–F43,F81) | session.send; inbox calls absent on base | session/permission-dock.tsx; board/lane.tsx | conversation/permission.rs; no inbox registered | [P06](#reference-p06) [P07](#reference-p07) | Durable fleet inbox and inline decisions after node merge. |
+| m12:364 / Approvals/inbox (F41–F43,F81) | session.send; inbox.list/get/mark22 | session/permission-dock.tsx; board/lane.tsx | conversation/permission.rs; no inbox registered | [P06](#reference-p06) [P07](#reference-p07) | Assigned durable fleet inbox calls are available; inline B1/B2 decisions remain. |
 | m12:365 / Projects/git/PRs (F44–F55,F84) | project.*, worktree.*, git.*, file.*, pr.* | projects/projects-section.tsx; workspace/panel.tsx | workspace/code/mod.rs; git/mod.rs; pulls/mod.rs | [P18](#reference-p18) [P19](#reference-p19) [P20](#reference-p20) [P21](#reference-p21) [P22](#reference-p22) | PR create/facts/merge and explicitly partial watched-session list; project-wide enumeration and turn checkpoints still require node behavior. |
 | m12:366 / Scripts/services/ports/browser (F58,F61–F62) | script.list/run/restart; port.list; no browser calls | projects/script-list.tsx approval list only | No execution/browser panel registered | [P23](#reference-p23) [P41](#reference-p41) | Run/service/port controls; browser blocked until assigned wire. |
 | m12:367 / Machines/devices/sync (F63–F69) | device.*; fleet.status/published/join/leave/sync | machines/machines-section.tsx; settings/{devices-section,sync-section}.tsx | pair/render.rs; settings/{devices,sync}.rs | [P24](#reference-p24) | Wire existing fleet Admin actions and self-scopes; no credential exposure. |
 | m12:368 / Automation (F75–F78) | schedule.*; prompt.*; hooks absent | No automation route | No schedule renderer in pinned settings/sections.rs | [P25](#reference-p25) | Largest unimplemented ready family: list then edit/preview/actions/runs; hooks wait. |
 | m12:369 / Board/sidebar/palette/notices (F79–F82,F90) | session board/marks plus client preferences | board/board-page.tsx; shell/sidebar.tsx; palette/palette.tsx | board/mod.rs; sidebar.rs; palette.rs | [P05](#reference-p05) [P32](#reference-p32) [P37](#reference-p37) | Durable inbox; regress existing controls rather than replacing their design. |
-| m12:370 / Settings (F85–F89,F91–F92) | Existing preferences; node.info/settings; no diagnostic/update API | settings/{appearance,shortcuts-section,about}.tsx | settings/{appearance,language}.rs; update.rs | [P24](#reference-p24) [P30](#reference-p30) [P31](#reference-p31) [P38](#reference-p38) [P39](#reference-p39) [P40](#reference-p40) | Translation integration, more themes, diagnostics/node update when merged. |
+| m12:370 / Settings (F85–F89,F91–F92) | Existing preferences; node.info/settings/stop; staged diagnostics, no assigned report/update RPC | settings/{appearance,shortcuts-section,about}.tsx | settings/{appearance,language}.rs; update.rs | [P24](#reference-p24) [P30](#reference-p30) [P31](#reference-p31) [P38](#reference-p38) [P39](#reference-p39) [P40](#reference-p40) | Translation/themes remain; diagnostics and remote update still need callable assigned contracts. |
 | m12:371 / History/lifecycle (F13–F18,F20) | session.rewind/fork/search/park/wake; agent.history; no cross-agent handoff | No these action surfaces; session resume exists | conversation/rewind.rs; search.rs partial | [P10](#reference-p10) [P11](#reference-p11) [P12](#reference-p12) [P14](#reference-p14) [P24](#reference-p24) | Wire existing history/lifecycle actions incrementally; no file restore promise. |
-| m12:372 / Usage/limits (F24,F83) | usage.query21; limits/lookup await merge | A1 usage/usage-section.tsx; routed inspector/turn counts retained | Usage unregistered; conversation meter/footer only | [P26](#reference-p26) [P27](#reference-p27) [P28](#reference-p28) [P29](#reference-p29) [P44](#reference-p44) | Usage page now; account consent/windows and factual notices after merge. |
-| m12:373 / Phone/push (F71–F72) | Shared node transport; push absent | Responsive page only | Phone build/runtime unverified | [P24](#reference-p24) [P36](#reference-p36) | Do not claim installed-app/push parity from a narrow viewport. |
+| m12:372 / Usage/limits (F24,F83) | usage.query21; usage.limits/lookup23 | A1 usage/usage-section.tsx; routed inspector/turn counts retained | Usage unregistered; conversation meter/footer only | [P26](#reference-p26) [P27](#reference-p27) [P28](#reference-p28) [P29](#reference-p29) [P44](#reference-p44) | A1 totals accepted; A2a scope round-trip whole gate passes pending review, then A3/A4 consent/windows/factual notices on assigned limits calls. |
+| m12:373 / Phone/push (F71–F72) | Shared node transport; push.key/subscribe/unsubscribe/presence22 | Responsive page only | Phone build/runtime unverified | [P24](#reference-p24) [P36](#reference-p36) | Do not claim installed-app/push parity from a narrow viewport. |
 | m12:374 / Browser as surface | Local bridge serves page; GPUI browser is separate spike | app.tsx; routes/; loopback bridge | Wasm experiment is not connected-client parity proof | [P13](#reference-p13) [P23](#reference-p23) [P24](#reference-p24) | This track maintains the existing page; no new native/Wasm/browser engine. |
 
 ## Milestone 12 wire-gap rows
@@ -195,8 +196,9 @@ These are cross-surface checks, not new permission to modify the native kit.
 ## Ordered implementation families and small commits
 
 The first three families are **A Usage and limit notices**, **B Inbox**,
-**C Schedules**. B and the account-limit part of A are dependency-gated:
-never register a call/type absent from the merged node head, invent a
+**C Schedules**. The inbox and account-limit calls are now on the merged node head.
+Every family still obeys the dependency boundary: never register a
+call/type absent from that head, invent a
 protocol number or bypass the unassigned-protocol contract. If blocked, continue only a ready sub-slice
 without presenting a dead control. Each code sub-slice targets a few
 hundred production lines, with separate pure unit cases and one actual
@@ -206,9 +208,9 @@ fake-fleet browser flow; split further at a real seam when it grows.
 | --- | --- | --- | --- | --- |
 | A1 | Settings → Usage: current machine's reported totals | Typed usage.query wrapper/model, Settings registration and existing row cards; 250–350 lines | Zero vs unknown, cost withheld, optional cache/reasoning coverage, overflow/incomplete; open Usage on fake node, real turn reports, day/week and Refresh | Ready on base, no wire change |
 | A2 | Per-agent/profile and session accounting | Reuse A1 report rows/requests, selection and session summary; 200–300 lines | Historical profile None semantics, session-only period/cursor, sparse pages, selector races; change machine/agent and open actual session totals | usage.query only |
-| A3 | Saved-login account limits/opt-in | Own model/control component and existing Settings rows; 250–350 lines | Off/ready/stale/unassociated/cooldown/unknown periods, raw finite pct clamped, zero/missing balance; synthetic login fixture only, admin vs read-only/operate | ONLY after limits/lookup merge; use assigned calls |
-| A4 | Session factual limit notice | One shared model and composer dock registration; 150–250 lines | Multiple full windows/unknown resets/paid eligibility/no false cause; fake session notice and working refresh action only | Same merged limits facts; no recovery API invented |
-| B1 | Inbox list and unread | Typed inbox API wrapper + list model + nav/route; 250–350 lines | Reload/cursor/offline/partial machine errors, no local-only fabricated history; actual node creates durable items | ONLY after inbox merge; inspect exact generated types first |
+| A3 | Saved-login account limits/opt-in | Own model/control component and existing Settings rows; 250–350 lines | Off/ready/stale/unassociated/cooldown/unknown periods, raw finite pct clamped, zero/missing balance; synthetic login fixture only, admin vs read-only/operate | Ready on merged f453ec2e; use assigned limits/lookup calls |
+| A4 | Session factual limit notice | One shared model and composer dock registration; 150–250 lines | Multiple full windows/unknown resets/paid eligibility/no false cause; fake session notice and working refresh action only | Ready limits facts; no recovery API invented |
+| B1 | Inbox list and unread | Typed inbox API wrapper + list model + nav/route; 250–350 lines | Reload/cursor/offline/partial machine errors, no local-only fabricated history; actual node creates durable items | Ready on merged f453ec2e; inspect exact generated types first |
 | B2 | Decide from inbox | Reuse permission/question docks, own request-bound state; 200–300 lines | Resolved/stale/race/read-only refusal; answer one real fake permission and question from list | Accepted B1 and node ownership model |
 | C1 | Schedules list in human words | Data wrapper/formatting + a list route using current rows; 250–350 lines | Host/status/due/ended target/empty/error; real scheduled item visible, reload retains it | Existing schedule.list/get/runs; no new wire |
 | C2 | Schedule create/edit with server preview | Draft model and dialog; 250–350 lines | Cadence bounds, node timezone/DST preview, refusal; create/edit on fake node and compare returned next runs | Existing schedule.preview/create/update |
@@ -914,3 +916,201 @@ summary/cursor slice if required by size. Both use existing usage.query only.
 Account limits, inbox and project-wide PR enumeration remain gated by the exact
 assigned contracts on a subsequently merged green node head. No new wire number
 is introduced by this page track.
+
+
+## A2a checkpoint: agent/profile scope
+
+The paired correction stack passed independent source/whole/submitted-normal-
+frame review and was accepted for those captures. Its live-count-zero ended
+example is the light frame; the dark frame includes an earlier waiting
+session. This does not extend the earlier native/platform/layout exclusions.
+
+A2 is split at an actual seam: A2a is agent/profile selection; session totals
+and cursor pages remain A2b. Reuse the typed call, one active plus latest
+reader, existing agent identity/naming helpers and Settings Row/Select.
+The node remains authoritative for every selected number. No new wire,
+method, number, schema, dependency, native module or vendor access is added.
+
+The catalogue holds only names/partial metadata from the last accepted
+all-agent report on one machine. It is replaced, not accumulated, and is
+cleared on a move, stop, disconnect or unmount. Choosing an agent does not
+replace it with that filtered report. The UI explains that names come from
+the last All agents report, so no claim that every name has current-period
+usage is made. The selected historical name remains visible through an
+empty later interval. The node's grouping limit can omit names; the partial
+hint and accounting-coverage facts are retained.
+
+Agent query profile=None is All profiles, including unnamed historical
+reports. A reported group profile=None is not a name and does not become a
+fake current-default or individually queryable option. Named profiles keep
+their recorded names. Scope keys reuse agentKey; private queued requests
+copy the scope and added-agent object. Render-time identity includes scope,
+so another agent/profile's totals do not flash before the next effect.
+No totals are added, priced or reconstructed in the browser.
+
+The first narrow run passed all 442 frontend units (86 files), page/script
+typecheck, then stopped at one new optional-chain lint finding in the test
+observer. That expression is corrected without a lint exception; the failed
+log is retained. The observer binds each sanitized usage result to its
+request id/scope without retaining authentication frames or full messages.
+The stronger typed-input fixtures and whole-state assertions remain part
+of this checkpoint; no browser or whole-gate pass is claimed yet.
+
+Added actual-fleet acceptance seeds default and named-profile ACP reports,
+selects All profiles and the named profile, compares displayed input with
+the actual query result, changes day/week and moves machine without stale
+names/numbers. Captures use a valid 50-character profile in the fake node's
+own profiles.toml, reload through the existing CLI and real retained reports.
+Eight planned locale/theme/desktop/phone cases produce 24 views: full long
+choice, selected scope and coverage. English labels remain intentional;
+locale changes number/date formatting as in A1. Trigger and open-list labels
+wrap inside this feature; no shared kit source is changed.
+
+Before the next whole run, merge the announced green node head at a clean
+checkpoint, preserving its protocol/schema and cases under the merge rules.
+The next whole gate is remote; captures stay local. Actual browser/capture,
+whole gate, source manifests, served assets, cleanup and review are pending.
+
+Next after A2a, as one separate page-fix slice: narrow-screen toast placement
+from Paseo; new-session autofocus behind an open dialog; Escape before the
+dialog takes focus. The last two begin with failing page tests. The incoming
+head's readiness waits remain unchanged unless their owner agrees to relax
+them after the product fixes. The older collapsed rail clipping and A2b
+session accounting remain later work; none is folded into A2a.
+
+
+After the optional-chain correction, the second narrow run passes all 442
+frontend units, both typechecks, full lint/fonts/controls/size and the
+production bundle. Only documentation and a scope comment were updated
+after that run; no production expression or test assertion changed.
+This remains a source checkpoint: real-node browser flows, 24 capture
+views and the remote whole gate are unverified. The green node merge
+point announced during A2a is ec5b1162; no new RPC method is added here.
+
+
+### Green shared-accessor head merged before A2a gate
+
+The source checkpoint `31920bf7` is preserved. The uncommitted attempt to
+merge the superseded ec5b1162 head was discarded before committing; no
+source checkpoint or history was rewritten. Merge `62570304` instead brings
+`f453ec2e`, including the shared method accessor and the accepted paired
+page correction. It has no conflicts. All 332 incoming non-document entries
+match that named head by mode/blob; README and ARCHITECTURE auto-merge both
+sets of additions. Six native entries are incoming unchanged, not authored
+or validated by this page track.
+
+Incoming protocol/schema/constants, migrations, older-peer/method tables,
+generated TypeScript and existing test cases remain unchanged. The root
+sequence now also requires forge-fixture Clippy/tests; the remote plan
+includes both, both nested prebuilds, TS regeneration and all web stages.
+Format/size/boundaries and authored-delta diff checks pass. The abandoned
+old-head merge's broad diff check reported inherited generated-TypeScript
+trailing whitespace; no generated file was hand-edited to remove it.
+
+Availability cells for limits, inbox and push are updated from rpc.rs's
+assigned contracts; their page screens are still pending. Project-wide PR
+values are staged with transport absent, so the previous watched-session
+restriction remains. Diagnostics still has no assigned report RPC. No new
+method or wire field is introduced by A2a, which uses existing usage.query.
+The next step is actual scoped-browser acceptance on the committed merged
+tree, then its first complete remote gate and local captures.
+
+
+### A2a verified checkpoint: reported agent/profile selection
+
+Executed source: `d34e86dbdb5f81f9057a8c30b1d73c29f22b075b`, after
+source checkpoint `31920bf7` and merge `62570304` of the green shared-accessor
+node head. A2a adds no Rust, native, dependency, RPC, wire field, protocol
+or schema change. It uses the existing usage.query contract. The earlier
+source-checkpoint paragraphs above are history, not the final run's result.
+
+The complete remote run exits zero at every one of its 18 steps: bundle,
+format/size/boundaries, default/TypeScript/forge Clippy, TypeScript generation,
+fresh binaries, both nested prebuilds, workspace tests and every web stage,
+then the forge fixture. Raw Rust summaries total 2,205 passed, zero failed,
+12 ignored across 114 sections; the separate forge fixture passes four.
+TypeScript generation/freshness runs four checks in two test sections.
+Web lint/types/fonts pass, unit tests pass 450 in 87 files, and the entire
+browser suite passes 66. Its run is
+`webparity-20261115T043236Z-d34e86db`; start/end load is 6.55/10.15.
+The remote tool retains the immutable commit/checkout and step logs; no
+custom remote pre/post source manifest is claimed. The earlier narrow real
+browser run on the same commit passes the new scoped flow and unchanged
+A1 flow, two cases, before the first whole run. The first narrow frontend
+lint failure remains retained as history; no exemption or deadline changed.
+
+Local visual verification is a separate capture run, with a fresh bundle
+and binaries: eight cases pass and produce 24 inspected original images.
+They cover en-US/ko-KR number/date locales, light/dark, 1280x900/390x844,
+and choices/selected/coverage views. A valid 50-character recorded profile
+wraps in both the open list and selected trigger. All eight cases observe
+zero page/console errors; 18 actual served static assets match the bundle.
+Contemporary local pre/post selected inputs are identical: 2,607 inputs,
+identity `a2ccd9cfda83bffde0c34c480a46e717f7bac70ba093d4b6cc9015760a67bc01`;
+all 2,438 tracked contents match the executed commit. Dependency/toolchain
+caches are outside that attestation. Five fleet processes and three helpers
+are gone, and the private SSD test folder is empty. No live service, account,
+credential lookup, permission change or deployment was involved.
+
+These images show normal synthetic long-profile reports, after desktop
+authentication and resize. English labels remain; locale coverage is not
+complete translation. Rendered redaction/partial/error/offline/empty/many
+or added-agent states, cold phone startup, physical devices, accessibility,
+OS IME and native/combined integration are not verified by this checkpoint.
+Source, whole-run and bounded visual evidence are submitted for review;
+no reviewer approval or complete web parity is inferred here.
+
+Work proceeds by feature package: narrow checks for intermediate commits,
+one whole gate and one combined review/capture submission at package end.
+The next package is the three assigned toast/modal defects listed above;
+its focus regressions begin with failing page tests. Their source is not
+part of this executed A2a checkpoint.
+
+### A2a review correction: forget scopes on a machine round trip
+
+Review found that the first implementation derived All agents on A to B
+without persisting the new target. Returning from B to A restored A's old
+named profile. The original green run and 24 images remain evidence only
+for their immutable source; this correction does not reinterpret them.
+
+The pure usageTargetFor transition forgets the scope whenever the machine
+changes. The view persists that transition during render, before effects
+can issue a request for the old profile. A later effect reset was rejected
+because it could send that filtered query before resetting. The interval
+is separate state and stays selected. The unit case covers A/profile to B
+to A and stable-machine identity; the actual-page case now returns to A,
+checks a machine-scope query, All agents and the retained weekly interval.
+Narrow checks and the changed-package whole gate are pending here. The
+following toast/modal test checkpoint is preserved in history and parked
+with an ordinary revert, so its unfinished tests are not mixed into A2a.
+
+
+### A2a corrected package verification
+
+Executed correction: `4939635c789779ede57abf0ce14e3f4145241ce5`.
+Narrow type/lint checks and 20 usage units pass. The changed-package run
+`webparity-20261115T053111Z-4939635c` passes all 18 steps, including all
+three Clippy configurations, both nested prebuilds, generation freshness,
+all web stages and the separate forge fixture. Raw workspace summaries
+remain 2,205 passed, zero failed, 12 ignored across 114 sections; forge
+passes four, and TypeScript checks pass four across two sections. Web
+units pass 451 in 87 files; the complete browser suite passes 66, including
+the extended machine round trip and retained weekly interval. Start/end
+load is 6.31/11.42. The rebuilt web, node and CLI are recorded by the run.
+
+The extended browser assertion was also executed against the retained
+original D34 product, deliberately using its old binaries and bundle.
+It fails at the return to A: the observed scope is the old claude-qwen
+profile instead of machine. The 166 selected bundle entries match D34's
+contemporary capture manifest, and the binary hashes match its retained
+runtime. This is an expected old-product counterexample, not a failed
+corrected-source gate; that distinction is retained with the evidence.
+Its fake processes are gone and the private SSD test folder is empty.
+
+No appearance changed in this state correction. The 24 inspected original
+D34 images keep their original source and normal-state limitations; they
+are not relabelled as captures of 4939635c. No repeat unaffected matrix or
+new visual/translation/cold-phone/native/combined claim is made. The remote
+tool's commit/checkout and step logs identify this new execution; a custom
+remote pre/post manifest is not claimed. The source return awaits review
+closure; integration approval is separate.

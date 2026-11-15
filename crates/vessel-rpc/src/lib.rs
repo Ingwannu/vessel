@@ -39,6 +39,7 @@
 //! [`Handler`]: vessel_proto::Handler
 
 mod client;
+mod decode;
 mod error;
 mod framed;
 pub mod memory;
@@ -51,6 +52,7 @@ pub use client::{
     ClientConfig, Connection, NotUnary, Subscription, SubscriptionItem, TerminalSubscription,
     Unary, UnaryCall,
 };
+pub use decode::{DecodeFailure, DecodeKind};
 pub use error::{CallError, ConnectError, OutboundError, ProtocolViolation, ServeError};
 pub use framed::{Framed, FramedError, MAX_FRAME};
 pub use server::{Outbound, Peer, Server, ServerConfig, SubscriptionClosed, SubscriptionSink};

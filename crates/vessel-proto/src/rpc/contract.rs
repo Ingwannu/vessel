@@ -1,4 +1,4 @@
-//! Request/reply association is independent of the method registration table.
+//! Request/reply association is independent of method registration.
 
 use super::{Call, Method, Reply};
 use serde::{Serialize, de::DeserializeOwned};

@@ -458,3 +458,22 @@ the selected OptionId for acknowledgement validation. A duplicated value across 
 refuses before mutation; list uses logged options so ended sessions remain inspectable.
 The pure selection regression includes a value present only in the second option, which
 the earlier first-category lookup incorrectly refused.
+
+## Node head40 integration
+
+Merged announced ba45a6e3 after the scoped checks finished. Shared Request/UnexpectedReply
+contracts and the existing boot helpers follow the head, including its preserved logging
+target. W17's five pending rows move to the END of rpc/table.rs; no version/schema is
+assigned. Existing Admin expectations remain unchanged, with only the three approved host
+Admin names relocated to the table's new trailing order. W17 has no new project/worktree/
+git/file method to add to WORKSPACE_FAMILIES_LATER. Head WorkspaceId/WorkspaceOperationId
+and their tests are retained alongside HostRegistrationId. The smaller node.rs budget684
+is retained rather than raised to691. The provisional screen adapter remains blocked on
+C2 ADR0095 and is explicitly not mergeable as a second parser.
+
+Remote named ts run dc7d55d71 completed generator4/0/0 and exported a one-file expected
+tracked diff (overall step rc1 because generated declarations changed). Its manifest and
+artifacts are /tmp/work/wp-cli/ts-export/artifacts/ts. Since head40 updates wire types too,
+that older generated file will not overwrite the head's declarations; generation will be
+repeated on the resolved merge. Verified local waiting PID3674024 was terminated before
+submitting the remote ts job; no concurrent duplicate generator was started.

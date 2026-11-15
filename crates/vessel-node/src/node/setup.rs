@@ -96,7 +96,9 @@ pub(super) fn model_client() -> Result<vessel_llm::client::Client, NodeError> {
     let limits = vessel_llm::client::Limits::default();
     vessel_llm::client::Client::new(limits)
         .or_else(|error| {
-            tracing::warn!(%error, "model calls to https providers will fail");
+            // The target it had in node.rs before the move, so log filters
+            // that select it keep working.
+            tracing::warn!(target: "vessel_node::node", %error, "model calls to https providers will fail");
             vessel_llm::client::Client::with_roots(rustls::RootCertStore::empty(), limits)
         })
         .map_err(NodeError::ModelClient)
@@ -119,7 +121,7 @@ pub(super) async fn host_registry(
 }
 
 pub(super) fn listening(id: NodeId, address: Option<SocketAddr>, local: &Endpoint) {
-    tracing::info!(
+    tracing::info!(target: "vessel_node::node",
         node = %id,
         address = ?address,
         local = %local.path().display(),
