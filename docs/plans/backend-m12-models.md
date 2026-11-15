@@ -88,3 +88,9 @@ The original method block is retained byte-for-byte after removing only
 the parent visibility change. No assertion or test case changes. Models
 implementation is still an uncompiled preparation outside the repository;
 this extraction does not register a screen or create a new control.
+
+The immediate registration adds only the native module declaration and
+records the measured 952 lines instead of 988. The root actor's existing
+`Command::Options` arm is unchanged; the moved method is now reachable
+through that same caller. A13 on this registered head is pending. No Models
+screen, loader or registry behavior is included in this move/registration.

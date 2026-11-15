@@ -30,6 +30,8 @@ mod nodes;
 // none yet (no files).
 #[cfg(not(target_arch = "wasm32"))]
 mod offers;
+#[cfg(not(target_arch = "wasm32"))]
+mod options;
 // The composers' drafts kept between runs (track P's row e).
 #[cfg(not(target_arch = "wasm32"))]
 pub mod drafts;
