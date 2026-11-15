@@ -6,11 +6,12 @@
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::ui::{
-    AnyElement, Context, InteractiveElement as _, IntoElement as _, KeyDownEvent, MouseButton,
-    MouseDownEvent, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div,
-    px,
+    AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, KeyDownEvent, MouseButton,
+    MouseDownEvent, ParentElement as _, Stateful, StatefulInteractiveElement as _, Styled as _,
+    Window, div, px,
 };
 use vessel_app_kit::{MenuItem, Tokens, Type, TypeExt as _, breakpoint, popup};
+use vessel_app_view::ConversationWords;
 use vessel_app_view::session::{
     CONVERSATION_PROTOCOL, MarkAction, ParkState, can_rename, is_live, mark_actions, park_state,
     session_name,
@@ -53,24 +54,9 @@ pub(crate) fn bar(
         .as_deref()
         .and_then(park_state)
         .map(|state| parked_chip(shell, &state, tokens, narrow));
-    let badge = status.filter(|_| parked.is_none()).map(|status| {
-        let color = match status {
-            SessionStatus::Starting => tokens.st_building,
-            SessionStatus::Running => tokens.st_ready,
-            SessionStatus::Failed { .. } => tokens.neutral.destructive,
-            SessionStatus::Exited { .. } | SessionStatus::Interrupted => {
-                tokens.neutral.foreground_extra_muted
-            }
-        };
-        div()
-            .flex_shrink_0()
-            .px(px(6.0))
-            .rounded(px(4.0))
-            .bg(surfaces.surface2)
-            .type_(Type::Meta)
-            .text_color(color)
-            .child(words.status_word(status))
-    });
+    let badge = status
+        .filter(|_| parked.is_none())
+        .map(|status| status_badge(status, *words, tokens));
     let lost = lost_line(shell, tokens, narrow);
     let refused = area.refused.as_ref().map(|(_, why)| {
         div()
@@ -80,25 +66,7 @@ pub(crate) fn bar(
             .text_color(tokens.neutral.destructive)
             .child(why.clone())
     });
-    let actions = div()
-        .id("session-actions")
-        .flex_shrink_0()
-        .size(px(if narrow { 44.0 } else { 28.0 }))
-        .flex()
-        .items_center()
-        .justify_center()
-        .rounded(px(popup::MENU_RADIUS))
-        .text_color(tokens.neutral.foreground_muted)
-        .cursor_pointer()
-        .hover(move |style| style.bg(surfaces.surface2))
-        .on_mouse_down(
-            MouseButton::Left,
-            cx.listener(|shell, event: &MouseDownEvent, window, cx| {
-                shell.open_actions(event.position, window, cx);
-                cx.stop_propagation();
-            }),
-        )
-        .child(glyph(Glyph::More, 16.0, tokens.neutral.foreground_muted));
+    let actions = actions_button(tokens, narrow, cx);
     div()
         .flex()
         .flex_row()
@@ -126,6 +94,50 @@ pub(crate) fn bar(
         .children(crate::areas::workspace::code_toggle(shell, tokens, narrow, cx))
         .child(actions)
         .into_any_element()
+}
+
+/// The session's state when it is not running, in its colour.
+fn status_badge(status: &SessionStatus, words: ConversationWords, tokens: &Tokens) -> Div {
+    let color = match status {
+        SessionStatus::Starting => tokens.st_building,
+        SessionStatus::Running => tokens.st_ready,
+        SessionStatus::Failed { .. } => tokens.neutral.destructive,
+        SessionStatus::Exited { .. } | SessionStatus::Interrupted => {
+            tokens.neutral.foreground_extra_muted
+        }
+    };
+    div()
+        .flex_shrink_0()
+        .px(px(6.0))
+        .rounded(px(4.0))
+        .bg(popup::Surfaces::of(tokens).surface2)
+        .type_(Type::Meta)
+        .text_color(color)
+        .child(words.status_word(status))
+}
+
+/// The Session actions button: its menu opens where it was pressed.
+fn actions_button(tokens: &Tokens, narrow: bool, cx: &mut Context<'_, Shell>) -> Stateful<Div> {
+    let surfaces = popup::Surfaces::of(tokens);
+    div()
+        .id("session-actions")
+        .flex_shrink_0()
+        .size(px(if narrow { 44.0 } else { 28.0 }))
+        .flex()
+        .items_center()
+        .justify_center()
+        .rounded(px(popup::MENU_RADIUS))
+        .text_color(tokens.neutral.foreground_muted)
+        .cursor_pointer()
+        .hover(move |style| style.bg(surfaces.surface2))
+        .on_mouse_down(
+            MouseButton::Left,
+            cx.listener(|shell, event: &MouseDownEvent, window, cx| {
+                shell.open_actions(event.position, window, cx);
+                cx.stop_propagation();
+            }),
+        )
+        .child(glyph(Glyph::More, 16.0, tokens.neutral.foreground_muted))
 }
 
 /// The bar's word for a released agent, quiet as an idle session is, or

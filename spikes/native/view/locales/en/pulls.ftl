@@ -151,3 +151,44 @@ pulls-card-passed = passed
 pulls-card-failed = failed
 # A card's checks outcome after its glyph. Keep to one or two words.
 pulls-card-running = running
+
+# Menu entry: merge with a squash commit. Keep short.
+pulls-merge-squash = Merge PR (squash)
+# Menu entry: merge with a merge commit. Keep short.
+pulls-merge-merge = Merge PR (merge)
+# Menu entry: merge by rebasing. Keep short.
+pulls-merge-rebase = Merge PR (rebase)
+# A merge entry while the merge runs. Keep short.
+pulls-merging = Merging PR...
+# Toast after the merge. Keep short.
+pulls-merged = PR merged
+# Toast title when the merge failed. Keep short.
+pulls-merge-failed = Failed to merge PR
+# Merge refused: the session has no pull request.
+pulls-merge-missing = Merge PR isn't available because there isn't a pull request yet
+# Merge refused: the session's pull request changed. $number is its number, as text.
+pulls-merge-other = Merge PR isn't available because this session's pull request is now #{ $number }
+# Merge refused: already merged.
+pulls-merge-already = Merge PR isn't available because the pull request is already merged
+# Merge refused: closed.
+pulls-merge-closed = Merge PR isn't available because the pull request is closed
+# Merge refused: a draft.
+pulls-merge-draft = Merge PR isn't available because the pull request is still a draft
+# Merge refused: the branch moved since the person looked.
+pulls-merge-moved = Merge PR isn't available because the branch has new commits since you looked. Try again after the next refresh.
+# Merge refused: the forge does not say it is ready.
+pulls-merge-not-ready = Merge PR isn't available until GitHub reports the PR is ready to merge
+# Merge refused: the repository does not allow the method.
+pulls-merge-method = Merge PR isn't available because this repository doesn't allow this merge method
+# Merge refused: the repository uses a merge queue.
+pulls-merge-queue = Merge PR isn't available here because this repository uses a merge queue
+# Merge refused: the forge cannot merge exactly the commits seen with this method.
+pulls-merge-pin = Merge PR isn't available because GitHub can't merge exactly the commits you saw with this method
+# Merge refused: the machine cannot reach the forge.
+pulls-merge-no-github = Merge PR isn't available right now because GitHub isn't connected
+# Merge refused by the forge; its own message is shown under this.
+pulls-merge-rejected = The merge was refused
+# Merge refused for a reason this app does not know.
+pulls-merge-refused-unknown = The pull request wasn't merged
+# Switch label in the pull request view. Keep it one line.
+pulls-feedback = Send failing checks and reviews to the session

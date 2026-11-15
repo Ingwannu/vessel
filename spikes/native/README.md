@@ -188,6 +188,9 @@ the machine picker; Paseo's `desktopOnly`/`webOnly` per surface). A
 section registers its renderer once, in `settings::sections::page`; a
 section without one is not listed (no placeholder pages), so the list and
 the pages cannot disagree. State and event slots are added only when needed.
+Overview and Connections share one read of the machine book
+(`settings/book.rs`, asked while either is shown); a route reaches the
+screen as its endpoint only (`view::connections`).
 
 Sync is read-only: `link::sync` projects manifests into names and metadata
 before a UI event exists. Partial failures remain explicit; secret values
@@ -385,6 +388,12 @@ versioned, bounded; a file that does not read is set aside as
 `drafts.json.unread`). Up and Down in an empty session composer recall
 the messages sent in it, newest first.
 
+`kit::attachment` is Paseo's `AttachmentPill` and `AttachmentFrame`: a
+file attached to a message as a 48-high pill (an image's picture, any other
+file's name over its kind), a remove button at its top left in a composer,
+none in a sent message, and Vessel's own progress bar and trouble edge for
+a file on its way to the node.
+
 `kit::autocomplete` is Paseo's `Autocomplete` (the composer's `/` and `@`
 list): rows drawn best last (nearest the text), the chosen one on
 `surface2`, a chosen command's card above the list, the loading, empty and
@@ -427,6 +436,12 @@ consumed at16 for pointer and20 for compact settings navigation.
 Settings' list also draws `Glyph::FolderGit` (Projects, Workspaces) and
 `Glyph::Boxes` (Providers): original drawings on the same grid after
 Paseo's `FolderGit2` and `Boxes`, at the same two sizes.
+
+The source-specific `host_rename_button(id, ButtonState, tokens)` keeps
+Paseo's pencil: `theme::icon::SM`, padding `spacing::S1`, `theme::radius::MD`,
+static muted ink, a frame and a hit (slop `spacing::S2`) computed from those;
+its caller owns the callback and pending state, with no extra paint. Unlike
+Paseo's it has no accessible name (the kit has no accessibility tree yet).
 
 ### Rules every screen follows
 
@@ -758,6 +773,11 @@ Pairing is the first complete migrated area: its two dialogs, name/link
 errors and successful status use `view/locales/{en,ko}/pairing.ftl`. Other
 owners keep their area tables until their own migration. The shared machine
 file-fault sentence still belongs to its table, including when pairing shows it.
+About's licence and bundled-software labels use `about.ftl`; inventory roles
+map exhaustively to cached plain getters in `view/src/about/words.rs`.
+The Fluent libraries have the Translations role; UUID has the Identifiers role.
+The update card, connected-machine section and trademark section still belong
+to their existing areas and have not moved with the licence vocabulary.
 General's Language row uses System first, then each embedded language's own
 name. Its typed preference goes through `Prefs::prefer`; labels, retained
 field placeholders and pairing outcomes update at once, without restarting

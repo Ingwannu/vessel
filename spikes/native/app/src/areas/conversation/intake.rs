@@ -137,6 +137,8 @@ impl ConversationArea {
             self.at(from)..self.at(rows_before),
             rows_after.saturating_sub(from),
         );
+        // A fork that never held a conversation shows no origin (F2).
+        self.origin_dropped();
         self.revealed();
         true
     }
