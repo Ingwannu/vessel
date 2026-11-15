@@ -29,8 +29,8 @@ their authenticated owner adapters; desktop never substitutes a book alias.
 ## Current status
 
 Implementation is source under integration, not a completed parity claim. The
-latest application base is package line `a7aab9d6` (base 9 plus header actions,
-native 1513/0/2), merged at `084f6858`. It contains the reviewed shared popover,
+latest application base is package line `3e7820e3` (base10, native1535/0/2),
+merged at `616c6bf9`. Earlier immutable runs retain the base9/header union. It contains the reviewed shared popover,
 title actions, pane/query seams, attention
 values and picker admission. The link's existing SavePrefs fallback was extracted
 by its owner; desktop native interception still owns its sole canonical writer.
@@ -429,7 +429,9 @@ rustfmt and the size/token scripts are the only local source checks.
 | Windows4, run151309Z | b0cef8c4; fonts0 and locked MSVC all-target App check0 | Normal/test warnings20/14. Typecheck only; no Windows runtime/root cross-check or later writer/base/zoom proof. |
 | Close-admission App27 | a006a921; stopped before tests with E0502 in registered_probe | Fixture borrowed the registry before capturing its Shell. The receiving repair uses the real shared register operation, without changing assertions. |
 
-Library strict26 and Windows5 on b5cf516a remain queued independently. No App
+Library strict26 and Windows5 on b5cf516a remain queued independently. App28 on
+c19762c8 is the first submitted real host/factory/enumeration/check-token union;
+its outcome is pending and it predates the subsequent announced base10 merge. No App
 strict result, final whole native gate, native-build/export, inspected capture
 set or V4 package verdict exists for this E3 tree. Pending owner consumers are
 not hidden by lint allowances or fabricated registrations.
@@ -487,6 +489,6 @@ tracker rows or go to the release lead.
 The old read-only protocol23 root binaries were reapproved only through dd13/base6
 for windows/menus/changelog/credential-free navigation, with no same-commit claim.
 They omit service-port/allocation approval, strict decode failure, session.delete
-handover and pending-label admission. The current base9 uses protocol24: obtain
+handover and pending-label admission. The current base10 uses protocol25: obtain
 fresh lead approval before any fleet capture. Desktop does not rebuild shared
 root binaries, launch real agents, use live preview ports or open real browsers.
