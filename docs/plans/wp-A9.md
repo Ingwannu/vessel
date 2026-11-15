@@ -168,3 +168,7 @@ test-constructor lints. The correction quotes the existing type path and
 names SignInHelp directly, without weakening the lint or changing product
 decisions. That red run is kept separate from runtime results on the
 earlier Models/catalog source.
+
+The next Clippy pass reached App and required the default-save helper's
+machine/agent arguments to be borrowed. Its caller already owns those local
+values; the correction changes neither context checks nor persistence order.

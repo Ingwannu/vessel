@@ -208,22 +208,22 @@ impl Shell {
         let Some(value) = control.values.get(index) else {
             return;
         };
-        self.save_agent_default(machine, agent, control.choose(value.id.clone()), cx);
+        self.save_agent_default(&machine, &agent, control.choose(value.id.clone()), cx);
     }
 
     fn save_agent_default(
         &mut self,
-        machine: vessel_app_link::agents::MachineKey,
-        agent: HarnessRef,
+        machine: &vessel_app_link::agents::MachineKey,
+        agent: &HarnessRef,
         choice: vessel_proto::OptionChoice,
         cx: &mut Context<'_, Self>,
     ) {
-        let Some(options) = self.offer_options(machine.as_str(), &agent) else {
+        let Some(options) = self.offer_options(machine.as_str(), agent) else {
             return;
         };
         let previous = self
             .prefs
-            .choices(machine.as_str(), &agent)
+            .choices(machine.as_str(), agent)
             .unwrap_or_default();
         let choices = match default_choices::prepare(options, previous, choice) {
             Ok(choices) => choices,
@@ -235,7 +235,7 @@ impl Shell {
             }
         };
         self.prefs
-            .keep_choices(machine.as_str(), &agent, choices.as_slice());
+            .keep_choices(machine.as_str(), agent, choices.as_slice());
         self.areas.settings.agents.defaults_problem = None;
         self.areas.settings.agents.defaults.close();
         self.command(Command::SavePrefs(self.prefs.clone()));
