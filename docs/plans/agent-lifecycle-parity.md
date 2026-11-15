@@ -1239,3 +1239,13 @@ regressions are queued after the integrated discovery head merge. Those checks
 do not prove timestamp production, label-event coverage or complete mutations.
 The next step is design review of this contract, then implementation and the
 forcing tests before one complete package gate.
+
+
+### Creation boundary extraction (behavior-preserving)
+
+Before adding a frozen initial seed, creation and its cancellation-safe startup
+move unchanged from the session collection into sessions/creation.rs. The
+collection still owns lookup, tracking and handover. The extracted methods keep
+all existing ordering, cleanup, conditions and return values, including the
+late handle snapshot that the following behavior correction will replace.
+No test expectation or deadline changes in this extraction.

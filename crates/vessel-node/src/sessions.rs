@@ -22,6 +22,7 @@
 //! is never listed without being findable, and never found as a stored
 //! (ended) session while it runs.
 
+mod creation;
 mod subagents;
 
 use std::collections::HashMap;
@@ -33,9 +34,9 @@ use tokio_util::task::TaskTracker;
 use vessel_harness::{ModelProxy, Profile};
 use vessel_proto::{
     EventRecord, EventSeq, HarnessRef, OptionChoice, ProfileName, SessionId, SessionInfo,
-    SessionOption, SessionSpec, SessionTitle,
+    SessionOption, SessionTitle,
 };
-use vessel_session::{Created, LaunchOptions, ProfileMove, SessionHandle, SessionRuntime};
+use vessel_session::{ProfileMove, SessionHandle, SessionRuntime};
 use vessel_store::Store;
 
 use crate::agents::Agents;
@@ -124,59 +125,6 @@ impl Sessions {
 
     pub(crate) const fn store(&self) -> &Store {
         &self.store
-    }
-
-    /// Start a session and its persistence.
-    ///
-    /// Runs as its own task: once the process is started, storing the
-    /// session and starting its persistence must finish even if the client
-    /// cancels the call, or the session would run unrecorded.
-    pub(crate) async fn create(
-        self: &Arc<Self>,
-        spec: SessionSpec,
-        options: LaunchOptions,
-        lease: Option<tokio::sync::OwnedMutexGuard<()>>,
-    ) -> Result<SessionInfo, ServiceError> {
-        let sessions = Arc::clone(self);
-        self.tasks
-            .spawn(async move {
-                let _lease = lease;
-                sessions.start(spec, options).await
-            })
-            .await
-            .map_err(ServiceError::Task)?
-    }
-
-    async fn start(
-        self: &Arc<Self>,
-        spec: SessionSpec,
-        options: LaunchOptions,
-    ) -> Result<SessionInfo, ServiceError> {
-        let Created { handle, durable } = self.runtime.create_with(spec, options).await?;
-        let id = handle.id();
-        // Visible from here on (see the module docs). Readers that need the
-        // log wait on the watch until persistence starts below.
-        let durability = self.track(&handle, EventSeq::ZERO);
-        if let Err(error) = self.store.create_session(handle.info()).await {
-            // Without a stored row its records cannot be kept. Fail anyone
-            // already waiting for its log, stop it, and forget it; dropping
-            // `durable` lets it finish without waiting for us.
-            tracing::error!(session = %id, %error, "cannot store a new session; killing it");
-            durability.send_modify(|durability| *durability = Durability::Broken);
-            handle.kill();
-            self.forget(id);
-            drop(durable);
-            // Remove it from the runtime once it has ended, without holding
-            // up this call's answer.
-            let sessions = Arc::clone(self);
-            drop(self.tasks.spawn(async move {
-                sessions.hand_over(handle, Persisted::Incomplete).await;
-            }));
-            return Err(error.into());
-        }
-        let info = handle.info();
-        self.persist(handle, durable, durability);
-        Ok(info)
     }
 
     /// Make a session the runtime has just started (or started again)
