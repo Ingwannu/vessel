@@ -233,7 +233,7 @@ mod tests {
         drop(inbox);
         let session = SessionId::random();
         let opening = vessel_app_link::TerminalOpening::new("laptop".parse().unwrap(), session);
-        let act = vessel_app_link::Act::TerminalLog {
+        let act = Act::TerminalLog {
             opening: opening.clone(),
             until: vessel_app_view::timeline::Until::Time(chrono::DateTime::UNIX_EPOCH),
         };

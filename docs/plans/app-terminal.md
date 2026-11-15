@@ -430,7 +430,9 @@ No fixture override exists in an installed build.
 
 Repair resume: six old-code behaviour regressions failed as expected;
 13 repaired terminal tests now pass, including completion order and
-motion lifetime. Private captures and the native gate remain owed.
+motion lifetime. The queue-refusal regression has also been added.
+One unnecessary qualification in that new test was corrected after the
+first source commit. Private captures and the native gate remain owed.
 
 - Done: ADR 0073 (status proposed) and this contract. `replay` never
   answers. Path quoting is stated for both node platforms. Scrollback
