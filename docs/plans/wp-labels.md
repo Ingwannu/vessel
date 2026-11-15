@@ -491,9 +491,10 @@ current execution and strict acceptance remain owed.
 
 ## Current session metadata owner and base checkpoint
 
-Merged announced app base 9 `db42d9c5`, then dialog base 9b `a7aab9d6`.
-This does not adopt the unreviewed A6 node runtime. Base 10 candidates and the
-lifecycle event producer remain outside this app until their announcements.
+Merged announced app base 9 `db42d9c5`, dialog base 9b `a7aab9d6`, then
+announced base 10 `3e7820e3` (native baseline 1535/0/2). This does not adopt the
+unreviewed A6 node runtime. Base 11 candidates and the lifecycle event producer
+remain outside this app until their announcements.
 The existing manager search retains identified TextField callbacks: the new
 shared SearchField currently exposes only an unidentified change callback.
 Changing it would discard the queued-old-editor fence. Reuse the same identified
