@@ -203,7 +203,7 @@ fn refresh_preserves_only_same_target_comparison_and_rediscovers_authority() {
     let mut replacement = super::Entry::new(super::PanelTarget::WorkingDiff, Some(next));
     replacement.retain_comparison(&previous);
     assert_eq!(replacement.comparison, Comparison::default());
-    let commit = "a".repeat(40).parse().unwrap();
+    let commit: vessel_proto::workspace::CommitId = "a".repeat(40).parse().unwrap();
     let mut immutable = super::Entry::new(
         super::PanelTarget::CommitDiff(commit.clone()),
         Some(context),
