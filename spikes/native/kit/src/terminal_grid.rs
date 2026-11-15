@@ -30,8 +30,8 @@ use std::rc::Rc;
 
 use gpui::{
     App, Bounds, Font, FontFeatures, FontStyle, FontWeight, Hsla, IntoElement, Pixels, Point,
-    ShapedLine, SharedString, StrikethroughStyle, Styled as _, TextAlign, TextRun, UnderlineStyle,
-    Window, canvas, fill, point, px, size,
+    ShapedLine, SharedString, Size, StrikethroughStyle, Styled as _, TextAlign, TextRun,
+    UnderlineStyle, Window, canvas, fill, point, px, size,
 };
 
 use crate::fonts::{MONO, fallbacks};
@@ -132,8 +132,34 @@ pub struct GridFrame {
 pub struct CellSize {
     /// Width: the code face's advance.
     pub width: Pixels,
-    /// Height: its ascent plus descent.
+    /// Height: its ascent plus descent, rounded up to a whole pixel.
     pub height: Pixels,
+}
+
+impl CellSize {
+    /// How many whole cells fit in `room`: columns and rows, at least one
+    /// of each.
+    #[must_use]
+    pub fn fit(self, room: Size<Pixels>) -> (u16, u16) {
+        (
+            whole_cells(f32::from(room.width), f32::from(self.width)),
+            whole_cells(f32::from(room.height), f32::from(self.height)),
+        )
+    }
+}
+
+/// Whole cells of `cell` in `room`, 1 through `u16::MAX`.
+#[expect(
+    clippy::as_conversions,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    reason = "the count is floored and clamped to 1..=65535 before the cast"
+)]
+fn whole_cells(room: f32, cell: f32) -> u16 {
+    if cell <= 0.0 {
+        return 1;
+    }
+    room.div_euclid(cell).clamp(1.0, f32::from(u16::MAX)) as u16
 }
 
 /// `cells` steps of `step` from `origin`.
@@ -163,8 +189,11 @@ pub fn cell_size(window: &Window, font_size: Pixels) -> CellSize {
     let width = text
         .advance(id, font_size, 'M')
         .map_or(font_size, |advance| advance.width);
+    // GPUI gives the descent below the baseline as a negative length (its
+    // Linux text system negates swash's, as Core Text's is); its size is
+    // what the row needs, whatever the platform's sign.
     let ascent = f32::from(text.ascent(id, font_size));
-    let height = ascent.mul_add(1.0, f32::from(text.descent(id, font_size)));
+    let height = ascent.mul_add(1.0, f32::from(text.descent(id, font_size)).abs());
     CellSize {
         width,
         height: px(height.ceil()),
