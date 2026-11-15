@@ -36,7 +36,7 @@ impl Shell {
                     .map(|_why| receipt.context.tag())
             });
         if let Some(tag) = retired {
-            self.devices_retired(&tag);
+            let _changed = self.devices_retired(&tag);
         }
     }
     pub(crate) fn devices_answer(&mut self, answer: Answer, cx: &mut Context<'_, Self>) {
@@ -74,7 +74,7 @@ impl Shell {
                 );
                 self.devices_outcome(&context, failure.into_outcome(), cx);
                 if unavailable {
-                    self.devices_retired(&context.tag());
+                    let _changed = self.devices_retired(&context.tag());
                 }
             }
             Received::Retired {
@@ -83,7 +83,7 @@ impl Shell {
             } => {
                 // A dispatched write may already have taken effect. Drop its
                 // returned data and retain input plus an unconfirmed notice.
-                self.devices_retired(&context.tag());
+                let _changed = self.devices_retired(&context.tag());
             }
         }
     }

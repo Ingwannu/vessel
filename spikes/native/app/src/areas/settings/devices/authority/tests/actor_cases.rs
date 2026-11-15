@@ -160,7 +160,7 @@ fn initialize(cx: &mut TestAppContext) {
             cx,
             vessel_app_kit::SchemeChoice::Fixed(vessel_app_kit::Scheme::Dark),
         )
-        .unwrap()
+        .unwrap();
     });
 }
 
@@ -363,7 +363,9 @@ fn a_held_invitation_is_dropped_before_any_link_or_qr_can_reach_the_page(cx: &mu
             scene.request(shell.fixture_link()).unwrap(),
             Call::InviteDevice(_)
         ));
-        let expires = chrono::Utc::now() + chrono::Duration::minutes(10);
+        let expires = chrono::Utc::now()
+            .checked_add_signed(chrono::Duration::minutes(10))
+            .unwrap();
         let offer = vessel_proto::PairingOffer {
             v: vessel_proto::OfferVersion,
             node: context.node(),

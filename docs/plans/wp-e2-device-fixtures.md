@@ -270,3 +270,12 @@ worker and Home completion even if an earlier cleanup result failed. No new
 registry, counter, raw client or guard constructor is exposed. The new actual
 App source case closes with a request still in flight while keeping the App's
 weak proof, then checks before-frame refusal and its unconfirmed write notice.
+
+
+The0153 strict run checked the changed View, Link and App, then returned two
+unit-test qualification lints created by the promoted SendFailure reexport,
+plus the App receipt field visibility, three deliberately consumed retirement
+booleans, and two test-only formatting/checked-date lints. The correction
+changes no assertion, capacity, deadline or state decision. The two e42 test
+paths now name the same enum directly; that is the only shared-test change.
+No all-target green or runtime result is claimed for0153.

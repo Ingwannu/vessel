@@ -29,7 +29,7 @@ pub(crate) struct Devices {
     pub(super) dialog: DialogState,
     pub(super) copied: Option<&'static str>,
     pub(super) tips: Tooltips,
-    pub(super) receipt: Option<receive::Receipt>,
+    receipt: Option<receive::Receipt>,
     pub(super) places: HashMap<DeviceId, vessel_app_kit::tooltip::Place>,
 }
 
