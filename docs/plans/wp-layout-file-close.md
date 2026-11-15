@@ -1,7 +1,8 @@
 # File close ownership in the sole layout dispatcher
 
-Status: integration contract preparation. The File owner and opener are staged;
-there is no product File close-dispatch or payload-retirement approval here.
+Status: the conservative precommit guard passed bounded source/affected narrow
+checks. The real File owner and opener remain staged; there is no completed File
+close-dispatch or payload-retirement approval here.
 
 The prepared implementation now rejects a generic metadata transaction before
 commit when any original File tab is removed or retargeted, including automatic
@@ -76,3 +77,19 @@ The caller retains the original connection, root receipt and owner correlation.
 The raw ClosePlan target getter and current-target query are presentation
 snapshots. Neither proves an incarnation, UI visit, transport lease or close
 authority. Actual owner tests and the combined source/gate remain required.
+
+## Bounded split receipt
+
+Strict Kit/App all-target Clippy passed in run
+`wp-layout-core-union-20261115T164427Z-36c8de04`. Runtime
+`wp-layout-core-union-20261115T170907Z-36c8de04` is **red overall**:
+Kit206/0/0 plus App108/1/2 ignored. The one failed Explorer fixture is excluded
+from adoption. All three File guard GPUI cases and all eleven generic hook cases
+passed explicitly. File guard files equal selected 3a755fac + 178deeff source;
+the shared module is composed, with the exact transaction function/registration
+equivalent rather than an identical whole module or isolated executed tree.
+
+This permits the bounded conservative guard source, not actual C5 payload,
+dialog, buffer release or close authority. The newer lead/consumer union still
+owes its own gate and real owner evidence. Explorer and the whole assembly are
+not approved by these affected-case results.
