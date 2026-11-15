@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(transparent)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "TerminalProfileRevision"))]
 pub struct ProfileRevision(u64);
 impl ProfileRevision {
     /// Absent configuration uses reference defaults at the initial revision.
@@ -38,6 +39,7 @@ impl ProfileRevision {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", ts(rename = "TerminalProfilePromptMode"))]
 pub enum PromptMode {
     /// The profile contains the literal sentinel in command or argv.
     Editable,
@@ -48,6 +50,7 @@ pub enum PromptMode {
 /// Read-scope picker metadata never exposes configured command/argv contents.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "TerminalProfileSummary"))]
 pub struct ProfileSummary {
     /// Stable configuration identity, preserving configured order.
     pub id: Id,
@@ -62,6 +65,7 @@ pub struct ProfileSummary {
 /// Administrator-only configuration snapshot. Explicit empty disables profiles.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "TerminalProfileSettings"))]
 pub struct ProfileSettings {
     /// Expected by the next mutation, preventing lost concurrent edits.
     pub revision: ProfileRevision,

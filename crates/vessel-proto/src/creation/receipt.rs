@@ -9,6 +9,7 @@ use crate::{ErrorCode, SessionId, TerminalId, WorkspaceId, WorkspaceOperationId}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", ts(rename = "CreationKind"))]
 pub enum Kind {
     /// Provision a fresh independent workspace, optionally with its first resource.
     Workspace,
@@ -22,6 +23,7 @@ pub enum Kind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "kind", rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", ts(rename = "CreationResource"))]
 pub enum Resource {
     /// Reserved session identity, which is not proof of registration.
     Agent {
@@ -39,6 +41,7 @@ pub enum Resource {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", ts(rename = "CreationWorkspaceClaim"))]
 pub enum WorkspaceClaim {
     /// This operation alone provisions the reserved workspace identity.
     Create,
@@ -50,6 +53,7 @@ pub enum WorkspaceClaim {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", ts(rename = "CreationFirstInput"))]
 pub enum FirstInput {
     /// Empty workspace or a launch with no first message/typed shell command.
     Absent,
@@ -82,6 +86,7 @@ impl FirstInput {
 /// Resource identities reserved durably before any provision or spawn.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "CreationReservation"))]
 pub struct Reservation {
     /// Shared operation identity from ADR 0082, not an alternate workspace id.
     pub operation: WorkspaceOperationId,
@@ -99,6 +104,7 @@ pub struct Reservation {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", ts(rename = "CreationStage"))]
 pub enum Stage {
     /// Workspace/backing provision.
     Workspace,
@@ -112,6 +118,7 @@ pub enum Stage {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", ts(rename = "CreationCertainty"))]
 pub enum Certainty {
     /// Side effect was explicitly refused before completion.
     Known,
@@ -123,6 +130,7 @@ pub enum Certainty {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "phase", rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", ts(rename = "CreationPhase"))]
 pub enum Phase {
     /// Key/intent and ids committed before provisioning.
     Accepted,
@@ -148,6 +156,7 @@ pub enum Phase {
 /// Observation contains only identities and safe lifecycle metadata.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "CreationSnapshot"))]
 pub struct Snapshot {
     /// Kind namespaces the caller key.
     pub kind: Kind,

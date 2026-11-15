@@ -14,11 +14,13 @@ use super::{
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "ProfileWire", into = "ProfileWire")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "TerminalProfile"))]
 pub struct Profile {
     id: Id,
     name: Name,
     command: Program,
     args: Vec<Argument>,
+    #[cfg_attr(feature = "ts", ts(optional))]
     icon: Option<Icon>,
 }
 
@@ -214,7 +216,8 @@ impl fmt::Debug for Resolved {
 /// A bounded ordered profile set; an explicit empty list disables all profiles.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "Vec<Profile>", into = "Vec<Profile>")]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "Profile[]"))]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "TerminalProfiles"))]
 pub struct Profiles(Vec<Profile>);
 
 impl Profiles {

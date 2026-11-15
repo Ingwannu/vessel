@@ -10,6 +10,7 @@ use super::CreationError;
 #[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "string"))]
+#[cfg_attr(feature = "ts", ts(rename = "CreationKey"))]
 pub struct Key(String);
 
 impl Key {
@@ -61,6 +62,7 @@ impl fmt::Debug for Key {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "CreationFingerprint"))]
 pub struct Fingerprint(crate::BlobHash);
 
 impl Fingerprint {
@@ -75,6 +77,7 @@ impl Fingerprint {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "CreationRevision"))]
 pub struct Revision(u64);
 
 impl Revision {

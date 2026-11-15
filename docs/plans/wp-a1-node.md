@@ -120,3 +120,14 @@ separate idle Accepted from committed-Begin/no-effect recovery. This is an
 orchestration frame only: it is cfg(test), not a registered/shipping create
 RPC, and provides no principal/count/start-lease/generation-fence proof. The
 real controller and reviewed W11/runtime adapters remain missing.
+
+TypeScript generation on exact2eb391a1 compiled and reached the declaration
+contract, then refused a global `Snapshot` name clash. Creation declarations
+now use Creation-prefixed names and profile declarations use TerminalProfile
+names. The profile collection derives its actual Vec dependency rather than
+writing an untracked `Profile[]` type string. The omitted optional profile
+icon is represented explicitly. The shared alias table classifies caller
+creation keys/configured names, numeric revisions/waits, canonical handles
+and argv content by its existing policy. ClientMessageId remains W23's value;
+its first wire use is branded alongside WorkspaceId/WorkspaceOperationId.
+Rust/JSON identity and pending version assignment remain with their owners.

@@ -30,6 +30,7 @@ pub struct SubscribeCreation {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(try_from = "u16", into = "u16")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "number"))]
+#[cfg_attr(feature = "ts", ts(rename = "CreationObservationWait"))]
 pub struct ObservationWait(u16);
 
 impl ObservationWait {
@@ -68,6 +69,7 @@ impl From<ObservationWait> for u16 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::creation::CREATION_PROTOCOL;
     use crate::{Call, Method, MethodShape, Request as _, Scope};
 
     #[test]
@@ -95,13 +97,13 @@ mod tests {
     }
 
     #[test]
-    fn pending_methods_are_one_table_read_calls_without_a_provisional_version() {
+    fn observation_methods_use_the_shared_feature_gate_and_read_scope() {
         for method in [Method::ObserveCreation, Method::SubscribeCreation] {
-            assert_eq!(method.since(), None);
+            assert_eq!(method.since(), CREATION_PROTOCOL);
             assert_eq!(method.scope(), Some(Scope::Read));
             assert_eq!(method.shape(), MethodShape::Unary);
             let call = crate::rpc::samples::call(method).unwrap();
-            assert_eq!(call.since(), None);
+            assert_eq!(call.since(), CREATION_PROTOCOL);
             let encoded = serde_json::to_vec(&call).unwrap();
             let decoded: Call = serde_json::from_slice(&encoded).unwrap();
             assert_eq!(decoded.method(), method);

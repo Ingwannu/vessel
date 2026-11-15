@@ -67,11 +67,12 @@ impl TextKind {
 
 // Every field has a distinct type, while serde and validation cannot drift.
 macro_rules! profile_text {
-    ($name:ident, $kind:ident, $max:expr, $doc:literal) => {
+    ($name:ident, $kind:ident, $max:expr, $doc:literal, $wire:literal) => {
         #[doc = $doc]
         #[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
         #[serde(try_from = "String", into = "String")]
         #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "string"))]
+        #[cfg_attr(feature = "ts", ts(rename = $wire))]
         pub struct $name(String);
 
         impl $name {
@@ -115,34 +116,45 @@ macro_rules! profile_text {
     };
 }
 
-profile_text!(Id, Id, 64, "A stable terminal profile row identity.");
+profile_text!(
+    Id,
+    Id,
+    64,
+    "A stable terminal profile row identity.",
+    "TerminalProfileId"
+);
 profile_text!(
     Name,
     Name,
     800,
-    "A one-line profile label, allowing long Unicode names."
+    "A one-line profile label, allowing long Unicode names.",
+    "TerminalProfileName"
 );
 profile_text!(
     Program,
     Program,
     4096,
-    "A literal executable/path template, never a shell command."
+    "A literal executable/path template, never a shell command.",
+    "TerminalProfileProgram"
 );
 profile_text!(
     Argument,
     Argument,
     16 * 1024,
-    "One literal argv template/result, with whitespace preserved."
+    "One literal argv template/result, with whitespace preserved.",
+    "TerminalProfileArgument"
 );
 profile_text!(
     Prompt,
     Prompt,
     64 * 1024,
-    "A bounded prompt to substitute as literal argv text."
+    "A bounded prompt to substitute as literal argv text.",
+    "TerminalProfilePrompt"
 );
 profile_text!(
     Icon,
     Icon,
     Id::MAX_BYTES,
-    "An optional catalog icon identity, independent of the program."
+    "An optional catalog icon identity, independent of the program.",
+    "TerminalProfileIcon"
 );
