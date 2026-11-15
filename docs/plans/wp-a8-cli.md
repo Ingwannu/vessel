@@ -89,3 +89,13 @@ comparison/report writers are private and have unrelated scopes, so this avoids
 widening their APIs. The cap is an encoded-payload budget, not an exact heap claim.
 Smaller explicit request selections remain available. Tests cover exact cumulative
 boundary and escaped text counting rather than relying on raw string length.
+
+
+CLI acknowledgement confirmation reuses the existing typed PermissionOutcome /
+QuestionOutcome and authoritative Question::check. A durable Settled reply will
+be compared against exact request id and selected option/accepted field values
+before printing success; cancellation, another client's different answer, an
+unoffered option or an invalid empty form is unconfirmed. The private helpers
+are staged under the same cfg(test) module until W23's checked RPC and W17's
+reviewed output seam arrive. They neither invent a wire method nor turn the
+legacy Ack into durable proof. Regression fixtures explicitly cover these cases.
