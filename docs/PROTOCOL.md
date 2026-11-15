@@ -68,6 +68,30 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 25 (2026-11-15, milestone 12): workspace registry metadata (W11, ADR 0082)
+
+Protocol 25 introduces the independent workspace registry's six metadata
+methods: `workspace.registry`, `workspace.list` and `workspace.get` (Read),
+and `workspace.rename`, `workspace.pin` and `workspace.release_automation`
+(Operate). Each is unary and fleet-forwardable. A person calls them: an
+agent principal, direct or delegated, is refused before any lookup, and a
+forwarded call from a person (owner or device) holds the delivering device's
+scopes intersected with its origin's. A delegated `workspace.registry` reads
+at once, without the long poll. `workspace.release_automation` clears only
+the retained blocked-source gate, by compare-and-set on the expected
+revision and the exact typed source; it approves no command and starts no
+automation.
+
+Only these six activate. Workspace creation and filesystem provisioning,
+generation, resource start and exit, archive, restore and deletion, project
+config reads and writes, editor launch and D2 effects have no method row and
+remain unavailable. The six were reviewed with
+`PROJECT_WORKSPACE_REGISTRY = None` (the pending section below) and assigned
+25 at their node-line merge, the next free number in merge order. The
+providers (W22), once reserved 24, take the next free number when they
+merge. The minimum protocol remains 2 and the store schema (20, which
+already holds the registry tables) is unchanged.
+
 ## Version 24 (2026-11-15, milestone 12): node diagnostics (N1, ADR 0074)
 
 Protocol 24 introduces `node.diagnostics(GetDiagnostics {}) -> DiagnosticReport`:
@@ -1920,7 +1944,7 @@ prior block is invalid on every approval reply while unassigned. CLI shows
 both choices; web refuses current, prior and approved-folder blocks until
 it can display them completely. No allocator or process runs in this stage.
 
-## Pending independent workspace registry (ADR 0082)
+## Pending independent workspace registry (ADR 0082; assigned 25, see Version 25)
 
 The registry dependency declares workspace.registry, workspace.list,
 workspace.get, workspace.rename, workspace.pin and workspace.release_automation
