@@ -402,3 +402,12 @@ source. It does not execute later c840 write reservations,21ea queued-root
 corrections,45b family-guard correction or the ede20014 merge. It is not a whole
 root/native gate, staged-values-leaf validation, admission, real forge or UI pass.
 Those later source checks retain their separate queued runs.
+
+The coordinator accepted the purpose-specific generation split: the titles
+producer owns one Models workspace admission/routing/accounting seam (V3/node
+head); G1 owns authorized-root commit/PR callers above the announced API. The
+ADR0087 amendment preserves title one-attempt policy and gives workspace
+purposes initial plus up to two schema corrections per eligible candidate.
+No fake/borrowed session, second provider/key stack or fallback-only success is
+allowed. This is a documented contract; no reusable service is available yet,
+and no generation/paid-call test or parity claim has been made.

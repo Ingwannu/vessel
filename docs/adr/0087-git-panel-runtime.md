@@ -161,3 +161,69 @@ refuse the original operation rather than substituting its new path/base.
 The same fresh snapshot is consumed by the existing protected root open.
 This validation does not promise an atomic filesystem snapshot against other
 processes. The original node tracker remains the cleanup owner.
+
+## Workspace metadata generation purpose (coordinator ruling, 2026-11-15)
+
+### Context and existing assets
+
+The complete-response decoder in vessel-llm is not a generation service: it does
+not select routes, read credentials, admit or account for a workspace operation.
+The title producer's private caller is session-bound and remains frozen under
+its separate review. Its single-attempt policy from ADR0062 is unchanged.
+Pretending a workspace request is a title, creating a temporary session, or
+borrowing another session's admission/usage would misrepresent both ownership
+and accounting.
+
+Paseo's server/session/checkout/git-metadata-generator.ts:63–83,125–228 uses a
+structured commit message or PR title/body, with maxRetries2 passed to the
+structured response loop. The latter is an initial call plus up to two JSON or
+schema correction calls **per candidate**, followed by the configured candidate
+fallback policy. It is not two HTTP retries. Prompt patches are limited to
+120,000 JavaScript string units for commits and200,000 for PR text; message and
+PR title have a maximum72 JavaScript string units (UTF-16), not UTF-8 bytes or
+Unicode scalar counts. Prompt/schema tests must distinguish these units.
+
+### Decision and writer boundary
+
+- One Models-owned workspace metadata seam owns admission, route/provider
+  selection and accounting. The titles producer owns that shared seam and sends
+  it through node-head/V3 review. No second key reader, router, provider stack,
+  credential discovery or real-agent wrapper is introduced by C3/C4.
+- G1 owns the authorized-root commit-message and PR-text callers above that
+  announced seam. They retain original root/cancellation/correlation and use
+  the existing protected diff reader and validated commit/forge text types.
+  No private title-module visibility is widened to bypass the producer review.
+- Workspace purposes use initial plus at most two schema corrections for each
+  eligible candidate. Transport retry and schema correction are separate typed
+  policies. Titles retain exactly one attempt; no setting silently changes it.
+- Every actual attempt must be attributed to the workspace purpose and its
+  original operation, with known/unknown usage and cancellation retained as the
+  shared seam offers. No synthetic or arbitrary session receives ModelCall data.
+- Candidate order/eligibility, credential access and paid-call admission remain
+  the single Models owner's rules. The root caller cannot append providers,
+  choose keys or replay after cancellation. A model returns wording, never a
+  command, a path, an authority grant or a replacement repository.
+
+### Alternatives and consequences
+
+Extracting the frozen title driver would couple a root request to session title
+application and its session-only lifetime. A new generic client/key stack would
+duplicate route and secrecy policy. Treating the missing seam as successful
+fallback generation would conceal an unimplemented feature. These alternatives
+are rejected.
+
+The reusable seam must be announced before the root callers are wired. Until
+then generation is unavailable, not a fallback-only parity claim. Product
+fallback text is allowed only after an actual classified structured-generation
+failure, as in the reference; unrelated root/admission/I/O failures propagate.
+Fallback origin and diagnostics remain explicit in typed results. PR fallback
+branding must name Vessel, not falsely attribute this product's output to Paseo.
+No real provider or installed agent is used by tests.
+
+Required caller regressions include valid initial output, two corrected schema
+failures, exhaustion without a fourth same-candidate call, candidate fallback
+order, no HTTP retry disguised as correction, UTF-16 boundaries, classified
+fallback versus propagated root errors, cancellation without another paid call,
+and workspace-scoped accounting without a session. Original-root validation and
+normal repository mutation reservation still apply before a generated commit;
+no atomic filesystem snapshot against external edits is claimed.
