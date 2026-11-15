@@ -73,6 +73,8 @@ required to apply the current breakpoint; OS window visibility remains with the
 caller. Typed Explorer rendering is not installed yet and is not reported visible
 through this adapter. Sidebar actions use idempotent `layout_exit_focus`, rather
 than toggling into focus mode on an already ordinary layout.
+The separate [Explorer host plan](wp-layout-explorer.md) records the staged
+actual-tab projection and the remaining dock/renderer owner integration.
 Drawing and visibility queries share the effective pane projection. A stale
 maximized pane id, including after closing an empty pane, falls back to the
 surviving tree; it cannot suppress every resource renderer or poller.
