@@ -215,10 +215,10 @@ fn plain_output(
         id,
         version_of(text),
         || {
-            let made = Lines::text(text);
+            let projection = Lines::text(text);
             #[cfg(test)]
-            tests::admitted(&observed_id, &made);
-            made
+            tests::admitted(&observed_id, &projection);
+            projection
         },
         Start::Top,
         paint.tokens,
@@ -277,7 +277,7 @@ fn patch(
         id,
         version_of(text),
         || {
-            let made = Lines {
+            let projection = Lines {
                 lines: unified_lines(text)
                     .0
                     .into_iter()
@@ -294,8 +294,8 @@ fn patch(
                 copy: Some(text.to_owned().into()),
             };
             #[cfg(test)]
-            tests::admitted(&observed_id, &made);
-            made
+            tests::admitted(&observed_id, &projection);
+            projection
         },
         Start::Top,
         paint.tokens,
@@ -413,7 +413,7 @@ fn diff_output<'a>(
                 .enumerate()
                 .map(|(index, _)| highlights.for_line(index).to_vec())
                 .collect();
-            let made = AnnotatedLines {
+            let projection = AnnotatedLines {
                 lines: Lines {
                     lines: lines
                         .into_iter()
@@ -432,8 +432,8 @@ fn diff_output<'a>(
                 emphasis,
             };
             #[cfg(test)]
-            tests::admitted(&observed_id, &made.lines);
-            made
+            tests::admitted(&observed_id, &projection.lines);
+            projection
         },
         Start::Top,
         tokens,

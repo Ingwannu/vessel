@@ -139,3 +139,12 @@ The corrected preparation normally contains announced base10 (3e7820e3), keeping
 root changes entirely in that official base. Corrected-source strict and full
 three-crate ordinary tests are still required; prior5c execution is not a pass
 for these amendments. The staged gates and atomic A8/legacy activation are intact.
+
+Corrected489's exact strict run
+`wp-timeline-narrow-20261115T184618Z-489b1ace` stopped before runtime: App has no
+serde_json dependency for the new fixtures, and one new local name conflicted
+with the existing factory parameter under similar_names. Fixtures now construct
+the canonical EditDetail/SearchDetail directly; no dependency is added, and the
+factory result name is distinct. Both queued affected runtime runs were cancelled
+before acquisition, confirmed143 and retained before replacement. This failure
+provides no new execution/P2 closure; fresh checks remain required.

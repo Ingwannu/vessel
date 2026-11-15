@@ -29,7 +29,9 @@ use vessel_app_kit::{Scheme, Tokens};
 use vessel_app_view::Lang;
 use vessel_app_view::fork::Headers;
 use vessel_app_view::localization::{ENGLISH, Translator};
-use vessel_proto::timeline::{ShellDetail, ToolCallDetail, UnknownToolDetail};
+use vessel_proto::timeline::{
+    EditDetail, SearchDetail, ShellDetail, ToolCallDetail, UnknownToolDetail,
+};
 
 enum Observation {
     Requested(gpui::ElementId),
@@ -186,8 +188,29 @@ fn proposed_material_draws_through_the_borrowed_api_without_tool_or_log_objects(
     assert!(observed.get() > ready_paints);
 }
 
-fn detail(value: serde_json::Value) -> ToolCallDetail {
-    serde_json::from_value(value).unwrap()
+fn edit(new: Option<&str>, unified: Option<&str>) -> ToolCallDetail {
+    ToolCallDetail::Edit(EditDetail {
+        file_path: "a".into(),
+        old_string: Some("old".to_owned()),
+        new_string: new.map(str::to_owned),
+        unified_diff: unified.map(str::to_owned),
+    })
+}
+
+fn search() -> ToolCallDetail {
+    ToolCallDetail::Search(SearchDetail {
+        query: "q".to_owned(),
+        tool_name: None,
+        content: Some(PATCH.to_owned()),
+        file_paths: None,
+        web_results: None,
+        annotations: None,
+        num_files: None,
+        num_matches: None,
+        duration: None,
+        truncated: None,
+        mode: None,
+    })
 }
 
 fn draw(cx: &mut gpui::VisualTestContext) {
@@ -221,11 +244,11 @@ fn equal_bytes_change_format_in_both_directions_through_the_retained_borrowed_ap
         headers: Headers::default(),
         painted: Rc::new(Cell::new(0)),
     });
-    for patch in [false, true, false, true] {
-        let next = if patch {
-            detail(serde_json::json!({"type":"edit","file_path":"a","unified_diff":PATCH}))
+    for unified in [false, true, false, true] {
+        let next = if unified {
+            edit(None, Some(PATCH))
         } else {
-            detail(serde_json::json!({"type":"search","query":"q","content":PATCH}))
+            search()
         };
         view.update_in(cx, |probe, _, cx| {
             probe.detail = next;
@@ -233,7 +256,7 @@ fn equal_bytes_change_format_in_both_directions_through_the_retained_borrowed_ap
         });
         draw(cx);
         let made = watch.current();
-        if patch {
+        if unified {
             assert_rows(
                 &made,
                 &[
@@ -272,7 +295,7 @@ fn empty_patch_uses_reported_replacement_or_deletion_in_the_real_body(cx: &mut T
     crate::shell::language_tests::init(cx);
     let watch = Watch::begin();
     let (view, cx) = cx.add_window_view(|_, _| ProposedBody {
-        detail: detail(serde_json::json!({"type":"edit","file_path":"a","old_string":"old","new_string":"new","unified_diff":""})),
+        detail: edit(Some("new"), Some("")),
         state: tool_detail::DetailContentState::Ready,
         headers: Headers::default(),
         painted: Rc::new(Cell::new(0)),
@@ -287,16 +310,14 @@ fn empty_patch_uses_reported_replacement_or_deletion_in_the_real_body(cx: &mut T
         None,
     );
     view.update_in(cx, |probe, _, cx| {
-        probe.detail = detail(serde_json::json!({"type":"edit","file_path":"a","old_string":"old","new_string":"","unified_diff":""}));
+        probe.detail = edit(Some(""), Some(""));
         cx.notify();
     });
     draw(cx);
     assert_rows(&watch.current(), &[("old", Tone::Removed, Some(1))], None);
     let before = watch.count();
     view.update_in(cx, |probe, _, cx| {
-        probe.detail = detail(
-            serde_json::json!({"type":"edit","file_path":"a","old_string":"old","unified_diff":""}),
-        );
+        probe.detail = edit(None, Some(""));
         cx.notify();
     });
     draw(cx);
