@@ -71,48 +71,58 @@ async fn diagnostics_owner_and_two_paired_readers_follow_two_real_nodes_and_revo
             (&reader_a, &owner_a, a.info().id, 1),
             (&reader_b, &owner_b, b.info().id, 0),
         ] {
-            let authority = step(
-                "paired caller reads its admitted scope",
-                reader.device_self(),
-            )
-            .await
-            .unwrap();
-            assert_eq!(authority.scopes, [Scope::Read]);
-            let paired_id = authority
-                .device
-                .expect("a genuine paired caller has its own id");
-            let _owner_report = report(owner, id, count).await;
-            let report = report(reader, id, count).await;
-            let json = serde_json::to_string(&report).unwrap();
-            for private in [
-                first.data_path(),
-                second.data_path(),
-                first.cwd().as_path(),
-                second.cwd().as_path(),
-            ] {
-                assert!(!json.contains(private.to_str().unwrap()));
-            }
-            step(
-                "canonical owner revokes paired reader",
-                owner.revoke_device(paired_id),
-            )
-            .await
-            .unwrap();
-            step("revoked diagnostic connection closes", reader.closed()).await;
-            assert!(
-                step(
-                    "revoked reader cannot obtain another report",
-                    reader.diagnostics()
-                )
-                .await
-                .is_err()
-            );
+            check_reader(reader, owner, id, count, &first, &second).await;
         }
         step("stop first diagnostic node", a.stop()).await.unwrap();
         step("stop second diagnostic node", b.stop()).await.unwrap();
         step("stop diagnostic relay", relay.stop()).await;
     })
     .await;
+}
+async fn check_reader(
+    reader: &NodeClient,
+    owner: &NodeClient,
+    id: NodeId,
+    count: u64,
+    first: &Fixture,
+    second: &Fixture,
+) {
+    let authority = step(
+        "paired caller reads its admitted scope",
+        reader.device_self(),
+    )
+    .await
+    .unwrap();
+    assert_eq!(authority.scopes, [Scope::Read]);
+    let paired_id = authority
+        .device
+        .expect("a genuine paired caller has its own id");
+    let _owner_report = report(owner, id, count).await;
+    let report = report(reader, id, count).await;
+    let json = serde_json::to_string(&report).unwrap();
+    for private in [
+        first.data_path(),
+        second.data_path(),
+        first.cwd().as_path(),
+        second.cwd().as_path(),
+    ] {
+        assert!(!json.contains(private.to_str().unwrap()));
+    }
+    step(
+        "canonical owner revokes paired reader",
+        owner.revoke_device(paired_id),
+    )
+    .await
+    .unwrap();
+    step("revoked diagnostic connection closes", reader.closed()).await;
+    assert!(
+        step(
+            "revoked reader cannot obtain another report",
+            reader.diagnostics()
+        )
+        .await
+        .is_err()
+    );
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn diagnostics_wire_authority_keeps_read_agents_and_refuses_no_read_devices_and_agents() {
@@ -160,45 +170,48 @@ async fn diagnostics_wire_authority_keeps_read_agents_and_refuses_no_read_device
             .await
             .unwrap();
         assert_eq!(report.fields().node.id, node.info().id);
-        let restricted_session = step(
-            "create scope-clipped fake session",
-            creator.create_session(structured_spec(&fixture, None)),
-        )
-        .await
-        .unwrap();
-        let mut restricted = step(
-            "owner observes the clipped session",
-            crate::agents::following(&owner, restricted_session.id, vessel_proto::EventSeq::ZERO),
-        )
-        .await;
-        let (_, socket, auth) = step(
-            "clipped agent actual credential",
-            credential(&owner, &mut restricted),
-        )
-        .await;
-        let agent = step(
-            "clipped agent authenticated local socket",
-            as_agent(&socket, &auth),
-        )
-        .await;
-        assert_eq!(
-            step("clipped agent actual scopes", agent.device_self())
-                .await
-                .unwrap()
-                .scopes,
-            [Scope::Operate]
-        );
-        forbidden(
-            step("no-Read agent diagnostic refusal", agent.diagnostics())
-                .await
-                .unwrap_err(),
-        );
+        check_clipped_agent(&creator, &owner, &fixture).await;
         step("stop scoped diagnostic node", node.stop())
             .await
             .unwrap();
         step("stop scoped diagnostic relay", relay.stop()).await;
     })
     .await;
+}
+async fn check_clipped_agent(creator: &NodeClient, owner: &NodeClient, fixture: &Fixture) {
+    let restricted_session = step(
+        "create scope-clipped fake session",
+        creator.create_session(structured_spec(fixture, None)),
+    )
+    .await
+    .unwrap();
+    let mut restricted = step(
+        "owner observes the clipped session",
+        crate::agents::following(owner, restricted_session.id, vessel_proto::EventSeq::ZERO),
+    )
+    .await;
+    let (_, socket, auth) = step(
+        "clipped agent actual credential",
+        credential(owner, &mut restricted),
+    )
+    .await;
+    let agent = step(
+        "clipped agent authenticated local socket",
+        as_agent(&socket, &auth),
+    )
+    .await;
+    assert_eq!(
+        step("clipped agent actual scopes", agent.device_self())
+            .await
+            .unwrap()
+            .scopes,
+        [Scope::Operate]
+    );
+    forbidden(
+        step("no-Read agent diagnostic refusal", agent.diagnostics())
+            .await
+            .unwrap_err(),
+    );
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn diagnostics_supported_fleet_routes_refuse_forwarding_instead_of_substituting_a_home_report()

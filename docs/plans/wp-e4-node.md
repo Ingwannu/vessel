@@ -272,3 +272,9 @@ to make its follower work. A raw authenticated websocket case additionally
 checks exact correlated report/refusal ids at the assigned and previous
 versions and sanitized unknown-field rejection without breaking the connection.
 These additions still await their execution.
+
+The wire lifetime fixture reuses the existing test-only authority node setup
+instead of repeating startup policy. Its release-sender helper preserves
+timeout cleanup. Paired-reader and clipped-agent assertions are named fixture
+phases so each test history remains readable without a large function. This
+changes test structure only; the accepted guard test and product API stay intact.
