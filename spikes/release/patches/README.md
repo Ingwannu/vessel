@@ -274,8 +274,10 @@ at the top and `Vessel patch` at the change.
 - Cost: a seventh patch to carry at the GPUI pin; optional visible-row metadata
   and an O(1) immutable Send+Sync provider. The kit wraps a fresh base style once
   per render; intentionally nested wrappers use the outer mapping, and None
-  clears it while preserving all delegated syntax lookups. Unified uses one mapped gutter; split uses
-  independently mapped editors, as diff-document/paint.web.ts267–310 does.
+  clears it while preserving all delegated syntax lookups. Unified uses one mapped
+  gutter; split has independently mapped source columns. Paseo also paints a
+  full-width split header and filters copy through its source-cell model; those
+  two behaviors are NOT supplied by this unmounted native split profile.
   Native labels are measured with the real selected font rather than the web
   approximate digit-width formula. The initial kit profile retains the existing
   six-point gap; final reference geometry/consumer captures remain unverified.
@@ -283,7 +285,9 @@ at the top and `Vessel patch` at the change.
   src/input/base/state.rs and src/input/mod.rs. File notices and every
   changed block are marked Vessel patch. No other vendored crate is changed.
 - Checked: external drawing/resolver and viewport-coordinate source prechecks
-  passed; installed compilation/runtime is still pending. The native workspace
+  passed. Exact08b1 Kit compilation executed16 tests (13 passed,3 failed);
+  corrected0813 fixtures have separate pending executions, not a profile PASS.
+  The native workspace
   cannot execute a dependency's private dev-tests. At the lead's ruling, new
   private fixtures were removed and behavior moved to public-API kit windows:
   `code_editor::diff::mapping_tests` (complete-literal/nested-clear/syntax,
@@ -291,7 +295,9 @@ at the top and `Vessel patch` at the change.
   owner scroll including cached child, bounded provider calls, offclip/empty
   direct IME queries, boundary rows and unchanged None coordinates), and
   `code_editor::diff::document::tests` (owner keyboard reveal and real wheel
-  packets). These are unexecuted source until their exact remote native test.
+  packets). The first actual run passed resolver/gutter/tint/cached-parent/None
+  cases and failed empty-mask projection plus two recursive-list-borrow fixtures.
+  The corrected actual-owner fixtures remain unverified until their own run.
   Mapped label right-alignment, private folded layout-array ordering, visible
   selection-path z-order and touch-handle paint remain source/consumer-capture
   obligations: the public scene API exposes quads, not selection paths/handles.
@@ -325,8 +331,9 @@ at the top and `Vessel patch` at the change.
   and V1 precheck. The first fixed-lock Base test command stopped before tests:
   Cargo refuses dev-tests for a dependency outside workspace membership.
   No standalone lock or temporary workspace member is added. The public kit
-  fixtures above replace the removed private test source; their results are
-  pending. No source-precheck result is runtime, consumer or OS approval.
+  fixtures above replace the removed private test source. The13/3 historical
+  result and corrected-source pending state are recorded above; no source
+  precheck or partial test result is consumer, UI or OS approval.
 
 - Capture handoff (not yet built/run): kit example `mapped_diff_audit` is a
   supplementary control surface using the production DiffDocumentEditor and
