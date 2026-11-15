@@ -802,3 +802,13 @@ without replacing unrelated generated types. The source generator tests passed;
 the original stale result remains a freshness failure until these bytes are
 committed. A fresh integrated-head TS check and the package gate are still owed.
 The MCP decoder draft is excluded; its consumer owns that separate integration.
+
+### Dynamic import regression
+
+A new real-node test seeds effective Background and explicit Shown metadata
+while the wire assignment is pending. Legacy null discovery retains both ids,
+replies hide both metadata fields, and starting imports receive the exact
+listing refusal before creating their target directories. Reopening checks
+that the effective classification and original omission/override stay durable.
+The existing label import test and all its assertions and deadlines are kept
+unchanged; this separate case covers the additional discovery boundary.
