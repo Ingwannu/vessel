@@ -198,3 +198,11 @@ rather than assuming Result. Scope/error expectations remain the same. Node
 start was101/100 lines; the original guarded-server construction moved verbatim
 into the existing bootstrap owner with the same config/watch/token. No limit or
 allowance was raised. Current execution remains owed after these corrections.
+
+
+The strict run on54f6 completed RED in the new Store integration fixture: its
+root-level preparation helpers are outside Clippy's test-function exemptions.
+They now return typed directory/Store/name errors to the actual test callers;
+no unwrap allowance or cfg workaround was introduced. Replaced the redundant
+name-access closure with the canonical method reference. Runtime expectations
+and the four test scenarios are unchanged; no runtime test has executed yet.

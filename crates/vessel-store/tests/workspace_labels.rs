@@ -9,20 +9,25 @@ use vessel_proto::{
     },
     workspace_labels::{
         AssignWorkspaceLabel, Assignment, DeleteWorkspaceLabel, InspectWorkspaceLabelDelete, Label,
-        LabelColor, UpdateWorkspaceLabel, WorkspaceLabelFailure,
+        LabelColor, LabelName, LabelNameError, UpdateWorkspaceLabel, WorkspaceLabelFailure,
     },
 };
 use vessel_store::{DataDir, RegistryRecord, Store, StoreConfig, StoreError, StoredRegistry};
 
-async fn opened() -> (TempDir, DataDir, Store) {
-    let temporary = tempfile::tempdir().unwrap();
+#[derive(Debug, thiserror::Error)]
+enum FixtureError {
+    #[error("temporary label store directory could not be created")]
+    Temporary(#[from] std::io::Error),
+    #[error(transparent)]
+    Store(#[from] StoreError),
+}
+
+async fn opened() -> Result<(TempDir, DataDir, Store), FixtureError> {
+    let temporary = tempfile::tempdir()?;
     let dir = DataDir::new(temporary.path());
-    dir.prepare().unwrap();
-    let store = Store::open(&dir, StoreConfig::default())
-        .await
-        .unwrap()
-        .store;
-    (temporary, dir, store)
+    dir.prepare()?;
+    let store = Store::open(&dir, StoreConfig::default()).await?.store;
+    Ok((temporary, dir, store))
 }
 fn record() -> RegistryRecord {
     RegistryRecord {
@@ -42,15 +47,15 @@ fn record() -> RegistryRecord {
         recovery: None,
     }
 }
-fn assign(workspace: WorkspaceId, name: &str) -> AssignWorkspaceLabel {
-    AssignWorkspaceLabel {
+fn assign(workspace: WorkspaceId, name: &str) -> Result<AssignWorkspaceLabel, LabelNameError> {
+    Ok(AssignWorkspaceLabel {
         workspace,
         label: Label {
-            name: name.parse().unwrap(),
+            name: name.parse()?,
             color: LabelColor::Violet,
         },
         assignment: Assignment::Assigned,
-    }
+    })
 }
 fn names(snapshot: &StoredRegistry, workspace: WorkspaceId) -> Vec<&str> {
     snapshot
@@ -58,16 +63,16 @@ fn names(snapshot: &StoredRegistry, workspace: WorkspaceId) -> Vec<&str> {
         .iter()
         .find(|group| group.workspace == workspace)
         .map_or_else(Vec::new, |group| {
-            group.labels.iter().map(|name| name.as_str()).collect()
+            group.labels.iter().map(LabelName::as_str).collect()
         })
 }
 
 #[tokio::test]
 async fn workspace_labels_real_registry_refuses_missing_and_each_inactive_state_atomically() {
-    let (_temporary, _dir, store) = opened().await;
+    let (_temporary, _dir, store) = opened().await.unwrap();
     assert!(matches!(
         store
-            .assign_workspace_label(assign(WorkspaceId::random(), "Ready"))
+            .assign_workspace_label(assign(WorkspaceId::random(), "Ready").unwrap())
             .await,
         Err(StoreError::WorkspaceLabelRefused(
             WorkspaceLabelFailure::WorkspaceNotFound
@@ -99,7 +104,9 @@ async fn workspace_labels_real_registry_refuses_missing_and_each_inactive_state_
         let before = store.workspace_registry().await.unwrap();
         let changes = store.registry_changes();
         assert!(matches!(
-            store.assign_workspace_label(assign(id, "Ready")).await,
+            store
+                .assign_workspace_label(assign(id, "Ready").unwrap())
+                .await,
             Err(StoreError::WorkspaceLabelRefused(
                 WorkspaceLabelFailure::WorkspaceInactive
             ))
@@ -113,13 +120,13 @@ async fn workspace_labels_real_registry_refuses_missing_and_each_inactive_state_
 
 #[tokio::test]
 async fn workspace_labels_watch_silence_and_collision_rollback_use_the_real_writer() {
-    let (_temporary, _dir, store) = opened().await;
+    let (_temporary, _dir, store) = opened().await.unwrap();
     let record = record();
     let id = record.descriptor.id;
     store.put_registry_workspace(record, None).await.unwrap();
     let mut changes = store.registry_changes();
     let committed = store
-        .assign_workspace_label(assign(id, "Ready"))
+        .assign_workspace_label(assign(id, "Ready").unwrap())
         .await
         .unwrap();
     assert!(committed.delta.is_some());
@@ -128,7 +135,7 @@ async fn workspace_labels_watch_silence_and_collision_rollback_use_the_real_writ
     let before = store.workspace_registry().await.unwrap();
     assert!(
         store
-            .assign_workspace_label(assign(id, " ready "))
+            .assign_workspace_label(assign(id, " ready ").unwrap())
             .await
             .unwrap()
             .delta
@@ -150,7 +157,7 @@ async fn workspace_labels_watch_silence_and_collision_rollback_use_the_real_writ
         before.revision
     );
     let _other = store
-        .assign_workspace_label(assign(id, "Other"))
+        .assign_workspace_label(assign(id, "Other").unwrap())
         .await
         .unwrap();
     changes.mark_unchanged();
@@ -185,7 +192,7 @@ async fn workspace_labels_watch_silence_and_collision_rollback_use_the_real_writ
 
 #[tokio::test]
 async fn workspace_labels_failed_real_revision_bump_rolls_back_both_tables_and_wake() {
-    let (_temporary, directory, store) = opened().await;
+    let (_temporary, directory, store) = opened().await.unwrap();
     let record = record();
     let workspace = record.descriptor.id;
     store.put_registry_workspace(record, None).await.unwrap();
@@ -201,7 +208,7 @@ async fn workspace_labels_failed_real_revision_bump_rolls_back_both_tables_and_w
     let changes = store.registry_changes();
     assert!(matches!(
         store
-            .assign_workspace_label(assign(workspace, "Ready"))
+            .assign_workspace_label(assign(workspace, "Ready").unwrap())
             .await,
         Err(StoreError::RegistryRevisionExhausted)
     ));
@@ -216,7 +223,7 @@ async fn workspace_labels_failed_real_revision_bump_rolls_back_both_tables_and_w
         .unwrap();
     drop(connection);
     let committed = store
-        .assign_workspace_label(assign(workspace, "Ready"))
+        .assign_workspace_label(assign(workspace, "Ready").unwrap())
         .await
         .unwrap();
     assert!(committed.delta.is_some());
@@ -230,7 +237,7 @@ async fn workspace_labels_failed_real_revision_bump_rolls_back_both_tables_and_w
 
 #[tokio::test]
 async fn workspace_labels_rename_delete_order_and_snapshot_survive_real_reopen() {
-    let (_temporary, dir, store) = opened().await;
+    let (_temporary, dir, store) = opened().await.unwrap();
     let first = record();
     let second = record();
     let (a, b) = (first.descriptor.id, second.descriptor.id);
@@ -244,7 +251,7 @@ async fn workspace_labels_rename_delete_order_and_snapshot_survive_real_reopen()
         .unwrap();
     for (id, name) in [(a, "Ready"), (a, "Next"), (b, "Ready")] {
         let _commit = store
-            .assign_workspace_label(assign(id, name))
+            .assign_workspace_label(assign(id, name).unwrap())
             .await
             .unwrap();
     }
