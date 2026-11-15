@@ -708,3 +708,11 @@ cases. No copied whitespace helper or borrowed B2 test pass is introduced;
 these later changes require the next immutable narrow check.
 
 Tracker674(default table),675(help),689(native editing/IME) now built with explicit a675 scoped-check and remaining union/gate/capture/V4 qualifiers. Both repository and live working trackers agree. Other owned rows retain skeleton; none is passed. These three implemented mechanics do not imply every feature owner/action or actual OS layout has been verified.
+
+Combined c526/FieldId/IME/menu/canonical-FileQuery/blank-scope union exact
+a52d5f106dddeaf10b81c9ab082ecd6a2500fa38 strict4-crate all-target Clippy is GREEN:
+wp-commands-narrow-20261115T132327Z-a52d5f10, native-fonts0/native-cargo0.
+Its App/Kit/View all-target tests remain in progress. The only later product
+changes are the shared whitespace visibility and help/PR-query consumers;
+those receive a View-only strict/test follow-up rather than repeating unrelated
+App/Kit source checks. No final gate, captures or package review is inferred.
