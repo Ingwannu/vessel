@@ -851,3 +851,24 @@ well as its message. The extracted private helper has only
 the actual lock-release operation; later operation kinds arrive with their
 callers. It reads no environment and owns no file-format or node policy.
 The subsequent deadline fix is separate from this extraction (P2).
+
+
+## Reuse settings replacement before reset/reload
+
+[Decision Log]
+- Purpose and intent: reset must use the same atomic write and application
+  order as an ordinary patch, without introducing a second persistence rule.
+- Existing implementation and constraints: change already validates, holds
+  its settings lock across the write, preserves a later file before writing,
+  and publishes only after success. Startup applies the same runtime fields.
+- Alternatives considered: duplicate that sequence or change its state model
+  while adding operations. Duplication would split the ordering and failure
+  policy; changing behavior would prevent independent review of the move.
+- Selected approach: extract the existing validation and locked replacement
+  into private functions with their current real caller. Share the original
+  two runtime applications with startup, preserving their order.
+- Why this approach: reset/reload can reuse the existing rule after this
+  behavior-preserving preparation. No request, setting or file format changes.
+- Advantages, costs and effects: no dependency, new error, wire change or
+  test expectation change. The original lock span, no-op return, preservation,
+  write and runtime effects remain in their original order.

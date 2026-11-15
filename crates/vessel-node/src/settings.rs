@@ -136,10 +136,7 @@ impl Settings {
                 "--park-after is overridden by the value saved with node.set_settings"
             );
         }
-        settings
-            .runtime
-            .set_park_after(in_force.park_after.duration());
-        settings.runtime.set_drivers(in_force.drivers);
+        settings.apply(&in_force);
         settings
     }
 
@@ -172,6 +169,12 @@ impl Settings {
         }
     }
 
+    // Keep startup and successful replacements in the same application order.
+    fn apply(&self, in_force: &NodeSettings) {
+        self.runtime.set_park_after(in_force.park_after.duration());
+        self.runtime.set_drivers(in_force.drivers);
+    }
+
     /// The settings in force.
     pub(crate) async fn current(&self) -> NodeSettings {
         let saved = *self.saved.lock().await;
@@ -184,18 +187,7 @@ impl Settings {
         &self,
         change: SetNodeSettings,
     ) -> Result<NodeSettings, SettingsError> {
-        if change.park_after == Some(ParkAfter::Unknown) {
-            return Err(SettingsError::Unknown);
-        }
-        for (kind, driver) in change.drivers.iter().flat_map(SetAgentDrivers::named) {
-            match driver {
-                AgentDriver::Unknown => return Err(SettingsError::UnknownDriver(kind)),
-                AgentDriver::Direct if !offered(kind) => {
-                    return Err(SettingsError::NoDirect(kind));
-                }
-                AgentDriver::Direct | AgentDriver::Acp => {}
-            }
-        }
+        validate(change)?;
         let mut saved = self.saved.lock().await;
         let mut next = *saved;
         if let Some(after) = change.park_after {
@@ -204,6 +196,16 @@ impl Settings {
         if let Some(drivers) = change.drivers {
             next.drivers = Some(drivers.over(next.drivers.unwrap_or_default()));
         }
+        self.replace(&mut saved, next).await
+    }
+
+    // The same locked replacement is reused by explicit override removal;
+    // no caller may publish settings before their atomic write succeeds.
+    async fn replace(
+        &self,
+        saved: &mut SetNodeSettings,
+        next: SetNodeSettings,
+    ) -> Result<NodeSettings, SettingsError> {
         if next == *saved {
             return Ok(self.in_force(*saved));
         }
@@ -227,10 +229,25 @@ impl Settings {
         }
         *saved = next;
         let in_force = self.in_force(*saved);
-        self.runtime.set_park_after(in_force.park_after.duration());
-        self.runtime.set_drivers(in_force.drivers);
+        self.apply(&in_force);
         Ok(in_force)
     }
+}
+
+fn validate(change: SetNodeSettings) -> Result<(), SettingsError> {
+    if change.park_after == Some(ParkAfter::Unknown) {
+        return Err(SettingsError::Unknown);
+    }
+    for (kind, driver) in change.drivers.iter().flat_map(SetAgentDrivers::named) {
+        match driver {
+            AgentDriver::Unknown => return Err(SettingsError::UnknownDriver(kind)),
+            AgentDriver::Direct if !offered(kind) => {
+                return Err(SettingsError::NoDirect(kind));
+            }
+            AgentDriver::Direct | AgentDriver::Acp => {}
+        }
+    }
+    Ok(())
 }
 
 /// Move an unusable `settings.json` aside, so no change replaces it;
