@@ -340,3 +340,47 @@ fn existing_rows_reactivate_through_a_pinned_receipt_instead_of_a_create_selecti
             .is_none()
     );
 }
+
+#[test]
+fn refusing_a_large_next_page_preserves_accepted_rows_selection_and_cursor() {
+    const OVER_BUDGET: usize = 17 * 1024 * 1024;
+    let mut history = History::default();
+    history.choose(scope());
+    let first = history.refresh().unwrap().unwrap();
+    history.answer(page(
+        first,
+        vec![entry("retained")],
+        Some(Cursor::parse("next".into()).unwrap()),
+    ));
+    let id = HarnessSessionId::new("retained");
+    history.toggle(&id);
+    let next = history.more().unwrap().unwrap();
+    let mut oversized = entry("oversized");
+    oversized.id = HarnessSessionId::new("x".repeat(OVER_BUDGET));
+    assert!(history.answer(page(next, vec![oversized], None)));
+    assert_eq!(history.loading(), &Loading::Failed(Problem::Capacity));
+    assert_eq!(history.entries().len(), 1);
+    assert_eq!(history.entries().first().unwrap().id, id);
+    assert_eq!(history.selection(&id), Selection::Selected);
+    assert!(history.has_more());
+}
+#[test]
+fn oversized_import_selection_refuses_without_clearing_selected_rows() {
+    let mut history = History::default();
+    history.choose(scope());
+    let rows = (0..=MAX_IMPORT_ENTRIES)
+        .map(|index| entry(&format!("row-{index}")))
+        .collect();
+    let ask = history.refresh().unwrap().unwrap();
+    history.answer(page(ask, rows, None));
+    let ids: Vec<_> = history.entries().iter().map(|row| row.id.clone()).collect();
+    for id in &ids {
+        history.toggle(id);
+    }
+    assert!(matches!(history.import(), Err(Problem::Capacity)));
+    assert!(!history.importing());
+    assert!(
+        ids.iter()
+            .all(|id| history.selection(id) == Selection::Selected)
+    );
+}

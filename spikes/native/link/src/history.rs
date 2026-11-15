@@ -138,6 +138,9 @@ async fn import(client: &crate::connections::SelectedConnection, batch: Batch) -
     if batch.scope.context.node() != batch.node {
         return Ask::Import(batch).refused(Problem::IdentityChanged);
     }
+    if batch.entries.len() > vessel_app_view::history::MAX_IMPORT_ENTRIES {
+        return Ask::Import(batch).refused(Problem::Capacity);
+    }
     let mut outcomes = Vec::with_capacity(batch.entries.len());
     for entry in batch.entries {
         let result = match entry.in_vessel {
@@ -150,7 +153,10 @@ async fn import(client: &crate::connections::SelectedConnection, batch: Batch) -
             )
             .await
             .map_or(Err(Problem::Uncertain), |result| {
-                result.map(Box::new).map_err(create_failure)
+                result.map_err(create_failure).and_then(|info| {
+                    activate::created(&info, &batch.scope, &entry)?;
+                    Ok(Box::new(info))
+                })
             }),
         };
         outcomes.push(Outcome {

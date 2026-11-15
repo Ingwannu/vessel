@@ -75,3 +75,6 @@ history-no-machine = Choose a connected machine to import conversations.
 history-account-failed = Account choices could not be read. Refresh to try again.
 # Import guard when a saved machine name points to a different node.
 history-identity-changed = The machine identity changed. Refresh history before importing.
+
+# A finite retained-history or batch admission limit.
+history-capacity = Choose a narrower folder or import fewer conversations at once.

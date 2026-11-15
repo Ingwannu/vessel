@@ -254,6 +254,9 @@ impl History {
         if entries.is_empty() {
             return Ok(None);
         }
+        if entries.len() > super::MAX_IMPORT_ENTRIES {
+            return Err(Problem::Capacity);
+        }
         // Tickets only returns the fieldless Exhausted variant; preserve its meaning.
         let ticket = self
             .tickets
@@ -300,6 +303,15 @@ impl History {
                 self.loading = Loading::Failed(Problem::IdentityChanged);
             }
             Ok(page) => {
+                let retained = if self.next.is_some() {
+                    self.entries.as_slice()
+                } else {
+                    &[]
+                };
+                if let Err(problem) = super::bounds::admit(retained, &page.entries) {
+                    self.loading = Loading::Failed(problem);
+                    return true;
+                }
                 self.node = Some(page.node);
                 self.page(page);
                 self.loading = Loading::Idle;

@@ -20,6 +20,7 @@ impl Problem {
             Self::Uncertain => words.uncertain(),
             Self::IdentityChanged => words.identity_changed(),
             Self::InvalidReply => words.invalid_reply(),
+            Self::Capacity => words.capacity(),
             Self::Exhausted => words.exhausted(),
             Self::Refused(ErrorCode::Forbidden | ErrorCode::Unauthorized) => words.forbidden(),
             Self::Refused(ErrorCode::Conflict) => words.conflict(),

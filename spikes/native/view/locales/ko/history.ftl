@@ -75,3 +75,6 @@ history-no-machine = 연결된 머신을 선택하여 대화를 가져오세요.
 history-account-failed = 계정 목록을 불러오지 못했습니다. 새로고침하여 다시 시도하세요.
 # Import guard when a saved machine name points to a different node.
 history-identity-changed = 머신의 식별 정보가 바뀌었습니다. 대화 목록을 새로고침한 뒤 가져오세요.
+
+# A finite retained-history or batch admission limit.
+history-capacity = 폴더 범위를 좁히거나 한 번에 가져올 대화를 줄여 주세요.

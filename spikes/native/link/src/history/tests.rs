@@ -8,7 +8,7 @@ use vessel_app_view::{
     devices::{MachineKey, Tickets},
     history::{Entry, Scope},
 };
-use vessel_proto::{Call, HarnessKind, HarnessSessionId, SessionMode};
+use vessel_proto::{Call, HarnessKind, HarnessSessionId, SessionInfo, SessionMode};
 
 fn batch(node: vessel_proto::NodeId) -> Batch {
     let scope = Scope {
@@ -226,4 +226,43 @@ async fn full_history_budget_refuses_before_spawning_or_sending() {
         })
     ));
     assert!(peer.calls.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn oversized_import_batch_never_reaches_the_peer() {
+    let peer = peer::connect(vec![]).await;
+    let mut request = batch(peer.client.node().id);
+    let row = request.entries.first().unwrap().clone();
+    request.entries = vec![row; vessel_app_view::history::MAX_IMPORT_ENTRIES + 1];
+    let Reply::Imported { outcomes, .. } =
+        answer(&peer::admitted(&peer).2, Ask::Import(request)).await
+    else {
+        panic!("batch refusal")
+    };
+    assert!(
+        outcomes
+            .iter()
+            .all(|row| row.result == Err(Problem::Capacity))
+    );
+    assert!(peer.calls.lock().unwrap().is_empty());
+}
+#[tokio::test]
+async fn a_mismatched_create_receipt_is_uncertain_instead_of_opening_another_conversation() {
+    let request = batch(vessel_proto::NodeId::random());
+    let mut wrong = SessionInfo::new(
+        vessel_proto::SessionId::random(),
+        request.entries.first().unwrap().spec(&request.scope),
+        chrono::DateTime::UNIX_EPOCH,
+    );
+    wrong.spec.cwd = Some("/wrong-conversation".into());
+    let peer = peer::connect(vec![peer::Behaviour::Session(Box::new(wrong))]).await;
+    let mut request = batch(peer.client.node().id);
+    request.entries.truncate(1);
+    let Reply::Imported { outcomes, .. } =
+        answer(&peer::admitted(&peer).2, Ask::Import(request)).await
+    else {
+        panic!("batch")
+    };
+    assert_eq!(outcomes.first().unwrap().result, Err(Problem::Uncertain));
+    assert_eq!(peer.calls.lock().unwrap().len(), 1);
 }

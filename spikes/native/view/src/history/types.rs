@@ -154,6 +154,9 @@ pub enum Problem {
     /// The node returned an invalid cursor or creation result.
     #[error("invalid history reply")]
     InvalidReply,
+    /// Retained history or explicit batch exceeds this sheet's finite budget.
+    #[error("narrow the history scope or import fewer conversations at once")]
+    Capacity,
     /// Never reuse a request identity.
     #[error("request identities exhausted")]
     Exhausted,

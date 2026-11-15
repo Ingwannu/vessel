@@ -88,3 +88,19 @@ mod tests {
         assert!(!same_account(&harness, Some(&other), Some(&canonical)));
     }
 }
+
+/// A mismatched write receipt is uncertain: creation may already have committed.
+pub(super) fn created(info: &SessionInfo, scope: &Scope, entry: &Entry) -> Result<(), Problem> {
+    if info.spec.harness != scope.harness
+        || info.spec.cwd.as_ref() != Some(&entry.cwd)
+        || !matches!(&info.spec.mode, vessel_proto::SessionMode::Structured {resume:Some(id),..} if id == &entry.id)
+        || !same_account(
+            &scope.harness,
+            scope.profile.as_ref(),
+            info.profile.as_ref(),
+        )
+    {
+        return Err(Problem::Uncertain);
+    }
+    Ok(())
+}

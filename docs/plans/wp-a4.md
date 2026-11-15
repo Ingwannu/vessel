@@ -268,3 +268,21 @@ Skill/background handoff is a separate orchestration flow. Session transfer B9
 using export/import is explicitly beyond this A4 package, not a substitute for
 own-history import via `session.create(resume)`. These audits establish differences
 and ownership only, not live provider execution or complete parity.
+
+## Retained history and import admission budgets
+
+[Decision Log]
+- Purpose: repeated provider pages must not retain unlimited rows or enqueue an
+  arbitrarily long sequential import behind one UI action.
+- Existing assets: provider pages are already bounded by the canonical page cap;
+  the pure history controller is the owner of accumulated rows and selections.
+- Choice: extend that controller with a 10000-row / 16-MiB retained metadata
+  admission bound and a 100-entry import batch bound. The byte estimate includes
+  the Entry allocation and owned id/path/title bytes. Incoming pages are admitted
+  conservatively before mutation, preserving all previously accepted rows and the
+  continuation on refusal. No eviction, silent truncation or automatic retry.
+- Alternatives: unbounded virtualized storage (render virtualization does not bound
+  retained data), hidden eviction (loses selections), or another paging store.
+- Impact: exceptionally large histories require a narrower folder scope or a
+  refresh; a large selection must be split explicitly. The actor independently
+  refuses oversized batches before starting any write, using these same constants.
