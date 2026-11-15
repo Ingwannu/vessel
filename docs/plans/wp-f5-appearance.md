@@ -1,10 +1,13 @@
 # F5 Appearance package
 
-Status: typed preparation and shared-tile consumer committed; compile and
-full screen skeleton remain pending. The existing eight-choice palette package is
-reviewed separately through executable source `fb711444` and its bounded
-visual disposition. This package adds the remaining Appearance contract;
-it does not reinterpret that earlier approval as complete F5 parity.
+Status: built source; F5 package validation is pending. The implementation
+now includes the shared theme tile, family/numeric fields, independent text
+axes, width/reset, syntax and readonly preview. The existing eight-choice
+palette package remains separately reviewed through executable fb711444;
+that bounded result does not certify this extension. No new F5 captures or
+package test pass exist yet. The current candidate adopts announced c3429952
+and the scoped C2 quiet-font cache delta. Contributed themes remain deferred
+to F6 by the coordinator; Markdown-file width is W13's consumer dependency.
 
 ## Scope and source
 
@@ -153,7 +156,7 @@ Range references: `hooks/use-settings/storage.ts:62–73`. Approval to change
 the two inherited refused inputs (UI21→22, code9→8) was obtained; all other
 inherited cases remain unchanged, with positive endpoint regressions added.
 
-Validation status: two local checks expired in the build queue before
+Historical preparation status (before the later handoffs below): two local checks expired in the build queue before
 compiling. Remote focused kit test preparation is waiting in submit (no run
 id yet); it pins `f556e55c`, before the later breakpoint/consumer changes.
 Neither is a compile result for current source. The new preference changes
@@ -601,3 +604,13 @@ appearance/fields, with explicit renderer/theme imports. All test bodies,
 events and assertions remain unchanged. Product helper visibility remains
 private; no public or crate-visible test seam is added. This run does not
 prove test execution, binary export or F5 screen behavior.
+
+
+The 08d75d666 narrow run themes-narrow-20261115T163542Z-08d75d66 ended
+FAILED (fonts0, Cargo101/18s). Moving the unchanged tests had omitted the
+explicit PreferenceChange import: four uses of that one type failed. The
+import is restored; no test body or product behavior changes. The final
+candidate proceeds to the corrected whole native package gate with app
+export, rather than paying another duplicate narrow before that same strict
+step. Every earlier red log stays red. The package gate and actual captures
+remain pending until their own results are inspected; no local Cargo runs.

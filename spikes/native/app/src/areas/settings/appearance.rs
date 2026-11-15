@@ -14,8 +14,8 @@
 //!   bottom right. System's picture is light on the left and dark on the
 //!   right.
 //! - Composition: the kit owns the one miniature/tile renderer; this area
-//!   supplies preference identities, labels and actions. Remaining font
-//!   draft controls are added through the existing field engine.
+//!   supplies preference identities, labels and actions. Font and numeric
+//!   drafts use the existing field engine and its single event subscription.
 
 mod fields;
 mod preview;

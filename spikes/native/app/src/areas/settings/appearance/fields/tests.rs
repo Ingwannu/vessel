@@ -9,7 +9,7 @@ use vessel_app_kit::{
 };
 use vessel_app_view::{
     appearance::{SyntaxTheme, form::Field},
-    prefs::{ContentSize, ContentWidth, Theme},
+    prefs::{ContentSize, ContentWidth, PreferenceChange, Theme},
 };
 
 struct Probe {
