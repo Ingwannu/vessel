@@ -143,16 +143,9 @@ impl Shell {
     }
 
     /// Retirement happens before any device-area early return can skip it.
-    pub(crate) fn git_panels_retired(&mut self, tag: &ConnectionTag) {
-        for entry in self.areas.git.panels.entries.values_mut() {
-            if entry
-                .context
-                .as_ref()
-                .is_some_and(|context| context.tag() == *tag)
-            {
-                retire(entry);
-            }
-        }
+    #[must_use]
+    pub(crate) fn git_panels_retired(&mut self, tag: &ConnectionTag) -> bool {
+        self.areas.git.panels.retire(tag)
     }
 
     /// A fleet update cannot leave facts from a retired admission actionable.
@@ -187,6 +180,8 @@ fn retire(entry: &mut Entry) {
     }
     entry.context = None;
     entry.problem = Some(ReadFailure::DestinationChanged);
+    entry.path_places.clear();
+    entry.tips = vessel_app_kit::Tooltips::new();
 }
 
 fn discover(
@@ -220,5 +215,22 @@ fn discover(
                 None
             }
         },
+    }
+}
+
+impl super::Panels {
+    pub(super) fn retire(&mut self, tag: &ConnectionTag) -> bool {
+        let mut changed = false;
+        for entry in self.entries.values_mut() {
+            if entry
+                .context
+                .as_ref()
+                .is_some_and(|context| context.tag() == *tag)
+            {
+                retire(entry);
+                changed = true;
+            }
+        }
+        changed
     }
 }

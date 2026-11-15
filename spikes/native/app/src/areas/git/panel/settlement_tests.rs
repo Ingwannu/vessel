@@ -63,3 +63,59 @@ fn a_full_link_settles_the_exact_status_without_an_endless_spinner() {
     assert!(reads.status().outstanding().is_none());
     assert!(!reads.finish_status(ticket, Err(ReadFailure::DestinationChanged)));
 }
+
+#[test]
+fn retirement_reports_changed_only_for_the_original_admission() {
+    let mut epochs = ConnectionEpochs::default();
+    let context = epochs
+        .admit(MachineKey::from_book("fixture"), NodeId::random())
+        .unwrap();
+    let address = PanelAddress {
+        workspace: LayoutKey::Session {
+            machine: HostAlias::parse("fixture").unwrap(),
+            session: SessionId::random(),
+        },
+        tab: serde_json::from_str("1").unwrap(),
+    };
+    let mut entry = super::Entry::new(super::PanelTarget::WorkingDiff, Some(context.clone()));
+    let mut keys = RequestKeys::default();
+    let mut reads = PanelReads::new(
+        RepositoryKey {
+            node: context.node(),
+            root: WorkspaceRoot::Project {
+                project: ProjectId::random(),
+            },
+        },
+        Comparison::default(),
+    );
+    let _pending = reads.begin_status(keys.issue().unwrap());
+    entry.reads = Some(reads);
+    let _old = entry
+        .path_places
+        .insert("old.rs".parse().unwrap(), Default::default());
+    let mut panels = super::Panels::default();
+    let _old = panels.entries.insert(address.clone(), entry);
+    let another = epochs
+        .admit(context.machine().clone(), context.node())
+        .unwrap();
+    assert!(
+        !panels.retire(&another.tag()),
+        "same node with another epoch is not this admission"
+    );
+    assert!(
+        panels.retire(&context.tag()),
+        "the shell must not take its no-device-page early return"
+    );
+    let entry = panels.entries.get(&address).unwrap();
+    assert_eq!(entry.context, None);
+    assert_eq!(entry.problem, Some(ReadFailure::DestinationChanged));
+    assert!(entry.path_places.is_empty());
+    assert!(matches!(
+        entry.reads.as_ref().unwrap().status(),
+        ReadState::Failed(ReadFailure::DestinationChanged)
+    ));
+    assert!(
+        !panels.retire(&context.tag()),
+        "duplicate retirement needs no second redraw"
+    );
+}

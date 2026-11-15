@@ -550,3 +550,16 @@ its result-note additions were retained and its duplicate README block removed.
 The queued111 Base-window attempt keeps its original source/result; it is not
 cancelled or relabelled. A changed-source replacement covers the fixed lock plus
 the buffer projection once the remote queue permits it.
+
+## Retirement redraw boundary
+
+Source inspection found that the new panel state was retired before the shared
+device-area early return, but the shell could still return without requesting
+a frame when no device page changed. The owner now returns whether an exact
+original admission was retired; that result joins the existing device redraw
+decision. Only two registration lines change in shell/events.rs. Duplicate or
+another-epoch retirement remains a no-op. Retiring also clears stale path
+anchors and tooltip state, while pending reads settle DestinationChanged. A
+new source fixture pins exact-epoch/duplicate/redraw-decision behavior; it is
+unexecuted and does not claim a real shell/window redraw or native UI pass.
+The already queued84fa narrow excludes this correction.

@@ -15,8 +15,8 @@ impl Shell {
             Event::GitPanel(answer) => self.git_panel_answer(answer, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::DeviceRetired(context) => {
-                self.git_panels_retired(&context);
-                if !self.devices_retired(&context) {
+                let git_changed = self.git_panels_retired(&context);
+                if !self.devices_retired(&context) && !git_changed {
                     return;
                 }
             }
