@@ -50,6 +50,11 @@ slice order. The docs commit adds both and no command.
   config/reload/session-restart work remain; actual managers and agents
   are unverified. The separate service-observation source has only focused
   checks and is not included in this move.
+- Reviewed: 2h0's documents-only observation contract passed review.
+- Source: 2h service-file observations reuse installer paths and rendering,
+  with bounded decoding, pre-RPC warnings and isolated CLI fixtures. No disk
+  match gives loaded-manager authority. The first focused clippy found a
+  test-doc Markdown issue; final focused and whole gates are pending.
 
 ## Existing asset check
 
@@ -475,3 +480,25 @@ that use to `src/lock/`, in the same commit as the active map. Existing
 private PID assertions relocate to a real held-file fixture in proc;
 all data-directory and owner-byte assertions remain in store. No PID
 getter, external dependency, signal, new call or descriptor proof is added.
+
+
+### Slice 2h: service-file observations
+
+Modify the existing installer boundary; do not add a second unit generator
+or execute text from a service file. Reuse its platform paths, validation
+and renderers in a bounded file decoder, then inspect only a directory bound
+to the authenticated greeting. The current whole-gate commit stays frozen;
+this contract is prepared separately before code. No proc code, manager
+invocation, dependency edge, wire registration or loaded-state claim.
+
+The implementation adds template/byte-decoder tests and CLI cases for a
+personal file, invalid Unicode, draining, a blocked FIFO and another local
+directory's malformed file. A manager stand-in records any invocation;
+its log must remain absent. Existing test cases remain unchanged. Fixture
+HOME, VESSEL_HOME and XDG_CONFIG_HOME are isolated before the first lookup.
+The root remains on its independent 2g2 gate commit while this source is
+prepared in a separate tree. Proc work starts at the next clean boundary.
+
+A Linux child also receives a stderr socket whose peer was closed before
+exec. Its warning write must fail and the node must stay Serving. This
+pins warning-before-RPC ordering without a race or a wire-format copy.

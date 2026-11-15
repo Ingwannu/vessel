@@ -65,6 +65,9 @@ The CLI also provides graceful `vessel node stop` (`node_ctl`, ADR 0064),
 using the existing Admin-scoped RPC, authenticated local identity binding
 (`node_ctl/observe`) and an OS-lock completion event (`lock_wait`) under a
 bounded command deadline.
+Service-file observations (`node_ctl/service_probe`) reuse the installer's
+bounded template decoder (`init/service/matching`); they supply warnings,
+never manager execution or authority inferred from editable file text.
 
 The dependency direction is fixed by ADR 0001; adding an edge means updating
 that ADR and this table, in the same commit. `scripts/check-boundaries.mjs`
