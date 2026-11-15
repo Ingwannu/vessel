@@ -939,3 +939,14 @@ not copy the reference regex tracker, inherit a source, or substitute guessed de
 Resize admission/PTY writer ordering and frame publication must be proved together;
 current capture inbox ordering alone is not proof of a new D1 event cursor contract.
 Query replies remain Silent until C2's renderer passes under the coordinator ruling.
+
+C2 accepted authoritative frames for D1 and added the stable viewport invariant:
+pinned history must preserve inspected text through growth/front trimming, using
+its pure buffer identity/epoch, retained origin and stable anchor/marker. Node glue
+must not derive an anchor from EventSeq or distance behind the tail. FollowLive
+and Pinned(anchor) are distinct intents; eviction/clamp/reset reports the requested
+and actual anchor plus a typed reason. Primary/alternate transitions never reuse
+an anchor in a different buffer; RIS/history clear invalidate its epoch. Reflow
+remapping is the pure engine's rule. Actor epoch/anchor identity never substitutes
+for authenticated NodeId+TerminalId routing, pairing or connection authority. The
+frozen e792 core exposes neither modes nor markers; those remain C2's follow-up.
