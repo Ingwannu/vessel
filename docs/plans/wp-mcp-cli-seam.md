@@ -25,3 +25,13 @@ The original parser block and the moved block after stripping only pub(super)
 were byte-identical before rustfmt (attestation retained in the task scratch
 folder). Exact remote compilation, strict checks and test results remain owed.
 No help/runtime PASS is inferred merely from source equivalence.
+
+
+Integrator steering: 1cea5de1 was merged, without rebasing the existing seam.
+Compared with that signal-fix base, only the original five owned parser/test/
+plan/size files differ. StopSignals is still installed before relay bind and
+before Node::start/readiness; both stop.stopped arms and the detached hangups
+guard are preserved. The CLI-help regression accepts clap's documented source
+processing that removes a final period from short descriptions (confirmed in
+the pinned clap_derive4.6.7 source); command attributes/text were not changed.
+Old cd25 runs remain old-head evidence; merged-head execution is still owed.

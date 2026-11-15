@@ -8,11 +8,11 @@ fn help_keeps_the_run_options_and_every_subcommand_description() {
     let mut command = Args::command().term_width(0).hide_env_values(true);
     let help = command.render_long_help().to_string();
     for sentence in [
-        "Vessel node daemon.",
+        "Vessel node daemon",
         "Usage: vesseld [OPTIONS]",
         "Bridge stdin and stdout to this machine's node, starting it if none runs.",
-        "Print this binary's version and target triple.",
-        "Delete installed vesseld binaries that are no longer needed.",
+        "Print this binary's version and target triple",
+        "Delete installed vesseld binaries that are no longer needed",
         "Run a relay that nodes register with and clients reach them through.",
         "--lsp-config <LSP_CONFIG>",
         "--lsp-root <LSP_ROOTS>",
