@@ -104,3 +104,11 @@ actual proc-to-agent-to-session and PTY-to-session ServiceError paths through
 the existing wire projection and JSON serialization. Newly authored correction
 execution is still owed; prior95 strict/quality and5a cap evidence remain prior
 source, not proof of this changed implementation.
+
+
+The first A6 correction strict run returned three redundant fmt qualifications
+and two used_underscore_binding test lints. The qualifiers are removed. Two
+specific private retention tests have a scoped expectation because inspecting
+the deliberately opaque owned field is their purpose; product field ownership,
+public formatting/source behavior and every identity/lifetime/OS/wire assertion
+remain unchanged. No product lint is suppressed or raw accessor introduced.

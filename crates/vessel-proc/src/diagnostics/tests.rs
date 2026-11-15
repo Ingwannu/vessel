@@ -34,14 +34,18 @@ struct TypedCause {
     marker: Arc<()>,
     detail: &'static str,
 }
-impl std::fmt::Display for TypedCause {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for TypedCause {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.detail)
     }
 }
 impl std::error::Error for TypedCause {}
 
 #[test]
+#[expect(
+    clippy::used_underscore_binding,
+    reason = "only private retention tests inspect the intentionally opaque owned cause; product diagnostics expose no raw accessor"
+)]
 fn private_io_projection_owns_the_actual_typed_cause_without_a_public_escape() {
     let marker = Arc::new(());
     let original = io::Error::new(
@@ -88,6 +92,10 @@ fn private_io_projection_owns_the_actual_typed_cause_without_a_public_escape() {
 }
 
 #[test]
+#[expect(
+    clippy::used_underscore_binding,
+    reason = "only private retention tests inspect the intentionally opaque owned cause; product diagnostics expose no raw accessor"
+)]
 fn private_io_projection_keeps_original_os_evidence_and_standard_error_unchanged() {
     const OS_EVIDENCE: i32 = 17;
     let original = io::Error::from_raw_os_error(OS_EVIDENCE);
