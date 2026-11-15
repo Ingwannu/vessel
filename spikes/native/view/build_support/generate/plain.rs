@@ -171,7 +171,7 @@ pub(super) fn generate(
         let contract = contracts
             .get(key)
             .ok_or_else(|| source(key, "missing generated shape"))?;
-        if contract.variables().is_empty() {
+        if contract.variables.is_empty() {
             let prefix = format!("{}-", message.area);
             let local = key
                 .strip_prefix(&prefix)

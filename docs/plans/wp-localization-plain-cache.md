@@ -54,3 +54,24 @@ Run `i18n-narrow-20261115T145206Z-b92a3bf3` passed remote quality and failed
 Clippy on three discarded command-builder references in the test helper.
 The helper now threads those returned references into the final process call.
 Its regression has still not executed; corrected ordinary validation is owed.
+
+## Canonical Shape-line packet
+
+Run `i18n-narrow-20261115T152755Z-123e60a0` later passed quality,
+strict Clippy and native tests (1452 passed, zero failed, two ignored),
+including the real compiler regression above. That tree used a checked
+`Contract` parent; its result does not validate the line's `Shape` representation.
+V4 retained that evidence under HOLD rather than approving line integration.
+
+The canonical packet starts at the announced green line `2b806402`. It carries
+the five producer commits followed by a mechanical representation adaptation:
+the line keeps its existing `Shape` alias, string variable names and dynamic
+argument emitter. Only the new plain-cache module reads `Shape.variables`
+instead of a checked-contract accessor. There is no second cache producer,
+new contract validator, F6 change, General migration, catalog edit or dependency
+change in this packet. This preserves the line's existing validation boundary
+while sharing the same bounded cache algorithm with Usage and Schedules.
+
+The exact adapted tree still owes remote strict Clippy, native tests and the
+synthetic compiler regression before V4 review. Consumer package compilation
+and combined-line validation remain separate evidence.
