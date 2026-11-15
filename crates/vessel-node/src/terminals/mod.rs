@@ -20,6 +20,9 @@
 //!   agent's; 32 ended kept, the oldest forgotten first.
 
 mod env;
+// Staged until a fresh owned route drives health and publishes checked results.
+#[cfg(test)]
+mod health;
 mod ports;
 // Staged until the service plan owns reservations and approval-checked starts.
 #[cfg(test)]

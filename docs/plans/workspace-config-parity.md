@@ -464,3 +464,14 @@ Paseo's retained-hostname behavior is deliberately stricter here as stated
 in the ADR. Scheduler, real probe, eligibility, projection and consumer
 integration remain owed. Resume: contract committed before clock code;
 focused checks and the runtime package gate are still pending.
+
+
+Clock source preparation now exists under the outer test-only module. Its
+lazy callback cannot run before the observation grace; failed probes saturate
+at the shared threshold, success clears the streak and unchanged health
+returns no publication request. Synthetic-time cases cover the exact grace
+boundary, recovery/reset, prolonged failure, dropped pending probes and a
+replacement clock. These tests have been authored but not yet executed.
+The callback carries no endpoint or authority. Resume: narrow node checks
+are owed; product route ownership, probe cancellation/revalidation and the
+full runtime package remain unimplemented.
