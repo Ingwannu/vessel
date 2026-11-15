@@ -1,7 +1,7 @@
 //! [`AgentProcess`]: an ACP agent process and the tasks that serve it.
 
 use tokio::sync::mpsc;
-use vessel_proc::{CommandSpec, Signal, SignalError, Spawned};
+use vessel_proc::{CommandSpec, ProcessLifetime, Signal, SignalError, Spawned};
 
 use crate::driver;
 use crate::drivers::Driver;
@@ -143,6 +143,12 @@ impl AgentProcess {
     #[must_use]
     pub const fn pid(&self) -> u32 {
         self.child.pid()
+    }
+
+    /// Pass the actual child observation through without adding driver policy.
+    #[must_use]
+    pub fn lifetime(&self) -> ProcessLifetime {
+        self.child.lifetime()
     }
 
     /// Ask the agent's process group to stop ([`Signal::Terminate`] is the

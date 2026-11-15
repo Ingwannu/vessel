@@ -1623,3 +1623,13 @@ or worker. The real connection setup will own one instance and acting-as context
 will clone it; resources retain only its identity/close observer and observe
 transport closure as well. Dictation, spoken conversation and later resources
 consume that connection accessor rather than creating another ownership key.
+
+### Process observation boundary
+
+ADR 0066 defines a runner-issued `ProcessLifetime`: Proc and PTY own its
+revocation; AgentProcess and session/terminal handles pass read-only
+observations to node consumers. A checked `ProcessId` is only an OS value.
+Neither PID equality nor the observation alone proves socket ownership or
+authorizes Preview. Fresh complete inspection and workspace/session policy
+remain at the node boundary. This carrier introduces no dependency
+edge or wire type.

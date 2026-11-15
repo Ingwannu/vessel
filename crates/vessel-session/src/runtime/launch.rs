@@ -341,7 +341,7 @@ impl SessionRuntime {
         let parts = self.parts(
             begin,
             notices,
-            (Input::Terminal(pty.input()), pty.pid()),
+            (Input::Terminal(pty.input()), pty.lifetime()),
             (None, Driver::Acp),
         );
         let actor = TerminalActor {
