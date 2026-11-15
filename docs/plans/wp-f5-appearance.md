@@ -306,3 +306,38 @@ line-height steps avoids changing other owners' default frame geometry in
 this package. Content/code axes and preview line heights are absolute and
 rounded per source. The existing lightweight classifier is retained rather
 than claiming Shiki token-by-token equivalence for the preview example.
+
+### Contributed-selection model preparation
+
+W16's reviewed e46cd57b scalar values are reused directly. No second colour
+parser, registry, installation graph, transport or runtime schema is created.
+The current pure catalog borrows eligible `(PluginAddress, ThemeContribution)`
+pairs from that owner, deduplicates plugin/theme/contribution keys in first
+appearance order, and picks the remembered eligible host else the first.
+Host/generation identity is not part of the saved theme key. A window-local
+256-entry recency cache bounds host hints (Paseo uses an unbounded module Map);
+eviction affects only an old navigation hint, never saved selection. The
+plugin owner separately bounds 256 themes per installation/node,128
+installations/node and128 retained hosts; those are not duplicated here.
+
+Appearance retains the existing eight-value Theme API. Its optional contributed
+choice is `Selected(key)` or `Remembered(key)` plus the last built-in theme.
+Selecting a built-in remembers the key; selecting a plugin retains the last
+built-in. Missing active key resolves System without rewriting preferences,
+then recovers when an eligible contribution returns. Cycling from an active
+plugin starts at Light through the EXISTING shortcut registry action. Native
+serde uses a tagged optional field, rather than two loose browser-storage
+fields; old default documents remain byte-compatible. Current valid font/size/
+width/syntax overrides are unchanged by either selection transition.
+
+This is pure-model preparation, not a connected plugin picker. W16's current
+native Registry29fcb004 has a pending narrow gate and is not imported. Its
+Installation address/themes and installed(NodeId) seam will supply the actual
+eligible data; no synthetic product catalogue or fake runtime is shown. The
+sole app palette adapter still needs that live projection, contributed RGBA
+mapping and refresh on catalog changes. Final F5 completeness remains pending.
+
+The two newly added endpoint acceptance assertions are now separate tests
+(interface21 and code9), as the coordinator requested. The inherited cases
+retain only the two approved refused-input corrections (22 and8); every other
+head case remains unchanged. Source: storage.ts:62–73.

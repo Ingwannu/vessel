@@ -22,6 +22,8 @@ pub enum PreferenceChange {
     Language(crate::localization::LanguagePreference),
     /// The theme.
     Theme(Theme),
+    /// A validated contributed theme identity, preserving all local overrides.
+    ContributedTheme(crate::appearance::contributed::PluginThemeId),
     /// The interface's text size.
     InterfaceSize(InterfaceSize),
     /// Code's text size.
@@ -181,7 +183,8 @@ impl Preferences {
     fn apply(&mut self, change: &PreferenceChange) {
         match change {
             PreferenceChange::Language(language) => self.language = *language,
-            PreferenceChange::Theme(theme) => self.appearance.theme = *theme,
+            PreferenceChange::Theme(theme) => self.appearance.choose_builtin(*theme),
+            PreferenceChange::ContributedTheme(key) => self.appearance.choose_plugin(key.clone()),
             PreferenceChange::InterfaceSize(size) => self.appearance.interface_size = *size,
             PreferenceChange::CodeSize(size) => self.appearance.code_size = *size,
             PreferenceChange::ContentSize(size) => self.appearance.content_size = *size,

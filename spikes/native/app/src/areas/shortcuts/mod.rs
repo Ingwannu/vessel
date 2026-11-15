@@ -206,7 +206,7 @@ impl Shell {
             }
             Action::Settings => self.open_settings(None, window, cx),
             Action::CycleTheme => {
-                let next = self.prefs.settings.appearance.theme.next();
+                let next = self.prefs.settings.appearance.next_theme();
                 self.prefer(&PreferenceChange::Theme(next), window, cx);
             }
             Action::GoBoard => self.go(Route::Board, window, cx),

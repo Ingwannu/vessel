@@ -452,12 +452,17 @@ fn animations_are_kept_changed_alone_and_lenient() {
 
 /// Newly supported Paseo endpoints stay accepted through the real change edge.
 #[test]
-fn appearance_source_endpoints_are_valid_preference_changes() {
+fn appearance_interface_source_maximum_is_a_valid_preference_change() {
     let ui = apply(
         &Preferences::default(),
         r#"{"set":"interface_size","value":21}"#,
     );
     assert_eq!(ui.appearance.interface_size.get(), 21);
+}
+
+/// Source code-size lower endpoint is accepted through the real change edge.
+#[test]
+fn appearance_code_source_minimum_is_a_valid_preference_change() {
     let code = apply(&Preferences::default(), r#"{"set":"code_size","value":9}"#);
     assert_eq!(code.appearance.code_size.get(), 9);
 }
