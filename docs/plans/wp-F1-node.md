@@ -3,8 +3,9 @@
 Current assigned node base: 9c150c6e, merged as a6fa710ce under the
 coordinator's F1 ended-edit ruling. The older gate40 design section below is
 historical. No protocol/schema number is allocated or changed by this slice.
-The isolated known-Ended update change below is authored and awaiting narrow
-checks/V3; per-run isolation is still a separate unimplemented dependency on
+The isolated known-Ended update change below has bounded V3 SOURCE/NARROW
+PASS (row260); its combined integration gate remains pending. Per-run
+isolation is still a separate unimplemented dependency on
 canonical provision/receipt/archive runtime APIs. The app stays on its own
 announced package line and does not merge this whole node branch.
 
@@ -194,3 +195,18 @@ This docs-only receipt changes no d26 Rust and requires no unchanged rerun.
 No whole root/native, App/consumer UI, new RPC authority, service-account or
 per-run isolation/runtime adoption is claimed. Integrator handoff/App Ended
 permission still await the actual qualified producer disposition.
+
+
+## Qualified producer and integration status
+
+V3 same-row final disposition (2026-11-15 17:56 UTC, row260) closes the narrow
+condition for exact d26b0b775: strict Clippy0 plus41/0/0 scheduler tests, all five
+new cases executed, all27 pinned run-file hashes independently matched. The
+docs-only receipt059f1dab changes no product source. This is bounded dependency
+PASS, not a whole-node, service, App or per-run-isolation verdict.
+
+The node integrator merged059f1dab exactly into batch17 trial b68ae267b without
+conflicts. Batch17 waits for batch16/gate54 and then its own gate. The trial is
+not an announced green node/package base: the App retains its current Ended
+refusal until the actual combined head is announced. No unchanged producer
+gate was requested or repeated.
