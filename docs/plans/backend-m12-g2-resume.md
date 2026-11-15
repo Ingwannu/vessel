@@ -11,20 +11,22 @@ including metadata and capture builds, runs through the remote gate only.
 
 - App announced base10 3e7820e3 merged4cbf09d32. Own latest correction91f723d7a
   follows opaque fixture fixd921 and explicit writer-order fixturec12. Exact3a5
-  consumer run183805 ended compileRED before any tests: View29/Link27 errors,
-  plus14 qualification warnings. Complete batch fixed canonical constructors,
+  consumer run183805 ended RED before any tests: 29 View and 27 Link compile errors,
+  plus 14 qualification warnings. Complete batch fixed canonical constructors,
   explicit fixture imports, schedule-only key visibility, typed HarnessRef.known
   comparisons and unused qualifications. App tests were not reached; corrected
-  checks remain owed. Raw15-file failed packet/digests retained privately.
-- Exactaf52 Kit on base9b: strict1809120 and full lib181950236/0/0, all three
-  Code/Retry/submission-feedback cases explicitly ok;28 run files/four step
+  checks remain owed. The 15-file failed packet and its hashes remain in private evidence.
+- Exact af52 Kit on base9b: Clippy run180912 exit0; full lib run181950
+  236/0/0. All three
+  Code/Retry/submission-feedback cases explicitly ok; 28 run files/four step
   hashes checked. This is AUTHOR-scoped Kit evidence, not V1/currentbase10/F1/UI.
 - Coordinator3993 assigns additive segmented sizing only. Isolated branch
   backend/m12-shared-segmented, producer577bb0a01 on3e, four paths; V1same-row
   SOURCE PRECHECK CLEAR3bcbc360. APIs segmented_at/segment_at(ControlSizing),
   ONE renderer, MD32/44 outer28/40 inner, SMunchanged, new-source pressed3;
-  legacy pointer/hover-only defaults exact. F1 has NOT opted in. Current only
-  schedules run185339577 strict then fullKitlib is queued ordinarySHORT0.
+  legacy pointer/hover-only defaults exact. F1 has NOT opted in. The only current
+  schedules run is schedules-20261115T185339Z-577bb0a0: strict then full Kit
+  lib tests, queued in the ordinary short lane, priority0.
   No other compilation is running under schedules; wait for its actual result.
 - After that label is free, gate corrected F1 consumers on CURRENT announced
   line, not old3a5. Never submit while the same label is busy. The earlier9440
