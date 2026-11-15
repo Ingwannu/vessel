@@ -169,6 +169,18 @@ that already uses `..` is left alone.
 
 ## Resume point
 
+- **Done:** slice 1, the contract, in ADR 0062 and this file. No code.
+  The branch's commits after `backend/m12-quality` are this slice.
+- **Half-done:** nothing.
+- **Next:** slice 2, starting with `TitleOrigin` in `title.rs` and the
+  settings field in `settings.rs`, then the generator against a fake
+  completion, then the session-title task that does not hold
+  `session.create`. Not `names.rs`.
+  `PROTOCOL_VERSION` stays at the base. New fields compare against
+  `GENERATED_NAMES` only, and that constant's value is written at merge.
+  `docs/PROTOCOL.md` gains its section in the same merge, not with a
+  number this plan invents.
+
 - **Done:** slice 1 contract passed review. ADR 0062 remains proposed.
 - **Source passed; whole gate owed:** slice 2a adds title origin to the session, rename event,
   actor and durable projection. The `TITLE_ORIGIN_SCHEMA` migration leaves every older title
@@ -222,6 +234,8 @@ through the three fleet envelopes. Client and server admission refuse a
 pending requirement before ids, the writer queue or dispatch. The new
 SDK error is mapped at the root MCP, web and fleet-hop boundaries; native
 matches belong to their existing owner. No title settings types or new
+calls are added by this foundation. Current calls remain assigned; pending
+
 calls are added in this commit. Current calls remain assigned; pending
 state tests exercise both admission guards, while the existing in-memory
 suite checks legacy requests and older-peer refusals. A pending feature's
@@ -229,6 +243,35 @@ end-to-end request test lands with that feature.
 
 The client admission rule and hop error conversion are extracted into
 small modules rather than growing existing over-budget files; only their
+existing ratchet limits are lowered. No dependency is added. The isolated
+proof applies this foundation directly to the integrated node head, without
+title provenance, settings or migrations. Its validation covers the whole
+workspace Clippy gate and the Rust tests of the affected crates. Native
+exhaustive mappings remain with their existing owner.
+
+### Accessor-only resume point
+
+This isolated change deliberately retains the integrated title plan above.
+Only shared optional protocol admission and its root mappings are added.
+The comparison mapping classifies an unsent pending feature as Refused;
+its existing cases stay unchanged and a separate test checks the new case.
+No title value type, origin field, setting, migration or method is added.
+The numeric protocol and method table stay at the integrated head's values.
+The isolated foundation passed workspace Clippy and the affected crates'
+Rust tests. Its review requested a whole-method admission invariant and
+separate refusal tracing; those follow in a small correction. A reusable
+test-only fixture decoder exhaustively matches `Method`, so registering a
+method also requires its typed sample. Each sample is checked directly
+and independently inside all three fleet envelopes. No fixture dispatches
+work or reads credentials.
+
+Protocol refusals retain the existing task and request-id reservation for
+ordering, cancellation and duplicate detection, but only admitted requests
+emit the `call` trace. Refusals emit their own trace and use the SDK error's
+Display text, preventing a second wording from drifting. Existing memory
+transport tests assert that older-protocol refusals never reach handlers.
+The correction's validation is pending before it is reported.
+
 existing ratchet limits are lowered. No dependency is added. The whole
 gate runs against the committed foundation before it is reported. The
 node-head merge preserves the integrated tables and tests; the combined
@@ -463,6 +506,29 @@ that a session with no given title is left alone. These clarify existing
 contracts; no Node caller or model request is added.
 
 
+### Reviewed stack integration resume point
+
+The corrected optional-protocol admission is now the node head's version,
+including its whole-method invariant and refusal trace. Earlier title
+provenance, values, style reader, actor proposal and complete-response
+decoder slices have source review and gate evidence. This merge retains
+the head's protocol, migration numbers and SQL, appends provenance after
+labels, composes all field projections, and regenerates wire declarations.
+The combined gate and merge review remain owed. The schema fixture repair
+is a separate test-only commit. No new staged selector, request-preparation
+or semantic-material module is included in this integration tree. Actual
+HTTP generation, settings wiring and the first-prompt observer remain next.
+
+
+Integration completion checkpoint: the head's corrected accessor is kept
+unchanged. The separate schema-fixture repair expects the migration table
+length after migrate and finds the inbox predecessor in that same table.
+No product migration or other test assertion/deadline changes. Appended
+schema and row positions use saturating addition; the migration table's
+array length also checks the single provisional schema assignment. Narrow
+store library validation passes. The exact-commit remote whole gate and
+merge source review are next; automatic generation remains unconnected.
+
 ### Shared upstream request preparation: contract and resume point
 
 Decision: modify the existing proxy encoding seam. Move its provider flag
@@ -608,3 +674,16 @@ omits TLS state. The adjacent test checks shared trust identity, different
 limits and unchanged earlier clients. LLM all-targets Clippy and 109
 library tests pass. Node ownership still needs to construct metadata's
 pool once and connect it to the staged completion wrapper.
+
+
+### Production wiring resume point
+
+The working line now includes the corrected shared accessor from the
+designated node head and the reviewed title-stack integration. Its own
+remote gate remains separate from the following staged preparations.
+Selection, request bounds, semantic title decoding and bounded transport
+have narrow evidence; their source review and whole gate remain owed.
+The initialized-trust factory passes library validation. Next connect
+validated settings and file compatibility, construct the dedicated pool
+once, reuse admission/credentials/records, and observe the accepted first
+prompt before actor comparison/application. Nothing starts branch work.

@@ -93,7 +93,7 @@ const ATTENTION: usize = 18;
 /// Where the separate current-label projection is in [`SESSION_COLUMNS`].
 const LABELS: usize = 19;
 /// Provenance follows the head's current-label projection.
-const TITLE_ORIGIN: usize = LABELS + 1;
+const TITLE_ORIGIN: usize = LABELS.saturating_add(1);
 
 pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError> {
     let id = session_id_from_sql(&row.get::<_, String>(0)?)?;

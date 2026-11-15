@@ -30,6 +30,16 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+Unassigned protocol numbers use `Option<ProtocolVersion>`, not a numeric
+stand-in. A connection admits calls through `Call::required_protocol()`;
+the existing numeric `since()` API is unchanged. Assigned requests default
+to `Some(self.since())`, and fleet envelopes propagate the inner requirement.
+The client refuses `None` before allocating an id or queuing a frame with
+`CallError::UnassignedProtocol { method }` (code `Unsupported`); the server
+refuses before dispatch. Each future feature supplies its optional
+threshold, assigned by integration only after its clients can read or
+approve the new data. No pending feature is registered by this foundation.
+
 ## Version 23 (2026-11-14, milestone 12): saved-sign-in limits (N2, ADR 0042)
 
 N2 proposed 19 for these together with `usage.query`; `usage.query` took
@@ -114,16 +124,6 @@ Opt-in inbox live-request fetch recovers one actor-owned pending form after
 history pruning. Summary is the compatible default. Expanded replies are
 capped at 15 MiB; larger forms remain exact compact references with no clipped
 choices, and an answered or withdrawn live request returns absence.
-
-Unassigned protocol numbers use `Option<ProtocolVersion>`, not a numeric
-stand-in. A connection admits calls through `Call::required_protocol()`;
-the existing numeric `since()` API is unchanged. Assigned requests default
-to `Some(self.since())`, and fleet envelopes propagate the inner requirement.
-The client refuses `None` before allocating an id or queuing a frame with
-`CallError::UnassignedProtocol { method }` (code `Unsupported`); the server
-refuses before dispatch. Each future feature supplies its optional
-threshold, assigned by integration only after its clients can read or
-approve the new data. No pending feature is registered by this foundation.
 
 ## Version 21 (2026-11-14, milestone 12): reported usage (N2, ADR 0042)
 

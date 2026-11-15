@@ -36,7 +36,8 @@ crates/vessel-node/src/transfers/mod.rs 515
 crates/vessel-proto/src/fleet.rs 663
 crates/vessel-relay/src/server/mod.rs 907
 # temporary, removed by Quality B: 758 -> 772 for N1's inbox and push calls (protocol 22),
-# -> 776 for N2's usage.limits and usage.lookup (protocol 23).
+# -> 776 for N2's usage.limits and usage.lookup (protocol 23), -> 770 after the
+# unassigned-protocol accessor (A6) moved the admission check out.
 crates/vessel-rpc/src/client/mod.rs 770
 crates/vessel-store/src/data_dir.rs 524
 crates/vessel-web/src/registry.rs 501
