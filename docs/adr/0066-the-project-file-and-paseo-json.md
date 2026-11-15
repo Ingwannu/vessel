@@ -1007,3 +1007,105 @@ No helper is launched and no registry API is adopted by this contract change.
   needed for the actual backend; no such execution or proof is claimed
   by this document. Same-account arbitrary process manipulation remains
   the documented host trust limit, not a promised OS sandbox.
+
+
+### Node-internal service Preview lease API
+
+[Decision Log]
+
+- Purpose and intent: let the browser's node adapter consume one concrete
+  service connection contract while canonical kernel/registry producers
+  are still being qualified. Metadata cannot grant private network access.
+  A typed unavailable backend is preferable to a guessed ownership proof.
+- Existing assets: canonical WorkspaceId/SessionId, runner ProcessLifetime,
+  node ConnectionLife observers, terminal scan PERIOD, Tokio sockets and
+  owned semaphore permits, CancellationToken and TaskTracker already exist.
+  The browser can consume a concrete AsyncRead/AsyncWrite stream through
+  its generic node adapter; it must not depend on the node crate. No new
+  third-party dependency or crate edge is needed.
+- Reference and difference: Paseo's local-service-connection.ts4–28 and
+  service-proxy.ts319–400 connect to a loopback port and forward data.
+  They do not expose this owner/run/accepted-peer/scheme lease. The
+  node-owned browser's stricter private-origin boundary is ADR 0078's
+  security floor. This internal API creates no additional agent tool.
+- Choice: stage `terminals::preview` with concrete PreviewService,
+  PreviewContext, PreviewOrigin, PreviewLease, PreviewConnection,
+  PreviewDrain and PreviewError. There is no serde/wire constructor or
+  public raw-stream extraction. PreviewOrigin is an exact HTTP/HTTPS
+  scheme plus literal loopback socket address with a validated ServicePort;
+  it is a matcher value, not authority. Different IP spellings, ports,
+  schemes, redirects or aliases never extend an existing binding.
+- Context: PreviewContext retains the exact WorkspaceId, opening SessionId,
+  canonical ConnectionLife owner and close observer, without retaining the
+  lifetime guard. It is built by the already authorized node browser
+  adapter, not decoded as client authority. Real handler wiring must check
+  protocol and Principal scope/session ownership first, derive these values
+  from authoritative context, and reuse the shared ConnectionLife accessor.
+  No new connection id, default workspace or cwd/PID ownership inference.
+- Admission: `PreviewService::admit(context, origin)` returns an opaque lease
+  only after the trusted backend validates canonical active workspace and
+  session/resource ownership, automation/approval/incarnation, actual run,
+  complete socket evidence and bounded scheme proof. The current producer
+  lacks those qualified dependencies and its real mode returns Unavailable
+  before any dial or worker. Positive backends/observations remain test-only
+  fixtures, unreachable in a product build. Passing a UUID, cancellation
+  token, origin or live ProcessLifetime never bypasses the missing backend.
+- Per-operation contract: `lease.check(context, origin)` precedes every
+  browser command; `lease.connect_verified(context, origin)` precedes every
+  connection. Both reject another connection owner, workspace, session or
+  exact origin and revalidate the trusted authority/evidence. A connection
+  open includes the TCP dial; it returns a concrete owned
+  AsyncRead+AsyncWrite+Unpin+Send PreviewConnection only after accepted-peer
+  and actual-run verification. No HTTP header/body, websocket upgrade or
+  TLS byte is forwarded before that proof. Scheme qualification is a
+  separate trusted proof performed only after peer verification, never
+  inferred from TCP health. The browser does not dial origin metadata.
+- Freshness: initial and refreshed evidence is timestamped by its trusted
+  producer at observation, not by the request. Its validity is at most two
+  terminal scan PERIODs. A complete refresh for the same canonical binding,
+  run and origin renews that short evidence window; activity does not. No
+  fresh observation, scan failure/truncation, unknown/ambiguous owner,
+  changed binding/run/origin or authority loss revokes rather than renewing.
+  A future timestamp refuses. The prototype does not invent a workspace
+  generation to stand in for the missing canonical incarnation producer.
+- Revocation: connection/device loss, owner/session/workspace/approval
+  changes, park/move/stop/replacement, run revocation, evidence expiry and
+  node shutdown close the lease. `lease.revoked()` exposes that event.
+  Pending I/O wakes and further read/write/flush/shutdown cannot pass data;
+  the connection wrapper retains the lease and actual capacity until its
+  socket is dropped. The browser shuts down the target/profile and refs.
+  `lease.revoke_and_drain()` closes new admission atomically and waits for
+  every registered preparation/returned stream owner to finish, yielding
+  an opaque receipt associated with that exact lease. Caller timeout is
+  not that receipt and cannot justify profile or capacity reuse. This says
+  nothing about Chromium process death or arbitrary escaped descendants.
+- Physical-work ownership: connection/preparation budgets are reserved
+  before dialing. A tracked blocking inspection owns the actual socket,
+  permit and drain token through timeout/cancellation until it finishes.
+  The async operation's logical deadline cannot release those resources
+  early; a late result cannot become a lease/stream. Socket drop precedes
+  permit/drain-token release. Closing admission and registering attempts
+  share one lease gate, so a drain cannot race a newly admitted worker.
+- Bounds, defined here until their code owner exists: MAX_PREVIEW_LEASES
+  is 32 node-wide leases; MAX_PREVIEW_STREAMS is 64 node-wide streams;
+  MAX_LEASE_STREAMS is 8 per lease; MAX_PREVIEW_PREPARATIONS is 4 physical
+  preparations; PREVIEW_OPERATION_TIMEOUT is five seconds per admit/check/
+  connect operation. Admission is non-queueing and returns typed Busy;
+  errors format the named limit. The implementation moves each definition
+  beside its owner and removes these repeated values from this paragraph.
+  Budgets are shared by the node service, never recreated for each lease.
+- Errors: typed Unavailable with missing-proof/platform reason, scope/origin
+  mismatch, changed/revoked/expired evidence, Busy with its resource, and
+  source-preserving socket/I/O/worker/deadline errors. No raw URL, process
+  record, header/body, credential or helper output enters a diagnostic.
+  Existing IO traits may wrap the typed cause in std::io::Error; no String
+  or boxed application-error API is introduced.
+- Qualification: first stage is outer test-only with an explicit unavailable
+  producer and controlled models/loopback transport. Tests must cover no
+  network on Unavailable, wrong scope/connection/origin, same-PID different
+  run, expiry and genuine refresh, cancellation while preparation blocks,
+  no application bytes before proof, stream cancellation and capacity/drain
+  ordering. Such fixtures do not attest a real socket owner, TLS scheme,
+  operating service or qualified browser. Removing staging requires the
+  real canonical source/inspection/scheme backend and its package gate;
+  neither pending protocol assignment nor a passing fixture supplies it.
