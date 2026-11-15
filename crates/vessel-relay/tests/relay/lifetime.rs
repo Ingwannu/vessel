@@ -4,8 +4,9 @@ use futures_util::{SinkExt as _, StreamExt as _};
 use std::{future::Future, sync::Arc, time::Duration};
 use tokio::{sync::mpsc, task::JoinHandle};
 use tokio_util::sync::CancellationToken;
-use vessel_relay::{LinkState, NodeLink, dial};
-use vessel_secure::{Config, NodeKeypair, initiate, routing_id};
+use vessel_proto::RouteUrl;
+use vessel_relay::{LinkState, NodeLink, WsCarrier, dial};
+use vessel_secure::{Config, NodeKeypair, SecureChannel, initiate, routing_id};
 const OUTER: Duration = Duration::from_secs(30);
 const PHASE: Duration = Duration::from_secs(5);
 const ACCEPTED: usize = 1;
@@ -52,27 +53,10 @@ async fn registration_stop_acknowledges_after_handoff_without_closing_encrypted_
             )
             .await
             .unwrap();
-            let route_id = routing_id(key.public());
-            let transport_tls = tls();
-            let (client, server) = tokio::join!(
-                phase(
-                    "client reaches registered node",
-                    dial(&relay.url, &route_id, &transport_tls)
-                ),
-                phase("gateway receives carrier ownership", accepted.recv()),
-            );
-            let client = client.unwrap();
-            let server = server.unwrap();
-            let secure = Config::default();
-            let (client, server) = tokio::join!(
-                phase("client encrypted handshake", initiate(client, key.public())),
-                phase(
-                    "gateway encrypted handshake",
-                    vessel_relay::respond(server, &key, &secure)
-                ),
-            );
-            let mut client = client.unwrap();
-            let mut server = server.unwrap();
+            let EncryptedPair {
+                mut client,
+                mut server,
+            } = encrypted_pair(&relay.url, &key, &mut accepted).await;
             phase(
                 "encrypted message before disable",
                 client.send("before".to_owned()),
@@ -128,4 +112,38 @@ async fn registration_stop_acknowledges_after_handoff_without_closing_encrypted_
     )
     .await
     .expect("relay lifetime outer safety");
+}
+
+struct EncryptedPair {
+    client: SecureChannel<WsCarrier>,
+    server: SecureChannel<WsCarrier>,
+}
+
+async fn encrypted_pair(
+    relay: &RouteUrl,
+    key: &NodeKeypair,
+    accepted: &mut mpsc::Receiver<WsCarrier>,
+) -> EncryptedPair {
+    let route_id = routing_id(key.public());
+    let transport_tls = tls();
+    let (client, server) = tokio::join!(
+        phase(
+            "client reaches registered node",
+            dial(relay, &route_id, &transport_tls)
+        ),
+        phase("gateway receives carrier ownership", accepted.recv()),
+    );
+    let client = client.unwrap();
+    let server = server.unwrap();
+    let secure = Config::default();
+    let (client, server) = tokio::join!(
+        phase("client encrypted handshake", initiate(client, key.public())),
+        phase(
+            "gateway encrypted handshake",
+            vessel_relay::respond(server, key, &secure)
+        ),
+    );
+    let client = client.unwrap();
+    let server = server.unwrap();
+    EncryptedPair { client, server }
 }

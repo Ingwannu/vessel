@@ -197,7 +197,8 @@ impl NodeLink {
     }
 
     /// Keep the node registered until `shutdown`, handing each client's
-    /// data connection to `accept`.
+    /// data connection to `accept`. Normal shutdown joins all pending opens
+    /// through their final callback; carriers already handed over are separate.
     pub async fn run<F>(self, accept: F, shutdown: CancellationToken)
     where
         F: Fn(WsCarrier) + Send + Sync + 'static,
