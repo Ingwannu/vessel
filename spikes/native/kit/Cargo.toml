@@ -21,7 +21,7 @@ thiserror.workspace = true
 resvg = { version = "0.46", default-features = false }
 # The icon's pixels, as GPUI's window options take them (`image` 0.25, in
 # the tree through GPUI).
-image = { version = "0.25", default-features = false }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp", "tiff"] }
 tracing = "0.1"
 
 [dev-dependencies]
