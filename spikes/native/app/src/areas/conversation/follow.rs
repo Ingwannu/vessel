@@ -42,10 +42,12 @@ impl Shell {
     pub(crate) fn conversation_display(&mut self, display: ConversationDisplay) {
         let collapse = collapsing(Some(display));
         let area = &mut self.areas.conversation;
-        if area.collapse == collapse {
+        let turn_collapse = super::turns::pinned();
+        if area.collapse == collapse && area.turns.is_some() == turn_collapse {
             return;
         }
         area.collapse = collapse;
+        area.turns = turn_collapse.then(super::turns::Turns::default);
         area.folds = collapse
             .then(|| Folds::with_reasoning(area.timeline.entries(), area.reasoning.expanded()));
         area.open_runs.clear();

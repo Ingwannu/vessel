@@ -57,5 +57,8 @@ impl Shell {
         if let super::origin::Origin::Shown(origin) = &mut self.areas.conversation.origin {
             origin.set_reasoning(expansion);
         }
+        let area = &self.areas.conversation;
+        area.list.reset(area.at(area.rows.len()));
+        area.tail_dropped();
     }
 }

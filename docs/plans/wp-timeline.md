@@ -274,3 +274,18 @@ completed; explicit disclosure values now retain the actual choice across tool
 completion and default changes. Plan outcome disclosures remain independently
 owned by the shared Plan renderer contract. Tests cover local lenient fallback,
 roundtrip/change isolation, group exclusion and explicit-choice persistence.
+
+### Turn disclosure native integration
+
+The same `ConversationArea` now owns turn disclosure on all seats. Summary rows
+use the existing work-summary renderer, expand to the complete original entries
+and draw a shared-token indent rail. `reveal_turn(entry)` opens the owning turn
+before existing find/record row lookup. Record ingestion compares old/new row
+projections so a footer that folds earlier work invalidates the earlier rows.
+Origin conversations inherit the same display and reasoning defaults.
+The existing capture override accepts `VESSEL_APP_CONVERSATION=turns` for proving
+this integration while the shared translated Chat display adapter is pending;
+no extra settings store, node call or untranslated Settings row is introduced.
+Normal Full/CollapseTools behavior remains available through the existing choice.
+V1 recorded custody of the four glyph names at7368d1d8, with no collision and
+without implying a geometry/licence/raster/gate/UI review.

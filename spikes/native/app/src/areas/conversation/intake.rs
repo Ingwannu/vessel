@@ -98,6 +98,7 @@ impl ConversationArea {
         self.lost = None;
         self.follow_parking(records);
         let rows_before = self.rows.len();
+        let turn_rows_before = self.turns.as_ref().map(|_| self.rows.clone());
         let change = self.timeline.apply(records);
         if change.is_empty(self.timeline.entries().len()) {
             return false;
@@ -136,6 +137,9 @@ impl ConversationArea {
             .row_index(first_changed, self.folds.as_ref(), &self.logs)
             .unwrap_or(rows_before)
             .min(rows_before);
+        let from = turn_rows_before
+            .as_ref()
+            .map_or(from, |before| from.min(before.first_difference(&self.rows)));
         self.list.splice(
             self.at(from)..self.at(rows_before),
             rows_after.saturating_sub(from),

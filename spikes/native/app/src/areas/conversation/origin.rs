@@ -258,6 +258,7 @@ impl Shell {
                 // The same agent: the fork's spec is its origin's.
                 origin.info.clone_from(&area.info);
                 origin.reasoning = area.reasoning;
+                origin.turns = area.turns.as_ref().map(|_| super::turns::Turns::default());
                 origin.inherit(records, area.collapse);
                 let rows = origin.rows.len();
                 tracing::debug!(
@@ -312,7 +313,9 @@ impl Shell {
 
     /// The conversation's display changed: the origin folds as the fork.
     pub(super) fn origin_display(&mut self, collapse: bool) {
+        let turn_collapse = self.areas.conversation.turns.is_some();
         if let Some(origin) = self.areas.conversation.origin.area_mut() {
+            origin.turns = turn_collapse.then(super::turns::Turns::default);
             origin.collapse = collapse;
             origin.folds = collapse.then(|| {
                 Folds::with_reasoning(origin.timeline.entries(), origin.reasoning.expanded())

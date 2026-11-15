@@ -80,6 +80,8 @@ pub(crate) struct ConversationArea {
     pub(crate) folds: Option<Folds>,
     /// The runs opened, by their lead entry.
     pub(crate) open_runs: HashSet<usize>,
+    /// Whole-turn disclosures; absent for Full or Collapse tool calls.
+    pub(super) turns: Option<super::turns::Turns>,
     /// The agent's own log lines, by run (`view::timeline::logs`).
     pub(crate) logs: Logs,
     /// Whether the agent's log is shown (the Session actions' "Agent
@@ -184,6 +186,7 @@ impl ConversationArea {
             timeline: Timeline::default(),
             folds: None,
             open_runs: HashSet::new(),
+            turns: None,
             logs: Logs::default(),
             agent_log: AgentLog::Hidden,
             collapse: collapsing(None),
@@ -268,6 +271,9 @@ impl ConversationArea {
         self.timeline = Timeline::default();
         self.folds = self.collapse.then(Folds::default);
         self.open_runs.clear();
+        if let Some(turns) = &mut self.turns {
+            *turns = super::turns::Turns::default();
+        }
         self.logs = Logs::default();
         self.agent_log = AgentLog::Hidden;
         self.disclosures.clear();
@@ -325,6 +331,7 @@ impl ConversationArea {
             }
         };
         self.reveal = None;
+        self.reveal_turn(index);
         if let Some(row) = self.rows.row_index(index, self.folds.as_ref(), &self.logs) {
             self.list.reveal(self.at(row), Reveal::Top);
         }
@@ -387,12 +394,26 @@ impl ConversationArea {
     /// The rows again, after the entries, the folds or the open runs
     /// changed.
     pub(super) fn rows_again(&mut self) {
-        self.rows = Rows::of(
+        if self.turns.is_some() {
+            self.folds = None;
+        }
+        let rows = Rows::of(
             self.timeline.entries().len(),
             self.folds.as_ref(),
             &self.logs,
             &self.open_runs,
         );
+        self.rows = if let Some(turns) = &mut self.turns {
+            let activity = if self.timeline.in_turn() {
+                TurnActivity::Open
+            } else {
+                TurnActivity::Closed
+            };
+            turns.folds = TurnFolds::of(self.timeline.entries(), activity);
+            rows.fold_turns(self.timeline.entries(), &turns.folds, &turns.open)
+        } else {
+            rows
+        };
     }
 }
 
@@ -407,6 +428,7 @@ pub(super) fn collapsing(display: Option<ConversationDisplay>) -> bool {
     match std::env::var("VESSEL_APP_CONVERSATION").as_deref() {
         Ok("full") => false,
         Ok("collapse") => true,
+        Ok("turns") => false,
         _ => display.is_none_or(|display| display == ConversationDisplay::CollapseTools),
     }
 }

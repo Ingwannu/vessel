@@ -79,6 +79,7 @@ mod tail;
 /// Its rows, for another area's conversation too ([`timeline::rows`]).
 pub(crate) mod timeline;
 mod tool;
+mod turns;
 
 pub(crate) use actions::{AgentLog, Confirm, MenuAction};
 pub(crate) use area::ConversationArea;

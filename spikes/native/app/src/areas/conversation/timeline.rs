@@ -2,6 +2,7 @@
 //! the session's one chat column; a run of tool calls folded into its
 //! summary row. What floats over the frame is `overlays`.
 
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, ElementId, InteractiveElement as _, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, Window, div, px,
@@ -192,7 +193,44 @@ fn row_element(
     if run.is_none() || run_open {
         content = content.child(entry_element(&paint, area, (index, entry), window, cx));
     }
-    lane(content.into_any_element())
+    if let Some(turn) = area
+        .turns
+        .as_ref()
+        .and_then(|turns| turns.folds.at_host(index))
+    {
+        let expanded = area
+            .turns
+            .as_ref()
+            .is_some_and(|turns| turns.open.contains(&index));
+        content = content.child(run_header(
+            &paint,
+            ("turn", turn.host),
+            paint.words.run_summary(&turn.summary),
+            expanded,
+            Shell::toggle_turn,
+            cx,
+        ));
+    }
+    let nested = !matches!(entry.kind, EntryKind::Steer { .. })
+        && area.turns.as_ref().is_some_and(|turns| {
+            turns
+                .folds
+                .containing(index)
+                .is_some_and(|turn| turns.open.contains(&turn.host))
+        });
+    if nested {
+        lane(
+            div()
+                .ml(px(spacing::S2))
+                .pl(px(spacing::S3))
+                .border_l_1()
+                .border_color(tokens.neutral.border)
+                .child(content)
+                .into_any_element(),
+        )
+    } else {
+        lane(content.into_any_element())
+    }
 }
 
 /// A row after the log's own: the person's message still on its way
