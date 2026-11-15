@@ -4,6 +4,11 @@ use super::labels::Labels;
 
 /// English (the page's words).
 pub const EN: Labels = Labels {
+    file_image_unavailable: "Image unavailable",
+    file_mode_source: "Source",
+    file_mode_preview: "Preview",
+    file_preview_incomplete: "Preview needs the complete file.",
+    file_link_refused: "This link is outside the current file workspace or cannot be resolved.",
     file_find: "Find in file",
     file_find_no_matches: "No matches",
     file_find_previous: "Previous",

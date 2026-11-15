@@ -82,9 +82,7 @@ impl Shell {
         let Ok(query) = query.trim().parse::<FindQuery>() else {
             return Err(FindRefused::Query);
         };
-        let cached = vessel_app_view::machine_book::Name::parse(&machine)
-            .ok()
-            .and_then(|name| self.code_workspace_scope(&name, session));
+        let cached = self.file_workspace_scope().map(|(_, root)| root);
         let panel = &mut self.areas.workspace.code;
         // The panel knows it already when it shows this exact node/session.
         let shown = cached.map(|root| Ok(Some(root))).or_else(|| {

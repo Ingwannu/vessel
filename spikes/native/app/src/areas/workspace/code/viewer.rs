@@ -85,11 +85,15 @@ pub(super) fn viewer_element(
                 this.add_lines_to_chat(window, cx);
             }))
         }));
-    let body: AnyElement = if let Some(editing) = &viewer.edit {
-        super::editing_view::body(shell, editing, tokens, cx)
-    } else {
-        read_only_body(shell, viewer, tokens, cx)
-    };
+    let head = head.children(super::markdown::toolbar(shell, viewer, tokens, cx));
+    let body: AnyElement =
+        if let Some(preview) = super::markdown::body(shell, viewer, tokens, window, cx) {
+            preview
+        } else if let Some(editing) = &viewer.edit {
+            super::editing_view::body(shell, editing, tokens, cx)
+        } else {
+            read_only_body(shell, viewer, tokens, cx)
+        };
     let narrow = vessel_app_kit::breakpoint::phone(window);
     div()
         .flex_1()
@@ -141,6 +145,7 @@ fn code_line(
         lines,
         states,
         more,
+        ..
     }) = shell
         .areas
         .workspace

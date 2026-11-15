@@ -122,6 +122,9 @@ impl Shell {
         let step = editing.model.edit(&text);
         if let Some(viewer) = self.areas.workspace.code.viewer_for(key) {
             viewer.intelligence = super::intelligence::State::Idle;
+            if let Some(preview) = &mut viewer.markdown {
+                preview.invalidate();
+            }
         }
         self.run_step_for(key.clone(), step, cx);
     }
@@ -166,6 +169,11 @@ impl Shell {
         let before = editing.model.content().to_owned();
         let step = editing.model.read(sequence, read);
         editing.stale = editing.editor.is_some() && editing.model.content() != before;
+        if let Some(viewer) = self.areas.workspace.code.viewer_for(key)
+            && let Some(preview) = &mut viewer.markdown
+        {
+            preview.invalidate();
+        }
         self.run_step_for(key.clone(), step, cx);
         true
     }

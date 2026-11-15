@@ -8,6 +8,20 @@ use super::{Place, Tab};
 use crate::shell::Shell;
 
 impl Shell {
+    /// Snapshot of the active session's already-resolved file root. This is
+    /// request scope, not a live connection lease; G4 owns effect admission.
+    pub(crate) fn file_workspace_scope(
+        &self,
+    ) -> Option<(
+        vessel_app_view::machine_book::Name,
+        vessel_proto::workspace::WorkspaceRoot,
+    )> {
+        let (machine, session) = self.code_session()?;
+        let machine = vessel_app_view::machine_book::Name::parse(&machine).ok()?;
+        let root = self.code_workspace_scope(&machine, session)?;
+        Some((machine, root))
+    }
+
     /// Reuse an already resolved session root only for its exact node and
     /// session. A composer may resolve session.get itself when absent.
     pub(crate) fn code_workspace_scope(

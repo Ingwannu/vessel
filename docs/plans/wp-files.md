@@ -271,3 +271,23 @@ relative/file URI is handed to an OS opener or a default filesystem image
 loader. C5 still authorizes file roots and controls actual acquisitions;
 the parser grants no authority. Producer's later staged extension is not
 consumed until checked.
+
+### Markdown preview owner checkpoint
+
+The app now retains a Source/Preview choice with each Markdown viewer (Preview
+by default; explicit line navigation selects Source). Preview metadata parsing
+runs on the GPUI background executor only after a complete source arrives and
+uses a unique file ticket. Refresh/edit invalidates that ticket, so an earlier
+parse cannot replace newer source, including while the buffer is retained.
+`code/markdown` owns this lifecycle; `markdown/draw` uses the shared kit renderer,
+selection and code-aware copy; `markdown/links` authorizes paths relative to the
+captured file directory. Lexical parent traversal cannot leave its authorized
+root; node path resolution remains the second wall.
+
+This is source implementation, not a passed UI/gate claim. Inline images are
+currently explicit unavailable resources through the host resolver, never a
+fallback to the workstation filesystem. Absolute/home file links await the
+shared admitted workspace resolver; W12 tabs and G4 connection leases are still
+pending. The existing Name-keyed buffer rename limitation remains outstanding.
+`file_workspace_scope` exposes only the active session's resolved root snapshot,
+not proof of a live lease, and makes no extra node request.

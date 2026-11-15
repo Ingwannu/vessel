@@ -45,6 +45,7 @@ mod intelligence_view;
 mod io_tests;
 mod layout_adapter;
 mod line_syntax;
+mod markdown;
 mod mutation;
 mod search;
 mod tree;
@@ -121,6 +122,7 @@ struct Changes {
 
 /// A file shown in the Files tab.
 struct Viewer {
+    markdown: Option<markdown::Preview>,
     /// Read-only loads must not overwrite a newer refresh of the same path.
     reading: Option<vessel_app_view::workspace::file_ticket::FileTicket>,
     workspace_dir: Option<std::path::PathBuf>,
@@ -141,6 +143,7 @@ struct Viewer {
 enum Shown {
     Loading,
     Text {
+        source: std::sync::Arc<str>,
         lines: Vec<String>,
         states: Vec<vessel_app_view::workspace::syntax::LineState>,
         more: bool,

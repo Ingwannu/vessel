@@ -7,6 +7,11 @@
 #[derive(Debug)]
 #[expect(missing_docs, reason = "each field is named for the words it holds")]
 pub struct Labels {
+    pub file_image_unavailable: &'static str,
+    pub file_mode_source: &'static str,
+    pub file_mode_preview: &'static str,
+    pub file_preview_incomplete: &'static str,
+    pub file_link_refused: &'static str,
     /// Literal file search and replacement.
     pub file_find: &'static str,
     pub file_find_no_matches: &'static str,

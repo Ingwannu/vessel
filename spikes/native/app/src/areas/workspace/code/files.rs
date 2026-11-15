@@ -237,12 +237,16 @@ impl Shell {
         if let Some(mut viewer) = files.retained.remove(&key) {
             if location.is_some() {
                 viewer.goto = location;
+                if let Some(preview) = &mut viewer.markdown {
+                    preview.reveal_source();
+                }
             }
             files.viewer = Some(viewer);
             return;
         }
         let editable = !files.narrow.get();
         files.viewer = Some(Viewer {
+            markdown: super::markdown::Preview::for_path(&path, location),
             reading: None,
             workspace_dir,
             intelligence: super::intelligence::State::Idle,
@@ -329,6 +333,9 @@ impl Shell {
         let Some(viewer) = self.areas.workspace.code.viewer_for(&key) else {
             return;
         };
+        if let Some(preview) = &mut viewer.markdown {
+            preview.invalidate();
+        }
         viewer.text = match result {
             Ok(read) => match read.content {
                 FileContent::Text { text, next, .. } => {
@@ -336,6 +343,7 @@ impl Shell {
                     let language = language_of(ask.path.as_str());
                     let states = line_states(lines.iter().map(String::as_str), language);
                     Shown::Text {
+                        source: std::sync::Arc::from(text),
                         lines,
                         states,
                         more: next.is_some(),

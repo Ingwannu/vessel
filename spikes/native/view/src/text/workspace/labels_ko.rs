@@ -4,6 +4,11 @@ use super::labels::Labels;
 
 /// Korean.
 pub const KO: Labels = Labels {
+    file_image_unavailable: "이미지를 표시할 수 없습니다",
+    file_mode_source: "원문",
+    file_mode_preview: "미리보기",
+    file_preview_incomplete: "미리보기에는 파일 전체가 필요합니다.",
+    file_link_refused: "현재 파일의 작업 공간 밖이거나 확인할 수 없는 링크입니다.",
     file_find: "파일에서 찾기",
     file_find_no_matches: "일치 항목 없음",
     file_find_previous: "이전",
