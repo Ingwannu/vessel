@@ -322,3 +322,112 @@ fn restore_admission_reloads_capture_identity_instead_of_trusting_the_caller() {
         .is_ok()
     );
 }
+
+#[test]
+fn terminal_outcomes_require_the_complete_approved_path_journal() {
+    use super::paths::{self, Phase};
+    use vessel_proto::{
+        BlobHash,
+        checkpoint::{Entry, FileBytes, FileState, PathCount},
+    };
+    let (mut connection, key) = fixture();
+    let mut plan = ready_plan(&connection, key);
+    let metadata = vessel_proto::checkpoint::FileMetadata {
+        owner: vessel_proto::checkpoint::OwnerId::new(1000),
+        group: vessel_proto::checkpoint::GroupId::new(1000),
+        mode: vessel_proto::checkpoint::OrdinaryMode::new(0o600).unwrap(),
+    };
+    let path =
+        serde_json::from_str::<vessel_proto::checkpoint::CheckpointPath>("\"file\"").unwrap();
+    let selected = FileImage::new(vec![Entry {
+        path: path.clone(),
+        state: FileState::Present {
+            digest: BlobHash::from_bytes([1; 32]),
+            bytes: FileBytes::new(1).unwrap(),
+            metadata,
+        },
+    }])
+    .unwrap();
+    plan.desired = selected.effective(&plan.current, metadata).unwrap();
+    let _changed = connection
+        .execute(
+            "UPDATE checkpoint_captures SET image=?1 WHERE id=?2",
+            params![
+                serde_json::to_string(&selected).unwrap(),
+                key.capture.to_string()
+            ],
+        )
+        .unwrap();
+    journal::put_plan(&connection, &plan).unwrap();
+    let restore = RestoreId::random();
+    let operation = {
+        let transaction = connection.transaction().unwrap();
+        let operation = journal::admit(&transaction, &plan, restore, DateTime::UNIX_EPOCH).unwrap();
+        paths::prepare(&transaction, &operation).unwrap();
+        transaction.commit().unwrap();
+        operation
+    };
+    let entries = paths::list(&connection, &operation).unwrap();
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries.first().unwrap().before, FileState::Absent);
+    assert_eq!(entries.first().unwrap().phase, Phase::Pending);
+    let success = RestoreOutcome::Restored {
+        changed: PathCount::new(1).unwrap(),
+    };
+    assert!(matches!(
+        journal::outcome(&connection, &operation, &success),
+        Err(Error::Refused(CheckpointError::RecoveryPending))
+    ));
+    assert!(matches!(
+        journal::outcome(&connection, &operation, &RestoreOutcome::Unchanged),
+        Err(Error::Refused(CheckpointError::RecoveryPending))
+    ));
+    paths::advance(
+        &connection,
+        &operation,
+        &path,
+        Phase::Pending,
+        Phase::Applied,
+    )
+    .unwrap();
+    assert!(matches!(
+        paths::advance(
+            &connection,
+            &operation,
+            &path,
+            Phase::Pending,
+            Phase::Applied
+        ),
+        Err(Error::Refused(CheckpointError::RestoreIdConflict))
+    ));
+    paths::advance(
+        &connection,
+        &operation,
+        &path,
+        Phase::Applied,
+        Phase::Restored,
+    )
+    .unwrap();
+    assert!(matches!(
+        journal::outcome(&connection, &operation, &success),
+        Err(Error::Refused(CheckpointError::RecoveryPending))
+    ));
+    journal::outcome(
+        &connection,
+        &operation,
+        &RestoreOutcome::RolledBack {
+            reason: CheckpointError::CaptureUnstable,
+        },
+    )
+    .unwrap();
+    assert!(matches!(
+        paths::advance(
+            &connection,
+            &operation,
+            &path,
+            Phase::Restored,
+            Phase::Conflict
+        ),
+        Err(Error::Refused(CheckpointError::RestoreIdConflict))
+    ));
+}

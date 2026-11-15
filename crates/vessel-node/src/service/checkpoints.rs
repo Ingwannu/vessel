@@ -6,7 +6,14 @@
 //! mutate files before the durable coordinator has been connected and reviewed.
 
 use super::{Connection, NodeService};
-use vessel_proto::{ErrorCode, ErrorDetail, WireError, checkpoint::*};
+use vessel_proto::{
+    ErrorCode, ErrorDetail, WireError,
+    checkpoint::{
+        ChangePage, CheckpointError, CheckpointPage, CheckpointRestoreStatus, ListCheckpoints,
+        PreviewCheckpoint, ReadCheckpointChanges, RestoreCheckpoint, RestoreOutcome,
+        RestorePreview,
+    },
+};
 
 fn unavailable() -> WireError {
     let reason = CheckpointError::FeatureUnavailable;

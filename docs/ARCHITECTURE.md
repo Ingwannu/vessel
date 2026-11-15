@@ -1546,6 +1546,11 @@ The checkpoint modules in `vessel-node`, `vessel-store`, `vessel-session` and
 `vessel-workspace` are test-only staging under A10, not advertised product
 capabilities. The node owns admission/fencing, store owns SQL, workspace owns
 filesystem operations and the session only waits for a bounded node
-acknowledgement. No dependency edge or registered method changes here. The table migration appends directly after this base's newest schema; the
-integrator re-points its constant at merge. Service wiring requires Quality B
-protocol work, reviewed ownership/exclusion and the remaining restore tests.
+acknowledgement. No dependency edge changes. After consuming Quality B, the
+five files-only unary methods are registered as pending in the canonical
+table; admission refuses them while FILE_CHECKPOINTS is None and the service
+seam explicitly returns Unavailable. Preview, changes, restore and status
+refuse direct and delegated agents; list follows existing read visibility.
+The table migration appends directly after this base's newest schema; the
+integrator re-points its constant at merge. Service activation still requires
+reviewed ownership/exclusion, durable coordinator wiring and restore tests.

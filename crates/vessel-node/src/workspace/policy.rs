@@ -362,6 +362,7 @@ mod tests {
             scopes: vec![Scope::Read, Scope::Operate],
         };
         for allowed in [
+            Method::ListCheckpoints,
             Method::ListProjects,
             Method::GetProject,
             Method::ProjectCommands,
@@ -391,6 +392,10 @@ mod tests {
             assert!(refuse_agents(&agent, allowed).is_ok(), "{allowed:?}");
         }
         for refused in [
+            Method::PreviewCheckpoint,
+            Method::ReadCheckpointChanges,
+            Method::RestoreCheckpoint,
+            Method::CheckpointRestoreStatus,
             Method::ApproveCommands,
             Method::RunSetup,
             Method::RemoveWorktree,

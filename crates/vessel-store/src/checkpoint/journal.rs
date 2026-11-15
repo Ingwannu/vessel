@@ -219,6 +219,7 @@ pub(super) fn outcome(
     if current.outcome == *result {
         return Ok(());
     }
+    super::paths::verify_terminal(connection, operation, result)?;
     match current.outcome {
         RestoreOutcome::InProgress { .. } => {}
         RestoreOutcome::Restored { .. }

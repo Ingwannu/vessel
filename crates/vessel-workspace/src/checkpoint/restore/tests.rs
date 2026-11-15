@@ -34,6 +34,11 @@ fn account(root: &std::path::Path) -> FileMetadata {
 async fn restore_retains_current_read_write_bits_and_rollback_restores_the_actual_original() {
     let sandbox = Sandbox::new();
     let dir = sandbox.repo("project");
+    assert_ne!(
+        fs::metadata(&dir).unwrap().uid(),
+        0,
+        "permission proof must run as a non-root account"
+    );
     let git = sandbox.git().await;
     let cancel = CancellationToken::new();
     let archive = Archive::open(private_dir(&sandbox, "captured")).unwrap();
@@ -64,6 +69,77 @@ async fn restore_retains_current_read_write_bits_and_rollback_restores_the_actua
     );
     assert_eq!(fs::read(dir.join("README.md")).unwrap(), b"later edit");
     stage.remove(Slot::new(index, SlotKind::Desired)).unwrap();
+}
+
+#[tokio::test]
+async fn executable_only_restore_replays_execute_bits_and_preserves_current_access_bits() {
+    let sandbox = Sandbox::new();
+    let dir = sandbox.repo("project");
+    let git = sandbox.git().await;
+    let cancel = CancellationToken::new();
+    let archive = Archive::open(private_dir(&sandbox, "captured")).unwrap();
+    let file = dir.join("README.md");
+    fs::set_permissions(&file, fs::Permissions::from_mode(0o755)).unwrap();
+    let paths = enumeration::paths(&git, &dir).await.unwrap();
+    let selected = capture::image(&Root::open(&dir).unwrap(), &archive, &paths, &cancel).unwrap();
+    fs::set_permissions(&file, fs::Permissions::from_mode(0o600)).unwrap();
+    let before_archive = Archive::open(private_dir(&sandbox, "before")).unwrap();
+    let before =
+        capture::image(&Root::open(&dir).unwrap(), &before_archive, &paths, &cancel).unwrap();
+    let target = selected.effective(&before, account(&dir)).unwrap();
+    assert_eq!(
+        target.changes(&before).first().unwrap().kind,
+        vessel_proto::checkpoint::ChangeKind::Permissions
+    );
+    let stage = Stage::open(&private_dir(&sandbox, "journal")).unwrap();
+    let root = Root::open(&dir).unwrap();
+    let prepared = Prepared::new(&root, &archive, &stage, &before, &target, &cancel).unwrap();
+    let index = PathCount::new(0).unwrap();
+    prepared.apply(&root, &stage, index, &cancel).unwrap();
+    assert_eq!(fs::metadata(&file).unwrap().mode() & 0o777, 0o711);
+    assert_eq!(fs::read(&file).unwrap(), b"hello\n");
+    assert_eq!(
+        prepared.undo(&root, &stage, index, &cancel).unwrap(),
+        Undo::Restored
+    );
+    assert_eq!(fs::metadata(&file).unwrap().mode() & 0o777, 0o600);
+}
+
+#[tokio::test]
+async fn later_created_file_deletion_can_be_reversed_from_its_retained_inode() {
+    let sandbox = Sandbox::new();
+    let dir = sandbox.repo("project");
+    let git = sandbox.git().await;
+    let cancel = CancellationToken::new();
+    let archive = Archive::open(private_dir(&sandbox, "captured")).unwrap();
+    let selected = capture::image(
+        &Root::open(&dir).unwrap(),
+        &archive,
+        &enumeration::paths(&git, &dir).await.unwrap(),
+        &cancel,
+    )
+    .unwrap();
+    fs::write(dir.join("later"), b"preserve me during rollback").unwrap();
+    let before_archive = Archive::open(private_dir(&sandbox, "before")).unwrap();
+    let paths = enumeration::paths(&git, &dir).await.unwrap();
+    let before =
+        capture::image(&Root::open(&dir).unwrap(), &before_archive, &paths, &cancel).unwrap();
+    let target = selected.effective(&before, account(&dir)).unwrap();
+    let stage = Stage::open(&private_dir(&sandbox, "journal")).unwrap();
+    let root = Root::open(&dir).unwrap();
+    let prepared = Prepared::new(&root, &archive, &stage, &before, &target, &cancel).unwrap();
+    assert_eq!(prepared.steps().len(), 1);
+    let index = PathCount::new(0).unwrap();
+    prepared.apply(&root, &stage, index, &cancel).unwrap();
+    assert!(!dir.join("later").exists());
+    assert_eq!(
+        prepared.undo(&root, &stage, index, &cancel).unwrap(),
+        Undo::Restored
+    );
+    assert_eq!(
+        fs::read(dir.join("later")).unwrap(),
+        b"preserve me during rollback"
+    );
 }
 #[tokio::test]
 async fn rollback_refuses_to_overwrite_a_new_external_edit() {

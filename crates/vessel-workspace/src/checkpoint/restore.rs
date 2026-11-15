@@ -3,7 +3,7 @@
 //! All desired regular files are staged before the first project mutation.
 //! Existing replacements exchange inodes, retaining the original inside the
 //! journal. Rollback refuses an external change rather than overwriting it.
-mod stage;
+pub(super) mod stage;
 #[cfg(test)]
 mod tests;
 
