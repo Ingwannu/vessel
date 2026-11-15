@@ -217,3 +217,10 @@ Narrow pure view test log /tmp/work/wp-inbox/view-feature-tests-1.log:
 881 passed, zero failed, 17.09s execution. One unnecessary qualification warning
 in the new prefs test was corrected afterward. App/link integration, root node
 and runtime/visual evidence are still pending; this checkpoint is not delivery.
+
+A8 merged package base6036eeb8 asb76c97e1. Passive clear pins an explicit
+session open to the shared Machine.node welcome identity; a reused route name
+cannot retarget it. Missing/changed identity suppresses passive writes instead
+of falling back to the old name-only repaint timer. The policy's pane focus,
+read state and request state are enums, replacing four independent bools after
+the narrow clippy check identified excessive flags.

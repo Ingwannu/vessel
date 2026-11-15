@@ -4,7 +4,7 @@
 use crate::{areas::Areas, routes::Route, shell::Shell};
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::{Command, inbox::Ask};
-use vessel_app_view::inbox::reading::{Action, Observation, Target, Trigger};
+use vessel_app_view::inbox::reading::{Action, Focus, Observation, Requests, Target, Trigger};
 
 pub(crate) fn start(areas: &Areas, window: &mut Window, cx: &mut Context<'_, Shell>) {
     let focus = areas.session.composer.focus_handle(cx);
@@ -22,19 +22,45 @@ impl Shell {
             self.inbox_read_send(action);
         }
     }
+    /// Pin an explicit open to the shared welcome identity. Reusing a route
+    /// name for a different node can never retarget a passive read operation.
+    pub(crate) fn inbox_read_open(&mut self, machine: &str, session: vessel_proto::SessionId) {
+        self.areas.inbox.read_open = self
+            .fleet
+            .machines
+            .iter()
+            .find(|item| item.name == machine)
+            .and_then(|item| item.node)
+            .map(|node| Target { node, session });
+    }
     fn inbox_read_observation(&self, window: &Window) -> Option<Observation> {
         if self.route != Route::Session {
             return None;
         }
         let open = self.areas.session.open.as_ref()?;
+        let target = self
+            .areas
+            .inbox
+            .read_open
+            .filter(|target| target.session == open.session)?;
         let source = &self
             .areas
             .inbox
             .store
             .nodes()
             .iter()
-            .find(|node| node.source.name.as_str() == open.machine)?
+            .find(|node| node.source.node == target.node)?
             .source;
+        if self
+            .fleet
+            .machines
+            .iter()
+            .find(|machine| machine.name == open.machine)
+            .and_then(|machine| machine.node)
+            != Some(source.node)
+        {
+            return None;
+        }
         let area = &self.areas.conversation;
         let info = area.info.as_ref().filter(|info| info.id == open.session)?;
         Some(Observation {
@@ -42,10 +68,21 @@ impl Shell {
                 node: source.node,
                 session: open.session,
             },
-            focused: true,
-            active: window.is_window_active() && window.is_visible(),
-            unread: info.marks.unread,
-            pending: !area.live.permissions.is_empty() || !area.live.questions.is_empty(),
+            focus: if window.is_window_active() && window.is_visible() {
+                Focus::Active
+            } else {
+                Focus::Inactive
+            },
+            read: if info.marks.unread {
+                vessel_app_view::inbox::Read::Unread
+            } else {
+                vessel_app_view::inbox::Read::Read
+            },
+            requests: if area.live.permissions.is_empty() && area.live.questions.is_empty() {
+                Requests::None
+            } else {
+                Requests::Waiting
+            },
             through: area.timeline.next(),
         })
     }
@@ -55,13 +92,7 @@ impl Shell {
         }
     }
     pub(crate) fn inbox_read_owns_current(&self) -> bool {
-        self.areas.conversation.info.as_ref().is_some_and(|info| {
-            self.areas
-                .inbox
-                .reading
-                .target()
-                .is_some_and(|target| target.session == info.id)
-        })
+        self.route == Route::Session && self.areas.session.open.is_some()
     }
     pub(crate) fn inbox_hold_read(&mut self, machine: &str, session: vessel_proto::SessionId) {
         if let Some(node) = self

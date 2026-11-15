@@ -108,6 +108,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        self.inbox_read_open(&open.machine, open.session);
         // Track P: the session composer swaps the draft it holds.
         self.composer_switched(open.session, window, cx);
         // An ended session takes prompts too: sending starts it again.
