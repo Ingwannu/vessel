@@ -401,3 +401,13 @@ unit command actually stopped compiling its MCP dependency on optional
 Conversation.abilities; default steer selection now handles absence as
 unsupported before falling back to interrupt. No failed command is counted
 as a node test execution.
+
+The bundled guides now preserve the reference workflows rather than only
+naming them: profile discovery/fallback, one analysis-only advisor, two
+contrasting analysis-only committee members, notification waiting, forwarded
+skills, persistent follow-ups, task-preserving handoff without agent detach,
+topology-specific help and version/trust-aware plugin work. Their instructions
+use current Vessel tool names and do not invent unavailable creation/profile/
+plugin APIs. Text is independently written for Vessel, not a renamed copy of
+Paseo's implementation-specific SDK/CLI instructions. Build still embeds and
+validates the directory catalogue without installing anything.
