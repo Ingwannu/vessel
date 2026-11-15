@@ -248,3 +248,6 @@ not initiate more work; a failed complete refresh does not claim every account w
 updated. Owner tasks keep their permits until actual reads finish and continue to
 check policy/binding publication fences. A paused-clock regression has its own named
 95-second safety budget so removing the production deadline fails instead of hanging.
+The same complete-refresh bound covers exact inspect refreshes, including the legacy
+captured-binding path; authorization remains before admission and cache-only inspect
+still performs no discovery. The budget never substitutes a different report id.

@@ -192,6 +192,19 @@ impl NodeService {
         if request.refresh == LimitRefresh::Refresh {
             connection.principal().permit(Method::CreateSession)?;
         }
+        let refresh = request.refresh == LimitRefresh::Refresh;
+        let reading = self.inspect_report(connection, request);
+        if refresh {
+            refresh_within_budget(reading).await
+        } else {
+            reading.await
+        }
+    }
+    async fn inspect_report(
+        &self,
+        connection: &Connection,
+        request: InspectUsageReport,
+    ) -> Result<UsageReportLookup, WireError> {
         let policy = self.limits.observation().await?;
         if policy.policy == ExternalLookup::Off {
             return Ok(UsageReportLookup::Off);
