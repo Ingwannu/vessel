@@ -40,7 +40,7 @@ pub(super) enum Root {
     Ready(RootAsk, Result<Option<WorkspaceRoot>, mentions::Failure>),
 }
 impl Shell {
-    pub(super) fn composer_field(&self, target: DraftKey) -> Option<&TextField> {
+    pub(crate) fn composer_field(&self, target: DraftKey) -> Option<&TextField> {
         match target {
             DraftKey::New => Some(&self.areas.draft.composer),
             DraftKey::Workspace {
