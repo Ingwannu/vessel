@@ -170,7 +170,8 @@ async fn execute(scenario: Scenario, input: FirstInput) -> TestResult<Vec<Answer
     );
     let ask = Ask {
         ticket: TICKET,
-        machine: Name::parse("fake")?,
+        machine: Name::parse("fake")
+            .map_err(|problem| std::io::Error::other(format!("fixture name: {problem:?}")))?,
         spec,
         input,
     };
