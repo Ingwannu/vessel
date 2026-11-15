@@ -9,23 +9,31 @@ pub enum QuitSignal {
     Interrupt,
     /// POSIX termination request; never treated as permission to interrupt sessions.
     Terminate,
+    /// POSIX hangup uses the same protected quit admission as other quit intent.
+    Hangup,
 }
 
 pub(super) async fn observe(sender: mpsc::Sender<Result<QuitSignal, std::io::Error>>) {
     #[cfg(unix)]
-    let mut terminate =
-        match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
-            Ok(signal) => signal,
-            Err(error) => {
+    let (mut terminate, mut hangup) = {
+        use tokio::signal::unix::{SignalKind, signal};
+        match (
+            signal(SignalKind::terminate()),
+            signal(SignalKind::hangup()),
+        ) {
+            (Ok(terminate), Ok(hangup)) => (terminate, hangup),
+            (Err(error), _) | (_, Err(error)) => {
                 let _closed = sender.send(Err(error)).await;
                 return;
             }
-        };
+        }
+    };
     loop {
         #[cfg(unix)]
         let result = tokio::select! {
             interrupt = tokio::signal::ctrl_c() => interrupt.map(|()| QuitSignal::Interrupt),
             term = terminate.recv() => match term { Some(()) => Ok(QuitSignal::Terminate), None => return },
+            hup = hangup.recv() => match hup { Some(()) => Ok(QuitSignal::Hangup), None => return },
         };
         #[cfg(not(unix))]
         let result = tokio::signal::ctrl_c()

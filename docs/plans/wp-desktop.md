@@ -169,6 +169,11 @@ ends. Finalization is projected temporarily into the existing frame foot without
 replacing retained notices; onboarding hides/disables new host-effect admission
 while this phase is active, and original operation acknowledgements still settle. No second window/document registry or recovery journal exists.
 
+The existing controller reactor observes POSIX HUP/INT/TERM, or platform
+interrupt on other hosts, and forwards intent to that same desktop quit handler.
+A signal never grants interruption confirmation. Actual OS-signal delivery and
+platform shutdown behavior still need receiving-runtime verification.
+
 The real Keep-and-quit caller has a separate App fixture from generic guard
 tests: it invokes desktop dispatch twice from inside the Shell borrow, awaits
 the actual persistence phase, and requires every unsettled document outcome to
