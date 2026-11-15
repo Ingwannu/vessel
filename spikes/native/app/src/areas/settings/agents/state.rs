@@ -27,6 +27,7 @@ pub(crate) struct AgentSettings {
         std::cell::RefCell<std::collections::HashMap<String, vessel_app_kit::tooltip::Place>>,
     pub(super) defaults: ComboboxState,
     pub(super) default_id: Option<OptionId>,
+    pub(super) defaults_problem: Option<vessel_app_view::agent_status::defaults::SaveProblem>,
     pub(super) model_anchor: Anchor,
     pub(super) effort_anchor: Anchor,
     pub(super) mode_anchor: Anchor,
@@ -43,6 +44,7 @@ impl AgentSettings {
             alert_places: std::cell::RefCell::default(),
             defaults: ComboboxState::new(window, cx),
             default_id: None,
+            defaults_problem: None,
             model_anchor: Anchor::default(),
             effort_anchor: Anchor::default(),
             mode_anchor: Anchor::default(),
@@ -65,6 +67,7 @@ impl Shell {
             state.pages.select(machine.as_str(), None);
         }
         state.defaults.close();
+        state.defaults_problem = None;
         state.tips = vessel_app_kit::tooltip::Tooltips::new();
         cx.notify();
     }
@@ -72,6 +75,7 @@ impl Shell {
     pub(crate) fn agent_load(&mut self, again: bool, cx: &mut Context<'_, Self>) {
         if self.areas.settings.section != vessel_app_view::settings::Section::Providers {
             self.areas.settings.agents.defaults.close();
+            self.areas.settings.agents.defaults_problem = None;
             self.areas.settings.agents.tips = vessel_app_kit::tooltip::Tooltips::new();
             return;
         }
@@ -85,6 +89,7 @@ impl Shell {
             state.defaults.close();
             state.tips = vessel_app_kit::tooltip::Tooltips::new();
             state.default_id = None;
+            state.defaults_problem = None;
             state.refused = None;
             state.machine = Some(machine.clone());
         }
@@ -128,6 +133,7 @@ impl Shell {
                 })
             });
         state.pages.select(machine.as_str(), Some(agent.clone()));
+        state.defaults_problem = None;
         state.defaults.close();
         state.tips = vessel_app_kit::tooltip::Tooltips::new();
         if probe {

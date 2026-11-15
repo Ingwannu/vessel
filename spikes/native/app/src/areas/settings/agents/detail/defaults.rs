@@ -9,7 +9,8 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{ComboHandlers, ComboRow, Tokens, combobox, outline_button, select, settings};
 use vessel_app_link::Command;
-use vessel_app_view::{Controls, Picks, SelectControl, choices_for, controls_of, with_picks};
+use vessel_app_view::agent_status::defaults as default_choices;
+use vessel_app_view::{Controls, Picks, SelectControl, controls_of, with_picks};
 use vessel_proto::HarnessRef;
 
 use crate::shell::Shell;
@@ -51,6 +52,18 @@ pub(super) fn render(
     let words = shell.t.lang.agents();
     let mut card = settings::card(tokens)
         .child(super::super::note(words.defaults_note(), tokens).p(px(spacing::S4)));
+    if let Some(problem) = state.defaults_problem {
+        card = card.child(vessel_app_kit::alert::alert(
+            vessel_app_kit::alert::Content {
+                title: Some(shell.words.agent_defaults().problem(problem).into()),
+                description: None,
+                action: None,
+            },
+            crate::badge::alert_variant(problem.variant()),
+            vessel_app_kit::alert::Size::Small,
+            tokens,
+        ));
+    }
     if let Some(controls) = controls(agent, shell) {
         let options_words = shell.t.lang.options();
         let named = [
@@ -195,23 +208,42 @@ impl Shell {
         let Some(value) = control.values.get(index) else {
             return;
         };
-        let mut picks = self
-            .prefs
-            .choices(machine.as_str(), &agent)
-            .map(|choices| Picks::from_choices(choices.to_vec()))
-            .unwrap_or_default();
-        picks.pick(control.choose(value.id.clone()));
+        self.save_agent_default(machine, agent, control.choose(value.id.clone()), cx);
+    }
+
+    fn save_agent_default(
+        &mut self,
+        machine: vessel_app_link::agents::MachineKey,
+        agent: HarnessRef,
+        choice: vessel_proto::OptionChoice,
+        cx: &mut Context<'_, Self>,
+    ) {
         let Some(options) = self.offer_options(machine.as_str(), &agent) else {
             return;
         };
-        let choices = choices_for(options, &picks);
-        self.prefs.keep_choices(machine.as_str(), &agent, &choices);
+        let previous = self
+            .prefs
+            .choices(machine.as_str(), &agent)
+            .unwrap_or_default();
+        let choices = match default_choices::prepare(options, previous, choice) {
+            Ok(choices) => choices,
+            Err(problem) => {
+                self.areas.settings.agents.defaults_problem = Some(problem);
+                self.areas.settings.agents.defaults.close();
+                cx.notify();
+                return;
+            }
+        };
+        self.prefs
+            .keep_choices(machine.as_str(), &agent, choices.as_slice());
+        self.areas.settings.agents.defaults_problem = None;
         self.areas.settings.agents.defaults.close();
         self.command(Command::SavePrefs(self.prefs.clone()));
         cx.notify();
     }
 
     fn agent_defaults_reset(&mut self, agent: &HarnessRef, cx: &mut Context<'_, Self>) {
+        self.areas.settings.agents.defaults_problem = None;
         if let Some(machine) = self.areas.settings.agents.machine.clone() {
             self.prefs.keep_choices(machine.as_str(), agent, &[]);
             self.command(Command::SavePrefs(self.prefs.clone()));

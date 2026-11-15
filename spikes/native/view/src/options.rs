@@ -269,7 +269,7 @@ impl Picks {
 }
 
 /// Whether the agent would take `choice` for `option`.
-fn offered(option: &SessionOption, choice: &OptionChoice) -> bool {
+pub(crate) fn offered(option: &SessionOption, choice: &OptionChoice) -> bool {
     match (&option.kind, &choice.value) {
         (OptionKind::Select { values, .. }, ChoiceValue::Select { value, .. }) => {
             values.iter().any(|offered| &offered.id == value)

@@ -128,10 +128,29 @@ new Fleet. A regression checks old-Fleet render → new-Fleet render while
 the replacement request remains pending. Same-key connection changes still
 use only the canonical fan-out, not Fleet-difference inference.
 
-Next own-area correctness fix: the legacy default-choice writer silently
-filters ids/values past its saved-choice bound. Before changing preferences,
-the page must validate the whole proposed choice list with the existing
-`view::prefs::Choices` contract and show a translated refusal while keeping
-the previous defaults. This finding is from source inspection; its callback
-and persistence flow have not yet been exercised, and no writer fix or
-storage-contract change is claimed here.
+## Default-choice preflight
+
+The legacy default-choice writer silently filters ids/values past its saved
+bound. The page now prepares the complete proposed choices in
+`view::agent_status::defaults` before touching preferences. It reuses the
+existing option eligibility function (the only shared-code seam is its
+private-to-crate visibility), Picks/choices_for behavior, and
+`view::prefs::Choices` validator. No new dependency, preference store, bound
+or change to the global writer is introduced.
+
+The private Prepared vector exposes only its checked slice. Unknown,
+wrong-kind or ambiguous choices are refused before the writer; ids/values
+at 64 UTF-8 bytes and lists at eight entries retain the existing contract.
+The area closes the picker and draws the shared error Alert on refusal,
+keeps previous preferences, and sends no SavePrefs command on that branch.
+A successful choice/reset clears the error; changing machine/agent or
+leaving the Providers section also clears its context. New whole EN/KO
+sentences use generated `agent-defaults.ftl`.
+
+Tests cover a long but actually offered model, unchanged prior choices,
+default-value omission, byte/count edges (including Korean UTF-8), stale or
+wrong-kind choices, repeated ids and every whole translated sentence. The
+actual callback, disk persistence and captures still owe execution; no
+writer fix, saved-success acknowledgement or storage-contract change is
+claimed. This explicit refusal is a safety difference from the old silent
+filtering path, not a claim of larger model-id persistence support.

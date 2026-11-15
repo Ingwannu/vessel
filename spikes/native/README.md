@@ -68,6 +68,12 @@ diagnostic separate from translated instructions. Sign-in help is typed
 as labelled account, command and method steps, so a screen can copy the
 exact node-provided command without inventing a login flow.
 
+Provider default changes pass through `agent_status::defaults` before the
+existing kept-choice writer. It reuses `prefs::Choices` bounds and option
+eligibility: an oversized or stale selection is a typed translated refusal,
+with previous preferences preserved, rather than a silently filtered save.
+This preflight does not acknowledge a later disk save.
+
 Provider-removal preparation stays in `view::agent_status::removal` and
 reuses the existing machine-page tickets. Agent snapshots retain the
 reporting `NodeId`, so a reused book name cannot stand in for identity.

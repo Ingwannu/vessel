@@ -20,6 +20,7 @@ use crate::machines::StateTone;
 use crate::{Controls, Lang, SelectControl, agent_name};
 pub mod catalogue;
 pub mod command;
+pub mod defaults;
 pub mod install;
 pub mod notices;
 pub mod pages;
