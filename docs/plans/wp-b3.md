@@ -65,3 +65,12 @@ Remaining app work is per-turn marks, all-page changed-file confirmation, typed
 busy/stale/limit outcomes, verified result presentation and durable reconnect
 status. No local Rust compilation is used; the base's native gate is baseline
 evidence only and does not validate this unfinished checkpoint package.
+
+
+### Package line fixed lock update
+
+Consumed dd13ce37 from the authorized app line after confirming no native gate
+was running. It includes G2's reviewed trigger/menu changes and the fixed native
+Cargo.lock; --locked is now usable for future app checks. No node worktree head
+was merged into this tree and no checkpoint UI has been implemented yet. Node
+contract/runtime review and a consumer-ready producer remain prerequisites.
