@@ -34,7 +34,7 @@ impl ProviderRegistrations {
         self.cache.changes()
     }
     /// Passive diagnostic projection for host diagnostics and other trusted node
-    /// consumers. A miss remains NotChecked; this method never starts a process.
+    /// consumers. A miss remains `NotChecked`; this method never starts a process.
     ///
     /// # Errors
     /// Unknown provider, exhausted bounded cache, or owner shutdown.

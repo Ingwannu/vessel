@@ -493,3 +493,27 @@ capability is adopted here. Its paired retired-configured-model regression
 preserves the actual native default when the saved ID is absent, matching
 Paseo's hasConfiguredDefaultModel check. The complete corrected core still
 needs its own whole gate and exact V3 review. No number is assigned locally.
+
+## Strict all-target correction preparation
+
+Exact ddc seven-crate strict check returned source errors: client FakeNode's
+explicit unsupported handler list omitted the3provider methods and W12 draft
+method; node start exceeded100function lines after wiring; an Arc clone, a
+clone assignment and a doc code token violated strict lints. These are own
+integration omissions, not infrastructure failures. The original run/logs remain
+provider-core-strict-node44. The whole was submitted too early, before this
+strict result; future whole replacement waits for the corrected strict pass.
+
+[Decision Log]
+- Purpose: preserve one shared connection/shutdown ownership context while
+  keeping async node-start ordering within the existing function budget.
+- Constraint: no size/line allowance may be raised to accommodate provider wiring.
+- Alternatives: increase the budget, suppress the lint, or compress formatting;
+  none improves the bootstrap responsibilities.
+- Choice: move only synchronous frontend handle assembly into node/frontends.rs.
+- Reason: RPC/secure admission, connection tracking and teardown already share
+  these handles; their construction has one cohesive ownership purpose.
+- Effects: the same stop tokens, trackers, service and limits are preserved.
+  No new I/O/task start or await is introduced. Existing bind/serve ordering
+  remains in Node::start. Other corrections change no production policy and
+  the fake handlers continue explicit Unsupported instead of pretending support.
