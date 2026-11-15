@@ -302,6 +302,9 @@ The previous menu extensions (leading glyphs, typed feedback, quiet idle
 presentation and dismissal) are being reapplied to the published renderer in
 separate control commits. The published `menu_right`, surface arrival and
 keyboard-highlight motion remain the integration baseline.
+`menu.rs` owns caller state and callbacks, `menu/item.rs` owns item values,
+and `menu/draw.rs` is the one renderer used by both entry points. The module
+split changes no labels, placement, input policy or motion.
 
 Diagnostics uses `Glyph::Stethoscope`, one original24-grid/1.5-stroke vector,
 consumed at16 for pointer and20 for compact settings navigation.
