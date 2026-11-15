@@ -157,6 +157,10 @@ Self-audit found that a fixed DocumentError message still exposed serde's
 unknown-field/variant input through Debug and Error::source. PluginJsonError
 retains the parser's concrete cause but seals that raw diagnostic chain;
 only category and line/column leave the edge. Canary fixtures traverse every
-exposed cause. Direct serde decoding is an internal edge, never an approved
-diagnostic path; wrap its error before returning it. No executable helper or
-native renderer is implied by these graph tests.
+exposed cause. The generic ClientDocument serde implementation also seals
+structural decoder errors, so a containing envelope cannot repeat rejected
+field/variant/value text. The named byte decoder retains the original concrete
+sealed parser cause; both paths validate the complete graph. File selectors
+reuse JavaScript edge trim for equality, rejecting rather than normalizing
+BOM-wrapped input. No executable helper or native renderer is implied by these
+graph tests.
