@@ -209,3 +209,24 @@ three sidebar policy regressions within22 filtered view tests. A local kit/view
 test ended during dependency compilation with no test result; it proves no
 control behavior. The following narrow checks use immutable commit snapshots,
 so new small F4 commits do not change their executed source or their scope.
+
+### Workspace projection policy checkpoint
+
+`view::sidebar::targets` consumes the same full open sections as the row
+projection, after filtering/pinning/grouping and before each ShowMore paint
+limit (`sidebar-projection.ts:67–99`, `utils/sidebar-shortcuts.ts:65–131`).
+Collapsed sections contribute no targets. Relative navigation wraps the entire
+order; only the first nine have numeric badges. The generic payload will be
+the canonical node/workspace target once the registry producer is available;
+managed child-agent session rows never contribute workspace identity. The
+command owner consumes this list and owns key modifiers and delayed reveal.
+
+`view::sidebar::filters` carries producer-owned host/project/normalized-label
+keys without deriving or normalizing identity. Cold host selections do not
+fall back until the registry is loaded. Project filters intersect currently
+available projects but never rewrite saved keys on disconnect. Labels use OR,
+including explicit Unlabelled. A truly empty project keeps its create header
+without a label filter; a project emptied by hidden rows or label filtering
+drops. The picker must continue reading the unfiltered project catalog. These
+helpers follow `sidebar-model.tsx:89–167`, `sidebar-project-filter.ts` and
+`sidebar-labels.ts`; real registry hydration and row integration remain owed.
