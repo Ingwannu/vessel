@@ -334,3 +334,72 @@ fn a_held_old_list_cannot_install_or_retire_a_same_node_successors_pending_write
         scene.close(shell.fixture_link()).unwrap();
     });
 }
+
+#[gpui::test]
+fn a_held_invitation_is_dropped_before_any_link_or_qr_can_reach_the_page(cx: &mut TestAppContext) {
+    initialize(cx);
+    let (link, mut scene) = Scenario::start(&Name::parse("fixture").unwrap()).unwrap();
+    let context = scene.context();
+    let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
+    shell.update_in(cx, |shell, window, cx| {
+        prepare(shell, &context, window);
+        let id = DeviceId::random();
+        report(&mut scene, shell, id, vec![Scope::Admin], cx);
+        listed(&mut scene, shell, id, cx);
+        let ticket = shell
+            .areas
+            .settings
+            .devices
+            .page
+            .tickets
+            .next_ticket()
+            .unwrap();
+        shell.areas.settings.devices.page.inviting =
+            vessel_app_view::devices::Inviting::Loading(ticket);
+        shell
+            .devices_send(context.clone(), ticket, Ask::Invite { label: None })
+            .unwrap();
+        assert!(matches!(
+            scene.request(shell.fixture_link()).unwrap(),
+            Call::InviteDevice(_)
+        ));
+        let expires = chrono::Utc::now() + chrono::Duration::minutes(10);
+        let offer = vessel_proto::PairingOffer {
+            v: vessel_proto::OfferVersion,
+            node: context.node(),
+            key: vessel_proto::NodePublicKey::from_bytes([4; 32]),
+            direct: vec!["ws://127.0.0.1:0/rpc".parse().unwrap()],
+            relays: Vec::new(),
+            invite: vessel_proto::InvitationSecret::from_bytes([7; 16]),
+            expires,
+        };
+        let invitation = vessel_proto::Invitation {
+            link: vessel_proto::PairingLink::encode(&offer).unwrap(),
+            expires,
+        };
+        scene
+            .reply(
+                shell.fixture_link(),
+                WireOutcome::Ok(Reply::InviteDevice(invitation)),
+            )
+            .unwrap();
+        let held = answer(&mut scene, shell);
+        scene.retire(shell.fixture_link()).unwrap();
+        shell.devices_answer(held, cx);
+        assert!(matches!(
+            shell.areas.settings.devices.page.inviting,
+            vessel_app_view::devices::Inviting::Empty
+        ));
+        assert_eq!(
+            shell
+                .areas
+                .settings
+                .devices
+                .page
+                .unconfirmed(&shell.fleet.machines[0]),
+            Some(vessel_app_view::devices::Unconfirmed::Invitation)
+        );
+        assert_eq!(scene.transcript(shell.fixture_link()).unwrap().len(), 3);
+        scene.close(shell.fixture_link()).unwrap();
+    });
+}

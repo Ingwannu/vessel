@@ -91,6 +91,12 @@ fn valid(caller: &DeviceSelf) -> bool {
 }
 
 impl Page {
+    /// A permission refresh must not discard a dispatched write's result.
+    #[must_use]
+    pub const fn mutation_pending(&self) -> bool {
+        matches!(self.inviting, super::Inviting::Loading(_))
+            || matches!(self.revoking, super::Revoking::Sending { .. })
+    }
     /// Read only the current admission's authority; updates require correlation.
     #[must_use]
     pub const fn authority(&self) -> &Authority {
@@ -101,7 +107,7 @@ impl Page {
     /// A stale callback cannot clear a newer admission's surfaces.
     #[must_use]
     pub fn checking_authority(&mut self, context: &ConnectionContext, ticket: Ticket) -> bool {
-        if self.check_context(context).is_err() {
+        if self.check_context(context).is_err() || self.mutation_pending() {
             return false;
         }
         self.clear_owned();
@@ -113,7 +119,7 @@ impl Page {
     /// Refuse a stale control without clearing a newer admission.
     #[must_use]
     pub fn cannot_check_authority(&mut self, context: &ConnectionContext, why: Problem) -> bool {
-        if self.check_context(context).is_err() {
+        if self.check_context(context).is_err() || self.mutation_pending() {
             return false;
         }
         self.clear_owned();

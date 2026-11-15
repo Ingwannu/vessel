@@ -77,7 +77,7 @@ fn invitation_revocation_and_concurrent_dispatch_have_distinct_bounded_notices()
     }
 }
 #[test]
-fn a_read_and_a_completed_write_do_not_become_uncertain_on_navigation() {
+fn a_read_does_not_become_uncertain_on_navigation() {
     let (mut page, context, machine) = setup();
     page.listing = Listing::Loading(page.tickets.next_ticket().unwrap());
     page.target(Target::Hidden);
@@ -85,4 +85,34 @@ fn a_read_and_a_completed_write_do_not_become_uncertain_on_navigation() {
     let _change = page.bind(Some(context));
     page.interrupted();
     assert_eq!(page.unconfirmed(&machine), None);
+}
+
+#[test]
+fn permission_refresh_cannot_silently_forget_an_outstanding_write() {
+    for invite in [false, true] {
+        let (mut page, context, machine) = setup();
+        let ticket = page.tickets.next_ticket().unwrap();
+        if invite {
+            page.inviting = Inviting::Loading(ticket);
+        } else {
+            confirm(&mut page, &context);
+            let intent = page.revoke_intent().unwrap();
+            assert!(page.confirm_revoke(&context, intent, ticket).is_some());
+        }
+        assert!(page.mutation_pending());
+        let query = page.tickets.next_ticket().unwrap();
+        assert!(!page.checking_authority(&context, query));
+        assert!(!page.cannot_check_authority(&context, crate::devices::Problem::Exhausted));
+        assert!(page.mutation_pending());
+        assert!(page.authority().may_manage());
+        let _change = page.bind(None);
+        assert_eq!(
+            page.unconfirmed(&machine),
+            Some(if invite {
+                Unconfirmed::Invitation
+            } else {
+                Unconfirmed::Revocation
+            })
+        );
+    }
 }

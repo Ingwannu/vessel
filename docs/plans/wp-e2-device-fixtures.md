@@ -206,3 +206,12 @@ short, six locked/offline records) is now available. Every result is a graph
 record, not a compile pass. First direct-Link-off graph98 passed on prior source;
 combined graph/default/test/wasm source proof is still owed. The earlier local
 boundary-script cargo-metadata process deviation remains recorded separately.
+
+
+A follow-up source correction makes permission refresh unavailable while a
+sent invitation/revoke is pending: it cannot silently discard its result or
+confirmation. Authority refresh first checks the retained weak proof as well.
+The corresponding pure case and a genuine framed synthetic-invitation case
+are authored, not executed: the latter holds the returned credential in memory,
+retires the actor, and verifies that no Pairing/link/QR reaches the page.
+The synthetic invitation is not written, logged, or used in captures.

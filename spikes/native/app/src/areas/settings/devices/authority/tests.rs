@@ -2,7 +2,7 @@
 use super::*;
 use gpui::TestAppContext;
 use vessel_app_link::devices::Answer;
-use vessel_app_view::devices::Listing;
+use vessel_app_view::devices::{Listing, Revoking};
 use vessel_proto::{DeviceId, DeviceInfo, DeviceSelf, Scope};
 
 fn device(id: DeviceId) -> DeviceInfo {

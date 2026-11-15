@@ -14,14 +14,13 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Tokens, breakpoint::TOUCH_TARGET, outline_button, theme::spacing};
 use vessel_app_link::devices::Ask;
-use vessel_app_view::devices::{Authority, Revoking};
+use vessel_app_view::devices::Authority;
 
 impl Shell {
     pub(super) fn devices_authority(&mut self) {
+        self.devices_validate();
         let page = &mut self.areas.settings.devices.page;
-        if matches!(page.authority(), Authority::Loading(_))
-            || matches!(page.revoking, Revoking::Sending { .. })
-        {
+        if matches!(page.authority(), Authority::Loading(_)) || page.mutation_pending() {
             return;
         }
         let Some(context) = page.context().cloned() else {

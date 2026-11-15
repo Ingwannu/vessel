@@ -130,7 +130,7 @@ fn refresh(
     outline_button(
         format!("devices-refresh-{}", context.epoch()),
         label,
-        true,
+        !shell.areas.settings.devices.page.mutation_pending(),
         tokens,
     )
     .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
