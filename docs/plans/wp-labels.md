@@ -371,8 +371,8 @@ The kit producer separately verifies real keyboard events report the engine id.
 These new regressions are not executed yet; existing queued 480534 checks its
 older immutable source and will be recovered before another submission.
 
-Registry adapter preparation now exists outside the active trees under
-/tmp/work/wp-labels/registry-adapter-prep with an unapplied patch and SHA256SUMS.
+Registry adapter preparation now exists outside the active trees in an isolated
+preparation folder with an unapplied patch and SHA256SUMS.
 Its textual base is the reviewed registry/Store contract. The types-only
 carrier 65180ea8 was subsequently withdrawn as c3429952 because its method rows
 require actual node handlers/guard targets; 295 stays unused and a corrected
@@ -412,3 +412,23 @@ and input callbacks recheck current visibility and write policy. A counterfactua
 GPUI test traverses create -> back -> create, then invokes old controls before
 proving the current visit still submits exactly its own draft. This additional
 regression remains unexecuted pending the next owned narrow batch.
+
+### Current scoped checkpoint
+
+Run `wp-labels-narrow-20261115T145328Z-835e2dda` passed 45 selected tests:
+App 14, View 29, Link 1 and Kit identity 1. This executes the staged picker,
+input identity, create-visit and actual Shell callback regressions above. Eight
+unused-result warnings in View tests are corrected by asserting their expected
+replacement label or inspection/deletion name; no lint allowance was added.
+The current four-crate strict check remains pending. The result does not prove
+live registry/RPC behavior, captures or full package acceptance.
+
+The announced green base `c3429952` is now merged through isolated shared
+extraction `2b905dfe2`. Its only changed file moves SavePrefs into the identical
+awaited private Box<Prefs> helper. The lead merged it as `92a0ecfc`, with
+byte-identical dispatch source, and queued the whole native gate. At the lead's
+request, the still-queued standalone strict run
+`wp-labels-dispatch-narrow-20261115T152311Z-2b905dfe` was cancelled before taking
+a slot (terminal 143); the lead's whole gate supersedes that check. Cancellation
+is neither a compiler failure nor a PASS. A6 retains only its one Labels arm
+on that shared dispatch. Registry activation still awaits announced base 9.

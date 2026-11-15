@@ -12,9 +12,10 @@ fn manager_back_preserves_search_and_cannot_abandon_a_pending_write() {
     manager.edit(label("Ready", Color::Violet)).unwrap();
     manager.draft_mut().unwrap().set_color(Color::Sky);
     let request = ticket(&mut Tickets::default());
-    manager
-        .save(HostState::Online, &ready_catalog(), request)
-        .unwrap();
+    assert_eq!(
+        manager.save(HostState::Online, &ready_catalog(), request),
+        Ok(label("Ready", Color::Sky))
+    );
     assert_eq!(manager.back(), Err(Failure::Pending));
     assert!(matches!(manager.state(), ManagerState::Saving { ticket, .. } if *ticket == request));
 }
@@ -88,7 +89,10 @@ fn create_and_assign_is_one_request_and_a_failed_request_keeps_the_form() {
     assert_eq!(page.draft_mut().unwrap().text(), "  New  Label ");
     assert_eq!(page.draft_mut().unwrap().error(), Some(Failure::Update));
     let second = ticket(&mut tickets);
-    page.submit(HostState::Online, second).unwrap();
+    assert_eq!(
+        page.submit(HostState::Online, second),
+        Ok(label("New Label", Color::Orange))
+    );
     assert!(page.completed(second, Ok(())));
     assert_eq!(page, PickerPage::Listing);
 }
@@ -243,9 +247,10 @@ fn save_keeps_case_only_rename_atomic_color_and_failed_draft() {
     assert_eq!(manager.state().draft().unwrap().text(), "  ready ");
     assert_eq!(manager.error(), Some(Failure::NameTaken));
     assert_eq!(manager.query(), "ready");
-    manager
-        .save(HostState::Online, &ready_catalog(), first)
-        .unwrap();
+    assert_eq!(
+        manager.save(HostState::Online, &ready_catalog(), first),
+        Ok(label("ready", Color::Teal))
+    );
     assert!(manager.completed(first, Ok(())));
     assert_eq!(manager.state(), &ManagerState::Listing);
     manager.reset().unwrap();
@@ -317,9 +322,10 @@ fn inspection_failure_keeps_draft_and_host_switch_clears_idle_edit() {
     manager.select(key("a")).unwrap();
     manager.edit(label("Ready", Color::Sky)).unwrap();
     let inspect = ticket(&mut Tickets::default());
-    manager
-        .inspect(HostState::Online, &ready_catalog(), inspect)
-        .unwrap();
+    assert_eq!(
+        manager.inspect(HostState::Online, &ready_catalog(), inspect),
+        Ok(name("Ready"))
+    );
     assert!(manager.inspected(inspect, Err(Failure::Load)));
     assert_eq!(manager.error(), Some(Failure::Load));
     assert!(matches!(manager.state(), ManagerState::Editing(_)));
@@ -369,19 +375,21 @@ fn field_policy_is_read_only_for_unavailable_hosts_and_every_async_phase() {
     );
     manager.draft_mut().unwrap().set_color(Color::Sky);
     let ticket = ticket(&mut Tickets::default());
-    manager
-        .save(HostState::Online, &ready_catalog(), ticket)
-        .unwrap();
+    assert_eq!(
+        manager.save(HostState::Online, &ready_catalog(), ticket),
+        Ok(label("Ready", Color::Sky))
+    );
     assert_eq!(manager.edit_access(HostState::Online), EditAccess::ReadOnly);
     assert!(manager.completed(ticket, Err(Failure::Update)));
     assert_eq!(manager.edit_access(HostState::Online), EditAccess::Editable);
-    manager
-        .inspect(HostState::Online, &ready_catalog(), ticket)
-        .unwrap();
+    assert_eq!(
+        manager.inspect(HostState::Online, &ready_catalog(), ticket),
+        Ok(name("Ready"))
+    );
     assert_eq!(manager.edit_access(HostState::Online), EditAccess::ReadOnly);
     assert!(manager.inspected(ticket, Ok(Count::new(1))));
     assert_eq!(manager.edit_access(HostState::Online), EditAccess::ReadOnly);
-    manager.delete(HostState::Online, ticket).unwrap();
+    assert_eq!(manager.delete(HostState::Online, ticket), Ok(name("Ready")));
     assert_eq!(manager.edit_access(HostState::Online), EditAccess::ReadOnly);
     assert!(manager.completed(ticket, Ok(())));
     assert_eq!(manager.edit_access(HostState::Online), EditAccess::ReadOnly);
@@ -402,9 +410,10 @@ fn removed_host_does_not_retarget_a_pending_write_and_idle_sync_preserves_search
     manager.edit(label("Ready", Color::Violet)).unwrap();
     manager.draft_mut().unwrap().set_color(Color::Sky);
     let ticket = ticket(&mut Tickets::default());
-    manager
-        .save(HostState::Online, &ready_catalog(), ticket)
-        .unwrap();
+    assert_eq!(
+        manager.save(HostState::Online, &ready_catalog(), ticket),
+        Ok(label("Ready", Color::Sky))
+    );
     manager.sync_hosts(&[host("b")]);
     assert_eq!(manager.selected(), Some(&key("a")));
     assert!(matches!(manager.state(), ManagerState::Saving { .. }));
