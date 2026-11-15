@@ -38,7 +38,6 @@ fn state(tab: BrowserTab, revision: BrowserRevision, sequence: BrowserUpdateSeq)
 }
 #[test]
 fn scope_mismatch_poisoning_cannot_be_followed_by_a_valid_update() {
-    let (node, opened) = opening();
     #[derive(Clone, Copy)]
     enum ScopeChange {
         Workspace,
@@ -46,6 +45,7 @@ fn scope_mismatch_poisoning_cannot_be_followed_by_a_valid_update() {
         Profile,
         Node,
     }
+    let (node, opened) = opening();
     for mismatch in [
         ScopeChange::Workspace,
         ScopeChange::Browser,
@@ -57,7 +57,7 @@ fn scope_mismatch_poisoning_cannot_be_followed_by_a_valid_update() {
         match mismatch {
             ScopeChange::Workspace => tab.workspace = WorkspaceId::random(),
             ScopeChange::Browser => {
-                tab.browser_id = "00000000-0000-4000-8000-000000000002".parse().unwrap()
+                tab.browser_id = "00000000-0000-4000-8000-000000000002".parse().unwrap();
             }
             ScopeChange::Profile => {
                 tab.profile = BrowserProfile::Preview {

@@ -1213,3 +1213,11 @@ and announced registry version. Both own queued runs were cancelled through
 queued-only admission and independently observed terminal cancelled/143 before
 their one replacements. The new combined batch includes these corrections and
 the same-traversal document source; older receipts do not qualify that union.
+
+The exact191 combined strict followup returned two fixture-style findings in the
+new closed ScopeChange matrix: its enum declaration followed the opening binding,
+and the block assignment lacked a semicolon. The declaration now precedes that
+binding and the assignment terminates explicitly. Cases and assertions are
+unchanged. Functional and TS jobs remain exact191 because this correction changes
+only test declaration/statement layout, not wire or runtime behavior; no later
+whole/union acceptance is inferred. A new strict check is still owed.
