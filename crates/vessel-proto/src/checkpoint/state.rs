@@ -29,7 +29,7 @@ impl CaptureGeneration {
     /// Exhaustion refuses another capture rather than reusing a stale fence.
     ///
     /// # Errors
-    /// GenerationExhausted when the monotonic counter cannot advance.
+    /// `GenerationExhausted` when the monotonic counter cannot advance.
     pub fn next(self) -> Result<Self, CheckpointError> {
         self.0
             .checked_add(1)

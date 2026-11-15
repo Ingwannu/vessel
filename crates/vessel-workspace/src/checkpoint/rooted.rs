@@ -1,0 +1,124 @@
+//! Handle-relative no-follow traversal, identity and unsupported ACL refusal.
+
+use super::Error;
+use rustix::fs::{CWD, Mode, OFlags};
+use std::{
+    fs::{File, Metadata},
+    io,
+    os::unix::fs::MetadataExt as _,
+    path::Path,
+};
+use vessel_proto::checkpoint::{
+    CheckpointError, CheckpointPath, FileMetadata, GroupId, OrdinaryMode, OwnerId,
+};
+
+const DIRECTORY: OFlags = OFlags::RDONLY
+    .union(OFlags::DIRECTORY)
+    .union(OFlags::NOFOLLOW)
+    .union(OFlags::CLOEXEC);
+const REGULAR: OFlags = OFlags::RDONLY
+    .union(OFlags::NOFOLLOW)
+    .union(OFlags::NONBLOCK)
+    .union(OFlags::CLOEXEC);
+const FILE_TYPE_BITS: u32 = 0o170000;
+const ATTRIBUTE_NAMES_BYTES: usize = 4096;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct Identity {
+    device: u64,
+    inode: u64,
+    size: u64,
+    modified: (i64, i64),
+    changed: (i64, i64),
+    mode: u32,
+}
+impl Identity {
+    pub(super) fn of(metadata: &Metadata) -> Self {
+        Self {
+            device: metadata.dev(),
+            inode: metadata.ino(),
+            size: metadata.size(),
+            modified: (metadata.mtime(), metadata.mtime_nsec()),
+            changed: (metadata.ctime(), metadata.ctime_nsec()),
+            mode: metadata.mode(),
+        }
+    }
+}
+#[derive(Debug)]
+pub(super) struct Root {
+    file: File,
+    identity: Identity,
+}
+impl Root {
+    pub(super) fn open(path: &Path) -> Result<Self, Error> {
+        let file = File::from(
+            rustix::fs::openat(CWD, path, DIRECTORY, Mode::empty()).map_err(io::Error::from)?,
+        );
+        let metadata = file.metadata()?;
+        Ok(Self {
+            identity: Identity::of(&metadata),
+            file,
+        })
+    }
+    pub(super) fn file(&self, path: &CheckpointPath) -> Result<Option<File>, Error> {
+        let mut parent = self.file.try_clone()?;
+        let mut parts = path.relative().parts().peekable();
+        while let Some(part) = parts.next() {
+            let flags = if parts.peek().is_some() {
+                DIRECTORY
+            } else {
+                REGULAR
+            };
+            let opened = rustix::fs::openat(&parent, part, flags, Mode::empty());
+            let opened = match opened {
+                Ok(opened) => File::from(opened),
+                Err(rustix::io::Errno::NOENT) => return Ok(None),
+                Err(rustix::io::Errno::LOOP | rustix::io::Errno::NOTDIR) => {
+                    return Err(CheckpointError::UnsafeEntry.into());
+                }
+                Err(error) => return Err(io::Error::from(error).into()),
+            };
+            let metadata = opened.metadata()?;
+            if metadata.dev() != self.identity.device {
+                return Err(CheckpointError::UnsafeEntry.into());
+            }
+            if parts.peek().is_none() {
+                if !metadata.is_file() || metadata.nlink() != 1 {
+                    return Err(CheckpointError::UnsafeEntry.into());
+                }
+                if metadata.uid() != self.file.metadata()?.uid() {
+                    return Err(CheckpointError::UnsupportedMetadata.into());
+                }
+                refuse_attributes(&opened)?;
+                return Ok(Some(opened));
+            }
+            // A nested repository is a separate scope, even if its files are listed.
+            match rustix::fs::statat(&opened, ".git", rustix::fs::AtFlags::SYMLINK_NOFOLLOW) {
+                Ok(_) => return Err(CheckpointError::UnsafeEntry.into()),
+                Err(rustix::io::Errno::NOENT) => {}
+                Err(error) => return Err(io::Error::from(error).into()),
+            }
+            parent = opened;
+        }
+        Err(CheckpointError::InvalidPath.into())
+    }
+}
+pub(super) fn metadata(file: &File) -> Result<FileMetadata, Error> {
+    let metadata = file.metadata()?;
+    Ok(FileMetadata {
+        owner: OwnerId::new(metadata.uid()),
+        group: GroupId::new(metadata.gid()),
+        mode: OrdinaryMode::new(metadata.mode() & !FILE_TYPE_BITS)?,
+    })
+}
+/// Replacing a file cannot preserve ACL/xattr semantics; never silently drop them.
+fn refuse_attributes(file: &File) -> Result<(), Error> {
+    let mut names = [0_u8; ATTRIBUTE_NAMES_BYTES];
+    match rustix::fs::flistxattr(file, &mut names[..]) {
+        Ok(0) => Ok(()),
+        Ok(_) => Err(CheckpointError::UnsupportedMetadata.into()),
+        Err(rustix::io::Errno::NOTSUP) => Ok(()),
+        Err(rustix::io::Errno::RANGE) => Err(CheckpointError::UnsupportedMetadata.into()),
+        Err(error) => Err(io::Error::from(error).into()),
+    }
+}

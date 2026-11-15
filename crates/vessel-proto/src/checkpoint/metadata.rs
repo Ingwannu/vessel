@@ -40,7 +40,7 @@ impl OrdinaryMode {
     /// Reject privileged or unknown mode bits rather than strip them silently.
     ///
     /// # Errors
-    /// UnsupportedMetadata when nonordinary mode bits are present.
+    /// `UnsupportedMetadata` when nonordinary mode bits are present.
     pub fn new(value: u32) -> Result<Self, CheckpointError> {
         if value & !ORDINARY_BITS != 0 {
             Err(CheckpointError::UnsupportedMetadata)

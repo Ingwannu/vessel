@@ -487,3 +487,15 @@ accepted contract. Required evidence above remains future work, including
 permission, held-I/O, publication-race and crash-recovery cases. Next: central
 implementation/baseline/schema/protocol assignment. Product code remains held
 until that ownership and integration sequence is supplied.
+
+
+### Staged filesystem implementation note
+
+The first test-only filesystem implementation also reuses the already-resolved
+`rustix` safe wrappers used by store attachments, through a workspace dev
+dependency with its existing fs feature (MIT/Apache-2.0; no new resolved crate
+or version). Existing `nix` regular-file checks do not expose the handle-based
+xattr enumeration needed to refuse ACL metadata before replacing files. Only
+Linux is staged initially; other platform implementations remain unavailable
+until equivalent metadata/containment tests exist. No release dependency or
+advertised platform capability is enabled by this staged addition.
