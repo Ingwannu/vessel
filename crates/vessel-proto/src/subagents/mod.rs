@@ -6,6 +6,7 @@ mod identity;
 mod older;
 mod parentage;
 mod provider;
+mod relation;
 mod values;
 
 pub use identity::ProviderChildRef;
@@ -16,6 +17,7 @@ pub use provider::{
     ChildCursor, ChildDescriptor, ChildGap, ChildHistory, ChildLimit, ChildStatus,
     InvalidChildLimit, ListProviderChildren, ReadProviderChild,
 };
+pub use relation::{Relation, WorkspaceRole};
 pub use values::{ProviderChildId, ProviderText, SubagentValueError};
 
 /// The shared gate for detach, provider-child observations, list and timeline.
