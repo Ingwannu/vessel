@@ -320,3 +320,11 @@ it is not strict lint proof. This snapshot precedes the fixture FIFO gate and
 the shared-context correction. Their changed-head strict, mixed-family runtime,
 TS freshness, assigned wire and whole package proofs remain owed. No actual
 vendor sign-in, real endpoint, additional-source Session or F6 execution is proven.
+
+Node head `82ae7c91` is merged before the next package check. Its staged-row
+contract, stop-signal owner and CLI presentation seam are retained; the three
+usage rows remain pending and unassigned at the table's end. The isolated fixture
+now creates the shared `StopSignals` listener before preparation/readiness, so an
+immediate signal after its ready line cannot fall into the old late-registration
+gap. This consumes the reviewed base producer; the fixture's own managed binary
+execution and immediate-stop flow remain unverified until the new source is built.

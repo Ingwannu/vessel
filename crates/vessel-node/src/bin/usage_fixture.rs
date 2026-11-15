@@ -98,6 +98,7 @@ fn ready(address: SocketAddr) -> Result<(), Error> {
     Ok(())
 }
 async fn run(args: Args) -> Result<(), Error> {
+    let stopping = vessel_node::StopSignals::listen();
     let config = tokio::task::spawn_blocking(move || prepare(&args)).await??;
     let node = Node::start(config).await?;
     let Some(address) = node.address() else {
@@ -108,7 +109,7 @@ async fn run(args: Args) -> Result<(), Error> {
         let _stopped = node.stop().await;
         return Err(error);
     }
-    tokio::select! {()=vessel_node::signal()=>{},()=node.stop_requested()=>{}}
+    tokio::select! {()=stopping.stopped()=>{},()=node.stop_requested()=>{}}
     node.stop().await?;
     Ok(())
 }
