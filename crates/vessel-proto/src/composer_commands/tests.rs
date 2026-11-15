@@ -150,10 +150,13 @@ fn native_metadata_alone_is_masked_in_snapshots_events_and_nested_envelopes() {
         native.name = "compact".parse().unwrap();
         native.kind = kind;
         native.native_command = Some(NativeCommandKind::Compact);
-        let projected = commands_for(&[native.clone()], peer, None).unwrap();
+        let projected = commands_for(std::slice::from_ref(&native), peer, None).unwrap();
         assert_eq!(projected[0].kind, None);
         assert_eq!(projected[0].native_command, None);
-        assert_eq!(commands_for(&[native.clone()], peer, Some(peer)), None);
+        assert_eq!(
+            commands_for(std::slice::from_ref(&native), peer, Some(peer)),
+            None
+        );
         let mut snapshot = conversation();
         snapshot.commands = vec![native.clone()];
         let reply = Reply::Forward(Forwarded {
