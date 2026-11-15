@@ -517,6 +517,12 @@ impl Links {
         *self.home.lock().unwrap_or_else(PoisonError::into_inner) = Some(client);
     }
 
+    /// Let real Forward and member-to-home Relay refusal arms use a raw fixture peer.
+    #[cfg(test)]
+    pub(crate) async fn connected_member_for_test(&self, client: NodeClient) {
+        drop(self.members.lock().await.insert(client.node().id, client));
+    }
+
     /// The pull loop lost its connection to the home.
     pub(crate) fn lost_home(&self) {
         *self.home.lock().unwrap_or_else(PoisonError::into_inner) = None;

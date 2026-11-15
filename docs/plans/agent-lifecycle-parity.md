@@ -1037,3 +1037,14 @@ The route regression also compares the export frame directly with its input
 origin, so identically rebuilding the wrong principal for both export and close
 cannot satisfy the test. Existing expected values and product behavior remain
 unchanged; this strengthens only the new authority regression.
+
+### Guarded envelope regression boundary
+
+The helper/physical-callback cases are complemented by tests of the actual
+Forward and member-to-home Relay refusal arms. A raw in-memory fixture peer
+intentionally returns unprojected metadata, without assigning a protocol. The
+only shared test seam is a cfg(test)-only member connection cache insertion,
+keyed by the negotiated NodeId; no installed node exposes it. The remaining
+fixture lives beside export cleanup and uses existing guards, Origins,
+CloseTransfer and actual transfer-store ownership. The raw fixture is a test
+edge, not an authenticated production peer or an assigned fleet proof.

@@ -34,7 +34,7 @@ fn config(root: &Path) -> Config {
     config
 }
 
-struct CallbackFleet {
+pub(super) struct CallbackFleet {
     _home_root: tempfile::TempDir,
     _member_root: tempfile::TempDir,
     home: Node,
@@ -44,7 +44,8 @@ struct CallbackFleet {
 }
 
 impl CallbackFleet {
-    async fn start() -> Self {
+    /// Reuse the authenticated callback fixture for envelope wiring tests.
+    pub(super) async fn start() -> Self {
         let (relay_url, relay_stop, relay) = start_relay().await;
         let home_root = tempfile::tempdir().unwrap();
         let mut home_config = config(home_root.path());
@@ -95,7 +96,41 @@ impl CallbackFleet {
         }
     }
 
-    async fn stop(self) {
+    /// Expose the fixture node so sibling tests can drive its guarded API.
+    pub(super) fn home(&self) -> &Node {
+        &self.home
+    }
+
+    /// Expose the joined node for the real member-to-home relay path.
+    pub(super) fn member(&self) -> &Node {
+        &self.member
+    }
+
+    /// Use only this temporary node's own token at the local socket.
+    pub(super) async fn owner(&self, node: &Node) -> vessel_client::NodeClient {
+        let root = if node.info().id == self.home.info().id {
+            self._home_root.path()
+        } else {
+            assert_eq!(node.info().id, self.member.info().id);
+            self._member_root.path()
+        };
+        let token = DataDir::new(root.join("data")).read_token().unwrap();
+        let credential =
+            vessel_client::local::LocalCredential::Token(token.expose().parse().unwrap());
+        vessel_client::NodeClient::connect_local(
+            node.local_endpoint(),
+            &credential,
+            ClientInfo {
+                name: "cleanup-local-fixture".into(),
+                version: "0".into(),
+            },
+        )
+        .await
+        .unwrap()
+    }
+
+    /// Settle the temporary nodes and relay without touching any live service.
+    pub(super) async fn stop(self) {
         self.member.stop().await.unwrap();
         self.home.stop().await.unwrap();
         self.relay_stop.cancel();
