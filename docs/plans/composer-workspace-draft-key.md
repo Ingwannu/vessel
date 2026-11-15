@@ -21,3 +21,5 @@ WorkspaceInput carries the source key, local creation ticket, canonical client m
 The active destination awaits the layout owner's canonical effective-target accessor, and W3 owns source propagation through creation replies. No workspace submit fallback is introduced. VM-only strict checks and the equal-ticket GPUI regression remain required; source staging is not runtime or UI approval.
 
 Workspace history seeding does not focus its field: pre-layout and background admission preserve the layout owner's focus decision. Preparation capacity counts both New and workspace holds before reserving a live-session send.
+
+Context/history intake refuses a new occupied-slot overflow before calling the legacy LRU tray accessor. The seventeenth context-bearing workspace draft receives typed Capacity; existing siblings and their suppressed/pending context remain intact. File intake similarly refuses a new full tray instead of dropping a sibling.

@@ -275,4 +275,47 @@ mod tests {
             );
         });
     }
+    #[gpui::test]
+    fn history_capacity_refuses_before_evicting_a_sibling(cx: &mut TestAppContext) {
+        language_tests::init(cx);
+        let (shell, cx) = cx.add_window_view(Shell::without_io);
+        shell.update_in(cx, |shell, window, cx| {
+            let node = NodeId::random();
+            shell.fleet.machines.push(Machine {
+                name: "fixture".to_owned(),
+                node: Some(node),
+                reach: Reach::Online,
+                sessions: Vec::new(),
+                agents: Vec::new(),
+                protocol: None,
+                version: None,
+            });
+            let workspace = vessel_proto::WorkspaceId::random();
+            let mut first = None;
+            for index in 0..=vessel_app_view::composer::trays::Trays::MAX {
+                let target = admit(shell, node, workspace, DraftId::random(), window, cx);
+                let result = shell.composer_seed_history(
+                    target,
+                    super::super::tests::history("retained"),
+                    window,
+                    cx,
+                );
+                if index == vessel_app_view::composer::trays::Trays::MAX {
+                    assert_eq!(
+                        result,
+                        Err(vessel_app_view::composer::context::ContextProblem::Capacity)
+                    );
+                    assert!(!shell.composer_has_context(target));
+                } else {
+                    assert_eq!(result, Ok(()));
+                }
+                let _first = first.get_or_insert(target);
+            }
+            assert!(shell.composer_has_context(first.unwrap()));
+            assert_eq!(
+                shell.areas.composer.contexts.len(),
+                vessel_app_view::composer::trays::Trays::MAX
+            );
+        });
+    }
 }
