@@ -28,8 +28,15 @@ pub(super) fn apply(
     indexer: &mut Indexer,
 ) -> Answer {
     match write {
-        Write::Create { info, done } => write_answer(transaction, done, |connection| {
-            log::create_session(connection, &info)
+        Write::Restart(operation) => {
+            super::restarting::apply(transaction, operation, effects, indexer)
+        }
+        Write::Create {
+            info,
+            eligibility,
+            done,
+        } => write_answer(transaction, done, |connection| {
+            super::restarting::create(connection, &info, eligibility)
         }),
         Write::Append {
             session,
@@ -88,10 +95,12 @@ pub(super) fn apply(
         Write::Reopen {
             session,
             next,
+            mode,
+            generation,
             done,
         } => {
             let applied = isolated(transaction, |connection| {
-                again::reopen(connection, session, next)
+                again::reopen(connection, session, next, mode, generation)
             });
             Answer::Marked(done, applied)
         }
@@ -172,11 +181,7 @@ fn append(
         ))
     })?;
     indexer.keep(session, advanced);
-    let _first = effects.touched.insert(session);
-    effects.ended |= now_ended;
-    effects.attention |= records
-        .iter()
-        .any(|record| record.event.asks_for_attention());
+    effects.appended(session, records, now_ended);
     Ok(())
 }
 

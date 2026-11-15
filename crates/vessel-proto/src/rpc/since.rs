@@ -101,7 +101,21 @@ impl Call {
             // cannot decode it (its guard compared a time instead).
             // Drivers came in 18 (ADR 0057): an older node would keep
             // running the agent over ACP and say nothing.
-            Self::SetNodeSettings(request) => request.drivers.map(|_| 18),
+            Self::SetNodeSettings(request) => {
+                let recovery = if request.restart_recovery.is_some() {
+                    Some(crate::restart::RESTART_RECOVERY_PROTOCOL?.get())
+                } else {
+                    None
+                };
+                recovery.max(request.drivers.map(|_| 18))
+            }
+            Self::GetNodeSettings(request) => {
+                if request.include_restart_recovery {
+                    Some(crate::restart::RESTART_RECOVERY_PROTOCOL?.get())
+                } else {
+                    None
+                }
+            }
             Self::WriteFile(request) => match request.expect {
                 crate::workspace::WriteExpect::Content { .. } => Some(11),
                 crate::workspace::WriteExpect::Absent | crate::workspace::WriteExpect::Any => None,
@@ -270,7 +284,6 @@ impl Call {
             | Self::SearchMessages(_)
             | Self::ParkSession(_)
             | Self::WakeSession(_)
-            | Self::GetNodeSettings(_)
             | Self::ForkSession(_)
             | Self::RewindSession(_)
             | Self::GetAgentHistory(_)

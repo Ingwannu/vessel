@@ -695,6 +695,7 @@ fn a_settings_change_naming_drivers_needs_protocol_eighteen() {
     let parking = SetNodeSettings {
         park_after: Some(crate::parking::ParkAfter::Never),
         drivers: None,
+        ..SetNodeSettings::default()
     };
     assert_eq!(parking.into_call().since(), Some(ProtocolVersion::new(12)));
     let drivers = SetNodeSettings {
@@ -703,6 +704,7 @@ fn a_settings_change_naming_drivers_needs_protocol_eighteen() {
             codex: Some(AgentDriver::Acp),
             ..SetAgentDrivers::default()
         }),
+        ..SetNodeSettings::default()
     };
     assert_eq!(drivers.into_call().since(), Some(ProtocolVersion::new(18)));
 }

@@ -43,6 +43,7 @@ fn every_envelope_recursively_requires_the_inner_method_or_field_version() {
                     codex: Some(AgentDriver::Acp),
                     ..SetAgentDrivers::default()
                 }),
+                ..SetNodeSettings::default()
             }
             .into_call(),
             ProtocolVersion::new(18),

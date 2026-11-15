@@ -51,3 +51,28 @@ without its old parallel settings model. Register this hook there. Consume the
 reviewed common safe decoder edge and qualified physical preparation seam;
 then run one combined narrow set and enclosing package gate. No standalone
 source leaf, old green gate or unassigned protocol field proves that join.
+
+
+## SQL and optional request-field port
+
+The next source leaf ports the existing recovery projection and its original
+regressions onto the agreed joint base. It excludes settings_file, settings_record,
+the old saved model, settings lane and Opening. The SQL operation remains inside
+the existing Store writer; checkpoint, creation provenance, reopen fencing and
+indexed startup intent reads share its transaction and post-commit notifications.
+
+The migration follows the joint base's registry migration through the one named
+RESTART_SCHEMA constant. Existing migration order and version facts remain.
+Mechanical port conflicts retain registry, subagent and diagnostic registrations,
+all writer Answer variants, and head rollback statements. The inbox rollback and
+title-origin rollback only gain undo for the recovery tables before their original
+statements; no head assertion, count or deadline changes.
+
+The wire input port adds the optional SetNodeSettings.restart_recovery patch and
+GetNodeSettings.include_restart_recovery opt-in, with Set becoming Clone. Both
+fields use the canonical recursive Call requirement and the same unassigned
+feature constant; there is no local version or new method. Existing response
+projection for both Get and Set remains the joint base's implementation. The
+explicit request fields and all forwarding wrappers remain refused while the
+feature is unassigned. Existing callers/literals must be completed during joint
+assembly; this source leaf alone is not a compilable runtime handoff.
