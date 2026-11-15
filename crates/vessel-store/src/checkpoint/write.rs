@@ -17,6 +17,15 @@ use vessel_proto::checkpoint::{
 /// This API is not an authorization boundary: the node authenticates principals,
 /// owns physical admission and validates actual I/O/postconditions before calling.
 pub enum CheckpointWrite {
+    /// Record a rejected boundary without pretending any filesystem worker ran.
+    RefusedBoundary {
+        /// Exact persisted anchor and non-reusable attempt identity.
+        key: CaptureKey,
+        /// Redacted stable refusal for the turn marker.
+        reason: CheckpointError,
+        /// Coordinator observation time.
+        at: DateTime<Utc>,
+    },
     /// Retire a bounded batch of old unpinned images without releasing GC bytes.
     Collect {
         /// Coordinator observation time for preview pin/retention policy.
@@ -168,6 +177,9 @@ pub(crate) fn apply(
     write: CheckpointWrite,
 ) -> Result<(), crate::StoreError> {
     let result = match write {
+        CheckpointWrite::RefusedBoundary { key, reason, at } => {
+            publication::refused(connection, key, reason, at)
+        }
         CheckpointWrite::Collect { at } => super::rotation::collect(connection, at),
         CheckpointWrite::EndedMetadata { operation, at } => {
             return super::metadata::append_ended(connection, &operation, at);

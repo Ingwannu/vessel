@@ -23,7 +23,7 @@ impl Tree {
         cancel: &CancellationToken,
     ) -> Result<ObservedSnapshot, CheckpointFsError> {
         let current = self.capture(runtime, git, archive, defaults, cancel)?;
-        self.preview_union(current, selected, cancel)
+        self.preview_union(&current, selected, cancel)
     }
     /// Re-observe the whole frozen scope without allocating or changing archives.
     /// Used for stale confirmation, final equality and guarded rollback proof.
@@ -46,11 +46,11 @@ impl Tree {
             &defaults.0,
             cancel,
         )?;
-        self.preview_union(current, selected, cancel)
+        self.preview_union(&current, selected, cancel)
     }
     fn preview_union(
         &self,
-        current: ObservedSnapshot,
+        current: &ObservedSnapshot,
         selected: &FileImage,
         cancel: &CancellationToken,
     ) -> Result<ObservedSnapshot, CheckpointFsError> {

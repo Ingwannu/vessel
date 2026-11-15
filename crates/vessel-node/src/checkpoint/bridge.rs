@@ -79,7 +79,7 @@ pub(crate) fn serve(context: Context, mut requests: mpsc::Receiver<CheckpointReq
                 return;
             }
         };
-        let (client, owner) = backend::start_shared(Arc::clone(&context.workspaces), context.store, defaults, workers);
+        let (client, owner) = backend::start_shared(Arc::clone(&context.workspaces), context.store.clone(), defaults, workers);
         let mut faults = client.cleanup_faults();
         let mut faults_open = true;
         let mut jobs = JoinSet::new();
@@ -103,7 +103,7 @@ pub(crate) fn serve(context: Context, mut requests: mpsc::Receiver<CheckpointReq
                         Ok(current) => { generation=current.next(); current },
                         Err(reason) => { drop(request.acknowledge(Err(reason))); continue; },
                     };
-                    let _job = jobs.spawn(handle(request, next, client.clone(), Arc::clone(&context.sessions), Arc::clone(&context.workspaces)));
+                    let _job = jobs.spawn(handle(request, next, client.clone(), Arc::clone(&context.sessions), Arc::clone(&context.workspaces), context.store.clone()));
                 },
             }
         }
@@ -129,6 +129,7 @@ async fn handle(
     client: Client,
     sessions: Arc<Sessions>,
     workspaces: Arc<Workspaces>,
+    store: Store,
 ) {
     if request.abandoned() {
         return;
@@ -140,11 +141,20 @@ async fn handle(
         Boundary::BeforeTurn { prompt } => prompt,
         Boundary::AfterTurn { ended } => ended,
     };
+    let mut attempted = None;
     let prepared = tokio::time::timeout_at(deadline, async {
         let info = sessions
             .checkpoint_anchor(session, anchor, deadline)
             .await?;
         let worktree = worktree(&info)?;
+        let key = CaptureKey {
+            session,
+            boundary,
+            worktree,
+            generation,
+            capture: CaptureId::random(),
+        };
+        attempted = Some(key);
         let bound = sessions.checkpoint_root(session)?;
         client.wait_for_root(bound, deadline).await?;
         let guard = workspaces.checkpoint_admission(worktree).await?;
@@ -157,16 +167,7 @@ async fn handle(
             .revalidate()
             .await
             .map_err(|_changed| CheckpointError::StaleCapture)?;
-        Ok::<_, CheckpointError>((
-            CaptureKey {
-                session,
-                boundary,
-                worktree,
-                generation,
-                capture: CaptureId::random(),
-            },
-            guard,
-        ))
+        Ok::<_, CheckpointError>((key, guard))
     })
     .await
     .unwrap_or(Err(CheckpointError::CaptureTimedOut));
@@ -174,6 +175,9 @@ async fn handle(
         Ok(prepared) => prepared,
         Err(reason) => {
             drop(request.acknowledge(Err(reason)));
+            if let Some(key) = attempted {
+                refused_boundary(&store, key, reason).await;
+            }
             return;
         }
     };
@@ -197,6 +201,19 @@ async fn handle(
         Err(reason) => {
             drop(guard);
             drop(request.acknowledge(Err(reason)));
+            refused_boundary(&store, key, reason).await;
         }
+    }
+}
+async fn refused_boundary(store: &Store, key: CaptureKey, refusal: CheckpointError) {
+    if let Err(error) = store
+        .checkpoint_write(vessel_store::checkpoint::CheckpointWrite::RefusedBoundary {
+            key,
+            reason: refusal,
+            at: chrono::Utc::now(),
+        })
+        .await
+    {
+        tracing::warn!(reason=%backend::reason(error), "checkpoint refusal metadata could not be retained");
     }
 }

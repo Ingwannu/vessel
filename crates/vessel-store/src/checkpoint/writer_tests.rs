@@ -847,3 +847,86 @@ async fn checkpoint_capture_escrow_releases_only_after_terminal_cleanup_and_keep
     assert!(retained.reserved.get() < super::quota::CAPTURE_BYTES.get());
     store.close().await;
 }
+
+#[tokio::test]
+async fn checkpoint_refused_boundary_is_durable_metadata_without_a_ready_image_or_reused_charge() {
+    let temp = tempfile::tempdir().unwrap();
+    let dir = DataDir::new(temp.path());
+    dir.prepare().unwrap();
+    let store = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    let info = info();
+    store.create_session(info.clone()).await.unwrap();
+    let plan = plan(info.id);
+    let refused = || CheckpointWrite::RefusedBoundary {
+        key: plan.key,
+        reason: CheckpointError::Busy,
+        at: DateTime::UNIX_EPOCH,
+    };
+    assert!(
+        store.checkpoint_write(refused()).await.is_err(),
+        "a missing durable anchor never gets synthetic metadata"
+    );
+    store
+        .append(
+            info.id,
+            vec![std::sync::Arc::new(vessel_proto::EventRecord {
+                seq: EventSeq::ZERO,
+                at: DateTime::UNIX_EPOCH,
+                event: vessel_proto::SessionEvent::Checkpoint {
+                    event: vessel_proto::checkpoint::CheckpointEvent::PromptAccepted,
+                },
+            })],
+        )
+        .await
+        .unwrap();
+    for _repeat in 0..2 {
+        store.checkpoint_write(refused()).await.unwrap();
+    }
+    let page = store.checkpoint_page(info.id, None).await.unwrap();
+    assert_eq!(page.marks.len(), 1);
+    assert_eq!(
+        page.marks[0].state,
+        vessel_proto::checkpoint::CheckpointState::Unavailable {
+            reason: CheckpointError::Busy
+        }
+    );
+    let charged = store
+        .read(|reader| {
+            reader.with(|connection| super::quota::used(connection).map_err(StoreError::from))
+        })
+        .await
+        .unwrap();
+    assert_eq!(charged, ByteCount::new(super::quota::METADATA_BYTES));
+    assert!(
+        store
+            .checkpoint_write(CheckpointWrite::Activate {
+                key: plan.key,
+                checkpoint: CheckpointId::random()
+            })
+            .await
+            .is_err()
+    );
+    assert!(
+        store
+            .checkpoint_write(CheckpointWrite::Candidate {
+                key: plan.key,
+                snapshot: Box::new(super::tests::observed(plan.desired.image().clone()))
+            })
+            .await
+            .is_err()
+    );
+    assert!(
+        !dir.root().join("checkpoints").exists(),
+        "metadata admission performs no checkpoint filesystem I/O"
+    );
+    store.close().await;
+    let store = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    assert_eq!(store.checkpoint_page(info.id, None).await.unwrap(), page);
+    store.close().await;
+}

@@ -106,9 +106,10 @@ async fn checkpoint_pause_refuses_a_running_turn_and_keeps_the_parked_route() {
             Err(SessionError::FilesPaused)
         ));
         pause.resume().await.unwrap();
-        assert!(handle.parked());
+        assert!(handle.info().parked.is_some());
         handle.send(prompt("plain")).await.unwrap();
-        assert!(!handle.parked());
+        let mut info = handle.watch_info();
+        assert!(info.wait_for(|info| info.parked.is_none()).await.is_ok());
         fixture.runtime.shutdown().await;
     })
     .await;

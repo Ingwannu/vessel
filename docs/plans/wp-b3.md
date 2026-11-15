@@ -2,9 +2,9 @@
 
 ADR 0077 passed design review at `a852bde3`; acceptance is a contract decision,
 not a product/runtime pass. The node branch consumes the reviewed integration
-head `ede20014` (Quality B and gate 44); pending rows live at the end of
-`rpc/table.rs`. The separate app branch consumes package base 6 `18eedad4`
-and fixed-lock update `dd13ce37`; no app feature is implemented yet.
+head `82ae7c91` (Quality B and gate 46g); pending rows live at the end of
+`rpc/table.rs`. The separate app branch consumes package base 8 `91407173`
+through app-line merge `da48212c`; no app feature is implemented yet.
 
 ## References and existing assets
 
@@ -1175,3 +1175,30 @@ StartGuard exposes a borrowed opaque root_lease() for W17's future lifetime-boun
 quiescence contract. Its physical() accessor uses that exact same lease; there is
 no copyable lease id or additional root lock. This is unverified source and no
 consumer-ready hash or external adoption is announced.
+
+
+### Refused-boundary metadata (source; unverified)
+
+Root/worker admission can refuse before a filesystem candidate exists. After
+acknowledging the actor's error, the retained bounded bridge now records a small
+Unavailable marker when the exact managed boundary/SQL anchor is known. The
+writer checks that anchor and quota, creates no private namespace, and never
+promotes it to Ready. Existing active/ready rows remain under their original
+worker's ownership and are unchanged by this best-effort metadata command.
+Missing/unsupported scope, absent anchors or exhausted metadata capacity can
+still leave no mark; the app must treat missing availability as unavailable.
+The actor never waits for this trailing write past its capture deadline.
+The regression checks durable-anchor refusal, stable single charging, no Ready
+publication, no filesystem I/O and restart persistence. It remains unrun.
+
+Run wp-checkpoints-node-narrow-20261115T153918Z-2f7778ad finished rc1 at
+16:03 UTC (cargo101, eight seconds). It stopped at a private parked() test API,
+a needless preview-observation move and startup doc formatting. Tests now use
+SessionInfo/watch_info, the observation is borrowed, and docs use ordinary field
+wording. No product API or lint suppression was added to satisfy the fixture.
+
+A separate isolated SQLite compatibility probe executed the exact extracted
+rotation/completed/garbage SQL: rank/40 boundary, marker/worker/recovery pins,
+consumed-plan FK retention, Expired state and garbage merge passed. This verifies
+SQL compatibility only; it is not Rust execution, actual namespace cleanup,
+permissions, runtime parity or a replacement for the queued remote suites.

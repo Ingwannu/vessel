@@ -31,7 +31,7 @@ pub(super) fn used(connection: &Connection) -> Result<crate::ByteCount, Error> {
 /// Escrow before the first read: raw image, candidate, metadata and file overhead.
 pub(crate) const CAPTURE_BYTES: crate::ByteCount =
     crate::ByteCount::new(vessel_proto::checkpoint::CHECKPOINT_CAPTURE_RESERVATION_BYTES);
-const METADATA_BYTES: u64 = 64 * 1024;
+pub(super) const METADATA_BYTES: u64 = 64 * 1024;
 pub(super) const MANIFEST_BYTES: u64 = 64 * 1024 * 1024;
 const METADATA_COPIES: u64 = 3;
 const ENTRY_ALLOWANCE: u64 = 64 * 1024;

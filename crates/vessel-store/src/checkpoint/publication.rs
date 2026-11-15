@@ -64,3 +64,38 @@ pub(super) fn boundary_persisted(connection: &Connection, key: CaptureKey) -> Re
     }
     Ok(())
 }
+
+/// Existing active/ready rows belong to their original worker and are unchanged.
+/// The actor has already received its refusal; this bounded metadata ack cannot
+/// prolong its capture deadline or create a ready image without filesystem work.
+pub(super) fn refused(
+    connection: &Connection,
+    key: CaptureKey,
+    reason: CheckpointError,
+    at: chrono::DateTime<chrono::Utc>,
+) -> Result<(), Error> {
+    use rusqlite::OptionalExtension as _;
+    let generation = serde_json::to_string(&key.generation)?;
+    let boundary = serde_json::to_string(&key.boundary)?;
+    let present:Option<(String,String,String,String)>=connection.query_row("SELECT session,worktree,CAST(generation AS TEXT),boundary FROM checkpoint_captures WHERE id=?1",[key.capture.to_string()],|row|Ok((row.get(0)?,row.get(1)?,row.get(2)?,row.get(3)?))).optional()?;
+    if let Some((session, worktree, stored_generation, stored_boundary)) = present {
+        return if session == key.session.to_string()
+            && worktree == key.worktree.to_string()
+            && stored_generation == generation
+            && stored_boundary == boundary
+        {
+            Ok(())
+        } else {
+            Err(CheckpointError::StaleCapture.into())
+        };
+    }
+    boundary_persisted(connection, key)?;
+    super::quota::available(
+        connection,
+        crate::ByteCount::new(super::quota::METADATA_BYTES),
+    )?;
+    let charge = i64::try_from(super::quota::METADATA_BYTES)
+        .map_err(|_large| CheckpointError::StorageFull)?;
+    let _inserted=connection.execute("INSERT INTO checkpoint_captures(id,session,worktree,generation,boundary,state,worker,reason,reserved_bytes,created_at) VALUES (?1,?2,?3,?4,?5,'unavailable','settled',?6,?7,?8)",params![key.capture.to_string(),key.session.to_string(),key.worktree.to_string(),generation,boundary,serde_json::to_string(&reason)?,charge,at.timestamp_millis()])?;
+    Ok(())
+}
