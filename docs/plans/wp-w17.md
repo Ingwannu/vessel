@@ -882,3 +882,60 @@ now use ID/LABEL/SERVER/ENABLED/STATUS/SOURCE; source text explicitly describes 
 actual Owner/Device enum, not invented Paseo id/key or authority inheritance.
 The earlier baseline inventory's host output shorthand was overgeneralized;
 only inspect has the human JSON override. No pending call was activated.
+
+### D1 authoritative frame follow-up proposal (2026-11-15 13:11 UTC)
+
+Design coordination only: no new DTO, method row, client API or mode parser exists
+from this proposal. It does not block the separately approved Silent capture
+consumer. C2 requested node/consumer cursor ownership before live D1 wiring.
+
+[Decision Log]
+- Purpose: restore a CLI/native renderer without guessing parser state from visible
+  cells or replaying a possibly pruned, mid-CSI/mid-UTF8 raw event suffix.
+- Existing assets/constraints: one actor owns Screen and TermLog numbering; the core's
+  Snapshot is readonly and is not a serializable complete parser/decoder checkpoint.
+  TerminalInfo.revision and raw EventSeq alone do not version a screen and its modes.
+- Alternatives: full engine serialization, including both buffers, saved region/cursor,
+  modes/kitty stack and decoder carry (not exposed by the frozen engine); or client
+  replay/preamble reconstruction (cannot recover pruned parser carry; rejected).
+- Choice: demand-driven authoritative full typed frames. The node keeps the only
+  mutable decoder; consumers render cells/modes and never feed a raw suffix or generated
+  ANSI back into an engine. C2 extends the same pure engine for mode observation.
+- Reason: full replacement frames may coalesce without a delta/replay continuity claim.
+  A readonly grid is sufficient for rendering, but is never called parser restoration.
+- Consequences: frame, viewport, input modes and cursor are obtained by one command at
+  the output actor. A separate opaque epoch changes whenever that authority is replaced.
+  A checked FrameRevision advances on every fully consumed output chunk, admitted resize,
+  mode/state change and finalization; exhaustion refuses, never wraps.
+
+Proposed cursor is (screen epoch, frame revision, next_event_seq). The last component
+is TermLog.next at the same actor admission/response boundary: every raw output record
+below it has already been fed completely, including decoder carry, and its event has
+been published. Partial feed prefixes never escape as an event-boundary checkpoint.
+Non-screen notices may advance the event cursor without a frame revision; long-read
+change admission compares epoch+frame revision, and even Unchanged returns the fresh
+cursor. A resize may advance the frame revision without advancing the raw event cursor.
+Renderers follow frame revision, never replay raw records starting at that event cursor.
+
+A proposed ReadFrame(terminal, after, viewport) is an ownership-checked Read long-read.
+It returns an authoritative full frame, Unchanged with cursor, or a typed unavailable /
+epoch-replaced / viewport-too-large outcome. Ended frames remain readable with explicit
+final state; a restarted node with no retained authority refuses rather than inventing
+an empty parser. The actor registers a bounded set of waiting readers or answers at
+once, with cancellation/deadline cleanup and a finite wait. Snapshot/projection work is
+only on demand, not a full grid clone on every output chunk. Slow consumers receive a
+later complete replacement; no dropped-delta recovery is necessary.
+
+Both cell count and encoded frame bytes need named bounds before code. Bounded typed
+viewports let a large terminal/history refuse or page explicitly rather than silently
+truncate an allegedly complete frame. A history page must match the authority epoch and
+frame revision or report changed/pruned; it never seeds a decoder. No eager per-output
+full-grid fan-out or unbounded subscriber/restore-token map is proposed.
+
+Modes must be supplied by C2's same-engine D1 extension, following
+protocol/terminal-input-mode.ts (kitty flags/stack, win32, application cursor and
+bracketed paste). W17 will explicitly map typed flags/mode enums into proto; it will
+not copy the reference regex tracker, inherit a source, or substitute guessed defaults.
+Resize admission/PTY writer ordering and frame publication must be proved together;
+current capture inbox ordering alone is not proof of a new D1 event cursor contract.
+Query replies remain Silent until C2's renderer passes under the coordinator ruling.

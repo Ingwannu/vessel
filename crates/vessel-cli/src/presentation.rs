@@ -3,7 +3,8 @@
 
 use crate::{
     args::{
-        Cli, Command, ConversationCommand, ProjectCommand, ScheduleCommand, SessionCommand, UsageCommand,
+        Cli, Command, ConversationCommand, ProjectCommand, ScheduleCommand, SessionCommand,
+        UsageCommand,
         parity::{AgentCommand, ParityCommand, Presentation},
     },
     error::CliError,
