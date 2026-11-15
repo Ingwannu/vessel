@@ -1,18 +1,25 @@
 //! One borrowed canonical body for timelines and proposed permission details.
 //! Identity, execution, approval, disclosure and I/O remain with the caller.
-use super::entries::Paint;
-use crate::shell::Shell;
-use vessel_app_kit::output::{Line, Lines, Tone};
+use vessel_app_kit::output::{AnnotatedLines, Line, Lines, Tone, annotated_lines_box};
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, ElementId, InteractiveElement as _, IntoElement as _,
+    AnyElement, App, Div, ElementId, Hsla, InteractiveElement as _, IntoElement as _,
     ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px, size,
 };
 use vessel_app_kit::{Start, Type, TypeExt as _, lines_box, output_box, skeleton, version_of};
 use vessel_app_view::timeline::{
-    MAX_LINES, Side, ToolSection, ToolSectionLabel, json_text, tool_sections, unified_lines,
+    MAX_LINES, Side, ToolSection, ToolSectionLabel, diff_lines, json_text, tool_sections,
+    unified_lines, word_highlights,
 };
 use vessel_proto::timeline::{DetailOffset, ToolCallDetail, ToolFailure};
+
+/// Borrowed drawing inputs only; no Entry, Seat, session or I/O capability.
+pub(super) struct BodyPaint<'a> {
+    pub(super) catalog: &'static vessel_app_view::localization::Translator,
+    pub(super) words: &'static vessel_app_view::ConversationWords,
+    pub(super) tokens: &'a vessel_app_kit::Tokens,
+    pub(super) secondary: Hsla,
+}
 
 /// Only empty-content loading presentation, never execution or approval outcome.
 #[derive(Clone, Copy)]
@@ -31,12 +38,12 @@ pub(super) struct BorrowedDetail<'a> {
     pub(super) failure: Option<&'a ToolFailure>,
 }
 
-pub(super) fn borrowed_body(
-    paint: &Paint<'_>,
+pub(super) fn render(
+    paint: &BodyPaint<'_>,
     id: &ElementId,
     source: BorrowedDetail<'_>,
     window: &mut Window,
-    cx: &mut Context<'_, Shell>,
+    cx: &mut App,
 ) -> Div {
     let BorrowedDetail {
         detail,
@@ -74,11 +81,11 @@ fn child_id(parent: &ElementId, part: &str) -> ElementId {
 }
 
 pub(super) fn failure(
-    paint: &Paint<'_>,
+    paint: &BodyPaint<'_>,
     id: ElementId,
     failure: &ToolFailure,
     window: &mut Window,
-    cx: &mut Context<'_, Shell>,
+    cx: &mut App,
 ) -> Div {
     vessel_app_kit::alert::alert(
         vessel_app_kit::alert::Content {
@@ -105,11 +112,11 @@ const PROSE_LINE_HEIGHT: f32 = 22.0;
 
 /// Literal reasoning and plain tool bodies share this selectable UI prose.
 pub(super) fn prose(
-    paint: &Paint<'_>,
+    paint: &BodyPaint<'_>,
     id: ElementId,
     text: &str,
     window: &mut Window,
-    cx: &mut Context<'_, Shell>,
+    cx: &mut App,
 ) -> AnyElement {
     div()
         .id(id.clone())
@@ -129,11 +136,11 @@ pub(super) fn prose(
 }
 
 fn section_body(
-    paint: &Paint<'_>,
+    paint: &BodyPaint<'_>,
     id: ElementId,
     section: &ToolSection<'_>,
     window: &mut Window,
-    cx: &mut Context<'_, Shell>,
+    cx: &mut App,
 ) -> AnyElement {
     match section {
         ToolSection::Terminal { command, output } => {
@@ -148,7 +155,7 @@ fn section_body(
         } => code(paint, id, text, *first_line, window, cx),
         ToolSection::Patch { text, .. } => patch(paint, id, text, window, cx),
         ToolSection::Edit { old, new, .. } => {
-            super::tool::diff(paint, id, *old, new, window, cx).into_any_element()
+            computed_diff(paint, id, *old, new, window, cx).into_any_element()
         }
         ToolSection::Text(text) => output_box(id, text, Start::Top, paint.tokens, window, cx),
         ToolSection::Prose(text) => prose(paint, id, text, window, cx),
@@ -158,7 +165,7 @@ fn section_body(
             .child(
                 div()
                     .type_(Type::Meta)
-                    .text_color(paint.look.secondary)
+                    .text_color(paint.secondary)
                     .child(match label {
                         ToolSectionLabel::Input => paint.words.input(),
                         ToolSectionLabel::Output => paint.words.output(),
@@ -177,12 +184,12 @@ fn section_body(
 }
 
 fn code(
-    paint: &Paint<'_>,
+    paint: &BodyPaint<'_>,
     id: ElementId,
     text: &str,
     first: Option<DetailOffset>,
     window: &mut Window,
-    cx: &mut Context<'_, Shell>,
+    cx: &mut App,
 ) -> AnyElement {
     let version = version_of(&(text, first));
     let lines = lines_box(
@@ -212,11 +219,11 @@ fn code(
 }
 
 fn patch(
-    paint: &Paint<'_>,
+    paint: &BodyPaint<'_>,
     id: ElementId,
     text: &str,
     window: &mut Window,
-    cx: &mut Context<'_, Shell>,
+    cx: &mut App,
 ) -> AnyElement {
     let lines = lines_box(
         id,
@@ -245,7 +252,7 @@ fn patch(
     preview(paint, lines, unified_lines(text).1)
 }
 
-fn preview(paint: &Paint<'_>, lines: AnyElement, cut: bool) -> AnyElement {
+fn preview(paint: &BodyPaint<'_>, lines: AnyElement, cut: bool) -> AnyElement {
     div()
         .flex()
         .flex_col()
@@ -253,18 +260,18 @@ fn preview(paint: &Paint<'_>, lines: AnyElement, cut: bool) -> AnyElement {
         .children(cut.then(|| {
             div()
                 .type_(Type::Meta)
-                .text_color(paint.look.secondary)
+                .text_color(paint.secondary)
                 .child(paint.catalog.timeline_tool().preview_cut())
         }))
         .into_any_element()
 }
 
 /// A request supplies its own stable identity; it never fabricates a timeline row.
-pub(super) fn empty(paint: &Paint<'_>, id: ElementId, working: bool) -> AnyElement {
+pub(super) fn empty(paint: &BodyPaint<'_>, id: ElementId, working: bool) -> AnyElement {
     if !working {
         return div()
             .type_(Type::Body)
-            .text_color(paint.look.secondary)
+            .text_color(paint.secondary)
             .child(paint.catalog.timeline_tool().empty())
             .into_any_element();
     }
@@ -285,6 +292,72 @@ pub(super) fn empty(paint: &Paint<'_>, id: ElementId, working: bool) -> AnyEleme
                 }),
         )
     })
+}
+
+/// One computed diff body shared by canonical and legacy callers.
+pub(super) fn computed_diff(
+    paint: &BodyPaint<'_>,
+    id: ElementId,
+    old: Option<&str>,
+    new: &str,
+    window: &mut Window,
+    cx: &mut App,
+) -> Div {
+    // Both texts' versions (`kit::version_of`, their hashes): a change to
+    // either splits the diff again (their lengths alone kept a first diff
+    // on screen after a second of the same lengths).
+    let version = version_of(old.unwrap_or("")).rotate_left(1) ^ version_of(new);
+    let lines = annotated_lines_box(
+        id,
+        version,
+        || {
+            let (lines, _) = diff_lines(old, new);
+            let highlights = word_highlights(&lines);
+            let emphasis = lines
+                .iter()
+                .enumerate()
+                .map(|(index, _)| highlights.for_line(index).to_vec())
+                .collect();
+            AnnotatedLines {
+                lines: Lines {
+                    lines: lines
+                        .into_iter()
+                        .map(|line| Line {
+                            text: line.text.to_owned().into(),
+                            tone: match line.side {
+                                Side::Removed => Tone::Removed,
+                                Side::Added => Tone::Added,
+                                Side::Context | Side::Header => Tone::Plain,
+                            },
+                            number: line.number,
+                        })
+                        .collect(),
+                    copy: None,
+                },
+                emphasis,
+            }
+        },
+        Start::Top,
+        paint.tokens,
+        window,
+        cx,
+    );
+    // Whether it was cut, asked again each frame: the lines borrow the
+    // texts and cost no copy, unlike the box's own.
+    let (_, cut) = diff_lines(old, new);
+    div()
+        .flex()
+        .flex_col()
+        .gap(px(spacing::S1))
+        .child(lines)
+        .when(cut, |block| {
+            block.child(
+                div()
+                    .type_(Type::Meta)
+                    .text_color(paint.secondary)
+                    .child(paint.words.diff_cut(MAX_LINES)),
+            )
+        })
 }
 
 #[cfg(test)]

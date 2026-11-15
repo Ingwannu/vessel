@@ -1108,3 +1108,14 @@ It does not declare a ready packet: W4 has no ToolCallDetail, so the canonical
 standalone-values dependency must be identified/approved by W23 under the current
 integrator disposition. No proto source, ToolView, Entry or response is fabricated.
 The native-only source cut still needs exact narrow validation before handoff.
+
+The kernel is now session-neutral: BodyPaint borrows only catalogs, legacy
+conversation words, tokens and secondary ink; rendering accepts App rather than
+a Shell context. The existing public tool_detail wrappers project their Paint and
+preserve A8's agreed interface. Computed diff drawing moves once into this same
+kernel; the legacy tool wrapper delegates, so canonical edits and older tool
+content cannot drift through separate diff renderers. The moved gap uses existing
+spacing::S1 and the old tool.rs px-step ratchet decreases5 to4; no budget is raised.
+The source-only portable packet must include this exact common kernel and its
+existing output/diff/word/locale prerequisites, with no header, resident, request
+controller, node-field or RPC activation.

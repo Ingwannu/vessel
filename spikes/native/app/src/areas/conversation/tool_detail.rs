@@ -1,6 +1,7 @@
 //! Canonical header/provenance wrappers reuse the shared borrowed body.
 use super::entries::{Paint, marked_work_row};
-pub(super) use super::tool_body::{BorrowedDetail, DetailContentState, borrowed_body, prose};
+use super::tool_body::{self, BodyPaint};
+pub(super) use super::tool_body::{BorrowedDetail, DetailContentState};
 use crate::shell::Shell;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
@@ -14,6 +15,38 @@ use vessel_app_view::timeline::{
     DetailContents, ToolDetailSource, ToolLabel, agent_message_display, tool_display,
 };
 use vessel_proto::timeline::{AgentMessageProvenance, ToolCallDetail, ToolFailure, ToolIcon};
+
+impl<'a> From<&Paint<'a>> for BodyPaint<'a> {
+    fn from(paint: &Paint<'a>) -> Self {
+        Self {
+            catalog: paint.catalog,
+            words: paint.words,
+            tokens: paint.tokens,
+            secondary: paint.look.secondary,
+        }
+    }
+}
+
+/// Existing callers keep their drawing context; the body reads only its narrow projection.
+pub(super) fn borrowed_body(
+    paint: &Paint<'_>,
+    id: &ElementId,
+    detail: BorrowedDetail<'_>,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    tool_body::render(&BodyPaint::from(paint), id, detail, window, cx)
+}
+
+pub(super) fn prose(
+    paint: &Paint<'_>,
+    id: ElementId,
+    text: &str,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    tool_body::prose(&BodyPaint::from(paint), id, text, window, cx)
+}
 
 pub(super) fn header(
     paint: &Paint<'_>,
@@ -168,7 +201,7 @@ pub(super) fn failure(
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     super::tool_body::failure(
-        paint,
+        &BodyPaint::from(paint),
         ElementId::NamedInteger("canonical-tool-error".into(), super::entries::id(index)),
         failure,
         window,

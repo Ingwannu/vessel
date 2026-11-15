@@ -71,7 +71,7 @@ px-step spikes/native/app/src/areas/conversation/question/card.rs 26
 px-step spikes/native/app/src/areas/conversation/queue/rows.rs 20
 px-step spikes/native/app/src/areas/conversation/search.rs 24
 px-step spikes/native/app/src/areas/conversation/timeline.rs 8
-px-step spikes/native/app/src/areas/conversation/tool.rs 5
+px-step spikes/native/app/src/areas/conversation/tool.rs 4
 px-step spikes/native/app/src/areas/draft/effort_card.rs 9
 px-step spikes/native/app/src/areas/draft/features.rs 1
 px-step spikes/native/app/src/areas/draft/mod.rs 2

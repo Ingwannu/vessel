@@ -367,7 +367,7 @@ fn run_content(
 /// Empty legacy details follow the same loading/empty contract as canonical bodies.
 pub(super) fn empty(paint: &Paint<'_>, index: usize, working: bool) -> AnyElement {
     super::tool_body::empty(
-        paint,
+        &super::tool_body::BodyPaint::from(paint),
         ElementId::NamedInteger("tool-details-loading".into(), id(index)),
         working,
     )
