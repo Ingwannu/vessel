@@ -84,8 +84,8 @@ node-stop document admission and preference currentness need every live window:
 filtering a retained old Shell after root replacement can omit its successor.
 This is a new receiving-boundary debt, not covered by the earlier five tests.
 
-The same registry now stages shells(&mut App) -> Result<Vec<WeakEntity<Shell>>,
-Unavailable>. Any live handle without exactly one registered live current-root
+The same registry now stages shells(&mut App) -> LiveShells::{Available(Vec<WeakEntity<Shell>>),
+Unavailable}. Any live handle without exactly one registered live current-root
 Shell refuses the entire enumeration; no partial vector grants admission. It
 uses the existing root helper inside each original window. The local weak vector
 is temporary, not another window owner. Call only at App level after every
@@ -98,3 +98,8 @@ success. The guard remains feature-owned and read-only. One new actual GPUI test
 covers simultaneous direct/wrapped roots, an unknown live window, deliberately
 retained old A, replacement B without registration, and explicit B registration.
 This follow-up source is unchecked; earlier row273 does not approve it.
+
+Availability uses LiveShells::{Available,Unavailable}, not an ad hoc Result error
+or another App dependency. The complete-list test preserves typed refusal; real
+callers must match Unavailable to refusal, never convert it into an empty list.
+This source correction does not inherit the earlier focused-host review.

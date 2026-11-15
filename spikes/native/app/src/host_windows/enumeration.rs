@@ -3,13 +3,18 @@
 use super::{Registry, Shell};
 use gpui::{App, WeakEntity};
 
-/// A missing, replaced or unregistered root cannot grant global admission.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct Unavailable;
+/// Availability is a UI admission fact, not a storage or transport error.
+#[must_use]
+pub(crate) enum LiveShells {
+    /// Every live window has exactly one current, registered Shell.
+    Available(Vec<WeakEntity<Shell>>),
+    /// A missing, replaced or unregistered root refuses global admission.
+    Unavailable,
+}
 
 /// App-level only, after all Shell/Window borrows end. A temporary weak snapshot
 /// is not another registry. The caller must act synchronously without awaiting.
-pub(crate) fn shells(cx: &mut App) -> Result<Vec<WeakEntity<Shell>>, Unavailable> {
+pub(crate) fn shells(cx: &mut App) -> LiveShells {
     let live = cx.windows();
     let records = cx
         .try_global::<Registry>()
@@ -17,20 +22,25 @@ pub(crate) fn shells(cx: &mut App) -> Result<Vec<WeakEntity<Shell>>, Unavailable
     let mut shells = Vec::with_capacity(live.len());
     for window in live {
         let mut matching = records.iter().filter(|record| record.window == window);
-        let record = matching.next().ok_or(Unavailable)?;
+        let Some(record) = matching.next() else {
+            return LiveShells::Unavailable;
+        };
         if matching.next().is_some() {
-            return Err(Unavailable);
+            return LiveShells::Unavailable;
         }
         let recipient = window
             .update(cx, |root, _window, cx| {
-                let shell = record.shell.upgrade().ok_or(Unavailable)?;
-                if !vessel_app_kit::root_contains_view(&root, shell.entity_id(), cx) {
-                    return Err(Unavailable);
-                }
-                Ok(shell.downgrade())
+                record.shell.upgrade().and_then(|shell| {
+                    vessel_app_kit::root_contains_view(&root, shell.entity_id(), cx)
+                        .then(|| shell.downgrade())
+                })
             })
-            .map_err(|_closed| Unavailable)??;
+            .ok()
+            .flatten();
+        let Some(recipient) = recipient else {
+            return LiveShells::Unavailable;
+        };
         shells.push(recipient);
     }
-    Ok(shells)
+    LiveShells::Available(shells)
 }
