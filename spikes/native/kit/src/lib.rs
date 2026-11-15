@@ -76,6 +76,7 @@ pub mod vector;
 pub mod virtual_list;
 mod widgets;
 pub mod window_glyph;
+pub mod zoom;
 
 use gpui::{App, AppContext as _, Global, IntoElement as _, Styled as _, Window, WindowAppearance};
 
