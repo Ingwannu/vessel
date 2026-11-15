@@ -180,3 +180,12 @@ Rust trim would otherwise execute a literal /exit+NEL as an archive. Adversarial
 BOM/NEL fixtures cover client refusal, plugin arguments and inline boundaries.
 References: client-slash-commands/index.ts:49-69 and
 plugins/client-slash-commands/model.ts:51-62. No second whitespace helper added.
+
+Copy boundary refinement from the primary source
+assistant-selection-copy/content.web.ts:155-199: code-only drags retain raw code
+even when every character is selected; a selection crossing the semantic boundary
+retains Markdown. TextView Select All has whole-message semantics, so it must not
+be reinterpreted as an inside-code drag. The readonly query now refuses Select All
+and uses only actual retained per-node selections. GPUI fixtures check full-view
+Markdown clipboard first, then a real inside-code drag/raw clipboard. This removes
+unneeded duplicate all-document AST reconstruction. New source awaits rerun.

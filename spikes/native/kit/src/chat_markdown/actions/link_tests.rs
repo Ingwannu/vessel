@@ -187,20 +187,51 @@ fn code_copy_uses_parsed_inline_and_fenced_regions(cx: &mut TestAppContext) {
         let state = probe.read_with(window, |probe, _| probe.state.clone());
         window.update(|_, cx| state.update(cx, |state, cx| state.select_all(cx)));
         state.read_with(window, |state, _| {
-            assert_eq!(state.selected_code_text().as_deref(), expected, "{source}");
+            assert_eq!(
+                state.selected_code_text(),
+                None,
+                "whole-view selection retains Markdown boundaries"
+            );
+        });
+        window.update(|window, cx| {
+            let focus = state.read(cx).focus_handle().clone();
+            focus.focus(window);
+            let _paint = window.draw(cx);
+            focus.dispatch_action(&gpui_base::input::Copy, window, cx);
+            assert_eq!(
+                cx.read_from_clipboard()
+                    .and_then(|item| item.text())
+                    .as_deref(),
+                Some(source.trim())
+            );
         });
         if let Some(expected) = expected {
+            // Stay within the rendered code, including every character. Message
+            // Select All above instead crosses the code's semantic boundary.
+            let bounds = state.read_with(window, |state, _| state.bounds());
+            let start = bounds.origin
+                + if source.starts_with('`') && !source.starts_with("```") {
+                    point(px(1.0), px(8.0))
+                } else {
+                    point(px(17.0), px(40.0))
+                };
+            let end = point(bounds.right() - px(2.0), start.y);
+            window.simulate_mouse_down(start, MouseButton::Left, Modifiers::default());
+            window.simulate_mouse_move(end, MouseButton::Left, Modifiers::default());
+            window.simulate_mouse_up(end, MouseButton::Left, Modifiers::default());
             window.update(|window, cx| {
-                let focus = state.read(cx).focus_handle().clone();
-                focus.focus(window);
                 let _paint = window.draw(cx);
+                assert_eq!(
+                    state.read(cx).selected_code_text().as_deref(),
+                    Some(expected)
+                );
+                let focus = window.focused(cx).expect("code drag focuses TextView");
                 focus.dispatch_action(&gpui_base::input::Copy, window, cx);
                 assert_eq!(
                     cx.read_from_clipboard()
                         .and_then(|item| item.text())
                         .as_deref(),
-                    Some(expected),
-                    "the host capture writes raw code to the real clipboard path"
+                    Some(expected)
                 );
             });
         }

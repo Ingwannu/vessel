@@ -1888,18 +1888,8 @@ impl Paragraph {
         self.selected_markdown().styles()
     }
 
-    pub(super) fn code_selection(&self, all: bool) -> super::code_selection::CodeSelection {
-        if !all {
-            return self.selected_markdown().into_code();
-        }
-        let mut source = MarkdownSource::default();
-        for child in &self.children {
-            if child.image.is_some() || child.custom.is_some() {
-                return super::code_selection::CodeSelection::Mixed;
-            }
-            source.push_text(&child.text, &child.marks, 0..child.text.len());
-        }
-        source.into_code()
+    pub(super) fn code_selection(&self) -> super::code_selection::CodeSelection {
+        self.selected_markdown().into_code()
     }
 
     /// The selection as Markdown pieces, before their marks are serialized;

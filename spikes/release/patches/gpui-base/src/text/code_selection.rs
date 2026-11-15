@@ -19,10 +19,10 @@ impl CodeSelection {
     }
 }
 
-pub(super) fn selected(document: &ParsedDocument, all: bool) -> Option<String> {
+pub(super) fn selected(document: &ParsedDocument) -> Option<String> {
     let mut selected = CodeSelection::Unselected;
     for block in document.blocks.iter() {
-        selected.merge(block.code_selection(all));
+        selected.merge(block.code_selection());
     }
     let CodeSelection::Code(text) = selected else {
         return None;
@@ -32,29 +32,25 @@ pub(super) fn selected(document: &ParsedDocument, all: bool) -> Option<String> {
 }
 
 impl BlockNode {
-    fn code_selection(&self, all: bool) -> CodeSelection {
+    fn code_selection(&self) -> CodeSelection {
         match self {
-            Self::Root { children, .. } => children_code(children, all),
-            Self::Blockquote { children, .. }
+            Self::Root { children, .. }
+            | Self::Blockquote { children, .. }
             | Self::List { children, .. }
             | Self::ListItem { children, .. } => {
-                if all {
-                    CodeSelection::Mixed
-                } else {
-                    children_code(children, false)
+                let mut selected = CodeSelection::Unselected;
+                for child in children {
+                    selected.merge(child.code_selection());
                 }
+                selected
             }
             Self::Paragraph(paragraph)
             | Self::Heading {
                 children: paragraph,
                 ..
-            } => paragraph.code_selection(all),
-            Self::CodeBlock(code) => {
-                let text = if all {
-                    code.code().to_string()
-                } else {
-                    self.selected_text(SelectionFormat::Plain)
-                };
+            } => paragraph.code_selection(),
+            Self::CodeBlock(_) => {
+                let text = self.selected_text(SelectionFormat::Plain);
                 if text.is_empty() {
                     CodeSelection::Unselected
                 } else {
@@ -62,40 +58,25 @@ impl BlockNode {
                 }
             }
             Self::Table(table) => {
-                if all {
-                    return CodeSelection::Mixed;
-                }
                 let mut selected = CodeSelection::Unselected;
                 for row in &table.children {
                     for cell in &row.children {
-                        selected.merge(cell.children.code_selection(false));
+                        selected.merge(cell.children.code_selection());
                     }
                 }
                 selected
             }
             Self::Custom { .. } => {
-                if all || self.has_selection() {
+                if self.has_selection() {
                     CodeSelection::Mixed
                 } else {
                     CodeSelection::Unselected
                 }
             }
-            Self::HorizontalRule { .. } | Self::Unknown => {
-                if all {
-                    CodeSelection::Mixed
-                } else {
-                    CodeSelection::Unselected
-                }
-            }
-            Self::Definition { .. } | Self::Break { .. } => CodeSelection::Unselected,
+            Self::HorizontalRule { .. }
+            | Self::Unknown
+            | Self::Definition { .. }
+            | Self::Break { .. } => CodeSelection::Unselected,
         }
     }
-}
-
-fn children_code(children: &[BlockNode], all: bool) -> CodeSelection {
-    let mut selected = CodeSelection::Unselected;
-    for child in children {
-        selected.merge(child.code_selection(all));
-    }
-    selected
 }

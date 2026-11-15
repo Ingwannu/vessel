@@ -417,10 +417,13 @@ impl TextViewState {
     /// Mixed prose, multiple regions and stale replacements return None.
     /// Trailing line breaks are removed; leading code indentation is preserved.
     pub fn selected_code_text(&self) -> Option<String> {
-        if self.format != TextViewFormat::Markdown || !self.has_current_copy_document() {
+        if self.format != TextViewFormat::Markdown
+            || self.select_all
+            || !self.has_current_copy_document()
+        {
             return None;
         }
-        super::code_selection::selected(&self.parsed_content.document, self.select_all)
+        super::code_selection::selected(&self.parsed_content.document)
     }
 
     /// Return the original Markdown source byte range corresponding to the
