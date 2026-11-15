@@ -1087,7 +1087,20 @@ never rebuilt.
     - Both shipped apps pass `patch-feed.py verify`.
     - The sums' signature verifies with the key compiled in.
     - The build log holds neither the address nor its token.
-  - Not published until the coordinator's smoke.
+  - Published to `preview` at 14:02:52 UTC on 2026-11-15, after the
+    coordinator's Linux smoke on the real preview node over the relay
+    (pairing, a session, the outline rail across 1280 → 800 → 1280, and
+    the menus closing with Esc).
+    - It was published with the label's own feed tool
+      (`DIR/tools/vessel-app-feed`) and `--compressed gzip`. The signed
+      notes are byte for byte the notes file (2,356 bytes).
+    - From outside, the feed serves the manifest and all nine files, byte
+      for byte the dist folder's. The sums and their signature check, and
+      so do both gzip copies (each unpacks to its file). A range of the
+      Windows gzip copy answers 206 with the file's own bytes.
+    - The published 0.0.0.0.20 Linux build took 0.0.0.0.21 by itself 7 s
+      after its start: the raw file, since 0.0.0.0.20's updater knows no
+      gzip. ERROR 0, no token in its log, no `.part` left.
   - Sizes, with the change against 0.0.0.0.20: setup 14,274,020
     (+322,119), exe 53,210,624 (+1,566,720), zip 20,963,088 (+446,904),
     linux 90,384,408 (+1,629,792), tar.gz 31,201,943 (+458,553). The first
