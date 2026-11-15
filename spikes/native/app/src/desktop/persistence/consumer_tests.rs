@@ -10,6 +10,8 @@ use vessel_app_view::prefs::{PreferenceChange, Theme};
 async fn exit_effect_observes_settled_accepted_preferences_on_the_same_app_turn(
     cx: &mut TestAppContext,
 ) {
+    // This exercises the actual blocking writer and foreground watch together.
+    cx.executor().allow_parking();
     language_tests::init(cx);
     let coordinator = Coordinator::start(vessel_app_link::Prefs::default()).unwrap();
     cx.update(|cx| cx.set_global(crate::desktop::testing::desktop(coordinator)));

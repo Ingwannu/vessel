@@ -52,7 +52,7 @@ pub(crate) async fn flush_then<T>(
         if remaining.is_zero() {
             return Err(StateFailure::Deadline);
         }
-        let flush = cx.update(crate::desktop::flush_state);
+        let flush = cx.update(|cx| crate::desktop::flush_state(cx));
         let timer = cx.background_executor().timer(remaining);
         let mut flush = std::pin::pin!(flush);
         let mut timer = std::pin::pin!(timer);

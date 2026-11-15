@@ -232,7 +232,8 @@ remains unverified.
 | shutdownaaeabae1 / shutdown123843 | synthetic supervisor/reactor2/0; not actual OS/node integration |
 | controlaf4545c2 / control-tests130429 | actual App79/0/2, including generic quit and deferred-window guards |
 | control48eb2bcc / current-narrow134404 | strict RED: two uncalled old E3 setters and unnecessary CLI Option; no blanket suppression; owner-approved later cleanup |
-| currentd2f477b2 / link-current145243 | strict RED at Link: obsolete test State field, needless context borrow, let-and-return; App not reached; corrected source queued separately |
+| currentd2f477b2 / link-current145243 | strict RED at Link: obsolete test State field, needless context borrow, let-and-return; App not reached |
+| current754056bb / link-current151900 | strict RED: Link test lints; App flush callback type and missing command-forward arm, fixture qualification; corrected source follows |
 
 Root docs-only095f38c23 records the approved integration-test dev edge; prepared
 3d2128ae5 adds real Keep→Attached authority regression. Those additions do not
@@ -246,7 +247,9 @@ enqueued late, including after debounce; explicit Final still forces its supplie
 snapshot and closes before acknowledgement. The immediate App currentness fence
 remains mandatory. Its deterministic late-enqueue regression is not yet executed. Existing merge/layout behavior and this
 package's own fields remain intact. The wait fixture does not pump GPUI foreground
-observers, preserving its receipt-before-observe race. Producer and actual consumer
+observers, preserving its receipt-before-observe race. Only tests starting the
+real foreground preference watch permit scheduler parking for external writer
+wakes; no assertion, lint or production behavior is suppressed. Producer and actual consumer
 union execution, retry/deadline tests, C5 registration and retained-buffer barriers
 are still owed.
 

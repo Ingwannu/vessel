@@ -47,7 +47,7 @@ pub(super) fn desktop(preferences: Coordinator) -> Desktop {
         records: Vec::new(),
         saved: None,
         latest: WindowState::default(),
-        geometry_publication: std::sync::Arc::new(()),
+        geometry_publication: Arc::new(()),
         writer: None,
         environment: ShellEnvironment::inherited(),
         quit: None,

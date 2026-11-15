@@ -11,8 +11,7 @@ use vessel_app_view::onboarding::{
 #[tokio::test]
 async fn replacement_is_refused_and_a_stale_release_cannot_remove_the_new_visit() {
     let mut fixture = Fixture::new().await;
-    let target =
-        Target::authenticated(fixture.state.clients.get("laptop").unwrap().context.clone());
+    let target = Target::authenticated(fixture.state.clients["laptop"].context.clone());
     let mut model = Model::default();
     model.reopen(target.clone(), Layout::Wide).unwrap();
     let first = match model.state() {
@@ -98,7 +97,7 @@ async fn replacement_is_refused_and_a_stale_release_cannot_remove_the_new_visit(
 #[tokio::test]
 async fn same_node_reconnect_refuses_old_resolve_and_bind_without_a_request() {
     let mut fixture = Fixture::new().await;
-    let original = fixture.state.clients.get("laptop").unwrap().clone();
+    let original = fixture.state.clients["laptop"].clone();
     let old = original.context.clone();
     original.retire();
     let fresh = fixture

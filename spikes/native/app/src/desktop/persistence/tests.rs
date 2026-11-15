@@ -38,6 +38,8 @@ fn owner(cx: &mut TestAppContext) -> (Temp, Store) {
 
 #[gpui::test]
 fn app_fence_rejects_late_geometry_and_unreconciled_preference_edits(cx: &mut TestAppContext) {
+    // The real preference writer wakes the production UI watch from its thread.
+    cx.executor().allow_parking();
     let (_root, store) = owner(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, crate::desktop::preferences::start);

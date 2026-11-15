@@ -126,9 +126,12 @@ mod tests {
         assert!(first.same_source(&duplicate));
         assert!(!first.same_source(&successor.lease()));
         drop(source);
-        tokio::time::timeout(OBSERVATION_DEADLINE, duplicate.retired())
-            .await
-            .unwrap();
+        assert_eq!(
+            tokio::time::timeout(OBSERVATION_DEADLINE, duplicate.retired())
+                .await
+                .unwrap(),
+            Refusal::Changed
+        );
         assert!(!first.active());
         assert_eq!(first.refusal(), Some(Refusal::Changed));
         assert!(successor.lease().active());
@@ -140,9 +143,12 @@ mod tests {
         let source = Source::new(peer.client.take().unwrap());
         let lease = source.lease();
         peer.task.take().unwrap().abort();
-        tokio::time::timeout(OBSERVATION_DEADLINE, lease.retired())
-            .await
-            .unwrap();
+        assert_eq!(
+            tokio::time::timeout(OBSERVATION_DEADLINE, lease.retired())
+                .await
+                .unwrap(),
+            Refusal::Closed
+        );
         assert!(!lease.active());
         assert_eq!(lease.refusal(), Some(Refusal::Closed));
         drop(source);
