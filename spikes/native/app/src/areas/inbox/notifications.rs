@@ -139,12 +139,10 @@ impl Shell {
         let window = self.areas.inbox.window;
         cx.spawn(async move |this, cx| {
             let _closed = cx.update_window(window, |root, window, cx| {
-                // A retained Shell can outlive replacement of this window's
-                // content. Its late grant must not run window effects there.
-                if !vessel_app_kit::root_contains_view(&root, this.entity_id(), cx) {
-                    return;
-                }
-                let _closed = this.update(cx, |shell, cx| shell.inbox_window(window, cx));
+                let _current =
+                    super::lifetime::update(&this, &root, window, cx, |shell, window, cx| {
+                        shell.inbox_window(window, cx);
+                    });
             });
         })
         .detach();

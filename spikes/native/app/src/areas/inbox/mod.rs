@@ -4,6 +4,7 @@ mod actions;
 mod badges;
 mod draw;
 mod idle;
+mod lifetime;
 mod notification_routes;
 mod notifications;
 mod place;

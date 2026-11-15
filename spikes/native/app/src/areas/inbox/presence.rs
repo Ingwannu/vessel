@@ -6,29 +6,29 @@ use vessel_app_link::{Command, inbox::Ask};
 use vessel_app_view::inbox::presence::{Focus, HEARTBEAT_INTERVAL, Report};
 
 pub(super) fn listen(window: &mut Window, cx: &mut Context<'_, Shell>) {
-    cx.observe_window_activation(window, |shell, window, cx| {
-        shell.inbox_presence(window);
+    cx.observe_window_activation(window, |shell, _window, cx| {
+        shell.inbox_notice_update(cx);
         cx.notify();
     })
     .detach();
-    cx.observe_window_visibility(window, |shell, _visibility, window, cx| {
-        shell.inbox_presence(window);
+    cx.observe_window_visibility(window, |shell, _visibility, _window, cx| {
+        shell.inbox_notice_update(cx);
         cx.notify();
     })
     .detach();
     cx.spawn_in(window, async move |this, cx| {
         loop {
             cx.background_executor().timer(HEARTBEAT_INTERVAL).await;
-            if this
-                .update_in(cx, |shell, window, _cx| {
+            let current = cx.update_root(|root, window, cx| {
+                super::lifetime::update(&this, &root, window, cx, |shell, window, _cx| {
                     shell.inbox_presence(window);
                     if let Some(report) = shell.areas.inbox.presence.tick(std::time::Instant::now())
                     {
                         shell.inbox_presence_report(report);
                     }
                 })
-                .is_err()
-            {
+            });
+            if !matches!(current, Ok(true)) {
                 break;
             }
         }

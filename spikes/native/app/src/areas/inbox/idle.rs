@@ -19,12 +19,12 @@ pub(super) fn listen(window: &mut Window, cx: &mut Context<'_, Shell>) {
         loop {
             cx.background_executor().timer(INTERVAL).await;
             let age = probe.sample(cx).await;
-            if this
-                .update_in(cx, |shell, _window, _cx| {
+            let current = cx.update_root(|root, window, cx| {
+                super::lifetime::update(&this, &root, window, cx, |shell, _window, _cx| {
                     shell.areas.inbox.presence.system_idle(age);
                 })
-                .is_err()
-            {
+            });
+            if !matches!(current, Ok(true)) {
                 break;
             }
         }

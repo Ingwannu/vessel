@@ -297,3 +297,10 @@ prove that a live entity is still window content. The receiving regression
 schedules the real deferred notice task, replaces the root while retaining the
 old Shell, and checks that neither recipient consumes another root's work.
 This adds a UI-lifetime guard, not new node claim authority or delivery proof.
+
+The same private inbox lifetime adapter is reused by deferred grants, heartbeat
+and idle-cache tasks: it calls the one kit root identity check, then enters the
+original weak Shell/window pair. Retired heartbeat/idle loops stop, and OS
+activation/visibility observers schedule that guarded path rather than renewing
+presence for retained old content. Source/connection admission remains separate.
+No new host registry, root-wrapper introspection or platform dependency is added.
