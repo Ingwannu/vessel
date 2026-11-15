@@ -286,11 +286,13 @@ base6 broadcast and project-delivery acknowledgment also need their union checks
 Static manifest parsing found a duplicated gpui-windows workspace key in the
 queued f919 source: the host-bridge addition duplicated the base's existing key.
 The current source keeps one entry, and Python tomllib parsed all five native
-workspace/package manifests without invoking Cargo. The older queued job stays
-unchanged under the coordinator rule and cannot establish compilation/tests of
-this repaired union. The new control producer uses the clean dd13 base separately.
-Current source-size checks passed705 files/14 existing exceptions; no allowance
-increased. Direct rustfmt checked all108 Rust files changed from dd13ce37; this
+workspace/package manifests without invoking Cargo. The older job stayed unchanged
+under the coordinator rule, then completed rc1/native-cargo101 at that duplicate
+key before compilation/tests. Logs remain in remote-unit-14. The repaired934ddd439
+union is now submitted as unit15 with --lib --bins to include app binary tests.
+The new control producer uses the clean dd13 base separately.
+Current source-size checks passed708 files/14 existing exceptions; no allowance
+increased. Direct rustfmt checks the Rust files changed from dd13ce37; this
 is formatting evidence only, without a local Cargo/Rustc invocation.
 
 All new cargo/rustc, clippy, tests, whole gates and capture builds run through the
