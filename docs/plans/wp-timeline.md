@@ -1,5 +1,9 @@
 # Conversation stream parity
 
+Current integration boundaries and exact evidence are indexed in
+[the acceptance map](wp-timeline-readiness.md); the sections below retain the
+source survey, implementation rationale and earlier scoped execution history.
+
 Status: A7 source includes announced app base8e `82ca07a7` (mergec0d3cc052).
 Actuale879 pacing/kernel App114 + Kit208 =322 passed/0 failed/2 existing ignored;
 later Markdown helper consumption and this base merge are outside that source.
