@@ -16,9 +16,9 @@ use vessel_app_link::workspace::{Ask, ProjectAsk, WorktreeAsk};
 use vessel_app_view::workspace::command_changes::{Listed, compare_approved};
 use vessel_app_view::workspace::problem::Problem;
 use vessel_proto::workspace::{
-    ApproveCommands, CommandsDigest, DropSnapshot, GetProjectCommands, IfLost, ProjectCommands,
-    ProjectInfo, RemoveWorktree, RemoveWorktreeOutcome, SetupState, Snapshot, SnapshotList,
-    WorktreeInfo, WorktreeList,
+    ApproveCommands, CommandsDigest, DropSnapshot, GetProjectCommands, IfLost, ListWorktrees,
+    ProjectCommands, ProjectInfo, RemoveWorktree, RemoveWorktreeOutcome, SetupState, Snapshot,
+    SnapshotList, WorktreeInfo, WorktreeList,
 };
 use vessel_proto::{ProjectId, WorktreeId};
 

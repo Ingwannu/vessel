@@ -85,7 +85,6 @@ pub(super) fn header(
     cx: &mut Context<'_, Shell>,
 ) -> Stateful<Div> {
     let neutral = tokens.neutral;
-    let labels = shell.words().labels();
     let (text, tone) = headline(shell, start);
     let icon: AnyElement = match tone {
         // Paseo's `LoadingSpinner` at 14 in the foreground.

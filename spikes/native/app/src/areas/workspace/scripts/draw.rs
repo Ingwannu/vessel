@@ -18,7 +18,7 @@ use vessel_proto::ProjectId;
 use vessel_proto::scripts::ScriptKind;
 use vessel_proto::terminals::TerminalInfo;
 
-pub(super) fn render(
+pub(in crate::areas::workspace) fn render(
     shell: &Shell,
     machine: &str,
     project: ProjectId,

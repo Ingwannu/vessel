@@ -18,7 +18,7 @@ use vessel_app_view::workspace::words::AddForm;
 use vessel_proto::ProjectId;
 use vessel_proto::workspace::{AddProject, CloneProject, InitProject, ProjectInfo, ProjectState};
 
-use super::detail;
+use super::detail::{self, Detail};
 use super::widgets::{Tone, badge, banner, divided, empty, row, rows, section, title};
 use crate::shell::Shell;
 
