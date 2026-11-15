@@ -266,3 +266,22 @@ shown and a partial comparison cannot claim the commands are unchanged.
   and no allocator is connected.
 - Still unverified: Windows, actual shells, and negotiated support after
   the integrator assigns the protocol number.
+
+## Runtime package preparation
+
+A14 groups the remaining port runtime into one package with small commits
+and narrow checks; one whole gate follows its finished wiring. Security
+changes retain per-commit review. The direct-helper contract in ADR 0066
+reuses `vessel-proc`, `Root`, the shared text trim and credential removal
+inventory; no shell pipeline, scanner truncation or new dependency. Its
+staged primitive must not be mistaken for a registered product caller.
+The earlier every-start helper and process-spawn health descriptions were
+corrected against the actual cache and first-observation callers. Cache
+lifetime/refresh and health observation must be settled before their wiring.
+A new approval does not implicitly withdraw an earlier digest.
+
+Resume: allocation approval block is committed and its exact-commit root
+gate passed; native full-view integration remains owed. Next implement and
+narrow-check one direct invocation with the path/cleanup/decoder cases in
+the ADR, then the plan owner and health. Auto terminals, archive and editor
+targets remain unimplemented. No new protocol number is assigned.

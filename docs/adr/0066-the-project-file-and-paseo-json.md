@@ -105,8 +105,8 @@ one commit. An earlier approval can become unusable during this staged
 period; no newly parsed command runs. The alternative was one large change
 covering parsing, approval, process startup, ports and health. Small staged
 changes keep each rule reviewable while the unassigned protocol refuses a
-set clients cannot yet fully show. The final encoding and runtime contract
-below are unchanged.
+set clients cannot yet fully show. The final encoding is unchanged. Runtime contracts are refined below
+before their corresponding execution paths are connected.
 
 ### The table
 
@@ -236,8 +236,11 @@ before the digest, so the digest does not depend on the machine). The
 arguments are fixed: the service's name, the place's id, the branch name
 or empty, and the absolute folder. The environment names the same four
 as `VESSEL_SCRIPT_NAME`, `VESSEL_PLACE_ID`, `VESSEL_BRANCH` and
-`VESSEL_WORKTREE`. Ten seconds, and at most 1024 bytes of standard
-output, which must be one integer from 1 to 65535. A port already
+`VESSEL_WORKTREE`. Ten seconds, and at most 1024 bytes in each of standard output and
+standard error, matching the allocator's `execFile` `maxBuffer`. Standard
+output is decoded as UTF-8, trimmed with the shared JavaScript rule, and
+parsed through `ServicePort`; standard error is bounded and discarded,
+never included in diagnostics. A port already
 reserved for another service of this place is a typed error. A port the
 script returns is not checked for being free first (Paseo trusts the
 allocator that far, and a probe would race the bind). A `range` is
@@ -457,20 +460,83 @@ no `VESSEL_WORKTREE_PORT`. Paseo's per-worktree legacy port is not a key
 of `paseo.json`.
 
 What an approval covers for `port_script` is the path, not the bytes at
-that path. The program runs at every service start, including each
-restart, not only when a worktree is created. An agent that can write in
-the tree can replace a relative path's file without changing the digest,
-and the next start runs the new bytes. That is the same hole ADR 0027
-already names for a setup command that runs a repository script
-(`./setup.sh`, `npm ci` running package scripts): the approved text does
-not pin the script it invokes. It differs in when. Setup's command list
-is the parsed text whose digest matched, and for a new worktree that
-text is the blob at the start commit; the script it names is still the
-tree's. `port_script` is itself that path, read again at every start, so
-a change takes effect without a new approval. An absolute path is
-outside the repository; the approval still shows the path and still does
-not cover its content. The cost is stated so it is not a new kind of
-trust, and so it is not hidden.
+that path. Paseo does not invoke it at every start. Its registry
+(`workspace-service-port-registry.ts:55–69,160–217`) initially plans all
+configured services, even services not started yet, and reuses entries by
+name. `worktree-bootstrap.ts:412–453` refreshes only the selected service
+when its existing runtime entry is stopped. A changed declaration on an
+unstarted, already planned name can therefore retain its earlier port.
+The helper primitive below owns one invocation only, not the cache or the
+choice of when to invoke it. Before allocator wiring, its contract must
+state cache identity, refresh and release, including this case. There is
+no allocator or helper caller yet.
+
+Whenever a helper is invoked, its bytes are read then. An agent that can
+write in the tree can replace the program without changing the approved
+path or digest. This is the same trust boundary ADR 0027 states for an
+approved setup command invoking a repository script: approval covers the
+text, not the script's bytes. A worktree invokes its own checkout's copy;
+an absolute program may lie outside the checkout. No content pinning is
+claimed. Existing Vessel supervision (ADR 0031) rechecks its captured
+digest's approval on restart; approving another digest does not withdraw
+the earlier one. Withdrawal is explicit.
+
+#### One direct port-helper invocation
+
+[Decision Log]
+
+- Purpose and intent: execute exactly the approved program with four
+  literal arguments, and accept one bounded TCP-port result. This primitive
+  does not allocate a plan, select a service or authorize execution.
+- Existing assets and constraints: `PortScript` already owns validated
+  relative or foreign absolute text. `Root::existing` supplies checkout
+  containment; `vessel-proc::spawn` supplies piped processes and group/job
+  cleanup. Setup's shell/log pipeline has different limits and semantics;
+  the private listener scanner truncates output and is not an input decoder.
+- Alternatives considered: reuse either capture path, invoke a shell,
+  add a subprocess dependency, or compose the existing process API with a
+  small bounded reader. Choose the last: no new dependency or crate edge,
+  no shell reparse, and overflow/read failures remain typed refusals.
+- Choice: resolve paths on the blocking pool. A relative name, including a
+  bare name, goes through `Root::existing` in the checkout supplied by
+  `ScriptRoot`. An absolute program must match the host grammar and is
+  canonicalized at invocation. Both original and resolved Windows names
+  are checked before spawn: `.cmd`/`.bat` ignoring case and Win32 trailing
+  dots/spaces are refused, as are alternate-stream names. This conservative
+  refusal also applies in verbatim namespaces; it avoids relying on a
+  normalization distinction to keep an interpreter out. Symlink races after
+  this check remain the same-user race documented by `Root` (ADR 0027).
+- Arguments and environment: service name, typed place id (worktree id
+  when present, otherwise project id), branch or empty, and absolute
+  checkout folder. The four `VESSEL_*` names above mirror those values.
+  This place-id mapping is a stated difference: Vessel has no Paseo
+  workspace id. Reuse `TerminalsConfig.removed`, without adding terminal
+  color variables; the binary owns the credential-name inventory. Other
+  inherited user variables and filesystem/network permissions remain those
+  of the node user. The helper is not a sandbox.
+- Failure policy: one named time budget covers path resolution, spawn,
+  both pipe readers and child exit; cancellation before spawn starts no
+  child. Each pipe has one named byte cap; read at most cap plus one byte
+  to distinguish exact-cap EOF from overflow. Drain both concurrently with
+  waiting, close stdin, and require a successful exit before decoding stdout.
+  Timeout, cancellation, pipe failure and overflow drop the child owner,
+  which kills the process group/job. Never log stdout/stderr or retain them
+  in an error. Preserve spawn, join, path, I/O, UTF-8 and numeric causes.
+- Costs and effects: canonicalization can reach a Windows network share
+  with the node user's credentials. Cancelling a blocking resolution
+  cannot abort that OS operation, but its result cannot spawn a child.
+  This is stronger cleanup than Paseo's direct `execFile` timeout; no
+  descendant is intentionally kept. Staged node code stays `cfg(test)`
+  until the approval-checked allocator wiring removes it (A10). Its
+  narrow checks prove the primitive only, not product execution.
+- Required tests: literal metacharacter arguments and four matching env
+  values, root selection with a PATH decoy and different worktree copy,
+  relative symlink escape refusal, foreign grammar refusal, Windows
+  command-script refusal before spawn (including normalized/resolved
+  names), strict UTF-8/JS trim/port decoding, independent pipe caps,
+  exact-cap acceptance, nonzero exit, timeout and cancellation cleanup.
+  Unix fake scripts use the existing executable writer through the test
+  sandbox. Actual Windows execution remains unverified on a Unix host.
 
 What those processes can reach. A terminal opened from the file and a
 `port_script` are processes of the node's user. A relative `port_script`
@@ -553,8 +619,12 @@ worktree and pages `worktree.output`.
 Health. For a service that was given a port, a TCP connect to loopback
 on that port (IPv4 and IPv6, as Paseo's local connect does), not an HTTP
 request. The state is an enum, `pending`, `healthy` or `unhealthy`, not
-a string. It stays `pending` for 5 s after the process has been spawned.
-Then a probe every 3 s, each probe at most 500 ms. Two consecutive
+a string. Paseo's grace starts when the monitor first observes a route, not when
+its process spawned (`script-health-monitor.ts:129–163`); one global
+three-second tick probes only after the five-second grace. Vessel has no
+service proxy route. Before health wiring, its contract must name the
+corresponding observation and reset event rather than claim a spawn clock
+is Paseo's. Each probe lasts at most 500 ms. Two consecutive
 failures make it `unhealthy`; a success makes it `healthy` and clears
 the count. The field sits beside `ServiceState` on the terminal's info,
 because `ServiceState` is the process (starting, running, backing off)
