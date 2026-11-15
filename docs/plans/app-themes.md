@@ -103,11 +103,13 @@ Do not start a second theme type in the app.
   floors in the ADR are the unrounded ratios truncated to two
   decimals, not the rounded table, so the later test can pass on
   Paseo's own bytes.
-- Half-done: slice 2's kit-only palette source and tests are written;
-  narrow compilation and the separate full native gate are pending.
-- Next: finish that slice's checks before changing the preference,
-  app adapter or Appearance chooser. Do not repaint Light or Dark,
-  or add a token the ADR lists as absent.
+- Done: slice 2's kit-only palette source at `c67925e5` passes the full
+  native gate: 1,043 passed, zero failed, one existing ignored capture.
+  V1's implementation disposition and first-use evidence remain pending.
+- Half-done: no preference or app change has started.
+- Next: submit that source and its exact gate evidence to review, then
+  extend the existing theme preference, single app adapter and Appearance
+  chooser. Do not repaint Light or Dark, or add an absent token.
 
 ### Resumption, 2026-11-15
 
@@ -134,7 +136,8 @@ format, size, boundary and token checks, followed by narrow compiling
 checks in the short lane. The full native gate must run on the separate
 build machine when its command is provided; no local whole gate is queued.
 Captures will use an isolated authenticated display at scales 1, 1.25, 1.5
-and 2. No capture, runtime switch or new palette pass is claimed yet.
+and 2. No capture or runtime switch is claimed. The completed source gate
+is recorded below separately from those pending checks.
 
 The independent authored-byte calculation also caught one inherited floor
 wording error: Pure black's white-on-destructive is 4.745176456907, the
@@ -174,6 +177,43 @@ pairing each actual/expected colour directly instead of repeating two
 parallel arrays. An independent comparison confirms the same 23 pairs
 in the same order; no expectation or product code changes. The first
 remote gate, still queued before any step, was cancelled for this correction
-and is not a pass. The corrected test source needs its own narrow check
-and full native gate. Captures and runtime remain unverified. This is not
-a consumer-ready or full-slice approval.
+and is not a pass. The corrected test source then passed its own narrow
+and full native checks as recorded below. Captures and runtime remain
+unverified; there is no consumer-ready or full-feature approval.
+
+### Palette gate, 2026-11-15
+
+Source commits: `bf9b6ab8` (palette producer), `c67925e5` (same test pairs,
+within the function budget). The exact full-gate commit is
+`c67925e544734e3aeeaa9d0ffc858ce756908d22`.
+
+Narrow run `themes-narrow-20261115T023047Z-c67925e5` passed both selected
+steps: font inputs and all-target Clippy. The full native run
+`themes-20261115T023316Z-c67925e5` then passed every planned step, with
+no skip counted as a pass:
+
+| Step | Exit | Seconds |
+| --- | --- | --- |
+| native-fonts | 0 | 9 |
+| native-fmt | 0 | 2 |
+| native-quality | 0 | 1 |
+| native-clippy | 0 | 49 |
+| native-build | 0 | 72 |
+| native-test | 0 | 54 |
+
+The whole test total is 1,043 passed, zero failed, one ignored. The ignored
+case is the pre-existing `pairing_browser_words_capture`, which requires
+a private display, configuration and fake-fleet offer; it was not executed.
+All four new palette tests passed in this final source. The changed kit
+and app were actually compiled. All twelve font/licence input files match
+the local inputs by SHA-256. The root crates and web application were not
+changed and no root gate is claimed.
+
+The run's `steps.log`, `steps.tsv`, individual logs and their hashes are
+retained with its run id. The first cancelled run and earlier narrow lint
+failure remain separate evidence. V1 review remains pending. There is no
+capture folder yet: this producer is not applied by the app, and neither
+new-theme selection, same-scheme redraw, persistence, System following nor
+fractional-scale artwork is certified by this gate. Those are the next
+consumer slice's checks. No fleet, display, permission or ownership change,
+push or release was performed for this producer.
