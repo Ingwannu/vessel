@@ -283,3 +283,60 @@ async fn active_question_answers_steer_the_captured_turn_without_starting_anothe
     );
     fixture.stop().await;
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_lost_provider_answer_ack_stays_uncertain_after_the_process_ends() {
+    let fixture = Fixture::new().await;
+    let id = create(&fixture).await;
+    let question = offered(&fixture, id, "async-noack").await;
+    let request = RespondQuestion {
+        session: id,
+        question: question.id,
+        answer: answer(&question),
+    };
+    let reply = fixture
+        .sessions
+        .respond_question(request.clone())
+        .await
+        .unwrap();
+    assert!(
+        matches!(reply, RespondQuestionReply::OutcomeUnknown { .. }),
+        "{reply:?}"
+    );
+    fixture.settle().await;
+    let retained = fixture.store.pending_questions(id).await.unwrap();
+    assert_eq!(retained.len(), 1);
+    assert_eq!(
+        retained[0].delivery_state,
+        vessel_proto::timeline::QuestionDeliveryState::OutcomeUnknown
+    );
+    assert!(matches!(
+        fixture.sessions.respond_question(request).await.unwrap(),
+        RespondQuestionReply::OutcomeUnknown { .. }
+    ));
+    let records = fixture
+        .sessions
+        .read(id, EventSeq::ZERO, 128)
+        .await
+        .unwrap()
+        .records;
+    assert_eq!(
+        records
+            .iter()
+            .filter(|record| matches!(
+                record.event,
+                SessionEvent::Agent {
+                    event: AgentEvent::TurnStarted { .. }
+                }
+            ))
+            .count(),
+        1
+    );
+    assert!(!records.iter().any(|record| matches!(
+        record.event,
+        SessionEvent::Agent {
+            event: AgentEvent::QuestionResolved { .. }
+        }
+    )));
+    fixture.stop().await;
+}

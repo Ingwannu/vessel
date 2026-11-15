@@ -1,5 +1,8 @@
 //! Deterministic scenarios; every provider process here is a private test fake.
-use super::*;
+use super::{
+    Arc, AtomicBool, Exit, Server, Streaming, Value, Waiting, command, first_text, in_progress,
+    json,
+};
 impl Server {
     pub(super) fn turn(&mut self, id: &Value, params: &Value) -> Result<(), Exit> {
         self.turns = self.turns.saturating_add(1);
@@ -58,7 +61,7 @@ impl Server {
             "approve" | "resolved" | "edit" | "permit" | "ask" | "secret" | "form" | "policy" => {
                 self.asking(&scenario, &turn)
             }
-            "async-question" | "async-wait" | "async-duplicate" => {
+            "async-question" | "async-wait" | "async-duplicate" | "async-noack" => {
                 self.async_question(&turn, &scenario)
             }
             "wait" => {
@@ -103,7 +106,7 @@ impl Server {
                 &json!({"threadId":self.thread(),"turnId":turn,"item":item}),
             )?;
         }
-        if scenario == "async-wait" {
+        if matches!(scenario, "async-wait" | "async-noack") {
             self.waiting = Some(Waiting::Interrupt {
                 turn: turn.to_owned(),
             });

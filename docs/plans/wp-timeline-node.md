@@ -304,3 +304,19 @@ canonical echo count, durable question resolution and the exclusive conversation
 watermark. These tests are added, not yet passing evidence. Plan action capabilities
 and opaque provider outputs must continue to be reported according to actual
 native support; no text label grants a permission or substitutes a selected id.
+
+### Shared question whitespace
+
+[Decision Log]
+- Purpose: question acceptance and native/CLI presentation must agree with Paseo's
+  `String.trim()`, including FEFF as blank and NEL (0085) as content.
+- Existing asset: `workspace::trim_project_text` already implemented these
+  semantics for project inputs. Rust's general `str::trim` has a different set.
+- Choice: extract the shared primitive as `vessel_proto::trim_ecmascript`, keep
+  the project API as a facade, and use it for generic question validation and
+  provider answer formatting. No provider-name parsing or new dependency.
+- Why: one explicit TC39 whitespace set prevents native/node/CLI disagreement;
+  all specified characters, excluded Unicode characters and interior preservation
+  have regression fixtures. This is text normalization only, with no wire change.
+- Primary specification: [TC39 TrimString](https://tc39.es/ecma262/multipage/text-processing.html#sec-trimstring)
+  and [WhiteSpace / LineTerminator](https://tc39.es/ecma262/multipage/ecmascript-language-lexical-grammar.html#sec-white-space).

@@ -96,12 +96,11 @@ pub(super) fn custom_satisfies(
     let Some(name) = &shown.custom_answer else {
         return false;
     };
-    matches!(values.get(name), Some(AnswerValue::Text(text)) if !text.trim().is_empty() || shown.empty == EmptyAnswerPolicy::AllowEmpty)
+    matches!(values.get(name), Some(AnswerValue::Text(text)) if !crate::trim_ecmascript(text).is_empty() || shown.empty == EmptyAnswerPolicy::AllowEmpty)
 }
 
 pub(super) fn text_is_allowed(field: &QuestionField, text: &str) -> bool {
-    field
-        .presentation
-        .as_ref()
-        .is_none_or(|shown| shown.empty == EmptyAnswerPolicy::AllowEmpty || !text.trim().is_empty())
+    field.presentation.as_ref().is_none_or(|shown| {
+        shown.empty == EmptyAnswerPolicy::AllowEmpty || !crate::trim_ecmascript(text).is_empty()
+    })
 }

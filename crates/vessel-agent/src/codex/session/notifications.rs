@@ -345,7 +345,6 @@ impl Session {
 
     /// Publish a question held, after the one it displaced.
     pub(super) async fn question(&mut self, (question, displaced): asks::Opened) {
-        asked.tool_scope = tool_scope;
         if let Some((oldest, settled)) = displaced {
             self.settle(&settled).await;
             self.emit(AgentEvent::QuestionResolved {

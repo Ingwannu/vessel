@@ -5,9 +5,7 @@
 /// JavaScript trims BOM and line/paragraph separators, but retains NEL.
 #[must_use]
 pub fn trim_project_text(text: &str) -> &str {
-    text.trim_matches(|character: char| {
-        (character.is_whitespace() && character != '\u{0085}') || character == '\u{feff}'
-    })
+    crate::trim_ecmascript(text)
 }
 
 #[cfg(test)]

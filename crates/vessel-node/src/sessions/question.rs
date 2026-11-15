@@ -23,9 +23,26 @@ impl Sessions {
             mut durability,
         } = self.find(request.session).await?
         else {
-            return Ok(RespondQuestionReply::Refused {
-                question,
-                reason: QuestionResponseRefusal::Unavailable,
+            let retained = self
+                .store
+                .pending_questions(request.session)
+                .await?
+                .into_iter()
+                .find(|pending| pending.id == question);
+            return Ok(match retained.map(|question| question.delivery_state) {
+                Some(vessel_proto::timeline::QuestionDeliveryState::Answering) => {
+                    RespondQuestionReply::Answering { question }
+                }
+                Some(vessel_proto::timeline::QuestionDeliveryState::OutcomeUnknown) => {
+                    RespondQuestionReply::OutcomeUnknown { question }
+                }
+                Some(vessel_proto::timeline::QuestionDeliveryState::Pending) => {
+                    RespondQuestionReply::Refused {
+                        question,
+                        reason: QuestionResponseRefusal::Unavailable,
+                    }
+                }
+                None => RespondQuestionReply::Vanished { question },
             });
         };
         let from = handle.info().next_seq;

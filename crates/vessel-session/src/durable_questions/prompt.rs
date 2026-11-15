@@ -25,7 +25,7 @@ pub(super) fn answer_prompt(question: &Question, answer: &QuestionAnswer) -> Opt
             .and_then(|name| values.get(name))
             .and_then(|value| {
                 if let AnswerValue::Text(text) = value {
-                    Some(text.trim())
+                    Some(vessel_proto::trim_ecmascript(text))
                 } else {
                     None
                 }
@@ -34,7 +34,9 @@ pub(super) fn answer_prompt(question: &Question, answer: &QuestionAnswer) -> Opt
         let selected = values
             .get(&field.name)
             .map(|value| match value {
-                AnswerValue::Text(text) | AnswerValue::Choice(text) => text.trim().to_owned(),
+                AnswerValue::Text(text) | AnswerValue::Choice(text) => {
+                    vessel_proto::trim_ecmascript(text).to_owned()
+                }
                 AnswerValue::Choices(choices) => choices.join(", "),
                 AnswerValue::Number(number) => number.get().to_string(),
                 AnswerValue::Integer(number) => number.to_string(),

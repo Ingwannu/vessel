@@ -49,7 +49,7 @@ impl Fixture {
             .unwrap()
             .store;
         let codex = Fake::CodexAppServer.path().unwrap();
-        drop(install(bin.path(), HarnessKind::Codex, Role::Structured, &codex).unwrap());
+        drop(install(bin.path(), HarnessKind::Codex, Role::Terminal, &codex).unwrap());
         let runtime = Arc::new(
             SessionRuntime::new(
                 RuntimeConfig {
@@ -67,6 +67,10 @@ impl Fixture {
                 store.clone(),
             ))),
         );
+        runtime.set_drivers(vessel_proto::settings::AgentDrivers {
+            codex: vessel_proto::settings::AgentDriver::Direct,
+            ..vessel_proto::settings::AgentDrivers::default()
+        });
         let tasks = TaskTracker::new();
         let sessions = Arc::new(Sessions::new(
             Arc::clone(&runtime),

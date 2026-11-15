@@ -211,6 +211,10 @@ impl Server {
                 match &self.waiting {
                     Some(Waiting::Interrupt { turn }) if *turn == expected => {
                         let turn = turn.clone();
+                        if first_text(&self.last_turn).starts_with("async-noack") {
+                            self.message(&turn, "lost-ack", "answer reached provider", false)?;
+                            return Err(Exit::Now);
+                        }
                         self.send(&json!({"id": id, "result": {"turnId": turn}}))?;
                         let said = format!("steered: {}", first_text(params));
                         self.message(&turn, &format!("steer-{}", self.turns), &said, true)

@@ -57,7 +57,9 @@ pub mod settings;
 pub mod side_questions;
 mod terminal;
 pub mod terminals;
+mod text;
 pub mod timeline;
+pub use text::trim_ecmascript;
 mod title;
 mod transfer;
 #[cfg(feature = "ts")]

@@ -258,7 +258,7 @@ fn custom_values(
     let AnswerValue::Text(text) = custom else {
         return selected;
     };
-    if text.trim().is_empty()
+    if vessel_proto::trim_ecmascript(text).is_empty()
         && field.presentation.as_ref().is_none_or(|shown| {
             shown.empty != vessel_proto::timeline::EmptyAnswerPolicy::AllowEmpty
         })
@@ -271,6 +271,6 @@ fn custom_values(
     ) {
         selected.clear();
     }
-    selected.push(text.trim().to_owned());
+    selected.push(vessel_proto::trim_ecmascript(text).to_owned());
     selected
 }
