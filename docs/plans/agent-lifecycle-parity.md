@@ -837,3 +837,13 @@ listing refusal before creating their target directories. Reopening checks
 that the effective classification and original omission/override stay durable.
 The existing label import test and all its assertions and deadlines are kept
 unchanged; this separate case covers the additional discovery boundary.
+
+### Legacy run preparation preflight
+
+The existing run path now calls the reviewed SDK checker immediately after
+connecting and before resolving or creating its workspace placement. It checks
+the parsed creation specification through the same typed CreateSession call;
+the eventual send still checks again. No new option, parser or discovery
+consumer is introduced here. The separate CLI consumer must prove its new
+metadata flags cannot create a worktree before a pending/older refusal. That
+end-user path is not claimed by the raw SDK regression alone.
