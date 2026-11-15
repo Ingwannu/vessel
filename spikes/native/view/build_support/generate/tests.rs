@@ -190,13 +190,13 @@ fn fixture(count: usize, layout: CatalogLayout) -> String {
     output
 }
 
-const PREFIX_CONTROL: &str = r#"
+const PREFIX_CONTROL: &str = r"
 struct Root { child_0: u8, child_1: u8, child_2: u8 }
 fn main() {
     let root = Root { child_0: 1, child_1: 2, child_2: 3 };
     assert_eq!((root.child_0, root.child_1, root.child_2), (1, 2, 3));
 }
-"#;
+";
 
 const SHIM: &str = r#"
 use std::cell::Cell;

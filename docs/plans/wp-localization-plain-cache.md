@@ -131,3 +131,10 @@ value, pointer, one-resolution and first-error assertions remain unchanged.
 The obsolete queued `afa790f4` check was verified queued and cancelled before
 taking a slot (143), with its records retained. Exact corrected validation and
 V4 review are owed; the prior 1465/0/2 result is not borrowed as new evidence.
+
+Coordinator-approved narrowing replaced the queued broad54b check with
+sequential View-only strict/test checks, without priority. The first strict
+run `i18n-narrow-20261115T175914Z-54b728e7` compiled View and found one
+unnecessary raw-string delimiter in the new bad-prefix control. Only that
+delimiter is corrected; the fixture text is unchanged. View tests did not
+run after this strict failure. Corrected strict/test evidence remains owed.
