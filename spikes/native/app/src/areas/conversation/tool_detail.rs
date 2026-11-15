@@ -168,10 +168,7 @@ pub(super) fn borrowed_body(
         return div().child(super::tool_sheet::empty_at(
             paint,
             child_id(id, "loading"),
-            match state {
-                DetailContentState::Loading => true,
-                DetailContentState::Ready => false,
-            },
+            matches!(state, DetailContentState::Loading),
         ));
     }
     div()
