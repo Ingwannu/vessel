@@ -3,14 +3,16 @@ union checks, full source review and owning whole gate. The next section is the
 integrated values-only carrier's preserved scope; the worker runtime continuation
 below it is separate and has not been adopted by that source verdict.
 
-Current source: canonical93970acb merged830d89e4; the worker claims append is
-schema22 after listing21. Five attention methods remain None. Current830 strict,
-5-library and rollback integration checks are in progress; earlier4ad strict and
-b028955+42 tests remain exact prior-source evidence. The later docs correction
-clarifies server error recipient admission versus native OS error suppression;
-no node runtime rule changed. Workspace marks are design-only pending canonical
-membership, workspace-relative roles and lifecycle-owned updatedAt. Historical
-checkpoints below do not grant current whole, assigned-wire or A5 approval.
+Current source: canonical275024369 mergedde524128; the worker claims append
+remains22 after listing21, and its five pending rows follow skills.import_selection.
+Prior830 on939 passed five-crate all-target strict, actual vesseld build,980
+library tests and42 rollback tests. Current275 strict, three-library consumer
+tests and remote TypeScript generation are queued; no current whole is inferred.
+The docs correction separates server error recipient admission from native OS
+error suppression, without changing node runtime eligibility. Workspace marks
+remain design-only pending canonical membership, workspace-relative roles and
+lifecycle-owned updatedAt. Historical checkpoints below do not grant current
+whole, assigned-wire or A5 approval.
 
 # A5: existing node inbox and push boundary
 
