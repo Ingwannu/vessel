@@ -635,3 +635,14 @@ Resume point: align the existing native typed-ticket/completion seam when its
 owner supplies the concrete type, and hand off the actual client method and
 gated hash only after canonical metadata and real wiring exist. This note
 changes no producer, field, method, protocol number or native source.
+
+
+The native owner reports the current seam as
+`app/src/areas/settings/diagnostics.rs`: state contains a local text report
+and dialog state, populated synchronously by
+`view::diagnostics::report(AppFacts, &fleet.machines)`. There is no remote
+request ticket or loaded-event seam yet. The existing local report remains
+local. At actual API handoff, the native owner plans to adapt the existing
+link ticket/admitted-identity mechanism with connection/request generations
+and node-id checks, rather than add a second transport. This is a reported
+integration boundary and future plan, not verified native runtime behavior.
