@@ -14,8 +14,9 @@ struct Stored {
     metadata: Option<MetadataSettings>,
 }
 
-pub(super) fn decode(bytes: &[u8]) -> Result<SetNodeSettings, serde_json::Error> {
-    let stored: Stored = serde_json::from_slice(bytes)?;
+pub(super) fn decode(bytes: &[u8]) -> Result<SetNodeSettings, super::SettingsDecodeFailure> {
+    // Keep the file-only view inside the common sealed diagnostic boundary.
+    let stored: Stored = super::decode::settings(bytes)?;
     let mut known = stored.known;
     known.metadata = stored.metadata;
     Ok(known)
@@ -56,5 +57,34 @@ mod tests {
         ] {
             assert!(decode(raw).is_err());
         }
+    }
+}
+
+#[cfg(test)]
+mod diagnostic_tests {
+    use super::*;
+    use std::error::Error as _;
+
+    #[test]
+    fn metadata_file_refusals_use_the_shared_sealed_diagnostic() {
+        let home = tempfile::tempdir().unwrap();
+        let dir = crate::DataDir::new(home.path());
+        let marker = "synthetic-private-metadata-marker";
+        let bytes = serde_json::to_vec(&serde_json::json!({
+            "metadata": {"providers": marker}
+        }))
+        .unwrap();
+        // This wrong string is quoted by serde itself: exercising the adapter
+        // through the shared boundary must seal that very cause.
+        let Err(raw) = serde_json::from_slice::<Stored>(&bytes) else {
+            panic!("wrong metadata value parsed");
+        };
+        assert!(raw.to_string().contains(marker));
+        std::fs::write(dir.settings_path(), bytes).unwrap();
+        let error = dir.read_settings().unwrap_err();
+        assert!(!format!("{error} {error:?}").contains(marker));
+        let cause = error.source().unwrap();
+        assert!(!format!("{cause} {cause:?}").contains(marker));
+        assert!(cause.source().is_none());
     }
 }

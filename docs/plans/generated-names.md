@@ -202,6 +202,17 @@ that already uses `..` is left alone.
   and other platforms remain unverified. Branch, commit-message and pull-request
   generation are later slices and have not started.
 
+The checked protocol-24/schema-20 node head is now composed for that consumer
+review. Its sealed decoder and cancellation-safe writer remain the owners.
+The metadata file view delegates to the generic sealed decoder; the non-Copy
+metadata proposal is cloned for writing and borrowed for projection while the
+head's owned guard and writer token keep their original ordering. The original
+writer cases are retained byte for byte, with metadata cancellation, preservation,
+shutdown and diagnostic cases added. These composition cases and the merged
+tree have not yet been executed. The earlier 57-test correction result does not
+prove this union. The approved hard-drain accessor moved unchanged to a focused
+Sessions child module so the head's main file stays within its existing budget.
+
 The physical-lifetime correction reuses Sessions' existing hard-drained task
 tracker through the approved `metadata_work` token accessor. Forwarders'
 bounded grace cannot settle file work. A shared admission lease goes into the

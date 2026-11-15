@@ -14,8 +14,10 @@ use vessel_store::{DataDir, StartLock};
 
 use super::{AttachError, READY, connect};
 
-/// How long a starting node may take before the proxy gives up.
-const START_TIMEOUT: Duration = Duration::from_secs(30);
+/// How long a starting node may take before the proxy gives up. A client
+/// whose handshake goes through `attach` gives it this long on top of its
+/// ordinary handshake (vessel-remote's SSH connector does).
+pub const START_TIMEOUT: Duration = Duration::from_secs(30);
 /// Most bytes of other output (a login shell's banner) read while waiting
 /// for the readiness line.
 const START_OUTPUT_LIMIT: u64 = 64 * 1024;

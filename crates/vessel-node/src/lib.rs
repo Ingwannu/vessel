@@ -69,6 +69,7 @@ mod catalogue;
 pub mod cleanup;
 mod config;
 mod devices;
+mod diagnostics;
 mod envelope;
 mod error;
 pub mod fleet;
@@ -121,10 +122,27 @@ pub use lsp_config::{LspConfigError, load_lsp_config};
 pub use models::ModelsError;
 pub use node::Node;
 pub use profiles::ProfilesFileError;
-pub use shutdown::signal;
+pub use shutdown::{StopSignals, signal};
 pub use terminals::{KNOWN_CREDENTIALS, Shell, TerminalsConfig, credentials_in};
 // The store types named by `Config`'s public fields, so callers can build
 // a `Config` without depending on `vessel-store` themselves.
 pub use vessel_store::{ByteCount, DataDir, NodeToken, Retention, StoreConfig, StoreError};
 /// Local lifecycle commands share the node's persistent lock rather than a PID file.
 pub use vessel_store::{KernelLock, KernelProbe, NodeLock};
+
+// The first speech consumer removes staging after its product wiring.
+#[cfg(test)]
+mod speech_audio;
+
+// Every connection's context carries one (`service::Connection::life`).
+// A temporary A10 exception: nothing reads it outside tests until its
+// consumers, workspace D2 Preview and W14, land. The first of them removes
+// this expectation and the one on the accessor.
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "A10 exception until D2 Preview or W14 reads the owner and close observer"
+    )
+)]
+mod connection_life;

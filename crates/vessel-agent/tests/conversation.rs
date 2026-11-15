@@ -28,6 +28,7 @@ mod support {
             handshake_timeout: vessel_agent::DEFAULT_HANDSHAKE_TIMEOUT,
             questions: false,
             fork: None,
+            system_prompt: None,
             private_dir: None,
         }
     }

@@ -22,6 +22,8 @@
 //! is never listed without being findable, and never found as a stored
 //! (ended) session while it runs.
 
+mod subagents;
+
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, PoisonError, RwLock};
@@ -113,11 +115,6 @@ impl Sessions {
             claims: again::Claims::default(),
             ended: tokio::sync::broadcast::Sender::new(ENDED),
         }
-    }
-
-    /// Title work uses the node's hard drain, not the forwarders' grace.
-    pub(crate) fn metadata_work(&self) -> tokio_util::task::task_tracker::TaskTrackerToken {
-        self.tasks.token()
     }
 
     /// The ends of sessions from now on (see the field).
@@ -495,6 +492,7 @@ impl Sessions {
 pub(crate) mod again;
 mod conversation;
 mod marks;
+mod metadata;
 mod read;
 mod side_questions;
 

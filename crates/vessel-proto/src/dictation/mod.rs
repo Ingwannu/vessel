@@ -21,6 +21,8 @@ mod settings_values;
 
 pub use local_model::{LocalModelId, UnknownLocalModelId};
 pub use patch::DictationChange;
+/// Speech settings share omission/null decoding without duplicating its visitor.
+pub(crate) use patch::present as deserialize_change;
 pub use secret_ref::{RedactedNameError, SecretReference};
 pub use settings::{
     DictationProvider, DictationSettings, DictationSwitch, KeyPresence, SetDictation,
@@ -93,6 +95,15 @@ serde_via_text!(DictationId);
 pub struct SampleRate(u32);
 
 impl SampleRate {
+    /// The mono PCM rate required by the shared OpenAI-compatible STT encoder.
+    pub const TRANSCRIPTION: Self = Self(24_000);
+
+    /// Let codec fixtures derive the same lower bound as the validator.
+    pub const MIN: Self = Self(MIN_RATE);
+
+    /// Let codec fixtures derive the same upper bound as the validator.
+    pub const MAX: Self = Self(MAX_RATE);
+
     /// Validate before any stream or provider is opened.
     ///
     /// # Errors

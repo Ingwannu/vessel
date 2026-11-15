@@ -30,6 +30,10 @@
 //!   person repairs the file, which leaves a node whose file was damaged
 //!   unable to change any setting from the app.
 
+mod decode;
+
+pub use decode::SettingsDecodeFailure;
+
 use std::io;
 use std::path::PathBuf;
 
@@ -70,9 +74,9 @@ pub enum SettingsFileError {
     Parse {
         /// The file.
         path: PathBuf,
-        /// What did not parse.
+        /// Safe metadata; the original serde cause stays private inside it.
         #[source]
-        source: serde_json::Error,
+        source: SettingsDecodeFailure,
     },
 }
 
