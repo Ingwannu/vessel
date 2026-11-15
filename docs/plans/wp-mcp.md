@@ -348,7 +348,7 @@ was assigned after the initial node-only phase and requires its own gate/capture
 | c7f0c5df1 | Strict stopped on a module-doc backtick lint; fixed 3ded; functional suite stopped after 91 passed/1 failed/1 ignored at the new default-notification fixture | strict-c7f0, functional-c7f0 |
 | 24fd5a5a5 | TS freshness passed: generator tests 4/0, wire diff 0 | ts-24fd5 |
 | 3ded9d636 | Strict stopped on two redundant Ack qualifications in the RPC test mock; fixed without assertion changes | strict-3ded |
-| c17b45819 | Corrected functional suite queued with no-fail-fast, not passed | functional-c17b |
+| c17b45819 | Interrupted by external signal143; completed node lib263/0, fleet lib32/0 + fleet integration32/0; two MCP fixture failures retained; full suite incomplete | functional-c17b |
 
 The alias registry brands node-minted PromptReceiptId; SkillName and
 StoredTool remain plain names validated at the Rust boundary. Generated TS was applied from the verified remote artifact after confirming
@@ -393,3 +393,14 @@ PASS. The coordinator confirmed native Skills settings (tracker row 594) belongs
 to W18 in a separate app tree; W15 owns its onboarding consumer only. App
 implementation and gates are required before package completion. A node-only
 check is not native UI evidence.
+
+The interrupted c17 run also contains actual failures before cancellation:
+the notification fixture used the private node data directory as cwd (correct
+Forbidden), and its permission fixture observed two legitimate requests after
+a default notice made the parent fake request permission. The notification
+fixture now uses a separate temporary placement. The permission-lifecycle
+fixture explicitly opts out of notices, preserving its exact one-request and
+empty-after-answer assertions; the separate default-notification test keeps
+coverage of notify defaults. Neither actual failure is dismissed as a signal
+error. New admission/cancellation/restart node unit fixtures completed in the
+263/0 node target, but incomplete e2e/proto/store targets are not claimed.

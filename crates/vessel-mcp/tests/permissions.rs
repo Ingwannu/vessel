@@ -13,7 +13,9 @@ async fn answered_permissions_disappear_without_erasing_their_log() {
         let fixture = Fixture::start().await;
         let owner = owner(&fixture).await;
         let (mut mcp, task, own) = as_agent(&owner).await;
-        let (failed, created) = mcp.call("create_session", json!({"harness":"claude","cwd":std::env::temp_dir(),"prompt":"permit plan"})).await;
+        // This test isolates permission lifecycle; default notices have their
+        // own integration test and would make the parent fake ask permission too.
+        let (failed, created) = mcp.call("create_session", json!({"harness":"claude","cwd":std::env::temp_dir(),"prompt":"permit plan","notify":false})).await;
         assert!(!failed, "{created}");
         let session = created["session"]["id"].clone();
         let (failed, waiting) = mcp.call("wait_turn", json!({"session":session,"from":created["from"]})).await;

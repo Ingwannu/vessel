@@ -52,6 +52,8 @@ async fn completion(stream: &mut SessionStream, child: SessionId, reply: &str) {
 async fn default_create_and_send_notify_the_calling_agent_without_wait_tools() {
     within(async {
         let fixture = Fixture::start().await;
+        // A session may not use the node's private data directory as cwd.
+        let placement = tempfile::tempdir().unwrap();
         let owner = owner(&fixture).await;
         let (mut mcp, server, own) = as_agent(&owner).await;
         let from = owner.session(own).await.unwrap().next_seq;
@@ -60,7 +62,7 @@ async fn default_create_and_send_notify_the_calling_agent_without_wait_tools() {
             "create with default notify",
             mcp.call(
                 "create_session",
-                json!({"harness":"claude","cwd":fixture.data.path(),"prompt":"plain"}),
+                json!({"harness":"claude","cwd":placement.path(),"prompt":"plain"}),
             ),
         )
         .await;
@@ -79,7 +81,7 @@ async fn default_create_and_send_notify_the_calling_agent_without_wait_tools() {
         )
         .await;
         assert!(!failed, "{sent}");
-        let expected = format!("cwd {}", fixture.data.path().display());
+        let expected = format!("cwd {}", placement.path().display());
         step(
             "second completion notice",
             completion(&mut parent, child, &expected),
