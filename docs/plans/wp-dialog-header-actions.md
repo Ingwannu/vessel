@@ -46,3 +46,10 @@ No App/Link/manifests/lock/root delta, native-build/export, OS capture, IME/a11y
 actual W5 consumer or full E3/package approval is claimed. Historical native
 Linux focused-field F5 remains open. Caller-owned stale-action authority and the
 existing G4 actual-close ACK are still separate obligations.
+
+V1 row249 passed bounded SOURCE/requested selected NARROW on exactdd7ef7ec plus
+docs-only465705edd. The review independently checked five source pins, executed
+commit/spec/checkout/log hashes and all three added cases. Its fixtures are dark,
+headless desktop and compact windows; this does not prove both-theme visuals,
+native Linux focused-field F5, consumer authority or OS/IME/accessibility behavior.
+The lead may merge only this selected producer and preserve newer kit unions.
