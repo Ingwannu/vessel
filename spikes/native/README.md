@@ -1241,6 +1241,13 @@ code remains staged.
 Voice glyph source/notices live in kit/src/assets/voice/; their existing outline
 Stop counterpart is unchanged.
 
+Test-only `areas::voice` composes the shared meter and reviewed Circle button,
+with typed Fluent EN/KO accessible names and state-derived switching/mute.
+It has no Shell entry point or node command. `view::voice::Cue` supplies only
+one-shot timing actions for the existing phase/generation; generated cue PCM
+and real duplex rendering are still owed. No live preview or product voice
+capability is enabled by these fake-driven surfaces.
+
 Settings Overview keeps its page and book-edit commands in
 `app/src/areas/settings/overview.rs`; `overview/dialogs.rs` only renders
 rename/removal dialogs and delegates actions to that parent. The browser
