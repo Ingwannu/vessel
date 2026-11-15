@@ -1414,3 +1414,25 @@ scoped host/root/image authority and final UI acceptance remain separate.
   must use the canonical ResidentToken (registry/address/epoch) structurally,
   never a guess from the latest Fleet. This patch is not that live cutover. Its new source-switch
   regression is not covered by the earlier e879322-pass run; execution is owed.
+
+### Versioned diff truncation metadata
+
+[Decision Log — 수정 사용]
+- Purpose: the existing output cache built line changes only on version changes,
+  but computed_diff then invoked diff_lines again on every draw to decide whether
+  to show its truncation caption. Borrowing line text avoids string copies, not
+  the edit-script calculation/allocation itself.
+- Existing assets: annotated_lines_box already owns the sole cached lines, ranges,
+  scroll and copy model and synchronously calls its factory only on admission or
+  version change. A new output control or second diff cache is unnecessary.
+- Choice: one mounted keyed metadata cell retains only the cut bit under a
+  structural child of the SAME output id. The existing factory computes and
+  stores it while creating the existing lines; warm draws read the bit directly.
+- Why: no repeated Myers work, copied transcript or public Kit API change. Both
+  states have the same mounted lifetime; a new version updates lines and bit in
+  the same synchronous call before the caption is drawn.
+- Effects: canonical and legacy computed diffs share the same kernel correction.
+  A headless GPUI fixture forces repeated real renders, checks one factory call
+  for each of three versions, and retains true across warm truncated renders
+  before returning to false after shrink. This is a work-count test, not a
+  wall-clock/latency claim; its execution is still owed.
