@@ -14,7 +14,10 @@ use crate::support::{Fixture, within};
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn devices_are_listed_and_pairing_makes_a_link_for_this_node() {
     within(async {
-        let fixture = Fixture::start().await;
+        let fixture = Fixture::start_with(|config, _| {
+            config.public = vec!["ws://127.0.0.1:1".parse().unwrap()];
+        })
+        .await;
         let listed = fixture.vessel(&["node", "devices"], &[]).await;
         assert!(listed.ok, "{}", listed.stderr);
         assert!(
@@ -168,4 +171,19 @@ async fn a_device_pairs_from_a_piped_link_and_runs_through_the_relay() {
         serving.await.unwrap().unwrap();
     })
     .await;
+}
+
+/// The CLI never prints a link or QR after the node refuses its route.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn pairing_without_an_advertised_route_prints_setup_guidance_only() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let paired = fixture.vessel(&["node", "pair"], &[]).await;
+        assert!(!paired.ok);
+        assert!(paired.stdout.is_empty());
+        assert_eq!(paired.stderr, "error: the node returned an error: Conflict: this node has no pairing route; configure --public with a reachable address or --relay, then create a new invitation\n");
+        let devices = fixture.owner().await.devices().await.unwrap();
+        assert!(devices.is_empty());
+        fixture.stop().await;
+    }).await;
 }

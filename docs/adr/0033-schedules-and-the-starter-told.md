@@ -236,7 +236,11 @@ Where track D met the node join (pull requests, terminals) and track G
   person's archive does; a session that started but got no prompt is put
   away at once. A run is the definer's own `session.create` and prompt,
   so it opens no terminal, merge or approval they could not get
-  directly; no run makes a worktree or runs setup or a script.
+  directly; no run makes a worktree or runs setup or a script. A
+  follower sees the run `Finished`, and the session's final status,
+  before the archive mark is stored (the archive ends the session first,
+  so "archived" always implies "ended"); it must not read `archived_at`
+  at either, but wait for the mark (2026-11-14, the e2e test that did).
 - **An agent's schedules** (decision 4). A make that waited while the
   agent's session ended is refused; ends the scheduler fell behind on are
   made up by checking every agent's schedule against its agent; a

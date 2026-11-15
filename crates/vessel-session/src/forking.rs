@@ -22,7 +22,7 @@
 //!   reads the id from the record (the store's projection, the info).
 
 use tokio::sync::oneshot;
-use vessel_agent::{Disconnect, ForkFrom};
+use vessel_agent::{AgentError, Disconnect, ForkFrom, LaunchRefusal};
 use vessel_proto::{EventSeq, SessionEvent, TurnPoint};
 
 use crate::error::{RewindRefusal, SessionError};
@@ -177,17 +177,61 @@ impl StructuredActor {
                         return Err(SessionError::RewindFailed(message));
                     }
                 }
-                Err(match failure {
-                    Restart::Handshake(Disconnect::Handshake {
-                        fork_refused: Some(refusal),
-                        ..
-                    }) => SessionError::ForkRefused(refusal),
-                    other @ (Restart::Spawn(_)
-                    | Restart::Handshake(_)
-                    | Restart::Exited(_)
-                    | Restart::Woken(_)) => SessionError::RewindFailed(other.to_string()),
-                })
+                Err(rewind_failed(failure))
             }
         }
+    }
+}
+
+/// A rewind whose fork did not start, as the session answers it. A fork
+/// the agent cannot make is the same answer whether its adapter refused it
+/// in the handshake or a direct driver before spawning
+/// (`LaunchRefusal::Fork`, ADR 0057): `ForkRefused`, `unsupported`.
+fn rewind_failed(failure: Restart) -> SessionError {
+    match failure {
+        Restart::Handshake(Disconnect::Handshake {
+            fork_refused: Some(refusal),
+            ..
+        })
+        | Restart::Spawn(AgentError::Refused(LaunchRefusal::Fork(refusal))) => {
+            SessionError::ForkRefused(refusal)
+        }
+        other @ (Restart::Spawn(_)
+        | Restart::Handshake(_)
+        | Restart::Exited(_)
+        | Restart::Woken(_)) => SessionError::RewindFailed(other.to_string()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use vessel_agent::{AgentError, Disconnect, Driver, ForkRefusal, LaunchRefusal};
+
+    use super::rewind_failed;
+    use crate::error::SessionError;
+    use crate::moving::Restart;
+
+    #[test]
+    fn a_fork_refused_before_or_in_the_handshake_is_the_same_answer() {
+        let refused_before = rewind_failed(Restart::Spawn(AgentError::Refused(
+            LaunchRefusal::Fork(ForkRefusal::NotAtPoint),
+        )));
+        assert!(matches!(
+            refused_before,
+            SessionError::ForkRefused(ForkRefusal::NotAtPoint)
+        ));
+        let refused_in = rewind_failed(Restart::Handshake(Disconnect::Handshake {
+            message: "no".to_owned(),
+            refused: None,
+            fork_refused: Some(ForkRefusal::NotAtPoint),
+        }));
+        assert!(matches!(
+            refused_in,
+            SessionError::ForkRefused(ForkRefusal::NotAtPoint)
+        ));
+        assert!(matches!(
+            rewind_failed(Restart::Spawn(AgentError::NoDriver(Driver::ClaudeStream))),
+            SessionError::RewindFailed(_)
+        ));
     }
 }

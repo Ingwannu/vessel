@@ -76,11 +76,11 @@ impl AboutState {
 
 /// About's card: the version, what is new, the updates, the log.
 fn card(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
-    let words = shell.t.lang.update();
+    let words = shell.words.update();
     let mut card = settings::card(tokens).child(settings::row(
-        words.app_version,
-        Some(words.this_device.into()),
-        Some(value(words.version(crate::LABEL), tokens)),
+        words.app_version(),
+        Some(words.this_device().into()),
+        Some(value(shell.updates.version(), tokens)),
         true,
         tokens,
     ));
@@ -93,8 +93,8 @@ fn card(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
             .child(automatic_row(shell, tokens, cx));
     } else {
         card = card.child(settings::row(
-            words.app_updates,
-            Some(words.no_updates.into()),
+            words.app_updates(),
+            Some(words.no_updates().into()),
             None,
             false,
             tokens,
@@ -129,7 +129,7 @@ pub(crate) fn content(
         "Vessel",
         Some(about.licence_note().into()),
         None,
-        Some(value(VESSEL_LICENCE.to_owned(), tokens)),
+        Some(value(VESSEL_LICENCE, tokens)),
         true,
         compact,
         tokens,
@@ -139,7 +139,7 @@ pub(crate) fn content(
             part.name,
             Some(about.role(part.role).into()),
             None,
-            Some(value(part.licence.to_owned(), tokens)),
+            Some(value(part.licence, tokens)),
             false,
             compact,
             tokens,
@@ -159,12 +159,12 @@ pub(crate) fn content(
 
 /// "새로운 소식": Paseo's row with a chevron, the foreground's on hover.
 fn whats_new_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
-    let words = shell.t.lang.update();
+    let words = shell.words.update();
     let neutral = tokens.neutral;
     div().child(
         settings::row(
-            words.whats_new,
-            Some(words.whats_new_hint.into()),
+            words.whats_new(),
+            Some(words.whats_new_hint().into()),
             Some(glyph(Glyph::ChevronRight, 14.0, neutral.foreground_muted).into_any_element()),
             false,
             tokens,
@@ -188,7 +188,7 @@ fn notes_dialog(
 ) -> Option<AnyElement> {
     let about = &shell.areas.about;
     let notes = shell.running_notes().filter(|_| about.notes)?;
-    let words = shell.t.lang.update();
+    let words = shell.words.update();
     let body = div()
         .flex()
         .flex_col()
@@ -197,7 +197,7 @@ fn notes_dialog(
             div()
                 .type_(Type::Label)
                 .text_color(tokens.neutral.foreground)
-                .child(words.version(crate::LABEL)),
+                .child(shell.updates.version()),
         )
         .child(
             div()
@@ -208,7 +208,7 @@ fn notes_dialog(
     Some(dialog(
         &about.notes_dialog,
         DialogContent {
-            title: words.whats_new.into(),
+            title: words.whats_new().into(),
             body: body.into_any_element(),
             footer: Vec::new(),
             size: DialogSize::Normal,
@@ -232,15 +232,15 @@ fn confirm_dialog(
     if !about.confirm {
         return None;
     }
-    let words = shell.t.lang.update();
+    let words = shell.words.update();
     let footer = vec![
-        button("install-cancel", words.cancel, false, tokens)
+        button("install-cancel", words.cancel(), false, tokens)
             .on_click(cx.listener(|this, _event, _window, cx| {
                 this.areas.about.confirm = false;
                 cx.notify();
             }))
             .into_any_element(),
-        button("install-confirm", words.install_confirm, true, tokens)
+        button("install-confirm", words.install_confirm(), true, tokens)
             .on_click(cx.listener(|this, _event, _window, cx| {
                 this.areas.about.confirm = false;
                 this.restart_to_update(cx);
@@ -250,8 +250,8 @@ fn confirm_dialog(
     Some(dialog(
         &about.confirm_dialog,
         DialogContent {
-            title: words.install_title.into(),
-            body: div().child(words.install_message).into_any_element(),
+            title: words.install_title().into(),
+            body: div().child(words.install_message()).into_any_element(),
             footer,
             size: DialogSize::Normal,
         },
@@ -264,7 +264,8 @@ fn confirm_dialog(
 }
 
 /// A row's value at its right (the version), as Paseo's `aboutValue`.
-fn value(text: String, tokens: &Tokens) -> AnyElement {
+fn value(text: impl Into<vessel_app_kit::ui::SharedString>, tokens: &Tokens) -> AnyElement {
+    let text: vessel_app_kit::ui::SharedString = text.into();
     div()
         .flex_shrink_0()
         .type_(Type::Body)
@@ -276,33 +277,19 @@ fn value(text: String, tokens: &Tokens) -> AnyElement {
 /// "앱 업데이트": what the updater last did, in Paseo's words, and why
 /// it failed; "확인" and the update button at the right.
 fn updates_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
-    let words = shell.t.lang.update();
-    let state = &shell.update_state;
-    let status = match state {
-        UpdateState::Idle => words.status_idle.to_owned(),
-        UpdateState::Checking => words.status_checking.to_owned(),
-        UpdateState::UpToDate { .. } => words.status_up_to_date.to_owned(),
-        UpdateState::Downloading { label, .. } => words.status_downloading(&label.to_string()),
-        UpdateState::Ready { label, .. } => words.status_ready(&label.to_string()),
-        UpdateState::Failed { .. } => words.status_failed.to_owned(),
-    };
+    let words = shell.words.update();
+    let state = &shell.updates.state;
+    let status = shell.updates.status(shell.words);
     let checking = matches!(state, UpdateState::Checking);
     let busy = checking || matches!(state, UpdateState::Downloading { .. });
-    let ready = match state {
-        UpdateState::Ready { label, .. } => Some(label.to_string()),
-        UpdateState::Idle
-        | UpdateState::Checking
-        | UpdateState::UpToDate { .. }
-        | UpdateState::Downloading { .. }
-        | UpdateState::Failed { .. } => None,
-    };
+    let ready = matches!(state, UpdateState::Ready { .. });
 
     let mut check = outline_button(
         "about-check",
         if checking {
-            words.checking_short
+            words.checking_short()
         } else {
-            words.check
+            words.check()
         },
         !busy,
         tokens,
@@ -314,10 +301,8 @@ fn updates_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> D
     // filled, and disabled unless a build is ready to install (the kit's
     // disabled state: half opacity, no hover, no handler); before, an
     // enabled button was faded by hand and still lit on hover.
-    let label = ready
-        .as_deref()
-        .map_or_else(|| words.update.to_owned(), |label| words.update_to(label));
-    let installable = if ready.is_some() && !busy {
+    let label = shell.updates.action(shell.words);
+    let installable = if ready && !busy {
         ButtonState::Enabled
     } else {
         ButtonState::Disabled
@@ -347,17 +332,10 @@ fn updates_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> D
         .into_any_element();
 
     // Paseo's `aboutErrorText`: why it failed, under the status.
-    let error = match state {
-        UpdateState::Failed { error } => Some(error.to_string().into()),
-        UpdateState::Idle
-        | UpdateState::Checking
-        | UpdateState::UpToDate { .. }
-        | UpdateState::Downloading { .. }
-        | UpdateState::Ready { .. } => None,
-    };
+    let error = shell.updates.problem();
     settings::row_with_error(
-        words.app_updates,
-        Some(status.into()),
+        words.app_updates(),
+        Some(status),
         error,
         Some(controls),
         false,
@@ -367,7 +345,7 @@ fn updates_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> D
 
 /// "자동으로 업데이트", with Paseo's switch.
 fn automatic_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
-    let words = shell.t.lang.update();
+    let words = shell.words.update();
     let on = shell.updates_automatic();
     let turns = shell.areas.about.automatic_turns;
     let switch = settings::switch("update-automatically", on, true, false, turns, tokens)
@@ -376,8 +354,8 @@ fn automatic_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) ->
         }))
         .into_any_element();
     settings::row(
-        words.automatic,
-        Some(words.automatic_note.into()),
+        words.automatic(),
+        Some(words.automatic_note().into()),
         Some(switch),
         false,
         tokens,
@@ -388,20 +366,20 @@ fn automatic_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) ->
 /// `vessel_app_log::dir()`; the folder is made first, so it opens even
 /// before the first line is written there).
 fn logs_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
-    let words = shell.t.lang.update();
+    let words = shell.words.update();
     let dir: Option<PathBuf> = vessel_app_log::dir();
     let has_dir = dir.is_some();
-    let hint = dir.as_ref().map_or_else(
-        || words.log_unavailable.to_owned(),
-        |dir| dir.display().to_string(),
+    let hint: vessel_app_kit::ui::SharedString = dir.as_ref().map_or_else(
+        || words.log_unavailable().into(),
+        |dir| dir.display().to_string().into(),
     );
-    let mut copy = outline_button("about-copy-log-path", words.copy_path, true, tokens);
-    let mut open = outline_button("about-open-logs", words.open_logs, dir.is_some(), tokens);
+    let mut copy = outline_button("about-copy-log-path", words.copy_path(), true, tokens);
+    let mut open = outline_button("about-open-logs", words.open_logs(), dir.is_some(), tokens);
     if let Some(dir) = dir {
         let path = dir.display().to_string();
         copy = copy.on_click(cx.listener(move |this, _event, _window, cx| {
             cx.write_to_clipboard(ClipboardItem::new_string(path.clone()));
-            this.notice = Some(this.t.lang.update().log_path_copied.to_owned());
+            this.notice = Some(this.words.update().log_path_copied().to_owned());
             cx.notify();
         }));
         open = open.on_click(cx.listener(move |_this, _event, _window, cx| {
@@ -421,8 +399,8 @@ fn logs_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div 
         .when(has_dir, |actions| actions.child(copy))
         .child(open);
     settings::row(
-        words.log_file,
-        Some(hint.into()),
+        words.log_file(),
+        Some(hint),
         Some(actions.into_any_element()),
         false,
         tokens,
@@ -440,7 +418,7 @@ pub(crate) fn updated(
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
-    let words = shell.t.lang.update();
+    let words = shell.words.update();
     div()
         .flex()
         .flex_row()
@@ -468,7 +446,7 @@ pub(crate) fn updated(
                     div()
                         .type_(Type::Label)
                         .text_color(tokens.text_primary)
-                        .child(words.updated_to(&updated.label)),
+                        .child(shell.updates.banner(shell.words)),
                 )
                 // At most a few lines tall, scrolled past that: in a small
                 // window the whole notes pushed the composer below the
@@ -483,9 +461,9 @@ pub(crate) fn updated(
         )
         .child(
             div().flex_none().child(
-                button("dismiss-updated", words.dismiss, false, tokens).on_click(cx.listener(
+                button("dismiss-updated", words.dismiss(), false, tokens).on_click(cx.listener(
                 |this, _event, _window, cx| {
-                    this.updated = None;
+                    this.updates.announcement = None;
                     cx.notify();
                 },
             ))),

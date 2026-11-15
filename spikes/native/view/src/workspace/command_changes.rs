@@ -28,7 +28,9 @@
 
 use chrono::{DateTime, Utc};
 use vessel_proto::scripts::ScriptEntry;
-use vessel_proto::workspace::{ApprovedCommands, CommandsDigest, ProjectCommand, ProjectCommands};
+use vessel_proto::workspace::{
+    ApprovedCommands, CommandsDigest, FileTerminal, ProjectCommand, ProjectCommands,
+};
 
 /// A set of commands as the node lists it, borrowed from its answer.
 #[derive(Debug, Clone, Copy)]
@@ -43,11 +45,29 @@ pub struct Listed<'a> {
     pub approved: bool,
     /// Its scripts and services, in name order.
     pub scripts: &'a [ScriptEntry],
+    /// Terminal commands covered by the digest, not yet drawn by this card.
+    pub terminals: &'a [FileTerminal],
     /// The set approved last, when the node kept it.
     pub last_approved: Option<&'a ApprovedCommands>,
 }
 
 impl<'a> Listed<'a> {
+    /// Refuse a digest whose terminal commands this card cannot display.
+    ///
+    /// # Errors
+    /// Returns the unsupported approved field instead of permitting unseen work.
+    pub fn approval(&self) -> Result<(), ApprovalRefusal> {
+        if self.terminals.is_empty()
+            && self
+                .last_approved
+                .is_none_or(|last| last.commands.terminals.is_empty())
+        {
+            Ok(())
+        } else {
+            Err(ApprovalRefusal::Terminals)
+        }
+    }
+
     /// The listed set of `commands`, when it lists one.
     #[must_use]
     pub fn of(commands: &'a ProjectCommands) -> Option<Self> {
@@ -63,6 +83,7 @@ impl<'a> Listed<'a> {
                 digest,
                 approved,
                 scripts,
+                terminals,
                 last_approved,
             } => Some(Self {
                 setup,
@@ -70,11 +91,20 @@ impl<'a> Listed<'a> {
                 digest,
                 approved: *approved,
                 scripts,
+                terminals,
                 last_approved: last_approved.as_deref(),
             }),
             ProjectCommands::None | ProjectCommands::Invalid { .. } => None,
         }
     }
+}
+
+/// Why this card must not approve a command digest.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum ApprovalRefusal {
+    /// The digest includes terminal commands the card cannot draw yet.
+    #[error("terminal commands cannot be shown by this approval card")]
+    Terminals,
 }
 
 /// How a line of one list stands against the other.
@@ -252,7 +282,7 @@ pub fn compare_commands(before: &[ProjectCommand], after: &[ProjectCommand]) -> 
 
 /// Whether two entries of one name run the same thing in the same way.
 fn same_script(one: &ScriptEntry, two: &ScriptEntry) -> bool {
-    one.kind == two.kind && one.command == two.command && one.dir == two.dir
+    one.view() == two.view()
 }
 
 /// `after`'s scripts against `before`'s, by name, in name order.

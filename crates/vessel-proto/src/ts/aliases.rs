@@ -68,6 +68,8 @@
 //!   text a schedule or a saved prompt sends, carried as a draft's is
 //!   (track D had it plain as a name; the join moved it, plain either
 //!   way).
+//! - Project service declarations: `ServicePort` is a number a person chooses,
+//!   like a pull-request number, not a node-minted handle or a count.
 //! - Kept current: every primitive alias the generator meets must be in
 //!   `ALIASES` (`Declarations::unclassified` lists the others, and the
 //!   generating crates' tests fail on one), and every entry must still be
@@ -104,6 +106,7 @@ pub enum Alias {
 /// Every primitive alias of the protocol's and the bridge's declarations,
 /// sorted by name.
 pub const ALIASES: &[(&str, Alias)] = &[
+    ("AcpProtocolVersion", Alias::Quantity),
     ("ActionId", Alias::Named),
     ("AgentLabel", Alias::Named),
     ("AgentMessageId", Alias::Handle),
@@ -129,7 +132,9 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ContentHash", Alias::Handle),
     ("CostUnit", Alias::Named),
     ("CronExpr", Alias::Named),
+    ("CustomAgentSlot", Alias::Quantity),
     ("DeviceId", Alias::Handle),
+    ("DiagnosticSchemaVersion", Alias::Quantity),
     ("DraftText", Alias::Content),
     ("DurationMs", Alias::Quantity),
     ("EnvName", Alias::Named),
@@ -149,11 +154,16 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("HeaderName", Alias::Named),
     ("HttpUrl", Alias::Named),
     ("IdleMinutes", Alias::Quantity),
+    ("InboxCount", Alias::Quantity),
+    ("InboxCursor", Alias::Quantity),
     ("InstallId", Alias::Handle),
     ("InterfaceSize", Alias::Quantity),
     ("InvitationSecret", Alias::Secret),
     ("KeyBinding", Alias::Named),
     ("LaunchId", Alias::Handle),
+    ("LimitKey", Alias::Named),
+    ("LimitName", Alias::Named),
+    ("LimitPercent", Alias::Quantity),
     ("MaxRuns", Alias::Quantity),
     ("McpServerName", Alias::Named),
     ("MimeType", Alias::Named),
@@ -183,6 +193,9 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("PullBody", Alias::Content),
     ("PullNumber", Alias::Named),
     ("PullTitle", Alias::Named),
+    ("PushAuth", Alias::Secret),
+    ("PushEndpoint", Alias::Secret),
+    ("PushPublicKey", Alias::Content),
     ("QuestionId", Alias::Handle),
     ("QueueEntryId", Alias::Handle),
     ("RefName", Alias::Named),
@@ -191,6 +204,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("RelPath", Alias::Named),
     ("RemoteName", Alias::Named),
     ("RepoPath", Alias::Named),
+    ("ReportCount", Alias::Quantity),
     ("Revision", Alias::Quantity),
     ("RouteUrl", Alias::Named),
     ("RunNumber", Alias::Quantity),
@@ -205,6 +219,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("SecretName", Alias::Named),
     ("SecretText", Alias::Secret),
     ("SecretValue", Alias::Secret),
+    ("ServicePort", Alias::Named),
     ("SessionId", Alias::Handle),
     ("SessionTitle", Alias::Named),
     ("Sha256Hex", Alias::Named),

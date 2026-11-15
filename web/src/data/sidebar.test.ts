@@ -85,7 +85,10 @@ const STATE: FleetState = {
 
 describe("sidebarMachines", () => {
   it("lists each machine with its live sessions, newest first, by title", () => {
-    const [laptop, box] = sidebarMachines(STATE);
+    const [laptop, box] = sidebarMachines(STATE, {
+      ...DEFAULT_VIEW,
+      ended: false,
+    });
     expect(laptop).toMatchObject({
       key: "laptop",
       connected: true,
@@ -101,7 +104,11 @@ describe("sidebarMachines", () => {
   });
 
   it("links to the board for the rest", () => {
-    const [laptop] = sidebarMachines(STATE, DEFAULT_VIEW, 1);
+    const [laptop] = sidebarMachines(
+      STATE,
+      { ...DEFAULT_VIEW, ended: false },
+      1,
+    );
     expect(laptop?.sessions).toHaveLength(1);
     expect(laptop?.more).toBe(1);
   });
@@ -119,7 +126,11 @@ describe("the view the person chose", () => {
   });
 
   it("groups by status across machines, leaving empty groups out", () => {
-    const groups = sidebarStatuses(STATE, { ...DEFAULT_VIEW, group: "status" });
+    const groups = sidebarStatuses(STATE, {
+      ...DEFAULT_VIEW,
+      group: "status",
+      ended: false,
+    });
     expect(groups.map((group) => group.label)).toEqual(["Idle"]);
     expect(groups[0]?.sessions.map((row) => row.machine)).toEqual([
       "laptop",
@@ -128,7 +139,7 @@ describe("the view the person chose", () => {
   });
 
   it("walks the sessions in the order shown, wrapping", () => {
-    const order = sidebarOrder(STATE, DEFAULT_VIEW);
+    const order = sidebarOrder(STATE, { ...DEFAULT_VIEW, ended: false });
     expect(order.map((row) => row.id)).toEqual(["bbbb", "aaaa"]);
     expect(stepSession(order, { node: "laptop", id: "aaaa" }, 1)?.id).toBe(
       "bbbb",

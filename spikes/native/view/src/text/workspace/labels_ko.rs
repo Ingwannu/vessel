@@ -81,6 +81,7 @@ pub const KO: Labels = Labels {
     scripts_and_services: "스크립트와 서비스",
     none: "없음.",
     start_without_setup: "셋업 없이 시작",
+    approval_unseen: "이 묶음에는 이 앱이 아직 보여 줄 수 없는 터미널 명령도 있어서 여기서는 승인할 수 없습니다.",
     approve_and_run: "승인하고 실행",
     script_warning: "저장소의 스크립트를 실행하는 명령(./setup.sh, 패키지 스크립트를 실행하는 npm ci)은 그 브랜치의 스크립트가 시키는 대로 실행합니다.",
     badge_new: "새로 추가",
