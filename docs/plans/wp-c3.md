@@ -288,3 +288,10 @@ wp-git-narrow-20261115T085405Z-1b440f6a compiled the changed View crate and
 passed921/0/0, including document source-key/row-layout fixtures and destination,
 wrong-file, late/duplicate-answer cases. Those results precede the command adapter
 and this base-ref recovery; no current screen or package approval is claimed.
+
+The owner adapter at47e39d98 passed App all-target clippy in
+wp-git-narrow-20261115T090604Z-47e39d98 (App actually recompiled). The return
+values are now explicitly must-use, particularly the dispatch boolean that tells
+a command center whether to close. This annotation and the newer base-ref words
+need the next combined narrow check; four pure adapter cases still need execution.
+No runtime command-center or C3 screen claim follows from the earlier clippy.

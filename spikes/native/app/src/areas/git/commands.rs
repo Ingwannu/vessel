@@ -38,6 +38,7 @@ pub(crate) struct GitCommands {
 
 impl Shell {
     /// One owner projection, restricted to the repository currently shown.
+    #[must_use]
     pub(crate) fn git_command_entries(&self) -> Option<GitCommands> {
         let git = &self.areas.git;
         let repository = git.target.as_ref()?;
@@ -59,6 +60,7 @@ impl Shell {
     }
 
     /// Existing localized menu presentation, including its busy gate.
+    #[must_use]
     pub(crate) fn git_command_item(&self, entry: &MenuEntry) -> Option<MenuItem> {
         let status = self.areas.git.status.shown()?;
         Some(menu::item(self, entry, status))
@@ -66,6 +68,7 @@ impl Shell {
 
     /// Revalidate the captured contribution and delegate the current owner path.
     /// False means no callback was dispatched, so a palette may retain itself.
+    #[must_use]
     pub(crate) fn run_git_command(
         &mut self,
         target: &GitCommandTarget,
