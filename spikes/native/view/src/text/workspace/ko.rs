@@ -13,7 +13,7 @@ use vessel_proto::workspace::{
 use super::{AddForm, Labels, Local, WorkspaceWords, labels, lines};
 use crate::workspace::branch_name::BranchNameProblem;
 use crate::workspace::changes::ScopeKind;
-use crate::workspace::command_changes::{Change, CommandLine, Compared, ComparedWith, ScriptLine};
+use crate::workspace::command_changes::{Change, CommandLine, Compared, ScriptLine};
 use crate::workspace::git_quick::{Blocked, GitAction};
 use crate::workspace::place::PlaceProblem;
 use crate::workspace::problem::Problem;
@@ -61,7 +61,7 @@ fn config_lines(key: Option<&ConfigKey>, reason: RepositoryConfigReason) -> (Str
     }
 }
 
-fn list_part(name: &str, list: &[CommandLine]) -> Option<String> {
+pub(super) fn list_part(name: &str, list: &[CommandLine]) -> Option<String> {
     let mut added = 0_usize;
     let mut changed = 0_usize;
     let mut removed = 0_usize;
@@ -84,7 +84,7 @@ fn list_part(name: &str, list: &[CommandLine]) -> Option<String> {
 }
 
 impl Ko {
-    fn script_part(self, line: &ScriptLine) -> Option<String> {
+    pub(super) fn script_part(self, line: &ScriptLine) -> Option<String> {
         let script = line.script();
         let named = format!(
             "{} {}",
@@ -419,39 +419,7 @@ impl WorkspaceWords for Ko {
     }
 
     fn compared(&self, compared: &Compared, local: &Local) -> String {
-        let Compared::Changed {
-            against,
-            setup,
-            teardown,
-            scripts,
-        } = compared
-        else {
-            return "이 프로젝트의 명령을 승인한 기록이 없어서 모든 명령을 있는 그대로 보여 줍니다.".to_owned();
-        };
-        let parts: Vec<String> = [list_part("셋업", setup), list_part("정리", teardown)]
-            .into_iter()
-            .chain(scripts.iter().map(|line| self.script_part(line)))
-            .flatten()
-            .collect();
-        let changed = if parts.is_empty() {
-            "실행되는 것 중 달라진 것은 없습니다".to_owned()
-        } else {
-            parts.join("; ")
-        };
-        match against {
-            ComparedWith::LastApproved { at } => {
-                let (today, time) = local.when(*at);
-                let when = if today {
-                    format!("오늘 {time}")
-                } else {
-                    time
-                };
-                format!("{when}에 승인한 세트와 비교: {changed}.")
-            }
-            ComparedWith::Folder => format!(
-                "프로젝트 폴더에 승인된 세트와 비교(이 머신은 마지막으로 승인된 세트를 알려 주지 않습니다): {changed}."
-            ),
-        }
+        super::comparison_words::ko(self, compared, local)
     }
 
     fn scope_label(&self, scope: &DiffScope) -> String {

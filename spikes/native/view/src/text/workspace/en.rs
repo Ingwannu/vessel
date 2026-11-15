@@ -11,7 +11,7 @@ use vessel_proto::workspace::{
 use super::{AddForm, Labels, Local, WorkspaceWords, labels, lines};
 use crate::workspace::branch_name::BranchNameProblem;
 use crate::workspace::changes::ScopeKind;
-use crate::workspace::command_changes::{Change, CommandLine, Compared, ComparedWith, ScriptLine};
+use crate::workspace::command_changes::{Change, CommandLine, Compared, ScriptLine};
 use crate::workspace::git_quick::{Blocked, GitAction};
 use crate::workspace::place::PlaceProblem;
 use crate::workspace::problem::Problem;
@@ -80,7 +80,7 @@ fn config_lines(key: Option<&ConfigKey>, reason: RepositoryConfigReason) -> (Str
 
 /// "setup commands: 1 added and 1 changed", or `None` when the list is the
 /// same.
-fn list_part(name: &str, list: &[CommandLine]) -> Option<String> {
+pub(super) fn list_part(name: &str, list: &[CommandLine]) -> Option<String> {
     let count = |wanted: &str| {
         list.iter()
             .filter(|line| match line {
@@ -105,7 +105,7 @@ fn list_part(name: &str, list: &[CommandLine]) -> Option<String> {
 
 impl En {
     /// "script lint added", "service web changed (its command)".
-    fn script_part(self, line: &ScriptLine) -> Option<String> {
+    pub(super) fn script_part(self, line: &ScriptLine) -> Option<String> {
         let script = line.script();
         let named = format!(
             "{} {}",
@@ -450,35 +450,7 @@ impl WorkspaceWords for En {
     }
 
     fn compared(&self, compared: &Compared, local: &Local) -> String {
-        let Compared::Changed {
-            against,
-            setup,
-            teardown,
-            scripts,
-        } = compared
-        else {
-            return "No earlier approval of this project's commands is known, so every command is shown as it is.".to_owned();
-        };
-        let parts: Vec<String> = [list_part("setup", setup), list_part("teardown", teardown)]
-            .into_iter()
-            .chain(scripts.iter().map(|line| self.script_part(line)))
-            .flatten()
-            .collect();
-        let changed = if parts.is_empty() {
-            "nothing that runs reads differently".to_owned()
-        } else {
-            parts.join("; ")
-        };
-        match against {
-            ComparedWith::LastApproved { at } => {
-                let (today, time) = local.when(*at);
-                let when = if today { format!("today {time}") } else { time };
-                format!("Since the set approved {when}: {changed}.")
-            }
-            ComparedWith::Folder => format!(
-                "Against the set approved for the project's folder (this machine does not say which set was approved last): {changed}."
-            ),
-        }
+        super::comparison_words::en(self, compared, local)
     }
 
     fn scope_label(&self, scope: &DiffScope) -> String {

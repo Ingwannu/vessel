@@ -67,6 +67,8 @@ pub enum Issue {
 #[derive(Debug, Default)]
 pub struct Model {
     keys: RequestKeys,
+    // Display-only after a write: Ready remains the sole action authority.
+    retained: Option<Snapshot>,
     /// Which detail owns these facts.
     pub target: Option<Target>,
     /// A failed or loading read cannot authorize a new write.
@@ -82,6 +84,7 @@ impl Model {
     pub fn select(&mut self, target: Option<Target>) {
         self.target = target;
         self.read = Reading::Empty;
+        self.retained = None;
         self.writing = None;
         self.issue = None;
     }
@@ -104,7 +107,17 @@ impl Model {
         if self.target.as_ref() != Some(target) {
             return false;
         }
-        self.read.accept(key, result)
+        let accepted = self.read.accept(key, result);
+        if accepted && self.read.ready().is_some() {
+            self.retained = None;
+        }
+        accepted
+    }
+    /// Preserve the card's geometry during post-write reconciliation. This value
+    /// never grants run, stop, restart or browser permission; those require Ready.
+    #[must_use]
+    pub fn shown(&self) -> Option<&Snapshot> {
+        self.read.shown().or(self.retained.as_ref())
     }
     /// Check configured names, approval and exact terminal ownership afresh.
     #[must_use]
@@ -159,6 +172,7 @@ impl Model {
             return false;
         }
         self.writing = None;
+        self.retained = self.read.shown().cloned();
         self.read = Reading::Empty;
         self.issue = match result {
             Err(problem) => Some(Issue::Call(problem)),

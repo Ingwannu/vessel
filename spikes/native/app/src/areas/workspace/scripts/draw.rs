@@ -66,7 +66,7 @@ pub(in crate::areas::workspace) fn render(
             previous: Some(_), ..
         } => {}
     }
-    if let Some(snapshot) = model.read.shown() {
+    if let Some(snapshot) = model.shown() {
         body = body
             .child(configured(shell, snapshot, tokens, cx))
             .child(retained(shell, snapshot, tokens, cx));

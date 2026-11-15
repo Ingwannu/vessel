@@ -144,3 +144,9 @@ scripts-declared-port = 선언된 포트
 
 # Cancels the client creation walk; it does not signal the setup runner.
 scripts-cancel-creation = 세션 생성 취소
+
+# Exact automatic terminal definitions covered by a project digest.
+scripts-automatic-terminals = 자동 터미널 (파일 순서)
+scripts-terminal-name-absent = 이름 없는 터미널
+scripts-terminal-changes = 자동 터미널 변경 사항은 아래에 표시됩니다
+scripts-terminal-approval-pending = 터미널 정의를 확인할 수 있습니다. 이 설정을 승인하는 기능은 아직 활성화되지 않았습니다.

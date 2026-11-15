@@ -144,3 +144,9 @@ scripts-declared-port = Declared port
 
 # Cancels the client creation walk; it does not signal the setup runner.
 scripts-cancel-creation = Cancel session creation
+
+# Exact automatic terminal definitions covered by a project digest.
+scripts-automatic-terminals = Automatic terminals (file order)
+scripts-terminal-name-absent = Unnamed terminal
+scripts-terminal-changes = Automatic terminal changes are shown below
+scripts-terminal-approval-pending = These terminal definitions are shown for inspection. Approval support for this configuration is not enabled yet.

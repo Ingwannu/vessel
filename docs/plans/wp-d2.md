@@ -166,3 +166,26 @@ The earlier unsandboxed browser preflight is excluded from final acceptance
 evidence. Real browser checks, if needed, may use only the operator-provided
 /opt/vessel-cft Chromium with its sandbox enabled; no production browser or
 host sandbox policy is changed.
+
+## Complete automatic terminal display (approval still refused)
+
+The native card now retains every automatic terminal's position, optional title
+and exact shell command. Positional comparison shows name-only edits, swaps and
+complete removals against the last approved set or approved-folder fallback.
+Both current and prior values are drawn in full. Duplicate titles never merge
+resources. A new FileTerminal field breaks the exhaustive display adapter.
+Comparison prose was extracted from the oversized language modules; no size
+record was raised. New labels and the additional-change summary are Fluent EN/KO.
+The existing approval-refusal cases stay unchanged: display support does not
+assign PROJECT_FILE_KEYS or enable automatic execution. The allocation block
+still awaits B0's app-base join, while its reviewed data exists in node ba45a6e3.
+
+A post-write snapshot is now retained for drawing only, so reconciliation does
+not collapse the card and jump the scroll position. Ready remains the sole
+permission source. A failed refresh or new owner cannot use this retained content
+for execution or preview; tests exercise these transitions and owner replacement.
+
+The second local native all-targets build reached the 600-second short-lane
+limit while compiling GPUI dependencies, with no compiler error emitted. This is
+an incomplete build, not a test pass or source failure. Remaining builds use the
+ordinary lane; narrow pure view/link checks remain separately scoped.

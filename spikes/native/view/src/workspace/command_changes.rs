@@ -26,6 +26,7 @@
 //! - Cost: a command moved within its list reads as removed and added,
 //!   which it is to the digest.
 
+use super::terminal_changes::{self, TerminalLine};
 use chrono::{DateTime, Utc};
 use vessel_proto::scripts::ScriptEntry;
 use vessel_proto::workspace::{
@@ -45,7 +46,7 @@ pub struct Listed<'a> {
     pub approved: bool,
     /// Its scripts and services, in name order.
     pub scripts: &'a [ScriptEntry],
-    /// Terminal commands covered by the digest, not yet drawn by this card.
+    /// Terminal commands covered by the digest, retained in file order.
     pub terminals: &'a [FileTerminal],
     /// The set approved last, when the node kept it.
     pub last_approved: Option<&'a ApprovedCommands>,
@@ -345,6 +346,8 @@ pub enum Compared {
         teardown: Vec<CommandLine>,
         /// The scripts and services.
         scripts: Vec<ScriptLine>,
+        /// Automatic terminal definitions in executable file order.
+        terminals: Vec<TerminalLine>,
     },
     /// No approved set is known to compare with.
     None,
@@ -355,6 +358,7 @@ fn against(
     setup: &[ProjectCommand],
     teardown: &[ProjectCommand],
     scripts: &[ScriptEntry],
+    terminals: &[FileTerminal],
     basis: ComparedWith,
 ) -> Compared {
     Compared::Changed {
@@ -362,6 +366,7 @@ fn against(
         setup: compare_commands(setup, asked.setup),
         teardown: compare_commands(teardown, asked.teardown),
         scripts: compare_scripts(scripts, asked.scripts),
+        terminals: terminal_changes::compare(terminals, asked.terminals),
     }
 }
 
@@ -376,6 +381,7 @@ pub fn compare_approved(asked: &Listed<'_>, folder: Option<&ProjectCommands>) ->
             &last.commands.setup,
             &last.commands.teardown,
             &last.commands.scripts,
+            &last.commands.terminals,
             ComparedWith::LastApproved {
                 at: last.approved_at,
             },
@@ -387,6 +393,7 @@ pub fn compare_approved(asked: &Listed<'_>, folder: Option<&ProjectCommands>) ->
             folder.setup,
             folder.teardown,
             folder.scripts,
+            folder.terminals,
             ComparedWith::Folder,
         ),
         Some(_) | None => Compared::None,

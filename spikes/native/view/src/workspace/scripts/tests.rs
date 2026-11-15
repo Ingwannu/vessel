@@ -118,6 +118,36 @@ fn refresh_failure_and_unapproved_sets_never_authorize_a_write() {
     assert!(model.accept_read(&target, key, Ok(next)));
     assert!(!model.permits(&action));
 }
+
+#[test]
+fn retained_rows_survive_reconciliation_without_authorizing_actions_or_other_owners() {
+    let (mut model, target) = ready();
+    let action = Action::Run("dev".parse().unwrap());
+    let write = model.begin_write(action.clone()).unwrap();
+    assert!(model.accept_write(&target, write, Ok(None)));
+    assert!(model.shown().is_some());
+    assert!(model.read.ready().is_none());
+    assert!(!model.permits(&action));
+    let read = model.begin_read().unwrap();
+    assert!(model.shown().is_some());
+    assert!(!model.permits(&action));
+    assert!(model.accept_read(
+        &target,
+        read,
+        Err(crate::workspace::problem::Problem::Unsent)
+    ));
+    assert!(model.shown().is_some());
+    assert!(!model.permits(&action));
+    let fresh = model.begin_read().unwrap();
+    assert!(model.accept_read(&target, fresh, Ok(snapshot(&target))));
+    assert!(model.permits(&action));
+    model.select(Some(Target {
+        machine: target.machine,
+        project: ProjectId::random(),
+    }));
+    assert!(model.shown().is_none());
+    assert!(!model.permits(&action));
+}
 #[test]
 fn latest_run_and_port_ownership_exclude_other_processes_and_ended_runs() {
     let target = target();

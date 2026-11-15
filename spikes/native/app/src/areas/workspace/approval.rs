@@ -9,6 +9,8 @@
 //! Every script of the set is drawn, in full: a set is never offered for
 //! approval with any of it out of view.
 
+mod terminals;
+
 use vessel_app_kit::theme::radius;
 use vessel_app_kit::ui::{
     Context, Div, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
@@ -77,13 +79,19 @@ pub(super) fn render(
     } = *panel;
     let words = shell.words();
     let labels = words.labels();
-    let (setup, teardown, scripts) = match compared {
+    let (setup, teardown, scripts, terminals) = match compared {
         Compared::Changed {
             setup,
             teardown,
             scripts,
+            terminals,
             ..
-        } => (setup.clone(), teardown.clone(), scripts.clone()),
+        } => (
+            setup.clone(),
+            teardown.clone(),
+            scripts.clone(),
+            terminals.clone(),
+        ),
         Compared::None => (
             as_listed(asked.setup),
             as_listed(asked.teardown),
@@ -95,6 +103,7 @@ pub(super) fn render(
                     script: script.clone(),
                 })
                 .collect(),
+            vessel_app_view::workspace::terminal_changes::compare(asked.terminals, asked.terminals),
         ),
     };
     let mut card = div()
@@ -124,9 +133,17 @@ pub(super) fn render(
     if !scripts.is_empty() {
         card = card.child(script_list(words, &scripts, tokens));
     }
+    if !terminals.is_empty() {
+        card = card.child(terminals::render(shell.words, words, &terminals, tokens));
+    }
     let approval = asked.approval();
     if let Err(ApprovalRefusal::Terminals) = approval {
-        card = card.child(banner(labels.approval_unseen, true, None, tokens));
+        card = card.child(banner(
+            shell.words.scripts().terminal_approval_pending(),
+            true,
+            None,
+            tokens,
+        ));
     }
     let buttons = buttons(id, busy, approval, actions, labels, tokens, cx);
     card.child(banner(labels.script_warning, false, None, tokens))

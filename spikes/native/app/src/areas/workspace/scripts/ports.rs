@@ -25,7 +25,7 @@ pub(super) fn notice(text: &str, tokens: &Tokens) -> Div {
 }
 pub(super) fn scan(shell: &Shell, tokens: &Tokens) -> Div {
     let words = shell.words.scripts();
-    let Some(snapshot) = shell.areas.workspace.scripts.model.read.shown() else {
+    let Some(snapshot) = shell.areas.workspace.scripts.model.shown() else {
         return div();
     };
     let ports = match &snapshot.ports {
@@ -53,7 +53,7 @@ pub(super) fn for_run(
 ) -> Div {
     let words = shell.words.scripts();
     let model = &shell.areas.workspace.scripts.model;
-    let Some(snapshot) = model.read.shown() else {
+    let Some(snapshot) = model.shown() else {
         return div();
     };
     let Ok(ports) = &snapshot.ports else {
