@@ -764,8 +764,15 @@ file-fault sentence still belongs to its table, including when pairing shows it.
 About's licence and bundled-software labels use `about.ftl`; inventory roles
 map exhaustively to cached plain getters in `view/src/about/words.rs`.
 The Fluent libraries have the Translations role; UUID has the Identifiers role.
-The update card, connected-machine section and trademark section still belong
+The connected-machine section and trademark section still belong
 to their existing areas and have not moved with the licence vocabulary.
+Title-bar/update-card labels use `update.ftl`. `view::updates::PreparedUpdate`
+formats their value messages once per updater state or language event; the
+host retains the runtime and typed state together in `app/src/update_words.rs`.
+Renderers share the prepared text without formatting a version or progress
+sentence. Developer build names remain data; numbered release prefixes and
+whole status sentences live in the files. The updater's raw error diagnostics
+still await their separate typed-message correction.
 General's Language row uses System first, then each embedded language's own
 name. Its typed preference goes through `Prefs::prefer`; labels, retained
 field placeholders and pairing outcomes update at once, without restarting

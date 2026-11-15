@@ -1078,6 +1078,11 @@ About's licence and bundled-software vocabulary also uses generated plain
 getters; its closed inventory roles map to them in `view::about`, without
 formatting a message while drawing each row. The rest of About's shared
 sections retain their owners' tables during the staged migration.
+Updater labels and whole value messages use the same catalogs. The pure
+`view::updates` projection prepares shared text on state/language changes;
+the host groups its updater runtime, authoritative state and prepared words
+in `UpdateUi`. Both desktop and browser shells use it without introducing
+the native updater's I/O dependencies into view.
 The host reads the typed
 language preference before creating a shell; System resolves against the
 host tag, while VESSEL_APP_LANG is the checking override. General's language

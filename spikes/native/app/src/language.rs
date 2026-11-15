@@ -81,6 +81,7 @@ impl Shell {
             refresh(self, window, cx);
         }
         crate::areas::pair::translate_outcomes(self);
+        self.updates.refresh(self.words);
         self.areas
             .conversation
             .list

@@ -1,5 +1,70 @@
 # Track L: the app's words as translation data
 
+## Source ready: title-bar and update vocabulary
+
+The About move and role fix are committed as `7c99ae1f` and `73fd0c49`.
+Their whole native gate is now submitted against the immutable latter commit;
+no current-update working-tree source travels with it. The role fix's local
+contract tests have also passed (10), and the compiled coverage command has
+exited zero: English/Korean complete, zero missing. V1 has not received a
+complete submission or approved these changes.
+
+The next area is the shared updater vocabulary, including the title bar's
+four labels, About's card/dialogs/log actions and the updated-on-start banner.
+Reference: Paseo 0.15.4 `packages/app/src/screens/settings-screen.tsx`
+lines 621–747 (`DesktopAppUpdateRow`), and its English/Korean
+`desktop.updates.status` / `settings.about.updates` resources. Keep the
+existing deliberate differences: one update feed, the automatic-check switch,
+the existing Zed-inspired title-bar labels and the running build's notes only.
+
+[Decision Log]
+- Purpose: translate the existing messages without formatting in a frame.
+- Existing assets: generated Fluent getters, the updater's typed watch state,
+  the normal language-change dispatch and shared kit rows/buttons.
+- Alternatives: calling dynamic Fluent messages in the render functions would
+  allocate every frame; adding the updater dependency to view would bring in
+  native I/O and break the standalone browser boundary.
+- Choice: a pure `view::updates::PreparedUpdate` projection, shared Arc text,
+  and a host `UpdateUi` that retains the authoritative runtime/state/notice
+  and refreshes its text on events and language changes.
+- Why: both About and the title bar borrow the same prepared values; the
+  browser uses the same idle projection without an updater I/O dependency.
+- Cost: a small explicit state projection at the host boundary and one cache
+  refresh registration in the language-change path.
+
+The host's four updater fields are grouped with the prepared projection,
+shrinking `shell.rs` from 500 to 486 product lines (the repository's size
+checker); no allowance grows. Host call sites, a GPUI regression, the pure
+view model and 37 messages in each language are installed. Narrow all-target
+view Clippy passes, with 821 library and ten catalog-contract tests passing;
+the new shared-text allocation test reports zero allocations. Native source
+checks pass. The first narrow attempt failed on six test lints (constant
+placement and unused black-box results); they were corrected, with the failed
+run kept separately. No assertion or deadline changed.
+The shared validator also accepts the explicit candidate root, with zero missing
+keys in both languages; this is a source-candidate check, not a compiled API
+or current-binary claim. App compilation, its new GPUI regression, the whole
+native gate and current screens are owed. Status: **source ready, gate owed**.
+
+The model preserves numbered-build prefixes and plain developer build names;
+whole Fluent branches select either presentation. Numeric progress stays a
+number. Its getters share Arc values; allocation tests and whole-message tests
+cover both languages and the pseudo locale. A new whole-sentence fallback is
+used only if message preparation fails, with the formatter's diagnostic in logs.
+Fluent's Unicode argument-isolation markers surround variable values; visible
+sentences and version-prefix rules are preserved, and the tests compare the
+complete returned strings including those markers.
+The existing raw updater error and restart-notice Display paths are explicitly
+deferred to a separate typed-error correction, not hidden by this migration.
+
+Additional seams approved for this area: `language.rs` one refresh call,
+`main.rs` one module line, the `Shell` field grouping and its no-I/O test
+fixture, the browser adapter's field access, and General's one `copy_path`
+getter. No layout/control/token change. The next rewind/fork migration is
+owned here but must start after the conversation-file split `aaae7a03` is
+merged. Its raw node-error boundaries also belong to this track; their owner
+has no parallel correction planned. Do not touch the terminal work.
+
 ## About role correction (after `7c99ae1f`)
 
 The catalogue move is committed independently as `7c99ae1f`, preserving
