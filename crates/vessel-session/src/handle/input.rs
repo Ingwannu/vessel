@@ -214,8 +214,10 @@ impl SessionHandle {
         route: &watch::Receiver<Route>,
         order: impl FnOnce(oneshot::Sender<Result<T, SessionError>>) -> Control,
     ) -> Result<T, SessionError> {
-        if matches!(*route.borrow(), Route::Moving) {
-            return Err(SessionError::Moving);
+        match *route.borrow() {
+            Route::FilesPaused => return Err(SessionError::FilesPaused),
+            Route::Moving => return Err(SessionError::Moving),
+            Route::Live(_) | Route::Parked => {}
         }
         let control = self.0.control.as_ref().ok_or(SessionError::Ended)?;
         let (reply, answer) = oneshot::channel();

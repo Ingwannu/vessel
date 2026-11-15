@@ -1688,3 +1688,10 @@ opens its registration receipt only after registry insertion and placement
 validation; each first/retry/manual spawn then claims physical admission and
 rechecks approval. The session actor publishes its process before releasing the
 hold. No node identity or workspace dependency enters the session crate.
+
+`vessel-session::CheckpointPause` is the actor-owned input/queue pause used by
+files-only restoration. It preserves the prior live/parked route and held queue;
+drop releases it and explicit resume waits for actor acknowledgement. The actor
+refuses prompts, moves, rewind and wake while paused and suppresses automatic
+queue advancement/idle parking. The node controller still must combine this
+with physical admission and durable recovery; the pending wire gate stays None.

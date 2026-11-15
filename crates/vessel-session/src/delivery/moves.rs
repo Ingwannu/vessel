@@ -95,8 +95,8 @@ impl StructuredActor {
     }
 
     /// Start the queue's first entry, when it moves and nothing runs.
-    async fn advance(&mut self) -> Option<Delivered> {
-        if self.desk.running() || !self.ready {
+    pub(crate) async fn advance(&mut self) -> Option<Delivered> {
+        if self.desk.running() || !self.ready || self.file_pause.active() {
             return None;
         }
         let entry = self.desk.queue.next()?;

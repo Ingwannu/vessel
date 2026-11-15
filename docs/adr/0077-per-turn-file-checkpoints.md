@@ -663,3 +663,15 @@ only then may the callback claim the physical root. Approval is checked again
 following admission. The process is published before releasing its hold, so
 restore must then refuse the live terminal rather than depend on a lifetime
 observation or PID. This adds no dependency edge or wire capability.
+
+Actor pause refinement: retain a non-cloneable RAII receipt in the restore owner.
+The actor admits it only while idle/ready with no waiting answer, switches its
+route to a typed files-paused state, refuses all new controls, and prevents queue
+advance and automatic idle parking. Its prior route and existing queue hold are
+preserved verbatim. Release is signalled by drop, with an explicit acknowledged
+resume for controllers; an undeliverable receipt releases itself. Lifecycle kill
+remains available. Physical exclusion must be acquired before actor admission
+and released only after the filesystem/durable postcondition, before actor
+resume permits a queued prompt to acquire that root. A recovery-required owner
+must retain both holds until verified reconciliation; RPC cancellation alone
+must never drop ownership of in-flight filesystem work.

@@ -55,6 +55,8 @@ use crate::structured::StructuredActor;
 /// Where a structured session's input goes now.
 #[derive(Debug, Clone)]
 pub(crate) enum Route {
+    /// A files-only restore pauses every new agent input.
+    FilesPaused,
     /// To its agent.
     Live(AgentInput),
     /// Nowhere while its agent is replaced (a move, a park): orders wait.
@@ -68,6 +70,7 @@ impl Route {
     pub(crate) fn input(&self) -> Result<AgentInput, SessionError> {
         match self {
             Self::Live(input) => Ok(input.clone()),
+            Self::FilesPaused => Err(SessionError::FilesPaused),
             Self::Moving => Err(SessionError::Moving),
             Self::Parked => Err(SessionError::Parked),
         }

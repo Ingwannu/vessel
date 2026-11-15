@@ -93,6 +93,7 @@ impl SessionRuntime {
                 ..MoveState::default()
             },
             desk,
+            file_pause: crate::checkpoint::State::default(),
             gate,
             loader: self.attachments.clone(),
             parking,

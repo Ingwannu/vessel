@@ -78,6 +78,9 @@ pub struct ProfileMove {
 /// Why a session did not move.
 #[derive(Debug, thiserror::Error)]
 pub enum MoveError {
+    /// A files-only restore owns the actor input/queue pause.
+    #[error("file checkpoint restoration has paused the session")]
+    FilesPaused,
     /// Terminal sessions cannot move: the harness's own TUI owns its state.
     #[error("terminal sessions cannot move to another profile")]
     Terminal,
@@ -141,6 +144,7 @@ pub enum Restart {
 pub(crate) enum Control {
     /// Boxed: the rest are small, and they are many.
     Move(Box<MoveOrder>),
+    PauseFiles(oneshot::Sender<Result<crate::CheckpointPause, crate::SessionError>>),
     Deliver(Deliver),
     SideQuestion(crate::side_questions::SidePrompt),
     Queue(Change),

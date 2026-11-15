@@ -49,6 +49,7 @@ pub(crate) struct StructuredActor {
     pub(crate) move_state: MoveState,
     /// Deliveries and the queue (protocol 10, `delivery`).
     pub(crate) desk: Desk,
+    pub(crate) file_pause: crate::checkpoint::State,
     /// A session started again (protocol 10, `again`) publishes nothing
     /// until its row is reopened: answered then, dropped if it is not.
     pub(crate) gate: Option<oneshot::Receiver<()>>,
@@ -117,6 +118,7 @@ impl StructuredActor {
                         break None;
                     }
                 }
+                () = self.file_pause.released() => self.release_files().await,
                 code = self.agent.wait(), if self.parking.parked.is_none() => break code,
                 output = self.outputs.next(), if self.outputs_open => match output {
                     Some(output) => self.output(output).await,
@@ -125,6 +127,8 @@ impl StructuredActor {
                 control = self.control.recv(), if control_open => {
                     self.parking.touch();
                     match control {
+                        Some(control) if self.file_pause.active() => self.refuse_file_paused(control),
+                        Some(Control::PauseFiles(reply)) => self.pause_files(reply),
                         Some(Control::Move(order)) => self.move_profile(*order).await,
                         Some(Control::Deliver(order)) => self.deliver(order).await,
                         Some(Control::SideQuestion(order)) => self.side_question(order).await,
@@ -158,7 +162,7 @@ impl StructuredActor {
                 }
                 // Last: anything else that is ready goes first, and is
                 // activity (protocol 12, `parking`).
-                () = self.parking.timer().as_mut(), if self.parking.armed() && self.ready => {
+                () = self.parking.timer().as_mut(), if self.parking.armed() && self.ready && !self.file_pause.active() => {
                     self.idle().await;
                 }
             }

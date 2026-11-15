@@ -284,3 +284,23 @@ callers keep the original unadmitted entry point; the node uses only the admitte
 one. Three isolated process fixtures cover publication-before-release, reacquire
 on retry plus cancellation while waiting, and refusal without command execution.
 This slice is source connected; remote compilation and execution remain owed.
+
+### Actor input/queue pause
+
+The real structured actor now owns an internal files-only pause. A successful
+receipt requires readiness, no running turn or pending human answer, and no
+other pause. It changes the input route, refuses queued and newly arriving
+controls (including move/rewind/wake), disables automatic queue advance and
+idle parking, and restores the prior route when the RAII receipt drops. An
+explicit resume waits for that actor acknowledgement. It neither emits a
+conversation rewind nor alters the held queue or the parked state. The node
+must hold physical exclusion before requesting it and release physical
+exclusion before allowing queued delivery to resume. Lost receipts automatically
+release the pause; lifecycle kill still wins. The controller and durable
+recovery ownership are not connected yet, so no RPC capability is enabled.
+Real fake-agent fixtures cover held-queue/input refusal and busy/parked behavior;
+a closed receipt fixture covers automatic release. Remote proof is pending.
+
+Remote terminal clippy 78bd7d16 and merged session-start suite 27f2a27c were both
+cancelled rc143 while queued, before compilation. These are not compiler results;
+the build-tools owner has been asked for the recovery/retry disposition.

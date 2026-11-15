@@ -15,6 +15,12 @@ use vessel_proto::{ErrorCode, SessionId, SessionInput};
 /// Why a session operation failed.
 #[derive(Debug, thiserror::Error)]
 pub enum SessionError {
+    /// A files-only restore owns the actor input/queue pause.
+    #[error("file checkpoint restoration has paused the session")]
+    FilesPaused,
+    /// A turn, question or startup prevents an idle checkpoint pause.
+    #[error("the session is busy; file checkpoint restoration requires an idle actor")]
+    CheckpointBusy,
     /// The spec cannot be launched (harness or adapter missing, bad working
     /// directory).
     #[error(transparent)]
@@ -308,6 +314,8 @@ impl SessionError {
             // A secret an added agent names is not set on the node: the
             // node's state, which `secret.set` changes.
             | Self::Launch(HarnessError::SecretMissing { .. })
+            | Self::FilesPaused
+            | Self::CheckpointBusy
             | Self::Moving
             | Self::ConversationTaken(_)
             // Nothing waits on a parked session: an answer has no request.
@@ -366,7 +374,8 @@ const fn move_code(error: &MoveError) -> ErrorCode {
         MoveError::Terminal | MoveError::Files(SessionFilesError::Unsupported { .. }) => {
             ErrorCode::Unsupported
         }
-        MoveError::NotReady
+        MoveError::FilesPaused
+        | MoveError::NotReady
         | MoveError::TurnInProgress
         | MoveError::Stopped
         | MoveError::Files(
