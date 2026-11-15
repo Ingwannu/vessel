@@ -1,5 +1,5 @@
-//! Admission of labels embedded in existing session templates. The numeric
-//! compatibility accessor cannot represent a pending assignment on its own.
+//! The label field rule for existing session templates. It combines with the
+//! assigned method and other fields through the single optional call accessor.
 
 use crate::automation::ScheduleTarget;
 use crate::{Call, ProtocolVersion, SessionLabels};

@@ -632,3 +632,19 @@ package; request/storage/discovery/inheritance and CLI remain next.
   citations and retain the raw-chunk test; the selection render context changes
   without changing its expected fragment. Windows, macOS, native UI and real harnesses remain
   unverified.
+
+### Optional call admission after the method-table merge
+
+The label rule now contributes to `Call::since()` after the method and other
+field requirements. A pending label assignment makes that one accessor return
+`None`; `required_protocol()` delegates unchanged. The old numeric label
+contributions are removed, so a label is considered once. Fleet envelopes keep
+the head's recursive optional requirement, and all other thresholds stay as
+written there. The labelled-template fixture asserts both accessors are pending
+for every direct and nested request. The whole-method assigned-request invariant
+keeps the head's optional expectations.
+
+The typed label iterator is borrowed and exact-size; callers can count remaining
+entries without parsing the display summary. Its first narrow check found a
+missing must-use annotation and a newly added title-event test using the removed
+numeric event accessor. Both are corrected; a new narrow check is owed.
