@@ -81,3 +81,14 @@ The required announced base9 merge is now present. The earlier isolated canonica
 body picks are already contained in that base and contribute no root diff to the
 final native packet. The architecture merge retains all incoming shared sections;
 there is no author-specific root, event, method, generated-wire or runtime delta.
+
+First exact portable strict run wp-timeline-narrow-20261115T172420Z-f839167a
+compiled the production crates but failed the external View page test at
+words.rs:252 before execution: its fixture still collected a usize line number
+after DiffLine.number became Option. The isolated cut omitted the existing A7
+fixture adaptation. That exact tested-main hunk is now carried too: unchanged
+source line positions are explicit Some values, the common first line stays
+Context and the removed empty line at2 is preserved by the new edit script.
+The large-input line-cap assertions remain intact. No expectation is removed or
+weakened. This result proves neither a successful strict run nor new runtime;
+corrected-source checks are owed.
