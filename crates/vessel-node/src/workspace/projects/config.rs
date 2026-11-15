@@ -13,11 +13,14 @@ use vessel_workspace::{
 
 impl Workspaces {
     pub(crate) async fn read_project_config(
-        &self,
+        self: &Arc<Self>,
         project: ProjectId,
     ) -> Result<ConfigDocument, WireError> {
-        let _serial = self.project_registrations.lock().await;
-        let root = self.project_root(project).map_err(|error| error.wire())?;
+        let admission = self
+            .admit_project(project)
+            .await
+            .map_err(|error| error.wire())?;
+        let root = admission.root().path().to_owned();
         let document = project_config::read(root)
             .await
             .map_err(|error| edit_error(&error))?;
@@ -34,10 +37,11 @@ impl Workspaces {
         let owner = Arc::clone(self);
         self.tasks
             .spawn(async move {
-                let _serial = owner.project_registrations.lock().await;
-                let root = owner
-                    .project_root(request.project)
+                let admission = owner
+                    .admit_project(request.project)
+                    .await
                     .map_err(|error| error.wire())?;
+                let root = admission.root().path().to_owned();
                 project_config::write(root, request.expected, request.text)
                     .await
                     .map_err(|error| edit_error(&error))

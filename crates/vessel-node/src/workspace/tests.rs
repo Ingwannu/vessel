@@ -1051,3 +1051,5 @@ mod git_apart;
 mod registry;
 
 mod project_management;
+
+mod project_admission;

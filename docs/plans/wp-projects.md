@@ -195,3 +195,30 @@ now explicitly choose those mappings, with no wildcard or head-case rewrite.
 The registry dependency migration contains only its live descriptor/reservation/
 resource/revision tables. Project presentation storage is deferred to the later
 project package's append; no unused project-metadata table is reserved here.
+
+### Project admission retained through provisioning
+
+[Decision Log]
+- Purpose: W3 must not finalize a workspace for a project concurrently removed or rewritten through node project/config APIs.
+- Existing constraint: resolve(Project) rechecks the ready root only for one call; it does not retain project registration. The existing project_registrations mutex already serializes registration/removal/config writes.
+- Alternatives: a second per-project lock table, repeated existence checks after effects, or relying on cwd.
+- Choice: reuse that mutex as an owned, opaque project admission retained by Arc through tracked backing I/O and descriptor finalization. The token binds to the exact Workspaces allocation and ProjectId; it cannot authorize another node/project.
+- Reason: one serialization domain avoids duplicate lock registries and check/remove races. Existing fixed-id backing creation accepts this admission rather than resolving a caller's current selection.
+- Impact: admitted project operations are serialized globally, matching the existing writer's conservative scope. The token does not prove a physical FD/root, config approval/digest, WorkspaceId lifecycle, or resource start permission. W9 root exclusion and registry start/generation contracts remain distinct. W3 must retain its admission until descriptor finalization and use workspace-aware W8/D2 bootstrap later.
+
+This continuation is separate from the frozen1057336b registry delivery. Actual W3
+filesystem driver files remain W3-owned. Any producer below is source-only until
+its exact remote checks and review; old resolve alone is never that admission.
+
+Project admission reserves one of MAX_PROJECT_ADMISSIONS64 permits before waiting
+on the existing mutex. Both owner and waiters retain capacity through completion;
+fresh overflow returns typed Busy without mutation. This preserves serialized
+concurrent requests while bounding detached tracked creation/config writes. The
+actual unregister regression polls removal while two admission holders remain and
+checks the project still exists; dropping only one holder cannot release it.
+
+The retained-admission fixed-id provisioning primitive explicitly rejects
+SetupChoice::Run before any backing effect. Its caller must choose Skip, finalize
+the independent descriptor, then ask the workspace-aware bootstrap owner later.
+The existing legacy worktree.create Run behavior remains a distinct legacy path;
+its helper is not a workspace bootstrap adapter. No W3-owned files are edited.

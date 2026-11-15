@@ -5,6 +5,7 @@
 //! `commands`'.
 
 mod adding;
+pub(crate) mod admission;
 mod commands;
 mod config;
 mod directory;

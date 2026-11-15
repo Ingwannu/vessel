@@ -164,7 +164,8 @@ pub(crate) struct Workspaces {
     dirs: Dirs,
     places: Places,
     state: Mutex<State>,
-    project_registrations: tokio::sync::Mutex<()>,
+    project_registrations: Arc<tokio::sync::Mutex<()>>,
+    project_admissions: Arc<tokio::sync::Semaphore>,
     indexes: Arc<Indexes>,
     /// Running `file.find`s by caller and key, so a newer one stops the
     /// older one.
@@ -237,7 +238,10 @@ impl Workspaces {
             dirs,
             places,
             state: Mutex::new(State::default()),
-            project_registrations: tokio::sync::Mutex::new(()),
+            project_registrations: Arc::new(tokio::sync::Mutex::new(())),
+            project_admissions: Arc::new(tokio::sync::Semaphore::new(
+                projects::admission::MAX_PROJECT_ADMISSIONS,
+            )),
             indexes: Arc::new(Indexes::default()),
             searches: Mutex::new(HashMap::new()),
             search_count: AtomicU64::new(0),

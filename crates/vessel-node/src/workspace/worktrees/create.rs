@@ -24,7 +24,7 @@ use vessel_proto::{Creator, SessionId, WorktreeId};
 use vessel_workspace::git::{AddRefusal, NewBranch};
 
 use super::start::{Chosen, choose};
-use crate::workspace::projects::short;
+use crate::workspace::projects::{admission::ProjectAdmission, short};
 use crate::workspace::{
     MAX_PER_AGENT, MAX_WORKTREES, State, WorkspaceError, Workspaces, WorktreeEntry,
 };
@@ -59,21 +59,58 @@ impl Workspaces {
         let workspaces = Arc::clone(self);
         self.tasks
             .spawn(async move {
-                workspaces
-                    .create_now(creator, request, created_for, id)
-                    .await
+                let admission = workspaces.admit_project(request.project).await?;
+                match request.setup {
+                    SetupChoice::Skip => {
+                        workspaces
+                            .create_worktree_admitted(admission, creator, request, created_for, id)
+                            .await
+                    }
+                    SetupChoice::Run => {
+                        workspaces
+                            .create_admitted_now(&admission, creator, request, created_for, id)
+                            .await
+                    }
+                }
             })
             .await
             .map_err(|_stopped| WorkspaceError::Io("making the worktree stopped".to_owned()))?
     }
 
-    async fn create_now(
+    /// Provision backing without bootstrap; the driver retains its own Arc through
+    /// descriptor finalization. Workspace-aware setup is a separate later admission.
+    pub(crate) async fn create_worktree_admitted(
         self: &Arc<Self>,
+        admission: Arc<ProjectAdmission>,
         creator: Creator,
         request: CreateWorktree,
         created_for: Option<SessionId>,
         id: WorktreeId,
     ) -> Result<CreateWorktreeOutcome, WorkspaceError> {
+        admission.require(self, request.project)?;
+        if request.setup != SetupChoice::Skip {
+            return Err(WorkspaceError::Invalid("workspace backing creation requires setup to be skipped until its descriptor is finalized".to_owned()));
+        }
+        let workspaces = Arc::clone(self);
+        self.tasks
+            .spawn(async move {
+                workspaces
+                    .create_admitted_now(&admission, creator, request, created_for, id)
+                    .await
+            })
+            .await
+            .map_err(|error| WorkspaceError::ProjectTask(error))?
+    }
+
+    async fn create_admitted_now(
+        self: &Arc<Self>,
+        admission: &ProjectAdmission,
+        creator: Creator,
+        request: CreateWorktree,
+        created_for: Option<SessionId>,
+        id: WorktreeId,
+    ) -> Result<CreateWorktreeOutcome, WorkspaceError> {
+        admission.require(self, request.project)?;
         let refused = |reason| Ok(CreateWorktreeOutcome::Refused { reason });
         let project = request.project;
         let (root, default_branch) = {
