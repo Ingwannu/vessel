@@ -1,7 +1,9 @@
-//! One voice processor sees the actual rendered stream; conversion does not reset its AEC.
+//! Capture-only DSP and staged duplex processing share normalized sample validation.
 //!
 //! Foreign callback/decoder samples are validated here before processing.
-//! Capture is emitted as 16 kHz mono PCM16. A separate unfiltered converter
+//! Product capture is16kHz mono PCM16 with noise/gain processing. The staged
+//! duplex path requires actual output callback references for AEC; it is not
+//! advertised by capture-only acquisition. A separate unfiltered converter
 //! adapts spoken/cue rates before the fixed device-rate echo reference.
 
 use std::fmt;

@@ -174,3 +174,39 @@ fn maximum_size_chunks_cannot_turn_the_two_second_queue_into_ten_seconds() {
     assert_eq!(capture.submit(frame()), Err(CaptureError::Stopped));
     handle.stop();
 }
+
+#[tokio::test]
+async fn an_in_flight_upload_keeps_its_byte_permit_until_cancelled() {
+    let probe = Arc::new(Probe::default());
+    let (capture, handle, actor) = channel();
+    let pcm = Bytes::from(vec![0; MAX_FRAME_BYTES]);
+    for _ in 0..20 {
+        capture.submit(Frame::new(pcm.clone()).unwrap()).unwrap();
+    }
+    let (upload_tx, upload_rx) = oneshot::channel();
+    let (stop_tx, stop_rx) = oneshot::channel();
+    let (reply_tx, reply_rx) = oneshot::channel();
+    let task = tokio::spawn(actor.run(
+        Node {
+            probe: Arc::clone(&probe),
+            entered_upload: Some(upload_tx),
+            entered_stop: Some(stop_tx),
+            stop_reply: reply_rx,
+        },
+        Device {
+            probe: Arc::clone(&probe),
+            release: Ok(()),
+        },
+    ));
+    upload_rx.await.unwrap();
+    // The channel has space, but its held request still owns its audio budget.
+    assert_eq!(capture.budget.available_permits(), 0);
+    assert_eq!(capture.submit(frame()), Err(CaptureError::Overrun));
+    stop_rx.await.unwrap();
+    assert_eq!(capture.budget.available_permits(), CAPTURE_QUEUE_BYTES);
+    assert_eq!(probe.sent.load(Ordering::Acquire), 1);
+    assert_eq!(capture.submit(frame()), Err(CaptureError::Stopped));
+    reply_tx.send(Ok(())).unwrap();
+    task.await.unwrap();
+    assert_eq!(handle.status().borrow().remote, Remote::Stopped);
+}

@@ -297,3 +297,10 @@ while PCM16 is encoded. It is never interpreted as speech detection, and audio
 Debug still shows only length/identity. Muting can leave this measurement live
 while suppressing upload. This avoids screen-local PCM scans or a second meter
 producer. Actual device levels/processing quality remain unverified.
+
+The in-flight capture budget regression holds a real fake upload, verifies its
+permit remains charged while the channel has a free slot, then checks overrun
+cancellation releases all queued/in-flight bytes before a held remote Stop.
+The prior77ce467a remote check was canceled by signal143 while queued (no compile
+step). W19 did not cancel it or treat it as a test failure; build-tool owner T
+was asked whether a new latest-head submission is released before resubmitting.
