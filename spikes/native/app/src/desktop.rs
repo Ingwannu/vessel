@@ -248,4 +248,3 @@ pub(crate) fn shells(cx: &App) -> Vec<WeakEntity<Shell>> {
         .filter_map(|record| record.shell.upgrade().map(|shell| shell.downgrade()))
         .collect()
 }
-

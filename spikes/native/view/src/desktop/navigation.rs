@@ -115,7 +115,7 @@ mod tests {
             Err(NavigationError::TooLong)
         );
         assert_eq!(
-            NavigationTarget::parse(&input[..MAX_LINK_BYTES]),
+            NavigationTarget::parse(input.get(..MAX_LINK_BYTES).unwrap()),
             Err(NavigationError::Route)
         );
     }

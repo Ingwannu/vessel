@@ -197,6 +197,17 @@ pub fn dialog<V: 'static>(
             release.as_ref(),
         ))
         .children(footer);
+    overlay(card, sheet, narrow, window, close, cx)
+}
+
+fn overlay<V: 'static>(
+    card: gpui::Stateful<gpui::Div>,
+    sheet: Option<sheet::SheetFrame>,
+    narrow: bool,
+    window: &Window,
+    close: impl Fn(&mut V, &mut Window, &mut Context<'_, V>) + 'static,
+    cx: &mut Context<'_, V>,
+) -> AnyElement {
     // The whole window, wherever the screen that keeps it open is drawn
     // (Paseo's overlay is `absoluteFill` of the window).
     let size = window.viewport_size();
@@ -270,7 +281,7 @@ fn body(
         // The body yields to the card's cap so long text cannot hide actions.
         .flex_auto().min_h(px(0.0)).overflow_y_scroll()
         .map(|body| match sheet { Some(sheet) => body.track_scroll(&sheet.scroll), None => body })
-        .when(sheet.is_some(), gpui::Styled::relative)
+        .when(sheet.is_some(), Styled::relative)
         .gap(px(16.0)).p(px(INSIDE)).type_(Type::Body)
         .text_color(surfaces.foreground_muted).child(content)
         .map(|body| match (sheet, release) {

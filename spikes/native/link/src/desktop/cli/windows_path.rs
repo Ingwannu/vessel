@@ -35,14 +35,11 @@ struct UserPath(Vec<u16>);
 
 impl UserPath {
     fn decode(bytes: &[u8]) -> Result<Self, DesktopError> {
-        if !bytes.len().is_multiple_of(2) || bytes.len() / 2 > MAX_PATH_UNITS {
+        let (pairs, remainder) = bytes.as_chunks::<2>();
+        if !remainder.is_empty() || pairs.len() > MAX_PATH_UNITS {
             return Err(DesktopError::InvalidUserPath);
         }
-        let mut units: Vec<u16> = bytes
-            .chunks_exact(2)
-            .filter_map(|pair| pair.first().zip(pair.get(1)))
-            .map(|(low, high)| u16::from_le_bytes([*low, *high]))
-            .collect();
+        let mut units: Vec<u16> = pairs.iter().copied().map(u16::from_le_bytes).collect();
         while units.last() == Some(&0) {
             let _terminator = units.pop();
         }
@@ -121,9 +118,11 @@ fn same_entry(left: &[u16], right: &[u16]) -> bool {
     fn folded(unit: Result<char, std::char::DecodeUtf16Error>) -> Result<char, u16> {
         unit.map(|character| {
             let mut upper = character.to_uppercase();
-            match (upper.next(), upper.next()) {
-                (Some(single), None) => single,
-                (Some(_), Some(_)) | (None, Some(_) | None) => character,
+            let first = upper.next();
+            if upper.next().is_none() {
+                first.unwrap_or(character)
+            } else {
+                character
             }
         })
         .map_err(|invalid| invalid.unpaired_surrogate())

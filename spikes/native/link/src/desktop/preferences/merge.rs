@@ -19,7 +19,7 @@ fn map<K: Ord + Clone, V: PartialEq + Clone>(
     after: &BTreeMap<K, V>,
 ) {
     merge_map(current, before, after, |target, _before, after| {
-        target.clone_from(after)
+        target.clone_from(after);
     });
 }
 
@@ -249,7 +249,7 @@ mod tests {
         let _old = after.choices.insert("host".into(), vec![codex.clone()]);
         let merged = apply(&current, &before, &after).unwrap();
         assert_eq!(
-            merged.choices.get("host").unwrap(),
+            &merged.choices["host"],
             &vec![claude.clone(), codex.clone()]
         );
         let mut old = before;
@@ -257,7 +257,7 @@ mod tests {
         let mut removed = old.clone();
         removed.choices.get_mut("host").unwrap().clear();
         let next = apply(&merged, &old, &removed).unwrap();
-        assert_eq!(next.choices.get("host").unwrap(), &vec![codex]);
+        assert_eq!(&next.choices["host"], &vec![codex]);
     }
 
     #[test]
@@ -298,8 +298,8 @@ mod tests {
                 .or_default()
                 .choices = choices.clone();
             let next = apply(&current, &before, &after).unwrap();
-            let machine = next.settings.defaults.get(&node).unwrap();
-            let agent = machine.agents.get(&kind).unwrap();
+            let machine = &next.settings.defaults[&node];
+            let agent = &machine.agents[&kind];
             assert_eq!(machine.agent, Some(HarnessKind::ClaudeCode));
             assert_eq!(agent.profile.as_ref(), Some(&profile));
             assert_eq!(agent.choices, choices);
