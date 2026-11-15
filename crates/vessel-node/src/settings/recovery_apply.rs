@@ -86,3 +86,6 @@ impl RecoveryApply {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod legacy_tests;

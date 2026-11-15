@@ -132,3 +132,17 @@ process termination, without a real agent or a fabricated commit result.
 These are still source ports, awaiting canonical settings assembly, qualified
 physical preparation, generated declarations and the joint checks. Neither
 old execution evidence nor a successful source application proves this union.
+
+
+## Canonical diagnostics and legacy setter regressions
+
+RecoveryApply's own test module now seeds nondefault policy through the
+canonical opaque SavedNodeSettings constructor and writer. It observes actual
+server bytes for ordinary Get and parking/driver Set at every supported
+settings peer version, retaining the saved policy after each operation. This
+ports the original raw setter regression without reviving the removed record
+API or bypassing wire authority. It also walks complete Display, Debug and
+source chains from both canonical snapshot and compatibility reads of an
+invalid private recovery value. Private typed-cause and actual startup logger
+canaries remain at their shared codec/Opening owners. These source cases still
+need the joint field/engine assembly and execution.
