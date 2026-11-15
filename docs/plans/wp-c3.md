@@ -119,3 +119,8 @@ comes from the one tree authority. Directory conversion failures are typed,
 never dropped files. A real allocation-counter case bounds eight near-maximum
 paths to 512 KiB of model allocation; its execution is still pending. Existing
 reference rows and source indices remain the behavioural regression cases.
+The queued words check at e1adc90c reached Rust and returned one generated-doc
+markup lint from a translator comment naming a Rust state; the comment now
+uses ordinary language. This is not a view test pass. The compressed-tree
+source requires the next changed-source check and execution of its allocation
+case before any measured-memory claim.

@@ -78,7 +78,7 @@ git-panel-problem-missing = This folder is no longer available. Open another wor
 git-panel-problem-unavailable = The machine cannot read these changes right now. Refresh and try again.
 # Complete recovery for an otherwise unclassified read failure; diagnostic is separate.
 git-panel-problem-failed = The machine could not read these changes. Refresh and try again.
-# Complete recovery when the machine explicitly cannot provide this read; this does not mean NotGit.
+# Complete recovery when the machine cannot provide this read; this does not say the folder lacks git.
 git-panel-problem-unsupported = This machine cannot provide these changes. Check Git and Vessel on the machine, then refresh.
 # Alert heading for a failed status or comparison read; recovery and git output follow separately.
 git-panel-failed-title = Changes could not be read

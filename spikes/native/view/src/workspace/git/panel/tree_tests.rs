@@ -231,7 +231,7 @@ fn a_small_deep_reply_does_not_expand_into_every_intermediate_directory() {
         let tree = ChangeTree::new(&files).unwrap();
         assert_eq!(tree.rows(&BTreeSet::new()).len(), 16);
         assert_eq!(tree.ordered_files().len(), files.len());
-        std::hint::black_box(tree);
+        let _tree = std::hint::black_box(tree);
     });
     assert!(allocations.bytes_max <= MAX_BUILD_BYTES, "{allocations:?}");
     assert!(

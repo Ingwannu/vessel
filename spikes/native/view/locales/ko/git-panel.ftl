@@ -77,7 +77,7 @@ git-panel-problem-missing = 이 폴더를 더 이상 사용할 수 없습니다.
 git-panel-problem-unavailable = 지금은 머신에서 변경 사항을 읽을 수 없습니다. 새로고침하고 다시 시도하세요.
 # Complete recovery for an otherwise unclassified read failure; diagnostic is separate.
 git-panel-problem-failed = 머신에서 변경 사항을 읽지 못했습니다. 새로고침하고 다시 시도하세요.
-# Complete recovery when the machine explicitly cannot provide this read; this does not mean NotGit.
+# Complete recovery when the machine cannot provide this read; this does not say the folder lacks git.
 git-panel-problem-unsupported = 이 머신에서 변경 사항을 제공할 수 없습니다. 머신의 Git과 Vessel을 확인하고 새로고침하세요.
 # Alert heading for a failed status or comparison read; recovery and git output follow separately.
 git-panel-failed-title = 변경 사항을 읽지 못했습니다
