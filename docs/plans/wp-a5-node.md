@@ -260,3 +260,11 @@ Exact acf19 strict/unit runs both stopped before executing tests because the
 extracted fixture named Leftover in vessel-proc instead of its existing owner,
 vessel_session::terminals. The path is corrected; no product/admission behavior
 or assertion changes. Replacement narrow checks remain owed.
+
+Executed changed-source strict evidence: exact00a47d41094eb512152db0bf55a1e149ab356302,
+run wp-inbox-node-20261115T144650Z-00a47d41, five crates (proto/store/session/node/
+client), all targets, Clippy -D warnings: rc0/36s at15:07:16 UTC. Cargo log SHA256
+a22e3e5e221ff2e65fb0f2176b7ff444a90d3771fe37d065728b43410fa4f11a matches
+the recorded step. This settles compilation/lints only; same-source unit run
+is executing, and V3 source closure, whole root, assigned wire and native/CLI
+producer proof remain owed. No protocol number or runtime adoption follows.
