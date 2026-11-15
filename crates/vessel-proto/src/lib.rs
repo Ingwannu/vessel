@@ -45,6 +45,7 @@ mod notifications_tests;
 mod options;
 mod pairing;
 pub mod parking;
+pub mod plugins;
 pub mod ports;
 mod profile;
 mod proxy;
@@ -223,3 +224,6 @@ mod tests {
         assert_eq!(serde_json::from_str::<EventRecord>(&json).unwrap(), record);
     }
 }
+
+/// Read-only provider source identities and validated metadata.
+pub mod subagents;
