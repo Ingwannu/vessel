@@ -245,3 +245,10 @@ no live per-session resource getters or follow cutover. A2 retains no second
 resource manager and does not substitute selected-global state for scoped access.
 The producer's reviewed/clippy evidence does not replace this consumer's union
 checks or the final package/runtime gate.
+
+A mutation with no readable node error reply is LostReply, carrying its original
+ActFailed diagnostic. It is distinct from an explicit wire refusal and from the
+overall deadline. The UI preserves the session, explains the uncertain outcome
+in both languages and retains the detail, while refresh invalidates stale Fleet
+snapshots. An in-memory framed peer drops the transport after receiving the
+mutation; the regression verifies one call, no replay and projection invalidation.

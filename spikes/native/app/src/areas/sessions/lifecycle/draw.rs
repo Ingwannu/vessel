@@ -70,13 +70,14 @@ pub(crate) fn error(shell: &Shell, tokens: &Tokens) -> Option<AnyElement> {
         return None;
     }
     let message = problem_words(shell, problem);
-    Some(
-        div()
-            .type_(Type::Body)
-            .text_color(tokens.neutral.destructive)
-            .child(message)
-            .into_any_element(),
-    )
+    let mut body = div()
+        .type_(Type::Body)
+        .text_color(tokens.neutral.destructive)
+        .child(message);
+    if let Problem::LostReply(failed) = problem {
+        body = body.child(div().child(failed.message.clone()));
+    }
+    Some(body.into_any_element())
 }
 
 pub(super) fn problem_words(shell: &Shell, problem: &Problem) -> String {
@@ -86,6 +87,7 @@ pub(super) fn problem_words(shell: &Shell, problem: &Problem) -> String {
         Problem::ExistingDraft => words.existing_draft(),
         Problem::ProfileUnavailable => words.profile_unavailable(),
         Problem::Refused(failed) => &failed.message,
+        Problem::LostReply(_) => words.reply_uncertain(),
         Problem::Uncertain => words.outcome_uncertain(),
         Problem::Offline => words.navigation_offline(),
         Problem::WrongReply => words.navigation_refused(),

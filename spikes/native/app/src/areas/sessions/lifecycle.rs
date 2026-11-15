@@ -39,6 +39,7 @@ enum Problem {
     ExistingDraft,
     ProfileUnavailable,
     Refused(vessel_app_link::ActFailed),
+    LostReply(vessel_app_link::ActFailed),
     Uncertain,
     Offline,
     WrongReply,
@@ -335,6 +336,7 @@ impl Shell {
             ) => Err(Problem::WrongReply),
             Err(failure) => Err(match failure {
                 Failure::Refused(failed) => Problem::Refused(failed),
+                Failure::LostReply(failed) => Problem::LostReply(failed),
                 Failure::Uncertain => Problem::Uncertain,
                 Failure::Unsent => Problem::Offline,
                 Failure::IdentityChanged => Problem::DestinationChanged,

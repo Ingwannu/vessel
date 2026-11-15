@@ -14,6 +14,9 @@ pub struct Answer {
 pub enum Failure {
     /// No connected host or the node refused its existing operation.
     Refused(ActFailed),
+    /// No readable node reply established whether the attempted effect committed.
+    /// Keep the boundary diagnostic; reconnecting must not replay this mutation.
+    LostReply(ActFailed),
     /// Refresh before retrying because a mutation's outcome is uncertain.
     Uncertain,
     /// The local queue accepted no mutation.
@@ -64,7 +67,13 @@ mod native {
                         .await;
                         projection.changed();
                         match result {
-                            Ok(result) => result.map_err(Failure::Refused),
+                            Ok(result) => result.map_err(|failed| {
+                                if failed.code.is_some() {
+                                    Failure::Refused(failed)
+                                } else {
+                                    Failure::LostReply(failed)
+                                }
+                            }),
                             Err(_) => Err(Failure::Uncertain),
                         }
                     }

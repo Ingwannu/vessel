@@ -162,3 +162,34 @@ async fn bound_terminal_read_returns_the_original_receipt_and_keeps_passive_proj
     assert!(state.session_projection.accepts(before));
     assert!(peer.calls.try_recv().is_err());
 }
+
+#[tokio::test]
+async fn lost_mutation_reply_is_uncertain_and_never_replayed_on_the_connection() {
+    let mut peer = peer::connect(peer::Behavior::Disconnect).await;
+    let (state, mut events) = state(peer.client.clone());
+    let target = binding(peer.client.node().id);
+    let mut lifecycle = Lifecycle::default();
+    let request = lifecycle
+        .begin(
+            LifecycleTarget {
+                host: target.host,
+                session: target.address.session,
+                node: Some(target.address.node),
+            },
+            LifecycleAction::Archive,
+        )
+        .unwrap();
+    let before = state.session_projection.capture();
+    state.session_lifecycle(&request);
+    let Event::SessionLifecycle(answer) = next(&mut events).await else {
+        panic!("wrong event")
+    };
+    assert!(matches!(answer.result,
+        Err(crate::sessions::lifecycle::Failure::LostReply(failed)) if failed.code.is_none()
+    ));
+    assert!(matches!(peer.calls.recv().await,
+        Some(Call::MarkSession(mark)) if mark.session == target.address.session
+    ));
+    assert!(peer.calls.try_recv().is_err());
+    assert!(!state.session_projection.accepts(before));
+}

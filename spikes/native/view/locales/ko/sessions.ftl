@@ -54,6 +54,9 @@ sessions-navigation-busy = 다른 요청을 처리하고 있습니다. 다시 �
 sessions-link-copied = 세션 링크 복사됨
 # A mutation timed out; do not imply it failed before being committed.
 sessions-outcome-uncertain = 작업 시간이 초과되어 완료 여부를 확인할 수 없습니다. 새로고침 후 다시 확인해 주세요.
+
+# Preserve uncertainty when a mutation has no readable node reply.
+sessions-reply-uncertain = 작업 응답을 받지 못했거나 읽을 수 없습니다. 작업이 완료되었을 수 있으므로 다시 시도하기 전에 새로고침해 주세요.
 # Fresh conversation refuses to overwrite another unsent draft.
 sessions-existing-draft = 새 채팅에 작성 중인 초안이 있습니다. 새 대화를 시작하기 전에 해당 초안을 열어 주세요.
 # Preserve explicit profile configuration until the draft profile picker can carry it.

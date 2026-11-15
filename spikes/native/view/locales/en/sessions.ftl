@@ -54,6 +54,9 @@ sessions-navigation-busy = Another request is being processed. Try again.
 sessions-link-copied = Session link copied
 # A mutation timed out; do not imply it failed before being committed.
 sessions-outcome-uncertain = The operation timed out and may have completed. Refresh before retrying.
+
+# Preserve uncertainty when a mutation has no readable node reply.
+sessions-reply-uncertain = The operation’s reply was lost or could not be read. It may have completed. Refresh before retrying.
 # Fresh conversation refuses to overwrite another unsent draft.
 sessions-existing-draft = New chat already has a draft. Open it before starting a fresh conversation.
 # Preserve explicit profile configuration until the draft profile picker can carry it.
