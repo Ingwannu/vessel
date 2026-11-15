@@ -400,8 +400,9 @@ provider id nor driver kind establishes an account binding. The provider actor
 must supply an explicit typed binding and known sign-in verdict before the page
 can combine them into one row per provider as Paseo does. This is a deliberate,
 temporary parity difference, not a fabricated compatibility/account table.
-Protocol24 is reserved for the provider package but is not callable until its
-integrator announces assignment and the canonical app base carries it.
+The provider feature remains unassigned and uncallable until its integrator
+announces assignment and the canonical app base carries it. The earlier24
+reservation was superseded;24 belongs to host diagnostics.
 
 
 ### Registry, Add and legacy Remove consumer wiring
@@ -435,8 +436,9 @@ The registry and mutation forms use new English/Korean Fluent messages, with who
 refusal tables. Shared search ownership was assigned to this track after the
 preceding field writers. The installed consumer temporarily uses ordinary TextField
 while that exact shared SearchField handoff is pending. This is an acknowledged
-source-parity gap, not a visual pass or an area-owned search skin. Prepared shared
-SearchField code remains outside the tree until the required writer handoff.
+source-parity gap, not a visual pass or an area-owned search skin. The shared
+SearchField producer is now installed after the checked preceding writer handoff;
+consumer changes stay outside the tree until its focused runtime and V1 disposition.
 
 All this consumer source is unverified until the changed-head remote narrow and
 final A9 gate/captures. Earlier039c runtime evidence excludes these new controls,
