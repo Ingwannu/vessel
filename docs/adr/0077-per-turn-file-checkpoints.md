@@ -1,10 +1,11 @@
 # ADR 0077: File checkpoints at turn boundaries, independently of conversation rewind
 
-Status: proposed, 2026-11-15. Design only; no implementation or protocol
-number is approved by this document. Extends ADRs 0027 and 0052 without
-changing their existing calls. Implementation waits for review and the
-central node/app baseline merge. No runtime setting or dependency changes
-are made by this draft.
+Status: accepted as a design contract, 2026-11-15, on `a852bde3`.
+No implementation, protocol number, dependency or call registration is
+approved by this document. Extends ADRs 0027 and 0052 without changing
+their existing calls. Implementation awaits central ownership assignment
+and the node/app baseline merge. No runtime setting or dependency changes
+are made by this document.
 
 ## Purpose and intent
 
@@ -479,10 +480,10 @@ needed for checkpoint operation.
 
 ## Resume point
 
-Draft only. No storage schema, RPC registration, checkpoint filesystem or UI
-exists from this ADR. The first review returned two defects; the revised
-contract freezes an effective metadata-policy target and separates actor
-capture timeout from retained I/O-worker cleanup. Required evidence above is
-still future work, including the permission and held-I/O cases. Next: revised
-contract review, then central implementation/baseline/schema/protocol assignment.
-Product code remains held.
+Contract accepted; no storage schema, RPC registration, checkpoint filesystem
+or UI exists from this ADR. The effective metadata-policy target and the
+separation of actor timeout from retained I/O-worker cleanup are part of the
+accepted contract. Required evidence above remains future work, including
+permission, held-I/O, publication-race and crash-recovery cases. Next: central
+implementation/baseline/schema/protocol assignment. Product code remains held
+until that ownership and integration sequence is supplied.

@@ -1,7 +1,8 @@
 # Per-turn file checkpoints: contract-first plan
 
-Status: design draft, 2026-11-15. Product implementation is held pending ADR
-0077 review and the central merge of the node contracts into the app baseline.
+Status: ADR 0077 design contract accepted, 2026-11-15, on `a852bde3`.
+Product implementation remains held pending central ownership assignment and
+the merge of the node contracts into the app baseline.
 
 ## Reference and existing assets
 
@@ -35,14 +36,15 @@ Kit dialog, alert and toast already exist; no new general control is needed.
 
 ## Resume point
 
-Completed: reference/source research and proposed ADR 0077. First review
-returned two contract defects. The revision makes preview/journal/verification
-share the frozen effective permission-policy image, and bounds the actor's
-capture wait without pretending blocked I/O is cancellable. Timed-out workers
-retain their bounded slot/reservation until cleanup; expired generations cannot
-publish ready checkpoints. Non-root metadata and held-I/O barrier tests remain
-required evidence for later implementation, not results of this document.
+Completed: reference/source research and accepted ADR 0077 design contract
+(`a852bde3`). Preview/journal/verification share the frozen effective
+permission-policy image. The actor's capture wait is bounded without claiming
+blocked I/O is cancellable; timed-out workers retain their bounded slot and
+reservation until cleanup. Expired generations cannot publish ready checkpoints.
+Non-root metadata and held-I/O barrier tests remain required evidence for later
+implementation, not results of this document.
 
 No product edits, merge, runtime test, fake fleet, capture or compiled gate.
-Revised contract review is next; no package UI or node implementation is
-authorized before it passes.
+Next: central owners assign baseline, implementation, schema and protocol
+integration. Contract acceptance does not assign that work or prove runtime
+capability; no package UI or node implementation starts before that sequence.
