@@ -18,6 +18,8 @@ mod movement;
 mod ownership;
 pub use ownership::{LookupProblem, WorkspaceLocation, WorkspaceLookup, session_layout_key};
 mod persistence;
+#[cfg(test)]
+mod persistence_groups;
 pub use persistence::{RememberedLayout, decode_layouts};
 mod reconcile;
 mod retarget;

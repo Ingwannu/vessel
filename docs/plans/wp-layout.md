@@ -79,6 +79,8 @@ and commit diffs are ephemeral. Renderer/cursor are panel-owned state.
   always requires the original node binding before any future operation.
 - Device format one is a typed Rust format, not an importer for Paseo JSON.
   Split fractions reject NaN/infinity and are clamped to the shared minimum.
+  Restored group IDs are unique and strictly below the shared split allocator,
+  preventing ambiguous resize targets or future allocation collisions.
 
 ## Producer contract
 
@@ -108,9 +110,10 @@ through the shortcut owner's dispatcher. Layout installs no keyboard listener.
 ## Current evidence and remaining cutover
 
 The pure pane model, native frame, typed persistence and correlated rename adapter
-are implemented and undergoing narrow checks. Narrow strict all-target view and link compilation has succeeded on the prior
-shared base. The combined app check exposed a shadowed helper binding, now
-corrected; another check also covers the newly merged Quality B shared base. This is not a whole-package gate or capture claim.
+are implemented. Strict all-target view/link/app Clippy passed on the shared
+producer source. The source review's split-group identity correction and the
+modified-record host-forget regression are receiving targeted narrow tests.
+This is not a whole-package gate or capture claim.
 
 The resident contract in `wp-layout-residents.md` passed contract-only review.
 Pure admission/focus/transport-fence types and tests are in `view::residents`;

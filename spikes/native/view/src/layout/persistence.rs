@@ -1,7 +1,7 @@
 //! Restored layouts are validated before they can reach interactive operations.
 use super::{
-    ExplorerVisibility, Layout, LayoutError, MAX_TREE_DEPTH, Pane, PaneHost, PaneId, SplitNode,
-    Tab, TabId,
+    ExplorerVisibility, GroupId, Layout, LayoutError, MAX_TREE_DEPTH, Pane, PaneHost, PaneId,
+    SplitNode, Tab, TabId,
 };
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashSet};
@@ -123,7 +123,8 @@ impl Layout {
         next
     }
     fn validate(&self) -> Result<(), LayoutError> {
-        validate_tree(&self.root, 1)?;
+        let mut groups = BTreeSet::new();
+        validate_tree(&self.root, 1, self.next_pane, &mut groups)?;
         if self.root.pane(self.focused).is_none()
             || self.explorer.id != PaneId::EXPLORER
             || self.side.is_some_and(|id| self.root.pane(id).is_none())
@@ -173,7 +174,12 @@ impl Layout {
         Ok(())
     }
 }
-fn validate_tree(node: &SplitNode, depth: usize) -> Result<(), LayoutError> {
+fn validate_tree(
+    node: &SplitNode,
+    depth: usize,
+    next_pane: u64,
+    groups: &mut BTreeSet<GroupId>,
+) -> Result<(), LayoutError> {
     if depth > MAX_TREE_DEPTH {
         return Err(LayoutError::TreeTooDeep);
     }
@@ -184,9 +190,14 @@ fn validate_tree(node: &SplitNode, depth: usize) -> Result<(), LayoutError> {
             }
             Ok(())
         }
-        SplitNode::Group { children, .. } => {
+        SplitNode::Group { id, children, .. } => {
+            // Resize handles share the split allocator. A restored collision can
+            // redirect a gesture to an ancestor or to a future split.
+            if id.0 >= next_pane || !groups.insert(*id) {
+                return Err(LayoutError::InvalidState);
+            }
             for child in children {
-                validate_tree(child, depth.saturating_add(1))?;
+                validate_tree(child, depth.saturating_add(1), next_pane, groups)?;
             }
             Ok(())
         }
