@@ -25,6 +25,7 @@
 mod args;
 mod automation;
 mod conversation;
+mod discovery;
 mod forge;
 mod forking;
 mod lsp;
@@ -46,7 +47,7 @@ use rmcp::service::RequestContext;
 use rmcp::{ErrorData, RoleServer, ServerHandler};
 use serde_json::{Value, json};
 use vessel_client::{CallError, NodeClient, Unary};
-use vessel_proto::{FleetNode, KillSession, ListNodes, ListSessions, NodeId, SessionId};
+use vessel_proto::{FleetNode, KillSession, ListNodes, NodeId, SessionId};
 
 use args::{flag, number, required, session, text};
 use sessions::session_tools;
@@ -110,10 +111,7 @@ impl VesselTools {
         match name {
             name if name.starts_with("vessel_lsp_") => self.lsp(name, args).await,
             "list_nodes" => Ok(json!(self.client.call(ListNodes).await?)),
-            "list_sessions" => {
-                let node = self.target(args).await?;
-                Ok(json!(self.on(node, ListSessions::default()).await?))
-            }
+            "list_sessions" => self.list_sessions(args).await,
             "list_projects" | "list_worktrees" | "create_worktree" => {
                 self.workspace(name, args).await
             }
@@ -230,8 +228,11 @@ impl ServerHandler for VesselTools {
         match self.call(&request.name, &args).await {
             Ok(value) => Ok(CallToolResult::success(vec![McpContent::text(pretty(&value))]).into()),
             Err(ToolError::Arguments(message)) => Err(ErrorData::invalid_params(message, None)),
-            Err(ToolError::LspJson(error)) => {
+            Err(ToolError::LspJson(error) | ToolError::MetadataJson(error)) => {
                 Err(ErrorData::invalid_params(error.to_string(), None))
+            }
+            Err(refused @ ToolError::MetadataTarget) => {
+                Err(ErrorData::invalid_params(refused.to_string(), None))
             }
             Err(refused) => {
                 Ok(CallToolResult::error(vec![McpContent::text(refused.to_string())]).into())
@@ -249,6 +250,12 @@ enum ToolError {
     /// Typed LSP arguments or results failed to encode/decode at the SDK edge.
     #[error("invalid LSP tool JSON")]
     LspJson(#[source] serde_json::Error),
+    /// Session metadata decoders keep serde's typed refusal until the MCP edge.
+    #[error("invalid session metadata JSON")]
+    MetadataJson(#[source] serde_json::Error),
+    /// Metadata for a new session cannot be applied to an existing target.
+    #[error("labels and listing describe a new session, not an existing target")]
+    MetadataTarget,
     /// The node refused or failed; the agent reads why.
     #[error("{}", node_error(.0))]
     Node(#[from] CallError),

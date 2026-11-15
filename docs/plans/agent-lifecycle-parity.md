@@ -749,3 +749,20 @@ remain separately owned consumer work before protocol assignment.
 The first core narrow lint refused redundant SessionSpec qualifications in
 the template rule and its test. They are removed without changing behavior
 or expectations; a fresh corrected-source check remains owed.
+
+### MCP metadata and discovery consumer
+
+MCP decodes labels/listing/scope before resolving even a node name. Borrowed
+map deserialization avoids cloning unrelated prompt text and retains the serde
+error until the MCP invalid-params boundary. Existing-session schedules and
+heartbeats refuse creation metadata instead of dropping it. Shared schema bounds
+come directly from label validators. Create/schedule input stays typed through
+the shared admission check. No new tool name or endpoint is registered.
+
+Implicit discovery uses Shown when the metadata assignment and negotiated peer
+support it; otherwise it retains the legacy full-list request. A remote older
+fleet hop may still refuse that implicit selected call with Unsupported. Only
+that implicit default may retry once using null; explicit scope or labels never
+fall back, and no other error is retried. This compatibility difference has no
+Paseo forwarding counterpart. All paths still use the one shared SDK/server
+protocol guard; the default chooser introduces no second admission rule.

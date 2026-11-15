@@ -334,6 +334,15 @@ real stream notices, preserving the same capture contract for follow.
 
 ### MCP
 
+MCP discovery follows the same negotiated default as the CLI. If an older fleet
+hop refuses an implicit Shown read with Unsupported, that implicit default alone
+may make one legacy null read. Explicit scope or labels never fall back, and
+no other refusal or transport failure is retried. Paseo has no such forwarding
+hop; this preserves the existing full-list compatibility contract. Invalid
+metadata is decoded before even target-name lookup. Existing-session schedules
+and heartbeats refuse creation-only labels/listing instead of discarding them.
+
+
 On the session's own `vessel` server, as one protocol call each:
 
 - `create_session` gains `labels` and `listing` (`shown` or

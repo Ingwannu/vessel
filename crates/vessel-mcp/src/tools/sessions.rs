@@ -20,9 +20,9 @@ use super::{
 
 impl VesselTools {
     pub(super) async fn create_session(&self, args: &JsonObject) -> Result<Value, ToolError> {
-        let node = self.target(args).await?;
         let terminal = flag(args, "terminal")?;
         let spec = Self::spec(args)?;
+        let node = self.target(args).await?;
         let info = self.on(node, CreateSession { spec }).await?;
         let Some(prompt) = text(args, "prompt")? else {
             return Ok(json!({ "session": info }));
@@ -70,6 +70,7 @@ impl VesselTools {
             }
         };
         let mut spec = SessionSpec::new(harness, mode);
+        super::discovery::creation(args, &mut spec)?;
         match (workspace::place(args)?, text(args, "cwd")?) {
             (Some(_), Some(_)) => {
                 return Err(ToolError::Arguments(
@@ -185,9 +186,10 @@ pub(super) fn session_tools(node: &Value, session: &Value) -> Vec<Tool> {
         ),
         tool(
             "list_sessions",
-            "Every session on the node, newest first: id, harness, mode, status, profile, and \
-             who created it.",
-            json!({ "node": node }),
+            "Discover sessions, newest first. Default excludes background when supported; \
+             explicit scope or labels require the metadata protocol.",
+            json!({ "node": node, "scope": super::discovery::scope_property(),
+                "labels": super::discovery::labels_property() }),
             &[],
         ),
         create_session_tool(node),
@@ -273,6 +275,8 @@ pub(super) fn create_session_tool(node: &Value) -> Tool {
                 "type": "string",
                 "description": "claude, codex, gemini, opencode, or an agent added on the node."
             },
+            "labels": super::discovery::labels_property(),
+            "listing": super::discovery::listing_property(),
             "profile": {
                 "type": "string",
                 "description": "One of the node's profiles for that harness (an account)."
