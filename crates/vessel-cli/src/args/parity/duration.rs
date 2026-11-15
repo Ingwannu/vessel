@@ -40,7 +40,7 @@ impl FromStr for WaitBudget {
                 'd' => Self::DAY,
                 _ => return Err(InvalidDuration),
             };
-            let number = digits.parse::<u64>().map_err(|_| InvalidDuration)?;
+            let number = digits.parse::<u64>().map_err(|_invalid| InvalidDuration)?;
             total = total
                 .checked_add(number.checked_mul(scale).ok_or(InvalidDuration)?)
                 .ok_or(InvalidDuration)?;
@@ -50,7 +50,7 @@ impl FromStr for WaitBudget {
             if total != 0 || !text.chars().all(|c| c.is_ascii_digit()) {
                 return Err(InvalidDuration);
             }
-            total = digits.parse().map_err(|_| InvalidDuration)?;
+            total = digits.parse().map_err(|_invalid| InvalidDuration)?;
         }
         let duration = Duration::from_secs(total);
         if duration.is_zero() || std::time::Instant::now().checked_add(duration).is_none() {

@@ -59,6 +59,7 @@ mod devices;
 mod error;
 mod files;
 mod forge;
+pub mod host_registry;
 mod inbox;
 mod lock;
 mod log;

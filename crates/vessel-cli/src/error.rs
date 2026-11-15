@@ -14,6 +14,8 @@ use vessel_remote::{
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum CliError {
     #[error(transparent)]
+    ParityHostText(#[from] vessel_proto::host_registry::InvalidHostText),
+    #[error(transparent)]
     ParityLabel(#[from] vessel_proto::InvalidLabel),
     #[error("cannot encode command output")]
     ParityEncode(#[source] serde_json::Error),

@@ -28,6 +28,7 @@ pub mod forking;
 mod forward;
 mod harness;
 pub mod history;
+pub mod host_registry;
 mod id;
 pub mod inbox;
 mod key;

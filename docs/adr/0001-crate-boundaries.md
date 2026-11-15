@@ -325,3 +325,13 @@ its integration decision. Before the move starts, these conditions bind it:
   cleanup, API change, changed bound or error source, weakened assertion,
   different duplicate-writer handling, or changed `NotVisible` fallback.
   A kernel PID alone continues to grant no signal authority.
+
+### W17: node terminal screen parsing
+
+The session runtime owns `vt100` (pinned 0.18.1, MIT, Rust 1.85 minimum) for persistent
+terminal screen capture. Existing terminal actors already own the ordered byte stream
+and resize lifecycle; keeping parser state there survives event-ring pruning and avoids
+replaying log bytes with the wrong geometry. A new parser implementation or a dependency
+from node/native UI would duplicate authority. Only `vessel-session` may depend on `vt100`;
+its public API uses typed Vessel capture requests/results. C2's native rendering parser
+remains separate; this change adds no GPUI dependency to the node.

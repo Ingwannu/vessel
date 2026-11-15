@@ -32,6 +32,8 @@ mod mcp;
 mod node_stop;
 mod nodes;
 #[cfg(test)]
+mod parity;
+#[cfg(test)]
 mod reconnect;
 #[cfg(test)]
 mod side_questions;

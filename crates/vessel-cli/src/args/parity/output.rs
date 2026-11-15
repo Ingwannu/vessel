@@ -36,7 +36,12 @@ pub(crate) struct OutputOptions {
     quiet: bool,
     #[arg(long, global = true)]
     no_headers: bool,
-    /// This presentation layer is plain text by default.
+    #[command(flatten)]
+    color: ColorOptions,
+}
+/// Color selection is separate from data format; current tables are monochrome.
+#[derive(Debug, Default, Args)]
+struct ColorOptions {
     #[arg(long, global = true)]
     no_color: bool,
 }

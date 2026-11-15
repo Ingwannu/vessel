@@ -178,3 +178,35 @@ finite waits and broken pipes. Source-only audit is distinct from a passing narr
 Per-commit checks use the remote short lane; the package gets one root whole gate through
 A12, no native gate/captures. Reviewer V3 and the node integrator receive the final range,
 run ID/steps/totals, works/blocked/unverified.
+
+## Node host registry and capture decision (coordinator ruling)
+
+The final owner table assigns W17 the host registry and node-side terminal capture.
+W5 owns the report/source DTOs; W17 wires their CLI only. W4 owns CLI permit; W2
+owns detach. W11 owns workspace identity, W22 provider creation, lifecycle logs/labels/reload,
+nodectl daemon, workspace scripts, W16 plugins and W19b desktop installation remain separate.
+
+[Decision Log]
+- Purpose and intent: persist user-visible host registrations without creating a second transport or credential authority; capture rendered terminal lines rather than log bytes.
+- Existing implementation and constraints: fleet nodes, paired devices/links and relay routes already establish trust and connectivity; `nodes.toml` is client-local. Terminal actors own output but their bounded event ring is not a screen and cannot reconstruct pruned output or historical resize geometry reliably.
+- Alternatives considered: duplicate host credentials in a registry; treat any URL as trusted; replay raw bytes per capture; reuse a native-only grid in the node; implement another ANSI parser by hand.
+- Chosen approach: host entries reference existing paired/fleet destinations and retain source ownership, metadata, enabled state and explicit identity-replacement checks. Use one owner-only atomic host registry file, reusing store file-replacement helpers (no SQLite migration). A bounded terminal screen owned beside the terminal output actor provides snapshots; evaluate the established `vt100` parser within `vessel-session`, with no parser types crossing its API.
+- Why: credentials stay in existing authorities; file persistence avoids a competing store migration for a small bounded directory; persistent actor screen state stays correct after event-ring pruning and resize. Native UI parser remains C2's responsibility.
+- Advantages, costs and effects: registry disable/removal never revokes a paired device or forgets a fleet node. Direct/SSH/pair offers must resolve to a trusted destination first; the initial reference-only contract must explicitly refuse unresolved targets. A screen engine adds bounded memory per terminal and one external parser dependency owned solely by `vessel-session` if adopted.
+
+Reference host bounds: `packages/protocol/src/hosts.ts:3-36` (label/key 256,
+metadata value 4096, connection text 16384). The initial reference-only form accepts
+`fleet:<NodeId>` or `paired:<NodeId>`; unresolved address forms remain a stated pending
+connectivity integration, not a successful registration. Source ownership derives from the
+authenticated principal, never a caller-provided source ID.
+Reference capture: `packages/server/src/terminal/terminal-capture.ts:14-59`: zero-based,
+inclusive start/end, negative indices count from the end, clamped to available rows;
+reversed ranges are empty. xterm translateToString omits style information even with
+stripAnsi=false, so --ansi must not synthesize style that Paseo itself does not return.
+
+Parser choice verified from the upstream `vt100` 0.18.1 crate source and manifest
+(MIT, Rust 1.85): https://github.com/doy/vt100-rust and
+https://docs.rs/vt100/0.18.1/vt100/ . `Parser` accepts split UTF-8/ANSI bytes and exposes
+scrollback and line projections without exporting its types across our crate boundary.
+Only three new lockfile packages were resolved: vt100, vte, unicode-width; no existing
+locked dependency version was updated.

@@ -62,16 +62,16 @@ impl Observed {
                     self.questions.clear();
                 }
                 AgentEvent::PermissionRequested(request) => {
-                    self.permissions.insert(request.id);
+                    let _new = self.permissions.insert(request.id);
                 }
                 AgentEvent::PermissionResolved { id, .. } => {
-                    self.permissions.remove(id);
+                    let _present = self.permissions.remove(id);
                 }
                 AgentEvent::QuestionAsked(question) => {
-                    self.questions.insert(question.id);
+                    let _new = self.questions.insert(question.id);
                 }
                 AgentEvent::QuestionResolved { id, .. } => {
-                    self.questions.remove(id);
+                    let _present = self.questions.remove(id);
                 }
                 AgentEvent::Ready { .. }
                 | AgentEvent::UserMessageChunk { .. }

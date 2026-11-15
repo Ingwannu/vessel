@@ -7,18 +7,18 @@ use crate::{
 };
 use serde::Serialize;
 
-pub(super) trait Row: Serialize {
+pub(crate) trait Row: Serialize {
     fn id(&self) -> String;
     fn headers() -> &'static [&'static str];
     fn cells(&self) -> Vec<String>;
 }
 
-pub(super) async fn list<T: Row>(presentation: Presentation, rows: &[T]) -> Result<(), CliError> {
+pub(crate) async fn list<T: Row>(presentation: Presentation, rows: &[T]) -> Result<(), CliError> {
     let bytes = render_list(presentation, rows)?;
     Ok(io::out(&bytes).await?)
 }
 
-pub(super) fn render_list<T: Row>(
+pub(crate) fn render_list<T: Row>(
     presentation: Presentation,
     rows: &[T],
 ) -> Result<Vec<u8>, CliError> {
@@ -31,11 +31,14 @@ pub(super) fn render_list<T: Row>(
             bytes.extend(json(rows)?);
             Ok(bytes)
         }
-        Presentation::Quiet => Ok(rows
-            .iter()
-            .map(|row| format!("{}\n", row.id()))
-            .collect::<String>()
-            .into_bytes()),
+        Presentation::Quiet => {
+            let mut text = String::new();
+            for row in rows {
+                text.push_str(&row.id());
+                text.push('\n');
+            }
+            Ok(text.into_bytes())
+        }
         Presentation::Table(headers) => {
             let mut text = String::new();
             if headers == Headers::Show && !rows.is_empty() {
@@ -57,7 +60,7 @@ pub(super) fn render_list<T: Row>(
     }
 }
 
-pub(super) async fn single<T: Serialize>(
+pub(crate) async fn single<T: Serialize>(
     presentation: Presentation,
     id: &str,
     value: &T,

@@ -20,6 +20,9 @@ pub(super) async fn run(
     presentation: Presentation,
     args: AgentRun,
 ) -> Result<(), CliError> {
+    if args.prompt.trim().is_empty() {
+        return Err(CliError::Usage("the prompt is empty"));
+    }
     let labels = labels(&args.label)?;
     if args.workspace.is_some() {
         return Err(CliError::ParityBlocked(

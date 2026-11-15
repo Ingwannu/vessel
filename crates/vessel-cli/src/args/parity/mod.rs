@@ -2,11 +2,13 @@
 
 mod agent;
 mod duration;
+mod host;
 mod identifier;
 pub(crate) mod output;
 
 pub(crate) use agent::{AgentCommand, AgentList, AgentRun, AgentSend, Selection, Wait};
 pub(crate) use duration::WaitBudget;
+pub(crate) use host::HostCommand;
 pub(crate) use output::{ConnectionOptions, OutputOptions, Presentation};
 
 use crate::selector::SessionSelector;
@@ -15,6 +17,11 @@ use clap::Subcommand;
 /// Root shortcuts share the same typed handlers as the agent group.
 #[derive(Debug, Subcommand)]
 pub(crate) enum ParityCommand {
+    /// Registrations reference the node's existing trusted fleet/paired destinations.
+    Host {
+        #[command(subcommand)]
+        command: HostCommand,
+    },
     /// Manage agent conversations (provider discovery remains `agents`).
     Agent {
         #[command(subcommand)]
@@ -37,3 +44,6 @@ pub(crate) enum ParityCommand {
         force: bool,
     },
 }
+
+#[cfg(test)]
+mod tests;

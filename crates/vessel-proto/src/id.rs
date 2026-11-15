@@ -310,3 +310,8 @@ mod tests {
         assert_eq!(serde_json::to_string(&id).unwrap(), r#""toolu_01""#);
     }
 }
+
+uuid_id! {
+    /// A host registration is independent of its current trusted destination.
+    HostRegistrationId
+}
