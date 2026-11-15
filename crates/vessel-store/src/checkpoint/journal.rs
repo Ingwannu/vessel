@@ -24,6 +24,18 @@ pub(super) fn candidate(
     if reserved.get() > vessel_proto::checkpoint::CHECKPOINT_NODE_BYTES {
         return Err(CheckpointError::StorageFull.into());
     }
+    let used: i64 = connection.query_row(
+        "SELECT COALESCE(sum(reserved_bytes),0) FROM checkpoint_captures",
+        [],
+        |row| row.get(0),
+    )?;
+    let used = u64::try_from(used).map_err(|_negative| CheckpointError::StorageFull)?;
+    let total = used
+        .checked_add(reserved.get())
+        .ok_or(CheckpointError::StorageFull)?;
+    if total > vessel_proto::checkpoint::CHECKPOINT_NODE_BYTES {
+        return Err(CheckpointError::StorageFull.into());
+    }
     connection.execute("INSERT INTO checkpoint_captures(id,session,worktree,generation,boundary,state,reserved_bytes,created_at)
         VALUES (?1,?2,?3,?4,?5,'candidate',?6,?7)", params![key.capture.to_string(), key.session.to_string(), key.worktree.to_string(),
         encode(&key.generation)?, encode(&key.boundary)?, bytes, at.timestamp_millis()])?;
@@ -170,8 +182,8 @@ pub(super) fn admit(
     }
     let outcome = RestoreOutcome::InProgress { restore };
     connection.execute(
-        "INSERT INTO checkpoint_restores(id,session,plan,device,outcome,before_image,created_at)
-        VALUES (?1,?2,?3,?4,?5,?6,?7)",
+        "INSERT INTO checkpoint_restores(id,session,plan,device,outcome,phase,before_image,created_at)
+        VALUES (?1,?2,?3,?4,?5,'prepared',?6,?7)",
         params![
             restore.to_string(),
             plan.key.session.to_string(),
@@ -210,10 +222,30 @@ pub(super) fn outcome(
     if current.plan != operation.plan {
         return Err(CheckpointError::RestoreIdConflict.into());
     }
+    if current.outcome == *result {
+        return Ok(());
+    }
+    match current.outcome {
+        RestoreOutcome::InProgress { .. } => {}
+        RestoreOutcome::Restored { .. }
+        | RestoreOutcome::Unchanged
+        | RestoreOutcome::RolledBack { .. }
+        | RestoreOutcome::RecoveryRequired { .. } => {
+            return Err(CheckpointError::RestoreIdConflict.into());
+        }
+    }
+    let phase = match result {
+        RestoreOutcome::InProgress { .. } => return Err(CheckpointError::RestoreIdConflict.into()),
+        RestoreOutcome::RecoveryRequired { .. } => "recovery",
+        RestoreOutcome::Restored { .. }
+        | RestoreOutcome::Unchanged
+        | RestoreOutcome::RolledBack { .. } => "complete",
+    };
     let changed = connection.execute(
-        "UPDATE checkpoint_restores SET outcome=?1 WHERE id=?2 AND outcome=?3",
+        "UPDATE checkpoint_restores SET outcome=?1,phase=?2 WHERE id=?3 AND outcome=?4 AND phase='prepared'",
         params![
             encode(result)?,
+            phase,
             operation.id.to_string(),
             encode(&current.outcome)?
         ],

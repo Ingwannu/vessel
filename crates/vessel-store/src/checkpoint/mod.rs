@@ -7,6 +7,7 @@ mod journal;
 #[cfg(test)]
 mod journal_tests;
 mod records;
+mod recovery;
 
 #[cfg(test)]
 mod tests;

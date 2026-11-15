@@ -191,3 +191,66 @@ fn altered_owner_or_effective_target_never_reuses_a_preview_authorization() {
         Err(Error::Refused(CheckpointError::StalePreview))
     ));
 }
+
+#[test]
+fn a_late_callback_cannot_replace_a_terminal_result_or_a_different_session() {
+    let (connection, key) = fixture();
+    let plan = ready_plan(&connection, key);
+    journal::put_plan(&connection, &plan).unwrap();
+    let restore = RestoreId::random();
+    let operation = journal::admit(&connection, &plan, restore, DateTime::UNIX_EPOCH).unwrap();
+    journal::outcome(&connection, &operation, &RestoreOutcome::Unchanged).unwrap();
+    assert!(matches!(
+        journal::outcome(
+            &connection,
+            &operation,
+            &RestoreOutcome::RecoveryRequired { restore }
+        ),
+        Err(Error::Refused(CheckpointError::RestoreIdConflict))
+    ));
+    assert!(matches!(
+        journal::status(&connection, SessionId::random(), restore, plan.device),
+        Err(Error::Refused(CheckpointError::Forbidden))
+    ));
+}
+#[test]
+fn restart_marks_pending_restores_recovery_without_discarding_before_images() {
+    let (connection, key) = fixture();
+    let plan = ready_plan(&connection, key);
+    journal::put_plan(&connection, &plan).unwrap();
+    let restore = RestoreId::random();
+    let operation = journal::admit(&connection, &plan, restore, DateTime::UNIX_EPOCH).unwrap();
+    assert_eq!(super::recovery::pending(&connection).unwrap(), 1);
+    let recovered = journal::status(&connection, key.session, restore, plan.device).unwrap();
+    assert_eq!(
+        recovered.outcome,
+        RestoreOutcome::RecoveryRequired { restore }
+    );
+    assert_eq!(recovered.before, operation.before);
+    assert_eq!(super::recovery::pending(&connection).unwrap(), 0);
+    assert!(
+        connection
+            .execute(
+                "DELETE FROM sessions WHERE id=?1",
+                [key.session.to_string()]
+            )
+            .is_err(),
+        "recovery data must remain pinned"
+    );
+}
+#[test]
+fn quota_counts_obsolete_candidates_until_physical_cleanup() {
+    let (connection, key) = fixture();
+    journal::unavailable(&connection, key).unwrap();
+    let mut next = key;
+    next.capture = CaptureId::random();
+    assert!(matches!(
+        journal::candidate(
+            &connection,
+            next,
+            crate::ByteCount::new(vessel_proto::checkpoint::CHECKPOINT_NODE_BYTES),
+            DateTime::UNIX_EPOCH
+        ),
+        Err(Error::Refused(CheckpointError::StorageFull))
+    ));
+}

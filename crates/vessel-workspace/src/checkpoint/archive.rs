@@ -70,6 +70,8 @@ impl Archive {
             )
             .map_err(std::io::Error::from)?,
         );
+        rustix::fs::fchmod(&output, Mode::from_raw_mode(PRIVATE_MODE))
+            .map_err(std::io::Error::from)?;
         let result = self.capture_to(source, &mut output, before, budget, cancellation);
         drop(output);
         let cleaned = rustix::fs::unlinkat(&self.folder, "candidate", AtFlags::empty())

@@ -4,7 +4,7 @@ use super::{
     runner::{self, Disposition},
 };
 use std::sync::{
-    Arc, Barrier,
+    Arc,
     atomic::{AtomicUsize, Ordering},
 };
 use tokio::sync::oneshot;
@@ -29,8 +29,8 @@ fn key() -> CaptureKey {
 }
 #[tokio::test(start_paused = true)]
 async fn held_read_io_releases_prompt_and_late_candidate_never_publishes() {
-    let barrier = Arc::new(Barrier::new(2));
-    let worker_barrier = Arc::clone(&barrier);
+    let (release, held) = std::sync::mpsc::channel();
+    let held = std::sync::Mutex::new(Some(held));
     let (entered, entry) = oneshot::channel();
     let entered = std::sync::Mutex::new(Some(entered));
     let published = Arc::new(AtomicUsize::new(0));
@@ -40,7 +40,12 @@ async fn held_read_io_releases_prompt_and_late_candidate_never_publishes() {
     let (client, owner) = runner::start(
         move |_key, _cancel| {
             entered.lock().unwrap().take().unwrap().send(()).unwrap();
-            worker_barrier.wait();
+            held.lock()
+                .unwrap()
+                .take()
+                .unwrap()
+                .recv()
+                .map_err(|_closed| CheckpointError::StaleCapture)?;
             FileImage::new(Vec::new())
         },
         move |_key, _image| {
@@ -67,7 +72,7 @@ async fn held_read_io_releases_prompt_and_late_candidate_never_publishes() {
             .await,
         Err(CheckpointError::Busy)
     );
-    barrier.wait();
+    release.send(()).unwrap();
     finished.await.unwrap();
     assert_eq!(published.load(Ordering::SeqCst), 0);
     drop(client);

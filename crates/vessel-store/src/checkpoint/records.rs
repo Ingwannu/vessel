@@ -29,6 +29,8 @@ pub(super) struct Operation {
 }
 #[derive(Debug, thiserror::Error)]
 pub(super) enum Error {
+    #[error("checkpoint record contains an invalid operation identity")]
+    Id(#[source] <RestoreId as std::str::FromStr>::Err),
     #[error("checkpoint storage operation failed")]
     Sql(#[from] rusqlite::Error),
     #[error("checkpoint record could not be encoded or decoded")]

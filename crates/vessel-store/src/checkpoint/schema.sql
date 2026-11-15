@@ -25,6 +25,7 @@ CREATE TABLE checkpoint_restores (
     plan TEXT NOT NULL REFERENCES checkpoint_plans(id) ON DELETE RESTRICT,
     device TEXT NOT NULL,
     outcome TEXT NOT NULL,
+    phase TEXT NOT NULL CHECK(phase IN ('prepared','complete','recovery')),
     before_image TEXT NOT NULL,
     created_at INTEGER NOT NULL
 ) STRICT;
