@@ -53,6 +53,7 @@ fn a_partial_typed_report_keeps_successful_sources_and_their_observation_times()
     let text = text.as_str();
     assert!(text.contains("Home: ~"));
     assert!(text.contains("Unavailable: Stale"));
+    assert!(!text.contains("expected_schema"));
     assert!(text.contains("Observed at: 1970-01-01"));
     assert!(text.contains(r#""live":{"value":7"#));
     assert!(text.contains("Failed local node calls (not a daemon log)"));

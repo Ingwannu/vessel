@@ -7,7 +7,7 @@ use serde::Serialize;
 use std::{fmt::Write as _, sync::Arc};
 use vessel_proto::{
     NodeId,
-    diagnostics::{DiagnosticReport, DiagnosticSection},
+    diagnostics::{DiagnosticHome, DiagnosticReport, DiagnosticReportFields, DiagnosticSection},
 };
 
 /// Missing producers remain separate from a successfully collected typed report.
@@ -33,13 +33,22 @@ impl DaemonSnapshot {
         match self {
             Self::Unavailable(_) => false,
             Self::Report(report) => {
-                let fields = report.fields();
-                available(&fields.store)
-                    && available(&fields.agents)
-                    && available(&fields.sessions)
-                    && available(&fields.listeners)
-                    && available(&fields.relays)
-                    && available(&fields.recent_failures)
+                let DiagnosticReportFields {
+                    collected_at: _,
+                    node: _,
+                    store,
+                    agents,
+                    sessions,
+                    listeners,
+                    relays,
+                    recent_failures,
+                } = report.fields();
+                available(store)
+                    && available(agents)
+                    && available(sessions)
+                    && available(listeners)
+                    && available(relays)
+                    && available(recent_failures)
             }
         }
     }
@@ -50,37 +59,43 @@ impl DaemonSnapshot {
             }
             Self::Report(report) => report.fields(),
         };
+        // Exhaustive field destructuring makes a new safe source an integration obligation.
+        let DiagnosticReportFields {
+            collected_at,
+            node,
+            store,
+            agents,
+            sessions,
+            listeners,
+            relays,
+            recent_failures,
+        } = report;
+        let home = match node.home {
+            DiagnosticHome::Redacted => "~",
+        };
         let mut text = format!(
-            "Daemon process\n  Collected at: {}\n  Node ID: {}\n  Version: {}\n  OS: {:?}\n  Architecture: {:?}\n  Lifecycle: {:?}\n  Monotonic uptime ms: {}\n  Home: ~",
-            report.collected_at,
-            report.node.id,
+            "Daemon process\n  Collected at: {}\n  Node ID: {}\n  Version: {}\n  OS: {:?}\n  Architecture: {:?}\n  Lifecycle: {:?}\n  Monotonic uptime ms: {}\n  Home: {home}",
+            collected_at,
+            node.id,
             report
                 .node
                 .version
                 .as_ref()
                 .map_or_else(|| "unknown".to_owned(), ToString::to_string),
-            report.node.os,
-            report.node.arch,
-            report.node.state,
-            report.node.uptime.get()
+            node.os,
+            node.arch,
+            node.state,
+            node.uptime.get()
         );
-        source(
-            &mut text,
-            "Store (readability, not integrity)",
-            &report.store,
-        )?;
-        source(&mut text, "Agents (cached observations)", &report.agents)?;
-        source(&mut text, "Runtime sessions", &report.sessions)?;
-        source(
-            &mut text,
-            "Listeners (no reachability claim)",
-            &report.listeners,
-        )?;
-        source(&mut text, "Relays", &report.relays)?;
+        source(&mut text, "Store (readability, not integrity)", store)?;
+        source(&mut text, "Agents (cached observations)", agents)?;
+        source(&mut text, "Runtime sessions", sessions)?;
+        source(&mut text, "Listeners (no reachability claim)", listeners)?;
+        source(&mut text, "Relays", relays)?;
         source(
             &mut text,
             "Failed local node calls (not a daemon log)",
-            &report.recent_failures,
+            recent_failures,
         )?;
         ReportText::new(&text)
     }

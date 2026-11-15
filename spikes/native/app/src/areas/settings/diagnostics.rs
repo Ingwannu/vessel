@@ -195,7 +195,7 @@ fn app_facts(shell: &Shell, window: &Window) -> AppFacts {
             Kept::File { .. } => "file".to_owned(),
             Kept::ThisLaunch { .. } => "this launch only".to_owned(),
         },
-        log: None,
+        log: Some("not collected".to_owned()),
         home: None,
     }
 }

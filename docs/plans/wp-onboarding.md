@@ -193,3 +193,9 @@ service's global cleanup-lock stall. Its owner confirmed the exact absent SHA
 and authorized one fixed-SHA resubmission after repair. That infrastructure
 interruption is not a compilation/test failure. Current source still owes
 updated narrow Clippy, scoped diagnostics tests, captures and the final gate.
+
+The renderer destructures every DiagnosticReportFields member exhaustively:
+adding a future safe source must trigger a consumer integration, rather than
+silently omitting it. The app log-location line says not collected; it does
+not claim that no app log exists when paths are deliberately omitted.
+No unreviewed diagnostics producer or process-metrics WIP was consumed.
