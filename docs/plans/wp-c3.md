@@ -1107,3 +1107,17 @@ one sends exactly its original-context comparison. Ready fixtures now accept
 actual status and summary data instead of treating an Empty store as actionable.
 This test is written/unexecuted, not a native input/capture or authority claim.
 No destructive action or legacy write barrier is opened.
+
+## Exact 7bf strict-check return and corrected App selection
+
+The 7bf all-target check actually reaches View, Link, Kit and App, then returns
+101 on six redundant super::target_tests qualifications in owner_tests, whose
+parent module is already glob-imported. Remove only those six segments; no
+assertion, registration, payload or authority changes. It is a combined red
+run, not four separate passing commands and not a runtime result.
+
+The new eda App-only test submission mistakenly selected --lib, but App is a
+bin-only crate. Its queued run is cancelled before execution and replaced once
+with --bin vessel-app on the coherent corrected source, in the same short lane.
+Keep the original queued/cancelled evidence; do not call it a compiler failure
+or a test pass. The older ordinary 480 all-target git run remains untouched.

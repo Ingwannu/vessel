@@ -79,7 +79,7 @@ fn missing_startup_refuses_a_valid_visible_pane_before_any_new_read(cx: &mut Tes
     let (link, mut inbox) = Link::detached(8).unwrap();
     let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
     shell.update_in(cx, |shell, window, cx| {
-        let (old, _) = super::target_tests::prepare_uninitialized(shell, window, cx);
+        let (old, _) = target_tests::prepare_uninitialized(shell, window, cx);
         while inbox.try_recv().is_ok() {}
         let prior = crate::areas::git::Target {
             machine: "fixture".to_owned(),
@@ -125,7 +125,7 @@ fn duplicate_registration_preserves_the_refusal_and_does_not_admit_fresh_work(
     let (link, mut inbox) = Link::detached(8).unwrap();
     let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
     shell.update_in(cx, |shell, window, cx| {
-        let (old, _) = super::target_tests::prepare(shell, window, cx);
+        let (old, _) = target_tests::prepare(shell, window, cx);
         while inbox.try_recv().is_ok() {}
         assert_eq!(
             crate::areas::git::start(shell, cx),
@@ -150,7 +150,7 @@ fn real_retarget_away_and_back_requires_a_fresh_git_owner_instance(cx: &mut Test
     let (link, mut inbox) = Link::detached(8).unwrap();
     let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
     shell.update_in(cx, |shell, window, cx| {
-        let (old, ticket) = super::target_tests::prepare(shell, window, cx);
+        let (old, ticket) = target_tests::prepare(shell, window, cx);
         while inbox.try_recv().is_ok() {}
         retarget(shell, &old.address, Target::Scripts, cx);
         assert!(!shell.areas.git.panels.entries.contains_key(&old.address));
@@ -196,7 +196,7 @@ fn failed_transaction_keeps_the_live_git_entry_and_committed_retirement_keeps_pe
     language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, window, cx| {
-        let (old, _) = super::target_tests::prepare(shell, window, cx);
+        let (old, _) = target_tests::prepare(shell, window, cx);
         let failed: Result<(), LayoutError> = shell.update_layout(
             &old.address.workspace,
             |layout| {
@@ -234,7 +234,7 @@ fn original_workspace_is_retired_without_touching_another_workspace_with_the_sam
     language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, window, cx| {
-        let (old, _) = super::target_tests::prepare(shell, window, cx);
+        let (old, _) = target_tests::prepare(shell, window, cx);
         let mut other = old.address.clone();
         other.workspace = vessel_app_view::layout::LayoutKey::Workspace {
             node: old.context.node(),
@@ -255,7 +255,7 @@ fn cancelled_close_keeps_the_git_view_and_confirmed_close_retires_it(cx: &mut Te
     language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, window, cx| {
-        let (old, _) = super::target_tests::prepare(shell, window, cx);
+        let (old, _) = target_tests::prepare(shell, window, cx);
         let plan = shell
             .update_layout(
                 &old.address.workspace,
