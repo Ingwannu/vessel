@@ -44,7 +44,8 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::GetPullRequest
         | Method::ParkSession
         | Method::WakeSession
-        | Method::ForkSession => json!({"session": id}),
+        | Method::ForkSession
+        | Method::ListSessionPrompts => json!({"session": id}),
         Method::CreateSession => json!({"spec":{"harness":"codex","mode":"structured"}}),
         Method::PromptSideQuestion => json!({"session":id,"question":"sample"}),
         Method::ResetSideQuestion => json!({"session":id,"side":id}),
@@ -199,7 +200,6 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         Method::UpdatePrompt => json!({"prompt":id,"revision":1,"name":"sample","text":"sample"}),
         Method::DeletePrompt => json!({"prompt":id}),
         Method::SearchMessages => json!({"query":"sample"}),
-        Method::ListSessionPrompts => json!({"session":id}),
         Method::RewindSession => json!({"session":id,"after":0}),
         Method::SubscribePush => json!({"subscription":push_subscription()}),
         Method::ReportPushPresence => {
