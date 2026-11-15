@@ -1788,3 +1788,21 @@ The portable body kernel has no event/RPC attachment or execution path; native
 renderers borrow it without creating a competing provider model. No dependency
 edge changes. See docs/plans/timeline-body-values.md for exact source provenance
 and pending consumer-adoption checks.
+
+## Page feedback and modal ownership
+
+The existing Base UI dialog, command palette and sheet own their key and
+focus behavior. `web/src/ui/page-focus` lets page-originated focus and
+keyboard capture yield to a currently open kit dialog or menu, using its public
+role/open attributes. This closes the gap before its initial focus frame:
+a late-mounted draft cannot take a menu's focus, and a page shortcut recorder cannot
+consume Escape before the dialog receives it. No second modal registry or
+Escape listener competes with Base UI's nested controls and IME handling.
+`compose/use-draft-presence` keeps the mounted draft's asynchronous completion
+guard separate from the optional initial focus; closing a modal does not
+re-run that mount effect. A paused shortcut recording remains pending.
+
+Toasts retain the existing host and lifetime rules. The viewport sits below
+the header and centres existing cards, with responsive width and a bounded
+scrolling stack. It no longer occupies the lower composer/dock region.
+The layer's tokens, status roles, colors and dismiss actions are unchanged.
