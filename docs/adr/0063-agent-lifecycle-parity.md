@@ -324,6 +324,12 @@ Vessel does not copy it.
   (`logs.ts:226`, the `default` arm). Vessel accepts only `tools`,
   `text`, `errors` and `permissions`. Reason: a typo must not print an
   empty log.
+- Paseo's permission filter tests timeline item type names, whose declared
+  union has no permission item (`agent-types.ts:375-389`); permissions are
+  separate stream events (`:424-435`), and the log command selects timeline
+  items (`logs.ts:288-295,384-393`). Vessel selects its typed, durable
+  permission requests and resolutions. Reason: the existing log contains
+  these approval records, and the named filter should expose them.
 - Background is `workspace.background`, creation-only
   (`docs/agent-lifecycle.md:186`, "controls discovery only"). Vessel
   puts `SessionListing` on the session. Reason: a project is a shared

@@ -104,7 +104,7 @@ async fn log_selects_time_kind_and_tail_without_reporting_filtered_records_as_pr
         let fixture = Fixture::start().await;
         let owner = fixture.owner().await;
         let session = create(&fixture, &owner).await;
-        turn(&owner, session, "plain").await;
+        let _first_from = turn(&owner, session, "plain").await;
         let second = turn(&owner, session, "loaded").await;
         let id = session.to_string();
         let last = fixture

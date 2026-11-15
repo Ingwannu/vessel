@@ -125,6 +125,14 @@ Read first, and reproduced except for the differences ADR 0063 lists.
   `permissions` is a type containing `permission`; any other string is
   a substring of the type. Vessel accepts only the four names and
   refuses the rest, so a typo is not an empty log.
+- The permission filter has a representation difference: `logs.ts:238-240`
+  checks timeline item type names, but `packages/protocol/src/agent-types.ts:
+  375-389` has no permission item, and request/resolution are separate stream
+  events (`:424-435`). The live callback consumes timeline items only
+  (`logs.ts:384-393`), as does one-shot history (`:288-295`). Vessel selects
+  its durable typed permission request and resolution records instead, so
+  the named filter can show the approval activity present in its log. This
+  is source inspection, not an executed Paseo behavior claim.
 - Paseo's count parser is `Number.parseInt` (`logs.ts:201-209`), so a
   numeric prefix such as `2x` is accepted. Vessel parses the whole
   non-negative count and refuses a suffix; this prevents a mistyped count
@@ -303,6 +311,10 @@ No row of the crate table changes.
   covered. The original module-path lint was fixed before the whole run.
   The count is parsed before connection; retained records allocate on arrival.
   Tail uses the existing sequence/retention unit and can begin inside a message.
+- Selection slice 5b's first narrow compile found two test-only errors: a
+  failure fixture bypassed the existing status constructor, and a turn cursor
+  was unused. Both are corrected without changing assertions; the narrow
+  checks and complete gate still need to pass.
 - Implementation slice 5b, verification pending: time/kind predicates precede
   the existing tail window. Sequence gaps separate message chunks, but only
   raw page gaps generate retention notices. Parser, predicate, render-boundary
