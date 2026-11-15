@@ -1444,9 +1444,13 @@ switch is implemented by these commands. Actual vendor-account and macOS
 Keychain behavior require a separate operator check; automated tests use only
 offline synthetic fixtures.
 
-Startup continuation is being prepared in separate slices (ADR 0059). Its
+The original value/projection stage of startup continuation (ADR 0098): its
 policy values and settings reply projection exist, with an unassigned protocol;
-there is no new startup setting or automatic resume behavior in this slice.
+that stage added no startup engine. The common settings producer now preserves
+the policy through its canonical opaque document, real Policy/SQL settlement
+and stopping/drain order. Automatic startup dispatch, Session journal wiring
+and recovery CLI options remain reserved for the separately qualified consumer.
+See [the producer and consumer contract](docs/adr/0098-resume-interrupted-turns-at-node-start.md).
 
 The shared CLI presentation boundary is described in
 [W17 output seam](docs/plans/wp-w17-output.md). Configured `models` preserves its
