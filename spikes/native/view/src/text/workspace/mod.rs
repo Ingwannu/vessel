@@ -29,6 +29,7 @@ mod ko;
 pub mod labels;
 mod labels_en;
 mod labels_ko;
+mod problems;
 mod script_words;
 
 use chrono::{DateTime, FixedOffset, NaiveDate, Utc};

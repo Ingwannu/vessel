@@ -481,18 +481,7 @@ impl WorkspaceWords for Ko {
     }
 
     fn problem(&self, problem: &Problem) -> String {
-        match problem {
-            Problem::Node { message, .. } => message.clone(),
-            Problem::Older => {
-                "이 머신의 Vessel이 너무 오래돼 쓸 수 없습니다. 업데이트하세요.".to_owned()
-            }
-            // Not the transport's text (English, with the endpoint).
-            Problem::Gone(_) => {
-                "머신에 연결할 수 없습니다. 머신이 켜져 있고 노드가 실행 중인지 확인하세요."
-                    .to_owned()
-            }
-            Problem::Unsent => "보내지 못했습니다. 다시 시도하세요.".to_owned(),
-        }
+        super::problems::problem(crate::Lang::Ko, problem)
     }
 
     fn save_failure(&self, failure: &SaveFailure) -> String {

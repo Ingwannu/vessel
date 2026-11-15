@@ -526,3 +526,18 @@ ties currently use deterministic Unicode lowercase ordering rather than JS's
 locale-aware localeCompare: the existing Rust ordering avoids a new independent
 collation dependency; non-ASCII collation may differ and is not exact parity.
 Fast source checks pass; latest-source compiler/tests remain pending.
+
+## Visible redacted failures
+
+C5's admitted transport deliberately strips raw remote diagnostics, which can
+include filesystem paths or credentials. The legacy workspace word tables
+previously rendered an empty Node.message as an empty sentence. Their existing
+problem rendering is now shared in text/workspace/problems: nonempty legacy
+node diagnostics and the original transport/older/unsent sentences stay the
+same, while empty diagnostics select a complete localized sentence by closed
+ErrorCode. No fallback tells the person to retry an uncertain effect. The
+actual editor/owner decides recovery and retains the original obligation.
+Two regressions cover every closed code, EN/KO nonempty output, hidden transport
+details and preserved legacy nonempty copy. The existing En/Ko size records
+shrink681→669 and659→648; no allowance is raised. This source is newer than
+strict18's immutable0eb404312 head and has no compiler/test receipt yet.
