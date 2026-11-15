@@ -93,7 +93,7 @@ fn unavailable_context_scope_is_not_admitted_and_history_seeds_only_its_new_draf
             url: None,
         };
         let scope = ContextScope {
-            machine: "fixture".parse().unwrap(),
+            machine: vessel_app_view::machine_book::Name::parse("fixture").unwrap(),
             root: WorkspaceRoot::Project {
                 project: ProjectId::random(),
             },
