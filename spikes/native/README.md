@@ -1257,3 +1257,12 @@ fallback also retains that refusal. A typed refusal has separate EN/KO
 Fluent copy; it does not enable allocation, helpers or `PROJECT_FILE_KEYS`.
 This keeps an unseen setting out of an approval digest while the native display
 is implemented. Existing terminal refusal and head test cases remain intact.
+
+`kit::external_link::external_link(id, Option<SharedString>, &tokens)` draws
+Paseo's inline external link (label12, ArrowUpRight12, gap4, hitSlop8;
+muted text and SVG both become foreground on hover). It receives no URL and
+performs no OS action: callers keep their typed URL and opener. Use existing
+Tooltips only when the source consumer needs a hint. `None` is arrow-only.
+It has no button fill or private target override. Native Type::Meta supplies
+12/16 regular metrics where Paseo leaves line height platform-defined;
+accessibility/keyboard semantics remain the existing kit-wide gap.
