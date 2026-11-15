@@ -397,7 +397,10 @@ mod sidebar_policy_tests {
             sidebar_minimum(SidebarContext::Workspace(Some(Placement::Over))).to_bits(),
             480.0_f32.to_bits()
         );
-        assert_eq!(sidebar_minimum(SidebarContext::Settings).to_bits(), 720.0_f32.to_bits());
+        assert_eq!(
+            sidebar_minimum(SidebarContext::Settings).to_bits(),
+            720.0_f32.to_bits()
+        );
         assert_eq!(
             sidebar_layout(
                 1280.0,

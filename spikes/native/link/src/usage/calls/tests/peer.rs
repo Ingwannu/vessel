@@ -24,7 +24,7 @@ async fn read(stream: &mut DuplexStream) -> Option<ClientFrame> {
     let length = usize::try_from(length).unwrap();
     assert!(length <= FRAME_BYTES);
     let mut bytes = vec![0; length];
-    stream.read_exact(&mut bytes).await.unwrap();
+    assert_eq!(stream.read_exact(&mut bytes).await.unwrap(), bytes.len());
     Some(serde_json::from_slice(&bytes).unwrap())
 }
 async fn write(stream: &mut DuplexStream, frame: ServerFrame) -> bool {
@@ -69,8 +69,8 @@ pub(super) async fn connect(mut reply: impl FnMut(Call) -> Outcome + Send + 'sta
             .await
         );
         while let Some(frame) = read(&mut remote).await {
-            if let ClientFrame::Request { id, call } = frame {
-                if !write(
+            if let ClientFrame::Request { id, call } = frame
+                && !write(
                     &mut remote,
                     ServerFrame::Response {
                         id,
@@ -78,9 +78,8 @@ pub(super) async fn connect(mut reply: impl FnMut(Call) -> Outcome + Send + 'sta
                     },
                 )
                 .await
-                {
-                    break;
-                }
+            {
+                break;
             }
         }
     });

@@ -28,28 +28,28 @@ fn limits(account: LimitAccount) -> UsageLimits {
 #[tokio::test]
 async fn inventory_refreshes_only_the_explicit_profile_and_preserves_other_failures() {
     let calls = Arc::new(Mutex::new(Vec::new()));
-    let seen = calls.clone();
+    let seen = Arc::clone(&calls);
     let peer = peer::connect(move |call| {
         seen.lock().unwrap().push(call.clone());
-        match call {
-            Call::ListProfiles(_) => Outcome::Ok(Reply::ListProfiles(vec![
+        if matches!(&call, Call::ListProfiles(_)) {
+            return Outcome::Ok(Reply::ListProfiles(vec![
                 profile("first"),
                 profile("second"),
-            ])),
-            Call::GetUsageLimits(ask) => {
-                let LimitsScope::Account { account } = ask.scope else {
-                    panic!("account only");
-                };
-                if account.profile.as_ref().unwrap().as_str() == "first" {
-                    Outcome::Err(vessel_proto::WireError::new(
-                        ErrorCode::Forbidden,
-                        "private fixture body",
-                    ))
-                } else {
-                    Outcome::Ok(Reply::GetUsageLimits(limits(account)))
-                }
-            }
-            other => panic!("unexpected {other:?}"),
+            ]));
+        }
+        let Call::GetUsageLimits(ask) = call else {
+            panic!("unexpected fixture method");
+        };
+        let LimitsScope::Account { account } = ask.scope else {
+            panic!("account only");
+        };
+        if account.profile.as_ref().unwrap().as_str() == "first" {
+            Outcome::Err(vessel_proto::WireError::new(
+                ErrorCode::Forbidden,
+                "private fixture body",
+            ))
+        } else {
+            Outcome::Ok(Reply::GetUsageLimits(limits(account)))
         }
     })
     .await;
@@ -79,16 +79,18 @@ async fn inventory_refreshes_only_the_explicit_profile_and_preserves_other_failu
 }
 #[tokio::test]
 async fn cached_inventory_rejects_a_reply_for_another_account() {
-    let peer = peer::connect(|call| match call {
-        Call::ListProfiles(_) => Outcome::Ok(Reply::ListProfiles(vec![profile("first")])),
-        Call::GetUsageLimits(ask) => {
-            assert_eq!(ask.refresh, LimitRefresh::Cached);
-            Outcome::Ok(Reply::GetUsageLimits(limits(LimitAccount {
-                harness: "codex".parse().unwrap(),
-                profile: Some("other".parse().unwrap()),
-            })))
+    let peer = peer::connect(|call| {
+        if matches!(&call, Call::ListProfiles(_)) {
+            return Outcome::Ok(Reply::ListProfiles(vec![profile("first")]));
         }
-        other => panic!("unexpected {other:?}"),
+        let Call::GetUsageLimits(ask) = call else {
+            panic!("unexpected fixture method");
+        };
+        assert_eq!(ask.refresh, LimitRefresh::Cached);
+        Outcome::Ok(Reply::GetUsageLimits(limits(LimitAccount {
+            harness: "codex".parse().unwrap(),
+            profile: Some("other".parse().unwrap()),
+        })))
     })
     .await;
     let report = inventory(&peer.client, None).await.unwrap();
