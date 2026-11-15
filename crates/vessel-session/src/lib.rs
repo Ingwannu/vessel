@@ -139,7 +139,7 @@ mod structured;
 mod terminal;
 pub mod terminals;
 
-pub use again::{Ended, Gate, NotResumable, Relaunch, Reopening, resumable};
+pub use again::{Ended, Gate, NotResumable, PreparedAgain, Relaunch, Reopening, resumable};
 pub use attachments::{AttachmentError, AttachmentLoader, LoadAttachments};
 pub use config::{DEFAULT_DURABLE_CAPACITY, DEFAULT_RING_CAPACITY, RuntimeConfig};
 pub use error::{
