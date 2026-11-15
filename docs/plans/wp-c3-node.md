@@ -504,3 +504,19 @@ scope. It does not execute that scope's regression or later6e927990 fixture,
 assign a number, admit a runtime, or replace the required whole package gate.
 Full spec/log artifact digests are retained in the track's external evidence
 packet af78-root-narrow.json; no unchanged rerun is needed.
+
+
+## Exact queued-root/history/cache library result
+
+wp-git-root-fence-tests-20261115T142936Z-6e927990 completed all4 prerequisite
+stages0/no skips and actual Node workspace tests **67 passed/0 failed/0 ignored**.
+Changed Node compilation is in cargo.log; nested Node binary preparation also
+rebuilt. Includes the sibling-project cache fixtures and corrected live-root/
+shutdown-precedence regression. The prior e103 result remains65/1/0. Exactaf78
+all-target Clippy is prior-source by one test-only correction; it is not
+relabeled as an exact6e lint pass. Artifacts/hashes:6e-root-tests-pass.json in
+the track's external evidence directory. No unchanged rerun is needed.
+
+These are selected libraries, not a whole root gate, V3 runtime acceptance,
+protocol assignment/admission, generated TS freshness, observation/subscription,
+model generation or app/UI proof. GIT_PANEL remainsNone and C3 remains incomplete.
