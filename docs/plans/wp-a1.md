@@ -144,3 +144,20 @@ and W6 ChatHistory. Approved identitye45a5d89 was cherry-picked asd24486f1;
 no registry/store/runtime producer was imported. The seed has no duplicate
 UUID: W12's DraftId will be the seed_draft parameter when its module lands.
 No seed opener or multiple-draft renderer is claimed consumer-ready yet.
+
+### Top-level workspace intake skeleton
+
+The new `Route::NewWorkspace` and `open_new_workspace(NewWorkspaceSeed, ...)`
+accept a captured `Name`/`NodeId` before navigation. A busy draft (including
+whitespace, retained/suppressed context and an uncertain submission) refuses
+replacement. History moves through W6's canonical context intake; the form
+retains placement/launch selections only. Selected project roots stay exact,
+without client-side canonicalization. This route precedes workspace creation,
+so it cannot require W12's existing-workspace LayoutKey.
+
+This is a staged intake skeleton: its submit path reports unsupported while
+W11's checked provision/start-lease driver and the creation RPC are pending.
+It does not turn an empty workspace or a shell into a legacy chat. The
+legacy chat consumer now handles the context preparation refusal exhaustively.
+Existing-workspace tab seeding and working workspace/terminal submission are
+still owed. No whole gate, capture or runtime completion is claimed.

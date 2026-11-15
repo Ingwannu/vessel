@@ -20,3 +20,8 @@ creation-outcome-unknown = The connection ended before the result was confirmed.
 creation-registered-retry = The session was created. Retry the first message in that session.
 # Retries delivery to the already-created session.
 creation-retry-first-message = Retry first message
+
+# Top-level form; no workspace or agent exists yet.
+creation-new-workspace = New workspace
+# Seed acceptance must not overwrite another draft.
+creation-seed-busy = A draft already contains unsent or pending work. Finish it before opening another.

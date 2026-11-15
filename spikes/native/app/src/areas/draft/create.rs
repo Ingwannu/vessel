@@ -11,6 +11,8 @@ pub(crate) struct CreationState {
     pub(crate) flow: Flow,
     pub(crate) registered: Option<Card>,
     pub(crate) node: Option<vessel_proto::NodeId>,
+    pub(crate) workspace: Option<vessel_app_view::creation::WorkspaceForm>,
+    pub(crate) plan: Option<vessel_app_view::creation::LaunchPlan>,
     next: Option<Ticket>,
 }
 impl Default for CreationState {
@@ -19,6 +21,8 @@ impl Default for CreationState {
             flow: Flow::default(),
             registered: None,
             node: None,
+            workspace: None,
+            plan: None,
             next: Some(Ticket::new(0)),
         }
     }

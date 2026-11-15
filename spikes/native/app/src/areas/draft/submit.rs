@@ -21,6 +21,10 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        if self.route == Route::NewWorkspace {
+            self.submit_workspace_form(&text, cx);
+            return;
+        }
         if (text.trim().is_empty() && !self.draft_has_files())
             || !self.areas.draft.creation.flow.may_submit()
         {
@@ -131,9 +135,9 @@ impl Shell {
                         PrepareProblem::Busy | PrepareProblem::Capacity => {
                             self.words.creation().queue_full()
                         }
-                        PrepareProblem::Machine(_) | PrepareProblem::Target(_) => {
-                            self.words.creation().refused()
-                        }
+                        PrepareProblem::Machine(_)
+                        | PrepareProblem::Target(_)
+                        | PrepareProblem::Context(_) => self.words.creation().refused(),
                     }
                     .to_owned(),
                 );
