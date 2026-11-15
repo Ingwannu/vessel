@@ -3,9 +3,11 @@
 
 mod inputs;
 mod snapshots;
+mod tasks;
 
 pub(crate) use inputs::{for_kind, named, unknown};
 pub(crate) use snapshots::Snapshots;
+pub(crate) use tasks::tasks;
 
 use serde::Deserialize;
 use serde_json::Value;

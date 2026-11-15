@@ -55,6 +55,10 @@ impl Session {
                     );
                 }
             }
+            Frame::System(system) => {
+                let events = self.translator.system(&system);
+                self.emit_all(events).await;
+            }
             Frame::StreamEvent(event) => {
                 let events = self.translator.stream(&event);
                 self.emit_all(events).await;
@@ -74,10 +78,7 @@ impl Session {
             }
             // Nothing the driver asks waits for a withdrawal yet: every
             // request is answered as it arrives.
-            Frame::ControlCancelRequest(_)
-            | Frame::System(_)
-            | Frame::KeepAlive
-            | Frame::Unknown => {}
+            Frame::ControlCancelRequest(_) | Frame::KeepAlive | Frame::Unknown => {}
         }
         None
     }

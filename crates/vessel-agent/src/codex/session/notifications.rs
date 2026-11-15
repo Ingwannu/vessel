@@ -68,12 +68,17 @@ impl Session {
                 if let Some(error) = read::<ErrorNotification>(method, params)
                     .filter(|notification| ours(&notification.thread_id))
                 {
-                    let line = if error.will_retry {
-                        format!("Codex will retry: {}", error.error.message)
+                    let event = if error.will_retry {
+                        AgentEvent::Notification(vessel_proto::timeline::TimelineNotification {
+                            level: vessel_proto::timeline::NotificationLevel::Warning,
+                            message: error.error.message,
+                        })
                     } else {
-                        format!("Codex: {}", error.error.message)
+                        AgentEvent::Error {
+                            message: error.error.message,
+                        }
                     };
-                    self.emit(AgentEvent::HarnessLog { line }).await;
+                    self.emit(event).await;
                 }
             }
             // `turn/started` among them: the turn's id is taken from

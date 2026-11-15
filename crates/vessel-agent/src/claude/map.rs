@@ -20,6 +20,8 @@
 //!   with `is_error` (how the CLI reports a usage limit or a rejected
 //!   request), is a failed turn with the agent's own words.
 
+mod timeline;
+
 use std::collections::HashSet;
 use std::path::PathBuf;
 
@@ -44,6 +46,8 @@ pub(crate) struct Translator {
     streamed: HashSet<String>,
     /// Tool calls announced.
     announced: HashSet<String>,
+    /// Repeated native status frames refer to the same outstanding compression.
+    compact_open: bool,
 }
 
 impl Translator {
@@ -98,6 +102,9 @@ impl Translator {
                 }
                 Block::ToolUse { id, name, input } if self.announced.insert(id.clone()) => {
                     events.push(AgentEvent::ToolCall(tool_call(id, name, input)));
+                    if let Some(tasks) = crate::canonical::tasks(name, input) {
+                        events.push(tasks);
+                    }
                 }
                 Block::Text { .. }
                 | Block::Thinking { .. }

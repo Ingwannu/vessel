@@ -320,3 +320,26 @@ native support; no text label grants a permission or substitutes a selected id.
   have regression fixtures. This is text normalization only, with no wire change.
 - Primary specification: [TC39 TrimString](https://tc39.es/ecma262/multipage/text-processing.html#sec-trimstring)
   and [WhiteSpace / LineTerminator](https://tc39.es/ecma262/multipage/ecmascript-language-lexical-grammar.html#sec-white-space).
+
+### Native observation producers (execution proof owed)
+
+Claude system status/compact_boundary now have dedicated typed schemas and a
+Translator-owned outstanding marker; repeated compacting statuses do not open
+extra rows. A boundary retains explicit trigger and pre-token metadata. Unlike
+Paseo's fallback to auto, absent/unrecognised trigger stays unreported. Typed
+native API retries/permission denials become warning notifications; Codex's
+thread-owned retry errors become warnings and non-retry errors become Error.
+No question/permission transport or plan-mode transition is changed by these hooks.
+
+Known TodoWrite arguments produce Plan snapshots with optional native id and
+active_form preserved; invalid/unknown statuses fall back to the ordinary raw tool
+row. The 1024-task ceiling is a finite display-state floor beyond Paseo; it drops
+only the extra canonical snapshot, preserving the existing original tool event.
+ACP/Codex plans have no fabricated stable ids or active forms when unreported.
+
+Provider detail enrichment now refuses to associate unscoped old arguments after
+a new turn, even before a reused announcement arrives. Explicit scopes retain
+late-update evidence. Added count/byte/body saturation tests prove no eviction or
+capacity-induced association. These tests remain unexecuted until remote evidence.
+Primary sources: app/src/utils/tool-call-parsers.ts:270-339; Claude agent.ts:4764-4817,
+6247-6273; native Codex error notification schema. No real provider was launched.

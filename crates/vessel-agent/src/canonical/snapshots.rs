@@ -100,7 +100,10 @@ impl Snapshots {
     }
 
     fn enrich(&self, update: &mut vessel_proto::ToolCallUpdate) {
-        let previous = self.entries.get(&(update.id.clone(), update.scope.clone()));
+        let previous = self
+            .entries
+            .get(&(update.id.clone(), update.scope.clone()))
+            .filter(|previous| update.scope.is_some() || previous.turn == self.turn);
         let mut detail = match previous.and_then(|value| value.detail.clone()) {
             Some(previous) => Some(previous.updated(update.detail.as_deref().cloned())),
             None => update.detail.as_deref().cloned(),
@@ -172,3 +175,6 @@ fn attach_text(detail: &mut ToolCallDetail, text: &str) {
         | ToolCallDetail::SubAgent(_) => {}
     }
 }
+
+#[cfg(test)]
+mod tests;

@@ -28,6 +28,7 @@
 use serde::Deserialize;
 use serde_json::Value;
 
+pub(crate) mod timeline;
 mod written;
 
 pub(crate) use written::{
@@ -67,6 +68,10 @@ pub(crate) enum Frame {
 pub(crate) enum System {
     /// The session started: its id, model and what the CLI can do.
     Init(Init),
+    /// Provider-reported context maintenance status.
+    Status(timeline::Status),
+    /// Context compression completed with its reported token metadata.
+    CompactBoundary(timeline::CompactBoundary),
     /// An API request failed and is retried.
     ApiRetry(ApiRetry),
     /// A tool call was denied without asking (a rule, a mode).
