@@ -110,19 +110,20 @@ fn read(field: &QuestionField, text: &str) -> Result<Given, FillError> {
     };
     match &field.kind {
         FieldKind::Text { .. } => Ok(Given::One(AnswerValue::Text(text.to_owned()))),
-        FieldKind::Number { .. } => text
-            .trim()
+        FieldKind::Number { .. } => vessel_proto::trim_ecmascript(text)
             .parse::<f64>()
             .ok()
             .and_then(FiniteNumber::new)
             .map(|number| Given::One(AnswerValue::Number(number)))
             .ok_or_else(|| unreadable("a number")),
-        FieldKind::Integer { .. } => text
-            .trim()
+        FieldKind::Integer { .. } => vessel_proto::trim_ecmascript(text)
             .parse::<i64>()
             .map(|number| Given::One(AnswerValue::Integer(number)))
             .map_err(|_not_whole| unreadable("a whole number")),
-        FieldKind::Boolean { .. } => match text.trim().to_ascii_lowercase().as_str() {
+        FieldKind::Boolean { .. } => match vessel_proto::trim_ecmascript(text)
+            .to_ascii_lowercase()
+            .as_str()
+        {
             "true" | "yes" | "y" | "1" => Ok(Given::One(AnswerValue::Boolean(true))),
             "false" | "no" | "n" | "0" => Ok(Given::One(AnswerValue::Boolean(false))),
             _ => Err(unreadable("yes or no")),

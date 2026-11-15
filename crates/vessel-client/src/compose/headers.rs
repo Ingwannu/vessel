@@ -25,7 +25,7 @@ pub fn fill_headers(
         if matching.next().is_some() {
             return Err(FillError::AmbiguousHeader(header.clone()));
         }
-        let (name, value) = value(field, text.trim())?;
+        let (name, value) = value(field, vessel_proto::trim_ecmascript(text))?;
         if values.insert(name.clone(), value).is_some() {
             return Err(FillError::Repeated(name));
         }
@@ -140,5 +140,40 @@ mod tests {
             ),
             Err(FillError::Invalid(_))
         ));
+    }
+    #[test]
+    fn header_values_use_the_same_ecmascript_whitespace_as_generic_validation() {
+        let question = form();
+        let answer = fill_headers(
+            &question,
+            &BTreeMap::from([("Route".into(), "\u{feff}Left\u{feff}".into())]),
+        )
+        .unwrap();
+        let QuestionAnswer::Accept { values } = answer else {
+            panic!("accept")
+        };
+        assert_eq!(
+            values[&"route".parse::<FieldName>().unwrap()],
+            AnswerValue::Choice("opaque-left".into())
+        );
+        let answer = fill_headers(
+            &question,
+            &BTreeMap::from([("Route".into(), "\u{85}".into())]),
+        )
+        .unwrap();
+        let QuestionAnswer::Accept { values } = answer else {
+            panic!("accept")
+        };
+        assert_eq!(
+            values[&"custom".parse::<FieldName>().unwrap()],
+            AnswerValue::Text("\u{85}".into())
+        );
+        assert!(
+            fill_headers(
+                &question,
+                &BTreeMap::from([("Route".into(), "\u{feff}".into())])
+            )
+            .is_err()
+        );
     }
 }
