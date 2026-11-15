@@ -98,7 +98,7 @@ fn presentation_projects_the_target_and_capabilities_without_changing_preference
 }
 
 #[test]
-fn committed_comparison_is_never_sent_as_the_legacy_all_changes_scope() {
+fn branch_comparisons_needing_private_index_semantics_never_use_legacy_base() {
     let base = WorktreeBase::Ref {
         name: "origin/main".parse().unwrap(),
     };
@@ -111,9 +111,7 @@ fn committed_comparison_is_never_sent_as_the_legacy_all_changes_scope() {
     assert_eq!(committed.legacy_scope(), None);
     assert_eq!(
         Comparison::new(ComparisonMode::All, Some(base.clone()), Whitespace::Show).legacy_scope(),
-        Some(DiffScope::Base {
-            base: Some(base.clone())
-        })
+        None
     );
     let uncommitted = Comparison::new(ComparisonMode::Uncommitted, Some(base), Whitespace::Ignore);
     assert_eq!(uncommitted.base(), None);
