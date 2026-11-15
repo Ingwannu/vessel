@@ -17,6 +17,7 @@ use crate::attachments::Attachments;
 use crate::automation::notices::Notices;
 use crate::automation::prompts::SavedPrompts;
 use crate::automation::schedules::Schedules;
+use crate::connection_life::ConnectionLife;
 use crate::devices::Devices;
 use crate::error::ServiceError;
 use crate::fleet::{Home, Links};
@@ -40,6 +41,7 @@ mod fleet_control;
 mod profiles;
 mod providers;
 mod sessions;
+mod subagents;
 mod transfers;
 // Protocol 9's calls: what a session runs with, and titles.
 pub(crate) mod composer_commands;
@@ -55,6 +57,7 @@ mod status;
 mod files;
 mod git;
 mod projects;
+mod registry;
 mod worktrees;
 // Protocol 11's calls: pull requests (`forge`, ADR 0029).
 mod forge;
@@ -64,6 +67,7 @@ mod scripts;
 mod terminals;
 // Protocol 11's calls: schedules (`automation`), and the runs they make
 // through the service's own checks; protocol 13's previews of them.
+mod diagnostics;
 mod followed;
 mod inbox;
 mod limits;
@@ -81,6 +85,11 @@ mod parking;
 mod search;
 mod settings;
 mod side_questions;
+
+#[cfg(test)]
+mod connection_life_tests;
+#[cfg(test)]
+mod dispatch_tests;
 
 /// The node's protocol implementation.
 #[derive(Debug)]
@@ -127,7 +136,8 @@ pub(crate) struct NodeService {
     /// The ports their trees and the sessions' listen on (protocol 11).
     ports: Arc<Ports>,
     /// What `agent.status` found (protocol 11, `readiness`).
-    readiness: crate::readiness::Readiness,
+    readiness: Arc<crate::readiness::Readiness>,
+    pub(crate) diagnostics: crate::diagnostics::State,
     /// The node's copy of the ACP registry (protocol 11, `catalogue`).
     catalogue: crate::catalogue::Catalogues,
     /// The last install (protocol 11, `install`).
@@ -159,6 +169,7 @@ pub(crate) struct NodeService {
 /// The parts a [`NodeService`] serves.
 pub(crate) struct Parts {
     pub(crate) providers: crate::providers::Providers,
+    pub(crate) diagnostics: crate::diagnostics::Setup,
     pub(crate) lsp: vessel_lsp::Manager,
     pub(crate) lsp_roots: Vec<crate::LspRoot>,
     pub(crate) lifecycle: Lifecycle,
@@ -191,6 +202,7 @@ impl NodeService {
     pub(crate) fn new(parts: Parts) -> Self {
         let Parts {
             providers,
+            diagnostics,
             lsp,
             lsp_roots,
             lifecycle,
@@ -219,6 +231,14 @@ impl NodeService {
             limits,
         } = parts;
         let store = sessions.store().clone();
+        let readiness = Arc::new(crate::readiness::Readiness::default());
+        let diagnostics = crate::diagnostics::State::new(
+            diagnostics,
+            lookup.clone(),
+            Arc::clone(&profiles),
+            Arc::clone(&readiness),
+            store.clone(),
+        );
         Self {
             providers,
             lsp,
@@ -243,7 +263,8 @@ impl NodeService {
             forges,
             terminals,
             ports,
-            readiness: crate::readiness::Readiness::default(),
+            readiness,
+            diagnostics,
             catalogue,
             installs: crate::install::Installs::default(),
             schedules,
@@ -303,6 +324,9 @@ pub(crate) struct Connection {
     /// Its waiting reads, against its share (`waits`).
     waiting: ConnectionWaits,
     presence_id: crate::push::PresenceId,
+    /// Its identity and close observer, one per connection
+    /// (`connection_life`).
+    life: ConnectionLife,
 }
 
 impl Connection {
@@ -314,6 +338,7 @@ impl Connection {
             "client connected"
         );
         Self {
+            life: ConnectionLife::within(peer.outbound.closing_token()),
             outbound: peer.outbound,
             principal,
             protocol: peer.protocol,
@@ -346,7 +371,20 @@ impl Connection {
             protocol: self.protocol,
             waiting: Arc::clone(&self.waiting),
             presence_id: self.presence_id,
+            life: self.life.clone(),
         }
+    }
+
+    /// This connection's identity and close observer, the same for every
+    /// context acting for it. A resource the connection owns keeps
+    /// `owner()` and `closed()`, never the life: holding the life keeps the
+    /// connection's last context from ending it.
+    #[cfg_attr(
+        not(test),
+        expect(dead_code, reason = "A10 exception until D2 Preview or W14 reads it")
+    )]
+    pub(crate) const fn life(&self) -> &ConnectionLife {
+        &self.life
     }
 }
 

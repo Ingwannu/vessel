@@ -28,6 +28,8 @@
 //!   `vessel_harness::MAX_STATUS_OUTPUT`; the handshake by the node's
 //!   handshake timeout.
 
+pub(crate) mod diagnostics;
+
 use std::collections::HashMap;
 use std::process::Stdio;
 use std::sync::{Mutex, PoisonError};

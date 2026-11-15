@@ -52,8 +52,8 @@ The metadata core now has the registry, private-file owner, bounded catalogue
 producer/cache, node startup/shutdown wiring,3pending typed methods and client
 wrappers. PROVIDERS remains None: the integrator assigns the next free protocol
 number at the wiring merge. The earlier reservation of24 was superseded when
-host diagnostics received24; no provider number is assigned here. MIN2/current23
-are unchanged on this package snapshot. No pending traffic is sent.
+host diagnostics received24; no provider number is assigned here. MIN2/current24 follow the assigned diagnostics base; this package assigns no
+provider protocol number. No pending traffic is sent.
 G3 keeps modern provider metadata apart from legacy installation/account rows;
 no profile, sign-in, defaults or removal identity is inferred from a provider ID.
 
@@ -704,3 +704,27 @@ also remains queued: the schema file matches T's67c5, but this driver's contract
 asserts config on ThreadStart/Resume additionally, so that earlier schema test
 is not relabeled as proof of the extra checks. Only the fixed offline schema
 wrapper may run, never an agent/account operation.
+
+## Required node50c merge (2026-11-15)
+
+Merged the announced9c150c6e (all18base steps green, Rust2549/0/12), without
+rebasing or assigning PROVIDERS. The base owns protocol24/diagnostics and its
+other shared schemas. Preserve its boxed guarded handlers, workspace/detach
+rows, settings writer/teardown, startup monotonic clock and bound-listener
+publication. Provider3pending rows and the owned composer dependency stay at
+the table tail. Client/RPC fake handlers retain both sets of entries.
+
+Canonical Startup::open now carries the provider preparation made under the
+data-directory lock. A typed CoreSetup groups its session/provider ownership
+with the actual start clock; synchronous frontends assembly carries the base's
+Settings through Teardown. Bound listener state is published through that same
+gateway service after bind. Existing provider work leases/child cancellation
+are preserved. The shrinking node.rs budget is not restored/increased: existing
+extractions keep it below the normal limit, removing the base's672 exception.
+
+Generated proto.ts is taken byte-for-byte from the incoming head for this merge;
+it is deliberately awaiting the approved VM generator for the combined types.
+No generated text is hand edited or whitespace-normalized. Its inherited
+trailing spaces are generator output. Static size1019/23 passed; all combined
+Cargo/boundary/TS/runtime/whole checks remain owed. Prior source/test gates are
+not relabeled as this combined head's proof.

@@ -40,6 +40,7 @@ pub(super) fn prepare(
 ) -> Frontends {
     let Core {
         runtime,
+        settings,
         lifecycle,
         stop,
         tasks,
@@ -71,6 +72,7 @@ pub(super) fn prepare(
     };
     let teardown = Teardown {
         runtime,
+        settings,
         tasks,
         forwarders,
         closing,

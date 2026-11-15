@@ -15,6 +15,8 @@ mod parts;
 #[cfg(test)]
 mod private_dir;
 
+mod diagnostics;
+
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::sync::{Arc, PoisonError, RwLock};

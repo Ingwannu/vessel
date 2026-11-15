@@ -32,6 +32,10 @@
 //! - This is a JSON file decoding edge: a local tree comparison detects unknown
 //!   fields before preservation; no untyped JSON escapes the file comparison.
 
+mod decode;
+
+pub use decode::SettingsDecodeFailure;
+
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -70,9 +74,9 @@ pub enum SettingsFileError {
     Parse {
         /// The file.
         path: PathBuf,
-        /// What did not parse.
+        /// Safe metadata; the original serde cause stays private inside it.
         #[source]
-        source: serde_json::Error,
+        source: SettingsDecodeFailure,
     },
 }
 
@@ -94,7 +98,7 @@ impl DataDir {
             Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
             Err(error) => return Err(StoreError::io(&path)(error).into()),
         };
-        serde_json::from_slice(&text)
+        decode::settings(&text)
             .map(Some)
             .map_err(|source| SettingsFileError::Parse { path, source })
     }
