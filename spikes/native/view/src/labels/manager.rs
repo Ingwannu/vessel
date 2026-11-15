@@ -235,6 +235,18 @@ impl Manager {
         Ok(())
     }
 
+    /// Back returns to the searchable list without losing its query.
+    /// # Errors
+    /// A pending operation or confirmation must settle first.
+    pub fn back(&mut self) -> Result<(), Failure> {
+        if self.state.busy() {
+            return Err(Failure::Pending);
+        }
+        self.state = ManagerState::Listing;
+        self.error = None;
+        Ok(())
+    }
+
     /// Validate and reserve one atomic rename/recolor request.
     /// # Errors
     /// Refuses unavailable hosts, pending work and empty/unchanged drafts.

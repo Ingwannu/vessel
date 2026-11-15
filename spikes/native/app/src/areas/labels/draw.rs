@@ -9,6 +9,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button_with_kind};
 use vessel_app_view::labels::{Failure, HostState, ManagerState};
 
+use super::actions::Action;
 use crate::shell::Shell;
 
 pub(crate) fn overlay(
@@ -60,30 +61,102 @@ fn body(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     if let Some(failure) = state.error.or_else(|| state.manager.error()) {
         body = body.child(notice(failure_text(failure, shell), tokens));
     }
-    match state.manager.state() {
-        ManagerState::Listing => body.child(list(shell, host, tokens, cx)),
-        ManagerState::Editing(draft) => body
+    if let Some(draft) = state.manager.state().draft() {
+        body = body
             .child(state.name.element(tokens, false, cx))
             .child(super::colors::choices(shell, draft.color(), tokens, cx))
-            .child(button_with_kind(
-                "labels-save",
-                words.save(),
-                ButtonKind::Primary,
-                ButtonState::Disabled,
-                tokens,
-            ))
-            .child(button_with_kind(
-                "labels-delete",
-                words.delete(),
-                ButtonKind::Secondary,
-                ButtonState::Disabled,
-                tokens,
-            )),
+            .child(
+                button_with_kind(
+                    "labels-back",
+                    words.back(),
+                    ButtonKind::Ghost,
+                    enabled(!state.manager.state().busy()),
+                    tokens,
+                )
+                .on_click(cx.listener(|shell, _, _window, cx| {
+                    if let Err(failure) = shell.areas.labels.manager.back() {
+                        shell.areas.labels.error = Some(failure);
+                    }
+                    shell.settle_labels(cx);
+                    cx.notify();
+                })),
+            );
+    }
+    match state.manager.state() {
+        ManagerState::Listing => body.child(list(shell, host, tokens, cx)),
+        ManagerState::Editing(draft) => {
+            let current = host.catalog.get(&draft.original().name);
+            let online = host.state == HostState::Online;
+            body.child(
+                button_with_kind(
+                    "labels-save",
+                    words.save(),
+                    ButtonKind::Primary,
+                    enabled(
+                        online && current.is_some_and(|label| draft.replacement(label).is_some()),
+                    ),
+                    tokens,
+                )
+                .on_click(
+                    cx.listener(|shell, _, _window, cx| shell.label_action(Action::Save, cx)),
+                ),
+            )
+            .child(
+                button_with_kind(
+                    "labels-delete",
+                    words.delete(),
+                    ButtonKind::Secondary,
+                    enabled(online && current.is_some()),
+                    tokens,
+                )
+                .on_click(
+                    cx.listener(|shell, _, _window, cx| shell.label_action(Action::Inspect, cx)),
+                ),
+            )
+        }
         ManagerState::Saving { .. } | ManagerState::Deleting { .. } => body.child(words.pending()),
         ManagerState::Inspecting { .. } => body.child(words.inspecting()),
         ManagerState::Confirming { count, .. } => body
             .child(words.confirm())
-            .child(div().child(words.affected()).child(count.get().to_string())),
+            .child(
+                words
+                    .affected(vessel_app_view::localization::Number::count(count.get()))
+                    .unwrap_or_else(|_| words.failed().to_owned()),
+            )
+            .child(
+                button_with_kind(
+                    "labels-delete-cancel",
+                    words.cancel(),
+                    ButtonKind::Secondary,
+                    ButtonState::Enabled,
+                    tokens,
+                )
+                .on_click(cx.listener(|shell, _, _window, cx| {
+                    let _cancelled = shell.areas.labels.manager.cancel_delete();
+                    shell.settle_labels(cx);
+                    cx.notify();
+                })),
+            )
+            .child(
+                button_with_kind(
+                    "labels-delete-confirm",
+                    words.delete(),
+                    ButtonKind::Primary,
+                    enabled(host.state == HostState::Online),
+                    tokens,
+                )
+                .on_click(
+                    cx.listener(|shell, _, _window, cx| shell.label_action(Action::Delete, cx)),
+                ),
+            ),
+    }
+}
+
+const fn enabled(value: bool) -> ButtonState {
+    if value {
+        ButtonState::Enabled
+    } else {
+        ButtonState::Disabled
     }
 }
 

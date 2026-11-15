@@ -1,6 +1,7 @@
 //! Label manager on the existing adaptive dialog. State/rules belong to view.
 //! The skeleton exposes unsupported nodes honestly until ADR 0086 is wired.
 
+mod actions;
 mod colors;
 mod draw;
 mod hosts;
@@ -22,6 +23,7 @@ pub(crate) struct Labels {
     color_turn: colors::ColorTurn,
     unresolved: Vec<vessel_app_view::machine_book::Name>,
     applied_editability: Option<EditAccess>,
+    tickets: vessel_app_view::labels::Tickets,
 }
 
 impl Labels {
@@ -57,6 +59,7 @@ impl Labels {
             color_turn: colors::ColorTurn::default(),
             unresolved: Vec::new(),
             applied_editability: None,
+            tickets: vessel_app_view::labels::Tickets::default(),
         }
     }
 }

@@ -2,6 +2,23 @@
 
 use super::*;
 
+#[test]
+fn manager_back_preserves_search_and_cannot_abandon_a_pending_write() {
+    let mut manager = Manager::default();
+    manager.search("ready");
+    manager.edit(label("Ready", Color::Violet)).unwrap();
+    manager.back().unwrap();
+    assert_eq!(manager.query(), "ready");
+    manager.edit(label("Ready", Color::Violet)).unwrap();
+    manager.draft_mut().unwrap().set_color(Color::Sky);
+    let request = ticket(&mut Tickets::default());
+    manager
+        .save(HostState::Online, &ready_catalog(), request)
+        .unwrap();
+    assert_eq!(manager.back(), Err(Failure::Pending));
+    assert!(matches!(manager.state(), ManagerState::Saving { ticket, .. } if *ticket == request));
+}
+
 fn name(raw: &str) -> Name {
     raw.parse::<Name>().unwrap()
 }

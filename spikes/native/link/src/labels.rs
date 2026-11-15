@@ -58,21 +58,6 @@ impl Command {
     }
 }
 
-impl crate::Link {
-    /// The skeleton never claims that local memory was persisted on a node.
-    /// # Errors
-    /// Until the node contract is integrated, returns `Unsupported` without I/O.
-    pub fn request_labels(
-        &self,
-        host: HostKey,
-        ticket: Ticket,
-        command: Command,
-    ) -> Result<(), Failure> {
-        drop((host, ticket, command));
-        Err(Failure::Unsupported)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

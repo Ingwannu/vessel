@@ -41,8 +41,11 @@ labels-pending = Updating labels…
 labels-inspecting = Checking affected workspaces…
 # Label manager confirm text; shown inside the adaptive dialog.
 labels-confirm = Delete this label and remove it from affected workspaces?
-# Label manager affected text; shown inside the adaptive dialog.
-labels-affected = Affected workspaces
+# Advisory deletion inspection count; $count is the numeric workspace count.
+labels-affected = { NUMBER($count) ->
+    [one] This label is used by one workspace.
+   *[other] This label is used by { NUMBER($count) } workspaces.
+    }
 # Label manager taken text; shown inside the adaptive dialog.
 labels-taken = A label already uses this name.
 # Label manager missing text; shown inside the adaptive dialog.

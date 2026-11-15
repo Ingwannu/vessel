@@ -41,8 +41,8 @@ labels-pending = 라벨 업데이트 중…
 labels-inspecting = 영향받는 작업공간 확인 중…
 # Label manager confirm text; shown inside the adaptive dialog.
 labels-confirm = 이 라벨을 삭제하고 해당 작업공간의 라벨 할당도 제거할까요?
-# Label manager affected text; shown inside the adaptive dialog.
-labels-affected = 영향받는 작업공간
+# Advisory deletion inspection count; $count is the numeric workspace count.
+labels-affected = 이 라벨을 사용하는 작업공간: { NUMBER($count) }개
 # Label manager taken text; shown inside the adaptive dialog.
 labels-taken = 이미 같은 이름의 라벨이 있습니다.
 # Label manager missing text; shown inside the adaptive dialog.

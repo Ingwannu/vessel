@@ -119,76 +119,44 @@ around reference 20-point swatches. Choosing a color changes the draft only.
 - Session reserved metadata remains owned by lifecycle/subagent code. It is
   not editable as workspace labels and is not translated into colors.
 
-## Validation and resume point
+## Validation and integration state
 
-Done: reference/asset analysis; manager, picker and create state models;
-EN/KO Fluent resources; adaptive manager skeleton and typed link command/event
-seam. The sidebar registers the manager; online hosts are explicitly shown
-as unsupported until the contract is integrated. No mutation can claim success.
-The package-base merge removed the shared-file pressure. Registration now
-uses the base's direct link module declaration and one shell overlay line;
-the temporary registration wrappers were removed without changing public paths. No kit renderer or dependency was added.
+Native skeleton `72a16a1c` passed strict all-target app clippy through the
+remote narrow runner (`wp-labels-narrow-20261115T082314Z-72a16a1c`, rc 0).
+Earlier `befc083a` passed ten view label tests. Expanded replica/binding/policy
+and action tests still await execution; these results are not a whole gate.
 
-Fast checks: native size, boundaries and token ratchets pass. The first local
-view test could not compile because the new Fluent keys lacked per-key
-translator context comments; comments were added. Remote narrow view test run on `befc083a` passed 10 tests, 0 failed
-(run `wp-labels-narrow-20261115T062329Z-befc083a`). The manager surface is
-not yet compile-verified. Local app clippy found 9 warnings promoted to
-errors in the new view code (clone assignment and intentionally superseded
-collection entries); those were corrected without suppressing lints.
-The follow-up preserves behavior while typing private catalog identities
-and splitting list drawing out of the manager phase renderer.
+Package base 4 `3cd0d3fc` is merged. Additive merge resolutions keep both
+identity and palette modules, both label settling and terminal presentation,
+and both README additions. The retained label fields participate in the
+shared language refresh registry without losing typed text or selection.
 
-Proto name/color tests (2) and proto clippy passed on the node value commit
-`f767bc91`. Its additive value contract is now used by the native model;
-name/color/assignment/count definitions are no longer duplicated in view.
-The new root values make the root gate required at package close as well.
+Manager actions now go through the existing bounded shell command queue and
+correlated link events. Full/closed queue refusal settles the same operation;
+an inspection is never mistaken for a deletion. Save, advisory inspection,
+confirmation cancellation and deletion keep their host/ticket ownership.
+Back preserves search and refuses abandoning pending work. Pending phases
+retain the same readonly field/color controls so selection/copy remains
+available. The affected count is a whole Fluent sentence with a numeric count.
+Native and browser transport currently answer Unsupported, with no node I/O
+or simulated success, until the pending node contract is available.
 
-Client replica now stages atomic snapshot/catch-up validation. A gap, wrong
-generation/base/head, or duplicate snapshot identity requests a full resync
-without partially changing the cached catalog. Disconnect/load failure keeps
-colors cached and revokes write authority. Four new regression tests are
-pending; no subscription or reconnect RPC is claimed wired.
+Catalog ownership uses the actual answered `Machine.node`, with validated
+book names only for routing/display. Never-answered aliases stay unresolved;
+alias rename keeps colors, alias reuse by another node cannot inherit them.
+Duplicate routes share the node's catalog. A removed host cannot retarget a
+pending write. Replica batches validate atomically; gaps revoke authority and
+request a snapshot while retaining cached offline colors.
 
-Additional reference edge: Save/inspection resolve the draft target against
-the current host catalog, not its opening snapshot. A concurrent recolor
-updates dirty-state calculation; an externally removed/renamed target cannot
-be saved. A regression covers this without optimistic mutation.
+Session-label reference audit: `use-open-agent-tab-labels.ts` is the app's
+metadata update consumer; workspace tab rename sends name only. The reference
+has no generic session key/value editor. Existing reserved-tab, create/import
+and filter consumers must use lifecycle's reviewed contract; no extra editor
+is invented for this package. Workspace labels remain a separate domain.
 
-Follow-up behavior: create failure retains its safe error and exact draft;
-a later successful toggle of a different label cannot erase an earlier
-concurrent failure; hiding/reopening a manager preserves in-flight work.
-Regression assertions cover both error-retention cases. Checks are pending.
-Local narrow clippy subsequently required one explicit unit-return semicolon
-in the replica and two link documentation/discard fixes; no lint was
-suppressed. Local font assets were absent, so the base's licensed font files
-were prepared in the ignored font directory before repeating the check.
-
-Merged app package base `8d5513e4` into `058d380b` without conflicts.
-The node branch merged Quality B `29eebb8b` into `a6ff863c`, also without
-conflicts. Existing upstream entries and tests were unchanged.
-
-Next: obtain narrow compile/test results and consume
-and reviewed registry/session-label contracts. ADR 0086 owns the node catalog
-work in a separate node branch; that branch currently stages values, mutation
-plans and a bounded observer journal, with no registered RPC or persistence. Full native gate and inspected capture
-matrix occur once at package completion. No whole gate, node RPC test,
-service-account/customer flow or UI capture is claimed at this point.
-
-### Current binding and resume update
-
-The second package base also supplied `Machine.node`. Catalog ownership now
-uses that answered `NodeId`, while validated book names are routing/display
-metadata. A never-answered alias stays unresolved instead of manufacturing a
-node identity. Alias rename retains the node's colors; alias reuse by another
-node cannot transfer them. Multiple routes to one node share one catalog.
-Four new binding regressions cover these cases. Fleet events update bindings
-while the manager is open, and a removed host cannot retarget a pending write.
-The name-field policy is wired to the shared editor API. Narrow compilation
-and the expanded model tests are still pending; no full gate/capture is claimed.
-
-Narrow app compilation reached the complete area and found two remaining
-strict-lint issues: a visual counter exposed through an unnecessarily wide
-field and a nested conditional. Fields are now private to the area and its
-children, and the condition is a let-chain. The corrected narrow check is
-pending; expanded tests and final gates/captures remain owed.
+The node branch owns ADR 0086 and real catalog/assignment SQL behind a typed
+registry trait. Eight SQL tests pass with an explicit fake registry, not the
+production registry. Its store adapter, writer/actor and pending RPC rows still
+await the reviewed registry dependency. Native picker entry/create UI,
+background observation, registry label projection and complete peer gates
+remain owed. No full gate, capture, review or production flow is claimed.

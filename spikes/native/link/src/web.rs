@@ -84,6 +84,13 @@ impl Link {
     fn answer(&self, command: Command) {
         let now = Utc::now();
         match command {
+            Command::Labels { host, ticket, ask } => {
+                self.emit(Event::Labels(crate::labels::Event {
+                    host,
+                    ticket,
+                    answer: ask.refused(vessel_app_view::labels::Failure::Unsupported),
+                }))
+            }
             Command::Agents {
                 machine, request, ..
             } => self.emit(Event::Agents {

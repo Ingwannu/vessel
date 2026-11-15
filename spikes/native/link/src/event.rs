@@ -20,6 +20,8 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// A correlated host-local workspace catalog result.
+    Labels(super::labels::Event),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.

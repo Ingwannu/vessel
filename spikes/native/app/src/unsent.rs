@@ -59,6 +59,14 @@ pub(crate) enum Settle {
 pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
     let said = || words.to_owned();
     let event = match *unsent.command {
+        Command::Labels { host, ticket, ask } => Event::Labels(vessel_app_link::labels::Event {
+            host,
+            ticket,
+            answer: ask.refused(match unsent.why {
+                Rejected::Full => vessel_app_view::labels::Failure::Update,
+                Rejected::Closed => vessel_app_view::labels::Failure::Offline,
+            }),
+        }),
         // As the devices page: a full queue is the page's own "busy, try
         // again", a stopped link the machine's lost connection.
         Command::Agents {
@@ -173,6 +181,29 @@ mod tests {
     use super::{Settle, settle};
 
     const WORDS: &str = "Could not send. Try again.";
+
+    #[test]
+    fn labels_queue_refusal_keeps_host_ticket_and_operation_kind() {
+        use vessel_app_link::labels::{Answer, Command as LabelCommand};
+        use vessel_app_view::labels::{Failure, Tickets};
+        let host = vessel_proto::NodeId::random();
+        let ticket = Tickets::default().issue().unwrap();
+        let ask = LabelCommand::InspectDelete("Ready".parse().unwrap());
+        let Settle::Answer(event) = settle(
+            vessel_app_link::Unsent::new(Rejected::Closed, Command::Labels { host, ticket, ask }),
+            WORDS,
+        ) else {
+            panic!("an inspection settles through its typed result");
+        };
+        let Event::Labels(answer) = *event else {
+            panic!("a label result");
+        };
+        assert_eq!((answer.host, answer.ticket), (host, ticket));
+        assert!(matches!(
+            answer.answer,
+            Answer::Inspected(Err(Failure::Offline))
+        ));
+    }
 
     fn list() -> Command {
         Command::Workspace {

@@ -23,6 +23,15 @@ use vessel_proto::{
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Host-local workspace catalog operation; identity survives alias changes.
+    Labels {
+        /// Answered node identity.
+        host: vessel_app_view::labels::HostKey,
+        /// Window operation identity.
+        ticket: vessel_app_view::labels::Ticket,
+        /// Validated operation.
+        ask: super::labels::Command,
+    },
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.
