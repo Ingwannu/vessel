@@ -27,7 +27,7 @@ pub(crate) fn require_active(connection: &Connection, id: WorkspaceId) -> Result
         WorkspaceLifecycle::Active => Ok(()),
         WorkspaceLifecycle::Archiving { .. }
         | WorkspaceLifecycle::Restoring { .. }
-        | WorkspaceLifecycle::Archived { .. } => Err(StoreError::RegistryConflict),
+        | WorkspaceLifecycle::Archived { .. } => Err(StoreError::RegistryInactive(id)),
     }
 }
 

@@ -151,7 +151,7 @@ fn foreign_owner_and_archiving_refuse_a_stable_terminal_restart_without_mutation
                 expected: expected.next().unwrap()
             }
         ),
-        Err(StoreError::RegistryConflict)
+        Err(StoreError::RegistryInactive(_))
     ));
     assert_eq!(load(&db).unwrap(), before);
 }
