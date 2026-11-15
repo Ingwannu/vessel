@@ -11,8 +11,11 @@
 //!   not two cells, so it must start on its own cell); a continuation is
 //!   skipped (its scalar covers it, and its background is the scalar's
 //!   second cell); an unprinted, concealed or space cell with no line
-//!   under or through it shows nothing, so it joins whatever run it
-//!   follows as a space and never starts one; runs lose trailing spaces. A background
+//!   under or through it shows nothing, so it joins the run it follows
+//!   as a space when that run draws no line either (a lined run would
+//!   draw its line over the blank: the first capture showed an underline
+//!   running on to the next word) and never starts one; runs lose
+//!   trailing spaces. A background
 //!   is a fill of adjacent cells of one colour; the palette's own
 //!   background is not drawn (the grid already is).
 
@@ -144,20 +147,19 @@ fn extend(
 }
 
 /// A cell that shows no glyph: a space in the open run when it follows
-/// it, unless a line is drawn under or through it (then it is text of
-/// its own look).
+/// it and the run draws no line, unless a line is drawn under or through
+/// the cell itself (then it is text of its own look).
 fn blank(
     out: &mut PaintedRow,
     open: Option<PaintedRun>,
     col: u16,
     ink: RunInk,
 ) -> Option<PaintedRun> {
-    let lined = ink.underline != Underline::None || ink.strike != Strike::None;
-    if lined {
+    if lined(ink) {
         return Some(extend(out, open, col, ' ', ink));
     }
     match open {
-        Some(mut run) if follows(&run, col) => {
+        Some(mut run) if follows(&run, col) && !lined(run.ink) => {
             run.text.push(' ');
             Some(run)
         }
@@ -166,6 +168,11 @@ fn blank(
             None
         }
     }
+}
+
+/// Whether a line is drawn under or through glyphs of `ink`.
+fn lined(ink: RunInk) -> bool {
+    ink.underline != Underline::None || ink.strike != Strike::None
 }
 
 /// Whether a cell at `col` is the next after `run`.
@@ -180,7 +187,7 @@ fn close(out: &mut PaintedRow, run: Option<PaintedRun>) {
     let Some(mut run) = run else {
         return;
     };
-    if run.ink.underline == Underline::None && run.ink.strike == Strike::None {
+    if !lined(run.ink) {
         let kept = run.text.trim_end_matches(' ').len();
         run.text.truncate(kept);
     }

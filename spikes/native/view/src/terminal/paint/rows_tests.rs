@@ -124,6 +124,20 @@ fn concealed_text_draws_nothing_but_lined_blanks_draw_their_line() {
 }
 
 #[test]
+fn an_unlined_blank_does_not_take_the_line_of_the_run_before_it() {
+    // `\e[4mab\e[0m c` and `\e[9mab\e[0m c`: the line stops under or
+    // through "ab"; the plain space shows nothing, so "c" starts its own
+    // run (the first capture drew the underline on to the next word).
+    for sgr in [b"4", b"9"] {
+        let mut bytes = b"\x1b[".to_vec();
+        bytes.extend_from_slice(sgr);
+        bytes.extend_from_slice(b"mab\x1b[0m c");
+        let row = first_row(&bytes);
+        assert_eq!(runs(&row), [(0, "ab"), (3, "c")]);
+    }
+}
+
+#[test]
 fn inverse_and_faint_reach_the_run() {
     let inverse = first_row(b"\x1b[7mab");
     assert_eq!(
