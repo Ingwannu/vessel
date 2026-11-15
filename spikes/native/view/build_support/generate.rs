@@ -148,10 +148,9 @@ fn emit_message(
     if shape.variables.is_empty() {
         writeln!(
             output,
-            "#[must_use]\npub fn r#{}(self) -> &'a str {{ &self.translator.plain{}.r#{} }}",
+            "#[must_use]\npub fn r#{}(self) -> &'a str {{ &self.translator.plain{} }}",
             snake(method),
-            paths.prefix(&message.area, key)?,
-            snake(method)
+            paths.projection(&message.area, key)?
         )?;
     } else {
         writeln!(

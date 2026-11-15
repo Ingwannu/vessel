@@ -107,3 +107,27 @@ and catalog-layout selectors use named private enums for the same reason.
 These substitutions preserve the emitted text, case counts, compiler modes
 and all assertions. Exact changed-source strict and compiler-regression
 validation is owed; the earlier 1465/0/2 run is retained as prior evidence.
+
+## Consumer strict-lint gap
+
+G2's actual Schedules compile, run `schedules-20261115T171745Z-d092330e`,
+reached a three-child generated root and rejected the common `child_` field
+prefix under `clippy::struct_field_names`. The author compiler fixture enabled
+the length check but omitted the project's pedantic lint group, so its earlier
+green result did not cover this naming rule. No consumer code or suppression
+is the fix.
+
+New split nodes use private typed tuple slots, including their leaves. Fixed
+`.0`/`.1` field projections are checked by Rust; they are not collection indexes
+or runtime lookups. This models ordered cache slots without artificial names
+and avoids forcing similarly prefixed translation keys to obey Rust's private
+field-name lint. Small named layouts and the public getter API stay unchanged.
+The named namespace enum remains in place.
+
+The same compiler regression now denies Clippy all, pedantic, field-name and
+length lints. A three-field bad-prefix control must fail with the actual naming
+check before the existing large/deep/many-area cases compile and run. Original
+value, pointer, one-resolution and first-error assertions remain unchanged.
+The obsolete queued `afa790f4` check was verified queued and cancelled before
+taking a slot (143), with its records retained. Exact corrected validation and
+V4 review are owed; the prior 1465/0/2 result is not borrowed as new evidence.

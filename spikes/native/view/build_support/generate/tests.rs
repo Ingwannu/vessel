@@ -73,6 +73,12 @@ fn compile(directory: &Path, kind: Compiler) -> Output {
         Compiler::Clippy => command.args([
             "--emit=metadata",
             "-D",
+            "clippy::all",
+            "-D",
+            "clippy::pedantic",
+            "-D",
+            "clippy::struct_field_names",
+            "-D",
             "clippy::too_many_lines",
             "-o",
             "checked.rmeta",
@@ -98,6 +104,11 @@ fn large_plain_caches_keep_the_public_borrowed_api_and_bounded_initializers() {
     let rejected = compile(&scratch.0, Compiler::Clippy);
     assert!(!rejected.status.success());
     assert!(String::from_utf8_lossy(&rejected.stderr).contains("too_many_lines"));
+
+    std::fs::write(scratch.0.join("fixture.rs"), PREFIX_CONTROL).unwrap();
+    let rejected = compile(&scratch.0, Compiler::Clippy);
+    assert!(!rejected.status.success());
+    assert!(String::from_utf8_lossy(&rejected.stderr).contains("struct_field_names"));
 
     for (count, layout) in [
         (LARGE, CatalogLayout::OneArea),
@@ -178,6 +189,14 @@ fn fixture(count: usize, layout: CatalogLayout) -> String {
     output.push_str(MAIN);
     output
 }
+
+const PREFIX_CONTROL: &str = r#"
+struct Root { child_0: u8, child_1: u8, child_2: u8 }
+fn main() {
+    let root = Root { child_0: 1, child_1: 2, child_2: 3 };
+    assert_eq!((root.child_0, root.child_1, root.child_2), (1, 2, 3));
+}
+"#;
 
 const SHIM: &str = r#"
 use std::cell::Cell;
