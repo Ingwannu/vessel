@@ -1200,3 +1200,24 @@ caption direction is tested with an explicit new-chat fixture, while heartbeat
 presentation separately asserts the two disabled entries during unrelated
 legacy operation state. Existing accepted action-copy tables are not moved.
 These corrected-source cases remain unexecuted and are not a menu/UI PASS.
+
+
+### Off-route form events
+
+Departure preserves unsaved input but makes the actual retained engines read-only,
+closes their picker and cancels the preview task. Arrival restores editability
+from the current pure blocked state only after discarding a completed/retired
+visit. New/edit/save/close and identified field/picker callbacks also require
+the actual Schedules route and mounted form where appropriate. Why: an old
+rendered control cannot mutate a hidden retained form or focus a new route.
+The same canonical Editability engine is reused; no second input or counter.
+The isolated actual-field test initializes the genuine private route/mount
+boundary for its line/textarea fixture; dialog geometry/physical input is not
+claimed. This changed-source lifecycle remains unexecuted until package proof.
+
+The actual-field fixture also invokes the real departure/arrival paths: hidden
+input must change neither the pure form nor the retained line/textarea engine;
+return restores ordinary editing. This assertion would reject a callback-only
+hide that still lets the underlying off-route engine mutate. It remains authored,
+not executed. Root rendering delegates directly to the same child entry points
+rather than retaining wrappers above the500-line product budget.

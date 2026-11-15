@@ -1,7 +1,7 @@
 //! Real retained line/textarea callbacks must not edit the next form's engines.
 use super::{Input, Inputs};
 use crate::shell::{Shell, language_tests};
-use gpui::{AppContext as _, Entity, Render, TestAppContext};
+use gpui::{AppContext as _, Entity, Render, TestAppContext, VisualTestContext};
 use vessel_app_kit::{
     Scheme, TextField, Tokens,
     ui::{Context, IntoElement as _, Window, div},
@@ -19,6 +19,8 @@ fn field(shell: &Shell, input: Input) -> Option<&TextField> {
     })
 }
 fn start(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
+    shell.route = crate::routes::Route::Schedules;
+    shell.areas.schedules.ui.editor.mounted = true;
     let initial = cadence::initial(TimeZoneName::utc());
     assert!(initial.is_ok());
     let Ok(initial) = initial else {
@@ -104,15 +106,7 @@ fn actual_retained_line_and_multiline_sources_cannot_edit_the_next_form(cx: &mut
             });
         });
         cx.simulate_input("first");
-        view.read_with(cx, |this, cx| {
-            let shell = this.shell.read(cx);
-            let actual = match input {
-                Input::Name => name(shell),
-                Input::Prompt => prompt(shell),
-                Input::Limit | Input::Rule => None,
-            };
-            assert_eq!(actual, Some("first"));
-        });
+        assert_text(&view, cx, "first");
         cx.update(|window, cx| {
             view.update(cx, |this, cx| {
                 this.shell.update(cx, |shell, cx| {
@@ -128,15 +122,7 @@ fn actual_retained_line_and_multiline_sources_cannot_edit_the_next_form(cx: &mut
         // The original real engine remains focused and mounted in Probe. Its
         // callback still carries A's FieldId, while Shell now retains B's id.
         cx.simulate_input("late");
-        view.read_with(cx, |this, cx| {
-            let shell = this.shell.read(cx);
-            let actual = match input {
-                Input::Name => name(shell),
-                Input::Prompt => prompt(shell),
-                Input::Limit | Input::Rule => None,
-            };
-            assert_eq!(actual, Some(""));
-        });
+        assert_text(&view, cx, "");
         cx.update(|window, cx| {
             view.update(cx, |this, cx| {
                 this.retained = None;
@@ -152,14 +138,54 @@ fn actual_retained_line_and_multiline_sources_cannot_edit_the_next_form(cx: &mut
         });
         cx.run_until_parked();
         cx.simulate_input("current");
-        view.read_with(cx, |this, cx| {
-            let shell = this.shell.read(cx);
-            let actual = match input {
-                Input::Name => name(shell),
-                Input::Prompt => prompt(shell),
-                Input::Limit | Input::Rule => None,
-            };
-            assert_eq!(actual, Some("current"));
-        });
+        assert_text(&view, cx, "current");
+        holds_while_away(&view, cx);
     }
+}
+
+fn assert_text(view: &Entity<Probe>, cx: &mut VisualTestContext, expected: &str) {
+    view.read_with(cx, |this, cx| {
+        let shell = this.shell.read(cx);
+        let actual = match this.input {
+            Input::Name => name(shell),
+            Input::Prompt => prompt(shell),
+            Input::Limit | Input::Rule => None,
+        };
+        assert_eq!(actual, Some(expected));
+    });
+}
+fn holds_while_away(view: &Entity<Probe>, cx: &mut VisualTestContext) {
+    cx.update(|window, cx| {
+        view.update(cx, |this, cx| {
+            this.shell.update(cx, |shell, cx| {
+                super::super::leaving(shell, window, cx);
+                shell.route = crate::routes::Route::Draft;
+                let _changed = shell.schedules_changed(cx);
+            });
+        });
+    });
+    cx.simulate_input("hidden");
+    assert_text(view, cx, "current");
+    view.read_with(cx, |this, cx| {
+        let current = field(this.shell.read(cx), this.input);
+        assert!(current.is_some());
+        if let Some(current) = current {
+            assert_eq!(current.text(cx), "current");
+        }
+    });
+    cx.update(|window, cx| {
+        view.update(cx, |this, cx| {
+            this.shell.update(cx, |shell, cx| {
+                shell.route = crate::routes::Route::Schedules;
+                super::super::arrive(shell, window, cx);
+                let current = field(shell, this.input);
+                assert!(current.is_some());
+                if let Some(current) = current {
+                    current.focus(window, cx);
+                }
+            });
+        });
+    });
+    cx.simulate_input("resumed");
+    assert_text(view, cx, "currentresumed");
 }

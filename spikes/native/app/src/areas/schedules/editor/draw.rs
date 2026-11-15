@@ -33,7 +33,7 @@ pub(super) fn framed(
         tokens,
     )
 }
-pub(super) fn render(
+pub(in crate::areas::schedules) fn render(
     shell: &Shell,
     tokens: &Tokens,
     window: &Window,

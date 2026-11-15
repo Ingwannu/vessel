@@ -54,7 +54,9 @@ pub(in crate::areas::schedules) fn hold(shell: &mut Shell, cx: &mut Context<'_, 
             }
         });
     shell.areas.schedules.ui.editor.error_words = error_words;
-    let blocked = shell.areas.schedules.data.editor.blocked();
+    let blocked = shell.areas.schedules.data.editor.blocked()
+        || shell.route != crate::routes::Route::Schedules
+        || !shell.areas.schedules.ui.editor.mounted;
     if let Some(inputs) = &mut shell.areas.schedules.ui.editor.inputs {
         inputs.hold(blocked, cx);
     }
@@ -105,6 +107,9 @@ pub(in crate::areas::schedules) fn leaving(
     let ui = &mut shell.areas.schedules.ui.editor;
     ui.picker.close_and_restore(window, cx);
     ui.cancel_preview();
+    if let Some(inputs) = &mut ui.inputs {
+        inputs.hold(true, cx);
+    }
     if ui.mounted {
         ui.dialog.dismissed(window, cx);
         ui.mounted = false;
@@ -116,12 +121,16 @@ pub(in crate::areas::schedules) fn arrive(
     cx: &mut Context<'_, Shell>,
 ) {
     let current = shell.areas.schedules.data.editor.visit();
+    let blocked = shell.areas.schedules.data.editor.blocked();
     let ui = &mut shell.areas.schedules.ui.editor;
     // A completed save can settle while this route is away. Never capture
     // focus for its retired form on a later route arrival.
     if ui.visit().is_some() && ui.visit() != current {
         ui.inputs = None;
         ui.cancel_preview();
+    }
+    if let Some(inputs) = &mut ui.inputs {
+        inputs.hold(blocked, cx);
     }
     if (ui.inputs.is_some() || ui.bootstrap.is_some()) && !ui.mounted {
         ui.dialog.focus(window, cx);

@@ -94,6 +94,9 @@ pub(super) fn open(
 }
 fn current(shell: &Shell, visit: Option<Visit>, bootstrap: Option<&Weak<()>>) -> bool {
     let ui = &shell.areas.schedules.ui.editor;
+    if shell.route != crate::routes::Route::Schedules || !ui.mounted {
+        return false;
+    }
     if ui.visit() != visit {
         return false;
     }
@@ -106,7 +109,7 @@ fn current(shell: &Shell, visit: Option<Visit>, bootstrap: Option<&Weak<()>>) ->
     }
 }
 
-pub(super) fn popup(
+pub(in crate::areas::schedules) fn popup(
     shell: &Shell,
     tokens: &Tokens,
     window: &Window,

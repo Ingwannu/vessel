@@ -119,6 +119,11 @@ pub(super) fn reset_rule(shell: &mut Shell, window: &mut Window, cx: &mut Contex
     }
 }
 fn change(shell: &mut Shell, source: FieldId, text: String, cx: &mut Context<'_, Shell>) {
+    if shell.route != crate::routes::Route::Schedules
+        || !shell.areas.schedules.ui.editor.is_mounted()
+    {
+        return;
+    }
     let Some(inputs) = &shell.areas.schedules.ui.editor.inputs else {
         return;
     };
@@ -157,6 +162,11 @@ fn submit(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) {
+    if shell.route != crate::routes::Route::Schedules
+        || !shell.areas.schedules.ui.editor.is_mounted()
+    {
+        return;
+    }
     let Some(inputs) = &shell.areas.schedules.ui.editor.inputs else {
         return;
     };

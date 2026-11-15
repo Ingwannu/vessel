@@ -6,6 +6,8 @@ mod draw;
 mod inputs;
 mod lifecycle;
 use crate::shell::Shell;
+pub(super) use choices::popup;
+pub(super) use draw::render;
 use inputs::Inputs;
 pub(super) use lifecycle::{arrive, frame, hold, leaving, needs_frame, ready_choices};
 use std::{
@@ -162,7 +164,8 @@ pub(super) fn open_new(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) {
-    if !shell.areas.schedules.data.can_create
+    if shell.route != crate::routes::Route::Schedules
+        || !shell.areas.schedules.data.can_create
         || shell.areas.schedules.data.editor.visit() != expected
         || shell.areas.schedules.ui.editor.mounted
         || shell.areas.schedules.data.editor.pending_save()
@@ -178,7 +181,10 @@ pub(super) fn open_edit(
     cx: &mut Context<'_, Shell>,
 ) {
     let area = &shell.areas.schedules;
-    if !intent.allows(&area.data.page, Action::Edit) || area.data.editor.pending_save() {
+    if shell.route != crate::routes::Route::Schedules
+        || !intent.allows(&area.data.page, Action::Edit)
+        || area.data.editor.pending_save()
+    {
         return;
     }
     let Some(row) = area.data.page.row(intent.key()) else {
@@ -430,7 +436,10 @@ fn queue_preview(shell: &mut Shell, visit: Visit, cx: &mut Context<'_, Shell>) {
     shell.areas.schedules.ui.editor.projection = Some(Projection { cycle, task });
 }
 fn save(shell: &mut Shell, visit: Visit, _window: &mut Window, cx: &mut Context<'_, Shell>) {
-    if shell.areas.schedules.ui.editor.visit() != Some(visit) {
+    if shell.route != crate::routes::Route::Schedules
+        || !shell.areas.schedules.ui.editor.mounted
+        || shell.areas.schedules.ui.editor.visit() != Some(visit)
+    {
         return;
     }
     let Ok(Some(candidate)) = shell.areas.schedules.data.editor.prepare_save() else {
@@ -451,7 +460,7 @@ fn close(
     cx: &mut Context<'_, Shell>,
 ) {
     let ui = &shell.areas.schedules.ui.editor;
-    if ui.visit() != visit {
+    if shell.route != crate::routes::Route::Schedules || !ui.mounted || ui.visit() != visit {
         return;
     }
     if let Some(expected) = bootstrap {
@@ -479,21 +488,4 @@ fn close(
     ui.mounted = false;
     let _changed = shell.schedules_changed(cx);
     cx.notify();
-}
-pub(super) fn render(
-    shell: &Shell,
-    tokens: &Tokens,
-    window: &Window,
-    touch: bool,
-    cx: &mut Context<'_, Shell>,
-) -> Option<AnyElement> {
-    draw::render(shell, tokens, window, touch, cx)
-}
-pub(super) fn popup(
-    shell: &Shell,
-    tokens: &Tokens,
-    window: &Window,
-    cx: &mut Context<'_, Shell>,
-) -> Option<AnyElement> {
-    choices::popup(shell, tokens, window, cx)
 }
