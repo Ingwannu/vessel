@@ -71,3 +71,58 @@ fn closing_and_revealing_keep_one_tail_and_the_same_final_answer(cx: &mut gpui::
         assert_eq!(area.list.rows(), 3);
     });
 }
+
+#[gpui::test]
+fn changing_reasoning_default_preserves_the_visible_answer_and_exact_scroll_offset(
+    cx: &mut gpui::TestAppContext,
+) {
+    cx.update(|cx| {
+        use vessel_app_kit::Reveal;
+        use vessel_app_view::prefs::ReasoningExpansion;
+        use vessel_proto::{AgentEvent, ContentBlock};
+
+        let session = SessionId::random();
+        let mut area = ConversationArea::new(cx);
+        area.open("fake", session);
+        let mut events: Vec<_> = records().into_iter().map(|record| record.event).collect();
+        let mut second_tool = events.get(1).unwrap().clone();
+        if let SessionEvent::Agent {
+            event: AgentEvent::ToolCall(call),
+        } = &mut second_tool
+        {
+            call.id = vessel_proto::ToolCallId::new("read-again");
+        }
+        events.insert(
+            2,
+            SessionEvent::Agent {
+                event: AgentEvent::ThoughtChunk {
+                    content: ContentBlock::Text {
+                        text: "Reasoning".to_owned(),
+                    },
+                },
+            },
+        );
+        events.insert(3, second_tool);
+        let records: Vec<_> = events
+            .into_iter()
+            .enumerate()
+            .map(|(index, event)| EventRecord {
+                seq: EventSeq::new(u64::try_from(index).unwrap()),
+                at: chrono::DateTime::UNIX_EPOCH,
+                event,
+            })
+            .collect();
+        assert!(area.take(&session, &records));
+        assert_eq!(area.rows.len(), 4);
+        area.list.reveal(area.at(2), Reveal::Top);
+        let before = area.list.top();
+        area.set_reasoning(ReasoningExpansion::Expanded);
+        assert_eq!(area.rows.len(), 6);
+        assert_eq!(area.rows.entry(4), Some(4));
+        assert_eq!(area.list.top(), (area.at(4), before.1));
+        assert!(!area.list.following());
+        let kept = area.list.top();
+        area.set_reasoning(ReasoningExpansion::Expanded);
+        assert_eq!(area.list.top(), kept);
+    });
+}
