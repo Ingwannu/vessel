@@ -10,12 +10,6 @@ impl SessionEvent {
         protocol: ProtocolVersion,
         assigned: Option<ProtocolVersion>,
     ) -> Option<Self> {
-        if let Self::Agent { event } = self
-            && let Some(event) =
-                crate::timeline::compat::event(event, protocol, crate::timeline::TIMELINE_PARITY)
-        {
-            return Some(Self::Agent { event });
-        }
         if let Self::QueueChanged { queue } = self
             && let Some(queue) =
                 crate::timeline::compat::queue(queue, protocol, crate::timeline::TIMELINE_PARITY)

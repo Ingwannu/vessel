@@ -29,7 +29,7 @@ use crate::device::Scope;
 use crate::forward::Forwarded;
 use crate::node::ProtocolVersion;
 use crate::session::SessionInfo;
-use crate::timeline::{ReferenceContext, TimelineReferenceOrigin};
+use crate::timeline::ReferenceContext;
 
 /// The first version whose ended sessions may sit outside the archive.
 const ENDED_OUTSIDE_THE_ARCHIVE: ProtocolVersion = ProtocolVersion::new(10);

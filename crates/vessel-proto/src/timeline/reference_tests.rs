@@ -183,7 +183,7 @@ fn modern_connections_keep_originals_and_old_ingress_cannot_upgrade() {
 
 #[test]
 fn client_unknown_origin_is_inert_and_never_creates_scoped_authority() {
-    let request = crate::RespondPermission {
+    let request = super::RespondPermission {
         session: crate::SessionId::random(),
         permission: crate::PermissionId::random(),
         response: super::PermissionResponse {
@@ -196,7 +196,7 @@ fn client_unknown_origin_is_inert_and_never_creates_scoped_authority() {
     let mut injected = serde_json::to_value(&request).unwrap();
     injected["reference_origin"] = json!("canonical");
     assert_eq!(
-        serde_json::from_value::<crate::RespondPermission>(injected).unwrap(),
+        serde_json::from_value::<super::RespondPermission>(injected).unwrap(),
         request
     );
     let legacy = Forwarded {
