@@ -260,6 +260,13 @@ companions_linux() {
 companions_windows() {
     local tools="$VESSEL_TOOLS_DIR" triple=x86_64-pc-windows-msvc
     web_bundle
+    # The repository's toolchain is not the app's (rust-toolchain.toml at
+    # the root, 1.93) and does not list the Windows target, which the
+    # release workspace's file does for its own toolchain; adding it is
+    # per user and does nothing when it is there.
+    local channel
+    channel="$(sed -n 's/^channel *= *"\(.*\)"/\1/p' "$repo/rust-toolchain.toml")"
+    rustup target add --toolchain "$channel" "$triple" >/dev/null
     (
         cd "$repo"
         export XWIN_CACHE_DIR="$tools/xwin-cache"
