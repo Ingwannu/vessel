@@ -16,6 +16,7 @@ mod base64_bytes;
 mod board;
 pub mod conversation;
 mod device;
+pub mod diagnostics;
 pub mod dictation;
 mod error;
 mod event;

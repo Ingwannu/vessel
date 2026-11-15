@@ -33,6 +33,11 @@ retry_at: string | null, };
 export type Ack = null;
 
 /**
+ * An ACP protocol observation, never a Vessel `ProtocolVersion`.
+ */
+export type AcpProtocolVersion = number;
+
+/**
  * The latest state of a session's agent, as the node observed it.
  */
 export type Activity = "active" | "idle" | "waiting_input" | "exited";
@@ -1525,6 +1530,11 @@ session: SessionId, };
 export type CronExpr = string;
 
 /**
+ * A custom agent's slot in this report, never its person-chosen name.
+ */
+export type CustomAgentSlot = number;
+
+/**
  * Definitions at a saved source position.
  */
 export type Definition = AtPosition;
@@ -1691,6 +1701,407 @@ message: string,
  * Optional bounded server/source label.
  */
 source: string | null, };
+
+/**
+ * One agent with no path, arbitrary name or output field.
+ */
+export type DiagnosticAgent = { 
+/**
+ * Safe identity.
+ */
+id: DiagnosticAgentId, 
+/**
+ * Metadata-only executable observation.
+ */
+executable: DiagnosticPresence, 
+/**
+ * Conversation availability.
+ */
+structured: DiagnosticAvailability, 
+/**
+ * Terminal availability.
+ */
+terminal: DiagnosticAvailability, 
+/**
+ * Cached sign-in of this agent's default profile only.
+ */
+sign_in: DiagnosticSignIn, 
+/**
+ * Numeric cached version; free-form output is absent.
+ */
+version: DiagnosticVersion | null, 
+/**
+ * When a cached protocol observation was made, if one exists.
+ */
+checked_at: string | null, 
+/**
+ * Whether the cached observation has expired.
+ */
+stale: boolean, };
+
+/**
+ * A safe agent identifier in this report.
+ */
+export type DiagnosticAgentId = { "kind": "builtin", 
+/**
+ * The builtin kind.
+ */
+harness: HarnessKind, } | { "kind": "custom", 
+/**
+ * Ordinal valid only for this report.
+ */
+slot: CustomAgentSlot, };
+
+/**
+ * A capability refusal has no executable/path/output text.
+ */
+export type DiagnosticAgentRefusal = { "reason": "missing_executable" } | { "reason": "missing_adapter" } | { "reason": "too_old", 
+/**
+ * Reported numeric protocol.
+ */
+speaks: AcpProtocolVersion, 
+/**
+ * Required numeric protocol.
+ */
+needs: AcpProtocolVersion, } | { "reason": "too_new", 
+/**
+ * Reported numeric protocol.
+ */
+speaks: AcpProtocolVersion, 
+/**
+ * Required numeric protocol.
+ */
+needs: AcpProtocolVersion, } | { "reason": "unsupported" };
+
+/**
+ *A complete, bounded inventory with distinct safe agent identities.
+ */
+export type DiagnosticAgents = Array<DiagnosticAgent>;
+
+/**
+ * CPU architecture classes from the build target.
+ */
+export type DiagnosticArch = "x86_64" | "aarch64" | "x86" | "arm" | "other";
+
+/**
+ * Known availability or the exact safe reason it cannot be asserted.
+ */
+export type DiagnosticAvailability = { "state": "available" } | { "state": "unavailable", 
+/**
+ * Never a raw reason string.
+ */
+reason: DiagnosticAgentRefusal, } | { "state": "unknown", 
+/**
+ * No refresh/probe is performed to fill this fact.
+ */
+reason: UnknownReason, };
+
+/**
+ * Observed binding state, never a claim of outside reachability.
+ */
+export type DiagnosticBinding = "disabled" | "starting" | "bound";
+
+/**
+ * A count whose arithmetic never wraps or silently loses overflow.
+ */
+export type DiagnosticCount = { value: number, saturated: boolean, };
+
+/**
+ * Explicit error observation coverage; never "all node errors".
+ */
+export type DiagnosticErrorCoverage = "local_rpc_completions";
+
+/**
+ * One observed failed local RPC completion; no request/method/message data.
+ */
+export type DiagnosticFailure = { 
+/**
+ * Existing closed error class.
+ */
+code: ErrorCode, 
+/**
+ * When the failed completion was observed.
+ */
+at: string, };
+
+/**
+ * A bounded failure window with explicit observation/loss coverage.
+ */
+export type DiagnosticFailureWindow = { 
+/**
+ * What is and is not observed.
+ */
+coverage: DiagnosticErrorCoverage, 
+/**
+ * A new node instance starts a new window; history is not persisted.
+ */
+observed_since: string, 
+/**
+ * Retained failures from the collector's rolling time window.
+ */
+entries: RecentFailures, 
+/**
+ * Observations lost/evicted since this node instance started.
+ */
+omitted: DiagnosticCount, };
+
+/**
+ * The home is represented by a fixed marker, never by its path.
+ */
+export type DiagnosticHome = "redacted";
+
+/**
+ * Listener metadata never contains a route/address.
+ */
+export type DiagnosticListeners = { 
+/**
+ * Local transport kind.
+ */
+local_kind: DiagnosticLocalKind, 
+/**
+ * Local bind state.
+ */
+local: DiagnosticBinding, 
+/**
+ * Direct TCP bind state; not an advertised route.
+ */
+direct: DiagnosticBinding, };
+
+/**
+ * Local transport kinds, without a socket/pipe name.
+ */
+export type DiagnosticLocalKind = "socket" | "pipe";
+
+/**
+ * Public process facts, projected rather than cloning `NodeInfo`.
+ */
+export type DiagnosticNode = { 
+/**
+ * Stable machine identity; no key/hostname.
+ */
+id: NodeId, 
+/**
+ * Normalized package version or explicit unknown.
+ */
+version: DiagnosticVersion | null, 
+/**
+ * Build platform.
+ */
+os: DiagnosticOs, 
+/**
+ * Build architecture.
+ */
+arch: DiagnosticArch, 
+/**
+ * Node lifecycle, not transport reachability.
+ */
+state: NodeState, 
+/**
+ * Elapsed monotonic node-instance time.
+ */
+uptime: DurationMs, 
+/**
+ * Fixed privacy marker.
+ */
+home: DiagnosticHome, };
+
+/**
+ * Platform classes contain no operating-system release/environment text.
+ */
+export type DiagnosticOs = "linux" | "mac_os" | "windows" | "other";
+
+/**
+ * Executable presence says nothing about sign-in or successful turns.
+ */
+export type DiagnosticPresence = "found" | "missing" | "unknown";
+
+/**
+ * Counts from relay watches; no route, refusal text or credential.
+ */
+export type DiagnosticRelayCounts = { 
+/**
+ * Connecting or registering, including reconnect attempts.
+ */
+connecting: DiagnosticCount, 
+/**
+ * Registered and accepting relayed channels.
+ */
+registered: DiagnosticCount, 
+/**
+ * Registration refused; normal retry policy is unchanged.
+ */
+refused: DiagnosticCount, 
+/**
+ * Link stopped.
+ */
+stopped: DiagnosticCount, 
+/**
+ * Future non-exhaustive link states, without invented meaning.
+ */
+unrecognized: DiagnosticCount, };
+
+/**
+ * Configured links and fleet callbacks remain distinct.
+ */
+export type DiagnosticRelays = { 
+/**
+ * Links from startup configuration.
+ */
+configured: DiagnosticRelayCounts, 
+/**
+ * Current home's callback links.
+ */
+callback: DiagnosticRelayCounts, };
+
+/**
+ * A complete canonical report that fits its byte cap; no mutable access.
+ */
+export type DiagnosticReport = DiagnosticReportFields;
+
+/**
+ * Inputs to the validated report; the public root owns an immutable copy.
+ */
+export type DiagnosticReportFields = { 
+/**
+ * When this collection completed.
+ */
+collected_at: string, 
+/**
+ * Safe node identity/platform/lifecycle.
+ */
+node: DiagnosticNode, 
+/**
+ * Readability/schema and stored session counts, not integrity proof.
+ */
+store: DiagnosticSection<DiagnosticStore>, 
+/**
+ * Complete bounded inventory or an explicit reason it is unavailable.
+ */
+agents: DiagnosticSection<DiagnosticAgents>, 
+/**
+ * Current runtime counts, separate from durable state.
+ */
+sessions: DiagnosticSection<DiagnosticRuntimeSessions>, 
+/**
+ * Bound state without routes.
+ */
+listeners: DiagnosticSection<DiagnosticListeners>, 
+/**
+ * Relay watch counts without endpoint data.
+ */
+relays: DiagnosticSection<DiagnosticRelays>, 
+/**
+ * Explicitly scoped failed-call observations, not a log tail.
+ */
+recent_failures: DiagnosticSection<DiagnosticFailureWindow>, };
+
+/**
+ * Runtime sessions are distinct from durable state during publication.
+ */
+export type DiagnosticRuntimeSessions = { 
+/**
+ * Live session actors, including parked ones.
+ */
+live: DiagnosticCount, 
+/**
+ * Live sessions holding no running harness process.
+ */
+parked: DiagnosticCount, };
+
+/**
+ * A schema version, not a wire protocol number.
+ */
+export type DiagnosticSchemaVersion = number;
+
+/**
+ * One source succeeded at a stated time, or failed for a closed reason.
+ */
+export type DiagnosticSection<T> = { "state": "available", 
+/**
+ * When these facts were observed.
+ */
+at: string, 
+/**
+ * Allowlisted facts.
+ */
+value: T, } | { "state": "unavailable", 
+/**
+ * A safe reason, with no raw error.
+ */
+reason: DiagnosticUnavailable, };
+
+/**
+ * Cached sign-in facts for the default profile, without sign-in help.
+ */
+export type DiagnosticSignIn = { "state": "present" } | { "state": "missing" } | { "state": "not_required" } | { "state": "unknown", 
+/**
+ * Existing closed readiness reason, never output or a path.
+ */
+reason: UnknownReason, };
+
+/**
+ * Successful bounded store reads do not imply a full integrity check.
+ */
+export type DiagnosticStore = { 
+/**
+ * Schema supported by this binary.
+ */
+expected_schema: DiagnosticSchemaVersion, 
+/**
+ * Schema observed on the opened connection.
+ */
+observed_schema: DiagnosticSchemaVersion, 
+/**
+ * Durable session aggregates; no session identifiers/content.
+ */
+sessions: DiagnosticStoredSessions, };
+
+/**
+ * Stored session aggregates, from the same `SQLite` transaction.
+ */
+export type DiagnosticStoredSessions = { 
+/**
+ * All retained sessions.
+ */
+total: DiagnosticCount, 
+/**
+ * Sessions still marked live in durable state.
+ */
+live: DiagnosticCount, 
+/**
+ * Ended sessions, including failures/interruption.
+ */
+ended: DiagnosticCount, };
+
+/**
+ * Why one section cannot make a claim.
+ */
+export type DiagnosticUnavailable = "not_checked" | "stale" | "timed_out" | "read_failed" | "too_many_agents" | "stopping" | "unsupported";
+
+/**
+ * Numeric version information; arbitrary prerelease/build words are absent.
+ */
+export type DiagnosticVersion = { 
+/**
+ * Major version.
+ */
+major: number, 
+/**
+ * Minor version.
+ */
+minor: number, 
+/**
+ * Patch version.
+ */
+patch: number, 
+/**
+ * A prerelease suffix existed; its words were discarded.
+ */
+prerelease: boolean, 
+/**
+ * Build metadata existed; its words were discarded.
+ */
+build_metadata: boolean, };
 
 /**
  * File diagnostics, or the known workspace diagnostic cache.
@@ -6134,6 +6545,11 @@ hash: BlobHash,
  * Where to start, in bytes.
  */
 offset: number, };
+
+/**
+ *Bounded recent failed local RPC completions, not raw log lines.
+ */
+export type RecentFailures = Array<DiagnosticFailure>;
 
 /**
  * A name git resolves: a branch, a remote-tracking branch such as
