@@ -92,3 +92,14 @@ machine/harness/default account. In-sheet scope selection is unavailable until
 a checked shared admission seam supports a separate follow-up. This is an
 explicit feature limitation, not an assertion that the engine issue is fixed.
 The row/footer/dialog captured-visit regressions remain applicable and required.
+
+## First executed correction result: fixture panic exposed
+
+Exactdeb5 App/Link test run reached Link114 passed/1 failed. Stronger owned-peer
+join detected a previously ignored fixture panic: the mismatched-create case
+used Behaviour::Session, whose response helper only accepted get/resume. The
+old dropped JoinHandle let disconnection satisfy Uncertain for the wrong reason.
+The fixture now returns the scripted typed CreateSession response for that call,
+so the unchanged wrong-directory assertion exercises receipt validation and the
+owned task must also join successfully. No product or shared actor code changes.
+App tests were not executed after the Link failure; current results remain owed.

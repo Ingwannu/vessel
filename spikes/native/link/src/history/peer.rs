@@ -130,14 +130,11 @@ pub(crate) async fn connect_at(
                     Behaviour::Success => result(call),
                     Behaviour::Page(page) => Outcome::Ok(Reply::GetAgentHistory(page)),
                     Behaviour::Session(info) => {
-                        let reply = if matches!(call, Call::GetSession(_)) {
-                            Reply::GetSession(*info)
-                        } else {
-                            assert!(
-                                matches!(call, Call::ResumeSession(_)),
-                                "unexpected activation call: {call:?}"
-                            );
-                            Reply::ResumeSession(*info)
+                        let reply = match call {
+                            Call::GetSession(_) => Reply::GetSession(*info),
+                            Call::ResumeSession(_) => Reply::ResumeSession(*info),
+                            Call::CreateSession(_) => Reply::CreateSession(*info),
+                            other => panic!("unexpected session fixture call: {other:?}"),
                         };
                         Outcome::Ok(reply)
                     }
