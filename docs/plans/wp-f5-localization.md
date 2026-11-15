@@ -87,13 +87,38 @@ integration is not inferred from native unit tests. Older legacy areas still
 use their bilingual tables; package owners add new words through FTL, and
 ownership is coordinated before old tables move.
 
-Current state: the ordered-list implementation is written over the accepted
-translation packages. View/app all-target Clippy passes; localization execution
-tests are queued, so this is a WIP checkpoint, not a package pass. Eight retained
-before frames reproduce the unsupported-first English fallback and English-first
-control in both themes and desktop/phone sizes; every original was opened and
-hash/dimension checked. The capture apps/private display were stopped. Whole
-gate/review and the targeted after
-normal-app unsupported-first locale check are owed at package close. Merge the
-announced app-base head before that close; no gate of an older base is a claim
-about the combined application. Plugin runtime integration belongs to F6.
+Current state: source implementation `eabf5ed4` passes view/app all-target
+Clippy and all 19 localization tests, including the two new preferred-list
+regressions, retained single-tag behavior, pseudo/fallback behavior, released
+catalog completeness and warmed plain-getter zero-allocation checks. Changed
+crates actually recompiled. The current explicit-root data report has English
+and Korean complete with zero missing; the partial Japanese fixture has its
+expected three missing messages and is not shipped.
+
+Eight retained before frames reproduce the unsupported-first English fallback
+and English-first control in both themes and desktop/phone sizes; every original
+was opened and hash/dimension checked. Capture apps/private display were stopped.
+The feature is built, not passed: one whole A13 gate/review and the targeted
+after startup check are owed at package close. Merge the announced app-base
+head before that close; no older-base gate proves the combined application.
+Current browser/Windows/OS integration and plugin runtime integration are not
+inferred from these native tests; the latter belongs to F6.
+
+## Coordinated package word seams
+
+- A3 owns new `chat-outline.ftl`, with plain label/hint getters. Its Chat switch
+  follows the display row; it preserves the existing Chat catalog and adapter.
+- A7 owns new `chat-reasoning.ftl`, a third display-choice key in `chat.ftl` and
+  the exhaustive `Chat::display_choice` arm for its new closed enum variant.
+  The existing six Chat messages stay unchanged; its reasoning row is first.
+- E4 owns `onboarding.ftl` and `diagnostic-flow.ftl`; underscores are Rust getter
+  spellings, never area filenames. It consumes the existing translated
+  Diagnostics header/Run/Copy/Refresh and keeps technical report schema separate.
+  Its first diagnostic-flow review found phrasing/terminology corrections;
+  a revised final key diff is still awaited, not approved as a complete package.
+- A9 owns its new `models.ftl` domain and typed helper, without a new formatter
+  or dependency in the core localization mechanism.
+
+These are word/API seams, not behavior or whole-package approvals. The package
+owners coordinate shared Chat edits directly; this track does not write their
+screens or preferences in parallel.
