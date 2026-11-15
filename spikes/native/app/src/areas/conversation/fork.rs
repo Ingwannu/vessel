@@ -44,6 +44,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{MenuHandlers, MenuItem, MenuState, Tooltips};
 use vessel_app_link::{Act, ActAnswer, ActFailed, ActKind, Acted};
 use vessel_app_view::Card;
+use vessel_app_view::fork::{Headers, Notice, PreparedNotice};
 use vessel_app_view::timeline::{fork_point, origin_of};
 use vessel_proto::EventSeq;
 
@@ -71,6 +72,10 @@ pub(crate) struct Forking {
     pub(super) tips: Tooltips,
     /// Where each footer's mark was last drawn, by entry.
     places: RefCell<HashMap<usize, Place>>,
+    /// Captions prepared at fleet/language events, shared with origin rows.
+    pub(super) headers: Headers,
+    /// Retained while its global frame notice may survive navigation.
+    notice: Option<PreparedNotice>,
 }
 
 impl std::fmt::Debug for Forking {
@@ -92,6 +97,8 @@ impl Forking {
             removing: false,
             tips: Tooltips::new(),
             places: RefCell::default(),
+            headers: Headers::default(),
+            notice: None,
         }
     }
 
@@ -169,7 +176,7 @@ pub(super) fn mark(
             .on(
                 trigger,
                 &forking.place(index),
-                paint.words.fork_tooltip(),
+                paint.catalog.fork().tooltip(),
                 narrow,
             )
             .into_any_element(),
@@ -178,12 +185,44 @@ pub(super) fn mark(
 
 /// The fork menu's rows: our node's one target.
 pub(super) fn menu_items(shell: &Shell) -> Vec<MenuItem> {
-    vec![MenuItem::new(
-        shell.t.lang.conversation().fork_in_new_session(),
-    )]
+    vec![MenuItem::new(shell.words.fork().in_new_session())]
 }
 
 impl Shell {
+    /// Prepare only changed source titles after fleet events, before a frame.
+    pub(crate) fn refresh_fork_headers(&mut self) {
+        match self
+            .areas
+            .conversation
+            .forking
+            .headers
+            .refresh(&self.fleet, self.words)
+        {
+            Ok(true) => {
+                let list = &self.areas.conversation.list;
+                list.changed(0..list.rows());
+                self.areas.session.entries.remeasure();
+            }
+            Ok(false) => {}
+            Err(error) => tracing::error!(%error, "preparing fork source captions"),
+        }
+    }
+
+    /// Refresh retained notices without reissuing an act or changing inputs.
+    pub(crate) fn translate_fork_words(&mut self) {
+        self.refresh_fork_headers();
+        let forking = &mut self.areas.conversation.forking;
+        if let Some(notice) = &mut forking.notice {
+            let owned = self.notice.as_deref() == Some(&*notice.words());
+            match notice.translate(self.words) {
+                Ok(()) if owned => self.notice = Some(notice.words().to_string()),
+                Ok(()) => {}
+                Err(error) => tracing::error!(%error, "translating fork notice"),
+            }
+        }
+        self.translate_origin_notice();
+    }
+
     /// Open the fork menu for the footer at `target` (its entry and its
     /// turn's end), at `at`.
     fn fork_open(
@@ -239,9 +278,13 @@ impl Shell {
             Err(ActFailed {
                 code: Some(_),
                 message,
-            }) => {
-                self.notice = Some(self.t.lang.conversation().fork_failed(message));
-            }
+            }) => match PreparedNotice::new(Notice::Refused(message.clone()), self.words) {
+                Ok(notice) => {
+                    self.notice = Some(notice.words().to_string());
+                    forking.notice = Some(notice);
+                }
+                Err(error) => tracing::error!(%error, "preparing fork notice"),
+            },
             // No answer at all: the session's lost connection says it.
             Err(ActFailed { code: None, .. })
             | Ok(

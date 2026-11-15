@@ -1083,6 +1083,13 @@ Updater labels and whole value messages use the same catalogs. The pure
 the host groups its updater runtime, authoritative state and prepared words
 in `UpdateUi`. Both desktop and browser shells use it without introducing
 the native updater's I/O dependencies into view.
+Rewind and fork vocabulary uses the generated catalogs beside the remaining
+conversation tables. Rewind recoveries project typed node codes; fork source
+captions are retained in `view::fork::Headers` across unchanged fleet events.
+The host refreshes captions at fleet/act/language events and invalidates rows
+only when captions change. Origin and frame notices retain shared text for
+language refresh without another request. The staged fork migration retains
+diagnostics pending its separate typed correction.
 The host reads the typed
 language preference before creating a shell; System resolves against the
 host tag, while VESSEL_APP_LANG is the checking override. General's language

@@ -1,3 +1,42 @@
+## Fork vocabulary migration (source ready; full gate/screens owed)
+
+Reuses the generated catalog, retained-notice pattern and existing fleet events;
+no new parser or dependency. Ten whole messages replace the fork table. Source
+captions retain one formatted sentence per listed session, refreshed only for
+changed titles or language, with first-listed UUID semantics matching the old
+`Fleet::title_of`; removed sources are evicted. Rows borrow these captions and
+plain getters. A changed caption invalidates cached timeline rows/measurements.
+Origin/fork failure text is prepared at the response or language event, not a
+frame. Retained global notices keep their ownership check after navigation.
+
+Reference: Paseo's `components/assistant-fork-menu.tsx` and
+`hooks/use-fork-agent.ts`. The existing one new-session target, lock, mark/menu
+geometry, origin log, remove behavior and navigation are preserved. As with the
+rewind move, this first commit retains diagnostic interpolation; typed refusal,
+origin-read and unknown empty-fork corrections follow separately before any
+complete UI submission. The staged move does not make node diagnostics Korean.
+
+Lead approved the one fallback seam in legacy `conversation/entries.rs`:
+`spoken` takes the prepared `Translator`; only the Forked branch changes its
+words. Actual callers: three app expressions, three existing failure-test
+expressions and eight page-word assertions (the latter were additional callers). No other spoken sentence changes. Paint's former fleet borrow is
+replaced by the prepared caption cache in the two existing constructors.
+Fork/origin modules, the empty-fork banner, language registration and fleet/act
+refresh lines are the other app seams. C's terminal and spacing work are untouched.
+
+All-target view Clippy and 831 library + ten contract tests pass, including
+whole English/Korean sentences, rename/language/duplicate/removed-source cache
+behavior and zero allocations over 10,000 prepared reads/unchanged refreshes.
+Native format, size, boundaries and tokens pass; no allowance was added. The
+standalone coverage reporter reads the candidate root with zero missing keys
+in either language; this is source-preview coverage, not a compiled registry
+claim. App tests, whole native gate and screen evidence remain owed. The first
+Clippy attempt's three source warnings were fixed; a later format check found
+page assertion wrapping, corrected before committing.
+
+G1's exact Korean PR form-title correction is `175491aa64320833ebff65eeebde4015904462a2`.
+Its whole gate and Korean screen evidence remain with G1; no L PR key edit.
+
 # Track L: the app's words as translation data
 
 ## Rewind typed-refusal correction

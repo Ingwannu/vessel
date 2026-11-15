@@ -783,6 +783,11 @@ Rewind's menu and copy vocabulary use `rewind.ftl`; typed node error codes
 choose safe whole recovery sentences. Its retained notice is prepared at
 answer/language events. Conversation paints receive the shell's already-prepared
 catalog beside their remaining legacy words; rewind diagnostics remain in logs.
+Fork menus, empty-fork labels and source captions use `fork.ftl`. Source titles
+are prepared at fleet/act or language events and evicted when no longer listed;
+rendering borrows these cached captions. Failure/origin notices are retained at
+the answer boundary for live retranslation. The staged vocabulary move still
+retains diagnostic detail until the separate typed-error correction.
 General's Language row uses System first, then each embedded language's own
 name. Its typed preference goes through `Prefs::prefer`; labels, retained
 field placeholders and pairing outcomes update at once, without restarting

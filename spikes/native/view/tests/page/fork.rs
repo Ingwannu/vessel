@@ -4,7 +4,8 @@
 //! agent named (a point) and no rewind left behind.
 
 use serde_json::json;
-use vessel_app_view::Lang;
+use vessel_app_view::fork::{Notice, PreparedNotice};
+use vessel_app_view::localization::{Locale, Translator};
 use vessel_app_view::timeline::{EntryKind, Timeline, Until, fork_point, origin_of};
 use vessel_proto::{EventRecord, EventSeq, SessionId};
 
@@ -74,29 +75,34 @@ fn a_forked_session_opens_with_a_line_naming_its_source() {
         panic!("{:?}", timeline.entries()[0].kind);
     };
     assert_eq!((from, after), (source, Some(EventSeq::new(7))));
-    let words = Lang::En.conversation();
+    let words = catalog("en").fork();
     assert_eq!(
-        words.forked_from(Some("plain")),
-        "Forked from “plain”",
+        words.from_title("plain").unwrap(),
+        "Forked from “\u{2068}plain\u{2069}”",
         "the source's title, from the list"
     );
-    assert_eq!(words.forked_from(None), "Forked from another session");
+    assert_eq!(words.from_other(), "Forked from another session");
     assert_eq!(
-        Lang::Ko.conversation().forked_from(Some("plain")),
-        "“plain”에서 분기함"
+        catalog("ko").fork().from_title("plain").unwrap(),
+        "“\u{2068}plain\u{2069}”에서 분기함"
     );
 }
 
 #[test]
 fn a_refused_fork_says_paseos_words_and_the_nodes() {
-    let words = Lang::En.conversation();
-    assert_eq!(words.fork_failed(" "), "Failed to fork chat");
     assert_eq!(
-        words.fork_failed("the agent did not fork at the chosen point"),
-        "Failed to fork chat: the agent did not fork at the chosen point"
+        notice(Notice::Refused(" ".to_owned()), "en"),
+        "Failed to fork chat"
     );
     assert_eq!(
-        Lang::Ko.conversation().fork_failed(""),
+        notice(
+            Notice::Refused("the agent did not fork at the chosen point".to_owned()),
+            "en"
+        ),
+        "Failed to fork chat: \u{2068}the agent did not fork at the chosen point\u{2069}"
+    );
+    assert_eq!(
+        notice(Notice::Refused(String::new()), "ko"),
         "채팅을 분기하지 못했습니다"
     );
 }
@@ -150,22 +156,45 @@ fn a_forks_origin_is_read_up_to_the_turn_it_continues_from() {
 
 #[test]
 fn an_origin_that_cannot_be_read_is_said_plainly() {
-    let words = Lang::En.conversation();
     assert_eq!(
-        words.origin_unread(true, "not found"),
+        notice(
+            Notice::Origin {
+                removed: true,
+                message: "not found".to_owned()
+            },
+            "en"
+        ),
         "The conversation it was forked from was removed."
     );
     assert_eq!(
-        words.origin_unread(false, "connection lost."),
-        "The conversation it was forked from could not be read: connection lost. Open the \
+        notice(
+            Notice::Origin {
+                removed: false,
+                message: "connection lost.".to_owned()
+            },
+            "en"
+        ),
+        "The conversation it was forked from could not be read: \u{2068}connection lost\u{2069}. Open the \
          session again to try again."
     );
     assert_eq!(
-        Lang::Ko.conversation().origin_unread(false, " "),
+        notice(
+            Notice::Origin {
+                removed: false,
+                message: " ".to_owned()
+            },
+            "ko"
+        ),
         "분기한 원래 대화를 읽지 못했습니다. 세션을 다시 열면 다시 읽습니다."
     );
     assert_eq!(
-        Lang::Ko.conversation().origin_unread(true, ""),
+        notice(
+            Notice::Origin {
+                removed: true,
+                message: String::new()
+            },
+            "ko"
+        ),
         "분기한 원래 대화는 삭제되었습니다."
     );
 }
@@ -196,18 +225,23 @@ fn an_empty_fork_says_why_in_the_persons_words() {
         "another session's failure"
     );
     assert_eq!(empty_fork(&SessionStatus::Running), None);
-    let words = Lang::Ko.conversation();
-    assert_eq!(words.empty_fork_heading(), "분기가 시작되지 않았습니다");
+    let words = catalog("ko").fork();
+    assert_eq!(words.empty_heading(), "분기가 시작되지 않았습니다");
     assert!(
         words
-            .empty_fork_line(&EmptyFork::NotAtPoint)
+            .empty_not_at_point()
             .starts_with("에이전트가 고른 지점에서 분기하지 않았습니다.")
     );
-    assert_eq!(
-        Lang::En
-            .conversation()
-            .empty_fork_line(&EmptyFork::Other("x".to_owned())),
-        "x"
-    );
-    assert_eq!(Lang::En.conversation().remove_fork(), "Remove");
+    assert_eq!(catalog("en").fork().remove(), "Remove");
+}
+
+fn catalog(tag: &str) -> &'static Translator {
+    Translator::get(Locale::from_tag(tag).unwrap()).unwrap()
+}
+
+fn notice(outcome: Notice, tag: &str) -> String {
+    PreparedNotice::new(outcome, catalog(tag))
+        .unwrap()
+        .words()
+        .to_string()
 }

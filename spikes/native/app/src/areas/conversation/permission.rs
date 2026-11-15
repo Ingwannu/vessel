@@ -345,7 +345,7 @@ fn body(
         agent: None,
         rewinds: None,
         forks: None,
-        fleet: &shell.fleet,
+        fork_headers: &shell.areas.conversation.forking.headers,
         above: super::origin::Above::Nothing,
     };
     let detail = match (&card.command, tool) {
