@@ -101,3 +101,17 @@ candidate, per-path restore and guarded undo, full preview/pagination/auth,
 retention/pins and quota release after real cleanup, and real session/workspace
 exclusion. The previously accepted held-I/O and metadata proof obligations are
 not waived. A test-only callback seam does not prove actual prompt delivery.
+
+### Frame checkpoint and baseline update
+
+The five changed crates' all-target clippy passed on `fa83036e` (no lint
+changes). Filtered behavior tests are still pending; no runtime pass follows
+from that clippy result. Guarded filesystem restore/exchange/undo sources and
+their real-file tests are now written but not compiled yet, preserved before
+consuming the announced Quality B baseline. They remain test-only.
+
+The announced node baseline is `29eebb8b`; the app package baseline is
+`8d5513e4`. Merge them in the separate owned worktrees. After Quality B, add
+pending unary rows with FILE_CHECKPOINTS still None, typed request/response
+values and explicit ownership/forwarding policy. Registration is not protocol
+assignment or permission to advertise an unfinished capability.

@@ -2,20 +2,15 @@
 
 use super::{
     Error,
+    content::{self, Budget},
     rooted::{Identity, refuse_attributes},
 };
 use rustix::fs::{AtFlags, CWD, Mode, OFlags};
-use sha2::{Digest as _, Sha256};
-use std::{
-    fs::File,
-    io::{Read as _, Write as _},
-    os::unix::fs::MetadataExt as _,
-    path::PathBuf,
-};
+use std::{fs::File, os::unix::fs::MetadataExt as _, path::PathBuf};
 use tokio_util::sync::CancellationToken;
 use vessel_proto::{
     BlobHash,
-    checkpoint::{CHECKPOINT_IO_CHUNK, CheckpointError, FileBytes},
+    checkpoint::{CheckpointError, FileBytes},
 };
 
 const PRIVATE_MODE: u32 = 0o600;
@@ -90,7 +85,8 @@ impl Archive {
         budget: FileBytes,
         cancellation: &CancellationToken,
     ) -> Result<(BlobHash, FileBytes), Error> {
-        let (digest, bytes) = stream(source, output, budget, cancellation)?;
+        let (digest, bytes) =
+            content::transfer(source, output, Budget::ImageRemaining(budget), cancellation)?;
         if Identity::of(&source.metadata()?) != before {
             return Err(CheckpointError::CaptureUnstable.into());
         }
@@ -112,6 +108,22 @@ impl Archive {
     pub(super) fn path(&self, digest: BlobHash) -> PathBuf {
         self.path.join(digest.to_string())
     }
+    pub(super) fn open_blob(&self, digest: BlobHash) -> Result<File, Error> {
+        let source = File::from(
+            rustix::fs::openat(&self.folder, digest.to_string(), READ_FILE, Mode::empty())
+                .map_err(std::io::Error::from)?,
+        );
+        let found = source.metadata()?;
+        if !found.is_file()
+            || found.nlink() != 1
+            || found.uid() != self.folder.metadata()?.uid()
+            || found.mode() & ORDINARY_BITS != PRIVATE_MODE
+        {
+            return Err(CheckpointError::UnsafeEntry.into());
+        }
+        refuse_attributes(&source)?;
+        Ok(source)
+    }
     fn verify(&self, digest: BlobHash, bytes: FileBytes) -> Result<(), Error> {
         let mut source = File::from(
             rustix::fs::openat(&self.folder, digest.to_string(), READ_FILE, Mode::empty())
@@ -126,61 +138,15 @@ impl Archive {
         {
             return Err(CheckpointError::UnsafeEntry.into());
         }
-        let mut hash = Sha256::new();
-        let mut buffer = vec![0_u8; CHECKPOINT_IO_CHUNK].into_boxed_slice();
-        let mut total = 0_u64;
-        loop {
-            let count = source.read(&mut buffer)?;
-            if count == 0 {
-                break;
-            }
-            total = total
-                .checked_add(u64::try_from(count).map_err(|_large| CheckpointError::FileTooLarge)?)
-                .ok_or(CheckpointError::FileTooLarge)?;
-            if total > bytes.get() {
-                return Err(CheckpointError::CaptureUnstable.into());
-            }
-            hash.update(buffer.get(..count).ok_or(CheckpointError::FileTooLarge)?);
-        }
-        if total != bytes.get()
-            || BlobHash::from_bytes(hash.finalize().into()) != digest
-            || Identity::of(&source.metadata()?) != Identity::of(&before)
-        {
+        let (found, _bytes) = content::transfer(
+            &mut source,
+            &mut std::io::sink(),
+            Budget::Exact(bytes),
+            &CancellationToken::new(),
+        )?;
+        if found != digest || Identity::of(&source.metadata()?) != Identity::of(&before) {
             return Err(CheckpointError::CaptureUnstable.into());
         }
         Ok(())
     }
-}
-fn stream(
-    source: &mut File,
-    destination: &mut File,
-    budget: FileBytes,
-    cancellation: &CancellationToken,
-) -> Result<(BlobHash, FileBytes), Error> {
-    let mut buffer = vec![0_u8; CHECKPOINT_IO_CHUNK].into_boxed_slice();
-    let mut total = 0_u64;
-    let mut hash = Sha256::new();
-    loop {
-        if cancellation.is_cancelled() {
-            return Err(CheckpointError::CaptureTimedOut.into());
-        }
-        let count = source.read(&mut buffer)?;
-        if count == 0 {
-            break;
-        }
-        total = total
-            .checked_add(u64::try_from(count).map_err(|_large| CheckpointError::FileTooLarge)?)
-            .ok_or(CheckpointError::FileTooLarge)?;
-        let _bounded = FileBytes::new(total)?;
-        if total > budget.get() {
-            return Err(CheckpointError::ImageTooLarge.into());
-        }
-        let chunk = buffer.get(..count).ok_or(CheckpointError::FileTooLarge)?;
-        hash.update(chunk);
-        destination.write_all(chunk)?;
-    }
-    Ok((
-        BlobHash::from_bytes(hash.finalize().into()),
-        FileBytes::new(total)?,
-    ))
 }

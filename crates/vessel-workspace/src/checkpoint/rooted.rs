@@ -1,5 +1,7 @@
 //! Handle-relative no-follow traversal, identity and unsupported ACL refusal.
 
+pub(super) mod mutation;
+
 use super::Error;
 use rustix::fs::{CWD, Mode, OFlags};
 use std::{
