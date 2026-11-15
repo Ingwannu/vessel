@@ -109,6 +109,7 @@ async fn to_end(stream: &mut TerminalStream) -> (Option<SessionStatus>, String) 
                 | SessionEvent::Parked { .. }
                 | SessionEvent::Woken
                 | SessionEvent::Forked { .. }
+                | SessionEvent::Checkpoint { .. }
                 | SessionEvent::Rewound { .. }) => panic!("a terminal logs no {other:?}"),
             }
         }
