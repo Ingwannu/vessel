@@ -22,10 +22,12 @@ impl Scripts {
         }
     }
     pub(super) fn admits_project_write(&self) -> bool {
-        self.panels.borrow().len()
-            + self.retired_projects.len()
-            + usize::from(self.model.writing.is_some())
-            < MAX_RETAINED_SURFACES
+        self.panels
+            .borrow()
+            .len()
+            .checked_add(self.retired_projects.len())
+            .and_then(|count| count.checked_add(usize::from(self.model.writing.is_some())))
+            .is_some_and(|count| count < MAX_RETAINED_SURFACES)
     }
     pub(super) fn has_pending(&self, target: &Target) -> bool {
         self.model.writing.is_some()

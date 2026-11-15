@@ -229,7 +229,7 @@ impl Model {
     }
 }
 /// Match setup-panel.tsx's per-line final-CR-segment presentation. This is not
-/// the legacy streaming SetupLog overwrite emulator and preserves no fake grid.
+/// the legacy streaming `SetupLog` overwrite emulator and preserves no fake grid.
 #[must_use]
 pub fn output(bytes: &[u8]) -> String {
     String::from_utf8_lossy(bytes)
@@ -251,8 +251,8 @@ pub fn elapsed(value: vessel_proto::DurationMs) -> String {
     if value < MINUTE {
         return format!("{}s", value.as_secs());
     }
-    let minutes = value.as_secs() / MINUTE.as_secs();
-    let seconds = value.as_secs() % MINUTE.as_secs();
+    let minutes = value.as_secs().div_euclid(MINUTE.as_secs());
+    let seconds = value.as_secs().rem_euclid(MINUTE.as_secs());
     format!("{minutes}m {seconds}s")
 }
 
