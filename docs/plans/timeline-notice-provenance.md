@@ -75,3 +75,21 @@ two-hop old/new queue/event projections, with seq/cursors preserved. Source and
 runtime review are owed before implementation/activation, including integrator
 acceptance of these additive shared fields. Positive private admission remains
 Unsupported until all row251 fences/transactions/consumer proof exist.
+
+Integrator shared-wire acceptance is conditional. Before implementation or positive
+private records, pin inert request-key tests for SubmitPrompt, PromptSession,
+CreateSession/first-input and QueueChange; none may gain a source selector.
+Explicitly clear provenance at external record ingress: session and memory import,
+fleet-delivered transfers and provider/history replay. A foreign export must not
+hide ordinary user words by claiming a local internal source. Reading this node's
+own retained canonical records is not a new foreign producer.
+
+The following node-internal readers are OWED before private production: generated
+first-input titles (ADR0062), session.search indexing, inbox/push previews,
+vessel-mcp tool text, CLI/web transcripts and export snapshots for older importers.
+Wire masking alone does not satisfy them. A7 native projection must also preserve
+the hidden actual turn boundary for grouping/copy/footer logic when suppressing
+its ordinary prompt row. No fabricated Prompt, turn or new presentation union
+can replace that boundary. Positive private admission remains Unsupported while
+any required reader or ingress join is owed. The one store migration repoints to
+22 after lifecycle's listing schema21; numbering stays the integrator's merge order.
