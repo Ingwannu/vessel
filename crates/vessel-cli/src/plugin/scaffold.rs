@@ -52,6 +52,9 @@ impl Row for Created {
 }
 
 pub(super) fn create(directory: &Path, requested: Option<PluginId>) -> Result<Created, InitError> {
+    // Reuse the standard local-path operation, as fleet init does. In
+    // particular, `plugin init .` derives the actual working folder's name.
+    let directory = std::path::absolute(directory).map_err(InitError::Io)?;
     let name = directory.file_name().and_then(|name| name.to_str());
     let id = match requested {
         Some(id) => id,
@@ -62,7 +65,7 @@ pub(super) fn create(directory: &Path, requested: Option<PluginId>) -> Result<Cr
     };
     // Prepare all documents before the first filesystem mutation.
     let files = template::files(&id)?;
-    prepare_directory(directory)?;
+    prepare_directory(&directory)?;
     for (name, bytes) in files {
         let mut options = fs::OpenOptions::new();
         options.write(true).create_new(true);
@@ -77,7 +80,7 @@ pub(super) fn create(directory: &Path, requested: Option<PluginId>) -> Result<Cr
     }
     Ok(Created {
         id,
-        directory: fs::canonicalize(directory).map_err(InitError::Io)?,
+        directory: fs::canonicalize(&directory).map_err(InitError::Io)?,
     })
 }
 

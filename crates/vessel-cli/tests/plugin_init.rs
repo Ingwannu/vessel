@@ -83,6 +83,21 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn plugin_init_dot_uses_the_working_directory_name_without_a_node() {
+        let root = tempfile::tempdir().expect("isolated parent");
+        let directory = root.path().join("sample");
+        std::fs::create_dir(&directory).expect("empty existing working directory");
+        let output = init(&directory, &[".", "--quiet"]).await;
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(output.stdout, b"sample\n");
+        assert!(directory.join("vessel-plugin.json").is_file());
+    }
+
+    #[tokio::test]
     async fn invalid_identity_and_nonempty_targets_fail_without_overwriting_files() {
         let root = tempfile::tempdir().expect("isolated CLI working directory");
         let output = init(root.path(), &["INVALID-PRIVATE-CANARY"]).await;
