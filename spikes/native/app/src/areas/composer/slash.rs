@@ -321,7 +321,23 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) -> KeyAnswer {
         match over {
-            Over::Session => self.recall_key(key, window, cx),
+            Over::Session => {
+                let Some(open) = &self.areas.session.open else {
+                    return KeyAnswer::Pass;
+                };
+                let target = DraftKey::Session {
+                    session: open.session,
+                };
+                // Recall replaces text programmatically, so the engine's edit
+                // lock alone cannot protect this fallback from a stale key.
+                if self
+                    .composer_surface(target, cx)
+                    .is_none_or(|surface| !surface.autocomplete())
+                {
+                    return KeyAnswer::Pass;
+                }
+                self.recall_key(key, window, cx)
+            }
             Over::Draft => KeyAnswer::Pass,
         }
     }
@@ -408,3 +424,6 @@ impl Shell {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod readonly_tests;
