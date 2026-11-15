@@ -78,7 +78,7 @@ impl Render for Probe {
                     },
                 )));
         if self.dialog_open {
-            root = root.child(dialog::dialog(
+            root = root.child(dialog(
                 &self.dialog,
                 dialog::DialogContent {
                     title: "Dialog / 대화상자".into(),
