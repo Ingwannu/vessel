@@ -1292,6 +1292,27 @@ the cache; this is not a process-heap
 bound. Only disposable parked sources can make room. The legacy node's separate
 version and text reads are not an immutable snapshot guarantee.
 
+`file_open` captures the installed connection/session/root receipt for queued
+activation. The test-staged opener asks the sole layout owner for the actual
+tab id, and `file_tabs` binds `(LayoutKey, TabId)` to that original receipt and
+existing buffer. Restored/unbound targets render unavailable and cannot resolve
+an arbitrary root. Cache eviction respects binding references. The same viewer
+uses pane or legacy Explorer chrome; a bound file leaves the Explorer showing
+its existing tree rather than painting the editor entity twice. Local Find
+routes only to an actually focused, visible editor/find field, including a
+retained buffer in a visible pane.
+
+Before a path mutation or close decision, accepted engine text is mirrored into
+its original model. A hold blocks new writes and queued destructive reloads,
+while prior edits and original completions still publish. The staged close owner
+uses one existing Discard/Cancel dialog and immutable keyed plan. Pending reads
+and original writes refuse close; a possibly completed mutating effect remains
+held. Only actual keyed tab removal releases its binding, and another binding
+keeps its existing draft. The real layout close dispatcher, typed Explorer
+header/visibility and owner retirement join remain unfinished; these source
+paths and synthetic fixtures do not establish live pane/quit safety. The lazy
+Explorer body extension keeps the existing dock and legacy wrapper behavior.
+
 Directory metadata and saved-file observation consume pending ADR0083 methods
 when the integrator assigns their protocol; older peers keep ordinary requested
 parent listings. New source/metadata/readiness regression sources are not a
