@@ -132,3 +132,12 @@ leaving turn count/running turn unchanged. Permission delivery-state refreshes
 replace the existing exact PermissionId row instead of duplicating it; Answering
 and OutcomeUnknown disable action controls. Generated TS and execution of these
 web regressions are still owed. Native A7/A8 remain separate consumer owners.
+
+The original native command text also has a named finite envelope:
+MAX_NATIVE_COMMAND_ORIGINAL_BYTES = 64KiB objective bound +256 prefix/whitespace
+bytes. This bounds the retained canonical echo even when normalization would
+remove arbitrarily large outer whitespace. Refusal precedes reservation and
+dispatch, with no truncation; it is an explicit resource floor beyond Paseo.
+The typed SessionError::Moving emitted by SessionHandle::order before enqueuing
+is settled as a durable Moving refusal; generic transport/provider failures
+remain uncertain and cannot select an interrupt/retry fallback.

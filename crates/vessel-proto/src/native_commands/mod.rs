@@ -125,11 +125,15 @@ impl NativeCommandStatus {
 #[cfg(test)]
 mod tests;
 
+/// Bound the original command echo as well as the normalized goal objective.
+/// A small fixed prefix/whitespace allowance never silently truncates submitted text.
+pub const MAX_NATIVE_COMMAND_ORIGINAL_BYTES: usize = MAX_GOAL_OBJECTIVE_BYTES + 256;
+
 impl NativeCommandIntent {
     /// Native commands use exactly one original text block, never attachments,
     /// hidden context or a provider-built prompt substituted by a caller.
     #[must_use]
     pub fn matches_content(&self, content: &[crate::ContentBlock]) -> bool {
-        matches!(content, [crate::ContentBlock::Text { text }] if self.matches_text(text))
+        matches!(content, [crate::ContentBlock::Text { text }] if text.len() <= MAX_NATIVE_COMMAND_ORIGINAL_BYTES && self.matches_text(text))
     }
 }

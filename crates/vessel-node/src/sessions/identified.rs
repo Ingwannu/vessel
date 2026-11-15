@@ -76,6 +76,13 @@ impl Sessions {
             Ok(SubmissionDispatch::Refused(reason)) => {
                 return self.refuse_identified(token, message, reason).await;
             }
+            Err(vessel_session::SessionError::Moving) => {
+                // This error is produced only by SessionHandle::order before
+                // enqueuing the command, never by a possibly sent provider RPC.
+                return self
+                    .refuse_identified(token, message, SubmissionRefusal::Moving)
+                    .await;
+            }
             Ok(SubmissionDispatch::OutcomeUnknown) | Err(_) => {
                 return Ok(SubmitPromptReply::OutcomeUnknown { message });
             }
