@@ -102,7 +102,7 @@ fn inline_shape(
 ) -> Result<(), ContractError> {
     match inline {
         InlineExpression::VariableReference { id } => {
-            shape.merge(Name::parse(id.name)?, Kind::Text)
+            shape.merge(Name::parse(id.name)?, Kind::Text);
         }
         InlineExpression::MessageReference { id, attribute } => {
             if attribute.is_some() {
@@ -155,7 +155,13 @@ fn term_shape(
                         let kind = match &n.value {
                             InlineExpression::StringLiteral { .. } => LocalLiteral::Text,
                             InlineExpression::NumberLiteral { .. } => LocalLiteral::Number,
-                            _ => return Err(ContractError::TermArgument),
+                            InlineExpression::FunctionReference { .. }
+                            | InlineExpression::MessageReference { .. }
+                            | InlineExpression::TermReference { .. }
+                            | InlineExpression::VariableReference { .. }
+                            | InlineExpression::Placeable { .. } => {
+                                return Err(ContractError::TermArgument);
+                            }
                         };
                         Ok((Name::parse(n.name.name)?, kind))
                     })
@@ -200,7 +206,7 @@ fn function_shape(
 fn number_operand(value: &InlineExpression<&str>, shape: &mut Shape) -> Result<(), ContractError> {
     match value {
         InlineExpression::VariableReference { id } => {
-            shape.merge(Name::parse(id.name)?, Kind::Number)
+            shape.merge(Name::parse(id.name)?, Kind::Number);
         }
         InlineExpression::NumberLiteral { value } => numeric_literal(value)?,
         InlineExpression::FunctionReference { id, .. } if id.name == "NUMBER" => {}
@@ -208,7 +214,10 @@ fn number_operand(value: &InlineExpression<&str>, shape: &mut Shape) -> Result<(
             Expression::Inline(value) => number_operand(value, shape)?,
             Expression::Select { .. } => return Err(ContractError::NumberArgument),
         },
-        _ => return Err(ContractError::NumberArgument),
+        InlineExpression::StringLiteral { .. }
+        | InlineExpression::FunctionReference { .. }
+        | InlineExpression::MessageReference { .. }
+        | InlineExpression::TermReference { .. } => return Err(ContractError::NumberArgument),
     }
     Ok(())
 }

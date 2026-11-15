@@ -104,7 +104,7 @@ impl Shape {
             | (Kind::Date, Kind::Date) => {}
             (Kind::Choice(left), Kind::Choice(right)) => left.extend(right),
             (slot @ Kind::Text, value @ (Kind::Number | Kind::Date | Kind::Choice(_))) => {
-                *slot = value
+                *slot = value;
             }
             (Kind::Number, Kind::Date | Kind::Choice(_))
             | (Kind::Date, Kind::Number | Kind::Choice(_))
