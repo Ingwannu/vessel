@@ -224,15 +224,18 @@ shown and a partial comparison cannot claim the commands are unchanged.
   every borrowed view field, the web names every nested field and refuses
   current, previous or folder snapshots with declarations. The port is
   covered by the reserved version-three digest slot; old vectors stay fixed.
-  File parsing still supplies no port. Native constructor/getter/card
-  adaptation remains the native lead's integration condition. No allocator
+  The TOML decoder now reads a service's integer port through `ServicePort`;
+  invalid numbers and a plain script's port refuse the whole file. Boundary,
+  source-chain and digest tests cover this input edge. `service_ports` stays
+  ignored. Native constructor/getter/card adaptation remains the native
+  lead's integration condition. No allocator
   or health execution path is present.
 - Before port fields: ADR 0066 now defines the `ScriptEntry` construction
   invariant and complete borrowed display view. The native lead owns its
   constructor/getter and exhaustive-card adaptation; web coverage and
   comparison name nested entry fields too. The declaration boundary above
   implements this part; the native adaptation remains owed.
-- Then: add the file parser, digest and approval fields. A relative bare
+- Then: add the allocation-block parser, digest and approval fields. A relative bare
   program is checkout-rooted, using a worktree's own copy in its own folder,
   unlike Paseo's PATH lookup; the execution test proving that selection
   and relative-link containment remain owed. Add

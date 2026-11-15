@@ -20,7 +20,9 @@ use std::collections::BTreeMap;
 use serde::Deserialize;
 use sha2::{Digest as _, Sha256};
 use vessel_proto::scripts::{InvalidScriptEntry, ScriptEntry, ScriptKind, ScriptName};
-use vessel_proto::workspace::{InvalidRelPath, InvalidText, ProjectCommand, RelPath};
+use vessel_proto::workspace::{
+    InvalidRelPath, InvalidServicePort, InvalidText, ProjectCommand, RelPath, ServicePort,
+};
 
 /// The most scripts and services one file names, together (GOAT allows 50).
 pub const MAX_SCRIPTS: usize = 32;
@@ -30,6 +32,7 @@ pub const MAX_SCRIPTS: usize = 32;
 pub(super) struct RawScript {
     command: Option<String>,
     dir: Option<String>,
+    port: Option<i64>,
 }
 
 /// The two tables as written.
@@ -44,6 +47,16 @@ pub enum ScriptsError {
     /// More than [`MAX_SCRIPTS`] together.
     #[error("`vessel.toml` names more than {MAX_SCRIPTS} scripts and services")]
     TooMany,
+    /// A declaration that cannot identify an executable TCP service port.
+    #[error("`{table}.{name}.port`: {source}")]
+    Port {
+        /// Identify the table whose entry is refused.
+        table: &'static str,
+        /// Identify the declaration without losing its numeric cause.
+        name: ScriptName,
+        /// Keep the validating port type's precise refusal.
+        source: InvalidServicePort,
+    },
     /// A name that is not 1 to 64 letters, digits, `-`, `_` or `.`.
     #[error("`vessel.toml`: {0}")]
     Name(#[source] vessel_proto::scripts::InvalidScriptName),
@@ -129,7 +142,16 @@ fn entry(kind: ScriptKind, name: &str, raw: RawScript) -> Result<ScriptEntry, Sc
             name: name.clone(),
             source,
         })?;
-    ScriptEntry::new(name, kind, command, dir, None).map_err(ScriptsError::Declaration)
+    let port = raw
+        .port
+        .map(ServicePort::try_from)
+        .transpose()
+        .map_err(|source| ScriptsError::Port {
+            table,
+            name: name.clone(),
+            source,
+        })?;
+    ScriptEntry::new(name, kind, command, dir, port).map_err(ScriptsError::Declaration)
 }
 
 /// Add `bytes` to `hash` with its length first (8 bytes little-endian), so
