@@ -6,19 +6,11 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
-- The combined narrow check reached a duplicate must_use attribute on the
-  validated-key iterator. Remove only that redundant attribute; the iterator
-  trait remains must_use. The initial VM-restart cancellation is separate
-  historical infrastructure evidence. No config runtime tests have run yet.
-
-- Current config tree composes the designated process/carrier/preflight head
-  with the reviewed service observations. Document merge conflicts retained
-  both texts, and the CLI error merge retained both additive variant groups.
-- Selected-field reads now call NodeClient::check_call with a sparse typed
-  patch requirement. The local numeric comparison is removed. A real in-memory
-  handshake test replaces its earlier pure helper test and observes no request
-  frame after older/unassigned preflight. Narrow compilation, TS generation and
-  the final config package gate remain owed.
+- Gated: service-file observations now pass on the designated terminal-deletion
+  repair head, without changing their reviewed source. The whole gate reports
+  2,318 Rust tests passed, no failures, 12 ignored; forge 4, web unit 464 and
+  e2e 67. All steps passed. The original red gate remains recorded below;
+  no unchanged replay or waiver was used.
 
 - Merged the designated upstream auth-receipt test repair before the
   proof package's first executed whole gate. No product source or test
@@ -30,39 +22,6 @@ slice order. The docs commit adds both and no command.
   existing head tests and tables were retained. The full proof gate covers
   this merge. This is separate from service-observation gate debt.
 
-
-
-- First get/set narrow clippy found a missing documentation backtick and a
-  get_mut/unwrap test idiom. Both are corrected without changing the byte
-  boundary or any assertion; no runtime tests ran in that failed check.
-
-- Source preparation: the existing selected-field read admission is extracted
-  unchanged into check_read, with older/unassigned boundary tests. This does
-  not change get/set behavior; narrow evidence for the later package is owed.
-- Source committed: unset/reload has pending table rows and actual node/CLI
-  callers, bounded strict reload reads and persistence/runtime fixtures. It is
-  not compiled yet, and generated TypeScript still needs regeneration.
-  Merge the newly designated head and adopt its shared call preflight before
-  running this package's next narrow checks.
-
-- Contract review correction: the JSON budget is pinned with units and its
-  complete-value/headroom rationale in ADR 0064. Implementation uses the one
-  matching constant; checks, errors and boundary tests derive from it.
-
-- Contract fast checks passed before code. A source re-read additionally pins
-  Paseo's invalid-JSON-to-literal-string fallback; this typed input refuses it.
-  Get/set source and fixtures are committed and formatted; narrow compilation
-  and runtime checks are pending. Unset/reload wiring is still separate.
-
-- Config get/set uses the existing RPCs and a shared exhaustive key adapter.
-  Strict JSON, a named input cap and safe category/location diagnostics are
-  recorded before its code commit. Unset/reload now has pending rows, with no
-  assigned number. No runtime or package-gate pass is claimed yet.
-
-- Work in progress: the config/reload package is drafted on the designated
-  Quality B node head, now merged with the designated head 40. Reuse existing settings and persistence; new methods
-  stay pending until the integrator assigns their one named protocol
-  constant. No gate or implementation completion is claimed here.
 
 - Approved: process ownership contract (2p0) and its binding restrictions
   passed review, and the integration decision permits Store to Proc.
@@ -76,21 +35,6 @@ slice order. The docs commit adds both and no command.
   closures, now corrected without changing the rule. A later fixture literal
   separator was corrected. Final clippy and all 20 focused lock tests pass;
   the proof package whole gate is pending. No signal caller is included.
-
-
-- Gated: service-file observations now pass on the designated terminal-deletion
-  repair head, without changing their reviewed source. The whole gate reports
-  2,318 Rust tests passed, no failures, 12 ignored; forge 4, web unit 464 and
-  e2e 67. All steps passed. The original red gate remains recorded below;
-  no unchanged replay or waiver was used.
-
-- Approved: process ownership contract (2p0) and its binding restrictions
-  passed review, and the integration decision permits Store to Proc.
-- Gated: 2p1 moves only the generic kernel query and opaque snapshots to
-  proc; the store facade, parser behavior and existing assertions remain.
-  Manifest, active map and name restriction land together. Its exact whole
-  gate passed (2,211 Rust tests, no failures, 12 ignored; forge 4,
-  web unit 442 and e2e 65). Review passed.
 
 - Done: slices 1, 2a (launchd), 2b (graceful stop).
 - Source committed: 2c (`337f92b8`) adds authenticated directory binding
@@ -145,6 +89,55 @@ slice order. The docs commit adds both and no command.
   All other steps passed, including forge 4, web unit 442 and e2e 65.
   Source approval was separate from that gate debt; the designated repair
   merge and fully green gate above now settle it.
+
+### Configuration work since this base
+
+- The combined narrow check reached a duplicate must_use attribute on the
+  validated-key iterator. Remove only that redundant attribute; the iterator
+  trait remains must_use. The initial VM-restart cancellation is separate
+  historical infrastructure evidence. No config runtime tests have run yet.
+
+- Current config tree composes the designated process/carrier/preflight head
+  with the reviewed service observations. Document merge conflicts retained
+  both texts, and the CLI error merge retained both additive variant groups.
+- Selected-field reads now call NodeClient::check_call with a sparse typed
+  patch requirement. The local numeric comparison is removed. A real in-memory
+  handshake test replaces its earlier pure helper test and observes no request
+  frame after older/unassigned preflight. Narrow compilation, TS generation and
+  the final config package gate remain owed.
+
+- First get/set narrow clippy found a missing documentation backtick and a
+  get_mut/unwrap test idiom. Both are corrected without changing the byte
+  boundary or any assertion; no runtime tests ran in that failed check.
+
+- Source preparation: the existing selected-field read admission is extracted
+  unchanged into check_read, with older/unassigned boundary tests. This does
+  not change get/set behavior; narrow evidence for the later package is owed.
+- Source committed: unset/reload has pending table rows and actual node/CLI
+  callers, bounded strict reload reads and persistence/runtime fixtures. It is
+  not compiled yet, and generated TypeScript still needs regeneration.
+  Merge the newly designated head and adopt its shared call preflight before
+  running this package's next narrow checks.
+
+- Contract review correction: the JSON budget is pinned with units and its
+  complete-value/headroom rationale in ADR 0064. Implementation uses the one
+  matching constant; checks, errors and boundary tests derive from it.
+
+- Contract fast checks passed before code. A source re-read additionally pins
+  Paseo's invalid-JSON-to-literal-string fallback; this typed input refuses it.
+  Get/set source and fixtures are committed and formatted; narrow compilation
+  and runtime checks are pending. Unset/reload wiring is still separate.
+
+- Config get/set uses the existing RPCs and a shared exhaustive key adapter.
+  Strict JSON, a named input cap and safe category/location diagnostics are
+  recorded before its code commit. Unset/reload now has pending rows, with no
+  assigned number. No runtime or package-gate pass is claimed yet.
+
+- Work in progress: the config/reload package is drafted on the designated
+  Quality B node head, now merged with the designated head 40. Reuse existing settings and persistence; new methods
+  stay pending until the integrator assigns their one named protocol
+  constant. No gate or implementation completion is claimed here.
+
 
 ## Existing asset check
 
@@ -600,24 +593,6 @@ change, actual owned-child disappearance, an independent stat-layout fixture
 and hierarchy/namespace mismatch; actual PID reuse and child namespace
 mutation remain unverified. No signal API or unused future public wrapper.
 
-
-## Config implementation preflight
-
-`[modify]`: use existing `SetNodeSettings`, `NodeSettings`, settings service,
-owner-only atomic file helpers, client calls and the shared pending method
-rows. A key enum owns text parsing and serialization; exhaustive settings
-structure patterns force a newly added field to receive its owning ADR's
-mapping. The CLI has no second complete key list. Standard serde and Rust
-iterators suffice; no reflection dependency or shared-struct macro rewrite.
-Paseo daemon/config.ts reads/edits local saved configuration and calls reload;
-Vessel's approved contract instead reads and changes authenticated live
-settings over RPC, permitting remote administration and preserving node-owned
-write-before-apply behavior. Offline local edits are deliberately not added.
-Paseo daemon/reload.ts and daemon-config-store.ts return applied, restart and
-launch-override paths; this implementation retains those three typed lists.
-The existing contract records whole fields instead of dotted key paths.
-
-
 ### Slice 2h: service-file observations
 
 Modify the existing installer boundary; do not add a second unit generator
@@ -639,3 +614,20 @@ pending; the earlier focused checks do not replace it.
 A Linux child also receives a stderr socket whose peer was closed before
 exec. Its warning write must fail and the node must stay Serving. This
 pins warning-before-RPC ordering without a race or a wire-format copy.
+
+
+## Config implementation preflight
+
+`[modify]`: use existing `SetNodeSettings`, `NodeSettings`, settings service,
+owner-only atomic file helpers, client calls and the shared pending method
+rows. A key enum owns text parsing and serialization; exhaustive settings
+structure patterns force a newly added field to receive its owning ADR's
+mapping. The CLI has no second complete key list. Standard serde and Rust
+iterators suffice; no reflection dependency or shared-struct macro rewrite.
+Paseo daemon/config.ts reads/edits local saved configuration and calls reload;
+Vessel's approved contract instead reads and changes authenticated live
+settings over RPC, permitting remote administration and preserving node-owned
+write-before-apply behavior. Offline local edits are deliberately not added.
+Paseo daemon/reload.ts and daemon-config-store.ts return applied, restart and
+launch-override paths; this implementation retains those three typed lists.
+The existing contract records whole fields instead of dotted key paths.
