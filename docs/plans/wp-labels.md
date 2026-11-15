@@ -278,3 +278,12 @@ still settles after transport retirement while retaining exact draft text; and
 an inspected deletion cannot be sent on a newer admission. The tests do not
 create connections, touch credentials/configuration or prove node persistence.
 Their execution is pending the next current-head remote native batch.
+
+W12 follow-up adoption: verified that the exact range base 9e18cf0d is already
+an ancestor of this tree and canonical plugin values e46cd57b are present. Merged
+only the isolated checked tip 30a4396f (whole eight-commit 9e18..30a range), not
+the moving pane/resources producer. It supplies shared captured layout actions
+and visibility queries; A6 does not invent an alternative selection fence.
+The preferences hook remains literal cfg(test); no canonical preferences or
+workspace registry caller is enabled by this merge. W12's scoped source/clippy
+and 38-test evidence is producer evidence, not an A6 current-head whole gate.
