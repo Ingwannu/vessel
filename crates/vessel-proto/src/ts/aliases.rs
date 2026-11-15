@@ -135,6 +135,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("CronExpr", Alias::Named),
     ("CustomAgentSlot", Alias::Quantity),
     ("DeviceId", Alias::Handle),
+    ("DiagnosticProcessId", Alias::Handle),
     ("DiagnosticSchemaVersion", Alias::Quantity),
     ("DraftText", Alias::Content),
     ("DurationMs", Alias::Quantity),
@@ -150,6 +151,8 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ForgeLogin", Alias::Named),
     ("ForgeUrl", Alias::Named),
     ("Generation", Alias::Quantity),
+    // A hunk continuation is a count/offset, never a byte offset or id.
+    ("GitHunkOffset", Alias::Quantity),
     ("GrepQuery", Alias::Named),
     ("HarnessSessionId", Alias::Handle),
     ("HeaderName", Alias::Named),
@@ -164,7 +167,6 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("LaunchId", Alias::Handle),
     ("LimitKey", Alias::Named),
     ("LimitName", Alias::Named),
-    ("LimitPercent", Alias::Quantity),
     ("MaxRuns", Alias::Quantity),
     ("McpServerName", Alias::Named),
     ("MimeType", Alias::Named),
@@ -203,6 +205,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("QueueEntryId", Alias::Handle),
     ("RefName", Alias::Named),
     ("RegistryId", Alias::Named),
+    ("RegistryRevision", Alias::Quantity),
     ("RegistryVersion", Alias::Named),
     ("RelPath", Alias::Named),
     ("RemoteName", Alias::Named),
@@ -240,6 +243,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("UsageDisclosureVersion", Alias::Quantity),
     ("UsageReportId", Alias::Handle),
     ("UsageSourceId", Alias::Handle),
+    ("WorkspaceId", Alias::Handle),
     ("WorktreeId", Alias::Handle),
 ];
 
