@@ -4,9 +4,6 @@ use std::fmt;
 
 use serde_json::Value;
 
-#[cfg(test)]
-mod tests;
-
 use super::super::commands::{Catalog, SkillsListParams, SkillsListResponse};
 use super::super::wire::RpcError;
 use super::{Pending, Session};
@@ -66,3 +63,6 @@ impl fmt::Debug for DecodeFailure {
 }
 
 impl std::error::Error for DecodeFailure {}
+
+#[cfg(test)]
+mod tests;
