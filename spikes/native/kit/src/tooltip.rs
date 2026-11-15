@@ -126,9 +126,19 @@ impl Content {
 }
 
 /// A screen's tooltips: at most one shown.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Tooltips {
     shown: Rc<RefCell<Option<Tip>>>,
+    id: SharedString,
+}
+impl Default for Tooltips {
+    fn default() -> Self {
+        let shown = Rc::new(RefCell::new(None));
+        // A UI-instance identity, not a domain identifier. Reusing one static
+        // card id would collide when two screen tooltip hosts coexist.
+        let id = format!("tooltip-{:p}", Rc::as_ptr(&shown)).into();
+        Self { shown, id }
+    }
 }
 
 impl Tooltips {
@@ -166,6 +176,11 @@ impl Tooltips {
         self.attach(trigger, place, Content::Code(text.into()), touch)
     }
 
+    /// Dismiss an explanation when its owning screen/section leaves.
+    pub fn clear(&self) {
+        *self.shown.borrow_mut() = None;
+    }
+
     /// SettingsInfoTip's explicit top-start, zero-delay explanation.
     /// `Press` opts a compact surface into the same shared rendering engine;
     /// the existing `on`/`on_code` touch suppression is unchanged.
@@ -198,6 +213,13 @@ impl Tooltips {
         text: SharedString,
         interaction: InfoInteraction,
     ) -> Stateful<gpui::Div> {
+        // A language change replaces the prepared plain caption even while
+        // the pointer remains still over the same info control.
+        if let Some(tip) = self.shown.borrow_mut().as_mut()
+            && Rc::ptr_eq(&tip.place, place)
+        {
+            tip.content = Content::Text(text.clone());
+        }
         self.attach_with(
             trigger,
             place,
@@ -300,7 +322,7 @@ impl Tooltips {
         let shown = Rc::clone(&self.shown);
         let place = Rc::clone(&tip.place);
         let card = div()
-            .id("shared-tooltip-card")
+            .id(self.id.clone())
             .when(tip.options.interaction == InfoInteraction::Press, |card| {
                 card.on_mouse_down_out(move |_, window, _| {
                     let mut shown = shown.borrow_mut();

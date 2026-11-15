@@ -176,3 +176,10 @@ cover the expanded click target, compact open/outside dismissal, desktop hover,
 legacy touch suppression and section heading/card bounds. These tests remain
 uncompiled at this checkpoint. Real platform accessibility/OS back is not
 claimed by pointer tests on a virtual window.
+
+The theme/input prerequisite is now bounded source/final-native/inspected-visual
+approved at `eddce254` (1227/0/1); its CharacterInput return is closed. This
+sidebar package begins after that boundary and does not claim the theme's
+platform limitations as solved. Packagebase2 `6036eeb8` is merged at `5e3d4a7e`.
+Navigation's corrected first narrow run passed22 tests; the first catalog
+failure is retained. New layout/controls still require their own narrow checks.
