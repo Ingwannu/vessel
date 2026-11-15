@@ -131,9 +131,306 @@ async fn the_node_bound_cannot_be_bypassed_by_opening_more_connections() {
     .await;
 }
 
+#[tokio::test]
+async fn replacement_tears_down_old_before_reading_current_settings_and_failed_preparation_keeps_it_gone()
+ {
+    within(async {
+        let f = Fixture::new().await;
+        let link = Link::new().await;
+        let key = id("replace");
+        f.registry
+            .start(&link.caller, key.clone(), format())
+            .await
+            .unwrap();
+        let entry = f.registry.entry(&link.caller, &key).await.unwrap();
+        let old = f.registry.handle(&link.caller, &key).await.unwrap();
+        let mut held = f.settings.write().await;
+        let mut replacing = Box::pin(f.registry.start(&link.caller, key.clone(), format()));
+        assert!(futures_util::poll!(replacing.as_mut()).is_pending());
+        old.closed.cancelled().await;
+        assert!(matches!(
+            refusal(f.registry.handle(&link.caller, &key).await).as_ref(),
+            RegistryError::Conflict
+        ));
+        held.switch = Some(DictationChange::Set(DictationSwitch::Off));
+        drop(held);
+        assert!(matches!(
+            replacing.await.unwrap_err().as_ref(),
+            RegistryError::Prepare(PrepareError::Disabled)
+        ));
+        entry.finished.cancelled().await;
+        assert!(matches!(
+            refusal(f.registry.entry(&link.caller, &key).await).as_ref(),
+            RegistryError::Gone
+        ));
+        link.close().await;
+        f.finish().await;
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn a_full_replacement_mailbox_changes_neither_the_first_stop_nor_the_pending_format() {
+    within(async {
+        let f = Fixture::new().await; let link = Link::new().await; let key = id("mailbox");
+        let held = f.settings.write().await;
+        let mut first = Box::pin(f.registry.start(&link.caller, key.clone(), format()));
+        assert!(futures_util::poll!(first.as_mut()).is_pending());
+        let entry = f.registry.entry(&link.caller, &key).await.unwrap();
+        let mut second = Box::pin(f.registry.start(&link.caller, key.clone(), format()));
+        assert!(futures_util::poll!(second.as_mut()).is_pending());
+        let third = refusal(f.registry.start(&link.caller, key.clone(), Pcm16Mono::new(vessel_proto::dictation::SampleRate::MAX)).await);
+        assert!(matches!(third.as_ref(), RegistryError::Mailbox(_)));
+        let control = entry.phase.borrow().control();
+        let mut selected = control.subscribe();
+        while selected.borrow().is_none() { selected.changed().await.unwrap(); }
+        assert_eq!(selected.borrow().as_ref().unwrap().reason(), Some(DictationReason::Replaced));
+        drop(held);
+        assert!(matches!(first.await.unwrap_err().as_ref(), RegistryError::Stream(source) if source.reason() == Some(DictationReason::Replaced)));
+        second.await.unwrap();
+        let second_bytes = usize::try_from(format().rate().get()).unwrap().checked_mul(size_of::<i16>()).unwrap();
+        let chunk = DictationPcm::new(vec![0; second_bytes]).unwrap();
+        assert_eq!(f.registry.chunk(&link.caller, &key, ChunkSeq::new(0), chunk).await.unwrap(), Some(ChunkSeq::new(0)));
+        let following = DictationPcm::new(vec![0; second_bytes]).unwrap();
+        assert_eq!(f.registry.chunk(&link.caller, &key, ChunkSeq::new(1), following).await.unwrap(), Some(ChunkSeq::new(1)));
+        f.registry.cancel(&link.caller, &key).await.unwrap();
+        link.close().await; f.finish().await;
+    }).await;
+}
+
+#[tokio::test]
+async fn actual_outlet_close_retires_streams_even_while_the_lifetime_guard_is_retained() {
+    within(async {
+        let f = Fixture::new().await;
+        let link = Link::new().await;
+        let other = Link::new().await;
+        let key = id("closing");
+        let sibling = id("still-open");
+        f.registry
+            .start(&link.caller, key.clone(), format())
+            .await
+            .unwrap();
+        f.registry
+            .start(&other.caller, sibling.clone(), format())
+            .await
+            .unwrap();
+        let entry = f.registry.entry(&link.caller, &key).await.unwrap();
+        let mut waiting = Box::pin(f.registry.next(&link.caller, &key));
+        assert!(futures_util::poll!(waiting.as_mut()).is_pending());
+        link.close_transport();
+        match waiting.await.unwrap() {
+            Event::End(End::Failed(source)) => {
+                assert_eq!(source.reason(), Some(DictationReason::Cancelled))
+            }
+            Event::Partial(_) | Event::End(End::Final(_)) => {
+                panic!("transport closure produced text")
+            }
+        }
+        entry.finished.cancelled().await;
+        assert!(
+            !link.life.closed().is_cancelled(),
+            "test must retain the real guard as a positive control"
+        );
+        assert_eq!(
+            f.registry
+                .chunk(&other.caller, &sibling, ChunkSeq::new(0), pcm())
+                .await
+                .unwrap(),
+            Some(ChunkSeq::new(0))
+        );
+        f.registry.cancel(&other.caller, &sibling).await.unwrap();
+        link.close().await;
+        other.close().await;
+        f.finish().await;
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn stale_cleanup_cannot_remove_the_new_record_for_the_same_id() {
+    within(async {
+        let f = Fixture::new().await;
+        let link = Link::new().await;
+        let key = id("same-id");
+        f.registry
+            .start(&link.caller, key.clone(), format())
+            .await
+            .unwrap();
+        let old = f.registry.entry(&link.caller, &key).await.unwrap();
+        f.registry.cancel(&link.caller, &key).await.unwrap();
+        f.registry
+            .start(&link.caller, key.clone(), format())
+            .await
+            .unwrap();
+        let current = f.registry.entry(&link.caller, &key).await.unwrap();
+        assert!(!Arc::ptr_eq(&old, &current));
+        remove_current(&mut f.registry.state.entries.lock().await, &key, &old);
+        assert_eq!(
+            f.registry
+                .chunk(&link.caller, &key, ChunkSeq::new(0), pcm())
+                .await
+                .unwrap(),
+            Some(ChunkSeq::new(0))
+        );
+        f.registry.cancel(&link.caller, &key).await.unwrap();
+        link.close().await;
+        f.finish().await;
+    })
+    .await;
+}
+
 fn refusal<T>(result: Result<T>) -> Arc<RegistryError> {
     match result {
         Err(error) => error,
         Ok(_) => panic!("the operation unexpectedly succeeded"),
     }
+}
+
+#[tokio::test]
+async fn replacement_uses_the_fresh_secret_and_a_failed_new_start_leaves_no_old_stream() {
+    within(async {
+        let f = Fixture::new().await;
+        let link = Link::new().await;
+        let key = id("fresh-key");
+        f.registry
+            .start(&link.caller, key.clone(), format())
+            .await
+            .unwrap();
+        let entry = f.registry.entry(&link.caller, &key).await.unwrap();
+        let old = f.registry.handle(&link.caller, &key).await.unwrap();
+        assert!(crate::fleet::delete_secret(&f.files, &f.name).unwrap());
+        assert!(matches!(
+            refusal(f.registry.start(&link.caller, key.clone(), format()).await).as_ref(),
+            RegistryError::Prepare(PrepareError::KeyAbsent)
+        ));
+        old.closed.cancelled().await;
+        entry.finished.cancelled().await;
+        crate::fleet::set_secret(&f.files, &f.name, "synthetic-new-key").unwrap();
+        f.registry
+            .start(&link.caller, key.clone(), format())
+            .await
+            .unwrap();
+        f.registry.cancel(&link.caller, &key).await.unwrap();
+        link.close().await;
+        f.finish().await;
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn the_saved_snapshot_reads_the_existing_settings_owner_without_a_second_cache() {
+    within(async {
+        let f = Fixture::new().await; let link = Link::new().await;
+        let runtime = Arc::new(vessel_session::SessionRuntime::new(vessel_session::RuntimeConfig {
+            harness_lookup: vessel_harness::Lookup::new(std::iter::empty::<std::path::PathBuf>()),
+            harness_env: vessel_harness::HarnessEnv::new(f.data.path().to_owned()),
+            ring_capacity: vessel_session::DEFAULT_RING_CAPACITY,
+            durable_capacity: vessel_session::DEFAULT_DURABLE_CAPACITY,
+            agent_handshake_timeout: vessel_session::DEFAULT_HANDSHAKE_TIMEOUT,
+            park_after: None, private_dir: None,
+        }, CancellationToken::new()));
+        let settings = Arc::new(crate::settings::Settings::open(vessel_store::DataDir::new(f.data.path()), runtime, vessel_proto::parking::ParkAfter::DEFAULT, false));
+        let registry = Registry::new(Factory::new(crate::dictation::secret_read::Reader::new(f.files.clone())), Snapshot::Saved(settings), &CancellationToken::new());
+        assert!(matches!(refusal(registry.start(&link.caller, id("default-local"), format()).await).as_ref(), RegistryError::Prepare(PrepareError::LocalNotBuilt { model }) if *model == vessel_proto::dictation::LocalModelId::default_model()));
+        registry.shutdown().await; link.close().await; f.finish().await;
+    }).await;
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn a_cancelled_start_keeps_preparing_capacity_until_teardown_and_cannot_publish_an_orphan() {
+    within(async {
+        let f = Fixture::new().await;
+        let link = Link::new().await;
+        let first_id = id("cancelled-start");
+        let held = f.settings.write().await;
+        let mut first = Box::pin(f.registry.start(&link.caller, first_id.clone(), format()));
+        assert!(futures_util::poll!(first.as_mut()).is_pending());
+        let entry = f.registry.entry(&link.caller, &first_id).await.unwrap();
+        let mut phase = entry.phase.subscribe();
+        // On this cooperative runtime, publication continues into the blocked
+        // snapshot read before this awakened observer can resume.
+        phase.changed().await.unwrap();
+        drop(first);
+        let control = phase.borrow().control();
+        let mut selected = control.subscribe();
+        while selected.borrow().is_none() {
+            selected.changed().await.unwrap();
+        }
+        assert_eq!(
+            selected.borrow().as_ref().unwrap().reason(),
+            Some(DictationReason::Cancelled)
+        );
+        assert!(!entry.finished.is_cancelled());
+        let second_id = id("sibling-start");
+        let mut second = Box::pin(f.registry.start(&link.caller, second_id.clone(), format()));
+        assert!(futures_util::poll!(second.as_mut()).is_pending());
+        assert!(matches!(
+            refusal(
+                f.registry
+                    .start(&link.caller, id("too-many"), format())
+                    .await
+            )
+            .as_ref(),
+            RegistryError::Quota(QuotaError::Connection(_))
+        ));
+        drop(held);
+        entry.finished.cancelled().await;
+        second.await.unwrap();
+        assert!(matches!(
+            refusal(f.registry.entry(&link.caller, &first_id).await).as_ref(),
+            RegistryError::Gone
+        ));
+        assert!(!link.life.closed().is_cancelled());
+        assert_eq!(
+            f.registry
+                .chunk(&link.caller, &second_id, ChunkSeq::new(0), pcm())
+                .await
+                .unwrap(),
+            Some(ChunkSeq::new(0))
+        );
+        f.registry.cancel(&link.caller, &second_id).await.unwrap();
+        link.close().await;
+        f.finish().await;
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn only_the_last_service_handle_drop_closes_its_records_and_does_not_close_the_connection() {
+    within(async {
+        let f = Fixture::new().await;
+        let link = Link::new().await;
+        let key = id("service-drop");
+        let registry = Registry::new(
+            Factory::new(crate::dictation::secret_read::Reader::new(f.files.clone())),
+            Snapshot::Given(Arc::clone(&f.settings)),
+            &CancellationToken::new(),
+        );
+        let alias = registry.clone();
+        registry
+            .start(&link.caller, key.clone(), format())
+            .await
+            .unwrap();
+        let entry = registry.entry(&link.caller, &key).await.unwrap();
+        drop(registry);
+        assert!(!entry.finished.is_cancelled());
+        assert_eq!(
+            alias
+                .chunk(&link.caller, &key, ChunkSeq::new(0), pcm())
+                .await
+                .unwrap(),
+            Some(ChunkSeq::new(0))
+        );
+        drop(alias);
+        entry.finished.cancelled().await;
+        assert!(!link.life.closed().is_cancelled());
+        f.registry
+            .start(&link.caller, key.clone(), format())
+            .await
+            .unwrap();
+        f.registry.cancel(&link.caller, &key).await.unwrap();
+        link.close().await;
+        f.finish().await;
+    })
+    .await;
 }
