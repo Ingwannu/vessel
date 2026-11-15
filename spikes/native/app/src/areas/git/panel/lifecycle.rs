@@ -6,8 +6,8 @@ use vessel_app_link::git_panel::{Answer, Ask, Outcome};
 use vessel_app_view::connection::{ConnectionContext, ConnectionTag};
 use vessel_app_view::layout::LayoutKey;
 use vessel_app_view::workspace::git::panel::{
-    AnswerAdmission, Comparison, ComparisonMode, LocationRefusal, PanelAddress, PanelReads,
-    PanelTarget, ReadFailure, Whitespace, answer_admission,
+    AnswerAdmission, LocationRefusal, PanelAddress, PanelReads, PanelTarget, ReadFailure,
+    answer_admission,
 };
 
 impl Shell {
@@ -39,6 +39,9 @@ impl Shell {
         self.git_panels_prune();
         let context = self.git_panel_context(&address);
         let mut entry = Entry::new(target, context);
+        if let Some(previous) = self.areas.git.panels.entries.get(&address) {
+            entry.retain_comparison(previous);
+        }
         let request = discover(&mut entry, &address, &mut self.areas.git.keys);
         let _old = self.areas.git.panels.entries.insert(address, entry);
         if let Some(ask) = request {
@@ -112,12 +115,7 @@ impl Shell {
             }
             return;
         };
-        let comparison = match &entry.target {
-            PanelTarget::CommitDiff(id) => Comparison::at_commit(id.clone(), Whitespace::Show),
-            PanelTarget::Changes | PanelTarget::WorkingDiff => {
-                Comparison::new(ComparisonMode::All, None, Whitespace::Show)
-            }
-        };
+        let comparison = entry.comparison.clone();
         let (Ok(status), Ok(summary)) = (git.keys.issue(), git.keys.issue()) else {
             entry.problem = Some(ReadFailure::KeysExhausted);
             return;

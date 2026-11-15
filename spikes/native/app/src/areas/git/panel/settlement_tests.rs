@@ -173,3 +173,44 @@ fn empty_mode_callback_refuses_another_root_epoch_comparison_or_commit_target() 
     entry.target = super::PanelTarget::CommitDiff("a".repeat(40).parse().unwrap());
     assert!(!captured.is_current(&entry, Some(&context)));
 }
+
+#[test]
+fn refresh_preserves_only_same_target_comparison_and_rediscovers_authority() {
+    let mut epochs = ConnectionEpochs::default();
+    let context = epochs
+        .admit(MachineKey::from_book("fixture"), NodeId::random())
+        .unwrap();
+    let repository = RepositoryKey {
+        node: context.node(),
+        root: WorkspaceRoot::Project {
+            project: ProjectId::random(),
+        },
+    };
+    let chosen = Comparison::new(ComparisonMode::Uncommitted, None, Whitespace::Ignore);
+    let mut previous = super::Entry::new(super::PanelTarget::WorkingDiff, Some(context.clone()));
+    previous.reads = Some(PanelReads::new(repository, chosen.clone()));
+    let mut refreshed = super::Entry::new(super::PanelTarget::WorkingDiff, Some(context.clone()));
+    refreshed.retain_comparison(&previous);
+    assert_eq!(refreshed.comparison, chosen);
+    assert!(
+        refreshed.reads.is_none(),
+        "root and tickets must be located again"
+    );
+    assert!(matches!(refreshed.binding, super::PanelBinding::Idle));
+    let next = epochs
+        .admit(context.machine().clone(), context.node())
+        .unwrap();
+    let mut replacement = super::Entry::new(super::PanelTarget::WorkingDiff, Some(next));
+    replacement.retain_comparison(&previous);
+    assert_eq!(replacement.comparison, Comparison::default());
+    let commit = "a".repeat(40).parse().unwrap();
+    let mut immutable = super::Entry::new(
+        super::PanelTarget::CommitDiff(commit.clone()),
+        Some(context),
+    );
+    immutable.retain_comparison(&previous);
+    assert_eq!(
+        immutable.comparison,
+        Comparison::at_commit(commit, Whitespace::Show)
+    );
+}

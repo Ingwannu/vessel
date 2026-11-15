@@ -68,6 +68,7 @@ impl Shell {
             captured.comparison.base().cloned(),
             captured.comparison.whitespace(),
         );
+        entry.comparison = comparison.clone();
         reads.select(comparison);
         let ticket = reads.begin_summary(key);
         entry.files.reset(0);

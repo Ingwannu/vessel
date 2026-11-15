@@ -715,3 +715,12 @@ optional real-window control consumer with2500 fixed rows, seven-digit mapped
 number, English/Korean, wrap/scroll and ordinary selection/copy. The patch7 README
 names exact steps; no build/capture/UI pass exists. It has no node authority and
 cannot replace later C3 fake-fleet first-use or prove unsupported touch behavior.
+
+## Refresh retains the chosen comparison without retaining authority
+
+The initial pane restart recreated default All on every Refresh, including after
+the person chose Uncommitted. Restart now carries only the normalized comparison
+from the same target and physical admission. Root discovery still runs again;
+no old ticket, metadata, failure or body is copied. Another context or immutable
+commit target keeps its own initial comparison. A direct Entry fixture pins all
+three cases. This is not a new identity registry or a reconnect fallback.

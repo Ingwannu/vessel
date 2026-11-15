@@ -17,7 +17,8 @@ use std::collections::HashMap;
 use vessel_app_kit::VirtualList;
 use vessel_app_view::connection::ConnectionContext;
 use vessel_app_view::workspace::git::panel::{
-    PanelAddress, PanelBinding, PanelReads, PanelTarget, ReadFailure,
+    Comparison, ComparisonMode, PanelAddress, PanelBinding, PanelReads, PanelTarget, ReadFailure,
+    Whitespace,
 };
 
 #[derive(Default)]
@@ -26,6 +27,7 @@ pub(super) struct Panels {
 }
 struct Entry {
     target: PanelTarget,
+    comparison: Comparison,
     context: Option<ConnectionContext>,
     binding: PanelBinding,
     reads: Option<PanelReads>,
@@ -36,8 +38,15 @@ struct Entry {
 }
 impl Entry {
     fn new(target: PanelTarget, context: Option<ConnectionContext>) -> Self {
+        let comparison = match &target {
+            PanelTarget::CommitDiff(id) => Comparison::at_commit(id.clone(), Whitespace::Show),
+            PanelTarget::Changes | PanelTarget::WorkingDiff => {
+                Comparison::new(ComparisonMode::All, None, Whitespace::Show)
+            }
+        };
         Self {
             target,
+            comparison,
             context,
             binding: PanelBinding::default(),
             reads: None,
@@ -45,6 +54,18 @@ impl Entry {
             files: VirtualList::new(false),
             tips: vessel_app_kit::Tooltips::new(),
             path_places: HashMap::new(),
+        }
+    }
+    // A manual refresh rediscovers authority, but must not reset the person's
+    // chosen comparison. Retain only presentation from the same target/context;
+    // old read tickets, roots, failures and future editor state are never copied.
+    fn retain_comparison(&mut self, previous: &Self) {
+        if self.target == previous.target && self.context == previous.context {
+            self.comparison = previous
+                .reads
+                .as_ref()
+                .map_or(&previous.comparison, |reads| reads.comparison())
+                .clone();
         }
     }
 }
