@@ -340,3 +340,6 @@ schedules-history-run-internal = 머신에서 이 실행을 완료하지 못했�
 
 # History fallback heading when a typed calendar/catalog error prevents prepared rows.
 schedules-history-heading = 실행 기록
+
+# A machine supports schedule create/update but predates the read-only preview call.
+schedules-preview-unavailable-older = 이 머신은 이 규칙을 미리 확인할 수 없습니다. 미리보기 없이 저장할 수 있습니다.

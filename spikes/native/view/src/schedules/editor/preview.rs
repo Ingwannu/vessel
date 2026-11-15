@@ -87,6 +87,7 @@ impl Problem {
     pub fn label<'a>(&self, catalog: &'a Translator) -> &'a str {
         let words = catalog.schedules();
         match self {
+            Self::Call(Failure::Older) => words.preview_unavailable_older(),
             Self::Call(failure) => crate::schedules::locale::failure(failure, catalog),
             Self::Mismatched => words.preview_mismatched(),
             Self::Rule(reason) => match reason {

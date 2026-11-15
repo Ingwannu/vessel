@@ -900,3 +900,14 @@ uses that existing preset and parser with a required explicit viewer zone.
 There is no unknown-to-UTC fallback; bootstrap UI must request a zone if the
 viewer does not report one. Two-zone source regression pins expression and
 selected preset without claiming any future-run calculation or UI execution.
+
+
+### Older preview copy stays specific to the read-only call
+
+The existing Older mapper for a schedule list says to update the machine to use
+schedules. That is inaccurate when schedule.create/update already exist but
+schedule.preview does not. The preview presentation now uses its own whole
+EN/KO generated phrase explaining that this rule can be saved without projected
+times. It changes neither the accepted cadence/error tables nor the explicit
+Older-only fallback; busy/refused/mismatched results still cannot authorize it.
+The frozen current narrow does not cover this later catalog/source change.

@@ -205,7 +205,7 @@ fn unknown_preview_refusal_and_every_known_reason_have_both_languages() {
         assert_eq!(Problem::Mismatched.label(catalog), expected);
         assert_eq!(
             Problem::Call(Failure::Older).label(catalog),
-            catalog.schedules().failed_older()
+            catalog.schedules().preview_unavailable_older()
         );
     }
 }
