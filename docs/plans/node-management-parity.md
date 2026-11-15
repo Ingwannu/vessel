@@ -6,6 +6,12 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- Shared writer repair: a cancelled settings RPC must leave the owned write/
+  apply task serialized and joined at shutdown. The isolated prerequisite uses
+  the existing node-head settings fields only; config reload/reset will consume
+  the same owner. Deterministic real blocking-writer cancellation regressions
+  are drafted; compilation, negative control and execution are still pending.
+
 - Gated: service-file observations now pass on the designated terminal-deletion
   repair head, without changing their reviewed source. The whole gate reports
   2,318 Rust tests passed, no failures, 12 ignored; forge 4, web unit 464 and

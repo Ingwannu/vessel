@@ -17,6 +17,8 @@ const FORWARDER_GRACE: Duration = Duration::from_secs(2);
 /// Everything that must be stopped, in [`Teardown::run`]'s order.
 pub(crate) struct Teardown {
     pub(crate) runtime: Arc<SessionRuntime>,
+    /// Admitted settings writes must finish I/O and apply before stop returns.
+    pub(crate) settings: Arc<crate::settings::Settings>,
     /// Session creations and persist tasks.
     pub(crate) tasks: TaskTracker,
     /// Subscription forwarders.
@@ -37,7 +39,8 @@ impl Teardown {
     ///    and `SubscriptionEnded` (bounded by [`FORWARDER_GRACE`]).
     /// 4. Close connections; each flushes what it already queued (bounded by
     ///    the RPC close timeout).
-    /// 5. Close the store, folding its WAL into the database file.
+    /// 5. Join settings writers after every RPC caller has finished.
+    /// 6. Close the store, folding its WAL into the database file.
     pub(crate) async fn run(self) {
         tracing::info!("stopping sessions");
         self.runtime.shutdown().await;
@@ -54,6 +57,7 @@ impl Teardown {
         self.closing.cancel();
         let _first_close = self.connections.close();
         self.connections.wait().await;
+        self.settings.shutdown().await;
         self.store.close().await;
         tracing::info!("node stopped");
     }

@@ -4,6 +4,7 @@ use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use crate::settings::Settings;
 use chrono::Utc;
 use tokio::net::TcpListener;
 use tokio::sync::Semaphore;
@@ -12,7 +13,6 @@ use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use vessel_harness::HarnessEnv;
-use vessel_proto::parking::ParkAfter;
 use vessel_proto::ports::PortOwner;
 use vessel_proto::{NodeId, NodeInfo, RelayToken, RouteUrl};
 use vessel_relay::address::ClientAddress;
@@ -120,6 +120,7 @@ impl Node {
 
         let Core {
             runtime,
+            settings,
             lifecycle,
             stop,
             tasks,
@@ -158,6 +159,7 @@ impl Node {
         };
         let teardown = Teardown {
             runtime,
+            settings,
             tasks,
             forwarders,
             closing,
@@ -278,6 +280,7 @@ async fn open_store(config: &Config) -> Result<Store, NodeError> {
 /// The node's parts below its transports.
 struct Core {
     runtime: Arc<SessionRuntime>,
+    settings: Arc<Settings>,
     lifecycle: Lifecycle,
     /// Cancelled to stop the node.
     stop: CancellationToken,
@@ -326,12 +329,7 @@ async fn core(
     let runtime = runtime(config, loader, setup.private_dir.clone());
     // A value saved with `node.set_settings` wins over `--park-after`
     // (protocol 12, `settings`).
-    let settings = Arc::new(crate::settings::Settings::open(
-        config.data_dir.clone(),
-        Arc::clone(&runtime),
-        ParkAfter::from_duration(config.park_after),
-        config.park_after_given,
-    ));
+    let settings = Arc::new(Settings::for_config(config, Arc::clone(&runtime)));
     let stop = CancellationToken::new();
     // System zone detection may read OS configuration; keep startup I/O
     // off the async workers just as data-directory preparation is.
@@ -499,7 +497,7 @@ async fn core(
         catalogue: crate::catalogue::Catalogues::new(&config.registry_url),
         schedules,
         push,
-        settings,
+        settings: Arc::clone(&settings),
         limits,
     })));
     automation::schedules::start(
@@ -516,6 +514,7 @@ async fn core(
     .await;
     Ok(Core {
         runtime,
+        settings,
         lifecycle,
         stop,
         tasks,
