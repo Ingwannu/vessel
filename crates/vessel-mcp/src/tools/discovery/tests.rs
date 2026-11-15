@@ -86,11 +86,25 @@ fn creation_keeps_omission_distinct_and_invalid_metadata_is_refused() {
     }
     assert!(existing_target(&JsonObject::new()).is_ok());
     assert!(existing_target(args.as_object().unwrap()).is_err());
+}
+
+#[test]
+fn the_canonical_key_cap_is_enforced_before_changing_the_spec() {
+    let mut spec = SessionSpec::new(
+        HarnessKind::Codex,
+        SessionMode::Structured {
+            model: None,
+            resume: None,
+            options: Vec::new(),
+        },
+    );
     let entries: JsonObject = (0..SessionLabels::MAX)
         .map(|index| (format!("key{index}"), Value::String("value".to_owned())))
         .collect();
     let mut args = json!({"labels":entries});
     assert!(creation(args.as_object().unwrap(), &mut spec).is_ok());
+    let before = spec.clone();
     args["labels"]["one_more"] = json!("value");
     assert!(creation(args.as_object().unwrap(), &mut spec).is_err());
+    assert_eq!(spec, before);
 }

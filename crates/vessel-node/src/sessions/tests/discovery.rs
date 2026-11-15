@@ -5,11 +5,16 @@ use chrono::DateTime;
 use std::time::Duration;
 use vessel_proto::{EventRecord, EventSeq, SessionEvent, SessionListing, SessionSelection};
 
-async fn stored(fixture: &Fixture, listing: SessionListing, labels: &str) -> SessionId {
+async fn stored(
+    fixture: &Fixture,
+    listing: SessionListing,
+    labels: &str,
+    at: DateTime<chrono::Utc>,
+) -> SessionId {
     let spec = fixture
         .spec()
         .with_labels(serde_json::from_str(r#"{"phase":"creation"}"#).unwrap());
-    let mut info = SessionInfo::new(SessionId::random(), spec, DateTime::UNIX_EPOCH);
+    let mut info = SessionInfo::new(SessionId::random(), spec, at);
     info.listing = listing;
     info.labels = serde_json::from_str(labels).unwrap();
     fixture.store.create_session(info.clone()).await.unwrap();
@@ -19,7 +24,7 @@ async fn stored(fixture: &Fixture, listing: SessionListing, labels: &str) -> Ses
             info.id,
             vec![EventRecord {
                 seq: EventSeq::ZERO,
-                at: DateTime::UNIX_EPOCH,
+                at,
                 event: SessionEvent::Status {
                     status: SessionStatus::Exited { code: Some(0) },
                 },
@@ -33,12 +38,25 @@ async fn stored(fixture: &Fixture, listing: SessionListing, labels: &str) -> Ses
 async fn catalogue() -> (Fixture, [SessionId; 4]) {
     let fixture = Fixture::new().await;
     let matching = r#"{"env":"prod","region":"west"}"#;
-    let shown = stored(&fixture, SessionListing::Shown, matching).await;
-    let hidden = stored(&fixture, SessionListing::Background, matching).await;
+    let shown = stored(
+        &fixture,
+        SessionListing::Shown,
+        matching,
+        DateTime::from_timestamp_millis(1).unwrap(),
+    )
+    .await;
+    let hidden = stored(
+        &fixture,
+        SessionListing::Background,
+        matching,
+        DateTime::from_timestamp_millis(2).unwrap(),
+    )
+    .await;
     let other = stored(
         &fixture,
         SessionListing::Shown,
         r#"{"env":"prod","region":"east"}"#,
+        DateTime::from_timestamp_millis(3).unwrap(),
     )
     .await;
     let live = fixture

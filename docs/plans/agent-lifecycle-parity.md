@@ -766,3 +766,9 @@ that implicit default may retry once using null; explicit scope or labels never
 fall back, and no other error is retried. This compatibility difference has no
 Paseo forwarding counterpart. All paths still use the one shared SDK/server
 protocol guard; the default chooser introduces no second admission rule.
+
+The discovery fixture gives stored rows distinct fixed timestamps. The existing
+canonical sort promises newest-first, not an order among equal timestamps, so
+this prevents a test from depending on a fresh hash map's tie order. Expected
+selection contents and ordering requirements are unchanged. The MCP key-cap
+case also verifies that a refused map leaves the previous spec untouched.
