@@ -35,13 +35,19 @@ pub(super) fn run(
 async fn preserve(commands: mpsc::Sender<actor::Command>, mut state: watch::Receiver<Snapshot>) {
     let (reply, wait) = oneshot::channel::<Result<(), ManagerError>>();
     let request = actor::Command::PreserveExit(reply);
-    if commands.send(request).await.is_ok() {
-        match wait.await {
-            Ok(Ok(())) => {}
-            Ok(Err(error)) => tracing::warn!(%error, "OS exit release was not acknowledged"),
-            Err(_closed) => {
-                tracing::warn!("OS exit controller stopped before release acknowledgement");
-            }
+    if commands.send(request).await.is_err() {
+        tracing::warn!("OS exit controller was unavailable before release");
+        std::future::pending::<()>().await;
+    }
+    match wait.await {
+        Ok(Ok(())) => {}
+        Ok(Err(error)) => {
+            tracing::warn!(%error, "OS exit release was not acknowledged");
+            std::future::pending::<()>().await;
+        }
+        Err(_closed) => {
+            tracing::warn!("OS exit controller stopped before release acknowledgement");
+            std::future::pending::<()>().await;
         }
     }
     loop {

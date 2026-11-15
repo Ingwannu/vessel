@@ -131,8 +131,8 @@ but this controller only calls DataDir/StartLock and never opens a database.
 Quit and update restart await owned-node finalization and canonical preferences
 flush before app exit/restart. Protected stop refuses active sessions; explicit
 keep-running or interruption choices are separate UI actions. A last-window
-refusal opens a window again. OS shutdown uses protected stop, then observation-only
-release on failure, preserving work without an implicit interrupt. Attached nodes
+refusal opens a window again. The irreversible OS backstop requests observation-only release through the
+runtime supervisor; its 200ms callback is not a protected-stop deadline or veto. Attached nodes
 are never stopped. App updates retain the release track's canonical updater.
 
 Verification: node-line all-target clippy passed at9d13f24f across proc/local-node/
@@ -466,3 +466,10 @@ settle. Global phase release does not depend on the origin window surviving.
 The C5 node callback and barrier fixtures remain owner integration work; this
 source alone does not claim dirty-buffer or runtime safety before that checked
 consumer union. No forced-exit document journal exists.
+
+Current source checkpoint after the base-8 merge remains unqualified as a product
+union: the old native local-registration adapter does not implement canonical
+Connected/ManagedLocal admission. Source changes in the shared connections and
+selected lease remain explicitly held until the lead grants the third slot after
+W2's real A4 and W12's actual DeliveryGuard promotion. No unreviewed fake BookEntry
+or second connection epoch is used to make this checkpoint compile.

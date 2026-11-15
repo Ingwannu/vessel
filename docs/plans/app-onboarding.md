@@ -1,5 +1,29 @@
 # The first-run walkthrough
 
+> Historical proposal retained for reference. The current W15 implementation
+> follows the desktop amendment in ADR 0071 and
+> [wp-desktop.md](wp-desktop.md). The Machine step, no-host opening, six-step
+> model, `setup` record name and phone-width rules below are superseded. They
+> must not be used as the current implementation contract.
+
+Current source uses five steps (Appearance, Providers, Projects, Orchestration,
+Phone), a fixed Wide/Compact layout per opening, client-local
+`Prefs.onboarding`, canonical ConnectionContext plus monotonic Visit, and the
+existing settings owners. Compact omits Phone; native mobile suppresses this
+walkthrough. Missing/offline/unhydrated host facts stay Deciding; unreadable
+preferences hide automatic setup. The managed local target is preferred while
+its controller/admission is ready; pairing remains a separate no-host route.
+
+Completion/visit models have scoped tests. Canonical project inventory and
+checked-suggestion acknowledgements, the real queued DeliveryGuard consumer,
+MCP/skills owner integration and the combined app gate/captures remain pending.
+A raw ProjectsView::Ready cache is not authoritative proof across physical
+retirement; the W11 owner must supply its guarded query. Existing/Empty and
+step-advance behavior are not approved from that legacy cache. CLI effects use
+the desktop-shell owner API and must settle before advancing; unavailable effects
+are not silently claimed as installed.
+
+
 ADR 0071 is the contract. Its status is proposed until review passes
 it. This file is the order of work and the Paseo behaviour it was
 taken from. No protocol number is reserved. No `node.settings` key
