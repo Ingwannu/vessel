@@ -39,7 +39,7 @@ fn rename_dialog(
     let typed = state.field.text(cx);
     let pending = open.pending.is_some();
     // Paseo's submit is off while the name is unchanged or being saved.
-    let can_submit = !pending && typed.trim() != open.machine.as_str();
+    let can_submit = open.rename_enabled(&typed);
     let error = state
         .problem
         .clone()

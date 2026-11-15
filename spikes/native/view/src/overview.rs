@@ -70,6 +70,14 @@ impl Editing {
         }
     }
 
+    /// Whether Rename may be pressed: a nonblank changed draft, while idle.
+    /// Enter still validates and can show the blank-name error, as in Paseo.
+    #[must_use]
+    pub fn rename_enabled(&self, typed: &str) -> bool {
+        let typed = typed.trim();
+        self.pending.is_none() && !typed.is_empty() && typed != self.machine.as_str()
+    }
+
     /// `edit` was sent.
     pub fn sent(&mut self, edit: Edit) {
         self.pending = Some(edit);
