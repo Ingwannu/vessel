@@ -186,3 +186,39 @@ refuses File context. W13 keeps Target::File/buffer/dirty state and mounts the
 selected FilePanel renderer in that existing file host; explicit plugin-file
 opens route through that owner, never a fabricated PanelLocation.
 No new node call, raw manifest or serialized capability is introduced.
+
+
+## Staged plugin localization boundary
+
+L's checked source/narrow seams through9fedb896 are merged, without claiming
+whole F6 acceptance. A14 test-only plugins::translations stages the separate
+installation namespace until a typed catalog-resource DTO and the sole app
+Hub publication/language lifecycle consume it in production. No plugin keys
+are inserted into core Translator and no locale RPC is introduced.
+
+The model reuses maintained FluentResource parsing, L's scan/expanded checked
+Contract/compare pipeline and the shared Arc bundle factory, Number/Date bridges
+and NUMBER/DATETIME/PARTICLE/pseudo policy. English is mandatory. Canonical
+language identifiers are parsed by the existing unic-langid dependency;
+canonical duplicates, duplicate entries, attributes, junk, dangling refs,
+wrong variable types and unbound/mistyped term arguments refuse before use.
+Translations may omit English variables/keys but may not invent public keys
+or types; each message separately falls back to the English plural locale.
+
+Actual bounds live once in translations/mod.rs: sixteen locales,32KiB per
+source,256KiB total,256 total entries,128-byte identifiers,16 arguments and a
+128-byte control-free zone label. A conservative128 raw opening-delimiter
+budget precedes the maintained parser: it bounds possible recursion without
+reimplementing Fluent grammar, but literal/comment-heavy resources may hit it
+earlier. This is an explicit author-port resource difference. A32KiB bounded
+fmt writer caps intermediate output before final Caption/ThemeName/ContentText
+validation; failed translated output validation also tries English. Both
+concrete safe failures are retained if fallback fails. Arbitrary source,
+contract and formatter diagnostics are sealed, including Debug/source chains.
+
+Prepared formatters own resource Arcs across language reprepare; captions,
+content and names are produced before publication, not intended for drawing.
+This stage does not yet prove app language subscriptions, cancellation,
+generation-fenced publication, installed cache, disposal or actual rendering.
+Those remain the coupled production wiring's obligation. Tests use fictional
+English/Korean resources and no copied reference translation assets.

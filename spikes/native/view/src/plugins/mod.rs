@@ -7,6 +7,11 @@
 mod placement;
 mod registry;
 
+// Staged external-resource validation. Production registration follows the
+// typed catalog-resource DTO and sole app Hub publication/language lifecycle.
+#[cfg(test)]
+mod translations;
+
 pub use placement::ResolvedPluginPanel;
 
 pub use registry::{

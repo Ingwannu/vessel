@@ -303,3 +303,23 @@ owns rejected text. Canary tests cover Display, Debug, serde errors and
 the complete source chain. Theme names reuse the existing JavaScript-edge
 `workspace::trim_project_text`, including BOM normalization, before their
 UTF-16 bound and the separately declared control refusal.
+
+
+## Plugin-local Fluent resource preparation
+
+The staged native author-port uses L's shared checked Fluent AST and bundle
+seams, preserving one NUMBER/DATETIME/PARTICLE/date/plural/pseudo policy and
+separate installation namespaces. Resource byte/locale/key/argument bounds are
+owned by plugins::translations; attributes and malformed/incompatible graphs
+refuse, English is mandatory, and partial locale messages use per-message
+English fallback. English resources are not loaded into a different language's
+plural bundle. Source/contract errors never expose plugin text through Debug
+or cause chains; numeric/date arguments use core typed bridges.
+
+To bound maintained-parser recursion before AST admission, a conservative raw
+opening-delimiter count is capped independently of Fluent semantics. This can
+reject punctuation-heavy resources early; the reason is bounded external data
+on every native/browser target without another handwritten formatter/parser.
+An intermediate bounded fmt sink plus final semantic text constructors prevents
+large formatted values reaching retained UI. Stage ownership/generation and
+actual app lifecycle remain separate from these parser tests.
