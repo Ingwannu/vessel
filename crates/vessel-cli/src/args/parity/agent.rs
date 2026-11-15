@@ -127,7 +127,7 @@ pub(crate) struct AgentSend {
 pub(crate) struct AgentRun {
     pub(crate) prompt: String,
     #[arg(long)]
-    pub(crate) provider: HarnessRef,
+    pub(crate) provider: super::provider_argument::ProviderArgument,
     #[arg(long, value_parser = super::identifier::model)]
     pub(crate) model: Option<vessel_proto::ModelId>,
     #[arg(long)]
@@ -144,12 +144,51 @@ pub(crate) struct AgentRun {
     pub(crate) env: Vec<String>,
     #[arg(long)]
     pub(crate) image: Vec<PathBuf>,
-    #[arg(long)]
-    pub(crate) workspace: Option<String>,
+    #[command(flatten)]
+    pub(crate) placement: RunPlacement,
     #[arg(long)]
     pub(crate) output_schema: Option<String>,
     #[arg(long, default_value_t = WaitBudget::DEFAULT)]
     pub(crate) wait_timeout: WaitBudget,
-    #[arg(long, alias = "detach")]
+    #[arg(short = 'd', long, aliases = ["detach", "background"])]
     pub(crate) no_wait: bool,
+}
+
+/// These flags describe workspace creation, never a legacy project/session alias.
+#[derive(Debug, Args)]
+pub(crate) struct RunPlacement {
+    #[arg(long, conflicts_with_all = ["new_workspace", "worktree"])]
+    workspace: Option<String>,
+    #[arg(long, conflicts_with = "worktree")]
+    new_workspace: Option<super::workspace::Isolation>,
+    #[arg(long, hide = true)]
+    worktree: Option<String>,
+    #[arg(long)]
+    worktree_mode: Option<super::workspace::WorktreeMode>,
+    #[arg(long)]
+    worktree_slug: Option<String>,
+    #[arg(long)]
+    new_branch: Option<String>,
+    #[arg(long)]
+    base: Option<String>,
+    #[arg(long)]
+    branch: Option<String>,
+    #[arg(long)]
+    pr_number: Option<std::num::NonZeroU32>,
+    #[arg(long)]
+    forge: Option<String>,
+}
+impl RunPlacement {
+    pub(crate) fn requires_contract(&self) -> bool {
+        self.workspace.is_some()
+            || self.new_workspace.is_some()
+            || self.worktree.is_some()
+            || self.worktree_mode.is_some()
+            || self.worktree_slug.is_some()
+            || self.new_branch.is_some()
+            || self.base.is_some()
+            || self.branch.is_some()
+            || self.pr_number.is_some()
+            || self.forge.is_some()
+    }
 }

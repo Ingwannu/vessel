@@ -296,3 +296,20 @@ The first Quality B narrow check on c0b9d71c failed before downstream compilatio
 CaptureLineCount accessor accidentally declared Option despite its total u32 value, and two
 older-peer reply projections lacked the five new pending variants. Correcting these changes
 no wire shape; pending admission still refuses the calls until integration assigns a version.
+
+## Existing project adapters and pending placement grammar
+
+[Decision Log]
+- Purpose: parse the complete workspace creation forms without confusing their identity with a legacy worktree.
+- Existing assets: AddProject/ListProjects/CloneProject and the clone revision long-poll already implement project registration and Git authority.
+- Alternatives: a second registry or local Git subprocess would duplicate node authority; neither is needed.
+- Choice: reuse those typed calls for project create/list and root clone, retain explicit pending refusals for W11's rename/reset/cascade and workspace operations.
+- Why: consumers can inspect the real parser while missing placement semantics fail before effects. Provider/model shorthand decodes once into existing supported driver/model inputs; full provider identity remains W22's contract.
+- Impact: GitHub owner/repo shorthand requires an explicit transport; clone completion has a ten-minute ceiling and preserves the project ID on failure.
+
+Root import routes to the same typed agent handler. Run now accepts every workspace source flag
+and legacy background/detach alias; placement flags refuse before creation until W11's reviewed
+API arrives. File and positional prompts share a 64 KiB admission floor; file reads have a
+30-second deadline. These are stated resource limits. List reconstructs OptionsChanged from
+the same history snapshot as turn state, so listing ended agents does not call the live-only
+session.options method.

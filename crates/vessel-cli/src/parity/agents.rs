@@ -151,11 +151,18 @@ async fn list(
         if !matches_scope(&info, cwd.as_deref(), args.all, &filters) {
             continue;
         }
-        let options = match info.spec.mode {
-            SessionMode::Structured { .. } => client.session_options(info.id).await?,
-            SessionMode::Terminal { .. } => Vec::new(),
+        // Option snapshots survive process exit in the event log; session.options
+        // deliberately refuses ended agents. One replay supplies both projections.
+        let observed = match info.spec.mode {
+            SessionMode::Structured { .. } => Some(observe::snapshot(&client, info.id).await?),
+            SessionMode::Terminal { .. } => None,
         };
-        let thinking = selected(&options, vessel_proto::OptionCategory::ThoughtLevel);
+        let thinking = observed.as_ref().and_then(|observed| {
+            selected(
+                &observed.options,
+                vessel_proto::OptionCategory::ThoughtLevel,
+            )
+        });
         if args
             .thinking
             .as_ref()
@@ -163,16 +170,16 @@ async fn list(
         {
             continue;
         }
-        let state = match info.spec.mode {
-            SessionMode::Structured { .. } => observe::snapshot(&client, info.id).await?.state(),
-            SessionMode::Terminal { .. } => {
+        let state = observed.as_ref().map_or_else(
+            || {
                 if info.status.is_live() {
                     State::Running
                 } else {
                     State::Idle
                 }
-            }
-        };
+            },
+            observe::Observed::state,
+        );
         rows.push(AgentRow::new(&info, state, thinking));
     }
     output::list(presentation, &rows).await

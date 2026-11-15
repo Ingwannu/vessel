@@ -30,6 +30,7 @@ pub(super) struct Observed {
     permissions: BTreeSet<PermissionId>,
     questions: BTreeSet<QuestionId>,
     failure: Option<String>,
+    pub(super) options: Vec<vessel_proto::SessionOption>,
 }
 impl Observed {
     pub(super) fn state(&self) -> State {
@@ -44,6 +45,9 @@ impl Observed {
         }
     }
     fn event(&mut self, record: &EventRecord) {
+        if let SessionEvent::OptionsChanged { options } = &record.event {
+            self.options.clone_from(options);
+        }
         if let SessionEvent::Agent { event } = &record.event {
             match event {
                 AgentEvent::TurnStarted { .. } => {

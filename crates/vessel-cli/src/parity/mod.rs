@@ -5,6 +5,8 @@ mod heartbeat;
 mod hosts;
 mod observe;
 pub(crate) mod output;
+pub(crate) mod projects;
+pub(crate) mod prompt_input;
 mod terminals;
 
 use crate::{
@@ -22,6 +24,13 @@ pub(crate) async fn run(
     command: ParityCommand,
 ) -> Result<(), CliError> {
     let command = match command {
+        ParityCommand::Clone(args) => return projects::clone(target, output, args).await,
+        ParityCommand::Workspace { command } => {
+            command.validate()?;
+            return Err(CliError::ParityBlocked(
+                "workspace CLI awaits W11's reviewed workspace registry contract; legacy project/worktree IDs are not substitutes",
+            ));
+        }
         ParityCommand::Heartbeat { command } => {
             return heartbeat::run(target, output, command).await;
         }

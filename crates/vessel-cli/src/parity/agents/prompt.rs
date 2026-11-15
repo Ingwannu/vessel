@@ -20,11 +20,24 @@ pub(super) async fn run(
     presentation: Presentation,
     args: AgentRun,
 ) -> Result<(), CliError> {
+    if args.prompt.len() > crate::parity::prompt_input::MAX_BYTES {
+        return Err(CliError::Usage("prompt exceeds the CLI input byte budget"));
+    }
     if args.prompt.trim().is_empty() {
         return Err(CliError::Usage("the prompt is empty"));
     }
     let labels = labels(&args.label)?;
-    if args.workspace.is_some() {
+    let (provider, shorthand_model) = args.provider.into_parts();
+    let model = match (args.model, shorthand_model) {
+        (Some(explicit), Some(shorthand)) if explicit != shorthand => {
+            return Err(CliError::Usage(
+                "--model conflicts with the provider/model shorthand",
+            ));
+        }
+        (Some(explicit), _) => Some(explicit),
+        (None, shorthand) => shorthand,
+    };
+    if args.placement.requires_contract() {
         return Err(CliError::ParityBlocked(
             "--workspace requires the reviewed workspace placement contract",
         ));
@@ -49,9 +62,9 @@ pub(super) async fn run(
         return Err(CliError::Usage("--cwd must be absolute on the target node"));
     }
     let mut spec = SessionSpec::new(
-        args.provider,
+        provider,
         SessionMode::Structured {
-            model: args.model,
+            model,
             resume: None,
             options: Vec::new(),
         },
@@ -87,13 +100,16 @@ pub(super) async fn send(
     }
     let text = match (args.text, args.prompt, args.prompt_file) {
         (Some(text), None, None) | (None, Some(text), None) => text,
-        (None, None, Some(path)) => tokio::fs::read_to_string(path).await?,
+        (None, None, Some(path)) => crate::parity::prompt_input::file(&path).await?,
         _ => {
             return Err(CliError::Usage(
                 "give exactly one positional prompt, --prompt or --prompt-file",
             ));
         }
     };
+    if text.len() > crate::parity::prompt_input::MAX_BYTES {
+        return Err(CliError::Usage("prompt exceeds the CLI input byte budget"));
+    }
     if text.trim().is_empty() {
         return Err(CliError::Usage("the prompt is empty"));
     }

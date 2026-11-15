@@ -96,6 +96,9 @@ pub(crate) fn metadata(items: &[String]) -> Result<HostMetadata, CliError> {
         let (key, value) = item
             .split_once('=')
             .ok_or(CliError::Usage("metadata must be key=value"))?;
+        if key.is_empty() {
+            return Err(CliError::Usage("metadata key must be nonempty"));
+        }
         let key = key
             .parse::<MetadataKey>()
             .map_err(CliError::ParityHostText)?;
@@ -118,6 +121,7 @@ mod tests {
         assert!(destination("fleet:invalid").is_err());
         assert!(destination(&format!("fleet:{}", vessel_proto::NodeId::random())).is_ok());
         assert!(metadata(&["missing-equals".to_owned()]).is_err());
+        assert!(metadata(&["=value".to_owned()]).is_err());
         assert!(metadata(&["note=control\u{1b}".to_owned()]).is_err());
     }
 }

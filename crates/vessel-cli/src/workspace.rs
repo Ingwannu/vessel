@@ -27,6 +27,11 @@ const POLL_SECS: u32 = 30;
 pub(crate) async fn project(target: &Target, command: ProjectCommand) -> Result<(), CliError> {
     let client = connect(target).await?.client;
     match command {
+        ProjectCommand::Create { .. }
+        | ProjectCommand::Rename { .. }
+        | ProjectCommand::Delete { .. } => Err(CliError::Usage(
+            "registry commands are handled by the typed project adapter",
+        )),
         ProjectCommand::List => {
             let list = client.call(ListProjects {}).await?;
             let mut text = format!("git: {}\n", git_line(list.git));

@@ -1,21 +1,26 @@
 //! Paseo-compatible invocation shapes. Node contracts and effects live elsewhere.
 
 mod agent;
+mod clone;
 mod duration;
 mod heartbeat;
 mod host;
 mod identifier;
 mod invocation;
 pub(crate) mod output;
+mod provider_argument;
 mod terminal;
+mod workspace;
 
 pub(crate) use agent::{AgentCommand, AgentList, AgentRun, AgentSend, Selection, Wait};
+pub(crate) use clone::{Clone, CloneProtocol};
 pub(crate) use duration::WaitBudget;
 pub(crate) use heartbeat::{HeartbeatCommand, ScheduleSelector};
 pub(crate) use host::{HostCommand, destination as host_destination, metadata as host_metadata};
 pub(crate) use invocation::normalize;
 pub(crate) use output::{ConnectionOptions, OutputOptions, Presentation};
 pub(crate) use terminal::{TerminalCommand, TerminalSelector};
+pub(crate) use workspace::WorkspaceCommand;
 
 use crate::selector::SessionSelector;
 use clap::Subcommand;
@@ -23,6 +28,13 @@ use clap::Subcommand;
 /// Root shortcuts share the same typed handlers as the agent group.
 #[derive(Debug, Subcommand)]
 pub(crate) enum ParityCommand {
+    /// Clone a complete Git remote or explicitly selected GitHub shorthand.
+    Clone(Clone),
+    /// Manage real workspace identities independently of projects/worktrees.
+    Workspace {
+        #[command(subcommand)]
+        command: WorkspaceCommand,
+    },
     /// Schedule recurring prompts only for this calling agent.
     Heartbeat {
         #[command(subcommand)]

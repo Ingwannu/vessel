@@ -9,6 +9,17 @@ use clap::Subcommand;
 /// one, or its name.
 #[derive(Debug, Subcommand)]
 pub(crate) enum ProjectCommand {
+    /// Register a directory, defaulting to this directory for a local target.
+    Create { path: Option<PathBuf> },
+    /// Set/reset a display name through the workspace registry contract.
+    Rename {
+        project: String,
+        name: Option<vessel_proto::workspace::ProjectName>,
+        #[arg(long, conflicts_with = "name", required_unless_present = "name")]
+        reset: bool,
+    },
+    /// Archive owned workspaces before removing the project registration.
+    Delete { project: String },
     /// List the node's projects and the git it found.
     #[command(alias = "ls")]
     List,

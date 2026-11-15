@@ -27,6 +27,7 @@ pub(crate) fn normalize(mut arguments: Vec<OsString>) -> Vec<OsString> {
         .and_then(|text| text.to_str())
         .is_some_and(|text| text.parse::<SessionSelector>().is_ok());
     let use_agent = match command {
+        "import" => true,
         "run" => explicit_provider,
         "send" => prompt_flags || !legacy_selector,
         _ => false,

@@ -67,7 +67,9 @@ pub(crate) async fn run(mut cli: Cli) -> Result<(), CliError> {
             Ok(io::out(text.as_bytes()).await?)
         }
         Command::Run(run) => run_session(target, run).await,
-        Command::Project { command } => workspace::project(target, command).await,
+        Command::Project { command } => {
+            crate::parity::projects::project(target, cli.output.presentation(), command).await
+        }
         Command::Worktree { command } => workspace::worktree(target, command).await,
         Command::Pr { command } => crate::forge::pr(target, command).await,
         Command::Shell(shell) => terminals::shell(target, shell).await,

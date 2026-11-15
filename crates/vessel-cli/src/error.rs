@@ -13,6 +13,22 @@ use vessel_remote::{
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum CliError {
+    #[error("prompt file read exceeded the CLI deadline")]
+    ParityPromptReadTimeout(#[source] tokio::time::error::Elapsed),
+    #[error(transparent)]
+    ParityCloneUrl(#[from] vessel_proto::workspace::InvalidCloneUrl),
+    #[error("clone of project {project} exceeded the CLI deadline; inspect it before retrying")]
+    ParityCloneTimeout {
+        project: vessel_proto::ProjectId,
+        #[source]
+        source: tokio::time::error::Elapsed,
+    },
+    #[error("clone of project {project} failed ({reason:?}): {message}")]
+    ParityCloneFailed {
+        project: vessel_proto::ProjectId,
+        reason: vessel_proto::workspace::CloneFailure,
+        message: String,
+    },
     #[error(transparent)]
     ParityHostText(#[from] vessel_proto::host_registry::InvalidHostText),
     #[error(transparent)]
