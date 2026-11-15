@@ -8,7 +8,31 @@ use vessel_proto::{EventRecord, ToolCallId};
 impl Timeline {
     /// A new entry made by `record`, keyed by it.
     pub(super) fn push(&mut self, record: &EventRecord, kind: EntryKind) {
-        self.push_keyed(record, EntryKey::Record(record.seq), kind);
+        if matches!(kind, EntryKind::Prompt(_) | EntryKind::Steer { .. }) {
+            self.user_stream = Some(self.entries.len());
+        }
+        match kind {
+            EntryKind::Compaction(item) => self.compacted(record, item),
+            EntryKind::Plugin(item) => self.plugin_item(record, item),
+            kind @ (EntryKind::Ready { .. }
+            | EntryKind::Prompt(_)
+            | EntryKind::Steer { .. }
+            | EntryKind::Question { .. }
+            | EntryKind::Message { .. }
+            | EntryKind::Thought { .. }
+            | EntryKind::Tool(_)
+            | EntryKind::Notification(_)
+            | EntryKind::Plan { .. }
+            | EntryKind::Permission(_)
+            | EntryKind::TurnEnded { .. }
+            | EntryKind::TurnFailed { .. }
+            | EntryKind::Log { .. }
+            | EntryKind::Status { .. }
+            | EntryKind::Parking(_)
+            | EntryKind::Forked { .. }
+            | EntryKind::Profile { .. }
+            | EntryKind::Model(_)) => self.push_keyed(record, EntryKey::Record(record.seq), kind),
+        }
     }
 
     pub(super) fn push_keyed(&mut self, record: &EventRecord, key: EntryKey, kind: EntryKind) {
@@ -16,6 +40,7 @@ impl Timeline {
             key,
             seq: record.seq,
             through: self.next(),
+            extra_sources: super::source::ExtraSources::default(),
             at: record.at,
             kind,
             rev: 0,
@@ -27,6 +52,14 @@ impl Timeline {
         let through = self.next();
         let entry = self.entries.get_mut(index)?;
         entry.through = through;
+        if let Some(source) = through
+            .get()
+            .checked_sub(1)
+            .map(vessel_proto::EventSeq::new)
+            && source != entry.seq
+        {
+            entry.extra_sources.record(source);
+        }
         // Wrapping: the count only has to differ from the one a cache
         // kept, and four billion changes to one entry between two frames
         // do not happen.
@@ -41,7 +74,10 @@ impl Timeline {
     /// a new entry started with it (a user chunk that does not follow a
     /// prompt is a replayed prompt, of the turns so far).
     pub(super) fn merge(&mut self, record: &EventRecord, kind: TextKind, chunk: &str) {
-        let last = self.entries.len().checked_sub(1);
+        let last = match kind {
+            TextKind::Prompt => self.user_stream,
+            TextKind::Message | TextKind::Thought => self.entries.len().checked_sub(1),
+        };
         if let Some(index) = last
             && self
                 .entries
@@ -112,6 +148,9 @@ impl Timeline {
             | EntryKind::Parking(_)
             | EntryKind::Forked { .. }
             | EntryKind::Profile { .. }
+            | EntryKind::Notification(_)
+            | EntryKind::Compaction(_)
+            | EntryKind::Plugin(_)
             | EntryKind::Model(_) => None,
         }
     }

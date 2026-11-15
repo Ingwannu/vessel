@@ -19,6 +19,7 @@ fn entry(seq: u64, kind: EntryKind) -> Entry {
         key: EntryKey::Record(EventSeq::new(seq)),
         seq: EventSeq::new(seq),
         through: EventSeq::new(seq.saturating_add(1)),
+        extra_sources: crate::timeline::ExtraSources::default(),
         at: DateTime::UNIX_EPOCH,
         kind,
         rev: 0,

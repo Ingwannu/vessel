@@ -90,6 +90,11 @@ pub(super) fn entry(
         EntryKind::Message { text } => bubbles::message(paint, index, text, entry.rev, window, cx),
         EntryKind::Thought { text } => thought(paint, index, text, open, cx),
         EntryKind::Tool(view) => tool::card(paint, index, view, open, window, cx),
+        EntryKind::Notification(notice) => {
+            super::notices::notification(paint, index, notice, window, cx)
+        }
+        EntryKind::Compaction(item) => super::notices::compaction(paint, index, item),
+        EntryKind::Plugin(item) => super::notices::plugin_unavailable(paint, item),
         // While it waits its form is over the composer: here only a quiet
         // line (the page's), so the question is not drawn twice.
         EntryKind::Question { outcome: None, .. } => {

@@ -69,7 +69,10 @@ impl Rows {
                     let Some(entry) = entries.get(*index) else {
                         return false;
                     };
-                    if matches!(entry.kind, EntryKind::Steer { .. }) {
+                    if matches!(
+                        entry.kind,
+                        EntryKind::Steer { .. } | EntryKind::Compaction(_)
+                    ) {
                         return base_visible;
                     }
                     turns.containing(*index).map_or(base_visible, |turn| {

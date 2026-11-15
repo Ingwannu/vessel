@@ -33,6 +33,7 @@
 mod agent;
 mod append;
 mod approval;
+mod compaction;
 mod diff;
 mod disclosures;
 mod entry;
@@ -40,6 +41,7 @@ mod failure;
 mod find;
 mod fold;
 mod fork;
+mod items;
 mod live;
 mod logs;
 mod meter;
@@ -55,6 +57,8 @@ mod question_step;
 mod rewind;
 mod rows;
 mod runs;
+mod searchable;
+mod source;
 mod tool_display;
 mod tool_sections;
 mod tool_source;
@@ -63,12 +67,14 @@ mod tool_words;
 mod turn_footer;
 mod turns;
 mod usage;
+mod user_stream;
 mod window;
 
 #[cfg(test)]
 mod bounds_tests;
 
 pub use approval::{AnswerWords, Answers, Settled, allows, answer_words, answers_of, settled};
+pub use compaction::{CompactionCaption, CompactionThousands, merge_compaction};
 pub use diff::{DiffLine, MAX_LINES, Side, diff_lines, json_text, unified_lines};
 pub use disclosures::Disclosures;
 pub use entry::{
@@ -101,6 +107,7 @@ pub use question_step::{
 pub use rewind::rewind_point;
 pub use rows::Rows;
 pub use runs::{Folds, RunSummary, Tally, ToolRun};
+pub use source::{ExtraSources, entry_at_source};
 pub use tool_display::{DetailContents, ToolDisplay, ToolLabel, ToolLabelKind, tool_display};
 pub use tool_sections::{ToolSection, ToolSectionLabel, tool_sections};
 pub use tool_source::ToolDetailSource;

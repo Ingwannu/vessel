@@ -117,10 +117,12 @@ pub(super) fn decorate(
             cx,
         ));
     }
-    let retained = paint
-        .entries
-        .get(index)
-        .is_some_and(|entry| matches!(entry.kind, EntryKind::Steer { .. }));
+    let retained = paint.entries.get(index).is_some_and(|entry| {
+        matches!(
+            entry.kind,
+            EntryKind::Steer { .. } | EntryKind::Compaction(_)
+        )
+    });
     let nested = !retained
         && area.turns.as_ref().is_some_and(|turns| {
             turns

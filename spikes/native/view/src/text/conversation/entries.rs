@@ -414,6 +414,14 @@ impl ConversationWords {
             },
             EntryKind::Message { text } => text.clone(),
             EntryKind::Thought { .. } => self.thought().to_owned(),
+            EntryKind::Notification(notice) => notice.message.clone(),
+            EntryKind::Compaction(item) => catalog.timeline_items().compaction(item).into_owned(),
+            EntryKind::Plugin(item) => format!(
+                "{} · {} · {}",
+                catalog.timeline_items().plugin_unavailable(),
+                item.plugin.as_str(),
+                item.kind.as_str()
+            ),
             EntryKind::Tool(tool) => {
                 let title = if tool.title.is_empty() {
                     self.tool_call()

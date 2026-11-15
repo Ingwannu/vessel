@@ -62,6 +62,7 @@ mod intake;
 mod look;
 mod meter;
 mod motion;
+mod notices;
 mod origin;
 mod outline;
 mod overlays;
@@ -98,3 +99,6 @@ mod connection_tests;
 
 #[cfg(test)]
 mod late_answers;
+
+#[cfg(test)]
+mod source_tests;

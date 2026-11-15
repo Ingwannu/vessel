@@ -218,3 +218,33 @@ fn opening_a_closed_turn_reveals_members_that_were_inside_tool_groups() {
         Rows::Some(vec![0, 1, 2, 3, 4])
     );
 }
+
+#[test]
+fn compaction_stays_visible_when_earlier_turn_work_is_collapsed() {
+    use crate::timeline::{EntryKind, Logs, Rows};
+    use std::collections::HashSet;
+    use vessel_proto::timeline::{Compaction, CompactionStatus};
+    let timeline = timeline(vec![
+        prompt(),
+        tool(),
+        json!({"event":"harness_log","line":"fixture slot"}),
+        reply("Done"),
+        end(),
+    ]);
+    let mut entries = timeline.entries().to_vec();
+    entries[2].kind = EntryKind::Compaction(Compaction {
+        status: CompactionStatus::Completed,
+        trigger: None,
+        pre_tokens: None,
+    });
+    let turns = TurnFolds::of(&entries, TurnActivity::Closed);
+    let rows = Rows::of(entries.len(), None, &Logs::default(), &HashSet::new());
+    assert_eq!(
+        rows.clone().fold_turns(&entries, &turns, &HashSet::new()),
+        Rows::Some(vec![0, 2, 3, 4])
+    );
+    assert_eq!(
+        rows.fold_turns(&entries, &turns, &HashSet::from([0])),
+        Rows::Some(vec![0, 1, 2, 3, 4])
+    );
+}

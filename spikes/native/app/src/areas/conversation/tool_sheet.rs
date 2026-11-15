@@ -87,6 +87,9 @@ fn entry_selection(area: &ConversationArea, index: usize) -> Option<Selection> {
         | EntryKind::Parking(_)
         | EntryKind::Forked { .. }
         | EntryKind::Profile { .. }
+        | EntryKind::Notification(_)
+        | EntryKind::Compaction(_)
+        | EntryKind::Plugin(_)
         | EntryKind::Model(_) => false,
     };
     if !eligible {
@@ -265,6 +268,9 @@ fn entry_content(
         | EntryKind::Parking(_)
         | EntryKind::Forked { .. }
         | EntryKind::Profile { .. }
+        | EntryKind::Notification(_)
+        | EntryKind::Compaction(_)
+        | EntryKind::Plugin(_)
         | EntryKind::Model(_) => None,
     }
 }

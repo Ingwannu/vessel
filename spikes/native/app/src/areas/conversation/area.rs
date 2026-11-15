@@ -327,7 +327,9 @@ impl ConversationArea {
             Some(_) => {
                 // The entry the record made, or extended (its first record
                 // is earlier).
-                match entries.iter().rposition(|entry| entry.seq <= seq) {
+                match vessel_app_view::timeline::entry_at_source(entries, seq)
+                    .or_else(|| entries.iter().rposition(|entry| entry.seq <= seq))
+                {
                     Some(index) if self.timeline.next() > seq => index,
                     // Not read this far yet.
                     Some(_) | None => return,

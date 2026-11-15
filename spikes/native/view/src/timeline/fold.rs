@@ -4,6 +4,7 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::PathBuf;
 
+use vessel_proto::timeline::{PluginItemId, TimelinePluginId};
 use vessel_proto::{
     AgentAbilities, AgentCommand, ContextUsage, EventRecord, EventSeq, PermissionId, PlanEntry,
     PromptQueue, QuestionId, SessionEvent, SessionOption, SessionStatus, SessionTitle, ToolCallId,
@@ -65,6 +66,8 @@ pub struct Timeline {
     pub(super) plan_row: Option<usize>,
     pub(super) turns: u32,
     pub(super) turn: Option<EventSeq>,
+    /// The current human message chunk stream, independent of metadata rows.
+    pub(super) user_stream: Option<usize>,
     pub(super) attention: Option<EventSeq>,
     files: Vec<PathBuf>,
     touched: HashSet<PathBuf>,
@@ -75,6 +78,7 @@ pub struct Timeline {
     next: EventSeq,
     pub(super) facts: Facts,
     pub(super) tools: HashMap<ToolCallId, usize>,
+    pub(super) plugins: HashMap<(TimelinePluginId, PluginItemId), usize>,
     pub(super) permissions: HashMap<PermissionId, usize>,
     /// The permissions still waiting, by entry index: the first is what
     /// the composer's dock asks about.
@@ -94,6 +98,7 @@ impl Default for Timeline {
             plan_row: None,
             turns: 0,
             turn: None,
+            user_stream: None,
             attention: None,
             files: Vec::new(),
             touched: HashSet::new(),
@@ -104,6 +109,7 @@ impl Default for Timeline {
             next: EventSeq::ZERO,
             facts: Facts::default(),
             tools: HashMap::new(),
+            plugins: HashMap::new(),
             permissions: HashMap::new(),
             waiting: BTreeSet::new(),
             questions: HashMap::new(),
@@ -193,6 +199,9 @@ impl Timeline {
             | EntryKind::Message { .. }
             | EntryKind::Thought { .. }
             | EntryKind::Tool(_)
+            | EntryKind::Notification(_)
+            | EntryKind::Compaction(_)
+            | EntryKind::Plugin(_)
             | EntryKind::Plan { .. }
             | EntryKind::TurnEnded { .. }
             | EntryKind::TurnFailed { .. }
@@ -305,6 +314,9 @@ impl Timeline {
             EntryKey::Tool(id) => self.tools.get(id).copied(),
             EntryKey::Permission(id) => self.permissions.get(id).copied(),
             EntryKey::Question(id) => self.questions.get(id).copied(),
+            EntryKey::Plugin { plugin, id } => {
+                self.plugins.get(&(plugin.clone(), id.clone())).copied()
+            }
             EntryKey::Plan { seq, .. } => {
                 let first = self.entries.partition_point(|entry| entry.seq < *seq);
                 self.entries
@@ -319,6 +331,9 @@ impl Timeline {
     }
 
     fn record(&mut self, record: &EventRecord) {
+        if !super::user_stream::preserves(&record.event) {
+            self.user_stream = None;
+        }
         match &record.event {
             SessionEvent::Status { status, .. } => {
                 self.status = Some(status.clone());
@@ -384,3 +399,7 @@ impl Timeline {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "items_tests.rs"]
+mod items_tests;
