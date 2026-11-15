@@ -300,6 +300,9 @@ async fn node_start(
     // machine's `gh`, found here (the library reads no environment).
     config.forge =
         vessel_node::ForgeSetup::found(|name| std::env::var_os(name), &config.harness_lookup);
+    // Before the node says it listens, so a stop sent then stops it
+    // cleanly (`vessel_node::StopSignals`).
+    let stop = vessel_node::StopSignals::listen();
     let node = Node::start(config).await?;
     let address = node.address().unwrap_or(bind);
     let started = format!(
@@ -309,7 +312,7 @@ async fn node_start(
     io::note(&started).await?;
     // A client's `node.stop` (protocol 3) stops it too.
     tokio::select! {
-        () = vessel_node::signal() => {}
+        () = stop.stopped() => {}
         () = node.stop_requested() => {}
     }
     io::note("[vessel] stopping\n").await?;

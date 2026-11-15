@@ -27,12 +27,12 @@ mod init;
 #[cfg(test)]
 mod logs;
 #[cfg(test)]
-mod output;
-#[cfg(test)]
 mod mcp;
 #[cfg(test)]
 mod node_stop;
 mod nodes;
+#[cfg(test)]
+mod output;
 #[cfg(test)]
 mod parity;
 #[cfg(test)]
