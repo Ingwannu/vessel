@@ -112,6 +112,42 @@ mod linux {
         }
     }
     #[test]
+    fn unsupported_directory_metadata_refuses_before_capture_or_parent_creation() {
+        let sandbox = Sandbox::new();
+        let dir = sandbox.repo("project");
+        let root = fs::File::open(&dir).unwrap();
+        rustix::fs::fsetxattr(
+            &root,
+            "user.checkpoint_fixture",
+            b"preserve",
+            rustix::fs::XattrFlags::empty(),
+        )
+        .unwrap();
+        assert!(matches!(
+            Root::open(&dir),
+            Err(Error::Refused(CheckpointError::UnsupportedMetadata))
+        ));
+        rustix::fs::fremovexattr(&root, "user.checkpoint_fixture").unwrap();
+        fs::create_dir(dir.join("nested")).unwrap();
+        fs::write(dir.join("nested/file"), b"contents").unwrap();
+        let nested = fs::File::open(dir.join("nested")).unwrap();
+        rustix::fs::fsetxattr(
+            &nested,
+            "user.checkpoint_fixture",
+            b"preserve",
+            rustix::fs::XattrFlags::empty(),
+        )
+        .unwrap();
+        let path =
+            serde_json::from_str::<vessel_proto::checkpoint::CheckpointPath>("\"nested/file\"")
+                .unwrap();
+        assert!(matches!(
+            Root::open(&dir).unwrap().file(&path),
+            Err(Error::Refused(CheckpointError::UnsupportedMetadata))
+        ));
+        assert_eq!(fs::read(dir.join("nested/file")).unwrap(), b"contents");
+    }
+    #[test]
     #[ignore = "requires effective-image staging and per-file restore implementation"]
     fn restore_preserves_nonroot_ownership_and_tightened_access() {}
     #[test]

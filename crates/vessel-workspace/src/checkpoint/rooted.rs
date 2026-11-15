@@ -38,6 +38,14 @@ pub(super) struct Identity {
     links: u64,
 }
 impl Identity {
+    /// Rename may update timestamps; it must never substitute another inode.
+    pub(in crate::checkpoint) fn same_entry(self, other: Self) -> bool {
+        self.device == other.device
+            && self.inode == other.inode
+            && self.owner == other.owner
+            && self.group == other.group
+            && self.links == other.links
+    }
     pub(super) fn of(metadata: &Metadata) -> Self {
         Self {
             device: metadata.dev(),
@@ -67,6 +75,7 @@ impl Root {
             rustix::fs::openat(CWD, path, DIRECTORY, Mode::empty()).map_err(io::Error::from)?,
         );
         let metadata = file.metadata()?;
+        refuse_attributes(&file)?;
         Ok(Self {
             identity: Identity::of(&metadata),
             file,
@@ -79,6 +88,17 @@ impl Root {
             return Err(CheckpointError::CaptureUnstable.into());
         }
         Ok(())
+    }
+    pub(in crate::checkpoint) fn entry_identity(
+        &self,
+        path: &CheckpointPath,
+    ) -> Result<Option<Identity>, Error> {
+        Ok(self
+            .file(path)?
+            .map(|file| file.metadata())
+            .transpose()?
+            .as_ref()
+            .map(Identity::of))
     }
     pub(super) fn file(&self, path: &CheckpointPath) -> Result<Option<File>, Error> {
         let mut parent = self.file.try_clone()?;
@@ -102,14 +122,14 @@ impl Root {
             if metadata.dev() != self.identity.device {
                 return Err(CheckpointError::UnsafeEntry.into());
             }
+            if metadata.uid() != self.identity.owner {
+                return Err(CheckpointError::UnsupportedMetadata.into());
+            }
+            refuse_attributes(&opened)?;
             if parts.peek().is_none() {
                 if !metadata.is_file() || metadata.nlink() != 1 {
                     return Err(CheckpointError::UnsafeEntry.into());
                 }
-                if metadata.uid() != self.file.metadata()?.uid() {
-                    return Err(CheckpointError::UnsupportedMetadata.into());
-                }
-                refuse_attributes(&opened)?;
                 return Ok(Some(opened));
             }
             // A nested repository is a separate scope, even if its files are listed.

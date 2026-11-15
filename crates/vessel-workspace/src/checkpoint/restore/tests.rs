@@ -141,6 +141,46 @@ async fn later_created_file_deletion_can_be_reversed_from_its_retained_inode() {
         b"preserve me during rollback"
     );
 }
+
+#[tokio::test]
+async fn equal_bytes_at_a_replaced_inode_do_not_authorize_apply_or_rollback() {
+    let sandbox = Sandbox::new();
+    let dir = sandbox.repo("project");
+    let git = sandbox.git().await;
+    let cancel = CancellationToken::new();
+    let archive = Archive::open(private_dir(&sandbox, "captured")).unwrap();
+    let paths = enumeration::paths(&git, &dir).await.unwrap();
+    let selected = capture::image(&Root::open(&dir).unwrap(), &archive, &paths, &cancel).unwrap();
+    let file = dir.join("README.md");
+    fs::write(&file, b"before restore").unwrap();
+    let before_archive = Archive::open(private_dir(&sandbox, "before")).unwrap();
+    let before =
+        capture::image(&Root::open(&dir).unwrap(), &before_archive, &paths, &cancel).unwrap();
+    let target = selected.effective(&before, account(&dir)).unwrap();
+    let root = Root::open(&dir).unwrap();
+    let stage = Stage::open(&private_dir(&sandbox, "journal")).unwrap();
+    let prepared = Prepared::new(&root, &archive, &stage, &before, &target, &cancel).unwrap();
+    let replacement = dir.join("replacement");
+    let _copied = fs::copy(&file, &replacement).unwrap();
+    fs::rename(&replacement, &file).unwrap();
+    let index = PathCount::new(0).unwrap();
+    assert!(matches!(
+        prepared.apply(&root, &stage, index, &cancel),
+        Err(crate::checkpoint::Error::Refused(
+            CheckpointError::StalePreview
+        ))
+    ));
+    let stage = Stage::open(&private_dir(&sandbox, "journal-second")).unwrap();
+    let prepared = Prepared::new(&root, &archive, &stage, &before, &target, &cancel).unwrap();
+    prepared.apply(&root, &stage, index, &cancel).unwrap();
+    let _copied = fs::copy(&file, &replacement).unwrap();
+    fs::rename(&replacement, &file).unwrap();
+    assert_eq!(
+        prepared.undo(&root, &stage, index, &cancel).unwrap(),
+        Undo::Conflict
+    );
+    assert_eq!(fs::read(&file).unwrap(), b"hello\n");
+}
 #[tokio::test]
 async fn rollback_refuses_to_overwrite_a_new_external_edit() {
     let sandbox = Sandbox::new();

@@ -3,7 +3,7 @@ use crate::checkpoint::{
     Error,
     content::{self, Budget},
     inspect,
-    rooted::{metadata, refuse_attributes},
+    rooted::{Identity, metadata, refuse_attributes},
 };
 use rustix::fs::{AtFlags, CWD, Gid, Mode, OFlags};
 use std::{fs::File, os::unix::fs::MetadataExt as _, path::Path};
@@ -110,11 +110,17 @@ impl Stage {
         slot: Slot,
         cancellation: &tokio_util::sync::CancellationToken,
     ) -> Result<vessel_proto::checkpoint::FileState, Error> {
+        inspect::file(&mut self.file(slot)?, cancellation)
+    }
+    pub(in crate::checkpoint) fn identity(&self, slot: Slot) -> Result<Identity, Error> {
+        Ok(Identity::of(&self.file(slot)?.metadata()?))
+    }
+    fn file(&self, slot: Slot) -> Result<File, Error> {
         let flags = OFlags::RDONLY
             .union(OFlags::NOFOLLOW)
             .union(OFlags::NONBLOCK)
             .union(OFlags::CLOEXEC);
-        let mut source = File::from(
+        let source = File::from(
             rustix::fs::openat(&self.folder, slot.text(), flags, Mode::empty())
                 .map_err(std::io::Error::from)?,
         );
@@ -123,7 +129,7 @@ impl Stage {
             return Err(CheckpointError::UnsafeEntry.into());
         }
         refuse_attributes(&source)?;
-        inspect::file(&mut source, cancellation)
+        Ok(source)
     }
     pub(in crate::checkpoint) fn remove(&self, slot: Slot) -> Result<(), Error> {
         rustix::fs::unlinkat(&self.folder, slot.text(), AtFlags::empty())

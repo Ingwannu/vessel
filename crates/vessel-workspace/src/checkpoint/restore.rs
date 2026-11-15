@@ -11,7 +11,7 @@ use super::{
     Error,
     archive::Archive,
     inspect,
-    rooted::{Root, mutation::ParentPolicy},
+    rooted::{Identity, Root, mutation::ParentPolicy},
 };
 use stage::{Slot, SlotKind, Stage};
 use tokio_util::sync::CancellationToken;
@@ -24,6 +24,8 @@ pub(super) struct Step {
     pub(super) path: CheckpointPath,
     before: FileState,
     desired: FileState,
+    before_identity: Option<Identity>,
+    desired_identity: Option<Identity>,
     index: PathCount,
 }
 #[derive(Debug)]
@@ -57,10 +59,13 @@ impl Prepared {
                 .get(&change.path)
                 .cloned()
                 .ok_or(CheckpointError::InvalidPath)?;
-            if inspect::path(root, &change.path, cancellation)? != before {
+            let before_identity = root.entry_identity(&change.path)?;
+            if inspect::path(root, &change.path, cancellation)? != before
+                || root.entry_identity(&change.path)? != before_identity
+            {
                 return Err(CheckpointError::StalePreview.into());
             }
-            if let FileState::Present {
+            let desired_identity = if let FileState::Present {
                 digest,
                 bytes,
                 metadata,
@@ -75,11 +80,16 @@ impl Prepared {
                     *metadata,
                     cancellation,
                 )?;
-            }
+                Some(stage.identity(Slot::new(index, SlotKind::Desired))?)
+            } else {
+                None
+            };
             steps.push(Step {
                 path: change.path,
                 before,
                 desired: target,
+                before_identity,
+                desired_identity,
                 index,
             });
         }
@@ -99,7 +109,10 @@ impl Prepared {
             .steps
             .get(index.get())
             .ok_or(CheckpointError::InvalidPath)?;
-        if inspect::path(root, &step.path, cancellation)? != step.before {
+        if root.entry_identity(&step.path)? != step.before_identity
+            || inspect::path(root, &step.path, cancellation)? != step.before
+            || root.entry_identity(&step.path)? != step.before_identity
+        {
             return Err(CheckpointError::StalePreview.into());
         }
         if cancellation.is_cancelled() {
@@ -116,6 +129,10 @@ impl Prepared {
                 root.exchange(&step.path, stage, Slot::new(step.index, SlotKind::Desired))?;
                 if stage.inspect(Slot::new(step.index, SlotKind::Desired), cancellation)?
                     != step.before
+                    || !same_entry(
+                        Some(stage.identity(Slot::new(step.index, SlotKind::Desired))?),
+                        step.before_identity,
+                    )
                 {
                     return Err(CheckpointError::CaptureUnstable.into());
                 }
@@ -124,6 +141,10 @@ impl Prepared {
                 root.take(&step.path, stage, Slot::new(step.index, SlotKind::Deleted))?;
                 if stage.inspect(Slot::new(step.index, SlotKind::Deleted), cancellation)?
                     != step.before
+                    || !same_entry(
+                        Some(stage.identity(Slot::new(step.index, SlotKind::Deleted))?),
+                        step.before_identity,
+                    )
                 {
                     return Err(CheckpointError::CaptureUnstable.into());
                 }
@@ -132,7 +153,9 @@ impl Prepared {
                 return Err(CheckpointError::StalePreview.into());
             }
         }
-        if inspect::path(root, &step.path, cancellation)? != step.desired {
+        if inspect::path(root, &step.path, cancellation)? != step.desired
+            || !same_entry(root.entry_identity(&step.path)?, step.desired_identity)
+        {
             return Err(CheckpointError::CaptureUnstable.into());
         }
         Ok(())
@@ -148,25 +171,33 @@ impl Prepared {
             .steps
             .get(index.get())
             .ok_or(CheckpointError::InvalidPath)?;
-        if inspect::path(root, &step.path, cancellation)? != step.desired {
+        if inspect::path(root, &step.path, cancellation)? != step.desired
+            || !same_entry(root.entry_identity(&step.path)?, step.desired_identity)
+        {
             return Ok(Undo::Conflict);
         }
         match (&step.before, &step.desired) {
             (FileState::Present { .. }, FileState::Present { .. }) => {
                 let original = Slot::new(step.index, SlotKind::Desired);
-                if stage.inspect(original, cancellation)? != step.before {
+                if stage.inspect(original, cancellation)? != step.before
+                    || !same_entry(Some(stage.identity(original)?), step.before_identity)
+                {
                     return Ok(Undo::Conflict);
                 }
                 root.exchange(&step.path, stage, original)?;
                 // A same-user writer can race the precheck. Preserve the displaced
                 // bytes and refuse a truthful rollback result if that happened.
-                if stage.inspect(original, cancellation)? != step.desired {
+                if stage.inspect(original, cancellation)? != step.desired
+                    || !same_entry(Some(stage.identity(original)?), step.desired_identity)
+                {
                     return Ok(Undo::Conflict);
                 }
             }
             (FileState::Present { .. }, FileState::Absent) => {
                 let original = Slot::new(step.index, SlotKind::Deleted);
-                if stage.inspect(original, cancellation)? != step.before {
+                if stage.inspect(original, cancellation)? != step.before
+                    || !same_entry(Some(stage.identity(original)?), step.before_identity)
+                {
                     return Ok(Undo::Conflict);
                 }
                 root.install_create(&step.path, stage, original, ParentPolicy::CreateMissing)?;
@@ -174,7 +205,9 @@ impl Prepared {
             (FileState::Absent, FileState::Present { .. }) => {
                 let removed = Slot::new(step.index, SlotKind::Deleted);
                 root.take(&step.path, stage, removed)?;
-                if stage.inspect(removed, cancellation)? != step.desired {
+                if stage.inspect(removed, cancellation)? != step.desired
+                    || !same_entry(Some(stage.identity(removed)?), step.desired_identity)
+                {
                     return Ok(Undo::Conflict);
                 }
             }
@@ -182,9 +215,18 @@ impl Prepared {
                 return Err(CheckpointError::StalePreview.into());
             }
         }
-        if inspect::path(root, &step.path, cancellation)? != step.before {
+        if inspect::path(root, &step.path, cancellation)? != step.before
+            || !same_entry(root.entry_identity(&step.path)?, step.before_identity)
+        {
             return Ok(Undo::Conflict);
         }
         Ok(Undo::Restored)
+    }
+}
+fn same_entry(current: Option<Identity>, expected: Option<Identity>) -> bool {
+    match (current, expected) {
+        (Some(current), Some(expected)) => current.same_entry(expected),
+        (None, None) => true,
+        (Some(_), None) | (None, Some(_)) => false,
     }
 }
