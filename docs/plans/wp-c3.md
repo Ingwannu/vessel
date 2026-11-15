@@ -652,3 +652,14 @@ original selected admission, branch target and complete captured comparison
 before normalizing/reissuing through the same keyed reader. Commit targets never
 inherit a mutable branch mode. Pending Committed/All remain explicitly unavailable;
 this does not grant wire support or mount the unverified document editor.
+
+## Announced line union at e1b73c9e
+
+The app merged the announced locked-green line e1b73c9e (base8 node82ae,
+release line, shared menu lease, selected-tab getter and portable Subagents
+values). Only the README had a content conflict; both the G1 diff-profile/pane
+notes and incoming external-link/circle-button contracts were retained. The
+shared selected getter already adopted as an exact leaf remains identical;
+no staged resource implementation or moving owner branch was imported. Prior
+narrow jobs stay tied to their earlier source. This merge is not a C3 gate or
+UI pass; the staged comparison values still await their own V3 review.
