@@ -52,6 +52,7 @@ mod line_syntax;
 mod listing_search;
 mod markdown;
 mod mutation;
+mod observation;
 mod receipts;
 mod scope;
 #[cfg(test)]
@@ -130,6 +131,7 @@ struct Changes {
 
 /// A file shown in the Files tab.
 struct Viewer {
+    watch: observation::Watcher,
     scope: vessel_app_view::workspace::file_scope::FileScope,
     markdown: Option<markdown::Preview>,
     /// Read-only loads must not overwrite a newer refresh of the same path.

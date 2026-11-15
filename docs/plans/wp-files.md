@@ -394,3 +394,15 @@ The existing global `Action::Find` dispatch first asks C5 `file_find_at_focus`. 
 ## Keyed rendering callbacks before pane registration
 
 Deferred editor creation now captures the original canonical file key and locates that retained owner, rather than creating a control for whatever file is active when the callback runs. Read-only virtual rows, line selection, source save/conflict/reload chrome, Markdown mode changes and LSP queries/navigation carry the originating key. Back refuses another active file; selected-line toolbar callbacks cannot act on another buffer. The actual GPUI regression asks for A's deferred control after B is active and verifies B remains untouched. This removes global-file lookups at these callback boundaries; per-tab presentation entities/cursors and typed W12 renderer registration are still separate unfinished work, not established by this checkpoint.
+
+## Saved-file observation adapter (pending protocol admission)
+
+[Decision Log]
+- Purpose: retained dirty buffers must meet external edits without a second host watcher, while a clean visible source can refresh.
+- Existing assets: ADR0083's finite `ObserveFile`, node notify parent watcher, G4 unary admission, original C5 file tickets and serialized editor lane. No new wire method or connection manager is added.
+- Choice: one observation per retained owner, separate 64-slot read-observation admission from the existing 16 ordinary file operations, and a 65-second client ceiling above the node's 30-second heartbeat/60-second task guard. Replies carry original scope/ticket; retired replies pause without installing content. Only active or protected owners continue. Clean parked owners stop renewing after the current finite observation.
+- Why: long waits must not consume save/list admission. A node without a reserved principal wait slot may return an unchanged snapshot immediately; the owner enforces a one-second minimum request interval, preventing a busy loop. Actual read failures pause visibly and explicit reopen/refresh may retry under the same original admission; there is no retarget or write retry.
+- Write boundary: observation anchors are separate from the persisted editor baseline. A change marks reconciliation needed, but no reconcile read is sent while the original write/read lane is pending or uncertain. A changed/missing observation never settles that write. Original terminal completion can then allow a fresh read; stale observations are not completion evidence.
+- Admission/status: `FILE_PANELS_PROTOCOL` remains None until the integrator assigns it. The native adapter is therefore disabled on the current pending protocol and is not claimed as product-ready/live parity. It will use the assigned feature check plus exact live shared context, never an invented method number. The GPUI synthetic owner regression and interval-floor test are not real-node/live-watch proof.
+
+A failed initial read is retryable on explicit reopen/refresh with a new read sequence; an older failed acquisition cannot install data into that retry. This also permits a paused observer to be retried by explicit reopen without implicitly retrying an original write.

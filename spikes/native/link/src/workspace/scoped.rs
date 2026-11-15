@@ -15,6 +15,7 @@ use vessel_app_view::workspace::{
 use vessel_proto::{SessionId, SessionInfo, workspace::WorkspaceRoot};
 
 const MAX_FILE_OPERATIONS: usize = 16;
+const MAX_FILE_OBSERVATIONS: usize = 64;
 
 /// One request captured before submission. Constructors cannot change its root.
 #[derive(Debug)]
@@ -127,18 +128,31 @@ impl Reply {
 #[derive(Debug, Clone)]
 pub(super) struct Hub {
     slots: Arc<Semaphore>,
+    observations: Arc<Semaphore>,
 }
 impl Default for Hub {
     fn default() -> Self {
         Self {
             slots: Arc::new(Semaphore::new(MAX_FILE_OPERATIONS)),
+            observations: Arc::new(Semaphore::new(MAX_FILE_OBSERVATIONS)),
         }
     }
 }
 impl crate::State {
     pub(crate) fn scoped_file(&self, request: Request) {
         let selected = self.selected_connection(&request.context);
-        let slot = self.workspace.file_calls.slots.clone().try_acquire_owned();
+        let slots = if matches!(
+            &request.work,
+            Work::File {
+                ask: FileAsk::Observe { .. },
+                ..
+            }
+        ) {
+            &self.workspace.file_calls.observations
+        } else {
+            &self.workspace.file_calls.slots
+        };
+        let slot = slots.clone().try_acquire_owned();
         let events = self.events.clone();
         drop(tokio::spawn(async move {
             let reply = match (selected, slot) {
@@ -173,6 +187,7 @@ impl crate::State {
 }
 fn root_of(ask: &FileAsk) -> WorkspaceRoot {
     match ask {
+        FileAsk::Observe { ask, .. } => ask.root,
         FileAsk::Intelligence(ask) => ask.root,
         FileAsk::List { ask, .. } => ask.root,
         FileAsk::Read { ask, .. } | FileAsk::EditorRead { ask, .. } => ask.root,

@@ -35,8 +35,14 @@ impl Shell {
                     preview.reveal_source();
                 }
             }
+            let retry_read = matches!(viewer.text, Shown::Failed(_))
+                || viewer.edit.as_ref().is_some_and(|editing| {
+                    editing.model.status()
+                        == vessel_app_view::workspace::editor::EditorStatus::Failed
+                });
             let rebound = viewer.scope != scope;
             if rebound {
+                viewer.watch = super::observation::Watcher::default();
                 viewer.scope = scope;
                 viewer.reading = None;
                 viewer.intelligence = super::intelligence::State::Idle;
@@ -46,8 +52,9 @@ impl Shell {
                     editing.model.retire_observations();
                 }
             }
+            viewer.watch.restart();
             files.viewer = Some(viewer);
-            if rebound {
+            if rebound || retry_read {
                 let step = files
                     .viewer
                     .as_mut()
@@ -78,10 +85,12 @@ impl Shell {
                     );
                 }
             }
+            self.begin_file_watch(&key);
             return;
         }
         let editable = !files.narrow.get();
         files.viewer = Some(Viewer {
+            watch: super::observation::Watcher::default(),
             scope,
             markdown: super::markdown::Preview::for_path(&path, location),
             reading: None,
@@ -103,6 +112,7 @@ impl Shell {
             if let Some(sequence) = sequence {
                 self.send_editor_read(root, path, sequence);
             }
+            self.begin_file_watch(&key);
             return;
         }
         let read = ReadFile {
@@ -112,6 +122,7 @@ impl Shell {
             limit: None,
         };
         self.read_viewer(machine, read);
+        self.begin_file_watch(&key);
     }
 
     pub(super) fn read_viewer(&mut self, _machine: &str, ask: ReadFile) {
@@ -124,13 +135,16 @@ impl Shell {
         else {
             return;
         };
+        self.read_viewer_for(&key, ask);
+    }
+    pub(super) fn read_viewer_for(&mut self, key: &super::buffers::FileKey, ask: ReadFile) {
         let Some(ticket) = self.next_file_ticket() else {
             return;
         };
-        let Some(viewer) = self.areas.workspace.code.viewer_for(&key) else {
+        let Some(viewer) = self.areas.workspace.code.viewer_for(key) else {
             return;
         };
         viewer.reading = Some(ticket);
-        self.send_file_for(&key, FileAsk::Read { ask, ticket });
+        self.send_file_for(key, FileAsk::Read { ask, ticket });
     }
 }

@@ -185,6 +185,7 @@ impl Shell {
             preview.invalidate();
         }
         self.run_step_for(key.clone(), step, cx);
+        self.reconcile_watched_file(key, cx);
         true
     }
 
@@ -225,6 +226,7 @@ impl Shell {
         };
         let step = editing.model.saved(sequence, written);
         self.run_step_for(key.clone(), step, cx);
+        self.reconcile_watched_file(key, cx);
     }
 
     /// Conflict actions keep the originating buffer rather than looking up a

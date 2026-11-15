@@ -6,6 +6,11 @@ use vessel_proto::workspace::{ReadFile, WriteExpect, WriteFile};
 
 pub(super) async fn run(client: &Client<'_>, ask: FileAsk) -> FileAnswer {
     match ask {
+        FileAsk::Observe { ask, ticket } => FileAnswer::Observed {
+            result: client.observe(ask.clone()).await,
+            ask,
+            ticket,
+        },
         FileAsk::Intelligence(ask) => FileAnswer::Intelligence {
             result: super::intelligence::run(client, &ask).await,
             ask,

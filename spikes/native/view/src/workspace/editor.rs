@@ -325,7 +325,7 @@ impl EditorModel {
     /// after a git write): a clean buffer follows it, a modified one
     /// conflicts (Paseo's `reconcile`).
     pub fn reconcile(&mut self) -> Step {
-        if !self.loaded() {
+        if !self.loaded() && self.status != EditorStatus::Failed {
             return Step::None;
         }
         self.read_sequence = self.read_sequence.saturating_add(1);

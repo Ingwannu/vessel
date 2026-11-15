@@ -35,6 +35,11 @@ impl Shell {
     ) {
         let shown = live && self.areas.workspace.code.scope().as_ref() == Some(scope);
         match answer {
+            FileAnswer::Observed {
+                ask,
+                ticket,
+                result,
+            } => self.file_observed(scope, &ask, ticket, result, live, cx),
             FileAnswer::Read {
                 ask,
                 ticket,

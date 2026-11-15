@@ -352,3 +352,23 @@ fn uncertain_effect_survives_undo_and_fresh_reads_until_original_completion() {
     assert!(model.modified());
     assert_eq!(model.content(), "baseline");
 }
+
+#[test]
+fn a_failed_initial_read_can_be_retried_without_discarding_a_loaded_draft() {
+    let mut model = EditorModel::new();
+    let first = model.first_read();
+    let _step = model.read(first, Read::Failed("temporarily unavailable".into()));
+    let next = read_of(&model.reconcile());
+    assert_ne!(next, first);
+    assert_eq!(
+        model.read(first, Read::Text("stale".into(), version(5))),
+        Step::None
+    );
+    assert_eq!(model.status(), EditorStatus::Failed);
+    assert_eq!(
+        model.read(next, Read::Text("recovered".into(), version(9))),
+        Step::StopAutosave
+    );
+    assert_eq!(model.content(), "recovered");
+    assert_eq!(model.status(), EditorStatus::Clean);
+}

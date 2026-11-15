@@ -39,6 +39,8 @@ pub struct Labels {
     /// Root mutation cannot discard edits or race pending file I/O.
     pub file_busy: &'static str,
     pub files_refresh: &'static str,
+    /// A failed observation keeps the last source; writes retain their own guards.
+    pub file_watch_paused: &'static str,
     /// File sort and visibility actions.
     pub file_sort_size: &'static str,
     pub hide_hidden_files: &'static str,

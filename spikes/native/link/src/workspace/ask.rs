@@ -89,6 +89,13 @@ pub enum GitAsk {
 pub enum FileAsk {
     /// An existing read-only `lsp.*` query for a saved source file.
     Intelligence(super::IntelligenceAsk),
+    /// Finite, root-confined saved-file observation (ADR0083, pending admission).
+    Observe {
+        /// Original wire request, including the last saved state.
+        ask: vessel_proto::workspace::ObserveFile,
+        /// Local observation identity, unchanged on refusals.
+        ticket: FileTicket,
+    },
     /// `file.list`, correlated independently of repeated refreshes.
     List {
         /// Existing authorized wire request.

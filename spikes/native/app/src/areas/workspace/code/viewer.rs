@@ -81,6 +81,12 @@ pub(super) fn viewer_element(
                 .text_color(neutral.foreground_muted)
                 .child(viewer.path.as_str().to_owned()),
         )
+        .children(viewer.watch.paused().then(|| {
+            div()
+                .type_(Type::Meta)
+                .text_color(neutral.foreground_muted)
+                .child(labels.file_watch_paused)
+        }))
         .children(viewer.chosen.map(|chosen| {
             vessel_app_kit::button(
                 "code-add-to-chat",

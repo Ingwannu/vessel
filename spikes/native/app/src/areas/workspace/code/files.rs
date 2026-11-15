@@ -57,6 +57,12 @@ impl Shell {
     /// Ask again for every folder listed and the file shown, what is shown
     /// kept until each answers (`code_git_changed`).
     pub(super) fn reread_files(&mut self) {
+        if let Some(key) = self.areas.workspace.code.file_key() {
+            if let Some(viewer) = self.areas.workspace.code.viewer_for(&key) {
+                viewer.watch.restart();
+            }
+            self.begin_file_watch(&key);
+        }
         let Some(scope) = self.areas.workspace.code.scope() else {
             return;
         };
@@ -266,6 +272,7 @@ impl Shell {
             return;
         }
         self.file_read_for(key, ask, result, cx);
+        self.reconcile_watched_file(key, cx);
     }
 
     /// A file's first page arrived.
@@ -345,6 +352,7 @@ impl Shell {
             viewer.edit = None;
         }
         self.file_read_for(key, ask, result, cx);
+        self.reconcile_watched_file(key, cx);
     }
 }
 

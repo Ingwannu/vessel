@@ -20,6 +20,15 @@ pub enum FileAnswer {
         /// Typed language result or failure.
         result: super::IntelligenceResult,
     },
+    /// A finite saved-file observation; never evidence a write ended.
+    Observed {
+        /// Original root/path/anchor.
+        ask: vessel_proto::workspace::ObserveFile,
+        /// Original acquisition identity.
+        ticket: FileTicket,
+        /// Current saved state or a typed failure.
+        result: Result<vessel_proto::workspace::ObservedFile, Problem>,
+    },
     /// A folder's entries.
     Listed {
         /// What was asked.
@@ -97,6 +106,11 @@ impl FileAsk {
     pub fn refused(self, problem: &Problem) -> FileAnswer {
         let ask = self;
         match ask {
+            FileAsk::Observe { ask, ticket } => FileAnswer::Observed {
+                ask,
+                ticket,
+                result: no(problem),
+            },
             FileAsk::Intelligence(ask) => FileAnswer::Intelligence {
                 result: super::intelligence::refused(ask.action, problem),
                 ask,
