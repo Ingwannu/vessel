@@ -1,6 +1,6 @@
 # Web page parity
 
-Status: A1 and paired page corrections accepted; A2a round-trip correction awaits its changed-package gate, 2026-11-15. ADR 0075.
+Status: A1 and paired page corrections accepted; A2a round-trip correction passes its whole gate, review pending, 2026-11-15. ADR 0075.
 
 ## Scope and evidence
 
@@ -128,7 +128,7 @@ new wire number or native modification.
 | F80 / m11:212 / Sidebar: group, sort, filter, pin | Session marks; bridge preferences | shell/sidebar-view-menu.tsx; data/sidebar.ts | sidebar.rs | [P05](#reference-p05); [P37](#reference-p37) | Ended default, stored off and archive exclusion covered by the paired follow-up; broader grouping/pinning/nesting parity remains unverified. |
 | F81 / m11:213 / A notification inbox that survives a reload | inbox.list/get/mark22 with durable shared read state | notifications/use-notices.ts is transient; no durable inbox | No inbox renderer registered | [P32](#reference-p32); [P06](#reference-p06) | Implement B1 durable list/read cursor, loading/offline/partial/refusal states; no local fake inbox. |
 | F82 / m11:214 / Desktop notification and sound | Client preferences; browser Notification API | notifications/use-notices.ts; sound.ts; settings/notifications-section.tsx | toasts.rs; no OS-notification integration verified | [P32](#reference-p32) | Existing web desktop alerts/sound; compare focus/privacy defaults before changing. |
-| F83 / m11:215 / Usage: tokens, cost, each account's limits | usage.query21; usage.limits/lookup23 | usage/usage-section.tsx A1 accepted; scope-picker.tsx A2a verified checkpoint; routed turn/proxy counts retained | conversation/footer.rs/meter.rs; settings Usage=None | [P26](#reference-p26); [P27](#reference-p27); [P28](#reference-p28); [P29](#reference-p29); [P44](#reference-p44) | A1 machine day/week is accepted. A2a original whole run and bounded captures pass; round-trip correction gate pending; A2b session reports and A3/A4 limit controls/notices remain. |
+| F83 / m11:215 / Usage: tokens, cost, each account's limits | usage.query21; usage.limits/lookup23 | usage/usage-section.tsx A1 accepted; scope-picker.tsx A2a verified checkpoint; routed turn/proxy counts retained | conversation/footer.rs/meter.rs; settings Usage=None | [P26](#reference-p26); [P27](#reference-p27); [P28](#reference-p28); [P29](#reference-p29); [P44](#reference-p44) | A1 machine day/week is accepted. A2a round-trip whole run passes and prior bounded captures are retained; review pending; A2b session reports and A3/A4 limit controls/notices remain. |
 | F84 / m11:216 / Pull requests page | pr.list/get | No dedicated pull-requests route | pulls/mod.rs session dialogs only | [P21](#reference-p21) | Add project-aware list and facts after schedules; do not claim all-PR coverage from watched sessions only. |
 | F85 / m11:222 / Light, dark, system | Bridge preference theme | settings/appearance.tsx; data/theme.ts | settings/appearance.rs | [P38](#reference-p38) | Existing three schemes; preserve system/reduced-motion and tokens. |
 | F86 / m11:223 / More themes | Client themes; no node RPC required | Only light/dark/system tokens | settings/appearance.rs three choices; extra theme branch not integrated | [P38](#reference-p38) | Wait for shared theme decision/data; do not invent new purple/gradient theme. |
@@ -160,7 +160,7 @@ assignments as current implementation proof.
 | m12:369 / Board/sidebar/palette/notices (F79–F82,F90) | session board/marks plus client preferences | board/board-page.tsx; shell/sidebar.tsx; palette/palette.tsx | board/mod.rs; sidebar.rs; palette.rs | [P05](#reference-p05) [P32](#reference-p32) [P37](#reference-p37) | Durable inbox; regress existing controls rather than replacing their design. |
 | m12:370 / Settings (F85–F89,F91–F92) | Existing preferences; node.info/settings/stop; staged diagnostics, no assigned report/update RPC | settings/{appearance,shortcuts-section,about}.tsx | settings/{appearance,language}.rs; update.rs | [P24](#reference-p24) [P30](#reference-p30) [P31](#reference-p31) [P38](#reference-p38) [P39](#reference-p39) [P40](#reference-p40) | Translation/themes remain; diagnostics and remote update still need callable assigned contracts. |
 | m12:371 / History/lifecycle (F13–F18,F20) | session.rewind/fork/search/park/wake; agent.history; no cross-agent handoff | No these action surfaces; session resume exists | conversation/rewind.rs; search.rs partial | [P10](#reference-p10) [P11](#reference-p11) [P12](#reference-p12) [P14](#reference-p14) [P24](#reference-p24) | Wire existing history/lifecycle actions incrementally; no file restore promise. |
-| m12:372 / Usage/limits (F24,F83) | usage.query21; usage.limits/lookup23 | A1 usage/usage-section.tsx; routed inspector/turn counts retained | Usage unregistered; conversation meter/footer only | [P26](#reference-p26) [P27](#reference-p27) [P28](#reference-p28) [P29](#reference-p29) [P44](#reference-p44) | A1 totals accepted; A2a scope round-trip correction gate pending, then A3/A4 consent/windows/factual notices on assigned limits calls. |
+| m12:372 / Usage/limits (F24,F83) | usage.query21; usage.limits/lookup23 | A1 usage/usage-section.tsx; routed inspector/turn counts retained | Usage unregistered; conversation meter/footer only | [P26](#reference-p26) [P27](#reference-p27) [P28](#reference-p28) [P29](#reference-p29) [P44](#reference-p44) | A1 totals accepted; A2a scope round-trip whole gate passes pending review, then A3/A4 consent/windows/factual notices on assigned limits calls. |
 | m12:373 / Phone/push (F71–F72) | Shared node transport; push.key/subscribe/unsubscribe/presence22 | Responsive page only | Phone build/runtime unverified | [P24](#reference-p24) [P36](#reference-p36) | Do not claim installed-app/push parity from a narrow viewport. |
 | m12:374 / Browser as surface | Local bridge serves page; GPUI browser is separate spike | app.tsx; routes/; loopback bridge | Wasm experiment is not connected-client parity proof | [P13](#reference-p13) [P23](#reference-p23) [P24](#reference-p24) | This track maintains the existing page; no new native/Wasm/browser engine. |
 
@@ -1083,3 +1083,34 @@ checks a machine-scope query, All agents and the retained weekly interval.
 Narrow checks and the changed-package whole gate are pending here. The
 following toast/modal test checkpoint is preserved in history and parked
 with an ordinary revert, so its unfinished tests are not mixed into A2a.
+
+
+### A2a corrected package verification
+
+Executed correction: `4939635c789779ede57abf0ce14e3f4145241ce5`.
+Narrow type/lint checks and 20 usage units pass. The changed-package run
+`webparity-20261115T053111Z-4939635c` passes all 18 steps, including all
+three Clippy configurations, both nested prebuilds, generation freshness,
+all web stages and the separate forge fixture. Raw workspace summaries
+remain 2,205 passed, zero failed, 12 ignored across 114 sections; forge
+passes four, and TypeScript checks pass four across two sections. Web
+units pass 451 in 87 files; the complete browser suite passes 66, including
+the extended machine round trip and retained weekly interval. Start/end
+load is 6.31/11.42. The rebuilt web, node and CLI are recorded by the run.
+
+The extended browser assertion was also executed against the retained
+original D34 product, deliberately using its old binaries and bundle.
+It fails at the return to A: the observed scope is the old claude-qwen
+profile instead of machine. The 166 selected bundle entries match D34's
+contemporary capture manifest, and the binary hashes match its retained
+runtime. This is an expected old-product counterexample, not a failed
+corrected-source gate; that distinction is retained with the evidence.
+Its fake processes are gone and the private SSD test folder is empty.
+
+No appearance changed in this state correction. The 24 inspected original
+D34 images keep their original source and normal-state limitations; they
+are not relabelled as captures of 4939635c. No repeat unaffected matrix or
+new visual/translation/cold-phone/native/combined claim is made. The remote
+tool's commit/checkout and step logs identify this new execution; a custom
+remote pre/post manifest is not claimed. The source return awaits review
+closure; integration approval is separate.
