@@ -8,6 +8,8 @@ use vessel_client::{CallError, DiagnosticError, NodeClient};
 use vessel_proto::diagnostics::{DiagnosticReport, DiagnosticSection, GetDiagnostics};
 use vessel_proto::{ErrorCode, GetNode, NodeId, Origin, OriginBy, Request as _, Scope};
 
+mod raw;
+
 async fn report(client: &NodeClient, id: NodeId, count: u64) -> DiagnosticReport {
     let report = step("assigned selected-node diagnostics", client.diagnostics())
         .await
@@ -158,9 +160,15 @@ async fn diagnostics_wire_authority_keeps_read_agents_and_refuses_no_read_device
             .await
             .unwrap();
         assert_eq!(report.fields().node.id, node.info().id);
-        let mut restricted = step(
+        let restricted_session = step(
             "create scope-clipped fake session",
-            structured(&creator, &fixture),
+            creator.create_session(structured_spec(&fixture, None)),
+        )
+        .await
+        .unwrap();
+        let mut restricted = step(
+            "owner observes the clipped session",
+            crate::agents::following(&owner, restricted_session.id, vessel_proto::EventSeq::ZERO),
         )
         .await;
         let (_, socket, auth) = step(

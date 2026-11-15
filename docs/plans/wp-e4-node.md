@@ -264,3 +264,11 @@ slot admission under the standing supersession rule (terminal 143, no compiler
 result). Its source had the known reply-variant error. One changed-source
 replacement follows; the previous-protocol CLI responder also advertises its
 actual reduced maximum rather than claiming the current range.
+
+The no-Read agent fixture creates its session through the actual Operate-only
+creator, then observes credential output through the owner connection, as the
+existing scope-clipping fixture does. It does not grant the creator Read merely
+to make its follower work. A raw authenticated websocket case additionally
+checks exact correlated report/refusal ids at the assigned and previous
+versions and sanitized unknown-field rejection without breaking the connection.
+These additions still await their execution.
