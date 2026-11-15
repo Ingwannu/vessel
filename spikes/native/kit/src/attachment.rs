@@ -162,9 +162,10 @@ pub fn attachment_pill<V: 'static>(
         index,
         body,
         standing,
-        handlers
-            .on_open
-            .map(|callback| std::rc::Rc::new(callback) as ScopedPillClick<V>),
+        handlers.on_open.map(|callback| {
+            let callback: ScopedPillClick<V> = std::rc::Rc::new(callback);
+            callback
+        }),
         std::rc::Rc::new(handlers.on_remove),
         touch,
         tokens,
