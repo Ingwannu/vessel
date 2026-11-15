@@ -964,3 +964,27 @@ The same populated registry fixture now creates both actual areas with Full and
 Expanded, verifying these saved choices survive admission instead of silently
 using constructor defaults. W12 still supplies the scoped factory after capacity
 admission; B2's real scoped composer constructor remains a separate prerequisite.
+
+[Decision Log: staged resident owner adapters — 수정 사용]
+- Purpose and intent: preserve the actual conversation's UI/input identity while
+  resolving a session's rows and replies through W12's single admitted resource.
+- Existing implementation and constraints: the Area already owns its Timeline,
+  GPUI list/controllers and transient state. W12 supplies canonical Context,
+  binding, tickets, resources and retirement. Current product globals remain
+  until one coordinated cutover; A8 and W2 own their separate concrete resources.
+- Alternatives considered: serialized reconstruction loses live controller
+  identity; a new registry duplicates admission; Copy function pointers cannot
+  capture full Context. No external library addresses this ownership boundary.
+- Choice: extend existing Rust/GPUI resources with borrowed scoped accessors,
+  Box-owned snapshot transfer, a Clone full-context Seat and an empty-resource
+  constructor seeded from the existing typed Chat choices.
+- Reason for choice: Rust ownership moves the original entities once and can
+  return them unchanged on Hold/mismatch. Existing predicates/settings and
+  controls remain the source of behavior; the registry stays the only admission
+  minter. No unsafe, new dependency, store or context allocator is introduced.
+- Benefits, costs and effects: concrete controllers/disclosures/bookmarks survive;
+  stale window/session/claim operations refuse. A Box snapshot retains memory
+  rather than proving cold-byte reclamation. Actual wire authority, retirement
+  UI transitions, child field move and product rendering remain coordinated
+  dependencies. All new owner/Seat/snapshot/factory APIs stay literal cfg(test)
+  until actual callers and product storage/follow land together.
