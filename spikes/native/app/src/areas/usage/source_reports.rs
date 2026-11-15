@@ -123,12 +123,73 @@ fn card(
         .flex_col()
         .gap(px(spacing::S2))
         .child(message(text.account_disclosure(), tokens));
-    if let Some(status) = view.status {
-        body = body.child(message(status, tokens));
+    if let Some(status) = &view.status {
+        body = body.child(message(status.clone(), tokens));
     }
     if view.retained {
         body = body.child(message(text.retained(), tokens));
     }
+    body = body.child(observed_content(
+        shell, reports, entry, &view, density, tokens, cx,
+    ));
+    for (at, retry) in [(view.attempted_at, false), (view.retry_at, true)] {
+        if let Some(at) = at {
+            let at = timestamp(at, state.offset, shell.words);
+            let label = if retry {
+                text.retry_at(&at)
+            } else {
+                text.attempted_at(&at)
+            };
+            body = body.child(message(label.unwrap_or(at), tokens));
+        }
+    }
+    let enabled = state.policy_pending.is_none()
+        && state.source_pending.is_none()
+        && !matches!(state.inventory.phase(), Phase::Loading { .. })
+        && reports.sources.as_slice().iter().any(|source| {
+            &source.id == entry.source() && source.availability == UsageSourceAvailability::Enabled
+        });
+    let machine = state.inventory.selection().cloned();
+    let id = entry.id().clone();
+    let refresh = outline_button(
+        vessel_app_kit::ui::SharedString::from(format!("usage-report-refresh-{id}")),
+        text.refresh(),
+        enabled,
+        tokens,
+    )
+    .when(enabled, |button| {
+        button.on_click(cx.listener(move |shell, _, _, cx| {
+            if let Some(machine) = &machine {
+                shell.usage_refresh_report(machine.clone(), id.clone());
+                cx.notify();
+            }
+        }))
+    });
+    settings::section_with_trailing(
+        title,
+        settings::card(tokens).child(body),
+        Some(refresh.into_any_element()),
+        tokens,
+    )
+}
+
+fn observed_content(
+    shell: &Shell,
+    reports: &UsageReports,
+    entry: &SourceReportEntry,
+    view: &vessel_app_view::usage::SourceView<'_>,
+    density: Density,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let text = shell.words.usage();
+    let state = &shell.areas.usage;
+    let mut body = div()
+        .w_full()
+        .min_w_0()
+        .flex()
+        .flex_col()
+        .gap(px(spacing::S2));
     if let Some(observed) = view.observed {
         let report = &observed.report;
         if report.completeness == UsageCompleteness::Partial {
@@ -173,43 +234,5 @@ fn card(
         let at = timestamp(observed.at, state.offset, shell.words);
         body = body.child(message(text.refreshed_at(&at).unwrap_or(at), tokens));
     }
-    for (at, retry) in [(view.attempted_at, false), (view.retry_at, true)] {
-        if let Some(at) = at {
-            let at = timestamp(at, state.offset, shell.words);
-            let label = if retry {
-                text.retry_at(&at)
-            } else {
-                text.attempted_at(&at)
-            };
-            body = body.child(message(label.unwrap_or(at), tokens));
-        }
-    }
-    let enabled = state.policy_pending.is_none()
-        && state.source_pending.is_none()
-        && !matches!(state.inventory.phase(), Phase::Loading { .. })
-        && reports.sources.as_slice().iter().any(|source| {
-            &source.id == entry.source() && source.availability == UsageSourceAvailability::Enabled
-        });
-    let machine = state.inventory.selection().cloned();
-    let id = entry.id().clone();
-    let refresh = outline_button(
-        vessel_app_kit::ui::SharedString::from(format!("usage-report-refresh-{id}")),
-        text.refresh(),
-        enabled,
-        tokens,
-    )
-    .when(enabled, |button| {
-        button.on_click(cx.listener(move |shell, _, _, cx| {
-            if let Some(machine) = &machine {
-                shell.usage_refresh_report(machine.clone(), id.clone());
-                cx.notify();
-            }
-        }))
-    });
-    settings::section_with_trailing(
-        title,
-        settings::card(tokens).child(body),
-        Some(refresh.into_any_element()),
-        tokens,
-    )
+    body
 }

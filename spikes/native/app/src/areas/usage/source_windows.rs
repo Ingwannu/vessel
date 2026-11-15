@@ -128,7 +128,7 @@ fn window_body(
     }
     body
 }
-fn percent_label(shell: &Shell, percent: Option<DisplayPercent>) -> String {
+pub(super) fn percent_label(shell: &Shell, percent: Option<DisplayPercent>) -> String {
     let text = shell.words.usage();
     percent.map_or_else(
         || text.none().to_owned(),

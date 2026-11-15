@@ -21,24 +21,10 @@ pub(super) fn draw(
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let text = shell.words.usage();
     let state = &shell.areas.usage;
     let used = window.used.and_then(|value| FiniteNumber::new(value.get()));
     let value = used.map(|used| DisplayPercent::reported(used, shell.prefs.settings.usage.display));
-    let label = value.map_or_else(
-        || text.none().to_owned(),
-        |percent| {
-            let percent = percent.text();
-            match shell.prefs.settings.usage.display {
-                vessel_app_view::usage::DisplayAs::Used => {
-                    text.value_used(&percent).unwrap_or(percent)
-                }
-                vessel_app_view::usage::DisplayAs::Remaining => {
-                    text.value_remaining(&percent).unwrap_or(percent)
-                }
-            }
-        },
-    );
+    let label = super::source_windows::percent_label(shell, value);
     let tone = match vessel_app_view::usage::window_tone(used, None) {
         vessel_app_view::usage::Tone::Default => usage_meter::Tone::Default,
         vessel_app_view::usage::Tone::Ok => usage_meter::Tone::Ok,
