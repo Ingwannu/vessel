@@ -42,3 +42,30 @@ async fn usage_selectors_print_reported_counts_and_cumulative_session_cost() {
         assert_eq!(agent.stdout, format!("Past 7 days\n{counts}{accounting}claude-code / default\n{counts}"));
     }).await;
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn saved_limits_commands_toggle_and_refresh_only_the_offline_node() {
+    use vessel_harness::LimitProbe;
+    within(async {
+        let fixture=Fixture::start_with(|config,data| {
+            let home=data.join("user-home/.codex");std::fs::create_dir_all(&home).unwrap();
+            std::fs::write(home.join("auth.json"),br#"{"tokens":{"access_token":"synthetic-cli-offline-access-token"}}"#).unwrap();
+            let body=data.join("limits-response.json");
+            std::fs::write(&body,br#"{"rate_limit":{"primary_window":{"used_percent":0}}}"#).unwrap();
+            config.limits=LimitProbe::Recorded {root:data.to_owned(),body,status:200,retry_after:None};
+        }).await;
+        let off=fixture.vessel(&["usage","limits","codex","--refresh"],b"").await;
+        assert!(off.ok,"{}",off.stderr);
+        assert_eq!(off.stdout,"codex / codex · saved sign-in limits\nExternal limit lookup is off. The usage commands still show what the agent reported.\nAn administrator can run `vessel usage lookup on` to allow this machine to read configured agents' saved access tokens (and Codex account identifiers, when present) and send them only to Anthropic or ChatGPT to read account limits.\n");
+        let enabled=fixture.vessel(&["usage","lookup","on"],b"").await;assert!(enabled.ok,"{}",enabled.stderr);
+        assert_eq!(enabled.stdout,"External limit lookup is enabled on this machine. A requested refresh reads the configured agent's saved access token (and Codex account identifier, when present) here and sends it only to Anthropic or ChatGPT to read account limits. Sign-in refresh stays with the agent.\n");
+        let before=fixture.vessel(&["usage","limits","codex"],b"").await;assert!(before.ok,"{}",before.stderr);
+        assert_eq!(before.stdout,"codex / codex · saved sign-in limits\nNo saved sign-in limits have been checked. Request a refresh to check them.\n");
+        let fresh=fixture.vessel(&["usage","limits","codex","--refresh"],b"").await;assert!(fresh.ok,"{}",fresh.stderr);
+        assert_eq!(fresh.stdout,"codex / codex · saved sign-in limits\nChecked less than 1 min ago.\nAccount · Primary limit, period not reported: 0% used · reset not reported\nThese are limits of the observed saved sign-in; a running agent may remember another login.\n");
+        let disabled=fixture.vessel(&["usage","lookup","off"],b"").await;assert!(disabled.ok,"{}",disabled.stderr);
+        assert_eq!(disabled.stdout,"External limit lookup is off. Cached external observations have been cleared.\n");
+        fixture.stop().await;
+
+    }).await;
+}

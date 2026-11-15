@@ -71,13 +71,14 @@ async fn device_windows_keep_a_stable_cursor_and_explicit_incompleteness() {
     store.close().await;
 }
 
-/// Undoes schemas 15 to 7, so a test can take a database further back:
-/// the usage ledger (15), the bounded side plan (14), search (13),
-/// schedules, saved prompts and hooks (12), pull request feedback (10; 11's
+/// Undoes schemas 16 to 7, so a test can take a database further back:
+/// the inbox and push subscriptions (16), the usage ledger (15), the
+/// bounded side plan (14), search (13), schedules, saved prompts and hooks
+/// (12), pull request feedback (10; 11's
 /// column goes with `approvals`), the workspace's tables (9), retention's
 /// index (schema 1's in its place, 8), the conversation's columns and the
 /// attachments table (7).
-const UNDO_SCHEMAS_7_TO_15: &str = "ALTER TABLE sessions DROP COLUMN title_origin;
+const UNDO_SCHEMAS_7_TO_16: &str = "ALTER TABLE sessions DROP COLUMN title_origin;
      DROP TABLE usage_samples;
      DROP TABLE usage_meta;
      ALTER TABLE sessions DROP COLUMN usage_cost_baseline;
@@ -90,6 +91,10 @@ const UNDO_SCHEMAS_7_TO_15: &str = "ALTER TABLE sessions DROP COLUMN title_origi
      DROP INDEX sessions_search_behind;
      ALTER TABLE sessions DROP COLUMN search_open;
      ALTER TABLE sessions DROP COLUMN search_seq;
+DROP TABLE inbox_tools;
+     DROP TABLE inbox;
+     DROP TABLE inbox_meta;
+     DROP TABLE push_subscriptions;
      DROP TABLE hook_keys;
      DROP TABLE hook_deliveries;
      DROP TABLE hooks;
@@ -230,7 +235,10 @@ async fn a_version_1_database_gains_the_devices_table() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection.execute_batch(UNDO_SCHEMAS_7_TO_15).unwrap();
+    connection
+        .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
+        .unwrap();
+    connection.execute_batch(UNDO_SCHEMAS_7_TO_16).unwrap();
     // Back to schema 1: without the devices table (2), the sessions'
     // profile and creator columns (3), where they came from (4) and their
     // model (5).

@@ -37,7 +37,8 @@ impl Call {
     }
 
     /// The protocol version this call needs: its method's, or a later one
-    /// when it uses a field added since. A node that predates a field would
+    /// when it uses a field added since or wraps a newer inner call. Every
+    /// hop must decode the full typed call. A node that predates a field would
     /// ignore it silently (and, say, start a session with the wrong profile
     /// or invite a device with more scopes than asked), so the client checks
     /// this before sending. A request that gains a field adds a line here.
@@ -55,7 +56,7 @@ impl Call {
             // newer field before the target sees it (ADR 0044), as a
             // protocol-18 home would drop `session.create`'s
             // `side_question_of` and start a plain session (ADR 0045; N5,
-            // N3 and N2 each added this rule, merged here as one).
+            // N3, N2 and N1 each added this rule, merged here as one).
             Self::Forward(request) => Some(request.call.since().get()),
             Self::Relay(request) => Some(request.call.since().get()),
             Self::Deliver(request) => Some(request.call.since().get()),
@@ -82,7 +83,12 @@ impl Call {
                 };
                 // An added agent came in 11 (ADR 0032): an older node
                 // cannot decode it.
-                fields.max(added(Some(&spec.harness)))
+                fields.max(added(Some(&spec.harness))).max(
+                    (!spec.labels.is_empty())
+                        .then_some(crate::lifecycle_version::SINCE)
+                        .flatten()
+                        .map(ProtocolVersion::get),
+                )
             }
             Self::HarnessOptions(request) => added(Some(&request.harness)),
             Self::ListProfiles(request) => added(request.harness.as_ref()),
@@ -120,10 +126,10 @@ impl Call {
                 crate::workspace::WriteExpect::Content { .. } => Some(11),
                 crate::workspace::WriteExpect::Absent | crate::workspace::WriteExpect::Any => None,
             },
-            Self::CreatePrompt(request) => side_spec(request.session.as_deref()),
-            Self::UpdatePrompt(request) => side_spec(request.session.as_deref()),
-            Self::CreateSchedule(request) => side_target(&request.definition.target),
-            Self::UpdateSchedule(request) => side_target(&request.definition.target),
+            Self::CreatePrompt(request) => template_since(request.session.as_deref()),
+            Self::UpdatePrompt(request) => template_since(request.session.as_deref()),
+            Self::CreateSchedule(request) => target_since(&request.definition.target),
+            Self::UpdateSchedule(request) => target_since(&request.definition.target),
             Self::OpenSideQuestion(_)
             | Self::PromptSideQuestion(_)
             | Self::ResetSideQuestion(_)
@@ -260,9 +266,18 @@ impl Call {
             | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)
             | Self::ListRuns(_)
+            | Self::GetUsageLimits(_)
+            | Self::SetUsageLookup(_)
             | Self::QueryUsage(_)
             | Self::ListPrompts(_)
             | Self::DeletePrompt(_)
+            | Self::ListInbox(_)
+            | Self::GetInboxEntry(_)
+            | Self::MarkInbox(_)
+            | Self::GetPushKey(_)
+            | Self::SubscribePush(_)
+            | Self::UnsubscribePush(_)
+            | Self::ReportPushPresence(_)
             | Self::SearchMessages(_)
             | Self::ParkSession(_)
             | Self::WakeSession(_)
@@ -282,13 +297,20 @@ fn added(harness: Option<&HarnessRef>) -> Option<u32> {
         .map(|harness| harness.since().get())
 }
 
-fn side_spec(spec: Option<&crate::SessionSpec>) -> Option<u32> {
-    spec.and_then(|spec| spec.side_question_of.map(|_| 19))
+fn template_since(spec: Option<&crate::SessionSpec>) -> Option<u32> {
+    spec.and_then(|spec| {
+        spec.side_question_of.map(|_| 19).max(
+            (!spec.labels.is_empty())
+                .then_some(crate::lifecycle_version::SINCE)
+                .flatten()
+                .map(ProtocolVersion::get),
+        )
+    })
 }
 
-fn side_target(target: &crate::automation::ScheduleTarget) -> Option<u32> {
+fn target_since(target: &crate::automation::ScheduleTarget) -> Option<u32> {
     match target {
-        crate::automation::ScheduleTarget::NewSession { spec, .. } => side_spec(Some(spec)),
+        crate::automation::ScheduleTarget::NewSession { spec, .. } => template_since(Some(spec)),
         crate::automation::ScheduleTarget::Session { .. }
         | crate::automation::ScheduleTarget::Unknown => None,
     }
@@ -296,35 +318,48 @@ fn side_target(target: &crate::automation::ScheduleTarget) -> Option<u32> {
 
 #[cfg(test)]
 mod requirement_tests {
-    use crate::{Deliver, Forward, GetNode, NodeId, Origin, OriginBy, RelayCall, Request as _};
+    use crate::rpc::samples;
+    use crate::{Deliver, Forward, Method, NodeId, RelayCall, Request as _};
 
     #[test]
     fn assigned_requests_and_every_envelope_keep_the_existing_requirement() {
-        let request = GetNode.into_call();
-        assert_eq!(request.required_protocol(), Some(request.since()));
-        let origin = Origin {
-            node: NodeId::random(),
-            by: OriginBy::Owner,
-            scopes: Vec::new(),
-        };
-        let wrapped = Forward {
-            node: NodeId::random(),
-            call: Box::new(request),
+        let mut failures = Vec::new();
+        for &method in Method::ALL {
+            let request = match samples::call(method) {
+                Ok(request) => request,
+                Err(error) => {
+                    failures.push(format!("{method:?}: {error}"));
+                    continue;
+                }
+            };
+            assert_eq!(request.method(), method);
+            let wrappers = [
+                Forward {
+                    node: NodeId::random(),
+                    call: Box::new(request.clone()),
+                }
+                .into_call(),
+                RelayCall {
+                    node: NodeId::random(),
+                    call: Box::new(request.clone()),
+                    origin: samples::origin(),
+                }
+                .into_call(),
+                Deliver {
+                    call: Box::new(request.clone()),
+                    origin: samples::origin(),
+                }
+                .into_call(),
+            ];
+            for call in std::iter::once(request).chain(wrappers) {
+                assert_eq!(
+                    call.required_protocol(),
+                    Some(call.since()),
+                    "{method:?} via {:?}",
+                    call.method()
+                );
+            }
         }
-        .into_call();
-        assert_eq!(wrapped.required_protocol(), Some(wrapped.since()));
-        let wrapped = RelayCall {
-            node: NodeId::random(),
-            call: Box::new(wrapped),
-            origin: origin.clone(),
-        }
-        .into_call();
-        assert_eq!(wrapped.required_protocol(), Some(wrapped.since()));
-        let wrapped = Deliver {
-            call: Box::new(wrapped),
-            origin,
-        }
-        .into_call();
-        assert_eq!(wrapped.required_protocol(), Some(wrapped.since()));
+        assert!(failures.is_empty(), "{}", failures.join("\n"));
     }
 }

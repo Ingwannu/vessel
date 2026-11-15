@@ -88,6 +88,8 @@ pub struct Relaunch {
     /// Its current profile, resolved; `None` is the harness's default
     /// (right only when the session runs under no other).
     pub profile: Option<Profile>,
+    /// Local quota binding captured with this actual relaunch.
+    pub limits: crate::LimitAssociation,
     /// MCP servers, values resolved, the agent's own `vessel` server with
     /// a new credential included (ADR 0013).
     pub mcp_servers: ResolvedMcpServers,
@@ -210,6 +212,7 @@ impl SessionRuntime {
         let claim = self.claim(info.id, &info.spec.harness, profiles, &harness_session)?;
         let Relaunch {
             profile,
+            limits,
             mcp_servers,
             mut notices,
             model_proxy,
@@ -251,6 +254,7 @@ impl SessionRuntime {
         info.board = None;
         let seen = Seen::continuing(queue.clone(), usage, info.abilities);
         let begin = Begin {
+            limits: limits.clone(),
             info,
             since: Utc::now(),
             seen,
@@ -264,6 +268,7 @@ impl SessionRuntime {
             opening: None,
         };
         let launch = Launch {
+            limits,
             command,
             setup,
             driver,

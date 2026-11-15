@@ -1,14 +1,19 @@
 # ADR 0064: Stopping, restarting and reconfiguring a node
 
 Status: proposed, 2026-11-14. The contract only. No command and no wire
-method is added by this file. The two new methods are gated on one named
-constant, `NODE_CONFIG_PROTOCOL`. Its value is the number given at merge;
-this decision does not choose one. Until that assignment the constant
-equals the base `PROTOCOL_VERSION`, which is 20
-(`crates/vessel-proto/src/node.rs`), and the integrator changes that one
-constant. `docs/PROTOCOL.md` is updated in the commit that registers the
-methods, not before, so the protocol document never describes a method
-the code does not serve.
+method is added by this file. The new-call constant is
+`pub const NODE_CONFIG_PROTOCOL: Option<ProtocolVersion> = None`.
+The integrator assigns `Some(n)` only when every client that shows or
+approves the new data is ready; this decision chooses no number.
+
+Before registering `node.reload` or `node.unset_settings`, this track
+merges the node head containing the shared `required_protocol()` accessor,
+landed once by the titles track. Until then it ships value types only.
+With that accessor, an unassigned call returns `None`; the client refuses
+before sending and the node refuses before dispatch with typed
+`Unsupported` (`CallError::UnassignedProtocol { method }`). This track
+introduces no second gate. `PROTOCOL_VERSION` stays at the base value.
+`docs/PROTOCOL.md` is updated with registration, not before it.
 
 ## Purpose and intent
 
@@ -18,9 +23,9 @@ per home (`--home`). A reloadable key takes effect without a restart; any
 other changed key is reported as restart-required; a key pinned by the
 launch is reported as override-controlled and not applied.
 
-Vessel already starts, installs, updates, inspects, pairs and tunes a node,
-and it can already stop one on the wire. It has no `stop`, `restart`,
-`reload` or `config` command. This decision says which of Paseo's commands
+Before this decision, Vessel starts, installs, updates, inspects, pairs
+and tunes a node, and can stop one on the wire. It lacks `stop`, `restart`,
+`reload` and `config` commands; the resume plan records their delivery. This decision says which of Paseo's commands
 and keys that existing surface is, which keys become `node.settings`
 (applied by a reload), which stay on the command that started the process,
 and what a person does instead of a daemon password.
@@ -239,7 +244,7 @@ added at merge, and is not classed here as missing or refused.
 | `daemon.trustedProxies` | `--trusted-proxy`, `--client-address-header` | **Start-time.** |
 | `daemon.hostnames` | the fixed `Host` checks of the web UI and the model proxy | **None.** Not a setting. |
 | `daemon.cors.allowedOrigins` | no CORS, by design of the web UI | **None.** |
-| `daemon.mcp.enabled`, `daemon.mcp.injectIntoAgents` | ADR 0065 adds `mcp` (`mcp.serve`, `mcp.inject`), added at merge | **That ADR's class.** A running session keeps the list it started with. Not classed as absent here. |
+| `daemon.mcp.enabled`, `daemon.mcp.injectIntoAgents` | ADR 0065 adds one field `mcp`, added at merge | **That ADR's class.** `inject` and `policy` apply at the next session start (a running session keeps the list it started with). `serve` applies at once: the child process starts, or it is stopped (ADR 0065). Not classed as absent here. |
 | `daemon.usage.enabled` | none | **None.** |
 | `daemon.browserTools.enabled` | ADR 0069 adds `browser_tools`, added at merge | **That ADR's class.** The field was read (off unless set). When a live change applies was not read, so this row assigns no class. |
 | `daemon.git.maxProcessesPerSecond`, `maxProcessConcurrency` | none | **None.** |
@@ -273,6 +278,8 @@ it. It does not write the value. A name with no flag and no field is
 refused as an unknown key, not stored. `metadata`, `browser_tools` and
 `mcp` are not unknown and are not refused here: ADR 0062, ADR 0069 and
 ADR 0065 add them, at merge. This command does not implement those fields.
+`config set` names a whole field, not a dotted subpath. The pieces of
+`mcp` are ADR 0065's; this command does not invent a path syntax for them.
 
 ### Reload
 
@@ -310,9 +317,9 @@ removed, so
 the flag or the default applies again, including to live sessions for
 `park_after` and to new sessions for `drivers`. The answer is the settings
 then in force. An empty list, a repeated key, or `unknown` is
-`invalid_request` and writes nothing. Unset is a method of its own so a
-node of protocol 20 answers `unsupported` instead of ignoring a field on
-`node.set_settings`.
+`invalid_request` and writes nothing. Unset is a method of its own, gated through the shared
+`required_protocol()` accessor, so an unassigned feature or an older
+connection is refused rather than ignoring a field on `node.set_settings`.
 
 ### Who may call
 
@@ -324,15 +331,20 @@ local socket keep every scope, as they do today.
 
 ### Older and newer peers
 
-- A client whose negotiated version is below `NODE_CONFIG_PROTOCOL` does
-  not send the two new methods. The commands say the node is too old.
-  `config get`, and `config set` of `park_after` (since 12) or `drivers`
-  (since 18), still work. Until the number is assigned, the constant
-  equals the base `PROTOCOL_VERSION`, so a matching version is not proof
-  the node has the methods. `unsupported` means it does not, and the
-  command says so.
-- A node that has the constant, serving a client below it, sees no new
-  method. Old replies gain no required field.
+- `NODE_CONFIG_PROTOCOL` remains `None` until assignment at merge. After
+  the shared accessor reaches this branch, the two registered calls return
+  `None` from `required_protocol()` and are refused by both client and
+  node as typed `Unsupported`. The client sends nothing. Before that
+  merge, this track registers no new call.
+- Once the integrator assigns `Some(n)`, those calls are available only
+  to peers at least `n`. A client negotiated below it refuses before
+  sending; a node receiving the call from a lower-version connection
+  refuses before dispatch. Existing `config get`, and `config set` of
+  `park_after` (since 12) or `drivers` (since 18), keep their existing gates.
+- No new field is added to an existing reply or event by this decision.
+  Any such later field must be hidden while its feature constant is
+  `None`, and from older peers after assignment, in direct, list, page,
+  nested and forwarded replies through the shared per-peer mechanism.
 - A reload or unset answer that carries `unknown` is shown as a setting
   this client does not know. It is not omitted from the list.
 
@@ -349,9 +361,12 @@ ADR 0008 already refuses to interrupt sessions unless the person asks, and
 a terminal cannot be resumed.
 
 The CLI waits until the data directory's lock is free or the connection
-has closed, whichever it can see, with a deadline of 15 seconds
-(`--timeout`). The wait is on that event. The deadline only turns a hang
-into a failure.
+has closed, whichever it can see, with the `--timeout` budget (the default is
+`StopTimeout::DEFAULT`). For a data directory whose saved `node.id` equals the authenticated
+connection's node id, the CLI observes connection closure and then the OS
+lock's release. A loopback endpoint whose local directory has another id
+only provides connection closure; it cannot authorize waiting on that
+other directory. The deadline bounds the whole command.
 
 `--force` is only for a data directory on this machine. If the call does
 not finish, the process that holds the lock is signalled (`SIGTERM`, then
@@ -378,15 +393,14 @@ is the explicit start. `systemctl stop` is not sent while a drain is in
 progress, because that signal would interrupt the sessions the drain is
 waiting for.
 
-On launchd the unit this version writes today has `KeepAlive` true, so a
-clean exit starts a new process and a stop would not stay stopped. Slice 2
-changes that template to keep alive only when the exit failed (the same
-rule as `Restart=on-failure`). A plist that still has `KeepAlive` true
-differs, so it is not rewritten and not unloaded. `node stop` then uses
-the RPC only and reports that the agent is set to start again on exit,
-with the undo line the plist already contains. A matching plist stays down
-after a clean exit. Unload, without the flag that disables the agent
-across logins, runs only after the lock is free.
+On launchd the unit this version writes keeps the agent alive only when
+the exit failed (`SuccessfulExit` false, the same rule as
+`Restart=on-failure`). A plist that still has `KeepAlive` true differs,
+so it is not rewritten and not unloaded. `node stop` then uses the RPC
+only and reports that the agent is set to start again on exit, with the
+undo line the plist already contains. A matching plist stays down after
+a clean exit. Unload, without the flag that disables the agent across
+logins, runs only after the lock is free.
 
 ### Restart
 
@@ -613,3 +627,212 @@ tests sessions across a stop and a restart and adds no resume behaviour.
 No crate boundary changes, so `docs/ARCHITECTURE.md` does not gain a row.
 The CLI's help is the user-facing text, updated with the command that
 adds it.
+
+## Local exit observations (slice 2c)
+
+[Decision Log]
+- Purpose and intent: distinguish a shutdown request, connection closure
+  and verified release of this node's data-directory lock.
+- Existing implementation and constraints: slice 2b waits for connection
+  closure. `Teardown::run` closes RPC connections before the store and
+  `serve` drops `NodeLock` afterward; closure alone cannot establish lock
+  release. Paseo's `daemon-instance.ts` 200–214 waits for its owner pid,
+  rechecks replacement and delays 100 ms between probes.
+- Alternatives considered: poll `NodeLock::holder`; use a Tokio blocking
+  worker; add a platform watcher or a supervisor. Polling violates the
+  event-wait rule. A blocking-pool acquisition cannot be cancelled and
+  runtime shutdown waits for that pool. A watcher or supervisor adds a
+  dependency or process boundary without improving the existing lock.
+- Selected approach: compare the saved node id with the authenticated
+  greeting before the request. Only a match enables OS-lock completion.
+  One dedicated standard-library thread opens the existing lock read/write,
+  waits for exclusive acquisition, unlocks immediately and sends its I/O
+  result through a one-slot completion channel. It never writes file data
+  or the owner record. A cancelled borrow preserves that same receiver.
+- Why this approach: the OS owns the release event on every supported
+  platform. A CLI deadline can end the process while the dedicated thread
+  is blocked; Tokio's blocking-pool shutdown cannot. No crate or dependency
+  is added. This is an implementation difference from Paseo's pid polling.
+- Advantages, costs and effects: local success can name actual lock
+  release; explicit token-file endpoints still work with another local
+  directory. `try_lock` in the existing preflight and exclusive acquisition
+  in the waiter can overlap a concurrent node start. That start may receive
+  the existing typed `Locked` refusal; acquisition is followed immediately
+  by unlock, but the interval is not measured and stop/start is not atomic.
+  No owner data is rewritten. Tests pin cancellation, unchanged owner bytes,
+  the original I/O cause, process exit with a blocked waiter, and two live
+  local nodes with different identities. Windows/macOS runtime verification
+  remains separate; the standard lock API already underlies `NodeLock`.
+
+The stop budget's default and minimum are named beside `StopTimeout`.
+Clap renders the default from that type, validation errors render its
+minimum, and an expiry error carries the same parsed budget used by the
+check. Focused waiter/handshake test budgets are named constants, too.
+
+
+### Kernel lock observation before escalation
+
+[Decision Log]
+- Purpose and intent: keep process authority at the existing `NodeLock`
+  boundary, and distinguish a kernel writer from a PID in a writable record.
+- Existing implementation and constraints: `NodeLock::holder` probes the OS
+  lock and returns an optional owner record. It deliberately has no process
+  authority claim. Its behavior and record format stay unchanged. Paseo
+  `packages/server/src/server/daemon-instance.ts` 197–214 checks reserved and
+  self PIDs, instance replacement and exit in a timed loop.
+- Alternatives considered: another CLI parser (duplicate lock knowledge),
+  trusting the owner PID (insufficient authority), or interpreting no procfs
+  row as a free lock (incorrect for every namespace/filesystem).
+- Choice: an additive `NodeLock::kernel_holder` yields `KernelProbe::Found`
+  with a typed PID and opaque device/inode snapshot, `NotVisible`, or
+  `Unsupported`. Linux reads bounded `/proc/locks` data and accepts only an
+  exclusive advisory flock writer for that file. Checks and errors use the
+  single `LockTable::MAX_BYTES`; numeric errors keep their source. This
+  operation acquires no lock, writes no record and sends no signal. Reads
+  use the invoking OS account, load no credential or environment, and a
+  permission failure remains a typed I/O refusal.
+- Why this choice: the library already owns the lock format and lifetime.
+  A positive observation can refuse a damaged held owner without the CLI's
+  second acquisition probe. An absent row is never proof of availability:
+  Linux filters procfs locks by PID namespace, and network filesystems can
+  emulate flock with other lock types. The existing OS availability fallback
+  remains. See [proc_locks(5)](https://man7.org/linux/man-pages/man5/proc_locks.5.html)
+  and [flock(2)](https://man7.org/linux/man-pages/man2/flock.2.html).
+- Benefits, costs and effects: one process-authority decoder for later force
+  and restart; no dependency, crate edge, wire field or schema change. A
+  snapshot is not a lease: later actions must revalidate it. `NotVisible`
+  never authorizes a signal. macOS and Windows return `Unsupported` and keep
+  their existing OS availability probe. The fallback and completion waiter
+  still have the short acquisition/startup race stated above; this does not
+  promise atomic stop/start. An unreadable kernel table is a typed refusal,
+  not an assumption that a held directory is free. Only Linux local locks
+  are exercised here; namespace, NFS/SMB and other OS runtime are not verified.
+
+
+## Selected-file kernel decoding (slice 2e)
+
+[Decision Log]
+- Purpose and intent: an unrelated lock's PID or unfamiliar record must not
+  hide the selected directory's holder.
+- Existing implementation and constraints: the query decoded every exclusive
+  flock PID before comparing dev/inode. The kernel prints signed PIDs and
+  can report negative remote-lock owners; their process identity is outside
+  this directory's authority.
+- Alternatives considered: accept arbitrary signed PIDs as signal targets;
+  fail the whole probe for another file; compare canonical printed strings.
+  The first weakens process authority, the second hides valid later rows,
+  and the third unnecessarily depends on field padding.
+- Selected approach: select the lock kind, decode its file identity once,
+  and compare dev/inode before parsing the PID. A nonmatching file is skipped.
+  An unrecognizable file identity is logged without its contents and supplies
+  no process authority. A matching identity still requires the strict typed
+  PID and rejects conflicting writers; its numeric error retains the cause.
+- Why this approach: scope strict process decoding to the only file the query
+  can authorize. The kernel format and PID translation are recorded in
+  [Linux fs/locks.c](https://github.com/torvalds/linux/blob/master/fs/locks.c),
+  `locks_translate_pid`, `lock_get_status` and `locks_show`.
+- Advantages, costs and effects: no new bound, dependency, wire call, signal
+  or file mutation. Foreign negative/invalid PID and unknown-identity rows
+  cannot mask a valid row before or after them. A matching invalid PID still
+  refuses. Absence remains `NotVisible`, never proof that the OS lock is free.
+
+File identity can also be invisible when visible `stat` identifiers differ
+from the locked inode's superblock device or inode. Btrfs subvolumes assign
+an anonymous device in `btrfs_getattr`
+([source](https://github.com/torvalds/linux/blob/master/fs/btrfs/inode.c));
+overlayfs may present identifiers distinct from its backing files
+([kernel documentation](https://docs.kernel.org/filesystems/overlayfs.html)).
+These are additional limitations beside PID namespaces and NFS/SMB lock
+emulation. The query then falls back to the actual OS lock. Those filesystem
+layouts have not been exercised here; the source reason does not establish
+runtime coverage of btrfs, overlayfs, network filesystems or PID namespaces.
+
+
+## Service path fidelity (slice 2f)
+
+[Decision Log]
+- Purpose and intent: ensure a newly installed unit starts this executable
+  in the selected data directory, independent of its manager's cwd.
+- Existing implementation and constraints: the installer owns both templates
+  and leaves differing files alone. Paseo `restart.ts` 20–21, 118 retains
+  a supervisor; Vessel instead launches the node as a direct user service.
+- Alternatives considered: canonicalize paths, keep relative arguments, or
+  silently replace unrepresentable OS bytes. Canonicalization requires
+  filesystem access and changes symlink semantics; the others can select
+  another directory or executable.
+- Selected approach: reuse the installer and existing `RemoteCommand`
+  quoting. Resolve new data and service paths with `std::path::absolute`;
+  refuse non-Unicode or control characters before a service-file write.
+  Centralize per-platform locations and computed undo guidance beside the
+  installer; manual launchd load guidance uses the same POSIX value quoting.
+  No new dependency or crate edge is needed.
+- Why this approach: it preserves path semantics without resolving symlinks
+  ([Rust documentation](https://doc.rust-lang.org/std/path/fn.absolute.html)).
+  Systemd's command arguments expand dollars even inside quotes, while its
+  Environment assignment treats them literally; only data arguments gain
+  dollar escaping ([service rules](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html),
+  [environment rules](https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html)).
+- Advantages, costs and effects: new units retain the selected path and
+  saved PATH. Existing relative or expanding units differ and are preserved;
+  adoption requires explicit removal and recreation. Unit creation and
+  existing helper invocations still use the invoking OS user's credentials
+  and search path. No new helper or other account's environment is reached.
+  Windows retains the existing service-unavailable report. Real manager
+  lifecycle behavior and macOS/Windows execution remain unverified.
+
+
+The existing `write_once` policy also uses exclusive creation: an initializer
+cannot truncate a service file created after an earlier existence check.
+File I/O runs off the async worker; the platform reports retain their
+existing text and order. The first concurrent creator wins; a differing existing file
+stays unchanged. A failed initial write can leave an incomplete file for
+explicit repair rather than replacing someone else's later edits. This
+uses only the existing standard-library I/O and test fixtures.
+
+
+Existing service files are compared as byte streams with bounded buffering,
+not decoded into an unbounded String. A non-Unicode personal file is a
+preserved difference; the comparison can also finish against an endless
+reader. Only new validated templates are written. This changes installation
+comparison behavior; no independent reporting-only refactor is included.
+
+
+## Proposed process-mechanism ownership amendment
+
+ADR 0001's proposed node-control amendment replaces the earlier no-new-edge
+assumption for the following process-control phases only. The existing
+store-facing `NodeLock` contract stays unchanged while the generic kernel
+query moves to proc. Store-to-proc is added with that behavior-preserving
+move; CLI-to-proc is added only with the real caller. No external dependency
+or wire change is proposed. The separate descriptor/generation/namespace
+verification phase must not grant signal authority from a kernel PID alone.
+The documents-only contract adds neither an edge nor process-control code.
+
+
+## XML comment delimiter safety
+
+[Decision Log]
+- Purpose and intent: a home path must never close a generated plist comment
+  or introduce another plist key.
+- Existing implementation and constraints: the undo hint is present in the
+  plist and CLI output. Non-overlapping pair replacement leaves adjacent
+  hyphens when input contains longer runs; XML comments cannot contain such
+  a pair or end with a hyphen ([XML rules](https://www.w3.org/TR/xml/#sec-comments)).
+- Alternatives considered: omit the hint from every plist, refuse otherwise
+  valid paths, or replace pairs repeatedly. Omitting changes every existing
+  plist's comparison; refusing paths narrows valid OS paths; repeated passes
+  obscure the invariant.
+- Selected approach: emit comment characters once, inserting a space before
+  a hyphen that would follow another, and after a final hyphen. Already valid
+  hints remain byte-identical. XML text values still use their separate encoder.
+- Why this approach: neither adjacency nor a terminal hyphen can survive
+  emission, independently of the length or surrounding input. Existing head
+  assertions and normal service files need no expectation or format change.
+- Advantages, costs and effects: no new Rust dependency, wire call or edge.
+  The Unix regression test uses Python's standard-library `plistlib` in
+  isolated, no-site mode to parse generated XML and compare the complete
+  expected keys and values. This is a test-only interpreter prerequisite;
+  no interpreter or Python code ships in the product. The test fixture uses
+  the Python distribution's standard library, not an added package.
+  Systemd comments cannot be ended by a hyphen sequence; their line boundary
+  is protected by the existing control-character refusal before rendering.

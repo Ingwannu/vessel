@@ -54,6 +54,8 @@ mod install;
 #[cfg(test)]
 mod isolation;
 #[cfg(test)]
+mod label_ingress;
+#[cfg(test)]
 mod local;
 #[cfg(test)]
 mod lsp;
@@ -65,6 +67,8 @@ mod marks;
 mod forking;
 #[cfg(test)]
 mod history;
+#[cfg(test)]
+mod inbox;
 #[cfg(test)]
 #[cfg(unix)]
 mod meeting;
@@ -131,6 +135,8 @@ mod waiting;
 #[cfg(test)]
 mod workspace;
 
+#[cfg(test)]
+mod limits;
 #[cfg(test)]
 mod usage;
 

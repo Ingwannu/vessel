@@ -96,7 +96,6 @@ where
             Entry::Occupied(_) => return Err(ProtocolViolation::DuplicateRequestId(id)),
             Entry::Vacant(slot) => slot,
         };
-        tracing::trace!(%id, method = call.method().as_str(), "call");
         let handler = Arc::clone(&self.handler);
         let context = Arc::clone(&self.context);
         let protocol = self.protocol;
@@ -105,8 +104,10 @@ where
         let task = self.tasks.spawn(async move {
             if let Some(error) = protocol_refusal(call.method(), call.required_protocol(), protocol)
             {
+                tracing::trace!(%id, method = call.method().as_str(), "refused: protocol");
                 return (id, Outcome::Err(error));
             }
+            tracing::trace!(%id, method = call.method().as_str(), "call");
             let outcome = dispatch(&*handler, &*context, call).await;
             (id, outcome)
         });
@@ -320,10 +321,7 @@ fn protocol_refusal(
     let Some(needs) = required else {
         return Some(WireError::new(
             ErrorCode::Unsupported,
-            format!(
-                "`{}` uses a feature whose protocol version is not assigned",
-                method.as_str()
-            ),
+            crate::CallError::UnassignedProtocol { method }.to_string(),
         ));
     };
     (needs > protocol).then(|| {
@@ -347,7 +345,10 @@ mod protocol_tests {
         let old = vessel_proto::MIN_PROTOCOL_VERSION;
         let pending = protocol_refusal(method, None, old).unwrap();
         assert_eq!(pending.code, ErrorCode::Unsupported);
-        assert!(pending.message.contains("not assigned"));
+        assert_eq!(
+            pending.message,
+            crate::CallError::UnassignedProtocol { method }.to_string()
+        );
         let newer = vessel_proto::PROTOCOL_VERSION;
         let denied = protocol_refusal(method, Some(newer), old).unwrap();
         assert_eq!(denied.code, ErrorCode::Unsupported);

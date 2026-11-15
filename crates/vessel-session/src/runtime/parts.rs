@@ -35,6 +35,7 @@ pub(crate) struct Begin {
     pub(crate) since: DateTime<Utc>,
     pub(crate) seen: Seen,
     pub(crate) attention: Option<EventSeq>,
+    pub(crate) limits: crate::LimitAssociation,
 }
 
 impl Begin {
@@ -45,6 +46,7 @@ impl Begin {
             since,
             seen: Seen::default(),
             attention: None,
+            limits: crate::LimitAssociation::Unavailable,
         }
     }
 }
@@ -101,6 +103,7 @@ impl SessionRuntime {
             since,
             seen,
             attention,
+            limits,
         } = begin;
         // On the board from the start (starting is active), so no reader
         // of a live session ever sees it without a place.
@@ -113,6 +116,7 @@ impl SessionRuntime {
         let state = (seen, Marks::after(attention));
         let channels = (model_calls, renames, forge);
         let (info, kill, shared) = self.shared(info, (input, pid), control, channels, state);
+        let _previous = shared.limits.send_replace(limits);
         let (durable_sender, durable) = mpsc::channel(self.config.durable_capacity.get());
         Parts {
             life: Lifecycle {
@@ -144,6 +148,7 @@ impl SessionRuntime {
         let kill = self.shutdown.child_token();
         let shared = Arc::new(Shared {
             id,
+            limits: watch::channel(crate::LimitAssociation::Unavailable).0,
             info: info_receiver,
             ring: Mutex::new(Ring::new(self.config.ring_capacity, next)),
             input,

@@ -30,11 +30,12 @@ use std::path::Path;
 /// Bounded prompt styles kept separate from executable project commands.
 pub mod metadata;
 mod scripts;
+mod terminals;
 
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use vessel_proto::scripts::{ScriptEntry, ScriptName};
-use vessel_proto::workspace::{CommandsDigest, InvalidText, ProjectCommand, RelPath};
+use vessel_proto::workspace::{CommandsDigest, FileTerminal, InvalidText, ProjectCommand, RelPath};
 
 pub use scripts::{MAX_SCRIPTS, ScriptsError};
 
@@ -58,6 +59,8 @@ pub struct ProjectFile {
     pub teardown: Vec<ProjectCommand>,
     /// Its scripts and services, in name order (protocol 11).
     pub scripts: Vec<ScriptEntry>,
+    /// Approved shell input for terminals opened after setup (ADR 0066).
+    pub terminals: Vec<FileTerminal>,
 }
 
 /// Why the file cannot be used. Nothing in it runs then.
@@ -89,6 +92,18 @@ pub enum ProjectFileError {
     /// A script or a service the rules refuse (protocol 11).
     #[error(transparent)]
     Scripts(#[from] ScriptsError),
+    /// A terminal entry has no command to approve.
+    #[error("`worktree.terminals` entry has no command")]
+    TerminalMissingCommand,
+    /// A terminal command must obey the same limits as setup commands.
+    #[error("`worktree.terminals.command`: {0}")]
+    TerminalCommand(#[source] InvalidText),
+    /// A terminal name must fit the title the client can display.
+    #[error("`worktree.terminals.name`: {0}")]
+    TerminalName(#[source] vessel_proto::InvalidTitle),
+    /// Refuse the whole file rather than silently dropping excess entries.
+    #[error("`worktree.terminals` names more than {MAX_COMMANDS} terminals")]
+    TooManyTerminals,
     /// Not a regular file (a device, a pipe, a folder).
     #[error("`vessel.toml` is not a regular file; it is not read")]
     NotAFile,
@@ -113,6 +128,8 @@ struct RawWorktree {
     setup: Commands,
     #[serde(default)]
     teardown: Commands,
+    #[serde(default)]
+    terminals: Vec<terminals::RawTerminal>,
 }
 
 #[derive(Deserialize)]
@@ -144,6 +161,7 @@ impl ProjectFile {
             setup: commands("setup", raw.worktree.setup)?,
             teardown: commands("teardown", raw.worktree.teardown)?,
             scripts: scripts::entries(raw.scripts, raw.services)?,
+            terminals: terminals::parse(raw.worktree.terminals)?,
         })
     }
 
@@ -170,7 +188,10 @@ impl ProjectFile {
     /// Whether it names no command.
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.setup.is_empty() && self.teardown.is_empty() && self.scripts.is_empty()
+        self.setup.is_empty()
+            && self.teardown.is_empty()
+            && self.scripts.is_empty()
+            && self.terminals.is_empty()
     }
 
     /// Its script or service called `name`.
@@ -180,12 +201,15 @@ impl ProjectFile {
     }
 
     /// What a person approves: SHA-256 over both lists, and over the
-    /// scripts when there are any (version 2; the module's Decision Log
-    /// says why version 1 stays for a file without them).
+    /// scripts when there are any (version 2), or terminals (version 3,
+    /// ADR 0066). The module's Decision Log
+    /// says why earlier digests stay for a file without new keys.
     #[must_use]
     pub fn digest(&self) -> CommandsDigest {
         let mut hash = Sha256::new();
-        if self.scripts.is_empty() {
+        if !self.terminals.is_empty() {
+            hash.update(b"vessel.toml commands 3\n");
+        } else if self.scripts.is_empty() {
             hash.update(b"vessel.toml worktree commands 1\n");
         } else {
             hash.update(b"vessel.toml commands 2\n");
@@ -197,8 +221,15 @@ impl ProjectFile {
                 scripts::field(&mut hash, command.as_str().as_bytes());
             }
         }
-        if !self.scripts.is_empty() {
-            scripts::digest(&mut hash, &self.scripts);
+        if !self.terminals.is_empty() {
+            scripts::digest(&mut hash, &self.scripts, scripts::DigestFields::WithPorts);
+            terminals::digest(&mut hash, &self.terminals);
+            // ADR 0066 fixes these slots now so later port keys cannot change
+            // a terminal-only file's approved version 3 encoding.
+            scripts::field(&mut hash, b"");
+            scripts::field(&mut hash, b"");
+        } else if !self.scripts.is_empty() {
+            scripts::digest(&mut hash, &self.scripts, scripts::DigestFields::Original);
         }
         CommandsDigest::from_sha256(hash.finalize().into())
     }

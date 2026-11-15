@@ -20,7 +20,9 @@ pub(crate) fn problem(error: &CallError) -> Problem {
             code: wire.code,
             message: wire.message.clone(),
         },
-        CallError::NotInProtocol { .. } => Problem::Older,
+        // Neither was sent. No released node has an unassigned feature yet,
+        // so it shows the same refusal as a node too old for the call.
+        CallError::NotInProtocol { .. } | CallError::UnassignedProtocol { .. } => Problem::Older,
         CallError::Disconnected
         | CallError::UnexpectedReply(_)
         | CallError::RequestIdsExhausted => Problem::Gone(error.to_string()),
