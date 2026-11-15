@@ -83,7 +83,7 @@ impl Producer {
         let launched = tokio::task::spawn_blocking(move || {
             let default = transport
                 .program
-                .map(|program| {
+                .map(|program| -> Result<CommandPrefix, ProviderLaunchError> {
                     Ok(CommandPrefix {
                         program: program
                             .parse()
