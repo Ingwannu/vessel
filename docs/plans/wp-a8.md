@@ -676,3 +676,8 @@ six-owner list. The newly reviewed canonical versions replace those old producer
 blobs; A8 forms, uncertainty and request-owner adapters are retained. Resource
 module/Areas storage remain test-only. This union does not enable product resident
 storage, guarded follow, runtime workspace lookup or durable response receipts.
+
+The uncertainty retry classification matches every Problem variant explicitly.
+A future error variant must choose its policy at compile time instead of silently
+becoming retryable through a negative comparison against Unconfirmed. Existing
+variant behavior and independent admission/provider checks remain unchanged.

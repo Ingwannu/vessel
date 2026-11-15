@@ -28,7 +28,19 @@ impl Failures {
     /// other admission and provider-delivery checks remain independently required.
     #[must_use]
     pub fn retryable(&self, request: Request) -> bool {
-        self.get(request) != Some(Problem::Unconfirmed)
+        match self.get(request) {
+            None
+            | Some(
+                Problem::Offline
+                | Problem::Busy
+                | Problem::Exhausted
+                | Problem::Unsupported
+                | Problem::Invalid
+                | Problem::Unsent
+                | Problem::Refused(_),
+            ) => true,
+            Some(Problem::Unconfirmed) => false,
+        }
     }
     /// A retry/ack clears its own failure without touching another request.
     pub fn clear(&mut self, request: Request) {
