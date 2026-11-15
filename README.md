@@ -1451,3 +1451,9 @@ there is no new startup setting or automatic resume behavior in this slice.
 The shared CLI presentation boundary is described in
 [W17 output seam](docs/plans/wp-w17-output.md). Configured `models` preserves its
 default listing and accepts explicit JSON/YAML, quiet and headerless output.
+
+`vessel [--node NAME] node diagnostics [--json]` collects a bounded metadata
+report over that node's existing authenticated connection. Its feature is
+pending a protocol assignment, so this checkpoint explicitly refuses before
+sending instead of pretending a local report came from the selected node.
+The command's safe error output omits private connection/source details.

@@ -4,6 +4,8 @@
 mod attached;
 mod automation;
 mod conversation;
+mod diagnostics;
+pub use diagnostics::{DiagnosticSnapshotError, ReadAdmission as DiagnosticReadAdmission};
 mod forge;
 mod inbox;
 mod push;

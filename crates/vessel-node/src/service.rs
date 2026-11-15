@@ -65,6 +65,7 @@ mod scripts;
 mod terminals;
 // Protocol 11's calls: schedules (`automation`), and the runs they make
 // through the service's own checks; protocol 13's previews of them.
+mod diagnostics;
 mod followed;
 mod inbox;
 mod limits;
@@ -130,7 +131,8 @@ pub(crate) struct NodeService {
     /// The ports their trees and the sessions' listen on (protocol 11).
     ports: Arc<Ports>,
     /// What `agent.status` found (protocol 11, `readiness`).
-    readiness: crate::readiness::Readiness,
+    readiness: Arc<crate::readiness::Readiness>,
+    pub(crate) diagnostics: crate::diagnostics::State,
     /// The node's copy of the ACP registry (protocol 11, `catalogue`).
     catalogue: crate::catalogue::Catalogues,
     /// The last install (protocol 11, `install`).
@@ -161,6 +163,7 @@ pub(crate) struct NodeService {
 
 /// The parts a [`NodeService`] serves.
 pub(crate) struct Parts {
+    pub(crate) diagnostics: crate::diagnostics::Setup,
     pub(crate) lsp: vessel_lsp::Manager,
     pub(crate) lsp_roots: Vec<crate::LspRoot>,
     pub(crate) lifecycle: Lifecycle,
@@ -192,6 +195,7 @@ pub(crate) struct Parts {
 impl NodeService {
     pub(crate) fn new(parts: Parts) -> Self {
         let Parts {
+            diagnostics,
             lsp,
             lsp_roots,
             lifecycle,
@@ -220,6 +224,14 @@ impl NodeService {
             limits,
         } = parts;
         let store = sessions.store().clone();
+        let readiness = Arc::new(crate::readiness::Readiness::default());
+        let diagnostics = crate::diagnostics::State::new(
+            diagnostics,
+            lookup.clone(),
+            Arc::clone(&profiles),
+            Arc::clone(&readiness),
+            store.clone(),
+        );
         Self {
             lsp,
             lsp_roots,
@@ -243,7 +255,8 @@ impl NodeService {
             forges,
             terminals,
             ports,
-            readiness: crate::readiness::Readiness::default(),
+            readiness,
+            diagnostics,
             catalogue,
             installs: crate::install::Installs::default(),
             schedules,

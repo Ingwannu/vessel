@@ -1918,3 +1918,13 @@ packages using the same durable registry/start-lease fence. Complete snapshots
 are bounded by the store's descriptor and retained resource budgets below the
 existing RPC frame limit. No cwd inference, implicit trust, replay or teardown
 occurs in a presentation mutation.
+
+## Pending diagnostics (ADR 0074)
+
+`node.diagnostics {}` returns a bounded DiagnosticReport through the sole
+method-table pending row. It needs Read and is unary, not fleet-forwardable.
+DIAGNOSTICS_PROTOCOL is None until the integrator assigns a version; every
+client send and server dispatch refuses it through required_protocol while
+unassigned. Protocol maximum/minimum and store schema are unchanged here.
+The report adds explicit own-process numeric observations, source states and
+closed resource-refusal detail; it never carries raw logs or environment.

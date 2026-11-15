@@ -510,6 +510,7 @@ impl Handler for Fake {
         rename_workspace: vessel_proto::registry::RenameWorkspace => vessel_proto::registry::WorkspaceDescriptor;
         pin_workspace: vessel_proto::registry::PinWorkspace => vessel_proto::registry::WorkspaceDescriptor;
         release_workspace_automation: vessel_proto::registry::ReleaseWorkspaceAutomation => vessel_proto::registry::WorkspaceDescriptor;
+        diagnostics: vessel_proto::diagnostics::GetDiagnostics => vessel_proto::diagnostics::DiagnosticReport;
         forward: vessel_proto::Forward => vessel_proto::Forwarded;
         relay: vessel_proto::RelayCall => vessel_proto::Forwarded;
         deliver: vessel_proto::Deliver => vessel_proto::Forwarded;

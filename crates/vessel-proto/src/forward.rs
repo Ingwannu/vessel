@@ -438,7 +438,8 @@ impl Method {
             | Self::GetAgentHistory => true,
             // Protocol 11: adding and removing an agent is the node's own
             // administration, by its owner or its own devices (ADR 0032).
-            Self::GetPushKey
+            Self::Diagnostics
+            | Self::GetPushKey
             | Self::SubscribePush
             | Self::UnsubscribePush
             | Self::ReportPushPresence

@@ -74,6 +74,7 @@ mod search;
 mod settings_file;
 mod side_context;
 mod store;
+pub use store::{DiagnosticReadAdmission, DiagnosticSnapshotError};
 mod subagents;
 mod token;
 mod usage;

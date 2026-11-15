@@ -284,6 +284,7 @@ impl Reply {
             | Self::UnsubscribePush(_)
             | Self::ReportPushPresence(_)
             // A hit names a session; the session itself comes from a list.
+            | Self::Diagnostics(_)
             | Self::SearchMessages(_) => None,
         }
     }

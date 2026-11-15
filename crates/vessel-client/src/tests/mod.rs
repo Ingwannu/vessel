@@ -2,6 +2,7 @@
 //! logic, and over a loopback websocket for the connection and the token.
 
 mod calls;
+mod diagnostics;
 mod memory;
 mod pinned;
 mod resume;
@@ -430,6 +431,7 @@ impl Handler for FakeNode {
         rename_workspace: vessel_proto::registry::RenameWorkspace => vessel_proto::registry::WorkspaceDescriptor;
         pin_workspace: vessel_proto::registry::PinWorkspace => vessel_proto::registry::WorkspaceDescriptor;
         release_workspace_automation: vessel_proto::registry::ReleaseWorkspaceAutomation => vessel_proto::registry::WorkspaceDescriptor;
+        diagnostics: vessel_proto::diagnostics::GetDiagnostics => vessel_proto::diagnostics::DiagnosticReport;
         open_side_question: vessel_proto::side_questions::OpenSideQuestion => SessionInfo;
         prompt_side_question: vessel_proto::side_questions::PromptSideQuestion => vessel_proto::Delivered;
         reset_side_question: vessel_proto::side_questions::ResetSideQuestion => SessionInfo;

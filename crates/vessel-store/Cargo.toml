@@ -42,6 +42,7 @@ zeroize.workspace = true
 rustix = { workspace = true, features = ["fs"] }
 
 [dev-dependencies]
+vessel-testkit.workspace = true
 bytes.workspace = true
 criterion.workspace = true
 futures-util.workspace = true

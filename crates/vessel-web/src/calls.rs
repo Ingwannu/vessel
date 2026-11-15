@@ -228,6 +228,7 @@ const fn forwardable(method: Method) -> bool {
         | Method::ListInbox
         | Method::GetInboxEntry
         | Method::MarkInbox
+        | Method::Diagnostics
         | Method::GetPushKey
         | Method::SubscribePush
         | Method::UnsubscribePush

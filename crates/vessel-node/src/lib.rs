@@ -69,6 +69,7 @@ mod catalogue;
 pub mod cleanup;
 mod config;
 mod devices;
+mod diagnostics;
 mod envelope;
 mod error;
 pub mod fleet;

@@ -87,14 +87,21 @@ macro_rules! guarded_method {
             connection: &Connection,
             request: $request,
         ) -> Result<$response, WireError> {
-            connection
-                .principal()
-                .permit(<$request as Request>::METHOD)?;
-            if let Some(session) = Target::target(&request) {
-                self.0.check_owner(connection.principal(), session).await?;
-                self.0.refuse_older(connection, session).await?;
+            let result = async {
+                connection
+                    .principal()
+                    .permit(<$request as Request>::METHOD)?;
+                if let Some(session) = Target::target(&request) {
+                    self.0.check_owner(connection.principal(), session).await?;
+                    self.0.refuse_older(connection, session).await?;
+                }
+                self.0.$handler(connection, request, self).await
             }
-            self.0.$handler(connection, request, self).await
+            .await;
+            self.0
+                .diagnostics
+                .completed(<$request as Request>::METHOD, &result);
+            result
         }
     };
     ($protocol:tt, $shape:ident, $handler:ident, $request:ty, $response:ty) => {
@@ -103,15 +110,25 @@ macro_rules! guarded_method {
             connection: &Connection,
             request: $request,
         ) -> Result<$response, WireError> {
-            connection
-                .principal()
-                .permit(<$request as Request>::METHOD)?;
-            crate::workspace::refuse_agents(connection.principal(), <$request as Request>::METHOD)?;
-            if let Some(session) = Target::target(&request) {
-                self.0.check_owner(connection.principal(), session).await?;
-                self.0.refuse_older(connection, session).await?;
+            let result = async {
+                connection
+                    .principal()
+                    .permit(<$request as Request>::METHOD)?;
+                crate::workspace::refuse_agents(
+                    connection.principal(),
+                    <$request as Request>::METHOD,
+                )?;
+                if let Some(session) = Target::target(&request) {
+                    self.0.check_owner(connection.principal(), session).await?;
+                    self.0.refuse_older(connection, session).await?;
+                }
+                self.0.$handler(connection, request).await
             }
-            self.0.$handler(connection, request).await
+            .await;
+            self.0
+                .diagnostics
+                .completed(<$request as Request>::METHOD, &result);
+            result
         }
     };
 }
@@ -193,6 +210,7 @@ untargeted!(
     vessel_proto::inbox::ListInbox,
     vessel_proto::inbox::MarkInbox,
     vessel_proto::inbox::GetInboxEntry,
+    vessel_proto::diagnostics::GetDiagnostics,
     vessel_proto::push::GetPushKey,
     vessel_proto::push::SubscribePush,
     vessel_proto::push::UnsubscribePush,

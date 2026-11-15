@@ -77,7 +77,8 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::ListPrompts
         | Method::GetNodeSettings
         | Method::SetNodeSettings
-        | Method::ListInbox => json!({}),
+        | Method::ListInbox
+        | Method::Diagnostics => json!({}),
         Method::RevokeDevice => json!({"device":id}),
         Method::ReadBlob => json!({"hash":hash}),
         Method::WatchFleet => json!({"after":0}),
