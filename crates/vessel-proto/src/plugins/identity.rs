@@ -99,7 +99,7 @@ text_type!(/// Paseo-compatible trimmed theme name, measured as JavaScript measu
     ThemeName, theme_name, ThemeName);
 text_type!(/// Bounded multiline display content; core never evaluates it as code.
     ContentText, content, Content);
-text_type!(/// Literal extension matcher without a dot or glob; matching ignores ASCII case.
+text_type!(/// Literal extension matcher without a dot or glob; matching uses Unicode lowercase.
     FileExtension, extension, Extension);
 text_type!(/// A literal filename matcher; unlike a stored attachment, it can name Unix dotfiles.
     FileNamePattern, file_pattern, FileNamePattern);

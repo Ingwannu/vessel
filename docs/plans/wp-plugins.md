@@ -48,8 +48,8 @@ until its owner provides a reviewed hash. Do not copy those files.
 ## Current boundary
 
 The initial baseline 1d1f11df had no plugin RPC. The app tree now merged
-package base 8d5513e4 and the node tree merged Quality B 29eebb8b under A8,
-both without conflicts. No feature is advertised
+package base 4, 3cd0d3fc, under A8, including Quality B and the reviewed auth
+race correction c5da5305. The node tree has Quality B 29eebb8b. No feature is advertised
 as complete until its real path works. The package is not a whole-package
 gate or runtime/capture proof merely because its declaration tests pass.
 
@@ -71,6 +71,28 @@ no fallback color is synthesized after failed parsing. Whole documents,
 helper, node service, CLI and native adapters remain separate implementation
 work and are not claimed by the scalar tests.
 
+## Native skeleton and request ownership
+
+The app tree merged package base 4, 3cd0d3fc, without conflicts; node work
+merged Quality B 29eebb8b. Shared registration follows the split command,
+event, dispatch and shell/events modules from that base. No size record
+has been raised.
+
+`view::plugins::Registry` retains validated themes per NodeId and exact
+PluginAddress. Offline retains display data, never authorizes a remote
+action; Unsupported withdraws that host. A complete replacement validates
+all owners and duplicates before publication, while a malformed replacement
+retains the previous snapshot plus a typed failure. Read tickets reuse the
+existing checked ticket allocator and add a registry lifetime fence, so a
+new registry's reset counter cannot admit an old callback.
+
+`link::plugins` is the typed CatalogSource boundary, tested with in-memory
+and never-answering sources. Its current product adapter returns Unsupported
+without sending a method; it is not a product fake. Catalog requests have
+one named finite deadline and return their captured ticket on every result.
+The feature is not wired into the app's visible Settings route yet. Its
+actual runtime, source installation, catalog cache, i18n, declaration paint,
+per-feature adapters and capture matrix remain required work.
 The coordinator authorized the exact W11 identity-only commit e45a5d89
 after V3 source review. It is merged on the node tree; no unreviewed
 workspace registry or store implementation is adopted. Header buttons and
@@ -128,3 +150,13 @@ raw references for language changes. Disposal/generation fences prevent stale
 labels republishing. No locale RPC and no edits to core translator policy.
 The existing scalar names are literals; the dynamic resource implementation is
 still required and is not claimed by the current schema tests.
+
+## Decoder diagnostics
+
+Self-audit found that a fixed DocumentError message still exposed serde's
+unknown-field/variant input through Debug and Error::source. PluginJsonError
+retains the parser's concrete cause but seals that raw diagnostic chain;
+only category and line/column leave the edge. Canary fixtures traverse every
+exposed cause. Direct serde decoding is an internal edge, never an approved
+diagnostic path; wrap its error before returning it. No executable helper or
+native renderer is implied by these graph tests.
