@@ -106,23 +106,6 @@ impl Shell {
         }
     }
 
-    /// Show a session's conversation, following it.
-    fn follow(&mut self, open: Open, cx: &mut Context<'_, Self>) {
-        self.conversation_opened(&open.machine, open.session, cx);
-        let view = &mut self.areas.session;
-        view.conversation = Conversation::default();
-        view.entries.reset(0);
-        if open.structured {
-            self.command(Command::Open {
-                machine: open.machine.clone(),
-                session: open.session,
-            });
-        }
-        self.areas.session.open = Some(open);
-        self.route = Route::Session;
-        cx.notify();
-    }
-
     /// The draft was sent: show its prompt while the session starts.
     /// The machine `from` is called `to` now (Settings › Machines, track
     /// E2, after the book was written): the session open and a session

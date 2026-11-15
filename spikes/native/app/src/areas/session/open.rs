@@ -1,5 +1,8 @@
 //! The visible session identity shared by navigation and session rendering.
-use vessel_app_view::Card;
+use vessel_app_view::{Card, Conversation};
+use vessel_app_kit::ui::Context;
+use vessel_app_link::Command;
+use crate::routes::Route;
 use vessel_proto::SessionId;
 
 /// The session on screen.
@@ -29,4 +32,24 @@ impl Open {
             archived_at: card.detail.marks.archived_at,
         }
     }
+}
+
+impl crate::shell::Shell {
+    /// Show a session's conversation, following it.
+    pub(super) fn follow(&mut self, open: Open, cx: &mut Context<'_, Self>) {
+        self.conversation_opened(&open.machine, open.session, cx);
+        let view = &mut self.areas.session;
+        view.conversation = Conversation::default();
+        view.entries.reset(0);
+        if open.structured {
+            self.command(Command::Open {
+                machine: open.machine.clone(),
+                session: open.session,
+            });
+        }
+        self.areas.session.open = Some(open);
+        self.route = Route::Session;
+        cx.notify();
+    }
+
 }
