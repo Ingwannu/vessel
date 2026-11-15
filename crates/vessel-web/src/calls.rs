@@ -63,8 +63,9 @@ fn decode(call: &RawJson) -> Result<UnaryCall, Failure> {
 ///
 /// Refused: the connection-scoped subscription methods (streams have their
 /// own frames), and the fleet's node-to-node machinery, which only nodes
-/// and relays call. Everything else passes, and the node checks scopes as
-/// for any client.
+/// and relays call. Desktop voice also remains on its direct connection
+/// (ADR 0080); this bridge owns no microphone/playback lease. Everything
+/// else passes, and the node checks scopes as for any client.
 #[expect(
     clippy::too_many_lines,
     reason = "one line per method (ADR 0017), so a new method does not compile until someone \
@@ -252,7 +253,14 @@ const fn forwardable(method: Method) -> bool {
         | Method::Deliver
         | Method::GrantHome
         | Method::GetCallback
-        | Method::ListPeers => false,
+        | Method::ListPeers
+        | Method::StartVoice
+        | Method::CaptureVoice
+        | Method::NextVoice
+        | Method::PlayedVoice
+        | Method::AbortVoice
+        | Method::StopVoice
+        | Method::SpeakVoice => false,
     }
 }
 
@@ -315,6 +323,14 @@ mod tests {
                 "fleet.peers",
                 // Protocol 11: a terminal's stream has its own frame.
                 "terminal.subscribe",
+                // ADR 0080: a desktop voice lease belongs to its direct connection.
+                "voice.start",
+                "voice.chunk",
+                "voice.next",
+                "voice.played",
+                "voice.abort",
+                "voice.stop",
+                "voice.speak",
             ]
         );
     }
