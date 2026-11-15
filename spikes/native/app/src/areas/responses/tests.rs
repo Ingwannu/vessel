@@ -21,6 +21,7 @@ fn permission() -> PermissionRequest {
 fn begin(shell: &mut Shell) -> Pending {
     shell.fleet.machines = vec![vessel_app_view::Machine {
         name: "scratch".into(),
+        node: Some(vessel_proto::NodeId::random()),
         reach: vessel_app_view::Reach::Online,
         sessions: Vec::new(),
         agents: Vec::new(),
