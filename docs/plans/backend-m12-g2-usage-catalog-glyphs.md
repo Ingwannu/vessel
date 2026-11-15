@@ -28,3 +28,9 @@ the existing SVG raster path. These source/raster tests do not prove native
 light/dark first-use captures, visual comparison or E2/S2/G3 product wiring.
 Changed-crate narrow and V1 review are still owed for this checkpoint. No whole
 package gate or UI pass is claimed.
+
+Exact5ecd remote Clippy after the VM-resize143 resubmission compiled Kit and
+returned one float_cmp lint in the new parsed-stroke assertion; no tests ran.
+The regression now compares IEEE bits to literal1.5_f32, preserving exactness
+without an epsilon or lint exception. SVG/vector bytes and all render cases
+are unchanged; old-source red outcome is retained. Corrected checks are owed.

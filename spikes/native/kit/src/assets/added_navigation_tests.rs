@@ -8,7 +8,10 @@ fn check_strokes(group: &usvg::Group) -> usize {
     for node in group.children() {
         match node {
             usvg::Node::Path(path) => {
-                assert_eq!(path.stroke().unwrap().width().get(), 1.5);
+                assert_eq!(
+                    path.stroke().unwrap().width().get().to_bits(),
+                    1.5_f32.to_bits()
+                );
                 paths = paths.saturating_add(1);
             }
             usvg::Node::Group(group) => paths = paths.saturating_add(check_strokes(group)),
