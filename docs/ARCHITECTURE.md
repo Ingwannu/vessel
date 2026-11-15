@@ -1665,6 +1665,17 @@ The field does not enter SessionSpec, user messages, argv or environment.
 Reload orchestration and actual native override/restore transports are separate
 work; see docs/plans/provider-transient-context.md. No dependency edge changes.
 
+
+## Relay registration child lifetime (ADR0096)
+
+One `vessel-relay::NodeLink::run` owns a bounded `link/pending::DataOpens`
+JoinSet until every pending dial/handshake reaches accept or discard. Normal
+stop cancels/joins these children before Stopped/run completion; an already
+handed-off carrier belongs independently to the existing gateway. The node's
+Relays accept closure also checks its registration cancellation token. No
+second runner, transport, dependency or wire family is introduced. Dropping
+a run aborts its pending children and is not a normal stop acknowledgement.
+
 `vessel-proto::BookRouteId` is a client-minted, entry-scoped nonzero u32
 for the shared client-book model (ADR 0097). It is local data, not an RPC
 connection id or wire field; its lower-crate home lets the client and
