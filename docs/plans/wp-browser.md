@@ -914,3 +914,22 @@ request vocabulary or selecting a different ordinary command deadline.
 Existing overflow/wrong-session shutdown assertions now inspect the retained
 Cleanup source and still require the original Busy/Protocol failure respectively;
 no failure is weakened to generic is_err or an accepted successful close.
+
+
+## Exact artifact and service-account bundle component
+
+The fixed test-executable export of d37826caa433167d756ebaf0da01422ea069d21f
+completed rc0 in run wp-browser-execution-tests-20261115T142049Z-d37826ca. The
+single0500 test binary's SHA256 is
+`e6c781cb536e53adc857c1f0d2f0c811bf202d8080513541582e6349d5b48397`;
+its manifest records source/features/toolchain/build UID and matching host ABI.
+
+The approved-host read-only bundle fixture first failed0/1 with PermissionDenied
+under the real non-root account: the provisioning-owned dependency-list files
+had0600 mode. The coordinator corrected ONLY those two root-owned package lists
+to0644. The worker verified their readability/ownership/mode and unchanged Chrome
+and shell digests, then reran the SAME artifact once:1/0/0 in3.93 seconds, exit0.
+Both original failure and corrected-state argv/completion receipts are retained.
+The worker changed no runtime, policy or file permissions. This fixture starts no
+browser: it proves the actual account can read/observe this bundle, never a
+qualified launch, isolation, Preview permission, rendering or supported engine.
