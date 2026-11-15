@@ -302,3 +302,16 @@ new frame/stream consumer path and functional engine producer are still owed.
 No saved setting/session-start offering, active engine or native entry is enabled
 by this plumbing. Tests cover None/scope/shape/no-forward projection and direct
 human/agent/delegated admission before any future actor can inspect content.
+
+
+## C5 HTML preview proposal
+
+Read Paseo html-preview.web.tsx and html-preview-csp.ts directly after W13's
+reference handoff. No sibling resource authority exists in that reference; CSP
+does not block self-navigation. ADR0078 now proposes a separate opaque ephemeral
+document surface with deny-all networking, owner/revision/ticket fencing and
+actual-runtime navigation/file/egress qualification. It grants no current API
+or supported surface. W13 retains Source until a checked hash exists. Initial
+node-side active HTML requires direct human Operate plus the file-read policy;
+this deliberate difference avoids silently granting server script execution to
+Read-only devices. No General/Preview fallback or extra MCP tool.

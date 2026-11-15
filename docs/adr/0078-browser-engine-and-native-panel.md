@@ -574,3 +574,108 @@ zero datagrams/handshakes/CONNECTs and a browser handshake failure. Two configur
 settings differ, so this tests that combined diagnostic configuration, not single-flag
 causality. aioquic is scratch tooling only, not a product dependency. These runs do not
 prove the future product proxy, profile isolation, Preview revocation or Windows behavior.
+
+## Proposed C5 self-contained HTML document surface (review before implementation)
+
+Status: proposed extension only. No document method, profile, supported renderer
+or capability is enabled by this amendment. General and service Preview keep
+all their existing rules, including first-engine Preview qualification.
+
+[Decision Log]
+- Purpose: W13 owns Target::File, its root identity, source buffer and mode.
+  A file's HTML preview should reuse the verified rendering pipeline without
+  acquiring General sign-ins, service Preview reach or an arbitrary file URL.
+- Reference: Paseo app file-panels/html-preview.web.tsx:5-17,26-36 uses srcDoc,
+  sandbox allow-scripts (no same-origin/popup/top-navigation tokens), and
+  no-referrer. html-preview-csp.ts:15-27 permits inline/eval/blob scripts,
+  inline styles, data/blob image/media and data fonts; default/connect/form/
+  base/frame/object sources are denied. Lines48-54 supply the doctype and CSP
+  before the verbatim body and remove one leading BOM. Sibling workspace
+  resources are not granted. This is separate from Markdown relative resources.
+- Caveat verified in that source: CSP does not prevent the frame navigating
+  itself; navigate-to is not enforced. Native navigation interception is a
+  mitigation, not a blanket browser guarantee. Vessel must not describe CSP
+  alone as a network/navigation barrier on a remote node.
+- Alternatives: render in General (would share credentials); point Preview at
+  a made-up origin (would invent reach); file/data navigation (would bypass the
+  root contract); a second unqualified renderer (would duplicate security work).
+- Choice: a distinct ephemeral document context, below the same qualified
+  engine owner and resource budgets, with no shared cookies/auth/storage/cache,
+  no public/private network destination and no browser-tool addressability.
+  Its public identity is a document handle, never a general BrowserId or CDP id.
+- Consequence: canvas accessibility/IME/clipboard/export limitations are the
+  first headless engine's stated limitations, not hidden iframe equivalence.
+  When this context is unqualified, W13 retains Source and an explicit
+  unsupported-preview result. No OS-open or General-profile fallback.
+
+### Ownership and data flow
+
+W13 supplies a self-contained valid UTF-8 snapshot of at most1MiB, bound to its
+exact root/file/buffer revision and current resident operation ticket. Its
+checked read/snapshot API is still pending; this ADR does not invent its types.
+The app-side W12 ticket is a UI correlation/fencing token, never node authority.
+The node rechecks the authenticated direct human, current node/workspace/file
+read policy and snapshot/revision receipt under W13's contract. No cwd, guessed
+path, caller URL or renderer title is used as ownership. No relative resource
+reads are added, and no document invocation grants a wider file root.
+
+Active HTML runs JavaScript on the node rather than in the user's local iframe.
+The initial remote implementation requires direct human Operate as well as the
+file owner's read permission; Agent/Delegated callers cannot enter it. Read-only
+devices retain Source. This is a deliberate difference from client-local Paseo
+HTML rendering, because node-side active content is server execution even when
+its document is read-only. Agent browser_tools/session-start offering remains
+irrelevant to this human file-viewing path. No new MCP browser tool is added.
+
+A trusted blank root contains a sandboxed opaque srcdoc child, with only the
+reference script allowance and no-referrer. The static doctype/CSP prologue is
+installed before untrusted markup; no search for a user-provided head/doctype.
+Untrusted markup is transferred as typed data, never interpolated into an
+unescaped executable bootstrap. Snapshot chunks may be transferred within CDP's
+control budget and joined only before installing the complete document. Source,
+frames and page exceptions are redacted from Debug and never persisted in layout,
+node diagnostics or a session tool log. The C5 owner keeps title/source mode.
+
+### Required enforcement and refusal
+
+The document profile uses a deny-all proxy, which refuses HTTP(S), websocket
+and CONNECT before DNS/dialing. It has no General public allowance and no
+service exception. The exact runtime/configuration must also prove no direct
+TCP/UDP/WebRTC/QUIC/WebTransport bypass. File/debugging/external-handler schemes,
+new windows, downloads and host clipboard/media/permission prompts are refused.
+No sibling file/resource provider or invented URL authority is supplied.
+
+Only the initial opaque document and its same-document fragment movement may
+be presented. Every other attempted navigation invalidates the document owner
+and closes/refuses the surface. Output is fenced by the expected frame/loader
+identity before and after capture; a new document can never be published under
+an old file revision. Such output fencing is not by itself proof that an unsafe
+navigation was prevented. Qualification must independently prove that forbidden
+schemes cannot read host files or invoke external handlers, and that navigation
+cannot produce any outbound traffic. If headless Chromium cannot establish the
+required guard for the actual runtime, return Unsupported for this surface;
+never rely on an unenforced CSP directive or widen another profile's authority.
+
+One document consumes one of the existing total target slots; initially at most
+two document contexts may exist on a node. The1MiB source cap, encoded PNG8MiB,
+RGBA32MiB and owned task/queue limits are independent. Hidden/closed/replaced
+panes stop frame production; 5s paint/action waits and a wedged-script deadline
+end the owned process group/job rather than yielding an old frame as success.
+Close, changed buffer/revision, workspace/session move/archive, lost connection
+lease or ticket replacement cancels the context, invalidates output and deletes
+its private ephemeral profile. Cleanup uncertainty is an explicit failure;
+no authority or worker budget is released merely because its caller timed out.
+
+### Qualification owed
+
+Test the exact launched binary/hash, sandbox, flags, profile and policy, as the
+actual service UID/GID. Cases include malformed/oversized snapshots, BOM and
+hostile HTML prologues, inline/eval/blob behavior, opaque storage/parent denial,
+script/meta-refresh/form/anchor navigation, fragment movement, nested frames,
+popups and file/debugging/external schemes. Use only synthetic file/network
+canaries with independent positive controls, never real host secrets. Verify
+no host-file read/publication, no private/public network path across IPv4/IPv6
+TCP/UDP and QUIC/WebTransport, no credentials from General/Preview, process and
+profile cleanup, late-reply/ticket rejection, saturation and platform refusal.
+Header/codec fixtures, source review and a Rust gate alone qualify none of this.
+The file owner must receive one checked renderer/API hash before adopting it.
