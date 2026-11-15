@@ -7,6 +7,15 @@ Paseo's General/Sending settings sections, already described by the native
 General renderer. Existing Vessel wording is the migration source; no reference
 translation assets are imported.
 
+The code reference was checked at Paseo e9f897a66a9f74cc22c993c284d5fdb46b3af4d9:
+`packages/app/src/screens/settings-screen.tsx:359` owns the language row and
+non-native Show setup again registration; `screens/settings/general/sending-section.tsx:10`
+owns Interrupt/Steer/Queue order, keyboard visibility, translated select labels
+and delivery hints. This package moves existing Vessel sentences and does not
+change those control behaviors. W20 owns setup reopening; the existing native
+physical-key labels and Vessel-specific delivery/recovery differences remain
+as documented by the renderer. No translation resource assets were read/copied.
+
 [Decision Log]
 - Purpose: migrate the existing General labels and delivery explanations with
   the English-generated contract, English/Korean together.
