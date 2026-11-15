@@ -181,12 +181,14 @@ impl Shell {
     /// Show `route` from where no window is at hand; what arriving does
     /// runs on the next frame.
     pub(crate) fn route_to(&mut self, route: Route) {
+        self.cancel_session_navigation();
         self.route = route;
         self.arrive_pending = true;
     }
 
     /// Show `route`.
     pub(crate) fn go(&mut self, route: Route, window: &mut Window, cx: &mut Context<'_, Self>) {
+        self.cancel_session_navigation();
         self.route = route;
         routes::arrive(route, self, window, cx);
         cx.notify();
@@ -196,7 +198,7 @@ impl Shell {
         self.command(Command::Reload);
     }
 
-    /// Where the person is: the route, and the session open on it.
+    /// Where the person is: the route and its open session.
     fn place(&self) -> (Route, Option<vessel_proto::SessionId>) {
         let session = self.areas.session.open.as_ref().map(|open| open.session);
         (self.route, session)
@@ -301,6 +303,8 @@ impl Render for Shell {
         }
         crate::areas::desktop::pending(self, window, cx);
         self.settle_settings(window);
+        self.settle_sessions(window, cx);
+        self.settle_session_lifecycle(window, cx);
         let tokens = tokens(cx);
         // ADR 0036: below the phone's width the sidebar is a sheet from the
         // title bar; it closes when the person goes anywhere from it, and

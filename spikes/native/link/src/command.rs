@@ -23,6 +23,12 @@ use vessel_proto::{
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Passive read/follow bound to an authenticated deep-link destination.
+    SessionAccess(crate::sessions::Access),
+    /// Resolve a session for a deep link or Copy link without starting it.
+    Sessions(crate::sessions::Ask),
+    /// A correlated lifecycle mutation through existing session RPCs.
+    SessionLifecycle(vessel_app_view::sessions::PendingLifecycle),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.

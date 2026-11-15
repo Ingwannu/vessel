@@ -45,6 +45,7 @@ pub mod prefs;
 pub mod rewind;
 pub mod search;
 pub mod session;
+pub mod sessions;
 pub mod settings;
 pub mod shortcuts;
 pub mod sidebar;

@@ -63,6 +63,7 @@ mod demo;
 pub mod devices;
 pub mod node_settings;
 pub mod search;
+pub mod sessions;
 pub mod sync;
 #[cfg(target_arch = "wasm32")]
 mod web;
@@ -193,6 +194,7 @@ impl Link {
 
             device_calls: devices::Hub::default(),
             sync_calls: sync::Hub::default(),
+            session_navigation: sessions::Hub::default(),
             offers: std::sync::Arc::default(),
         };
         drop(runtime.spawn(state.run(inbox)));
@@ -257,6 +259,7 @@ struct State {
 
     device_calls: devices::Hub,
     sync_calls: sync::Hub,
+    session_navigation: sessions::Hub,
     /// The agents' lists kept between runs, by node: read before the first
     /// connection, written when an answer differs (on the blocking pool;
     /// the lock is held only there and for a lookup at connect).
@@ -307,6 +310,7 @@ impl State {
     /// Connect to every node in the book (again), then list sessions.
     async fn reload(&mut self) {
         self.clients.clear();
+        self.session_connections_changed();
         self.refresh().await;
     }
 
@@ -338,7 +342,7 @@ impl State {
         };
         let events = self.events.clone();
         self.follow_machine = Some(machine.to_owned());
-        self.follow = Some(tokio::spawn(follow(client, session, events)));
+        self.follow = Some(tokio::spawn(session::follow(client, session, events)));
     }
 }
 
@@ -352,37 +356,6 @@ impl State {
             Err(error) => {
                 let problem = vessel_app_view::workspace::problem::Problem::Gone(error.to_string());
                 workspace::Hub::refuse(machine, ask, problem, events);
-            }
-        }
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-/// A session's records to the events channel, one event per record (the
-/// screen folds whatever has queued up in one update).
-async fn follow(client: NodeClient, session: SessionId, events: mpsc::Sender<Event>) {
-    let lost = |why: String| Event::SessionLost { session, why };
-    let mut stream = match client.follow(session, vessel_proto::EventSeq::new(0)).await {
-        Ok(stream) => stream,
-        Err(error) => {
-            let _closed = events.send(lost(error.to_string())).await;
-            return;
-        }
-    };
-    while let Some(item) = stream.next().await {
-        match item {
-            Ok(record) => {
-                let event = Event::Records {
-                    session,
-                    records: vec![record],
-                };
-                if events.send(event).await.is_err() {
-                    return;
-                }
-            }
-            Err(error) => {
-                let _closed = events.send(lost(error.to_string())).await;
-                return;
             }
         }
     }
