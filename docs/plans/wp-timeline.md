@@ -774,3 +774,10 @@ model/app/kit tests are queued on fixed commits. The old56 app/kit attempt faile
 only the missing InteractiveElement import, already fixed in629404149; it did
 not execute those tests and is not a runtime pass. The replacement uses the
 current immutable94 source. Whole gate, captures and V4 remain owed.
+
+
+Fixed `fcddc1c8` now passed all 1,131 view all-target tests in
+`wp-timeline-models-20261115T110133Z-fcddc1c8`. This includes exact source
+membership/user-chunk continuity and the earlier canonical item/prose model. It
+excludes later canonical Plan/provenance changes, open-sheet rebasing and base6.
+The pending app/kit replacement and newer strict run remain separate evidence.
