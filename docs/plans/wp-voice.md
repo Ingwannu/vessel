@@ -567,3 +567,21 @@ prior failed run/compile logs remain evidence, not a runtime or lint pass.
 - Choice: the staged area::voice::power owner retains the existing typed Generation, pending task, guard and subscription together. Stop first closes its state and drops pending work/guard; completion has only a weak ownership reference and no audio-start path. Sleep closes this same state before invoking a synchronous local-cleanup callback outside any RefCell borrow.
 - Why: separate generation objects cannot release one another's guard, repeated cleanup is harmless, errors become the closed Unavailable status without foreign diagnostics, and no new OS dependency or global callback replaces GPUI.
 - Impact: three new tests use GPUI's fake platform for held release, delayed cancellation across generations and acquisition failure. They are source-only until their VM execution receipt. Actual sleep notification dispatch, Linux portal/Windows behavior, and controller/device integration remain unverified. Linux guard drop schedules portal close asynchronously in GPUI, so local ownership release is not a claim that the portal already acknowledged release. Public voice activation stays disabled.
+
+
+### About inventory correction
+
+The first exact four-package native runtime suite on eaf3 passed1464 cases,
+failed the unchanged About manifest-inventory check once, and retained two
+existing ignored cases. All new audio/control/cue, GPUI power and voice overlay
+cases executed successfully. The failure correctly identified missing CPAL and
+Sonora rows introduced by this package. Keep the inventory assertion/order;
+add the two actual direct dependencies after thiserror in manifest order with
+typed AudioDevices/AudioProcessing roles and complete EN/KO role sentences.
+The L owner reserved these exact About paths and supplied the short wording.
+
+Local exact crate archives were rehashed against the native lock checksums;
+their published Cargo manifests declare CPAL0.16.0 Apache-2.0 and Sonora0.3.0
+BSD-3-Clause. This corrects the visible direct-dependency inventory only, not a
+transitive licence audit, distribution clearance, physical audio/platform or
+full package acceptance. The changed About rows still need their VM check.

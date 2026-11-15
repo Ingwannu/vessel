@@ -25,6 +25,8 @@ impl<'a> About<'a> {
             Role::Tasks => self.role_tasks(),
             Role::Images => self.role_images(),
             Role::Errors => self.role_errors(),
+            Role::AudioDevices => self.role_audio_devices(),
+            Role::AudioProcessing => self.role_audio_processing(),
             Role::Network => self.role_network(),
             Role::Logs => self.role_logs(),
             Role::QrCodes => self.role_qr_codes(),

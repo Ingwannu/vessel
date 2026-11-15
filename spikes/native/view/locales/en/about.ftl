@@ -59,6 +59,12 @@ about-role-images = Drawing images
 # Under a bundled software name: its errors role. Keep short.
 about-role-errors = Errors
 
+# Under CPAL: hardware audio input and output, not a network service. Keep short.
+about-role-audio-devices = Audio devices
+
+# Under Sonora: processing audio samples, including echo cancellation. Keep short.
+about-role-audio-processing = Audio processing
+
 # Under a bundled software name: its network role. Keep short.
 about-role-network = The network and its tasks
 

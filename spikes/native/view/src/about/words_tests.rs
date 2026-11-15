@@ -24,6 +24,8 @@ const ROLE_SENTENCES: &[(Role, &str, &str)] = &[
     (Role::Tasks, "Asynchronous tasks", "비동기 작업"),
     (Role::Images, "Drawing images", "이미지 그리기"),
     (Role::Errors, "Errors", "오류"),
+    (Role::AudioDevices, "Audio devices", "오디오 장치"),
+    (Role::AudioProcessing, "Audio processing", "오디오 처리"),
     (
         Role::Network,
         "The network and its tasks",

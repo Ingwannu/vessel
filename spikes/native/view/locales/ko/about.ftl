@@ -59,6 +59,12 @@ about-role-images = 이미지 그리기
 # Under a bundled software name: its errors role. Keep short.
 about-role-errors = 오류
 
+# Under CPAL: hardware audio input and output, not a network service. Keep short.
+about-role-audio-devices = 오디오 장치
+
+# Under Sonora: processing audio samples, including echo cancellation. Keep short.
+about-role-audio-processing = 오디오 처리
+
 # Under a bundled software name: its network role. Keep short.
 about-role-network = 네트워크와 그 작업
 
