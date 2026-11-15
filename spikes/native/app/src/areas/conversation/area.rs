@@ -12,7 +12,7 @@ use vessel_app_link::ActKind;
 use vessel_app_view::prefs::{ConversationDisplay, ReasoningExpansion};
 use vessel_app_view::timeline::{
     Disclosures, FindCache, Folds, Live, Logs, OutlineItem, PlanDisclosures, Rows, Timeline,
-    plan_outcome, plan_text,
+    TurnActivity, TurnFolds, plan_outcome, plan_text,
 };
 use vessel_proto::{ErrorCode, EventSeq, SessionId, SessionInfo};
 
