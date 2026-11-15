@@ -71,7 +71,7 @@ fn cacheable_profile(profile: &vessel_harness::Profile) -> Result<(), WireError>
         // an actual immutable launch proof, rather than hashing credential values.
         return Err(WireError::new(
             ErrorCode::Unsupported,
-            "command discovery needs an immutable route and secret configuration",
+            "command discovery is not available for this profile configuration",
         ));
     }
     Ok(())
